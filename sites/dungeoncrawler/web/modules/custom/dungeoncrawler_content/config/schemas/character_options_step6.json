@@ -4,6 +4,66 @@
   "title": "Character Creation Step 6: Alignment & Deity",
   "description": "Defines options for selecting character's moral alignment and deity (optional) in Pathfinder 2E character creation",
   "type": "object",
+  "$defs": {
+    "alignmentOption": {
+      "type": "object",
+      "description": "Individual alignment choice with ID, name, and description",
+      "properties": {
+        "id": {
+          "type": "string",
+          "enum": ["LG", "NG", "CG", "LN", "N", "CN", "LE", "NE", "CE"],
+          "description": "Two-letter alignment abbreviation"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full alignment name"
+        },
+        "description": {
+          "type": "string",
+          "description": "Explanation of the alignment's moral and ethical perspective"
+        }
+      },
+      "required": ["id", "name", "description"],
+      "additionalProperties": false
+    },
+    "deityOption": {
+      "type": "object",
+      "description": "Deity choice with stats and portfolio information",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique deity identifier (lowercase with underscores)"
+        },
+        "name": {
+          "type": "string",
+          "description": "Deity's full name"
+        },
+        "alignment": {
+          "type": "string",
+          "enum": ["LG", "NG", "CG", "LN", "N", "CN", "LE", "NE", "CE", "Any"],
+          "description": "Deity's alignment (must match alignmentOption.id enum or 'Any')"
+        },
+        "domains": {
+          "type": "array",
+          "description": "Divine domains available to clerics",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        },
+        "favored_weapon": {
+          "type": "string",
+          "description": "Deity's signature weapon"
+        },
+        "description": {
+          "type": "string",
+          "description": "Brief description of deity's portfolio and role"
+        }
+      },
+      "required": ["id", "name", "alignment", "description"],
+      "additionalProperties": false
+    }
+  },
   "properties": {
     "step": {
       "type": "integer",
@@ -45,24 +105,9 @@
             },
             "options": {
               "type": "array",
-              "description": "Available alignments in Pathfinder 2E",
+              "description": "Available alignments in Pathfinder 2E (all nine standard alignments)",
               "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string",
-                    "enum": ["LG", "NG", "CG", "LN", "N", "CN", "LE", "NE", "CE"]
-                  },
-                  "name": {
-                    "type": "string",
-                    "enum": ["Lawful Good", "Neutral Good", "Chaotic Good", "Lawful Neutral", "Neutral", "Chaotic Neutral", "Lawful Evil", "Neutral Evil", "Chaotic Evil"]
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Explanation of the alignment"
-                  }
-                },
-                "required": ["id", "name", "description"]
+                "$ref": "#/$defs/alignmentOption"
               },
               "minItems": 9,
               "maxItems": 9,
@@ -121,36 +166,42 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for alignment selection",
               "properties": {
                 "required": {
                   "type": "boolean",
-                  "const": true
+                  "const": true,
+                  "description": "Alignment selection is mandatory"
                 },
                 "class_restrictions": {
                   "type": "object",
-                  "description": "Some classes restrict alignment choices",
+                  "description": "Some classes restrict alignment choices (e.g., Champions must follow their deity's alignment)",
                   "properties": {
                     "champion": {
                       "type": "array",
-                      "description": "Champions must follow their deity's alignment",
+                      "description": "Champions must follow alignments compatible with their deity",
                       "items": {
-                        "type": "string"
+                        "type": "string",
+                        "enum": ["LG", "NG", "CG", "LN", "N", "CN", "LE", "NE", "CE"]
                       }
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 },
                 "error_message": {
                   "type": "string",
                   "const": "Please select an alignment before continuing."
                 }
-              }
+              },
+              "required": ["required", "error_message"],
+              "additionalProperties": false
             }
           },
           "required": ["field_type", "label", "required", "options", "help_text", "validation"]
         },
         "deity": {
           "type": "object",
-          "description": "Deity selection field (optional except for clerics and champions)",
+          "description": "Deity selection field (optional for most classes, required for clerics and champions)",
           "properties": {
             "field_type": {
               "type": "string",
@@ -165,55 +216,15 @@
             "required": {
               "type": "boolean",
               "const": false,
-              "description": "Optional for most classes, required for clerics and champions"
-            },
-            "conditional": {
-              "type": "object",
-              "description": "Required if character is a cleric or champion",
-              "properties": {
-                "required_for_classes": {
-                  "type": "array",
-                  "items": {
-                    "type": "string",
-                    "enum": ["cleric", "champion"]
-                  }
-                }
-              }
+              "description": "Optional for most classes, but validation enforces requirement for clerics and champions"
             },
             "options": {
               "type": "array",
-              "description": "Common Pathfinder 2E deities",
+              "description": "Common Pathfinder 2E deities (plus 'No Deity' option)",
               "items": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "name": {
-                    "type": "string"
-                  },
-                  "alignment": {
-                    "type": "string",
-                    "description": "Deity's alignment"
-                  },
-                  "domains": {
-                    "type": "array",
-                    "description": "Divine domains",
-                    "items": {
-                      "type": "string"
-                    }
-                  },
-                  "favored_weapon": {
-                    "type": "string",
-                    "description": "Deity's favored weapon"
-                  },
-                  "description": {
-                    "type": "string",
-                    "description": "Brief description of deity's portfolio"
-                  }
-                },
-                "required": ["id", "name", "alignment", "description"]
+                "$ref": "#/$defs/deityOption"
               },
+              "minItems": 1,
               "examples": [
                 {
                   "id": "iomedae",
@@ -278,24 +289,29 @@
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for deity selection",
               "properties": {
                 "required_for_classes": {
                   "type": "array",
+                  "description": "Classes that must choose a deity (clerics and champions)",
                   "items": {
-                    "type": "string"
+                    "type": "string",
+                    "enum": ["cleric", "champion"]
                   },
                   "default": ["cleric", "champion"]
                 },
                 "alignment_compatibility": {
                   "type": "boolean",
                   "const": true,
-                  "description": "Character alignment must be within one step of deity alignment"
+                  "description": "Character alignment must be within one step of deity alignment on the Law-Chaos and Good-Evil axes. Note: This is a business logic flag; actual validation must be implemented in the application code."
                 },
                 "error_message": {
                   "type": "string",
                   "const": "Clerics and Champions must choose a deity. Your alignment must be within one step of your deity's alignment."
                 }
-              }
+              },
+              "required": ["required_for_classes", "alignment_compatibility", "error_message"],
+              "additionalProperties": false
             }
           },
           "required": ["field_type", "label", "required", "options", "help_text", "validation"]
