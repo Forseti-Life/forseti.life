@@ -100,7 +100,7 @@
 
         // Restore previous selection
         if (selectedAlignment) {
-          $(SELECTORS.CARD + `[data-alignment="${selectedAlignment}"]`).addClass(CSS_CLASSES.SELECTED);
+          $alignmentsGrid.find(SELECTORS.CARD).filter(`[data-alignment="${selectedAlignment}"]`).addClass(CSS_CLASSES.SELECTED);
         }
 
         // Handle alignment selection
