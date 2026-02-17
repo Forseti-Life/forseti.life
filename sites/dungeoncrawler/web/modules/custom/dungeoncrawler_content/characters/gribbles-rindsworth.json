@@ -1,241 +1,149 @@
 {
-  "pf2e_version": "2.0",
-  "character": {
-    "name": "Gribbles Rindsworth the Magnificent",
-    "player": "NPC",
-    "level": 3,
-    "experience_points": 0,
-    "hero_points": 1,
-    "ancestry": {
-      "name": "Goblin",
-      "heritage": "Unbreakable Goblin",
-      "size": "Small",
-      "speed": 25,
-      "languages": ["Common", "Goblin"],
-      "traits": ["Goblin", "Humanoid"],
-      "ancestry_features": {
-        "darkvision": true,
-        "hp": 10
-      },
-      "ancestry_feat": {
-        "name": "Goblin Scuttle",
-        "description": "You take advantage of your ally's movement to adjust your position. When a nearby ally moves, Gribbles can use a reaction to Step — usually towards the nearest cheese."
-      }
+  "step": 8,
+  "name": "Gribbles Rindsworth the Magnificent",
+  "concept": "Cheese-obsessed goblin rogue with a rat intelligence network, on a quest for the Legendary Cheese",
+  "level": 3,
+  "experience_points": 0,
+  "ancestry": "Goblin",
+  "heritage": "Unbreakable Goblin",
+  "background": "street-urchin",
+  "background_boosts": ["dex", "con"],
+  "class": "Rogue",
+  "subclass": "Thief Racket",
+  "abilities": {
+    "str": 10,
+    "dex": 18,
+    "con": 14,
+    "int": 12,
+    "wis": 12,
+    "cha": 14
+  },
+  "hit_points": {
+    "max": 40,
+    "current": 40,
+    "temp": 0
+  },
+  "alignment": "CN",
+  "deity": "None (worships cheese conceptually)",
+  "size": "Small",
+  "speed": 25,
+  "languages": ["Common", "Goblin"],
+  "skills": {
+    "acrobatics": "trained",
+    "athletics": "trained",
+    "deception": "trained",
+    "diplomacy": "trained",
+    "intimidation": "untrained",
+    "performance": "trained",
+    "society": "trained",
+    "stealth": "expert",
+    "survival": "trained",
+    "thievery": "expert",
+    "lore_underworld": "trained",
+    "lore_cheese": "expert",
+    "lore_traps": "trained"
+  },
+  "equipment": [
+    {
+      "item_id": "leather-armor",
+      "name": "Leather Armor",
+      "quantity": 1,
+      "equipped": true,
+      "worn": true
     },
-    "background": {
-      "name": "Street Urchin",
-      "description": "Gribbles grew up scrounging in the undercity, developing a refined palate for discarded dairy and an encyclopedic knowledge of trap mechanisms — mostly by triggering them.",
-      "ability_boosts": ["Dexterity", "Constitution"],
-      "skill_training": ["Thievery", "Underworld Lore"],
-      "feat": {
-        "name": "Pickpocket",
-        "description": "Gribbles can Palm an Object on a creature even if he's not hidden. But he mostly uses this to steal cheese."
-      }
+    {
+      "item_id": "shortsword",
+      "name": "Shortsword",
+      "quantity": 1,
+      "equipped": true,
+      "worn": false
     },
-    "class": {
-      "name": "Rogue",
-      "subclass": "Thief Racket",
-      "key_ability": "Dexterity",
-      "hp_per_level": 8,
-      "proficiencies": {
-        "perception": "Expert",
-        "fortitude": "Trained",
-        "reflex": "Expert",
-        "will": "Expert",
-        "class_dc": "Trained",
-        "weapons": {
-          "simple": "Trained",
-          "rogue": "Trained",
-          "unarmed": "Trained"
-        },
-        "armor": {
-          "light": "Trained",
-          "unarmored": "Trained"
-        },
-        "skills": {
-          "trained_count": 9
-        }
-      },
-      "class_features": [
-        "Sneak Attack (+1d6)",
-        "Surprise Attack",
-        "Deny Advantage",
-        "Rogue's Racket (Thief)"
-      ],
-      "class_feats": [
-        {
-          "name": "Trap Finder",
-          "level": 1,
-          "description": "Gribbles has an intuitive sense for traps. He gains a +1 circumstance bonus to Perception checks to find traps, to AC against traps, and to saves against traps. He claims he knows where ALL the traps are. He knows where at least two are."
-        },
-        {
-          "name": "Nimble Dodge",
-          "level": 2,
-          "description": "Gribbles deftly dodges out of the way. +2 circumstance bonus to AC against the triggering attack. Usually accompanied by a high-pitched 'NYEH!'"
-        }
-      ],
-      "skill_feats": [
-        {
-          "name": "Experienced Smuggler",
-          "level": 1,
-          "description": "Gribbles is extremely good at hiding cheese on his person. Practically undetectable dairy transport."
-        },
-        {
-          "name": "Bon Mot",
-          "level": 2,
-          "description": "Gribbles launches a witty verbal barb — usually cheese-related puns. Target takes a penalty to Perception and Will saves."
-        }
-      ]
+    {
+      "item_id": "dagger",
+      "name": "Dagger",
+      "quantity": 1,
+      "equipped": true,
+      "worn": false
     },
-    "ability_scores": {
-      "strength": {
-        "score": 10,
-        "modifier": 0
-      },
-      "dexterity": {
-        "score": 18,
-        "modifier": 4
-      },
-      "constitution": {
-        "score": 14,
-        "modifier": 2
-      },
-      "intelligence": {
-        "score": 12,
-        "modifier": 1
-      },
-      "wisdom": {
-        "score": 12,
-        "modifier": 1
-      },
-      "charisma": {
-        "score": 14,
-        "modifier": 2
-      }
+    {
+      "item_id": "shortbow",
+      "name": "Shortbow",
+      "quantity": 1,
+      "equipped": false,
+      "worn": false
     },
-    "hit_points": {
-      "max": 38,
-      "current": 38,
-      "temporary": 0
+    {
+      "item_id": "thieves-tools",
+      "name": "Thieves' Tools",
+      "quantity": 1,
+      "equipped": false,
+      "worn": true
     },
-    "armor_class": 19,
-    "saving_throws": {
-      "fortitude": {
-        "modifier": 6,
-        "proficiency": "Trained"
-      },
-      "reflex": {
-        "modifier": 10,
-        "proficiency": "Expert"
-      },
-      "will": {
-        "modifier": 7,
-        "proficiency": "Expert"
-      }
+    {
+      "item_id": "adventurers-pack",
+      "name": "Adventurer's Pack",
+      "quantity": 1,
+      "equipped": false,
+      "worn": true
+    }
+  ],
+  "gold": 2.51,
+  "feats": [
+    {
+      "feat_id": "goblin-scuttle",
+      "name": "Goblin Scuttle",
+      "level_gained": 1,
+      "feat_type": "ancestry"
     },
-    "perception": {
-      "modifier": 7,
-      "proficiency": "Expert",
-      "senses": ["Darkvision"]
+    {
+      "feat_id": "pickpocket",
+      "name": "Pickpocket",
+      "level_gained": 1,
+      "feat_type": "skill"
     },
-    "skills": {
-      "acrobatics": { "modifier": 8, "proficiency": "Trained" },
-      "athletics": { "modifier": 4, "proficiency": "Trained" },
-      "deception": { "modifier": 6, "proficiency": "Trained" },
-      "diplomacy": { "modifier": 6, "proficiency": "Trained" },
-      "intimidation": { "modifier": 2, "proficiency": "Untrained" },
-      "performance": { "modifier": 6, "proficiency": "Trained" },
-      "society": { "modifier": 5, "proficiency": "Trained" },
-      "stealth": { "modifier": 10, "proficiency": "Expert" },
-      "survival": { "modifier": 5, "proficiency": "Trained" },
-      "thievery": { "modifier": 10, "proficiency": "Expert" },
-      "lore_underworld": { "modifier": 5, "proficiency": "Trained" },
-      "lore_cheese": { "modifier": 7, "proficiency": "Expert" },
-      "lore_traps": { "modifier": 5, "proficiency": "Trained" }
+    {
+      "feat_id": "trap-finder",
+      "name": "Trap Finder",
+      "level_gained": 1,
+      "feat_type": "class"
     },
-    "attacks": {
-      "melee": [
-        {
-          "name": "Shortsword",
-          "attack_bonus": 10,
-          "damage": "1d6",
-          "damage_type": "Piercing",
-          "traits": ["Agile", "Finesse", "Versatile S"],
-          "description": "Gribbles calls it 'The Cheese Knife.' It has never been used on cheese."
-        },
-        {
-          "name": "Dagger",
-          "attack_bonus": 10,
-          "damage": "1d4",
-          "damage_type": "Piercing",
-          "traits": ["Agile", "Finesse", "Thrown 10ft", "Versatile S"],
-          "description": "Kept in his boot. Occasionally used for actual cheese slicing."
-        }
-      ],
-      "ranged": [
-        {
-          "name": "Shortbow",
-          "attack_bonus": 10,
-          "damage": "1d6",
-          "damage_type": "Piercing",
-          "range": "60 ft",
-          "traits": ["Deadly d10"],
-          "description": "Stolen from someone who was 'probably done with it.'"
-        }
-      ]
+    {
+      "feat_id": "experienced-smuggler",
+      "name": "Experienced Smuggler",
+      "level_gained": 1,
+      "feat_type": "skill"
     },
-    "equipment": {
-      "worn": {
-        "armor": {
-          "name": "Leather Armor",
-          "ac_bonus": 1,
-          "dex_cap": 4,
-          "description": "Studded with small brass buttons shaped like wheels of cheese. Custom job."
-        },
-        "other": [
-          "Cheese-wrapper hat (non-magical, deeply sentimental)",
-          "Tiny satchel full of crumbs and cheese drawings",
-          "Adventurer's Pack",
-          "Thieves' Tools"
-        ]
-      },
-      "held": [],
-      "stowed": [
-        {
-          "name": "Partially eaten pickle",
-          "description": "A down payment from a trusted adventuring partner. Stored with great reverence next to a crayon drawing of a cheese wheel.",
-          "bulk": "L"
-        },
-        {
-          "name": "Eduardo's Map",
-          "description": "A crude map drawn by Gribbles' rat informant Eduardo, allegedly showing the location of the Legendary Cheese in the Fungal Pantry. Mostly illegible. Smells like rat.",
-          "bulk": "L"
-        },
-        {
-          "name": "Snare Kit",
-          "description": "For setting and disarming traps. Gribbles learned trap mechanics 'the hard way' — see: cousin Blemish (now a bookmark).",
-          "bulk": 2
-        },
-        {
-          "name": "Wedge of Emergency Cheddar",
-          "description": "Break glass in case of cheese emergency. There is no glass. Gribbles has eaten the emergency cheddar three times this week.",
-          "bulk": "L"
-        }
-      ],
-      "currency": {
-        "gold": 2,
-        "silver": 14,
-        "copper": 37
-      },
-      "bulk": {
-        "current": 3,
-        "encumbered": 5,
-        "max": 10
-      }
+    {
+      "feat_id": "nimble-dodge",
+      "name": "Nimble Dodge",
+      "level_gained": 2,
+      "feat_type": "class"
     },
-    "personality": {
-      "alignment": "Chaotic Neutral",
-      "deity": "None (worships cheese conceptually)",
+    {
+      "feat_id": "bon-mot",
+      "name": "Bon Mot",
+      "level_gained": 2,
+      "feat_type": "skill"
+    }
+  ],
+  "hero_points": 1,
+  "personality": "Silly and whimsical but genuinely confident. Talks fast and gesticulates wildly. Unshakably loyal once bribed with snacks. Refers to himself in third person when excited. Has an intelligence network of rats, led by 'Eduardo'. Deep and abiding fear of spiders. Considers cheese a spiritual experience.",
+  "backstory": "Gribbles grew up in the undercity, scavenging and developing an improbably refined palate for cheese. He built a small intelligence network of rats led by his most trusted associate, Eduardo, who tipped him off about a Legendary Cheese aged in the Fungal Pantry deep within the dungeon. Gribbles' cousin Blemish was flattened by a trap and now serves as a bookmark — he's fine with it, mostly. Gribbles is on a sacred quest to find the cheese, and he'll partner with any adventurer willing to share a pickle and tolerate his enthusiasm.",
+  "_npc_extended": {
+    "role": "Companion / Guide",
+    "disposition": "Friendly (after snack bribe)",
+    "encounter_behavior": "Non-hostile. Approaches players with a business proposition. Will trade trap knowledge for food — preferably cheese, but pickles are acceptable as a down payment.",
+    "combat_behavior": "Prefers stealth and sneak attacks. Will ride on ally's shoulders during spider encounters. Surprisingly competent despite chaotic energy.",
+    "knowledge": {
+      "traps": "Knows the location of several traps in the dungeon. Claims to know all of them. Actually knows about two with certainty.",
+      "dungeon_layout": "Has Eduardo's map — partially accurate, partially crayon drawings of cheese.",
+      "fungal_pantry": "Knows the Legendary Cheese is located in the Fungal Pantry, past the spider level and the Echoey Room What Screams Back."
+    },
+    "relationships": {
+      "eduardo": "A rat. Head of Gribbles' intelligence network. Very reliable, except for the mushroom incident.",
+      "cousin_blemish": "Flattened by a trap on the third tile. Now used as a bookmark. Fine with it. Mostly."
+    },
+    "personality_details": {
       "traits": [
         "Silly and whimsical but genuinely confident",
         "Talks fast and gesticulates wildly",
@@ -256,23 +164,50 @@
         "That's more than you know, innit?",
         "Eduardo was RIGHT about you!",
         "We don't talk about the mushroom."
-      ],
-      "backstory": "Gribbles grew up in the undercity, scavenging and developing an improbably refined palate for cheese. He built a small intelligence network of rats led by his most trusted associate, Eduardo, who tipped him off about a Legendary Cheese aged in the Fungal Pantry deep within the dungeon. Gribbles' cousin Blemish was flattened by a trap and now serves as a bookmark — he's fine with it, mostly. Gribbles is on a sacred quest to find the cheese, and he'll partner with any adventurer willing to share a pickle and tolerate his enthusiasm."
+      ]
     },
-    "npc_data": {
-      "role": "Companion / Guide",
-      "disposition": "Friendly (after snack bribe)",
-      "encounter_behavior": "Non-hostile. Approaches players with a business proposition. Will trade trap knowledge for food — preferably cheese, but pickles are acceptable as a down payment.",
-      "combat_behavior": "Prefers stealth and sneak attacks. Will ride on ally's shoulders during spider encounters. Surprisingly competent despite chaotic energy.",
-      "knowledge": {
-        "traps": "Knows the location of several traps in the dungeon. Claims to know all of them. Actually knows about two with certainty.",
-        "dungeon_layout": "Has Eduardo's map — partially accurate, partially crayon drawings of cheese.",
-        "fungal_pantry": "Knows the Legendary Cheese is located in the Fungal Pantry, past the spider level and the Echoey Room What Screams Back."
+    "equipment_details": {
+      "worn": {
+        "armor": {
+          "name": "Leather Armor",
+          "description": "Studded with small brass buttons shaped like wheels of cheese. Custom job."
+        },
+        "other": [
+          "Cheese-wrapper hat (non-magical, deeply sentimental)",
+          "Tiny satchel full of crumbs and cheese drawings"
+        ]
       },
-      "relationships": {
-        "eduardo": "A rat. Head of Gribbles' intelligence network. Very reliable, except for the mushroom incident.",
-        "cousin_blemish": "Flattened by a trap on the third tile. Now used as a bookmark. Fine with it. Mostly."
-      }
+      "stowed": [
+        {
+          "name": "Partially eaten pickle",
+          "description": "A down payment from a trusted adventuring partner. Stored with great reverence next to a crayon drawing of a cheese wheel."
+        },
+        {
+          "name": "Eduardo's Map",
+          "description": "A crude map drawn by Gribbles' rat informant Eduardo, allegedly showing the location of the Legendary Cheese in the Fungal Pantry. Mostly illegible. Smells like rat."
+        },
+        {
+          "name": "Snare Kit",
+          "description": "For setting and disarming traps. Gribbles learned trap mechanics 'the hard way' — see: cousin Blemish (now a bookmark)."
+        },
+        {
+          "name": "Wedge of Emergency Cheddar",
+          "description": "Break glass in case of cheese emergency. There is no glass. Gribbles has eaten the emergency cheddar three times this week."
+        }
+      ]
+    },
+    "feat_descriptions": {
+      "goblin-scuttle": "You take advantage of your ally's movement to adjust your position. When a nearby ally moves, Gribbles can use a reaction to Step — usually towards the nearest cheese.",
+      "pickpocket": "Gribbles can Palm an Object on a creature even if he's not hidden. But he mostly uses this to steal cheese.",
+      "trap-finder": "Gribbles has an intuitive sense for traps. He gains a +1 circumstance bonus to Perception checks to find traps, to AC against traps, and to saves against traps. He claims he knows where ALL the traps are. He knows where at least two are.",
+      "experienced-smuggler": "Gribbles is extremely good at hiding cheese on his person. Practically undetectable dairy transport.",
+      "nimble-dodge": "Gribbles deftly dodges out of the way. +2 circumstance bonus to AC against the triggering attack. Usually accompanied by a high-pitched 'NYEH!'",
+      "bon-mot": "Gribbles launches a witty verbal barb — usually cheese-related puns. Target takes a penalty to Perception and Will saves."
+    },
+    "attack_descriptions": {
+      "shortsword": "Gribbles calls it 'The Cheese Knife.' It has never been used on cheese.",
+      "dagger": "Kept in his boot. Occasionally used for actual cheese slicing.",
+      "shortbow": "Stolen from someone who was 'probably done with it.'"
     }
   }
 }
