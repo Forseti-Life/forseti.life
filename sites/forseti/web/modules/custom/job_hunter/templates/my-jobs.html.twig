@@ -10,6 +10,7 @@
  * - filter_status: Current status filter value
  * - filter_ai_status: Current AI status filter value
  * - filter_tailoring: Current tailoring filter value
+ * - return_url: Current page URL to return to after inline actions
  */
 #}
 
@@ -109,6 +110,7 @@
           <th>{{ 'Job Title'|t }}</th>
           <th>{{ 'Company'|t }}</th>
           <th>{{ 'Status'|t }}</th>
+          <th>{{ 'Have Applied'|t }}</th>
           <th>{{ 'AI Parsed'|t }}</th>
           <th>{{ 'Tailored'|t }}</th>
           <th>{{ 'Actions'|t }}</th>
@@ -125,6 +127,7 @@
           {% set tailoring_status = job.tailoring_status|default(null) %}
           {% set has_tailored_json = job.tailored_resume_json is not empty %}
           {% set has_pdf = job.pdf_path is not empty %}
+          {% set is_applied = job.status|default('active') == 'applied' %}
           
           <tr>
             <td>
@@ -132,6 +135,28 @@
             </td>
             <td>{{ company_name }}</td>
             <td>{{ job.status|default('active')|capitalize }}</td>
+            <td>
+              <form method="post" action="{{ path('job_hunter.toggle_job_applied', {'job_id': job.id}) }}" class="applied-toggle-form">
+                <label>
+                  <input
+                    type="checkbox"
+                    name="have_applied"
+                    value="1"
+                    {{ is_applied ? 'checked' : '' }}
+                    onchange="this.form.querySelector('input[name=applied_on_date]').disabled = !this.checked;"
+                  />
+                  {{ 'Have applied'|t }}
+                </label>
+                <input
+                  type="date"
+                  name="applied_on_date"
+                  value="{{ job.applied_on_date|default('') }}"
+                  {{ is_applied ? '' : 'disabled' }}
+                />
+                <input type="hidden" name="return_to" value="{{ return_url }}" />
+                <button type="submit" class="button button--small">{{ 'Update'|t }}</button>
+              </form>
+            </td>
             <td>
               {# AI Status Badge #}
               {% if has_extracted %}

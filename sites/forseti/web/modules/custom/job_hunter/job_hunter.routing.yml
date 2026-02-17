@@ -320,6 +320,15 @@ job_hunter.my_jobs:
   requirements:
     _permission: 'access job hunter'
 
+job_hunter.toggle_job_applied:
+  path: '/jobhunter/my-jobs/{job_id}/applied'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::toggleJobApplied'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+  methods: [POST]
+
 # Step 4: Application Submission
 job_hunter.application_submission:
   path: '/jobhunter/application-submission'

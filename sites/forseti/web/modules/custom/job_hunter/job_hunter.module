@@ -151,6 +151,7 @@ function job_hunter_theme() {
         'filter_status' => '',
         'filter_ai_status' => '',
         'filter_tailoring' => '',
+        'return_url' => '/jobhunter/my-jobs',
       ],
       'template' => 'my-jobs',
     ],
