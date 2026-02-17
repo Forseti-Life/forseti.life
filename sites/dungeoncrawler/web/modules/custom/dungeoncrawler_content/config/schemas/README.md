@@ -38,7 +38,7 @@ JSON Schemas serve multiple purposes:
 | `hazard.schema.json` | Environmental hazards | ✓ | 249 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 439 | Inventory system |
-| `obstacle.schema.json` | Map obstacles | ✗ | 78 | Traversal blockers |
+| `obstacle.schema.json` | Map obstacles | ✓ | 232 | Traversal blockers |
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 87 | Obstacle templates |
 | `party.schema.json` | Adventuring party | ✗ | 220 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✗ | 372 | Room generation |
@@ -240,7 +240,36 @@ Equipment and magic items (loot/treasure is represented as items).
 
 
 #### `obstacle.schema.json`
-Unified traversal/combat obstacles (non-container blockers/modifiers).
+Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-compatible obstacles that affect movement, provide cover, or deal damage.
+
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Added PF2e level field for appropriate challenge scaling
+- Added rarity and traits fields for PF2e classification
+- Enhanced validation with numeric constraints on DCs (1-50)
+- Added uniqueItems constraint to hexes array
+- Added minLength validation to prevent empty strings
+- Added xp_reward field aligned with trap/hazard patterns
+- Enhanced descriptions with practical examples
+- Improved consistency with trap.schema.json and hazard.schema.json
+- Added top-level additionalProperties: false for stricter validation
+
+**Defines:**
+- Obstacle metadata (name, level, type, rarity, traits)
+- Movement rules (passable, cost multiplier, skill checks)
+- Combat effects (cover, damage on enter, saves)
+- Runtime state (active, disabled, destroyed)
+- Optional source reference to underlying trap/hazard
+- XP rewards for overcoming obstacles
+- Hex placement for map positioning
+
+**Key Features:**
+- Full PF2e integration with level-based DCs
+- Movement cost multipliers for difficult terrain
+- Combat mechanics (cover bonuses, damage, saves)
+- Flexible skill check requirements (Athletics, Acrobatics, etc.)
+- State tracking for runtime obstacle management
+- Links to underlying trap/hazard definitions
 
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
@@ -442,13 +471,13 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `obstacle.schema.json`
 - ✓ `party.schema.json`
 - ✓ `trap.schema.json`
 
 Schemas pending versioning:
 - `character_options_step[1-5,7].json` (UI-only schemas)
 - `entity_instance.schema.json`
-- `obstacle.schema.json`
 - `obstacle_object_catalog.schema.json`
 - `room.schema.json`
 
