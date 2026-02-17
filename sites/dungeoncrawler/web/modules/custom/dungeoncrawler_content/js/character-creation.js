@@ -85,7 +85,7 @@
     gold: CONSTANTS.STARTING_GOLD
   };
 
-  //Ancestry data
+  // Ancestry data
   const ancestryData = {
     'dwarf': {
       name: 'Dwarf',
@@ -411,6 +411,7 @@
 
   /**
    * Navigation between steps
+   * @param {number} stepNumber - The step number to navigate to
    */
   window.nextStep = function(stepNumber) {
     // Validate current step before moving forward
@@ -448,12 +449,18 @@
     $('.creation-content').scrollTop(0);
   };
 
+  /**
+   * Navigate to previous step
+   * @param {number} stepNumber - The step number to navigate to
+   */
   window.prevStep = function(stepNumber) {
     nextStep(stepNumber);
   };
 
   /**
-   * Validate current step
+   * Validate current step before proceeding
+   * @param {number} step - The step number to validate
+   * @returns {boolean} True if validation passes, false otherwise
    */
   function validateStep(step) {
     switch(step) {
@@ -503,7 +510,8 @@
   }
 
   /**
-   * Save data from current step
+   * Save data from current step to character state
+   * @param {number} step - The step number to save data from
    */
   function saveStepData(step) {
     switch(step) {
@@ -599,7 +607,9 @@
   }
 
   /**
-   * Show detailed ancestry information
+   * Show detailed ancestry information in the UI
+   * @param {string} ancestryId - The ancestry identifier
+   * @param {Event} event - Optional click event to stop propagation
    */
   window.showAncestryDetails = function(ancestryId, event) {
     if(event) {
@@ -639,7 +649,9 @@
   };
 
   /**
-   * Show detailed class information
+   * Show detailed class information in the UI
+   * @param {string} classId - The class identifier
+   * @param {Event} event - Optional click event to stop propagation
    */
   window.showClassDetails = function(classId,event) {
     if (event) {
@@ -670,7 +682,8 @@
   };
 
   /**
-   * Select ancestry
+   * Select an ancestry for the character
+   * @param {string} ancestryId - The ancestry identifier to select
    */
   window.selectAncestry = function(ancestryId) {
     // Validate ancestry exists
@@ -717,7 +730,8 @@
   };
 
   /**
-   * Select background
+   * Select a background for the character
+   * @param {string} backgroundId - The background identifier to select
    */
   window.selectBackground = function(backgroundId) {
     if (!backgroundId) {
@@ -746,7 +760,8 @@
   };
 
   /**
-   * Select class
+   * Select a class for the character
+   * @param {string} classId - The class identifier to select
    */
   window.selectClass = function(classId) {
     // Validate class exists
