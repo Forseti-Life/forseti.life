@@ -78,7 +78,7 @@
     {
       "name": "Explorer's Clothing",
       "type": "armor",
-      "ac_bonus": 2
+      "ac_bonus": 0
     },
     {
       "name": "Staff",

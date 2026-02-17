@@ -3,7 +3,7 @@
     {
       "id": "human",
       "name": "Human",
-      "hit_points": 8,
+      "hp_bonus": 8,
       "size": "Medium",
       "speed": 25,
       "ability_boosts": ["Free", "Free"],
@@ -14,7 +14,7 @@
     {
       "id": "elf",
       "name": "Elf",
-      "hit_points": 6,
+      "hp_bonus": 6,
       "size": "Medium",
       "speed": 30,
       "ability_boosts": ["DEX", "INT", "Free"],
@@ -27,7 +27,7 @@
     {
       "id": "dwarf",
       "name": "Dwarf",
-      "hit_points": 10,
+      "hp_bonus": 10,
       "size": "Medium",
       "speed": 20,
       "ability_boosts": ["CON", "WIS", "Free"],
@@ -40,7 +40,7 @@
     {
       "id": "halfling",
       "name": "Halfling",
-      "hit_points": 6,
+      "hp_bonus": 6,
       "size": "Small",
       "speed": 25,
       "ability_boosts": ["DEX", "WIS", "Free"],
@@ -53,7 +53,7 @@
     {
       "id": "gnome",
       "name": "Gnome",
-      "hit_points": 8,
+      "hp_bonus": 8,
       "size": "Small",
       "speed": 25,
       "ability_boosts": ["CON", "CHA", "Free"],
@@ -66,7 +66,7 @@
     {
       "id": "goblin",
       "name": "Goblin",
-      "hit_points": 6,
+      "hp_bonus": 6,
       "size": "Small",
       "speed": 25,
       "ability_boosts": ["DEX", "CHA", "Free"],

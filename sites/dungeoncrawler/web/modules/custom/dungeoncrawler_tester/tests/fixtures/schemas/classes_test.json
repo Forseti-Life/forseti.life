@@ -4,7 +4,7 @@
       "id": "fighter",
       "name": "Fighter",
       "hit_points": 10,
-      "key_ability": ["STR", "DEX"],
+      "key_abilities": ["STR", "DEX"],
       "initial_proficiencies": {
         "perception": "expert",
         "fortitude": "expert",
@@ -18,7 +18,7 @@
       "id": "wizard",
       "name": "Wizard",
       "hit_points": 6,
-      "key_ability": ["INT"],
+      "key_abilities": ["INT"],
       "initial_proficiencies": {
         "perception": "trained",
         "fortitude": "trained",
@@ -32,7 +32,7 @@
       "id": "rogue",
       "name": "Rogue",
       "hit_points": 8,
-      "key_ability": ["DEX", "STR", "INT", "CHA"],
+      "key_abilities": ["DEX", "STR", "INT", "CHA"],
       "initial_proficiencies": {
         "perception": "expert",
         "fortitude": "trained",
@@ -46,7 +46,7 @@
       "id": "cleric",
       "name": "Cleric",
       "hit_points": 8,
-      "key_ability": ["WIS"],
+      "key_abilities": ["WIS"],
       "initial_proficiencies": {
         "perception": "trained",
         "fortitude": "expert",
@@ -60,7 +60,7 @@
       "id": "ranger",
       "name": "Ranger",
       "hit_points": 10,
-      "key_ability": ["STR", "DEX"],
+      "key_abilities": ["STR", "DEX"],
       "initial_proficiencies": {
         "perception": "expert",
         "fortitude": "expert",
@@ -74,7 +74,7 @@
       "id": "barbarian",
       "name": "Barbarian",
       "hit_points": 12,
-      "key_ability": ["STR"],
+      "key_abilities": ["STR"],
       "initial_proficiencies": {
         "perception": "expert",
         "fortitude": "expert",
