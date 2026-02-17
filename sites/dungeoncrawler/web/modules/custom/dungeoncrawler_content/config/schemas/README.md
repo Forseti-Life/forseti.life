@@ -73,6 +73,13 @@ Campaign state payload stored in `dc_campaigns.campaign_data`.
 #### `creature.schema.json`
 Monsters, NPCs, and beasts with PF2e stats and AI personality.
 
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Enhanced validation with required fields and numeric constraints
+- Added timestamp tracking (created_at, updated_at)
+- Improved pattern validation for damage formulas
+- Added additionalProperties constraints for stricter validation
+
 #### `dungeon_level.schema.json`
 Entire dungeon floor with hexmap, rooms, and encounters.
 

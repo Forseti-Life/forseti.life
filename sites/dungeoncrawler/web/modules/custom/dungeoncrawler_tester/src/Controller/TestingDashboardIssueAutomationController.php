@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_tester\Controller;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\dungeoncrawler_tester\Form\OpenIssuesImportForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -80,6 +81,23 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$instance = parent::create($container);
 		$instance->dateFormatter = $container->get('date.formatter');
 		return $instance;
+	}
+
+	/**
+	 * Render the open-issues import page.
+	 */
+	public function importOpenIssuesPage(): array {
+		return [
+			'#type' => 'container',
+			'#attributes' => ['class' => ['issue-import-page']],
+			'intro' => [
+				'#type' => 'html_tag',
+				'#tag' => 'p',
+				'#attributes' => ['class' => ['text-muted-light']],
+				'#value' => (string) $this->t('Import open tracker rows from Issues.md into GitHub issues using the tester GitHub client and Copilot assignment flow. Run in small batches to avoid request timeouts.'),
+			],
+			'form' => $this->formBuilder()->getForm(OpenIssuesImportForm::class),
+		];
 	}
 
 	/**
@@ -703,9 +721,26 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			$this->t('Open issues: @count', ['@count' => count($issues)]),
 			$this->t('Open PRs: @count', ['@count' => count($prs)]),
 			$this->t('Orphaned PRs: @count', ['@count' => count($orphanedPrs)]),
+			$this->t('Local tracker cache: repository-root Issues.md (managed via Import Open Issues).'),
 			$this->t('Linking strategy: issue timeline cross-references first, PR text fallback second.'),
 			$this->t('Generated: @time', ['@time' => $this->dateFormatter->format(time(), 'short')]),
 		];
+
+		$lastImport = $this->state->get('dungeoncrawler_tester.open_issues_import_last_run');
+		if (is_array($lastImport) && !empty($lastImport['timestamp'])) {
+			$metaItems[] = $this->t('Last local import run: @time · repo: @repo · handled: @handled (created @created, skipped @skipped, failed @failed) · dry-run: @dryrun', [
+				'@time' => $this->dateFormatter->format((int) $lastImport['timestamp'], 'short'),
+				'@repo' => (string) ($lastImport['repo'] ?? $repo),
+				'@handled' => (string) ((int) ($lastImport['handled'] ?? 0)),
+				'@created' => (string) ((int) ($lastImport['created'] ?? 0)),
+				'@skipped' => (string) ((int) ($lastImport['skipped'] ?? 0)),
+				'@failed' => (string) ((int) ($lastImport['failed'] ?? 0)),
+				'@dryrun' => !empty($lastImport['dry_run']) ? (string) $this->t('yes') : (string) $this->t('no'),
+			]);
+		}
+		else {
+			$metaItems[] = $this->t('Last local import run: none recorded yet.');
+		}
 
 		if (!empty($issuePayload['error'])) {
 			$metaItems[] = $this->t('Issue fetch warning: @msg', ['@msg' => (string) $issuePayload['error']]);
@@ -715,11 +750,13 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		}
 
 		$bulkQuerySection = $this->buildBulkCloseQuerySection($repo, $issues, $prs, $tokenCandidates);
+		$importOpenIssuesUrl = $this->safeRouteUrl('dungeoncrawler_tester.import_open_issues', '/dungeoncrawler/testing/import-open-issues');
 
 		return [
 			'#type' => 'container',
 			'#attributes' => ['class' => ['tester-issue-pr-report', 'dungeoncrawler-testing-dashboard']],
 			'#cache' => [
+				'tags' => ['dungeoncrawler_tester.issue_import_status'],
 				'contexts' => ['user.permissions'],
 				'max-age' => self::GITHUB_CACHE_TTL,
 			],
@@ -738,11 +775,19 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 				],
 			],
 			'bulk_queries' => $bulkQuerySection,
+			'cache_actions' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['issue-report-actions']],
+				'import_open_issues' => Link::fromTextAndUrl(
+					$this->t('Manage local Issues.md cache → Import Open Issues'),
+					Url::fromUserInput($importOpenIssuesUrl)
+				)->toRenderable(),
+			],
 			'intro' => [
 				'#type' => 'html_tag',
 				'#tag' => 'p',
 				'#attributes' => ['class' => ['text-muted-light']],
-				'#value' => $this->t('Open issue-first report with linked PRs, blockers, and next steps. Uses existing GitHub repo issue/pull endpoints already used by dashboard signals.'),
+				'#value' => $this->t('Open issue-first report with linked PRs, blockers, and next steps. Uses existing GitHub repo issue/pull endpoints and pairs with local tracker cache management from Issues.md via the Import Open Issues page.'),
 			],
 			'decision_logic' => $this->buildIssuePrReportDecisionLogicSection(),
 			'meta' => [

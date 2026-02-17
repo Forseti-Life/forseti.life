@@ -14,6 +14,14 @@ dungeoncrawler_tester.issue_pr_report:
   requirements:
     _permission: 'administer site configuration'
 
+dungeoncrawler_tester.import_open_issues:
+  path: '/dungeoncrawler/testing/import-open-issues'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::importOpenIssuesPage'
+    _title: 'Import Open Issues from Tracker'
+  requirements:
+    _permission: 'administer site configuration'
+
 dungeoncrawler_tester.dead_value_close:
   path: '/dungeoncrawler/testing/issue-pr-report/dead-value-close'
   defaults:

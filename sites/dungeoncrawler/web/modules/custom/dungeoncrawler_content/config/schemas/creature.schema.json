@@ -2,10 +2,23 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "https://dungeoncrawler.life/schemas/creature.schema.json",
   "title": "Creature Schema",
-  "description": "A creature living in the dungeon — monster, NPC, or beast. Has AI-driven personality, goals, and PF2e-compatible combat statistics. Permanent creatures die forever; respawning creatures return after a cooldown.",
+  "description": "A creature living in the dungeon \u2014 monster, NPC, or beast. Has AI-driven personality, goals, and PF2e-compatible combat statistics. Permanent creatures die forever; respawning creatures return after a cooldown.",
   "type": "object",
-  "required": ["creature_id", "name", "level", "creature_type", "pf2e_stats", "ai_personality", "lifecycle"],
+  "required": [
+    "creature_id",
+    "name",
+    "level",
+    "creature_type",
+    "pf2e_stats",
+    "ai_personality",
+    "lifecycle"
+  ],
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0"
+    },
     "creature_id": {
       "type": "string",
       "format": "uuid"
@@ -13,86 +26,194 @@
     "name": {
       "type": "string",
       "description": "Display name. AI-generated creatures get unique names.",
-      "examples": ["Gribbles Rindsworth the Magnificent", "Skullgnaw the Hungering"]
+      "examples": [
+        "Gribbles Rindsworth the Magnificent",
+        "Skullgnaw the Hungering"
+      ]
     },
     "title": {
-      "type": ["string", "null"],
+      "type": [
+        "string",
+        "null"
+      ],
       "description": "Optional title/epithet.",
-      "examples": ["the Magnificent", "Guardian of the Fungal Pantry"]
+      "examples": [
+        "the Magnificent",
+        "Guardian of the Fungal Pantry"
+      ]
     },
     "level": {
       "type": "integer",
       "minimum": -1,
       "maximum": 25,
-      "description": "PF2e creature level. Determines stats, DCs, and XP reward."
+      "description": "PF2e creature level. Determines stats, DCs, and XP reward. Level -1 represents creatures weaker than level 0 (e.g., vermin)."
     },
     "creature_type": {
       "type": "string",
       "enum": [
-        "aberration", "animal", "astral", "beast", "celestial",
-        "construct", "dragon", "dream", "elemental", "ethereal",
-        "fey", "fiend", "fungus", "giant", "humanoid", "monitor",
-        "ooze", "plant", "spirit", "undead"
+        "aberration",
+        "animal",
+        "astral",
+        "beast",
+        "celestial",
+        "construct",
+        "dragon",
+        "dream",
+        "elemental",
+        "ethereal",
+        "fey",
+        "fiend",
+        "fungus",
+        "giant",
+        "humanoid",
+        "monitor",
+        "ooze",
+        "plant",
+        "spirit",
+        "undead"
       ],
       "description": "PF2e creature type (trait)."
     },
     "traits": {
       "type": "array",
-      "items": { "type": "string" },
+      "items": {
+        "type": "string"
+      },
       "description": "PF2e traits (e.g., ['Goblin', 'Humanoid', 'Small'])."
     },
     "alignment": {
       "type": "string",
-      "enum": ["LG", "NG", "CG", "LN", "N", "CN", "LE", "NE", "CE"],
+      "enum": [
+        "LG",
+        "NG",
+        "CG",
+        "LN",
+        "N",
+        "CN",
+        "LE",
+        "NE",
+        "CE"
+      ],
       "description": "Alignment (pre-Remaster legacy support)."
     },
     "rarity": {
       "type": "string",
-      "enum": ["common", "uncommon", "rare", "unique"],
+      "enum": [
+        "common",
+        "uncommon",
+        "rare",
+        "unique"
+      ],
       "default": "common"
     },
     "size": {
       "type": "string",
-      "enum": ["tiny", "small", "medium", "large", "huge", "gargantuan"],
+      "enum": [
+        "tiny",
+        "small",
+        "medium",
+        "large",
+        "huge",
+        "gargantuan"
+      ],
       "description": "PF2e size category. Determines hex occupation: tiny/small/medium=1, large=3-4, huge=7, gargantuan=12+."
     },
     "hex_footprint": {
       "type": "integer",
       "minimum": 1,
-      "description": "Number of hexes this creature occupies."
+      "description": "Number of hexes this creature occupies.",
+      "maximum": 30
     },
     "pf2e_stats": {
       "type": "object",
       "description": "Full PF2e-compatible stat block.",
-      "required": ["ability_scores", "hp", "ac", "saves", "perception", "speed"],
+      "required": [
+        "ability_scores",
+        "hp",
+        "ac",
+        "saves",
+        "perception",
+        "speed"
+      ],
       "properties": {
         "ability_scores": {
           "type": "object",
           "properties": {
-            "strength": { "$ref": "#/definitions/ability_score" },
-            "dexterity": { "$ref": "#/definitions/ability_score" },
-            "constitution": { "$ref": "#/definitions/ability_score" },
-            "intelligence": { "$ref": "#/definitions/ability_score" },
-            "wisdom": { "$ref": "#/definitions/ability_score" },
-            "charisma": { "$ref": "#/definitions/ability_score" }
-          }
+            "strength": {
+              "$ref": "#/definitions/ability_score"
+            },
+            "dexterity": {
+              "$ref": "#/definitions/ability_score"
+            },
+            "constitution": {
+              "$ref": "#/definitions/ability_score"
+            },
+            "intelligence": {
+              "$ref": "#/definitions/ability_score"
+            },
+            "wisdom": {
+              "$ref": "#/definitions/ability_score"
+            },
+            "charisma": {
+              "$ref": "#/definitions/ability_score"
+            }
+          },
+          "required": [
+            "strength",
+            "dexterity",
+            "constitution",
+            "intelligence",
+            "wisdom",
+            "charisma"
+          ],
+          "additionalProperties": false
         },
         "hp": {
           "type": "object",
           "properties": {
-            "max": { "type": "integer" },
-            "current": { "type": "integer" },
-            "temporary": { "type": "integer", "default": 0 },
-            "hardness": { "type": "integer", "default": 0 },
-            "immunities": { "type": "array", "items": { "type": "string" } },
+            "max": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "current": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "temporary": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "hardness": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            },
+            "immunities": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
             "resistances": {
               "type": "array",
               "items": {
                 "type": "object",
                 "properties": {
-                  "type": { "type": "string" },
-                  "value": { "type": "integer" }
-                }
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
               }
             },
             "weaknesses": {
@@ -100,30 +221,72 @@
               "items": {
                 "type": "object",
                 "properties": {
-                  "type": { "type": "string" },
-                  "value": { "type": "integer" }
-                }
+                  "type": {
+                    "type": "string"
+                  },
+                  "value": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 30
+                  }
+                },
+                "required": [
+                  "type",
+                  "value"
+                ],
+                "additionalProperties": false
               }
             }
-          }
+          },
+          "required": [
+            "max",
+            "current"
+          ],
+          "additionalProperties": false
         },
-        "ac": { "type": "integer" },
+        "ac": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50
+        },
         "saves": {
           "type": "object",
           "properties": {
-            "fortitude": { "$ref": "#/definitions/save" },
-            "reflex": { "$ref": "#/definitions/save" },
-            "will": { "$ref": "#/definitions/save" }
-          }
+            "fortitude": {
+              "$ref": "#/definitions/save"
+            },
+            "reflex": {
+              "$ref": "#/definitions/save"
+            },
+            "will": {
+              "$ref": "#/definitions/save"
+            }
+          },
+          "required": [
+            "fortitude",
+            "reflex",
+            "will"
+          ],
+          "additionalProperties": false
         },
         "perception": {
           "type": "object",
           "properties": {
-            "modifier": { "type": "integer" },
+            "modifier": {
+              "type": "integer",
+              "minimum": -10,
+              "maximum": 40
+            },
             "senses": {
               "type": "array",
-              "items": { "type": "string" },
-              "examples": [["darkvision", "scent (imprecise) 30 feet", "tremorsense 60 feet"]]
+              "items": {
+                "type": "string"
+              },
+              "examples": [
+                "darkvision",
+                "scent (imprecise) 30 feet",
+                "tremorsense 60 feet"
+              ]
             }
           }
         },
@@ -131,50 +294,124 @@
           "type": "object",
           "description": "Movement speeds in feet.",
           "properties": {
-            "land": { "type": "integer" },
-            "fly": { "type": ["integer", "null"] },
-            "swim": { "type": ["integer", "null"] },
-            "climb": { "type": ["integer", "null"] },
-            "burrow": { "type": ["integer", "null"] }
-          }
+            "land": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 25
+            },
+            "fly": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "swim": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "climb": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            },
+            "burrow": {
+              "type": [
+                "integer",
+                "null"
+              ]
+            }
+          },
+          "required": [
+            "land"
+          ]
         },
         "skills": {
           "type": "object",
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "modifier": { "type": "integer" },
-              "proficiency": { "type": "string", "enum": ["untrained", "trained", "expert", "master", "legendary"] }
+              "modifier": {
+                "type": "integer"
+              },
+              "proficiency": {
+                "type": "string",
+                "enum": [
+                  "untrained",
+                  "trained",
+                  "expert",
+                  "master",
+                  "legendary"
+                ]
+              }
             }
           }
         },
         "languages": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "attacks": {
           "type": "array",
-          "items": { "$ref": "#/definitions/attack" }
+          "items": {
+            "$ref": "#/definitions/attack"
+          }
         },
         "special_abilities": {
           "type": "array",
-          "items": { "$ref": "#/definitions/ability" }
+          "items": {
+            "$ref": "#/definitions/ability"
+          }
         },
         "spells": {
-          "type": ["object", "null"],
+          "type": [
+            "object",
+            "null"
+          ],
           "description": "Innate or prepared spells.",
           "properties": {
-            "tradition": { "type": "string", "enum": ["arcane", "divine", "occult", "primal"] },
-            "type": { "type": "string", "enum": ["innate", "prepared", "spontaneous", "focus"] },
-            "dc": { "type": "integer" },
-            "attack_modifier": { "type": "integer" },
+            "tradition": {
+              "type": "string",
+              "enum": [
+                "arcane",
+                "divine",
+                "occult",
+                "primal"
+              ]
+            },
+            "type": {
+              "type": "string",
+              "enum": [
+                "innate",
+                "prepared",
+                "spontaneous",
+                "focus"
+              ]
+            },
+            "dc": {
+              "type": "integer"
+            },
+            "attack_modifier": {
+              "type": "integer"
+            },
             "spell_slots": {
               "type": "object",
               "additionalProperties": {
                 "type": "object",
                 "properties": {
-                  "slots": { "type": "integer" },
-                  "spells": { "type": "array", "items": { "type": "string" } }
+                  "slots": {
+                    "type": "integer"
+                  },
+                  "spells": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  }
                 }
               }
             }
@@ -185,53 +422,149 @@
     "ai_personality": {
       "type": "object",
       "description": "AI-driven personality system. Powers NPC dialogue, combat decisions, and inter-creature relationships.",
-      "required": ["disposition", "personality_traits", "goals"],
+      "required": [
+        "disposition",
+        "personality_traits",
+        "goals"
+      ],
       "properties": {
         "disposition": {
           "type": "string",
-          "enum": ["hostile", "unfriendly", "indifferent", "friendly", "helpful"],
+          "enum": [
+            "hostile",
+            "unfriendly",
+            "indifferent",
+            "friendly",
+            "helpful"
+          ],
           "description": "Default disposition toward unknown adventurers."
         },
         "personality_traits": {
           "type": "array",
-          "items": { "type": "string" },
+          "items": {
+            "type": "string"
+          },
           "description": "Core personality descriptors for AI dialogue generation.",
-          "examples": [["Cowardly but cunning", "Obsessed with cheese", "Loyal once bribed"]]
+          "examples": [
+            [
+              "Cowardly but cunning",
+              "Obsessed with cheese",
+              "Loyal once bribed"
+            ]
+          ]
         },
         "goals": {
           "type": "object",
           "properties": {
-            "primary": { "type": "string" },
-            "secondary": { "type": "string" },
-            "tertiary": { "type": "string" }
-          }
+            "primary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "secondary": {
+              "type": "string"
+            },
+            "tertiary": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "primary"
+          ],
+          "additionalProperties": false
         },
         "fears": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "desires": {
           "type": "array",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "speech_patterns": {
           "type": "object",
           "properties": {
-            "dialect": { "type": "string" },
-            "catchphrases": { "type": "array", "items": { "type": "string" } },
-            "verbal_tics": { "type": "string" },
-            "formality": { "type": "string", "enum": ["crude", "casual", "formal", "archaic", "alien"] }
+            "dialect": {
+              "type": "string"
+            },
+            "catchphrases": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "verbal_tics": {
+              "type": "string"
+            },
+            "formality": {
+              "type": "string",
+              "enum": [
+                "crude",
+                "casual",
+                "formal",
+                "archaic",
+                "alien"
+              ]
+            }
           }
         },
         "combat_personality": {
           "type": "object",
           "properties": {
-            "aggression": { "type": "string", "enum": ["pacifist", "defensive", "cautious", "aggressive", "berserk"] },
-            "tactics": { "type": "string", "enum": ["mindless", "instinctive", "basic", "tactical", "strategic", "genius"] },
-            "morale": { "type": "string", "enum": ["cowardly", "cautious", "steady", "brave", "fanatical"] },
-            "flee_threshold_hp_percent": { "type": "number", "minimum": 0, "maximum": 100 },
-            "preferred_targets": { "type": "array", "items": { "type": "string" } },
-            "preferred_range": { "type": "string", "enum": ["melee", "ranged", "mixed", "flee"] }
+            "aggression": {
+              "type": "string",
+              "enum": [
+                "pacifist",
+                "defensive",
+                "cautious",
+                "aggressive",
+                "berserk"
+              ]
+            },
+            "tactics": {
+              "type": "string",
+              "enum": [
+                "mindless",
+                "instinctive",
+                "basic",
+                "tactical",
+                "strategic",
+                "genius"
+              ]
+            },
+            "morale": {
+              "type": "string",
+              "enum": [
+                "cowardly",
+                "cautious",
+                "steady",
+                "brave",
+                "fanatical"
+              ]
+            },
+            "flee_threshold_hp_percent": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "preferred_targets": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            },
+            "preferred_range": {
+              "type": "string",
+              "enum": [
+                "melee",
+                "ranged",
+                "mixed",
+                "flee"
+              ]
+            }
           }
         },
         "memory": {
@@ -240,11 +573,35 @@
           "items": {
             "type": "object",
             "properties": {
-              "event": { "type": "string" },
-              "party_id": { "type": "string" },
-              "sentiment": { "type": "string", "enum": ["very_negative", "negative", "neutral", "positive", "very_positive"] },
-              "timestamp": { "type": "string", "format": "date-time" }
-            }
+              "event": {
+                "type": "string",
+                "minLength": 1
+              },
+              "party_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "sentiment": {
+                "type": "string",
+                "enum": [
+                  "very_negative",
+                  "negative",
+                  "neutral",
+                  "positive",
+                  "very_positive"
+                ]
+              },
+              "timestamp": {
+                "type": "string",
+                "format": "date-time"
+              }
+            },
+            "required": [
+              "event",
+              "party_id",
+              "timestamp"
+            ],
+            "additionalProperties": false
           }
         },
         "relationships": {
@@ -253,36 +610,99 @@
           "additionalProperties": {
             "type": "object",
             "properties": {
-              "creature_id": { "type": "string" },
-              "name": { "type": "string" },
-              "relationship": { "type": "string" },
-              "sentiment": { "type": "string", "enum": ["enemy", "rival", "neutral", "ally", "devoted"] }
-            }
+              "creature_id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "name": {
+                "type": "string"
+              },
+              "relationship": {
+                "type": "string"
+              },
+              "sentiment": {
+                "type": "string",
+                "enum": [
+                  "enemy",
+                  "rival",
+                  "neutral",
+                  "ally",
+                  "devoted"
+                ]
+              }
+            },
+            "required": [
+              "creature_id",
+              "sentiment"
+            ]
           }
         }
       }
     },
     "lifecycle": {
       "type": "object",
-      "description": "Creature lifecycle management — permadeath, respawning, wandering.",
-      "required": ["spawn_type", "is_alive"],
+      "description": "Creature lifecycle management \u2014 permadeath, respawning, wandering.",
+      "required": [
+        "spawn_type",
+        "is_alive"
+      ],
       "properties": {
         "spawn_type": {
           "type": "string",
-          "enum": ["permanent", "respawning", "wandering", "boss", "quest", "summoned"],
+          "enum": [
+            "permanent",
+            "respawning",
+            "wandering",
+            "boss",
+            "quest",
+            "summoned"
+          ],
           "description": "permanent=dies forever, respawning=returns, wandering=roams between rooms, boss=unique encounter."
         },
-        "is_alive": { "type": "boolean", "default": true },
-        "death_timestamp": { "type": ["string", "null"], "format": "date-time" },
-        "killed_by_party": { "type": ["string", "null"] },
-        "respawn_cooldown_hours": { "type": ["number", "null"] },
-        "next_respawn_at": { "type": ["string", "null"], "format": "date-time" },
-        "home_room_id": { "type": "string", "description": "Room this creature considers home." },
-        "current_room_id": { "type": "string", "description": "Room the creature is currently in." },
+        "is_alive": {
+          "type": "boolean",
+          "default": true
+        },
+        "death_timestamp": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "killed_by_party": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "respawn_cooldown_hours": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "next_respawn_at": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "format": "date-time"
+        },
+        "home_room_id": {
+          "type": "string",
+          "description": "Room this creature considers home."
+        },
+        "current_room_id": {
+          "type": "string",
+          "description": "Room the creature is currently in."
+        },
         "patrol_route": {
           "type": "array",
           "description": "For wandering creatures: ordered list of room IDs they visit.",
-          "items": { "type": "string" }
+          "items": {
+            "type": "string"
+          }
         },
         "wander_radius_rooms": {
           "type": "integer",
@@ -296,85 +716,279 @@
       "properties": {
         "guaranteed": {
           "type": "array",
-          "items": { "$ref": "#/definitions/loot_entry" }
+          "items": {
+            "$ref": "#/definitions/loot_entry"
+          }
         },
         "random": {
           "type": "array",
           "items": {
             "type": "object",
             "properties": {
-              "item": { "$ref": "#/definitions/loot_entry" },
-              "drop_chance": { "type": "number", "minimum": 0, "maximum": 1 }
+              "item": {
+                "$ref": "#/definitions/loot_entry"
+              },
+              "drop_chance": {
+                "type": "number",
+                "minimum": 0,
+                "maximum": 1
+              }
             }
           }
         },
         "currency": {
           "type": "object",
           "properties": {
-            "cp_range": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
-            "sp_range": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 },
-            "gp_range": { "type": "array", "items": { "type": "integer" }, "minItems": 2, "maxItems": 2 }
-          }
+            "cp_range": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "sp_range": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            },
+            "gp_range": {
+              "type": "array",
+              "items": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "minItems": 2,
+              "maxItems": 2
+            }
+          },
+          "additionalProperties": false
         }
       }
     },
     "xp_reward": {
       "type": "integer",
-      "description": "XP awarded for defeating this creature. Auto-calculated from PF2e level if omitted."
+      "description": "XP awarded for defeating this creature. Auto-calculated from PF2e level if omitted.",
+      "minimum": 0
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Creature creation timestamp."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Last modification timestamp."
     }
   },
   "definitions": {
     "ability_score": {
       "type": "object",
       "properties": {
-        "score": { "type": "integer" },
-        "modifier": { "type": "integer" }
-      }
+        "score": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30
+        },
+        "modifier": {
+          "type": "integer",
+          "minimum": -5,
+          "maximum": 10
+        }
+      },
+      "required": [
+        "score",
+        "modifier"
+      ],
+      "additionalProperties": false
     },
     "save": {
       "type": "object",
       "properties": {
-        "modifier": { "type": "integer" },
-        "proficiency": { "type": "string", "enum": ["untrained", "trained", "expert", "master", "legendary"] },
-        "special": { "type": "string", "description": "E.g., '+1 status bonus vs. magic'" }
-      }
+        "modifier": {
+          "type": "integer",
+          "minimum": -10,
+          "maximum": 40
+        },
+        "proficiency": {
+          "type": "string",
+          "enum": [
+            "untrained",
+            "trained",
+            "expert",
+            "master",
+            "legendary"
+          ]
+        },
+        "special": {
+          "type": "string",
+          "description": "E.g., '+1 status bonus vs. magic'"
+        }
+      },
+      "required": [
+        "modifier"
+      ],
+      "additionalProperties": false
     },
     "attack": {
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "type": { "type": "string", "enum": ["melee", "ranged"] },
-        "attack_bonus": { "type": "integer" },
-        "damage": { "type": "string", "description": "Damage formula, e.g., '2d8+5'" },
-        "damage_type": { "type": "string" },
-        "traits": { "type": "array", "items": { "type": "string" } },
-        "range_ft": { "type": ["integer", "null"] },
-        "reach_ft": { "type": "integer", "default": 5 },
-        "effects": { "type": "array", "items": { "type": "string" } },
-        "description": { "type": "string" }
-      }
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "type": {
+          "type": "string",
+          "enum": [
+            "melee",
+            "ranged"
+          ]
+        },
+        "attack_bonus": {
+          "type": "integer",
+          "minimum": -10,
+          "maximum": 40
+        },
+        "damage": {
+          "type": "string",
+          "pattern": "^\\d+d\\d+(([+-]\\d+)|([+-]\\d+d\\d+))?$",
+          "description": "Damage formula, e.g., '2d8+5' or '1d6+1d4'"
+        },
+        "damage_type": {
+          "type": "string",
+          "minLength": 1
+        },
+        "traits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "range_ft": {
+          "type": [
+            "integer",
+            "null"
+          ],
+          "minimum": 5
+        },
+        "reach_ft": {
+          "type": "integer",
+          "default": 5,
+          "minimum": 0
+        },
+        "effects": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "type",
+        "attack_bonus",
+        "damage",
+        "damage_type"
+      ],
+      "additionalProperties": false
     },
     "ability": {
       "type": "object",
       "properties": {
-        "name": { "type": "string" },
-        "action_cost": { "type": "string", "enum": ["free", "reaction", "1", "2", "3", "passive"] },
-        "traits": { "type": "array", "items": { "type": "string" } },
-        "frequency": { "type": "string" },
-        "trigger": { "type": "string" },
-        "requirements": { "type": "string" },
-        "description": { "type": "string" },
-        "effect": { "type": "string" }
-      }
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "action_cost": {
+          "type": "string",
+          "enum": [
+            "free",
+            "reaction",
+            "1",
+            "2",
+            "3",
+            "passive"
+          ]
+        },
+        "traits": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "frequency": {
+          "type": "string"
+        },
+        "trigger": {
+          "type": "string"
+        },
+        "requirements": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string",
+          "minLength": 1
+        },
+        "effect": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "action_cost",
+        "description"
+      ],
+      "additionalProperties": false
     },
     "loot_entry": {
       "type": "object",
       "properties": {
-        "item_id": { "type": "string" },
-        "name": { "type": "string" },
-        "quantity": { "type": "integer", "default": 1 },
-        "rarity": { "type": "string", "enum": ["common", "uncommon", "rare", "epic", "legendary"] }
-      }
+        "item_id": {
+          "type": "string",
+          "format": "uuid"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "quantity": {
+          "type": "integer",
+          "default": 1,
+          "minimum": 1
+        },
+        "rarity": {
+          "type": "string",
+          "enum": [
+            "common",
+            "uncommon",
+            "rare",
+            "epic",
+            "legendary"
+          ]
+        }
+      },
+      "anyOf": [
+        {
+          "required": [
+            "item_id"
+          ]
+        },
+        {
+          "required": [
+            "name"
+          ]
+        }
+      ],
+      "additionalProperties": false
     }
   }
 }
