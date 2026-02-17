@@ -7,6 +7,8 @@ import { Component } from '../Component.js';
 
 /**
  * Team affiliations.
+ * @readonly
+ * @enum {string}
  */
 export const Team = {
   PLAYER: 'player',
@@ -16,22 +18,50 @@ export const Team = {
 };
 
 /**
+ * Constants for combat calculations.
+ * @readonly
+ */
+const CombatConstants = {
+  /** Standard d20 die size for initiative and attack rolls */
+  D20: 20,
+  /** Minimum roll value on a d20 */
+  MIN_D20_ROLL: 1,
+  /** Maximum roll value on a d20 */
+  MAX_D20_ROLL: 20
+};
+
+/**
  * CombatComponent
  * 
  * Stores combat-related data including initiative, team affiliation,
- * and combat state.
+ * and combat state. Follows ECS pattern - data container only, no complex logic.
+ * 
+ * @extends Component
  */
 export class CombatComponent extends Component {
   /**
+   * Create a new CombatComponent.
+   * 
    * @param {Object} config - Configuration object
+   * @param {number} [config.initiativeBonus=0] - Bonus to initiative rolls
+   * @param {string} [config.team='neutral'] - Team affiliation (use Team enum)
+   * @param {number} [config.weaponProficiency=0] - Weapon proficiency bonus
+   * @param {number} [config.attackBonus=0] - Base attack bonus (STR/DEX mod added in CombatSystem)
+   * @param {number} [config.armorProficiency=0] - Armor proficiency bonus for AC
    */
   constructor(config = {}) {
     super();
     
+    // Validate team if provided
+    if (config.team && !Object.values(Team).includes(config.team)) {
+      console.warn(`Invalid team value: ${config.team}, defaulting to ${Team.NEUTRAL}`);
+      config.team = Team.NEUTRAL;
+    }
+    
     // Initiative
     this.initiativeBonus = config.initiativeBonus || 0;
-    this.initiativeRoll = null; // Rolled value (d20 + bonus)
-    this.initiativeResult = null; // Final initiative score
+    this.initiativeRoll = null; // Rolled value (d20)
+    this.initiativeResult = null; // Final initiative score (roll + bonuses)
     
     // Team affiliation
     this.team = config.team || Team.NEUTRAL;
@@ -42,7 +72,7 @@ export class CombatComponent extends Component {
     
     // Turn tracking
     this.hasTakenTurn = false;
-    this.turnOrder = null; // Position in initiative order
+    this.turnOrder = null; // Position in initiative order (set by TurnManagementSystem)
     
     // Weapon proficiencies (for attack rolls)
     this.weaponProficiency = config.weaponProficiency || 0;
@@ -55,13 +85,14 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Roll initiative.
-   * @param {number} perceptionBonus - Perception bonus to add
-   * @returns {number} - Initiative result
+   * Roll initiative using d20 + perception + initiative bonus.
+   * 
+   * @param {number} [perceptionBonus=0] - Perception bonus to add to the roll
+   * @returns {number} The final initiative result
    */
   rollInitiative(perceptionBonus = 0) {
     // Roll d20
-    this.initiativeRoll = Math.floor(Math.random() * 20) + 1;
+    this.initiativeRoll = Math.floor(Math.random() * CombatConstants.D20) + CombatConstants.MIN_D20_ROLL;
     
     // Calculate result: d20 + perception + initiativeBonus
     this.initiativeResult = this.initiativeRoll + perceptionBonus + this.initiativeBonus;
@@ -70,31 +101,39 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Set initiative result manually (for sorting).
-   * @param {number} result - Initiative result
+   * Set initiative result manually (for server-authoritative ordering or tie resolution).
+   * 
+   * @param {number} result - Initiative result to set
+   * @throws {TypeError} If result is not a number
    */
   setInitiative(result) {
+    if (typeof result !== 'number' || isNaN(result)) {
+      throw new TypeError(`Initiative result must be a number, got: ${result}`);
+    }
     this.initiativeResult = result;
   }
   
   /**
-   * Get initiative result.
-   * @returns {number|null}
+   * Get the current initiative result.
+   * 
+   * @returns {number|null} The initiative result, or null if not yet rolled
    */
   getInitiative() {
     return this.initiativeResult;
   }
   
   /**
-   * Check if initiative has been rolled.
-   * @returns {boolean}
+   * Check if initiative has been rolled for this entity.
+   * 
+   * @returns {boolean} True if initiative has been set
    */
   hasInitiative() {
     return this.initiativeResult !== null;
   }
   
   /**
-   * Reset initiative (for new combat).
+   * Reset initiative data (for starting a new combat encounter).
+   * Clears roll, result, turn tracking, and turn order.
    */
   resetInitiative() {
     this.initiativeRoll = null;
@@ -104,7 +143,7 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Start combat.
+   * Enter combat state. Marks entity as in combat and resets combat flags.
    */
   enterCombat() {
     this.inCombat = true;
@@ -113,7 +152,7 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * End combat.
+   * Exit combat state. Marks entity as not in combat and resets initiative.
    */
   exitCombat() {
     this.inCombat = false;
@@ -121,51 +160,63 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Mark as defeated.
+   * Mark entity as defeated in combat.
    */
   defeat() {
     this.isDefeated = true;
   }
   
   /**
-   * Check if entity is on player team.
-   * @returns {boolean}
+   * Check if entity is on the player team.
+   * 
+   * @returns {boolean} True if entity is on Team.PLAYER
    */
   isPlayerTeam() {
     return this.team === Team.PLAYER;
   }
   
   /**
-   * Check if entity is hostile.
-   * @returns {boolean}
+   * Check if entity is hostile (enemy team).
+   * 
+   * @returns {boolean} True if entity is on Team.ENEMY
    */
   isHostile() {
     return this.team === Team.ENEMY;
   }
   
   /**
-   * Check if two entities are on same team.
-   * @param {CombatComponent} other - Other combat component
-   * @returns {boolean}
+   * Check if two entities are on the same team.
+   * 
+   * @param {CombatComponent} other - Other entity's combat component
+   * @returns {boolean} True if both entities are on the same team
    */
   isSameTeam(other) {
     return this.team === other.team;
   }
   
   /**
-   * Check if entity is hostile to another.
-   * @param {CombatComponent} other - Other combat component
-   * @returns {boolean}
+   * Check if this entity is hostile to another entity.
+   * Implements team-based hostility rules:
+   * - Neutral entities are never hostile
+   * - Player team is hostile to Enemy team only
+   * - Enemy team is hostile to Player and Ally teams
+   * - Ally team follows Player hostility rules
+   * 
+   * @param {CombatComponent} other - Other entity's combat component
+   * @returns {boolean} True if this entity is hostile to the other
    */
   isHostileTo(other) {
+    // Neutral entities are never hostile
     if (this.team === Team.NEUTRAL || other.team === Team.NEUTRAL) {
       return false;
     }
     
-    if (this.team === Team.PLAYER) {
+    // Player/Ally teams are hostile to Enemy team
+    if (this.team === Team.PLAYER || this.team === Team.ALLY) {
       return other.team === Team.ENEMY;
     }
     
+    // Enemy team is hostile to Player and Ally teams
     if (this.team === Team.ENEMY) {
       return other.team === Team.PLAYER || other.team === Team.ALLY;
     }
@@ -174,37 +225,40 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Start turn.
+   * Mark turn as started (called by TurnManagementSystem).
    */
   startTurn() {
     this.hasTakenTurn = true;
   }
   
   /**
-   * Mark turn as complete.
+   * Mark turn as complete (placeholder for future turn-end effects).
+   * Turn tracking is handled by TurnManagementSystem.
    */
   endTurn() {
     // Turn tracking handled by TurnManagementSystem
   }
   
   /**
-   * Check if has taken turn this round.
-   * @returns {boolean}
+   * Check if entity has taken their turn this round.
+   * 
+   * @returns {boolean} True if turn has been taken
    */
   hasTurnCompleted() {
     return this.hasTakenTurn;
   }
   
   /**
-   * Reset turn tracking (new round).
+   * Reset turn tracking for a new round (called by TurnManagementSystem).
    */
   resetTurnTracking() {
     this.hasTakenTurn = false;
   }
   
   /**
-   * Serialize component to JSON.
-   * @returns {Object}
+   * Serialize component to JSON for persistence.
+   * 
+   * @returns {Object} Serialized component data
    */
   toJSON() {
     return {
@@ -224,9 +278,21 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Deserialize component from JSON.
-   * @param {Object} data - Serialized data
-   * @returns {CombatComponent}
+   * Deserialize component from JSON data.
+   * 
+   * @param {Object} data - Serialized component data
+   * @param {number} [data.initiativeBonus] - Initiative bonus
+   * @param {number|null} [data.initiativeRoll] - Last rolled initiative (d20)
+   * @param {number|null} [data.initiativeResult] - Final initiative score
+   * @param {string} [data.team] - Team affiliation
+   * @param {boolean} [data.inCombat] - Combat state flag
+   * @param {boolean} [data.isDefeated] - Defeated state flag
+   * @param {boolean} [data.hasTakenTurn] - Turn tracking flag
+   * @param {number|null} [data.turnOrder] - Position in initiative order
+   * @param {number} [data.weaponProficiency] - Weapon proficiency bonus
+   * @param {number} [data.attackBonus] - Base attack bonus
+   * @param {number} [data.armorProficiency] - Armor proficiency bonus
+   * @returns {CombatComponent} New CombatComponent instance with loaded data
    */
   static fromJSON(data) {
     const config = {
