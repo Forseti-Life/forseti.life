@@ -785,10 +785,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $this->errorJsonResponse('Access denied', 403);
 		}
 
-		$payload = json_decode((string) $request->getContent(), TRUE);
-		if (!is_array($payload)) {
-			$payload = [];
-		}
+		$payload = $this->decodeJsonRequestPayload($request);
 
 		$queryId = trim((string) ($payload['query_id'] ?? ''));
 		if ($queryId === '') {
@@ -830,28 +827,28 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 					}
 
 					$this->recordCloseOutcome($result, $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT), 'pr', $prNumber);
-						$this->closeIssueNumbersWithComment($result, $repo, $token, (array) ($candidate['issue_numbers'] ?? []), self::DEAD_VALUE_COMMENT);
+					$this->closeIssueNumbersWithComment($result, $repo, $token, (array) ($candidate['issue_numbers'] ?? []), self::DEAD_VALUE_COMMENT);
 				}
 				break;
 
 			case 'issues_resolved_by_merged_pr':
 				$issueNumbers = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
-					$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
+				$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			case 'non_action_labeled_issues':
 				$issueNumbers = $this->collectNonActionOpenIssues($issues);
-					$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
+				$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			case 'open_prs_with_only_closed_issue_refs':
 				$prNumbers = $this->collectOpenPrsReferencingOnlyClosedIssues($prs, $openIssueNumbers);
-					$this->closePullRequestNumbersWithComment($result, $repo, $token, $prNumbers, self::BULK_CLOSE_COMMENT);
+				$this->closePullRequestNumbersWithComment($result, $repo, $token, $prNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			case 'stale_unassigned_testing_issues':
 				$issueNumbers = $this->collectStaleUnassignedTestingIssues($issues);
-					$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
+				$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			default:
@@ -881,10 +878,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			return $this->errorJsonResponse('Access denied', 403);
 		}
 
-		$payload = json_decode((string) $request->getContent(), TRUE);
-		if (!is_array($payload)) {
-			$payload = [];
-		}
+		$payload = $this->decodeJsonRequestPayload($request);
 
 		$prNumber = (int) ($payload['pr_number'] ?? 0);
 		$issueNumber = (int) ($payload['issue_number'] ?? 0);
@@ -945,6 +939,14 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			'success' => FALSE,
 			'message' => $message,
 		], $statusCode);
+	}
+
+	/**
+	 * Decode JSON request payload with safe array fallback.
+	 */
+	private function decodeJsonRequestPayload(Request $request): array {
+		$payload = json_decode((string) $request->getContent(), TRUE);
+		return is_array($payload) ? $payload : [];
 	}
 
 	/**
