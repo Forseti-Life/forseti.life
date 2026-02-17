@@ -420,8 +420,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$issues = $reportData['issues'];
 		$prs = $reportData['prs'];
 
-		usort($issues, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
-		usort($prs, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
+		$this->sortItemsByNumber($issues);
+		$this->sortItemsByNumber($prs);
 
 		$openIssueNumbers = $this->buildOpenIssueNumberMap($issues);
 
@@ -1028,6 +1028,13 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 */
 	private function keySetToIntList(array $set): array {
 		return array_values(array_map('intval', array_keys($set)));
+	}
+
+	/**
+	 * Sort issue/PR item arrays by numeric `number` field ascending.
+	 */
+	private function sortItemsByNumber(array &$items): void {
+		usort($items, static fn(array $left, array $right): int => ((int) ($left['number'] ?? 0)) <=> ((int) ($right['number'] ?? 0)));
 	}
 
 	/**
