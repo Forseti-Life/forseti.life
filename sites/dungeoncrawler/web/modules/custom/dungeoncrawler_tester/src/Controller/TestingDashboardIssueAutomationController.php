@@ -802,7 +802,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 			case 'dead_value_prs':
 				$candidates = $this->collectDeadValuePrCandidates($repo, $prs, $tokenCandidates, $openIssueNumbers);
 				foreach ($candidates as $candidate) {
-					$prNumber = (int) ($candidate['pr_number'] ?? 0);
+						$prNumber = $this->extractPositiveNumber($candidate, 'pr_number');
 					if ($prNumber <= 0) {
 						continue;
 					}
@@ -860,8 +860,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$payload = $this->decodeJsonRequestPayload($request);
 
-		$prNumber = (int) ($payload['pr_number'] ?? 0);
-		$issueNumber = (int) ($payload['issue_number'] ?? 0);
+		$prNumber = $this->extractPositiveNumber($payload, 'pr_number');
+		$issueNumber = $this->extractPositiveNumber($payload, 'issue_number');
 
 		if ($prNumber <= 0) {
 			return $this->errorJsonResponse('Missing PR number.', 400);
