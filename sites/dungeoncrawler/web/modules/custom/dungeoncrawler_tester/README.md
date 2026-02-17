@@ -34,7 +34,7 @@ The dashboard includes:
 - **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
 - **Documentation submenu organization**: The dedicated testing menu now groups all documentation links under an expandable `Documentation` parent, with `Documentation Home` included as a child entry.
 - **Testing navigation block**: The `Dungeon Crawler Testing Navigation` block now renders links directly from the dedicated testing menu so all tester pages stay in sync with one menu definition.
-- **Issue/PR Report Workflow**: `/dungeoncrawler/testing/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
+- **Issue/PR Report Workflow**: `/dungeoncrawler/testing/import-open-issues/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
 - **Issue/PR local-cache reference**: The issue/PR report now includes an explicit local cache management callout for repository-root `Issues.md` and a direct link to `/dungeoncrawler/testing/import-open-issues`.
 - **Issue/PR import status visibility**: The issue/PR report metadata now includes a “Last local import run” line (time/repo/handled-created-skipped-failed/dry-run) sourced from importer-run state.
 - **Open issue import page**: `/dungeoncrawler/testing/import-open-issues` now provides a dashboard form that imports Open rows from `Issues.md` into GitHub (batchable, delay selectable as 5/30/180 seconds with default 5, and Copilot assignment-aware).
