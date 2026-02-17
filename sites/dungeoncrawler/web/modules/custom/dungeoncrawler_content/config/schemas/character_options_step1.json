@@ -4,76 +4,126 @@
   "title": "Character Creation Step 1 Options - Name & Concept",
   "description": "Available options and requirements for Step 1 of PF2e character creation: choosing a name and concept.",
   "type": "object",
+  "$defs": {
+    "validationRule": {
+      "type": "object",
+      "description": "Validation constraints for a field",
+      "properties": {
+        "min_length": {
+          "type": "integer",
+          "description": "Minimum character length"
+        },
+        "max_length": {
+          "type": "integer",
+          "description": "Maximum character length"
+        },
+        "pattern": {
+          "type": "string",
+          "description": "Regex pattern for validation"
+        },
+        "error_messages": {
+          "type": "object",
+          "description": "Error messages for validation failures",
+          "properties": {
+            "required": {
+              "type": "string",
+              "description": "Message when required field is empty"
+            },
+            "min_length": {
+              "type": "string",
+              "description": "Message when input is too short"
+            },
+            "max_length": {
+              "type": "string",
+              "description": "Message when input is too long"
+            },
+            "pattern": {
+              "type": "string",
+              "description": "Message when pattern validation fails"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    }
+  },
   "required": ["step", "step_name", "step_description", "fields", "validation", "navigation", "tips"],
   "properties": {
     "step": {
       "type": "integer",
       "const": 1,
-      "description": "Step number in character creation process."
+      "description": "Step number in character creation process"
     },
     "step_name": {
       "type": "string",
       "const": "Name & Concept",
-      "description": "Display name for this step."
+      "description": "Display name for this step"
     },
     "step_description": {
       "type": "string",
       "const": "Begin your adventure by choosing your character's name and defining their core concept.",
-      "description": "Instructions displayed to the player."
+      "description": "Instructions displayed to the player"
     },
     "fields": {
       "type": "object",
+      "description": "Form fields available in this step",
       "required": ["name", "concept"],
+      "additionalProperties": false,
       "properties": {
         "name": {
           "type": "object",
+          "description": "Character name input field",
           "required": ["field_type", "label", "required", "validation"],
+          "additionalProperties": false,
           "properties": {
             "field_type": {
               "type": "string",
               "enum": ["text"],
-              "description": "HTML input type."
+              "description": "HTML input type"
             },
             "label": {
               "type": "string",
               "default": "Character Name",
-              "description": "Field label displayed to user."
+              "description": "Field label displayed to user"
             },
             "placeholder": {
               "type": "string",
               "default": "Enter your character's name",
-              "description": "Placeholder text in input field."
+              "description": "Placeholder text in input field"
             },
             "help_text": {
               "type": "string",
               "default": "Choose a name that fits your character's ancestry and background. This is how other players will know you.",
-              "description": "Additional guidance shown below field."
+              "description": "Additional guidance shown below field"
             },
             "required": {
               "type": "boolean",
               "const": true,
-              "description": "Whether this field must be filled."
+              "description": "Whether this field must be filled"
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for character name input",
               "properties": {
                 "min_length": {
                   "type": "integer",
                   "default": 2,
-                  "description": "Minimum character length."
+                  "description": "Minimum character length"
                 },
                 "max_length": {
                   "type": "integer",
                   "default": 100,
-                  "description": "Maximum character length."
+                  "description": "Maximum character length"
                 },
                 "pattern": {
                   "type": "string",
                   "default": "^[a-zA-Z][a-zA-Z\\s'-]*$",
-                  "description": "Regex pattern for valid names."
+                  "description": "Regex pattern for valid names"
                 },
                 "error_messages": {
                   "type": "object",
+                  "description": "Error messages for validation failures",
                   "properties": {
                     "required": {
                       "type": "string",
@@ -91,66 +141,75 @@
                       "type": "string",
                       "default": "Name must start with a letter and contain only letters, spaces, hyphens, and apostrophes."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
-              }
+              },
+              "additionalProperties": false
             }
           }
         },
         "concept": {
           "type": "object",
+          "description": "Character concept textarea field",
           "required": ["field_type", "label", "required"],
+          "additionalProperties": false,
           "properties": {
             "field_type": {
               "type": "string",
               "enum": ["textarea"],
-              "description": "HTML input type."
+              "description": "HTML input type"
             },
             "label": {
               "type": "string",
               "default": "Character Concept",
-              "description": "Field label displayed to user."
+              "description": "Field label displayed to user"
             },
             "placeholder": {
               "type": "string",
               "default": "Describe your character's core concept in a few sentences...",
-              "description": "Placeholder text in textarea."
+              "description": "Placeholder text in textarea"
             },
             "help_text": {
               "type": "string",
               "default": "What's your character's story? Are they a brave warrior seeking glory, a cunning rogue escaping their past, or a wise scholar pursuing forbidden knowledge? This helps guide your choices in later steps.",
-              "description": "Additional guidance shown below field."
+              "description": "Additional guidance shown below field"
             },
             "required": {
               "type": "boolean",
               "const": false,
-              "description": "Concept is optional but recommended."
+              "description": "Concept is optional but recommended"
             },
             "validation": {
               "type": "object",
+              "description": "Validation rules for concept textarea",
               "properties": {
                 "max_length": {
                   "type": "integer",
                   "default": 500,
-                  "description": "Maximum character length."
+                  "description": "Maximum character length"
                 },
                 "error_messages": {
                   "type": "object",
+                  "description": "Error messages for validation failures",
                   "properties": {
                     "max_length": {
                       "type": "string",
                       "default": "Concept cannot exceed 500 characters."
                     }
-                  }
+                  },
+                  "additionalProperties": false
                 }
-              }
+              },
+              "additionalProperties": false
             },
             "suggestions": {
               "type": "array",
-              "description": "Example concepts to inspire players.",
+              "description": "Example concepts to inspire players",
               "items": {
                 "type": "string"
               },
+              "minItems": 1,
               "default": [
                 "A battle-scarred mercenary seeking redemption for past mistakes",
                 "An exiled noble with a secret magical heritage",
@@ -168,9 +227,11 @@
     },
     "validation": {
       "type": "object",
+      "description": "Step completion validation rules",
       "properties": {
         "step_complete": {
           "type": "object",
+          "description": "Rules for determining step completion",
           "properties": {
             "required_fields": {
               "type": "array",
@@ -178,16 +239,18 @@
                 "type": "string"
               },
               "default": ["name"],
-              "description": "Fields that must be filled to proceed."
+              "description": "Fields that must be filled to proceed"
             },
             "error_message": {
               "type": "string",
               "default": "Please enter a character name to continue.",
-              "description": "Message shown when validation fails."
+              "description": "Message shown when validation fails"
             }
-          }
+          },
+          "additionalProperties": false
         }
-      }
+      },
+      "additionalProperties": false
     },
     "navigation": {
       "type": "object",
@@ -214,7 +277,8 @@
           "description": "Step cannot be skipped"
         }
       },
-      "required": ["previous_step", "next_step", "can_go_back", "can_skip"]
+      "required": ["previous_step", "next_step", "can_go_back", "can_skip"],
+      "additionalProperties": false
     },
     "tips": {
       "type": "array",
@@ -222,11 +286,13 @@
       "items": {
         "type": "string"
       },
+      "minItems": 1,
       "default": [
         "Don't worry too much about your name at this stage - you can always change it later. Focus on creating a character concept that excites you!",
         "Different ancestries have different naming traditions. Dwarves often have clan names, elves prefer flowing melodic names, and goblins love silly-sounding names.",
         "Your concept will guide your choices in ancestry, background, and class. Think about what kind of hero you want to play - brave, cunning, wise, or something else entirely."
       ]
     }
-  }
+  },
+  "additionalProperties": false
 }
