@@ -44,7 +44,7 @@ JSON Schemas serve multiple purposes:
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 221 | Obstacle templates |
 | `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✗ | 471 | Room generation |
-| `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
+| `trap.schema.json` | Mechanical & magical traps | ✓ | 440 | Trap mechanics |
 
 ## Schema Categories
 
@@ -390,16 +390,13 @@ Individual dungeon rooms that occupy one or more hexes. AI-generated on first en
 PF2e-compatible traps and snares (simple and complex). Traps are hidden threats that trigger when activated.
 
 **Recently improved (2026-02-17):**
-- Added schema versioning for migration compatibility
-- Enhanced validation with comprehensive numeric constraints (20+ min/max pairs)
-- Added timestamp tracking (created_at, updated_at)
-- Improved pattern validation for damage formulas
-- Added additionalProperties constraints throughout for stricter validation
-- Added rarity and traits fields for PF2e alignment
-- Complete defense system: AC, immunities, resistances, weaknesses
-- Flexible reset mechanics (string or structured object)
-- State tracking: is_detected, is_disabled, is_triggered, is_destroyed
-- Changed hex to hexes_affected array to support multi-hex traps
+- Added `definitions` section with reusable hex_coordinate component
+- Referenced hex_coordinate definition in hexes_affected array for consistency
+- Added string validation (minLength: 1) to traits array items to prevent empty strings
+- Added maximum value constraints to resistances/weaknesses (max: 30) aligned with hazard.schema
+- Enhanced damage_type description to clarify support for multiple damage types
+- Added comprehensive examples section with simple and complex trap patterns
+- Improved consistency with hazard.schema.json structure and validation patterns
 
 **Defines:**
 - Simple traps: One-time dangers (dart trap, pit trap)
@@ -412,11 +409,15 @@ PF2e-compatible traps and snares (simple and complex). Traps are hidden threats 
 - State tracking: Runtime flags for detection, disabling, triggering, destruction
 
 **Key Features:**
+- Reusable definitions section (hex_coordinate) for schema consistency
 - Supports both string and structured object format for reset mechanics
 - Multiple skill options for disabling (Thievery, Athletics, Arcana, Religion, Crafting)
 - Pattern validation for damage dice notation
 - Full PF2e trait system support
 - Strict validation with additionalProperties: false
+- Comprehensive examples demonstrating simple and complex trap patterns
+- Maximum value constraints aligned with hazard.schema (resistances/weaknesses max: 30)
+- Enhanced damage_type field to support multiple damage types (e.g., "piercing, poison")
 
 ## Schema Standards
 
