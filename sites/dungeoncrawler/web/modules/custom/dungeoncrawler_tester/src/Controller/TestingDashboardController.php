@@ -579,7 +579,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Build a URL from route name with a safe path fallback.
    */
-  private function safeRouteUrl(string $routeName, string $fallbackPath): string {
+  protected function safeRouteUrl(string $routeName, string $fallbackPath): string {
     try {
       return Url::fromRoute($routeName)->toString();
     }
@@ -596,7 +596,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Build process and decision logic guidance for issue-pr-report triage.
    */
-  private function buildIssuePrReportDecisionLogicSection(): array {
+  protected function buildIssuePrReportDecisionLogicSection(): array {
     return [
       '#type' => 'container',
       '#attributes' => ['class' => ['issue-pr-report-decision-logic', 'issue-report-item']],
@@ -645,7 +645,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Build top-of-page bulk-close query section.
    */
-  private function buildBulkCloseQuerySection(string $repo, array $issues, array $prs, array $tokenCandidates): array {
+  protected function buildBulkCloseQuerySection(string $repo, array $issues, array $prs, array $tokenCandidates): array {
     $definitions = $this->buildBulkCloseQueryDefinitions($repo, $issues, $prs, $tokenCandidates);
 
     $cards = [];
@@ -728,7 +728,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Build bulk-close query definitions with live expected impact counts.
    */
-  private function buildBulkCloseQueryDefinitions(string $repo, array $issues, array $prs, array $tokenCandidates): array {
+  protected function buildBulkCloseQueryDefinitions(string $repo, array $issues, array $prs, array $tokenCandidates): array {
     $openIssueNumbers = [];
     foreach ($issues as $issue) {
       $issueNumber = (int) ($issue['number'] ?? 0);
@@ -942,7 +942,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Collect dead-value PR candidates and referenced open issues.
    */
-  private function collectDeadValuePrCandidates(string $repo, array $prs, array $tokenCandidates, array $openIssueNumbers): array {
+  protected function collectDeadValuePrCandidates(string $repo, array $prs, array $tokenCandidates, array $openIssueNumbers): array {
     $candidates = [];
 
     foreach ($prs as $pr) {
@@ -990,7 +990,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Collect open issue numbers referenced by merged PRs.
    */
-  private function collectOpenIssuesReferencedByMergedPrs(string $repo, array $issues, array $tokenCandidates): array {
+  protected function collectOpenIssuesReferencedByMergedPrs(string $repo, array $issues, array $tokenCandidates): array {
     $openIssueNumbers = [];
     foreach ($issues as $issue) {
       $issueNumber = (int) ($issue['number'] ?? 0);
@@ -1021,7 +1021,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Collect open issue numbers already marked duplicate/invalid/wontfix.
    */
-  private function collectNonActionOpenIssues(array $issues): array {
+  protected function collectNonActionOpenIssues(array $issues): array {
     $candidates = [];
     $nonActionLabels = ['duplicate', 'invalid', 'wontfix'];
 
@@ -1043,7 +1043,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Collect open PR numbers where every referenced issue is already closed.
    */
-  private function collectOpenPrsReferencingOnlyClosedIssues(array $prs, array $openIssueNumbers): array {
+  protected function collectOpenPrsReferencingOnlyClosedIssues(array $prs, array $openIssueNumbers): array {
     $candidates = [];
 
     foreach ($prs as $pr) {
@@ -1076,7 +1076,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Collect stale unassigned testing-related open issues.
    */
-  private function collectStaleUnassignedTestingIssues(array $issues): array {
+  protected function collectStaleUnassignedTestingIssues(array $issues): array {
     $candidates = [];
 
     foreach ($issues as $issue) {
@@ -1108,7 +1108,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Fetch full PR details by number.
    */
-  private function fetchPullRequestDetails(string $repo, array $tokenCandidates, int $prNumber): ?array {
+  protected function fetchPullRequestDetails(string $repo, array $tokenCandidates, int $prNumber): ?array {
     if ($prNumber <= 0) {
       return NULL;
     }
@@ -3407,7 +3407,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Resolve GitHub repo/token from existing tester settings precedence.
    */
-  private function resolveGitHubContext(): array {
+  protected function resolveGitHubContext(): array {
     $context = $this->githubClient->resolveContext();
     $repo = (string) ($context['repo'] ?? $this->defaultRepo);
     $tokenCandidates = array_values((array) ($context['token_candidates'] ?? []));
@@ -3423,7 +3423,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Fetch open issues for reporting.
    */
-  private function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+  protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
     if (empty($tokenCandidates)) {
       return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
     }
@@ -3487,7 +3487,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Fetch open pull requests for reporting.
    */
-  private function fetchOpenPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+  protected function fetchOpenPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
     if (empty($tokenCandidates)) {
       return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
     }
@@ -3537,7 +3537,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Fetch closed pull requests for merged-reference analysis.
    */
-  private function fetchClosedPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+  protected function fetchClosedPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
     if (empty($tokenCandidates)) {
       return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
     }
@@ -3581,7 +3581,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Fetch linked open PR numbers from an issue timeline.
    */
-  private function fetchLinkedOpenPrNumbersForIssueFromTimeline(string $repo, array $tokenCandidates, int $issueNumber, array $openPrByNumber, bool $useCache = TRUE): array {
+  protected function fetchLinkedOpenPrNumbersForIssueFromTimeline(string $repo, array $tokenCandidates, int $issueNumber, array $openPrByNumber, bool $useCache = TRUE): array {
     if (empty($tokenCandidates) || $issueNumber <= 0) {
       return [];
     }
@@ -3637,21 +3637,21 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Execute a GitHub API JSON request and normalize response shape.
    */
-  private function requestGitHubJson(string $url, ?string $token, array $extraHeaders = []): array {
+  protected function requestGitHubJson(string $url, ?string $token, array $extraHeaders = []): array {
     return $this->githubClient->requestJson($url, $token, $extraHeaders, FALSE);
   }
 
   /**
    * Execute GitHub JSON request with token failover.
    */
-  private function requestGitHubJsonWithFallback(string $url, array $tokenCandidates, array $extraHeaders = [], bool $paginate = FALSE): array {
+  protected function requestGitHubJsonWithFallback(string $url, array $tokenCandidates, array $extraHeaders = [], bool $paginate = FALSE): array {
     return $this->githubClient->requestJsonWithFallback($url, $tokenCandidates, $extraHeaders, $paginate);
   }
 
   /**
    * Extract issue number references from a PR title/body.
    */
-  private function extractIssueReferencesFromPr(array $pr): array {
+  protected function extractIssueReferencesFromPr(array $pr): array {
     $references = [];
     $text = trim(((string) ($pr['title'] ?? '')) . "\n" . ((string) ($pr['body'] ?? '')));
     if ($text === '') {
@@ -3672,7 +3672,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Check whether a PR is already linked in an issue group.
    */
-  private function isPrAlreadyLinkedToIssue(array $linkedPrs, array $candidatePr): bool {
+  protected function isPrAlreadyLinkedToIssue(array $linkedPrs, array $candidatePr): bool {
     $candidateNumber = (int) ($candidatePr['number'] ?? 0);
     if ($candidateNumber <= 0) {
       return FALSE;
@@ -3690,7 +3690,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Determine blocking conditions for a PR.
    */
-  private function describePrBlockers(array $pr): array {
+  protected function describePrBlockers(array $pr): array {
     $blockers = [];
 
     if (!empty($pr['draft'])) {
@@ -3713,7 +3713,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Suggest next step for PR progression based on blockers.
    */
-  private function suggestPrNextStep(array $pr, array $blockers): string {
+  protected function suggestPrNextStep(array $pr, array $blockers): string {
     if (!empty($pr['draft'])) {
       return (string) $this->t('Move PR out of draft when ready for review.');
     }
@@ -3733,7 +3733,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Determine if PR has no effective code value compared to main.
    */
-  private function isDeadValuePr(array $pr): bool {
+  protected function isDeadValuePr(array $pr): bool {
     $baseRef = (string) ($pr['base_ref'] ?? '');
     $changedFiles = (int) ($pr['changed_files'] ?? 0);
     $additions = (int) ($pr['additions'] ?? 0);
@@ -3815,7 +3815,7 @@ class TestingDashboardController extends ControllerBase {
   /**
    * Execute a GitHub mutation request with JSON payload.
    */
-  private function requestGitHubMutation(string $method, string $url, string $token, array $json): bool {
+  protected function requestGitHubMutation(string $method, string $url, string $token, array $json): bool {
     $ok = $this->githubClient->mutate($method, $url, $json, $token, self::GITHUB_API_TIMEOUT);
     if (!$ok) {
       $this->logger->error('Dead-value close mutation failed for @url.', [

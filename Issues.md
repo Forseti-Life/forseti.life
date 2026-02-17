@@ -39,7 +39,7 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCT-0101 | Decompose oversized TestingDashboardController into focused controllers/services (docs, report, automation actions) | Open | Unassigned | 2026-02-16 | 2026-02-16 | In progress: docs and issue/automation routes now map to focused controller surfaces (`TestingDashboardDocsController`, `TestingDashboardIssueAutomationController`); remaining work is migrating method bodies off the legacy monolithic controller. |
+| DCT-0101 | Decompose oversized TestingDashboardController into focused controllers/services (docs, report, automation actions) | Open | Unassigned | 2026-02-16 | 2026-02-16 | In progress: docs and issue/automation routes now map to focused controller surfaces; docs page method bodies/aliases execute from `TestingDashboardDocsController`, and routed issue automation actions (`issuePrReport`, `runBulkCloseQueryAjax`, `closeDeadValueAjax`) now execute from `TestingDashboardIssueAutomationController` via shared protected helper surface. Remaining work is deeper extraction/removal of legacy duplicate methods from monolithic controller. |
 #### templates
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
