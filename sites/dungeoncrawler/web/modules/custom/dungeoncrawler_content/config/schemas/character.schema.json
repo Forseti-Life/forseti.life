@@ -8,7 +8,8 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "description": "Schema version for migration compatibility.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Schema version for migration compatibility (semantic versioning: e.g., '1.0.0').",
       "default": "1.0.0"
     },
     "step": {
@@ -140,6 +141,7 @@
           "description": "Charisma score."
         }
       },
+      "additionalProperties": false,
       "description": "Current ability scores after all boosts and flaws."
     },
     "hit_points": {
@@ -163,6 +165,7 @@
           "description": "Temporary HP."
         }
       },
+      "additionalProperties": false,
       "description": "Character hit points. Current HP should not exceed max HP."
     },
     "alignment": {
@@ -175,8 +178,9 @@
       "description": "Deity worshipped (if any). Required for clerics and champions."
     },
     "age": {
-      "type": ["string", "integer"],
-      "description": "Character's age."
+      "type": "integer",
+      "minimum": 1,
+      "description": "Character's age in years."
     },
     "gender": {
       "type": "string",
@@ -209,7 +213,6 @@
           "enum": ["untrained", "trained", "expert", "master", "legendary"]
         }
       },
-      "additionalProperties": false,
       "examples": [
         {
           "acrobatics": "trained",
@@ -377,7 +380,7 @@
                 "type": "integer",
                 "minimum": 0,
                 "maximum": 10,
-                "description": "Spell rank (0 = cantrip, 1-10 = spell level)."
+                "description": "Spell rank. 0 = cantrip, 1-10 = spell level (PF2e supports up to rank 10 spells at level 20)."
               }
             },
             "additionalProperties": false
@@ -426,9 +429,10 @@
               "description": "Current focus points remaining."
             }
           },
-          "additionalProperties": false
+          "description": "Focus points for focus spells and class abilities."
         }
       },
+      "additionalProperties": false,
       "description": "Spellcasting data (null if not a spellcaster)."
     },
     "conditions": {

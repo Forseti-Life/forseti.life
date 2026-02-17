@@ -225,7 +225,7 @@
                 {% endif %}
                 <a href="{{ path('job_hunter.job_delete', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}" 
                    class="button button--small button--danger"
-                   onclick="return confirm('{{ 'Remove this job from My Jobs? (It will be archived, not permanently deleted.)'|t }}')">
+                   onclick="return confirm('{{ 'Remove this job from My Jobs?'|t }}')">
                   {{ 'Delete'|t }}
                 </a>
               </div>

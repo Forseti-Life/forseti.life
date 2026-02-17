@@ -18,8 +18,9 @@ Character JSON files should conform to the character schema defined in `../confi
 - `abilities` (object): Ability scores using shorthand keys:
   - `str`, `dex`, `con`, `int`, `wis`, `cha` (integers 1-30)
 
-### Recommended Fields
+### Strongly Recommended Fields
 
+- `schema_version` (string): Schema version for migration compatibility (e.g., "1.0.0"). While optional in schema, this field is highly recommended for all new character files to support future migrations.
 - `concept` (string): Brief character concept/hook
 - `heritage` (string): Ancestry-specific heritage
 - `background` (string): Background ID (lowercase-with-hyphens)
@@ -37,20 +38,27 @@ Character JSON files should conform to the character schema defined in `../confi
 - `gold` (number): Gold pieces (can include decimals for silver/copper conversion)
 - `feats` (array): Feats with `feat_id`, `name`, `level_gained`, `feat_type`
 - `hero_points` (integer 0-3): Current hero points
-- `personality` (string): Personality description
-- `backstory` (string): Character backstory
+- `appearance` (string): Physical description (max 1000 characters)
+- `personality` (string): Personality traits (max 1000 characters)
+- `backstory` (string): Character backstory (max 5000 characters)
+- `age` (string or integer): Character's age
+- `gender` (string): Character's gender identity
 
 ### Extended NPC Data
 
-For NPC characters, additional data can be stored in a `_npc_extended` object (prefixed with underscore to indicate it's not part of the core schema). This allows rich NPC data without cluttering the primary character structure:
+For NPC characters, additional data can be stored in a `_npc_extended` object (prefixed with underscore to indicate it's not part of the core schema). This allows rich NPC data without cluttering the primary character structure.
+
+**Purpose**: The `_npc_extended` object is for Game Master reference and storytelling content. It is not validated by the character schema and will not be used for mechanical calculations. This separation keeps the core character data clean while preserving rich narrative details.
+
+**Recommended Structure**:
 
 ```json
 {
   "name": "Example Character",
   ...schema fields...
   "_npc_extended": {
-    "role": "Companion / Guide / Merchant / etc",
-    "disposition": "Friendly / Neutral / Hostile",
+    "role": "Companion / Guide / Merchant / Antagonist / etc",
+    "disposition": "Friendly / Neutral / Hostile / Varies",
     "encounter_behavior": "Description of how NPC approaches players",
     "combat_behavior": "Description of NPC tactics in combat",
     "knowledge": {
@@ -64,13 +72,19 @@ For NPC characters, additional data can be stored in a `_npc_extended` object (p
       "traits": ["trait1", "trait2"],
       "goals": {
         "primary": "Primary goal",
-        "secondary": "Secondary goal"
+        "secondary": "Secondary goal",
+        "tertiary": "Optional tertiary goal"
       },
       "catchphrases": ["phrase1", "phrase2"]
     },
     "equipment_details": {
-      "worn": { ... detailed descriptions ... },
-      "stowed": [ ... detailed item descriptions ... ]
+      "worn": {
+        "armor": { "name": "...", "description": "..." },
+        "other": ["item descriptions"]
+      },
+      "stowed": [
+        { "name": "...", "description": "..." }
+      ]
     },
     "feat_descriptions": {
       "feat-id": "Detailed description with flavor text"
@@ -81,6 +95,13 @@ For NPC characters, additional data can be stored in a `_npc_extended` object (p
   }
 }
 ```
+
+**Guidelines for _npc_extended**:
+- Use underscore prefix (`_npc_extended`) to signal non-schema data
+- Include only for NPCs, not for player characters
+- Focus on GM-facing information: roleplay hooks, tactics, knowledge
+- Keep mechanical data (stats, abilities) in the core schema fields
+- See `gribbles-rindsworth.json` for a complete working example
 
 ## Naming Conventions
 

@@ -548,20 +548,17 @@ class CompanyController extends ControllerBase {
     }
 
     try {
-      // Soft-remove from My Jobs by archiving instead of deleting from system.
-      $this->database->update('jobhunter_job_requirements')
-        ->fields([
-          'status' => 'archived',
-          'updated' => time(),
-        ])
-        ->condition('id', $job_id)
+      // Remove only this user's saved-job mapping.
+      $this->database->delete('jobhunter_saved_jobs')
+        ->condition('uid', (int) $this->currentUser->id())
+        ->condition('job_id', (int) $job_id)
         ->execute();
-      
-      $this->messenger()->addMessage($this->t('Job removed from My Jobs. You can still view it using the Archived filter.'));
+
+      $this->messenger()->addMessage($this->t('Job removed from My Jobs.'));
     }
     catch (\Exception $e) {
       $this->messenger()->addError($this->t('Failed to remove job. Please try again.'));
-      $this->getLogger('job_hunter')->error('Failed to archive job @id: @error', [
+      $this->getLogger('job_hunter')->error('Failed to remove saved-job mapping for job @id: @error', [
         '@id' => $job_id,
         '@error' => $e->getMessage(),
       ]);
