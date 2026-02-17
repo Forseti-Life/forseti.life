@@ -1334,6 +1334,13 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	}
 
 	/**
+	 * Build issue-report response shape for GitHub API error cases.
+	 */
+	private function githubApiErrorReportResult(mixed $error): array {
+		return ['items' => [], 'error' => (string) $error];
+	}
+
+	/**
 	 * Fetch open issues for reporting.
 	 */
 	protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
@@ -1350,7 +1357,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$url = $this->buildRepoApiBase($repo) . '/issues?state=open&per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
 		if (!empty($response['error'])) {
-			return ['items' => [], 'error' => $response['error']];
+			return $this->githubApiErrorReportResult($response['error']);
 		}
 
 		$items = [];
@@ -1413,7 +1420,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$url = $this->buildRepoApiBase($repo) . '/pulls?state=open&per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
 		if (!empty($response['error'])) {
-			return ['items' => [], 'error' => $response['error']];
+			return $this->githubApiErrorReportResult($response['error']);
 		}
 
 		$items = [];
@@ -1462,7 +1469,7 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		$url = $this->buildRepoApiBase($repo) . '/pulls?state=closed&per_page=100';
 		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
 		if (!empty($response['error'])) {
-			return ['items' => [], 'error' => $response['error']];
+			return $this->githubApiErrorReportResult($response['error']);
 		}
 
 		$items = [];
