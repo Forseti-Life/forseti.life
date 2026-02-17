@@ -1102,4 +1102,218 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 		return $ok;
 	}
 
+	/**
+	 * Fetch open issues for reporting.
+	 */
+	protected function fetchOpenIssuesForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+		if (empty($tokenCandidates)) {
+			return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+		}
+
+		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_issues.' . $repo;
+		if ($useCache) {
+			$cache = $this->cacheBackend->get($cacheKey);
+			if ($cache && !empty($cache->data) && is_array($cache->data)) {
+				return $cache->data;
+			}
+		}
+
+		$url = "https://api.github.com/repos/{$repo}/issues?state=open&per_page=100";
+		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
+		if (!empty($response['error'])) {
+			return ['items' => [], 'error' => $response['error']];
+		}
+
+		$items = [];
+		foreach ($response['items'] as $issue) {
+			if (!is_array($issue) || !empty($issue['pull_request'])) {
+				continue;
+			}
+
+			$labels = [];
+			foreach ((array) ($issue['labels'] ?? []) as $label) {
+				if (is_array($label) && !empty($label['name'])) {
+					$labels[] = (string) $label['name'];
+				}
+			}
+
+			$assignees = [];
+			foreach ((array) ($issue['assignees'] ?? []) as $assignee) {
+				if (is_array($assignee) && !empty($assignee['login'])) {
+					$assignees[] = (string) $assignee['login'];
+				}
+			}
+
+			$updatedAt = (string) ($issue['updated_at'] ?? '');
+			$updatedTs = $updatedAt !== '' ? strtotime($updatedAt) : FALSE;
+			$staleDays = is_int($updatedTs) ? (int) floor((time() - $updatedTs) / 86400) : 0;
+
+			$items[] = [
+				'number' => (int) ($issue['number'] ?? 0),
+				'title' => (string) ($issue['title'] ?? ''),
+				'html_url' => (string) ($issue['html_url'] ?? ''),
+				'labels' => $labels,
+				'assignees' => $assignees,
+				'updated_at' => $updatedAt,
+				'stale_days' => max(0, $staleDays),
+			];
+		}
+
+		$result = ['items' => $items, 'error' => NULL];
+		if ($useCache) {
+			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+		}
+		return $result;
+	}
+
+	/**
+	 * Fetch open pull requests for reporting.
+	 */
+	protected function fetchOpenPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+		if (empty($tokenCandidates)) {
+			return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+		}
+
+		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.open_prs.' . $repo;
+		if ($useCache) {
+			$cache = $this->cacheBackend->get($cacheKey);
+			if ($cache && !empty($cache->data) && is_array($cache->data)) {
+				return $cache->data;
+			}
+		}
+
+		$url = "https://api.github.com/repos/{$repo}/pulls?state=open&per_page=100";
+		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
+		if (!empty($response['error'])) {
+			return ['items' => [], 'error' => $response['error']];
+		}
+
+		$items = [];
+		foreach ($response['items'] as $pr) {
+			if (!is_array($pr)) {
+				continue;
+			}
+
+			$items[] = [
+				'number' => (int) ($pr['number'] ?? 0),
+				'title' => (string) ($pr['title'] ?? ''),
+				'html_url' => (string) ($pr['html_url'] ?? ''),
+				'draft' => !empty($pr['draft']),
+				'base_ref' => (string) ($pr['base']['ref'] ?? ''),
+				'head_ref' => (string) ($pr['head']['ref'] ?? ''),
+				'mergeable_state' => strtolower((string) ($pr['mergeable_state'] ?? 'unknown')),
+				'changed_files' => (int) ($pr['changed_files'] ?? 0),
+				'additions' => (int) ($pr['additions'] ?? 0),
+				'deletions' => (int) ($pr['deletions'] ?? 0),
+				'body' => (string) ($pr['body'] ?? ''),
+			];
+		}
+
+		$result = ['items' => $items, 'error' => NULL];
+		if ($useCache) {
+			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+		}
+		return $result;
+	}
+
+	/**
+	 * Fetch closed pull requests for merged-reference analysis.
+	 */
+	protected function fetchClosedPullRequestsForReport(string $repo, array $tokenCandidates, bool $useCache = TRUE): array {
+		if (empty($tokenCandidates)) {
+			return ['items' => [], 'error' => (string) $this->t('No GitHub token configured.')];
+		}
+
+		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.closed_prs.' . $repo;
+		if ($useCache) {
+			$cache = $this->cacheBackend->get($cacheKey);
+			if ($cache && !empty($cache->data) && is_array($cache->data)) {
+				return $cache->data;
+			}
+		}
+
+		$url = "https://api.github.com/repos/{$repo}/pulls?state=closed&per_page=100";
+		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [], TRUE);
+		if (!empty($response['error'])) {
+			return ['items' => [], 'error' => $response['error']];
+		}
+
+		$items = [];
+		foreach ($response['items'] as $pr) {
+			if (!is_array($pr)) {
+				continue;
+			}
+
+			$items[] = [
+				'number' => (int) ($pr['number'] ?? 0),
+				'title' => (string) ($pr['title'] ?? ''),
+				'body' => (string) ($pr['body'] ?? ''),
+				'merged_at' => (string) ($pr['merged_at'] ?? ''),
+			];
+		}
+
+		$result = ['items' => $items, 'error' => NULL];
+		if ($useCache) {
+			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Fetch linked open PR numbers from an issue timeline.
+	 */
+	protected function fetchLinkedOpenPrNumbersForIssueFromTimeline(string $repo, array $tokenCandidates, int $issueNumber, array $openPrByNumber, bool $useCache = TRUE): array {
+		if (empty($tokenCandidates) || $issueNumber <= 0) {
+			return [];
+		}
+
+		$cacheKey = 'dungeoncrawler_tester.github_issue_pr_report.issue_timeline_links.' . $repo . '.' . $issueNumber;
+		if ($useCache) {
+			$cache = $this->cacheBackend->get($cacheKey);
+			if ($cache && !empty($cache->data) && is_array($cache->data)) {
+				return $cache->data;
+			}
+		}
+
+		$url = "https://api.github.com/repos/{$repo}/issues/{$issueNumber}/timeline?per_page=100";
+		$response = $this->requestGitHubJsonWithFallback($url, $tokenCandidates, [
+			'Accept' => 'application/vnd.github+json',
+			'X-GitHub-Api-Version' => '2022-11-28',
+		], TRUE);
+
+		if (!empty($response['error'])) {
+			return [];
+		}
+
+		$linkedPrNumbers = [];
+		foreach ($response['items'] as $event) {
+			if (!is_array($event)) {
+				continue;
+			}
+
+			$eventType = (string) ($event['event'] ?? '');
+			if ($eventType !== 'cross-referenced' && $eventType !== 'connected') {
+				continue;
+			}
+
+			$sourceIssue = $event['source']['issue'] ?? NULL;
+			if (!is_array($sourceIssue) || empty($sourceIssue['pull_request'])) {
+				continue;
+			}
+
+			$prNumber = (int) ($sourceIssue['number'] ?? 0);
+			if ($prNumber > 0 && isset($openPrByNumber[$prNumber])) {
+				$linkedPrNumbers[$prNumber] = TRUE;
+			}
+		}
+
+		$result = array_values(array_map('intval', array_keys($linkedPrNumbers)));
+		if ($useCache) {
+			$this->cacheBackend->set($cacheKey, $result, time() + self::GITHUB_CACHE_TTL);
+		}
+
+		return $result;
+	}
+
 }
