@@ -84,6 +84,25 @@ Unified placed-entity runtime instance (`creature`, `item`, `obstacle`) with pla
 #### `encounter.schema.json`
 Combat encounters with creatures, initiative, and tactical state.
 
+**Recent Improvements (v1.0.0):**
+- Added `schema_version` for migration compatibility
+- Extracted reusable definitions: `hex_position`, `condition`, `roll_result`, `damage_result`
+- Added `campaign_id` field to support actual database implementation patterns
+- Enhanced documentation clarifying database storage vs schema specification
+- Improved validation constraints and examples
+
+**Defines:**
+- Encounter metadata (type, status, threat level)
+- XP budget thresholds (trivial=40, low=60, moderate=80, severe=120, extreme=160)
+- Combatant tracking (initiative, HP, position, conditions)
+- Combat state (round, active combatant, action log)
+- Terrain effects and hazards
+- Rewards (XP, currency, items)
+- AI-generated narrative elements
+
+**Note:** Runtime data is stored in relational tables (`combat_encounters`, `combat_participants`, `combat_conditions`, `combat_actions`) while this schema serves as documentation and validation specification.
+
+
 #### `hazard.schema.json`
 Environmental hazards and traps.
 
