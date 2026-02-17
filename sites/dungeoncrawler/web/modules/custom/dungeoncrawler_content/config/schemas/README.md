@@ -42,7 +42,7 @@ JSON Schemas serve multiple purposes:
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
 | `obstacle.schema.json` | Map obstacles | ✗ | 194 | Traversal blockers |
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✗ | 221 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✓ | 366 | Party management |
+| `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✗ | 471 | Room generation |
 | `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
 
@@ -304,6 +304,9 @@ Adventuring party with shared resources and exploration state.
 - Added `definitions` section with reusable components: `hex_position`, `condition`, `currency`
 - Enhanced validation constraints throughout (minLength, maxLength, minimum values)
 - Added `additionalProperties: false` for stricter validation
+- Added `uniqueItems: true` to 4 arrays (watch_order, revealed_hexes, revealed_rooms, revealed_connections)
+- Enhanced `spell_slots_remaining` with strict pattern validation for ranks 0-10
+- Added comprehensive examples for shared_inventory, encounter_log, fog_of_war notes, and exploration_activity
 - Improved documentation with comprehensive descriptions
 - Validates successfully with test data
 
