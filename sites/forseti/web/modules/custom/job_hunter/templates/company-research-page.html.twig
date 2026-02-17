@@ -73,9 +73,22 @@
         <div class="company-card {% if company.active %}active{% endif %}">
           <div class="company-header">
             <h3>{{ company.name }}</h3>
-            {% if company.active %}
-              <span class="badge badge-active">{{ 'Active Target'|t }}</span>
-            {% endif %}
+            <div class="company-badges">
+              {% if company.active %}
+                <span class="badge badge-active">{{ 'Active Target'|t }}</span>
+              {% endif %}
+              {% if company.has_research %}
+                {% if company.research_stale %}
+                  <span class="badge badge-warning" title="{{ 'Research data is older than 30 days'|t }}">
+                    🔄 {{ 'Stale Research'|t }}
+                  </span>
+                {% else %}
+                  <span class="badge badge-success" title="{{ 'Research completed'|t }}">
+                    ✓ {{ 'Researched'|t }}
+                  </span>
+                {% endif %}
+              {% endif %}
+            </div>
           </div>
 
           <div class="company-info">
@@ -112,6 +125,33 @@
             </div>
           {% endif %}
 
+          {# Display research data if available #}
+          {% if company.has_research %}
+            <div class="research-summary">
+              <strong>{{ 'Research Summary:'|t }}</strong>
+              <div class="research-info">
+                {% if company.ats_platform %}
+                  <div class="research-item">
+                    <span class="research-icon">🏢</span>
+                    <span class="research-label">{{ 'ATS Platform:'|t }}</span>
+                    <span class="research-value">{{ company.ats_platform }}</span>
+                  </div>
+                {% endif %}
+                {% if company.automation_readiness %}
+                  <div class="research-item">
+                    <span class="research-icon">
+                      {% if company.automation_readiness == 'ready' %}🟢
+                      {% elseif company.automation_readiness == 'partial' %}🟡
+                      {% else %}🔴{% endif %}
+                    </span>
+                    <span class="research-label">{{ 'Automation:'|t }}</span>
+                    <span class="research-value">{{ company.automation_readiness|capitalize }}</span>
+                  </div>
+                {% endif %}
+              </div>
+            </div>
+          {% endif %}
+
           <div class="company-stats-inline">
             <div class="stat-item">
               <span class="stat-icon">📋</span>
@@ -130,6 +170,18 @@
             <a href="/jobhunter/job-discovery/company/{{ company.id }}" class="button button--small button--primary">
               {{ 'Find Jobs'|t }}
             </a>
+            {% if company.has_research %}
+              <a href="/company-research/results/{{ company.research_id }}" class="button button--small button--info">
+                {{ 'View Research'|t }}
+              </a>
+            {% else %}
+              <form action="/company-research" method="get" style="display: inline;">
+                <input type="hidden" name="company_name" value="{{ company.name }}">
+                <button type="submit" class="button button--small button--secondary">
+                  🔍 {{ 'Research Company'|t }}
+                </button>
+              </form>
+            {% endif %}
           </div>
         </div>
       {% endfor %}

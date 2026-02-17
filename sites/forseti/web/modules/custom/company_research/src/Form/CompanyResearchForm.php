@@ -57,12 +57,17 @@ class CompanyResearchForm extends FormBase {
       '#markup' => '<p>' . $this->t('Enter a company name to research their career pages, ATS platform, and authentication requirements.') . '</p>',
     ];
 
+    // Pre-fill company name from query parameter if provided
+    $request = \Drupal::request();
+    $default_company_name = $request->query->get('company_name', '');
+
     $form['company_name'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Company Name'),
       '#description' => $this->t('Enter the name of the company you want to research (e.g., "Acme Corporation").'),
       '#required' => TRUE,
       '#maxlength' => 255,
+      '#default_value' => $default_company_name,
     ];
 
     $form['refresh'] = [
@@ -80,6 +85,15 @@ class CompanyResearchForm extends FormBase {
       '#type' => 'submit',
       '#value' => $this->t('Research Company'),
       '#button_type' => 'primary',
+    ];
+
+    $form['actions']['back'] = [
+      '#type' => 'link',
+      '#title' => $this->t('Back to Company Research'),
+      '#url' => Url::fromRoute('job_hunter.company_research'),
+      '#attributes' => [
+        'class' => ['button'],
+      ],
     ];
 
     return $form;

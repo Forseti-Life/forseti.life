@@ -112,6 +112,14 @@
   color: #2c3e50;
   font-size: 20px;
   flex: 1;
+  padding-right: 10px;
+}
+
+.company-research-page .company-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  align-items: flex-end;
 }
 
 .company-research-page .badge {
@@ -121,11 +129,22 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .company-research-page .badge-active {
   background: #e8f5e9;
   color: #2e7d32;
+}
+
+.company-research-page .badge-success {
+  background: #d4edda;
+  color: #155724;
+}
+
+.company-research-page .badge-warning {
+  background: #fff3cd;
+  color: #856404;
 }
 
 /* Company Info */
@@ -191,6 +210,50 @@
   line-height: 1.5;
 }
 
+/* Research Summary Section */
+.company-research-page .research-summary {
+  background: #e7f3ff;
+  border-left: 3px solid #2196f3;
+  padding: 12px;
+  margin-bottom: 15px;
+  font-size: 14px;
+  border-radius: 4px;
+}
+
+.company-research-page .research-summary strong {
+  display: block;
+  margin-bottom: 8px;
+  color: #1976d2;
+  font-weight: 600;
+}
+
+.company-research-page .research-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.company-research-page .research-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.company-research-page .research-icon {
+  font-size: 16px;
+}
+
+.company-research-page .research-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.company-research-page .research-value {
+  color: #2c3e50;
+  font-weight: 500;
+}
+
 /* Inline Stats */
 .company-research-page .company-stats-inline {
   display: flex;
@@ -223,6 +286,35 @@
 .company-research-page .company-actions .button {
   flex: 1;
   min-width: 120px;
+  text-align: center;
+}
+
+.company-research-page .company-actions form {
+  flex: 1;
+  min-width: 120px;
+}
+
+.company-research-page .company-actions button {
+  width: 100%;
+}
+
+/* Button variants */
+.company-research-page .button--info {
+  background-color: #2196f3;
+  color: white;
+}
+
+.company-research-page .button--info:hover {
+  background-color: #1976d2;
+}
+
+.company-research-page .button--secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.company-research-page .button--secondary:hover {
+  background-color: #5a6268;
 }
 
 /* Responsive Design */
@@ -238,6 +330,15 @@
   .company-research-page .stat-card .stat-value {
     font-size: 28px;
   }
+
+  .company-research-page .company-header {
+    flex-direction: column;
+  }
+
+  .company-research-page .company-badges {
+    align-items: flex-start;
+    margin-top: 10px;
+  }
 }
 
 @media (max-width: 480px) {
@@ -247,5 +348,14 @@
 
   .company-research-page .empty-state .action-buttons {
     flex-direction: column;
+  }
+
+  .company-research-page .company-actions {
+    flex-direction: column;
+  }
+
+  .company-research-page .company-actions .button,
+  .company-research-page .company-actions form {
+    min-width: 100%;
   }
 }
