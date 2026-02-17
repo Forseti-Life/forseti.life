@@ -4,7 +4,7 @@
   "title": "Pathfinder 2E Character Schema",
   "description": "Complete character data structure for a PF2e character stored in the dc_characters table character_data JSON column.",
   "type": "object",
-  "required": ["step", "name", "level", "ancestry", "class", "abilities", "created_at", "updated_at"],
+  "required": ["step", "name", "level", "ancestry", "class", "abilities"],
   "properties": {
     "schema_version": {
       "type": "string",
@@ -83,28 +83,7 @@
     "free_boosts": {
       "type": "array",
       "items": {
-        "type": "object",
-        "required": ["source", "ability"],
-        "properties": {
-          "source": {
-            "type": "string",
-            "enum": ["ancestry", "background", "class", "level_1", "level_5", "level_10", "level_15", "level_20"],
-            "description": "Where this boost came from."
-          },
-          "ability": {
-            "type": "string",
-            "enum": ["str", "dex", "con", "int", "wis", "cha"],
-            "description": "Which ability was boosted."
-          },
-          "value": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 2,
-            "default": 2,
-            "description": "Boost amount (+2 typical, +1 if already 18+)."
-          }
-        },
-        "additionalProperties": false
+        "$ref": "#/definitions/ability_boost"
       },
       "description": "Tracking of all ability boosts applied to character.",
       "examples": [
@@ -137,45 +116,27 @@
       "required": ["str", "dex", "con", "int", "wis", "cha"],
       "properties": {
         "str": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 30,
-          "default": 10,
+          "$ref": "#/definitions/ability_score",
           "description": "Strength score."
         },
         "dex": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 30,
-          "default": 10,
+          "$ref": "#/definitions/ability_score",
           "description": "Dexterity score."
         },
         "con": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 30,
-          "default": 10,
+          "$ref": "#/definitions/ability_score",
           "description": "Constitution score."
         },
         "int": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 30,
-          "default": 10,
+          "$ref": "#/definitions/ability_score",
           "description": "Intelligence score."
         },
         "wis": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 30,
-          "default": 10,
+          "$ref": "#/definitions/ability_score",
           "description": "Wisdom score."
         },
         "cha": {
-          "type": "integer",
-          "minimum": 1,
-          "maximum": 30,
-          "default": 10,
+          "$ref": "#/definitions/ability_score",
           "description": "Charisma score."
         }
       },
@@ -441,7 +402,7 @@
           "type": "object",
           "description": "Spell slots per rank.",
           "patternProperties": {
-            "^rank_[0-9]|10$": {
+            "^rank_([0-9]|10)$": {
               "$ref": "#/definitions/spell_slot"
             }
           },
@@ -540,19 +501,23 @@
       "properties": {
         "source": {
           "type": "string",
-          "enum": ["ancestry", "background", "class", "level_1", "level_5", "level_10", "level_15", "level_20"]
+          "enum": ["ancestry", "background", "class", "level_1", "level_5", "level_10", "level_15", "level_20"],
+          "description": "Where this boost came from."
         },
         "ability": {
           "type": "string",
-          "enum": ["str", "dex", "con", "int", "wis", "cha"]
+          "enum": ["str", "dex", "con", "int", "wis", "cha"],
+          "description": "Which ability was boosted."
         },
         "value": {
           "type": "integer",
           "minimum": 1,
           "maximum": 2,
-          "default": 2
+          "default": 2,
+          "description": "Boost amount (+2 typical, +1 if already 18+)."
         }
-      }
+      },
+      "additionalProperties": false
     },
     "spell_slot": {
       "type": "object",
@@ -568,7 +533,8 @@
           "minimum": 0,
           "description": "Remaining spell slots for this rank."
         }
-      }
+      },
+      "additionalProperties": false
     }
   }
 }
