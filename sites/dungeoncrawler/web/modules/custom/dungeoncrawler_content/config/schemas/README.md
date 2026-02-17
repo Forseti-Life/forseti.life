@@ -86,7 +86,29 @@ Entire dungeon floor with hexmap, rooms, and encounters.
 Canonical runtime placement in this schema is `entities[]` via `entity_instance.schema.json`.
 
 #### `entity_instance.schema.json`
-Unified placed-entity runtime instance (`creature`, `item`, `obstacle`) with placement and mutable state.
+**Primary Runtime Entity Representation**: Unified placed-entity runtime instance (`creature`, `item`, `obstacle`) with placement and mutable state.
+
+**Purpose**: This is the canonical data structure for all placed entities in dungeon levels at runtime, referenced by `dungeon_level.schema.json` in the `entities[]` array. Provides consistent interface for entity lifecycle management (spawn, move, despawn).
+
+**Key Features**:
+- **Unified Entity Model**: Single schema handles creatures, items, and obstacles
+- **Content Reference System**: `entity_ref` links to base definitions (creature.schema.json, item.schema.json, etc.)
+- **Runtime State Tracking**: Mutable `state` object tracks lifecycle, combat, and gameplay changes
+- **Hex Placement**: Axial coordinate system for precise dungeon map positioning
+- **Inventory Support**: Creatures can carry items via inventory references
+- **Version Pinning**: Optional version field for deterministic replay
+
+**State Properties**:
+- `active`: Currently active in game world
+- `destroyed`: Permanently destroyed (killed, consumed, demolished)
+- `disabled`: Temporarily disabled (disarmed trap, deactivated hazard)
+- `hidden`: Hidden from view (stealthy creature, concealed trap)
+- `collected`: Item collected by party (primarily for items)
+- `hit_points`: Combat HP tracking (primarily for creatures)
+- `inventory`: Carried items (primarily for creatures)
+- `metadata`: Extensible storage for entity-specific data
+
+**Examples**: Includes comprehensive examples for creature, item, and obstacle instances with realistic runtime state.
 
 #### `encounter.schema.json`
 Combat encounters with creatures, initiative, and tactical state.
