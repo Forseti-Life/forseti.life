@@ -815,8 +815,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 					'dungeoncrawlerTester' => [
 						'csrfToken' => $this->csrfToken->get('rest'),
 						'routes' => [
-							'deadClose' => $this->safeRouteUrl('dungeoncrawler_tester.dead_value_close', '/dungeoncrawler/testing/issue-pr-report/dead-value-close'),
-							'bulkCloseQuery' => $this->safeRouteUrl('dungeoncrawler_tester.bulk_close_query_run', '/dungeoncrawler/testing/issue-pr-report/bulk-close-query-run'),
+							'deadClose' => $this->safeRouteUrl('dungeoncrawler_tester.dead_value_close', '/dungeoncrawler/testing/import-open-issues/issue-pr-report/dead-value-close'),
+							'bulkCloseQuery' => $this->safeRouteUrl('dungeoncrawler_tester.bulk_close_query_run', '/dungeoncrawler/testing/import-open-issues/issue-pr-report/bulk-close-query-run'),
 						],
 					],
 				],

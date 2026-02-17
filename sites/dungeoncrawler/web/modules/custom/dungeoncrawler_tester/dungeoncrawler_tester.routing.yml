@@ -7,7 +7,7 @@ dungeoncrawler_tester.dashboard:
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.issue_pr_report:
-  path: '/dungeoncrawler/testing/issue-pr-report'
+  path: '/dungeoncrawler/testing/import-open-issues/issue-pr-report'
   defaults:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::issuePrReport'
     _title: 'Open Issues and PR Report'
@@ -23,7 +23,7 @@ dungeoncrawler_tester.import_open_issues:
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.dead_value_close:
-  path: '/dungeoncrawler/testing/issue-pr-report/dead-value-close'
+  path: '/dungeoncrawler/testing/import-open-issues/issue-pr-report/dead-value-close'
   defaults:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::closeDeadValueAjax'
   methods: [POST]
@@ -32,7 +32,7 @@ dungeoncrawler_tester.dead_value_close:
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.bulk_close_query_run:
-  path: '/dungeoncrawler/testing/issue-pr-report/bulk-close-query-run'
+  path: '/dungeoncrawler/testing/import-open-issues/issue-pr-report/bulk-close-query-run'
   defaults:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::runBulkCloseQueryAjax'
   methods: [POST]
