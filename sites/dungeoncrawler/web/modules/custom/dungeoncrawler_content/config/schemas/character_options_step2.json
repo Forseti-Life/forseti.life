@@ -4,6 +4,7 @@
   "title": "Character Creation Step 2: Ancestry & Heritage",
   "description": "Defines available options and validation for selecting character's ancestry and heritage in Pathfinder 2E character creation",
   "type": "object",
+  "additionalProperties": false,
   "$defs": {
     "heritageOption": {
       "type": "object",
@@ -20,7 +21,8 @@
         },
         "benefit": {
           "type": "string",
-          "description": "Mechanical benefit or special ability granted by this heritage"
+          "description": "Mechanical benefit or special ability granted by this heritage (e.g., racial feat, ability modifier, special sense, or unique capability)",
+          "examples": ["Darkvision", "Extra Hit Points", "Resistance to poison"]
         }
       }
     }
@@ -71,50 +73,65 @@
                 "type": "object",
                 "properties": {
                   "id": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Unique identifier for the ancestry",
+                    "examples": ["human", "elf", "dwarf", "goblin"]
                   },
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "description": "Display name of the ancestry",
+                    "examples": ["Human", "Elf", "Dwarf", "Goblin"]
                   },
                   "hp": {
                     "type": "integer",
-                    "description": "Hit points from ancestry"
+                    "description": "Hit points from ancestry",
+                    "examples": [8, 6, 10]
                   },
                   "size": {
                     "type": "string",
-                    "enum": ["Small", "Medium"]
+                    "enum": ["Small", "Medium"],
+                    "description": "Physical size category of the ancestry"
                   },
                   "speed": {
                     "type": "integer",
-                    "description": "Base speed in feet"
+                    "description": "Base speed in feet",
+                    "examples": [25, 30]
                   },
                   "boosts": {
                     "type": "array",
-                    "description": "Ability boosts granted",
+                    "description": "Ability boosts granted by this ancestry",
                     "items": {
-                      "type": "string"
-                    }
+                      "type": "string",
+                      "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma", "Free"]
+                    },
+                    "examples": [["Strength", "Constitution"], ["Intelligence", "Free"]]
                   },
                   "flaw": {
                     "type": "string",
-                    "description": "Ability flaw (if any)"
+                    "description": "Ability flaw (if any). Some ancestries have no flaw.",
+                    "enum": ["Strength", "Dexterity", "Constitution", "Intelligence", "Wisdom", "Charisma"],
+                    "examples": ["Constitution", "Strength"]
                   },
                   "languages": {
                     "type": "array",
-                    "description": "Starting languages",
+                    "description": "Starting languages known by characters of this ancestry",
                     "items": {
                       "type": "string"
-                    }
+                    },
+                    "examples": [["Common"], ["Common", "Elven"]]
                   },
                   "vision": {
                     "type": "string",
-                    "description": "Type of vision (darkvision, low-light vision, normal)"
+                    "enum": ["Normal", "Darkvision", "Low-light vision"],
+                    "description": "Type of vision: Normal (standard vision), Darkvision (see in darkness up to 60 feet), or Low-light vision (see in dim light as if bright light)"
                   }
                 },
-                "required": ["id", "name", "hp", "size", "speed", "boosts", "languages"]
+                "required": ["id", "name", "hp", "size", "speed", "boosts", "languages"],
+                "additionalProperties": false
               },
               "minItems": 14,
-              "maxItems": 14
+              "maxItems": 14,
+              "$comment": "Pathfinder 2E Core Rulebook includes exactly 14 standard playable ancestries"
             },
             "help_text": {
               "type": "string",
@@ -164,7 +181,7 @@
             },
             "conditional": {
               "type": "object",
-              "description": "Field only appears when ancestry is selected",
+              "description": "Field only appears when ancestry is selected. Selected heritage must match the chosen ancestry (validated in heritages_by_ancestry).",
               "properties": {
                 "depends_on": {
                   "type": "string",
@@ -179,7 +196,8 @@
             "options_source": {
               "type": "string",
               "const": "CharacterManager::HERITAGES",
-              "description": "Dynamic options loaded via AJAX based on selected ancestry"
+              "description": "Dynamic options loaded via AJAX based on selected ancestry",
+              "$comment": "This field documents the PHP constant used to retrieve heritage data. The heritages_by_ancestry property below provides static schema validation for the expected structure."
             },
             "heritages_by_ancestry": {
               "type": "object",
