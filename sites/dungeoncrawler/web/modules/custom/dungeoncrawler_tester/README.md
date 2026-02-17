@@ -29,7 +29,8 @@ The dashboard includes:
 - **Documentation Home**: `DOCUMENTATION_HOME.md` is the canonical index for tester documentation.
 - **Quick Test Commands**: Copy/paste commands for running different test suites
 - **Release Testing Stagegates**: Testing workflow and checklist
-- **GitHub Issues**: Live feed of CI failures and testing defects
+- **Local issue tracking mode**: Tester failure automation now writes issues to repository-root `Issues.md` instead of creating GitHub issues directly.
+- **GitHub integration scope**: GitHub issue API/CLI integration is restricted to `/dungeoncrawler/testing/import-open-issues` for controlled sync from local tracker rows.
 - **Dedicated testing navigation menu**: A module-owned menu (`dungeoncrawler_testing`) now contains tester-facing routes and is used as the canonical source for testing navigation links.
 - **Documentation submenu organization**: The dedicated testing menu now groups all documentation links under an expandable `Documentation` parent, with `Documentation Home` included as a child entry.
 - **Testing navigation block**: The `Dungeon Crawler Testing Navigation` block now renders links directly from the dedicated testing menu so all tester pages stay in sync with one menu definition.
@@ -107,17 +108,12 @@ The dashboard includes:
 - Source of truth: `PROCESS_FLOW.md` (canonical sync/async timing and blocking-gates documentation)
 - Legacy documentation routes remain available as compatibility aliases and map to these consolidated pages.
 
-### GitHub issue automation (failures)
+### Local issue automation (failures)
 
-- If a stage fails, the queue worker will try to open a GitHub issue and pause the stage.
-- Configure via `/admin/config/development/dungeoncrawler-tester` (preferred; repo in config, token in private state), `ai_conversation.settings` (`github_repo`, `github_token`), or env vars `TESTER_GITHUB_REPO`, `TESTER_GITHUB_TOKEN` (format: `owner/repo`). The default repo, if left blank, will fall back to `keithaumiller/forseti.life`.
-- Existing linked issues are respected; no new issue is opened if `issue_number` is already present in stage state.
-- Copilot assignment is performed as a second API step after issue creation, trying `@copilot`, `Copilot`, then `copilot` identifiers for compatibility.
-- If GitHub REST assignment does not attach Copilot, the worker falls back to `gh issue edit --add-assignee "@copilot"`.
-- Copilot assignment is now guarded by tester settings:
-	- `copilot_assignment_max_open` (default `0`): assignment is skipped only when this optional cap is set and reached (`0` disables throttling).
-- If assignment fails, the module logs GitHub API error details on the `dungeoncrawler_tester` channel to support root-cause debugging.
-- Settings form route uses `dungeoncrawler_tester.settings`; if the page fails to load after route changes, rebuild caches (`drush cr`).
+- If a stage fails, the queue worker creates or reuses a local issue row in `Issues.md` and pauses the stage.
+- Existing linked local issues are respected; duplicate rows are not created for the same stage/test-case title.
+- Stage issue sync checks local issue status from `Issues.md` and can auto-resume stages when linked local rows are closed.
+- Use `/dungeoncrawler/testing/import-open-issues` to synchronize local Open rows into GitHub.
 
 ### Getting a GitHub token (for issue creation)
 

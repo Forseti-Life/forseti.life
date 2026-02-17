@@ -8,7 +8,7 @@ use Drupal\Core\Queue\QueueWorkerBase;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\dungeoncrawler_tester\Service\GithubIssuePrClientInterface;
+use Drupal\dungeoncrawler_tester\Service\LocalIssuesTrackerService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Process\Process;
 
@@ -24,13 +24,6 @@ use Symfony\Component\Process\Process;
 class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPluginInterface {
 
   /**
-   * Default max open Copilot-assigned issues before throttling.
-   *
-   * 0 disables throttling.
-   */
-  private const DEFAULT_COPILOT_MAX_OPEN = 0;
-
-  /**
    * State storage for run metadata.
    */
   private StateInterface $state;
@@ -41,20 +34,20 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
   private $logger;
 
   /**
-   * Centralized GitHub issue/PR client.
+   * Local Issues.md tracker service.
    */
-  private GithubIssuePrClientInterface $githubClient;
+  private LocalIssuesTrackerService $localIssuesTracker;
 
   /**
    * Config factory to read repo/token settings.
    */
   private ConfigFactoryInterface $configFactory;
 
-  public function __construct(array $configuration, $plugin_id, $plugin_definition, StateInterface $state, LoggerChannelFactoryInterface $logger_factory, GithubIssuePrClientInterface $github_client, ConfigFactoryInterface $config_factory) {
+  public function __construct(array $configuration, $plugin_id, $plugin_definition, StateInterface $state, LoggerChannelFactoryInterface $logger_factory, LocalIssuesTrackerService $local_issues_tracker, ConfigFactoryInterface $config_factory) {
     parent::__construct($configuration, $plugin_id, $plugin_definition);
     $this->state = $state;
     $this->logger = $logger_factory->get('dungeoncrawler_tester');
-    $this->githubClient = $github_client;
+    $this->localIssuesTracker = $local_issues_tracker;
     $this->configFactory = $config_factory;
   }
 
@@ -65,7 +58,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       $plugin_definition,
       $container->get('state'),
       $container->get('logger.factory'),
-      $container->get('dungeoncrawler_tester.github_issue_pr_client'),
+      $container->get('dungeoncrawler_tester.local_issues_tracker'),
       $container->get('config.factory'),
     );
   }
@@ -262,7 +255,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
   }
 
   /**
-   * Create a GitHub issue for a failure if repo and token are configured.
+   * Create local Issues.md entries for failing test cases.
    */
   private function maybeCreateIssue(string $stage_id, string $display, int $exit_code, string $output): ?int {
     $states = $this->state->get('dungeoncrawler_tester.stage_state', []);
@@ -278,11 +271,6 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       return (int) $existing_issue_numbers[0];
     }
 
-    ['repo' => $repo, 'token' => $token, 'assignee' => $assignee] = $this->resolveGithubContext();
-    if (!$repo || !$token) {
-      return NULL;
-    }
-
     $existing_issue_map = is_array($current['issue_test_cases'] ?? NULL) ? $current['issue_test_cases'] : [];
 
     $failed_test_cases = $this->extractFailedTestCases($output);
@@ -290,6 +278,7 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       $failed_test_cases = [$stage_id . '::UnknownFailure'];
     }
 
+    $created_issue_ids = [];
     $created_issue_numbers = [];
     foreach ($failed_test_cases as $test_case) {
       if (isset($existing_issue_map[$test_case]) && !empty($existing_issue_map[$test_case])) {
@@ -302,34 +291,35 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       $issue_data = [
         'title' => $title,
         'body' => $body,
-        'labels' => ['automated', 'tester'],
       ];
 
-      // Only add assignees if a valid assignee is configured.
-      if (!empty($assignee)) {
-        $issue_data['assignees'] = [$assignee];
-      }
-
       try {
-        $payload = $this->githubClient->createIssue($repo, $issue_data, $token);
-        if (!empty($payload['number'])) {
-          $issue_number = (int) $payload['number'];
-          $existing_issue_map[$test_case] = $issue_number;
-          $existing_issue_numbers[] = $issue_number;
-          $created_issue_numbers[] = $issue_number;
+        $created = $this->localIssuesTracker->createOrReuseOpenIssue(
+          (string) $issue_data['title'],
+          'Tester Automation',
+          (string) $issue_data['body']
+        );
 
-          $this->logger->notice('Opened GitHub issue #@number for test case @test in stage @stage failure.', [
-            '@number' => $issue_number,
+        if (!empty($created['issue_id'])) {
+          $localIssueId = (string) $created['issue_id'];
+          $issueNumber = (int) ($created['number'] ?? 0);
+
+          $existing_issue_map[$test_case] = $localIssueId;
+          $created_issue_ids[] = $localIssueId;
+          if ($issueNumber > 0) {
+            $existing_issue_numbers[] = $issueNumber;
+            $created_issue_numbers[] = $issueNumber;
+          }
+
+          $this->logger->notice('Opened local tracker issue @issue for test case @test in stage @stage failure.', [
+            '@issue' => $localIssueId,
             '@test' => $test_case,
             '@stage' => $stage_id,
           ]);
-
-          // Assign @copilot to trigger coding-agent automation.
-          $this->maybeAssignCopilotToIssue($repo, $issue_number, $token);
         }
       }
       catch (\Throwable $e) {
-        $this->logger->warning('Could not auto-create GitHub issue for test case @test in stage @stage: @msg', [
+        $this->logger->warning('Could not auto-create local tracker issue for test case @test in stage @stage: @msg', [
           '@test' => $test_case,
           '@stage' => $stage_id,
           '@msg' => $e->getMessage(),
@@ -342,6 +332,10 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
       $stage_state = $states[$stage_id] ?? [];
       $stage_state['issue_numbers'] = array_values(array_unique(array_filter(array_map('intval', $existing_issue_numbers))));
       $stage_state['issue_test_cases'] = $existing_issue_map;
+      if (!empty($created_issue_ids)) {
+        $stage_state['issue_local_ids'] = array_values(array_unique($created_issue_ids));
+        $stage_state['issue_local_id'] = (string) $created_issue_ids[0];
+      }
       if (!empty($stage_state['issue_numbers'])) {
         $stage_state['issue_number'] = (int) $stage_state['issue_numbers'][0];
         $stage_state['issue_status'] = 'open';
@@ -362,28 +356,6 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
   }
 
   /**
-   * Resolve repo/token/assignee with tester -> ai config -> env fallback chain.
-   */
-  private function resolveGithubContext(): array {
-    $context = $this->githubClient->resolveContext();
-    $repo = (string) ($context['repo'] ?? '');
-    $token = (string) ($context['token'] ?? '');
-
-    $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
-    $assignee = (string) ($tester_config->get('github_assignee') ?: '');
-
-    $env_assignee = getenv('TESTER_GITHUB_ASSIGNEE');
-
-    $assignee = $assignee !== '' ? $assignee : (string) ($env_assignee !== FALSE ? $env_assignee : '');
-
-    return [
-      'repo' => $repo,
-      'token' => $token,
-      'assignee' => $assignee,
-    ];
-  }
-
-  /**
    * Build standardized issue body with explicit Copilot execution guidance.
    */
   private function buildFailureIssueBody(string $stage_id, string $test_case, string $display, int $exit_code, string $output): string {
@@ -399,77 +371,6 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     $body .= "Latest output (truncated):\n\n";
     $body .= "```\n" . mb_strimwidth($output, 0, 3000, "\n…") . "\n```\n";
     return $body;
-  }
-
-  /**
-   * Conditionally assign Copilot to a newly created issue.
-   */
-  private function maybeAssignCopilotToIssue(string $repo, int $issue_number, string $token): void {
-    $tester_config = $this->configFactory->get('dungeoncrawler_tester.settings');
-
-    $configured_max_open = $tester_config->get('copilot_assignment_max_open');
-    if ($configured_max_open === NULL) {
-      $env_max_open = getenv('TESTER_COPILOT_MAX_OPEN');
-      $max_open = (int) ($env_max_open !== FALSE ? $env_max_open : self::DEFAULT_COPILOT_MAX_OPEN);
-    }
-    else {
-      $max_open = (int) $configured_max_open;
-    }
-
-    if ($max_open > 0) {
-      $open_count = $this->countOpenCopilotAssignedIssues($repo, $token);
-      if ($open_count >= $max_open) {
-        $this->postIssueComment(
-          $repo,
-          $issue_number,
-          $token,
-          sprintf(
-            'Copilot auto-assignment skipped: open Copilot-assigned issues (%d) reached configured cap (%d). Re-try after active Copilot queue decreases.',
-            $open_count,
-            $max_open
-          )
-        );
-        $this->logger->warning('Skipped Copilot auto-assignment for issue #@number: open Copilot-assigned issues (@count) reached cap (@cap).', [
-          '@number' => $issue_number,
-          '@count' => $open_count,
-          '@cap' => $max_open,
-        ]);
-        return;
-      }
-    }
-
-    $this->assignCopilotToIssue($repo, $issue_number, $token);
-  }
-
-  /**
-   * Post a comment to a GitHub issue.
-   */
-  private function postIssueComment(string $repo, int $issue_number, string $token, string $message): void {
-    $url = "https://api.github.com/repos/{$repo}/issues/{$issue_number}/comments";
-    $ok = $this->githubClient->mutate('POST', $url, ['body' => $message], $token, 10);
-    if (!$ok) {
-      $this->logger->warning('Could not post assignment-skip comment to issue #@number: @msg', [
-        '@number' => $issue_number,
-        '@msg' => 'GitHub request failed.',
-      ]);
-    }
-  }
-
-  /**
-   * Count open issues currently assigned to Copilot in a repository.
-   */
-  private function countOpenCopilotAssignedIssues(string $repo, string $token): int {
-    try {
-      $query = 'repo:' . $repo . ' is:issue is:open assignee:Copilot';
-      return $this->githubClient->searchIssuesTotalCount($query, $token);
-    }
-    catch (\Throwable $e) {
-      $this->logger->warning('Could not determine open Copilot-assigned issue count for @repo: @msg', [
-        '@repo' => $repo,
-        '@msg' => $e->getMessage(),
-      ]);
-      return 0;
-    }
   }
 
   /**
@@ -543,87 +444,27 @@ class TesterRunQueueWorker extends QueueWorkerBase implements ContainerFactoryPl
     if (!empty($stage_state['issue_numbers']) && is_array($stage_state['issue_numbers'])) {
       $numbers = array_values(array_unique(array_filter(array_map('intval', $stage_state['issue_numbers']))));
     }
+
+    if (!empty($stage_state['issue_local_ids']) && is_array($stage_state['issue_local_ids'])) {
+      foreach ($stage_state['issue_local_ids'] as $issueId) {
+        $number = $this->localIssuesTracker->extractNumberFromIssueId((string) $issueId);
+        if ($number > 0) {
+          $numbers[] = $number;
+        }
+      }
+    }
+
+    if (!empty($stage_state['issue_local_id'])) {
+      $number = $this->localIssuesTracker->extractNumberFromIssueId((string) $stage_state['issue_local_id']);
+      if ($number > 0) {
+        $numbers[] = $number;
+      }
+    }
+
     if (!empty($stage_state['issue_number'])) {
       $numbers[] = (int) $stage_state['issue_number'];
     }
     return array_values(array_unique(array_filter($numbers)));
-  }
-
-  /**
-   * Assign @copilot to an issue to trigger the Copilot agent.
-   * 
-   * @param string $repo
-   *   Repository in format owner/repo.
-   * @param int $issue_number
-   *   Issue number.
-   * @param string $token
-   *   GitHub token.
-   */
-  private function assignCopilotToIssue(string $repo, int $issue_number, string $token): void {
-    $copilot_identifiers = ['@copilot', 'Copilot', 'copilot'];
-    $last_error = NULL;
-
-    foreach ($copilot_identifiers as $identifier) {
-      try {
-        $payload = $this->githubClient->addIssueAssignees($repo, $issue_number, [$identifier], $token) ?: [];
-        $assigned = array_map(static fn(array $assignee): string => strtolower((string) ($assignee['login'] ?? '')), $payload['assignees'] ?? []);
-        if (in_array('copilot', $assigned, TRUE)) {
-          $this->logger->notice('Assigned Copilot to issue #@number using identifier "@identifier".', [
-            '@number' => $issue_number,
-            '@identifier' => $identifier,
-          ]);
-          return;
-        }
-
-        $last_error = 'GitHub response did not include Copilot in assignees.';
-      }
-      catch (\Throwable $e) {
-        $last_error = $e->getMessage();
-        if (method_exists($e, 'getResponse') && $e->getResponse()) {
-          $error_body = trim((string) $e->getResponse()->getBody());
-          if ($error_body !== '') {
-            $last_error .= ' | API: ' . mb_strimwidth($error_body, 0, 500, '…');
-          }
-        }
-      }
-    }
-
-    try {
-      $process = new Process([
-        'gh',
-        'issue',
-        'edit',
-        (string) $issue_number,
-        '--repo',
-        $repo,
-        '--add-assignee',
-        '@copilot',
-      ]);
-      $env = array_merge($_ENV, [
-        'GH_TOKEN' => $token,
-        'GITHUB_TOKEN' => $token,
-      ]);
-      $process->setEnv($env);
-      $process->setTimeout(20);
-      $process->run();
-
-      if ($process->isSuccessful()) {
-        $this->logger->notice('Assigned Copilot to issue #@number using GitHub CLI fallback.', [
-          '@number' => $issue_number,
-        ]);
-        return;
-      }
-
-      $last_error = trim($process->getErrorOutput() ?: $process->getOutput()) ?: 'gh issue edit failed without output.';
-    }
-    catch (\Throwable $e) {
-      $last_error = 'GitHub CLI fallback failed: ' . $e->getMessage();
-    }
-
-    $this->logger->warning('Could not assign Copilot to issue #@number after trying all identifiers: @msg', [
-      '@number' => $issue_number,
-      '@msg' => $last_error ?: 'Unknown error',
-    ]);
   }
 
 }

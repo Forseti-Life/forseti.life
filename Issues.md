@@ -35,6 +35,9 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
+| DCT-0138 | Make `/dungeoncrawler/testing/issue-pr-report` a sub-page/child flow under `/dungeoncrawler/testing/import-open-issues` | Open | Unassigned | 2026-02-17 | 2026-02-17 | Requested UX change: issue/PR report should live under import-open-issues flow hierarchy. |
+| DCT-0139 | Confirm whether `/dungeoncrawler/testing/queue-management` is obsolete due to queue tracking on `/dungeoncrawler/testing`, then remove/clean up if redundant | Open | Unassigned | 2026-02-17 | 2026-02-17 | Requested cleanup: validate current relevance and remove dead route/page/menu/docs references if no longer needed. |
+| DCT-0140 | Remove `/dungeoncrawler/testing/thetest` page and clean up related links/routes/docs/tests | Open | Unassigned | 2026-02-17 | 2026-02-17 | Requested deprecation/removal of The Test page and associated surface area. |
 #### templates
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |

@@ -448,6 +448,53 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Render open issue/PR report grouped by issue with orphaned PR section.
 	 */
 	public function issuePrReport(): array {
+		$importOpenIssuesUrl = $this->safeRouteUrl('dungeoncrawler_tester.import_open_issues', '/dungeoncrawler/testing/import-open-issues');
+		$metaItems = [
+			$this->t('Mode: Local Issues.md tracker only for tester flows.'),
+			$this->t('GitHub integration calls are restricted to the Import Open Issues page.'),
+			$this->t('Repository-root tracker: Issues.md'),
+			$this->t('Generated: @time', ['@time' => $this->dateFormatter->format(time(), 'short')]),
+		];
+
+		$lastImport = $this->state->get('dungeoncrawler_tester.open_issues_import_last_run');
+		if (is_array($lastImport) && !empty($lastImport['timestamp'])) {
+			$metaItems[] = $this->t('Last local import run: @time · handled: @handled (created @created, skipped @skipped, failed @failed)', [
+				'@time' => $this->dateFormatter->format((int) $lastImport['timestamp'], 'short'),
+				'@handled' => (string) ((int) ($lastImport['handled'] ?? 0)),
+				'@created' => (string) ((int) ($lastImport['created'] ?? 0)),
+				'@skipped' => (string) ((int) ($lastImport['skipped'] ?? 0)),
+				'@failed' => (string) ((int) ($lastImport['failed'] ?? 0)),
+			]);
+		}
+
+		return [
+			'#type' => 'container',
+			'#attributes' => ['class' => ['tester-issue-pr-report', 'dungeoncrawler-testing-dashboard']],
+			'#cache' => [
+				'tags' => ['dungeoncrawler_tester.issue_import_status'],
+				'contexts' => ['user.permissions'],
+				'max-age' => self::GITHUB_CACHE_TTL,
+			],
+			'cache_actions' => [
+				'#type' => 'container',
+				'#attributes' => ['class' => ['issue-report-actions']],
+				'import_open_issues' => Link::fromTextAndUrl(
+					$this->t('Manage local Issues.md cache → Import Open Issues'),
+					Url::fromUserInput($importOpenIssuesUrl)
+				)->toRenderable(),
+			],
+			'intro' => [
+				'#type' => 'html_tag',
+				'#tag' => 'p',
+				'#attributes' => ['class' => ['text-muted-light']],
+				'#value' => $this->t('Issue/PR automation report is in local-tracker mode. Use Issues.md for local issue lifecycle and Import Open Issues for GitHub synchronization.'),
+			],
+			'meta' => [
+				'#theme' => 'item_list',
+				'#items' => $metaItems,
+			],
+		];
+
 		$reportData = $this->normalizeIssuePrReportData($this->loadIssuePrReportData(FALSE));
 		$repo = $reportData['repo'];
 		$tokenCandidates = $reportData['token_candidates'];
@@ -827,6 +874,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * AJAX: run one bulk-close query and execute close mutations.
 	 */
 	public function runBulkCloseQueryAjax(Request $request): JsonResponse {
+		return $this->errorJsonResponse('Bulk GitHub close actions are disabled in local tracker mode. Use Issues.md and the import page workflow.', self::HTTP_BAD_REQUEST);
+
 		$permissionError = $this->requireAdminPermissionError();
 		if ($permissionError instanceof JsonResponse) {
 			return $permissionError;
@@ -914,6 +963,8 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * AJAX: close dead-value PR and optionally linked issue without page reload.
 	 */
 	public function closeDeadValueAjax(Request $request): JsonResponse {
+		return $this->errorJsonResponse('Dead-value GitHub close actions are disabled in local tracker mode. Use Issues.md and the import page workflow.', self::HTTP_BAD_REQUEST);
+
 		$permissionError = $this->requireAdminPermissionError();
 		if ($permissionError instanceof JsonResponse) {
 			return $permissionError;
@@ -1286,20 +1337,18 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	 * Execute a GitHub mutation request with JSON payload.
 	 */
 	protected function requestGitHubMutation(string $method, string $url, string $token, array $json): bool {
-		$ok = $this->githubClient->mutate($method, $url, $json, $token, self::GITHUB_API_TIMEOUT);
-		if (!$ok) {
-			$this->logger->error('Dead-value close mutation failed for @url.', [
-				'@url' => $url,
-			]);
-		}
-		return $ok;
+		$this->logger->warning('GitHub mutation skipped in local tracker mode for @url.', ['@url' => $url]);
+		return FALSE;
 	}
 
 	/**
 	 * Execute a GitHub API JSON request and normalize response shape.
 	 */
 	protected function requestGitHubJson(string $url, ?string $token, array $extraHeaders = []): array {
-		return $this->githubClient->requestJson($url, $token, $extraHeaders, FALSE);
+		return [
+			'items' => [],
+			'error' => (string) $this->t('GitHub integration is disabled outside the Import Open Issues workflow.'),
+		];
 	}
 
 	/**

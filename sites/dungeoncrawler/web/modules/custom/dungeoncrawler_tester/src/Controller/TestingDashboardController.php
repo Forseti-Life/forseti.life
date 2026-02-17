@@ -969,15 +969,10 @@ class TestingDashboardController extends ControllerBase {
    * Resolve GitHub repo/token from existing tester settings precedence.
    */
   protected function resolveGitHubContext(): array {
-    $context = $this->githubClient->resolveContext();
-    $repo = (string) ($context['repo'] ?? $this->defaultRepo);
-    $tokenCandidates = array_values((array) ($context['token_candidates'] ?? []));
-    $token = $tokenCandidates[0] ?? NULL;
-
     return [
-      'repo' => $repo,
-      'token' => $token ? (string) $token : NULL,
-      'token_candidates' => $tokenCandidates,
+      'repo' => 'local/Issues.md',
+      'token' => NULL,
+      'token_candidates' => [],
     ];
   }
 
@@ -985,7 +980,10 @@ class TestingDashboardController extends ControllerBase {
    * Execute GitHub JSON request with token failover.
    */
   protected function requestGitHubJsonWithFallback(string $url, array $tokenCandidates, array $extraHeaders = [], bool $paginate = FALSE): array {
-    return $this->githubClient->requestJsonWithFallback($url, $tokenCandidates, $extraHeaders, $paginate);
+    return [
+      'items' => [],
+      'error' => (string) $this->t('GitHub integration is disabled outside the Import Open Issues workflow.'),
+    ];
   }
 
 }

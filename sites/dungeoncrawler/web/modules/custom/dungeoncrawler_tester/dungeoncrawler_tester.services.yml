@@ -5,7 +5,11 @@ services:
 
   dungeoncrawler_tester.sdlc_reset_service:
     class: Drupal\dungeoncrawler_tester\Service\SdlcResetService
-    arguments: ['@state', '@dungeoncrawler_tester.github_issue_pr_client', '@database', '@dungeoncrawler_tester.stage_definitions', '@cache.default']
+    arguments: ['@state', '@dungeoncrawler_tester.local_issues_tracker', '@database', '@dungeoncrawler_tester.stage_definitions', '@cache.default']
+
+  dungeoncrawler_tester.local_issues_tracker:
+    class: Drupal\dungeoncrawler_tester\Service\LocalIssuesTrackerService
+    arguments: ['%app.root%']
 
   dungeoncrawler_tester.github_context_resolver:
     class: Drupal\dungeoncrawler_tester\Service\GithubClientContextResolver
@@ -24,7 +28,7 @@ services:
 
   dungeoncrawler_tester.stage_issue_sync:
     class: Drupal\dungeoncrawler_tester\Service\StageIssueSyncService
-    arguments: ['@state', '@dungeoncrawler_tester.github_issue_pr_client', '@logger.factory']
+    arguments: ['@state', '@dungeoncrawler_tester.local_issues_tracker', '@logger.factory']
   dungeoncrawler_tester.stage_definitions:
     class: Drupal\dungeoncrawler_tester\Service\StageDefinitionService
     arguments: ['@string_translation', '%app.root%', '@config.factory']

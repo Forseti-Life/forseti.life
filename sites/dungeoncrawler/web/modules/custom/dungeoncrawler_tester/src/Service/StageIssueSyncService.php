@@ -7,13 +7,13 @@ use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Core\State\StateInterface;
 
 /**
- * Synchronizes linked GitHub issues and stage state.
+ * Synchronizes linked local Issues.md tracker rows and stage state.
  */
 class StageIssueSyncService {
 
   public function __construct(
     private readonly StateInterface $state,
-    private readonly GithubIssuePrClientInterface $githubClient,
+    private readonly LocalIssuesTrackerService $localIssuesTracker,
     LoggerChannelFactoryInterface $loggerFactory,
   ) {
     $this->logger = $loggerFactory->get('dungeoncrawler_tester');
@@ -34,135 +34,77 @@ class StageIssueSyncService {
       return;
     }
 
-    $githubContext = $this->githubClient->resolveContext();
-    $repo = (string) ($githubContext['repo'] ?? '');
-    $token = $githubContext['token'] ?? NULL;
-    if (!$token) {
-      $this->logger->warning('Issue sync skipped: missing GitHub token.');
-      return;
-    }
-
     $updated = FALSE;
     $linkedCount = 0;
     $closedCount = 0;
     $resumedCount = 0;
     $unlinkedCount = 0;
-    $issueFetchFailures = [];
-
-    $allLinkedIssueNumbers = [];
-    foreach ($states as $state) {
-      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
-        foreach ($state['issue_numbers'] as $issueNumber) {
-          $number = (int) $issueNumber;
-          if ($number > 0) {
-            $allLinkedIssueNumbers[$number] = TRUE;
-          }
-        }
-      }
-      if (!empty($state['issue_number'])) {
-        $number = (int) $state['issue_number'];
-        if ($number > 0) {
-          $allLinkedIssueNumbers[$number] = TRUE;
-        }
-      }
-    }
-
-    $openIssueNumbers = [];
-    if (!empty($allLinkedIssueNumbers)) {
-      $url = "https://api.github.com/repos/{$repo}/issues?state=open&per_page=100";
-      $openIssuesResponse = $this->githubClient->requestJson($url, (string) $token, [], TRUE);
-      if (!empty($openIssuesResponse['error'])) {
-        $this->logger->warning('Issue sync could not preload open issues for @repo: @error', [
-          '@repo' => $repo,
-          '@error' => (string) $openIssuesResponse['error'],
-        ]);
-      }
-      else {
-        foreach (($openIssuesResponse['items'] ?? []) as $item) {
-          $number = (int) ($item['number'] ?? 0);
-          if ($number > 0) {
-            $openIssueNumbers[$number] = TRUE;
-          }
-        }
-      }
-    }
-
-    $issueStateCache = [];
+    $issueStatusMissing = [];
 
     foreach ($states as $stage_id => $state) {
-      $linked_issue_numbers = [];
-      if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
-        $linked_issue_numbers = array_values(array_unique(array_filter(array_map('intval', $state['issue_numbers']))));
-      }
-      if (!empty($state['issue_number'])) {
-        $linked_issue_numbers[] = (int) $state['issue_number'];
-      }
-      $linked_issue_numbers = array_values(array_unique(array_filter($linked_issue_numbers)));
-
-      if (empty($linked_issue_numbers)) {
+      $linkedIssueIds = $this->extractLinkedLocalIssueIds(is_array($state) ? $state : []);
+      if (empty($linkedIssueIds)) {
         continue;
       }
 
       $linkedCount++;
+      $openIssueIds = [];
 
-      $open_issues = [];
-      foreach ($linked_issue_numbers as $issue_number) {
-        if (!empty($openIssueNumbers[$issue_number])) {
-          $open_issues[] = $issue_number;
+      foreach ($linkedIssueIds as $issueId) {
+        $status = $this->localIssuesTracker->getIssueStatus($issueId);
+        if ($status === NULL) {
+          $issueStatusMissing[$issueId] = TRUE;
+          $openIssueIds[] = $issueId;
           continue;
         }
 
-        if (!array_key_exists($issue_number, $issueStateCache)) {
-          $issue = $this->githubClient->getIssue($repo, (int) $issue_number, (string) $token);
-          if (!$issue) {
-            $issueStateCache[$issue_number] = NULL;
-            $issueFetchFailures[$issue_number] = TRUE;
-          }
-          else {
-            $issueStateCache[$issue_number] = (string) ($issue['state'] ?? '');
-          }
-        }
-
-        $issueState = $issueStateCache[$issue_number];
-        if ($issueState === NULL) {
-          $open_issues[] = $issue_number;
-          continue;
-        }
-
-        $isClosed = $issueState === 'closed';
-        if (!$isClosed) {
-          $open_issues[] = $issue_number;
+        if ($status !== 'Closed') {
+          $openIssueIds[] = $issueId;
         }
       }
 
-      $all_closed = empty($open_issues);
-      $states[$stage_id]['issue_status'] = $all_closed ? 'closed' : 'open';
-      $states[$stage_id]['issue_numbers'] = $linked_issue_numbers;
-      if (!empty($linked_issue_numbers)) {
-        $states[$stage_id]['issue_number'] = (int) $linked_issue_numbers[0];
+      $allClosed = empty($openIssueIds);
+      $linkedIssueNumbers = [];
+      foreach ($linkedIssueIds as $issueId) {
+        $number = $this->localIssuesTracker->extractNumberFromIssueId($issueId);
+        if ($number > 0) {
+          $linkedIssueNumbers[] = $number;
+        }
       }
 
-      if ($all_closed) {
+      $states[$stage_id]['issue_status'] = $allClosed ? 'closed' : 'open';
+      $states[$stage_id]['issue_local_ids'] = $linkedIssueIds;
+      $states[$stage_id]['issue_local_id'] = $linkedIssueIds[0];
+      $states[$stage_id]['issue_numbers'] = array_values(array_unique($linkedIssueNumbers));
+      if (!empty($states[$stage_id]['issue_numbers'])) {
+        $states[$stage_id]['issue_number'] = (int) $states[$stage_id]['issue_numbers'][0];
+      }
+
+      if ($allClosed) {
         $updated = TRUE;
         $closedCount++;
         $wasActive = !empty($state['active']);
 
-        // Re-enable stage and clear failure metadata.
         $states[$stage_id]['active'] = TRUE;
         unset($states[$stage_id]['failure_reason'], $states[$stage_id]['failure_excerpt']);
 
         if ($unlinkOnClose) {
-          unset($states[$stage_id]['issue_number'], $states[$stage_id]['issue_status'], $states[$stage_id]['issue_numbers'], $states[$stage_id]['issue_test_cases']);
+          unset(
+            $states[$stage_id]['issue_number'],
+            $states[$stage_id]['issue_numbers'],
+            $states[$stage_id]['issue_status'],
+            $states[$stage_id]['issue_local_id'],
+            $states[$stage_id]['issue_local_ids'],
+            $states[$stage_id]['issue_test_cases']
+          );
           $unlinkedCount++;
         }
 
-        if ($autoResume) {
-          if (!$wasActive) {
-            $resumedCount++;
-          }
-          $this->logger->notice('Stage @stage auto-resumed after issue closure (#@issue).', [
+        if ($autoResume && !$wasActive) {
+          $resumedCount++;
+          $this->logger->notice('Stage @stage auto-resumed after local issue closure (@issue).', [
             '@stage' => $stage_id,
-            '@issue' => implode(',', $linked_issue_numbers),
+            '@issue' => implode(',', $linkedIssueIds),
           ]);
         }
       }
@@ -183,24 +125,77 @@ class StageIssueSyncService {
       ]);
     }
 
-    $failureNumbers = array_keys($issueFetchFailures);
+    $failureIds = array_keys($issueStatusMissing);
     $this->state->set('dungeoncrawler_tester.issue_sync_last', [
       'timestamp' => time(),
-      'repo' => $repo,
+      'repo' => 'local/Issues.md',
       'linked_stages' => $linkedCount,
       'closed_stages' => $closedCount,
       'resumed_stages' => $resumedCount,
       'unlinked_stages' => $unlinkedCount,
-      'issue_fetch_failure_count' => count($failureNumbers),
-      'issue_fetch_failures' => $failureNumbers,
+      'issue_fetch_failure_count' => count($failureIds),
+      'issue_fetch_failures' => $failureIds,
     ]);
 
-    if (!empty($failureNumbers)) {
-      $this->logger->warning('Issue sync completed with @count issue fetch failure(s): @issues', [
-        '@count' => count($failureNumbers),
-        '@issues' => implode(', ', $failureNumbers),
+    if (!empty($failureIds)) {
+      $this->logger->warning('Issue sync completed with @count local issue lookup miss(es): @issues', [
+        '@count' => count($failureIds),
+        '@issues' => implode(', ', $failureIds),
       ]);
     }
+  }
+
+  /**
+   * Extract linked local issue ids from stage state.
+   *
+   * @return string[]
+   *   Linked issue ids.
+   */
+  private function extractLinkedLocalIssueIds(array $state): array {
+    $ids = [];
+
+    if (!empty($state['issue_local_ids']) && is_array($state['issue_local_ids'])) {
+      foreach ($state['issue_local_ids'] as $issueId) {
+        $issueId = trim((string) $issueId);
+        if ($issueId !== '') {
+          $ids[$issueId] = TRUE;
+        }
+      }
+    }
+
+    if (!empty($state['issue_local_id'])) {
+      $issueId = trim((string) $state['issue_local_id']);
+      if ($issueId !== '') {
+        $ids[$issueId] = TRUE;
+      }
+    }
+
+    if (!empty($state['issue_numbers']) && is_array($state['issue_numbers'])) {
+      foreach ($state['issue_numbers'] as $issueNumber) {
+        $issueId = $this->localIssuesTracker->buildIssueIdFromNumber((int) $issueNumber);
+        if ($issueId !== '') {
+          $ids[$issueId] = TRUE;
+        }
+      }
+    }
+
+    if (!empty($state['issue_number'])) {
+      $issueId = $this->localIssuesTracker->buildIssueIdFromNumber((int) $state['issue_number']);
+      if ($issueId !== '') {
+        $ids[$issueId] = TRUE;
+      }
+    }
+
+    if (!empty($state['issue_test_cases']) && is_array($state['issue_test_cases'])) {
+      foreach ($state['issue_test_cases'] as $value) {
+        $candidate = trim((string) $value);
+        if ($candidate !== '' && preg_match('/^DCT-\d+$/', $candidate) === 1) {
+          $ids[$candidate] = TRUE;
+        }
+      }
+    }
+
+    return array_keys($ids);
   }
 
 }
