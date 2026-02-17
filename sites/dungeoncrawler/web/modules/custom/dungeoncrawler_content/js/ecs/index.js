@@ -29,9 +29,8 @@ export { Component } from './Component.js';
 export { System } from './System.js';
 export { EntityManager } from './EntityManager.js';
 
-// Components (7 total + 5 enums/constants)
-// Pure data containers attached to entities (no logic)
-export { PositionComponent } from './components/PositionComponent.js';
+// Components
+export { PositionComponent, HexDirection } from './components/PositionComponent.js';
 export { RenderComponent } from './components/RenderComponent.js';
 export { IdentityComponent, EntityType } from './components/IdentityComponent.js';
 export { MovementComponent, MovementMode } from './components/MovementComponent.js';
