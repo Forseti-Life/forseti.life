@@ -433,6 +433,10 @@ export class CharacterStateService {
    * @param event - Event name to listen to
    * @param callback - Callback function to invoke when event is emitted
    * @returns Unsubscribe function to remove the listener
+   * 
+   * Note: If the same callback is registered multiple times, each registration
+   * will receive a separate unsubscribe function. Each call to unsubscribe
+   * will remove only one instance of the callback (the first occurrence).
    */
   on<T = unknown>(event: string, callback: EventCallback<T>): () => void {
     if (!event || typeof event !== 'string') {
@@ -448,7 +452,7 @@ export class CharacterStateService {
     }
     this.listeners.get(event)!.push(callback);
     
-    // Return unsubscribe function
+    // Return unsubscribe function that removes only the first occurrence of this callback
     return () => {
       const callbacks = this.listeners.get(event);
       if (callbacks) {
