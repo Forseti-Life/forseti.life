@@ -7,7 +7,7 @@ style:
 
 game-cards:
   css:
-    component:
+    theme:
       css/game-cards.css: {}
   js:
     js/game-cards.js: {}
@@ -17,7 +17,7 @@ game-cards:
 
 character-sheet:
   css:
-    component:
+    theme:
       css/character-sheet.css: {}
   js:
     js/character-sheet.js: {}
@@ -25,134 +25,101 @@ character-sheet:
     - core/drupal
     - core/once
 
+# Base library for character creation steps with shared dependencies
+character-step-base:
+  css:
+    theme:
+      css/character-steps.css: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+
 character-creation:
   css:
-    component:
+    theme:
       css/character-creation.css: {}
-      css/character-steps.css: {}
   js:
     js/character-creation-schema.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
-# Individual step libraries
+# Individual step libraries - now depend on character-step-base
 character-step-1:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-1.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-2:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-2.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-3:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-3.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-4:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-4.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-5:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-5.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-6:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-6.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-7:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-7.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 character-step-8:
-  css:
-    component:
-      css/character-steps.css: {}
   js:
     js/character-step-8.js: {}
   dependencies:
-    - core/drupal
-    - core/jquery
-    - core/once
+    - dungeoncrawler_content/character-step-base
 
 # Hex Map with PixiJS + ECS
 hexmap:
   js:
-    # PixiJS CDN
+    # PixiJS CDN (version locked for stability)
     https://cdn.jsdelivr.net/npm/pixi.js@7.3.2/dist/pixi.min.js: { type: external, minified: true }
     # ECS Core (loaded before hexmap.js)
-    js/ecs/Component.js: { attributes: { type: module } }
-    js/ecs/Entity.js: { attributes: { type: module } }
-    js/ecs/System.js: { attributes: { type: module } }
-    js/ecs/EntityManager.js: { attributes: { type: module } }
+    js/ecs/Component.js: { attributes: { type: module, defer: true } }
+    js/ecs/Entity.js: { attributes: { type: module, defer: true } }
+    js/ecs/System.js: { attributes: { type: module, defer: true } }
+    js/ecs/EntityManager.js: { attributes: { type: module, defer: true } }
     # ECS Components
-    js/ecs/components/PositionComponent.js: { attributes: { type: module } }
-    js/ecs/components/RenderComponent.js: { attributes: { type: module } }
-    js/ecs/components/IdentityComponent.js: { attributes: { type: module } }
-    js/ecs/components/MovementComponent.js: { attributes: { type: module } }
-    js/ecs/components/StatsComponent.js: { attributes: { type: module } }
-    js/ecs/components/ActionsComponent.js: { attributes: { type: module } }
-    js/ecs/components/CombatComponent.js: { attributes: { type: module } }
+    js/ecs/components/PositionComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/RenderComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/IdentityComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/MovementComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/StatsComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/ActionsComponent.js: { attributes: { type: module, defer: true } }
+    js/ecs/components/CombatComponent.js: { attributes: { type: module, defer: true } }
     # ECS Systems
-    js/ecs/systems/RenderSystem.js: { attributes: { type: module } }
-    js/ecs/systems/MovementSystem.js: { attributes: { type: module } }
-    js/ecs/systems/TurnManagementSystem.js: { attributes: { type: module } }
-    js/ecs/systems/CombatSystem.js: { attributes: { type: module } }
+    js/ecs/systems/RenderSystem.js: { attributes: { type: module, defer: true } }
+    js/ecs/systems/MovementSystem.js: { attributes: { type: module, defer: true } }
+    js/ecs/systems/TurnManagementSystem.js: { attributes: { type: module, defer: true } }
+    js/ecs/systems/CombatSystem.js: { attributes: { type: module, defer: true } }
     # ECS Index
-    js/ecs/index.js: { attributes: { type: module } }
+    js/ecs/index.js: { attributes: { type: module, defer: true } }
     # Main hexmap (loads ECS as module)
-    js/hexmap.js: { attributes: { type: module } }
+    js/hexmap.js: { attributes: { type: module, defer: true } }
   css:
     theme:
       css/hexmap.css: {}
