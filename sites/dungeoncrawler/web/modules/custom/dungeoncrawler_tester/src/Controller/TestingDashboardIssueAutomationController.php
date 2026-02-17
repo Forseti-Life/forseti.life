@@ -29,6 +29,11 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 	private const BULK_STALE_DAYS = 60;
 
 	/**
+	 * GitHub API timeout in seconds.
+	 */
+	private const GITHUB_API_TIMEOUT = 10;
+
+	/**
 	 * Build a URL from route name with a safe path fallback.
 	 */
 	protected function safeRouteUrl(string $routeName, string $fallbackPath): string {

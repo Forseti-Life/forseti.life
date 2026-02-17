@@ -87,11 +87,6 @@ class TestingDashboardController extends ControllerBase {
   private string $defaultRepo = 'keithaumiller/forseti.life';
 
   /**
-   * GitHub API timeout in seconds.
-   */
-  protected const GITHUB_API_TIMEOUT = 10;
-
-  /**
    * Maximum issues to fetch per request.
    */
   private const GITHUB_MAX_ISSUES = 10;
