@@ -28,7 +28,7 @@ export class RenderComponent extends Component {
     this.sprite = null;
     this.container = null;
     this.healthBar = null;
-    this.nameplate = null;
+    this.nameLabel = null;
     this.statusIcons = null;
   }
 
@@ -38,6 +38,7 @@ export class RenderComponent extends Component {
    */
   toJSON() {
     return {
+      type: this.constructor.name,
       spriteKey: this.spriteKey,
       scale: this.scale,
       rotation: this.rotation,
@@ -55,12 +56,12 @@ export class RenderComponent extends Component {
    */
   static fromJSON(data) {
     const component = new RenderComponent(data.spriteKey);
-    component.scale = data.scale;
-    component.rotation = data.rotation;
-    component.tint = data.tint;
-    component.alpha = data.alpha;
-    component.visible = data.visible;
-    component.zIndex = data.zIndex;
+    component.scale = data.scale ?? 1.0;
+    component.rotation = data.rotation ?? 0;
+    component.tint = data.tint ?? 0xffffff;
+    component.alpha = data.alpha ?? 1.0;
+    component.visible = data.visible ?? true;
+    component.zIndex = data.zIndex ?? 0;
     return component;
   }
 
@@ -76,8 +77,53 @@ export class RenderComponent extends Component {
       this.container.destroy({ children: true });
       this.container = null;
     }
-    this.healthBar = null;
-    this.nameplate = null;
+    if (this.healthBar) {
+      this.healthBar.destroy({ children: true });
+      this.healthBar = null;
+    }
+    if (this.nameLabel) {
+      this.nameLabel.destroy();
+      this.nameLabel = null;
+    }
     this.statusIcons = null;
+  }
+
+  /**
+   * Check if component has a sprite created.
+   * @returns {boolean} True if sprite exists
+   */
+  hasSprite() {
+    return this.sprite !== null;
+  }
+
+  /**
+   * Check if component is visible.
+   * @returns {boolean} True if visible
+   */
+  isVisible() {
+    return this.visible;
+  }
+
+  /**
+   * Set visibility.
+   * @param {boolean} visible - Visibility state
+   */
+  setVisible(visible) {
+    this.visible = visible;
+  }
+
+  /**
+   * Set tint color.
+   * @param {number} color - Hex color value (e.g., 0xff0000 for red)
+   */
+  setTint(color) {
+    this.tint = color;
+  }
+
+  /**
+   * Reset tint to default white.
+   */
+  resetTint() {
+    this.tint = 0xffffff;
   }
 }
