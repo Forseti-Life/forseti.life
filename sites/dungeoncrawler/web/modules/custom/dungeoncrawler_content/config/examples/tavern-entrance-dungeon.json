@@ -2,48 +2,31 @@
   "$schema": "../schemas/dungeon_level.schema.json",
   "level_id": "f8c6b8f1-2df9-469f-9fd5-67a59f120001",
   "depth": 1,
-  "theme": "abandoned_mine",
+  "theme": "custom",
+  "custom_theme": "tavern_entrance",
   "name": "Tavern Entrance Test Level",
   "flavor_text": "A spacious tavern staging hall with enough room for a full party and companions, plus a dedicated bar area before the first dungeon door.",
   "created_at": "2026-02-13T00:00:00Z",
   "is_persistent": true,
   "hex_map": {
-    "schema_version": "1.0.0",
     "map_id": "0b7e3d2f-8f7c-4ae0-8f72-9e99e0800001",
     "name": "Tavern to Dungeon",
-    "depth_tier": "shallow_halls",
-    "depth_level": 1,
-    "hex_grid": {
-      "orientation": "flat-top",
-      "hex_size_ft": 5,
-      "origin": {
-        "q": 0,
-        "r": 0
-      },
-      "coordinate_system": "axial"
-    },
+    "hex_size_ft": 5,
+    "orientation": "flat-top",
     "connections": [
       {
         "connection_id": "6fd074d6-f59a-4b45-bf7b-b88eea410001",
-        "from_room": "7f2f1051-5f88-45a2-a66a-0f7063900001",
-        "to_room": "7f2f1051-5f88-45a2-a66a-0f7063900002",
-        "from_hex": {
+        "from": {
           "q": 4,
           "r": 0
         },
-        "to_hex": {
+        "to": {
           "q": 5,
           "r": 0
         },
         "type": "door",
-        "pf2e_checks": {
-          "perception_dc": null,
-          "thievery_dc": null,
-          "athletics_dc": null,
-          "arcana_dc": null
-        },
-        "is_discovered": true,
-        "is_passable": true
+        "is_known": true,
+        "description": "Heavy wooden door between tavern staging area and dungeon entrance"
       }
     ],
     "regions": [
@@ -54,7 +37,6 @@
         "room_ids": [
           "7f2f1051-5f88-45a2-a66a-0f7063900001"
         ],
-        "environmental_effects": [],
         "ambient_hazard_level": 0
       },
       {
@@ -64,13 +46,11 @@
         "room_ids": [
           "7f2f1051-5f88-45a2-a66a-0f7063900002"
         ],
-        "environmental_effects": [],
         "ambient_hazard_level": 1
       }
     ],
     "metadata": {
       "created_at": "2026-02-13T00:00:00Z",
-      "last_modified": "2026-02-13T00:00:00Z",
       "generation_seed": "tavern-door-demo-v1",
       "generated_by": "manual-example",
       "is_finalized": true,
@@ -400,22 +380,13 @@
           }
         ]
       },
-      "environmental_effects": [],
-      "creatures": [],
-      "items": [],
-      "traps": [],
-      "hazards": [],
-      "obstacles": [],
-      "interactables": [],
       "state": {
         "explored": true,
         "explored_at": "2026-02-13T00:00:00Z",
-        "explored_by_party": null,
         "cleared": true,
         "looted": true,
         "traps_disarmed": true,
-        "visibility": "visible",
-        "notes": []
+        "visibility": "visible"
       },
       "ai_generation": {
         "theme_tags": [
@@ -424,8 +395,7 @@
           "entry"
         ],
         "difficulty_target": "trivial",
-        "generation_model": "manual-example",
-        "generation_timestamp": "2026-02-13T00:00:00Z"
+        "generation_model": "manual-example"
       }
     },
     {
@@ -452,29 +422,17 @@
         "type": "stone_floor",
         "difficult_terrain": false,
         "greater_difficult_terrain": false,
-        "hazardous_terrain": null,
         "ceiling_height_ft": 12
       },
       "lighting": {
-        "level": "dim_light",
-        "light_sources": []
+        "level": "dim_light"
       },
-      "environmental_effects": [],
-      "creatures": [],
-      "items": [],
-      "traps": [],
-      "hazards": [],
-      "obstacles": [],
-      "interactables": [],
       "state": {
         "explored": false,
-        "explored_at": null,
-        "explored_by_party": null,
         "cleared": false,
         "looted": false,
         "traps_disarmed": false,
-        "visibility": "hidden",
-        "notes": []
+        "visibility": "hidden"
       },
       "ai_generation": {
         "theme_tags": [
@@ -482,8 +440,7 @@
           "starter-room"
         ],
         "difficulty_target": "low",
-        "generation_model": "manual-example",
-        "generation_timestamp": "2026-02-13T00:00:00Z"
+        "generation_model": "manual-example"
       }
     }
   ],
@@ -493,25 +450,17 @@
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "wooden_tavern_door",
-        "version": "1.0.0"
+        "content_id": "wooden_tavern_door"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": 4,
           "r": 0
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": false,
           "passable": true,
@@ -519,34 +468,24 @@
           "blocks_path_until_opened": false,
           "connects_to_room_id": "7f2f1051-5f88-45a2-a66a-0f7063900002"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000002",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_bar_counter_a",
-        "version": "1.0.0"
+        "content_id": "tavern_bar_counter_a"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -4,
           "r": -2
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": false,
           "passable": false,
@@ -554,34 +493,24 @@
           "blocks_path_until_opened": true,
           "fixture": "bar_counter"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000003",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_bar_counter_b",
-        "version": "1.0.0"
+        "content_id": "tavern_bar_counter_b"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -3,
           "r": -2
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": false,
           "passable": false,
@@ -589,34 +518,24 @@
           "blocks_path_until_opened": true,
           "fixture": "bar_counter"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000004",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_bar_counter_c",
-        "version": "1.0.0"
+        "content_id": "tavern_bar_counter_c"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -2,
           "r": -2
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": false,
           "passable": false,
@@ -624,153 +543,110 @@
           "blocks_path_until_opened": true,
           "fixture": "bar_counter"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000005",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_table_round_a",
-        "version": "1.0.0"
+        "content_id": "tavern_table_round_a"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -1,
           "r": 0
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": true,
           "passable": false,
           "stackable": false,
           "fixture": "table_round"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000006",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_table_long_a",
-        "version": "1.0.0"
+        "content_id": "tavern_table_long_a"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": 2,
           "r": -1
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": true,
           "passable": false,
           "stackable": false,
           "fixture": "table_long"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000007",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_stool_stack_a",
-        "version": "1.0.0"
+        "content_id": "tavern_stool_stack_a"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": 0,
           "r": 1
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": true,
           "passable": true,
           "stackable": true,
           "fixture": "stool_stack"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000008",
       "entity_type": "obstacle",
       "entity_ref": {
         "content_type": "obstacle",
-        "content_id": "tavern_crate_stack_a",
-        "version": "1.0.0"
+        "content_id": "tavern_crate_stack_a"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": 3,
           "r": 1
-        },
-        "spawn_type": null
+        }
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "movable": true,
           "passable": false,
           "stackable": true,
           "fixture": "crate_stack"
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000009",
       "entity_type": "player_character",
       "entity_ref": {
         "content_type": "player_character",
-        "content_id": "party_leader_demo",
-        "version": "1.0.0"
+        "content_id": "party_leader_demo"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
@@ -782,12 +658,6 @@
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "display_name": "Party Leader",
           "team": "player",
@@ -800,17 +670,14 @@
             "initiative_bonus": 6
           }
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     },
     {
       "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000010",
       "entity_type": "npc",
       "entity_ref": {
         "content_type": "creature",
-        "content_id": "gribbles_rindsworth",
-        "version": "1.0.0"
+        "content_id": "gribbles_rindsworth"
       },
       "placement": {
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
@@ -822,12 +689,6 @@
       },
       "state": {
         "active": true,
-        "destroyed": false,
-        "disabled": false,
-        "hidden": false,
-        "collected": false,
-        "hit_points": null,
-        "inventory": [],
         "metadata": {
           "display_name": "Gribbles Rindsworth",
           "team": "enemy",
@@ -840,9 +701,7 @@
             "initiative_bonus": 5
           }
         }
-      },
-      "created_at": "2026-02-13T00:00:00Z",
-      "updated_at": "2026-02-13T00:00:00Z"
+      }
     }
   ],
   "generation_rules": {
