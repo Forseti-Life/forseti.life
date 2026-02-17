@@ -279,7 +279,7 @@ The testing dashboard includes **embedded queue management** for background test
 - Frontend assets: `queue-management.js` and `queue-management.css`
 - Template: `dungeoncrawler-tester-queue-management.html.twig`
 
-**Note**: The route `/dungeoncrawler/testing/queue-management` does not exist and never existed (confirmed via DCT-0139 investigation). All queue management functionality is integrated into the main dashboard.
+**Note**: There is no separate queue management page. The obsolete route `/dungeoncrawler/testing/queue-management` was removed in DCT-0139. All queue management functionality is embedded directly into the main testing dashboard at `/dungeoncrawler/testing`.
 
 ## Content Module Documentation
 
