@@ -17,8 +17,6 @@ namespace Drupal\Tests\dungeoncrawler_tester\Unit\Traits;
  * $fighter = $this->loadFixture('characters/level_1_fighter.json');
  * $classes = $this->loadFixture('schemas/classes_test.json');
  * @endcode
- *
- * TODO: Implement fixture loading methods
  */
 trait FixtureLoaderTrait {
 
@@ -34,8 +32,6 @@ trait FixtureLoaderTrait {
    *
    * @throws \Exception
    *   If fixture file not found or invalid JSON.
-   *
-   * TODO: Implement fixture loading
    */
   protected function loadFixture(string $fixturePath): array {
     $fixturesRoot = dirname(__DIR__, 3) . '/fixtures/';
@@ -63,8 +59,6 @@ trait FixtureLoaderTrait {
    *
    * @return array
    *   Character fixture data.
-   *
-   * TODO: Implement character fixture getter
    */
   protected function getTestCharacterData(string $type = 'fighter'): array {
     $type = strtolower($type);
@@ -83,8 +77,6 @@ trait FixtureLoaderTrait {
    *
    * @return array
    *   PF2e core mechanics reference data.
-   *
-   * TODO: Implement PF2e reference data getter
    */
   protected function getPF2eReferenceData(): array {
     return $this->loadFixture('pf2e_reference/core_mechanics.json');

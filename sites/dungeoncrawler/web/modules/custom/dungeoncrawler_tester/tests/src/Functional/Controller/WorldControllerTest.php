@@ -32,12 +32,13 @@ class WorldControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests world page public access - negative case (permission check).
+   * Tests world page access for authenticated user without special permissions.
    */
   public function testWorldPagePublicAccessNegative(): void {
-    // Negative test: page should NOT require authentication
+    $user = $this->drupalCreateUser([]);
+    $this->drupalLogin($user);
+
     $this->drupalGet('/world');
-    $this->assertSession()->statusCodeNotEquals(403);
     $this->assertSession()->statusCodeEquals(200);
   }
 

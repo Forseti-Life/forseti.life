@@ -15,10 +15,6 @@ use Drupal\Tests\dungeoncrawler_tester\Unit\Traits\FixtureLoaderTrait;
  *
  * @see docs/dungeoncrawler/issues/issue-testing-strategy-design.md
  *   Section: "Unit Tests" - CharacterCalculator Service Tests
- *
- * Test Coverage Target: 90% (service layer)
- * 
- * TODO: Implement tests per design document
  */
 class CharacterCalculatorTest extends UnitTestCase {
 
@@ -46,8 +42,6 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * @see docs/dungeoncrawler/testing/fixtures/characters/level_1_fighter.json
    *   Expected: 13 HP (10 base + 3 CON modifier)
-   *
-   * TODO: Implement test
    */
   public function testCalculateHPForFighterWithSixteenConstitution(): void {
     $fighter = $this->getTestCharacterData('fighter');
@@ -72,8 +66,6 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   ability_scores.modifiers section for official table
-   *
-   * TODO: Implement test with data provider
    */
   public function testCalculateAbilityModifier(int $score, int $expectedModifier): void {
     $modifier = $this->calculator->calculateAbilityModifier($score);
@@ -85,15 +77,13 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * @return array
    *   Test data: [score, expected_modifier]
-   *
-   * TODO: Add data from PF2e reference
    */
   public static function abilityModifierProvider(): array {
     return [
       'Score 10' => [10, 0],
       'Score 18' => [18, 4],
       'Score 8' => [8, -1],
-      // TODO: Add more cases from core_mechanics.json
+      // Additional PF2e score/modifier cases can be added as fixtures expand.
     ];
   }
 
@@ -107,8 +97,6 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   ability_scores.boost_rules section
-   *
-   * TODO: Implement boost rule tests
    */
   public function testApplyAbilityBoost(): void {
     $this->assertSame(12, $this->calculator->applyAbilityBoost(10));
@@ -120,8 +108,6 @@ class CharacterCalculatorTest extends UnitTestCase {
    *
    * @covers ::calculateProficiencyBonus
    * @dataProvider proficiencyProvider
-   *
-   * TODO: Implement proficiency tests
    */
   public function testCalculateProficiencyBonus(string $rank, int $level, int $expected): void {
     $this->assertSame($expected, $this->calculator->calculateProficiencyBonus($rank, $level));
@@ -131,15 +117,13 @@ class CharacterCalculatorTest extends UnitTestCase {
    * Data provider for proficiency tests.
    *
    * @return array
-   *
-   * TODO: Add proficiency data
    */
   public static function proficiencyProvider(): array {
     return [
       'Untrained level 1' => ['untrained', 1, 1],
       'Trained level 1' => ['trained', 1, 3],
       'Expert level 1' => ['expert', 1, 5],
-      // TODO: Add more cases
+      // Additional proficiency progression cases can be added as needed.
     ];
   }
 
@@ -147,8 +131,6 @@ class CharacterCalculatorTest extends UnitTestCase {
    * Tests AC calculation.
    *
    * @covers ::calculateArmorClass
-   *
-   * TODO: Implement AC tests
    */
   public function testCalculateArmorClass(): void {
     $fighter = $this->getTestCharacterData('fighter');

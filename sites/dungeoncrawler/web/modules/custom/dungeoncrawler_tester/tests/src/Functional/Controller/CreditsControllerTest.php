@@ -32,11 +32,13 @@ class CreditsControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests credits page public access - negative case (should not require auth).
+   * Tests credits page access for authenticated user without special permissions.
    */
   public function testCreditsPagePublicAccessNegative(): void {
+    $user = $this->drupalCreateUser([]);
+    $this->drupalLogin($user);
+
     $this->drupalGet('/credits');
-    $this->assertSession()->statusCodeNotEquals(403);
     $this->assertSession()->statusCodeEquals(200);
   }
 

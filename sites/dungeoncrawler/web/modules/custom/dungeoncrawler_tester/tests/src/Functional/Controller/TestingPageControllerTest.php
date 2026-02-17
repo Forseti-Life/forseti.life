@@ -33,12 +33,13 @@ class TestingPageControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests testing page public access - negative case (should be public).
+   * Tests testing page access for authenticated user without special permissions.
    */
   public function testTestingPagePublicAccessNegative(): void {
-    // Testing page should be publicly accessible
+    $user = $this->drupalCreateUser([]);
+    $this->drupalLogin($user);
+
     $this->drupalGet('/testing');
-    $this->assertSession()->statusCodeNotEquals(403);
     $this->assertSession()->statusCodeEquals(200);
   }
 

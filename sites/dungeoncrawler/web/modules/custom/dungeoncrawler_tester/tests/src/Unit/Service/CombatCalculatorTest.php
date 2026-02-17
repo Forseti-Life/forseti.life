@@ -15,10 +15,6 @@ use Drupal\dungeoncrawler_content\Service\CombatCalculator;
  *
  * @see docs/dungeoncrawler/issues/issue-testing-strategy-design.md
  *   Section: "PF2e Rules Validation Tests" - Combat Calculations
- *
- * Test Coverage Target: 90% (service layer)
- *
- * TODO: Implement tests per design document
  */
 class CombatCalculatorTest extends UnitTestCase {
 
@@ -50,8 +46,6 @@ class CombatCalculatorTest extends UnitTestCase {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   multiple_attack_penalty section
-   *
-   * TODO: Implement MAP tests
    */
   public function testMultipleAttackPenalty(): void {
     // Normal weapons
@@ -79,8 +73,6 @@ class CombatCalculatorTest extends UnitTestCase {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   degrees_of_success section
-   *
-   * TODO: Implement degree of success tests
    */
   public function testCalculateDegreeOfSuccess(): void {
     $this->assertSame('critical_success', $this->calculator->calculateDegreeOfSuccess(25, 15, 20));
@@ -93,8 +85,6 @@ class CombatCalculatorTest extends UnitTestCase {
    * Tests attack bonus calculation.
    *
    * @covers ::calculateAttackBonus
-   *
-   * TODO: Implement attack bonus tests
    */
   public function testCalculateAttackBonus(): void {
     $result = $this->calculator->calculateAttackBonus([
@@ -112,8 +102,6 @@ class CombatCalculatorTest extends UnitTestCase {
    * Tests spell save DC calculation.
    *
    * @covers ::calculateSpellSaveDC
-   *
-   * TODO: Implement spell DC tests
    */
   public function testCalculateSpellSaveDC(): void {
     $result = $this->calculator->calculateSpellSaveDC([

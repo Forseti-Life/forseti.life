@@ -17,6 +17,7 @@ tests/
 ├── src/
 │   ├── Unit/                    # Unit tests (service calculators, traits)
 │   └── Functional/              # Browser tests (routes + controllers)
+│       └── Traits/              # Shared functional-test helpers (e.g., campaign state setup/request helpers)
 ├── fixtures/                    # Test data files
 │   ├── characters/              # Character test data
 │   ├── schemas/                 # Schema test data
@@ -109,6 +110,9 @@ cd sites/dungeoncrawler
 
 # Character creation tests
 ./vendor/bin/phpunit --group=character-creation
+
+# Quarantined placeholders only (currently skipped sentinel coverage)
+./vendor/bin/phpunit --group=quarantined
 
 # Route tests
 ./vendor/bin/phpunit --group=routes

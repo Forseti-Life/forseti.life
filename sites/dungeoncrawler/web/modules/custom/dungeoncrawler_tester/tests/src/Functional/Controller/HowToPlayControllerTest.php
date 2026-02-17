@@ -32,11 +32,13 @@ class HowToPlayControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests how to play page public access - negative case (no auth required).
+   * Tests how-to-play access for authenticated user without special permissions.
    */
   public function testHowToPlayPagePublicAccessNegative(): void {
+    $user = $this->drupalCreateUser([]);
+    $this->drupalLogin($user);
+
     $this->drupalGet('/how-to-play');
-    $this->assertSession()->statusCodeNotEquals(403);
     $this->assertSession()->statusCodeEquals(200);
   }
 

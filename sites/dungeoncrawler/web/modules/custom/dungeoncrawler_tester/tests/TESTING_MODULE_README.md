@@ -2,15 +2,11 @@
 
 ## Overview
 
-This testing module exercises the Dungeon Crawler module with route/controller functional tests and a testing dashboard. Unit/kernel coverage is planned; current focus is access, routing, and basic content assertions.
+This testing module exercises the Dungeon Crawler module with route/controller functional tests, selected unit tests for core calculators, and a testing dashboard.
 
-<<<<<<< HEAD
 ## Testing Dashboard
-=======
-**For complete run instructions, test suites, groups, and examples, see [README.md](README.md) - the canonical testing guide.**
 
-## Testing Page
->>>>>>> origin/main
+**For complete run instructions, test suites, groups, and examples, see [README.md](README.md) - the canonical testing guide.**
 
 The testing dashboard provides stagegates for release readiness and surfaces GitHub issues tagged with ci-failure or testing-defect labels.
 
@@ -82,7 +78,6 @@ See [README.md](README.md) for complete run instructions including:
 
 ## Test Coverage
 
-<<<<<<< HEAD
 The testing module covers:
 
 ### Routes
@@ -100,9 +95,8 @@ The testing module covers:
 - Campaign controllers
 - Combat controllers
 - Admin controller
-=======
-See [README.md](README.md) for detailed coverage targets, test structure, and status.
->>>>>>> origin/main
+
+For detailed coverage targets, suite/group execution examples, and current status details, see [README.md](README.md).
 
 ## Notes
 
@@ -114,8 +108,7 @@ See [README.md](README.md) for detailed coverage targets, test structure, and st
 
 ## Future Enhancements
 
-- Add kernel tests for service layer testing
-- Add unit tests for specific business logic
-- Add integration tests for complex workflows
-- Add tests with actual entity creation for more complete coverage
-- Add performance tests for API endpoints
+- Optional enhancements:
+	- Add deeper kernel coverage for service interactions
+	- Expand integration scenarios for multi-step workflows
+	- Add performance-oriented API checks where needed

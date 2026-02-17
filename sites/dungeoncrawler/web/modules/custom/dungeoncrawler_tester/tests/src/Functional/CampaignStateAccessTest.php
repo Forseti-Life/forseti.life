@@ -3,6 +3,7 @@
 namespace Drupal\Tests\dungeoncrawler_tester\Functional;
 
 use Drupal\Tests\BrowserTestBase;
+use Drupal\Tests\dungeoncrawler_tester\Functional\Traits\CampaignStateTestTrait;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
 /**
@@ -13,6 +14,8 @@ use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
  */
 #[RunTestsInSeparateProcesses]
 class CampaignStateAccessTest extends BrowserTestBase {
+
+  use CampaignStateTestTrait;
 
   /**
    * {@inheritdoc}
@@ -32,22 +35,7 @@ class CampaignStateAccessTest extends BrowserTestBase {
     $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($owner);
 
-    // Create a campaign owned by this user.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $owner->id(),
-        'name' => 'Test Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $owner->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($owner);
 
     // Test GET /api/campaign/{id}/state - should succeed.
     $this->drupalGet("/api/campaign/{$campaign_id}/state");
@@ -81,22 +69,7 @@ class CampaignStateAccessTest extends BrowserTestBase {
     $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
 
-    // Create a campaign owned by owner.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $owner->id(),
-        'name' => 'Owner Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $owner->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($owner, 'Owner Campaign');
 
     // Login as other_user and try to access.
     $this->drupalLogin($other_user);
@@ -130,22 +103,7 @@ class CampaignStateAccessTest extends BrowserTestBase {
       'administer dungeoncrawler content',
     ]);
 
-    // Create a campaign owned by owner.
-    $database = \Drupal::database();
-    $campaign_id = $database->insert('dc_campaigns')
-      ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
-        'uid' => $owner->id(),
-        'name' => 'Owner Campaign',
-        'status' => 'active',
-        'campaign_data' => json_encode([
-          'state' => ['created_by' => $owner->id(), 'started' => TRUE, 'progress' => []],
-          'state_meta' => ['version' => 1, 'updatedAt' => date('c')],
-        ]),
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
+    $campaign_id = $this->createCampaignForUser($owner, 'Owner Campaign');
 
     // Login as admin and access should succeed.
     $this->drupalLogin($admin);
@@ -154,24 +112,6 @@ class CampaignStateAccessTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(200);
     $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
     $this->assertTrue($response['success']);
-  }
-
-  /**
-   * Issue a JSON request with the given method and payload.
-   */
-  private function requestJson(string $method, string $path, ?array $payload = NULL): array {
-    $body = $payload !== NULL ? json_encode($payload) : NULL;
-    $this->getSession()->getDriver()->getClient()->request(
-      $method,
-      $this->buildUrl($path),
-      [],
-      [],
-      ['CONTENT_TYPE' => 'application/json'],
-      $body
-    );
-
-    $content = $this->getSession()->getPage()->getContent();
-    return json_decode($content, TRUE) ?? [];
   }
 
 }

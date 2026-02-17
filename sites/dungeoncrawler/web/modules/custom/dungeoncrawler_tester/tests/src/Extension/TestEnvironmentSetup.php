@@ -30,11 +30,15 @@ final class TestEnvironmentSetup implements Extension {
   /**
    * Ensure a directory exists and has expected permissions.
    */
-  private function ensureDirectory(string $path, int $permissions): void {
+  private function ensureDirectory(string $path, int $permissions, bool $enforceWritable = TRUE): void {
     if (!is_dir($path)) {
       if (!@mkdir($path, $permissions, TRUE) && !is_dir($path)) {
         throw new \RuntimeException(sprintf('Failed to create test directory: %s', $path));
       }
+    }
+
+    if (!$enforceWritable) {
+      return;
     }
 
     if (!@chmod($path, $permissions) && !is_writable($path)) {
@@ -63,7 +67,7 @@ final class TestEnvironmentSetup implements Extension {
     // Ensure default site files directory exists
     // Uses 0775 as this may persist beyond test execution
     $defaultFilesDir = 'web/sites/default/files';
-    $this->ensureDirectory($defaultFilesDir, 0775);
+    $this->ensureDirectory($defaultFilesDir, 0775, FALSE);
   }
 
 }

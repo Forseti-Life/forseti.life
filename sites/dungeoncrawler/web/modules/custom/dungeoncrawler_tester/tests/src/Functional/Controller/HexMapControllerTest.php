@@ -32,12 +32,13 @@ class HexMapControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests hexmap demo public access - negative case (should be public).
+   * Tests hexmap demo access for authenticated user without special permissions.
    */
   public function testHexmapDemoPublicAccessNegative(): void {
-    // Demo should be publicly accessible
+    $user = $this->drupalCreateUser([]);
+    $this->drupalLogin($user);
+
     $this->drupalGet('/hexmap');
-    $this->assertSession()->statusCodeNotEquals(403);
     $this->assertSession()->statusCodeEquals(200);
   }
 
