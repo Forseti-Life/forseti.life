@@ -38,11 +38,6 @@ class TestingDashboardController extends ControllerBase {
   ];
 
   /**
-   * Staleness cutoff (days) for bulk stale-issue cleanup query.
-   */
-  private const BULK_STALE_DAYS = 60;
-
-  /**
    * State service for persisting last run metadata.
    */
   protected StateInterface $state;
