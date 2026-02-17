@@ -1290,14 +1290,14 @@
           {
             "name": "Dogslicer",
             "type": "melee",
-            "attack_bonus": 6,
             "damage": "1d6",
             "damage_type": "slashing",
             "traits": [
               "agile",
               "backstabber",
               "finesse"
-            ]
+            ],
+            "modifier": 6
           }
         ],
         "special_abilities": []
@@ -1405,14 +1405,14 @@
           {
             "name": "Dogslicer",
             "type": "melee",
-            "attack_bonus": 6,
             "damage": "1d6",
             "damage_type": "slashing",
             "traits": [
               "agile",
               "backstabber",
               "finesse"
-            ]
+            ],
+            "modifier": 6
           }
         ],
         "special_abilities": []
@@ -1513,7 +1513,6 @@
           {
             "name": "Tentacle",
             "type": "melee",
-            "attack_bonus": 11,
             "damage": "1d10+5",
             "damage_type": "bludgeoning",
             "traits": [
@@ -1522,7 +1521,8 @@
             ],
             "effects": [
               "Rotting Decay"
-            ]
+            ],
+            "modifier": 11
           }
         ],
         "special_abilities": [
@@ -1629,7 +1629,6 @@
           {
             "name": "Fangs",
             "type": "melee",
-            "attack_bonus": 9,
             "damage": "1d6+1",
             "damage_type": "piercing",
             "traits": [
@@ -1637,7 +1636,8 @@
             ],
             "effects": [
               "Hunting Spider Venom"
-            ]
+            ],
+            "modifier": 9
           }
         ],
         "special_abilities": [
@@ -1751,7 +1751,6 @@
           {
             "name": "Fangs",
             "type": "melee",
-            "attack_bonus": 9,
             "damage": "1d6+1",
             "damage_type": "piercing",
             "traits": [
@@ -1759,7 +1758,8 @@
             ],
             "effects": [
               "Hunting Spider Venom"
-            ]
+            ],
+            "modifier": 9
           }
         ],
         "special_abilities": [
@@ -1874,13 +1874,13 @@
           {
             "name": "Swarming Bites",
             "type": "melee",
-            "attack_bonus": 9,
             "damage": "1d4",
             "damage_type": "piercing",
             "traits": [],
             "effects": [
               "Spider Swarm Venom"
-            ]
+            ],
+            "modifier": 9
           }
         ],
         "special_abilities": [

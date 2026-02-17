@@ -222,6 +222,7 @@ Before deploying to production:
 - Fixed ANSI escape code in `wandering_monsters.enabled`
 - Converted all creatures to use `pf2e_stats` format
 - Added `lifecycle` objects to all creatures
+- Fixed attack field naming: changed `attack_bonus` to `modifier` for consistency
 - Validated entire file against schema requirements
 - Created this documentation
 
