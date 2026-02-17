@@ -5,11 +5,13 @@
   "description": "Defines the hex-based dungeon map structure. Uses axial coordinates (q, r) for hex positioning with flat-top orientation. Each hex is 5ft across (1 PF2e square = 1 hex). Compatible with Pathfinder 2e movement, range, and area-of-effect rules.",
   "type": "object",
   "required": ["schema_version", "map_id", "name", "depth_tier", "hex_grid", "metadata"],
+  "additionalProperties": false,
   "properties": {
     "schema_version": {
       "type": "string",
-      "const": "1.0.0",
-      "description": "Schema version for migration compatibility."
+      "description": "Schema version for migration compatibility.",
+      "default": "1.0.0",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$"
     },
     "map_id": {
       "type": "string",
@@ -34,6 +36,7 @@
       "type": "object",
       "description": "The hex grid configuration and coordinate system.",
       "required": ["orientation", "hex_size_ft", "origin"],
+      "additionalProperties": false,
       "properties": {
         "orientation": {
           "type": "string",
@@ -44,15 +47,17 @@
         "hex_size_ft": {
           "type": "number",
           "default": 5,
+          "minimum": 1,
           "description": "Size of each hex in feet. 5ft = 1 PF2e square. Used for movement, range, and AoE calculations."
         },
         "origin": {
           "type": "object",
           "description": "The origin hex (entrance point) in axial coordinates.",
           "required": ["q", "r"],
+          "additionalProperties": false,
           "properties": {
-            "q": { "type": "integer", "default": 0 },
-            "r": { "type": "integer", "default": 0 }
+            "q": { "type": "integer", "default": 0, "description": "Column (axial q-axis) of origin hex." },
+            "r": { "type": "integer", "default": 0, "description": "Row (axial r-axis) of origin hex." }
           }
         },
         "coordinate_system": {
@@ -87,14 +92,17 @@
     "metadata": {
       "type": "object",
       "required": ["created_at", "generation_seed"],
+      "additionalProperties": false,
       "properties": {
         "created_at": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Timestamp when this map was created (ISO 8601 format)."
         },
         "last_modified": {
           "type": "string",
-          "format": "date-time"
+          "format": "date-time",
+          "description": "Timestamp of the last modification to this map (ISO 8601 format)."
         },
         "generation_seed": {
           "type": "string",
@@ -110,10 +118,14 @@
           "description": "Once true, this map section is permanent and cannot be regenerated."
         },
         "total_rooms": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "description": "Total number of rooms in this map."
         },
         "explored_rooms": {
-          "type": "integer"
+          "type": "integer",
+          "minimum": 0,
+          "description": "Number of rooms that have been explored by the party."
         },
         "exploration_percentage": {
           "type": "number",
@@ -128,6 +140,7 @@
       "type": "object",
       "description": "Axial hex coordinate. Cube coordinate s is derived as s = -q - r.",
       "required": ["q", "r"],
+      "additionalProperties": false,
       "properties": {
         "q": { "type": "integer", "description": "Column (axial q-axis)." },
         "r": { "type": "integer", "description": "Row (axial r-axis)." }
@@ -136,6 +149,7 @@
     "connection": {
       "type": "object",
       "required": ["from_room", "to_room", "type"],
+      "additionalProperties": false,
       "properties": {
         "connection_id": {
           "type": "string",
@@ -159,21 +173,30 @@
         "pf2e_checks": {
           "type": "object",
           "description": "PF2e skill checks required to use this connection.",
+          "additionalProperties": false,
           "properties": {
             "perception_dc": {
               "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 50,
               "description": "DC to notice a secret/hidden connection."
             },
             "thievery_dc": {
               "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 50,
               "description": "DC to pick a lock."
             },
             "athletics_dc": {
               "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 50,
               "description": "DC to force open or clear debris."
             },
             "arcana_dc": {
               "type": ["integer", "null"],
+              "minimum": 1,
+              "maximum": 50,
               "description": "DC to dispel a magical barrier."
             }
           }
@@ -196,12 +219,15 @@
     "region": {
       "type": "object",
       "required": ["region_id", "name", "room_ids"],
+      "additionalProperties": false,
       "properties": {
-        "region_id": { "type": "string" },
-        "name": { "type": "string" },
-        "description": { "type": "string" },
+        "region_id": { "type": "string", "description": "Unique identifier for this region." },
+        "name": { "type": "string", "description": "Display name for this region." },
+        "description": { "type": "string", "description": "Narrative description of this region." },
         "room_ids": {
           "type": "array",
+          "description": "Array of room IDs that belong to this region.",
+          "minItems": 1,
           "items": { "type": "string" }
         },
         "environmental_effects": {
