@@ -419,6 +419,7 @@ Add to `settings.json`:
 Schemas with `schema_version` field (migration-ready):
 - ✓ `campaign.schema.json`
 - ✓ `character.schema.json`
+- ✓ `character_options_step8.json`
 - ✓ `creature.schema.json`
 - ✓ `dungeon_level.schema.json`
 - ✓ `encounter.schema.json`
@@ -428,7 +429,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `trap.schema.json`
 
 Schemas pending versioning:
-- `character_options_step[1-8].json` (UI-only schemas)
+- `character_options_step[1-7].json` (UI-only schemas)
 - `entity_instance.schema.json`
 - `hazard.schema.json`
 - `obstacle.schema.json`
