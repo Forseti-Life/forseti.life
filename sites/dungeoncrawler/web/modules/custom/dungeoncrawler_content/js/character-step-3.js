@@ -1,5 +1,12 @@
+/**
+ * @file
+ * Character Creation Step 3 - Background & Ability Boosts
+ */
+
 (function ($, Drupal, once) {
   'use strict';
+
+  const MAX_BOOSTS = 2;
 
   let selectedBackground = null;
   let selectedBoosts = [];
@@ -23,7 +30,7 @@
     // Reset ability boost selection
     selectedBoosts = [];
     $('.ability-card').removeClass('selected');
-    updateBoostCounter();
+    updateBoostCounter($('#boost-count'));
 
     // Check if we can enable next button
     checkFormComplete();
@@ -32,7 +39,7 @@
   /**
    * Toggle ability boost selection.
    */
-  function toggleAbilityBoost(ability) {
+  function toggleAbilityBoost(ability, $counter) {
     const index = selectedBoosts.indexOf(ability);
     
     if (index > -1) {
@@ -41,13 +48,13 @@
       $(`.ability-card[data-ability="${ability}"]`).removeClass('selected');
     } else {
       // Select (if not at max)
-      if (selectedBoosts.length < 2) {
+      if (selectedBoosts.length < MAX_BOOSTS) {
         selectedBoosts.push(ability);
         $(`.ability-card[data-ability="${ability}"]`).addClass('selected');
       }
     }
 
-    updateBoostCounter();
+    updateBoostCounter($counter);
     updateBoostHiddenFields();
     checkFormComplete();
   }
@@ -55,8 +62,8 @@
   /**
    * Update boost counter display.
    */
-  function updateBoostCounter() {
-    $('#boost-count').text(selectedBoosts.length);
+  function updateBoostCounter($counter) {
+    $counter.text(selectedBoosts.length);
   }
 
   /**
@@ -71,16 +78,37 @@
    * Check if form is complete and enable/disable next button.
    */
   function checkFormComplete() {
-    const isComplete = selectedBackground && selectedBoosts.length === 2;
+    const isComplete = selectedBackground && selectedBoosts.length === MAX_BOOSTS;
     $('#next-button').prop('disabled', !isComplete);
+  }
+
+  /**
+   * Reset button to default state.
+   */
+  function resetButtonState($button) {
+    $button.prop('disabled', false).text('Next Step →');
+  }
+
+  /**
+   * Show error message.
+   */
+  function showError($errorElement, message) {
+    $errorElement.text(message).removeClass('hidden').show();
+  }
+
+  /**
+   * Hide error message.
+   */
+  function hideError($errorElement) {
+    $errorElement.addClass('hidden').hide();
   }
 
   Drupal.behaviors.characterStep3 = {
     attach: function (context, settings) {
       const $form = $('#step-3-form', context);
-      
-      // Parse background data from form attribute (though we display it inline now)
-      const backgroundsData = $form.length ? JSON.parse($form.attr('data-backgrounds') || '{}') : {};
+      const $nextButton = $('#next-button', context);
+      const $errorMessage = $('#error-message', context);
+      const $boostCount = $('#boost-count', context);
 
       // Background card click - use event delegation
       once('background-click', '.background-card', context).forEach((element) => {
@@ -94,7 +122,7 @@
       once('ability-click', '.ability-card', context).forEach((element) => {
         $(element).on('click', function() {
           const ability = $(this).data('ability');
-          toggleAbilityBoost(ability);
+          toggleAbilityBoost(ability, $boostCount);
         });
       });
 
@@ -115,7 +143,7 @@
           $(`.ability-card[data-ability="${ability}"]`).addClass('selected');
         });
         
-        updateBoostCounter();
+        updateBoostCounter($boostCount);
         checkFormComplete();
       }
 
@@ -126,35 +154,33 @@
 
           // Validate background
           if (!selectedBackground) {
-            $('#error-message').text('Please select a background.').removeClass('hidden').show();
+            showError($errorMessage, 'Please select a background.');
             return;
           }
 
           // Validate ability boosts
-          if (selectedBoosts.length !== 2) {
-            $('#error-message').text('Please select exactly 2 ability boosts.').removeClass('hidden').show();
+          if (selectedBoosts.length !== MAX_BOOSTS) {
+            showError($errorMessage, `Please select exactly ${MAX_BOOSTS} ability boosts.`);
             return;
           }
 
           const formData = $(this).serialize();
           const actionUrl = $(this).attr('action');
 
-          $('#next-button').prop('disabled', true).text('Saving...');
-          $('#error-message').addClass('hidden').hide();
+          $nextButton.prop('disabled', true).text('Saving...');
+          hideError($errorMessage);
 
           $.ajax({
             url: actionUrl,
             method: 'POST',
             data: formData,
+            dataType: 'json',
             success: function(response) {
               if (response.success) {
                 window.location.href = response.redirect;
               } else {
-                $('#error-message')
-                  .text(response.message || 'An error occurred.')
-                  .removeClass('hidden')
-                  .show();
-                $('#next-button').prop('disabled', false).text('Next Step →');
+                showError($errorMessage, response.message || 'An error occurred.');
+                resetButtonState($nextButton);
               }
             },
             error: function(xhr) {
@@ -162,11 +188,8 @@
               if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg = xhr.responseJSON.message;
               }
-              $('#error-message')
-                .text(errorMsg)
-                .removeClass('hidden')
-                .show();
-              $('#next-button').prop('disabled', false).text('Next Step →');
+              showError($errorMessage, errorMsg);
+              resetButtonState($nextButton);
             }
           });
         });
