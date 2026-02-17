@@ -30,6 +30,7 @@
   --cc-text-muted: #999;              /* Muted text */
   --cc-text-subtle: #888;             /* Subtle help text */
   --cc-text-faded: #777;              /* Faded/placeholder text */
+  --cc-text-description: #bbb;        /* Description text (WCAG AA compliant) */
   
   /* Spacing */
   --cc-spacing-xs: 0.25rem;
@@ -299,7 +300,7 @@
 
 /* Improved contrast for accessibility (WCAG AA compliance) */
 .step-description {
-  color: #bbb;
+  color: var(--cc-text-description);
   margin-bottom: var(--cc-spacing-xl);
   font-size: 1.05rem;
   line-height: 1.5;
@@ -507,8 +508,13 @@
   cursor: pointer;
 }
 
-/* Modern :has() selector for checked state - fallback handled by .selected class in JS */
-.ability-boost-selector label:has(input:checked) {
+/* 
+ * Modern :has() selector with legacy fallback
+ * For browsers without :has() support (pre-Chrome 105, pre-Firefox 121),
+ * the JavaScript should add a .selected class to the label when checkbox is checked
+ */
+.ability-boost-selector label:has(input:checked),
+.ability-boost-selector label.selected {
   border-color: var(--cc-color-primary);
   background: var(--cc-bg-highlight);
 }
@@ -603,6 +609,11 @@
   font-size: 0.9rem;
 }
 
+/* 
+ * Note: character-steps.css has more specific selectors for .item-cost
+ * (.equipment-item .item-cost, .selected-item .item-cost) which will
+ * naturally override this base styling when needed. No !important required.
+ */
 .item-cost {
   color: var(--cc-color-primary);
   font-weight: bold;
