@@ -38,7 +38,7 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **Object review interface**: Admin page for reviewing game objects and their attribute previews in one table.
 - **Bundle summary**: Shows object counts by content type to quickly audit coverage.
 - **Object Management Route**:
-   - `/admin/content/dungeoncrawler/objects` - Review objects and attributes
+   - `/dungeoncrawler/objects` - Review objects and attributes
 
 ### Information Pages
 - **World Lore** (`/world`) - Living dungeon background and lore
@@ -237,7 +237,9 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 ### Admin Routes
 - `/admin/config/content/dungeoncrawler` - Module settings
 - `/admin/content/dungeoncrawler` - Game content dashboard
-- `/admin/content/dungeoncrawler/objects` - Game object manager (object/attribute review)
+
+### Management Routes
+- `/dungeoncrawler/objects` - Game object manager (object/attribute review)
 
 ## Permissions
 

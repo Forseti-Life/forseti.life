@@ -20,13 +20,13 @@ dungeoncrawler_content.dashboard:
     _permission: 'access content overview'
 
 dungeoncrawler_content.game_objects:
-  path: '/admin/content/dungeoncrawler/objects'
+  path: '/dungeoncrawler/objects'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\GameObjectsController::content'
     _title: 'Game Object Manager'
   methods: [GET]
   requirements:
-    _permission: 'access content overview'
+    _permission: 'administer dungeoncrawler content'
 
 # Admin testing home (locked to admins)
 dungeoncrawler_content.testing_home:

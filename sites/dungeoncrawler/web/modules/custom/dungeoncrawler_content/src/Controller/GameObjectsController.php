@@ -64,16 +64,23 @@ class GameObjectsController extends ControllerBase {
    *   Render array for the page.
    */
   public function content(): array {
-    $build = [];
-
-    $build['intro'] = [
+    $build = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['mb-4']],
-      'title' => [
-        '#markup' => '<h2>' . $this->t('Game Object Manager') . '</h2>',
-      ],
-      'description' => [
-        '#markup' => '<p>' . $this->t('Review all game objects and inspect their core attributes in one place.') . '</p>',
+      '#attributes' => ['class' => ['container', 'py-4']],
+    ];
+
+    $build['intro_card'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'title' => [
+          '#markup' => '<h2 class="card-title mb-2">' . $this->t('Game Object Manager') . '</h2>',
+        ],
+        'description' => [
+          '#markup' => '<p class="mb-0">' . $this->t('Review all game objects and inspect their core attributes in one place.') . '</p>',
+        ],
       ],
     ];
 
@@ -83,7 +90,18 @@ class GameObjectsController extends ControllerBase {
       $bundle_labels[$bundle_id] = $bundle->label();
     }
 
-    $build['bundle_summary'] = $this->buildBundleSummaryTable($node_storage, $bundle_labels);
+    $build['bundle_summary_card'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'heading' => [
+          '#markup' => '<h3 class="h5 mb-3">' . $this->t('Object Totals by Type') . '</h3>',
+        ],
+        'table' => $this->buildBundleSummaryTable($node_storage, $bundle_labels),
+      ],
+    ];
 
     $query = $node_storage->getQuery()
       ->accessCheck(FALSE)
@@ -92,8 +110,16 @@ class GameObjectsController extends ControllerBase {
     $nids = $query->execute();
 
     if (empty($nids)) {
-      $build['objects_empty'] = [
-        '#markup' => '<p>' . $this->t('No game objects were found.') . '</p>',
+      $build['objects_empty_card'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card', 'card-dungeoncrawler']],
+        'body' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['card-body']],
+          'message' => [
+            '#markup' => '<p class="mb-0">' . $this->t('No game objects were found.') . '</p>',
+          ],
+        ],
       ];
       return $build;
     }
@@ -116,19 +142,30 @@ class GameObjectsController extends ControllerBase {
       ];
     }
 
-    $build['objects_table'] = [
-      '#type' => 'table',
-      '#header' => [
-        $this->t('Object'),
-        $this->t('Type'),
-        $this->t('Status'),
-        $this->t('Attribute Preview'),
-        $this->t('Updated'),
+    $build['objects_table_card'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'heading' => [
+          '#markup' => '<h3 class="h5 mb-3">' . $this->t('Object Attribute Review') . '</h3>',
+        ],
+        'table' => [
+          '#type' => 'table',
+          '#header' => [
+            $this->t('Object'),
+            $this->t('Type'),
+            $this->t('Status'),
+            $this->t('Attribute Preview'),
+            $this->t('Updated'),
+          ],
+          '#rows' => $rows,
+          '#empty' => $this->t('No objects available.'),
+          '#attributes' => ['class' => ['game-content-dashboard']],
+          '#caption' => $this->t('Most recently updated objects (up to @limit rows).', ['@limit' => self::MAX_ROWS]),
+        ],
       ],
-      '#rows' => $rows,
-      '#empty' => $this->t('No objects available.'),
-      '#attributes' => ['class' => ['game-content-dashboard']],
-      '#caption' => $this->t('Most recently updated objects (up to @limit rows).', ['@limit' => self::MAX_ROWS]),
     ];
 
     return $build;
