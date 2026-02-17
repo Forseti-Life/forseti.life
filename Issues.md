@@ -36,7 +36,7 @@ This file is also the backup tracker when CLI interface access is denied for cre
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
 | DCT-0138 | Make `/dungeoncrawler/testing/issue-pr-report` a sub-page/child flow under `/dungeoncrawler/testing/import-open-issues` | Open | Unassigned | 2026-02-17 | 2026-02-17 | Requested UX change: issue/PR report should live under import-open-issues flow hierarchy. |
-| DCT-0139 | Confirm whether `/dungeoncrawler/testing/queue-management` is obsolete due to queue tracking on `/dungeoncrawler/testing`, then remove/clean up if redundant | Open | Unassigned | 2026-02-17 | 2026-02-17 | Requested cleanup: validate current relevance and remove dead route/page/menu/docs references if no longer needed. |
+| DCT-0139 | Confirm whether `/dungeoncrawler/testing/queue-management` is obsolete due to queue tracking on `/dungeoncrawler/testing`, then remove/clean up if redundant | Closed | Unassigned | 2026-02-17 | 2026-02-17 | Investigation complete: Route `/dungeoncrawler/testing/queue-management` never existed. Queue management UI is properly embedded in main dashboard at `/dungeoncrawler/testing`. All AJAX routes use `/dungeoncrawler/testing/queue/*` pattern. No documentation incorrectly references standalone page. No cleanup needed - issue closed as "not found". |
 | DCT-0140 | Remove `/dungeoncrawler/testing/thetest` page and clean up related links/routes/docs/tests | Closed | Unassigned | 2026-02-17 | 2026-02-17 | Removed TheTest page: deleted route, menu link, controller, form, tests, CSS, stage definition, and documentation references. |
 #### templates
 
@@ -52,12 +52,10 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0001 | Review file API_DOCUMENTATION.md for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 #### characters
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0002 | Review file characters/gribbles-rindsworth.json for opportunities for improvement and refactoring | Closed | Unassigned | 2026-02-16 | 2026-02-17 | Completed: Added schema_version field (1.0.0), added optional schema fields (age, gender, appearance), enhanced README documentation for _npc_extended conventions and schema_version guidance. File validated successfully against character.schema.json. |
 #### config
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |

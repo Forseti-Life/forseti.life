@@ -61,6 +61,7 @@ function job_hunter_install() {
     _job_hunter_create_job_search_queries_table();
     _job_hunter_create_job_search_results_table();
     _job_hunter_create_search_history_table();
+    _job_hunter_create_saved_jobs_table();
     
     $messenger->addMessage(t('Job Hunter module installed successfully. Custom database tables created.'));
     $logger->info('Job Hunter module installation completed.');
@@ -71,6 +72,50 @@ function job_hunter_install() {
     $logger->error('Installation error: @error', ['@error' => $e->getMessage()]);
     throw $e;
   }
+}
+
+/**
+ * Create jobhunter_saved_jobs table.
+ *
+ * Stores user-specific saved-job mappings (My Jobs list) separate from the
+ * global Forseti jobs catalog in jobhunter_job_requirements.
+ */
+function _job_hunter_create_saved_jobs_table() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_saved_jobs')) {
+    return;
+  }
+
+  $table_schema = [
+    'description' => 'User-specific saved jobs mapping table.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'User ID'],
+      'job_id' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Job requirement ID'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'user_job' => ['uid', 'job_id'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'job_id' => ['job_id'],
+      'uid_job' => ['uid', 'job_id'],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_saved_jobs', $table_schema);
+}
+
+/**
+ * Create user saved-jobs mapping table.
+ */
+function job_hunter_update_9026() {
+  _job_hunter_create_saved_jobs_table();
+  return t('Created jobhunter_saved_jobs table for per-user My Jobs mappings.');
 }
 
 /**
