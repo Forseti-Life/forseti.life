@@ -140,6 +140,10 @@ Entire dungeon floor with hexmap, rooms, and encounters.
 - Added required fields to nested objects (stairway, environmental effects)
 - Added uniqueItems constraints to prevent duplicate array entries
 - Improved PF2e rule alignment for party levels, creature levels, and DCs
+- **DCC-0017 (2026-02-17):** Additional validation improvements:
+  - Added `uniqueItems: true` to 9 arrays (rooms, entities, creatures, items, traps, hazards, obstacles, active_encounters, stairways)
+  - Added `minLength: 1` to string fields (name, flavor_text) to prevent empty strings
+  - Added required fields ["min", "max"] to range objects (room_count, secret_rooms, creature_level_range)
 
 Canonical runtime placement in this schema is `entities[]` via `entity_instance.schema.json`.
 
