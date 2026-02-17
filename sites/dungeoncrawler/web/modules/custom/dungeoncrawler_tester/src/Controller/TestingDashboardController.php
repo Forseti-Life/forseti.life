@@ -584,10 +584,6 @@ class TestingDashboardController extends ControllerBase {
         Url::fromRoute('dungeoncrawler_tester.docs_release_process_flow')
       )->toRenderable(),
       Link::fromTextAndUrl(
-        $this->t('Tester Queue Management'),
-        Url::fromRoute('dungeoncrawler_tester.queue_management')
-      )->toRenderable(),
-      Link::fromTextAndUrl(
         $this->t('GitHub Issues (testing-related)'),
         Url::fromUri('https://github.com/keithaumiller/forseti.life/issues?q=is%3Aissue+is%3Aopen+label%3Atesting')
       )->toRenderable(),
