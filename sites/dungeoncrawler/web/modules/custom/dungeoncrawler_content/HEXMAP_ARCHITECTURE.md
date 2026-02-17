@@ -282,78 +282,256 @@ See [`API_DOCUMENTATION.md`](API_DOCUMENTATION.md) for complete API reference.
 
 ## Data Flow
 
-### 1. Dungeon Generation (AI-Driven)
+### 1. Campaign Creation & Character Selection
+
+```
+User creates campaign
+    ↓
+POST /campaigns/create
+  - Campaign record created in dc_campaigns
+  - campaign_data initialized with schema v1.0.0
+  - status: "draft"
+    ↓
+Redirect to /campaigns/{id}/tavernentrance
+  - Select existing character OR create new
+    ↓
+POST /campaigns/{id}/select-character/{character_id}
+  - Bind character to campaign
+  - Create entity_instance in dc_campaign_characters
+  - Set active_character_id in campaign
+  - Campaign status: "ready" → "active"
+    ↓
+Launch into hexmap (dungeon level 1, hex q0r0)
+```
+
+### 2. Dungeon Level Generation (AI-Driven)
 
 ```
 Party descends to new level
     ↓
-dungeon_level created with:
-  - theme (based on depth + randomness)
-  - generation_rules (scaled to party level)
-  - empty hex_map (grid dimensions set)
+DungeonGeneratorService generates dungeon_level:
+  1. Determine theme (based on depth + randomness)
+     - Depth 1-3: Goblin warrens, bandit hideouts
+     - Depth 4-7: Undead crypts, kobold tunnels
+     - Depth 8-12: Elemental planes, drow cities
+  
+  2. Create hexmap structure:
+     - Grid dimensions (e.g., 50x50 hexes)
+     - Terrain types (stone, dirt, water, etc.)
+     - Elevation map for 3D positioning
+  
+  3. Generate entrance room immediately:
+     - Place at origin (q0r0)
+     - Create room instance with AI descriptions
+     - Add basic lighting and connections
+     - Mark as explored in party.fog_of_war
+  
+  4. Defer generation of adjacent rooms:
+     - Create "unexplored" placeholder connections
+     - Rooms generated when party approaches
+     - Ensures infinite dungeon possibility
     ↓
-Entrance room generated immediately
-    ↓
-Adjacent rooms generated on approach
-  (fog of war reveals connections)
-    ↓
-Each room generation:
-  1. Pick terrain type (from theme)
-  2. Place creatures (from allowed types, within level range)
-  3. Scatter loot (based on loot_quality setting)
-  4. Add traps/hazards (based on frequency setting)
-  5. Generate interactables and flavor text
-  6. Create connections to adjacent unexplored space
+Store dungeon_level to persistent storage
+Update campaign.campaign_data with level reference
 ```
 
-### 2. Exploration Loop
+### 3. Room Generation (On First Entry)
 
 ```
-Party is at hex (q, r) in exploration mode
+Party approaches unexplored room
     ↓
-Reveal visible hexes (light radius + line of sight)
+DungeonGeneratorService.generateRoom():
+  
+  1. Room Layout:
+     - Determine room size (3-15 hexes)
+     - Select room shape (rectangular, circular, irregular)
+     - Assign terrain types per hex
+     - Set lighting (bright/dim/darkness/magical)
+  
+  2. Entity Placement (using entity_instance.schema):
+     - Select creatures from library (creature.schema)
+     - Create entity instances with:
+       * instance_id: "goblin-{uuid}"
+       * entity_ref: "goblin-warrior"
+       * placement.hex: {q, r}
+       * state.hidden: true (if stealthy)
+     - Calculate XP budget (encounter.schema thresholds)
+  
+  3. Loot & Items:
+     - Generate treasure (item.schema references)
+     - Place items as entity instances
+     - Set state.collected: false
+  
+  4. Traps & Hazards:
+     - Place traps (trap.schema) with state.detected: false
+     - Place hazards (hazard.schema) if environmental
+  
+  5. Connections:
+     - Create doors/passages to adjacent rooms
+     - Mark as locked/secret if appropriate
+  
+  6. AI Narrative:
+     - Generate room description (read-aloud text)
+     - Create ambient flavor text
+     - Add GM notes for hidden elements
     ↓
-Check for wandering monsters (timer-based)
-    ↓
-Party chooses direction → move to adjacent hex
-    ↓
-If entering new room:
-  - Generate room if not yet generated
-  - Mark as explored
-  - Trigger any traps (if not detected)
-  - Roll encounter check
-    ↓
-If encounter triggered:
-  - Switch to encounter mode
-  - Roll initiative for all combatants
-  - Begin PF2e combat rounds
+Store room to dungeon_level
+Mark room as generated (never regenerate)
 ```
 
-### 3. Combat Flow
+### 4. Exploration Loop (Turn-Based)
 
 ```
-Encounter starts
+Party at hex (q, r) in exploration mode
     ↓
-Roll initiative (Perception or Stealth for Avoid Notice)
+1. Update Visibility:
+   GET /api/dungeon/{id}/room/{roomId}/state
+   - Server calculates visible hexes (light radius + LoS)
+   - Returns room.state.visibleHexIds
+   - Client renders fog of war overlay
     ↓
-Sort combatants by initiative
+2. Reveal Entities:
+   - Only entities in visible hexes returned
+   - Hidden entities require Perception check
+   - Traps remain hidden unless detected
     ↓
-Each round:
-  Active combatant gets 3 actions + 1 reaction
+3. Check for Wandering Monsters:
+   - Roll encounter check (1d20 vs DC)
+   - If triggered: spawn wandering creature
+   - POST /api/campaign/{id}/entity/spawn
     ↓
-  AI creatures use combat_personality:
-    - aggression → how likely to attack vs. defend
-    - preferred_tactics → specific strategies
-    - morale_threshold → when to consider fleeing
-    - flee_behavior → where and how they run
+4. Player Actions (3 actions in exploration):
+   - Move (1 action per hex)
+   - Search (1 action, Perception check)
+   - Interact (1 action, varies)
+   - Detect Magic (1 action, focus spell)
     ↓
-  Log every action to encounter.action_log
+5. If entering new room:
+   - Generate room (if not yet generated)
+   - Update party.fog_of_war.revealed_rooms
+   - POST /api/campaign/{id}/state (update active_hex)
+   - Roll for traps (if not detected)
+   - Roll encounter check (vs room occupants)
     ↓
-  Check for end conditions:
-    - All enemies defeated → victory
-    - All PCs unconscious → defeat
-    - Morale break → enemies flee/surrender
-    - Negotiation attempt → social encounter
+6. If encounter triggered:
+   → Switch to Combat Flow
+```
+
+### 5. Combat Flow (PF2e Initiative Order)
+
+```
+Encounter triggered
+    ↓
+1. Roll Initiative:
+   - All combatants roll (Perception or Stealth)
+   - Create encounter instance (encounter.schema)
+   - Sort by initiative (ties: higher Perception wins)
+   - POST /api/combat/start
+    ↓
+2. Combat Rounds (until victory/defeat/flee):
+   
+   Round Start:
+     - Increment round counter
+     - Process start-of-round effects (persistent damage, etc.)
+   
+   For each combatant (initiative order):
+     Active Combatant Turn:
+       ├─ 3 Actions available (stride/strike/cast/etc.)
+       ├─ 1 Reaction available (attack of opportunity, shield block)
+       ├─ Free actions (drop item, speak, etc.)
+       └─ Movement budget (based on Speed)
+     
+     AI Decision Making (for NPCs):
+       ├─ Check morale (if HP < threshold, consider fleeing)
+       ├─ Evaluate threats (target selection)
+       ├─ Choose tactics (from creature.combat_personality):
+       │   ├─ aggression: 0-10 (0=defensive, 10=reckless)
+       │   ├─ preferred_tactics: ["flank", "ranged", "spellcaster"]
+       │   └─ flee_behavior: "nearest_exit" | "defend_boss"
+       └─ Execute actions
+     
+     Action Resolution:
+       ├─ Roll d20 + modifiers
+       ├─ Compare to target DC/AC
+       ├─ Determine degree of success:
+       │   ├─ Critical Success (beat by 10+)
+       │   ├─ Success (meet/beat DC)
+       │   ├─ Failure (below DC)
+       │   └─ Critical Failure (below by 10+)
+       ├─ Apply damage/conditions
+       └─ Log action to encounter.action_log
+     
+     POST /api/combat/action with:
+       {
+         "combatant_id": "...",
+         "action_type": "strike",
+         "target_id": "...",
+         "roll": 18,
+         "modifiers": ["+5 trained", "+2 str"],
+         "result": "hit",
+         "damage": "2d6+2 slashing"
+       }
+   
+   Round End:
+     - Process end-of-round effects
+     - Update combatant HP/conditions
+     - POST /api/combat/end-turn
+    ↓
+3. Combat End Conditions:
+   
+   Victory:
+     - All enemies defeated/fled/surrendered
+     - Award XP (encounter.xp_awarded)
+     - Distribute loot
+     - POST /api/combat/end
+   
+   Defeat:
+     - All PCs unconscious
+     - Track in party.encounter_log
+     - Handle consequences (death/capture)
+   
+   Flee:
+     - PCs successfully escape
+     - Enemies may pursue
+     - Room state: isCleared = false
+   
+   Social Resolution:
+     - Negotiation/diplomacy successful
+     - Convert combat to social encounter
+     - Track in creature memory
+    ↓
+Return to Exploration Loop
+```
+
+### 6. State Synchronization & Persistence
+
+```
+All game state changes follow this pattern:
+
+1. Client fetches current state:
+   GET /api/campaign/{id}/state
+   Response includes version: 42
+
+2. Client makes local changes (optimistic UI)
+
+3. Client submits update:
+   POST /api/campaign/{id}/state
+   Body: {
+     "expectedVersion": 42,
+     "state": { /* updated state */ }
+   }
+
+4. Server validates:
+   - Check expectedVersion === current version
+   - If mismatch: return 409 Conflict with current state
+   - If match: apply update, increment version
+   - Return new version: 43
+
+5. Client handles response:
+   - Success: Update local version to 43
+   - Conflict: Re-fetch state, merge changes, retry
+
+This optimistic locking prevents race conditions in multiplayer scenarios.
 ```
 
 ## Persistence Model
