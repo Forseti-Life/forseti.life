@@ -355,7 +355,7 @@
         },
         "spell_dc": {
           "type": "integer",
-          "minimum": 10,
+          "minimum": 1,
           "description": "Spell DC."
         },
         "spells_known": {
