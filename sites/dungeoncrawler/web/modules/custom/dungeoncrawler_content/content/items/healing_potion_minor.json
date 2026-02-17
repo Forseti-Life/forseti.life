@@ -1,5 +1,4 @@
 {
-  "$schema": "../../config/schemas/item.schema.json",
   "schema_version": "1.0.0",
   "item_id": "16940923-b78f-4eca-88a2-7950e14d970e",
   "name": "Minor Healing Potion",

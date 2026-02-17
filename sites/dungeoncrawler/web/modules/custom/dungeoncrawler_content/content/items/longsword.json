@@ -1,5 +1,4 @@
 {
-  "$schema": "../../config/schemas/item.schema.json",
   "schema_version": "1.0.0",
   "item_id": "5ad6fca7-ff63-4919-b7ce-59eb41279544",
   "name": "Longsword",
