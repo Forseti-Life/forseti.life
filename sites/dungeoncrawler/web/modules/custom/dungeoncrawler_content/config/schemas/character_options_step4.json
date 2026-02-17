@@ -176,11 +176,11 @@
         "type": "string"
       },
       "default": [
-        "Hit Points (HP) determine how much damage you can take. Higher HP classes (e.g., Fighter: 10, Barbarian: 12) are more durable in combat, while lower HP classes (e.g., Wizard: 6, Sorcerer: 6) are more fragile.",
+        "Hit Points (HP) determine how much damage you can take. Higher HP classes (typically 10-12 HP) are more durable in combat, while lower HP classes (typically 6-8 HP) are more fragile.",
         "Key Ability is the most important stat for your class. Make sure to boost it with your free ability improvements.",
         "Spellcasting classes (see class_categories.spellcasters: wizard, cleric, druid, sorcerer, bard, oracle, witch) can cast powerful spells but tend to have lower HP.",
         "Martial classes (see class_categories.martial: fighter, barbarian, ranger, monk, champion, swashbuckler) excel in physical combat with weapons.",
-        "Skill specialists (see class_categories.skill_specialists: rogue, investigator, alchemist) combine elements of martial and spellcasting roles with exceptional skill versatility.",
+        "Skill specialists (see class_categories.skill_specialists: rogue, investigator, alchemist) focus on skills, expertise, and versatility with exceptional numbers of trained skills and unique abilities.",
         "Consider your party composition - balanced parties with different roles tend to handle challenges better."
       ]
     },
