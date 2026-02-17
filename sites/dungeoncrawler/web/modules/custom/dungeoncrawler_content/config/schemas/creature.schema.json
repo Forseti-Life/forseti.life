@@ -16,15 +16,19 @@
   "properties": {
     "schema_version": {
       "type": "string",
-      "description": "Schema version for migration compatibility.",
+      "pattern": "^\\d+\\.\\d+\\.\\d+$",
+      "description": "Schema version for migration compatibility (semantic versioning: e.g., '1.0.0').",
       "default": "1.0.0"
     },
     "creature_id": {
       "type": "string",
-      "format": "uuid"
+      "format": "uuid",
+      "description": "Unique identifier for this creature."
     },
     "name": {
       "type": "string",
+      "minLength": 1,
+      "maxLength": 200,
       "description": "Display name. AI-generated creatures get unique names.",
       "examples": [
         "Gribbles Rindsworth the Magnificent",
@@ -78,7 +82,8 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "maxLength": 100
       },
       "uniqueItems": true,
       "description": "PF2e traits (e.g., ['Goblin', 'Humanoid', 'Small'])."
@@ -264,7 +269,8 @@
         "ac": {
           "type": "integer",
           "minimum": 1,
-          "maximum": 50
+          "maximum": 50,
+          "description": "Armor Class. The DC to hit this creature with attacks. Typical range: 10-40."
         },
         "saves": {
           "type": "object",
@@ -922,6 +928,7 @@
     "description": {
       "type": "string",
       "minLength": 1,
+      "maxLength": 5000,
       "description": "Optional flavor text describing the creature."
     },
     "source": {
@@ -951,6 +958,25 @@
         "modifier"
       ],
       "additionalProperties": false
+    },
+    "hex_coordinate": {
+      "type": "object",
+      "description": "Axial coordinate for hex-based positioning.",
+      "required": [
+        "q",
+        "r"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "q": {
+          "type": "integer",
+          "description": "Axial q coordinate."
+        },
+        "r": {
+          "type": "integer",
+          "description": "Axial r coordinate."
+        }
+      }
     },
     "save": {
       "type": "object",
