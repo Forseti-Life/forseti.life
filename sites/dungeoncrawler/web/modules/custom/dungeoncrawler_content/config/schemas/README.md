@@ -252,7 +252,36 @@ Equipment and magic items (loot/treasure is represented as items).
 
 
 #### `obstacle.schema.json`
-Unified traversal/combat obstacles (non-container blockers/modifiers).
+Unified traversal/combat obstacles (non-container blockers/modifiers). PF2e-compatible obstacles that affect movement, provide cover, or deal damage.
+
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility
+- Added PF2e level field for appropriate challenge scaling
+- Added rarity and traits fields for PF2e classification
+- Enhanced validation with numeric constraints on DCs (1-50)
+- Added uniqueItems constraint to hexes array
+- Added minLength validation to prevent empty strings
+- Added xp_reward field aligned with trap/hazard patterns
+- Enhanced descriptions with practical examples
+- Improved consistency with trap.schema.json and hazard.schema.json
+- Added top-level additionalProperties: false for stricter validation
+
+**Defines:**
+- Obstacle metadata (name, level, type, rarity, traits)
+- Movement rules (passable, cost multiplier, skill checks)
+- Combat effects (cover, damage on enter, saves)
+- Runtime state (active, disabled, destroyed)
+- Optional source reference to underlying trap/hazard
+- XP rewards for overcoming obstacles
+- Hex placement for map positioning
+
+**Key Features:**
+- Full PF2e integration with level-based DCs
+- Movement cost multipliers for difficult terrain
+- Combat mechanics (cover bonuses, damage, saves)
+- Flexible skill check requirements (Athletics, Acrobatics, etc.)
+- State tracking for runtime obstacle management
+- Links to underlying trap/hazard definitions
 
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
