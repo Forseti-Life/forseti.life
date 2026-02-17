@@ -32,6 +32,7 @@
 
         if (!step || typeof step !== 'number') {
           console.error('[Character Creation] Invalid step value:', step);
+          // Note: Character creation steps start at 1, step 0 is invalid
           return;
         }
 
@@ -138,7 +139,7 @@
      */
     buildTextField: function(name, requiredAttr, props, value) {
       const validation = props.validation?.properties || {};
-      const maxLength = validation.max_length?.const || DEFAULT_TEXT_MAX_LENGTH;
+      const maxLength = this.sanitizePositiveInteger(validation.max_length?.const, DEFAULT_TEXT_MAX_LENGTH);
       const pattern = validation.pattern?.const || '';
       const patternAttr = pattern ? `pattern="${this.escapeHtml(pattern)}"` : '';
       
@@ -160,8 +161,8 @@
      */
     buildTextareaField: function(name, requiredAttr, props, value) {
       const validation = props.validation?.properties || {};
-      const rows = validation.rows?.const || DEFAULT_TEXTAREA_ROWS;
-      const maxLen = validation.max_length?.const || DEFAULT_TEXTAREA_MAX_LENGTH;
+      const rows = this.sanitizePositiveInteger(validation.rows?.const, DEFAULT_TEXTAREA_ROWS);
+      const maxLen = this.sanitizePositiveInteger(validation.max_length?.const, DEFAULT_TEXTAREA_MAX_LENGTH);
       
       return `<textarea id="${name}" name="${name}" 
         class="form-control" ${requiredAttr} 
@@ -193,8 +194,8 @@
         }
         const selected = (currentValue === opt.id) ? 'selected' : '';
         const escapedId = this.escapeHtml(String(opt.id || ''));
-        const escapedName = this.escapeHtml(String(opt.name || ''));
-        html += `<option value="${escapedId}" ${selected}>${escapedName}</option>`;
+        const escapedOptionName = this.escapeHtml(String(opt.name || ''));
+        html += `<option value="${escapedId}" ${selected}>${escapedOptionName}</option>`;
       });
       
       html += '</select>';
@@ -397,6 +398,21 @@
       const div = document.createElement('div');
       div.textContent = String(text);
       return div.innerHTML;
+    },
+
+    /**
+     * Sanitize and validate a positive integer value.
+     * 
+     * @param {*} value - Value to sanitize
+     * @param {number} defaultValue - Default value if invalid
+     * @return {number} Sanitized positive integer
+     */
+    sanitizePositiveInteger: function(value, defaultValue) {
+      const parsed = parseInt(value, 10);
+      if (isNaN(parsed) || parsed < 1) {
+        return defaultValue;
+      }
+      return parsed;
     }
   };
 
