@@ -27,6 +27,7 @@
     },
     "concept": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 500,
       "description": "Character concept or hook - optional flavor text."
     },
@@ -54,11 +55,13 @@
     },
     "heritage": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 100,
       "description": "Heritage specific to chosen ancestry (e.g., 'ancient-blooded' for Dwarf)."
     },
     "background": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 100,
       "description": "Background ID (e.g., 'acolyte', 'criminal', 'noble')."
     },
@@ -88,6 +91,7 @@
     },
     "free_boosts": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "$ref": "#/definitions/ability_boost"
       },
@@ -186,6 +190,7 @@
     "age": {
       "type": "integer",
       "minimum": 1,
+      "maximum": 500,
       "description": "Character's age in years."
     },
     "gender": {
@@ -201,6 +206,8 @@
     },
     "speed": {
       "type": "integer",
+      "minimum": 0,
+      "maximum": 120,
       "default": 25,
       "description": "Base movement speed in feet."
     },
@@ -244,11 +251,13 @@
           "item_id": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "description": "Item identifier."
           },
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 200,
             "description": "Item name."
           },
           "quantity": {
@@ -291,28 +300,32 @@
       ]
     },
     "gold": {
-      "type": "number",
+      "type": "integer",
       "minimum": 0,
       "default": 15,
       "description": "Gold pieces. Characters start with 15 gp."
     },
     "appearance": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 1000,
       "description": "Physical description."
     },
     "personality": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 1000,
       "description": "Personality traits."
     },
     "backstory": {
       "type": "string",
+      "minLength": 1,
       "maxLength": 5000,
       "description": "Character backstory."
     },
     "feats": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "description": "Individual feat with acquisition details.",
@@ -321,11 +334,13 @@
           "feat_id": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "description": "Unique feat identifier."
           },
           "name": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 200,
             "description": "Feat name."
           },
           "level_gained": {
@@ -370,11 +385,14 @@
         },
         "spell_attack": {
           "type": "integer",
+          "minimum": -10,
+          "maximum": 50,
           "description": "Spell attack modifier."
         },
         "spell_dc": {
           "type": "integer",
           "minimum": 1,
+          "maximum": 60,
           "description": "Spell DC."
         },
         "spells_known": {
@@ -455,6 +473,7 @@
     },
     "conditions": {
       "type": "array",
+      "uniqueItems": true,
       "items": {
         "type": "object",
         "description": "Active condition with optional value and duration.",
