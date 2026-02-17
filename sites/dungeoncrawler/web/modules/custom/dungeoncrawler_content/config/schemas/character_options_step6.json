@@ -8,6 +8,18 @@
     "alignmentOption": {
       "type": "object",
       "description": "Individual alignment choice with ID, name, and description",
+      "examples": [
+        {
+          "id": "LG",
+          "name": "Lawful Good",
+          "description": "Acts with compassion and honor within the bounds of law and order."
+        },
+        {
+          "id": "N",
+          "name": "Neutral",
+          "description": "Avoids moral extremes and seeks balance or personal interest."
+        }
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -29,6 +41,22 @@
     "deityOption": {
       "type": "object",
       "description": "Deity choice with stats and portfolio information",
+      "examples": [
+        {
+          "id": "iomedae",
+          "name": "Iomedae",
+          "alignment": "LG",
+          "domains": ["duty", "might", "zeal"],
+          "favored_weapon": "Longsword",
+          "description": "Goddess of justice, honor, and righteous valor"
+        },
+        {
+          "id": "none",
+          "name": "No Deity",
+          "alignment": "Any",
+          "description": "Character does not worship a specific deity"
+        }
+      ],
       "properties": {
         "id": {
           "type": "string",
@@ -65,6 +93,11 @@
     }
   },
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for migration compatibility"
+    },
     "step": {
       "type": "integer",
       "const": 6,
@@ -418,6 +451,6 @@
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "validation", "tips"],
+  "required": ["schema_version", "step", "step_name", "step_description", "fields", "navigation", "validation", "tips"],
   "additionalProperties": false
 }
