@@ -151,7 +151,7 @@ Then referenced with `"$ref": "#/$defs/alignmentOption"` and `"$ref": "#/$defs/d
 
 | Metric | Before | Phase 1 | Phase 2 (Final) | Total Change |
 |--------|--------|---------|-----------------|--------------|
-| Total Lines | 349 | 365 | 409 | +60 lines (+17%) |
+| Total Lines | 349 | 365 | 423 | +74 lines (+21%) |
 | Definitions Section | 0 lines | 60 lines | 60 lines | +60 lines |
 | Step-level Validation | 0 lines | 0 lines | 44 lines | +44 lines |
 | Alignment Definition | ~70 lines | ~55 lines | ~55 lines | -15 lines |
@@ -160,7 +160,7 @@ Then referenced with `"$ref": "#/$defs/alignmentOption"` and `"$ref": "#/$defs/d
 | Validation Completeness | 60% | 85% | 100% | +40% |
 | additionalProperties Coverage | 30% | 70% | 100% | +70% |
 
-**Note**: While total line count increased by 17%, the improvements include:
+**Note**: While total line count increased by 21%, the improvements include:
 - New `$defs` section eliminating duplication
 - New step-level validation (44 lines) for consistency
 - Improved documentation and error messaging
@@ -215,7 +215,7 @@ python3 -m json.tool character_options_step6.json > /dev/null
 
 # Phase 2: Validated JSON syntax after improvements
 python3 -m json.tool character_options_step6.json > /dev/null
-# Result: ✓ Valid JSON (409 lines)
+# Result: ✓ Valid JSON (423 lines)
 
 # Validated against JSON Schema Draft 07
 # Result: ✓ Valid schema (can be used to validate instance data)
