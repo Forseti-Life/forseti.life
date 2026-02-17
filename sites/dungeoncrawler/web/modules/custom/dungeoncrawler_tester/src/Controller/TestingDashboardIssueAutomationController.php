@@ -830,43 +830,28 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 					}
 
 					$this->recordCloseOutcome($result, $this->closePullRequestWithComment($repo, $token, $prNumber, self::DEAD_VALUE_COMMENT), 'pr', $prNumber);
-
-					foreach ($candidate['issue_numbers'] ?? [] as $issueNumber) {
-						$issueNumber = (int) $issueNumber;
-						if ($issueNumber <= 0) {
-							continue;
-						}
-						$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::DEAD_VALUE_COMMENT), 'issue', $issueNumber);
-					}
+						$this->closeIssueNumbersWithComment($result, $repo, $token, (array) ($candidate['issue_numbers'] ?? []), self::DEAD_VALUE_COMMENT);
 				}
 				break;
 
 			case 'issues_resolved_by_merged_pr':
 				$issueNumbers = $this->collectOpenIssuesReferencedByMergedPrs($repo, $issues, $tokenCandidates);
-				foreach ($issueNumbers as $issueNumber) {
-					$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT), 'issue', (int) $issueNumber);
-				}
+					$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			case 'non_action_labeled_issues':
 				$issueNumbers = $this->collectNonActionOpenIssues($issues);
-				foreach ($issueNumbers as $issueNumber) {
-					$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT), 'issue', (int) $issueNumber);
-				}
+					$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			case 'open_prs_with_only_closed_issue_refs':
 				$prNumbers = $this->collectOpenPrsReferencingOnlyClosedIssues($prs, $openIssueNumbers);
-				foreach ($prNumbers as $prNumber) {
-					$this->recordCloseOutcome($result, $this->closePullRequestWithComment($repo, $token, $prNumber, self::BULK_CLOSE_COMMENT), 'pr', (int) $prNumber);
-				}
+					$this->closePullRequestNumbersWithComment($result, $repo, $token, $prNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			case 'stale_unassigned_testing_issues':
 				$issueNumbers = $this->collectStaleUnassignedTestingIssues($issues);
-				foreach ($issueNumbers as $issueNumber) {
-					$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, self::BULK_CLOSE_COMMENT), 'issue', (int) $issueNumber);
-				}
+					$this->closeIssueNumbersWithComment($result, $repo, $token, $issueNumbers, self::BULK_CLOSE_COMMENT);
 				break;
 
 			default:
@@ -1000,6 +985,34 @@ class TestingDashboardIssueAutomationController extends TestingDashboardControll
 
 		$label = $itemType === 'pr' ? 'PR' : 'Issue';
 		$result['errors'][] = "{$label} #{$itemNumber}";
+	}
+
+	/**
+	 * Close and annotate a list of issue numbers.
+	 */
+	private function closeIssueNumbersWithComment(array &$result, string $repo, string $token, array $issueNumbers, string $comment): void {
+		foreach ($issueNumbers as $issueNumber) {
+			$issueNumber = (int) $issueNumber;
+			if ($issueNumber <= 0) {
+				continue;
+			}
+
+			$this->recordCloseOutcome($result, $this->closeIssueWithComment($repo, $token, $issueNumber, $comment), 'issue', $issueNumber);
+		}
+	}
+
+	/**
+	 * Close and annotate a list of pull request numbers.
+	 */
+	private function closePullRequestNumbersWithComment(array &$result, string $repo, string $token, array $prNumbers, string $comment): void {
+		foreach ($prNumbers as $prNumber) {
+			$prNumber = (int) $prNumber;
+			if ($prNumber <= 0) {
+				continue;
+			}
+
+			$this->recordCloseOutcome($result, $this->closePullRequestWithComment($repo, $token, $prNumber, $comment), 'pr', $prNumber);
+		}
 	}
 
 	/**

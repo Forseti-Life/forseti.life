@@ -63,6 +63,7 @@ The dashboard includes:
 - **Issue automation context normalization**: `TestingDashboardIssueAutomationController` now centralizes repository/token/token-candidate context shaping in a dedicated helper and reuses it in dead-value close/report flows.
 - **Issue/PR close helper extraction**: Bulk-close and dead-value AJAX flows now reuse dedicated helpers for comment+close issue and PR mutation sequences, removing repeated mutation block logic.
 - **Bulk-close outcome aggregation helper**: `runBulkCloseQueryAjax` now routes repeated PR/issue success/error counter updates through a shared helper to reduce duplicated result-accounting branches.
+- **Bulk-close list-processing helper extraction**: `runBulkCloseQueryAjax` now delegates repeated issue-number and PR-number close loops to dedicated list helpers, keeping each query case focused on candidate selection.
 - **Repo-aware nav links**: Tester navigation block now builds the GitHub issue queue link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`).
 - **Repo-aware sign-off link**: Stage definitions now build the release sign-off defect link from configured repository context (`dungeoncrawler_tester.settings`/`ai_conversation.settings`/`TESTER_GITHUB_REPO`) instead of a hard-coded repository URL.
 - **Filesystem diagnostics**: Queue worker now validates simpletest directory creation/writability and surfaces explicit failure diagnostics in run/state output when setup fails.
