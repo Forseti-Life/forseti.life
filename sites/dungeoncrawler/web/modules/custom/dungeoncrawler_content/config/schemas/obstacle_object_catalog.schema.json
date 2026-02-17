@@ -4,7 +4,7 @@
   "title": "Obstacle Object Catalog Schema",
   "description": "Reusable obstacle object definitions used by placed obstacle entities on dungeon maps.",
   "type": "object",
-  "required": ["objects"],
+  "required": ["schema_version", "objects"],
   "properties": {
     "$schema": {
       "type": "string",
@@ -66,6 +66,7 @@
           "object_id": {
             "type": "string",
             "pattern": "^[a-z0-9_]+$",
+            "minLength": 1,
             "description": "Stable machine-readable ID (lowercase, digits, underscore).",
             "examples": ["wooden_tavern_door", "tavern_bar_counter_a", "tavern_table_round_a"]
           },
@@ -111,6 +112,7 @@
               "cost_multiplier": {
                 "type": "number",
                 "minimum": 0,
+                "maximum": 999,
                 "default": 1,
                 "description": "Movement cost multiplier for entering this hex (1 = normal, 2 = difficult terrain, 999 = effectively impassable). Used for future pathfinding AI; not currently used in rendering.",
                 "examples": [1, 1.5, 2, 3, 999]
@@ -125,7 +127,8 @@
           },
           "tags": {
             "type": "array",
-            "items": { "type": "string" },
+            "uniqueItems": true,
+            "items": { "type": "string", "minLength": 1 },
             "description": "Optional semantic tags for filtering and UI chips. Common tags: door, transition, bar, fixture, table, furniture, stool, stack, crate, storage, decor, floor, light_source.",
             "examples": [
               ["door", "transition"],

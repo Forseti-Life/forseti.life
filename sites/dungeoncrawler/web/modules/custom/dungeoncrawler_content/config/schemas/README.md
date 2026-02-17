@@ -257,6 +257,15 @@ Unified traversal/combat obstacles (non-container blockers/modifiers).
 #### `obstacle_object_catalog.schema.json`
 Reusable obstacle object definitions (label, movable, stackable, movement flags) used by placed obstacle instances.
 
+**Recently improved (2026-02-17):**
+- Added schema versioning for migration compatibility (schema_version now required)
+- Enhanced validation with improved constraints:
+  - Added minLength: 1 to object_id to prevent empty IDs
+  - Added maximum: 999 to cost_multiplier for reasonable upper bound
+  - Added uniqueItems: true to tags array to prevent duplicate tags
+  - Added minLength: 1 to tag items to prevent empty strings
+- Validates successfully with existing example data (tavern-obstacle-objects.json)
+
 #### `party.schema.json`
 Adventuring party with shared resources and exploration state.
 
@@ -488,6 +497,7 @@ Schemas with `schema_version` field (migration-ready):
 - ✓ `hazard.schema.json`
 - ✓ `hexmap.schema.json`
 - ✓ `item.schema.json`
+- ✓ `obstacle_object_catalog.schema.json`
 - ✓ `party.schema.json`
 - ✓ `trap.schema.json`
 
