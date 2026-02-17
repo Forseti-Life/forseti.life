@@ -50,6 +50,9 @@
   --cc-transition-fast: all 0.2s ease;
   --cc-transition-smooth: all 0.3s ease;
   
+  /* Typography */
+  --cc-line-height-default: 1.5;        /* Default line height for text */
+  
   /* Shadows */
   --cc-shadow-glow-gold: 0 0 15px rgba(212, 175, 55, 0.5);
   --cc-shadow-glow-gold-lg: 0 0 20px rgba(212, 175, 55, 0.2);
@@ -204,12 +207,12 @@
   color: var(--cc-text-muted);
 }
 
-.preview-row span,
-.stat-row span {
+.preview-row span {
   color: var(--cc-text-primary);
 }
 
 .stat-row span {
+  color: var(--cc-text-primary);
   font-weight: bold;
 }
 
@@ -303,7 +306,7 @@
   color: var(--cc-text-description);
   margin-bottom: var(--cc-spacing-xl);
   font-size: 1.05rem;
-  line-height: 1.5;
+  line-height: var(--cc-line-height-default);
 }
 
 /* Form Elements */
@@ -332,7 +335,7 @@
   border-radius: var(--cc-radius-sm);
   color: var(--cc-text-primary);
   font-size: 1rem;
-  line-height: 1.5;
+  line-height: var(--cc-line-height-default);
   transition: var(--cc-transition-fast);
 }
 
