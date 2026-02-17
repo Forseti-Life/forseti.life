@@ -316,15 +316,18 @@
         },
         "trained_skill": {
           "type": "string",
-          "description": "One trained skill granted by the selected background"
+          "description": "One trained skill granted by the selected background",
+          "examples": ["Religion", "Stealth", "Performance", "Athletics", "Intimidation", "Diplomacy", "Society", "Arcana"]
         },
         "skill_feat": {
           "type": "string",
-          "description": "One skill feat granted by the selected background"
+          "description": "One skill feat granted by the selected background",
+          "examples": ["Student of the Canon", "Experienced Smuggler", "Fascinating Performance", "Assurance (Athletics)", "Quick Coercion", "Bargain Hunter", "Courtly Graces", "Intimidating Glare"]
         },
         "lore_skill": {
           "type": "string",
-          "description": "One lore skill granted by the selected background"
+          "description": "One lore skill granted by the selected background",
+          "examples": ["Scribing Lore", "Underworld Lore", "Theater Lore", "Farming Lore", "Legal Lore", "Mercantile Lore", "Heraldry Lore", "Academia Lore", "Warfare Lore"]
         }
       },
       "required": ["background_boosts", "trained_skill", "skill_feat", "lore_skill"]
