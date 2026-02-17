@@ -1,23 +1,33 @@
 {
-  "content_id": "longsword",
+  "schema_version": "1.0.0",
+  "item_id": "17909d3d-0a6c-4dd8-a8c2-cbb454724bf8",
   "name": "Longsword",
-  "type": "item",
-  "item_category": "weapon",
+  "item_type": "weapon",
   "level": 0,
   "rarity": "common",
-  "price": {
-    "gold": 1
-  },
-  "bulk": 1,
-  "hands": 1,
-  "tags": ["martial", "sword"],
-  "weapon_stats": {
-    "damage": "1d8",
-    "damage_type": "slashing",
-    "traits": ["versatile P"],
-    "group": "sword"
-  },
+  "traits": [],
   "description": "A standard longsword, common among soldiers and adventurers.",
+  "price": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 1,
+    "pp": 0
+  },
+  "bulk": "1",
+  "hands": "1",
+  "weapon_stats": {
+    "category": "martial",
+    "group": "sword",
+    "damage": {
+      "dice_count": 1,
+      "die_size": "d8",
+      "damage_type": "slashing"
+    },
+    "range": null,
+    "reload": null,
+    "weapon_traits": ["versatile P"]
+  },
   "source": "Core Rulebook",
-  "version": "1.0"
+  "created_at": 1771339254,
+  "updated_at": 1771339254
 }
