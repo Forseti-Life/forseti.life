@@ -918,6 +918,7 @@ class JobApplicationController extends ControllerBase {
       '#filter_status' => $filters['status'],
       '#filter_ai_status' => $filters['ai_status'],
       '#filter_tailoring' => $filters['tailoring'],
+      '#return_url' => $request->getRequestUri(),
       '#cache' => [
         'contexts' => ['user', 'url.query_args'],
         'tags' => ['job_hunter:jobs', 'job_hunter:companies'],
@@ -925,6 +926,77 @@ class JobApplicationController extends ControllerBase {
     ];
     
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Toggle "have applied" status for a saved job.
+   *
+   * @param int $job_id
+   *   The job requirement ID.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirects back to My Jobs page.
+   */
+  public function toggleJobApplied(int $job_id): RedirectResponse {
+    $request = $this->requestStack->getCurrentRequest();
+    $return_to = (string) $request->request->get('return_to', '/jobhunter/my-jobs');
+
+    if ($this->currentUser()->isAnonymous()) {
+      $this->messenger()->addError($this->t('You must be logged in to update job status.'));
+      return new RedirectResponse('/user/login');
+    }
+
+    if (strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs';
+    }
+
+    try {
+      $schema = $this->database->schema();
+      $query = $this->database->select('jobhunter_job_requirements', 'j')
+        ->fields('j', ['id', 'status', 'applied_on_date'])
+        ->condition('j.id', $job_id);
+
+      if ($schema->fieldExists('jobhunter_job_requirements', 'created_by_user_id')) {
+        $query->condition('j.created_by_user_id', (int) $this->currentUser()->id());
+      }
+
+      $job = $query->execute()->fetchObject();
+      if (!$job) {
+        $this->messenger()->addError($this->t('Job not found or access denied.'));
+        return new RedirectResponse($return_to);
+      }
+
+      $have_applied = (bool) $request->request->get('have_applied');
+      $applied_on_date = trim((string) $request->request->get('applied_on_date', ''));
+      $is_valid_date = $applied_on_date !== '' && preg_match('/^\d{4}-\d{2}-\d{2}$/', $applied_on_date) === 1;
+
+      $update_fields = [
+        'status' => $have_applied ? 'applied' : 'active',
+        'applied_on_date' => $have_applied ? ($is_valid_date ? $applied_on_date : date('Y-m-d')) : NULL,
+        'updated' => time(),
+      ];
+
+      $this->database->update('jobhunter_job_requirements')
+        ->fields($update_fields)
+        ->condition('id', $job_id)
+        ->execute();
+
+      if ($have_applied) {
+        $this->messenger()->addStatus($this->t('Marked as applied.'));
+      }
+      else {
+        $this->messenger()->addStatus($this->t('Marked as not applied.'));
+      }
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('Failed to toggle applied status for job @job_id: @error', [
+        '@job_id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('Unable to update applied status right now.'));
+    }
+
+    return new RedirectResponse($return_to);
   }
 
   /**
