@@ -4,7 +4,32 @@
   "title": "Character Creation Step 2: Ancestry & Heritage",
   "description": "Defines available options and validation for selecting character's ancestry and heritage in Pathfinder 2E character creation",
   "type": "object",
+  "$defs": {
+    "heritageOption": {
+      "type": "object",
+      "required": ["id", "name", "benefit"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the heritage"
+        },
+        "name": {
+          "type": "string",
+          "description": "Display name of the heritage"
+        },
+        "benefit": {
+          "type": "string",
+          "description": "Mechanical benefit or special ability granted by this heritage"
+        }
+      }
+    }
+  },
   "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Schema version for tracking compatibility"
+    },
     "step": {
       "type": "integer",
       "const": 2,
@@ -107,9 +132,14 @@
                   "type": "boolean",
                   "const": true
                 },
-                "error_message": {
-                  "type": "string",
-                  "const": "Please select an ancestry before continuing."
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "required": {
+                      "type": "string",
+                      "const": "Please select an ancestry before continuing."
+                    }
+                  }
                 }
               }
             }
@@ -161,12 +191,7 @@
                 "Dwarf": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {"type": "string"},
-                      "name": {"type": "string"},
-                      "benefit": {"type": "string"}
-                    }
+                    "$ref": "#/$defs/heritageOption"
                   },
                   "minItems": 4,
                   "maxItems": 4
@@ -174,12 +199,7 @@
                 "Elf": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {"type": "string"},
-                      "name": {"type": "string"},
-                      "benefit": {"type": "string"}
-                    }
+                    "$ref": "#/$defs/heritageOption"
                   },
                   "minItems": 4,
                   "maxItems": 4
@@ -187,12 +207,7 @@
                 "Gnome": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {"type": "string"},
-                      "name": {"type": "string"},
-                      "benefit": {"type": "string"}
-                    }
+                    "$ref": "#/$defs/heritageOption"
                   },
                   "minItems": 4,
                   "maxItems": 4
@@ -200,12 +215,7 @@
                 "Goblin": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {"type": "string"},
-                      "name": {"type": "string"},
-                      "benefit": {"type": "string"}
-                    }
+                    "$ref": "#/$defs/heritageOption"
                   },
                   "minItems": 4,
                   "maxItems": 4
@@ -213,12 +223,7 @@
                 "Halfling": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {"type": "string"},
-                      "name": {"type": "string"},
-                      "benefit": {"type": "string"}
-                    }
+                    "$ref": "#/$defs/heritageOption"
                   },
                   "minItems": 4,
                   "maxItems": 4
@@ -226,12 +231,7 @@
                 "Human": {
                   "type": "array",
                   "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {"type": "string"},
-                      "name": {"type": "string"},
-                      "benefit": {"type": "string"}
-                    }
+                    "$ref": "#/$defs/heritageOption"
                   },
                   "minItems": 1,
                   "maxItems": 1
@@ -250,9 +250,14 @@
                   "type": "boolean",
                   "const": true
                 },
-                "error_message": {
-                  "type": "string",
-                  "const": "Please select a heritage before continuing."
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "required": {
+                      "type": "string",
+                      "const": "Please select a heritage before continuing."
+                    }
+                  }
                 }
               }
             }
@@ -293,15 +298,38 @@
       "type": "array",
       "description": "Helpful tips for new players",
       "items": {
-        "type": "string"
+        "type": "object",
+        "required": ["title", "text"],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "Tip heading"
+          },
+          "text": {
+            "type": "string",
+            "description": "Tip content"
+          }
+        }
       },
       "default": [
-        "Your ancestry provides mechanical benefits like ability boosts, hit points, and special senses. Choose based on both story and mechanics.",
-        "Ability boosts marked 'Free' let you choose any ability score. Strategic choices here can enhance your character's effectiveness.",
-        "Small ancestries have advantages in tight spaces but may have reduced reach for melee attacks.",
-        "Darkvision lets you see in darkness up to 60 feet. Low-light vision lets you see in dim light as if it were bright light."
+        {
+          "title": "Choosing Your Ancestry",
+          "text": "Your ancestry provides mechanical benefits like ability boosts, hit points, and special senses. Choose based on both story and mechanics."
+        },
+        {
+          "title": "Understanding Ability Boosts",
+          "text": "Ability boosts marked 'Free' let you choose any ability score. Strategic choices here can enhance your character's effectiveness."
+        },
+        {
+          "title": "Size Considerations",
+          "text": "Small ancestries have advantages in tight spaces but may have reduced reach for melee attacks."
+        },
+        {
+          "title": "Vision Types",
+          "text": "Darkvision lets you see in darkness up to 60 feet. Low-light vision lets you see in dim light as if it were bright light."
+        }
       ]
     }
   },
-  "required": ["step", "step_name", "step_description", "fields", "navigation", "tips"]
+  "required": ["schema_version", "step", "step_name", "step_description", "fields", "navigation", "tips"]
 }
