@@ -541,23 +541,33 @@ class CompanyController extends ControllerBase {
    * Delete a job requirement.
    */
   public function deleteJob($job_id) {
+    $request = $this->requestStack->getCurrentRequest();
+    $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
+    if (strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs';
+    }
+
     try {
-      // Delete the job
-      $this->database->delete('jobhunter_job_requirements')
+      // Soft-remove from My Jobs by archiving instead of deleting from system.
+      $this->database->update('jobhunter_job_requirements')
+        ->fields([
+          'status' => 'archived',
+          'updated' => time(),
+        ])
         ->condition('id', $job_id)
         ->execute();
       
-      $this->messenger()->addMessage($this->t('Job requirement has been deleted.'));
+      $this->messenger()->addMessage($this->t('Job removed from My Jobs. You can still view it using the Archived filter.'));
     }
     catch (\Exception $e) {
-      $this->messenger()->addError($this->t('Failed to delete job. Please try again.'));
-      $this->getLogger('job_hunter')->error('Failed to delete job @id: @error', [
+      $this->messenger()->addError($this->t('Failed to remove job. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to archive job @id: @error', [
         '@id' => $job_id,
         '@error' => $e->getMessage(),
       ]);
     }
     
-    return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+    return new RedirectResponse($return_to);
   }
 
   /**
@@ -585,12 +595,16 @@ class CompanyController extends ControllerBase {
       $this->messenger()->addError($this->t('Job not found.'));
       return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
     }
+
+    $jobValue = static function (object $row, string $field) {
+      return property_exists($row, $field) ? $row->{$field} : NULL;
+    };
     
     // Parse JSON data using helper method
-    $extracted = $this->safeJsonDecode($job->extracted_json, 'job extracted data', $job_id);
-    $skills = $this->safeJsonDecode($job->skills_required_json, 'job skills', $job_id);
-    $keywords = $this->safeJsonDecode($job->keywords_json, 'job keywords', $job_id);
-    $duplicates = $this->safeJsonDecode($job->potential_duplicates_json, 'potential duplicates', $job_id) ?? [];
+    $extracted = $this->safeJsonDecode($jobValue($job, 'extracted_json'), 'job extracted data', $job_id);
+    $skills = $this->safeJsonDecode($jobValue($job, 'skills_required_json'), 'job skills', $job_id);
+    $keywords = $this->safeJsonDecode($jobValue($job, 'keywords_json'), 'job keywords', $job_id);
+    $duplicates = $this->safeJsonDecode($jobValue($job, 'potential_duplicates_json'), 'potential duplicates', $job_id) ?? [];
     
     // Build the content
     $content = [];
@@ -667,18 +681,20 @@ class CompanyController extends ControllerBase {
 
     // Job source information and links
     $source_info = [];
-    $original_url = !empty($job->job_url) ? $job->job_url : ($job->application_url ?? '');
+    $job_url = $jobValue($job, 'job_url');
+    $application_url = $jobValue($job, 'application_url');
+    $original_url = !empty($job_url) ? $job_url : ($application_url ?? '');
     if (!empty($original_url)) {
       $source_info[] = '<strong>Job URL:</strong> <a href="' . htmlspecialchars($original_url) . '" target="_blank" rel="noopener">' . htmlspecialchars($original_url) . ' ↗</a>';
     }
-    if (!empty($job->external_source)) {
-      $source_info[] = '<strong>Source:</strong> ' . htmlspecialchars($job->external_source);
+    if (!empty($jobValue($job, 'external_source'))) {
+      $source_info[] = '<strong>Source:</strong> ' . htmlspecialchars((string) $jobValue($job, 'external_source'));
     }
-    if (!empty($job->external_job_id)) {
-      $source_info[] = '<strong>External Job ID:</strong> ' . htmlspecialchars($job->external_job_id);
+    if (!empty($jobValue($job, 'external_job_id'))) {
+      $source_info[] = '<strong>External Job ID:</strong> ' . htmlspecialchars((string) $jobValue($job, 'external_job_id'));
     }
-    if (!empty($job->source_platform)) {
-      $source_info[] = '<strong>Platform:</strong> ' . htmlspecialchars($job->source_platform);
+    if (!empty($jobValue($job, 'source_platform'))) {
+      $source_info[] = '<strong>Platform:</strong> ' . htmlspecialchars((string) $jobValue($job, 'source_platform'));
     }
     if ($tailored_resume) {
       $status_text = ucfirst($tailored_resume->tailoring_status);
