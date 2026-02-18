@@ -195,16 +195,23 @@ export class EntityManager {
 
   /**
    * Serialize all entities to JSON.
+   * @param {string} format - Output format: 'ecs' (default) or 'entity_instance'
    * @returns {object} Serialized data
    */
-  toJSON() {
+  toJSON(format = 'ecs') {
     const entities = [];
     for (const entity of this.entities.values()) {
       if (entity.isActive()) {
-        entities.push(entity.toJSON());
+        entities.push(entity.toJSON(format));
       }
     }
+    
+    if (format === 'entity_instance') {
+      // Return array of entity_instances for schema conformance
+      return entities;
+    }
 
+    // ECS format includes manager metadata
     return {
       nextEntityId: this.nextEntityId,
       entities: entities
@@ -213,13 +220,37 @@ export class EntityManager {
 
   /**
    * Deserialize entities from JSON.
-   * @param {object} data - Serialized data
+   * Supports both ECS format and entity_instance array format.
+   * @param {object|array} data - Serialized data (ECS object or entity_instance array)
    * @param {object} componentClasses - Map of component name to class
    * @throws {TypeError} If data is invalid
    */
   fromJSON(data, componentClasses) {
-    if (!data || typeof data !== 'object') {
-      throw new TypeError('Data must be a valid object');
+    if (!data) {
+      throw new TypeError('Data cannot be null or undefined');
+    }
+    
+    // Handle entity_instance array format
+    if (Array.isArray(data)) {
+      this.clear();
+      for (const entityData of data) {
+        const entity = Entity.fromJSON(entityData, componentClasses);
+        this.entities.set(entity.id, entity);
+        if (entity.isActive()) {
+          this._activeCount++;
+        }
+        // Track highest ID for proper nextEntityId
+        if (entity.id >= this.nextEntityId) {
+          this.nextEntityId = entity.id + 1;
+        }
+      }
+      this.invalidateQueryCache();
+      return;
+    }
+    
+    // Handle ECS format
+    if (typeof data !== 'object') {
+      throw new TypeError('Data must be a valid object or array');
     }
     if (!Array.isArray(data.entities)) {
       throw new TypeError('Data.entities must be an array');
