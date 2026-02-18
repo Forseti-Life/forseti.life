@@ -11,8 +11,9 @@
  * Database Hot Columns (dc_campaign_characters table):
  * - hp_current, hp_max: Synced from resources.hitPoints in state_data JSON
  * - armor_class: Synced from defenses.armorClass.total in state_data JSON
- * - position_q, position_r: Synced from position.{q,r} in state_data JSON
+ * - position_q, position_r: Synced from position.{q,r} in state_data JSON (hex axial coordinates)
  * - experience_points: Synced from basicInfo.experiencePoints in state_data JSON
+ * - last_room_id: Synced from location.roomId in state_data JSON (most recent room)
  * 
  * Hot columns are maintained by CharacterStateService::saveState() which extracts
  * these values from the JSON payload and updates both the state_data column and
@@ -318,9 +319,10 @@ export class CombatSystem extends System {
    * Check if entity can attack target.
    * 
    * SCHEMA CONFORMANCE:
-   * - Position checks use PositionComponent (q, r coordinates)
+   * - Position checks use PositionComponent (q, r hex axial coordinates)
    * - Position maps to hot columns: position_q, position_r
    * - Position is extracted from state_data -> position.{q,r}
+   * - Room tracking maps to hot column: last_room_id from state_data -> location.roomId
    * 
    * @param {Entity} attacker - Attacking entity
    * @param {Entity} target - Target entity
