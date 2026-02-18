@@ -35,14 +35,17 @@
       "properties": {
         "description": {
           "type": "string",
+          "maxLength": 500,
           "description": "Human-readable description of this catalog's purpose."
         },
         "theme": {
           "type": "string",
+          "maxLength": 100,
           "description": "Thematic grouping (e.g., 'tavern-furnishings', 'dungeon-traps')."
         },
         "usage": {
           "type": "string",
+          "maxLength": 500,
           "description": "Usage instructions or references to consuming code."
         }
       },
@@ -51,7 +54,8 @@
     "objects": {
       "type": "array",
       "minItems": 1,
-      "description": "Array of obstacle object definitions.",
+      "maxItems": 500,
+      "description": "Array of obstacle object definitions. Maximum 500 objects per catalog for performance and maintainability.",
       "items": {
         "type": "object",
         "required": [
@@ -67,12 +71,14 @@
             "type": "string",
             "pattern": "^[a-z0-9_]+$",
             "minLength": 1,
+            "maxLength": 100,
             "description": "Stable machine-readable ID (lowercase, digits, underscore).",
             "examples": ["wooden_tavern_door", "tavern_bar_counter_a", "tavern_table_round_a"]
           },
           "label": {
             "type": "string",
             "minLength": 1,
+            "maxLength": 100,
             "description": "Human-friendly name shown on the map UI.",
             "examples": ["Tavern Door", "Bar Counter A", "Round Table"]
           },
@@ -84,6 +90,7 @@
           "description": {
             "type": ["string", "null"],
             "minLength": 1,
+            "maxLength": 1000,
             "description": "Human-readable description for tooltips or documentation. Should focus on gameplay implications (how it affects movement, combat, or interaction) rather than restating property values. Good descriptions explain the obstacle's purpose and behavior; poor descriptions merely repeat labels or property values.",
             "examples": [
               "Heavy wooden door between tavern and dungeon room. When open, allows passage between areas without movement penalty.",
@@ -106,7 +113,8 @@
           "tags": {
             "type": "array",
             "uniqueItems": true,
-            "items": { "type": "string", "minLength": 1 },
+            "maxItems": 10,
+            "items": { "type": "string", "minLength": 1, "maxLength": 50 },
             "description": "Optional semantic tags for filtering and UI chips. Common tags: door, transition, bar, fixture, table, furniture, stool, stack, crate, storage, decor, floor, light_source.",
             "examples": [
               ["door", "transition"],
@@ -171,6 +179,7 @@
               "sprite_id": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Identifier for the visual sprite or asset to render this obstacle."
               },
               "color": {

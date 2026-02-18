@@ -21,6 +21,7 @@
     "name": {
       "type": "string",
       "minLength": 1,
+      "maxLength": 200,
       "description": "Display name of the obstacle.",
       "examples": ["Boulder", "Collapsed Wall", "Iron Gate", "Magical Barrier"]
     },
@@ -40,9 +41,11 @@
       "type": "array",
       "items": {
         "type": "string",
-        "minLength": 1
+        "minLength": 1,
+        "maxLength": 50
       },
       "uniqueItems": true,
+      "maxItems": 10,
       "description": "PF2e obstacle traits (e.g., ['Magical', 'Environmental', 'Structure'])."
     },
     "obstacle_type": {
@@ -61,6 +64,7 @@
     },
     "description": {
       "type": "string",
+      "maxLength": 2000,
       "description": "Detailed description of the obstacle for players.",
       "examples": [
         "A large boulder blocks the narrow passageway, requiring significant strength to move aside.",
@@ -71,6 +75,7 @@
       "type": "array",
       "description": "List of hexes this obstacle occupies on the map.",
       "minItems": 1,
+      "maxItems": 20,
       "uniqueItems": true,
       "items": {
         "$ref": "#/$defs/hex_coordinate"
@@ -87,8 +92,9 @@
         },
         "cost_multiplier": {
           "type": "number",
-          "description": "Movement cost multiplier (1 = normal, 2 = double cost, etc.).",
+          "description": "Movement cost multiplier (1 = normal, 2 = double cost, etc.). Use 999 for impassable obstacles.",
           "minimum": 0,
+          "maximum": 999,
           "default": 1
         },
         "requires_check": {
@@ -100,6 +106,7 @@
           "type": ["string", "null"],
           "description": "PF2e skill required for check (e.g., 'Athletics', 'Acrobatics').",
           "minLength": 1,
+          "maxLength": 50,
           "examples": ["Athletics", "Acrobatics", "Thievery"]
         },
         "check_dc": {
@@ -131,6 +138,7 @@
           "type": ["string", "null"],
           "description": "Type of damage dealt (e.g., 'fire', 'acid', 'bludgeoning').",
           "minLength": 1,
+          "maxLength": 100,
           "examples": ["fire", "acid", "bludgeoning", "piercing"]
         },
         "save_type": {
@@ -170,6 +178,7 @@
         "notes": {
           "type": ["string", "null"],
           "description": "GM notes or runtime state information.",
+          "maxLength": 500,
           "examples": ["Party bypassed via Athletics check", "Barrier still active, 2 attempts failed"]
         }
       }
