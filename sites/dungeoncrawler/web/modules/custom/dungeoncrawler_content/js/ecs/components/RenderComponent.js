@@ -1,6 +1,12 @@
 /**
  * @file
  * RenderComponent - PixiJS rendering data.
+ * 
+ * This component stores visual rendering properties for entities.
+ * Data is serialized to JSON and stored in character_data field.
+ * No direct hot-column mapping - render properties are derived from full JSON payload.
+ * 
+ * @see dungeoncrawler_content_schema() - dc_campaign_characters.character_data
  */
 
 import { Component } from '../Component.js';
@@ -34,11 +40,11 @@ export class RenderComponent extends Component {
 
   /**
    * Serialize to JSON (exclude PixiJS references).
+   * Note: 'type' field is handled by base Component class.
    * @returns {object} Serialized data
    */
   toJSON() {
     return {
-      type: this.constructor.name,
       spriteKey: this.spriteKey,
       scale: this.scale,
       rotation: this.rotation,
@@ -115,8 +121,16 @@ export class RenderComponent extends Component {
   /**
    * Set tint color.
    * @param {number} color - Hex color value (e.g., 0xff0000 for red)
+   * @throws {TypeError} If color is not a valid number
+   * @throws {RangeError} If color is negative or exceeds 0xffffff
    */
   setTint(color) {
+    if (typeof color !== 'number' || !Number.isFinite(color)) {
+      throw new TypeError('Tint color must be a finite number');
+    }
+    if (color < 0 || color > 0xffffff) {
+      throw new RangeError('Tint color must be between 0x000000 and 0xffffff');
+    }
     this.tint = color;
   }
 
@@ -125,5 +139,45 @@ export class RenderComponent extends Component {
    */
   resetTint() {
     this.tint = 0xffffff;
+  }
+
+  /**
+   * Validate component data.
+   * @returns {boolean} True if component data is valid
+   */
+  validate() {
+    // Validate tint is a valid hex color
+    if (typeof this.tint !== 'number' || !Number.isFinite(this.tint) ||
+        this.tint < 0 || this.tint > 0xffffff) {
+      return false;
+    }
+    
+    // Validate alpha is between 0 and 1
+    if (typeof this.alpha !== 'number' || !Number.isFinite(this.alpha) ||
+        this.alpha < 0 || this.alpha > 1) {
+      return false;
+    }
+    
+    // Validate scale is positive
+    if (typeof this.scale !== 'number' || !Number.isFinite(this.scale) || this.scale <= 0) {
+      return false;
+    }
+    
+    // Validate rotation is a finite number
+    if (typeof this.rotation !== 'number' || !Number.isFinite(this.rotation)) {
+      return false;
+    }
+    
+    // Validate zIndex is an integer
+    if (!Number.isInteger(this.zIndex)) {
+      return false;
+    }
+    
+    // Validate visible is boolean
+    if (typeof this.visible !== 'boolean') {
+      return false;
+    }
+    
+    return true;
   }
 }
