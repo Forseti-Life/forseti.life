@@ -339,6 +339,33 @@ export class CombatComponent extends Component {
   }
   
   /**
+   * Convert to combat_participants table format.
+   * Maps component fields to database column names for active combat encounters.
+   * 
+   * @param {number} encounterId - Encounter ID for the combat_participants record
+   * @param {number} entityId - Entity ID from ECS
+   * @param {string} entityRef - External reference (character/content id)
+   * @param {string} name - Display name
+   * @returns {Object} Data structure matching combat_participants table schema
+   */
+  toCombatParticipant(encounterId, entityId, entityRef, name) {
+    return {
+      encounter_id: encounterId,
+      entity_id: entityId,
+      entity_ref: entityRef,
+      name: name,
+      team: this.team,
+      initiative: this.initiativeResult ?? 0,
+      initiative_roll: this.initiativeRoll,
+      // Note: ac, hp, max_hp come from StatsComponent, not CombatComponent
+      actions_remaining: 3, // Default PF2e action economy
+      attacks_this_turn: 0,
+      is_defeated: this.isDefeated ? 1 : 0
+      // Note: position_x, position_y come from PositionComponent
+    };
+  }
+  
+  /**
    * Deserialize component from JSON data.
    * 
    * When loading from database combat_participants table, the following mappings apply:
@@ -355,9 +382,12 @@ export class CombatComponent extends Component {
    * @param {number} [data.initiativeBonus] - Initiative bonus
    * @param {number|null} [data.initiativeRoll] - Last rolled initiative (d20)
    * @param {number|null} [data.initiativeResult] - Final initiative score
+   * @param {number|null} [data.initiative] - Alternative: final initiative (from combat_participants)
+   * @param {number|null} [data.initiative_roll] - Alternative: d20 roll (from combat_participants)
    * @param {string} [data.team] - Team affiliation
    * @param {boolean} [data.inCombat] - Combat state flag
    * @param {boolean} [data.isDefeated] - Defeated state flag
+   * @param {number} [data.is_defeated] - Alternative: defeated flag (from combat_participants)
    * @param {boolean} [data.hasTakenTurn] - Turn tracking flag
    * @param {number|null} [data.turnOrder] - Position in initiative order
    * @param {number} [data.weaponProficiency] - Weapon proficiency bonus
@@ -375,13 +405,32 @@ export class CombatComponent extends Component {
     };
     
     const component = new CombatComponent(config);
-    component.initiativeRoll = data.initiativeRoll;
-    component.initiativeResult = data.initiativeResult;
+    
+    // Support both component format and combat_participants table format
+    component.initiativeRoll = data.initiativeRoll ?? data.initiative_roll ?? null;
+    component.initiativeResult = data.initiativeResult ?? data.initiative ?? null;
     component.inCombat = data.inCombat;
-    component.isDefeated = data.isDefeated;
+    component.isDefeated = data.isDefeated ?? (data.is_defeated === 1) ?? false;
     component.hasTakenTurn = data.hasTakenTurn;
     component.turnOrder = data.turnOrder;
     
     return component;
+  }
+  
+  /**
+   * Load from combat_participants table record.
+   * Convenience method for loading during active combat encounters.
+   * 
+   * @param {Object} participantRecord - Database record from combat_participants table
+   * @returns {CombatComponent} Component loaded from participant data
+   */
+  static fromCombatParticipant(participantRecord) {
+    return CombatComponent.fromJSON({
+      initiative: participantRecord.initiative,
+      initiative_roll: participantRecord.initiative_roll,
+      team: participantRecord.team,
+      is_defeated: participantRecord.is_defeated,
+      inCombat: true // Participant exists, so entity is in combat
+    });
   }
 }
