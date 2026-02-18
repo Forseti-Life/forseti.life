@@ -403,6 +403,27 @@ The refactoring maintains 100% visual consistency while improving code quality:
 - Shared base styles reduce duplication by ~90 lines
 - All hardcoded colors replaced with semantic variable names
 
+### game-cards.js Schema Conformance (DCC-0253)
+
+The `game-cards.js` file has been reviewed and updated for schema conformance and documentation accuracy:
+
+- **Schema Documentation**: Enhanced file header now clearly documents the data flow from database to UI
+- **Architecture Alignment**: Documentation explicitly references the module's unified JSON/hot-column architecture
+- **Data Flow Clarity**: Added numbered steps explaining how rarity data flows from `dungeoncrawler_content_registry.rarity` through templates to JavaScript
+- **Pattern Consistency**: File header now matches documentation patterns established in `character-sheet.js`
+
+**Key clarifications**:
+- Rarity data originates from `dungeoncrawler_content_registry.rarity` field (varchar, values: common, uncommon, rare, epic, legendary)
+- Templates pre-render rarity as CSS class modifiers (`item-card--{rarity}`)
+- JavaScript provides enhanced interactive effects (legendary glow on hover), not database queries
+- This follows the module's pattern where frequently-accessed display properties are template-rendered rather than client-side queried
+
+The review maintains 100% functional compatibility while improving:
+- Documentation accuracy regarding database schema references
+- Clarity on the relationship between database, templates, CSS, and JavaScript
+- Alignment with module-wide architectural patterns
+- Developer understanding of the complete data flow
+
 ## Development
 
 ### Adding New Routes
