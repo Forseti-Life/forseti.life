@@ -5,7 +5,21 @@
  * Based on the design document:
  * docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md
  * 
+ * SCHEMA CONFORMANCE:
+ * This service operates on the **runtime API format** (camelCase) provided by the PHP
+ * CharacterStateService. It does NOT need to handle database schema translation or 
+ * hot-column references - that layer is handled by the PHP service.
+ * 
+ * Three-layer schema architecture:
+ * 1. TypeScript (this file): camelCase runtime format for client consumption
+ * 2. JSON Schema: snake_case storage format in character_data column
+ * 3. Database: Hot columns (name, level, ancestry, class) for query performance
+ * 
+ * The PHP service translates between these layers. This TypeScript service only needs
+ * to conform to the CharacterState interface defined in character-state.types.ts.
+ * 
  * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#characterstate-service-pseudocode
+ * @see js/SCHEMA_ALIGNMENT.md
  */
 
 import { CharacterState, UpdateOperation, Condition, Item, RemoteUpdate } from './types/character-state.types';
@@ -59,9 +73,16 @@ export class CharacterStateService {
   /**
    * Initialize the service: load character and establish WebSocket.
    * 
+   * Fetches the character state from the PHP API endpoint which returns data in the
+   * camelCase format matching CharacterState interface. The PHP service handles:
+   * - Reading from dc_campaign_characters table (hot columns + character_data JSON)
+   * - Translating snake_case storage format to camelCase runtime format
+   * - Merging library defaults with campaign-specific state overrides
+   * 
    * @param characterId - The ID of the character to load
    * @throws {Error} If characterId is invalid or initialization fails
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#initialize-the-service-load-character-and-establish-websocket
+   * @see js/SCHEMA_ALIGNMENT.md#php-service-layer-characterstatephp
    */
   async initialize(characterId: string): Promise<void> {
     if (!characterId || typeof characterId !== 'string') {
@@ -69,7 +90,8 @@ export class CharacterStateService {
     }
     
     // TODO: Implement
-    // - Load initial state from API
+    // - Load initial state from API endpoint (e.g., /api/character/load/{id})
+    // - API returns CharacterState in camelCase format (already translated by PHP)
     // - Establish WebSocket connection
     // - Start update queue processor
     console.log('TODO: Initialize CharacterStateService for character', characterId);
@@ -91,8 +113,17 @@ export class CharacterStateService {
   /**
    * Get current character state (immutable copy).
    * 
+   * Returns a deep copy of the current character state to prevent external mutations.
+   * The state structure follows the CharacterState interface with camelCase naming,
+   * matching the format provided by the PHP API.
+   * 
+   * Hot-column fields (name, level, ancestry, class) are nested within basicInfo
+   * in the runtime format, even though they are denormalized columns in the database.
+   * The PHP service handles this structural translation.
+   * 
    * @returns Immutable copy of character state, or null if not initialized
    * @throws {Error} If state cannot be serialized (e.g., circular references)
+   * @see js/SCHEMA_ALIGNMENT.md#hot-column-references
    */
   getState(): Readonly<CharacterState> | null {
     if (!this.characterState) return null;
@@ -111,10 +142,16 @@ export class CharacterStateService {
   /**
    * Update hit points.
    * 
+   * Updates HP with optimistic UI update and queues the change for server sync.
+   * The PHP service will persist changes to both:
+   * - Hot columns: hp_current, hp_max (for fast queries)
+   * - JSON payload: character_data.hit_points (for complete state)
+   * 
    * @param delta - Amount to change HP by (positive for heal, negative for damage)
    * @param temporary - Whether to modify temporary HP instead of current HP
    * @throws {Error} If character state is not initialized
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#update-hit-points
+   * @see js/SCHEMA_ALIGNMENT.md#unified-vs-hot-column-structures
    */
   async updateHitPoints(delta: number, temporary: boolean = false): Promise<void> {
     if (!this.characterState) {
@@ -126,9 +163,9 @@ export class CharacterStateService {
     }
     
     // TODO: Implement
-    // - Optimistic update to characterState
+    // - Optimistic update to characterState.resources.hitPoints
     // - Bound checking (0 <= current <= max)
-    // - Queue for server sync
+    // - Queue for server sync (PHP will update hot columns)
     // - Emit state-changed event
     console.log('TODO: Update HP', { delta, temporary });
   }
@@ -342,11 +379,19 @@ export class CharacterStateService {
   /**
    * Process queued updates (batch send to server).
    * 
+   * Sends batched update operations to the PHP API endpoint which will:
+   * 1. Apply operations to character state
+   * 2. Update hot columns (name, level, hp_current, hp_max, etc.)
+   * 3. Persist full JSON payload to character_data column
+   * 4. Return updated state in camelCase format
+   * 
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#process-queued-updates-batch-send-to-server
+   * @see js/SCHEMA_ALIGNMENT.md#synchronization
    */
   private async processUpdateQueue(): Promise<void> {
     // TODO: Implement
     // - Send batched operations to /api/character/{id}/update
+    // - PHP service updates both hot columns and JSON
     // - Update version on success
     // - Re-queue on failure
     // - Emit sync-error on failure

@@ -3,6 +3,27 @@
  * Schema-driven character creation form builder.
  *
  * Dynamically generates form fields based on JSON schema loaded from drupalSettings.
+ *
+ * IMPORTANT: This file is currently NOT IN USE. The CharacterCreationStepForm.php
+ * builds forms directly in PHP without populating drupalSettings.characterCreation.
+ * 
+ * Schema Conformance Notes:
+ * - Database uses hot columns (hp_current, hp_max, armor_class, experience_points,
+ *   position_q, position_r, last_room_id) for high-frequency gameplay reads/writes
+ * - character.schema.json uses nested structure (hit_points.max, hit_points.current)
+ * - CharacterCreationStepForm.php converts between flat DB columns and nested JSON
+ * - Step schemas (character_options_step*.json) use 'default' and 'enum' instead of 'const'
+ * 
+ * To activate this schema-driven form builder:
+ * 1. Update CharacterCreationStepForm::buildForm() to load schema via SchemaLoader
+ * 2. Attach schema data to drupalSettings.characterCreation before rendering
+ * 3. Update field extraction to handle 'default', 'enum', and 'const' patterns
+ *
+ * @see dungeoncrawler_content.install - dc_campaign_characters table definition (lines 1225-1450)
+ * @see config/schemas/character.schema.json - Master character schema
+ * @see config/schemas/character_options_step*.json - Step-specific field schemas
+ * @see src/Service/SchemaLoader.php - Schema loading service
+ * @see src/Form/CharacterCreationStepForm.php - Current PHP form builder
  */
 
 (function ($, Drupal, once) {
@@ -19,7 +40,14 @@
   Drupal.behaviors.characterCreationSchema = {
     attach: function (context) {
       once('character-creation-schema', '#stepForm', context).forEach((form) => {
-        const settings = drupalSettings.characterCreation || {};
+        // Check if drupalSettings.characterCreation exists
+        if (typeof drupalSettings === 'undefined' || !drupalSettings.characterCreation) {
+          console.warn('[Character Creation] drupalSettings.characterCreation not populated. ' +
+            'Schema-driven form building is disabled. Forms are built server-side in CharacterCreationStepForm.php');
+          return;
+        }
+
+        const settings = drupalSettings.characterCreation;
         const step = settings.step;
         const schema = settings.schema;
         const options = settings.options || {};
@@ -27,6 +55,8 @@
 
         if (!schema) {
           console.error('[Character Creation] Schema not loaded for step:', step);
+          console.error('[Character Creation] Expected drupalSettings.characterCreation.schema to be populated ' +
+            'by CharacterCreationStepForm::buildForm() via SchemaLoader service');
           return;
         }
 
@@ -38,15 +68,29 @@
 
         // Build form fields based on schema
         const fieldsContainer = form.querySelector('#formFields');
+        if (!fieldsContainer) {
+          console.error('[Character Creation] #formFields container not found in form');
+          return;
+        }
+
         const fieldDefs = schema.properties?.fields?.properties || {};
 
         Object.keys(fieldDefs).forEach(fieldName => {
           const fieldDef = fieldDefs[fieldName];
           const fieldProps = fieldDef.properties || {};
-          const fieldType = fieldProps.field_type?.const;
-          const label = fieldProps.label?.const || fieldName;
-          const required = fieldProps.required?.const || false;
-          const helpText = fieldProps.help_text?.const;
+          
+          // Extract field_type: handle 'const', 'default', or 'enum' patterns
+          const fieldType = this.extractSchemaValue(fieldProps.field_type, 'enum');
+          
+          // Extract label: handle 'const' or 'default' patterns
+          const label = this.extractSchemaValue(fieldProps.label, 'default') || fieldName;
+          
+          // Extract required: handle 'const' or 'default' patterns
+          const required = this.extractSchemaValue(fieldProps.required, 'default') || false;
+          
+          // Extract help_text: handle 'const' or 'default' patterns
+          const helpText = this.extractSchemaValue(fieldProps.help_text, 'default');
+          
           const currentValue = characterData[fieldName] || '';
 
           const fieldHtml = this.buildField(fieldName, fieldType, label, required, helpText, fieldProps, options, currentValue);
@@ -62,6 +106,45 @@
           this.handleSubmit(form, step);
         });
       });
+    },
+
+    /**
+     * Extract value from JSON Schema property definition.
+     * 
+     * Handles multiple schema patterns:
+     * - "const": value (JSON Schema constant)
+     * - "default": value (JSON Schema default)
+     * - "enum": [value] (JSON Schema enum - takes first value)
+     * 
+     * @param {Object} schemaProp - Schema property definition
+     * @param {string} preferredKey - Preferred key to check ('const', 'default', 'enum')
+     * @return {*} Extracted value or undefined
+     */
+    extractSchemaValue: function(schemaProp, preferredKey = 'const') {
+      if (!schemaProp || typeof schemaProp !== 'object') {
+        return undefined;
+      }
+
+      // Try preferred key first
+      if (preferredKey === 'enum' && Array.isArray(schemaProp.enum) && schemaProp.enum.length > 0) {
+        return schemaProp.enum[0];
+      }
+      if (preferredKey in schemaProp) {
+        return schemaProp[preferredKey];
+      }
+
+      // Fallback: try other patterns in order
+      if ('const' in schemaProp) {
+        return schemaProp.const;
+      }
+      if ('default' in schemaProp) {
+        return schemaProp.default;
+      }
+      if (Array.isArray(schemaProp.enum) && schemaProp.enum.length > 0) {
+        return schemaProp.enum[0];
+      }
+
+      return undefined;
     },
 
     /**
@@ -139,8 +222,11 @@
      */
     buildTextField: function(name, requiredAttr, props, value) {
       const validation = props.validation?.properties || {};
-      const maxLength = this.sanitizePositiveInteger(validation.max_length?.const, DEFAULT_TEXT_MAX_LENGTH);
-      const pattern = validation.pattern?.const || '';
+      const maxLength = this.sanitizePositiveInteger(
+        this.extractSchemaValue(validation.max_length, 'default'),
+        DEFAULT_TEXT_MAX_LENGTH
+      );
+      const pattern = this.extractSchemaValue(validation.pattern, 'default') || '';
       const patternAttr = pattern ? `pattern="${this.escapeHtml(pattern)}"` : '';
       
       return `<input type="text" id="${name}" name="${name}" 
@@ -161,8 +247,14 @@
      */
     buildTextareaField: function(name, requiredAttr, props, value) {
       const validation = props.validation?.properties || {};
-      const rows = this.sanitizePositiveInteger(validation.rows?.const, DEFAULT_TEXTAREA_ROWS);
-      const maxLen = this.sanitizePositiveInteger(validation.max_length?.const, DEFAULT_TEXTAREA_MAX_LENGTH);
+      const rows = this.sanitizePositiveInteger(
+        this.extractSchemaValue(validation.rows, 'default'),
+        DEFAULT_TEXTAREA_ROWS
+      );
+      const maxLen = this.sanitizePositiveInteger(
+        this.extractSchemaValue(validation.max_length, 'default'),
+        DEFAULT_TEXTAREA_MAX_LENGTH
+      );
       
       return `<textarea id="${name}" name="${name}" 
         class="form-control" ${requiredAttr} 

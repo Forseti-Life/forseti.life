@@ -274,14 +274,20 @@ export class EntityManager {
    * 
    * @returns {object} Serialized data with version, nextEntityId, and entities array
    */
-  toJSON() {
+  toJSON(format = 'ecs') {
     const entities = [];
     for (const entity of this.entities.values()) {
       if (entity.isActive()) {
-        entities.push(entity.toJSON());
+        entities.push(entity.toJSON(format));
       }
     }
+    
+    if (format === 'entity_instance') {
+      // Return array of entity_instances for schema conformance
+      return entities;
+    }
 
+    // ECS format includes manager metadata
     return {
       version: ENTITY_MANAGER_SCHEMA_VERSION,
       nextEntityId: this.nextEntityId,
@@ -319,8 +325,31 @@ export class EntityManager {
    * });
    */
   fromJSON(data, componentClasses) {
-    if (!data || typeof data !== 'object') {
-      throw new TypeError('Data must be a valid object');
+    if (!data) {
+      throw new TypeError('Data cannot be null or undefined');
+    }
+    
+    // Handle entity_instance array format
+    if (Array.isArray(data)) {
+      this.clear();
+      for (const entityData of data) {
+        const entity = Entity.fromJSON(entityData, componentClasses);
+        this.entities.set(entity.id, entity);
+        if (entity.isActive()) {
+          this._activeCount++;
+        }
+        // Track highest ID for proper nextEntityId
+        if (entity.id >= this.nextEntityId) {
+          this.nextEntityId = entity.id + 1;
+        }
+      }
+      this.invalidateQueryCache();
+      return;
+    }
+    
+    // Handle ECS format
+    if (typeof data !== 'object') {
+      throw new TypeError('Data must be a valid object or array');
     }
     if (!Array.isArray(data.entities)) {
       throw new TypeError('Data.entities must be an array');
