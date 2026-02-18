@@ -9,6 +9,26 @@ use Drupal\Core\Database\Connection;
 
 /**
  * Checks access for campaign operations based on ownership.
+ *
+ * ## Schema Conformance (DCC-0257)
+ *
+ * This access check conforms to the dc_campaigns table schema defined in
+ * dungeoncrawler_content.install and the campaign.schema.json specification.
+ *
+ * ### Table Reference
+ * - **dc_campaigns**: Campaign headers and lifecycle state
+ *
+ * ### Hot Column Usage
+ * This access check queries the `uid` hot column for O(1) indexed access:
+ * - **uid**: Campaign owner user ID (indexed for ownership queries)
+ *
+ * ### JSON Column Structure
+ * The `campaign_data` JSON column contains the full campaign state payload
+ * conforming to campaign.schema.json, but is NOT queried by this access check
+ * for performance reasons. Ownership verification uses the indexed `uid` column.
+ *
+ * @see campaign.schema.json
+ * @see dungeoncrawler_content_schema()
  */
 class CampaignAccessCheck implements AccessInterface {
 
