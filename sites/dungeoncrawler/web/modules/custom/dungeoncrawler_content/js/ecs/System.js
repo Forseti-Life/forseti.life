@@ -17,6 +17,67 @@
  * - 50-80: World systems (movement, physics, collision)
  * - 90-100: Presentation systems (animation, rendering, audio)
  * 
+ * Database Schema Integration:
+ * ============================
+ * Systems operate on entities that are persisted to the dc_campaign_characters
+ * table using a hybrid storage model combining hot columns (for fast queries)
+ * and JSON columns (for full entity state).
+ * 
+ * Hot Columns (indexed, fast access):
+ * - position_q, position_r: PositionComponent.q/.r (axial hex coordinates)
+ * - hp_current, hp_max: StatsComponent.currentHp/.maxHp
+ * - armor_class: StatsComponent.ac
+ * - type: Entity type identifier (see Type Mapping below)
+ * - instance_id: Entity.id for runtime ECS reference
+ * 
+ * JSON Columns (full state):
+ * - character_data: Complete Entity.toJSON() output with all components
+ * - state_data: Campaign-scoped runtime deltas (merged on load)
+ * 
+ * Type Mapping (IdentityComponent.entityType ↔ DB type field):
+ * ------------------------------------------------------------
+ * EntityType enum value    | DB 'type' field | Usage
+ * -------------------------|-----------------|------------------------
+ * 'player_character'       | 'pc'            | Player-controlled characters
+ * 'npc'                    | 'npc'           | Non-player characters
+ * 'creature'               | 'pc'*           | Generic creatures (legacy mapping)
+ * 'obstacle'               | 'obstacle'      | Physical obstacles
+ * 'trap'                   | 'trap'          | Traps and hazards with triggers
+ * 'hazard'                 | 'hazard'        | Environmental hazards
+ * 'item'                   | N/A**           | Items (separate table)
+ * 'treasure'               | N/A**           | Treasure (separate table)
+ * 
+ * *Note: 'creature' EntityType maps to 'pc' in database for backward compatibility
+ * **Note: Items/treasure use dc_campaign_items table, not dc_campaign_characters
+ * 
+ * System Implementation Guidelines:
+ * ---------------------------------
+ * When implementing systems that modify entity state:
+ * 
+ * 1. Query entities using component requirements:
+ *    const entities = this.queryEntities('StatsComponent', 'CombatComponent');
+ * 
+ * 2. Modify component properties (hot column values):
+ *    stats.currentHp -= damage;  // Will sync to hp_current column
+ *    position.q = newQ;           // Will sync to position_q column
+ *    position.r = newR;           // Will sync to position_r column
+ * 
+ * 3. Hot column synchronization happens automatically on entity save/persist
+ *    via EntityManager.toJSON() → backend save handler
+ * 
+ * 4. Type checking for entity categories:
+ *    const identity = entity.getComponent('IdentityComponent');
+ *    if (identity.isCharacter()) {  // player_character, npc, or creature
+ *      // Character-specific logic
+ *    }
+ * 
+ * @see /sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/dungeoncrawler_content.install
+ *   Lines 1225-1455: dc_campaign_characters table schema definition
+ * @see EntityManager.js for serialization/deserialization with hot column sync
+ * @see components/IdentityComponent.js for EntityType enum and type helpers
+ * @see components/StatsComponent.js for HP/AC properties (hot columns)
+ * @see components/PositionComponent.js for position properties (hot columns)
+ * 
  * @example
  * class MySystem extends System {
  *   constructor(entityManager) {
@@ -28,7 +89,10 @@
  *   update(deltaTime) {
  *     const entities = this.queryEntities(...this.requiredComponents);
  *     for (const entity of entities) {
- *       // Process entity
+ *       // Process entity - changes to hot column properties
+ *       // (hp, position, ac) are synced automatically on save
+ *       const position = entity.getComponent('PositionComponent');
+ *       position.q += 1;  // Syncs to position_q column
  *     }
  *   }
  * }
