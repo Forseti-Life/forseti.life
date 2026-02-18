@@ -39,6 +39,7 @@
     "name": {
       "type": "string",
       "minLength": 1,
+      "maxLength": 200,
       "description": "Display name of the trap.",
       "examples": ["Poisoned Dart Trap", "Scything Blade", "Pit Trap", "Flame Jet"]
     },
@@ -63,6 +64,7 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1 },
       "uniqueItems": true,
+      "maxItems": 10,
       "description": "PF2e trap traits (e.g., ['Magical', 'Trap', 'Mechanical'])."
     },
     "complexity": {
@@ -78,6 +80,7 @@
     },
     "description": {
       "type": "string",
+      "maxLength": 2000,
       "description": "Narrative description of the trap and its appearance."
     },
     "disable": {
@@ -121,12 +124,14 @@
         },
         "custom": {
           "type": "string",
+          "maxLength": 500,
           "description": "Non-standard disarm method (narrative description)."
         }
       }
     },
     "trigger": {
       "type": "string",
+      "maxLength": 1000,
       "description": "What triggers the trap (e.g., 'A creature enters the trapped hex', 'Opening the door')."
     },
     "effect": {
@@ -165,7 +170,7 @@
         },
         "conditions_applied": {
           "type": "array",
-          "items": { "type": "string", "minLength": 1 },
+          "items": { "type": "string", "minLength": 1, "maxLength": 100 },
           "uniqueItems": true,
           "description": "Conditions applied on a failed save (e.g., ['poisoned', 'stunned 1'])."
         },
@@ -189,6 +194,7 @@
         },
         "description": {
           "type": "string",
+          "maxLength": 2000,
           "description": "Narrative description of the trap's effect."
         }
       }
@@ -209,10 +215,12 @@
             "reset_time_minutes": {
               "type": ["integer", "null"],
               "minimum": 1,
-              "description": "Time in minutes before automatic reset."
+              "maximum": 10080,
+              "description": "Time in minutes before automatic reset (max 1 week = 10080 minutes)."
             },
             "conditions": {
               "type": "string",
+              "maxLength": 500,
               "description": "Specific conditions required for reset."
             }
           }
@@ -244,7 +252,7 @@
     },
     "immunities": {
       "type": "array",
-      "items": { "type": "string", "minLength": 1 },
+      "items": { "type": "string", "minLength": 1, "maxLength": 50 },
       "uniqueItems": true,
       "description": "Damage types and conditions the trap is immune to."
     },

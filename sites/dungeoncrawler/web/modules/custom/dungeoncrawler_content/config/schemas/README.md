@@ -41,10 +41,10 @@ JSON Schemas serve multiple purposes:
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
 | `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
-| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 310 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
+| `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
+| `party.schema.json` | Adventuring party | ✓ | 455 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
-| `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
+| `trap.schema.json` | Mechanical & magical traps | ✓ | 440 | Trap mechanics |
 
 ## Schema Categories
 
@@ -367,6 +367,13 @@ Adventuring party with shared resources and exploration state.
 - Improved documentation with comprehensive descriptions
 - Validates successfully with test data
 
+**DCC-0025 Improvements (2026-02-18):**
+- Added `maxLength` constraints to 4 string fields (class, fog_of_war.notes.text, condition.name, condition.duration)
+- Added `maxItems` constraints to 9 arrays (conditions, shared_inventory, watch_order, revealed_hexes/rooms/connections, notes, encounter_log, loot_gained)
+- Added `maximum` bounds to 14 numeric fields (light_radius_hexes, total_xp, all dungeon_stats fields)
+- Enhanced logical consistency: watch_order maxItems (6) matches members maxItems (6)
+- Total: 27 new validation constraints while maintaining backward compatibility
+
 **Defines:**
 - Party metadata (name, owner, timestamps)
 - Party members with PF2e conditions, spell slots, hero points, exploration activities
@@ -379,7 +386,14 @@ Adventuring party with shared resources and exploration state.
 #### `room.schema.json`
 Individual dungeon rooms that occupy one or more hexes. AI-generated on first entry and permanent thereafter.
 
-**Recently improved (2026-02-17):**
+**Recently improved (2026-02-18, DCC-0027):**
+- Fixed duplicate minLength/maxLength constraint bug on name field
+- Added maxItems constraints to all 12 arrays (100% coverage)
+- Added maxLength to theme_tags array items
+- Improved validation consistency with peer schemas (hazard, dungeon_level, trap)
+- All changes backward compatible with existing data
+
+**Previously improved (2026-02-17):**
 - Added schema versioning for migration compatibility
 - Added timestamp tracking (created_at, updated_at)
 - Added uniqueItems constraints to 11 arrays for data integrity
@@ -420,6 +434,15 @@ PF2e-compatible traps and snares (simple and complex). Traps are hidden threats 
 - Added comprehensive examples section with simple and complex trap patterns
 - Improved consistency with hazard.schema.json structure and validation patterns
 
+**Further improved (2026-02-18, DCC-0028):**
+- Added 8 `maxLength` constraints to string fields for data integrity (name: 200, description: 2000, trigger: 1000, disable.custom: 500, conditions_applied items: 100, effect.description: 2000, immunities items: 50, reset.conditions: 500)
+- Added `maxItems: 10` to traits array to prevent unreasonably large trait lists
+- Added `maximum: 10080` (1 week) to reset_time_minutes for realistic reset timeframes
+- Enhanced documentation for reset_time_minutes to clarify maximum constraint
+- All changes maintain backward compatibility; existing valid data remains valid
+- Total: 10 validation constraints added for consistency with hazard.schema.json
+- See: `REVIEW_SUMMARY_DCC-0028.md`
+
 **Defines:**
 - Simple traps: One-time dangers (dart trap, pit trap)
 - Complex traps: Ongoing threats that act in initiative order
@@ -440,6 +463,7 @@ PF2e-compatible traps and snares (simple and complex). Traps are hidden threats 
 - Comprehensive examples demonstrating simple and complex trap patterns
 - Maximum value constraints aligned with hazard.schema (resistances/weaknesses max: 30)
 - Enhanced damage_type field to support multiple damage types (e.g., "piercing, poison")
+- Bounded string fields prevent database overflow and UI rendering issues
 
 ## Schema Standards
 
@@ -609,13 +633,12 @@ Schemas with `schema_version` field (migration-ready):
 Schemas with versioning (recently added):
 - ✓ `obstacle.schema.json`
 - ✓ `obstacle_object_catalog.schema.json`
-- ✓ `room.schema.json`
+- ✓ `room.schema.json` (DCC-0027: Added comprehensive array bounds 2026-02-18)
 
 Schemas pending versioning:
 - `character_options_step[1-2,4-5,7].json` (UI-only schemas - lower priority)
 - `obstacle.schema.json` (needs versioning for production use)
 - `obstacle_object_catalog.schema.json` (needs versioning for production use)
-- `room.schema.json` (needs versioning for production use)
 
 ### Adding New Properties
 1. Update the appropriate schema file
