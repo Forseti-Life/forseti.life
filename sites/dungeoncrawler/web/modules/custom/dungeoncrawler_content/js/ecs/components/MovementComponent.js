@@ -1,6 +1,37 @@
 /**
  * @file MovementComponent.js
  * Component for entity movement capabilities and state.
+ * 
+ * ## Database Schema Mapping
+ * 
+ * This component maps to the entity_instance.state.metadata fields when persisted
+ * to the database. Movement data is stored as part of the extensible metadata object
+ * in the state_data JSON column for runtime state tracking.
+ * 
+ * ### ECS to Database Mapping:
+ * 
+ * **MovementComponent fields → state_data.metadata:**
+ * - `movementRemaining` → state_data.metadata.movementRemaining (feet remaining this turn)
+ * - `movementMode` → state_data.metadata.movementMode ('walk', 'fly', 'swim', 'burrow', 'climb')
+ * - `movementSpeed` → state_data.metadata.movementSpeed (base speed in feet)
+ * - `canMove` → state_data.metadata.canMove (boolean, can move this turn)
+ * - `path` → state_data.metadata.path (array of hex coordinates)
+ * - `hexMovementCost` → state_data.metadata.hexMovementCost (cost per hex in feet)
+ * - `movementModes` → state_data.metadata.movementModes (available movement types/speeds)
+ * 
+ * ### Hot Columns:
+ * No hot columns for MovementComponent. Position tracking uses PositionComponent's
+ * position_q and position_r hot columns in dc_campaign_characters table.
+ * 
+ * ### Schema References:
+ * - entity_instance.schema.json: state.metadata (extensible object)
+ * - dc_campaign_characters table: state_data (JSON column)
+ * 
+ * ### Non-Persisted Fields:
+ * - `onMovementDepleted` - Runtime callback, not serialized to database
+ * 
+ * @see /config/schemas/entity_instance.schema.json
+ * @see Component.toJSON() for serialization pattern
  */
 
 import { Component } from '../Component.js';
@@ -190,8 +221,18 @@ export class MovementComponent extends Component {
   }
   
   /**
-   * Validate component data.
-   * @returns {boolean} True if component data is valid
+   * Validate component data for schema conformance.
+   * 
+   * Ensures all movement data conforms to expected types and value ranges before
+   * persistence to database. This validation is called by fromJSON() during
+   * deserialization to guarantee data integrity.
+   * 
+   * @returns {boolean} True if component data is valid and schema-compliant
+   * 
+   * @example
+   * const movement = new MovementComponent(30);
+   * movement.movementSpeed = -5; // Invalid
+   * movement.validate(); // Returns false
    */
   validate() {
     // Check numeric values are valid
@@ -240,8 +281,30 @@ export class MovementComponent extends Component {
   }
   
   /**
-   * Serialize component to JSON.
-   * @returns {Object}
+   * Serialize component to JSON for database persistence.
+   * 
+   * Serializes all movement-related state for storage in entity_instance.state.metadata.
+   * The `type` field enables component identification during deserialization.
+   * The `movementModes` object is shallow-copied to prevent reference issues.
+   * 
+   * This method explicitly lists all persisted fields to ensure callbacks like
+   * `onMovementDepleted` are excluded from serialization.
+   * 
+   * @returns {Object} Serialized component data conforming to state_data.metadata schema
+   * 
+   * @example
+   * const movement = new MovementComponent(30);
+   * const json = movement.toJSON();
+   * // json = {
+   * //   type: 'MovementComponent',
+   * //   canMove: true,
+   * //   movementRemaining: 30,
+   * //   movementSpeed: 30,
+   * //   movementMode: 'walk',
+   * //   path: [],
+   * //   hexMovementCost: 5,
+   * //   movementModes: { walk: 30, fly: 0, swim: 0, burrow: 0, climb: 0 }
+   * // }
    */
   toJSON() {
     return {
@@ -257,10 +320,27 @@ export class MovementComponent extends Component {
   }
   
   /**
-   * Deserialize component from JSON.
-   * @param {Object} data - Serialized data
-   * @returns {MovementComponent}
+   * Deserialize component from JSON loaded from database.
+   * 
+   * Reconstructs a MovementComponent from state_data.metadata. Validates all required
+   * fields and performs type checking to ensure data integrity. The resulting component
+   * is validated before being returned.
+   * 
+   * @param {Object} data - Serialized data from state_data.metadata
+   * @returns {MovementComponent} Reconstructed component instance
    * @throws {Error} If data is invalid or missing required fields
+   * 
+   * @example
+   * const data = {
+   *   movementSpeed: 30,
+   *   canMove: true,
+   *   movementRemaining: 15,
+   *   movementMode: 'walk',
+   *   hexMovementCost: 5,
+   *   movementModes: { walk: 30, fly: 0 },
+   *   path: [{q: 0, r: 1}, {q: 1, r: 1}]
+   * };
+   * const movement = MovementComponent.fromJSON(data);
    */
   static fromJSON(data) {
     // Validate input
