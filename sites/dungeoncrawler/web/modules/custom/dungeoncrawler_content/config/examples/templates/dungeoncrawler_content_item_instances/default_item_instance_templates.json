@@ -1,47 +1,52 @@
 {
   "rows": [
     {
-      "item_instance_id": "tpl_item_minor_potion_001",
+      "item_instance_id": "tpl_item_healing_potion_minor_001",
       "item_id": "healing_potion_minor",
       "location_type": "inventory",
       "location_ref": "starter_pack",
       "quantity": 2,
-      "state_data": {
-        "identified": true,
-        "charges": 1
-      }
+      "state_data": {"identified": true, "charges": 1, "source_book": "core_rulebook_4th_printing"}
     },
     {
-      "item_instance_id": "tpl_item_minor_potion_002",
-      "item_id": "healing_potion_minor",
+      "item_instance_id": "tpl_item_elixir_of_life_minor_001",
+      "item_id": "elixir_of_life_minor",
       "location_type": "loot_table",
-      "location_ref": "starter_tavern_common",
+      "location_ref": "core_field_support",
       "quantity": 1,
-      "state_data": {"identified": false, "charges": 1}
-    },
-    {
-      "item_instance_id": "tpl_item_scroll_magic_missile_001",
-      "item_id": "scroll_magic_missile_rank1",
-      "location_type": "inventory",
-      "location_ref": "starter_pack",
-      "quantity": 1,
-      "state_data": {"identified": true, "consumable": true}
+      "state_data": {"identified": false, "consumable": true, "source_book": "core_rulebook_4th_printing"}
     },
     {
       "item_instance_id": "tpl_item_antidote_lesser_001",
       "item_id": "antidote_lesser",
-      "location_type": "stash",
-      "location_ref": "town_supplies",
-      "quantity": 2,
-      "state_data": {"identified": true, "consumable": true}
+      "location_type": "loot_table",
+      "location_ref": "core_hazard_toolbox",
+      "quantity": 1,
+      "state_data": {"identified": true, "consumable": true, "source_book": "core_rulebook_4th_printing"}
     },
     {
-      "item_instance_id": "tpl_item_bottled_lightning_001",
-      "item_id": "bottled_lightning_lesser",
+      "item_instance_id": "tpl_item_antiplague_lesser_001",
+      "item_id": "antiplague_lesser",
       "location_type": "loot_table",
-      "location_ref": "goblin_raiders_cache",
+      "location_ref": "core_field_medicine",
       "quantity": 1,
-      "state_data": {"identified": false, "consumable": true}
+      "state_data": {"identified": true, "consumable": true, "source_book": "core_rulebook_4th_printing"}
+    },
+    {
+      "item_instance_id": "tpl_item_alchemists_fire_lesser_001",
+      "item_id": "alchemists_fire_lesser",
+      "location_type": "loot_table",
+      "location_ref": "core_alchemical_response",
+      "quantity": 1,
+      "state_data": {"identified": false, "consumable": true, "source_book": "core_rulebook_4th_printing"}
+    },
+    {
+      "item_instance_id": "tpl_item_acid_flask_lesser_001",
+      "item_id": "acid_flask_lesser",
+      "location_type": "loot_table",
+      "location_ref": "core_alchemical_response",
+      "quantity": 1,
+      "state_data": {"identified": false, "consumable": true, "source_book": "core_rulebook_4th_printing"}
     },
     {
       "item_instance_id": "tpl_item_thieves_tools_001",
@@ -49,39 +54,31 @@
       "location_type": "inventory",
       "location_ref": "rogue_kit",
       "quantity": 1,
-      "state_data": {"identified": true, "broken": false}
+      "state_data": {"identified": true, "broken": false, "source_book": "core_rulebook_4th_printing"}
     },
     {
-      "item_instance_id": "tpl_item_repair_kit_001",
-      "item_id": "repair_kit",
+      "item_instance_id": "tpl_item_healers_tools_001",
+      "item_id": "healers_tools",
       "location_type": "inventory",
-      "location_ref": "artisan_pack",
+      "location_ref": "field_medic_kit",
       "quantity": 1,
-      "state_data": {"identified": true, "uses": 10}
+      "state_data": {"identified": true, "uses": 10, "source_book": "core_rulebook_4th_printing"}
     },
     {
-      "item_instance_id": "tpl_item_frost_vial_001",
-      "item_id": "frost_vial",
+      "item_instance_id": "tpl_item_weapon_potency_rune_1_001",
+      "item_id": "weapon_potency_rune_1",
       "location_type": "loot_table",
-      "location_ref": "frozen_reliquary",
+      "location_ref": "core_weapon_progression",
       "quantity": 1,
-      "state_data": {"identified": false, "consumable": true}
+      "state_data": {"identified": true, "consumable": false, "source_book": "core_rulebook_4th_printing"}
     },
     {
-      "item_instance_id": "tpl_item_storm_ward_talisman_001",
-      "item_id": "storm_ward_talisman",
-      "location_type": "room",
-      "location_ref": "tpl_room_summit_storm_dais",
-      "quantity": 1,
-      "state_data": {"identified": true, "attuned": false}
-    },
-    {
-      "item_instance_id": "tpl_item_gold_cache_001",
-      "item_id": "gold_pieces",
+      "item_instance_id": "tpl_item_relic_seed_emberheart_001",
+      "item_id": "relic_seed_emberheart",
       "location_type": "loot_table",
-      "location_ref": "mythic_storm_cache",
-      "quantity": 250,
-      "state_data": {"identified": true}
+      "location_ref": "gmg_relic_hooks",
+      "quantity": 1,
+      "state_data": {"identified": false, "attuned": false, "source_book": "gamemastery_guide"}
     }
   ]
 }

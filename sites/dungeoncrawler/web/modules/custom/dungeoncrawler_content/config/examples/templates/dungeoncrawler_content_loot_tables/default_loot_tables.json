@@ -1,123 +1,124 @@
 {
   "rows": [
     {
-      "table_id": "starter_tavern_common",
-      "name": "Starter Tavern Common Loot",
-      "description": "Low-risk early-campaign tavern and nearby-room drops.",
+      "table_id": "core_starter_adventure",
+      "name": "Core Starter Adventure",
+      "description": "Player-handbook style starter consumables and kits.",
       "level_range": "1-2",
       "entries": [
-        {"item_id": "gold_pieces", "weight": 45, "quantity": "1d12"},
-        {"item_id": "basic_rations", "weight": 25, "quantity": "1d4"},
-        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"},
-        {"item_id": "tinderbox", "weight": 10, "quantity": "1"}
+        {"item_id": "healing_potion_minor", "weight": 35, "quantity": "1"},
+        {"item_id": "elixir_of_life_minor", "weight": 25, "quantity": "1"},
+        {"item_id": "thieves_tools", "weight": 20, "quantity": "1"},
+        {"item_id": "healers_tools", "weight": 20, "quantity": "1"}
       ]
     },
     {
-      "table_id": "starter_goblin_warrens",
-      "name": "Starter Goblin Warrens Loot",
-      "description": "Entry-level loot tuned for goblin-themed encounters.",
+      "table_id": "core_alchemical_response",
+      "name": "Core Alchemical Response",
+      "description": "Core defensive and offensive alchemical picks.",
       "level_range": "1-3",
       "entries": [
-        {"item_id": "gold_pieces", "weight": 50, "quantity": "2d10"},
-        {"item_id": "dagger", "weight": 20, "quantity": "1"},
-        {"item_id": "shortbow", "weight": 15, "quantity": "1"},
+        {"item_id": "antidote_lesser", "weight": 30, "quantity": "1"},
+        {"item_id": "antiplague_lesser", "weight": 30, "quantity": "1"},
+        {"item_id": "alchemists_fire_lesser", "weight": 20, "quantity": "1"},
+        {"item_id": "acid_flask_lesser", "weight": 20, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "core_ruin_scavengers",
+      "name": "Core Ruin Scavengers",
+      "description": "Mixed utility and consumable rewards for low-tier dungeons.",
+      "level_range": "1-3",
+      "entries": [
+        {"item_id": "thieves_tools", "weight": 25, "quantity": "1"},
+        {"item_id": "healing_potion_minor", "weight": 30, "quantity": "1"},
+        {"item_id": "antidote_lesser", "weight": 25, "quantity": "1"},
+        {"item_id": "acid_flask_lesser", "weight": 20, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "core_field_support",
+      "name": "Core Field Support",
+      "description": "Medicine-forward loot set for sustained delves.",
+      "level_range": "1-4",
+      "entries": [
+        {"item_id": "healers_tools", "weight": 30, "quantity": "1"},
+        {"item_id": "elixir_of_life_minor", "weight": 30, "quantity": "1"},
+        {"item_id": "healing_potion_minor", "weight": 25, "quantity": "1"},
+        {"item_id": "antiplague_lesser", "weight": 15, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "core_weapon_progression",
+      "name": "Core Weapon Progression",
+      "description": "Fundamental rune progression rewards.",
+      "level_range": "2-5",
+      "entries": [
+        {"item_id": "weapon_potency_rune_1", "weight": 45, "quantity": "1"},
+        {"item_id": "alchemists_fire_lesser", "weight": 20, "quantity": "1"},
+        {"item_id": "acid_flask_lesser", "weight": 20, "quantity": "1"},
         {"item_id": "healing_potion_minor", "weight": 15, "quantity": "1"}
       ]
     },
     {
-      "table_id": "goblin_raiders_cache",
-      "name": "Goblin Raiders Cache",
-      "description": "Mobile loot carried by raiding groups.",
-      "level_range": "2-3",
+      "table_id": "core_hazard_toolbox",
+      "name": "Core Hazard Toolbox",
+      "description": "Items useful for trap and hazard-heavy routes.",
+      "level_range": "1-4",
       "entries": [
-        {"item_id": "gold_pieces", "weight": 40, "quantity": "2d12"},
-        {"item_id": "bottled_lightning_lesser", "weight": 20, "quantity": "1"},
-        {"item_id": "minor_elixir_life", "weight": 20, "quantity": "1"},
-        {"item_id": "shortsword", "weight": 20, "quantity": "1"}
-      ]
-    },
-    {
-      "table_id": "crypt_guardians_reliquary",
-      "name": "Crypt Guardians Reliquary",
-      "description": "Coin and relic drops from undead crypt defenders.",
-      "level_range": "3-4",
-      "entries": [
-        {"item_id": "silver_pieces", "weight": 45, "quantity": "3d10"},
-        {"item_id": "holy_symbol", "weight": 20, "quantity": "1"},
-        {"item_id": "ghost_charge_ammunition", "weight": 15, "quantity": "1d4"},
-        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"}
-      ]
-    },
-    {
-      "table_id": "trap_complex_salvage",
-      "name": "Trap Complex Salvage",
-      "description": "Mechanical salvage and trap parts.",
-      "level_range": "3-5",
-      "entries": [
-        {"item_id": "gold_pieces", "weight": 30, "quantity": "2d8"},
-        {"item_id": "repair_kit", "weight": 25, "quantity": "1"},
-        {"item_id": "snare_kit", "weight": 20, "quantity": "1"},
-        {"item_id": "minor_elixir_life", "weight": 25, "quantity": "1"}
-      ]
-    },
-    {
-      "table_id": "sunken_cistern_debris",
-      "name": "Sunken Cistern Debris",
-      "description": "Waterlogged remnants and practical consumables.",
-      "level_range": "4-5",
-      "entries": [
-        {"item_id": "gold_pieces", "weight": 35, "quantity": "2d10"},
-        {"item_id": "waterproof_satchel", "weight": 20, "quantity": "1"},
+        {"item_id": "thieves_tools", "weight": 35, "quantity": "1"},
         {"item_id": "antidote_lesser", "weight": 25, "quantity": "1"},
-        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"}
+        {"item_id": "antiplague_lesser", "weight": 20, "quantity": "1"},
+        {"item_id": "elixir_of_life_minor", "weight": 20, "quantity": "1"}
       ]
     },
     {
-      "table_id": "alchemical_annex_stores",
-      "name": "Alchemical Annex Stores",
-      "description": "Volatile alchemical consumables and reagents.",
-      "level_range": "5-6",
+      "table_id": "gmg_relic_hooks",
+      "name": "GMG Relic Hooks",
+      "description": "Dungeon Master Guide relic-seed style rewards.",
+      "level_range": "3-6",
       "entries": [
-        {"item_id": "alchemists_fire_lesser", "weight": 25, "quantity": "1"},
-        {"item_id": "frost_vial", "weight": 20, "quantity": "1"},
-        {"item_id": "acid_flask_lesser", "weight": 25, "quantity": "1"},
-        {"item_id": "gold_pieces", "weight": 30, "quantity": "3d10"}
+        {"item_id": "relic_seed_emberheart", "weight": 40, "quantity": "1"},
+        {"item_id": "weapon_potency_rune_1", "weight": 25, "quantity": "1"},
+        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"},
+        {"item_id": "elixir_of_life_minor", "weight": 15, "quantity": "1"}
       ]
     },
     {
-      "table_id": "clockwork_foundry_parts",
-      "name": "Clockwork Foundry Parts",
-      "description": "Construct salvage and precision components.",
-      "level_range": "6-8",
+      "table_id": "gmg_story_treasures",
+      "name": "GMG Story Treasures",
+      "description": "Narrative campaign pacing set with relic and support items.",
+      "level_range": "3-7",
       "entries": [
-        {"item_id": "gold_pieces", "weight": 40, "quantity": "4d10"},
-        {"item_id": "precision_gear_set", "weight": 20, "quantity": "1"},
-        {"item_id": "repair_kit", "weight": 20, "quantity": "1"},
-        {"item_id": "moderate_elixir_life", "weight": 20, "quantity": "1"}
+        {"item_id": "relic_seed_emberheart", "weight": 30, "quantity": "1"},
+        {"item_id": "antiplague_lesser", "weight": 25, "quantity": "1"},
+        {"item_id": "antidote_lesser", "weight": 25, "quantity": "1"},
+        {"item_id": "healers_tools", "weight": 20, "quantity": "1"}
       ]
     },
     {
-      "table_id": "frozen_reliquary",
-      "name": "Frozen Reliquary Loot",
-      "description": "Cold-resistant supplies and ancient valuables.",
-      "level_range": "8-10",
+      "table_id": "gmg_downtime_recovery",
+      "name": "GMG Downtime Recovery",
+      "description": "GM-facing recovery cache for between-delves pacing.",
+      "level_range": "2-5",
       "entries": [
-        {"item_id": "gold_pieces", "weight": 35, "quantity": "5d10"},
-        {"item_id": "cold_resistance_charm", "weight": 20, "quantity": "1"},
-        {"item_id": "greater_elixir_life", "weight": 20, "quantity": "1"},
-        {"item_id": "frost_vial", "weight": 25, "quantity": "1"}
+        {"item_id": "healing_potion_minor", "weight": 35, "quantity": "1"},
+        {"item_id": "elixir_of_life_minor", "weight": 25, "quantity": "1"},
+        {"item_id": "healers_tools", "weight": 20, "quantity": "1"},
+        {"item_id": "weapon_potency_rune_1", "weight": 20, "quantity": "1"}
       ]
     },
     {
-      "table_id": "mythic_storm_cache",
-      "name": "Mythic Storm Cache",
-      "description": "High-tier rewards for summit-level threats.",
-      "level_range": "11-14",
+      "table_id": "gmg_balanced_party_cache",
+      "name": "GMG Balanced Party Cache",
+      "description": "Mixed party-support cache combining core and GMG-oriented rewards.",
+      "level_range": "1-6",
       "entries": [
-        {"item_id": "gold_pieces", "weight": 45, "quantity": "8d10"},
-        {"item_id": "storm_ward_talisman", "weight": 20, "quantity": "1"},
-        {"item_id": "major_elixir_life", "weight": 15, "quantity": "1"},
-        {"item_id": "scroll_chain_lightning", "weight": 20, "quantity": "1"}
+        {"item_id": "thieves_tools", "weight": 20, "quantity": "1"},
+        {"item_id": "healers_tools", "weight": 20, "quantity": "1"},
+        {"item_id": "healing_potion_minor", "weight": 25, "quantity": "1"},
+        {"item_id": "relic_seed_emberheart", "weight": 15, "quantity": "1"},
+        {"item_id": "weapon_potency_rune_1", "weight": 20, "quantity": "1"}
       ]
     }
   ]

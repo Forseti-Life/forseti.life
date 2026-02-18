@@ -1,0 +1,104 @@
+{
+  "rows": [
+    {
+      "content_type": "item",
+      "content_id": "healing_potion_minor",
+      "name": "Healing Potion (Minor)",
+      "level": 1,
+      "rarity": "common",
+      "tags": ["item", "consumable", "potion", "core_rulebook"],
+      "schema_data": {"item_id": "healing_potion_minor", "item_type": "potion", "source_book": "core_rulebook_4th_printing", "price_gp": 4, "usage": "drink", "effect": "restore 1d8 hit points"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "elixir_of_life_minor",
+      "name": "Elixir of Life (Minor)",
+      "level": 1,
+      "rarity": "common",
+      "tags": ["item", "consumable", "elixir", "core_rulebook"],
+      "schema_data": {"item_id": "elixir_of_life_minor", "item_type": "consumable", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "usage": "drink", "effect": "restorative healing elixir"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "antidote_lesser",
+      "name": "Antidote (Lesser)",
+      "level": 1,
+      "rarity": "common",
+      "tags": ["item", "consumable", "alchemical", "core_rulebook"],
+      "schema_data": {"item_id": "antidote_lesser", "item_type": "consumable", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "usage": "drink", "effect": "temporary poison resistance bonus"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "antiplague_lesser",
+      "name": "Antiplague (Lesser)",
+      "level": 1,
+      "rarity": "common",
+      "tags": ["item", "consumable", "alchemical", "core_rulebook"],
+      "schema_data": {"item_id": "antiplague_lesser", "item_type": "consumable", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "usage": "drink", "effect": "temporary disease resistance bonus"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "alchemists_fire_lesser",
+      "name": "Alchemist's Fire (Lesser)",
+      "level": 1,
+      "rarity": "common",
+      "tags": ["item", "consumable", "bomb", "core_rulebook"],
+      "schema_data": {"item_id": "alchemists_fire_lesser", "item_type": "consumable", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "usage": "thrown", "effect": "fire splash damage"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "acid_flask_lesser",
+      "name": "Acid Flask (Lesser)",
+      "level": 1,
+      "rarity": "common",
+      "tags": ["item", "consumable", "bomb", "core_rulebook"],
+      "schema_data": {"item_id": "acid_flask_lesser", "item_type": "consumable", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "usage": "thrown", "effect": "acid splash damage"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "thieves_tools",
+      "name": "Thieves' Tools",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "tool", "adventuring_gear", "core_rulebook"],
+      "schema_data": {"item_id": "thieves_tools", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "bulk": "L", "usage": "skill_checks", "effect": "required for many thievery tasks"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "healers_tools",
+      "name": "Healer's Tools",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "tool", "adventuring_gear", "core_rulebook"],
+      "schema_data": {"item_id": "healers_tools", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 5, "bulk": "1", "usage": "skill_checks", "effect": "required for treat wounds"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "weapon_potency_rune_1",
+      "name": "Weapon Potency Rune (+1)",
+      "level": 2,
+      "rarity": "common",
+      "tags": ["item", "rune", "weapon", "core_rulebook"],
+      "schema_data": {"item_id": "weapon_potency_rune_1", "item_type": "material", "source_book": "core_rulebook_4th_printing", "price_gp": 35, "usage": "crafting_transfer", "effect": "+1 item bonus to weapon attack rolls"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "relic_seed_emberheart",
+      "name": "Relic Seed: Emberheart",
+      "level": 3,
+      "rarity": "rare",
+      "tags": ["item", "relic", "gmg", "scaling_item"],
+      "schema_data": {"item_id": "relic_seed_emberheart", "item_type": "relic", "source_book": "gamemastery_guide", "usage": "campaign_progression", "effect": "template for relic growth tracks"},
+      "version": "1.0.0"
+    }
+  ]
+}
