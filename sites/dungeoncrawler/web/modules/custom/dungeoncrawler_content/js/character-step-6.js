@@ -131,7 +131,24 @@
               return;
             }
 
-            // Optional fields - no validation needed for age, deity, gender
+            // Optional field validation: age, deity, gender
+            const $ageField = $('#age');
+            const ageValue = $ageField.val();
+            if (ageValue && ageValue.length > 50) {
+              $errorMsg.text('Age cannot exceed 50 characters.').removeClass(CSS_CLASSES.HIDDEN);
+              return;
+            }
+            if (ageValue && !/^[0-9a-zA-Z\s,\-]+$/.test(ageValue)) {
+              $errorMsg.text('Age must contain only letters, numbers, spaces, commas, and hyphens.').removeClass(CSS_CLASSES.HIDDEN);
+              return;
+            }
+
+            const $genderField = $('#gender');
+            const genderValue = $genderField.val();
+            if (genderValue && genderValue.length > 100) {
+              $errorMsg.text('Gender / Pronouns cannot exceed 100 characters.').removeClass(CSS_CLASSES.HIDDEN);
+              return;
+            }
             
             // Hide error message
             $errorMsg.addClass(CSS_CLASSES.HIDDEN);

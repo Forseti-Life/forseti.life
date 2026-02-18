@@ -46,17 +46,20 @@
 
       <div class="form-row">
         <div class="form-group">
-          <label for="age">Age</label>
-          <input type="number" id="age" name="age" class="form-control" 
+          <label for="age">Age (Optional)</label>
+          <input type="text" id="age" name="age" class="form-control" 
                  value="{{ character.age|default('') }}" 
-                 min="1" max="500" placeholder="e.g., 25">
+                 maxlength="50"
+                 placeholder="e.g., 25, young adult, ancient">
+          <small class="form-text text-muted">Can be numeric or descriptive. Different ancestries age differently.</small>
         </div>
 
         <div class="form-group">
-          <label for="gender">Gender</label>
+          <label for="gender">Gender / Pronouns (Optional)</label>
           <input type="text" id="gender" name="gender" class="form-control" 
                  value="{{ character.gender|default('') }}" 
-                 placeholder="e.g., Male, Female, Non-binary">
+                 maxlength="100"
+                 placeholder="e.g., she/her, he/him, they/them">
         </div>
       </div>
     </div>

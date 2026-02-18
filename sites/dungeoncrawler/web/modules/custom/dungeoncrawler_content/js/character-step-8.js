@@ -15,8 +15,6 @@
     FORM: '#step-8-form',
     SUBMIT_BUTTON: '#next-button',
     ERROR_MESSAGE: '#error-message',
-    AGE_FIELD: '#age',
-    GENDER_FIELD: '#gender',
     APPEARANCE_FIELD: '#appearance',
     PERSONALITY_FIELD: '#personality',
     BACKSTORY_FIELD: '#backstory'
@@ -37,9 +35,6 @@
       createError: 'Error creating character.',
       genericError: 'An error occurred.',
       validationError: 'Please correct the errors below.',
-      ageTooLong: 'Age cannot exceed 50 characters.',
-      ageInvalid: 'Age must contain only letters, numbers, spaces, commas, and hyphens.',
-      genderTooLong: 'Gender / Pronouns cannot exceed 100 characters.',
       appearanceTooLong: 'Physical Appearance cannot exceed 1000 characters.',
       personalityTooLong: 'Personality & Mannerisms cannot exceed 1000 characters.',
       backstoryTooLong: 'Backstory cannot exceed 5000 characters.'
@@ -50,9 +45,6 @@
       success: '✓ Character Created!'
     },
     validation: {
-      ageMaxLength: 50,
-      agePattern: /^[0-9a-zA-Z\s,\-]+$/,
-      genderMaxLength: 100,
       appearanceMaxLength: 1000,
       personalityMaxLength: 1000,
       backstoryMaxLength: 5000
@@ -132,34 +124,6 @@
     $form.find(`.${CSS_CLASSES.INVALID}`).each(function() {
       clearFieldValidation($(this));
     });
-
-    // Validate age
-    const $age = $(SELECTORS.AGE_FIELD);
-    const ageValue = $age.val();
-    const ageValidation = validateField($age, ageValue, {
-      maxLength: CONFIG.validation.ageMaxLength,
-      pattern: CONFIG.validation.agePattern,
-      errorMessage: CONFIG.messages.ageTooLong,
-      patternError: CONFIG.messages.ageInvalid
-    });
-    if (!ageValidation.isValid) {
-      markFieldInvalid($age, ageValidation.message);
-      errors.push(ageValidation.message);
-      isValid = false;
-    }
-
-    // Validate gender
-    const $gender = $(SELECTORS.GENDER_FIELD);
-    const genderValue = $gender.val();
-    const genderValidation = validateField($gender, genderValue, {
-      maxLength: CONFIG.validation.genderMaxLength,
-      errorMessage: CONFIG.messages.genderTooLong
-    });
-    if (!genderValidation.isValid) {
-      markFieldInvalid($gender, genderValidation.message);
-      errors.push(genderValidation.message);
-      isValid = false;
-    }
 
     // Validate appearance
     const $appearance = $(SELECTORS.APPEARANCE_FIELD);
