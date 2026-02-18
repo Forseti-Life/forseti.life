@@ -118,6 +118,16 @@ services:
       - '@dungeoncrawler_content.combat_encounter_store'
       - '@dungeoncrawler_content.hp_manager'
 
+  dungeoncrawler_content.encounter_ai_provider.stub:
+    class: Drupal\dungeoncrawler_content\Service\StubEncounterAiProvider
+
+  dungeoncrawler_content.encounter_ai_integration:
+    class: Drupal\dungeoncrawler_content\Service\EncounterAiIntegrationService
+    arguments:
+      - '@dungeoncrawler_content.encounter_ai_provider.stub'
+      - '@datetime.time'
+      - '@logger.factory'
+
   # Campaign State Services
   dungeoncrawler_content.dungeon_state_service:
     class: Drupal\dungeoncrawler_content\Service\DungeonStateService

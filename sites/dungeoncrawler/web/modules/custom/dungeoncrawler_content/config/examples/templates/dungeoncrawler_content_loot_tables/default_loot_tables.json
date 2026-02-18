@@ -23,6 +23,102 @@
         {"item_id": "shortbow", "weight": 15, "quantity": "1"},
         {"item_id": "healing_potion_minor", "weight": 15, "quantity": "1"}
       ]
+    },
+    {
+      "table_id": "goblin_raiders_cache",
+      "name": "Goblin Raiders Cache",
+      "description": "Mobile loot carried by raiding groups.",
+      "level_range": "2-3",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 40, "quantity": "2d12"},
+        {"item_id": "bottled_lightning_lesser", "weight": 20, "quantity": "1"},
+        {"item_id": "minor_elixir_life", "weight": 20, "quantity": "1"},
+        {"item_id": "shortsword", "weight": 20, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "crypt_guardians_reliquary",
+      "name": "Crypt Guardians Reliquary",
+      "description": "Coin and relic drops from undead crypt defenders.",
+      "level_range": "3-4",
+      "entries": [
+        {"item_id": "silver_pieces", "weight": 45, "quantity": "3d10"},
+        {"item_id": "holy_symbol", "weight": 20, "quantity": "1"},
+        {"item_id": "ghost_charge_ammunition", "weight": 15, "quantity": "1d4"},
+        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "trap_complex_salvage",
+      "name": "Trap Complex Salvage",
+      "description": "Mechanical salvage and trap parts.",
+      "level_range": "3-5",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 30, "quantity": "2d8"},
+        {"item_id": "repair_kit", "weight": 25, "quantity": "1"},
+        {"item_id": "snare_kit", "weight": 20, "quantity": "1"},
+        {"item_id": "minor_elixir_life", "weight": 25, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "sunken_cistern_debris",
+      "name": "Sunken Cistern Debris",
+      "description": "Waterlogged remnants and practical consumables.",
+      "level_range": "4-5",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 35, "quantity": "2d10"},
+        {"item_id": "waterproof_satchel", "weight": 20, "quantity": "1"},
+        {"item_id": "antidote_lesser", "weight": 25, "quantity": "1"},
+        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "alchemical_annex_stores",
+      "name": "Alchemical Annex Stores",
+      "description": "Volatile alchemical consumables and reagents.",
+      "level_range": "5-6",
+      "entries": [
+        {"item_id": "alchemists_fire_lesser", "weight": 25, "quantity": "1"},
+        {"item_id": "frost_vial", "weight": 20, "quantity": "1"},
+        {"item_id": "acid_flask_lesser", "weight": 25, "quantity": "1"},
+        {"item_id": "gold_pieces", "weight": 30, "quantity": "3d10"}
+      ]
+    },
+    {
+      "table_id": "clockwork_foundry_parts",
+      "name": "Clockwork Foundry Parts",
+      "description": "Construct salvage and precision components.",
+      "level_range": "6-8",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 40, "quantity": "4d10"},
+        {"item_id": "precision_gear_set", "weight": 20, "quantity": "1"},
+        {"item_id": "repair_kit", "weight": 20, "quantity": "1"},
+        {"item_id": "moderate_elixir_life", "weight": 20, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "frozen_reliquary",
+      "name": "Frozen Reliquary Loot",
+      "description": "Cold-resistant supplies and ancient valuables.",
+      "level_range": "8-10",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 35, "quantity": "5d10"},
+        {"item_id": "cold_resistance_charm", "weight": 20, "quantity": "1"},
+        {"item_id": "greater_elixir_life", "weight": 20, "quantity": "1"},
+        {"item_id": "frost_vial", "weight": 25, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "mythic_storm_cache",
+      "name": "Mythic Storm Cache",
+      "description": "High-tier rewards for summit-level threats.",
+      "level_range": "11-14",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 45, "quantity": "8d10"},
+        {"item_id": "storm_ward_talisman", "weight": 20, "quantity": "1"},
+        {"item_id": "major_elixir_life", "weight": 15, "quantity": "1"},
+        {"item_id": "scroll_chain_lightning", "weight": 20, "quantity": "1"}
+      ]
     }
   ]
 }

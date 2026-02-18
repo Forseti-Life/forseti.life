@@ -23,6 +23,13 @@ dungeoncrawler_content.game_objects:
   parent: dungeoncrawler_content.dashboard
   weight: 5
 
+dungeoncrawler_content.gemini_image_interface:
+  title: 'Gemini Image Interface'
+  description: 'Generate Gemini images from prompts with system context.'
+  route_name: dungeoncrawler_content.gemini_image_interface
+  parent: dungeoncrawler_content.dashboard
+  weight: 6
+
 dungeoncrawler_content.testing_admin:
   title: 'Dungeon Crawler Testing'
   description: 'Testing dashboard for admins.'
@@ -81,17 +88,59 @@ dungeoncrawler_content.menu.about:
 dungeoncrawler_content.menu.dc_administration:
   title: 'DC Administration'
   description: 'Administrative tools for Dungeon Crawler.'
-  route_name: dungeoncrawler_content.game_objects
+  route_name: dungeoncrawler_content.dashboard
   menu_name: main
   expanded: true
   weight: 90
+
+dungeoncrawler_content.menu.dc_administration_dashboard:
+  title: 'Game Dashboard'
+  description: 'Overview of Dungeon Crawler game content.'
+  route_name: dungeoncrawler_content.dashboard
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 1
 
 dungeoncrawler_content.menu.dc_administration_game_objects:
   title: 'Game Objects'
   description: 'Review game objects and their attributes.'
   route_name: dungeoncrawler_content.game_objects
   parent: dungeoncrawler_content.menu.dc_administration
-  weight: 1
+  weight: 2
+
+dungeoncrawler_content.menu.dc_administration_gemini_interface:
+  title: 'Gemini Image Interface'
+  description: 'Generate Gemini images from prompts with system context.'
+  route_name: dungeoncrawler_content.gemini_image_interface
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 3
+
+dungeoncrawler_content.menu.dc_administration_settings:
+  title: 'Dungeon Settings'
+  description: 'Configure Dungeon Crawler content settings and integrations.'
+  route_name: dungeoncrawler_content.settings
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 4
+
+dungeoncrawler_content.menu.dc_administration_testing:
+  title: 'Testing Dashboard'
+  description: 'Open the Dungeon Crawler testing dashboard.'
+  route_name: dungeoncrawler_content.testing_home
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 5
+
+dungeoncrawler_content.menu.dc_administration_controller_architecture:
+  title: 'Controller Architecture'
+  description: 'Review controller architecture documentation.'
+  route_name: dungeoncrawler_content.controller_architecture
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 6
+
+dungeoncrawler_content.menu.dc_administration_encounter_ai:
+  title: 'Encounter AI Integration'
+  description: 'Review encounter AI integration architecture.'
+  route_name: dungeoncrawler_content.encounter_ai_integration
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 7
 
 # ==============================================================================
 # FOOTER MENU LINKS

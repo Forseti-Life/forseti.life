@@ -70,6 +70,7 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 
 ### AI Image Generation Integration (Gemini + Vertex)
 - **Dashboard panel**: `/admin/content/dungeoncrawler` includes an **AI Image Generation (Gemini + Vertex)** panel.
+- **Gemini direct interface**: `/admin/content/dungeoncrawler/gemini-image` provides a dedicated Gemini prompt → image UI with inline preview.
 - **Provider-aware request form**: Captures provider (Gemini/Vertex), prompt, style, aspect ratio, negative prompt, and campaign context.
 - **Integration layer**: `dungeoncrawler_content.image_generation_integration` routes generation requests to provider services.
 - **Provider services**:
@@ -78,6 +79,7 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **Admin settings**: Configure under `/admin/config/content/dungeoncrawler`:
    - Default provider (`generated_image_provider`)
    - Gemini live settings + key (`GEMINI_API_KEY` or config)
+   - Gemini system context prompt (`gemini_system_context_prompt`) for automatic prompt wrapping
    - Vertex live settings + key (`VERTEX_API_KEY` or config)
 - **Operator setup aid**: Dashboard includes copy-ready Linux/Apache env export snippet for both providers plus reload/cache steps.
 - **Storage design reference**: See `GENERATED_IMAGE_STORAGE_DESIGN.md` for object-table review and proposed generated-image persistence model.
@@ -98,7 +100,7 @@ Located in `navbar_left` region. Menu items (in order):
 3. **World** - Lore and world information (`/world`)
 4. **How to Play** - Game mechanics guide (`/how-to-play`)
 5. **About** - About the game (`/about`)
-6. **DC Administration** - Admin navigation group for Dungeon Crawler management routes (includes **Game Objects**)
+6. **DC Administration** - Admin navigation group for Dungeon Crawler management routes (includes **Game Dashboard**, **Game Objects**, **Gemini Image Interface**, **Dungeon Settings**, **Testing Dashboard**, **Controller Architecture**, and **Encounter AI Integration**)
 
 #### Footer Menu
 Located in `footer` region. Menu items (in order):
@@ -311,6 +313,10 @@ This enables promoting a campaign character into reusable forms:
 ### Management Routes
 - `/dungeoncrawler/objects` - Game object manager (object/attribute review)
 
+### Architecture Routes
+- `/architecture/controllers` - Controller architecture reference page
+- `/architecture/encounter-ai-integration` - Encounter AI integration blueprint status page
+
 ## Permissions
 
 The module defines a hierarchical permission system for character and content management:
@@ -331,6 +337,7 @@ Standard permissions for authenticated users to access and manage their own cont
 - Server-authoritative combat endpoints (`/api/combat/*`) require authenticated gameplay context and `access dungeoncrawler characters` permission.
 - Hexmap client only auto-starts server combat when a valid `campaign_id` launch context is present.
 - Direct `/hexmap` demo access without campaign context remains available for map/UI exploration, but does not auto-initiate server combat encounters.
+- Read-only encounter AI recommendation preview endpoint (`POST /api/combat/recommendation-preview`) is admin-only and does not mutate encounter state.
 - **`create dungeoncrawler characters`** - Create new characters in the character creation wizard. Includes access to character step forms and save operations.
 - **`edit own dungeoncrawler characters`** - Edit own characters. Access is further restricted by the `CharacterAccessCheck` service to ensure users can only modify their own characters.
 - **`delete own dungeoncrawler characters`** - Delete own characters. Access is further restricted by the `CharacterAccessCheck` service to prevent deletion of characters owned by other users.
@@ -468,6 +475,19 @@ The review maintains 100% functional compatibility while improving:
 
 ## Development
 
+### Architecture and Design Docs
+
+- `HEXMAP_ARCHITECTURE.md` - Hexmap and schema architecture reference
+- `ENHANCED_CHARACTER_SHEET_STUBS.md` - Character sheet implementation status and gaps
+- `AI_ENCOUNTER_INTEGRATION.md` - Encounter AI integration blueprint and phased implementation plan
+
+### Encounter AI Services (Phase 1)
+
+- `EncounterAiProviderInterface` defines provider contract for NPC recommendation and narration.
+- `StubEncounterAiProvider` provides deterministic recommendation output for safe preview/testing.
+- `EncounterAiIntegrationService` builds context, requests recommendation, and validates recommendation against turn/action constraints.
+
+
 ### Adding New Routes
 1. Define route in `dungeoncrawler_content.routing.yml`
 2. Create controller in `src/Controller/`
@@ -543,6 +563,47 @@ cd sites/dungeoncrawler
 # Run specific test file
 ./vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/Routes/CampaignRoutesTest.php
 ```
+
+### Hexmap UI Review Harness (Playwright Screenshots)
+
+Use this workflow to generate repeatable desktop/mobile screenshots for `/hexmap` UI reviews and before/after comparisons.
+
+```bash
+# From repository root
+cd /home/keithaumiller/forseti.life
+
+# Install JS dependencies and Chromium once
+npm install
+npm run hexmap:review:install
+
+# Clear Drupal cache before each UI review pass (from site root)
+cd sites/dungeoncrawler
+./vendor/bin/drush cr
+
+# Capture default review state (from repository root)
+cd /home/keithaumiller/forseti.life
+npm run hexmap:review
+```
+
+Default capture target is:
+
+```text
+http://penguin.linux.test:8080/hexmap?campaign_id=2&character_id=2&dungeon_level_id=f8c6b8f1-2df9-469f-9fd5-67a59f120001&map_id=0b7e3d2f-8f7c-4ae0-8f72-9e99e0800001&room_id=7f2f1051-5f88-45a2-a66a-0f7063900001&next_room_id=7f2f1051-5f88-45a2-a66a-0f7063900002&start_q=0&start_r=0
+```
+
+Override target URL when needed:
+
+```bash
+HEXMAP_REVIEW_URL='http://penguin.linux.test:8080/hexmap?...' npm run hexmap:review
+```
+
+Artifacts are written to:
+
+- `testing/results/hexmap-ui-review/<timestamp>/desktop-1440x900.png`
+- `testing/results/hexmap-ui-review/<timestamp>/mobile-pixel-7.png`
+- `testing/results/hexmap-ui-review/<timestamp>/summary.json`
+
+Each capture also writes per-viewport JSON metadata (final URL, page title, browser console/page errors) to support control-behavior debugging.
 
 ### Test Inventory
 

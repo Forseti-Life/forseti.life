@@ -32,18 +32,35 @@ print_info() {
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-# Check directory structure
-print_info "Checking directory structure..."
-if [ -d "/workspaces/stlouisintegration.com/sites/stlouisintegration" ]; then
-    print_status "St. Louis Integration site directory exists"
+# Auto-detect supported workspace layouts
+if [ -d "/home/keithaumiller/forseti.life/sites/forseti" ] && [ -d "/home/keithaumiller/forseti.life/sites/dungeoncrawler" ]; then
+    PRIMARY_SITE_DIR="/home/keithaumiller/forseti.life/sites/forseti"
+    SECONDARY_SITE_DIR="/home/keithaumiller/forseti.life/sites/dungeoncrawler"
+    PRIMARY_SITE_NAME="Forseti"
+    SECONDARY_SITE_NAME="Dungeon Crawler"
+    PRIMARY_DB_NAME="forseti_dev"
+    SECONDARY_DB_NAME="dungeoncrawler_dev"
 else
-    print_error "St. Louis Integration site directory missing"
+    PRIMARY_SITE_DIR="/workspaces/stlouisintegration.com/sites/stlouisintegration"
+    SECONDARY_SITE_DIR="/workspaces/stlouisintegration.com/sites/theoryofconspiracies"
+    PRIMARY_SITE_NAME="St. Louis Integration"
+    SECONDARY_SITE_NAME="Theory of Conspiracies"
+    PRIMARY_DB_NAME="stlouisintegration_dev"
+    SECONDARY_DB_NAME="theoryofconspiracies_dev"
 fi
 
-if [ -d "/workspaces/stlouisintegration.com/sites/theoryofconspiracies" ]; then
-    print_status "Theory of Conspiracies site directory exists"
+# Check directory structure
+print_info "Checking directory structure..."
+if [ -d "$PRIMARY_SITE_DIR" ]; then
+    print_status "$PRIMARY_SITE_NAME site directory exists"
 else
-    print_error "Theory of Conspiracies site directory missing"
+    print_error "$PRIMARY_SITE_NAME site directory missing"
+fi
+
+if [ -d "$SECONDARY_SITE_DIR" ]; then
+    print_status "$SECONDARY_SITE_NAME site directory exists"
+else
+    print_error "$SECONDARY_SITE_NAME site directory missing"
 fi
 
 # Check Apache configuration
@@ -69,81 +86,111 @@ fi
 
 # Check database connections
 print_info "Checking database connections..."
-if mysql -u drupal_user -pdrupal_secure_password -h 127.0.0.1 -e "USE stlouisintegration_dev; SELECT 1;" >/dev/null 2>&1; then
-    print_status "St. Louis Integration database accessible"
+if mysql -u drupal_user -pdrupal_secure_password -h 127.0.0.1 -e "USE ${PRIMARY_DB_NAME}; SELECT 1;" >/dev/null 2>&1; then
+    print_status "$PRIMARY_SITE_NAME database accessible"
 else
-    print_error "St. Louis Integration database connection failed"
+    print_error "$PRIMARY_SITE_NAME database connection failed"
 fi
 
-if mysql -u drupal_user -pdrupal_secure_password -h 127.0.0.1 -e "USE theoryofconspiracies_dev; SELECT 1;" >/dev/null 2>&1; then
-    print_status "Theory of Conspiracies database accessible"
+if mysql -u drupal_user -pdrupal_secure_password -h 127.0.0.1 -e "USE ${SECONDARY_DB_NAME}; SELECT 1;" >/dev/null 2>&1; then
+    print_status "$SECONDARY_SITE_NAME database accessible"
 else
-    print_error "Theory of Conspiracies database connection failed"
+    print_error "$SECONDARY_SITE_NAME database connection failed"
 fi
 
 # Check website accessibility
 print_info "Checking website accessibility..."
 if curl -s -o /dev/null -w "%{http_code}" "http://localhost" | grep -q "200\|302\|301"; then
-    print_status "St. Louis Integration site (http://localhost) is accessible"
+    print_status "$PRIMARY_SITE_NAME site (http://localhost) is accessible"
 else
-    print_warning "St. Louis Integration site may not be accessible"
+    print_warning "$PRIMARY_SITE_NAME site may not be accessible"
 fi
 
 if curl -s -o /dev/null -w "%{http_code}" "http://localhost:8080" | grep -q "200\|302\|301"; then
-    print_status "Theory of Conspiracies site (http://localhost:8080) is accessible"
+    print_status "$SECONDARY_SITE_NAME site (http://localhost:8080) is accessible"
 else
-    print_warning "Theory of Conspiracies site may not be accessible"
+    print_warning "$SECONDARY_SITE_NAME site may not be accessible"
 fi
 
 # Check Drush functionality
 print_info "Checking Drush functionality..."
-cd /workspaces/stlouisintegration.com/sites/stlouisintegration
-if [ -f "vendor/bin/drush" ]; then
-    if ./vendor/bin/drush status --fields=bootstrap 2>/dev/null | grep -q "Successful"; then
-        print_status "St. Louis Integration Drush working"
+if [ -d "$PRIMARY_SITE_DIR" ]; then
+    cd "$PRIMARY_SITE_DIR"
+    if [ -f "vendor/bin/drush" ]; then
+        if ./vendor/bin/drush status --fields=bootstrap 2>/dev/null | grep -q "Successful"; then
+            print_status "$PRIMARY_SITE_NAME Drush working"
+        else
+            print_warning "$PRIMARY_SITE_NAME Drush may have issues"
+        fi
     else
-        print_warning "St. Louis Integration Drush may have issues"
+        print_error "$PRIMARY_SITE_NAME Drush not found"
     fi
 else
-    print_error "St. Louis Integration Drush not found"
+    print_warning "$PRIMARY_SITE_NAME directory missing, skipping Drush check"
 fi
 
-cd /workspaces/stlouisintegration.com/sites/theoryofconspiracies
-if [ -f "vendor/bin/drush" ]; then
-    if ./vendor/bin/drush status --fields=bootstrap 2>/dev/null | grep -q "Successful"; then
-        print_status "Theory of Conspiracies Drush working"
+if [ -d "$SECONDARY_SITE_DIR" ]; then
+    cd "$SECONDARY_SITE_DIR"
+    if [ -f "vendor/bin/drush" ]; then
+        if ./vendor/bin/drush status --fields=bootstrap 2>/dev/null | grep -q "Successful"; then
+            print_status "$SECONDARY_SITE_NAME Drush working"
+        else
+            print_warning "$SECONDARY_SITE_NAME Drush may have issues"
+        fi
     else
-        print_warning "Theory of Conspiracies Drush may have issues"
+        print_error "$SECONDARY_SITE_NAME Drush not found"
     fi
 else
-    print_error "Theory of Conspiracies Drush not found"
+    print_warning "$SECONDARY_SITE_NAME directory missing, skipping Drush check"
 fi
 
 # Check custom modules on primary site
-print_info "Checking custom modules on St. Louis Integration..."
-cd /workspaces/stlouisintegration.com/sites/stlouisintegration
-CUSTOM_MODULES=("professional_website_content" "ai_conversation" "stli_site_customizations" "job_application_automation" "resume_tailoring")
-for module in "${CUSTOM_MODULES[@]}"; do
-    if [ -d "web/modules/custom/$module" ]; then
-        if ./vendor/bin/drush pm:list --status=enabled 2>/dev/null | grep -q "$module"; then
-            print_status "Custom module '$module' is enabled"
-        else
-            print_warning "Custom module '$module' exists but not enabled"
-        fi
+print_info "Checking custom modules on $PRIMARY_SITE_NAME..."
+if [ -d "$PRIMARY_SITE_DIR" ]; then
+    cd "$PRIMARY_SITE_DIR"
+
+    if [ "$PRIMARY_SITE_NAME" = "Forseti" ]; then
+        CUSTOM_MODULES=("ai_conversation" "amisafe" "agent_evaluation" "forseti_content")
     else
-        print_warning "Custom module '$module' directory not found"
+        CUSTOM_MODULES=("professional_website_content" "ai_conversation" "stli_site_customizations" "job_application_automation" "resume_tailoring")
     fi
-done
+
+    for module in "${CUSTOM_MODULES[@]}"; do
+        if [ -d "web/modules/custom/$module" ]; then
+            if ./vendor/bin/drush pm:list --status=enabled 2>/dev/null | grep -q "$module"; then
+                print_status "Custom module '$module' is enabled"
+            else
+                print_warning "Custom module '$module' exists but not enabled"
+            fi
+        else
+            print_warning "Custom module '$module' directory not found"
+        fi
+    done
+else
+    print_warning "$PRIMARY_SITE_NAME directory missing, skipping custom module checks"
+fi
 
 # Check custom theme
-if [ -d "web/themes/custom/stlouisintegration" ]; then
-    if ./vendor/bin/drush pm:list --type=theme --status=enabled 2>/dev/null | grep -q "stlouisintegration"; then
-        print_status "Custom theme 'stlouisintegration' is enabled"
+if [ -d "$PRIMARY_SITE_DIR" ]; then
+    cd "$PRIMARY_SITE_DIR"
+
+    if [ "$PRIMARY_SITE_NAME" = "Forseti" ]; then
+        CUSTOM_THEME="forseti"
     else
-        print_warning "Custom theme 'stlouisintegration' exists but not enabled"
+        CUSTOM_THEME="stlouisintegration"
+    fi
+
+    if [ -d "web/themes/custom/$CUSTOM_THEME" ]; then
+        if ./vendor/bin/drush pm:list --type=theme --status=enabled 2>/dev/null | grep -q "$CUSTOM_THEME"; then
+            print_status "Custom theme '$CUSTOM_THEME' is enabled"
+        else
+            print_warning "Custom theme '$CUSTOM_THEME' exists but not enabled"
+        fi
+    else
+        print_warning "Custom theme '$CUSTOM_THEME' directory not found"
     fi
 else
-    print_warning "Custom theme 'stlouisintegration' directory not found"
+    print_warning "$PRIMARY_SITE_NAME directory missing, skipping theme checks"
 fi
 
 # Check OpenClaw runtime integration
@@ -161,6 +208,6 @@ fi
 print_info "Verification complete!"
 echo "========================="
 echo "Site URLs:"
-echo "- St. Louis Integration: http://localhost"
-echo "- Theory of Conspiracies: http://localhost:8080"
+echo "- $PRIMARY_SITE_NAME: http://localhost"
+echo "- $SECONDARY_SITE_NAME: http://localhost:8080"
 echo "========================="

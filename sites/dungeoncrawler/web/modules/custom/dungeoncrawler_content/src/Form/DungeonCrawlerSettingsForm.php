@@ -129,6 +129,14 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       ],
     ];
 
+    $form['ai_settings']['gemini_system_context_prompt'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Gemini system context prompt'),
+      '#default_value' => $config->get('gemini_system_context_prompt') ?? '',
+      '#rows' => 10,
+      '#description' => $this->t('System prompt automatically wrapped around user input for Gemini requests from the Gemini interface.'),
+    ];
+
     $form['ai_settings']['vertex_image_enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable Vertex image generation live mode'),
@@ -222,6 +230,7 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       ->set('gemini_image_model', trim((string) $form_state->getValue('gemini_image_model')))
       ->set('gemini_image_endpoint', trim((string) $form_state->getValue('gemini_image_endpoint')))
       ->set('gemini_image_timeout', (int) $form_state->getValue('gemini_image_timeout'))
+      ->set('gemini_system_context_prompt', trim((string) $form_state->getValue('gemini_system_context_prompt')))
       ->set('vertex_image_enabled', $form_state->getValue('vertex_image_enabled'))
       ->set('vertex_image_project_id', trim((string) $form_state->getValue('vertex_image_project_id')))
       ->set('vertex_image_location', trim((string) $form_state->getValue('vertex_image_location')))

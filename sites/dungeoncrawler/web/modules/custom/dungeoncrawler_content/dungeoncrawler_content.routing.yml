@@ -28,6 +28,15 @@ dungeoncrawler_content.game_objects:
   requirements:
     _permission: 'administer dungeoncrawler content'
 
+dungeoncrawler_content.gemini_image_interface:
+  path: '/admin/content/dungeoncrawler/gemini-image'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\GeminiImageInterfaceForm'
+    _title: 'Gemini Image Interface'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access content overview'
+
 # Admin testing home (locked to admins)
 dungeoncrawler_content.testing_home:
   path: '/admin/dungeoncrawler/testing'
@@ -92,6 +101,15 @@ dungeoncrawler_content.controller_architecture:
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\ControllerArchitectureController::overview'
     _title: 'Controller Architecture'
+  methods: [GET]
+  requirements:
+    _permission: 'access content'
+
+dungeoncrawler_content.encounter_ai_integration:
+  path: '/architecture/encounter-ai-integration'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\EncounterAiIntegrationController::overview'
+    _title: 'Encounter AI Integration'
   methods: [GET]
   requirements:
     _permission: 'access content'
@@ -516,6 +534,16 @@ dungeoncrawler_content.api.combat_get:
   methods: [POST]
   requirements:
     _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.combat_recommendation_preview:
+  path: '/api/combat/recommendation-preview'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\EncounterAiPreviewController::preview'
+  methods: [POST]
+  requirements:
+    _permission: 'administer dungeoncrawler content'
   options:
     _format: json
 

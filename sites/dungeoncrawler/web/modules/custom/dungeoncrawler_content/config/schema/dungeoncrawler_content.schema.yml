@@ -41,6 +41,9 @@ dungeoncrawler_content.settings:
     gemini_image_api_key:
       type: string
       label: 'Gemini API key'
+    gemini_system_context_prompt:
+      type: text
+      label: 'Gemini system context prompt'
     vertex_image_enabled:
       type: boolean
       label: 'Enable Vertex image generation live mode'

@@ -94,6 +94,8 @@ class GeminiImageGenerationService {
 
     $normalized_payload = [
       'prompt' => trim((string) ($payload['prompt'] ?? '')),
+      'system_prompt' => trim((string) ($payload['system_prompt'] ?? '')),
+      'wrapped_prompt' => trim((string) ($payload['wrapped_prompt'] ?? '')),
       'style' => trim((string) ($payload['style'] ?? 'fantasy')),
       'aspect_ratio' => trim((string) ($payload['aspect_ratio'] ?? '1:1')),
       'negative_prompt' => trim((string) ($payload['negative_prompt'] ?? '')),
@@ -257,7 +259,7 @@ class GeminiImageGenerationService {
    * Build Gemini request body from normalized payload.
    */
   private function buildGeminiRequestBody(array $normalized_payload): array {
-    $prompt = $normalized_payload['prompt'];
+    $prompt = $normalized_payload['wrapped_prompt'] !== '' ? $normalized_payload['wrapped_prompt'] : $normalized_payload['prompt'];
     $prompt .= "\n\nStyle: " . $normalized_payload['style'];
     $prompt .= "\nAspect ratio: " . $normalized_payload['aspect_ratio'];
 

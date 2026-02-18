@@ -131,4 +131,93 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
     $this->assertSession()->statusCodeEquals(405);
   }
 
+  /**
+   * Tests recommendation preview endpoint requires admin permission.
+   */
+  public function testRecommendationPreviewPermissionNegative(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $payload = json_encode(['encounterId' => 1]);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/recommendation-preview'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $payload
+    );
+
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests recommendation preview endpoint returns read-only diagnostics.
+   */
+  public function testRecommendationPreviewPositive(): void {
+    $admin = $this->drupalCreateUser(['administer dungeoncrawler content']);
+    $this->drupalLogin($admin);
+
+    $start_payload = json_encode([
+      'campaignId' => NULL,
+      'roomId' => 'room-preview-1',
+      'entities' => [
+        [
+          'entityId' => 'npc-goblin-1',
+          'name' => 'Goblin Raider',
+          'team' => 'npc',
+          'initiative' => 18,
+          'hp' => 8,
+          'max_hp' => 8,
+        ],
+        [
+          'entityId' => 'pc-hero-1',
+          'name' => 'Valeros',
+          'team' => 'player',
+          'initiative' => 12,
+          'hp' => 20,
+          'max_hp' => 20,
+        ],
+      ],
+    ]);
+
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/start'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $start_payload
+    );
+    $this->assertSession()->statusCodeEquals(201);
+
+    $start_response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+    $this->assertIsArray($start_response);
+    $this->assertArrayHasKey('encounter_id', $start_response);
+
+    $preview_payload = json_encode([
+      'encounterId' => (int) $start_response['encounter_id'],
+      'includeNarration' => TRUE,
+    ]);
+
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/recommendation-preview'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      $preview_payload
+    );
+
+    $this->assertSession()->statusCodeEquals(200);
+    $response = json_decode($this->getSession()->getPage()->getContent(), TRUE);
+
+    $this->assertIsArray($response);
+    $this->assertTrue($response['success']);
+    $this->assertTrue($response['read_only']);
+    $this->assertArrayHasKey('recommendation_preview', $response);
+    $this->assertArrayHasKey('validation', $response['recommendation_preview']);
+    $this->assertArrayHasKey('narration_preview', $response);
+  }
+
 }
