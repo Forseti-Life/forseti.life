@@ -33,9 +33,7 @@
         "The Echoey Room What Screams Back",
         "Fungal Pantry",
         "Eduardo's Nest"
-      ],
-      "minLength": 1,
-      "maxLength": 100
+      ]
     },
     "description": {
       "type": "string",
@@ -52,6 +50,7 @@
       "type": "array",
       "description": "All hex coordinates this room occupies. A room can span multiple hexes.",
       "minItems": 1,
+      "maxItems": 50,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -87,6 +86,7 @@
           "objects": {
             "type": "array",
             "description": "Objects placed on this specific hex (furniture, pillars, etc.).",
+            "maxItems": 20,
             "items": {
               "$ref": "#/definitions/hex_object"
             }
@@ -268,6 +268,7 @@
         "light_sources": {
           "type": "array",
           "description": "Fixed light sources in the room.",
+          "maxItems": 20,
           "uniqueItems": true,
           "items": {
             "type": "object",
@@ -329,6 +330,7 @@
     "environmental_effects": {
       "type": "array",
       "description": "Active PF2e environmental effects in this room.",
+      "maxItems": 10,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -380,6 +382,7 @@
     "creatures": {
       "type": "array",
       "description": "Creatures currently in this room. References creature schema.",
+      "maxItems": 50,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -432,6 +435,7 @@
     "items": {
       "type": "array",
       "description": "Items/loot present in this room.",
+      "maxItems": 100,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -482,6 +486,7 @@
     "traps": {
       "type": "array",
       "description": "Traps in this room.",
+      "maxItems": 20,
       "items": {
         "$ref": "trap.schema.json"
       }
@@ -489,6 +494,7 @@
     "hazards": {
       "type": "array",
       "description": "PF2e hazards (complex or simple) in this room.",
+      "maxItems": 20,
       "items": {
         "$ref": "hazard.schema.json"
       }
@@ -496,6 +502,7 @@
     "obstacles": {
       "type": "array",
       "description": "Traversal/combat obstacles in this room. Obstacles are not containers.",
+      "maxItems": 30,
       "items": {
         "$ref": "obstacle.schema.json"
       }
@@ -503,6 +510,7 @@
     "interactables": {
       "type": "array",
       "description": "Interactive objects (levers, altars, puzzles, etc.).",
+      "maxItems": 30,
       "uniqueItems": true,
       "items": {
         "type": "object",
@@ -645,6 +653,7 @@
         "notes": {
           "type": "array",
           "description": "Player-added notes about this room.",
+          "maxItems": 50,
           "uniqueItems": true,
           "items": {
             "type": "object",
@@ -683,9 +692,11 @@
         },
         "theme_tags": {
           "type": "array",
+          "maxItems": 20,
           "items": {
             "type": "string",
-            "minLength": 1
+            "minLength": 1,
+            "maxLength": 50
           },
           "examples": [
             [
