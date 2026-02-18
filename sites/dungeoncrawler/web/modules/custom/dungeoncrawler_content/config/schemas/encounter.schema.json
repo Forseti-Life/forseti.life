@@ -10,7 +10,7 @@
     "schema_version": {
       "type": "string",
       "description": "Schema version for migration compatibility.",
-      "default": "1.0.0",
+      "const": "1.0.0",
       "pattern": "^\\d+\\.\\d+\\.\\d+$"
     },
     "encounter_id": { 
@@ -69,6 +69,7 @@
     },
     "xp_budget": {
       "type": "object",
+      "required": ["total", "party_level", "party_size"],
       "additionalProperties": false,
       "properties": {
         "total": { 
@@ -443,7 +444,12 @@
         }
       },
       "additionalProperties": false,
-      "description": "Hexagonal grid position using axial coordinates (q, r). Database implementations may use alternative coordinate systems."
+      "description": "Hexagonal grid position using axial coordinates (q, r). Database implementations may use alternative coordinate systems.",
+      "examples": [
+        { "q": 0, "r": 0 },
+        { "q": 2, "r": -1 },
+        { "q": -3, "r": 4 }
+      ]
     },
     "currency": {
       "type": "object",
@@ -491,6 +497,7 @@
         },
         "source": { 
           "type": "string",
+          "minLength": 1,
           "description": "What caused this condition (spell name, ability, etc.)."
         },
         "duration_rounds": { 
@@ -502,7 +509,22 @@
           "description": "Combat round when condition was applied."
         }
       },
-      "additionalProperties": false
+      "additionalProperties": false,
+      "examples": [
+        {
+          "name": "Frightened",
+          "value": 2,
+          "source": "Dragon's Frightful Presence",
+          "duration_rounds": 3,
+          "started_round": 1
+        },
+        {
+          "name": "Blinded",
+          "source": "Darkness spell",
+          "duration_rounds": null,
+          "started_round": 2
+        }
+      ]
     },
     "roll_result": {
       "type": "object",
@@ -534,7 +556,30 @@
         }
       },
       "additionalProperties": false,
-      "description": "Result of a d20 roll with PF2e degree of success calculation."
+      "description": "Result of a d20 roll with PF2e degree of success calculation.",
+      "examples": [
+        {
+          "d20": 18,
+          "modifier": 7,
+          "total": 25,
+          "dc": 20,
+          "degree_of_success": "success"
+        },
+        {
+          "d20": 20,
+          "modifier": 5,
+          "total": 25,
+          "dc": 22,
+          "degree_of_success": "critical_success"
+        },
+        {
+          "d20": 3,
+          "modifier": 8,
+          "total": 11,
+          "dc": 22,
+          "degree_of_success": "critical_failure"
+        }
+      ]
     },
     "damage_result": {
       "type": "object",
