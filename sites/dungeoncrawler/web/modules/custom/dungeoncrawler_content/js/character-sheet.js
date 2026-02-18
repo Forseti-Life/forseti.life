@@ -1,6 +1,22 @@
 /**
  * @file
  * JavaScript behaviors for character sheet and character list pages.
+ *
+ * This file implements client-side UI enhancements for character data rendered
+ * from the hybrid columnar storage system:
+ *
+ * - Hot columns (hp_current, hp_max, armor_class, experience_points) provide
+ *   fast database access for high-frequency gameplay mechanics
+ * - JSON schema (character.schema.json) stores complete character data in
+ *   character_data column for flexibility
+ * - CharacterManager service handles mapping between JSON schema fields and
+ *   hot columns (see extractHotColumnsFromData and resolveHotColumnsForRecord)
+ * - Templates render hot column values into DOM elements
+ * - This JS file enhances the rendered DOM with dynamic styling
+ *
+ * Key behaviors:
+ * - HP colorization based on current/max ratio (green/orange/red)
+ * - JSON data section toggle for debugging/inspection
  */
 
 (function (Drupal, once) {
