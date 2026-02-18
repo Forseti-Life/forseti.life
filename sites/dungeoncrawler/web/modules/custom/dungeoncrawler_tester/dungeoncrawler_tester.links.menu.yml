@@ -40,15 +40,8 @@ dungeoncrawler_tester.issue_pr_report_under_dashboard:
   parent: dungeoncrawler_tester.import_open_issues_under_dashboard
   weight: 1
 
-dungeoncrawler_tester.settings_under_dashboard_main:
-  title: 'Tester settings'
-  description: 'Configure GitHub repo/token for tester automation.'
-  route_name: dungeoncrawler_tester.settings
-  parent: dungeoncrawler_tester.dashboard_main
-  weight: 93
-
 dungeoncrawler_tester.dashboard_main:
-  title: 'Testing Dashboard'
+  title: 'Testing'
   description: 'Dungeon Crawler testing stagegates and issue status'
   route_name: dungeoncrawler_tester.dashboard
   menu_name: main
@@ -62,110 +55,104 @@ dungeoncrawler_tester.dashboard_main_home:
   parent: dungeoncrawler_tester.dashboard_main
   weight: 90
 
-dungeoncrawler_tester.testing_menu_root:
-  title: 'Testing Navigation'
-  description: 'Dungeon Crawler tester navigation links.'
-  route_name: dungeoncrawler_tester.dashboard
-  parent: dungeoncrawler_tester.dashboard_main
-  expanded: true
-  weight: 91
-
 dungeoncrawler_tester.testing_menu_documentation:
   title: 'Documentation'
   route_name: dungeoncrawler_tester.documentation_home
-  parent: dungeoncrawler_tester.testing_menu_root
+  parent: dungeoncrawler_tester.dashboard_main
   expanded: true
-  weight: 1
+  weight: 91
 
 dungeoncrawler_tester.testing_menu_documentation_home:
   title: 'Documentation Home'
   route_name: dungeoncrawler_tester.documentation_home
   parent: dungeoncrawler_tester.testing_menu_documentation
+  expanded: true
   weight: 0
 
 dungeoncrawler_tester.testing_menu_docs_getting_started:
   title: 'Getting Started'
   route_name: dungeoncrawler_tester.docs_getting_started
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 2
 
 dungeoncrawler_tester.testing_menu_docs_execution_playbook:
   title: 'Test Execution Playbook'
   route_name: dungeoncrawler_tester.docs_execution_playbook
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 3
 
 dungeoncrawler_tester.testing_menu_docs_failure_triage:
   title: 'Failure Triage and Issue Workflow'
   route_name: dungeoncrawler_tester.docs_failure_triage
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 4
 
 dungeoncrawler_tester.testing_menu_docs_process_flow:
   title: 'Automated Testing Process Flow'
   route_name: dungeoncrawler_tester.docs_process_flow
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 5
 
 dungeoncrawler_tester.testing_menu_docs_sdlc_process_flow:
   title: 'SDLC Process Flow'
   route_name: dungeoncrawler_tester.docs_sdlc_process_flow
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 6
 
 dungeoncrawler_tester.testing_menu_docs_release_process_flow:
   title: 'Release Process Flow'
   route_name: dungeoncrawler_tester.docs_release_process_flow
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 7
 
 dungeoncrawler_tester.testing_menu_docs_module_readme:
   title: 'Module README'
   route_name: dungeoncrawler_tester.docs_module_readme
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 8
 
 dungeoncrawler_tester.testing_menu_docs_testing_module_readme:
   title: 'Testing Module README'
   route_name: dungeoncrawler_tester.docs_testing_module_readme
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 9
 
 dungeoncrawler_tester.testing_menu_docs_tests_readme:
   title: 'Tests README'
   route_name: dungeoncrawler_tester.docs_tests_readme
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 10
 
 dungeoncrawler_tester.testing_menu_docs_strategy_design:
   title: 'Testing Strategy Design'
   route_name: dungeoncrawler_tester.docs_strategy_design
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 11
 
 dungeoncrawler_tester.testing_menu_docs_quick_start:
   title: 'Testing Quick Start Guide'
   route_name: dungeoncrawler_tester.docs_quick_start
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 12
 
 dungeoncrawler_tester.testing_menu_docs_issues_directory:
   title: 'Testing Issues Directory'
   route_name: dungeoncrawler_tester.docs_issues_directory
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 13
 
 dungeoncrawler_tester.testing_menu_docs_issue_automation:
   title: 'Copilot Issue Automation'
   route_name: dungeoncrawler_tester.docs_issue_automation
-  parent: dungeoncrawler_tester.testing_menu_documentation
+  parent: dungeoncrawler_tester.testing_menu_documentation_home
   weight: 14
 
 dungeoncrawler_tester.testing_menu_import_open_issues:
   title: 'Import Open Issues'
   route_name: dungeoncrawler_tester.import_open_issues
-  parent: dungeoncrawler_tester.testing_menu_root
-  weight: 2
+  parent: dungeoncrawler_tester.dashboard_main
+  expanded: true
+  weight: 92
 
 dungeoncrawler_tester.testing_menu_issue_pr_report:
   title: 'Open Issues/PR Report'
@@ -176,5 +163,5 @@ dungeoncrawler_tester.testing_menu_issue_pr_report:
 dungeoncrawler_tester.testing_menu_settings:
   title: 'Tester Settings'
   route_name: dungeoncrawler_tester.settings
-  parent: dungeoncrawler_tester.testing_menu_root
-  weight: 4
+  parent: dungeoncrawler_tester.dashboard_main
+  weight: 93

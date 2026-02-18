@@ -22,7 +22,7 @@ The testing dashboard provides a centralized location for developers to:
 - URL: `/dungeoncrawler/testing`
 - Permission required: `administer site configuration`
 - Menu location: Reports > Dungeon Crawler Testing Dashboard
-- Navigation entry: `Documentation Home` appears under the Testing Dashboard menu item.
+- Navigation entry: tester links appear under the `Testing` menu item in Main navigation.
 
 The dashboard includes:
 - **Test Documentation**: Consolidated structure with Getting Started, Execution Playbook, and Failure Triage workflow pages
@@ -32,8 +32,8 @@ The dashboard includes:
 - **Local issue tracking mode**: Tester failure automation now writes issues to repository-root `Issues.md` instead of creating GitHub issues directly.
 - **GitHub integration scope**: GitHub issue API/CLI integration is restricted to `/dungeoncrawler/testing/import-open-issues` for controlled sync from local tracker rows.
 - **Issues.md mutation boundary**: Import/reconcile PHP automation is responsible for removing matching Open local rows only after GitHub open-state confirmation; Copilot/LLM issue-work agents must not directly edit `Issues.md` as part of issue execution.
-- **Main navigation integration**: Tester navigation now lives under the existing `main` menu (`Testing Dashboard`), so tester routes are incorporated into the primary site navigation.
-- **Documentation submenu organization**: Tester documentation links are grouped under an expandable `Testing Navigation` → `Documentation` hierarchy in the main menu.
+- **Main navigation integration**: Tester navigation now lives under the existing `main` menu (`Testing`), so tester routes are incorporated into the primary site navigation.
+- **Documentation submenu organization**: Tester documentation links are grouped under `Testing` → `Documentation` → `Documentation Home`, and `Documentation Home` is expandable to reveal all documentation pages.
 - **Issue/PR Report Workflow**: `/dungeoncrawler/testing/import-open-issues/issue-pr-report` now documents process and decision logic for low-to-high PR triage, no-op/superseded close decisions, and verification expectations.
 - **Issue/PR local-cache reference**: The issue/PR report now includes an explicit local cache management callout for repository-root `Issues.md` and a direct link to `/dungeoncrawler/testing/import-open-issues`.
 - **Issue/PR import status visibility**: The issue/PR report metadata now includes a “Last local import run” line (time/repo/handled-created-skipped-failed/dry-run) sourced from importer-run state.

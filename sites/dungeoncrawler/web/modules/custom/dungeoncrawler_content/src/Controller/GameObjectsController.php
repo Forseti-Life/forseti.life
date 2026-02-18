@@ -3,11 +3,12 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
+use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Form\DungeonCrawlerTableRowEditForm;
+use Drupal\dungeoncrawler_content\Service\GameObjectInventoryService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -17,37 +18,19 @@ use Symfony\Component\HttpFoundation\RequestStack;
 class GameObjectsController extends ControllerBase {
 
   /**
-   * Maximum number of rows displayed for a selected table.
+   * Object type key: template records.
    */
-  private const MAX_ROWS = 100;
+  private const OBJECT_TYPE_TEMPLATE = 'template';
 
   /**
-   * Dungeon Crawler table descriptions.
+   * Object type key: active campaign records.
    */
-  private const TABLE_OBJECT_MAP = [
-    'dc_characters' => 'Player character records and progression snapshots.',
-    'dc_campaigns' => 'Campaign headers, lifecycle state, and campaign-level metadata.',
-    'dc_campaign_characters' => 'Character-to-campaign assignments and active party membership.',
-    'dc_campaign_rooms' => 'Generated room objects for active campaigns.',
-    'dc_campaign_room_states' => 'Per-room state flags and progression data.',
-    'dc_campaign_dungeons' => 'Dungeon-layer records tied to campaigns.',
-    'dc_campaign_log' => 'Campaign event log entries and timeline history.',
-    'dc_campaign_item_instances' => 'Item instance objects spawned in campaigns.',
-    'dc_campaign_encounter_instances' => 'Encounter instance objects generated during play.',
-    'dc_campaign_encounter_templates' => 'Encounter template objects available to campaigns.',
-    'dc_campaign_loot_tables' => 'Loot table objects used by campaign generation.',
-    'dc_campaign_content_registry' => 'Campaign content object registry and lookup records.',
-    'dungeoncrawler_content_registry' => 'Global content registry objects for generator lookups.',
-    'dungeoncrawler_content_loot_tables' => 'Global loot table objects used by the generator.',
-    'dungeoncrawler_content_encounter_templates' => 'Global encounter template objects.',
-  ];
+  private const OBJECT_TYPE_CAMPAIGN = 'campaign';
 
   /**
-   * Database connection service.
-   *
-   * @var \Drupal\Core\Database\Connection
+   * Object type key: uncategorized records.
    */
-  protected Connection $database;
+  private const OBJECT_TYPE_OTHER = 'other';
 
   /**
    * Form builder service.
@@ -64,12 +47,19 @@ class GameObjectsController extends ControllerBase {
   protected RequestStack $requestStack;
 
   /**
+   * Inventory service for object tables.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\GameObjectInventoryService
+   */
+  protected GameObjectInventoryService $gameObjectInventory;
+
+  /**
    * Constructs a new GameObjectsController.
    */
-  public function __construct(Connection $database, FormBuilderInterface $form_builder, RequestStack $request_stack) {
-    $this->database = $database;
+  public function __construct(FormBuilderInterface $form_builder, RequestStack $request_stack, GameObjectInventoryService $game_object_inventory) {
     $this->formBuilderService = $form_builder;
     $this->requestStack = $request_stack;
+    $this->gameObjectInventory = $game_object_inventory;
   }
 
   /**
@@ -77,9 +67,9 @@ class GameObjectsController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('database'),
       $container->get('form_builder'),
       $container->get('request_stack'),
+      $container->get('dungeoncrawler_content.game_object_inventory'),
     );
   }
 
@@ -91,53 +81,36 @@ class GameObjectsController extends ControllerBase {
    */
   public function content(): array {
     $request = $this->requestStack->getCurrentRequest();
-    $table_inventory = $this->getDungeonCrawlerTableInventory();
+    $table_inventory = $this->gameObjectInventory->getDungeonCrawlerTableInventory();
+    $filters = $this->getInventoryFilters($request->query->all());
+    $filtered_inventory = $this->filterInventory($table_inventory, $filters);
+    $grouped_inventory = $this->groupInventoryByObjectType($filtered_inventory);
 
     $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['container', 'py-4']],
     ];
 
-    $build['intro_card'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
-      'body' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['card-body']],
-        'title' => [
-          '#markup' => '<h2 class="card-title mb-2">' . $this->t('Dungeon Crawler Data Object Manager') . '</h2>',
-        ],
-        'description' => [
-          '#markup' => '<p class="mb-0">' . $this->t('Inventory all Dungeon Crawler tables, review stored objects, and edit table fields from one admin page.') . '</p>',
-        ],
-      ],
-    ];
-
-    $build['inventory_card'] = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
-      'body' => [
-        '#type' => 'container',
-        '#attributes' => ['class' => ['card-body']],
-        'heading' => [
-          '#markup' => '<h3 class="h5 mb-3">' . $this->t('Table Inventory') . '</h3>',
-        ],
-        'table' => $this->buildInventoryTable($table_inventory),
-      ],
-    ];
+    $build['intro_card'] = $this->buildIntroCard();
+    $build['inventory_card'] = $this->buildInventoryCard($table_inventory, $filtered_inventory, $grouped_inventory, $filters);
 
     if (empty($table_inventory)) {
       return $build;
     }
 
-    $table_names = array_keys($table_inventory);
+    if (empty($filtered_inventory)) {
+      return $build;
+    }
+
+    $table_names = array_keys($filtered_inventory);
     $selected_table = $request->query->get('table');
-    if (!is_string($selected_table) || !isset($table_inventory[$selected_table])) {
+    if (!is_string($selected_table) || !isset($filtered_inventory[$selected_table])) {
       $selected_table = $table_names[0];
     }
 
-    $selected_metadata = $table_inventory[$selected_table];
-    $rows = $this->loadTableRows($selected_table, $selected_metadata['primary_keys']);
+    $selected_metadata = $filtered_inventory[$selected_table];
+    $row_search = isset($filters['row_search']) && is_string($filters['row_search']) ? $filters['row_search'] : '';
+    $rows = $this->gameObjectInventory->loadTableRows($selected_table, $selected_metadata['primary_keys'], $row_search);
 
     $build['table_fields_card'] = [
       '#type' => 'container',
@@ -161,14 +134,15 @@ class GameObjectsController extends ControllerBase {
         'heading' => [
           '#markup' => '<h3 class="h5 mb-3">' . $this->t('Stored Objects: @table', ['@table' => $selected_table]) . '</h3>',
         ],
-        'table' => $this->buildRowsTable($selected_table, $selected_metadata, $rows),
+        'row_search' => $this->buildRowSearchForm($selected_table, $filters),
+        'table' => $this->buildRowsTable($selected_table, $selected_metadata, $rows, $filters),
       ],
     ];
 
     $primary_key_values = $this->extractPrimaryKeyValues($request->query->all(), $selected_metadata['primary_keys']);
     $edit_requested = (string) $request->query->get('edit', '') === '1';
     if ($edit_requested && !empty($primary_key_values)) {
-      $row = $this->loadTableRowByPrimaryKey($selected_table, $primary_key_values);
+      $row = $this->gameObjectInventory->loadTableRowByPrimaryKey($selected_table, $primary_key_values);
       if (!empty($row)) {
         $build['row_editor_card'] = [
           '#type' => 'container',
@@ -186,6 +160,7 @@ class GameObjectsController extends ControllerBase {
               $selected_metadata['primary_keys'],
               $primary_key_values,
               $row,
+              $this->buildSelectionQuery($selected_table, $filters),
             ),
           ],
         ];
@@ -196,19 +171,188 @@ class GameObjectsController extends ControllerBase {
   }
 
   /**
+   * Builds the object manager intro card.
+   */
+  protected function buildIntroCard(): array {
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'title' => [
+          '#markup' => '<h2 class="card-title mb-2">' . $this->t('Dungeon Crawler Data Object Manager') . '</h2>',
+        ],
+        'description' => [
+          '#markup' => '<p class="mb-0">' . $this->t('Inventory all Dungeon Crawler tables, review stored objects, and edit table fields from one admin page.') . '</p>',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Builds grouped inventory card with delineated object sections.
+   */
+  protected function buildInventoryCard(array $table_inventory, array $filtered_inventory, array $grouped_inventory, array $filters): array {
+    $has_filtered_inventory = !empty($filtered_inventory);
+    $template_count = count($grouped_inventory[self::OBJECT_TYPE_TEMPLATE] ?? []);
+    $campaign_count = count($grouped_inventory[self::OBJECT_TYPE_CAMPAIGN] ?? []);
+    $other_count = count($grouped_inventory[self::OBJECT_TYPE_OTHER] ?? []);
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'heading' => [
+          '#markup' => '<h3 class="h5 mb-3">' . $this->t('Table Inventory') . '</h3>',
+        ],
+        'filters' => $this->buildInventoryFiltersForm($filters, $table_inventory),
+        'summary' => [
+          '#markup' => '<p class="mb-3">' . $this->t('Showing @shown of @total object tables.', ['@shown' => count($filtered_inventory), '@total' => count($table_inventory)]) . '</p>',
+        ],
+        'delineation' => [
+          '#markup' => '<p class="mb-3"><strong>' . $this->t('Delineation:') . '</strong> ' . $this->t('Template Objects are reusable content definitions. Active Campaign Objects are runtime records tied to active campaign state.') . '</p>',
+        ],
+        'delineation_counts' => [
+          '#markup' => '<p class="mb-3">' . $this->t('Template: @template_count tables · Active Campaign: @campaign_count tables · Other: @other_count tables', [
+            '@template_count' => $template_count,
+            '@campaign_count' => $campaign_count,
+            '@other_count' => $other_count,
+          ]) . '</p>',
+        ],
+        'accordion' => $this->buildInventoryAccordion(
+          $grouped_inventory,
+          $filters,
+          'objects-inventory-accordion',
+          $has_filtered_inventory,
+        ),
+        'empty_notice' => [
+          '#markup' => '<p class="mb-0">' . $this->getInventoryEmptyMessage($filters) . '</p>',
+          '#access' => !$has_filtered_inventory,
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Builds grouped inventory accordion sections.
+   */
+  protected function buildInventoryAccordion(array $grouped_inventory, array $filters, string $accordion_id, bool $access): array {
+    $accordion = [
+      '#type' => 'container',
+      '#attributes' => [
+        'class' => ['accordion', 'mb-2'],
+        'id' => $accordion_id,
+      ],
+      '#access' => $access,
+    ];
+
+    $template_count = count($grouped_inventory[self::OBJECT_TYPE_TEMPLATE] ?? []);
+    $campaign_count = count($grouped_inventory[self::OBJECT_TYPE_CAMPAIGN] ?? []);
+    $other_count = count($grouped_inventory[self::OBJECT_TYPE_OTHER] ?? []);
+
+    $accordion['template'] = $this->buildInventoryAccordionItem(
+      $accordion_id,
+      'template',
+      (string) $this->t('Template Objects (@count)', ['@count' => $template_count]),
+      $this->buildInventoryTable(
+        $grouped_inventory[self::OBJECT_TYPE_TEMPLATE] ?? [],
+        $filters,
+        (string) $this->t('No template object tables matched the active filters.'),
+      ),
+    );
+
+    $accordion['campaign'] = $this->buildInventoryAccordionItem(
+      $accordion_id,
+      'campaign',
+      (string) $this->t('Active Campaign Objects (@count)', ['@count' => $campaign_count]),
+      $this->buildInventoryTable(
+        $grouped_inventory[self::OBJECT_TYPE_CAMPAIGN] ?? [],
+        $filters,
+        (string) $this->t('No active campaign object tables matched the active filters.'),
+      ),
+    );
+
+    $accordion['other'] = $this->buildInventoryAccordionItem(
+      $accordion_id,
+      'other',
+      (string) $this->t('Other Dungeon Crawler Objects (@count)', ['@count' => $other_count]),
+      $this->buildInventoryTable(
+        $grouped_inventory[self::OBJECT_TYPE_OTHER] ?? [],
+        $filters,
+        (string) $this->t('No other object tables matched the active filters.'),
+      ),
+    );
+
+    return $accordion;
+  }
+
+  /**
+   * Builds one collapsed-by-default accordion item.
+   */
+  protected function buildInventoryAccordionItem(string $accordion_id, string $item_key, string $title, array $content): array {
+    $header_id = $accordion_id . '-heading-' . $item_key;
+    $collapse_id = $accordion_id . '-collapse-' . $item_key;
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['accordion-item']],
+      'header' => [
+        '#type' => 'html_tag',
+        '#tag' => 'h2',
+        '#attributes' => [
+          'class' => ['accordion-header'],
+          'id' => $header_id,
+        ],
+        'button' => [
+          '#type' => 'html_tag',
+          '#tag' => 'button',
+          '#attributes' => [
+            'class' => ['accordion-button', 'collapsed'],
+            'type' => 'button',
+            'data-bs-toggle' => 'collapse',
+            'data-bs-target' => '#' . $collapse_id,
+            'aria-expanded' => 'false',
+            'aria-controls' => $collapse_id,
+          ],
+          '#value' => $title,
+        ],
+      ],
+      'collapse' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => [
+          'id' => $collapse_id,
+          'class' => ['accordion-collapse', 'collapse'],
+          'aria-labelledby' => $header_id,
+          'data-bs-parent' => '#' . $accordion_id,
+        ],
+        'body' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['accordion-body', 'pt-2']],
+          'content' => $content,
+        ],
+      ],
+    ];
+  }
+
+  /**
    * Builds the table inventory summary.
    */
-  protected function buildInventoryTable(array $table_inventory): array {
+  protected function buildInventoryTable(array $table_inventory, array $filters = [], string $empty_message = ''): array {
     $rows = [];
 
     foreach ($table_inventory as $table_name => $metadata) {
       $link = Link::fromTextAndUrl(
         $table_name,
-        Url::fromRoute('dungeoncrawler_content.game_objects', [], ['query' => ['table' => $table_name]]),
+        Url::fromRoute('dungeoncrawler_content.game_objects', [], ['query' => $this->buildSelectionQuery($table_name, $filters)]),
       )->toRenderable();
 
       $rows[] = [
-        'table' => $link,
+        'table' => ['data' => $link],
+        'type' => $this->getObjectTypeLabel((string) ($metadata['object_type'] ?? 'other')),
         'objects' => $metadata['object_description'],
         'fields' => count($metadata['columns']),
         'rows' => $metadata['row_count'],
@@ -219,15 +363,119 @@ class GameObjectsController extends ControllerBase {
       '#type' => 'table',
       '#header' => [
         $this->t('Table'),
+        $this->t('Object Type'),
         $this->t('Objects Stored'),
         $this->t('Field Count'),
         $this->t('Row Count'),
       ],
       '#rows' => $rows,
-      '#empty' => $this->t('No Dungeon Crawler tables found.'),
+      '#empty' => $empty_message !== '' ? $empty_message : (string) $this->t('No Dungeon Crawler tables found.'),
       '#attributes' => ['class' => ['game-content-dashboard', 'mb-4']],
       '#caption' => $this->t('Inventory of Dungeon Crawler data tables and stored object classes.'),
     ];
+  }
+
+  /**
+   * Builds filter controls for table inventory.
+   */
+  protected function buildInventoryFiltersForm(array $filters, array $table_inventory): array {
+    $schema_options = [
+      'all' => $this->t('All Schemas'),
+      'dc' => $this->t('dc_* (runtime objects)'),
+      'dungeoncrawler_content' => $this->t('dungeoncrawler_content_* (global content)'),
+    ];
+
+    $table_options = [
+      'all' => $this->t('All Tables'),
+    ];
+    foreach (array_keys($table_inventory) as $table_name) {
+      $table_options[$table_name] = $table_name;
+    }
+
+    $object_type_options = [
+      'all' => $this->t('All Object Types'),
+      self::OBJECT_TYPE_TEMPLATE => $this->t('Template Objects'),
+      self::OBJECT_TYPE_CAMPAIGN => $this->t('Active Campaign Objects'),
+      self::OBJECT_TYPE_OTHER => $this->t('Other Objects'),
+    ];
+
+    $form = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mb-3']],
+      'open' => [
+        '#type' => 'html_tag',
+        '#tag' => 'form',
+        '#attributes' => [
+          'method' => 'get',
+            'class' => ['row', 'g-2', 'align-items-end'],
+        ],
+      ],
+    ];
+
+    $form['open']['schema'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['col-md-3']],
+      'label' => [
+        '#markup' => Markup::create('<label class="form-label" for="objects-schema-filter">' . $this->t('Schema') . '</label>'),
+      ],
+      'field' => [
+        '#markup' => Markup::create($this->renderSelect('schema', $schema_options, $filters['schema'], 'objects-schema-filter')),
+      ],
+    ];
+
+    $form['open']['search'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['col-md-3']],
+      'label' => [
+        '#markup' => Markup::create('<label class="form-label" for="objects-table-filter">' . $this->t('Table') . '</label>'),
+      ],
+      'field' => [
+        '#markup' => Markup::create($this->renderSelect('table_filter', $table_options, $filters['table_filter'], 'objects-table-filter')),
+      ],
+    ];
+
+    $form['open']['object_type'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['col-md-3']],
+      'label' => [
+        '#markup' => Markup::create('<label class="form-label" for="objects-type-filter">' . $this->t('Object Type') . '</label>'),
+      ],
+      'field' => [
+        '#markup' => Markup::create($this->renderSelect('object_type', $object_type_options, $filters['object_type'], 'objects-type-filter')),
+      ],
+    ];
+
+    $form['open']['actions'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['col-md-3']],
+      'label' => [
+        '#markup' => Markup::create('<label class="form-label d-block">&nbsp;</label>'),
+      ],
+      'apply' => [
+        '#markup' => Markup::create('<button type="submit" class="btn btn-primary w-100">' . $this->t('Apply') . '</button>'),
+      ],
+      'reset' => [
+        '#markup' => Markup::create('<a href="' . Url::fromRoute('dungeoncrawler_content.game_objects')->toString() . '" class="btn btn-outline-secondary w-100 mt-2">' . $this->t('Reset') . '</a>'),
+      ],
+    ];
+
+    $form['open']['contains'] = [
+      '#type' => 'html_tag',
+      '#tag' => 'div',
+      '#attributes' => ['class' => ['col-12', 'mt-2']],
+      'label' => [
+        '#markup' => Markup::create('<label class="form-label" for="objects-search-filter">' . $this->t('Object Name Contains') . '</label>'),
+      ],
+      'field' => [
+        '#markup' => Markup::create('<input id="objects-search-filter" class="form-control" type="text" name="search" value="' . $this->escapeText($filters['search']) . '" placeholder="' . $this->t('Contains text in object/table name') . '" />'),
+      ],
+    ];
+
+    return $form;
   }
 
   /**
@@ -263,7 +511,7 @@ class GameObjectsController extends ControllerBase {
   /**
    * Builds a row browser table for the selected data table.
    */
-  protected function buildRowsTable(string $table_name, array $metadata, array $rows): array {
+  protected function buildRowsTable(string $table_name, array $metadata, array $rows, array $filters): array {
     $headers = array_keys($metadata['columns']);
     $headers[] = $this->t('Operations');
 
@@ -275,15 +523,16 @@ class GameObjectsController extends ControllerBase {
       }
 
       if (!empty($metadata['primary_keys'])) {
-        $query = ['table' => $table_name, 'edit' => 1];
+        $query = $this->buildSelectionQuery($table_name, $filters);
+        $query['edit'] = 1;
         foreach ($metadata['primary_keys'] as $primary_key) {
           $query[$primary_key] = (string) ($row[$primary_key] ?? '');
         }
 
-        $display_row[] = Link::fromTextAndUrl(
+        $display_row[] = ['data' => Link::fromTextAndUrl(
           $this->t('Edit'),
           Url::fromRoute('dungeoncrawler_content.game_objects', [], ['query' => $query]),
-        )->toRenderable();
+        )->toRenderable()];
       }
       else {
         $display_row[] = $this->t('No primary key');
@@ -298,101 +547,173 @@ class GameObjectsController extends ControllerBase {
       '#rows' => $table_rows,
       '#empty' => $this->t('No rows found in @table.', ['@table' => $table_name]),
       '#attributes' => ['class' => ['game-content-dashboard']],
-      '#caption' => $this->t('Showing up to @limit rows from @table.', ['@limit' => self::MAX_ROWS, '@table' => $table_name]),
+      '#caption' => $this->t('Showing up to @limit rows from @table.', ['@limit' => $this->gameObjectInventory->getMaxRows(), '@table' => $table_name]),
     ];
   }
 
   /**
-   * Gets Dungeon Crawler table inventory metadata.
+   * Builds row-level search controls for the selected table.
    */
-  protected function getDungeonCrawlerTableInventory(): array {
-    $tables = array_keys($this->database->schema()->findTables('^(dc_|dungeoncrawler_content_)'));
-    sort($tables);
+  protected function buildRowSearchForm(string $table_name, array $filters): array {
+    $query = $this->buildSelectionQuery($table_name, $filters);
+    unset($query['row_search']);
 
-    $inventory = [];
-    foreach ($tables as $table_name) {
-      $columns = $this->getTableColumns($table_name);
-      $primary_keys = [];
-      foreach ($columns as $column_name => $column) {
-        if ($column['column_key'] === 'PRI') {
-          $primary_keys[] = $column_name;
+    $hidden_inputs = '';
+    foreach ($query as $key => $value) {
+      $hidden_inputs .= '<input type="hidden" name="' . $this->escapeText((string) $key) . '" value="' . $this->escapeText((string) $value) . '" />';
+    }
+
+    $row_search_value = isset($filters['row_search']) && is_string($filters['row_search']) ? $filters['row_search'] : '';
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['mb-3']],
+      'form' => [
+        '#markup' => Markup::create(
+          '<form method="get" class="row g-2 align-items-end">'
+          . '<div class="col-md-8">'
+          . '<label class="form-label" for="objects-row-search">' . $this->t('Row Contains') . '</label>'
+          . '<input id="objects-row-search" class="form-control" type="text" name="row_search" value="' . $this->escapeText($row_search_value) . '" placeholder="' . $this->t('Search within selected table rows') . '" />'
+          . '</div>'
+          . '<div class="col-md-2">'
+          . '<button type="submit" class="btn btn-primary w-100">' . $this->t('Find Rows') . '</button>'
+          . '</div>'
+          . '<div class="col-md-2">'
+          . '<a href="' . Url::fromRoute('dungeoncrawler_content.game_objects', [], ['query' => $query])->toString() . '" class="btn btn-outline-secondary w-100">' . $this->t('Clear') . '</a>'
+          . '</div>'
+          . $hidden_inputs
+          . '</form>'
+        ),
+      ],
+    ];
+  }
+
+  /**
+   * Gets normalized inventory filter values from query parameters.
+   */
+  protected function getInventoryFilters(array $query): array {
+    $schema = isset($query['schema']) && is_string($query['schema']) ? $query['schema'] : 'all';
+    if (!in_array($schema, ['all', 'dc', 'dungeoncrawler_content'], TRUE)) {
+      $schema = 'all';
+    }
+
+    $object_type = isset($query['object_type']) && is_string($query['object_type']) ? $query['object_type'] : 'all';
+    if (!in_array($object_type, ['all', self::OBJECT_TYPE_TEMPLATE, self::OBJECT_TYPE_CAMPAIGN, self::OBJECT_TYPE_OTHER], TRUE)) {
+      $object_type = 'all';
+    }
+
+    $table_filter = isset($query['table_filter']) && is_string($query['table_filter']) ? $query['table_filter'] : 'all';
+    if ($table_filter !== 'all' && !preg_match('/^(dc_|dungeoncrawler_content_)/', $table_filter)) {
+      $table_filter = 'all';
+    }
+
+    $search = isset($query['search']) && is_string($query['search']) ? trim($query['search']) : '';
+    $row_search = isset($query['row_search']) && is_string($query['row_search']) ? trim($query['row_search']) : '';
+    return [
+      'schema' => $schema,
+      'table_filter' => $table_filter,
+      'object_type' => $object_type,
+      'search' => $search,
+      'row_search' => $row_search,
+    ];
+  }
+
+  /**
+   * Gets inventory empty state text based on active filters.
+   */
+  protected function getInventoryEmptyMessage(array $filters): string {
+    if ($filters['schema'] !== 'all' || $filters['table_filter'] !== 'all' || $filters['object_type'] !== 'all' || $filters['search'] !== '') {
+      return (string) $this->t('No tables matched the active filters.');
+    }
+
+    return (string) $this->t('No Dungeon Crawler tables found.');
+  }
+
+  /**
+   * Filters table inventory by schema, table, object type, and name contains.
+   */
+  protected function filterInventory(array $table_inventory, array $filters): array {
+    $filtered = [];
+    $search = mb_strtolower($filters['search']);
+
+    foreach ($table_inventory as $table_name => $metadata) {
+      if ($filters['schema'] === 'dc' && !str_starts_with($table_name, 'dc_')) {
+        continue;
+      }
+
+      if ($filters['schema'] === 'dungeoncrawler_content' && !str_starts_with($table_name, 'dungeoncrawler_content_')) {
+        continue;
+      }
+
+      if ($filters['object_type'] !== 'all' && ($metadata['object_type'] ?? 'other') !== $filters['object_type']) {
+        continue;
+      }
+
+      if ($filters['table_filter'] !== 'all' && $table_name !== $filters['table_filter']) {
+        continue;
+      }
+
+      if ($search !== '') {
+        if (!str_contains(mb_strtolower($table_name), $search)) {
+          continue;
         }
       }
 
-      $inventory[$table_name] = [
-        'columns' => $columns,
-        'primary_keys' => $primary_keys,
-        'row_count' => $this->getTableRowCount($table_name),
-        'object_description' => $this->describeTableObjects($table_name),
-      ];
+      $filtered[$table_name] = $metadata;
     }
 
-    return $inventory;
+    return $filtered;
   }
 
   /**
-   * Loads table column metadata from information_schema.
+   * Builds query params preserving filters while selecting table.
    */
-  protected function getTableColumns(string $table_name): array {
-    $query = $this->database->query(
-      'SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_KEY
-       FROM information_schema.COLUMNS
-       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table
-       ORDER BY ORDINAL_POSITION',
-      [':table' => $table_name],
-    );
+  protected function buildSelectionQuery(string $table_name, array $filters): array {
+    $query = ['table' => $table_name];
 
-    $columns = [];
-    foreach ($query->fetchAllAssoc('COLUMN_NAME') as $column_name => $row) {
-      $columns[$column_name] = [
-        'data_type' => (string) $row->DATA_TYPE,
-        'is_nullable' => (string) $row->IS_NULLABLE,
-        'column_key' => (string) $row->COLUMN_KEY,
-      ];
+    if (!empty($filters['search'])) {
+      $query['search'] = $filters['search'];
     }
 
-    return $columns;
+    if (!empty($filters['row_search'])) {
+      $query['row_search'] = $filters['row_search'];
+    }
+
+    if (!empty($filters['object_type']) && $filters['object_type'] !== 'all') {
+      $query['object_type'] = $filters['object_type'];
+    }
+
+    if (!empty($filters['table_filter']) && $filters['table_filter'] !== 'all') {
+      $query['table_filter'] = $filters['table_filter'];
+    }
+
+    if (!empty($filters['schema']) && $filters['schema'] !== 'all') {
+      $query['schema'] = $filters['schema'];
+    }
+
+    return $query;
   }
 
   /**
-   * Gets row count for a table.
+   * Renders a simple select element.
    */
-  protected function getTableRowCount(string $table_name): int {
-    return (int) $this->database->select($table_name, 't')
-      ->countQuery()
-      ->execute()
-      ->fetchField();
+  protected function renderSelect(string $name, array $options, string $selected_value, string $id): string {
+    $option_markup = '';
+    foreach ($options as $value => $label) {
+      $selected = $selected_value === $value ? ' selected' : '';
+      $option_markup .= '<option value="' . $this->escapeText((string) $value) . '"' . $selected . '>' . $this->escapeText((string) $label) . '</option>';
+    }
+
+    return '<select id="' . $this->escapeText($id) . '" class="form-select" name="' . $this->escapeText($name) . '">' . $option_markup . '</select>';
   }
 
   /**
-   * Loads rows from a selected table.
+   * Escapes plain text for HTML output.
    */
-  protected function loadTableRows(string $table_name, array $primary_keys): array {
-    $query = $this->database->select($table_name, 't');
-    $query->fields('t');
-
-    if (count($primary_keys) === 1) {
-      $query->orderBy($primary_keys[0], 'DESC');
-    }
-
-    $query->range(0, self::MAX_ROWS);
-    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+  protected function escapeText(string $value): string {
+    return htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
   }
 
-  /**
-   * Loads a single row using primary key values.
-   */
-  protected function loadTableRowByPrimaryKey(string $table_name, array $primary_key_values): array {
-    $query = $this->database->select($table_name, 't');
-    $query->fields('t');
-    foreach ($primary_key_values as $key => $value) {
-      $query->condition($key, $value);
-    }
-    $query->range(0, 1);
-
-    $row = $query->execute()->fetchAssoc();
-    return is_array($row) ? $row : [];
-  }
 
   /**
    * Extracts primary key values from query parameters.
@@ -409,22 +730,35 @@ class GameObjectsController extends ControllerBase {
   }
 
   /**
-   * Gets object description for a table.
+   * Gets a human-readable label for an object type key.
    */
-  protected function describeTableObjects(string $table_name): string {
-    if (isset(self::TABLE_OBJECT_MAP[$table_name])) {
-      return self::TABLE_OBJECT_MAP[$table_name];
+  protected function getObjectTypeLabel(string $object_type): string {
+    return match ($object_type) {
+      self::OBJECT_TYPE_TEMPLATE => (string) $this->t('Template'),
+      self::OBJECT_TYPE_CAMPAIGN => (string) $this->t('Active Campaign'),
+      default => (string) $this->t('Other'),
+    };
+  }
+
+  /**
+   * Groups inventory rows by classified object type.
+   */
+  protected function groupInventoryByObjectType(array $table_inventory): array {
+    $groups = [
+      self::OBJECT_TYPE_TEMPLATE => [],
+      self::OBJECT_TYPE_CAMPAIGN => [],
+      self::OBJECT_TYPE_OTHER => [],
+    ];
+
+    foreach ($table_inventory as $table_name => $metadata) {
+      $object_type = $metadata['object_type'] ?? self::OBJECT_TYPE_OTHER;
+      if (!isset($groups[$object_type])) {
+        $object_type = self::OBJECT_TYPE_OTHER;
+      }
+      $groups[$object_type][$table_name] = $metadata;
     }
 
-    if (str_starts_with($table_name, 'dc_campaign_')) {
-      return (string) $this->t('Campaign runtime objects and generated world state records.');
-    }
-
-    if (str_starts_with($table_name, 'dc_')) {
-      return (string) $this->t('Dungeon Crawler domain objects and game data records.');
-    }
-
-    return (string) $this->t('Custom Dungeon Crawler data objects.');
+    return $groups;
   }
 
   /**

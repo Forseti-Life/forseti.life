@@ -29,6 +29,14 @@ Built on the Radix base theme with Bootstrap 5, it provides a dark dungeon RPG a
 - **JavaScript:** Modern ES6+ with Babel transpilation
 - **Package Manager:** npm
 
+### Navigation Behavior
+- Main navigation supports multi-level dropdown expansion (including nested submenu branches such as `Testing` → `Documentation` → `Documentation Home`).
+- Nested dropdown interactions are click-driven and keep ancestor menus open while expanding child branches.
+
+### Table Contrast Standard
+- Theme-level table styling enforces readable contrast site-wide by mapping table text/stripe/hover colors to Bootstrap body tokens (`--bs-body-color`, `--bs-border-color`, `--bs-secondary-color`).
+- This prevents dark-text-on-dark-background regressions on custom pages and Drupal-rendered admin/data tables.
+
 ## Installation
 
 ### Prerequisites

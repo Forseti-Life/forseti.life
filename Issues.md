@@ -34,7 +34,6 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCT-0138 | Make `/dungeoncrawler/testing/issue-pr-report` a sub-page/child flow under `/dungeoncrawler/testing/import-open-issues` | Open | Unassigned | 2026-02-17 | 2026-02-17 | Requested UX change: issue/PR report should live under import-open-issues flow hierarchy. |
 #### templates
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
@@ -57,44 +56,7 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0003 | Review file config/examples/level-1-goblin-warrens.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0005 | Review file config/examples/tavern-obstacle-objects.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0007 | Review file config/schemas/character.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0009 | Review file config/schemas/character_options_step2.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0010 | Review file config/schemas/character_options_step3.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0011 | Review file config/schemas/character_options_step4.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0013 | Review file config/schemas/character_options_step6.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0016 | Review file config/schemas/creature.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0017 | Review file config/schemas/dungeon_level.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0018 | Review file config/schemas/encounter.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0019 | Review file config/schemas/entity_instance.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0020 | Review file config/schemas/hazard.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0022 | Review file config/schemas/item.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0023 | Review file config/schemas/obstacle.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0024 | Review file config/schemas/obstacle_object_catalog.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0025 | Review file config/schemas/party.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0026 | Review file config/schemas/README.md for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0027 | Review file config/schemas/room.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0028 | Review file config/schemas/trap.schema.json for opportunities for improvment and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0003 | Review file config/examples/level-1-goblin-warrens.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0005 | Review file config/examples/tavern-obstacle-objects.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0007 | Review file config/schemas/character.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0009 | Review file config/schemas/character_options_step2.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0010 | Review file config/schemas/character_options_step3.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0011 | Review file config/schemas/character_options_step4.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0013 | Review file config/schemas/character_options_step6.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0017 | Review file config/schemas/dungeon_level.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0018 | Review file config/schemas/encounter.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0019 | Review file config/schemas/entity_instance.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0020 | Review file config/schemas/hazard.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 | DCC-0021 | Review file config/schemas/hexmap.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0022 | Review file config/schemas/item.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0023 | Review file config/schemas/obstacle.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0024 | Review file config/schemas/obstacle_object_catalog.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0025 | Review file config/schemas/party.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0026 | Review file config/schemas/README.md for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0027 | Review file config/schemas/room.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
-| DCC-0028 | Review file config/schemas/trap.schema.json for opportunities for improvement and refactoring | Open | Unassigned | 2026-02-16 | 2026-02-16 | Auto-generated per-file review/refactor tracking issue. |
 #### content
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |

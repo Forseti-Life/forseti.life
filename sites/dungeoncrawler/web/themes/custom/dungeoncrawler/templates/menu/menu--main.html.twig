@@ -24,6 +24,7 @@
         {% set item_classes = [
           menu_level == 0 ? 'nav-item',
           item.below ? 'dropdown',
+          menu_level > 0 and item.below ? 'dropend',
         ] %}
       
         {% if item.below %}

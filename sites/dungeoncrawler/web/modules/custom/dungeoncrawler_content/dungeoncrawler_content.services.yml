@@ -11,6 +11,10 @@ services:
     class: Drupal\dungeoncrawler_content\Service\GameContentManager
     arguments: ['@entity_type.manager', '@database']
 
+  dungeoncrawler_content.game_object_inventory:
+    class: Drupal\dungeoncrawler_content\Service\GameObjectInventoryService
+    arguments: ['@database']
+
   dungeoncrawler_content.character_manager:
     class: Drupal\dungeoncrawler_content\Service\CharacterManager
     arguments: ['@database', '@current_user', '@uuid']

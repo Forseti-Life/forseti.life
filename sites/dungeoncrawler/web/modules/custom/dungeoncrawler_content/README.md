@@ -36,8 +36,17 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 
 ### Game Object Management
 - **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
+- **Inventory service layer**: Table discovery, object classification, and row loading are centralized in `dungeoncrawler_content.game_object_inventory` (`Drupal\\dungeoncrawler_content\\Service\\GameObjectInventoryService`).
+- **Filterable inventory controls**: Filter inventory by `Schema`, `Table`, and `Object Type`, plus a separate `Object Name Contains` free-text filter.
+- **Template vs campaign delineation**: Inventory is split into explicit `Template Objects` and `Active Campaign Objects` sections with an `Object Type` classifier column.
+- **Section count summary**: Inventory delineation includes per-section table counts for `Template`, `Active Campaign`, and `Other` groups.
+- **Collapsible section UI**: Group tables are rendered as a collapsed-by-default accordion (`Template`, `Active Campaign`, `Other`) for easier scanning.
 - **Field inventory**: Per-table field/type/index listing for complete schema visibility.
-- **Row browser and editor**: Browse stored rows and edit all row fields directly from `/dungeoncrawler/objects`.
+- **Row browser and editor**: Browse stored rows, search within selected table rows (`Row Contains`), and edit all row fields directly from `/dungeoncrawler/objects`.
+- **Full-row JSON editing**: Row editor includes an advanced JSON payload editor for object-level updates in one JSON object, activated explicitly via `Use JSON editor for this update`.
+- **Row search efficiency**: `Row Contains` filtering executes at database query level across table columns before row cap is applied.
+- **JSON editor guardrails**: JSON mode accepts object-style payloads only and validates keys against real table columns.
+- **Context-preserving edit workflow**: Saving a row returns to the same filtered table/search view used when opening the editor.
 - **Theme-safe table contrast**: Dashboard tables explicitly set Bootstrap table variables so dark-theme text/background remains readable, including empty-state rows.
 - **Object Management Route**:
    - `/dungeoncrawler/objects` - Review objects and attributes

@@ -53,6 +53,7 @@ class DungeonCrawlerTableRowEditForm extends FormBase {
     array $primary_keys = [],
     array $primary_key_values = [],
     array $row = [],
+    array $return_query = [],
   ): array {
     if (!$this->isAllowedTable($table_name)) {
       $form['error'] = [
@@ -81,8 +82,44 @@ class DungeonCrawlerTableRowEditForm extends FormBase {
       '#value' => json_encode($primary_key_values),
     ];
 
+    $form['return_query_json'] = [
+      '#type' => 'hidden',
+      '#value' => json_encode($return_query),
+    ];
+
     $form['fields'] = [
       '#type' => 'container',
+    ];
+
+    $pretty_json = json_encode($row, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    if (!is_string($pretty_json)) {
+      $pretty_json = '{}';
+    }
+
+    $use_json_editor = (bool) $form_state->getValue('use_json_editor', FALSE);
+
+    $form['use_json_editor'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Use JSON editor for this update'),
+      '#default_value' => $use_json_editor,
+    ];
+
+    $form['json_editor'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Full Row JSON Editor'),
+      '#open' => $use_json_editor,
+      '#description' => $this->t('Optional advanced editor. Provide a JSON object to update row fields in one payload. Primary keys are ignored.'),
+      'row_json' => [
+        '#type' => 'textarea',
+        '#title' => $this->t('Row JSON'),
+        '#rows' => 14,
+        '#default_value' => $pretty_json,
+        '#states' => [
+          'required' => [
+            ':input[name="use_json_editor"]' => ['checked' => TRUE],
+          ],
+        ],
+      ],
     ];
 
     foreach ($columns as $column_name => $column) {
@@ -133,6 +170,38 @@ class DungeonCrawlerTableRowEditForm extends FormBase {
     if (!$this->isAllowedTable($table_name)) {
       $form_state->setErrorByName('table_name', $this->t('Invalid table name.'));
     }
+
+    $use_json_editor = (bool) $form_state->getValue('use_json_editor', FALSE);
+    if (!$use_json_editor) {
+      return;
+    }
+
+    $columns = json_decode((string) $form_state->getValue('columns_json'), TRUE) ?: [];
+    $allowed_columns = array_keys($columns);
+
+    $row_json_raw = trim((string) $form_state->getValue('row_json', ''));
+    if ($row_json_raw === '') {
+      $form_state->setErrorByName('row_json', $this->t('Row JSON is required when JSON editor mode is enabled.'));
+      return;
+    }
+
+    $decoded = json_decode($row_json_raw, TRUE);
+    if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded)) {
+      $form_state->setErrorByName('row_json', $this->t('Row JSON must be a valid JSON object.'));
+      return;
+    }
+
+    if (array_is_list($decoded)) {
+      $form_state->setErrorByName('row_json', $this->t('Row JSON must be an object with field names as keys.'));
+      return;
+    }
+
+    foreach (array_keys($decoded) as $key) {
+      if (!in_array((string) $key, $allowed_columns, TRUE)) {
+        $form_state->setErrorByName('row_json', $this->t('Row JSON contains unknown field "@field".', ['@field' => (string) $key]));
+        return;
+      }
+    }
   }
 
   /**
@@ -143,6 +212,16 @@ class DungeonCrawlerTableRowEditForm extends FormBase {
     $columns = json_decode((string) $form_state->getValue('columns_json'), TRUE) ?: [];
     $primary_keys = json_decode((string) $form_state->getValue('primary_keys_json'), TRUE) ?: [];
     $primary_key_values = json_decode((string) $form_state->getValue('primary_key_values_json'), TRUE) ?: [];
+    $return_query = json_decode((string) $form_state->getValue('return_query_json'), TRUE) ?: [];
+    $use_json_editor = (bool) $form_state->getValue('use_json_editor', FALSE);
+    $row_json_raw = $use_json_editor ? trim((string) $form_state->getValue('row_json', '')) : '';
+    $row_json_data = [];
+    if ($use_json_editor && $row_json_raw !== '') {
+      $decoded = json_decode($row_json_raw, TRUE);
+      if (is_array($decoded)) {
+        $row_json_data = $decoded;
+      }
+    }
 
     if (!$this->isAllowedTable($table_name) || empty($primary_keys) || empty($primary_key_values)) {
       $this->messenger()->addError($this->t('Unable to update row due to invalid request data.'));
@@ -157,7 +236,22 @@ class DungeonCrawlerTableRowEditForm extends FormBase {
         continue;
       }
 
-      $value = $form_state->getValue($column_name);
+      if (!empty($row_json_data)) {
+        if (!array_key_exists($column_name, $row_json_data)) {
+          continue;
+        }
+        $value = $row_json_data[$column_name];
+      }
+      else {
+        $value = $form_state->getValue($column_name);
+      }
+
+      $data_type = strtolower((string) ($column['data_type'] ?? ''));
+      if ($data_type === 'json' && (is_array($value) || is_object($value))) {
+        $encoded = json_encode($value);
+        $value = $encoded !== FALSE ? $encoded : NULL;
+      }
+
       if ($value === '' && ((string) ($column['is_nullable'] ?? '') === 'YES')) {
         $value = NULL;
       }
@@ -182,8 +276,12 @@ class DungeonCrawlerTableRowEditForm extends FormBase {
       $this->messenger()->addStatus($this->t('Row updated in @table.', ['@table' => $table_name]));
     }
 
+    if (!is_array($return_query) || empty($return_query)) {
+      $return_query = ['table' => $table_name];
+    }
+
     $form_state->setRedirect('dungeoncrawler_content.game_objects', [], [
-      'query' => ['table' => $table_name],
+      'query' => $return_query,
     ]);
   }
 
