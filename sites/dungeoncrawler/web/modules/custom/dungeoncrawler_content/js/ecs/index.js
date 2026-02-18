@@ -27,7 +27,7 @@
 export { Entity } from './Entity.js';
 export { Component } from './Component.js';
 export { System } from './System.js';
-export { EntityManager } from './EntityManager.js';
+export { EntityManager, ENTITY_MANAGER_SCHEMA_VERSION } from './EntityManager.js';
 
 // Components
 export { PositionComponent, HexDirection } from './components/PositionComponent.js';
