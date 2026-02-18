@@ -2,6 +2,18 @@
 /**
  * @file
  * Character Creation Step 5: Free Ability Boosts
+ *
+ * @deprecated This template is not currently used. The character creation
+ *   form is built programmatically in CharacterCreationStepForm::buildStepFields()
+ *   (case 5), which renders step 5 as a READ-ONLY display of auto-calculated
+ *   ability scores based on ancestry, background, and class selections.
+ *
+ * This template was part of an earlier interactive boost selection design that
+ * has been superseded by automatic calculation. Step 5 now displays pre-calculated
+ * ability scores without user input.
+ *
+ * @see \Drupal\dungeoncrawler_content\Form\CharacterCreationStepForm::buildStepFields()
+ * @see \Drupal\dungeoncrawler_content\Form\CharacterCreationStepForm::calculateAbilitiesFromSelections()
  */
 #}
 

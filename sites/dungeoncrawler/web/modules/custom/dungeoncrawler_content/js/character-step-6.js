@@ -1,6 +1,21 @@
 /**
  * @file
  * Character Creation Step 6: Alignment & Personality
+ * 
+ * Handles alignment selection (required), deity selection (optional, required for clerics/champions),
+ * age (optional), and gender (optional).
+ * 
+ * Alignment IDs use uppercase format ('LG', 'NG', 'CG', 'LN', 'N', 'CN', 'LE', 'NE', 'CE')
+ * to match character.schema.json enum values for the 'alignment' field and
+ * character_options_step6.json alignmentOption.id enum values.
+ * 
+ * The form includes fields for:
+ * - alignment: Required, must be one of the 9 standard PF2e alignments
+ * - deity: Optional (but required for cleric/champion classes per schema validation)
+ * - age: Optional integer (1-500 per character.schema.json)
+ * - gender: Optional string (max 100 chars per character.schema.json)
+ * 
+ * Server-side validation occurs in CharacterCreationStepController using SchemaLoader.
  */
 
 (function ($, Drupal, once) {
@@ -17,54 +32,57 @@
   const SELECTORS = {
     FORM: '#step-6-form',
     ALIGNMENT_FIELD: '#selected-alignment',
+    DEITY_FIELD: '#deity',
+    AGE_FIELD: '#age',
+    GENDER_FIELD: '#gender',
     ERROR_MSG: '#error-message',
     GRID: '.alignments-grid',
     CARD: '.alignment-card'
   };
 
-  // Pathfinder 2E Alignments
+  // Pathfinder 2E Alignments - Using uppercase IDs to match character.schema.json
   const alignments = {
-    'lg': {
+    'LG': {
       name: 'Lawful Good',
       description: 'You believe in honor, order, and doing what is right. You follow rules and help others.',
       examples: 'Paladins, honorable knights, benevolent rulers'
     },
-    'ng': {
+    'NG': {
       name: 'Neutral Good',
       description: 'You do what is good and right without bias for or against order. You help others as you can.',
       examples: 'Healers, charitable monks, helpful druids'
     },
-    'cg': {
+    'CG': {
       name: 'Chaotic Good',
       description: 'You follow your conscience and value freedom. You do what is right in your own way.',
       examples: 'Freedom fighters, rebels with a cause, independent heroes'
     },
-    'ln': {
+    'LN': {
       name: 'Lawful Neutral',
       description: 'You value order, organization, and tradition. You follow rules regardless of good or evil.',
       examples: 'Judges, soldiers, bureaucrats'
     },
-    'n': {
+    'N': {
       name: 'Neutral',
       description: 'You act naturally without prejudice or compulsion. You do what seems best at the time.',
       examples: 'Druids, merchants, pragmatic adventurers'
     },
-    'cn': {
+    'CN': {
       name: 'Chaotic Neutral',
       description: 'You follow your whims and value freedom above all else. You are unpredictable.',
       examples: 'Tricksters, wanderers, free spirits'
     },
-    'le': {
+    'LE': {
       name: 'Lawful Evil',
       description: 'You seek power through order and control. You follow rules but use them for your own gain.',
       examples: 'Tyrants, corrupt officials, ruthless overlords'
     },
-    'ne': {
+    'NE': {
       name: 'Neutral Evil',
       description: 'You do whatever you can get away with. You are out for yourself, pure and simple.',
       examples: 'Criminals, mercenaries, selfish schemers'
     },
-    'ce': {
+    'CE': {
       name: 'Chaotic Evil',
       description: 'You act with arbitrary violence, spurred by greed, hatred, or bloodlust.',
       examples: 'Demons, violent criminals, mad destroyers'
