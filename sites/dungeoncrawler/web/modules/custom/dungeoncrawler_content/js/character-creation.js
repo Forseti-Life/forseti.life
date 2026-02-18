@@ -3,6 +3,27 @@
  * Character Creation Wizard JavaScript
  * 
  * Handles the interactive multi-step character creation process for PF2E.
+ * 
+ * Data Storage Architecture:
+ * -------------------------
+ * Character data is saved to the dc_campaign_characters table with a hybrid
+ * hot-column + JSON design pattern:
+ * 
+ * Hot Columns (indexed, frequently accessed during gameplay):
+ * - name, ancestry, class, level (identity/filtering)
+ * - hp_current, hp_max, armor_class, experience_points (combat state)
+ * - position_q, position_r, last_room_id (movement/location)
+ * 
+ * JSON Storage (character_data field, accessed during creation/viewing):
+ * - concept, heritage, deity, alignment, age, gender (flavor/roleplay)
+ * - abilities (str, dex, con, int, wis, cha scores)
+ * - appearance, personality, backstory (character details)
+ * - equipment, gold (inventory state)
+ * 
+ * This pattern optimizes for:
+ * - Fast combat/movement queries using hot columns
+ * - Flexible character creation data in JSON
+ * - Reduced database columns for rarely-queried fields
  */
 
 (function ($, Drupal) {

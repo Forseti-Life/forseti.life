@@ -69,7 +69,7 @@ export class Component {
    * Serialize component to JSON.
    * Override in subclasses if you need custom serialization logic.
    * 
-   * Default implementation serializes all own properties except 'type' and functions.
+   * Default implementation serializes all own properties except functions.
    * Automatically handles nested objects and arrays. Circular references are detected
    * and excluded from the output with a console warning.
    * 
@@ -85,7 +85,9 @@ export class Component {
    * @returns {Object} Serialized component data (plain object)
    */
   toJSON() {
-    const data = {};
+    const data = {
+      type: this.type  // Always include type field for proper deserialization
+    };
     const seen = new WeakSet();
     // Add this component to seen set immediately to detect self-references
     seen.add(this);
@@ -96,7 +98,8 @@ export class Component {
         return obj;
       }
       
-      // Detect circular references
+      // Detect circular references - prevents infinite loops during serialization
+      // Circular refs are replaced with a sentinel value and logged as warnings
       if (seen.has(obj)) {
         console.warn('Circular reference detected in component serialization');
         return CIRCULAR_REF;
@@ -122,7 +125,7 @@ export class Component {
       return result;
     };
     
-    // Serialize all component properties
+    // Serialize all component properties (including type already added above)
     for (const [key, value] of Object.entries(this)) {
       if (key !== 'type' && typeof value !== 'function') {
         const serialized = serialize(value);

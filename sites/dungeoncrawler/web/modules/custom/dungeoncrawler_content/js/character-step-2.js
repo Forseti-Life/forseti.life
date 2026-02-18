@@ -1,6 +1,21 @@
 /**
  * @file
- * Character Creation Step 2 - Ancestry Selection
+ * Character Creation Step 2 - Ancestry & Heritage Selection
+ * 
+ * Handles ancestry and heritage selection for PF2e character creation.
+ * Data conforms to character_options_step2.json schema (v1.0.0).
+ * 
+ * Schema Conformance:
+ * - Ancestry: Hot-column in dc_characters table + JSON (character_data.ancestry.name)
+ * - Heritage: JSON-only field (character_data.ancestry.heritage), NOT a hot-column
+ * 
+ * Data Flow:
+ * CharacterManager::HERITAGES → Form data-heritages attribute → JS parsing
+ * Heritage structure per schema: {id: string, name: string, benefit: string}
+ * 
+ * @see character_options_step2.json Schema definition
+ * @see CharacterManager::HERITAGES PHP constant for heritage data source
+ * @see CharacterManager::buildCharacterJson() For JSON structure
  */
 
 (function ($, Drupal, once) {
@@ -13,8 +28,8 @@
     HERITAGE_SECTION: '#heritageSelection',
     HERITAGE_OPTIONS: '#heritageOptions',
     SUBMIT_BUTTON: '#step2Submit',
-    SELECTED_ANCESTRY: '#selectedAncestry',
-    SELECTED_HERITAGE: '#selectedHeritage',
+    SELECTED_ANCESTRY: '#selectedAncestry',  // Stored: dc_characters.ancestry (hot-column) + character_data.ancestry.name (JSON)
+    SELECTED_HERITAGE: '#selectedHeritage',  // Stored: character_data.ancestry.heritage (JSON-only, NOT a hot-column)
   };
 
   const CSS_CLASSES = {
@@ -29,11 +44,26 @@
   };
 
   const MESSAGES = {
-    SELECT_ANCESTRY: 'Please select an ancestry.',
-    SELECT_HERITAGE: 'Please select a heritage.',
+    // Schema-defined error messages from character_options_step2.json (must match exactly)
+    SELECT_ANCESTRY: 'Please select an ancestry before continuing.',  // Maps to schema: fields.ancestry.validation.error_messages.required
+    SELECT_HERITAGE: 'Please select a heritage before continuing.',    // Maps to schema: fields.heritage.validation.error_messages.required
     SAVE_ERROR: 'Failed to save. Please try again.',
   };
 
+  /**
+   * Drupal behavior for Character Creation Step 2.
+   * 
+   * Implementation Notes:
+   * - This is a LEGACY implementation using manual HTML rendering and data-attribute parsing
+   * - Schema-driven alternative exists in character-creation-schema.js (preferred for new steps)
+   * - Kept for backward compatibility with existing Step 2 templates
+   * - Data validation aligns with character_options_step2.json schema v1.0.0
+   * 
+   * Future Migration Path:
+   * - Consider migrating to schema-driven approach (character-creation-schema.js)
+   * - Would replace data-attributes with drupalSettings
+   * - Would use schema-driven form generation instead of hardcoded templates
+   */
   Drupal.behaviors.characterStep2 = {
     attach: function (context, settings) {
       once('step2-init', SELECTORS.FORM, context).forEach(function(element) {
@@ -47,8 +77,17 @@
         
         /**
          * Parse and normalize heritage data from form attribute.
+         * 
+         * Parses the data-heritages attribute which contains CharacterManager::HERITAGES
+         * structured as: {ancestryName: [{id, name, benefit}, ...]}
+         * 
+         * Schema Conformance: Validates against character_options_step2.json/$defs/heritageOption
+         * - id: string (unique identifier, e.g., "ancient-blooded", "forge")
+         * - name: string (display name, e.g., "Ancient-Blooded Dwarf")  
+         * - benefit: string (mechanical benefit description)
          *
-         * @return {Object} Normalized heritage data keyed by ancestry ID
+         * @return {Object} Normalized heritage data keyed by lowercase ancestry ID
+         *   Example: {"dwarf": [{id: "forge", name: "Forge Dwarf", benefit: "Fire resistance"}]}
          */
         function parseHeritageData() {
           try {
@@ -89,11 +128,13 @@
 
         /**
          * Render HTML for a single heritage card.
+         * 
+         * Generates UI card element conforming to heritageOption schema definition.
          *
-         * @param {Object} heritage - Heritage data object
-         * @param {string} heritage.id - Heritage identifier
-         * @param {string} heritage.name - Heritage display name
-         * @param {string} heritage.benefit - Heritage benefit description
+         * @param {Object} heritage - Heritage data object (matches schema/$defs/heritageOption)
+         * @param {string} heritage.id - Heritage identifier (required by schema)
+         * @param {string} heritage.name - Heritage display name (required by schema)
+         * @param {string} heritage.benefit - Heritage benefit description (required by schema)
          * @param {boolean} isSelected - Whether this heritage is currently selected
          * @return {string} HTML string for heritage card
          */
@@ -111,8 +152,11 @@
 
         /**
          * Display heritages for selected ancestry.
+         * 
+         * Loads and renders heritage options based on selected ancestry.
+         * If no heritages exist for ancestry, submission is allowed without heritage selection.
          *
-         * @param {string} ancestryId - The ancestry identifier
+         * @param {string} ancestryId - The ancestry identifier (lowercase, normalized)
          */
         function showHeritages(ancestryId) {
           const heritages = normalizedHeritages[ancestryId];
@@ -150,6 +194,10 @@
 
         /**
          * Validate form data before submission.
+         * 
+         * Validates required fields per character_options_step2.json validation rules:
+         * - ancestry: required (schema validation.required = true)
+         * - heritage: conditionally required if ancestry has heritage options
          *
          * @return {Object} Validation result with isValid and message properties
          */

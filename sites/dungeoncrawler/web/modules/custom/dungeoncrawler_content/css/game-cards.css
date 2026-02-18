@@ -166,6 +166,12 @@
   box-shadow: 0 0 24px rgba(245, 158, 11, 0.5);
 }
 
+/* Enhanced legendary glow effect (applied via JavaScript on hover) */
+.item-card--legendary.legendary-glow {
+  box-shadow: 0 0 32px rgba(245, 158, 11, 0.7), 0 0 48px rgba(245, 158, 11, 0.4);
+  transform: translateY(-4px);
+}
+
 .item-card__image img {
   width: 100%;
   height: var(--card-item-image-height);

@@ -42,7 +42,7 @@
       "type": "integer",
       "minimum": 0,
       "default": 0,
-      "description": "Current XP. 1000 XP per level."
+      "description": "Current XP. 1000 XP per level. This field is mirrored in the dc_campaign_characters.experience_points hot column for high-frequency gameplay reads/writes."
     },
     "ancestry": {
       "type": "string",
@@ -160,12 +160,12 @@
         "max": {
           "type": "integer",
           "minimum": 1,
-          "description": "Maximum HP (ancestry + class + Con modifier per level)."
+          "description": "Maximum HP (ancestry + class + Con modifier per level). This field is mirrored in the dc_campaign_characters.hp_max hot column."
         },
         "current": {
           "type": "integer",
           "minimum": 0,
-          "description": "Current HP. Must not exceed max."
+          "description": "Current HP. Must not exceed max. This field is mirrored in the dc_campaign_characters.hp_current hot column for high-frequency gameplay reads/writes."
         },
         "temp": {
           "type": "integer",
@@ -176,7 +176,14 @@
         }
       },
       "additionalProperties": false,
-      "description": "Character hit points. Note: Schema validation cannot enforce that current HP <= max HP; this must be validated at the application level."
+      "description": "Character hit points. Note: Schema validation cannot enforce that current HP <= max HP; this must be validated at the application level. The max and current values are stored in both this JSON structure and as dedicated hot columns (hp_max, hp_current) in dc_campaign_characters for performance."
+    },
+    "armor_class": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 50,
+      "default": 10,
+      "description": "Character's Armor Class (AC). Calculated as 10 + DEX modifier + armor bonus + shield bonus + other bonuses. This field is mirrored in the dc_campaign_characters.armor_class hot column for high-frequency gameplay reads/writes."
     },
     "alignment": {
       "type": "string",
@@ -189,10 +196,10 @@
       "description": "Deity worshipped (if any). Required for clerics and champions."
     },
     "age": {
-      "type": "integer",
-      "minimum": 1,
-      "maximum": 500,
-      "description": "Character's age in years."
+      "type": "string",
+      "maxLength": 50,
+      "pattern": "^[0-9a-zA-Z\\s,\\-]+$",
+      "description": "Character's age. Can be numeric (e.g., '25') or descriptive (e.g., 'young adult', 'ancient'). Different ancestries age at different rates."
     },
     "gender": {
       "type": "string",
@@ -309,21 +316,18 @@
     },
     "appearance": {
       "type": "string",
-      "minLength": 1,
       "maxLength": 1000,
-      "description": "Physical description."
+      "description": "Physical description. Optional flavor text for roleplaying."
     },
     "personality": {
       "type": "string",
-      "minLength": 1,
       "maxLength": 1000,
-      "description": "Personality traits."
+      "description": "Personality traits. Optional flavor text for roleplaying."
     },
     "backstory": {
       "type": "string",
-      "minLength": 1,
       "maxLength": 5000,
-      "description": "Character backstory."
+      "description": "Character backstory. Optional flavor text for roleplaying."
     },
     "feats": {
       "type": "array",
