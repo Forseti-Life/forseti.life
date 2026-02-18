@@ -1,0 +1,30 @@
+{
+  "rows": [
+    {
+      "template_id": "starter_tavern_disruption",
+      "name": "Starter Tavern Disruption",
+      "description": "A light skirmish encounter suitable for campaign onboarding.",
+      "level": 1,
+      "xp_budget": 60,
+      "threat_level": "low",
+      "creature_slots": [
+        {"role": "frontline", "count": 1, "level_offset": 0, "tags_required": ["humanoid"]},
+        {"role": "support", "count": 1, "level_offset": -1, "tags_required": ["humanoid"]}
+      ],
+      "environment_tags": ["tavern", "social", "starter"]
+    },
+    {
+      "template_id": "starter_goblin_raiders",
+      "name": "Starter Goblin Raiders",
+      "description": "Entry-level goblin raid encounter for first dungeon floors.",
+      "level": 1,
+      "xp_budget": 80,
+      "threat_level": "moderate",
+      "creature_slots": [
+        {"role": "leader", "count": 1, "level_offset": 0, "tags_required": ["goblin"]},
+        {"role": "skirmisher", "count": 2, "level_offset": -1, "tags_required": ["goblin"]}
+      ],
+      "environment_tags": ["goblin", "warrens", "starter"]
+    }
+  ]
+}

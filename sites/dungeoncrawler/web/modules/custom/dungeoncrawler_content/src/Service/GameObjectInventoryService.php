@@ -33,6 +33,14 @@ class GameObjectInventoryService {
     'dungeoncrawler_content_registry' => 'Global content registry objects for generator lookups.',
     'dungeoncrawler_content_loot_tables' => 'Global loot table objects used by the generator.',
     'dungeoncrawler_content_encounter_templates' => 'Global encounter template objects.',
+    'dungeoncrawler_content_campaigns' => 'Global campaign template records and baseline metadata.',
+    'dungeoncrawler_content_characters' => 'Global character/actor template mappings.',
+    'dungeoncrawler_content_rooms' => 'Global room template objects.',
+    'dungeoncrawler_content_dungeons' => 'Global dungeon template objects.',
+    'dungeoncrawler_content_encounter_instances' => 'Global encounter instance templates.',
+    'dungeoncrawler_content_room_states' => 'Global room-state template baselines.',
+    'dungeoncrawler_content_item_instances' => 'Global item instance templates.',
+    'dungeoncrawler_content_log' => 'Global narrative/event log templates.',
   ];
 
   /**

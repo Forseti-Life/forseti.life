@@ -1,0 +1,14 @@
+{
+  "rows": [
+    {
+      "dungeon_id": "tpl_dungeon_tavern_basement",
+      "name": "Tavern Basement Intro",
+      "description": "Small starter dungeon template.",
+      "theme": "classic_dungeon",
+      "dungeon_data": {
+        "levels": 1,
+        "entry_room": "tpl_room_tavern_entrance"
+      }
+    }
+  ]
+}

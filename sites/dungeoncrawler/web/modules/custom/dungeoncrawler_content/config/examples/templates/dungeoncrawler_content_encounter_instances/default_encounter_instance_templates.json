@@ -1,0 +1,15 @@
+{
+  "rows": [
+    {
+      "encounter_instance_id": "tpl_encounter_tavern_disruption_001",
+      "template_id": "starter_tavern_disruption",
+      "name": "Tavern Disruption Template Instance",
+      "status": "pending",
+      "state_data": {
+        "round": 0,
+        "participants": [],
+        "effects": []
+      }
+    }
+  ]
+}

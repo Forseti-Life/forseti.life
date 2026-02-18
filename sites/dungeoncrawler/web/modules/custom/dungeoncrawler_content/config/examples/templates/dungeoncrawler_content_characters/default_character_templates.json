@@ -1,0 +1,17 @@
+{
+  "rows": [
+    {
+      "character_id": 1,
+      "instance_id": "tpl_char_starter_001",
+      "type": "pc",
+      "uid": 1,
+      "role": "player",
+      "state_data": {
+        "hp_current": 20,
+        "conditions": []
+      },
+      "location_type": "global",
+      "location_ref": ""
+    }
+  ]
+}

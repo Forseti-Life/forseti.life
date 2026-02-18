@@ -1,0 +1,15 @@
+{
+  "rows": [
+    {
+      "item_instance_id": "tpl_item_minor_potion_001",
+      "item_id": "healing_potion_minor",
+      "location_type": "inventory",
+      "location_ref": "starter_pack",
+      "quantity": 2,
+      "state_data": {
+        "identified": true,
+        "charges": 1
+      }
+    }
+  ]
+}

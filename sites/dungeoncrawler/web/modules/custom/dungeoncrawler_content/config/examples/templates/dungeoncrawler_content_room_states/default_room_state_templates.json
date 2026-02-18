@@ -1,0 +1,13 @@
+{
+  "rows": [
+    {
+      "room_id": "tpl_room_tavern_entrance",
+      "is_cleared": 0,
+      "fog_state": {
+        "revealed_tiles": [],
+        "visited": false
+      },
+      "last_visited": 0
+    }
+  ]
+}

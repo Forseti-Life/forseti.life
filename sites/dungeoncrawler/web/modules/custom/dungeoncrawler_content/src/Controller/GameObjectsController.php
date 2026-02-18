@@ -7,6 +7,7 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Render\Markup;
 use Drupal\Core\Url;
+use Drupal\dungeoncrawler_content\Form\DungeonCrawlerTemplateImportForm;
 use Drupal\dungeoncrawler_content\Form\DungeonCrawlerTableRowEditForm;
 use Drupal\dungeoncrawler_content\Service\GameObjectInventoryService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -209,6 +210,11 @@ class GameObjectsController extends ControllerBase {
           '#markup' => '<h3 class="h5 mb-3">' . $this->t('Table Inventory') . '</h3>',
         ],
         'filters' => $this->buildInventoryFiltersForm($filters, $table_inventory),
+        'import_templates_form' => [
+          '#type' => 'container',
+          '#attributes' => ['class' => ['mb-3']],
+          'form' => $this->formBuilderService->getForm(DungeonCrawlerTemplateImportForm::class),
+        ],
         'summary' => [
           '#markup' => '<p class="mb-3">' . $this->t('Showing @shown of @total object tables.', ['@shown' => count($filtered_inventory), '@total' => count($table_inventory)]) . '</p>',
         ],

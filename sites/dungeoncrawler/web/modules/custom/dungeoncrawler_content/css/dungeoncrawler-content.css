@@ -35,6 +35,23 @@
   color: var(--bs-body-color);
 }
 
+.game-content-dashboard > :not(caption) > * > * {
+  color: var(--bs-body-color) !important;
+  background-color: var(--bs-table-bg) !important;
+  border-color: var(--bs-table-border-color);
+}
+
+.game-content-dashboard > thead > tr > * {
+  background-color: var(--bs-secondary-bg) !important;
+  color: var(--bs-heading-color) !important;
+  border-color: rgba(245, 158, 11, 0.2);
+}
+
+.game-content-dashboard > tbody > tr:nth-of-type(odd) > * {
+  background-color: var(--bs-table-striped-bg) !important;
+  color: var(--bs-table-striped-color) !important;
+}
+
 .game-content-dashboard caption {
   color: var(--bs-secondary-color);
 }

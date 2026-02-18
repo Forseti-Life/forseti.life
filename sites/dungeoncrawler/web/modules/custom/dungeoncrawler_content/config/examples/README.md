@@ -4,6 +4,20 @@ This directory contains example configuration files demonstrating the JSON schem
 
 ## Files
 
+### templates/ (table-organized imports)
+File-based template rows organized by destination table for object manager imports.
+
+**Path:** `config/examples/templates/`
+
+**Workflow:** Use the **Import templates** button on `/dungeoncrawler/objects` to import/update template rows.
+
+**Current table directories:**
+- `dungeoncrawler_content_registry/`
+- `dungeoncrawler_content_loot_tables/`
+- `dungeoncrawler_content_encounter_templates/`
+
+**Format:** Each JSON file can contain a single row object, a list of row objects, or `{ "rows": [...] }`.
+
 ### tavern-obstacle-objects.json ✨ Enhanced
 Obstacle object catalog defining reusable obstacle types (furniture, fixtures, etc.) with movement properties. These definitions are referenced by entity instances in dungeon levels.
 

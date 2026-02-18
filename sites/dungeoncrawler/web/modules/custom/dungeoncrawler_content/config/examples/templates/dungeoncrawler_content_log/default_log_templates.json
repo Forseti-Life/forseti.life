@@ -1,0 +1,14 @@
+{
+  "rows": [
+    {
+      "id": 1,
+      "log_type": "narrative",
+      "message": "Template narrative seed for campaign intro.",
+      "context": {
+        "template": true,
+        "phase": "intro"
+      },
+      "room_id": "tpl_room_tavern_entrance"
+    }
+  ]
+}

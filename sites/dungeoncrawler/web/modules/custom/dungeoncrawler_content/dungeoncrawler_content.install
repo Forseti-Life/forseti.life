@@ -1600,6 +1600,249 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  $schema['dungeoncrawler_content_campaigns'] = [
+    'description' => 'Global campaign template definitions.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uuid' => [
+        'type' => 'varchar',
+        'length' => 36,
+        'not null' => TRUE,
+        'description' => 'Template UUID.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Template owner user ID.',
+      ],
+      'name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Template name.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'draft',
+        'description' => 'Template status.',
+      ],
+      'theme' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => 'classic_dungeon',
+        'description' => 'Template theme key.',
+      ],
+      'difficulty' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'normal',
+        'description' => 'Template difficulty key.',
+      ],
+      'active_character_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Default selected character for this template.',
+      ],
+      'campaign_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON campaign template payload.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Created timestamp.',
+      ],
+      'changed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Changed timestamp.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'status' => ['status'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_characters'] = [
+    'description' => 'Global character/actor template mappings.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'character_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Library character ID.'],
+      'instance_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => '', 'description' => 'Template instance identifier.'],
+      'type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pc', 'description' => 'pc, npc, obstacle, trap, hazard.'],
+      'uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'description' => 'Owner user ID.'],
+      'role' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'player', 'description' => 'Role in template party.'],
+      'state_data' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE, 'description' => 'Template runtime state JSON.'],
+      'location_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'global', 'description' => 'Placement scope.'],
+      'location_ref' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => '', 'description' => 'Placement reference id.'],
+      'is_active' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 1, 'description' => 'Whether this mapping is active.'],
+      'joined' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Joined timestamp.'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Updated timestamp.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_instance' => ['instance_id'],
+    ],
+    'indexes' => [
+      'character_id' => ['character_id'],
+      'type' => ['type'],
+      'location_type' => ['location_type'],
+      'location_ref' => ['location_ref'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_rooms'] = [
+    'description' => 'Global room template definitions.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'room_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Room template identifier.'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Display name'],
+      'description' => ['type' => 'text', 'not null' => FALSE, 'description' => 'Room description'],
+      'environment_tags' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON array of environment tags'],
+      'layout_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Room layout JSON payload.'],
+      'contents_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Placed objects JSON payload.'],
+      'source_room_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Source room id if derived.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Created timestamp'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Updated timestamp'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_room' => ['room_id'],
+    ],
+    'indexes' => [
+      'source_room_id' => ['source_room_id'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_dungeons'] = [
+    'description' => 'Global dungeon template definitions.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'dungeon_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Dungeon template identifier.'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Display name'],
+      'description' => ['type' => 'text', 'not null' => FALSE, 'description' => 'Dungeon description'],
+      'theme' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE, 'description' => 'Dungeon theme key.'],
+      'dungeon_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Dungeon graph and metadata as JSON.'],
+      'source_dungeon_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Source dungeon id if derived.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Created timestamp'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Updated timestamp'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_dungeon' => ['dungeon_id'],
+    ],
+    'indexes' => [
+      'theme' => ['theme'],
+      'source_dungeon_id' => ['source_dungeon_id'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_encounter_instances'] = [
+    'description' => 'Global encounter instance templates.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'encounter_instance_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Encounter template instance identifier.'],
+      'template_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Template id that seeded this instance.'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Display name for the encounter.'],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pending', 'description' => 'Encounter status.'],
+      'state_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Encounter state JSON.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Created timestamp'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Updated timestamp'],
+      'ended' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Ended timestamp.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_encounter_instance' => ['encounter_instance_id'],
+    ],
+    'indexes' => [
+      'status' => ['status'],
+      'template_id' => ['template_id'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_room_states'] = [
+    'description' => 'Global room-state templates.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'room_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Room identifier.'],
+      'is_cleared' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0, 'description' => 'Whether room is cleared in template baseline.'],
+      'fog_state' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Fog baseline JSON payload.'],
+      'last_visited' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Last visited timestamp baseline.'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Updated timestamp'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_room_state' => ['room_id'],
+    ],
+    'indexes' => [
+      'is_cleared' => ['is_cleared'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_item_instances'] = [
+    'description' => 'Global item instance templates.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'item_instance_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Template item instance identifier.'],
+      'item_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Content item id.'],
+      'location_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'inventory', 'description' => 'inventory, room, creature, stash, etc.'],
+      'location_ref' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'default' => '', 'description' => 'Location reference id.'],
+      'quantity' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 1, 'description' => 'Quantity.'],
+      'state_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Item condition JSON payload.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Created timestamp'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Updated timestamp'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'template_item_instance' => ['item_instance_id'],
+    ],
+    'indexes' => [
+      'item_id' => ['item_id'],
+      'location' => ['location_type', 'location_ref'],
+    ],
+  ];
+
+  $schema['dungeoncrawler_content_log'] = [
+    'description' => 'Global log-entry templates.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'log_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'info', 'description' => 'info, warning, error, combat, loot, narrative.'],
+      'message' => ['type' => 'text', 'not null' => TRUE, 'description' => 'Human-readable message.'],
+      'context' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE, 'description' => 'Optional JSON context payload.'],
+      'encounter_instance_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Related encounter instance id, if any.'],
+      'room_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Related room id, if any.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Created timestamp'],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'log_type' => ['log_type'],
+      'encounter_instance_id' => ['encounter_instance_id'],
+      'room_id' => ['room_id'],
+      'created' => ['created'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -1767,7 +2010,7 @@ function dungeoncrawler_content_update_10005() {
       }
     }
     if (!$schema_handler->indexExists('dc_characters', 'type')) {
-      $schema_handler->addIndex('dc_characters', 'type', ['type']);
+      $schema_handler->addIndex('dc_characters', 'type', ['type'], $schema['dc_characters']);
     }
 
     // Backfill type/defaults for existing characters.
@@ -1824,7 +2067,7 @@ function dungeoncrawler_content_update_10005() {
       $schema_handler->addUniqueKey('dc_campaign_characters', 'campaign_instance', ['campaign_id', 'instance_id']);
     }
     if (!$schema_handler->indexExists('dc_campaign_characters', 'type')) {
-      $schema_handler->addIndex('dc_campaign_characters', 'type', ['type']);
+      $schema_handler->addIndex('dc_campaign_characters', 'type', ['type'], $schema['dc_campaign_characters']);
     }
 
     // Build a lookup of library character types for backfill.
@@ -1872,5 +2115,44 @@ function dungeoncrawler_content_update_10005() {
   catch (\Exception $e) {
     \Drupal::logger('dungeoncrawler_content')->error('Update 10005 failed: @error', ['@error' => $e->getMessage()]);
     throw new \Drupal\Core\Utility\UpdateException('Failed to apply unified entity model update: ' . $e->getMessage());
+  }
+}
+
+/**
+ * Add global template counterparts for campaign runtime tables.
+ */
+function dungeoncrawler_content_update_10006() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $messages = [];
+
+  $tables = [
+    'dungeoncrawler_content_campaigns',
+    'dungeoncrawler_content_characters',
+    'dungeoncrawler_content_rooms',
+    'dungeoncrawler_content_dungeons',
+    'dungeoncrawler_content_encounter_instances',
+    'dungeoncrawler_content_room_states',
+    'dungeoncrawler_content_item_instances',
+    'dungeoncrawler_content_log',
+  ];
+
+  try {
+    foreach ($tables as $table) {
+      if (!$database->schema()->tableExists($table)) {
+        $database->schema()->createTable($table, $schema[$table]);
+        $messages[] = 'Created ' . $table . ' table.';
+      }
+    }
+
+    if (empty($messages)) {
+      return t('Template counterpart tables already exist.');
+    }
+
+    return t('Template counterpart update complete: @messages', ['@messages' => implode(' ', $messages)]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10006 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to create template counterpart tables: ' . $e->getMessage());
   }
 }

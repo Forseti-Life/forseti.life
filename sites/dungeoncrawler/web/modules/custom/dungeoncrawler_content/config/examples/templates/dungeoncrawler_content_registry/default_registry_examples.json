@@ -1,0 +1,44 @@
+{
+  "rows": [
+    {
+      "content_type": "obstacle",
+      "content_id": "tavern_bar_counter",
+      "name": "Tavern Bar Counter",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["obstacle", "furniture", "cover"],
+      "schema_data": {
+        "object_id": "bar_counter",
+        "description": "A sturdy wooden bar counter providing partial cover.",
+        "movable": false,
+        "stackable": false,
+        "movement": {
+          "passable": false,
+          "blocks_movement": true,
+          "cost_multiplier": 999
+        }
+      },
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "obstacle",
+      "content_id": "tavern_round_table",
+      "name": "Tavern Round Table",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["obstacle", "furniture", "movable"],
+      "schema_data": {
+        "object_id": "round_table",
+        "description": "A round table that can be moved with effort.",
+        "movable": true,
+        "stackable": false,
+        "movement": {
+          "passable": false,
+          "blocks_movement": true,
+          "cost_multiplier": 2
+        }
+      },
+      "version": "1.0.0"
+    }
+  ]
+}

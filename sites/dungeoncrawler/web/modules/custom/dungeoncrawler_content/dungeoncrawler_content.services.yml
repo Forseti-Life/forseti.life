@@ -15,6 +15,13 @@ services:
     class: Drupal\dungeoncrawler_content\Service\GameObjectInventoryService
     arguments: ['@database']
 
+  dungeoncrawler_content.template_importer:
+    class: Drupal\dungeoncrawler_content\Service\TemplateImportService
+    arguments:
+      - '@database'
+      - '@extension.list.module'
+      - '@logger.factory'
+
   dungeoncrawler_content.character_manager:
     class: Drupal\dungeoncrawler_content\Service\CharacterManager
     arguments: ['@database', '@current_user', '@uuid']

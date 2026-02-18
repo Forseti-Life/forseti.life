@@ -1,0 +1,16 @@
+{
+  "rows": [
+    {
+      "uuid": "11111111-1111-1111-1111-111111111111",
+      "uid": 1,
+      "name": "Starter Campaign Template",
+      "status": "draft",
+      "theme": "classic_dungeon",
+      "difficulty": "normal",
+      "campaign_data": {
+        "template": true,
+        "notes": "Baseline campaign template for onboarding"
+      }
+    }
+  ]
+}

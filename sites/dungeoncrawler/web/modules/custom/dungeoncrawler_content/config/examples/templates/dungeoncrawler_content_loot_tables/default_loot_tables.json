@@ -1,0 +1,28 @@
+{
+  "rows": [
+    {
+      "table_id": "starter_tavern_common",
+      "name": "Starter Tavern Common Loot",
+      "description": "Low-risk early-campaign tavern and nearby-room drops.",
+      "level_range": "1-2",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 45, "quantity": "1d12"},
+        {"item_id": "basic_rations", "weight": 25, "quantity": "1d4"},
+        {"item_id": "healing_potion_minor", "weight": 20, "quantity": "1"},
+        {"item_id": "tinderbox", "weight": 10, "quantity": "1"}
+      ]
+    },
+    {
+      "table_id": "starter_goblin_warrens",
+      "name": "Starter Goblin Warrens Loot",
+      "description": "Entry-level loot tuned for goblin-themed encounters.",
+      "level_range": "1-3",
+      "entries": [
+        {"item_id": "gold_pieces", "weight": 50, "quantity": "2d10"},
+        {"item_id": "dagger", "weight": 20, "quantity": "1"},
+        {"item_id": "shortbow", "weight": 15, "quantity": "1"},
+        {"item_id": "healing_potion_minor", "weight": 15, "quantity": "1"}
+      ]
+    }
+  ]
+}

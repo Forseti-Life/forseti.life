@@ -47,6 +47,8 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **Row search efficiency**: `Row Contains` filtering executes at database query level across table columns before row cap is applied.
 - **JSON editor guardrails**: JSON mode accepts object-style payloads only and validates keys against real table columns.
 - **Context-preserving edit workflow**: Saving a row returns to the same filtered table/search view used when opening the editor.
+- **Template import action**: `/dungeoncrawler/objects` includes an `Import templates` button that loads file-based examples into template tables.
+- **Table-organized template examples**: Template import files are stored in `config/examples/templates/{table_name}/` and can grow over time as default examples expand.
 - **Theme-safe table contrast**: Dashboard tables explicitly set Bootstrap table variables so dark-theme text/background remains readable, including empty-state rows.
 - **Object Management Route**:
    - `/dungeoncrawler/objects` - Review objects and attributes

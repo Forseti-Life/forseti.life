@@ -1,0 +1,19 @@
+{
+  "rows": [
+    {
+      "room_id": "tpl_room_tavern_entrance",
+      "name": "Tavern Entrance Room",
+      "description": "Starter room template for campaign launch.",
+      "environment_tags": ["tavern", "starter"],
+      "layout_data": {
+        "shape": "rectangle",
+        "width": 8,
+        "height": 6
+      },
+      "contents_data": {
+        "obstacles": ["bar_counter", "round_table"],
+        "creatures": []
+      }
+    }
+  ]
+}
