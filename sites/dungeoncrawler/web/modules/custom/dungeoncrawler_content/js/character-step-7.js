@@ -1,6 +1,34 @@
 /**
  * @file
  * Character Creation Step 7: Starting Equipment
+ * 
+ * Equipment Selection Interface:
+ * - Displays categorized equipment lists (weapons, armor, gear)
+ * - Tracks gold remaining (starting: 15 gp)
+ * - Validates purchases against available gold
+ * - Persists selections to character_data JSON
+ * 
+ * Data Structure (conforms to character_options_step7.json):
+ * Each equipment item includes:
+ * - id: Unique identifier
+ * - name: Display name
+ * - cost: Gold piece value (number)
+ * - bulk: Encumbrance (number or 'L' for light)
+ * - category: 'weapon', 'armor', or 'gear'
+ * - Additional fields:
+ *   - Weapons: damage, hands, traits[]
+ *   - Armor: ac, traits[]
+ *   - Gear: traits[]
+ * 
+ * Character Data Storage:
+ * Selected equipment is stored in dc_campaign_characters.character_data JSON:
+ * {
+ *   "equipment": [
+ *     { "id": "longsword", "name": "Longsword", "cost": 1, ... },
+ *     { "id": "leather", "name": "Leather Armor", "cost": 2, ... }
+ *   ],
+ *   "gold": 12.0  // Remaining gold after purchases
+ * }
  */
 
 (function ($, Drupal, once) {
@@ -37,41 +65,42 @@
     }
   };
 
-  // Starting Equipment Database (Simplified PF2E)
+  // Starting Equipment Database (Schema-aligned PF2E)
+  // Conforms to character_options_step7.json schema structure
   const EQUIPMENT = {
     weapons: [
-      { id: 'longsword', name: 'Longsword', cost: 1, damage: '1d8' },
-      { id: 'shortsword', name: 'Shortsword', cost: 0.9, damage: '1d6' },
-      { id: 'dagger', name: 'Dagger', cost: 0.2, damage: '1d4' },
-      { id: 'rapier', name: 'Rapier', cost: 2, damage: '1d6' },
-      { id: 'battleaxe', name: 'Battle Axe', cost: 1, damage: '1d8' },
-      { id: 'warhammer', name: 'Warhammer', cost: 1, damage: '1d8' },
-      { id: 'shortbow', name: 'Shortbow', cost: 3, damage: '1d6' },
-      { id: 'longbow', name: 'Longbow', cost: 6, damage: '1d8' },
-      { id: 'staff', name: 'Staff', cost: 0, damage: '1d4' }
+      { id: 'longsword', name: 'Longsword', cost: 1, damage: '1d8 S', bulk: 1, hands: 1, traits: ['versatile P'] },
+      { id: 'shortsword', name: 'Shortsword', cost: 0.9, damage: '1d6 P', bulk: 'L', hands: 1, traits: ['agile', 'finesse', 'versatile S'] },
+      { id: 'dagger', name: 'Dagger', cost: 0.2, damage: '1d4 P', bulk: 'L', hands: 1, traits: ['agile', 'finesse', 'thrown 10 ft.', 'versatile S'] },
+      { id: 'rapier', name: 'Rapier', cost: 2, damage: '1d6 P', bulk: 1, hands: 1, traits: ['deadly d8', 'disarm', 'finesse'] },
+      { id: 'battleaxe', name: 'Battle Axe', cost: 1, damage: '1d8 S', bulk: 1, hands: 1, traits: ['sweep'] },
+      { id: 'warhammer', name: 'Warhammer', cost: 1, damage: '1d8 B', bulk: 1, hands: 1, traits: ['shove'] },
+      { id: 'shortbow', name: 'Shortbow', cost: 3, damage: '1d6 P', bulk: 1, hands: 2, traits: ['deadly d10', 'range 60 ft.'] },
+      { id: 'longbow', name: 'Longbow', cost: 6, damage: '1d8 P', bulk: 2, hands: 2, traits: ['deadly d10', 'range 100 ft.', 'volley 30 ft.'] },
+      { id: 'staff', name: 'Staff', cost: 0, damage: '1d4 B', bulk: 1, hands: 2, traits: ['two-hand d8'] }
     ],
     armor: [
-      { id: 'leather', name: 'Leather Armor', cost: 2, ac: '+1' },
-      { id: 'studded-leather', name: 'Studded Leather Armor', cost: 3, ac: '+2' },
-      { id: 'chain-shirt', name: 'Chain Shirt', cost: 5, ac: '+2' },
-      { id: 'hide-armor', name: 'Hide Armor', cost: 2, ac: '+3' },
-      { id: 'scale-mail', name: 'Scale Mail', cost: 4, ac: '+3' },
-      { id: 'chain-mail', name: 'Chain Mail', cost: 6, ac: '+4' },
-      { id: 'breastplate', name: 'Breastplate', cost: 8, ac: '+4' },
-      { id: 'shield', name: 'Wooden Shield', cost: 1, ac: '+2 circumstance' }
+      { id: 'leather', name: 'Leather Armor', cost: 2, bulk: 1, ac: '+1', traits: [] },
+      { id: 'studded-leather', name: 'Studded Leather Armor', cost: 3, bulk: 1, ac: '+2', traits: [] },
+      { id: 'chain-shirt', name: 'Chain Shirt', cost: 5, bulk: 1, ac: '+2', traits: ['flexible', 'noisy'] },
+      { id: 'hide-armor', name: 'Hide Armor', cost: 2, bulk: 2, ac: '+3', traits: [] },
+      { id: 'scale-mail', name: 'Scale Mail', cost: 4, bulk: 2, ac: '+3', traits: [] },
+      { id: 'chain-mail', name: 'Chain Mail', cost: 6, bulk: 2, ac: '+4', traits: ['flexible', 'noisy'] },
+      { id: 'breastplate', name: 'Breastplate', cost: 8, bulk: 2, ac: '+4', traits: [] },
+      { id: 'shield', name: 'Wooden Shield', cost: 1, bulk: 1, ac: '+2 circumstance', traits: [] }
     ],
     gear: [
-      { id: 'backpack', name: 'Backpack', cost: 0.1 },
-      { id: 'bedroll', name: 'Bedroll', cost: 0.1 },
-      { id: 'rope', name: 'Rope (50ft)', cost: 0.5 },
-      { id: 'torch-5', name: 'Torches (5)', cost: 0.05 },
-      { id: 'rations', name: "Rations (1 week)", cost: 0.4 },
-      { id: 'waterskin', name: 'Waterskin', cost: 0.05 },
-      { id: 'healers-kit', name: "Healer's Tools", cost: 5 },
-      { id: 'thieves-tools', name: "Thieves' Tools", cost: 3 },
-      { id: 'grappling-hook', name: 'Grappling Hook', cost: 0.1 },
-      { id: 'lantern', name: 'Hooded Lantern', cost: 0.7 },
-      { id: 'oil-flask', name: 'Oil (1 flask)', cost: 0.1 }
+      { id: 'backpack', name: 'Backpack', cost: 0.1, bulk: 'L', traits: [] },
+      { id: 'bedroll', name: 'Bedroll', cost: 0.1, bulk: 'L', traits: [] },
+      { id: 'rope', name: 'Rope (50ft)', cost: 0.5, bulk: 'L', traits: [] },
+      { id: 'torch-5', name: 'Torches (5)', cost: 0.05, bulk: 'L', traits: [] },
+      { id: 'rations', name: "Rations (1 week)", cost: 0.4, bulk: 'L', traits: [] },
+      { id: 'waterskin', name: 'Waterskin', cost: 0.05, bulk: 'L', traits: [] },
+      { id: 'healers-kit', name: "Healer's Tools", cost: 5, bulk: 1, traits: [] },
+      { id: 'thieves-tools', name: "Thieves' Tools", cost: 3, bulk: 'L', traits: [] },
+      { id: 'grappling-hook', name: 'Grappling Hook', cost: 0.1, bulk: 'L', traits: [] },
+      { id: 'lantern', name: 'Hooded Lantern', cost: 0.7, bulk: 'L', traits: [] },
+      { id: 'oil-flask', name: 'Oil (1 flask)', cost: 0.1, bulk: 'L', traits: [] }
     ]
   };
 
