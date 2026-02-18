@@ -18,7 +18,8 @@ const DEFAULTS = {
   LEVEL: 1,
   PROFICIENCY_BONUS: 2,
   PERCEPTION: 0,
-  TEMP_HP: 0
+  TEMP_HP: 0,
+  EXPERIENCE_POINTS: 0
 };
 
 /**
@@ -58,6 +59,7 @@ export class StatsComponent extends Component {
    * @param {number} [config.level] - Character level
    * @param {number} [config.proficiencyBonus] - Proficiency bonus
    * @param {number} [config.perception] - Perception bonus
+   * @param {number} [config.experiencePoints] - Experience points (hot column for database queries)
    */
   constructor(config = {}) {
     super();
@@ -102,6 +104,9 @@ export class StatsComponent extends Component {
     
     // Perception
     this.perception = config.perception ?? DEFAULTS.PERCEPTION;
+    
+    // Experience points (hot column for database queries)
+    this.experiencePoints = config.experiencePoints ?? DEFAULTS.EXPERIENCE_POINTS;
   }
   
   /**
@@ -205,7 +210,8 @@ export class StatsComponent extends Component {
       speeds: {...this.speeds},
       level: this.level,
       proficiencyBonus: this.proficiencyBonus,
-      perception: this.perception
+      perception: this.perception,
+      experiencePoints: this.experiencePoints
     };
   }
   
@@ -235,7 +241,8 @@ export class StatsComponent extends Component {
       climbSpeed: data.speeds.climb,
       level: data.level,
       proficiencyBonus: data.proficiencyBonus,
-      perception: data.perception
+      perception: data.perception,
+      experiencePoints: data.experiencePoints
     };
     
     const component = new StatsComponent(config);
