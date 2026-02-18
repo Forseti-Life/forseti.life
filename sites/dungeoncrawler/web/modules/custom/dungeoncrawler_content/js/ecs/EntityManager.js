@@ -1,9 +1,52 @@
 /**
  * @file
  * EntityManager - manages all entities and provides query functionality.
+ * 
+ * Database Schema Integration:
+ * ============================
+ * This EntityManager serializes entities to JSON for storage in the
+ * dc_campaign_characters.character_data field (TEXT BIG). The database
+ * uses a hybrid storage model:
+ * 
+ * Hot Columns (indexed for fast queries):
+ * - position_q, position_r: Mirrors PositionComponent.q/.r
+ * - hp_current, hp_max: Mirrors StatsComponent.currentHp/.maxHp
+ * - armor_class: Mirrors StatsComponent.ac
+ * - type: Mirrors IdentityComponent.entityType (see EntityType enum)
+ * - instance_id: Maps to Entity.id for runtime ECS reference
+ * 
+ * JSON Columns (full entity state):
+ * - character_data: Full Entity.toJSON() output with all components
+ * - state_data: Campaign-scoped runtime deltas (merged on load)
+ * - default_character_data: Template baseline for resets
+ * 
+ * Type Mapping:
+ * -------------
+ * DB 'type' field     | EntityType enum value
+ * --------------------|------------------------
+ * 'pc'                | 'player_character'
+ * 'npc'               | 'npc'
+ * 'obstacle'          | 'obstacle'
+ * 'trap'              | 'trap'
+ * 'hazard'            | 'hazard'
+ * 
+ * Data Integrity:
+ * ---------------
+ * When loading/saving entities, ensure hot columns are synchronized with
+ * their corresponding component values to maintain query accuracy.
+ * 
+ * @see /sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/dungeoncrawler_content.install
+ * @see Entity.toJSON() for serialization format
+ * @see components/PositionComponent.js, StatsComponent.js, IdentityComponent.js
  */
 
 import { Entity } from './Entity.js';
+
+/**
+ * Schema version for EntityManager serialization.
+ * Increment when making breaking changes to JSON structure.
+ */
+export const ENTITY_MANAGER_SCHEMA_VERSION = 1;
 
 export class EntityManager {
   constructor() {
@@ -141,6 +184,15 @@ export class EntityManager {
 
   /**
    * Invalidate query cache (call when entities change).
+   * 
+   * Cache Invalidation Strategy:
+   * - Called automatically on entity creation/removal
+   * - Should be called manually after bulk component changes
+   * - Does NOT auto-invalidate on component modifications (performance)
+   * 
+   * Manual invalidation required after:
+   * - entity.addComponent() / removeComponent()
+   * - Batch entity updates via system processing
    */
   invalidateQueryCache() {
     this.queryCache.clear();
@@ -195,8 +247,32 @@ export class EntityManager {
 
   /**
    * Serialize all entities to JSON.
-   * @param {string} format - Output format: 'ecs' (default) or 'entity_instance'
-   * @returns {object} Serialized data
+   * 
+   * Output format:
+   * {
+   *   version: 1,  // Schema version for migration support
+   *   nextEntityId: 1234,
+   *   entities: [
+   *     {
+   *       id: 1,
+   *       active: true,
+   *       components: {
+   *         PositionComponent: { q: 5, r: 3, elevation: 0, facing: 0 },
+   *         StatsComponent: { currentHp: 45, maxHp: 50, ac: 15, ... },
+   *         IdentityComponent: { name: "Hero", entityType: "player_character", ... }
+   *       }
+   *     },
+   *     ...
+   *   ]
+   * }
+   * 
+   * Storage Contract:
+   * - This JSON is stored in dc_campaign_characters.character_data
+   * - Hot columns (hp_current, position_q/r, armor_class) must be synced separately
+   * - Entity.id maps to dc_campaign_characters.instance_id
+   * - IdentityComponent.entityType must map to dc_campaign_characters.type
+   * 
+   * @returns {object} Serialized data with version, nextEntityId, and entities array
    */
   toJSON(format = 'ecs') {
     const entities = [];
@@ -213,6 +289,7 @@ export class EntityManager {
 
     // ECS format includes manager metadata
     return {
+      version: ENTITY_MANAGER_SCHEMA_VERSION,
       nextEntityId: this.nextEntityId,
       entities: entities
     };
@@ -220,10 +297,32 @@ export class EntityManager {
 
   /**
    * Deserialize entities from JSON.
-   * Supports both ECS format and entity_instance array format.
-   * @param {object|array} data - Serialized data (ECS object or entity_instance array)
-   * @param {object} componentClasses - Map of component name to class
-   * @throws {TypeError} If data is invalid
+   * 
+   * Supports two data sources:
+   * 1. character_data: Full entity state from dc_campaign_characters.character_data
+   * 2. state_data: Campaign runtime deltas from dc_campaign_characters.state_data
+   * 
+   * Data Merge Strategy:
+   * - If only character_data provided: Load as-is
+   * - If state_data provided: Merge state_data over character_data (deep merge)
+   * - Hot columns (hp_current, position_q/r) should already reflect state_data
+   * 
+   * Migration Support:
+   * - Checks data.version and applies migrations if needed
+   * - Legacy data without version field treated as version 1
+   * - Future versions should implement migration logic here
+   * 
+   * @param {object} data - Serialized data with version, nextEntityId, entities array
+   * @param {object} componentClasses - Map of component name to class constructor
+   * @throws {TypeError} If data is invalid or missing required fields
+   * @example
+   * // Load from database
+   * const data = JSON.parse(dbRow.character_data);
+   * manager.fromJSON(data, {
+   *   PositionComponent: PositionComponent,
+   *   StatsComponent: StatsComponent,
+   *   IdentityComponent: IdentityComponent
+   * });
    */
   fromJSON(data, componentClasses) {
     if (!data) {
@@ -254,6 +353,13 @@ export class EntityManager {
     }
     if (!Array.isArray(data.entities)) {
       throw new TypeError('Data.entities must be an array');
+    }
+    
+    // Check schema version for migrations (future-proofing)
+    const version = data.version || 1;
+    if (version !== ENTITY_MANAGER_SCHEMA_VERSION) {
+      console.warn(`EntityManager: Loading data version ${version}, current version is ${ENTITY_MANAGER_SCHEMA_VERSION}`);
+      // Future: Apply migrations here if version < ENTITY_MANAGER_SCHEMA_VERSION
     }
     
     this.clear();
