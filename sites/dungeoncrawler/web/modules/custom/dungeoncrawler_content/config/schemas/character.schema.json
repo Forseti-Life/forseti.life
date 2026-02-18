@@ -4,7 +4,7 @@
   "title": "Pathfinder 2E Character Schema",
   "description": "Complete character data structure for a PF2e character stored in the dc_characters table character_data JSON column.",
   "type": "object",
-  "required": ["step", "name", "level", "ancestry", "class", "abilities"],
+  "required": ["schema_version", "step", "name", "level", "ancestry", "class", "abilities"],
   "additionalProperties": false,
   "properties": {
     "schema_version": {
@@ -57,7 +57,7 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 100,
-      "description": "Heritage specific to chosen ancestry (e.g., 'ancient-blooded' for Dwarf)."
+      "description": "Heritage specific to chosen ancestry (e.g., 'Ancient-Blooded Dwarf', 'Woodland Elf', 'Gutsy Halfling')."
     },
     "background": {
       "type": "string",
@@ -170,12 +170,13 @@
         "temp": {
           "type": "integer",
           "minimum": 0,
+          "maximum": 1000,
           "default": 0,
           "description": "Temporary HP."
         }
       },
       "additionalProperties": false,
-      "description": "Character hit points. Current HP should not exceed max HP."
+      "description": "Character hit points. Note: Schema validation cannot enforce that current HP <= max HP; this must be validated at the application level."
     },
     "alignment": {
       "type": "string",
@@ -245,7 +246,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "description": "Single equipment item with quantity and equipped status.",
+        "description": "Single equipment item with quantity and equipped status. Note: Future versions may include bulk, price, and rarity properties.",
         "required": ["item_id", "name", "quantity"],
         "properties": {
           "item_id": {
@@ -302,6 +303,7 @@
     "gold": {
       "type": "integer",
       "minimum": 0,
+      "maximum": 999999999,
       "default": 15,
       "description": "Gold pieces. Characters start with 15 gp."
     },
@@ -405,11 +407,13 @@
               "spell_id": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Unique spell identifier."
               },
               "name": {
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 200,
                 "description": "Spell name."
               },
               "rank": {
@@ -439,7 +443,7 @@
         },
         "spell_slots": {
           "type": "object",
-          "description": "Spell slots per rank.",
+          "description": "Spell slots per rank. Keys must be 'rank_0' through 'rank_10' for cantrips through 10th-level spells.",
           "patternProperties": {
             "^rank_(10|[0-9])$": {
               "$ref": "#/definitions/spell_slot"

@@ -4,12 +4,14 @@ This directory contains example configuration files demonstrating the JSON schem
 
 ## Files
 
-### tavern-obstacle-objects.json
+### tavern-obstacle-objects.json ✨ Enhanced
 Obstacle object catalog defining reusable obstacle types (furniture, fixtures, etc.) with movement properties. These definitions are referenced by entity instances in dungeon levels.
 
 **Schema:** `obstacle_object_catalog.schema.json`
 
 **Usage:** Loaded by `HexMapController` to provide object definitions for obstacle entities.
+
+**Quality Status:** ✅ Fully enhanced with optional enrichment fields (DCC-0005, 2026-02-17)
 
 **Key Properties:**
 - `movable`: Whether the object can be pushed/moved by players ✅ **Currently Used**
@@ -18,8 +20,14 @@ Obstacle object catalog defining reusable obstacle types (furniture, fixtures, e
 - `movement.blocks_movement`: Whether pathfinding treats the hex as blocked ⏳ **Reserved for Future**
 - `movement.cost_multiplier`: Movement cost when entering the hex (1 = normal, higher = slower) ⏳ **Reserved for Future**
 
+**Optional Enrichment Fields (All Included):**
+- `size`: PF2e size categories (small/medium/large) for spatial awareness ⭐ **Enhanced**
+- `weight`: PF2e Bulk values for portability/strength checks ⭐ **Enhanced**
+- `interaction`: Mechanics for doors and movable objects (can_open, athletics_dc) ⭐ **Enhanced**
+- `visual`: Rendering metadata (sprite_id, color, rotation) ⭐ **Enhanced**
+
 **Implementation Status:**
-The current rendering code (`hexmap.js`) only uses `passable`, `movable`, and `stackable` to determine behavior. The `blocks_movement` and `cost_multiplier` properties are schema-required and reserved for future pathfinding AI implementation.
+The current rendering code (`hexmap.js`) only uses `passable`, `movable`, and `stackable` to determine behavior. The `blocks_movement` and `cost_multiplier` properties are schema-required and reserved for future pathfinding AI implementation. Optional enrichment fields (size, weight, interaction, visual) are included for future feature compatibility and enhanced editor support.
 
 **Cost Multiplier Guide:**
 - `1.0`: Normal speed (open doors, passable obstacles)
@@ -27,7 +35,15 @@ The current rendering code (`hexmap.js`) only uses `passable`, `movable`, and `s
 - `2.0-3.0`: Moderate impediment (movable tables, crates)
 - `999`: Effectively impassable (fixed bar counters, walls)
 
-**Note:** Cost multipliers are defined in the schema but not yet used in the current implementation. They are reserved for future pathfinding AI when it's implemented.
+**Enhancement Details (DCC-0005):**
+This file has been enhanced with optional enrichment fields following the pattern demonstrated in `enhanced-obstacle-objects.json`. All 10 obstacle definitions now include:
+- Proper PF2e size categories and Bulk values
+- Interaction mechanics with Athletics DCs for movable objects
+- Visual rendering hints with sprite IDs and colors
+- Enhanced descriptions emphasizing combat implications (cover, hazards)
+- "cover" tags added to tactically relevant objects
+
+**Note:** All enhancements are backward compatible. Optional fields are additive only and do not affect existing functionality.
 
 ### tavern-entrance-dungeon.json
 Complete dungeon level example featuring a tavern entrance area with bar, furniture, and transition to a dungeon room.

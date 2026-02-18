@@ -65,12 +65,12 @@ Character creation wizard options and validation rules for each of the 8 steps:
 
 1. **Step 1**: Name & Concept
 2. **Step 2**: Ancestry & Heritage (v1.0.0)
-3. **Step 3**: Background
-4. **Step 4**: Class
+3. **Step 3**: Background (v1.0.0)
+4. **Step 4**: Class (v1.0.0)
 5. **Step 5**: Ability Scores
-6. **Step 6**: Alignment & Deity (versioned)
+6. **Step 6**: Alignment & Deity (v1.0.0)
 7. **Step 7**: Equipment
-8. **Step 8**: Finishing Touches (versioned)
+8. **Step 8**: Finishing Touches (v1.0.0)
 
 **Defines:**
 - Available options at each step
@@ -93,6 +93,11 @@ Character creation wizard options and validation rules for each of the 8 steps:
 - Added Noble, Scholar, and Warrior background examples
 - Enhanced documentation showing background suitability for different character types
 - All 9 PF2e backgrounds now have clear usage examples with ability boost recommendations
+**Recent improvements to Step 4 (2026-02-17):**
+- Added schema versioning (v1.0.0) for migration compatibility
+- Added root-level `additionalProperties: false` for strict validation
+- Added `additionalProperties: false` to navigation, validation, and boost_sources_produced objects
+- Improved schema consistency and validation strictness across character creation steps
 
 ### Dungeon Schemas
 

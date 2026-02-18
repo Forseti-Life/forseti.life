@@ -2,7 +2,7 @@
   "$schema": "../schemas/obstacle_object_catalog.schema.json",
   "schema_version": "1.0.0",
   "created_at": "2026-02-17T00:00:00Z",
-  "updated_at": "2026-02-17T20:48:00Z",
+  "updated_at": "2026-02-17T23:03:00Z",
   "metadata": {
     "description": "Reusable tavern furniture and fixture obstacle definitions for dungeon entrance areas",
     "theme": "tavern-furnishings",
@@ -21,13 +21,27 @@
         "blocks_movement": false,
         "cost_multiplier": 1
       },
-      "tags": ["door", "transition"]
+      "tags": ["door", "transition"],
+      "size": "large",
+      "weight": "10",
+      "interaction": {
+        "can_open": true,
+        "can_close": true,
+        "requires_key": false,
+        "athletics_dc": null,
+        "thievery_dc": null
+      },
+      "visual": {
+        "sprite_id": "door_wood_tavern",
+        "color": "#8B4513",
+        "rotation": 0
+      }
     },
     {
       "object_id": "tavern_bar_counter_a",
       "label": "Bar Counter A",
       "category": "bar",
-      "description": "Fixed wooden bar counter segment forming the left section of the tavern's main bar. Provides a physical barrier for drink service.",
+      "description": "Fixed wooden bar counter segment forming the left section of the tavern's main bar. Provides a physical barrier for drink service and can provide cover during combat.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -35,13 +49,18 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["bar", "fixture"]
+      "tags": ["bar", "fixture", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "bar_counter_wood_left",
+        "color": "#654321"
+      }
     },
     {
       "object_id": "tavern_bar_counter_b",
       "label": "Bar Counter B",
       "category": "bar",
-      "description": "Fixed wooden bar counter segment forming the middle section of the tavern's main bar. Provides a physical barrier for drink service.",
+      "description": "Fixed wooden bar counter segment forming the middle section of the tavern's main bar. Provides a physical barrier for drink service and can provide cover during combat.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -49,13 +68,18 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["bar", "fixture"]
+      "tags": ["bar", "fixture", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "bar_counter_wood_middle",
+        "color": "#654321"
+      }
     },
     {
       "object_id": "tavern_bar_counter_c",
       "label": "Bar Counter C",
       "category": "bar",
-      "description": "Fixed wooden bar counter segment forming the right section of the tavern's main bar. Provides a physical barrier for drink service.",
+      "description": "Fixed wooden bar counter segment forming the right section of the tavern's main bar. Provides a physical barrier for drink service and can provide cover during combat.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -63,13 +87,18 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["bar", "fixture"]
+      "tags": ["bar", "fixture", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "bar_counter_wood_right",
+        "color": "#654321"
+      }
     },
     {
       "object_id": "tavern_table_round_a",
       "label": "Round Table A",
       "category": "table",
-      "description": "Movable round tavern table suitable for small gatherings. Can be pushed by players to rearrange the tavern space or create barriers during combat.",
+      "description": "Movable round tavern table suitable for small gatherings. Can be pushed by players to rearrange the tavern space or create barriers during combat. Provides light cover when used defensively.",
       "movable": true,
       "stackable": false,
       "movement": {
@@ -77,13 +106,25 @@
         "blocks_movement": true,
         "cost_multiplier": 2
       },
-      "tags": ["table", "furniture"]
+      "tags": ["table", "furniture", "cover"],
+      "size": "medium",
+      "weight": "5",
+      "interaction": {
+        "can_open": false,
+        "can_close": false,
+        "requires_key": false,
+        "athletics_dc": 10
+      },
+      "visual": {
+        "sprite_id": "table_round_wood",
+        "color": "#8B4513"
+      }
     },
     {
       "object_id": "tavern_table_long_a",
       "label": "Long Table A",
       "category": "table",
-      "description": "Movable long wooden table for larger groups or feasts. Can be pushed by players to rearrange the tavern space or create barriers during combat.",
+      "description": "Movable long wooden table for larger groups or feasts. Can be pushed by players to rearrange the tavern space or create barriers during combat. Provides light cover when used defensively.",
       "movable": true,
       "stackable": false,
       "movement": {
@@ -91,13 +132,25 @@
         "blocks_movement": true,
         "cost_multiplier": 2
       },
-      "tags": ["table", "furniture"]
+      "tags": ["table", "furniture", "cover"],
+      "size": "large",
+      "weight": "10",
+      "interaction": {
+        "can_open": false,
+        "can_close": false,
+        "requires_key": false,
+        "athletics_dc": 15
+      },
+      "visual": {
+        "sprite_id": "table_long_wood",
+        "color": "#8B4513"
+      }
     },
     {
       "object_id": "tavern_stool_stack_a",
       "label": "Stool Stack",
       "category": "stool",
-      "description": "Stack of lightweight tavern stools. Entities can share hexes with these stools, and multiple stools can occupy the same space, allowing flexible positioning around tables.",
+      "description": "Stack of lightweight tavern stools. Entities can share hexes with these stools, and multiple stools can occupy the same space, allowing flexible positioning around tables. Can be kicked aside or used as improvised weapons.",
       "movable": true,
       "stackable": true,
       "movement": {
@@ -105,13 +158,25 @@
         "blocks_movement": false,
         "cost_multiplier": 1.5
       },
-      "tags": ["stool", "furniture", "stack"]
+      "tags": ["stool", "furniture", "stack"],
+      "size": "small",
+      "weight": "L",
+      "interaction": {
+        "can_open": false,
+        "can_close": false,
+        "requires_key": false,
+        "athletics_dc": 5
+      },
+      "visual": {
+        "sprite_id": "stool_stack_wood",
+        "color": "#A0522D"
+      }
     },
     {
       "object_id": "tavern_crate_stack_a",
       "label": "Crate Stack",
       "category": "crate",
-      "description": "Stack of supply crates used for tavern storage. Blocks hex occupancy but can be pushed to create temporary barriers or clear pathways. Multiple crates can be stacked in the same location.",
+      "description": "Stack of supply crates used for tavern storage. Blocks hex occupancy but can be pushed to create temporary barriers or clear pathways. Multiple crates can be stacked in the same location. Provides light cover when used defensively.",
       "movable": true,
       "stackable": true,
       "movement": {
@@ -119,13 +184,25 @@
         "blocks_movement": true,
         "cost_multiplier": 3
       },
-      "tags": ["crate", "storage", "stack"]
+      "tags": ["crate", "storage", "stack", "cover"],
+      "size": "medium",
+      "weight": "5",
+      "interaction": {
+        "can_open": false,
+        "can_close": false,
+        "requires_key": false,
+        "athletics_dc": 12
+      },
+      "visual": {
+        "sprite_id": "crate_stack_wood",
+        "color": "#8B7355"
+      }
     },
     {
       "object_id": "tavern_fireplace",
       "label": "Stone Fireplace",
       "category": "decor",
-      "description": "Large stone fireplace providing warmth and ambient light to the tavern. This fixed environmental fixture anchors the tavern's common area.",
+      "description": "Large stone fireplace providing warmth and ambient light to the tavern. This fixed environmental fixture anchors the tavern's common area and provides substantial cover during combat. Adjacent hexes may have increased fire damage risk.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -133,13 +210,18 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["decor", "fixture", "light_source"]
+      "tags": ["decor", "fixture", "light_source", "fire", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "fireplace_stone_lit",
+        "color": "#696969"
+      }
     },
     {
       "object_id": "tavern_rug",
       "label": "Decorative Rug",
       "category": "decor",
-      "description": "Woven floor rug providing decorative warmth to the tavern. Characters can move freely across it without penalty.",
+      "description": "Woven floor rug providing decorative warmth to the tavern. Characters can move freely across it without penalty. Purely aesthetic with no gameplay impact.",
       "movable": false,
       "stackable": false,
       "movement": {
@@ -147,7 +229,12 @@
         "blocks_movement": false,
         "cost_multiplier": 1
       },
-      "tags": ["decor", "floor"]
+      "tags": ["decor", "floor"],
+      "size": "medium",
+      "visual": {
+        "sprite_id": "rug_decorative_red",
+        "color": "#8B0000"
+      }
     }
   ]
 }
