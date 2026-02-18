@@ -34,7 +34,7 @@ JSON Schemas serve multiple purposes:
 | `character_options_step[1-8].json` | Character creation wizard | Partial | 298-525 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
-| `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
+| `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 329 | Level generation |
 | `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
 | `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 289 | Runtime entity management |
 | `hazard.schema.json` | Environmental hazards | ✓ | 476 | PF2e hazards |
@@ -166,6 +166,11 @@ Entire dungeon floor with hexmap, rooms, and encounters.
   - Added `uniqueItems: true` to 9 arrays (rooms, entities, creatures, items, traps, hazards, obstacles, active_encounters, stairways)
   - Added `minLength: 1` to string fields (name, flavor_text) to prevent empty strings
   - Added required fields ["min", "max"] to range objects (room_count, secret_rooms, creature_level_range)
+- **DCC-0017 (2026-02-18):** Comprehensive constraint improvements (16 additions):
+  - **String constraints**: Added `maxLength` to 6 string fields (name: 200, flavor_text: 2000, custom_theme: 500, environmental effect properties: 100-1000, creature type/pool items: 100)
+  - **Array constraints**: Added `maxItems` to 12 arrays (rooms: 100, entities: 500, creatures: 200, items: 200, traps: 50, hazards: 50, obstacles: 100, active_encounters: 20, stairways: 10, creature_types_allowed: 30, environmental_effects: 10, creature_pool: 50)
+  - **Numeric bounds**: Added `maximum` to 8 numeric fields (depth: 100, room_count min/max: 100, secret_rooms min/max: 20, check_interval_minutes: 1440, rooms_generated/explored: 100, destination_level: 100, times_visited: 10000)
+  - All changes maintain backward compatibility; existing valid data remains valid
 
 Canonical runtime placement in this schema is `entities[]` via `entity_instance.schema.json`.
 
