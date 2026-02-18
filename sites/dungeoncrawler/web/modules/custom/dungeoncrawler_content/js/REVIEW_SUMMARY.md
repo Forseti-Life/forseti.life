@@ -72,16 +72,24 @@ interface CharacterState {
 ```sql
 CREATE TABLE dc_campaign_characters (
   id INT PRIMARY KEY,
-  name VARCHAR(255),      -- Hot column (indexed)
-  level INT,              -- Hot column (indexed)
-  ancestry VARCHAR(64),   -- Hot column (indexed)
-  class VARCHAR(64),      -- Hot column (indexed)
-  hp_current INT,         -- Hot column (gameplay)
-  hp_max INT,             -- Hot column (gameplay)
-  character_data TEXT,    -- Full JSON payload
-  state_data TEXT         -- Campaign runtime state
+  name VARCHAR(255),          -- Hot column (indexed)
+  level INT,                  -- Hot column (indexed)
+  ancestry VARCHAR(64),       -- Hot column (indexed)
+  class VARCHAR(64),          -- Hot column (indexed)
+  hp_current INT,             -- Hot column (gameplay)
+  hp_max INT,                 -- Hot column (gameplay)
+  armor_class INT,            -- Hot column (gameplay)
+  experience_points INT,      -- Hot column (gameplay, indexed)
+  position_q INT,             -- Hot column (ECS-managed)
+  position_r INT,             -- Hot column (ECS-managed)
+  last_room_id VARCHAR(100),  -- Hot column (ECS-managed)
+  character_data TEXT,        -- Full JSON payload
+  state_data TEXT             -- Campaign runtime state
 );
 ```
+
+**Note**: The position hot columns (position_q, position_r, last_room_id) are managed
+by the ECS (Entity Component System) for gameplay tracking, not exposed in CharacterState.
 
 ## Schema Translation
 
