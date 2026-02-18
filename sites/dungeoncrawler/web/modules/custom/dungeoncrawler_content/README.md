@@ -52,6 +52,7 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **Collapsible section UI**: Group tables are rendered as a collapsed-by-default accordion (`Template`, `Active Campaign`, `Fact`) for easier scanning.
 - **Field inventory**: Per-table field/type/index listing for complete schema visibility.
 - **Row browser and editor**: Browse stored rows, search within selected table rows (`Row Contains`), and edit all row fields directly from `/dungeoncrawler/objects`.
+- **Generated image visibility in object manager**: Row browser includes `Image Links` counts for linkable object tables, and row edit view shows a linked-image summary card with UUID, slot, provider, visibility, and preview link.
 - **Full-row JSON editing**: Row editor includes an advanced JSON payload editor for object-level updates in one JSON object, activated explicitly via `Use JSON editor for this update`.
 - **Row search efficiency**: `Row Contains` filtering executes at database query level across table columns before row cap is applied.
 - **JSON editor guardrails**: JSON mode accepts object-style payloads only and validates keys against real table columns.

@@ -10,6 +10,7 @@ use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Form\DungeonCrawlerTemplateImportForm;
 use Drupal\dungeoncrawler_content\Form\DungeonCrawlerTableRowEditForm;
 use Drupal\dungeoncrawler_content\Service\GameObjectInventoryService;
+use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -55,12 +56,20 @@ class GameObjectsController extends ControllerBase {
   protected GameObjectInventoryService $gameObjectInventory;
 
   /**
+   * Generated image repository.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\GeneratedImageRepository
+   */
+  protected GeneratedImageRepository $generatedImageRepository;
+
+  /**
    * Constructs a new GameObjectsController.
    */
-  public function __construct(FormBuilderInterface $form_builder, RequestStack $request_stack, GameObjectInventoryService $game_object_inventory) {
+  public function __construct(FormBuilderInterface $form_builder, RequestStack $request_stack, GameObjectInventoryService $game_object_inventory, GeneratedImageRepository $generated_image_repository) {
     $this->formBuilderService = $form_builder;
     $this->requestStack = $request_stack;
     $this->gameObjectInventory = $game_object_inventory;
+    $this->generatedImageRepository = $generated_image_repository;
   }
 
   /**
@@ -71,6 +80,7 @@ class GameObjectsController extends ControllerBase {
       $container->get('form_builder'),
       $container->get('request_stack'),
       $container->get('dungeoncrawler_content.game_object_inventory'),
+      $container->get('dungeoncrawler_content.generated_image_repository'),
     );
   }
 
@@ -145,6 +155,11 @@ class GameObjectsController extends ControllerBase {
     if ($edit_requested && !empty($primary_key_values)) {
       $row = $this->gameObjectInventory->loadTableRowByPrimaryKey($selected_table, $primary_key_values);
       if (!empty($row)) {
+        $image_links_card = $this->buildGeneratedImageLinksCard($selected_table, $selected_metadata, $primary_key_values, $row, $filters);
+        if (!empty($image_links_card)) {
+          $build['row_images_card'] = $image_links_card;
+        }
+
         $build['row_editor_card'] = [
           '#type' => 'container',
           '#attributes' => ['class' => ['card', 'card-dungeoncrawler']],
@@ -519,6 +534,21 @@ class GameObjectsController extends ControllerBase {
    */
   protected function buildRowsTable(string $table_name, array $metadata, array $rows, array $filters): array {
     $headers = array_keys($metadata['columns']);
+    $show_image_links = $this->supportsGeneratedImageLinks($table_name, $metadata);
+    $image_counts = [];
+
+    if ($show_image_links) {
+      $headers[] = $this->t('Image Links');
+      $primary_key = (string) $metadata['primary_keys'][0];
+      $object_ids = [];
+      foreach ($rows as $row) {
+        if (isset($row[$primary_key])) {
+          $object_ids[] = (string) $row[$primary_key];
+        }
+      }
+      $image_counts = $this->generatedImageRepository->loadImageCountsForObjects($table_name, $object_ids);
+    }
+
     $headers[] = $this->t('Operations');
 
     $table_rows = [];
@@ -533,6 +563,18 @@ class GameObjectsController extends ControllerBase {
         $query['edit'] = 1;
         foreach ($metadata['primary_keys'] as $primary_key) {
           $query[$primary_key] = (string) ($row[$primary_key] ?? '');
+        }
+
+        if ($show_image_links) {
+          $primary_key = (string) $metadata['primary_keys'][0];
+          $object_id = isset($row[$primary_key]) ? (string) $row[$primary_key] : '';
+          $linked_count = ($object_id !== '' && isset($image_counts[$object_id])) ? (int) $image_counts[$object_id] : 0;
+          $display_row[] = $linked_count > 0
+            ? ['data' => Link::fromTextAndUrl(
+              $this->t('@count linked', ['@count' => $linked_count]),
+              Url::fromRoute('dungeoncrawler_content.game_objects', [], ['query' => $query]),
+            )->toRenderable()]
+            : $this->t('0');
         }
 
         $display_row[] = ['data' => Link::fromTextAndUrl(
@@ -789,6 +831,116 @@ class GameObjectsController extends ControllerBase {
     }
 
     return $string;
+  }
+
+  /**
+   * Determines whether table rows can be linked to generated images.
+   */
+  protected function supportsGeneratedImageLinks(string $table_name, array $metadata): bool {
+    if (in_array($table_name, ['dc_generated_images', 'dc_generated_image_links'], TRUE)) {
+      return FALSE;
+    }
+
+    if (empty($metadata['primary_keys']) || count($metadata['primary_keys']) !== 1) {
+      return FALSE;
+    }
+
+    return TRUE;
+  }
+
+  /**
+   * Builds generated image link summary card for the selected row.
+   */
+  protected function buildGeneratedImageLinksCard(string $table_name, array $metadata, array $primary_key_values, array $row, array $filters): array {
+    if (!$this->supportsGeneratedImageLinks($table_name, $metadata)) {
+      return [];
+    }
+
+    $primary_key = (string) $metadata['primary_keys'][0];
+    $object_id = isset($primary_key_values[$primary_key]) ? (string) $primary_key_values[$primary_key] : '';
+    if ($object_id === '') {
+      return [];
+    }
+
+    $campaign_id = NULL;
+    if (isset($row['campaign_id']) && is_numeric((string) $row['campaign_id'])) {
+      $campaign_id = (int) $row['campaign_id'];
+      if ($campaign_id <= 0) {
+        $campaign_id = NULL;
+      }
+    }
+
+    $images = $this->generatedImageRepository->loadImagesForObject($table_name, $object_id, $campaign_id);
+    $api_query = [];
+    if ($campaign_id !== NULL) {
+      $api_query['campaign_id'] = $campaign_id;
+    }
+
+    $rows = [];
+    foreach ($images as $image) {
+      $image_uuid = isset($image['image_uuid']) ? (string) $image['image_uuid'] : '';
+      if ($image_uuid === '') {
+        continue;
+      }
+
+      $client_url = $this->generatedImageRepository->resolveClientUrl($image);
+      $uuid_cell = Link::fromTextAndUrl(
+        $image_uuid,
+        Url::fromRoute('dungeoncrawler_content.api.image_get', ['image_uuid' => $image_uuid]),
+      )->toRenderable();
+
+      $preview_cell = $client_url !== NULL
+        ? Link::fromTextAndUrl($this->t('Open image'), Url::fromUri($client_url))->toRenderable()
+        : $this->t('Unavailable');
+
+      $rows[] = [
+        'uuid' => ['data' => $uuid_cell],
+        'slot' => (string) ($image['slot'] ?? ''),
+        'provider' => (string) ($image['provider'] ?? ''),
+        'visibility' => (string) ($image['visibility'] ?? ''),
+        'preview' => ['data' => $preview_cell],
+      ];
+    }
+
+    $object_api_url = Url::fromRoute(
+      'dungeoncrawler_content.api.images_object',
+      [
+        'table_name' => $table_name,
+        'object_id' => $object_id,
+      ],
+      ['query' => $api_query],
+    )->toString();
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'heading' => [
+          '#markup' => '<h3 class="h5 mb-2">' . $this->t('Generated Image Links: @table #@id', [
+            '@table' => $table_name,
+            '@id' => $object_id,
+          ]) . '</h3>',
+        ],
+        'description' => [
+          '#markup' => '<p class="mb-3">' . $this->t('Review generated images linked to this object. API endpoint: @path', ['@path' => $object_api_url]) . '</p>',
+        ],
+        'table' => [
+          '#type' => 'table',
+          '#header' => [
+            $this->t('Image UUID'),
+            $this->t('Slot'),
+            $this->t('Provider'),
+            $this->t('Visibility'),
+            $this->t('Preview'),
+          ],
+          '#rows' => $rows,
+          '#empty' => $this->t('No generated images linked to this object yet.'),
+          '#attributes' => ['class' => ['game-content-dashboard']],
+        ],
+      ],
+    ];
   }
 
 }
