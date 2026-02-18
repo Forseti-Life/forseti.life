@@ -42,7 +42,7 @@ JSON Schemas serve multiple purposes:
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
 | `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
-| `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
+| `party.schema.json` | Adventuring party | ✓ | 455 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
 | `trap.schema.json` | Mechanical & magical traps | ✓ | 440 | Trap mechanics |
 
@@ -366,6 +366,13 @@ Adventuring party with shared resources and exploration state.
 - Added comprehensive examples for shared_inventory, encounter_log, fog_of_war notes, and exploration_activity
 - Improved documentation with comprehensive descriptions
 - Validates successfully with test data
+
+**DCC-0025 Improvements (2026-02-18):**
+- Added `maxLength` constraints to 4 string fields (class, fog_of_war.notes.text, condition.name, condition.duration)
+- Added `maxItems` constraints to 9 arrays (conditions, shared_inventory, watch_order, revealed_hexes/rooms/connections, notes, encounter_log, loot_gained)
+- Added `maximum` bounds to 14 numeric fields (light_radius_hexes, total_xp, all dungeon_stats fields)
+- Enhanced logical consistency: watch_order maxItems (6) matches members maxItems (6)
+- Total: 27 new validation constraints while maintaining backward compatibility
 
 **Defines:**
 - Party metadata (name, owner, timestamps)
