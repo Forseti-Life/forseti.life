@@ -229,6 +229,11 @@ Both blocks are configured as `status: true` and will be automatically placed wh
 - `campaign_id`, `character_id`, `uid`
 - `role`, `is_active`, `joined`
 
+### Character Template Table: `dungeoncrawler_content_characters`
+- `character_id`, `instance_id`, `uid`
+- `type`, `role`, `is_active`
+- `state_data`, `location_type`, `location_ref`
+
 ## Routes
 
 ### Public Routes

@@ -133,6 +133,7 @@ class TemplateImportService {
   protected function getExpectedTemplateTable(string $campaign_table): string {
     $explicit_mappings = [
       'dc_campaigns' => 'dungeoncrawler_content_campaigns',
+      'dc_campaign_characters' => 'dungeoncrawler_content_characters',
       'dc_campaign_content_registry' => 'dungeoncrawler_content_registry',
       'dc_campaign_loot_tables' => 'dungeoncrawler_content_loot_tables',
       'dc_campaign_encounter_templates' => 'dungeoncrawler_content_encounter_templates',
