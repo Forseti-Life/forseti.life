@@ -361,6 +361,32 @@ The refactoring maintains 100% functional compatibility while improving:
 - Documentation for future developers
 - Defensive programming practices
 
+### character-step-3.js Improvements (DCC-0231)
+
+The `character-step-3.js` file has been refactored to align with patterns established in step-1 and step-2, addressing schema conformance and code quality issues:
+
+- **Configuration Constants**: Extracted magic strings and values into comprehensive CONFIG object (maxBoosts, selectors, cssClasses, messages, buttonText)
+- **State Management**: Replaced global variables (`selectedBackground`, `selectedBoosts`) with local state object for better encapsulation
+- **JSDoc Documentation**: Added comprehensive function documentation for all functions with parameter and return type information
+- **Helper Functions**: Extracted validation logic into `validateForm()` and error handling into `handleAjaxError()` functions
+- **Defensive Programming**: Added guard clauses for missing DOM elements and null checks in all helper functions
+- **Consistent Error Handling**: Aligned with step-1 and step-2 patterns, including server error message extraction from `xhr.responseJSON`
+- **Better AJAX Handling**: Added `dataType: 'json'`, safer response validation, and proper state management
+- **Form Initialization**: Added guard clause and proper element validation before attaching event handlers
+
+**Schema Conformance Notes**:
+The refactoring ensures alignment with the module's unified JSON/hot-column architecture:
+- Hot columns (`hp_current`, `hp_max`, `armor_class`, etc.) for high-frequency gameplay queries
+- JSON payloads (`character_data`, `state_data`) for flexible character details
+- Background and ability boost selections feed into `character_data` JSON structure during character creation
+
+The refactoring maintains 100% functional compatibility while improving:
+- Code consistency across all character creation steps
+- Maintainability through better organization and documentation
+- Error handling and defensive programming
+- State management and encapsulation
+- Alignment with established module patterns
+
 ### game-cards.css Improvements (DCC-0038)
 
 The `game-cards.css` file has been refactored to improve maintainability and consistency:
