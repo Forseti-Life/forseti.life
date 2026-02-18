@@ -1,6 +1,11 @@
 /**
  * @file ActionsComponent.js
  * Component for Pathfinder 2e 3-action economy.
+ * 
+ * Storage: This component is serialized to JSON and stored in the `state_data` 
+ * column of the `dc_campaign_characters` table. The unified JSON storage approach
+ * allows flexible component composition while maintaining hot columns for frequently
+ * accessed gameplay data (HP, AC, position).
  */
 
 import { Component } from '../Component.js';
@@ -41,6 +46,40 @@ export const MAPConstants = {
  * 
  * Manages the 3-action economy for Pathfinder 2e.
  * Tracks available actions, reactions, and Multiple Attack Penalty (MAP).
+ * 
+ * @class
+ * @extends Component
+ * 
+ * @property {number} maxActions - Maximum actions per turn (usually 3)
+ * @property {number} actionsRemaining - Actions left this turn
+ * @property {boolean} hasReaction - Whether reaction is available
+ * @property {number} attacksMadeThisTurn - Number of attacks made this turn for MAP calculation
+ * @property {number} mapPenalty - Current Multiple Attack Penalty (e.g., -5, -10)
+ * @property {number} mapPenaltyPerAttack - MAP increment per attack (-5 standard, -4 agile)
+ * @property {Array<Object>} actionHistory - Array of actions taken this turn
+ * @property {boolean} canAct - Whether entity can take actions (false when stunned, etc.)
+ * @property {number} actionBonus - Bonus/penalty to action count (e.g., Haste spell gives +1)
+ * @property {Function|null} onActionsDepleted - Optional callback when actions reach zero
+ * 
+ * **Database Storage:**
+ * This component is stored as JSON in the `state_data` field of the `dc_campaign_characters` table.
+ * Serialization is handled by `toJSON()` and deserialization by `fromJSON()`.
+ * 
+ * **Example JSON:**
+ * ```json
+ * {
+ *   "type": "ActionsComponent",
+ *   "maxActions": 3,
+ *   "actionsRemaining": 2,
+ *   "hasReaction": true,
+ *   "attacksMadeThisTurn": 1,
+ *   "mapPenalty": -5,
+ *   "mapPenaltyPerAttack": -5,
+ *   "actionHistory": [{"name": "Strike", "cost": 1, "type": "action", "timestamp": 1642534800000}],
+ *   "canAct": true,
+ *   "actionBonus": 0
+ * }
+ * ```
  */
 export class ActionsComponent extends Component {
   /**
