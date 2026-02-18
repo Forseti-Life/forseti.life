@@ -92,10 +92,23 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
       'variables' => [
         'campaign' => [],
         'characters' => [],
+        'dungeon_selection_url' => NULL,
         'create_character_url' => NULL,
         'back_url' => NULL,
       ],
       'template' => 'campaign-tavernentrance',
+      'path' => $path . '/templates',
+    ],
+
+    // Campaign dungeon selection page.
+    'campaign_dungeon_selection' => [
+      'variables' => [
+        'campaign' => [],
+        'dungeons' => [],
+        'back_url' => NULL,
+        'tavern_url' => NULL,
+      ],
+      'template' => 'campaign-dungeon-selection',
       'path' => $path . '/templates',
     ],
 

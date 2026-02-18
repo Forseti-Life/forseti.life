@@ -3,6 +3,15 @@
 Myrandom notes
 PixiJS: Technically a high-performance 2D rendering engine rather than a full "game engine," it is often used as the foundation for browser games that require extreme speed.
 
+## Documentation Verification Notes (2026-02-18)
+
+- This folder mixes **PF2e tabletop reference material**, **implementation design documents**, and **module-runtime architecture notes**.
+- The `01-06` process guides are rules references, not strict runtime contracts for `dungeoncrawler_content` APIs.
+- Runtime API/controller behavior should be validated against:
+   - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/dungeoncrawler_content.routing.yml`
+   - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/src/Controller/`
+- Issue #4 remains design-only; current character state synchronization is REST-first (no production WebSocket route/handler in this module).
+
 
 ## Overview
 
@@ -226,7 +235,7 @@ Design documents for upcoming features and system improvements:
    - Scalable content management for PF2E game data
 
 4. **[Issue #4: Enhanced Character Sheet](./issues/issue-4-enhanced-character-sheet-design.md)**
-   - Real-time character management with WebSocket sync
+   - Design proposal for real-time character management (WebSocket section is future-state)
    - Mobile-responsive design
    - Resource tracking and condition management
 

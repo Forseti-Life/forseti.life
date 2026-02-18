@@ -16,51 +16,78 @@
   {% if campaigns|length > 0 %}
     <div class="dc-character-grid">
       {% for campaign in campaigns %}
-        <a href="{{ campaign.url }}" class="dc-character-card dc-character-card--{{ campaign.status }}">
-          <div class="dc-character-card__portrait">
-            <div class="dc-character-card__portrait-placeholder">
-              <span class="dc-character-card__initial">{{ campaign.name|first|upper }}</span>
-            </div>
-          </div>
-
-          <div class="dc-character-card__info">
-            <h3 class="dc-character-card__name">{{ campaign.name }}</h3>
-            <div class="dc-character-card__subtitle">
-              {{ campaign.theme }} · {{ campaign.difficulty }}
-            </div>
-
-            <div class="dc-character-card__stats">
-              <div class="dc-character-card__stat">
-                <span class="dc-character-card__stat-label">Party</span>
-                <span class="dc-character-card__stat-value">{{ campaign.character_count }}</span>
-              </div>
-              <div class="dc-character-card__stat">
-                <span class="dc-character-card__stat-label">Active</span>
-                <span class="dc-character-card__stat-value">{{ campaign.active_character }}</span>
+        <div class="dc-campaign-card-wrapper">
+          <a href="{{ campaign.url }}" class="dc-character-card dc-character-card--{{ campaign.status }}">
+            <div class="dc-character-card__portrait">
+              <div class="dc-character-card__portrait-placeholder">
+                <span class="dc-character-card__initial">{{ campaign.name|first|upper }}</span>
               </div>
             </div>
 
-            <div class="dc-character-card__meta">
-              <span>{{ campaign.status_label }}</span>
-              <span>Updated {{ campaign.changed }}</span>
+            <div class="dc-character-card__info">
+              <h3 class="dc-character-card__name">{{ campaign.name }}</h3>
+              <div class="dc-character-card__subtitle">
+                {{ campaign.theme }} · {{ campaign.difficulty }}
+              </div>
+
+              <div class="dc-character-card__stats">
+                <div class="dc-character-card__stat">
+                  <span class="dc-character-card__stat-label">Party</span>
+                  <span class="dc-character-card__stat-value">{{ campaign.character_count }}</span>
+                </div>
+                <div class="dc-character-card__stat">
+                  <span class="dc-character-card__stat-label">Active</span>
+                  <span class="dc-character-card__stat-value">{{ campaign.active_character }}</span>
+                </div>
+              </div>
+
+              <div class="dc-character-card__meta">
+                <span>{{ campaign.status_label }}</span>
+                <span>Updated {{ campaign.changed }}</span>
+              </div>
+
+              <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
+                <span class="dc-btn {{ campaign.can_launch ? 'dc-btn-success' : 'dc-btn-primary' }}">{{ campaign.action_label }}</span>
+                <span>Created {{ campaign.created }}</span>
+              </div>
             </div>
 
-            <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
-              <span class="dc-btn {{ campaign.can_launch ? 'dc-btn-success' : 'dc-btn-primary' }}">{{ campaign.action_label }}</span>
-              <span>Created {{ campaign.created }}</span>
-            </div>
+            <div class="dc-character-card__arrow">›</div>
+          </a>
+
+          <div class="dc-sheet__nav-actions">
+            <a href="{{ campaign.dungeons_url }}" class="dc-btn dc-btn-secondary">Dungeons</a>
+            <a href="{{ campaign.archive_url }}" class="dc-btn dc-btn-secondary">Archive</a>
           </div>
-
-          <div class="dc-character-card__arrow">›</div>
-        </a>
+        </div>
       {% endfor %}
     </div>
   {% else %}
     <div class="dc-character-list__empty">
       <div class="dc-character-list__empty-icon">🧭</div>
-      <h2>No Campaigns Yet</h2>
-      <p>Create your first campaign, then choose a character to start the adventure.</p>
+      {% if archived_campaigns|length > 0 %}
+        <h2>No Active Campaigns</h2>
+        <p>You can create a new campaign or unarchive one below.</p>
+      {% else %}
+        <h2>No Campaigns Yet</h2>
+        <p>Create your first campaign, then choose a character to start the adventure.</p>
+      {% endif %}
       <a href="{{ create_url }}" class="dc-btn dc-btn-primary">Create Your First Campaign</a>
     </div>
+  {% endif %}
+
+  {% if archived_campaigns|length > 0 %}
+    <details class="dc-character-list__empty dc-character-list__archived">
+      <summary>Archived Campaigns ({{ archived_campaigns|length }})</summary>
+      <p>These campaigns are hidden from your active campaign list.</p>
+      <div class="dc-sheet__nav-actions">
+        {% for campaign in archived_campaigns %}
+          <div class="dc-campaign-archived-item">
+            <span><strong>{{ campaign.name }}</strong> · {{ campaign.status_label }} · Updated {{ campaign.changed }}</span>
+            <a href="{{ campaign.unarchive_url }}" class="dc-btn dc-btn-secondary">Unarchive</a>
+          </div>
+        {% endfor %}
+      </div>
+    </details>
   {% endif %}
 </div>

@@ -34,6 +34,8 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
+| DCT-0001 | Testing dashboard flow tracking depends on disabled GitHub context | Open | Copilot | 2026-02-18 | 2026-02-18 | Code issue: TestingDashboardController computes PR/workflow GitHub metrics in buildLifecycleTrackingSection(), but resolveGitHubContext() hard-returns local/Issues.md with token NULL and requestGitHubJsonWithFallback() returns disabled. Result: PR automation cards remain unavailable and lifecycle inference mixes disabled GitHub paths with local-only runtime. |
+| DCT-0002 | Issue automation documentation route aliases to generic triage content | Open | Copilot | 2026-02-18 | 2026-02-18 | Code issue: /dungeoncrawler/testing/documentation/issue-automation maps to docsIssueAutomation(), which aliases docsFailureTriage() rather than dedicated issue-automation documentation. Route title/menu imply specialized automation docs that are not implemented. |
 #### templates
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
@@ -80,7 +82,6 @@ This file is also the backup tracker when CLI interface access is denied for cre
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |
 |---|---|---|---|---|---|---|
-| DCC-0224 | Design-only: Add DungeonCrawler encounter AI integration blueprint page (ai_conversation layer + creature-turn context flow) | Open | Unassigned | 2026-02-17 | 2026-02-17 | Findings: dungeoncrawler_content currently has no ai_conversation dependency declared; ai_conversation in this site exposes service `ai_conversation.api_service`; existing dungeoncrawler_content already has combat/encounter controllers and API routes suitable for a future encounter-turn controller. Scope for this issue is documentation/page only: add a module page outlining architecture for an integration layer that ingests creature JSON, builds per-turn context (creature state + encounter state + conversation history), and defines request/response contracts for generated actions/dialogue before implementation. |
 #### templates
 
 | ID | Title | Current Status | Owner | Created | Last Updated | Notes |

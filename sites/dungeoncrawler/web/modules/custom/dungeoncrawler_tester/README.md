@@ -10,6 +10,13 @@
 - Testing module README with run commands and grouping.
 - **Testing Dashboard** - A web-based dashboard for quick access to test documentation, commands, and CI status.
 
+## Documentation Verification (2026-02-18)
+
+- `/dungeoncrawler/testing/documentation/*` pages are controller-rendered (`TestingDashboardDocsController`) and are the live source for documentation-home content.
+- Stage-failure automation now creates/reuses local tracker rows in repository-root `Issues.md`; GitHub issue mutation is intentionally scoped to `/dungeoncrawler/testing/import-open-issues`.
+- Process-flow docs were updated to remove stale queue-worker GitHub assignment timing assumptions and align with local tracker state sync.
+- SDLC/Release flow docs are governance/inference guidance; they are not a fully enforced merge orchestrator in module runtime.
+
 ## Testing Dashboard
 
 The testing dashboard provides a centralized location for developers to:

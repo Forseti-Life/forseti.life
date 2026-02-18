@@ -1,5 +1,11 @@
 # PR-06: Character Leveling System Implementation
 
+## Verification Notes (2026-02-18)
+
+- This document describes target-state leveling architecture.
+- Current implementation exposes selected leveling/state operations through existing character state APIs; dedicated route/controller surface described below may be partial or planned.
+- Verify operational behavior directly against module routing and active controllers.
+
 ## Overview
 Implement a comprehensive character leveling system that manages XP tracking, level-up triggers, guided leveling workflow, ability score increases, feat selection, proficiency improvements, HP increases, spell progression, and stat recalculation. The system must enforce Pathfinder 2E rules for level milestones and maintain character progression history.
 

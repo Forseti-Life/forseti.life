@@ -1,5 +1,11 @@
 # PR-02: Combat Encounter System Implementation
 
+## Verification Notes (2026-02-18)
+
+- This document is target-state implementation design.
+- Current module runtime exposes a lightweight combat encounter API via `CombatEncounterApiController` (`/api/combat/start`, `/api/combat/end-turn`, `/api/combat/attack`, `/api/combat/get`, `/api/combat/set`).
+- Full controller/service surface described here should be treated as planned unless directly present in current routing/controller code.
+
 ## Overview
 Implement a real-time combat encounter system that manages initiative, turn order, actions, damage, conditions, and encounter lifecycle. The system must enforce Pathfinder 2E combat rules including the 3-action economy, Multiple Attack Penalty (MAP), and condition effects.
 

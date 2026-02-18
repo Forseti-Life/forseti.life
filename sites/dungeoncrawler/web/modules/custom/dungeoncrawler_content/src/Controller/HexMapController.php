@@ -96,6 +96,8 @@ class HexMapController extends ControllerBase {
         $query->condition('dungeon_id', $launch_context['map_id']);
       }
 
+      $query->orderBy('updated', 'DESC');
+      $query->orderBy('id', 'DESC');
       $raw = $query->range(0, 1)->execute()->fetchField();
       if ($raw !== FALSE) {
         $decoded = json_decode($raw, TRUE);

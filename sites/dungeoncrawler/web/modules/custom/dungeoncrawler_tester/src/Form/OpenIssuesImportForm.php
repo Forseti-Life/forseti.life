@@ -258,7 +258,15 @@ class OpenIssuesImportForm extends FormBase {
     $logPath = sprintf('/tmp/dungeoncrawler-import-open-issues-%s.log', date('Ymd_His'));
     $pid = $this->startBackgroundImportProcess($repo, $waitSeconds, $maxItems, $dryRun, $logPath);
     if ($pid <= 0) {
-      $this->messenger()->addError($this->t('Failed to launch background import subprocess.'));
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' background launch failed; falling back to inline run repo=@repo wait_seconds=@wait max_items=@max dry_run=@dry', [
+        '@repo' => $repo,
+        '@wait' => (string) $waitSeconds,
+        '@max' => (string) $maxItems,
+        '@dry' => $dryRun ? 'yes' : 'no',
+      ]);
+
+      $this->messenger()->addWarning($this->t('Background launch failed. Running this batch inline in the current request.'));
+      $this->runImportBatchNow($repo, $waitSeconds, $maxItems, $dryRun);
       return;
     }
 

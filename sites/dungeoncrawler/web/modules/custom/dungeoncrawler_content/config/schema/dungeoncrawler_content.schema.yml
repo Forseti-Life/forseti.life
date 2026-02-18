@@ -1,0 +1,40 @@
+dungeoncrawler_content.settings:
+  type: config_object
+  label: 'Dungeon Crawler Content settings'
+  mapping:
+    max_level:
+      type: integer
+      label: 'Maximum adventurer level'
+    difficulty_levels:
+      type: text
+      label: 'Dungeon depth tiers'
+    rarity_tiers:
+      type: text
+      label: 'Item rarity tiers'
+    room_persistence:
+      type: boolean
+      label: 'Rooms are permanent after first generation'
+    monster_permadeath:
+      type: boolean
+      label: 'Enable monster permadeath'
+    items_per_page:
+      type: integer
+      label: 'Items per page'
+    show_game_stats:
+      type: boolean
+      label: 'Show game stats on content pages'
+    gemini_image_enabled:
+      type: boolean
+      label: 'Enable Gemini image generation live mode'
+    gemini_image_model:
+      type: string
+      label: 'Gemini image model'
+    gemini_image_endpoint:
+      type: string
+      label: 'Gemini endpoint template'
+    gemini_image_timeout:
+      type: integer
+      label: 'Gemini request timeout (seconds)'
+    gemini_image_api_key:
+      type: string
+      label: 'Gemini API key'

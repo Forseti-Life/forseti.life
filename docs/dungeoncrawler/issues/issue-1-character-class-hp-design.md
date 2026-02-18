@@ -1,5 +1,11 @@
 # Issue #1: Character Creation Class HP Lookup - Design Document
 
+## Verification Notes (2026-02-18)
+
+- Character save flow now applies class-specific HP via `CharacterManager::getClassHP()` with fallback behavior, so the original hardcoded-only behavior is no longer fully accurate.
+- The schema-driven lookup path described in this design remains partially unimplemented (`SchemaLoader::getClassData()` is still a TODO/throws).
+- Treat this issue as **partially addressed**: gameplay HP variation is present, schema-loader integration is still pending.
+
 ## Overview
 Design the system to retrieve class HP from schema data instead of hardcoded defaults in the character creation wizard.
 

@@ -4,6 +4,13 @@
 **Created**: 2026-02-12  
 **Purpose**: Define data structures and system architecture for turn-based tactical gameplay
 
+## Verification Notes (2026-02-18)
+
+- This is a design + implementation roadmap document; not every section is fully implemented.
+- Implemented ECS foundation exists under `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/js/ecs/` (entities, components, systems, mapper).
+- Current combat runtime exposed to the hexmap is the lightweight REST encounter flow in `CombatEncounterApiController` + `CombatEncounterStore`.
+- Full server-authoritative combat/action services described in some sections remain planned and should be treated as future-state until corresponding controllers/services are completed.
+
 ---
 
 ## Table of Contents

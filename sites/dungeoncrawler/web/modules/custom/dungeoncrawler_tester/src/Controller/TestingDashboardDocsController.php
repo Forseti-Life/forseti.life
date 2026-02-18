@@ -127,7 +127,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			[
 				$this->t('Scope: this module owns test harnesses, test suites, and testing dashboard integrations.'),
 				$this->t('Entry points: start at /dungeoncrawler/testing for dashboard controls and linked documentation.'),
-				$this->t('Prerequisites: tester settings configured with repository/token when failure issue automation is needed.'),
+				$this->t('Prerequisites: no GitHub token is required for stage-failure capture; failures are tracked in local Issues.md rows by default.'),
 				$this->t('First run: execute focused tests first, then broader suites as confidence increases.'),
 			],
 			[
@@ -165,9 +165,9 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			$this->t('Standard response flow for failed stages and GitHub issue automation.'),
 			[
 				$this->t('Triage sequence: identify failing stage, inspect output, validate reproducibility, and scope impact.'),
-				$this->t('Issue lifecycle: open issue on failure, attach stage context, and track remediation until stage pass.'),
-				$this->t('Assignment behavior: Copilot assignment attempts API identifiers then CLI fallback for compatibility.'),
-				$this->t('Operational controls: keep labels consistent for CI failures, testing defects, and program defects.'),
+				$this->t('Issue lifecycle: stage failures create or reuse local Issues.md rows with failure context and pause the affected stage.'),
+				$this->t('Resume behavior: stage issue sync re-activates paused stages after linked local issue rows are marked Closed.'),
+				$this->t('GitHub handoff: use /dungeoncrawler/testing/import-open-issues when local Open rows should be synchronized into GitHub.'),
 			],
 			[
 				Link::fromTextAndUrl($this->t('Tester Settings'), Url::fromRoute('dungeoncrawler_tester.settings')),
@@ -198,10 +198,9 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			$this->t('WorkerClaimedItem'),
 			$this->t('CommandSucceeded'),
 			$this->t('CommandFailed'),
-			$this->t('IssueCreateSucceeded / IssueCreateFailed'),
-			$this->t('CopilotAssignAttempted (REST then CLI fallback)'),
+			$this->t('LocalIssueCreateOrReuseSucceeded / LocalIssueCreateFailed'),
 			$this->t('ManualQueueRunRequested'),
-			$this->t('TimeoutOccurred (worker/API/CLI budgets)'),
+			$this->t('TimeoutOccurred (worker/process budgets)'),
 		];
 
 		$transitions = [
@@ -209,8 +208,8 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			$this->t('PENDING + WorkerClaimedItem -> RUNNING'),
 			$this->t('RUNNING + CommandSucceeded -> SUCCEEDED'),
 			$this->t('RUNNING + CommandFailed -> FAILED'),
-			$this->t('FAILED + IssueCreateSucceeded -> ISSUE_OPEN + INACTIVE'),
-			$this->t('FAILED + IssueCreateFailed -> INACTIVE'),
+			$this->t('FAILED + LocalIssueCreateOrReuseSucceeded -> ISSUE_OPEN + INACTIVE'),
+			$this->t('FAILED + LocalIssueCreateFailed -> INACTIVE'),
 			$this->t('ISSUE_OPEN + IssueSyncClosedDetected -> RESUMED -> READY'),
 			$this->t('Any eligible queued state + ManualQueueRunRequested -> accelerated claim/process path'),
 		];
@@ -218,7 +217,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 		$actions = [
 			$this->t('Create queue item in dungeoncrawler_tester_runs and persist pending run metadata.'),
 			$this->t('Execute command process with 1800s timeout and store output/duration.'),
-			$this->t('On failure, attempt GitHub issue creation and Copilot assignment.'),
+			$this->t('On failure, create or reuse local Issues.md tracker rows for failed test cases.'),
 			$this->t('Set active=FALSE and failure metadata to block forward progression.'),
 			$this->t('Issue sync reactivates stage and clears failure metadata when closed.'),
 		];
@@ -246,7 +245,6 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			$this->t('Issue sync executes first in each cron cycle to reconcile closed issues before enqueue checks.'),
 			$this->t('Enqueue cooldown: stage is not re-queued more than once per 3600 seconds unless manually triggered.'),
 			$this->t('Worker execution budget: command process timeout is capped at 1800 seconds.'),
-			$this->t('Network/API budgets: GitHub calls use short timeouts (8-10s) with CLI fallback budget around 20s.'),
 			$this->t('Blocking gate: active open-failure issue keeps a stage paused until issue sync marks it resolved.'),
 		];
 
@@ -270,7 +268,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 			[$this->t('PENDING'), $this->t('WorkerClaimedItem'), $this->t('RUNNING'), $this->t('Set running + start process')],
 			[$this->t('RUNNING'), $this->t('CommandSucceeded'), $this->t('SUCCEEDED'), $this->t('Persist success result + clear failure metadata')],
 			[$this->t('RUNNING'), $this->t('CommandFailed'), $this->t('FAILED'), $this->t('Persist failure output + enter failure branch')],
-			[$this->t('FAILED'), $this->t('IssueCreateSucceeded'), $this->t('ISSUE_OPEN / INACTIVE'), $this->t('Link issue + pause stage')],
+			[$this->t('FAILED'), $this->t('LocalIssueCreateOrReuseSucceeded'), $this->t('ISSUE_OPEN / INACTIVE'), $this->t('Link local issue + pause stage')],
 			[$this->t('ISSUE_OPEN'), $this->t('IssueSyncClosedDetected'), $this->t('RESUMED -> READY'), $this->t('Auto-reactivate stage + clear failure state')],
 		];
 
@@ -331,7 +329,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 							'#type' => 'html_tag',
 							'#tag' => 'pre',
 							'#attributes' => ['class' => ['command-snippet']],
-							'#value' => "[Cron Tick]\n    |\n    v\n[Issue Sync] --(closed issue detected)--> [RESUMED -> READY]\n    |\n    v\n[Enqueue Gate]\n  (active, no open issue, 3600s cooldown passed)\n    |\n    +-- no --> [READY/INACTIVE (no-op)]\n    |\n    +-- yes --> [PENDING (queue item created)]\n                    |\n                    v\n               [RUNNING (worker claim)]\n                    |\n        +-----------+-----------+\n        |                       |\n        v                       v\n [SUCCEEDED]              [FAILED]\n  (clear fail state)         |\n                              v\n                    [Create GitHub Issue]\n                              |\n                      +-------+-------+\n                      |               |\n                      v               v\n            [ISSUE_OPEN/INACTIVE]  [INACTIVE]\n              (paused until closed)  (manual/next sync recovery)\n                      |\n                      v\n        [Issue Sync detects closed issue]\n                      |\n                      v\n                [RESUMED -> READY]",
+							'#value' => "[Cron Tick]\n    |\n    v\n[Issue Sync] --(closed issue detected)--> [RESUMED -> READY]\n    |\n    v\n[Enqueue Gate]\n  (active, no open issue, 3600s cooldown passed)\n    |\n    +-- no --> [READY/INACTIVE (no-op)]\n    |\n    +-- yes --> [PENDING (queue item created)]\n                    |\n                    v\n               [RUNNING (worker claim)]\n                    |\n        +-----------+-----------+\n        |                       |\n        v                       v\n [SUCCEEDED]              [FAILED]\n  (clear fail state)         |\n                              v\n                 [Create/Reuse Local Issue]\n                              |\n                      +-------+-------+\n                      |               |\n                      v               v\n            [ISSUE_OPEN/INACTIVE]  [INACTIVE]\n              (paused until closed)  (manual/next sync recovery)\n                      |\n                      v\n        [Issue Sync detects closed issue]\n                      |\n                      v\n                [RESUMED -> READY]",
 						],
 					],
 					'summary_card' => [
@@ -668,7 +666,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 							'#type' => 'html_tag',
 							'#tag' => 'p',
 							'#attributes' => ['class' => ['text-muted-light', 'mb-0']],
-							'#value' => $this->t('Standard SDLC state machine: intake, assignment, branch/PR workflow, CI/review gates, merge to main, re-test, and issue closure.'),
+							'#value' => $this->t('Reference SDLC state machine for governance and planning. Current dashboard values are inferred from live signals and do not enforce every transition automatically.'),
 						],
 					],
 					'timeline_card' => [
@@ -945,7 +943,7 @@ class TestingDashboardDocsController extends TestingDashboardController {
 							'#type' => 'html_tag',
 							'#tag' => 'p',
 							'#attributes' => ['class' => ['text-muted-light', 'mb-0']],
-							'#value' => $this->t('Release-level controls over SDLC/PR automation to manage contention, detect state drift, and provide deterministic reset/recovery behavior.'),
+							'#value' => $this->t('Release-level governance model. The dashboard surfaces release checkpoints by inference from queue/PR signals; merge orchestration remains operator-driven unless separately automated.'),
 						],
 					],
 					'core_card' => [

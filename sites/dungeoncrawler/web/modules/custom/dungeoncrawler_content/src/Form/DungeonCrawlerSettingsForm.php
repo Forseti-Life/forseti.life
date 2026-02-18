@@ -77,6 +77,47 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       '#description' => $this->t('When enabled, mortal monsters that are slain stay dead permanently. Respawning creatures are unaffected.'),
     ];
 
+    $form['ai_settings']['gemini_image_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable Gemini image generation live mode'),
+      '#default_value' => $config->get('gemini_image_enabled') ?? FALSE,
+      '#description' => $this->t('When enabled, dashboard image requests attempt a live Gemini API call when an API key is available.'),
+    ];
+
+    $form['ai_settings']['gemini_image_model'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Gemini image model'),
+      '#default_value' => $config->get('gemini_image_model') ?? 'gemini-2.0-flash-exp',
+      '#maxlength' => 255,
+      '#description' => $this->t('Model name used for image generation requests. Example: gemini-2.0-flash-exp.'),
+    ];
+
+    $form['ai_settings']['gemini_image_endpoint'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Gemini endpoint template'),
+      '#default_value' => $config->get('gemini_image_endpoint') ?? 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent',
+      '#maxlength' => 512,
+      '#description' => $this->t('Endpoint template for Gemini requests. Use {model} as placeholder for the selected model.'),
+    ];
+
+    $form['ai_settings']['gemini_image_timeout'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Gemini request timeout (seconds)'),
+      '#default_value' => $config->get('gemini_image_timeout') ?? 30,
+      '#min' => 5,
+      '#max' => 120,
+    ];
+
+    $form['ai_settings']['gemini_image_api_key'] = [
+      '#type' => 'password',
+      '#title' => $this->t('Gemini API key (optional)'),
+      '#description' => $this->t('Prefer environment variable GEMINI_API_KEY. If set here, this value is stored in Drupal configuration.'),
+      '#maxlength' => 255,
+      '#attributes' => [
+        'autocomplete' => 'new-password',
+      ],
+    ];
+
     $form['display_settings'] = [
       '#type' => 'fieldset',
       '#title' => $this->t('🗺️ Display Settings'),
@@ -110,9 +151,20 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       ->set('rarity_tiers', $form_state->getValue('rarity_tiers'))
       ->set('room_persistence', $form_state->getValue('room_persistence'))
       ->set('monster_permadeath', $form_state->getValue('monster_permadeath'))
+      ->set('gemini_image_enabled', $form_state->getValue('gemini_image_enabled'))
+      ->set('gemini_image_model', trim((string) $form_state->getValue('gemini_image_model')))
+      ->set('gemini_image_endpoint', trim((string) $form_state->getValue('gemini_image_endpoint')))
+      ->set('gemini_image_timeout', (int) $form_state->getValue('gemini_image_timeout'))
       ->set('items_per_page', $form_state->getValue('items_per_page'))
       ->set('show_game_stats', $form_state->getValue('show_game_stats'))
       ->save();
+
+    $submitted_key = trim((string) $form_state->getValue('gemini_image_api_key'));
+    if ($submitted_key !== '') {
+      $this->config('dungeoncrawler_content.settings')
+        ->set('gemini_image_api_key', $submitted_key)
+        ->save();
+    }
 
     parent::submitForm($form, $form_state);
   }

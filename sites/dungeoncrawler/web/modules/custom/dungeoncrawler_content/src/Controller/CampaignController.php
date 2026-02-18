@@ -67,6 +67,7 @@ class CampaignController extends ControllerBase {
     $campaigns = $this->database->select('dc_campaigns', 'c')
       ->fields('c')
       ->condition('uid', $uid)
+      ->condition('status', 'archived', '<>')
       ->orderBy('changed', 'DESC')
       ->execute()
       ->fetchAll();
@@ -136,12 +137,42 @@ class CampaignController extends ControllerBase {
         'can_launch' => $can_launch,
         'action_label' => (string) $this->t('Enter Tavern'),
         'url' => $action_url,
+        'dungeons_url' => Url::fromRoute('dungeoncrawler_content.campaign_dungeons', [
+          'campaign_id' => $campaign_id,
+        ])->toString(),
+        'archive_url' => Url::fromRoute('dungeoncrawler_content.campaign_archive', [
+          'campaign_id' => $campaign_id,
+        ])->toString(),
+      ];
+    }
+
+    $archived_campaigns = $this->database->select('dc_campaigns', 'c')
+      ->fields('c')
+      ->condition('uid', $uid)
+      ->condition('status', 'archived')
+      ->orderBy('changed', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    $archived_campaign_cards = [];
+    foreach ($archived_campaigns as $campaign) {
+      $campaign_id = (int) $campaign->id;
+
+      $archived_campaign_cards[] = [
+        'id' => $campaign_id,
+        'name' => $campaign->name,
+        'status_label' => $status_labels[$campaign->status] ?? ucfirst((string) $campaign->status),
+        'changed' => date('M j, Y', (int) $campaign->changed),
+        'unarchive_url' => Url::fromRoute('dungeoncrawler_content.campaign_unarchive', [
+          'campaign_id' => $campaign_id,
+        ])->toString(),
       ];
     }
 
     return [
       '#theme' => 'campaign_list',
       '#campaigns' => $campaign_cards,
+      '#archived_campaigns' => $archived_campaign_cards,
       '#create_url' => Url::fromRoute('dungeoncrawler_content.campaign_create')->toString(),
       '#characters_url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),
       '#attached' => [
@@ -217,6 +248,9 @@ class CampaignController extends ControllerBase {
       '#theme' => 'campaign_tavernentrance',
       '#campaign' => $campaign_data,
       '#characters' => $character_cards,
+      '#dungeon_selection_url' => Url::fromRoute('dungeoncrawler_content.campaign_dungeons', [
+        'campaign_id' => $campaign_id,
+      ])->toString(),
       '#create_character_url' => Url::fromRoute('dungeoncrawler_content.character_creation_wizard', [], [
         'query' => ['campaign_id' => $campaign_id],
       ])->toString(),
@@ -229,6 +263,151 @@ class CampaignController extends ControllerBase {
         'tags' => ['dc_campaigns', 'dc_campaign_characters'],
       ],
     ];
+  }
+
+  /**
+   * Dungeon selection flow: list all dungeons for the selected campaign.
+   */
+  public function listCampaignDungeons(int $campaign_id): array {
+    $campaign = $this->database->select('dc_campaigns', 'c')
+      ->fields('c', ['id', 'uid', 'name', 'theme', 'difficulty', 'status', 'active_character_id'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$campaign) {
+      throw new NotFoundHttpException();
+    }
+
+    if ((int) $campaign->uid !== (int) $this->currentUser()->id()) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $dungeons = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['id', 'dungeon_id', 'name', 'description', 'theme', 'dungeon_data', 'created', 'updated'])
+      ->condition('campaign_id', $campaign_id)
+      ->orderBy('updated', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    $dungeon_cards = [];
+    foreach ($dungeons as $dungeon) {
+      $decoded = json_decode((string) ($dungeon->dungeon_data ?? '{}'), TRUE);
+      if (!is_array($decoded)) {
+        $decoded = [];
+      }
+
+      $dungeon_cards[] = [
+        'id' => (int) $dungeon->id,
+        'dungeon_id' => (string) $dungeon->dungeon_id,
+        'name' => (string) $dungeon->name,
+        'description' => (string) ($dungeon->description ?? ''),
+        'theme' => (string) ($dungeon->theme ?? ''),
+        'room_count' => $this->countDungeonRooms($decoded),
+        'created' => date('M j, Y', (int) $dungeon->created),
+        'updated' => date('M j, Y', (int) $dungeon->updated),
+        'enter_url' => Url::fromRoute('dungeoncrawler_content.hexmap_demo', [], [
+          'query' => $this->buildHexmapLaunchQuery($campaign_id, (int) ($campaign->active_character_id ?? 0), $decoded, (string) $dungeon->dungeon_id),
+        ])->toString(),
+      ];
+    }
+
+    return [
+      '#theme' => 'campaign_dungeon_selection',
+      '#campaign' => [
+        'id' => (int) $campaign->id,
+        'name' => (string) $campaign->name,
+        'theme' => ucfirst(str_replace('_', ' ', (string) $campaign->theme)),
+        'difficulty' => ucfirst((string) $campaign->difficulty),
+        'status' => ucfirst((string) $campaign->status),
+        'active_character_id' => (int) ($campaign->active_character_id ?? 0),
+      ],
+      '#dungeons' => $dungeon_cards,
+      '#back_url' => Url::fromRoute('dungeoncrawler_content.campaigns')->toString(),
+      '#tavern_url' => Url::fromRoute('dungeoncrawler_content.campaign_tavernentrance', [
+        'campaign_id' => $campaign_id,
+      ])->toString(),
+      '#attached' => [
+        'library' => ['dungeoncrawler_content/character-sheet'],
+      ],
+      '#cache' => [
+        'contexts' => ['user'],
+        'tags' => ['dc_campaigns', 'dc_campaign_dungeons'],
+      ],
+    ];
+  }
+
+  /**
+   * Count rooms in a decoded dungeon payload.
+   */
+  private function countDungeonRooms(array $decoded): int {
+    if (!isset($decoded['rooms']) || !is_array($decoded['rooms'])) {
+      return 0;
+    }
+
+    return count($decoded['rooms']);
+  }
+
+  /**
+   * Resolve launch room context from decoded dungeon payload.
+   */
+  private function extractRoomContext(array $decoded): array {
+    $room_ids = [];
+    $rooms = $decoded['rooms'] ?? [];
+
+    if (is_array($rooms)) {
+      foreach ($rooms as $key => $room) {
+        if (is_array($room) && !empty($room['room_id'])) {
+          $room_ids[] = (string) $room['room_id'];
+          continue;
+        }
+
+        if (is_string($key) && $key !== '') {
+          $room_ids[] = $key;
+        }
+      }
+    }
+
+    $room_ids = array_values(array_unique(array_filter($room_ids, static fn($room_id) => $room_id !== '')));
+
+    return [
+      'room_id' => $room_ids[0] ?? '',
+      'next_room_id' => $room_ids[1] ?? '',
+    ];
+  }
+
+  /**
+   * Build canonical hexmap launch query payload.
+   */
+  private function buildHexmapLaunchQuery(int $campaign_id, int $character_id, array $decoded, string $map_id): array {
+    $room_context = $this->extractRoomContext($decoded);
+
+    return [
+      'campaign_id' => $campaign_id,
+      'character_id' => $character_id,
+      'dungeon_level_id' => (string) ($decoded['level_id'] ?? ''),
+      'map_id' => $map_id,
+      'room_id' => $room_context['room_id'],
+      'next_room_id' => $room_context['next_room_id'],
+      'start_q' => 0,
+      'start_r' => 0,
+    ];
+  }
+
+  /**
+   * Load the most recently updated campaign dungeon row.
+   */
+  private function loadLatestCampaignDungeon(int $campaign_id): ?object {
+    $campaign_dungeon = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['dungeon_id', 'dungeon_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->orderBy('updated', 'DESC')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+
+    return $campaign_dungeon ?: NULL;
   }
 
   /**
@@ -311,17 +490,21 @@ class CampaignController extends ControllerBase {
 
     $this->messenger()->addStatus($this->t('Character selected for campaign.'));
 
+    $launch_query = $this->buildHexmapLaunchQuery($campaign_id, $character_id, [], '');
+
+    $campaign_dungeon = $this->loadLatestCampaignDungeon($campaign_id);
+
+    if ($campaign_dungeon) {
+      $decoded = json_decode((string) ($campaign_dungeon->dungeon_data ?? '{}'), TRUE);
+      if (!is_array($decoded)) {
+        $decoded = [];
+      }
+
+      $launch_query = $this->buildHexmapLaunchQuery($campaign_id, $character_id, $decoded, (string) ($campaign_dungeon->dungeon_id ?? ''));
+    }
+
     return $this->redirect('dungeoncrawler_content.hexmap_demo', [], [
-      'query' => [
-        'campaign_id' => $campaign_id,
-        'character_id' => $character_id,
-        'dungeon_level_id' => 'f8c6b8f1-2df9-469f-9fd5-67a59f120001',
-        'map_id' => '0b7e3d2f-8f7c-4ae0-8f72-9e99e0800001',
-        'room_id' => '7f2f1051-5f88-45a2-a66a-0f7063900001',
-        'next_room_id' => '7f2f1051-5f88-45a2-a66a-0f7063900002',
-        'start_q' => 0,
-        'start_r' => 0,
-      ],
+      'query' => $launch_query,
     ]);
   }
 

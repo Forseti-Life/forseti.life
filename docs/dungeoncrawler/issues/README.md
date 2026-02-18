@@ -4,6 +4,41 @@ This directory contains design documents for major features in the Pathfinder 2E
 
 ## Active Issues
 
+## Verification Notes (2026-02-18)
+
+This section reflects current implementation coverage in `dungeoncrawler_content`.
+
+### Validity Summary
+
+- **Fully valid/open**: 1 of 6 issue-design documents
+- **Partially valid (some implementation exists)**: 4 of 6
+- **Mostly stale/resolved as design gap**: 1 of 6
+
+### Per-Issue Status vs Code
+
+1. **Issue #1 (Character Class HP Design)** — **Partially valid**
+	- Class-specific HP is now applied through `CharacterManager::getClassHP()` in character save flow.
+	- Original schema-loader-driven class lookup remains incomplete (`SchemaLoader::getClassData()` is still TODO/throws).
+
+2. **Issue #2 (Hexmap Rendering Design)** — **Partially valid**
+	- Hexmap runtime and ECS-based rendering are implemented.
+	- Design-specific storage/services in this document (e.g., `dungeoncrawler_hexmap_*` tables) are not the active implementation path.
+
+3. **Issue #3 (Game Content System Design)** — **Mostly stale as an “unimplemented” claim**
+	- Core services and schema tables are implemented (`ContentRegistry`, `ContentQuery`, `ContentGenerator`, campaign content tables).
+	- This document is still useful as architecture rationale, but not accurate where it claims no implementation exists.
+
+4. **Issue #4 (Combat & Encounter System Design)** — **Partially valid**
+	- Lightweight combat APIs are implemented (`/api/combat/start`, `/end-turn`, `/attack`, `/get`, `/set`, `/end`).
+	- Full target-state surface in design docs remains partially implemented.
+
+5. **Issue #4 (Enhanced Character Sheet Design)** — **Partially valid**
+	- Character state REST endpoints and service operations exist.
+	- WebSocket sync and several advanced flows remain design-target/pending.
+
+6. **Issue #4 (Procedural Dungeon Generation Design)** — **Fully valid/open**
+	- Controller/service scaffolding exists, but generation logic and API behavior remain mostly TODO.
+
 ### Issue #1: Character Class HP Design
 **File**: `issue-1-character-class-hp-design.md`  
 **Status**: Design  
@@ -51,6 +86,7 @@ Each major issue includes:
 - **Root**: `/docs/dungeoncrawler/README.md` - Main documentation index
 - **Mechanics**: `/docs/dungeoncrawler/0X-*.md` - Game mechanics reference
 - **Implementation**: `/docs/dungeoncrawler/PR-*.md` - Implementation guides
+- **Tracker Audit (2026-02-18)**: `tracker-validity-review-2026-02-18.md` - semantic validity and consolidation plan for active DCC tracker rows
 
 ## Contributing
 

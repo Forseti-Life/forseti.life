@@ -1,5 +1,11 @@
 # PR-03: Action System Implementation
 
+## Verification Notes (2026-02-18)
+
+- This file defines intended action-system architecture and should be treated as a design/implementation plan.
+- Active code paths currently use a mix of lightweight combat APIs and ECS runtime behavior; not all controllers/services listed here are implemented as routed endpoints.
+- Validate current behavior in `dungeoncrawler_content.routing.yml` and `src/Controller/*` before operational use.
+
 ## Overview
 Implement a comprehensive action library and execution system for the Pathfinder 2E three-action economy. The system must define all basic actions, activities, reactions, and free actions, enforce action costs (1/2/3 actions), manage traits (Attack, Manipulate, Move, Concentrate), and integrate with the combat encounter system.
 

@@ -52,7 +52,15 @@ class LocalIssuesTrackerService {
       PHP_EOL
     );
 
-    $this->insertIssueLine($issuesFile, $newLine);
+    $inserted = $this->insertIssueLine($issuesFile, $newLine);
+
+    if (!$inserted) {
+      return [
+        'issue_id' => '',
+        'number' => 0,
+        'created' => FALSE,
+      ];
+    }
 
     return [
       'issue_id' => $issueId,
@@ -315,14 +323,14 @@ class LocalIssuesTrackerService {
   /**
    * Insert a markdown issue line into dungeoncrawler_tester/src table.
    */
-  private function insertIssueLine(string $issuesFile, string $line): void {
+  private function insertIssueLine(string $issuesFile, string $line): bool {
     if (!is_file($issuesFile) || !is_writable($issuesFile)) {
-      return;
+      return FALSE;
     }
 
     $lines = file($issuesFile);
     if (!is_array($lines) || $lines === []) {
-      return;
+      return FALSE;
     }
 
     $insertAt = $this->findTesterSrcInsertIndex($lines);
@@ -333,7 +341,7 @@ class LocalIssuesTrackerService {
       array_splice($lines, $insertAt, 0, [$line]);
     }
 
-    file_put_contents($issuesFile, implode('', $lines));
+    return file_put_contents($issuesFile, implode('', $lines)) !== FALSE;
   }
 
   /**

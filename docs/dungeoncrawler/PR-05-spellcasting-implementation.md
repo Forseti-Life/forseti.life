@@ -1,5 +1,11 @@
 # PR-05: Spellcasting System Implementation
 
+## Verification Notes (2026-02-18)
+
+- This file is implementation design, not an assertion that all listed routes/services are currently live.
+- Current spellcasting-related runtime behavior is primarily represented through character state APIs and service logic, not the full standalone route surface described below.
+- Confirm active behavior via current routing/controller code before using as operational documentation.
+
 ## Overview
 Implement a comprehensive spellcasting system supporting Pathfinder 2E's four magical traditions (Arcane, Divine, Occult, Primal), spell slots, prepared vs spontaneous casting, spell components, concentration, heightening, and spell resolution. The system must integrate with character classes, combat encounters, and action economy.
 

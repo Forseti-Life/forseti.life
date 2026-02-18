@@ -55,6 +55,10 @@ services:
     class: Drupal\dungeoncrawler_content\Service\ContentGenerator
     arguments: ['@dungeoncrawler_content.content_query']
 
+  dungeoncrawler_content.gemini_image_generator:
+    class: Drupal\dungeoncrawler_content\Service\GeminiImageGenerationService
+    arguments: ['@logger.factory', '@datetime.time', '@config.factory', '@http_client']
+
   dungeoncrawler_content.campaign_content:
     class: Drupal\dungeoncrawler_content\Service\CampaignContentService
     arguments:

@@ -25,14 +25,21 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **Campaign-first entry flow**: Start adventure by creating a campaign, then select or create a character
 - **Centralized page wrapper for management forms**: `management_form_page` template for themed create/edit pages
 - **Tavern entrance launch flow**: After creating a campaign, route to campaign tavern entrance to select character and launch hexmap
+- **Archive flow with confirmation checkbox**: Campaign archive requires checking a confirmation box and hides campaigns from the active list without deleting them
+- **Archived campaign section**: `/campaigns` includes a compact archived campaigns section with unarchive actions
+- **Status restore on unarchive**: Unarchiving restores the campaign to its previous pre-archive status when available
 - **Campaign Routes**:
    - `/campaigns` - List your campaigns (returning-user hub)
    - `/campaigns/create` - Create a campaign
+   - `/campaigns/{campaign_id}/archive` - Archive campaign (hide from list, non-destructive)
+   - `/campaigns/{campaign_id}/unarchive` - Unarchive campaign (show on list again)
+   - `/campaigns/{campaign_id}/dungeons` - Dungeon selection page listing campaign dungeon records from the database
    - `/campaigns/{campaign_id}/tavernentrance` - Select character and launch campaign into hexmap
    - `/campaigns/{campaign_id}/select-character/{character_id}` - Bind character to campaign and launch
 - **Campaign Context Flow**:
    - `/characters?campaign_id={id}` switches My Characters into campaign selection mode
    - Character creation preserves `campaign_id` through step redirects
+   - Campaign character selection resolves hexmap launch context (`dungeon_level_id`, `map_id`, `room_id`, `next_room_id`) from the latest campaign dungeon record instead of static IDs
 
 ### Game Object Management
 - **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
@@ -57,6 +64,14 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **World Lore** (`/world`) - Living dungeon background and lore
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
 - **About** (`/about`) - Game information and technology
+
+### Gemini Image Generation Integration (Stub)
+- **Dashboard panel**: `/admin/content/dungeoncrawler` includes a **Gemini Image Generation (Stub)** panel.
+- **Stub request form**: Captures prompt, style, aspect ratio, negative prompt, and campaign context.
+- **Integration service**: `dungeoncrawler_content.gemini_image_generator` normalizes payloads and supports both stub mode and live Gemini requests.
+- **Live-mode settings**: Configure under `/admin/config/content/dungeoncrawler` (enable toggle, model, endpoint, timeout, API key).
+- **API key source**: Prefer `GEMINI_API_KEY` env var; optional config-stored key is also supported.
+- **Operator setup aid**: Dashboard panel includes a copy-ready Linux/Apache `GEMINI_API_KEY` export snippet plus reload/cache steps.
 
 ### Navigation Structure
 
@@ -125,10 +140,12 @@ dungeoncrawler_content/
 │   │   ├── CampaignCreateForm.php
 │   │   ├── CharacterCreateForm.php
 │   │   ├── CharacterDeleteForm.php
-│   │   └── DungeonCrawlerSettingsForm.php
+│   │   ├── DungeonCrawlerSettingsForm.php
+│   │   └── GeminiImageGenerationStubForm.php
 │   └── Service/
 │       ├── CharacterManager.php
-│       └── GameContentManager.php
+│       ├── GameContentManager.php
+│       └── GeminiImageGenerationService.php
 ├── templates/
 │   ├── character-class-card.html.twig
 │   ├── character-list.html.twig
@@ -258,6 +275,7 @@ This enables promoting a campaign character into reusable forms:
 - `/about` - About page
 
 ### Authenticated Routes
+- `/hexmap` - Hex map page with campaign-backed combat API integration when launched with campaign context
 - `/characters` - Character list
 - `/characters/create` - Character creation
 - `/characters/{id}` - Character sheet
@@ -265,6 +283,9 @@ This enables promoting a campaign character into reusable forms:
 - `/characters/{id}/delete` - Delete character
 - `/campaigns` - Campaign list
 - `/campaigns/create` - Campaign creation
+- `/campaigns/{campaign_id}/archive` - Campaign archive confirmation (checkbox)
+- `/campaigns/{campaign_id}/unarchive` - Campaign unarchive confirmation
+- `/campaigns/{campaign_id}/dungeons` - Campaign dungeon selection page
 - `/campaigns/{campaign_id}/select-character/{character_id}` - Select character for campaign
 
 ### Admin Routes
@@ -289,6 +310,11 @@ These permissions grant full control and should only be assigned to administrato
 Standard permissions for authenticated users to access and manage their own content:
 
 - **`access dungeoncrawler characters`** - View character lists, campaigns, and access game features. Required for basic gameplay and character management. Does not grant access to other users' characters.
+
+### Hexmap Combat API Context
+- Server-authoritative combat endpoints (`/api/combat/*`) require authenticated gameplay context and `access dungeoncrawler characters` permission.
+- Hexmap client only auto-starts server combat when a valid `campaign_id` launch context is present.
+- Direct `/hexmap` demo access without campaign context remains available for map/UI exploration, but does not auto-initiate server combat encounters.
 - **`create dungeoncrawler characters`** - Create new characters in the character creation wizard. Includes access to character step forms and save operations.
 - **`edit own dungeoncrawler characters`** - Edit own characters. Access is further restricted by the `CharacterAccessCheck` service to ensure users can only modify their own characters.
 - **`delete own dungeoncrawler characters`** - Delete own characters. Access is further restricted by the `CharacterAccessCheck` service to prevent deletion of characters owned by other users.

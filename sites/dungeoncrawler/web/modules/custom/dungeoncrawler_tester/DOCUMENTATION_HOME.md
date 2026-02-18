@@ -8,6 +8,8 @@ This is the canonical entry point for all tester module documentation.
 - [Test Execution Playbook](/dungeoncrawler/testing/documentation/execution-playbook)
 - [Failure Triage and Issue Workflow](/dungeoncrawler/testing/documentation/failure-triage)
 - [Automated Testing Process Flow](/dungeoncrawler/testing/documentation/process-flow)
+- [SDLC Process Flow](/dungeoncrawler/testing/documentation/sdlc-process-flow)
+- [Release Process Flow](/dungeoncrawler/testing/documentation/release-process-flow)
 
 ## Legacy Route Aliases (Compatibility)
 
@@ -22,7 +24,14 @@ This is the canonical entry point for all tester module documentation.
 ## Supporting References
 
 - [Testing Dashboard](/dungeoncrawler/testing)
+- [Import Open Issues](/dungeoncrawler/testing/import-open-issues)
 - [Issue/PR Report](/dungeoncrawler/testing/import-open-issues/issue-pr-report) — operational triage page with documented close-decision logic.
+
+## Verification Notes (2026-02-18)
+
+- Documentation pages at `/dungeoncrawler/testing/documentation/*` are rendered from `TestingDashboardDocsController` and are the operational source for documentation-home content.
+- Stage failure automation writes to local tracker rows in repository-root `Issues.md`; GitHub mutations for issue creation/import run through `/dungeoncrawler/testing/import-open-issues`.
+- SDLC and Release flow pages are process guidance and live-inference framing, not hard-enforced merge orchestration in module runtime.
 
 ## Live Tracking
 

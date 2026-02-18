@@ -1,5 +1,11 @@
 # PR-04: Skill Check System Implementation
 
+## Verification Notes (2026-02-18)
+
+- This document is a target-state implementation plan.
+- Current module runtime does not expose the full dedicated skill-check controller surface described here.
+- Use this as design guidance and verify active endpoints against `dungeoncrawler_content.routing.yml` and implemented controllers.
+
 ## Overview
 Implement a comprehensive skill check resolution system supporting Pathfinder 2E's four degrees of success, proficiency ranks, DC calculation, secret checks, and skill-based actions. The system must integrate with character proficiencies, combat actions, and provide both roll UI and automated calculation.
 

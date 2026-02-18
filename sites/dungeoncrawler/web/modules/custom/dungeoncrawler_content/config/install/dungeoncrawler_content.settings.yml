@@ -1,0 +1,22 @@
+max_level: 100
+difficulty_levels: |-
+  Shallow Halls
+  Twisting Corridors
+  Deep Caverns
+  The Underdark
+  The Abyss
+rarity_tiers: |-
+  Common
+  Uncommon
+  Rare
+  Epic
+  Legendary
+room_persistence: true
+monster_permadeath: true
+items_per_page: 12
+show_game_stats: true
+gemini_image_enabled: false
+gemini_image_model: gemini-2.0-flash-exp
+gemini_image_endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
+gemini_image_timeout: 30
+gemini_image_api_key: ''

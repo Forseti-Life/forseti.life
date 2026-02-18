@@ -112,6 +112,117 @@ class CampaignRoutesTest extends BrowserTestBase {
   }
 
   /**
+   * Tests campaign archive route - positive case.
+   */
+  public function testCampaignArchiveRoutePositive(): void {
+    $user = $this->createTestUser();
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Route Archive Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Archive Campaign');
+  }
+
+  /**
+   * Tests campaign unarchive route - positive case.
+   */
+  public function testCampaignUnarchiveRoutePositive(): void {
+    $user = $this->createTestUser();
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Route Unarchive Campaign',
+        'status' => 'archived',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet("/campaigns/{$campaign_id}/unarchive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Unarchive Campaign');
+  }
+
+  /**
+   * Tests campaign dungeon selection route - positive case.
+   */
+  public function testCampaignDungeonsRoutePositive(): void {
+    $user = $this->createTestUser();
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Route Dungeons Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet("/campaigns/{$campaign_id}/dungeons");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Dungeon Selection');
+  }
+
+  /**
+   * Tests campaign dungeon selection route - ownership denied.
+   */
+  public function testCampaignDungeonsRouteOwnershipDenied(): void {
+    $owner = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $other_user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $owner->id(),
+        'name' => 'Owner Dungeon Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/campaigns/{$campaign_id}/dungeons");
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
+   * Tests campaign dungeon selection route - non-existent campaign.
+   */
+  public function testCampaignDungeonsRouteNonExistentCampaign(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/campaigns/99999/dungeons');
+    $this->assertSession()->statusCodeEquals(403);
+  }
+
+  /**
    * Tests campaign route - negative case (anonymous user).
    */
   public function testCampaignRouteNegativeAnonymous(): void {

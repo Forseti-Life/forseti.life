@@ -1,5 +1,14 @@
 # Pathfinder 2E Database Schema Design
 
+## Verification Notes (2026-02-18)
+
+- This document combines implemented module schema notes with conceptual SQL design examples.
+- The SQL snippets below (for example `users`, `campaigns`, `characters`) are **illustrative architecture patterns**, not literal Drupal table definitions used by `dungeoncrawler_content`.
+- Authoritative implemented schema lives in:
+    - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/dungeoncrawler_content.install`
+    - `dungeoncrawler_content_update_10001()` through `dungeoncrawler_content_update_10004()`
+- Campaign/content/runtime separation described in this document is implemented by the module tables created in update hook `10004`.
+
 ## Design Philosophy: Hybrid Approach
 
 For a Pathfinder 2E character management system with exponential growth potential, a **hybrid approach** combining relational tables with JSON storage provides the optimal balance of:

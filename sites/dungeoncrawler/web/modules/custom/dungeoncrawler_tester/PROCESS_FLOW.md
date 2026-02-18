@@ -28,9 +28,9 @@ This analysis follows the required state-machine methodology:
 - `StageAutoEnqueueService`
   - Evaluates eligibility and enqueues jobs in `dungeoncrawler_tester_runs`
 - `TesterRunQueueWorker`
-  - Claims queue items and executes test commands via Symfony Process
+  - Claims queue items, executes test commands via Symfony Process, and writes failing cases to local `Issues.md`
 - `StageIssueSyncService`
-  - Polls linked GitHub issues and auto-resumes closed issues
+  - Polls linked local `Issues.md` rows and auto-resumes closed issues
 - `QueueManagementController` and Drush command
   - Manual queue processing paths (`runQueueAjax`, `dungeoncrawler_tester:run-queue`)
 
@@ -55,8 +55,8 @@ This analysis follows the required state-machine methodology:
 - `WorkerClaimedItem`
 - `CommandSucceeded`
 - `CommandFailed`
-- `IssueCreateSucceeded`
-- `IssueCreateFailed`
+- `LocalIssueCreateOrReuseSucceeded`
+- `LocalIssueCreateFailed`
 - `ManualQueueRunRequested`
 - `TimeoutOccurred`
 
@@ -66,8 +66,8 @@ This analysis follows the required state-machine methodology:
 - `PENDING -> RUNNING` on worker claim
 - `RUNNING -> SUCCEEDED` on successful command
 - `RUNNING -> FAILED` on command failure
-- `FAILED -> ISSUE_OPEN/INACTIVE` when issue creation succeeds
-- `FAILED -> INACTIVE` when issue creation fails
+- `FAILED -> ISSUE_OPEN/INACTIVE` when local issue row create/reuse succeeds
+- `FAILED -> INACTIVE` when local issue row creation fails
 - `ISSUE_OPEN -> RESUMED -> READY` when issue closes and sync applies
 
 ### Actions (Side Effects)
@@ -75,7 +75,7 @@ This analysis follows the required state-machine methodology:
 - Queue item creation
 - Run metadata persistence
 - Command execution with timeout
-- Issue creation/assignment attempts
+- Local issue row create/reuse attempts in repository-root `Issues.md`
 - Stage pause/reactivation and failure metadata updates
 
 ## 2) Async Reliability: Why It Is Critical
@@ -106,8 +106,8 @@ This analysis follows the required state-machine methodology:
 | PENDING | WorkerClaimedItem | RUNNING | Mark run as running and start command process |
 | RUNNING | CommandSucceeded | SUCCEEDED | Persist success result and clear failure metadata |
 | RUNNING | CommandFailed | FAILED | Persist failure output and enter failure branch |
-| FAILED | IssueCreateSucceeded | ISSUE_OPEN / INACTIVE | Link issue and pause stage |
-| FAILED | IssueCreateFailed | INACTIVE | Pause stage without issue linkage |
+| FAILED | LocalIssueCreateOrReuseSucceeded | ISSUE_OPEN / INACTIVE | Link local issue and pause stage |
+| FAILED | LocalIssueCreateFailed | INACTIVE | Pause stage without issue linkage |
 | ISSUE_OPEN | IssueSyncClosedDetected | RESUMED -> READY | Reactivate stage and clear failure state |
 
 ## Cadence Inputs
@@ -125,9 +125,6 @@ This analysis follows the required state-machine methodology:
 
 - Queue worker annotation: `cron = {"time" = 60}`
 - Per-item test command timeout: 1800 seconds
-- GitHub API timeout: 10 seconds per call
-- Issue sync fetch timeout: 8 seconds per issue call
-- Copilot CLI fallback timeout: 20 seconds
 
 ## Timeline View
 
@@ -143,8 +140,7 @@ T+0: cron tick enters `dungeoncrawler_tester_cron()`
 T+Δ: cron exits
 
 Blocking notes:
-- No long-running stage commands here, but GitHub issue sync calls can add latency per linked issue.
-- If token missing, sync is skipped (non-fatal) and logged.
+- No long-running stage commands here, but linked local row lookups can add latency for heavily-linked stages.
 
 ### Lane B: Queue execution lane (asynchronous worker with synchronous internals)
 
@@ -154,7 +150,7 @@ T+Q0: queue item claimed
 2. Mark run `running`
 3. Execute command (`Process::run()`) with 1800s timeout
 4. Persist run outcome (`succeeded` / `failed`, output excerpt, duration)
-5. On failure, attempt issue creation and assignment
+5. On failure, attempt local issue row create/reuse in `Issues.md`
 6. Update stage state
    - Failure path: `active=FALSE`, failure reason/excerpt, optional issue linkage
    - Success path: clear failure metadata
@@ -163,7 +159,7 @@ T+Q1: item deleted or released depending on result
 
 Blocking notes:
 - Worker is blocked for full command runtime.
-- GitHub network calls add synchronous tail latency on failure path.
+- Local tracker file writes add synchronous tail latency on failure path.
 
 ### Lane C: Operator/manual lane (synchronous entry points)
 
@@ -224,9 +220,7 @@ Effect:
 | Cron auto-enqueue | Scheduler | Async trigger, sync internals | cron tick | usually sub-second to seconds | cron execution thread |
 | Stage cooldown check | Scheduler | Sync check | per stage | 3600s eligibility window | stage remains queued/skipped |
 | Queue claim + execute | Queue | Async worker, sync command | queue item available | up to 1800s per item | worker slot/thread |
-| Failure GitHub create | Queue | Sync network call | failed item | up to 10s | worker slot/thread |
-| Copilot assign REST | Queue | Sync network call | issue created | up to 10s per attempt | worker slot/thread |
-| Copilot assign CLI fallback | Queue | Local subprocess | REST not attached | up to 20s | worker slot/thread |
+| Failure local issue write | Queue | Sync file operation | failed item | usually sub-second | worker slot/thread |
 | Dashboard manual run loop | Operator | Sync request | user action | up to 60s processing loop | HTTP request thread |
 
 ## Worst-Case Latency Windows
@@ -244,7 +238,7 @@ Practical upper window (coarse):
 
 - Queue wait time (depends on backlog)
 - plus up to 1800s command runtime
-- plus failure-path issue/assignment tail (network + CLI fallback)
+- plus failure-path local tracker write tail
 
 ## Observability Points
 
@@ -260,7 +254,7 @@ Update this file whenever any of the following changes:
 - Enqueue cadence (`enqueueDueStages` interval)
 - Queue timeouts, lock behavior, processing limits
 - Failure/issue sync logic and stage gating rules
-- GitHub issue automation timeouts or assignment fallback behavior
+- Local issue automation behavior and import handoff assumptions
 
 ## 4) How Analysis Was Conducted
 
@@ -287,8 +281,8 @@ Update this file whenever any of the following changes:
 ### Non-deterministic
 
 - External cron invocation timing.
-- GitHub API/assignment response behavior.
-- Network latency and timeout branches.
+- Filesystem write/read behavior for local tracker updates.
+- Runtime latency and timeout branches.
 
 Testing implication:
 - Deterministic paths are good candidates for strict transition tests.

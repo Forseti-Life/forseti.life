@@ -55,6 +55,26 @@ class CampaignControllerTest extends BrowserTestBase {
   }
 
   /**
+   * Tests campaign creation form submit succeeds.
+   */
+  public function testCampaignCreationSubmitPositive(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $this->drupalGet('/campaigns/create');
+    $this->assertSession()->statusCodeEquals(200);
+
+    $this->submitForm([
+      'name' => 'Post Route Campaign',
+      'theme' => 'classic_dungeon',
+      'difficulty' => 'normal',
+    ], 'Create Campaign');
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Tavern Entrance');
+  }
+
+  /**
    * Tests campaign creation access - negative case (anonymous user).
    */
   public function testCampaignCreationAccessNegative(): void {
@@ -190,6 +210,175 @@ class CampaignControllerTest extends BrowserTestBase {
 
     $this->drupalGet('/campaigns/99999/select-character/1');
     $this->assertSession()->statusCodeEquals(404);
+  }
+
+  /**
+   * Tests campaign archive requires checkbox confirmation.
+   */
+  public function testCampaignArchiveCheckboxConfirmation(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Archive Me',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('I confirm I want to archive this campaign.');
+
+    $this->submitForm([
+      'archive_confirm' => 0,
+    ], 'Archive Campaign');
+    $this->assertSession()->pageTextContains('Please confirm the archive action by checking the box.');
+
+    $status_after_failed_attempt = $database->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('draft', $status_after_failed_attempt);
+
+    $this->submitForm([
+      'archive_confirm' => 1,
+    ], 'Archive Campaign');
+
+    $status_after_success = $database->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('archived', $status_after_success);
+  }
+
+  /**
+   * Tests archived campaigns appear in a dedicated archived section.
+   */
+  public function testArchivedCampaignSectionOnCampaignList(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $archived_campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Visible Campaign',
+        'status' => 'draft',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $archived_campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Hidden Campaign',
+        'status' => 'archived',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet('/campaigns');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('Visible Campaign');
+    $this->assertSession()->pageTextContains('Archived Campaigns');
+    $this->assertSession()->pageTextContains('Hidden Campaign');
+    $this->assertSession()->linkByHrefExists("/campaigns/{$archived_campaign_id}/unarchive");
+  }
+
+  /**
+   * Tests archived campaigns can be unarchived via the unarchive path.
+   */
+  public function testCampaignUnarchivePath(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Unarchive Me',
+        'status' => 'archived',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet('/campaigns');
+    $this->assertSession()->pageTextContains('Unarchive Me');
+
+    $this->drupalGet("/campaigns/{$campaign_id}/unarchive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->submitForm([], 'Unarchive Campaign');
+
+    $status_after_unarchive = $database->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('draft', $status_after_unarchive);
+
+    $this->drupalGet('/campaigns');
+    $this->assertSession()->pageTextContains('Unarchive Me');
+  }
+
+  /**
+   * Tests unarchive restores the campaign's previous status.
+   */
+  public function testCampaignUnarchiveRestoresPreviousStatus(): void {
+    $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $database = \Drupal::database();
+    $campaign_id = $database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => \Drupal::service('uuid')->generate(),
+        'uid' => $user->id(),
+        'name' => 'Restore Status Campaign',
+        'status' => 'ready',
+        'campaign_data' => json_encode([]),
+        'created' => time(),
+        'changed' => time(),
+      ])
+      ->execute();
+
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->submitForm([
+      'archive_confirm' => 1,
+    ], 'Archive Campaign');
+
+    $status_after_archive = $database->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('archived', $status_after_archive);
+
+    $this->drupalGet("/campaigns/{$campaign_id}/unarchive");
+    $this->submitForm([], 'Unarchive Campaign');
+
+    $status_after_unarchive = $database->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('ready', $status_after_unarchive);
   }
 
 }

@@ -5,6 +5,12 @@
 **Priority**: High  
 **Created**: 2026-02-12
 
+## Verification Notes (2026-02-18)
+
+- This remains a target-state design document.
+- Current module runtime includes a lightweight implemented combat API surface via `CombatEncounterApiController` routes (`/api/combat/start`, `/api/combat/end-turn`, `/api/combat/attack`, `/api/combat/get`, `/api/combat/set`, `/api/combat/end`).
+- Full service/controller/UI behavior described below is only partially implemented and should be treated as planned where code does not yet exist.
+
 ## Overview
 
 Design a comprehensive PF2e-compliant combat and encounter system that manages initiative, turn-based actions, conditions, damage calculations, and the full combat lifecycle. This document outlines the complete design including state machines, database schemas, service architecture, validation rules, API endpoints, and UI specifications.

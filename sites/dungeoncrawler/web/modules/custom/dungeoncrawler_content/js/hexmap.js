@@ -53,8 +53,6 @@ import combatApi from './hexmap-api.js';
         </div>`;
 
       host.appendChild(footer);
-
-      const toggle = footer.querySelector('#action-footer-toggle');
     }
 
     setupActionFooterToggle() {
@@ -119,13 +117,10 @@ import combatApi from './hexmap-api.js';
         hoveredHex: document.getElementById('hovered-hex'),
         hoveredObject: document.getElementById('hovered-object'),
         selectedHex: document.getElementById('selected-hex'),
-      actionInstruction: document.getElementById('action-instruction'),
-      actionMenu: document.getElementById('action-menu'),
         currentRound: document.getElementById('current-round'),
         initiativeList: document.getElementById('initiative-list'),
         combatControls: document.getElementById('combat-controls'),
         startCombatBtn: document.getElementById('start-combat'),
-        endTurnBtn: document.getElementById('end-turn'),
         endCombatBtn: document.getElementById('end-combat'),
         initiativeTracker: document.getElementById('initiative-tracker'),
         entityInfoPanel: document.getElementById('entity-info-panel'),
@@ -1661,12 +1656,41 @@ import combatApi from './hexmap-api.js';
       });
     },
 
+    /**
+     * Resolve campaign id from launch context.
+     * @returns {number|null}
+     */
+    resolveCampaignId: function () {
+      const launchCampaignId = Number(this.launchContext?.campaign_id || 0);
+      return Number.isFinite(launchCampaignId) && launchCampaignId > 0 ? launchCampaignId : null;
+    },
+
+    /**
+     * Resolve active room id for combat API payloads.
+     * @returns {string|null}
+     */
+    resolveActiveRoomId: function () {
+      return this.activeRoomId || this.stateManager.get('activeRoomId') || this.launchContext?.room_id || null;
+    },
+
     startCombat: async function (options = {}) {
       console.log('Starting combat (server authoritative)...');
 
+      const encounterId = this.stateManager.get('encounterId');
+      if (encounterId) {
+        console.info('Combat start skipped; encounter already active.', { encounterId });
+        return;
+      }
+
+      const campaignId = this.resolveCampaignId();
+      if (!campaignId) {
+        console.info('Combat start skipped; campaign context is required for server combat APIs.');
+        return;
+      }
+
       const payload = {
-        campaignId: this.config?.campaignId,
-        roomId: this.stateManager.get('activeRoomId'),
+        campaignId,
+        roomId: this.resolveActiveRoomId(),
         entities: this.serializeCombatantsForApi(),
         ...options
       };
@@ -1698,9 +1722,15 @@ import combatApi from './hexmap-api.js';
     endTurn: async function () {
       console.log('Ending turn (server authoritative)...');
 
+      const encounterId = this.stateManager.get('encounterId');
+      if (!encounterId) {
+        console.info('End turn skipped; no active encounter id.');
+        return;
+      }
+
       const currentTurn = this.turnManagementSystem?.getCurrentTurn?.();
       const payload = {
-        encounterId: this.stateManager.get('encounterId'),
+        encounterId,
         participantId: currentTurn?.entityId
       };
 
@@ -1731,8 +1761,14 @@ import combatApi from './hexmap-api.js';
     endCombat: async function () {
       console.log('Ending combat (server authoritative)...');
 
+      const encounterId = this.stateManager.get('encounterId');
+      if (!encounterId) {
+        console.info('End combat skipped; no active encounter id.');
+        return;
+      }
+
       const payload = {
-        encounterId: this.stateManager.get('encounterId')
+        encounterId
       };
 
       try {
@@ -1791,8 +1827,14 @@ import combatApi from './hexmap-api.js';
         }
       }
 
+      const encounterId = this.stateManager.get('encounterId');
+      if (!encounterId) {
+        console.info('Attack skipped; no active encounter id.');
+        return;
+      }
+
       const payload = {
-        encounterId: this.stateManager.get('encounterId'),
+        encounterId,
         attackerId: attacker?.id,
         targetId: target?.id,
         action: 'attack'
@@ -2378,8 +2420,13 @@ import combatApi from './hexmap-api.js';
         this.createEntityObject(q, r, entityType, entityName, null, options);
       });
 
-      // Automatically enter initiative for the active room so every area is treated as a live encounter.
-      if (this.turnManagementSystem) {
+      // Auto-enter initiative only once per campaign-backed encounter context.
+      const shouldAutoStart = this.turnManagementSystem &&
+        this.resolveCampaignId() &&
+        !this.stateManager.get('encounterId') &&
+        !this.stateManager.get('combatActive');
+
+      if (shouldAutoStart) {
         this.startCombat({ force: true });
       }
     },
@@ -2656,6 +2703,7 @@ import combatApi from './hexmap-api.js';
       }
 
       this.activeRoomId = roomId;
+      this.stateManager.set('activeRoomId', roomId);
       this.paintActiveRoom();
       this.renderActiveRoomEntities();
       console.log('Active room set:', roomId);

@@ -1,5 +1,11 @@
 # PR-01: Character Creation System Implementation
 
+## Verification Notes (2026-02-18)
+
+- This is an implementation design spec, not a guarantee that every endpoint/class below currently exists as described.
+- Current runtime character creation flow is primarily implemented through `CharacterCreationStepController` routes in `dungeoncrawler_content.routing.yml`.
+- Treat this document as target-state guidance; verify active behavior against module routes/controllers before using as operational reference.
+
 ## Overview
 Implement a multi-step character creation wizard that guides players through the Pathfinder 2E character creation process (10 steps). The system must enforce game rules, calculate derived statistics, and persist character data.
 

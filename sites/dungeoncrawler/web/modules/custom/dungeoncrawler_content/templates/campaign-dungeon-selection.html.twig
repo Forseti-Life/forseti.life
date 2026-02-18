@@ -1,0 +1,79 @@
+{#
+ # Campaign Dungeon Selection — list available dungeons for a campaign.
+ #}
+<div class="dc-character-list">
+  <div class="dc-character-list__header">
+    <h1 class="dc-character-list__title">🗺️ Dungeon Selection</h1>
+    <div class="dc-sheet__nav-actions">
+      <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Campaigns</a>
+      <a href="{{ tavern_url }}" class="dc-btn dc-btn-secondary">🍻 Tavern Entrance</a>
+    </div>
+  </div>
+
+  <div class="dc-sheet__section dc-character-list__campaign-setup">
+    <h2 class="dc-sheet__section-title">{{ campaign.name }}</h2>
+    <p>
+      Theme: <strong>{{ campaign.theme }}</strong> · Difficulty: <strong>{{ campaign.difficulty }}</strong> · Status: <strong>{{ campaign.status }}</strong>
+    </p>
+    {% if campaign.active_character_id > 0 %}
+      <p>Active character selected. Choose any available dungeon to enter.</p>
+    {% else %}
+      <p>No active character selected yet. You can still preview and open available dungeons.</p>
+    {% endif %}
+  </div>
+
+  {% if dungeons|length > 0 %}
+    <div class="dc-character-grid">
+      {% for dungeon in dungeons %}
+        <a href="{{ dungeon.enter_url }}" class="dc-character-card dc-character-card--active">
+          <div class="dc-character-card__portrait">
+            <div class="dc-character-card__portrait-placeholder">
+              <span class="dc-character-card__initial">{{ dungeon.name|first|upper }}</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__info">
+            <h3 class="dc-character-card__name">{{ dungeon.name }}</h3>
+            <div class="dc-character-card__subtitle">
+              {{ dungeon.theme ? dungeon.theme|replace({'_': ' '})|title : 'Dungeon' }}
+            </div>
+
+            <div class="dc-character-card__stats">
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">Rooms</span>
+                <span class="dc-character-card__stat-value">{{ dungeon.room_count }}</span>
+              </div>
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">ID</span>
+                <span class="dc-character-card__stat-value">{{ dungeon.dungeon_id }}</span>
+              </div>
+            </div>
+
+            {% if dungeon.description %}
+              <div class="dc-character-card__meta">
+                <span>{{ dungeon.description|length > 120 ? dungeon.description|slice(0, 120) ~ '…' : dungeon.description }}</span>
+              </div>
+            {% endif %}
+
+            <div class="dc-character-card__meta">
+              <span>Updated {{ dungeon.updated }}</span>
+              <span>Created {{ dungeon.created }}</span>
+            </div>
+
+            <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
+              <span class="dc-btn dc-btn-success">▶️ Enter Dungeon</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__arrow">›</div>
+        </a>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="dc-character-list__empty">
+      <div class="dc-character-list__empty-icon">🧱</div>
+      <h2>No Dungeons Available</h2>
+      <p>This campaign does not have any dungeon records in the database yet.</p>
+    </div>
+  {% endif %}
+</div>
