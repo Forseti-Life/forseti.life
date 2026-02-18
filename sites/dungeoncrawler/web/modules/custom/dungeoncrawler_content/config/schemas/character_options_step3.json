@@ -433,6 +433,7 @@
     "examples": {
       "type": "array",
       "description": "Example background selections for common character archetypes",
+      "minItems": 1,
       "items": {
         "type": "object",
         "additionalProperties": false,
@@ -498,6 +499,24 @@
           "background": "Merchant",
           "ability_boosts": ["Charisma", "Intelligence"],
           "rationale": "Merchant grants Diplomacy and trade knowledge. Perfect for social characters. Boost Charisma for persuasion, Intelligence for business acumen."
+        },
+        {
+          "archetype": "Privileged Socialite",
+          "background": "Noble",
+          "ability_boosts": ["Charisma", "Intelligence"],
+          "rationale": "Noble background provides Society skill and high-class connections. Perfect for characters from aristocratic families. Boost Charisma for social influence, Intelligence for courtly intrigue."
+        },
+        {
+          "archetype": "Arcane Researcher",
+          "background": "Scholar",
+          "ability_boosts": ["Intelligence", "Wisdom"],
+          "rationale": "Scholar grants Arcana training and academic expertise. Ideal for Wizards and knowledge-focused characters. Boost Intelligence for arcane magic and research, Wisdom for perception and insight."
+        },
+        {
+          "archetype": "Battle-Hardened Veteran",
+          "background": "Warrior",
+          "ability_boosts": ["Strength", "Constitution"],
+          "rationale": "Warrior background provides Intimidation and warfare experience. Excellent for martial classes with combat history. Boost Strength for attacks, Constitution for survivability in prolonged battles."
         }
       ]
     }
