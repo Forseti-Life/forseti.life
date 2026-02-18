@@ -452,11 +452,11 @@ Place in `templates/` directory following Drupal naming conventions.
 
 ### Character Database Issues
 ```bash
-# Check if character table exists
-./vendor/bin/drush sqlq "SHOW TABLES LIKE 'dungeoncrawler_characters';"
+# Check if character table exists (unified table for library and campaign characters)
+./vendor/bin/drush sqlq "SHOW TABLES LIKE 'dc_campaign_characters';"
 
-# Reinstall module schema
-./vendor/bin/drush sql:query "DROP TABLE IF EXISTS dungeoncrawler_characters;"
+# Reinstall module schema (WARNING: This will delete all character data)
+./vendor/bin/drush sql:query "DROP TABLE IF EXISTS dc_campaign_characters;"
 ./vendor/bin/drush en dungeoncrawler_content -y
 ```
 
