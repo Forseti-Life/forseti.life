@@ -1,12 +1,28 @@
 /**
  * @file
  * Character Creation Step 1 - Name & Concept
+ *
+ * Schema Conformance:
+ * This behavior validates and submits character data conforming to
+ * character.schema.json. The name field validation (minLength: 2) matches
+ * the schema requirement (line 24: "minLength": 2, "maxLength": 100).
+ * The concept field is optional in both the schema (line 28) and this form.
+ *
+ * Data Storage:
+ * Form data is saved to the dc_characters table via AJAX POST to
+ * CharacterCreationStepController::saveStep(). Data is stored in the
+ * character_data JSON column, with select fields also duplicated to
+ * direct table columns (name, level, ancestry, class) for query optimization.
+ *
+ * @see /config/schemas/character.schema.json
+ * @see /src/Controller/CharacterCreationStepController.php
  */
 
 (function ($, Drupal, once) {
   'use strict';
 
   // Configuration constants
+  // Note: minNameLength matches character.schema.json requirement
   const CONFIG = {
     minNameLength: 2,
     errorClass: 'error',
@@ -23,6 +39,10 @@
 
   /**
    * Validates character name length.
+   *
+   * Validates against character.schema.json requirements:
+   * - minLength: 2 characters (after trimming whitespace)
+   * - maxLength: 100 characters (enforced by backend)
    * 
    * @param {string} name - The character name to validate.
    * @return {boolean} True if name meets minimum length requirement.
