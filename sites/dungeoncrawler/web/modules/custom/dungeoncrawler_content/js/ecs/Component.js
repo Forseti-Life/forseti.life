@@ -5,6 +5,27 @@
  * This implements the Component pattern from Entity-Component-System (ECS) architecture.
  * Components are pure data containers with no game logic - logic belongs in Systems.
  * 
+ * ## Database Schema Alignment
+ * 
+ * Components serialize to JSON for storage in `character_data` column (dc_campaign_characters table).
+ * Frequently-accessed properties are also extracted to "hot columns" for efficient queries:
+ * 
+ * - **Hot Columns** (indexed, searchable):
+ *   - hp_current, hp_max (from StatsComponent)
+ *   - armor_class (from StatsComponent)
+ *   - position_q, position_r (from PositionComponent)
+ *   - experience_points (from character state)
+ *   - last_room_id (from location tracking)
+ * 
+ * - **JSON Blob** (complete state):
+ *   - All component data serialized via toJSON()
+ *   - Stored in `character_data` column for full reconstruction
+ * 
+ * Hot columns are synchronized by PHP CharacterStateService when state is saved.
+ * 
+ * @see /src/Service/CharacterStateService.php - Hot column extraction (lines 742-856)
+ * @see dungeoncrawler_content.install - Schema definitions (lines 1282-1324)
+ * 
  * @example
  * // Extend Component for custom components
  * class HealthComponent extends Component {
@@ -41,14 +62,23 @@ export class Component {
    * Serialize component to JSON.
    * Override in subclasses if you need custom serialization logic.
    * 
-   * Default implementation serializes all own properties except 'type' and functions.
+   * Default implementation serializes all own properties except functions.
    * Automatically handles nested objects and arrays. Circular references are detected
    * and excluded from the output with a console warning.
    * 
-   * @returns {Object} Serialized component data (plain object)
+   * **Important**: The `type` field is always included in serialization output to enable
+   * proper component reconstruction from stored data. The `type` field corresponds to
+   * the component class name and is essential for polymorphic deserialization.
+   * 
+   * **Database Mapping**: Serialized output is stored in `character_data` JSON column.
+   * Some properties may also be extracted to hot columns for efficient querying.
+   * 
+   * @returns {Object} Serialized component data (plain object with type field)
    */
   toJSON() {
-    const data = {};
+    const data = {
+      type: this.type  // Always include type field for proper deserialization
+    };
     const seen = new WeakSet();
     // Add this component to seen set immediately to detect self-references
     seen.add(this);
@@ -59,7 +89,8 @@ export class Component {
         return obj;
       }
       
-      // Detect circular references
+      // Detect circular references - prevents infinite loops during serialization
+      // Circular refs are replaced with a sentinel value and logged as warnings
       if (seen.has(obj)) {
         console.warn('Circular reference detected in component serialization');
         return CIRCULAR_REF;
@@ -85,7 +116,7 @@ export class Component {
       return result;
     };
     
-    // Serialize all component properties
+    // Serialize all component properties (including type already added above)
     for (const [key, value] of Object.entries(this)) {
       if (key !== 'type' && typeof value !== 'function') {
         const serialized = serialize(value);
@@ -139,6 +170,15 @@ export class Component {
   /**
    * Validate component data.
    * Override in subclasses to implement validation logic.
+   * 
+   * Validation should check:
+   * - Required properties are present
+   * - Property values are within valid ranges
+   * - Data types are correct
+   * - Relationships between properties are consistent
+   * 
+   * **Schema Conformance**: If this component maps to database hot columns,
+   * validation should ensure data can be safely extracted for those columns.
    * 
    * @returns {boolean} True if component data is valid
    * @example
