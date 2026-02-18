@@ -15,6 +15,7 @@
     "entity_instance_id": {
       "type": "string",
       "format": "uuid",
+      "maxLength": 36,
       "description": "Unique identifier for this placed instance."
     },
     "entity_type": {
@@ -36,11 +37,13 @@
         "content_id": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 100,
           "description": "Registry content_id for base definition."
         },
         "version": {
           "type": ["string", "null"],
           "pattern": "^(\\d+\\.\\d+\\.\\d+)?$",
+          "maxLength": 20,
           "description": "Optional version pin for deterministic replay. Must follow semantic versioning (e.g., '1.0.0') if specified."
         }
       }
@@ -54,6 +57,7 @@
         "room_id": {
           "type": "string",
           "format": "uuid",
+          "maxLength": 36,
           "description": "Owning room for placement scope."
         },
         "hex": {
@@ -64,18 +68,22 @@
           "properties": {
             "q": { 
               "type": "integer",
+              "minimum": -999,
+              "maximum": 999,
               "description": "Column coordinate in axial hex system (q-axis)."
             },
             "r": { 
               "type": "integer",
+              "minimum": -999,
+              "maximum": 999,
               "description": "Row coordinate in axial hex system (r-axis)."
             }
           }
         },
         "spawn_type": {
           "type": ["string", "null"],
-          "enum": ["permanent", "respawning", "wandering", "summoned", "quest"],
-          "description": "Spawn behavior metadata, primarily for creatures."
+          "enum": ["permanent", "respawning", "wandering", "summoned", "quest", null],
+          "description": "Spawn behavior metadata. For creatures: respawn mechanics. For items: collection behavior. For obstacles: trigger behavior. Null for default behavior."
         }
       }
     },
@@ -131,6 +139,7 @@
           "type": "array",
           "description": "Inventory item refs carried by this instance (typically creatures). Each item references content from the item registry.",
           "default": [],
+          "maxItems": 100,
           "uniqueItems": false,
           "items": {
             "$ref": "#/$defs/inventory_item"
@@ -138,8 +147,9 @@
         },
         "metadata": {
           "type": "object",
-          "description": "Extensible metadata storage for entity-specific runtime data. Can store any additional properties not covered by the standard schema.",
+          "description": "Extensible metadata storage for entity-specific runtime data. Can store any additional properties not covered by the standard schema. Common keys: patrol_pattern, aggression_level, detected, triggered_count, perception_dc, loot_quality, discovered_by.",
           "default": {},
+          "maxProperties": 50,
           "additionalProperties": {
             "type": ["string", "number", "boolean", "object", "array", "null"]
           }
@@ -168,6 +178,7 @@
         "content_id": { 
           "type": "string",
           "minLength": 1,
+          "maxLength": 100,
           "description": "Registry content_id for the carried item."
         },
         "quantity": { 
@@ -178,7 +189,8 @@
         },
         "version": {
           "type": ["string", "null"],
-          "description": "Optional version pin for deterministic replay, similar to entity_ref.version."
+          "maxLength": 20,
+          "description": "Optional version pin for deterministic replay, similar to entity_ref.version. If present, overrides entity_ref.version for this inventory item in replay scenarios."
         }
       }
     }
