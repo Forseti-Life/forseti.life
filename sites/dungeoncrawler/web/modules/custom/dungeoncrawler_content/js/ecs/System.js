@@ -17,6 +17,27 @@
  * - 50-80: World systems (movement, physics, collision)
  * - 90-100: Presentation systems (animation, rendering, audio)
  * 
+ * Database Schema Conformance:
+ * This ECS architecture operates on runtime entities that correspond to database
+ * records in the dc_campaign_characters table. The system follows a hybrid 
+ * columnar storage model:
+ * 
+ * - Hot Columns (dc_campaign_characters): High-frequency gameplay data accessed
+ *   via relational columns for performance (hp_current, hp_max, armor_class,
+ *   experience_points, position_q, position_r, last_room_id)
+ * 
+ * - JSON Payloads (character_data, state_data): Flexible/lower-frequency data
+ *   stored as JSON for nested structures (inventory, appearance, buffs, etc.)
+ * 
+ * Components mirror hot-column structure but don't map 1:1 to database schema.
+ * Systems read/write component state; persistence layer handles synchronization
+ * to database tables via toJSON()/fromJSON() serialization.
+ * 
+ * Entity Type Mapping (IdentityComponent ↔ dc_campaign_characters.type):
+ * - JavaScript: player_character, npc, creature, item, obstacle, trap, treasure, hazard
+ * - Database: pc, npc, obstacle, trap, hazard
+ * - Note: Persistence layer should map 'player_character' → 'pc' when saving
+ * 
  * @example
  * class MySystem extends System {
  *   constructor(entityManager) {
