@@ -21,6 +21,7 @@
     "name": { 
       "type": "string",
       "minLength": 1,
+      "maxLength": 200,
       "description": "Display name of the item."
     },
     "item_type": {
@@ -44,10 +45,12 @@
         "minLength": 1
       },
       "description": "PF2e item traits: magical, invested, two-hand, etc.",
-      "uniqueItems": true
+      "uniqueItems": true,
+      "maxItems": 20
     },
     "description": { 
       "type": "string",
+      "maxLength": 2000,
       "description": "Full text description of the item's appearance, history, and properties."
     },
     "price": {
@@ -85,6 +88,7 @@
         "group": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 50,
           "description": "Weapon group: sword, axe, bow, etc.",
           "examples": ["sword", "axe", "bow", "club", "knife", "pick", "hammer", "polearm", "shield", "sling", "dart", "flail"]
         },
@@ -125,6 +129,7 @@
                   "damage_type": { 
                     "type": "string",
                     "minLength": 1,
+                    "maxLength": 50,
                     "description": "Type of bonus damage (e.g., 'fire', 'cold', 'electricity').",
                     "examples": ["fire", "cold", "electricity", "acid", "sonic", "positive", "negative", "force"]
                   }
@@ -152,6 +157,7 @@
             "minLength": 1
           },
           "uniqueItems": true,
+          "maxItems": 15,
           "description": "Weapon traits: agile, backstabber, deadly d8, finesse, etc.",
           "examples": [["agile", "finesse"], ["deadly-d10", "versatile P"]]
         }
@@ -202,6 +208,7 @@
         "armor_group": { 
           "type": "string",
           "minLength": 1,
+          "maxLength": 50,
           "description": "Armor group (e.g., 'chain', 'plate', 'leather', 'composite').",
           "examples": ["chain", "plate", "leather", "composite", "skeletal"]
         }
@@ -273,6 +280,7 @@
                 "enum": ["command", "envision", "interact", "cast_a_spell"]
               },
               "uniqueItems": true,
+              "maxItems": 5,
               "description": "Activation components required."
             }
           },
@@ -281,10 +289,12 @@
         "effect": { 
           "type": "string",
           "minLength": 1,
+          "maxLength": 2000,
           "description": "Description of the consumable's effect when activated."
         },
         "duration": { 
           "type": "string",
+          "maxLength": 200,
           "description": "How long the effect lasts (e.g., '1 minute', '1 hour', 'instantaneous').",
           "examples": ["1 minute", "10 minutes", "1 hour", "instantaneous", "until next daily preparations"]
         },
@@ -335,19 +345,23 @@
                 "minLength": 1
               },
               "uniqueItems": true,
+              "maxItems": 5,
               "description": "Activation components (e.g., 'command', 'envision', 'interact')."
             },
             "frequency": { 
               "type": "string",
+              "maxLength": 200,
               "description": "How often the item can be activated (e.g., 'once per day', 'three times per day').",
               "examples": ["once per day", "three times per day", "once per hour"]
             },
             "trigger": { 
               "type": "string",
+              "maxLength": 500,
               "description": "Trigger condition for reaction-based activations."
             },
             "requirements": { 
               "type": "string",
+              "maxLength": 500,
               "description": "Prerequisites for activation (e.g., 'you must be wielding the item')."
             }
           },
@@ -355,6 +369,7 @@
         },
         "effect": { 
           "type": "string",
+          "maxLength": 2000,
           "description": "Description of the magic item's effect when activated."
         },
         "runes": {
@@ -367,6 +382,7 @@
               "name": { 
                 "type": "string",
                 "minLength": 1,
+                "maxLength": 100,
                 "description": "Name of the rune.",
                 "examples": ["striking", "flaming", "resilient", "greater striking"]
               },
@@ -377,11 +393,13 @@
               },
               "effect": { 
                 "type": "string",
+                "maxLength": 500,
                 "description": "Description of the rune's effect."
               }
             }
           },
           "uniqueItems": true,
+          "maxItems": 10,
           "description": "Weapon or armor runes etched onto the item."
         }
       }
@@ -393,19 +411,23 @@
       "properties": {
         "generated_by": { 
           "type": "string",
+          "maxLength": 100,
           "description": "AI model or system that generated this item.",
           "examples": ["gpt-4", "claude-3", "manual"]
         },
         "generation_prompt": { 
           "type": "string",
+          "maxLength": 2000,
           "description": "The prompt used to generate this item."
         },
         "lore_hook": { 
-          "type": "string", 
+          "type": "string",
+          "maxLength": 1000,
           "description": "Why this item exists in the dungeon and its backstory."
         },
         "previous_owner": { 
           "type": "string",
+          "maxLength": 500,
           "description": "Name or description of the item's previous owner, if known."
         },
         "condition": {
