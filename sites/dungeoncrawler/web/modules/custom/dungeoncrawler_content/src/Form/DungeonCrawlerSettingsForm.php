@@ -77,6 +77,20 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       '#description' => $this->t('When enabled, mortal monsters that are slain stay dead permanently. Respawning creatures are unaffected.'),
     ];
 
+    $form['ai_settings']['encounter_ai_npc_autoplay_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable AI-driven NPC auto-play in encounters'),
+      '#default_value' => $config->get('encounter_ai_npc_autoplay_enabled') ?? FALSE,
+      '#description' => $this->t('When enabled, non-player turns can use validated AI recommendations and deterministic fallback behavior. Disabled by default.'),
+    ];
+
+    $form['ai_settings']['encounter_ai_narration_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Persist AI narration events in encounter timeline'),
+      '#default_value' => $config->get('encounter_ai_narration_enabled') ?? FALSE,
+      '#description' => $this->t('When enabled, AI narration snippets are logged as encounter timeline events (`ai_narration`) during NPC auto-play.'),
+    ];
+
     $form['ai_settings']['gemini_image_enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable Gemini image generation live mode'),
@@ -225,6 +239,8 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       ->set('rarity_tiers', $form_state->getValue('rarity_tiers'))
       ->set('room_persistence', $form_state->getValue('room_persistence'))
       ->set('monster_permadeath', $form_state->getValue('monster_permadeath'))
+      ->set('encounter_ai_npc_autoplay_enabled', $form_state->getValue('encounter_ai_npc_autoplay_enabled'))
+      ->set('encounter_ai_narration_enabled', $form_state->getValue('encounter_ai_narration_enabled'))
       ->set('generated_image_provider', (string) $form_state->getValue('generated_image_provider'))
       ->set('gemini_image_enabled', $form_state->getValue('gemini_image_enabled'))
       ->set('gemini_image_model', trim((string) $form_state->getValue('gemini_image_model')))

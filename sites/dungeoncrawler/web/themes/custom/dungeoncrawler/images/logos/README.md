@@ -1,7 +1,7 @@
-# Forseti Logo Assets
+# Dungeon Crawler Logo Assets
 
 ## Overview
-This directory contains all logo and branding assets for the Forseti community safety platform.
+This directory contains all logo and branding assets for Dungeon Crawler Life.
 
 ## Original Files (1024×1024px)
 Located in `originals/` subdirectory:
@@ -32,7 +32,7 @@ Located in `favicons/` subdirectory:
 ## Integration
 
 ### Theme Configuration
-Logo reference added to `forseti.info.yml`:
+Logo reference added to `dungeoncrawler.info.yml`:
 ```yaml
 logo: images/logos/dungeoncrawler_navbar.png
 ```
@@ -47,7 +47,7 @@ Favicon links in `templates/system/html.html.twig`:
 
 ### PWA Manifest
 `manifest.json` in theme root:
-- App name: "Forseti - AI Community Safety"
+- App name: "Dungeon Crawler Life"
 - Theme color: #00d4ff (cyan)
 - Background: #1a1a2e (dark)
 - Icons: 192×192 and 512×512
@@ -65,7 +65,7 @@ Favicon links in `templates/system/html.html.twig`:
 - In-app icon: Generate from forseti_mobile.png at needed sizes
 
 ### Color Palette
-Logos designed to work with Forseti theme:
+Logos designed to work with the dungeoncrawler theme:
 - Primary: #00d4ff (cyan)
 - Dark BG: #1a1a2e
 - Alt BG: #16213e
@@ -111,4 +111,4 @@ convert favicon-16x16.png favicon-32x32.png ../favicon.ico
 
 ---
 *Last updated: December 10, 2025*
-*Forseti Community Safety Platform*
+*Dungeon Crawler Life*

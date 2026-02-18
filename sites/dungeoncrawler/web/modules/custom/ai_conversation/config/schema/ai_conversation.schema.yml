@@ -20,6 +20,18 @@ ai_conversation.settings:
     max_tokens:
       type: integer
       label: 'Maximum tokens per response'
+    max_tokens_resume_tailoring:
+      type: integer
+      label: 'Maximum tokens for resume tailoring operations'
+    max_tokens_resume_parsing:
+      type: integer
+      label: 'Maximum tokens for resume parsing operations'
+    max_tokens_cover_letter:
+      type: integer
+      label: 'Maximum tokens for cover letter generation'
+    max_tokens_job_parsing:
+      type: integer
+      label: 'Maximum tokens for job posting parsing'
     max_recent_messages:
       type: integer
       label: 'Maximum recent messages to keep'
@@ -32,9 +44,3 @@ ai_conversation.settings:
     debug_logging:
       type: boolean
       label: 'Enable debug logging'
-    copilot_token:
-      type: string
-      label: 'GitHub Copilot token'
-    copilot_default_repo:
-      type: string
-      label: 'Default GitHub repository for issue creation'

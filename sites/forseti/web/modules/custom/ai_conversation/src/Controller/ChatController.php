@@ -66,43 +66,12 @@ class ChatController extends ControllerBase {
     if ($node->bundle() !== 'ai_conversation') {
       return AccessResult::forbidden();
     }
-    
-    // In development environment, allow access for testing
-    if ($this->isDevelopmentEnvironment()) {
-      return AccessResult::allowed()->setCacheMaxAge(0); // Don't cache in dev
-    }
-    
+
     if ($node->getOwnerId() === $account->id() || $account->hasPermission('administer content')) {
       return AccessResult::allowed();
     }
     
     return AccessResult::forbidden();
-  }
-
-  /**
-   * Check if we're in a development environment.
-   */
-  private function isDevelopmentEnvironment() {
-    // Check for GitHub Codespace environment
-    if (getenv('CODESPACES') || getenv('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN')) {
-      return TRUE;
-    }
-    
-    // Check for common development indicators
-    if (getenv('ENVIRONMENT') === 'development' || getenv('APP_ENV') === 'dev') {
-      return TRUE;
-    }
-    
-    // Check if we're running on localhost or common dev domains
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    if (strpos($host, 'localhost') !== FALSE || 
-        strpos($host, '127.0.0.1') !== FALSE || 
-        strpos($host, '.github.dev') !== FALSE ||
-        strpos($host, '.gitpod.io') !== FALSE) {
-      return TRUE;
-    }
-    
-    return FALSE;
   }
 
   /**

@@ -3,7 +3,7 @@
 **Module**: dungeoncrawler_content  
 **Version**: 1.0.0  
 **Last Updated**: 2026-02-18  
-**Status**: Phase 0 documented, Phase 1 started
+**Status**: Phase 0/1 complete, ai_conversation backend provider wiring started, Phase 2/3 guarded implementation started, Phase 4 hardening started
 
 ## Overview
 
@@ -116,10 +116,24 @@ Validation rules:
 - Execute only validated recommendations through existing combat action pipeline.
 - Add failure fallback to deterministic rule-based action selection.
 
+Current implementation state:
+
+- `CombatEncounterApiController::autoPlayNonPlayerTurns()` now routes NPC turns through AI recommendation when `encounter_ai_npc_autoplay_enabled` is `true`.
+- Encounter recommendation generation is now wired to the `ai_conversation` integration layer, with deterministic fallback for invalid/unavailable model output.
+- Invalid/failed recommendation paths fall back to deterministic first-alive-player strike behavior.
+- Default behavior remains unchanged until the config flag is enabled.
+
 ### Phase 3 — Encounter narration integration
 
 - Add optional narration generation per round/turn.
 - Persist narration events into encounter timeline metadata.
+
+Current implementation state:
+
+- Narration persistence is config-gated via `encounter_ai_narration_enabled`.
+- Narration generation requests route through the `ai_conversation` integration layer, with deterministic fallback narration when response parsing fails.
+- NPC turn loop logs narration timeline entries into `combat_actions` with `action_type = ai_narration` and JSON payload/result.
+- Default behavior remains unchanged until narration toggle is enabled.
 
 ### Phase 4 — Hardening and observability
 
@@ -127,13 +141,21 @@ Validation rules:
 - Add provider timeout/retry policy and circuit-breaker behavior.
 - Add metrics dashboard panel (latency, rejection rate, fallback rate).
 
+Current implementation state:
+
+- DB-independent unit tests are in place for AI provider/integration behavior.
+- Remaining hardening coverage is functional/integration flow validation in Browser tests.
+
 ## Acceptance Checklist for DCC-0224
 
 - [x] Blueprint page exists in `dungeoncrawler_content` docs.
 - [x] Route-level visibility for integration architecture exists.
 - [x] Service interfaces and orchestration scaffold merged.
 - [x] Recommendation preview endpoint implemented.
-- [ ] Validation and fallback behavior covered by tests.
+- [x] Guarded NPC auto-play path integrated with deterministic fallback.
+- [x] Guarded narration persistence path integrated into encounter timeline events.
+- [x] Validation and fallback behavior covered by service-level unit tests.
+- [ ] Functional/integration coverage for runtime encounter flow.
 
 ## Related Files
 
@@ -141,5 +163,6 @@ Validation rules:
 - `src/Controller/CombatEncounterApiController.php`
 - `src/Controller/ControllerArchitectureController.php`
 - `src/Controller/EncounterAiPreviewController.php`
+- `src/Form/DungeonCrawlerSettingsForm.php`
 - `dungeoncrawler_content.services.yml`
 - `README.md`

@@ -121,10 +121,17 @@ services:
   dungeoncrawler_content.encounter_ai_provider.stub:
     class: Drupal\dungeoncrawler_content\Service\StubEncounterAiProvider
 
+  dungeoncrawler_content.encounter_ai_provider.ai_conversation:
+    class: Drupal\dungeoncrawler_content\Service\AiConversationEncounterAiProvider
+    arguments:
+      - '@ai_conversation.ai_api_service'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.encounter_ai_provider.stub'
+
   dungeoncrawler_content.encounter_ai_integration:
     class: Drupal\dungeoncrawler_content\Service\EncounterAiIntegrationService
     arguments:
-      - '@dungeoncrawler_content.encounter_ai_provider.stub'
+      - '@dungeoncrawler_content.encounter_ai_provider.ai_conversation'
       - '@datetime.time'
       - '@logger.factory'
 

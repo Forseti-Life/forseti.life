@@ -54,7 +54,7 @@ class ChatController extends ControllerBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('current_user'),
-      $container->get('ai_conversation.api_service')
+      $container->get('ai_conversation.ai_api_service')
     );
   }
 
@@ -66,43 +66,12 @@ class ChatController extends ControllerBase {
     if ($node->bundle() !== 'ai_conversation') {
       return AccessResult::forbidden();
     }
-    
-    // In development environment, allow access for testing
-    if ($this->isDevelopmentEnvironment()) {
-      return AccessResult::allowed()->setCacheMaxAge(0); // Don't cache in dev
-    }
-    
+
     if ($node->getOwnerId() === $account->id() || $account->hasPermission('administer content')) {
       return AccessResult::allowed();
     }
     
     return AccessResult::forbidden();
-  }
-
-  /**
-   * Check if we're in a development environment.
-   */
-  private function isDevelopmentEnvironment() {
-    // Check for GitHub Codespace environment
-    if (getenv('CODESPACES') || getenv('GITHUB_CODESPACES_PORT_FORWARDING_DOMAIN')) {
-      return TRUE;
-    }
-    
-    // Check for common development indicators
-    if (getenv('ENVIRONMENT') === 'development' || getenv('APP_ENV') === 'dev') {
-      return TRUE;
-    }
-    
-    // Check if we're running on localhost or common dev domains
-    $host = $_SERVER['HTTP_HOST'] ?? '';
-    if (strpos($host, 'localhost') !== FALSE || 
-        strpos($host, '127.0.0.1') !== FALSE || 
-        strpos($host, '.github.dev') !== FALSE ||
-        strpos($host, '.gitpod.io') !== FALSE) {
-      return TRUE;
-    }
-    
-    return FALSE;
   }
 
   /**
@@ -174,7 +143,7 @@ class ChatController extends ControllerBase {
   }
 
   /**
-   * Start AI Chat - handles smart user redirect logic.
+    * Start Game Master chat - handles smart user redirect logic.
    *
    * For anonymous users: redirects to registration with destination parameter
    * For authenticated users: creates new conversation and redirects to chat
@@ -195,14 +164,14 @@ class ChatController extends ControllerBase {
       // Create new AI conversation node for authenticated user
       $conversation = $this->entityTypeManager->getStorage('node')->create([
         'type' => 'ai_conversation',
-        'title' => 'AI Chat - ' . date('Y-m-d H:i:s'),
+        'title' => 'Forseti GM Session - ' . date('Y-m-d H:i:s'),
         'uid' => $this->currentUser->id(),
         'status' => 1,
         'field_ai_model' => [
           'value' => 'anthropic.claude-3-5-sonnet-20240620-v1:0'
         ],
         'field_context' => [
-          'value' => 'You are a helpful AI assistant for St. Louis Integration, a technology consulting company. Please provide helpful, professional responses to user questions.',
+          'value' => 'You are Forseti, the Game Master of the Dungeoncrawler universe. Guide players with immersive narration, tactical clarity, fair rulings, and consistent world logic.',
           'format' => 'basic_html'
         ],
         'field_message_count' => ['value' => 0],
@@ -216,7 +185,7 @@ class ChatController extends ControllerBase {
         'node' => $conversation->id()
       ]);
       
-      $this->messenger()->addStatus($this->t('New AI conversation started successfully!'));
+      $this->messenger()->addStatus($this->t('New Forseti Game Master session started successfully!'));
       
       return new \Symfony\Component\HttpFoundation\RedirectResponse($chat_url->toString());
       
@@ -431,7 +400,7 @@ class ChatController extends ControllerBase {
   }
 
   /**
-   * Create a new AI conversation node and redirect to chat interface.
+  * Create a new GM conversation node and redirect to chat interface.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    *   Redirect to the chat interface for the newly created node.
@@ -441,7 +410,7 @@ class ChatController extends ControllerBase {
       // Create a new AI conversation node for the current user
       $node = $this->entityTypeManager->getStorage('node')->create([
         'type' => 'ai_conversation',
-        'title' => 'AI Chat Session - ' . date('Y-m-d H:i:s'),
+        'title' => 'Forseti GM Session - ' . date('Y-m-d H:i:s'),
         'uid' => $this->currentUser->id(),
         'status' => 1,
         'field_conversation_data' => [

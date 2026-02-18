@@ -17,6 +17,12 @@ dungeoncrawler_content.settings:
     monster_permadeath:
       type: boolean
       label: 'Enable monster permadeath'
+    encounter_ai_npc_autoplay_enabled:
+      type: boolean
+      label: 'Enable AI-driven NPC auto-play in encounter turn loop'
+    encounter_ai_narration_enabled:
+      type: boolean
+      label: 'Persist AI narration events to encounter timeline'
     items_per_page:
       type: integer
       label: 'Items per page'

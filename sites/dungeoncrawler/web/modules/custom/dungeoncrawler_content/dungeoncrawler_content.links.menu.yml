@@ -23,10 +23,10 @@ dungeoncrawler_content.game_objects:
   parent: dungeoncrawler_content.dashboard
   weight: 5
 
-dungeoncrawler_content.gemini_image_interface:
-  title: 'Gemini Image Interface'
-  description: 'Generate Gemini images from prompts with system context.'
-  route_name: dungeoncrawler_content.gemini_image_interface
+dungeoncrawler_content.image_generation_interface:
+  title: 'Image Generation'
+  description: 'Generate images from prompts using configured AI provider.'
+  route_name: dungeoncrawler_content.image_generation_interface
   parent: dungeoncrawler_content.dashboard
   weight: 6
 
@@ -107,10 +107,10 @@ dungeoncrawler_content.menu.dc_administration_game_objects:
   parent: dungeoncrawler_content.menu.dc_administration
   weight: 2
 
-dungeoncrawler_content.menu.dc_administration_gemini_interface:
-  title: 'Gemini Image Interface'
-  description: 'Generate Gemini images from prompts with system context.'
-  route_name: dungeoncrawler_content.gemini_image_interface
+dungeoncrawler_content.menu.dc_administration_image_generation:
+  title: 'Image Generation'
+  description: 'Generate images from prompts using configured AI provider.'
+  route_name: dungeoncrawler_content.image_generation_interface
   parent: dungeoncrawler_content.menu.dc_administration
   weight: 3
 

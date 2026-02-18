@@ -89,104 +89,10 @@ class AIApiService {
   }
 
   /**
-   * Check if we're running in a development environment.
-   *
-   * @return bool
-   *   TRUE if in development environment, FALSE if in production.
-   */
-  protected function isDevelopmentEnvironment(): bool {
-    // Check for GitHub Codespaces environment variable
-    if (getenv('CODESPACES') === 'true') {
-      $this->logger->info('Development detected: CODESPACES=true');
-      return TRUE;
-    }
-    
-    // Check for common development indicators
-    if (getenv('ENVIRONMENT') === 'development' || 
-        getenv('APP_ENV') === 'dev') {
-      $this->logger->info('Development detected: ENVIRONMENT or APP_ENV');
-      return TRUE;
-    }
-    
-    // Check server name
-    if (isset($_SERVER['SERVER_NAME']) && $_SERVER['SERVER_NAME'] === 'localhost') {
-      $this->logger->info('Development detected: SERVER_NAME=localhost');
-      return TRUE;
-    }
-    
-    // Check HTTP_HOST for codespace
-    if (isset($_SERVER['HTTP_HOST']) && strpos($_SERVER['HTTP_HOST'], 'codespace') !== FALSE) {
-      $this->logger->info('Development detected: HTTP_HOST contains codespace');
-      return TRUE;
-    }
-    
-    // Check Drupal site URI for development patterns
-    $request = \Drupal::request();
-    $host = $request->getHost();
-    
-    $this->logger->info('Checking host for development patterns: @host', ['@host' => $host]);
-    
-    if (strpos($host, 'localhost') !== FALSE || 
-        strpos($host, '127.0.0.1') !== FALSE ||
-        strpos($host, 'codespace') !== FALSE ||
-        strpos($host, '.local') !== FALSE ||
-        strpos($host, '.test') !== FALSE) {
-      $this->logger->info('Development detected: host pattern match');
-      return TRUE;
-    }
-    
-    $this->logger->warning('Production environment detected. Host: @host, SERVER_NAME: @server, HTTP_HOST: @http_host', [
-      '@host' => $host,
-      '@server' => $_SERVER['SERVER_NAME'] ?? 'not set',
-      '@http_host' => $_SERVER['HTTP_HOST'] ?? 'not set',
-    ]);
-    
-    return FALSE;
-  }
-
-  /**
-   * Generate a mock AI response for development environment.
-   *
-   * @param string $message
-   *   The user message to respond to.
-   *
-   * @return array
-   *   Mock response array with AI message and usage stats.
-   */
-  protected function generateMockResponse(string $message): array {
-    $mock_responses = [
-      "Service was called successfully. In a production environment, this would be Claude 3.5 Sonnet's actual response to: \"" . substr($message, 0, 100) . (strlen($message) > 100 ? '...' : '') . "\"",
-      "Development mode active. AWS Bedrock service simulated. Your message was received and processed.",
-      "Mock AI Response: I understand your message. This is a development environment simulation of Claude 3.5 Sonnet.",
-      "Development Environment: AI service call completed. In production, this would connect to AWS Bedrock Claude."
-    ];
-    
-    // Rotate through responses based on message hash for variety
-    $response_index = abs(crc32($message)) % count($mock_responses);
-    $ai_response = $mock_responses[$response_index];
-    
-    return [
-      'ai_message' => $ai_response,
-      'usage' => [
-        'input_tokens' => strlen($message) / 4, // Rough token estimate
-        'output_tokens' => strlen($ai_response) / 4,
-        'total_tokens' => (strlen($message) + strlen($ai_response)) / 4
-      ]
-    ];
-  }
-
-  /**
    * Send a message to the AI model with rolling summary management.
    */
   public function sendMessage(NodeInterface $conversation, string $message) {
     try {
-      // Check if we're in development environment and return mock response
-      if ($this->isDevelopmentEnvironment()) {
-        $this->logger->info('Development environment detected. Returning mock AI response.');
-        $mock_response = $this->generateMockResponse($message);
-        return $mock_response['ai_message']; // Return just the message string, not the full array
-      }
-
       // Check if we need to update the summary before processing.
       $this->checkAndUpdateSummary($conversation);
 
@@ -1037,12 +943,6 @@ class AIApiService {
    */
   private function generateSummary(string $context) {
     try {
-      // Check if we're in development environment and return mock summary
-      if ($this->isDevelopmentEnvironment()) {
-        $this->logger->info('Development environment detected. Returning mock summary.');
-        return "Development Mode Summary: This conversation has been simulated for development purposes. The conversation contains user messages and mock AI responses for testing the chat interface functionality.";
-      }
-
       $sdk = new \Aws\Sdk([
         'region' => 'us-west-2',
         'version' => 'latest',
@@ -1173,18 +1073,34 @@ class AIApiService {
    */
   public function testConnection() {
     try {
-      $sdk = new \Aws\Sdk([
-        'region' => 'us-west-2',
+      $config = $this->configFactory->get('ai_conversation.settings');
+      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
+      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
+      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
+
+      $sdk_config = [
+        'region' => $aws_region,
         'version' => 'latest',
-      ]);
+      ];
+
+      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
+        $sdk_config['credentials'] = [
+          'key' => $aws_access_key,
+          'secret' => $aws_secret_key,
+        ];
+      }
+
+      $sdk = new \Aws\Sdk($sdk_config);
       
       $bedrock = $sdk->createBedrockRuntime();
 
+      $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+
       $response = $bedrock->invokeModel([
-        'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'modelId' => $model,
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 20000,
+          'max_tokens' => 256,
           'messages' => [
             [
               'role' => 'user',

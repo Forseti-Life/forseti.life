@@ -46,6 +46,8 @@ import combatApi from './hexmap-api.js';
             <div class="action-buttons" id="action-menu">
               <button id="action-move" class="btn btn-ghost">Move</button>
               <button id="action-attack" class="btn btn-primary">Attack</button>
+              <button id="action-interact" class="btn btn-ghost">Interact</button>
+              <button id="action-talk" class="btn btn-ghost">Talk</button>
               <button id="end-turn" class="btn btn-primary" style="display:none;">End Turn</button>
             </div>
             <p id="action-instruction" class="action-instruction">Select a hostile target to attack.</p>
@@ -153,6 +155,8 @@ import combatApi from './hexmap-api.js';
         actionMenu: document.getElementById('action-menu'),
         actionMoveBtn: document.getElementById('action-move'),
         actionAttackBtn: document.getElementById('action-attack'),
+        actionInteractBtn: document.getElementById('action-interact'),
+        actionTalkBtn: document.getElementById('action-talk'),
         endTurnBtn: document.getElementById('end-turn'),
 
         // Character sheet panel
@@ -239,7 +243,8 @@ import combatApi from './hexmap-api.js';
         this.elements.turnActionChips.innerHTML = `
           <span class="chip ${moveLeft ? 'chip-live' : 'chip-dim'}">Move</span>
           <span class="chip ${canAct ? 'chip-live' : 'chip-dim'}">Strike</span>
-          <span class="chip ${canAct ? 'chip-live' : 'chip-dim'}">Cast / Skill</span>
+          <span class="chip ${canAct ? 'chip-live' : 'chip-dim'}">Interact</span>
+          <span class="chip chip-live">Talk</span>
           <span class="chip chip-end">End Turn</span>`;
       }
 
@@ -261,8 +266,8 @@ import combatApi from './hexmap-api.js';
     /**
      * Update action mode buttons and instruction text.
      */
-    updateActionMode(mode, { canAct = false, moveLeft = 0, isPlayersTurn = false } = {}) {
-      const { actionMoveBtn, actionAttackBtn, actionInstruction } = this.elements;
+    updateActionMode(mode, { canAct = false, canInteract = false, moveLeft = 0, isPlayersTurn = false } = {}) {
+      const { actionMoveBtn, actionAttackBtn, actionInteractBtn, actionInstruction } = this.elements;
 
       const setActive = (btn, active) => {
         if (!btn) return;
@@ -271,6 +276,7 @@ import combatApi from './hexmap-api.js';
 
       setActive(actionMoveBtn, mode === 'move');
       setActive(actionAttackBtn, mode === 'attack');
+      setActive(actionInteractBtn, mode === 'interact');
 
       if (actionMoveBtn) {
         actionMoveBtn.title = isPlayersTurn
@@ -282,12 +288,19 @@ import combatApi from './hexmap-api.js';
           ? (canAct ? 'Click an enemy to attack' : 'No actions remaining')
           : 'Not your turn';
       }
+      if (actionInteractBtn) {
+        actionInteractBtn.title = isPlayersTurn
+          ? (canInteract ? 'Interact with nearby objects, doors, and room transitions' : 'No interaction actions available')
+          : 'Not your turn';
+      }
 
       if (actionInstruction) {
         if (!isPlayersTurn) {
           actionInstruction.textContent = 'Watching enemy turn...';
         } else if (mode === 'move') {
           actionInstruction.textContent = moveLeft > 0 ? `Click a blue hex to move (${moveLeft} ft left).` : 'No movement left; switch to attack or end turn.';
+        } else if (mode === 'interact') {
+          actionInstruction.textContent = canInteract ? 'Click an adjacent door, obstacle, or connection to interact.' : 'No interaction actions remaining; attack, move, or end turn.';
         } else {
           actionInstruction.textContent = canAct ? 'Select a hostile target to attack.' : 'No actions remaining; move or end turn.';
         }
@@ -295,18 +308,28 @@ import combatApi from './hexmap-api.js';
     }
 
     renderActionButtons(actions, movement, isPlayersTurn) {
-      const { actionMoveBtn, actionAttackBtn, endTurnBtn } = this.elements;
+      const { actionMoveBtn, actionAttackBtn, actionInteractBtn, actionTalkBtn, endTurnBtn } = this.elements;
       const maxActions = actions ? actions.maxActions + (actions.actionBonus || 0) : null;
       const actionsRemaining = actions ? actions.actionsRemaining : 0;
       const canAct = !!(isPlayersTurn && actions && actions.canAct !== false && actionsRemaining > 0);
       const canMove = !!(isPlayersTurn && movement && Number.isFinite(movement.movementRemaining) && movement.movementRemaining > 0);
+      const canInteract = canAct;
+
+      const applyDisabledState = (button, disabled) => {
+        if (!button) {
+          return;
+        }
+        button.classList.toggle('btn-disabled', !!disabled);
+        button.disabled = !!disabled;
+        button.setAttribute('aria-disabled', disabled ? 'true' : 'false');
+      };
 
       if (actionMoveBtn) {
         const moveLabel = movement && Number.isFinite(movement.movementRemaining)
           ? `Move (${movement.movementRemaining} ft)`
           : 'Move';
         actionMoveBtn.textContent = moveLabel;
-        actionMoveBtn.classList.toggle('btn-disabled', !canMove);
+        applyDisabledState(actionMoveBtn, !canMove);
       }
 
       if (actionAttackBtn) {
@@ -314,11 +337,23 @@ import combatApi from './hexmap-api.js';
           ? `Attack (${actionsRemaining}/${maxActions})`
           : 'Attack';
         actionAttackBtn.textContent = attackLabel;
-        actionAttackBtn.classList.toggle('btn-disabled', !canAct);
+        applyDisabledState(actionAttackBtn, !canAct);
+      }
+
+      if (actionInteractBtn) {
+        actionInteractBtn.textContent = maxActions !== null
+          ? `Interact (${actionsRemaining}/${maxActions})`
+          : 'Interact';
+        applyDisabledState(actionInteractBtn, !canInteract);
+      }
+
+      if (actionTalkBtn) {
+        actionTalkBtn.textContent = 'Talk (Free)';
+        applyDisabledState(actionTalkBtn, !isPlayersTurn);
       }
 
       if (endTurnBtn) {
-        endTurnBtn.classList.toggle('btn-disabled', !isPlayersTurn);
+        applyDisabledState(endTurnBtn, !isPlayersTurn);
       }
     }
 
@@ -650,7 +685,10 @@ import combatApi from './hexmap-api.js';
         draggedObject: null,
         assetsLoaded: false,
         showCoordinates: false,
-        showGrid: true
+        showGrid: true,
+        showFog: true,
+        fogOverlay: null,
+        visibleHexes: null
       };
     }
   }
@@ -666,6 +704,7 @@ import combatApi from './hexmap-api.js';
       gridHeight: 20,
       minZoom: 0.5,
       maxZoom: 3.0,
+      defaultVisionRange: 8,
       defaultWidth: 800,
       defaultHeight: 600,
       backgroundColor: 0x1a1a2e
@@ -691,6 +730,9 @@ import combatApi from './hexmap-api.js';
 
     // Launch context from campaign/tavern flow.
     launchContext: {},
+
+    // Current user id from drupalSettings.user.uid (0 for anonymous).
+    currentUserId: 0,
 
     // Launch character summary from campaign flow for initial sheet hydration.
     launchCharacter: {},
@@ -724,6 +766,7 @@ import combatApi from './hexmap-api.js';
       this.dungeonData = settings?.dungeoncrawlerContent?.hexmapDungeonData || {};
       this.launchCharacter = settings?.dungeoncrawlerContent?.hexmapLaunchCharacter || {};
       this.activeRoomId = this.dungeonData?.active_room_id || null;
+      this.currentUserId = Number(settings?.user?.uid || 0);
 
       this.initPixiApp(container[0]);
       this.initECS(); // Initialize ECS architecture
@@ -796,6 +839,12 @@ import combatApi from './hexmap-api.js';
       if (movementRangeOverlay) {
         movementRangeOverlay.destroy();
         this.stateManager.set('movementRangeOverlay', null);
+      }
+
+      const fogOverlay = this.stateManager ? this.stateManager.get('fogOverlay') : null;
+      if (fogOverlay) {
+        fogOverlay.destroy();
+        this.stateManager.set('fogOverlay', null);
       }
       
       if (this.app) {
@@ -902,6 +951,12 @@ import combatApi from './hexmap-api.js';
         })
       );
 
+      this.stateSubscriptions.push(
+        this.stateManager.subscribe('showFog', () => {
+          this.refreshFogOfWar();
+        })
+      );
+
 
       this.uiManager.updateSelectedObjectType(this.stateManager.get('selectedObjectType'));
     },
@@ -977,7 +1032,7 @@ import combatApi from './hexmap-api.js';
       const moveLeft = movement ? movement.movementRemaining : 0;
       const canAct = actions ? actions.actionsRemaining > 0 : false;
       const actionMode = this.stateManager.get('actionMode') || 'attack';
-      this.uiManager.updateActionMode(actionMode, { canAct, moveLeft, isPlayersTurn });
+      this.uiManager.updateActionMode(actionMode, { canAct, canInteract: canAct, moveLeft, isPlayersTurn });
       
       // Auto-select entity on their turn (if player controlled). NPCs are resolved server-side.
       if (combat && combat.isPlayerTeam()) {
@@ -1100,6 +1155,8 @@ import combatApi from './hexmap-api.js';
       if (selectedEntity) {
         this.showMovementRange(selectedEntity);
       }
+
+      this.refreshFogOfWar();
 
       console.log(`Generated ${width}x${height} hex grid`);
     },
@@ -1308,11 +1365,18 @@ import combatApi from './hexmap-api.js';
       for (const entity of entitiesAtPos) {
         const pos = entity.getComponent('PositionComponent');
         if (pos.q === q && pos.r === r) {
+          const actionMode = this.stateManager.get('actionMode') || 'attack';
+
+          if (selectedEntity && actionMode === 'interact' && entity.id !== selectedEntity.id) {
+            if (this.performInteractAtHex(selectedEntity, q, r, entity)) {
+              return;
+            }
+          }
+
           // Check if this is an attack action (selected entity + hostile target)
               if (selectedEntity && entity.id !== selectedEntity.id) {
             const attackerCombat = selectedEntity.getComponent('CombatComponent');
             const targetCombat = entity.getComponent('CombatComponent');
-                const actionMode = this.stateManager.get('actionMode') || 'attack';
             
                 if (actionMode === 'attack' && attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
               const canAttackCheck = this.combatSystem.canAttack(selectedEntity, entity);
@@ -1350,7 +1414,7 @@ import combatApi from './hexmap-api.js';
         if (movementRange.has(hexKey)) {
           if (actionMode !== 'move') {
             // Require explicit move mode to avoid accidental moves while targeting.
-            this.uiManager.updateActionMode('attack', { canAct: true, moveLeft: 0, isPlayersTurn: true });
+            this.uiManager.updateActionMode('attack', { canAct: true, canInteract: true, moveLeft: 0, isPlayersTurn: true });
             return;
           }
           // Try to move entity
@@ -1368,7 +1432,15 @@ import combatApi from './hexmap-api.js';
             if (actions && movementComp) {
               this.uiManager.updateCurrentTurn(name, actions, movementComp, actions.hasReactionAvailable(), combat?.team, isPlayersTurn);
             }
+            this.refreshFogOfWar();
           }
+          return;
+        }
+      }
+
+      if (selectedEntity && actionMode === 'interact') {
+        const interacted = this.performInteractAtHex(selectedEntity, q, r);
+        if (interacted) {
           return;
         }
       }
@@ -1528,9 +1600,11 @@ import combatApi from './hexmap-api.js';
       const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
       this.uiManager.updateActionMode('attack', {
         canAct: actions ? actions.actionsRemaining > 0 : false,
+        canInteract: actions ? actions.actionsRemaining > 0 : false,
         moveLeft: movement ? movement.movementRemaining : 0,
         isPlayersTurn
       });
+      this.refreshFogOfWar(entity);
     },
     
     /**
@@ -1550,6 +1624,8 @@ import combatApi from './hexmap-api.js';
       
       this.stateManager.set('selectedEntity', null);
       this.hideMovementRange();
+      this.hideAttackTargets();
+      this.hideFogOfWar();
       
       // Hide entity info panel
       this.uiManager.hideEntityInfo();
@@ -1694,6 +1770,485 @@ import combatApi from './hexmap-api.js';
         this.stateManager.set('attackTargetsOverlay', null);
       }
     },
+
+    /**
+     * Refresh fog-of-war overlay for the currently selected or active player actor.
+     * @param {Entity|null} actorOverride - Optional explicit actor
+     */
+    refreshFogOfWar: function (actorOverride = null) {
+      const showFog = this.stateManager.get('showFog');
+      if (!showFog) {
+        this.hideFogOfWar();
+        return;
+      }
+
+      const selected = actorOverride || this.stateManager.get('selectedEntity');
+      const selectedCombat = selected?.getComponent?.('CombatComponent');
+      const selectedIsPlayer = selectedCombat?.isPlayerTeam ? selectedCombat.isPlayerTeam() : (selectedCombat?.team === Team.PLAYER || selectedCombat?.team === 'player');
+
+      let actor = selectedIsPlayer ? selected : null;
+      if (!actor && this.turnManagementSystem?.getCurrentTurnEntity) {
+        const current = this.turnManagementSystem.getCurrentTurnEntity();
+        const currentCombat = current?.getComponent?.('CombatComponent');
+        const currentIsPlayer = currentCombat?.isPlayerTeam ? currentCombat.isPlayerTeam() : (currentCombat?.team === Team.PLAYER || currentCombat?.team === 'player');
+        if (currentIsPlayer) {
+          actor = current;
+        }
+      }
+
+      if (!actor) {
+        this.hideFogOfWar();
+        return;
+      }
+
+      this.renderFogOfWarForEntity(actor);
+    },
+
+    /**
+     * Hide and destroy fog overlay.
+     */
+    hideFogOfWar: function () {
+      const fogOverlay = this.stateManager.get('fogOverlay');
+      if (fogOverlay) {
+        this.uiContainer.removeChild(fogOverlay);
+        fogOverlay.destroy();
+        this.stateManager.set('fogOverlay', null);
+      }
+      this.stateManager.set('visibleHexes', null);
+    },
+
+    /**
+     * Return default/derived vision radius for an actor.
+     * @param {Entity} actor
+     * @returns {number}
+     */
+    getVisionRangeForEntity: function (actor) {
+      const stats = actor?.getComponent?.('StatsComponent');
+      const perception = Number(stats?.perception ?? 0);
+      const derived = this.config.defaultVisionRange + Math.max(-2, Math.min(2, Math.floor(perception / 4)));
+      return Math.max(4, Math.min(12, derived));
+    },
+
+    /**
+     * Render fog overlay by darkening non-visible hexes.
+     * @param {Entity} actor
+     */
+    renderFogOfWarForEntity: function (actor) {
+      this.hideFogOfWar();
+
+      const visibleHexes = this.getVisibleHexSet(actor);
+      this.stateManager.set('visibleHexes', visibleHexes);
+
+      const fogOverlay = new PIXI.Graphics();
+      fogOverlay.zIndex = 8500;
+      fogOverlay.interactive = false;
+      fogOverlay.eventMode = 'none';
+
+      this.hexContainer.children.forEach((hex) => {
+        const data = hex?.hexData;
+        if (!data) {
+          return;
+        }
+
+        const key = `${data.q}_${data.r}`;
+        if (visibleHexes.has(key)) {
+          return;
+        }
+
+        const pos = this.axialToPixel(data.q, data.r, this.config.hexSize);
+        fogOverlay.beginFill(0x020617, 0.72);
+        fogOverlay.lineStyle(0, 0x000000, 0);
+        for (let i = 0; i < 6; i++) {
+          const angle = (Math.PI / 3) * i;
+          const x = pos.x + this.config.hexSize * Math.cos(angle);
+          const y = pos.y + this.config.hexSize * Math.sin(angle);
+          if (i === 0) {
+            fogOverlay.moveTo(x, y);
+          } else {
+            fogOverlay.lineTo(x, y);
+          }
+        }
+        fogOverlay.closePath();
+        fogOverlay.endFill();
+      });
+
+      this.uiContainer.addChild(fogOverlay);
+      this.stateManager.set('fogOverlay', fogOverlay);
+    },
+
+    /**
+     * Compute visible hex set based on range + line of sight.
+     * @param {Entity} actor
+     * @returns {Set<string>}
+     */
+    getVisibleHexSet: function (actor) {
+      const visible = new Set();
+      const actorPos = actor?.getComponent?.('PositionComponent');
+      if (!actorPos) {
+        return visible;
+      }
+
+      const range = this.getVisionRangeForEntity(actor);
+      this.hexContainer.children.forEach((hex) => {
+        const data = hex?.hexData;
+        if (!data) {
+          return;
+        }
+
+        const distance = this.movementSystem?.hexDistance
+          ? this.movementSystem.hexDistance(actorPos.q, actorPos.r, data.q, data.r)
+          : Math.max(Math.abs(actorPos.q - data.q), Math.abs(actorPos.r - data.r), Math.abs((actorPos.q + actorPos.r) - (data.q + data.r)));
+        if (distance > range) {
+          return;
+        }
+
+        if (this.hasLineOfSight(actorPos.q, actorPos.r, data.q, data.r)) {
+          visible.add(`${data.q}_${data.r}`);
+        }
+      });
+
+      visible.add(`${actorPos.q}_${actorPos.r}`);
+      return visible;
+    },
+
+    /**
+     * Determine line of sight using axial interpolation and obstacle checks.
+     * @param {number} fromQ
+     * @param {number} fromR
+     * @param {number} toQ
+     * @param {number} toR
+     * @returns {boolean}
+     */
+    hasLineOfSight: function (fromQ, fromR, toQ, toR) {
+      if (fromQ === toQ && fromR === toR) {
+        return true;
+      }
+
+      const line = this.getAxialLine(fromQ, fromR, toQ, toR);
+      for (let i = 1; i < line.length - 1; i++) {
+        const { q, r } = line[i];
+        const obstacle = this.getObstacleMobilityAtHex(q, r);
+        if (obstacle && !obstacle.passable) {
+          return false;
+        }
+      }
+
+      return true;
+    },
+
+    /**
+     * Build axial line coordinates from origin to target.
+     * @param {number} fromQ
+     * @param {number} fromR
+     * @param {number} toQ
+     * @param {number} toR
+     * @returns {Array<{q:number,r:number}>}
+     */
+    getAxialLine: function (fromQ, fromR, toQ, toR) {
+      const toCube = (q, r) => ({ x: q, z: r, y: -q - r });
+      const fromCube = toCube(fromQ, fromR);
+      const targetCube = toCube(toQ, toR);
+      const distance = this.movementSystem?.hexDistance
+        ? this.movementSystem.hexDistance(fromQ, fromR, toQ, toR)
+        : Math.max(Math.abs(fromQ - toQ), Math.abs(fromR - toR), Math.abs((fromQ + fromR) - (toQ + toR)));
+
+      const points = [];
+      for (let step = 0; step <= distance; step++) {
+        const t = distance === 0 ? 0 : step / distance;
+        const x = fromCube.x + (targetCube.x - fromCube.x) * t;
+        const y = fromCube.y + (targetCube.y - fromCube.y) * t;
+        const z = fromCube.z + (targetCube.z - fromCube.z) * t;
+
+        let rx = Math.round(x);
+        let ry = Math.round(y);
+        let rz = Math.round(z);
+        const dx = Math.abs(rx - x);
+        const dy = Math.abs(ry - y);
+        const dz = Math.abs(rz - z);
+
+        if (dx > dy && dx > dz) {
+          rx = -ry - rz;
+        } else if (dy > dz) {
+          ry = -rx - rz;
+        } else {
+          rz = -rx - ry;
+        }
+
+        points.push({ q: rx, r: rz });
+      }
+
+      return points;
+    },
+
+    /**
+     * Return 6 neighboring axial coordinates for a hex.
+     * @param {number} q
+     * @param {number} r
+     * @returns {Array<{q:number,r:number}>}
+     */
+    getAdjacentHexes: function (q, r) {
+      return [
+        { q: q + 1, r },
+        { q: q + 1, r: r - 1 },
+        { q, r: r - 1 },
+        { q: q - 1, r },
+        { q: q - 1, r: r + 1 },
+        { q, r: r + 1 }
+      ];
+    },
+
+    /**
+     * Find payload-backed obstacle record at hex.
+     * @param {number} q
+     * @param {number} r
+     * @returns {Object|null}
+     */
+    findObstaclePayloadAtHex: function (q, r) {
+      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      return entities.find((entity) => {
+        if (entity?.entity_type !== 'obstacle') {
+          return false;
+        }
+        const placement = entity?.placement;
+        return placement && placement.room_id === this.activeRoomId && Number(placement?.hex?.q) === q && Number(placement?.hex?.r) === r;
+      }) || null;
+    },
+
+    /**
+     * Find ECS obstacle entity at hex.
+     * @param {number} q
+     * @param {number} r
+     * @returns {Entity|null}
+     */
+    findObstacleEntityAtHex: function (q, r) {
+      if (!this.entityManager) {
+        return null;
+      }
+
+      const entities = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
+      for (const entity of entities) {
+        const pos = entity.getComponent('PositionComponent');
+        const identity = entity.getComponent('IdentityComponent');
+        if (pos?.q === q && pos?.r === r && identity?.entityType === EntityType.OBSTACLE) {
+          return entity;
+        }
+      }
+
+      return null;
+    },
+
+    /**
+     * Find room connection touching this hex in the active room.
+     * @param {number} q
+     * @param {number} r
+     * @returns {Object|null}
+     */
+    findConnectionAtHex: function (q, r) {
+      const connections = Array.isArray(this.dungeonData?.connections) ? this.dungeonData.connections : [];
+      return connections.find((connection) => {
+        const fromMatch = connection?.from_room === this.activeRoomId &&
+          Number(connection?.from_hex?.q) === q &&
+          Number(connection?.from_hex?.r) === r;
+        const toMatch = connection?.to_room === this.activeRoomId &&
+          Number(connection?.to_hex?.q) === q &&
+          Number(connection?.to_hex?.r) === r;
+        return fromMatch || toMatch;
+      }) || null;
+    },
+
+    /**
+     * Send a generic non-attack action to server combat API and hydrate state.
+     * @param {Object} payload
+     * @returns {Promise<boolean>}
+     */
+    performCombatAction: async function (payload = {}) {
+      const encounterId = this.stateManager.get('encounterId');
+      if (!encounterId) {
+        console.info('Combat action skipped; no active encounter id.', payload);
+        return false;
+      }
+
+      try {
+        const serverState = await combatApi.performAction({
+          encounterId,
+          ...payload
+        });
+
+        if (!serverState) {
+          console.error('Combat action returned no state; keeping current client view.');
+          return false;
+        }
+
+        if (serverState.encounter_id) {
+          this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+
+        if (typeof this.turnManagementSystem.hydrateFromServer === 'function') {
+          this.stateManager.set('serverCombatMode', true);
+          this.turnManagementSystem.hydrateFromServer(serverState);
+          this.syncSelectedToCurrentTurn();
+        }
+
+        return true;
+      } catch (err) {
+        console.error('Combat action via API failed; client will not fall back.', err);
+        return false;
+      }
+    },
+
+    /**
+     * Perform interact action at an adjacent hex (doors, movable obstacles, blocked connections).
+     * @param {Entity} actor
+     * @param {number} targetQ
+     * @param {number} targetR
+     * @returns {boolean}
+     */
+    performInteractAtHex: function (actor, targetQ, targetR) {
+      const actorPos = actor?.getComponent?.('PositionComponent');
+      const actorActions = actor?.getComponent?.('ActionsComponent');
+      if (!actorPos || !actorActions) {
+        return false;
+      }
+
+      const combatActive = this.stateManager.get('combatActive');
+      if (combatActive && this.turnManagementSystem && !this.turnManagementSystem.isEntityTurn(actor)) {
+        return false;
+      }
+
+      const distance = this.movementSystem?.hexDistance
+        ? this.movementSystem.hexDistance(actorPos.q, actorPos.r, targetQ, targetR)
+        : Math.max(Math.abs(actorPos.q - targetQ), Math.abs(actorPos.r - targetR), Math.abs((actorPos.q + actorPos.r) - (targetQ + targetR)));
+      if (distance > 1) {
+        return false;
+      }
+
+      const connection = this.findConnectionAtHex(targetQ, targetR);
+      if (connection && connection.is_passable === false) {
+        this.performCombatAction({
+          actorId: actor.id,
+          actionType: 'interact',
+          interactionType: 'open_passage',
+          actionCost: 1,
+          targetId: connection.connection_id,
+          targetHex: { q: targetQ, r: targetR }
+        }).then((ok) => {
+          if (!ok) {
+            return;
+          }
+          connection.is_passable = true;
+          connection.is_discovered = true;
+          console.info('Interaction: opened room connection', { connectionId: connection.connection_id, q: targetQ, r: targetR });
+          this.paintActiveRoom();
+          this.refreshFogOfWar(actor);
+        });
+        return true;
+      }
+
+      const obstacleProfile = this.getObstacleMobilityAtHex(targetQ, targetR);
+      if (!obstacleProfile) {
+        return false;
+      }
+
+      if (obstacleProfile.movable) {
+        const pushDeltaQ = targetQ - actorPos.q;
+        const pushDeltaR = targetR - actorPos.r;
+        const preferredDestination = { q: targetQ + pushDeltaQ, r: targetR + pushDeltaR };
+        const candidates = [preferredDestination, ...this.getAdjacentHexes(targetQ, targetR)];
+
+        const destination = candidates.find((candidate) => {
+          if (!this.isHexInActiveRoom(candidate.q, candidate.r)) {
+            return false;
+          }
+          if (this.getObstacleMobilityAtHex(candidate.q, candidate.r)) {
+            return false;
+          }
+
+          const occupied = this.entityManager?.getEntitiesWith('PositionComponent', 'IdentityComponent').some((entity) => {
+            const pos = entity.getComponent('PositionComponent');
+            return pos?.q === candidate.q && pos?.r === candidate.r;
+          });
+
+          return !occupied;
+        });
+
+        if (!destination) {
+          return false;
+        }
+
+        this.performCombatAction({
+          actorId: actor.id,
+          actionType: 'interact',
+          interactionType: 'move_object',
+          actionCost: 1,
+          targetId: this.getObjectIdAtHex(targetQ, targetR) || null,
+          targetHex: { q: targetQ, r: targetR },
+          destinationHex: destination
+        }).then((ok) => {
+          if (!ok) {
+            return;
+          }
+
+          const payloadObstacle = this.findObstaclePayloadAtHex(targetQ, targetR);
+          if (payloadObstacle?.placement?.hex) {
+            payloadObstacle.placement.hex.q = destination.q;
+            payloadObstacle.placement.hex.r = destination.r;
+          }
+
+          const ecsObstacle = this.findObstacleEntityAtHex(targetQ, targetR);
+          if (ecsObstacle) {
+            const pos = ecsObstacle.getComponent('PositionComponent');
+            if (pos) {
+              pos.q = destination.q;
+              pos.r = destination.r;
+            }
+          }
+
+          console.info('Interaction: moved obstacle', {
+            from: { q: targetQ, r: targetR },
+            to: destination
+          });
+
+          this.paintActiveRoom();
+          this.refreshFogOfWar(actor);
+        });
+        return true;
+      }
+
+      if (!obstacleProfile.passable) {
+        const label = (this.getObjectLabelAtHex(targetQ, targetR) || '').toLowerCase();
+        const isDoorLike = /(door|gate|hatch|portal)/.test(label);
+
+        if (isDoorLike) {
+          this.performCombatAction({
+            actorId: actor.id,
+            actionType: 'interact',
+            interactionType: 'open_door',
+            actionCost: 1,
+            targetId: this.getObjectIdAtHex(targetQ, targetR) || null,
+            targetHex: { q: targetQ, r: targetR },
+            label
+          }).then((ok) => {
+            if (!ok) {
+              return;
+            }
+
+            const payloadObstacle = this.findObstaclePayloadAtHex(targetQ, targetR);
+            if (payloadObstacle) {
+              payloadObstacle.state = payloadObstacle.state || {};
+              payloadObstacle.state.metadata = payloadObstacle.state.metadata || {};
+              payloadObstacle.state.metadata.passable = true;
+            }
+
+            console.info('Interaction: opened door-like obstacle', { q: targetQ, r: targetR, label });
+            this.paintActiveRoom();
+            this.refreshFogOfWar(actor);
+          });
+          return true;
+        }
+      }
+
+      return false;
+    },
     
     /**
      * Start combat encounter.
@@ -1740,8 +2295,22 @@ import combatApi from './hexmap-api.js';
       return this.activeRoomId || this.stateManager.get('activeRoomId') || this.launchContext?.room_id || null;
     },
 
+    /**
+     * Determine whether server combat APIs should be used for this user/session.
+     * @returns {boolean}
+     */
+    canUseServerCombatApi: function () {
+      const uid = Number(this.currentUserId || 0);
+      return Number.isFinite(uid) && uid > 0;
+    },
+
     startCombat: async function (options = {}) {
       console.log('Starting combat (server authoritative)...');
+
+      if (!this.canUseServerCombatApi()) {
+        console.info('Combat start skipped; authenticated user is required for server combat APIs.');
+        return;
+      }
 
       const encounterId = this.stateManager.get('encounterId');
       if (encounterId) {
@@ -1855,14 +2424,20 @@ import combatApi from './hexmap-api.js';
      * @param {Entity} speaker - Speaking entity
      * @param {string} message - Utterance content
      */
-    performTalk: function (speaker, message) {
+    performTalk: async function (speaker, message) {
       if (!speaker || !message) {
         return;
       }
 
-      const actions = speaker.getComponent('ActionsComponent');
-      if (actions) {
-        actions.spendActions(ActionCost.FREE, 'Talk');
+      const actionAccepted = await this.performCombatAction({
+        actorId: speaker.id,
+        actionType: 'talk',
+        actionCost: 0,
+        message
+      });
+
+      if (!actionAccepted) {
+        return;
       }
 
       const identity = speaker.getComponent('IdentityComponent');
@@ -1961,6 +2536,9 @@ import combatApi from './hexmap-api.js';
         }
 
         const distance = this.movementSystem.hexDistance(actorPos.q, actorPos.r, targetPos.q, targetPos.r);
+        if (!this.hasLineOfSight(actorPos.q, actorPos.r, targetPos.q, targetPos.r)) {
+          return;
+        }
         hostileTargets.push({ target: candidate, distance });
       });
 
@@ -2118,6 +2696,18 @@ import combatApi from './hexmap-api.js';
         self.stateManager.set('showGrid', newValue);
       });
 
+      // Toggle fog of war
+      const toggleFog = document.getElementById('toggle-fog');
+      addTrackedListener(toggleFog, 'click', function () {
+        const current = self.stateManager.get('showFog');
+        const next = !current;
+        self.stateManager.set('showFog', next);
+        this.textContent = next ? 'Hide Fog of War' : 'Show Fog of War';
+      });
+      if (toggleFog) {
+        toggleFog.textContent = self.stateManager.get('showFog') ? 'Hide Fog of War' : 'Show Fog of War';
+      }
+
       // Reset view
       const resetView = document.getElementById('reset-view');
       addTrackedListener(resetView, 'click', function () {
@@ -2163,6 +2753,10 @@ import combatApi from './hexmap-api.js';
       
       const actionMoveBtn = document.getElementById('action-move');
       addTrackedListener(actionMoveBtn, 'click', function () {
+        if (this.disabled || this.classList.contains('btn-disabled')) {
+          return;
+        }
+
         const selected = self.stateManager.get('selectedEntity');
         const current = self.turnManagementSystem?.getCurrentTurnEntity?.();
         const actor = selected || current;
@@ -2192,6 +2786,7 @@ import combatApi from './hexmap-api.js';
         self.showMovementRange(actor);
         self.uiManager.updateActionMode('move', {
           canAct: actions ? actions.actionsRemaining > 0 : false,
+          canInteract: actions ? actions.actionsRemaining > 0 : false,
           moveLeft: movement ? movement.movementRemaining : 0,
           isPlayersTurn
         });
@@ -2199,6 +2794,10 @@ import combatApi from './hexmap-api.js';
 
       const actionAttackBtn = document.getElementById('action-attack');
       addTrackedListener(actionAttackBtn, 'click', function () {
+        if (this.disabled || this.classList.contains('btn-disabled')) {
+          return;
+        }
+
         const selected = self.stateManager.get('selectedEntity');
         const current = self.turnManagementSystem?.getCurrentTurnEntity?.();
         const actor = selected || current;
@@ -2223,13 +2822,73 @@ import combatApi from './hexmap-api.js';
         self.showAttackTargets?.(actor);
         self.uiManager.updateActionMode('attack', {
           canAct: actions ? actions.actionsRemaining > 0 : false,
+          canInteract: actions ? actions.actionsRemaining > 0 : false,
           moveLeft: movement ? movement.movementRemaining : 0,
           isPlayersTurn
         });
       });
 
+      const actionInteractBtn = document.getElementById('action-interact');
+      addTrackedListener(actionInteractBtn, 'click', function () {
+        if (this.disabled || this.classList.contains('btn-disabled')) {
+          return;
+        }
+
+        const selected = self.stateManager.get('selectedEntity');
+        const current = self.turnManagementSystem?.getCurrentTurnEntity?.();
+        const actor = selected || current;
+        if (!actor) {
+          return;
+        }
+
+        self.stateManager.set('actionMode', 'interact');
+        const actions = actor.getComponent('ActionsComponent');
+        const movement = actor.getComponent('MovementComponent');
+        const combat = actor.getComponent('CombatComponent');
+        const isPlayersTurn = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+
+        if (actor !== selected) {
+          self.stateManager.set('selectedEntity', actor);
+          self.uiManager.showEntityInfo(actor);
+        }
+
+        self.hideMovementRange();
+        self.hideAttackTargets();
+        self.uiManager.updateActionMode('interact', {
+          canAct: actions ? actions.actionsRemaining > 0 : false,
+          canInteract: actions ? actions.actionsRemaining > 0 : false,
+          moveLeft: movement ? movement.movementRemaining : 0,
+          isPlayersTurn
+        });
+      });
+
+      const actionTalkBtn = document.getElementById('action-talk');
+      addTrackedListener(actionTalkBtn, 'click', function () {
+        if (this.disabled || this.classList.contains('btn-disabled')) {
+          return;
+        }
+
+        const selected = self.stateManager.get('selectedEntity');
+        const current = self.turnManagementSystem?.getCurrentTurnEntity?.();
+        const actor = selected || current;
+        if (!actor) {
+          return;
+        }
+
+        const message = window.prompt('What does your character say?', '');
+        if (!message || !message.trim()) {
+          return;
+        }
+
+        self.performTalk(actor, message.trim());
+      });
+
       const endTurnBtn = document.getElementById('end-turn');
       addTrackedListener(endTurnBtn, 'click', function () {
+        if (this.disabled || this.classList.contains('btn-disabled')) {
+          return;
+        }
+
         self.endTurn();
       });
       
@@ -2489,6 +3148,7 @@ import combatApi from './hexmap-api.js';
 
       // Auto-enter initiative only once per campaign-backed encounter context.
       const shouldAutoStart = this.turnManagementSystem &&
+        this.canUseServerCombatApi() &&
         this.resolveCampaignId() &&
         !this.stateManager.get('encounterId') &&
         !this.stateManager.get('combatActive');
@@ -2761,6 +3421,37 @@ import combatApi from './hexmap-api.js';
     },
 
     /**
+     * Get object identifier (if any) at a given hex in the active room.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @returns {string|null}
+     */
+    getObjectIdAtHex: function (q, r) {
+      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      if (!entities.length || !this.activeRoomId) {
+        return null;
+      }
+
+      const entity = entities.find((candidate) => {
+        if (!candidate?.placement || candidate.placement.room_id !== this.activeRoomId) {
+          return false;
+        }
+
+        const hex = candidate.placement.hex;
+        if (!hex) {
+          return false;
+        }
+        return Number(hex.q) === q && Number(hex.r) === r;
+      });
+
+      if (!entity) {
+        return null;
+      }
+
+      return entity?.instance_id || entity?.entity_ref?.content_id || entity?.entity_type || null;
+    },
+
+    /**
      * Set active room and redraw room content.
      * @param {string} roomId - Target room ID
      */
@@ -2773,6 +3464,7 @@ import combatApi from './hexmap-api.js';
       this.stateManager.set('activeRoomId', roomId);
       this.paintActiveRoom();
       this.renderActiveRoomEntities();
+      this.refreshFogOfWar();
       console.log('Active room set:', roomId);
     },
 
@@ -2883,6 +3575,7 @@ import combatApi from './hexmap-api.js';
           this.onHexOut(previousSelectedHex);
         }
         this.setSelectedHex(startHex);
+        this.refreshFogOfWar();
         console.log('Applied launch context start hex:', startQ, startR, context);
       } else {
         console.warn('Launch context start hex not found in current grid:', startQ, startR, context);

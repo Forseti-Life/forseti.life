@@ -37,6 +37,9 @@ The `/docs/` directory contains comprehensive product, market, and technical doc
 | **🛠️ Issue Tracker** | 🟢 Active | Repository-level Open/Closed issue log | [View →](./Issues.md) |
 | **🔒 Security Review** | 🟢 Active | Latest repository security audit report | [View →](./SECURITY_REVIEW_2026-02-18.md) |
 | **🧭 Security Plan** | 🟢 Active | Phase-2 remediation tasks and validation criteria | [View →](./SECURITY_REMEDIATION_PLAN_2026-02-18.md) |
+| **🗂️ Full File List** | 🟢 Active | Exhaustive repository file inventory (162,220 files) | [View →](./docs/security/full_file_list_2026-02-18.txt) |
+| **🧾 Per-File Security Review** | 🟢 Active | File-by-file review output (CSV + summary) | [View →](./docs/security/file_security_review_2026-02-18.csv) |
+| **📌 Per-File Review Summary** | 🟢 Active | Aggregate findings and first-party triage priorities | [View →](./docs/security/file_security_review_summary_2026-02-18.md) |
 | **📋 Product Docs** | 🟢 Live Beta | Lean Startup product management | [View →](./docs/product/) |
 | **🎯 Process Flow** | 🟢 Complete | End-to-end validation roadmap | [View →](./docs/product/process-flow-validation.md) |
 | **👤 User Journey** | 🟢 Active | Sarah persona journey mapping | [View →](./docs/product/user-journey/) |

@@ -5,7 +5,6 @@ chat-interface:
   dependencies:
     - core/jquery
     - core/drupal
-    - forseti/main
 
 user-conversations-block:
   version: 1.x

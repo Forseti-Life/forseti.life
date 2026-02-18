@@ -1,6 +1,6 @@
 # AI Conversation Module
 
-**Last Updated:** February 6, 2026
+**Last Updated:** February 18, 2026
 
 # AI Conversation Module
 
@@ -8,11 +8,7 @@
 
 The AI Conversation module provides a sophisticated conversational AI interface powered by AWS Bedrock and Claude 3.5 Sonnet. It features an intelligent **rolling summary system** that allows for unlimited conversation length while maintaining context efficiency and managing token costs.
 
-### Copilot issue automation
-- API: POST `/api/ai-conversation/copilot/issue`
-- Purpose: Create a GitHub issue and (by default) assign to `copilot`.
-- Auth: Use module settings (Copilot token) or env var `GITHUB_TOKEN_COPILOT`/`GITHUB_TOKEN` with repo access and Copilot entitlement.
-- Payload: `title` (string), `body` (string), optional `labels` (array), `repo` (defaults to `keithaumiller/forseti.life`), `assignees` or `assign_to_copilot` flag.
+For Dungeoncrawler, the assistant persona is configured as **Forseti, the Game Master**, with all player-facing chat copy and default prompt language aligned to that voice.
 
 ## Complete Workflow
 
@@ -43,7 +39,7 @@ The AI Conversation module uses a **node-centric approach** where each conversat
 
 #### **Step 2: Start Chatting**
 1. **Access chat interface:** Navigate to `/node/{nid}/chat` 
-   - Example: `https://forseti.com/node/11/chat`
+  - Example: `https://dungeoncrawler.forseti.life/node/11/chat`
    - Or click "Start Chat" link from node view page
 
 2. **Chat interface loads:**

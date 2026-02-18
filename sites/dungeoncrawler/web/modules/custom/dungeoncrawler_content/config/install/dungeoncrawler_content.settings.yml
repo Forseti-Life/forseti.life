@@ -13,6 +13,8 @@ rarity_tiers: |-
   Legendary
 room_persistence: true
 monster_permadeath: true
+encounter_ai_npc_autoplay_enabled: false
+encounter_ai_narration_enabled: false
 items_per_page: 12
 show_game_stats: true
 generated_image_provider: gemini

@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\ai_conversation\Service\AIApiService;
 
 /**
  * Controller for GenAI API usage reporting and cost tracking.
@@ -27,16 +28,26 @@ class UsageReportController extends ControllerBase {
   protected $dateFormatter;
 
   /**
+   * The AI API service.
+   *
+   * @var \Drupal\ai_conversation\Service\AIApiService
+   */
+  protected $aiApiService;
+
+  /**
    * Constructs a UsageReportController object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    * @param \Drupal\Core\Datetime\DateFormatterInterface $date_formatter
    *   The date formatter service.
+   * @param \Drupal\ai_conversation\Service\AIApiService $ai_api_service
+   *   The AI API service.
    */
-  public function __construct(Connection $database, DateFormatterInterface $date_formatter) {
+  public function __construct(Connection $database, DateFormatterInterface $date_formatter, AIApiService $ai_api_service) {
     $this->database = $database;
     $this->dateFormatter = $date_formatter;
+    $this->aiApiService = $ai_api_service;
   }
 
   /**
@@ -45,7 +56,8 @@ class UsageReportController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('database'),
-      $container->get('date.formatter')
+      $container->get('date.formatter'),
+      $container->get('ai_conversation.ai_api_service')
     );
   }
 
@@ -195,6 +207,22 @@ class UsageReportController extends ControllerBase {
     }
     
     return $daily;
+  }
+
+  /**
+   * Displays the Claude model pricing reference page.
+   */
+  public function pricing() {
+    $pricing_data = $this->aiApiService->getAllModelPricing();
+    
+    $build = [];
+    
+    $build['pricing'] = [
+      '#theme' => 'ai_model_pricing',
+      '#pricing_data' => $pricing_data,
+    ];
+    
+    return $build;
   }
 
 }

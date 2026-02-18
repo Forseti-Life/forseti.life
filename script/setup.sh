@@ -377,6 +377,15 @@ else
     sudo apt install -y gh
 fi
 
+print_status "Checking AWS CLI installation..."
+if command -v aws &> /dev/null; then
+    print_status "AWS CLI is already installed: $(aws --version 2>&1)"
+else
+    print_status "Installing AWS CLI..."
+    sudo apt install -y awscli
+    print_status "AWS CLI installed: $(aws --version 2>&1)"
+fi
+
 print_status "Checking Node.js and npm installation..."
 OPENCLAW_MIN_NODE="22.12.0"
 if command -v node &> /dev/null; then

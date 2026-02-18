@@ -6,6 +6,8 @@
 
 The **Dungeon Crawler** theme is a custom Drupal 11 theme for Dungeon Crawler Life — an AI-generated, procedurally growing dungeon crawl where every room is permanent, every monster has an AI-driven personality, and adventuring parties shape a living world.
 
+Theme source comments and branding references are aligned to Dungeon Crawler Life terminology to keep game-facing copy consistent.
+
 Built on the Radix base theme with Bootstrap 5, it provides a dark dungeon RPG aesthetic with torchlight gold accents.
 
 ## Game Concept

@@ -3,8 +3,10 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Component\Utility\Random;
 use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
+use Drupal\dungeoncrawler_content\Service\EncounterAiIntegrationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,10 +28,26 @@ class CombatEncounterApiController extends ControllerBase {
   protected $encounterStore;
 
   /**
+   * Config factory.
+   *
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected $configFactory;
+
+  /**
+   * Encounter AI integration service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\EncounterAiIntegrationService
+   */
+  protected $encounterAiIntegration;
+
+  /**
    * Constructor.
    */
-  public function __construct(CombatEncounterStore $encounter_store) {
+  public function __construct(CombatEncounterStore $encounter_store, ConfigFactoryInterface $config_factory, EncounterAiIntegrationService $encounter_ai_integration) {
     $this->encounterStore = $encounter_store;
+    $this->configFactory = $config_factory;
+    $this->encounterAiIntegration = $encounter_ai_integration;
   }
 
   /**
@@ -37,7 +55,9 @@ class CombatEncounterApiController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('dungeoncrawler_content.combat_encounter_store')
+      $container->get('dungeoncrawler_content.combat_encounter_store'),
+      $container->get('config.factory'),
+      $container->get('dungeoncrawler_content.encounter_ai_integration')
     );
   }
 
@@ -123,6 +143,13 @@ class CombatEncounterApiController extends ControllerBase {
     $encounter['turn_index'] = $next_index;
 
     $this->encounterStore->updateEncounter($encounter_id, $fields);
+    $next_participant = $encounter['participants'][$next_index] ?? NULL;
+    if (!empty($next_participant['id'])) {
+      $this->encounterStore->updateParticipant((int) $next_participant['id'], [
+        'actions_remaining' => 3,
+        'attacks_this_turn' => 0,
+      ]);
+    }
     $encounter = $this->autoPlayNonPlayerTurns($this->loadEncounter($encounter_id));
 
     return new JsonResponse($this->buildEncounterResponse($encounter));
@@ -234,10 +261,23 @@ class CombatEncounterApiController extends ControllerBase {
       return new JsonResponse(['error' => 'Encounter not found'], 404);
     }
 
-    $damage = (int) ($data['action']['damage'] ?? 0);
     $target_ref = $data['targetId'] ?? NULL;
+    $attacker_ref = $data['attackerId'] ?? NULL;
+    $target = $this->findParticipantByReference($encounter['participants'], $target_ref);
+    $attacker = $this->findParticipantByReference($encounter['participants'], $attacker_ref);
 
-    $target = $this->findParticipantByEntityRef($encounter['participants'], $target_ref);
+    if (!$attacker) {
+      return new JsonResponse(['error' => 'Attacker not found in encounter'], 400);
+    }
+
+    $attacker_actions_remaining = (int) ($attacker['actions_remaining'] ?? 0);
+    if ($attacker_actions_remaining <= 0) {
+      return new JsonResponse(['error' => 'No actions remaining for attacker'], 409);
+    }
+
+    $requested_damage = isset($data['damage']) ? (int) $data['damage'] : 0;
+    $damage = $requested_damage > 0 ? $requested_damage : random_int(1, 8);
+
     if ($target && $damage > 0) {
       $hp_before = $target['hp'] ?? NULL;
       $hp_after = $hp_before !== NULL ? max(0, $hp_before - $damage) : NULL;
@@ -258,19 +298,147 @@ class CombatEncounterApiController extends ControllerBase {
       ]);
     }
 
+    $this->encounterStore->updateParticipant((int) $attacker['id'], [
+      'actions_remaining' => max(0, $attacker_actions_remaining - 1),
+      'attacks_this_turn' => (int) ($attacker['attacks_this_turn'] ?? 0) + 1,
+    ]);
+
+    $this->encounterStore->logAction([
+      'encounter_id' => (int) $encounter_id,
+      'participant_id' => (int) $attacker['id'],
+      'action_type' => 'strike',
+      'target_id' => $target['id'] ?? NULL,
+      'payload' => json_encode([
+        'attacker' => $attacker_ref,
+        'target' => $target_ref,
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+      'result' => json_encode([
+        'hit' => !empty($target),
+        'damage' => $damage,
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+    ]);
+
     $encounter = $this->loadEncounter($encounter_id);
 
-    return new JsonResponse([
-      'success' => TRUE,
-      'encounter_id' => $encounter_id,
-      'attacker_id' => $data['attackerId'] ?? NULL,
+    $response = $this->buildEncounterResponse($encounter);
+    $response['success'] = TRUE;
+    $response['action_result'] = [
+      'type' => 'strike',
+      'attacker_id' => $attacker_ref,
       'target_id' => $target_ref,
-      'result' => [
-        'hit' => TRUE,
-        'damage' => $damage,
-      ],
-      'state' => $this->buildEncounterResponse($encounter),
+      'hit' => !empty($target),
+      'damage' => $damage,
+    ];
+
+    return new JsonResponse($response);
+  }
+
+  /**
+   * Execute non-attack combat actions (interact/talk).
+   */
+  public function action(Request $request): JsonResponse {
+    $data = json_decode($request->getContent(), TRUE) ?: [];
+
+    $encounter_id = $data['encounterId'] ?? NULL;
+    $actor_ref = $data['actorId'] ?? NULL;
+    $action_type = (string) ($data['actionType'] ?? '');
+
+    if (!$encounter_id) {
+      return new JsonResponse(['error' => 'encounterId is required'], 400);
+    }
+    if ($action_type === '') {
+      return new JsonResponse(['error' => 'actionType is required'], 400);
+    }
+
+    $allowed_types = ['interact', 'talk'];
+    if (!in_array($action_type, $allowed_types, TRUE)) {
+      return new JsonResponse([
+        'error' => 'Unsupported actionType',
+        'supported' => $allowed_types,
+      ], 400);
+    }
+
+    $encounter = $this->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    if (($encounter['status'] ?? '') !== 'active') {
+      return new JsonResponse(['error' => 'Encounter is not active'], 409);
+    }
+
+    $actor = $this->findParticipantByReference($encounter['participants'] ?? [], $actor_ref);
+    if (!$actor) {
+      return new JsonResponse(['error' => 'Actor not found in encounter'], 400);
+    }
+
+    $turn_index = (int) ($encounter['turn_index'] ?? 0);
+    $active_participant = $encounter['participants'][$turn_index] ?? NULL;
+    if (!$active_participant || (int) ($active_participant['id'] ?? 0) !== (int) ($actor['id'] ?? 0)) {
+      return new JsonResponse(['error' => 'Actor is not the active turn participant'], 409);
+    }
+
+    // Server-authoritative action costs.
+    $cost_by_type = [
+      'interact' => 1,
+      'talk' => 0,
+    ];
+    $cost = $cost_by_type[$action_type] ?? 1;
+
+    if ($action_type === 'interact') {
+      $target_hex = $data['targetHex'] ?? NULL;
+      if (!is_array($target_hex) || !isset($target_hex['q']) || !isset($target_hex['r'])) {
+        return new JsonResponse(['error' => 'targetHex {q,r} is required for interact'], 400);
+      }
+    }
+
+    if ($action_type === 'talk') {
+      $message = trim((string) ($data['message'] ?? ''));
+      if ($message === '') {
+        return new JsonResponse(['error' => 'message is required for talk'], 400);
+      }
+    }
+
+    $actions_remaining = (int) ($actor['actions_remaining'] ?? 0);
+    if ($cost > 0 && $actions_remaining < $cost) {
+      return new JsonResponse(['error' => 'Not enough actions remaining'], 409);
+    }
+
+    if ($cost > 0) {
+      $this->encounterStore->updateParticipant((int) $actor['id'], [
+        'actions_remaining' => max(0, $actions_remaining - $cost),
+      ]);
+    }
+
+    $this->encounterStore->logAction([
+      'encounter_id' => (int) $encounter_id,
+      'participant_id' => (int) $actor['id'],
+      'action_type' => $action_type,
+      'target_id' => NULL,
+      'payload' => json_encode([
+        'actor' => $actor_ref,
+        'target' => $data['targetId'] ?? NULL,
+        'interaction_type' => $data['interactionType'] ?? NULL,
+        'target_hex' => $data['targetHex'] ?? NULL,
+        'message' => $data['message'] ?? NULL,
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+      'result' => json_encode([
+        'accepted' => TRUE,
+        'cost' => $cost,
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
     ]);
+
+    $updated = $this->loadEncounter((int) $encounter_id);
+    $response = $this->buildEncounterResponse($updated);
+    $response['success'] = TRUE;
+    $response['action_result'] = [
+      'type' => $action_type,
+      'actor_id' => $actor_ref,
+      'cost' => $cost,
+      'interaction_type' => $data['interactionType'] ?? NULL,
+    ];
+
+    return new JsonResponse($response);
   }
 
   /**
@@ -395,31 +563,8 @@ class CombatEncounterApiController extends ControllerBase {
         break;
       }
 
-      // Pick first alive player target.
-      $target_idx = $this->findFirstAlivePlayerIndex($participants);
-      if ($target_idx !== NULL) {
-        $target = $participants[$target_idx];
-        $damage = random_int(1, 6);
-        $hp_before = $target['hp'] ?? NULL;
-        $hp_after = $hp_before !== NULL ? max(0, $hp_before - $damage) : NULL;
-
-        $this->encounterStore->updateParticipant((int) $target['id'], [
-          'hp' => $hp_after,
-          'is_defeated' => ($hp_after !== NULL && $hp_after <= 0) ? 1 : 0,
-        ]);
-
-        $this->encounterStore->logDamage([
-          'encounter_id' => $encounter['id'],
-          'participant_id' => (int) $target['id'],
-          'amount' => $damage,
-          'damage_type' => 'bludgeoning',
-          'source' => $current['entity_ref'] ?? $current['entity_id'] ?? NULL,
-          'hp_before' => $hp_before,
-          'hp_after' => $hp_after,
-        ]);
-
-        $encounter = $this->loadEncounter((int) $encounter['id']);
-      }
+      $this->runNpcTurnAction($encounter, $current, $participants);
+      $encounter = $this->loadEncounter((int) $encounter['id']);
 
       // Advance turn index and round.
       $next_index = $this->findNextTurnIndex($encounter['participants'] ?? [], (int) $encounter['turn_index']);
@@ -449,6 +594,149 @@ class CombatEncounterApiController extends ControllerBase {
   }
 
   /**
+   * Run current NPC turn action using AI recommendation when enabled.
+   *
+   * Falls back to deterministic first-alive-player strike if AI is disabled,
+   * invalid, or unavailable.
+   */
+  protected function runNpcTurnAction(array $encounter, array $current, array $participants): void {
+    $action_type = 'strike';
+    $target_idx = $this->findFirstAlivePlayerIndex($participants);
+    $ai_context = NULL;
+
+    if ($this->isEncounterAiNpcAutoplayEnabled()) {
+      try {
+        $campaign_id = isset($encounter['campaign_id']) && $encounter['campaign_id'] !== NULL
+          ? (int) $encounter['campaign_id']
+          : 0;
+        $encounter_id = isset($encounter['id']) ? (int) $encounter['id'] : (int) ($encounter['encounter_id'] ?? 0);
+
+        $context = $this->encounterAiIntegration->buildEncounterContext($campaign_id, $encounter_id, $encounter);
+        $ai_context = $context;
+        $ai_response = $this->encounterAiIntegration->requestNpcActionRecommendation($context);
+        $validation = $ai_response['validation'] ?? [];
+
+        if (!empty($validation['valid'])) {
+          $recommendation = is_array($ai_response['recommendation'] ?? NULL) ? $ai_response['recommendation'] : [];
+          $recommended_action = is_array($recommendation['recommended_action'] ?? NULL) ? $recommendation['recommended_action'] : [];
+          $action_type = (string) ($recommended_action['type'] ?? 'strike');
+
+          if ($action_type === 'strike') {
+            $target_ref = (string) ($recommended_action['target_instance_id'] ?? '');
+            $target_idx = $this->findParticipantIndexByReference($participants, $target_ref);
+            if ($target_idx === NULL) {
+              $target_idx = $this->findFirstAlivePlayerIndex($participants);
+            }
+          }
+        }
+      }
+      catch (\Throwable $exception) {
+        $this->logger('dungeoncrawler_content')->warning('Encounter AI autoplay fallback: @message', [
+          '@message' => $exception->getMessage(),
+        ]);
+      }
+    }
+
+    if ($this->isEncounterAiNarrationEnabled() && is_array($ai_context) && isset($current['id'])) {
+      $this->persistEncounterNarrationEvent($encounter, (int) $current['id'], $ai_context);
+    }
+
+    if ($action_type !== 'strike' || $target_idx === NULL) {
+      return;
+    }
+
+    $target = $participants[$target_idx];
+    $damage = random_int(1, 6);
+    $hp_before = $target['hp'] ?? NULL;
+    $hp_after = $hp_before !== NULL ? max(0, $hp_before - $damage) : NULL;
+
+    $this->encounterStore->updateParticipant((int) $target['id'], [
+      'hp' => $hp_after,
+      'is_defeated' => ($hp_after !== NULL && $hp_after <= 0) ? 1 : 0,
+    ]);
+
+    $this->encounterStore->logDamage([
+      'encounter_id' => $encounter['id'],
+      'participant_id' => (int) $target['id'],
+      'amount' => $damage,
+      'damage_type' => 'bludgeoning',
+      'source' => $current['entity_ref'] ?? $current['entity_id'] ?? NULL,
+      'hp_before' => $hp_before,
+      'hp_after' => $hp_after,
+    ]);
+  }
+
+  /**
+   * Check if encounter AI-driven NPC auto-play is enabled in config.
+   */
+  protected function isEncounterAiNpcAutoplayEnabled(): bool {
+    return (bool) $this->configFactory
+      ->get('dungeoncrawler_content.settings')
+      ->get('encounter_ai_npc_autoplay_enabled');
+  }
+
+  /**
+   * Check if encounter narration event persistence is enabled in config.
+   */
+  protected function isEncounterAiNarrationEnabled(): bool {
+    return (bool) $this->configFactory
+      ->get('dungeoncrawler_content.settings')
+      ->get('encounter_ai_narration_enabled');
+  }
+
+  /**
+   * Persist AI narration event into encounter action timeline.
+   */
+  protected function persistEncounterNarrationEvent(array $encounter, int $participant_id, array $context): void {
+    try {
+      $narration_response = $this->encounterAiIntegration->requestEncounterNarration($context);
+      $narration_payload = is_array($narration_response['narration'] ?? NULL)
+        ? $narration_response['narration']
+        : [];
+
+      if (empty($narration_payload)) {
+        return;
+      }
+
+      $this->encounterStore->logAction([
+        'encounter_id' => (int) ($encounter['id'] ?? $encounter['encounter_id']),
+        'participant_id' => $participant_id,
+        'action_type' => 'ai_narration',
+        'target_id' => NULL,
+        'payload' => json_encode($narration_payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        'result' => json_encode([
+          'provider' => $narration_response['provider'] ?? 'unknown',
+          'requested_at' => $narration_response['requested_at'] ?? time(),
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+      ]);
+    }
+    catch (\Throwable $exception) {
+      $this->logger('dungeoncrawler_content')->warning('Encounter narration persistence skipped: @message', [
+        '@message' => $exception->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Find participant index by entity reference or entity ID.
+   */
+  protected function findParticipantIndexByReference(array $participants, string $reference): ?int {
+    if ($reference === '') {
+      return NULL;
+    }
+
+    foreach ($participants as $idx => $participant) {
+      $entity_ref = (string) ($participant['entity_ref'] ?? '');
+      $entity_id = (string) ($participant['entity_id'] ?? '');
+      if ($entity_ref === $reference || $entity_id === $reference) {
+        return $idx;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
    * Find the next non-defeated participant index, wrapping around.
    */
   protected function findNextTurnIndex(array $participants, int $current_index): int {
@@ -471,9 +759,9 @@ class CombatEncounterApiController extends ControllerBase {
   /**
    * Find participant by entity_ref.
    */
-  protected function findParticipantByEntityRef(array $participants, $entity_ref): ?array {
+  protected function findParticipantByReference(array $participants, $entity_ref): ?array {
     foreach ($participants as $participant) {
-      if ((string) ($participant['entity_ref'] ?? '') === (string) $entity_ref) {
+      if ((string) ($participant['entity_ref'] ?? '') === (string) $entity_ref || (string) ($participant['entity_id'] ?? '') === (string) $entity_ref || (string) ($participant['id'] ?? '') === (string) $entity_ref) {
         return $participant;
       }
     }

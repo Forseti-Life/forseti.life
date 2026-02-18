@@ -143,7 +143,7 @@ function ai_conversation_install() {
     $suggestion_type = NodeType::create([
       'type' => 'community_suggestion',
       'name' => 'Community Suggestion',
-      'description' => 'A suggestion submitted by a community member through Forseti AI',
+      'description' => 'A suggestion submitted by a player through Forseti, Game Master of Dungeoncrawler',
       'settings' => [
         'node' => [
           'options' => [
@@ -267,7 +267,7 @@ function _ai_conversation_create_fields() {
         'label' => $field_info['label'],
         'description' => $field_info['description'],
         'required' => $field_info['required'] ?? FALSE,
-        'default_value' => $field_info['default_value'] ?? NULL,
+        'default_value' => $field_info['default_value'] ?? [],
         'settings' => [],
       ]);
       $field_config->save();
@@ -367,7 +367,7 @@ function _ai_conversation_create_suggestion_fields() {
         'label' => $field_info['label'],
         'description' => $field_info['description'],
         'required' => $field_info['required'] ?? FALSE,
-        'default_value' => $field_info['default_value'] ?? NULL,
+        'default_value' => $field_info['default_value'] ?? [],
         'settings' => [],
       ]);
       $field_config->save();
@@ -626,7 +626,7 @@ function ai_conversation_update_8001() {
         'label' => $field_info['label'],
         'description' => $field_info['description'],
         'required' => FALSE,
-        'default_value' => $field_info['default_value'] ?? NULL,
+        'default_value' => $field_info['default_value'] ?? [],
         'settings' => [],
       ]);
       $field_config->save();
@@ -727,12 +727,142 @@ function ai_conversation_update_8003() {
 }
 
 /**
- * Update system prompt configuration with Forseti AI assistant persona.
+ * Update system prompt configuration with Forseti Game Master persona.
  */
 function ai_conversation_update_8005() {
   // Use PromptManager to update to Forseti system prompt
   $prompt_manager = \Drupal::service('ai_conversation.prompt_manager');
   $prompt_manager->initializeDefaultPrompt();
   
-  return t('Updated AI conversation system prompt with Forseti AI assistant persona.');
+  return t('Updated AI conversation system prompt with Forseti Game Master persona.');
+}
+
+/**
+ * Add debugging fields to API usage tracking table.
+ */
+function ai_conversation_update_8006() {
+  $schema = \Drupal::database()->schema();
+  $table = 'ai_conversation_api_usage';
+  
+  // Add success status field
+  if (!$schema->fieldExists($table, 'success')) {
+    $schema->addField($table, 'success', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => FALSE,
+      'default' => 1,
+      'description' => 'Whether the API call succeeded (1) or failed (0)',
+    ]);
+  }
+  
+  // Add error message field
+  if (!$schema->fieldExists($table, 'error_message')) {
+    $schema->addField($table, 'error_message', [
+      'type' => 'text',
+      'size' => 'normal',
+      'not null' => FALSE,
+      'description' => 'Error message if API call failed',
+    ]);
+  }
+  
+  // Add full prompt field for debugging
+  if (!$schema->fieldExists($table, 'prompt_preview')) {
+    $schema->addField($table, 'prompt_preview', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'Full prompt sent to AI for debugging (stored as MEDIUMTEXT)',
+    ]);
+  }
+  
+  // Add full response field for debugging
+  if (!$schema->fieldExists($table, 'response_preview')) {
+    $schema->addField($table, 'response_preview', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'Full response from AI for debugging (stored as MEDIUMTEXT)',
+    ]);
+  }
+  
+  return t('Added debugging fields (success, error_message, prompt_preview, response_preview) to API usage tracking table for easier troubleshooting.');
+}
+/**
+ * Add operation-specific max_tokens configuration settings.
+ */
+function ai_conversation_update_8007() {
+  $config = \Drupal::configFactory()->getEditable('ai_conversation.settings');
+  
+  // Set operation-specific max_tokens if not already set
+  if (!$config->get('max_tokens_resume_tailoring')) {
+    $config->set('max_tokens_resume_tailoring', 30000);
+  }
+  if (!$config->get('max_tokens_resume_parsing')) {
+    $config->set('max_tokens_resume_parsing', 20000);
+  }
+  if (!$config->get('max_tokens_cover_letter')) {
+    $config->set('max_tokens_cover_letter', 4000);
+  }
+  if (!$config->get('max_tokens_job_parsing')) {
+    $config->set('max_tokens_job_parsing', 8000);
+  }
+  
+  $config->save();
+  
+  return t('Added operation-specific max_tokens settings: resume_tailoring=30000, resume_parsing=20000, cover_letter=4000, job_parsing=8000');
+}
+
+/**
+ * Normalize NULL field default values to empty sequences for schema compliance.
+ */
+function ai_conversation_update_8008() {
+  $fields_by_bundle = [
+    'ai_conversation' => [
+      'field_messages',
+      'field_context',
+      'field_conversation_summary',
+      'field_summary_updated',
+    ],
+    'community_suggestion' => [
+      'field_suggestion_summary',
+      'field_original_message',
+      'field_conversation_reference',
+      'field_suggestion_category',
+    ],
+  ];
+
+  $updated = 0;
+  foreach ($fields_by_bundle as $bundle => $field_names) {
+    foreach ($field_names as $field_name) {
+      $field_config = FieldConfig::loadByName('node', $bundle, $field_name);
+      if ($field_config && $field_config->get('default_value') === NULL) {
+        $field_config->set('default_value', []);
+        $field_config->save();
+        $updated++;
+      }
+    }
+  }
+
+  return t('Normalized @count field default values for schema compliance.', ['@count' => $updated]);
+}
+
+/**
+ * Migrate legacy community/safety prompt text to Game Master persona.
+ */
+function ai_conversation_update_8009() {
+  $config = \Drupal::configFactory()->getEditable('ai_conversation.settings');
+  $current_prompt = (string) $config->get('system_prompt');
+
+  $looks_legacy =
+    stripos($current_prompt, 'community services platform') !== FALSE ||
+    stripos($current_prompt, 'safety intelligence') !== FALSE ||
+    stripos($current_prompt, 'St. Louis Integration') !== FALSE;
+
+  if ($looks_legacy || trim($current_prompt) === '') {
+    $prompt_manager = \Drupal::service('ai_conversation.prompt_manager');
+    $prompt_manager->initializeDefaultPrompt();
+    return t('Migrated system prompt to Forseti Game Master persona for Dungeoncrawler.');
+  }
+
+  return t('Skipped prompt migration because a custom non-legacy prompt is already configured.');
 }

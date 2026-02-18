@@ -15,8 +15,8 @@
     <p>{{ 'Interactive hexagonal grid powered by PixiJS'|t }}</p>
     
     <div class="hexmap-controls">
-      <div class="control-group">
-        <label>{{ 'Grid Size:'|t }}</label>
+      <div class="control-group control-group--config">
+        <label class="control-group__title">{{ 'Map Size:'|t }}</label>
         <select id="grid-size">
           <option value="small">{{ 'Small (10x10)'|t }}</option>
           <option value="medium" selected>{{ 'Medium (20x20)'|t }}</option>
@@ -24,15 +24,17 @@
         </select>
       </div>
       
-      <div class="control-group">
-        <label>{{ 'Hex Size:'|t }}</label>
+      <div class="control-group control-group--config">
+        <label class="control-group__title">{{ 'Zoom Baseline:'|t }}</label>
         <input type="range" id="hex-size" min="20" max="60" value="30" />
         <span id="hex-size-value">30px</span>
       </div>
       
-      <div class="control-group">
+      <div class="control-group control-group--view">
+        <label class="control-group__title">{{ 'View:'|t }}</label>
         <button id="toggle-coordinates" class="btn">{{ 'Toggle Coordinates'|t }}</button>
         <button id="toggle-grid" class="btn">{{ 'Toggle Grid Lines'|t }}</button>
+        <button id="toggle-fog" class="btn">{{ 'Toggle Fog of War'|t }}</button>
         <button id="reset-view" class="btn">{{ 'Reset View'|t }}</button>
       </div>
     </div>
@@ -101,6 +103,8 @@
           <div class="action-buttons" id="action-menu">
             <button id="action-move" class="btn btn-ghost">{{ 'Move'|t }}</button>
             <button id="action-attack" class="btn btn-primary">{{ 'Attack'|t }}</button>
+            <button id="action-interact" class="btn btn-ghost">{{ 'Interact'|t }}</button>
+            <button id="action-talk" class="btn btn-ghost">{{ 'Talk'|t }}</button>
             <button id="end-turn" class="btn btn-primary" style="display:none;">{{ 'End Turn'|t }}</button>
           </div>
           <p id="action-instruction" class="action-instruction">{{ 'Select a hostile target to attack.'|t }}</p>

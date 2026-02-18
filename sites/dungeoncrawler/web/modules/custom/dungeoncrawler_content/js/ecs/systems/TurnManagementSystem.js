@@ -521,6 +521,43 @@ export class TurnManagementSystem extends System {
       ? serverState.initiative_order.map((entry) => entry.entity_id)
       : [];
 
+    const participants = Array.isArray(serverState.participants) ? serverState.participants : [];
+    participants.forEach((participant) => {
+      const entityId = Number(participant?.entity_id);
+      if (!Number.isFinite(entityId)) {
+        return;
+      }
+
+      const entity = this.entityManager.getEntity(entityId);
+      if (!entity) {
+        return;
+      }
+
+      const combat = entity.getComponent('CombatComponent');
+      if (combat) {
+        if (participant?.team) {
+          combat.team = participant.team;
+        }
+        combat.isDefeated = Boolean(participant?.is_defeated);
+        combat.inCombat = serverState?.status === 'active';
+      }
+
+      const actions = entity.getComponent('ActionsComponent');
+      if (actions) {
+        const remaining = Number(participant?.actions_remaining);
+        if (Number.isFinite(remaining)) {
+          actions.actionsRemaining = Math.max(0, remaining);
+          actions.canAct = actions.actionsRemaining > 0;
+        }
+
+        const attacksMade = Number(participant?.attacks_this_turn);
+        if (Number.isFinite(attacksMade)) {
+          actions.attacksMadeThisTurn = Math.max(0, attacksMade);
+          actions.mapPenalty = actions.attacksMadeThisTurn * actions.mapPenaltyPerAttack;
+        }
+      }
+    });
+
     this.initiativeOrder = order;
     this.currentTurnIndex = Number.isInteger(serverState.turn_index) ? serverState.turn_index : 0;
     this.currentRound = Number.isInteger(serverState.current_round) ? serverState.current_round : 1;

@@ -267,7 +267,7 @@ function _ai_conversation_create_fields() {
         'label' => $field_info['label'],
         'description' => $field_info['description'],
         'required' => $field_info['required'] ?? FALSE,
-        'default_value' => $field_info['default_value'] ?? NULL,
+        'default_value' => $field_info['default_value'] ?? [],
         'settings' => [],
       ]);
       $field_config->save();
@@ -367,7 +367,7 @@ function _ai_conversation_create_suggestion_fields() {
         'label' => $field_info['label'],
         'description' => $field_info['description'],
         'required' => $field_info['required'] ?? FALSE,
-        'default_value' => $field_info['default_value'] ?? NULL,
+        'default_value' => $field_info['default_value'] ?? [],
         'settings' => [],
       ]);
       $field_config->save();
@@ -626,7 +626,7 @@ function ai_conversation_update_8001() {
         'label' => $field_info['label'],
         'description' => $field_info['description'],
         'required' => FALSE,
-        'default_value' => $field_info['default_value'] ?? NULL,
+        'default_value' => $field_info['default_value'] ?? [],
         'settings' => [],
       ]);
       $field_config->save();
@@ -810,4 +810,38 @@ function ai_conversation_update_8007() {
   $config->save();
   
   return t('Added operation-specific max_tokens settings: resume_tailoring=30000, resume_parsing=20000, cover_letter=4000, job_parsing=8000');
+}
+
+/**
+ * Normalize NULL field default values to empty sequences for schema compliance.
+ */
+function ai_conversation_update_8008() {
+  $fields_by_bundle = [
+    'ai_conversation' => [
+      'field_messages',
+      'field_context',
+      'field_conversation_summary',
+      'field_summary_updated',
+    ],
+    'community_suggestion' => [
+      'field_suggestion_summary',
+      'field_original_message',
+      'field_conversation_reference',
+      'field_suggestion_category',
+    ],
+  ];
+
+  $updated = 0;
+  foreach ($fields_by_bundle as $bundle => $field_names) {
+    foreach ($field_names as $field_name) {
+      $field_config = FieldConfig::loadByName('node', $bundle, $field_name);
+      if ($field_config && $field_config->get('default_value') === NULL) {
+        $field_config->set('default_value', []);
+        $field_config->save();
+        $updated++;
+      }
+    }
+  }
+
+  return t('Normalized @count field default values for schema compliance.', ['@count' => $updated]);
 }

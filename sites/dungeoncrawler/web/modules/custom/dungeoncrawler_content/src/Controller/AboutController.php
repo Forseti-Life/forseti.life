@@ -25,8 +25,8 @@ class AboutController extends ControllerBase {
         '#markup' => '<div class="card bg-gradient-dark text-light border-0">
           <div class="card-body p-5">
             <h1 class="display-3 mb-4">Dungeon Crawler Life</h1>
-            <p class="lead fs-3">Where AI Meets Adventure</p>
-            <p class="fs-5 text-muted">A living, breathing dungeon that evolves with every step you take</p>
+            <p class="lead fs-3">Where Forseti Guides Every Adventure</p>
+            <p class="fs-5 text-muted">A living dungeon shaped by your choices, your party, and your next risk</p>
           </div>
         </div>',
       ],
@@ -39,8 +39,8 @@ class AboutController extends ControllerBase {
         '#markup' => '<div class="card bg-dark text-light">
           <div class="card-body p-4">
             <h2 class="card-title mb-4">The Vision</h2>
-            <p class="lead">Dungeon Crawler Life represents a new paradigm in dungeon crawling RPGs: a game where artificial intelligence doesn\'t just power the enemies, but creates them.</p>
-            <p>Traditional dungeon crawlers rely on handcrafted content created by designers. While this can create memorable experiences, it\'s limited by time, resources, and human imagination. We asked ourselves: what if the dungeon itself could imagine?</p>
+            <p class="lead">Dungeon Crawler Life is a living campaign world where Forseti, your Game Master, keeps every expedition responsive, dangerous, and story-rich.</p>
+            <p>Traditional dungeon crawlers can feel static after enough runs. Our goal is a world that reacts: encounters shift, rooms evolve, and narrative hooks adapt to your decisions in real time.</p>
             <p>Using advanced AI technology, Dungeon Crawler Life generates:</p>
             <ul>
               <li><strong>Unique Creatures:</strong> Each enemy you encounter is procedurally generated with its own abilities, behaviors, and appearance</li>
@@ -62,8 +62,8 @@ class AboutController extends ControllerBase {
     $features = [
       [
         'icon' => '🤖',
-        'title' => 'AI-Powered Generation',
-        'description' => 'Every aspect of the game is enhanced by artificial intelligence, creating truly unique experiences.',
+        'title' => 'Forseti-Guided Generation',
+        'description' => 'Forseti orchestrates dynamic content so every crawl feels authored for your current campaign.',
       ],
       [
         'icon' => '🎲',
@@ -88,7 +88,7 @@ class AboutController extends ControllerBase {
       [
         'icon' => '📱',
         'title' => 'Play Anywhere',
-        'description' => 'Web-based platform means you can continue your adventure from any device.',
+        'description' => 'Continue your campaign from web or mobile without losing momentum.',
       ],
     ];
 
@@ -149,7 +149,7 @@ class AboutController extends ControllerBase {
         '#markup' => '<div class="card bg-dark text-light">
           <div class="card-body p-4 text-center">
             <h2 class="card-title mb-4">The Team</h2>
-            <p class="lead">Dungeon Crawler Life is developed by Forseti Life, a team passionate about combining cutting-edge AI technology with classic RPG gameplay.</p>
+            <p class="lead">Dungeon Crawler Life is built by a small studio team focused on living-world RPG systems, with Forseti serving as the Game Master voice guiding every adventure.</p>
             <p>We believe that games should be: <strong>innovative</strong>, <strong>accessible</strong>, and <strong>infinitely replayable</strong>.</p>
           </div>
         </div>',
@@ -162,8 +162,8 @@ class AboutController extends ControllerBase {
       'content' => [
         '#markup' => '<div class="card bg-primary text-light border-0">
           <div class="card-body p-5">
-            <h2 class="card-title mb-4">Ready to Experience the Future of Dungeon Crawling?</h2>
-            <p class="lead mb-4">Join thousands of adventurers in the Living Dungeon</p>
+            <h2 class="card-title mb-4">Ready for Your Next Expedition?</h2>
+            <p class="lead mb-4">Gather your party and let Forseti open the first chamber.</p>
             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
               <a href="/characters/create" class="btn btn-light btn-lg px-5">Create Character</a>
               <a href="/how-to-play" class="btn btn-outline-light btn-lg px-5">Learn More</a>

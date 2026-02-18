@@ -37,6 +37,8 @@ Rows are merged using each table's unique keys (or primary key fallback).
 
 Each table directory now includes a single default JSON file with **10 template rows** to provide a larger starter library for generation, testing, and encounter design.
 
+Item-focused directories may include additional rows beyond this baseline to support character-creation equipment purchasing and starter loot pools sourced from Pathfinder Core Rulebook equipment lists.
+
 Expanded tables:
 - `dungeoncrawler_content_campaigns`
 - `dungeoncrawler_content_characters`

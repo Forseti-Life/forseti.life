@@ -583,6 +583,11 @@ class CharacterCreationStepForm extends FormBase {
    * All items include: id, name, cost, bulk, and category-specific fields.
    */
   private function getEquipmentCatalog(): array {
+    $template_catalog = $this->buildEquipmentCatalogFromTemplates();
+    if (!empty($template_catalog['weapons']) || !empty($template_catalog['armor']) || !empty($template_catalog['gear'])) {
+      return $template_catalog;
+    }
+
     return [
       'weapons' => [
         ['id' => 'longsword', 'name' => 'Longsword', 'type' => 'weapon', 'cost' => 1.0, 'bulk' => 1, 'damage' => '1d8 S', 'hands' => 1, 'traits' => ['versatile P']],
@@ -619,6 +624,107 @@ class CharacterCreationStepForm extends FormBase {
         ['id' => 'oil-flask', 'name' => 'Oil (1 flask)', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
       ],
     ];
+  }
+
+  /**
+   * Builds step-7 equipment catalog from template item tables.
+   */
+  private function buildEquipmentCatalogFromTemplates(): array {
+    $catalog = [
+      'weapons' => [],
+      'armor' => [],
+      'gear' => [],
+    ];
+
+    if (!$this->database->schema()->tableExists('dungeoncrawler_content_item_instances') || !$this->database->schema()->tableExists('dungeoncrawler_content_registry')) {
+      return $catalog;
+    }
+
+    $query = $this->database->select('dungeoncrawler_content_item_instances', 'ii');
+    $query->fields('ii', ['item_id']);
+    $query->leftJoin('dungeoncrawler_content_registry', 'r', 'r.content_type = :content_type AND r.content_id = ii.item_id', [':content_type' => 'item']);
+    $query->fields('r', ['name', 'tags', 'schema_data']);
+    $query->distinct();
+
+    $result = $query->execute();
+
+    foreach ($result as $row) {
+      $item_id = (string) ($row->item_id ?? '');
+      if ($item_id === '') {
+        continue;
+      }
+
+      $schema_data = json_decode((string) ($row->schema_data ?? '{}'), TRUE);
+      if (!is_array($schema_data)) {
+        $schema_data = [];
+      }
+
+      $tags = $this->normalizeTags((string) ($row->tags ?? ''));
+      $category = $this->mapTemplateItemCategory((string) ($schema_data['item_type'] ?? ''), $tags);
+
+      $name = (string) ($row->name ?? '');
+      if ($name === '') {
+        $name = ucwords(str_replace('_', ' ', $item_id));
+      }
+
+      $item = [
+        'id' => $item_id,
+        'name' => $name,
+        'type' => (string) ($schema_data['item_type'] ?? 'adventuring_gear'),
+        'cost' => (float) ($schema_data['price_gp'] ?? 0),
+        'bulk' => $schema_data['bulk'] ?? 'L',
+        'traits' => $tags,
+      ];
+
+      if ($category === 'weapons') {
+        $item['damage'] = (string) ($schema_data['damage'] ?? '');
+        $item['hands'] = (int) ($schema_data['hands'] ?? 1);
+      }
+      elseif ($category === 'armor') {
+        $item['ac'] = (string) ($schema_data['ac'] ?? '');
+      }
+
+      $catalog[$category][$item_id] = $item;
+    }
+
+    foreach (['weapons', 'armor', 'gear'] as $category) {
+      uasort($catalog[$category], static function (array $a, array $b): int {
+        return strnatcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+      });
+      $catalog[$category] = array_values($catalog[$category]);
+    }
+
+    return $catalog;
+  }
+
+  /**
+   * Normalizes stored registry tags into a plain string list.
+   */
+  private function normalizeTags(string $raw_tags): array {
+    $decoded = json_decode($raw_tags, TRUE);
+    if (is_array($decoded)) {
+      return array_values(array_filter(array_map(static fn($tag): string => (string) $tag, $decoded)));
+    }
+
+    return [];
+  }
+
+  /**
+   * Maps template item metadata to step-7 equipment categories.
+   */
+  private function mapTemplateItemCategory(string $item_type, array $tags): string {
+    $normalized_type = strtolower($item_type);
+    $normalized_tags = array_map('strtolower', $tags);
+
+    if ($normalized_type === 'weapon' || in_array('weapon', $normalized_tags, TRUE)) {
+      return 'weapons';
+    }
+
+    if ($normalized_type === 'armor' || in_array('armor', $normalized_tags, TRUE) || in_array('shield', $normalized_tags, TRUE)) {
+      return 'armor';
+    }
+
+    return 'gear';
   }
 
   /**

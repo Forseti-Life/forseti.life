@@ -1,5 +1,12 @@
-# AI Chat menu item removed - now requires authentication
-# Users can access AI Chat directly via URL /ai-chat when logged in
+# Forseti GM chat menu item removed - now requires authentication
+# Users can access Forseti GM chat directly via URL /ai-chat when logged in
+
+ai_conversation.settings:
+  title: 'AI Conversation Settings'
+  route_name: ai_conversation.settings
+  description: 'Configure GenAI API credentials, models, prompts, and token limits'
+  parent: system.admin_config_services
+  weight: 20
 
 ai_conversation.usage_report:
   title: 'GenAI API Usage & Costs'
@@ -7,24 +14,3 @@ ai_conversation.usage_report:
   description: 'View GenAI API usage statistics, costs, and performance metrics'
   parent: system.admin_reports
   weight: 10
-
-ai_conversation.settings_menu:
-  title: 'AI Conversation Settings'
-  route_name: ai_conversation.settings
-  description: 'Configure AI Conversation (models, prompts, Copilot token)'
-  parent: system.admin_config_services
-  weight: 0
-
-ai_conversation.update_prompt_menu:
-  title: 'Update System Prompt'
-  route_name: ai_conversation.update_prompt
-  description: 'Edit the system prompt used by AI Conversation'
-  parent: system.admin_config_services
-  weight: 1
-
-ai_conversation.node10_menu:
-  title: 'Fetch Node 10 Content'
-  route_name: ai_conversation.get_node10
-  description: 'Utility endpoint to fetch node 10 content for testing'
-  parent: system.admin_config_services
-  weight: 2

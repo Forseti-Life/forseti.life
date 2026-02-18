@@ -44,4 +44,9 @@ export default {
     // Expected payload: { encounterId, attackerId, targetId, action }
     return postJson('/api/combat/attack', payload);
   },
+
+  async performAction(payload) {
+    // Expected payload: { encounterId, actorId, actionType, actionCost?, targetId?, interactionType?, targetHex?, message? }
+    return postJson('/api/combat/action', payload);
+  },
 };

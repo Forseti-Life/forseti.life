@@ -31,8 +31,17 @@ dungeoncrawler_content.game_objects:
 dungeoncrawler_content.gemini_image_interface:
   path: '/admin/content/dungeoncrawler/gemini-image'
   defaults:
-    _form: '\Drupal\dungeoncrawler_content\Form\GeminiImageInterfaceForm'
-    _title: 'Gemini Image Interface'
+    _form: '\Drupal\dungeoncrawler_content\Form\ImageGenerationInterfaceForm'
+    _title: 'Image Generation'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access content overview'
+
+dungeoncrawler_content.image_generation_interface:
+  path: '/admin/content/dungeoncrawler/image-generation'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\ImageGenerationInterfaceForm'
+    _title: 'Image Generation'
   methods: [GET, POST]
   requirements:
     _permission: 'access content overview'
@@ -521,6 +530,16 @@ dungeoncrawler_content.api.combat_attack:
   path: '/api/combat/attack'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::attack'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.combat_action:
+  path: '/api/combat/action'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::action'
   methods: [POST]
   requirements:
     _permission: 'access dungeoncrawler characters'

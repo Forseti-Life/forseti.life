@@ -1,5 +1,5 @@
 /**
- * Animated Hexagonal Particle Background for Forseti Life
+ * Animated Hexagonal Particle Background for Dungeon Crawler Life
  * Enhanced with rotating hex-themed elements
  */
 

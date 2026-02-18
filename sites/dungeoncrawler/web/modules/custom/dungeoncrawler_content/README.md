@@ -7,13 +7,14 @@
 
 ## Overview
 
-Core content module for the AI-generated living dungeon crawler RPG. Provides character management, game content types, and navigation structure for Dungeon Crawler Life.
+Core content module for the living dungeon crawler RPG. Provides character management, game content types, and navigation structure for the Dungeoncrawler universe.
 
 ## Features
 
 ### Character Management System
 - **Character CRUD Operations**: Create, read, update, delete player characters
 - **Character Service**: `dungeoncrawler_content.character_manager` - Database operations for character data
+- **Template-backed starting equipment**: Character creation step 7 now loads purchase options from `dungeoncrawler_content_item_instances` joined with `dungeoncrawler_content_registry` (with static fallback if template tables are unavailable)
 - **Character Routes**:
   - `/characters` - List all user's characters
   - `/characters/create` - Create new character
@@ -66,11 +67,12 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 ### Information Pages
 - **World Lore** (`/world`) - Living dungeon background and lore
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
-- **About** (`/about`) - Game information and technology
+- **About** (`/about`) - Game information, technology, and Forseti Game Master framing
 
 ### AI Image Generation Integration (Gemini + Vertex)
 - **Dashboard panel**: `/admin/content/dungeoncrawler` includes an **AI Image Generation (Gemini + Vertex)** panel.
-- **Gemini direct interface**: `/admin/content/dungeoncrawler/gemini-image` provides a dedicated Gemini prompt → image UI with inline preview.
+- **Image generation interface**: `/admin/content/dungeoncrawler/image-generation` provides a dedicated prompt → image UI with inline preview.
+- **Legacy URL compatibility**: `/admin/content/dungeoncrawler/gemini-image` remains available and maps to the same interface.
 - **Provider-aware request form**: Captures provider (Gemini/Vertex), prompt, style, aspect ratio, negative prompt, and campaign context.
 - **Integration layer**: `dungeoncrawler_content.image_generation_integration` routes generation requests to provider services.
 - **Provider services**:
@@ -100,7 +102,7 @@ Located in `navbar_left` region. Menu items (in order):
 3. **World** - Lore and world information (`/world`)
 4. **How to Play** - Game mechanics guide (`/how-to-play`)
 5. **About** - About the game (`/about`)
-6. **DC Administration** - Admin navigation group for Dungeon Crawler management routes (includes **Game Dashboard**, **Game Objects**, **Gemini Image Interface**, **Dungeon Settings**, **Testing Dashboard**, **Controller Architecture**, and **Encounter AI Integration**)
+6. **DC Administration** - Admin navigation group for Dungeon Crawler management routes (includes **Game Dashboard**, **Game Objects**, **Image Generation**, **Dungeon Settings**, **Testing Dashboard**, **Controller Architecture**, and **Encounter AI Integration**)
 
 #### Footer Menu
 Located in `footer` region. Menu items (in order):
@@ -337,7 +339,18 @@ Standard permissions for authenticated users to access and manage their own cont
 - Server-authoritative combat endpoints (`/api/combat/*`) require authenticated gameplay context and `access dungeoncrawler characters` permission.
 - Hexmap client only auto-starts server combat when a valid `campaign_id` launch context is present.
 - Direct `/hexmap` demo access without campaign context remains available for map/UI exploration, but does not auto-initiate server combat encounters.
+- Hexmap action rail includes streamlined player actions (`Move`, `Attack`, `Interact`, `Talk`, `End Turn`) with disabled-state semantics synchronized to turn/action availability.
+- Interact mode supports adjacent object interactions (door-like obstacle opening, movable obstacle push/reposition, blocked room-connection opening) using 1-action economy rules.
+- `/api/combat/action` is backend-authoritative for non-attack actions: only `interact` and `talk` are accepted, with server-enforced costs (`interact=1`, `talk=0`) regardless of client payload.
+- Fog-of-war can be toggled in the header controls; visibility uses player-centered vision range plus line-of-sight checks against impassable obstacles.
 - Read-only encounter AI recommendation preview endpoint (`POST /api/combat/recommendation-preview`) is admin-only and does not mutate encounter state.
+- NPC auto-play can use validated encounter AI recommendations only when `encounter_ai_npc_autoplay_enabled` is enabled in Dungeon Settings; default remains deterministic fallback behavior.
+- Encounter narration timeline logging is available when `encounter_ai_narration_enabled` is enabled; narration events are persisted as `ai_narration` rows in `combat_actions`.
+
+### Mechanics Review Notes (Current Constraints)
+- `Interact`/`Talk` are now validated server-side for turn ownership and action economy, but object-state mutation (door opened, obstacle moved, connection opened) is still applied by the client after API acceptance.
+- Because room/object authoritative state is not yet committed by a dedicated backend mutation endpoint, reconnects or alternate clients can diverge from the initiating client's local interaction result.
+- Recommended follow-up: add campaign-scoped interaction mutation endpoints (or extend combat action processing) to persist room/object state server-side and return canonical updated room payload.
 - **`create dungeoncrawler characters`** - Create new characters in the character creation wizard. Includes access to character step forms and save operations.
 - **`edit own dungeoncrawler characters`** - Edit own characters. Access is further restricted by the `CharacterAccessCheck` service to ensure users can only modify their own characters.
 - **`delete own dungeoncrawler characters`** - Delete own characters. Access is further restricted by the `CharacterAccessCheck` service to prevent deletion of characters owned by other users.
@@ -484,8 +497,21 @@ The review maintains 100% functional compatibility while improving:
 ### Encounter AI Services (Phase 1)
 
 - `EncounterAiProviderInterface` defines provider contract for NPC recommendation and narration.
-- `StubEncounterAiProvider` provides deterministic recommendation output for safe preview/testing.
+- `AiConversationEncounterAiProvider` routes encounter recommendation/narration calls through `ai_conversation.ai_api_service` (`AIApiService::invokeModelDirect`).
+- `StubEncounterAiProvider` remains registered as deterministic fallback when model calls fail or return invalid payloads.
 - `EncounterAiIntegrationService` builds context, requests recommendation, and validates recommendation against turn/action constraints.
+
+### Encounter AI Integration (Phase 2 Guarded)
+
+- `CombatEncounterApiController` NPC turn loop now supports AI-driven recommendation execution behind config gate `encounter_ai_npc_autoplay_enabled`.
+- Invalid/unavailable recommendation paths use deterministic fallback targeting (first alive player).
+- Toggle is available at `/admin/config/content/dungeoncrawler` under AI Generation Settings.
+
+### Encounter Narration Integration (Phase 3 Guarded)
+
+- NPC turn loop can persist narration timeline events when `encounter_ai_narration_enabled` is enabled.
+- Narration entries are stored in `combat_actions` with `action_type` set to `ai_narration`.
+- Payload includes provider narration content and request metadata for audit/debug context.
 
 
 ### Adding New Routes
@@ -810,4 +836,4 @@ For issues or questions:
 
 ## License
 
-Proprietary - Forseti Life
+Proprietary - Dungeon Crawler Life

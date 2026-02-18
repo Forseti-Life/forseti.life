@@ -38,6 +38,30 @@ function ai_conversation_theme() {
       ],
       'template' => 'ai-usage-dashboard',
     ],
+    'genai_debug_list' => [
+      'variables' => [
+        'calls' => [],
+        'modules' => [],
+        'operations' => [],
+        'current_module' => NULL,
+        'current_operation' => NULL,
+        'current_success' => NULL,
+        'current_limit' => 100,
+      ],
+      'template' => 'genai-debug-list',
+    ],
+    'genai_debug_detail' => [
+      'variables' => [
+        'call_data' => [],
+      ],
+      'template' => 'genai-debug-detail',
+    ],
+    'ai_model_pricing' => [
+      'variables' => [
+        'pricing_data' => [],
+      ],
+      'template' => 'ai-model-pricing',
+    ],
   ];
 }
 
@@ -49,7 +73,7 @@ function ai_conversation_entity_view(array &$build, EntityInterface $entity, Ent
     // Add a link to the chat interface.
     $build['chat_link'] = [
       '#type' => 'link',
-      '#title' => t('Start Chat'),
+      '#title' => t('Start GM Session'),
       '#url' => Url::fromRoute('ai_conversation.chat_interface', ['node' => $entity->id()]),
       '#attributes' => [
         'class' => ['btn', 'btn-primary'],
@@ -67,7 +91,7 @@ function ai_conversation_entity_operation(EntityInterface $entity) {
   
   if ($entity->getEntityTypeId() === 'node' && $entity->bundle() === 'ai_conversation') {
     $operations['chat'] = [
-      'title' => t('Chat'),
+      'title' => t('GM Chat'),
       'url' => Url::fromRoute('ai_conversation.chat_interface', ['node' => $entity->id()]),
       'weight' => 50,
     ];

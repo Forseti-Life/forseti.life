@@ -167,6 +167,24 @@
   gap: var(--space-2);
 }
 
+.control-group__title {
+  font-weight: 700;
+  color: var(--gray-700);
+  margin-right: 2px;
+}
+
+.control-group--config {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  padding: 6px 10px;
+}
+
+.control-group--view {
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
 .control-group label {
   font-weight: 600;
   color: var(--gray-600);
@@ -360,7 +378,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-2);
-  padding: 1px;
+  padding: 8px 10px;
   cursor: pointer;
   font-weight: 700;
   color: var(--text);
@@ -379,7 +397,7 @@
 }
 
 .action-section__body {
-  padding: 1px;
+  padding: 8px 10px;
 }
 
 .action-section.collapsed .action-section__body {
@@ -394,19 +412,27 @@
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
+  align-items: stretch;
   margin-bottom: 3px;
 }
 
 .action-footer .action-buttons .btn {
-  padding: 1px;
-  min-height: 10px;
+  padding: 6px 8px;
+  min-height: 32px;
+  flex: 1 1 calc(50% - 4px);
   font-size: 0.78em;
   line-height: 1.2;
 }
 
-.action-footer .action-buttons .btn.btn-disabled {
+.action-footer .action-buttons #end-turn {
+  flex: 1 1 100%;
+}
+
+.action-footer .action-buttons .btn.btn-disabled,
+.action-footer .action-buttons .btn:disabled {
   opacity: 0.6;
-  pointer-events: auto;
+  pointer-events: none;
+  cursor: not-allowed;
 }
 
 .turn-action-buttons {
@@ -468,6 +494,14 @@
   box-shadow: 0 0 0 2px var(--accent-strong);
   background: var(--gradient-accent);
   color: var(--accent-dark);
+}
+
+#toggle-fog {
+  background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+}
+
+#toggle-fog:hover {
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
 }
 
 .action-list--horizontal {

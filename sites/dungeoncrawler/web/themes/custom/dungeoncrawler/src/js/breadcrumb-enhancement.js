@@ -1,6 +1,6 @@
 /**
  * @file
- * Professional Breadcrumb Enhancement for St. Louis Integration
+ * Professional Breadcrumb Enhancement for Dungeon Crawler Life
  */
 
 (function ($, Drupal) {

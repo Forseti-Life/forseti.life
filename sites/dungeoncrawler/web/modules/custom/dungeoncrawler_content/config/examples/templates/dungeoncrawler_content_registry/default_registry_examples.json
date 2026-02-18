@@ -99,6 +99,176 @@
       "tags": ["item", "relic", "gmg", "scaling_item"],
       "schema_data": {"item_id": "relic_seed_emberheart", "item_type": "relic", "source_book": "gamemastery_guide", "usage": "campaign_progression", "effect": "template for relic growth tracks"},
       "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "longsword",
+      "name": "Longsword",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "weapon", "martial", "core_rulebook"],
+      "schema_data": {"item_id": "longsword", "item_type": "weapon", "source_book": "core_rulebook_4th_printing", "price_gp": 1, "bulk": "1", "hands": 1, "damage": "1d8 slashing", "traits": ["versatile_p"]},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "shortsword",
+      "name": "Shortsword",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "weapon", "martial", "core_rulebook"],
+      "schema_data": {"item_id": "shortsword", "item_type": "weapon", "source_book": "core_rulebook_4th_printing", "price_gp": 0.9, "bulk": "L", "hands": 1, "damage": "1d6 piercing", "traits": ["agile", "finesse", "versatile_s"]},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "dagger",
+      "name": "Dagger",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "weapon", "simple", "core_rulebook"],
+      "schema_data": {"item_id": "dagger", "item_type": "weapon", "source_book": "core_rulebook_4th_printing", "price_gp": 0.2, "bulk": "L", "hands": 1, "damage": "1d4 piercing", "traits": ["agile", "finesse", "thrown_10ft", "versatile_s"]},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "longbow",
+      "name": "Longbow",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "weapon", "martial", "ranged", "core_rulebook"],
+      "schema_data": {"item_id": "longbow", "item_type": "weapon", "source_book": "core_rulebook_4th_printing", "price_gp": 6, "bulk": "1", "hands": 2, "damage": "1d8 piercing", "traits": ["deadly_d10", "volley_30ft"]},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "shortbow",
+      "name": "Shortbow",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "weapon", "martial", "ranged", "core_rulebook"],
+      "schema_data": {"item_id": "shortbow", "item_type": "weapon", "source_book": "core_rulebook_4th_printing", "price_gp": 3, "bulk": "L", "hands": 2, "damage": "1d6 piercing", "traits": []},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "spear",
+      "name": "Spear",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "weapon", "simple", "core_rulebook"],
+      "schema_data": {"item_id": "spear", "item_type": "weapon", "source_book": "core_rulebook_4th_printing", "price_gp": 0.1, "bulk": "1", "hands": 1, "damage": "1d6 piercing", "traits": ["thrown_20ft"]},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "leather_armor",
+      "name": "Leather Armor",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "armor", "light", "core_rulebook"],
+      "schema_data": {"item_id": "leather_armor", "item_type": "armor", "source_book": "core_rulebook_4th_printing", "price_gp": 2, "bulk": "1", "ac": "+1", "dex_cap": 4, "check_penalty": 0, "speed_penalty": 0},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "chain_shirt",
+      "name": "Chain Shirt",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "armor", "light", "core_rulebook"],
+      "schema_data": {"item_id": "chain_shirt", "item_type": "armor", "source_book": "core_rulebook_4th_printing", "price_gp": 5, "bulk": "1", "ac": "+2", "dex_cap": 2, "check_penalty": -1, "speed_penalty": 0},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "steel_shield",
+      "name": "Steel Shield",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "armor", "shield", "core_rulebook"],
+      "schema_data": {"item_id": "steel_shield", "item_type": "armor", "source_book": "core_rulebook_4th_printing", "price_gp": 2, "bulk": "1", "ac": "+2", "hardness": 5, "hp": 20},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "backpack",
+      "name": "Backpack",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "container", "core_rulebook"],
+      "schema_data": {"item_id": "backpack", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.1, "bulk": "L", "usage": "carry_items"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "bedroll",
+      "name": "Bedroll",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "camping", "core_rulebook"],
+      "schema_data": {"item_id": "bedroll", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.1, "bulk": "L", "usage": "resting"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "rope_hempen_50ft",
+      "name": "Rope (Hempen, 50 ft)",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "climbing", "core_rulebook"],
+      "schema_data": {"item_id": "rope_hempen_50ft", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.5, "bulk": "L", "usage": "climbing_and_tying"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "rations_1_week",
+      "name": "Rations (1 week)",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "consumable", "core_rulebook"],
+      "schema_data": {"item_id": "rations_1_week", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.4, "bulk": "L", "usage": "travel_food"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "waterskin",
+      "name": "Waterskin",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "travel", "core_rulebook"],
+      "schema_data": {"item_id": "waterskin", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.1, "bulk": "L", "usage": "carry_water"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "flint_and_steel",
+      "name": "Flint and Steel",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "utility", "core_rulebook"],
+      "schema_data": {"item_id": "flint_and_steel", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.05, "bulk": "L", "usage": "start_fires"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "torches_5_pack",
+      "name": "Torches (Pack of 5)",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "light", "core_rulebook"],
+      "schema_data": {"item_id": "torches_5_pack", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.05, "bulk": "L", "usage": "light_source"},
+      "version": "1.0.0"
+    },
+    {
+      "content_type": "item",
+      "content_id": "crowbar",
+      "name": "Crowbar",
+      "level": 0,
+      "rarity": "common",
+      "tags": ["item", "adventuring_gear", "utility", "core_rulebook"],
+      "schema_data": {"item_id": "crowbar", "item_type": "adventuring_gear", "source_book": "core_rulebook_4th_printing", "price_gp": 0.2, "bulk": "L", "usage": "force_open"},
+      "version": "1.0.0"
     }
   ]
 }

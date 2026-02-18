@@ -15,15 +15,16 @@ class EncounterAiIntegrationController extends ControllerBase {
   public function overview() {
     $phaseStatus = [
       'Phase 0 — Blueprint and route visibility' => 'Complete',
-      'Phase 1 — Read-only orchestration scaffold' => 'Started',
-      'Phase 2 — Controlled NPC auto-play integration' => 'Not started',
-      'Phase 3 — Encounter narration integration' => 'Not started',
-      'Phase 4 — Hardening and observability' => 'Not started',
+      'Phase 1 — Read-only orchestration scaffold' => 'Complete',
+      'Phase 2 — Controlled NPC auto-play integration' => 'Started (config-gated)',
+      'Phase 3 — Encounter narration integration' => 'Started (config-gated)',
+      'Phase 4 — Hardening and observability' => 'Started (unit coverage)',
     ];
 
     $integrationBoundaries = [
       'Server-authoritative combat flow remains canonical; AI output is recommendation-only.',
       'Encounter state and campaign ownership checks execute before provider calls.',
+      'Encounter AI provider calls are routed through the ai_conversation API integration layer.',
       'Recommendation payloads must be validated against available actions and turn state.',
       'Fallback behavior uses deterministic rules if provider fails or output is rejected.',
     ];
@@ -67,7 +68,7 @@ class EncounterAiIntegrationController extends ControllerBase {
     }
 
     $build['next'] = [
-      '#markup' => '<p><strong>Next implementation target:</strong> add a read-only recommendation preview endpoint that builds encounter context and validates provider recommendations without mutating combat state.</p>',
+      '#markup' => '<p><strong>Next implementation target:</strong> add functional coverage for ai_conversation recommendation/narration wiring, deterministic fallback behavior, and timeline persistence paths (requires working test DB configuration).</p>',
     ];
 
     return $build;

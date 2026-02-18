@@ -14,6 +14,48 @@ ai_conversation.usage_dashboard:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.model_pricing:
+  path: '/admin/reports/genai-pricing'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\UsageReportController::pricing'
+    _title: 'Claude Model Pricing'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_conversation.genai_debug_list:
+  path: '/admin/reports/genai-debug'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::debugList'
+    _title: 'GenAI Debug Inspector'
+  requirements:
+    _permission: 'administer site configuration'
+
+ai_conversation.genai_debug_detail:
+  path: '/admin/reports/genai-debug/{id}'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::debugDetail'
+    _title: 'GenAI Call Details'
+  requirements:
+    _permission: 'administer site configuration'
+    id: \d+
+
+ai_conversation.genai_debug_delete:
+  path: '/admin/reports/genai-debug/{id}/delete'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::deleteCall'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+    id: \d+
+
+ai_conversation.genai_debug_delete_all:
+  path: '/admin/reports/genai-debug/delete-all'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::deleteAllFiltered'
+  methods: [POST]
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.update_prompt:
   path: '/admin/ai-conversation/update-prompt'
   defaults:
@@ -42,7 +84,7 @@ ai_conversation.chat_interface:
   path: '/node/{node}/chat'
   defaults:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::chatInterface'
-    _title: 'AI Chat'
+    _title: 'Forseti GM Chat'
   requirements:
     _permission: 'use ai conversation'
     _entity_access: 'node.view'
@@ -88,7 +130,7 @@ ai_conversation.start_chat:
   path: '/ai-chat'
   defaults:
     _controller: '\Drupal\ai_conversation\Controller\ChatController::startChat'
-    _title: 'AI Chat'
+    _title: 'Forseti GM Chat'
   requirements:
     _permission: 'use ai conversation'
 
@@ -151,13 +193,3 @@ ai_conversation.api_get_stats:
     _method: 'GET'
     _format: 'json'
     conversation_id: \d+
-
-ai_conversation.api_copilot_issue_create:
-  path: '/api/ai-conversation/copilot/issue'
-  defaults:
-    _controller: '\Drupal\ai_conversation\Controller\CopilotIssueController::createIssue'
-    _title: 'Create GitHub issue and assign to Copilot'
-  requirements:
-    _permission: 'use ai conversation'
-    _method: 'POST'
-    _format: 'json'
