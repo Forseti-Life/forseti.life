@@ -163,8 +163,8 @@ class ActionProcessor {
 
     $this->store->updateParticipant($participant_id, [
       'actions_remaining' => $actions_left,
-      'position_x' => $end['x'],
-      'position_y' => $end['y'],
+      'position_q' => $end['q'],
+      'position_r' => $end['r'],
     ]);
 
     $this->logAction($encounter_id, $participant_id, 'stride', NULL, ['distance' => $distance, 'path' => $path], [
@@ -214,12 +214,12 @@ class ActionProcessor {
 
   protected function lastPathCoordinate(array $path): array {
     if (empty($path)) {
-      return ['x' => NULL, 'y' => NULL];
+      return ['q' => NULL, 'r' => NULL];
     }
     $last = end($path);
     return [
-      'x' => isset($last['x']) ? (int) $last['x'] : NULL,
-      'y' => isset($last['y']) ? (int) $last['y'] : NULL,
+      'q' => isset($last['q']) ? (int) $last['q'] : NULL,
+      'r' => isset($last['r']) ? (int) $last['r'] : NULL,
     ];
   }
 

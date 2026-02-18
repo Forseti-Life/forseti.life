@@ -1,6 +1,19 @@
 /**
  * @file MovementSystem.js
  * System for pathfinding and entity movement.
+ * 
+ * Coordinate System:
+ * This system uses axial hex coordinates (q, r) following the Red Blob Games
+ * standard for hexagonal grids (https://www.redblobgames.com/grids/hexagons/).
+ * 
+ * Schema Conformance:
+ * - PositionComponent: Uses q, r coordinates
+ * - entity_instance.schema.json: placement.hex uses q, r
+ * - Database tables:
+ *   - dc_campaign_characters: position_q, position_r (hot columns)
+ *   - combat_participants: position_q, position_r (as of update 10009)
+ * 
+ * All movement calculations assume flat-top hex orientation with 6 directions.
  */
 
 import { System } from '../System.js';

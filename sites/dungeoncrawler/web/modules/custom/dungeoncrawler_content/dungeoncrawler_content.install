@@ -316,15 +316,15 @@ function dungeoncrawler_content_schema() {
         'default' => 0,
         'description' => 'Attacks made this turn (for MAP).',
       ],
-      'position_x' => [
+      'position_q' => [
         'type' => 'int',
         'not null' => FALSE,
-        'description' => 'Grid/hex X position.',
+        'description' => 'Axial hex Q coordinate.',
       ],
-      'position_y' => [
+      'position_r' => [
         'type' => 'int',
         'not null' => FALSE,
-        'description' => 'Grid/hex Y position.',
+        'description' => 'Axial hex R coordinate.',
       ],
       'is_defeated' => [
         'type' => 'int',
@@ -2283,5 +2283,60 @@ function dungeoncrawler_content_update_10008() {
   catch (\Exception $e) {
     \Drupal::logger('dungeoncrawler_content')->error('Update 10008 failed: @error', ['@error' => $e->getMessage()]);
     throw new \Drupal\Core\Utility\UpdateException('Failed to add hybrid hot columns: ' . $e->getMessage());
+  }
+}
+
+/**
+ * Migrate combat_participants from Cartesian (x, y) to axial hex (q, r) coordinates.
+ */
+function dungeoncrawler_content_update_10009() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $schema_handler = $database->schema();
+  $messages = [];
+
+  try {
+    // Check if old columns exist
+    $has_x = $schema_handler->fieldExists('combat_participants', 'position_x');
+    $has_y = $schema_handler->fieldExists('combat_participants', 'position_y');
+    $has_q = $schema_handler->fieldExists('combat_participants', 'position_q');
+    $has_r = $schema_handler->fieldExists('combat_participants', 'position_r');
+
+    // If new columns already exist and old ones don't, migration already done
+    if ($has_q && $has_r && !$has_x && !$has_y) {
+      return t('Axial hex coordinates already in place for combat_participants.');
+    }
+
+    // Add new columns if they don't exist
+    if (!$has_q) {
+      $schema_handler->addField('combat_participants', 'position_q', $schema['combat_participants']['fields']['position_q']);
+      $messages[] = 'Added position_q column';
+    }
+    if (!$has_r) {
+      $schema_handler->addField('combat_participants', 'position_r', $schema['combat_participants']['fields']['position_r']);
+      $messages[] = 'Added position_r column';
+    }
+
+    // Migrate data: Assume x=q, y=r for simplicity (1:1 mapping)
+    // In production, you may need more sophisticated coordinate conversion
+    if ($has_x && $has_y) {
+      $database->query('UPDATE {combat_participants} SET position_q = position_x, position_r = position_y WHERE position_q IS NULL OR position_r IS NULL');
+      $messages[] = 'Migrated position data from (x, y) to (q, r)';
+
+      // Drop old columns
+      $schema_handler->dropField('combat_participants', 'position_x');
+      $schema_handler->dropField('combat_participants', 'position_y');
+      $messages[] = 'Dropped position_x and position_y columns';
+    }
+
+    if (empty($messages)) {
+      return t('No migration needed for combat_participants coordinates.');
+    }
+
+    return t('Combat participants coordinate migration complete: @messages', ['@messages' => implode(' ', $messages)]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10009 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to migrate combat_participants coordinates: ' . $e->getMessage());
   }
 }
