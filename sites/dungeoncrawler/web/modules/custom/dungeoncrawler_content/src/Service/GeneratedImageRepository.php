@@ -254,6 +254,63 @@ class GeneratedImageRepository {
   }
 
   /**
+   * Loads generated image counts per object for a table.
+   *
+   * @param string $table_name
+   *   Linked table name.
+   * @param array<int, string> $object_ids
+   *   Object IDs to count.
+   *
+   * @return array<string, int>
+   *   Map of object_id => linked image count.
+   */
+  public function loadImageCountsForObjects(string $table_name, array $object_ids): array {
+    $clean_ids = [];
+    foreach ($object_ids as $object_id) {
+      $value = trim((string) $object_id);
+      if ($value !== '') {
+        $clean_ids[] = $value;
+      }
+    }
+
+    if (empty($clean_ids)) {
+      return [];
+    }
+
+    $query = $this->database->select('dc_generated_image_links', 'l');
+    $query->addField('l', 'object_id');
+    $query->addExpression('COUNT(l.image_id)', 'image_count');
+    $query->condition('l.table_name', $table_name);
+    $query->condition('l.object_id', array_values(array_unique($clean_ids)), 'IN');
+    $query->groupBy('l.object_id');
+
+    $query->leftJoin('dc_generated_images', 'i', 'i.id = l.image_id');
+    $query->condition('i.deleted', 0);
+    $query->condition('i.status', 'ready');
+
+    $rows = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    if (!is_array($rows)) {
+      return [];
+    }
+
+    $counts = [];
+    foreach ($rows as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+
+      $object_id = isset($row['object_id']) ? (string) $row['object_id'] : '';
+      if ($object_id === '') {
+        continue;
+      }
+
+      $counts[$object_id] = isset($row['image_count']) ? (int) $row['image_count'] : 0;
+    }
+
+    return $counts;
+  }
+
+  /**
    * Loads campaign images with optional object filters.
    *
    * @return array<int, array<string, mixed>>
