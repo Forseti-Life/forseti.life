@@ -43,7 +43,7 @@ JSON Schemas serve multiple purposes:
 | `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
 | `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
-| `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
+| `room.schema.json` | Individual dungeon rooms | ✓ | 941 | Room generation |
 | `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
 
 ## Schema Categories
@@ -379,7 +379,14 @@ Adventuring party with shared resources and exploration state.
 #### `room.schema.json`
 Individual dungeon rooms that occupy one or more hexes. AI-generated on first entry and permanent thereafter.
 
-**Recently improved (2026-02-17):**
+**Recently improved (2026-02-18, DCC-0027):**
+- Fixed duplicate minLength/maxLength constraint bug on name field
+- Added maxItems constraints to all 12 arrays (100% coverage)
+- Added maxLength to theme_tags array items
+- Improved validation consistency with peer schemas (hazard, dungeon_level, trap)
+- All changes backward compatible with existing data
+
+**Previously improved (2026-02-17):**
 - Added schema versioning for migration compatibility
 - Added timestamp tracking (created_at, updated_at)
 - Added uniqueItems constraints to 11 arrays for data integrity
@@ -609,13 +616,12 @@ Schemas with `schema_version` field (migration-ready):
 Schemas with versioning (recently added):
 - ✓ `obstacle.schema.json`
 - ✓ `obstacle_object_catalog.schema.json`
-- ✓ `room.schema.json`
+- ✓ `room.schema.json` (DCC-0027: Added comprehensive array bounds 2026-02-18)
 
 Schemas pending versioning:
 - `character_options_step[1-2,4-5,7].json` (UI-only schemas - lower priority)
 - `obstacle.schema.json` (needs versioning for production use)
 - `obstacle_object_catalog.schema.json` (needs versioning for production use)
-- `room.schema.json` (needs versioning for production use)
 
 ### Adding New Properties
 1. Update the appropriate schema file
