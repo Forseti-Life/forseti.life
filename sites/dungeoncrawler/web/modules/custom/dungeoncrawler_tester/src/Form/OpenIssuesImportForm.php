@@ -733,9 +733,15 @@ class OpenIssuesImportForm extends FormBase {
    */
   private function startBackgroundImportProcess(string $repo, int $waitSeconds, int $maxItems, bool $dryRun, string $logPath): int {
     $dryOption = $dryRun ? '--dry-run=1' : '--dry-run=0';
+    $drushBinary = $this->resolveDrushBinaryPath();
+    if ($drushBinary === '') {
+      return 0;
+    }
+
     $command = sprintf(
-      'cd %s && nohup drush dungeoncrawler_tester:import-open-issues-run --repo=%s --wait-seconds=%d --max-items=%d %s > %s 2>&1 & echo $!',
+      'cd %s && nohup %s dungeoncrawler_tester:import-open-issues-run --repo=%s --wait-seconds=%d --max-items=%d %s > %s 2>&1 & echo $!',
       escapeshellarg($this->appRoot),
+      escapeshellarg($drushBinary),
       escapeshellarg($repo),
       $waitSeconds,
       $maxItems,
@@ -757,6 +763,26 @@ class OpenIssuesImportForm extends FormBase {
     catch (\Throwable) {
       return 0;
     }
+  }
+
+  /**
+   * Resolve executable Drush binary path for non-interactive subprocesses.
+   */
+  private function resolveDrushBinaryPath(): string {
+    $candidates = [
+      $this->appRoot . '/../vendor/bin/drush',
+      $this->appRoot . '/vendor/bin/drush',
+      '/usr/local/bin/drush',
+      '/usr/bin/drush',
+    ];
+
+    foreach ($candidates as $candidate) {
+      if (is_string($candidate) && $candidate !== '' && is_file($candidate) && is_executable($candidate)) {
+        return $candidate;
+      }
+    }
+
+    return '';
   }
 
   /**
