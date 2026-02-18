@@ -5,7 +5,35 @@
  * Based on the design document:
  * docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md
  * 
+ * SCHEMA CONFORMANCE NOTES:
+ * These TypeScript interfaces define the **runtime API format** (camelCase) for character
+ * state. This is NOT the same as the database storage format (snake_case).
+ * 
+ * Three-layer architecture:
+ * 1. **TypeScript** (this file): Runtime API contract for client-side consumption
+ *    - Uses camelCase naming (experiencePoints, hitPoints, spellSlots)
+ *    - Nested structures (basicInfo, resources, defenses)
+ *    - Source of truth for TypeScript type checking
+ * 
+ * 2. **JSON Schema** (config/schemas/character.schema.json): Storage validation
+ *    - Uses snake_case naming (experience_points, hit_points, spell_slots)
+ *    - Flatter structure matching database expectations
+ *    - Validates data persisted to character_data column
+ * 
+ * 3. **Database Hot Columns** (dc_campaign_characters table): Query optimization
+ *    - Denormalized columns: name, level, ancestry, class, hp_current, hp_max
+ *    - Enables fast filtering without JSON path queries
+ *    - Synchronized with JSON payload by PHP service
+ * 
+ * The PHP CharacterStateService handles translation between these layers:
+ * - READ: Database (snake_case + hot columns) → API (camelCase nested)
+ * - WRITE: API (camelCase nested) → Database (snake_case + hot columns sync)
+ * 
+ * TypeScript code should ONLY use these interfaces. Never manually convert between
+ * snake_case and camelCase - the PHP service handles all schema translation.
+ * 
  * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#characterstate-object
+ * @see js/SCHEMA_ALIGNMENT.md
  */
 
 /**
