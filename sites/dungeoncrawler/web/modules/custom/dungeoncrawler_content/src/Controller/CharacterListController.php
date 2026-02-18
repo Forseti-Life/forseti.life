@@ -76,9 +76,9 @@ class CharacterListController extends ControllerBase {
         'level' => $record->level,
         'ancestry' => $record->ancestry,
         'class' => $record->class,
-        'hp_current' => $char['hit_points']['current'] ?? 0,
-        'hp_max' => $char['hit_points']['max'] ?? 0,
-        'ac' => $char['armor_class'] ?? 10,
+        'hp_current' => (int) ($record->hp_current ?? ($char['hit_points']['current'] ?? 0)),
+        'hp_max' => (int) ($record->hp_max ?? ($char['hit_points']['max'] ?? 0)),
+        'ac' => (int) ($record->armor_class ?? ($char['armor_class'] ?? 10)),
         'status' => $record->status ? 'active' : 'dead',
         'portrait' => $record->portrait,
         'heritage' => $char['ancestry']['heritage'] ?? '',
@@ -106,7 +106,7 @@ class CharacterListController extends ControllerBase {
       ],
       '#cache' => [
         'contexts' => ['user', 'url.query_args:campaign_id'],
-        'tags' => ['dc_characters'],
+        'tags' => ['dc_campaign_characters'],
       ],
     ];
 

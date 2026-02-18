@@ -94,9 +94,10 @@ class CampaignController extends ControllerBase {
 
     $active_character_names = [];
     if (!empty($active_character_ids)) {
-      $active_character_names = $this->database->select('dc_characters', 'ch')
+      $active_character_names = $this->database->select('dc_campaign_characters', 'ch')
         ->fields('ch', ['id', 'name'])
         ->condition('id', array_values(array_unique($active_character_ids)), 'IN')
+        ->condition('campaign_id', 0)
         ->execute()
         ->fetchAllKeyed(0, 1);
     }
@@ -148,7 +149,7 @@ class CampaignController extends ControllerBase {
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['dc_campaigns', 'dc_campaign_characters', 'dc_characters'],
+        'tags' => ['dc_campaigns', 'dc_campaign_characters'],
       ],
     ];
   }
@@ -192,9 +193,9 @@ class CampaignController extends ControllerBase {
         'level' => (int) $record->level,
         'ancestry' => $record->ancestry,
         'class' => $record->class,
-        'hp_current' => (int) ($char['hit_points']['current'] ?? 0),
-        'hp_max' => (int) ($char['hit_points']['max'] ?? 0),
-        'ac' => (int) ($char['armor_class'] ?? 10),
+        'hp_current' => (int) ($record->hp_current ?? ($char['hit_points']['current'] ?? 0)),
+        'hp_max' => (int) ($record->hp_max ?? ($char['hit_points']['max'] ?? 0)),
+        'ac' => (int) ($record->armor_class ?? ($char['armor_class'] ?? 10)),
         'status' => $record->status ? 'active' : 'dead',
         'portrait' => $record->portrait,
         'alignment' => $char['personality']['alignment'] ?? '',
@@ -224,7 +225,7 @@ class CampaignController extends ControllerBase {
       ],
       '#cache' => [
         'contexts' => ['user'],
-        'tags' => ['dc_campaigns', 'dc_campaign_characters', 'dc_characters'],
+        'tags' => ['dc_campaigns', 'dc_campaign_characters'],
       ],
     ];
   }
@@ -257,17 +258,50 @@ class CampaignController extends ControllerBase {
     }
 
     $now = \Drupal::time()->getRequestTime();
+    $instance_id = sprintf('pc-%d-%d', $campaign_id, $character_id);
+    $character_data = json_decode((string) ($character->character_data ?? '{}'), TRUE);
+    if (!is_array($character_data)) {
+      $character_data = [];
+    }
+    $character_payload = is_array($character_data['character'] ?? NULL) ? $character_data['character'] : [];
+    $hit_points = is_array($character_payload['hit_points'] ?? NULL) ? $character_payload['hit_points'] : [];
+
+    $hp_max = (int) ($character->hp_max ?? ($hit_points['max'] ?? 0));
+    $hp_current = (int) ($character->hp_current ?? ($hit_points['current'] ?? $hp_max));
+    $armor_class = (int) ($character->armor_class ?? ($character_payload['armor_class'] ?? 10));
+    $experience_points = (int) ($character->experience_points ?? ($character_payload['experience_points'] ?? 0));
 
     $this->database->merge('dc_campaign_characters')
       ->keys([
         'campaign_id' => $campaign_id,
-        'character_id' => $character_id,
+        'instance_id' => $instance_id,
       ])
       ->fields([
+        'character_id' => $character_id,
+        'instance_id' => $instance_id,
         'uid' => (int) $this->currentUser()->id(),
+        'name' => (string) $character->name,
+        'level' => (int) $character->level,
+        'ancestry' => (string) $character->ancestry,
+        'class' => (string) $character->class,
+        'hp_current' => $hp_current,
+        'hp_max' => $hp_max,
+        'armor_class' => $armor_class,
+        'experience_points' => $experience_points,
+        'position_q' => 0,
+        'position_r' => 0,
+        'last_room_id' => '',
         'role' => 'player',
+        'type' => 'pc',
+        'state_data' => json_encode($character_data, JSON_UNESCAPED_UNICODE),
+        'character_data' => json_encode($character_data, JSON_UNESCAPED_UNICODE),
+        'location_type' => 'global',
+        'location_ref' => '',
         'is_active' => 1,
         'joined' => $now,
+        'created' => $now,
+        'changed' => $now,
+        'updated' => $now,
       ])
       ->execute();
 

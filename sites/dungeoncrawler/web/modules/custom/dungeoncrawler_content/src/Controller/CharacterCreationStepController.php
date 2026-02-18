@@ -135,12 +135,24 @@ class CharacterCreationStepController extends ControllerBase {
     $next_step = $this->getNextStep($step);
     $character_data['step'] = $next_step; // Advance to next step
 
+    $hit_points = is_array($character_data['hit_points'] ?? NULL) ? $character_data['hit_points'] : [];
+    $abilities = is_array($character_data['abilities'] ?? NULL) ? $character_data['abilities'] : [];
+    $dex = (int) ($abilities['dex'] ?? 10);
+
     // Save to database
     if ($character) {
       $this->characterManager->updateCharacter($character_id, [
         'name' => $character_data['name'] ?: 'Unnamed Character',
         'ancestry' => $character_data['ancestry'] ?? '',
         'class' => $character_data['class'] ?? '',
+        'level' => (int) ($character_data['level'] ?? 1),
+        'hp_current' => (int) ($hit_points['current'] ?? 0),
+        'hp_max' => (int) ($hit_points['max'] ?? 0),
+        'armor_class' => (int) (10 + floor(($dex - 10) / 2)),
+        'experience_points' => (int) ($character_data['experience_points'] ?? 0),
+        'position_q' => (int) ($character_data['position']['q'] ?? 0),
+        'position_r' => (int) ($character_data['position']['r'] ?? 0),
+        'last_room_id' => (string) ($character_data['position']['room_id'] ?? ''),
         'character_data' => json_encode($character_data, JSON_PRETTY_PRINT),
       ]);
     } else {
@@ -205,15 +217,26 @@ class CharacterCreationStepController extends ControllerBase {
   private function createDraft(array $character_data) {
     $db = \Drupal::database();
     $now = \Drupal::time()->getRequestTime();
+    $instance_id = \Drupal::service('uuid')->generate();
     
-    return $db->insert('dc_characters')
+    return $db->insert('dc_campaign_characters')
       ->fields([
-        'uuid' => \Drupal::service('uuid')->generate(),
+        'uuid' => $instance_id,
+        'campaign_id' => 0,
+        'character_id' => 0,
+        'instance_id' => $instance_id,
         'uid' => (int) $this->currentUser()->id(),
         'name' => $character_data['name'] ?: 'Unnamed Character',
         'level' => 1,
         'ancestry' => $character_data['ancestry'] ?? '',
         'class' => $character_data['class'] ?? '',
+        'hp_current' => 0,
+        'hp_max' => 0,
+        'armor_class' => 10,
+        'experience_points' => 0,
+        'position_q' => 0,
+        'position_r' => 0,
+        'last_room_id' => '',
         'character_data' => json_encode($character_data, JSON_PRETTY_PRINT),
         'status' => 0, // Draft
         'created' => $now,

@@ -121,6 +121,14 @@ class CharacterApiController extends ControllerBase {
           'name' => $character_data['name'] ?: 'Unnamed Character',
           'ancestry' => $character_data['ancestry'] ?? $existing->ancestry,
           'class' => $character_data['class'] ?? $existing->class,
+          'level' => (int) ($character_data['level'] ?? $existing->level ?? 1),
+          'hp_current' => (int) ($character_data['hit_points']['current'] ?? $existing->hp_current ?? 0),
+          'hp_max' => (int) ($character_data['hit_points']['max'] ?? $existing->hp_max ?? 0),
+          'armor_class' => (int) ($character_data['armor_class'] ?? $existing->armor_class ?? 10),
+          'experience_points' => (int) ($character_data['experience_points'] ?? $existing->experience_points ?? 0),
+          'position_q' => (int) ($character_data['position']['q'] ?? $existing->position_q ?? 0),
+          'position_r' => (int) ($character_data['position']['r'] ?? $existing->position_r ?? 0),
+          'last_room_id' => (string) ($character_data['position']['room_id'] ?? $existing->last_room_id ?? ''),
           'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         ];
 
@@ -142,15 +150,26 @@ class CharacterApiController extends ControllerBase {
         // Create new draft character
         $now = \Drupal::time()->getRequestTime();
         $db = \Drupal::database();
+        $instance_id = \Drupal::service('uuid')->generate();
         
-        $character_id = $db->insert('dc_characters')
+        $character_id = $db->insert('dc_campaign_characters')
           ->fields([
-            'uuid' => \Drupal::service('uuid')->generate(),
+            'uuid' => $instance_id,
+            'campaign_id' => 0,
+            'character_id' => 0,
+            'instance_id' => $instance_id,
             'uid' => (int) $this->currentUser()->id(),
             'name' => $character_data['name'] ?: 'Unnamed Character',
             'level' => 1,
             'ancestry' => $character_data['ancestry'] ?? '',
             'class' => $character_data['class'] ?? '',
+            'hp_current' => (int) ($character_data['hit_points']['current'] ?? 0),
+            'hp_max' => (int) ($character_data['hit_points']['max'] ?? 0),
+            'armor_class' => (int) ($character_data['armor_class'] ?? 10),
+            'experience_points' => (int) ($character_data['experience_points'] ?? 0),
+            'position_q' => (int) ($character_data['position']['q'] ?? 0),
+            'position_r' => (int) ($character_data['position']['r'] ?? 0),
+            'last_room_id' => (string) ($character_data['position']['room_id'] ?? ''),
             'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
             'status' => 0, // Draft status until wizard is complete
             'created' => $now,

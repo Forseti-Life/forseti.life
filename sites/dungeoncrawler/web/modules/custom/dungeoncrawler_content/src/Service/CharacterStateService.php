@@ -38,7 +38,7 @@ class CharacterStateService {
    * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#characterstate-object
    */
   public function getState(string $character_id, ?int $campaign_id = NULL, ?string $instance_id = NULL): array {
-    $record = $this->database->select('dc_characters', 'c')
+    $record = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c')
       ->condition('id', $character_id)
       ->execute()
@@ -760,6 +760,21 @@ class CharacterStateService {
       $class = $state['basicInfo']['class'] ?? '';
     }
 
+    $resources = is_array($state['resources'] ?? NULL) ? $state['resources'] : [];
+    $hitPoints = is_array($resources['hitPoints'] ?? NULL) ? $resources['hitPoints'] : [];
+    $defenses = is_array($state['defenses'] ?? NULL) ? $state['defenses'] : [];
+    $armorClassState = is_array($defenses['armorClass'] ?? NULL) ? $defenses['armorClass'] : [];
+    $position = is_array($state['position'] ?? NULL) ? $state['position'] : [];
+    $location = is_array($state['location'] ?? NULL) ? $state['location'] : [];
+
+    $hpCurrent = (int) ($hitPoints['current'] ?? 0);
+    $hpMax = (int) ($hitPoints['max'] ?? 0);
+    $armorClass = (int) ($armorClassState['total'] ?? ($armorClassState['value'] ?? 10));
+    $experiencePoints = (int) ($state['basicInfo']['experiencePoints'] ?? 0);
+    $positionQ = (int) ($position['q'] ?? 0);
+    $positionR = (int) ($position['r'] ?? 0);
+    $lastRoomId = (string) ($location['roomId'] ?? ($state['roomId'] ?? ''));
+
     if ($campaign_row) {
       // Campaign-scoped runtime record
       $state['metadata']['version'] = $now;
@@ -773,6 +788,14 @@ class CharacterStateService {
           'state_data' => json_encode($state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
           'updated' => $now,
           'type' => $type,
+          'hp_current' => $hpCurrent,
+          'hp_max' => $hpMax,
+          'armor_class' => $armorClass,
+          'experience_points' => $experiencePoints,
+          'position_q' => $positionQ,
+          'position_r' => $positionR,
+          'last_room_id' => $lastRoomId,
+          'changed' => $now,
         ])
         ->condition('id', $campaign_row['id'])
         ->execute();
@@ -781,13 +804,20 @@ class CharacterStateService {
       $character_data = $state;
       unset($character_data['characterId']);
       unset($character_data['userId']);
-      $this->database->update('dc_characters')
+      $this->database->update('dc_campaign_characters')
         ->fields([
           'name' => $name,
           'level' => $level,
           'ancestry' => $ancestry,
           'class' => $class,
           'type' => $type,
+          'hp_current' => $hpCurrent,
+          'hp_max' => $hpMax,
+          'armor_class' => $armorClass,
+          'experience_points' => $experiencePoints,
+          'position_q' => $positionQ,
+          'position_r' => $positionR,
+          'last_room_id' => $lastRoomId,
           'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
           'changed' => $now,
         ])
@@ -805,13 +835,20 @@ class CharacterStateService {
     unset($character_data['characterId']);
     unset($character_data['userId']);
 
-    $this->database->update('dc_characters')
+    $this->database->update('dc_campaign_characters')
       ->fields([
         'name' => $name,
         'level' => $level,
         'ancestry' => $ancestry,
         'class' => $class,
         'type' => $type,
+        'hp_current' => $hpCurrent,
+        'hp_max' => $hpMax,
+        'armor_class' => $armorClass,
+        'experience_points' => $experiencePoints,
+        'position_q' => $positionQ,
+        'position_r' => $positionR,
+        'last_room_id' => $lastRoomId,
         'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         'changed' => $now,
       ])
@@ -825,7 +862,8 @@ class CharacterStateService {
   private function loadCampaignCharacter(?int $campaign_id, ?string $instance_id, int $character_id): ?array {
     $query = $this->database->select('dc_campaign_characters', 'cc')
       ->fields('cc', ['id', 'campaign_id', 'character_id', 'instance_id', 'type', 'state_data', 'location_type', 'location_ref', 'updated'])
-      ->condition('character_id', $character_id);
+      ->condition('character_id', $character_id)
+      ->condition('campaign_id', 0, '>');
 
     if ($campaign_id !== NULL) {
       $query->condition('campaign_id', $campaign_id);

@@ -34,13 +34,13 @@ These schemas participate in the module's canonical data model taxonomy:
 - **Active Campaign Objects**: Runtime, campaign-scoped state and instances.
 - **Fact Objects**: Durable reference/source records used by both templates and campaigns.
 
-This schema directory primarily defines JSON payload contracts used in **Fact** records (for example `dc_characters.character_data`) and **Active Campaign** records (for example `dc_campaigns.campaign_data`), while template rows are imported via table-organized files under `config/examples/templates/`.
+This schema directory primarily defines JSON payload contracts used in **Fact** records (for example `dc_campaign_characters.character_data` where `campaign_id = 0`) and **Active Campaign** records (for example `dc_campaigns.campaign_data`), while template rows are imported via table-organized files under `config/examples/templates/`.
 
 ## Quick Reference
 
 | Schema File | Purpose | Versioned | Lines | Primary Use |
 |-------------|---------|-----------|-------|-------------|
-| `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_characters.character_data` |
+| `character.schema.json` | Complete PF2e character | ✓ | 564 | `dc_campaign_characters.character_data` |
 | `character_options_step[1-8].json` | Character creation wizard | Partial | 298-525 | Character creation UI |
 | `campaign.schema.json` | Campaign state & progress | ✓ | 137 | `dc_campaigns.campaign_data` |
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
@@ -61,7 +61,7 @@ This schema directory primarily defines JSON payload contracts used in **Fact** 
 ### Character Schemas
 
 #### `character.schema.json`
-Complete Pathfinder 2E character data structure stored in the `dc_characters` table's `character_data` JSON column.
+Complete Pathfinder 2E character data structure stored in the `dc_campaign_characters` table's `character_data` JSON column.
 
 **Defines:**
 - Character attributes (name, level, abilities)

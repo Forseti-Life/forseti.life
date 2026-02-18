@@ -94,9 +94,10 @@ class CharacterStateController extends ControllerBase {
     $uid = $this->currentUser()->id();
     
     // Check if user owns the character
-    $owner_uid = $this->database->select('dc_characters', 'c')
+    $owner_uid = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c', ['uid'])
       ->condition('id', $character_id)
+      ->condition('campaign_id', 0)
       ->execute()
       ->fetchField();
     

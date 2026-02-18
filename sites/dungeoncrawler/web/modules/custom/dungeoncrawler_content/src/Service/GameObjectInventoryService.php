@@ -18,9 +18,8 @@ class GameObjectInventoryService {
    * Dungeon Crawler table descriptions.
    */
   private const TABLE_OBJECT_MAP = [
-    'dc_characters' => 'Player character records and progression snapshots.',
     'dc_campaigns' => 'Campaign headers, lifecycle state, and campaign-level metadata.',
-    'dc_campaign_characters' => 'Character-to-campaign assignments and active party membership.',
+    'dc_campaign_characters' => 'Unified character/entity records (library and campaign runtime state).',
     'dc_campaign_rooms' => 'Generated room objects for active campaigns.',
     'dc_campaign_room_states' => 'Per-room state flags and progression data.',
     'dc_campaign_dungeons' => 'Dungeon-layer records tied to campaigns.',

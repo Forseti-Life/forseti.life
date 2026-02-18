@@ -442,9 +442,10 @@ class CharacterManager {
    */
   public function getUserCharacters(?int $uid = NULL): array {
     $uid = $uid ?? (int) $this->currentUser->id();
-    return $this->database->select('dc_characters', 'c')
+    return $this->database->select('dc_campaign_characters', 'c')
       ->fields('c')
       ->condition('c.uid', $uid)
+      ->condition('c.campaign_id', 0)
       ->orderBy('c.changed', 'DESC')
       ->execute()
       ->fetchAll();
@@ -454,7 +455,7 @@ class CharacterManager {
    * Load a single character by ID.
    */
   public function loadCharacter(int $id): ?object {
-    $record = $this->database->select('dc_characters', 'c')
+    $record = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c')
       ->condition('c.id', $id)
       ->execute()
@@ -467,7 +468,7 @@ class CharacterManager {
    * Load a character by UUID.
    */
   public function loadByUuid(string $uuid): ?object {
-    $record = $this->database->select('dc_characters', 'c')
+    $record = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c')
       ->condition('c.uuid', $uuid)
       ->execute()
@@ -481,16 +482,28 @@ class CharacterManager {
    */
   public function createCharacter(string $name, string $ancestry, string $class, array $options = []): int {
     $character_data = $this->buildCharacterJson($name, $ancestry, $class, $options);
+    $hot = $this->extractHotColumnValues($character_data);
 
     $now = \Drupal::time()->getRequestTime();
-    $id = $this->database->insert('dc_characters')
+    $instanceId = $this->uuid->generate();
+    $id = $this->database->insert('dc_campaign_characters')
       ->fields([
-        'uuid' => $this->uuid->generate(),
+        'uuid' => $instanceId,
+        'campaign_id' => 0,
+        'character_id' => 0,
+        'instance_id' => $instanceId,
         'uid' => (int) $this->currentUser->id(),
         'name' => $name,
         'level' => 1,
         'ancestry' => $ancestry,
         'class' => $class,
+        'hp_current' => $hot['hp_current'],
+        'hp_max' => $hot['hp_max'],
+        'armor_class' => $hot['armor_class'],
+        'experience_points' => $hot['experience_points'],
+        'position_q' => 0,
+        'position_r' => 0,
+        'last_room_id' => '',
         'character_data' => json_encode($character_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
         'status' => 1,
         'created' => $now,
@@ -506,7 +519,7 @@ class CharacterManager {
    */
   public function updateCharacter(int $id, array $fields): bool {
     $fields['changed'] = \Drupal::time()->getRequestTime();
-    $updated = $this->database->update('dc_characters')
+    $updated = $this->database->update('dc_campaign_characters')
       ->fields($fields)
       ->condition('id', $id)
       ->execute();
@@ -518,9 +531,10 @@ class CharacterManager {
    * Delete a character.
    */
   public function deleteCharacter(int $id): bool {
-    $deleted = $this->database->delete('dc_characters')
+    $deleted = $this->database->delete('dc_campaign_characters')
       ->condition('id', $id)
       ->condition('uid', (int) $this->currentUser->id())
+      ->condition('campaign_id', 0)
       ->execute();
 
     return (bool) $deleted;
@@ -724,6 +738,27 @@ class CharacterManager {
   public function getClassHP(string $classId): int {
     $classData = $this->getClassData($classId);
     return (int) ($classData['hp'] ?? 8);
+  }
+
+  /**
+   * Extract hot relational values from a character JSON payload.
+   *
+   * @return array{hp_current:int,hp_max:int,armor_class:int,experience_points:int}
+   *   Normalized hot-column values.
+   */
+  private function extractHotColumnValues(array $characterData): array {
+    $character = is_array($characterData['character'] ?? NULL) ? $characterData['character'] : [];
+    $hitPoints = is_array($character['hit_points'] ?? NULL) ? $character['hit_points'] : [];
+
+    $hpMax = (int) ($hitPoints['max'] ?? 0);
+    $hpCurrent = (int) ($hitPoints['current'] ?? $hpMax);
+
+    return [
+      'hp_current' => $hpCurrent,
+      'hp_max' => $hpMax,
+      'armor_class' => (int) ($character['armor_class'] ?? 10),
+      'experience_points' => (int) ($character['experience_points'] ?? 0),
+    ];
   }
 
 }

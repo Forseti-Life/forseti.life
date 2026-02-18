@@ -720,6 +720,8 @@ class CharacterCreationStepForm extends FormBase {
       'temp' => $schema_data['hit_points']['temp'] ?? 0,
     ];
 
+    $armor_class = 10 + floor(((int) $schema_data['abilities']['dex'] - 10) / 2);
+
     // Ensure required schema fields exist
     $schema_data['level'] = $level;
     $schema_data['experience_points'] = (int) ($schema_data['experience_points'] ?? 0);
@@ -737,12 +739,19 @@ class CharacterCreationStepForm extends FormBase {
     $schema_data['updated_at'] = date('c', $now);
 
     if ($character_id) {
-      $this->database->update('dc_characters')
+      $this->database->update('dc_campaign_characters')
         ->fields([
           'name' => $schema_data['name'] ?: 'Unnamed Character',
           'level' => $schema_data['level'],
           'ancestry' => $schema_data['ancestry'] ?? '',
           'class' => $schema_data['class'] ?? '',
+          'hp_current' => (int) ($schema_data['hit_points']['current'] ?? $max_hp),
+          'hp_max' => (int) $max_hp,
+          'armor_class' => (int) $armor_class,
+          'experience_points' => (int) ($schema_data['experience_points'] ?? 0),
+          'position_q' => (int) ($schema_data['position']['q'] ?? 0),
+          'position_r' => (int) ($schema_data['position']['r'] ?? 0),
+          'last_room_id' => (string) ($schema_data['position']['room_id'] ?? ''),
           'character_data' => json_encode($schema_data, JSON_PRETTY_PRINT),
           'status' => $schema_data['step'] >= 8 ? 1 : 0,
           'changed' => $now,
@@ -752,14 +761,25 @@ class CharacterCreationStepForm extends FormBase {
       return $character_id;
     }
     else {
-      return $this->database->insert('dc_characters')
+      $instance_id = $this->uuid->generate();
+      return $this->database->insert('dc_campaign_characters')
         ->fields([
-          'uuid' => $this->uuid->generate(),
+          'uuid' => $instance_id,
+          'campaign_id' => 0,
+          'character_id' => 0,
+          'instance_id' => $instance_id,
           'uid' => (int) $this->currentUser->id(),
           'name' => $schema_data['name'] ?: 'Unnamed Character',
           'level' => $schema_data['level'],
           'ancestry' => $schema_data['ancestry'] ?? '',
           'class' => $schema_data['class'] ?? '',
+          'hp_current' => (int) ($schema_data['hit_points']['current'] ?? $max_hp),
+          'hp_max' => (int) $max_hp,
+          'armor_class' => (int) $armor_class,
+          'experience_points' => (int) ($schema_data['experience_points'] ?? 0),
+          'position_q' => (int) ($schema_data['position']['q'] ?? 0),
+          'position_r' => (int) ($schema_data['position']['r'] ?? 0),
+          'last_room_id' => (string) ($schema_data['position']['room_id'] ?? ''),
           'character_data' => json_encode($schema_data, JSON_PRETTY_PRINT),
           'status' => 0,
           'created' => $now,

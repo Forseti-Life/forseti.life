@@ -211,41 +211,38 @@ This module uses a **metadata-driven hybrid model** (EAV-inspired, not strict ro
 
 - **Template Objects**: Reusable content definitions (`dungeoncrawler_content_*` tables).
 - **Active Campaign Objects**: Runtime state tied to `campaign_id` (`dc_campaigns` and all `dc_campaign_*` tables).
-- **Fact Objects**: Durable reference/source-of-truth records reused across templates and campaigns (for example `dc_characters`).
+- **Fact Objects**: Durable reference/source-of-truth records reused across templates and campaigns (stored in `dc_campaign_characters` with `campaign_id = 0`).
 
 #### Character Table Roles
 
-- **`dc_characters` (Fact)**: Canonical character library/source records.
-- **`dc_campaign_characters` (Active Campaign)**: Campaign-scoped runtime instances of characters.
+- **`dc_campaign_characters` (Fact + Active Campaign)**: Unified table for canonical character library/source records and campaign-scoped runtime instances.
 - **`dungeoncrawler_content_characters` (Template)**: Reusable character template mappings used by template import/pairing.
 
 This enables promoting a campaign character into reusable forms:
-- To a durable character record (`dc_characters`) for future campaigns.
+- To a durable character record (`dc_campaign_characters` where `campaign_id = 0`) for future campaigns.
 - To template-layer mappings (`dungeoncrawler_content_characters`) for template workflows.
 
-### Character Table: `dc_characters`
+### Character Table: `dc_campaign_characters` (Unified)
 - `id` (int, primary key) - Character ID
-- `uuid` (varchar) - Unique character UUID
-- `user_id` (int) - Owner user ID
+- `uuid` (varchar) - Unique character UUID (canonical/library rows)
+- `uid` (int) - Owner user ID
+- `campaign_id` (int) - `0` for library records, `>0` for campaign-scoped runtime rows
+- `character_id` (int) - Optional link/reference for campaign instances
+- `instance_id` (varchar) - Runtime instance identifier (campaign-scoped uniqueness)
 - `name` (varchar) - Character name
 - `class` (varchar) - Character class
-- `race` (varchar) - Character race
+- `ancestry` (varchar) - Character ancestry
 - `level` (int) - Character level
-- `experience` (int) - Experience points
 - `character_data` (text) - JSON-encoded character data
+- `state_data` (text) - Campaign runtime state JSON payload
+- **Hot gameplay columns (hybrid model):** `hp_current`, `hp_max`, `armor_class`, `experience_points`, `position_q`, `position_r`, `last_room_id`
 - `created` (int) - Creation timestamp
 - `changed` (int) - Last modified timestamp
 
-### Campaign Table: `dc_campaigns`
-- `id`, `uuid`, `uid`, `name`
-- `status` (`draft`, `ready`, `active`, `completed`)
-- `theme`, `difficulty`, `active_character_id`
-- `campaign_data` (JSON state)
-- `created`, `changed`
-
-### Campaign Character Mapping Table: `dc_campaign_characters`
-- `campaign_id`, `character_id`, `uid`
-- `role`, `is_active`, `joined`
+### Hybrid Columnar Storage
+- Use relational columns for high-frequency gameplay reads/writes (HP, AC, XP, position).
+- Keep `character_data`/`state_data` JSON for flexible or lower-frequency payloads (inventory, appearance, buffs, and nested schema structures).
+- Character creation and campaign-selection flows now populate both hot columns and JSON payloads.
 
 ### Character Template Table: `dungeoncrawler_content_characters`
 - `character_id`, `instance_id`, `uid`
