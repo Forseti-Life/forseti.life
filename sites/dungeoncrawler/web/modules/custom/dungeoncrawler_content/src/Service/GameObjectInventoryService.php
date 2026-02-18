@@ -215,14 +215,10 @@ class GameObjectInventoryService {
   }
 
   /**
-   * Classifies table data as template, active campaign, or other.
+   * Classifies table data as template, active campaign, or fact.
    */
   protected function classifyObjectType(string $table_name): string {
     if (str_starts_with($table_name, 'dungeoncrawler_content_')) {
-      return 'template';
-    }
-
-    if ($table_name === 'dc_campaign_encounter_templates' || $table_name === 'dc_campaign_loot_tables') {
       return 'template';
     }
 
@@ -230,7 +226,7 @@ class GameObjectInventoryService {
       return 'campaign';
     }
 
-    return 'other';
+    return 'fact';
   }
 
 }

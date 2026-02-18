@@ -29,9 +29,9 @@ class GameObjectsController extends ControllerBase {
   private const OBJECT_TYPE_CAMPAIGN = 'campaign';
 
   /**
-   * Object type key: uncategorized records.
+   * Object type key: fact/reference records.
    */
-  private const OBJECT_TYPE_OTHER = 'other';
+  private const OBJECT_TYPE_FACT = 'fact';
 
   /**
    * Form builder service.
@@ -198,7 +198,7 @@ class GameObjectsController extends ControllerBase {
     $has_filtered_inventory = !empty($filtered_inventory);
     $template_count = count($grouped_inventory[self::OBJECT_TYPE_TEMPLATE] ?? []);
     $campaign_count = count($grouped_inventory[self::OBJECT_TYPE_CAMPAIGN] ?? []);
-    $other_count = count($grouped_inventory[self::OBJECT_TYPE_OTHER] ?? []);
+    $fact_count = count($grouped_inventory[self::OBJECT_TYPE_FACT] ?? []);
 
     return [
       '#type' => 'container',
@@ -222,10 +222,10 @@ class GameObjectsController extends ControllerBase {
           '#markup' => '<p class="mb-3"><strong>' . $this->t('Delineation:') . '</strong> ' . $this->t('Template Objects are reusable content definitions. Active Campaign Objects are runtime records tied to active campaign state.') . '</p>',
         ],
         'delineation_counts' => [
-          '#markup' => '<p class="mb-3">' . $this->t('Template: @template_count tables · Active Campaign: @campaign_count tables · Other: @other_count tables', [
+          '#markup' => '<p class="mb-3">' . $this->t('Template: @template_count tables · Active Campaign: @campaign_count tables · Fact: @fact_count tables', [
             '@template_count' => $template_count,
             '@campaign_count' => $campaign_count,
-            '@other_count' => $other_count,
+            '@fact_count' => $fact_count,
           ]) . '</p>',
         ],
         'accordion' => $this->buildInventoryAccordion(
@@ -257,7 +257,7 @@ class GameObjectsController extends ControllerBase {
 
     $template_count = count($grouped_inventory[self::OBJECT_TYPE_TEMPLATE] ?? []);
     $campaign_count = count($grouped_inventory[self::OBJECT_TYPE_CAMPAIGN] ?? []);
-    $other_count = count($grouped_inventory[self::OBJECT_TYPE_OTHER] ?? []);
+    $fact_count = count($grouped_inventory[self::OBJECT_TYPE_FACT] ?? []);
 
     $accordion['template'] = $this->buildInventoryAccordionItem(
       $accordion_id,
@@ -281,14 +281,14 @@ class GameObjectsController extends ControllerBase {
       ),
     );
 
-    $accordion['other'] = $this->buildInventoryAccordionItem(
+    $accordion['fact'] = $this->buildInventoryAccordionItem(
       $accordion_id,
-      'other',
-      (string) $this->t('Other Dungeon Crawler Objects (@count)', ['@count' => $other_count]),
+      'fact',
+      (string) $this->t('Fact Dungeon Crawler Objects (@count)', ['@count' => $fact_count]),
       $this->buildInventoryTable(
-        $grouped_inventory[self::OBJECT_TYPE_OTHER] ?? [],
+        $grouped_inventory[self::OBJECT_TYPE_FACT] ?? [],
         $filters,
-        (string) $this->t('No other object tables matched the active filters.'),
+        (string) $this->t('No fact object tables matched the active filters.'),
       ),
     );
 
@@ -358,7 +358,7 @@ class GameObjectsController extends ControllerBase {
 
       $rows[] = [
         'table' => ['data' => $link],
-        'type' => $this->getObjectTypeLabel((string) ($metadata['object_type'] ?? 'other')),
+        'type' => $this->getObjectTypeLabel((string) ($metadata['object_type'] ?? self::OBJECT_TYPE_FACT)),
         'objects' => $metadata['object_description'],
         'fields' => count($metadata['columns']),
         'rows' => $metadata['row_count'],
@@ -402,7 +402,7 @@ class GameObjectsController extends ControllerBase {
       'all' => $this->t('All Object Types'),
       self::OBJECT_TYPE_TEMPLATE => $this->t('Template Objects'),
       self::OBJECT_TYPE_CAMPAIGN => $this->t('Active Campaign Objects'),
-      self::OBJECT_TYPE_OTHER => $this->t('Other Objects'),
+      self::OBJECT_TYPE_FACT => $this->t('Fact Objects'),
     ];
 
     $form = [
@@ -604,7 +604,11 @@ class GameObjectsController extends ControllerBase {
     }
 
     $object_type = isset($query['object_type']) && is_string($query['object_type']) ? $query['object_type'] : 'all';
-    if (!in_array($object_type, ['all', self::OBJECT_TYPE_TEMPLATE, self::OBJECT_TYPE_CAMPAIGN, self::OBJECT_TYPE_OTHER], TRUE)) {
+    if ($object_type === 'other') {
+      $object_type = self::OBJECT_TYPE_FACT;
+    }
+
+    if (!in_array($object_type, ['all', self::OBJECT_TYPE_TEMPLATE, self::OBJECT_TYPE_CAMPAIGN, self::OBJECT_TYPE_FACT], TRUE)) {
       $object_type = 'all';
     }
 
@@ -651,7 +655,7 @@ class GameObjectsController extends ControllerBase {
         continue;
       }
 
-      if ($filters['object_type'] !== 'all' && ($metadata['object_type'] ?? 'other') !== $filters['object_type']) {
+      if ($filters['object_type'] !== 'all' && ($metadata['object_type'] ?? self::OBJECT_TYPE_FACT) !== $filters['object_type']) {
         continue;
       }
 
@@ -742,7 +746,7 @@ class GameObjectsController extends ControllerBase {
     return match ($object_type) {
       self::OBJECT_TYPE_TEMPLATE => (string) $this->t('Template'),
       self::OBJECT_TYPE_CAMPAIGN => (string) $this->t('Active Campaign'),
-      default => (string) $this->t('Other'),
+      default => (string) $this->t('Fact'),
     };
   }
 
@@ -753,13 +757,13 @@ class GameObjectsController extends ControllerBase {
     $groups = [
       self::OBJECT_TYPE_TEMPLATE => [],
       self::OBJECT_TYPE_CAMPAIGN => [],
-      self::OBJECT_TYPE_OTHER => [],
+      self::OBJECT_TYPE_FACT => [],
     ];
 
     foreach ($table_inventory as $table_name => $metadata) {
-      $object_type = $metadata['object_type'] ?? self::OBJECT_TYPE_OTHER;
+      $object_type = $metadata['object_type'] ?? self::OBJECT_TYPE_FACT;
       if (!isset($groups[$object_type])) {
-        $object_type = self::OBJECT_TYPE_OTHER;
+        $object_type = self::OBJECT_TYPE_FACT;
       }
       $groups[$object_type][$table_name] = $metadata;
     }

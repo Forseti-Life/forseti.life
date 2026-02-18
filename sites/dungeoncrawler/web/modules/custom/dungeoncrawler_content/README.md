@@ -39,8 +39,8 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **Inventory service layer**: Table discovery, object classification, and row loading are centralized in `dungeoncrawler_content.game_object_inventory` (`Drupal\\dungeoncrawler_content\\Service\\GameObjectInventoryService`).
 - **Filterable inventory controls**: Filter inventory by `Schema`, `Table`, and `Object Type`, plus a separate `Object Name Contains` free-text filter.
 - **Template vs campaign delineation**: Inventory is split into explicit `Template Objects` and `Active Campaign Objects` sections with an `Object Type` classifier column.
-- **Section count summary**: Inventory delineation includes per-section table counts for `Template`, `Active Campaign`, and `Other` groups.
-- **Collapsible section UI**: Group tables are rendered as a collapsed-by-default accordion (`Template`, `Active Campaign`, `Other`) for easier scanning.
+- **Section count summary**: Inventory delineation includes per-section table counts for `Template`, `Active Campaign`, and `Fact` groups.
+- **Collapsible section UI**: Group tables are rendered as a collapsed-by-default accordion (`Template`, `Active Campaign`, `Fact`) for easier scanning.
 - **Field inventory**: Per-table field/type/index listing for complete schema visibility.
 - **Row browser and editor**: Browse stored rows, search within selected table rows (`Row Contains`), and edit all row fields directly from `/dungeoncrawler/objects`.
 - **Full-row JSON editing**: Row editor includes an advanced JSON payload editor for object-level updates in one JSON object, activated explicitly via `Use JSON editor for this update`.
@@ -204,6 +204,24 @@ Theme blocks (in `/themes/custom/dungeoncrawler/config/optional/`):
 Both blocks are configured as `status: true` and will be automatically placed when the theme is enabled.
 
 ## Database Schema
+
+### Data Modeling Approach (Canonical)
+
+This module uses a **metadata-driven hybrid model** (EAV-inspired, not strict row-per-attribute EAV):
+
+- **Template Objects**: Reusable content definitions (`dungeoncrawler_content_*` tables).
+- **Active Campaign Objects**: Runtime state tied to `campaign_id` (`dc_campaigns` and all `dc_campaign_*` tables).
+- **Fact Objects**: Durable reference/source-of-truth records reused across templates and campaigns (for example `dc_characters`).
+
+#### Character Table Roles
+
+- **`dc_characters` (Fact)**: Canonical character library/source records.
+- **`dc_campaign_characters` (Active Campaign)**: Campaign-scoped runtime instances of characters.
+- **`dungeoncrawler_content_characters` (Template)**: Reusable character template mappings used by template import/pairing.
+
+This enables promoting a campaign character into reusable forms:
+- To a durable character record (`dc_characters`) for future campaigns.
+- To template-layer mappings (`dungeoncrawler_content_characters`) for template workflows.
 
 ### Character Table: `dc_characters`
 - `id` (int, primary key) - Character ID

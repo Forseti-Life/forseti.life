@@ -33,6 +33,11 @@ class OpenIssuesImportForm extends FormBase {
   private const RUN_STATE_KEY = 'dungeoncrawler_tester.open_issues_import_running';
 
   /**
+   * State key for import abort requests.
+   */
+  private const RUN_ABORT_KEY = 'dungeoncrawler_tester.open_issues_import_abort_requested';
+
+  /**
    * State key for last reconcile summary.
    */
   private const RECONCILE_STATE_KEY = 'dungeoncrawler_tester.open_issues_reconcile_last_run';
@@ -179,13 +184,52 @@ class OpenIssuesImportForm extends FormBase {
       '#disabled' => $runState !== [],
     ];
 
+    $form['actions']['kill_active_import'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Kill Active Import'),
+      '#submit' => ['::submitKillActiveImport'],
+      '#limit_validation_errors' => [],
+      '#attributes' => ['class' => ['button', 'button--danger']],
+      '#disabled' => $runState === [],
+    ];
+
     return $form;
+  }
+
+  /**
+   * Handles kill-action requests for currently running imports.
+   */
+  public function submitKillActiveImport(array &$form, FormStateInterface $form_state): void {
+    $active = $this->getActiveRunState();
+    if ($active === []) {
+      $this->messenger()->addWarning($this->t('No active import is currently running.'));
+      return;
+    }
+
+    $operation = (string) ($active['operation'] ?? 'import');
+    $repo = trim((string) ($active['repo'] ?? ''));
+
+    $this->requestAbortRun();
+    $killed = $this->killActiveImportProcesses($repo);
+    $this->endRunState();
+
+    $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' kill requested operation=@operation repo=@repo kill_attempted=@killed', [
+      '@operation' => $operation,
+      '@repo' => $repo,
+      '@killed' => $killed ? 'yes' : 'no',
+    ]);
+
+    $this->messenger()->addStatus($this->t('Kill requested for active @operation run. Any matching import subprocesses were signaled to stop.', [
+      '@operation' => $operation,
+    ]));
   }
 
   /**
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $this->clearAbortRequest();
+
     $repo = trim((string) $form_state->getValue('repo'));
     $waitSeconds = max(0, (int) $form_state->getValue('wait_seconds'));
     $maxItems = max(1, (int) $form_state->getValue('max_items'));
@@ -235,6 +279,17 @@ class OpenIssuesImportForm extends FormBase {
       $token = $this->resolveGithubToken();
 
       foreach ($rows as $row) {
+        if ($this->isAbortRequested()) {
+          $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' import aborted by kill request repo=@repo handled=@handled', [
+            '@repo' => $repo,
+            '@handled' => (string) $handled,
+          ]);
+          $this->messenger()->addWarning($this->t('Import stopped by kill request after handling @handled row(s).', [
+            '@handled' => (string) $handled,
+          ]));
+          break;
+        }
+
         if ($handled >= $maxItems) {
           break;
         }
@@ -276,6 +331,7 @@ class OpenIssuesImportForm extends FormBase {
       ]);
     }
     finally {
+      $this->clearAbortRequest();
       $this->endRunState();
     }
   }
@@ -617,6 +673,64 @@ class OpenIssuesImportForm extends FormBase {
   private function endRunState(): void {
     $this->state->delete(self::RUN_STATE_KEY);
     Cache::invalidateTags([self::IMPORT_STATUS_CACHE_TAG]);
+  }
+
+  /**
+   * Requests a cooperative stop for the active import loop.
+   */
+  private function requestAbortRun(): void {
+    $this->state->set(self::RUN_ABORT_KEY, [
+      'requested_at' => time(),
+      'requested_by' => (int) $this->currentUser()->id(),
+    ]);
+    Cache::invalidateTags([self::IMPORT_STATUS_CACHE_TAG]);
+  }
+
+  /**
+   * Clears any pending import abort request.
+   */
+  private function clearAbortRequest(): void {
+    $this->state->delete(self::RUN_ABORT_KEY);
+    Cache::invalidateTags([self::IMPORT_STATUS_CACHE_TAG]);
+  }
+
+  /**
+   * Returns TRUE when an abort has been requested.
+   */
+  private function isAbortRequested(): bool {
+    $abort = $this->state->get(self::RUN_ABORT_KEY, []);
+    return is_array($abort) && $abort !== [];
+  }
+
+  /**
+   * Attempts to terminate active import subprocesses.
+   */
+  private function killActiveImportProcesses(string $repo): bool {
+    $patterns = [
+      'gh issue edit',
+      'import-open-issues-to-github.sh',
+      'dungeoncrawler/testing/import-open-issues',
+    ];
+
+    if ($repo !== '') {
+      $patterns[] = '--repo ' . $repo;
+    }
+
+    $killedAny = FALSE;
+    foreach ($patterns as $pattern) {
+      try {
+        $process = new Process(['pkill', '-f', $pattern]);
+        $process->setTimeout(3);
+        $process->run();
+        if ($process->isSuccessful()) {
+          $killedAny = TRUE;
+        }
+      }
+      catch (\Throwable) {
+      }
+    }
+
+    return $killedAny;
   }
 
   /**

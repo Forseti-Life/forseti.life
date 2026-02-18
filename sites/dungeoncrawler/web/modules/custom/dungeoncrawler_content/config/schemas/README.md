@@ -26,6 +26,16 @@ JSON Schemas serve multiple purposes:
 - **IDE Support**: Enables autocomplete and validation in editors
 - **Testing**: Facilitates automated testing of data structures
 
+## Data Model Alignment
+
+These schemas participate in the module's canonical data model taxonomy:
+
+- **Template Objects**: Reusable definitions that seed runtime content.
+- **Active Campaign Objects**: Runtime, campaign-scoped state and instances.
+- **Fact Objects**: Durable reference/source records used by both templates and campaigns.
+
+This schema directory primarily defines JSON payload contracts used in **Fact** records (for example `dc_characters.character_data`) and **Active Campaign** records (for example `dc_campaigns.campaign_data`), while template rows are imported via table-organized files under `config/examples/templates/`.
+
 ## Quick Reference
 
 | Schema File | Purpose | Versioned | Lines | Primary Use |
