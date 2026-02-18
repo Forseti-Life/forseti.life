@@ -125,6 +125,14 @@ class CopilotIssueController extends ControllerBase {
       $data = json_decode((string) $response->getBody(), TRUE) ?? [];
 
       if ($status >= 200 && $status < 300) {
+        $this->logger->notice('GitHub issue created via ai_conversation endpoint. repo=@repo issue=#@issue user_id=@uid ip=@ip title="@title"', [
+          '@repo' => $repo,
+          '@issue' => (string) ($data['number'] ?? 'n/a'),
+          '@uid' => (string) $this->currentUser()->id(),
+          '@ip' => (string) ($request->getClientIp() ?? 'unknown'),
+          '@title' => mb_strimwidth($title, 0, 180, '…'),
+        ]);
+
         return new JsonResponse([
           'success' => TRUE,
           'issue_number' => $data['number'] ?? NULL,

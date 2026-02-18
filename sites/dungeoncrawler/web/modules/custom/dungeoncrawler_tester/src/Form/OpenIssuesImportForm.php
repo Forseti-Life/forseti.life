@@ -38,6 +38,11 @@ class OpenIssuesImportForm extends FormBase {
   private const RUN_ABORT_KEY = 'dungeoncrawler_tester.open_issues_import_abort_requested';
 
   /**
+   * State key for background import subprocess metadata.
+   */
+  private const RUN_PROCESS_KEY = 'dungeoncrawler_tester.open_issues_import_process';
+
+  /**
    * State key for last reconcile summary.
    */
   private const RECONCILE_STATE_KEY = 'dungeoncrawler_tester.open_issues_reconcile_last_run';
@@ -201,17 +206,24 @@ class OpenIssuesImportForm extends FormBase {
    */
   public function submitKillActiveImport(array &$form, FormStateInterface $form_state): void {
     $active = $this->getActiveRunState();
-    if ($active === []) {
+    $processState = $this->getActiveProcessState();
+    if ($active === [] && $processState === []) {
       $this->messenger()->addWarning($this->t('No active import is currently running.'));
       return;
     }
 
     $operation = (string) ($active['operation'] ?? 'import');
-    $repo = trim((string) ($active['repo'] ?? ''));
+    $repo = trim((string) ($active['repo'] ?? ($processState['repo'] ?? '')));
 
     $this->requestAbortRun();
+    if (!empty($processState['pid'])) {
+      $this->terminateProcessByPid((int) $processState['pid']);
+    }
     $killed = $this->killActiveImportProcesses($repo);
-    $this->endRunState();
+
+    if ($processState !== []) {
+      $this->clearProcessState();
+    }
 
     $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' kill requested operation=@operation repo=@repo kill_attempted=@killed', [
       '@operation' => $operation,
@@ -219,7 +231,7 @@ class OpenIssuesImportForm extends FormBase {
       '@killed' => $killed ? 'yes' : 'no',
     ]);
 
-    $this->messenger()->addStatus($this->t('Kill requested for active @operation run. Any matching import subprocesses were signaled to stop.', [
+    $this->messenger()->addStatus($this->t('Kill requested for active @operation run. Stop is cooperative and the active run remains locked until current request exits.', [
       '@operation' => $operation,
     ]));
   }
@@ -228,15 +240,61 @@ class OpenIssuesImportForm extends FormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
-    $this->clearAbortRequest();
-
     $repo = trim((string) $form_state->getValue('repo'));
     $waitSeconds = max(0, (int) $form_state->getValue('wait_seconds'));
     $maxItems = max(1, (int) $form_state->getValue('max_items'));
     $dryRun = !empty($form_state->getValue('dry_run'));
 
+    $activeProcess = $this->getActiveProcessState();
+    if ($activeProcess !== []) {
+      $this->messenger()->addError($this->t('An import subprocess is already running (PID @pid).', [
+        '@pid' => (string) ($activeProcess['pid'] ?? 'n/a'),
+      ]));
+      return;
+    }
+
+    $this->clearAbortRequest();
+
+    $logPath = sprintf('/tmp/dungeoncrawler-import-open-issues-%s.log', date('Ymd_His'));
+    $pid = $this->startBackgroundImportProcess($repo, $waitSeconds, $maxItems, $dryRun, $logPath);
+    if ($pid <= 0) {
+      $this->messenger()->addError($this->t('Failed to launch background import subprocess.'));
+      return;
+    }
+
+    $this->state->set(self::RUN_PROCESS_KEY, [
+      'pid' => $pid,
+      'repo' => $repo,
+      'started_at' => time(),
+      'log' => $logPath,
+    ]);
+    Cache::invalidateTags([self::IMPORT_STATUS_CACHE_TAG]);
+
+    $this->messenger()->addStatus($this->t('Background import started (PID @pid). Log: @log', [
+      '@pid' => (string) $pid,
+      '@log' => $logPath,
+    ]));
+
+    $this->loggerChannelFactory->get('dungeoncrawler_tester')->notice(self::IMPORT_LOG_PREFIX . ' background import launched repo=@repo pid=@pid wait_seconds=@wait max_items=@max dry_run=@dry log=@log', [
+      '@repo' => $repo,
+      '@pid' => (string) $pid,
+      '@wait' => (string) $waitSeconds,
+      '@max' => (string) $maxItems,
+      '@dry' => $dryRun ? 'yes' : 'no',
+      '@log' => $logPath,
+    ]);
+  }
+
+  /**
+   * Runs import batch inline (used by background worker command).
+   */
+  public function runImportBatchNow(string $repo, int $waitSeconds, int $maxItems, bool $dryRun): void {
+    $this->clearAbortRequest();
+
     if (!$this->beginRunState('import', $repo)) {
-      $this->messenger()->addError($this->t(self::MSG_RUN_IN_PROGRESS));
+      $this->loggerChannelFactory->get('dungeoncrawler_tester')->warning(self::IMPORT_LOG_PREFIX . ' import worker skipped repo=@repo reason=run_in_progress', [
+        '@repo' => $repo,
+      ]);
       return;
     }
 
@@ -617,7 +675,12 @@ class OpenIssuesImportForm extends FormBase {
    */
   private function pauseBetweenItems(int $waitSeconds, int $handled, int $maxItems): void {
     if ($waitSeconds > 0 && $handled < $maxItems) {
-      sleep($waitSeconds);
+      for ($remaining = $waitSeconds; $remaining > 0; $remaining--) {
+        if ($this->isAbortRequested()) {
+          return;
+        }
+        sleep(1);
+      }
     }
   }
 
@@ -637,6 +700,101 @@ class OpenIssuesImportForm extends FormBase {
     }
 
     return $state;
+  }
+
+  /**
+   * Return active background subprocess metadata if PID is still alive.
+   */
+  private function getActiveProcessState(): array {
+    $state = $this->state->get(self::RUN_PROCESS_KEY, []);
+    if (!is_array($state) || $state === []) {
+      return [];
+    }
+
+    $pid = (int) ($state['pid'] ?? 0);
+    if ($pid <= 0 || !$this->isPidRunning($pid)) {
+      $this->clearProcessState();
+      return [];
+    }
+
+    return $state;
+  }
+
+  /**
+   * Clear active background subprocess metadata.
+   */
+  private function clearProcessState(): void {
+    $this->state->delete(self::RUN_PROCESS_KEY);
+    Cache::invalidateTags([self::IMPORT_STATUS_CACHE_TAG]);
+  }
+
+  /**
+   * Launch detached import worker subprocess and return PID.
+   */
+  private function startBackgroundImportProcess(string $repo, int $waitSeconds, int $maxItems, bool $dryRun, string $logPath): int {
+    $dryOption = $dryRun ? '--dry-run=1' : '--dry-run=0';
+    $command = sprintf(
+      'cd %s && nohup drush dungeoncrawler_tester:import-open-issues-run --repo=%s --wait-seconds=%d --max-items=%d %s > %s 2>&1 & echo $!',
+      escapeshellarg($this->appRoot),
+      escapeshellarg($repo),
+      $waitSeconds,
+      $maxItems,
+      $dryOption,
+      escapeshellarg($logPath),
+    );
+
+    try {
+      $process = new Process(['/bin/bash', '-lc', $command]);
+      $process->setTimeout(10);
+      $process->run();
+      if (!$process->isSuccessful()) {
+        return 0;
+      }
+
+      $pid = (int) trim((string) $process->getOutput());
+      return $pid > 0 ? $pid : 0;
+    }
+    catch (\Throwable) {
+      return 0;
+    }
+  }
+
+  /**
+   * Check whether a PID currently exists.
+   */
+  private function isPidRunning(int $pid): bool {
+    if ($pid <= 0) {
+      return FALSE;
+    }
+
+    try {
+      $process = new Process(['kill', '-0', (string) $pid]);
+      $process->setTimeout(2);
+      $process->run();
+      return $process->isSuccessful();
+    }
+    catch (\Throwable) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Terminate PID best-effort with TERM then KILL fallback.
+   */
+  private function terminateProcessByPid(int $pid): void {
+    if ($pid <= 0) {
+      return;
+    }
+
+    foreach (['TERM', 'KILL'] as $signal) {
+      try {
+        $process = new Process(['kill', '-s', $signal, (string) $pid]);
+        $process->setTimeout(2);
+        $process->run();
+      }
+      catch (\Throwable) {
+      }
+    }
   }
 
   /**
@@ -710,6 +868,7 @@ class OpenIssuesImportForm extends FormBase {
       'gh issue edit',
       'import-open-issues-to-github.sh',
       'dungeoncrawler/testing/import-open-issues',
+      'dungeoncrawler_tester:import-open-issues-run',
     ];
 
     if ($repo !== '') {
