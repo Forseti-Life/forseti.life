@@ -6,168 +6,268 @@
 (function ($, Drupal, once) {
   'use strict';
 
-  const MAX_BOOSTS = 2;
-
-  let selectedBackground = null;
-  let selectedBoosts = [];
+  // Configuration constants
+  const CONFIG = {
+    maxBoosts: 2,
+    selectors: {
+      form: '#step-3-form',
+      nextButton: '#next-button',
+      errorMessage: '#error-message',
+      boostCount: '#boost-count',
+      backgroundCard: '.background-card',
+      abilityCard: '.ability-card',
+      abilityBoostSection: '#ability-boost-section',
+      selectedBackground: '#selected-background',
+      abilityBoost1: '#ability-boost-1',
+      abilityBoost2: '#ability-boost-2',
+    },
+    cssClasses: {
+      selected: 'selected',
+      hidden: 'hidden',
+    },
+    messages: {
+      selectBackground: 'Please select a background.',
+      selectBoosts: 'Please select exactly {count} ability boosts.',
+      saveFailed: 'Failed to save. Please try again.',
+      genericError: 'An error occurred.',
+    },
+    buttonText: {
+      default: 'Next Step →',
+      saving: 'Saving...',
+    },
+  };
 
   /**
-   * Select a background.
+   * Select a background and update UI state.
+   * 
+   * @param {string} backgroundId - The ID of the selected background.
+   * @param {Object} state - Current form state object.
+   * @param {jQuery} $boostCount - The boost counter element.
    */
-  function selectBackground(backgroundId) {
-    selectedBackground = backgroundId;
+  function selectBackground(backgroundId, state, $boostCount) {
+    state.selectedBackground = backgroundId;
 
     // Update UI
-    $('.background-card').removeClass('selected');
-    $(`.background-card[data-background="${backgroundId}"]`).addClass('selected');
+    $(CONFIG.selectors.backgroundCard).removeClass(CONFIG.cssClasses.selected);
+    $(`.background-card[data-background="${backgroundId}"]`).addClass(CONFIG.cssClasses.selected);
 
     // Update hidden field
-    $('#selected-background').val(backgroundId);
+    $(CONFIG.selectors.selectedBackground).val(backgroundId);
 
     // Show ability boost selection
-    $('#ability-boost-section').slideDown();
+    $(CONFIG.selectors.abilityBoostSection).slideDown();
 
     // Reset ability boost selection
-    selectedBoosts = [];
-    $('.ability-card').removeClass('selected');
-    updateBoostCounter($('#boost-count'));
+    state.selectedBoosts = [];
+    $(CONFIG.selectors.abilityCard).removeClass(CONFIG.cssClasses.selected);
+    updateBoostCounter($boostCount, state);
 
     // Check if we can enable next button
-    checkFormComplete();
+    checkFormComplete(state);
   }
 
   /**
    * Toggle ability boost selection.
+   * 
+   * @param {string} ability - The ability score to toggle.
+   * @param {Object} state - Current form state object.
+   * @param {jQuery} $counter - The boost counter element.
    */
-  function toggleAbilityBoost(ability, $counter) {
-    const index = selectedBoosts.indexOf(ability);
+  function toggleAbilityBoost(ability, state, $counter) {
+    const index = state.selectedBoosts.indexOf(ability);
     
     if (index > -1) {
       // Deselect
-      selectedBoosts.splice(index, 1);
-      $(`.ability-card[data-ability="${ability}"]`).removeClass('selected');
+      state.selectedBoosts.splice(index, 1);
+      $(`.ability-card[data-ability="${ability}"]`).removeClass(CONFIG.cssClasses.selected);
     } else {
       // Select (if not at max)
-      if (selectedBoosts.length < MAX_BOOSTS) {
-        selectedBoosts.push(ability);
-        $(`.ability-card[data-ability="${ability}"]`).addClass('selected');
+      if (state.selectedBoosts.length < CONFIG.maxBoosts) {
+        state.selectedBoosts.push(ability);
+        $(`.ability-card[data-ability="${ability}"]`).addClass(CONFIG.cssClasses.selected);
       }
     }
 
-    updateBoostCounter($counter);
-    updateBoostHiddenFields();
-    checkFormComplete();
+    updateBoostCounter($counter, state);
+    updateBoostHiddenFields(state);
+    checkFormComplete(state);
   }
 
   /**
    * Update boost counter display.
+   * 
+   * @param {jQuery} $counter - The boost counter element.
+   * @param {Object} state - Current form state object.
    */
-  function updateBoostCounter($counter) {
-    $counter.text(selectedBoosts.length);
+  function updateBoostCounter($counter, state) {
+    if ($counter && $counter.length) {
+      $counter.text(state.selectedBoosts.length);
+    }
   }
 
   /**
    * Update hidden fields for ability boosts.
+   * 
+   * @param {Object} state - Current form state object.
    */
-  function updateBoostHiddenFields() {
-    $('#ability-boost-1').val(selectedBoosts[0] || '');
-    $('#ability-boost-2').val(selectedBoosts[1] || '');
+  function updateBoostHiddenFields(state) {
+    $(CONFIG.selectors.abilityBoost1).val(state.selectedBoosts[0] || '');
+    $(CONFIG.selectors.abilityBoost2).val(state.selectedBoosts[1] || '');
   }
 
   /**
    * Check if form is complete and enable/disable next button.
+   * 
+   * @param {Object} state - Current form state object.
    */
-  function checkFormComplete() {
-    const isComplete = selectedBackground && selectedBoosts.length === MAX_BOOSTS;
-    $('#next-button').prop('disabled', !isComplete);
+  function checkFormComplete(state) {
+    const isComplete = state.selectedBackground && state.selectedBoosts.length === CONFIG.maxBoosts;
+    $(CONFIG.selectors.nextButton).prop('disabled', !isComplete);
   }
 
   /**
-   * Reset button to default state.
+   * Update button state and text.
+   * 
+   * @param {jQuery} $button - The button element to update.
+   * @param {boolean} disabled - Whether the button should be disabled.
+   * @param {string} text - The button text to display.
    */
-  function resetButtonState($button) {
-    $button.prop('disabled', false).text('Next Step →');
+  function updateButtonState($button, disabled, text) {
+    if ($button && $button.length) {
+      $button.prop('disabled', disabled).text(text);
+    }
   }
 
   /**
-   * Show error message.
+   * Show error message to user.
+   * 
+   * @param {jQuery} $errorElement - The error message element.
+   * @param {string} message - The error message to display.
    */
   function showError($errorElement, message) {
-    $errorElement.text(message).removeClass('hidden').show();
+    if ($errorElement && $errorElement.length) {
+      $errorElement.text(message).removeClass(CONFIG.cssClasses.hidden).show();
+    }
   }
 
   /**
-   * Hide error message.
+   * Hide error message from user.
+   * 
+   * @param {jQuery} $errorElement - The error message element.
    */
   function hideError($errorElement) {
-    $errorElement.addClass('hidden').hide();
+    if ($errorElement && $errorElement.length) {
+      $errorElement.addClass(CONFIG.cssClasses.hidden).hide();
+    }
+  }
+
+  /**
+   * Validate form data before submission.
+   * 
+   * @param {Object} state - Current form state object.
+   * @return {Object} Validation result with isValid and message properties.
+   */
+  function validateForm(state) {
+    if (!state.selectedBackground) {
+      return { isValid: false, message: CONFIG.messages.selectBackground };
+    }
+    
+    if (state.selectedBoosts.length !== CONFIG.maxBoosts) {
+      const message = CONFIG.messages.selectBoosts.replace('{count}', CONFIG.maxBoosts);
+      return { isValid: false, message: message };
+    }
+    
+    return { isValid: true };
+  }
+
+  /**
+   * Handle AJAX error response.
+   * 
+   * @param {jQuery} $nextButton - The submit button element.
+   * @param {jQuery} $errorMessage - The error message element.
+   * @param {Object} xhr - XMLHttpRequest object.
+   */
+  function handleAjaxError($nextButton, $errorMessage, xhr) {
+    let message = CONFIG.messages.saveFailed;
+    if (xhr.responseJSON && xhr.responseJSON.message) {
+      message = xhr.responseJSON.message;
+    }
+    showError($errorMessage, message);
+    updateButtonState($nextButton, false, CONFIG.buttonText.default);
   }
 
   Drupal.behaviors.characterStep3 = {
     attach: function (context, settings) {
-      const $form = $('#step-3-form', context);
-      const $nextButton = $('#next-button', context);
-      const $errorMessage = $('#error-message', context);
-      const $boostCount = $('#boost-count', context);
+      once('step3-init', CONFIG.selectors.form, context).forEach(function(element) {
+        const $form = $(element);
+        const $nextButton = $(CONFIG.selectors.nextButton, context);
+        const $errorMessage = $(CONFIG.selectors.errorMessage, context);
+        const $boostCount = $(CONFIG.selectors.boostCount, context);
 
-      // Background card click - use event delegation
-      once('background-click', '.background-card', context).forEach((element) => {
-        $(element).on('click', function() {
-          const backgroundId = $(this).data('background');
-          selectBackground(backgroundId);
+        // Guard clause: ensure required elements exist
+        if (!$form.length || !$nextButton.length) {
+          console.warn('Character step 3: Required form elements not found');
+          return;
+        }
+
+        // Initialize state object (replaces global variables)
+        const state = {
+          selectedBackground: null,
+          selectedBoosts: [],
+        };
+
+        // Background card click - use event delegation
+        once('background-click', CONFIG.selectors.backgroundCard, context).forEach((card) => {
+          $(card).on('click', function() {
+            const backgroundId = $(this).data('background');
+            selectBackground(backgroundId, state, $boostCount);
+          });
         });
-      });
 
-      // Ability boost card click - use event delegation
-      once('ability-click', '.ability-card', context).forEach((element) => {
-        $(element).on('click', function() {
-          const ability = $(this).data('ability');
-          toggleAbilityBoost(ability, $boostCount);
+        // Ability boost card click - use event delegation
+        once('ability-click', CONFIG.selectors.abilityCard, context).forEach((card) => {
+          $(card).on('click', function() {
+            const ability = $(this).data('ability');
+            toggleAbilityBoost(ability, state, $boostCount);
+          });
         });
-      });
 
-      // Pre-select if already chosen
-      const currentBackground = $('#selected-background').val();
-      if (currentBackground) {
-        selectBackground(currentBackground);
-        
-        // Pre-select ability boosts if they exist
-        const existingBoosts = [];
-        const boost1 = $('#ability-boost-1').val();
-        const boost2 = $('#ability-boost-2').val();
-        if (boost1) existingBoosts.push(boost1);
-        if (boost2) existingBoosts.push(boost2);
-        
-        existingBoosts.forEach(ability => {
-          selectedBoosts.push(ability);
-          $(`.ability-card[data-ability="${ability}"]`).addClass('selected');
-        });
-        
-        updateBoostCounter($boostCount);
-        checkFormComplete();
-      }
+        // Pre-select if already chosen
+        const currentBackground = $(CONFIG.selectors.selectedBackground).val();
+        if (currentBackground) {
+          selectBackground(currentBackground, state, $boostCount);
+          
+          // Pre-select ability boosts if they exist
+          const existingBoosts = [];
+          const boost1 = $(CONFIG.selectors.abilityBoost1).val();
+          const boost2 = $(CONFIG.selectors.abilityBoost2).val();
+          if (boost1) existingBoosts.push(boost1);
+          if (boost2) existingBoosts.push(boost2);
+          
+          existingBoosts.forEach(ability => {
+            state.selectedBoosts.push(ability);
+            $(`.ability-card[data-ability="${ability}"]`).addClass(CONFIG.cssClasses.selected);
+          });
+          
+          updateBoostCounter($boostCount, state);
+          checkFormComplete(state);
+        }
 
-      // Form submission
-      once('step3-submit', '#step-3-form', context).forEach((element) => {
-        $(element).on('submit', function(e) {
+        // Form submission
+        $form.on('submit', function(e) {
           e.preventDefault();
 
-          // Validate background
-          if (!selectedBackground) {
-            showError($errorMessage, 'Please select a background.');
-            return;
-          }
-
-          // Validate ability boosts
-          if (selectedBoosts.length !== MAX_BOOSTS) {
-            showError($errorMessage, `Please select exactly ${MAX_BOOSTS} ability boosts.`);
-            return;
+          // Validate form data
+          const validation = validateForm(state);
+          if (!validation.isValid) {
+            showError($errorMessage, validation.message);
+            return false;
           }
 
           const formData = $(this).serialize();
           const actionUrl = $(this).attr('action');
 
-          $nextButton.prop('disabled', true).text('Saving...');
+          updateButtonState($nextButton, true, CONFIG.buttonText.saving);
           hideError($errorMessage);
 
           $.ajax({
@@ -176,20 +276,16 @@
             data: formData,
             dataType: 'json',
             success: function(response) {
-              if (response.success) {
+              if (response && response.success) {
                 window.location.href = response.redirect;
               } else {
-                showError($errorMessage, response.message || 'An error occurred.');
-                resetButtonState($nextButton);
+                const message = (response && response.message) || CONFIG.messages.genericError;
+                showError($errorMessage, message);
+                updateButtonState($nextButton, false, CONFIG.buttonText.default);
               }
             },
             error: function(xhr) {
-              let errorMsg = 'Failed to save. Please try again.';
-              if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMsg = xhr.responseJSON.message;
-              }
-              showError($errorMessage, errorMsg);
-              resetButtonState($nextButton);
+              handleAjaxError($nextButton, $errorMessage, xhr);
             }
           });
         });
