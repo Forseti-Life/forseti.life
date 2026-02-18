@@ -40,7 +40,7 @@ JSON Schemas serve multiple purposes:
 | `hazard.schema.json` | Environmental hazards | ✓ | 476 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
-| `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
+| `obstacle.schema.json` | Map obstacles | ✓ | 318 | Traversal blockers |
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
 | `party.schema.json` | Adventuring party | ✓ | 455 | Party management |
 | `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
