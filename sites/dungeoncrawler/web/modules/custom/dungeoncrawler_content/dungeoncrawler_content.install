@@ -9,11 +9,12 @@
  * procedurally generated content.
  *
  * Update Hook Numbering:
- * - 10001: Initial character table (dc_characters)
+ * - 10001: Initial character table (dc_characters) [DEPRECATED - removed by 10007]
  * - 10002: Game content system tables (registry, loot, encounters)
  * - 10003: Campaign management tables (campaigns, campaign_characters)
  * - 10004: Campaign-scoped content tables (rooms, dungeons, instances)
  * - 10005: Unified entity model (polymorphic character types)
+ * - 10007: Consolidate dc_characters → dc_campaign_characters (unified table)
  *
  * @see dungeoncrawler_content_schema()
  */
@@ -33,120 +34,9 @@
  *   Schema definition array for Database API.
  */
 function dungeoncrawler_content_schema() {
-  $schema['dc_characters'] = [
-    'description' => 'Stores PF2e character data as JSON for dungeon crawl campaigns.',
-    'fields' => [
-      'id' => [
-        'type' => 'serial',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'description' => 'Primary key.',
-      ],
-      'uuid' => [
-        'type' => 'varchar',
-        'length' => 36,
-        'not null' => TRUE,
-        'description' => 'UUID for the character.',
-      ],
-      'uid' => [
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Drupal user ID of the character owner.',
-      ],
-      'name' => [
-        'type' => 'varchar',
-        'length' => 255,
-        'not null' => TRUE,
-        'description' => 'Character name.',
-      ],
-      'level' => [
-        'type' => 'int',
-        'unsigned' => TRUE,
-        'not null' => TRUE,
-        'default' => 1,
-        'description' => 'Character level (1-20).',
-      ],
-      'ancestry' => [
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'PF2e ancestry (Human, Elf, Goblin, etc.).',
-      ],
-      'class' => [
-        'type' => 'varchar',
-        'length' => 64,
-        'not null' => TRUE,
-        'default' => '',
-        'description' => 'PF2e class (Fighter, Rogue, Wizard, etc.).',
-      ],
-      'type' => [
-        'type' => 'varchar',
-        'length' => 32,
-        'not null' => TRUE,
-        'default' => 'pc',
-        'description' => 'Entity type (polymorphic): pc (player character), npc (non-player character), obstacle, trap, hazard. Max 32 chars.',
-      ],
-      'character_data' => [
-        'type' => 'text',
-        'size' => 'big',
-        'not null' => TRUE,
-        'description' => 'Full PF2e character sheet as JSON (max ~16MB). Contains stats, abilities, inventory, and current state.',
-      ],
-      'default_character_data' => [
-        'type' => 'text',
-        'size' => 'big',
-        'not null' => FALSE,
-        'description' => 'Default state payload for this character/library entry. Used as template for new instances.',
-      ],
-      'default_locations' => [
-        'type' => 'text',
-        'not null' => FALSE,
-        'description' => 'Optional JSON array of default placement locations (max ~64KB). Used for spawning entities in campaigns.',
-      ],
-      'portrait' => [
-        'type' => 'varchar',
-        'length' => 512,
-        'not null' => FALSE,
-        'default' => NULL,
-        'description' => 'Path to character portrait image.',
-      ],
-      'status' => [
-        'type' => 'int',
-        'size' => 'tiny',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Character status: 0 = draft/inactive, 1 = active/playable, -1 = dead/retired. Signed tiny int (-128 to 127).',
-      ],
-      'created' => [
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Unix timestamp when character was created.',
-      ],
-      'changed' => [
-        'type' => 'int',
-        'not null' => TRUE,
-        'default' => 0,
-        'description' => 'Unix timestamp when character was last modified.',
-      ],
-    ],
-    'primary key' => ['id'],
-    'unique keys' => [
-      'uuid' => ['uuid'],
-    ],
-    'indexes' => [
-      'uid' => ['uid'],
-      'name' => ['name'],
-      'status' => ['status'],
-      'ancestry' => ['ancestry'],
-      'class' => ['class'],
-      'type' => ['type'],
-    ],
-  ];
-
+  // NOTE: dc_characters table was deprecated and removed by update hook 10007.
+  // All character data is now stored in dc_campaign_characters (unified table).
+  
   $schema['dungeoncrawler_content_registry'] = [
     'description' => 'Registry of all game content (creatures, items, obstacles, traps, hazards).',
     'fields' => [

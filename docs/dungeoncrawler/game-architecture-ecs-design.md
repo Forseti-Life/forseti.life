@@ -149,44 +149,53 @@ CREATE TABLE component_stats (
 #### 3. ActionsComponent (PF2e 3-Action Economy)
 ```javascript
 class ActionsComponent {
-  maxActions: number;           // Usually 3
-  remainingActions: number;     // Actions left this turn
-  hasReaction: boolean;         // Reaction available
-  hasFreeActions: boolean;      // Can still take free actions
-  multipleAttackPenalty: number; // -0, -5, -10 (or -0, -4, -8 for agile)
-  actionsThisTurn: Action[];    // History of actions taken
+  maxActions: number;              // Usually 3
+  actionsRemaining: number;        // Actions left this turn
+  hasReaction: boolean;            // Reaction available
+  attacksMadeThisTurn: number;     // Number of attacks made this turn
+  mapPenalty: number;              // Current Multiple Attack Penalty (-5, -10, etc.)
+  mapPenaltyPerAttack: number;     // MAP penalty per attack (-5 standard, -4 agile)
+  actionHistory: Action[];         // History of actions taken this turn
+  canAct: boolean;                 // Whether entity can take actions
+  actionBonus: number;             // Bonus/penalty to action count (e.g., Haste +1)
 }
 
 interface Action {
-  type: string;                 // 'stride', 'strike', 'cast_spell', etc.
-  actionCost: number;           // 1, 2, or 3
-  timestamp: number;
-  target?: number;              // Entity ID of target
+  name: string;                    // 'Stride', 'Strike', 'Cast Spell', etc.
+  cost: number;                    // Action cost (0=free, 1-3=actions, -1=reaction)
+  type: string;                    // 'action', 'activity', 'reaction', 'free_action'
+  timestamp: number;               // When action was taken
 }
 ```
 
-**Database Schema:**
-```sql
-CREATE TABLE component_actions (
-  entity_id INT PRIMARY KEY,
-  max_actions INT DEFAULT 3,
-  remaining_actions INT DEFAULT 3,
-  has_reaction BOOLEAN DEFAULT TRUE,
-  has_free_actions BOOLEAN DEFAULT TRUE,
-  multiple_attack_penalty INT DEFAULT 0
-);
+**Storage:**
+Components are stored as JSON in the unified `state_data` column of the `dc_campaign_characters` table. This approach uses hot columns (hp_current, hp_max, armor_class, position_q, position_r) for frequently accessed data, while component state is serialized into the flexible JSON `state_data` field.
 
-CREATE TABLE action_history (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-  encounter_id INT NOT NULL,
-  entity_id INT NOT NULL,
-  round INT NOT NULL,
-  action_type VARCHAR(50) NOT NULL,
-  action_cost INT NOT NULL,
-  target_entity_id INT NULL,
-  timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  INDEX idx_encounter (encounter_id, round)
-);
+**JSON Structure Example:**
+```json
+{
+  "components": {
+    "ActionsComponent": {
+      "type": "ActionsComponent",
+      "maxActions": 3,
+      "actionsRemaining": 2,
+      "hasReaction": true,
+      "attacksMadeThisTurn": 1,
+      "mapPenalty": -5,
+      "mapPenaltyPerAttack": -5,
+      "actionHistory": [
+        {
+          "name": "Strike",
+          "cost": 1,
+          "type": "action",
+          "timestamp": 1642534800000
+        }
+      ],
+      "canAct": true,
+      "actionBonus": 0
+    }
+  }
+}
 ```
 
 ---

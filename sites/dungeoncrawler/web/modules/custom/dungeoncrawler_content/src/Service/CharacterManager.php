@@ -721,8 +721,20 @@ class CharacterManager {
   /**
    * Extract hot-column values from character payload.
    *
+   * Maps JSON schema fields to hot relational columns for high-frequency gameplay:
+   * - hit_points.max → hp_max
+   * - hit_points.current → hp_current
+   * - armor_class → armor_class
+   * - experience_points → experience_points
+   *
+   * Hot columns enable fast reads/writes for gameplay mechanics without parsing JSON.
+   * See character.schema.json for field definitions and hybrid storage documentation.
+   *
+   * @param array $characterData
+   *   Character data array (may be nested under 'character' key).
+   *
    * @return array{hp_current:int,hp_max:int,armor_class:int,experience_points:int}
-   *   Normalized values for hot relational columns.
+   *   Normalized values for hot relational columns with safe defaults.
    */
   public function extractHotColumnsFromData(array $characterData): array {
     $character = is_array($characterData['character'] ?? NULL) ? $characterData['character'] : $characterData;
@@ -742,8 +754,21 @@ class CharacterManager {
   /**
    * Resolve hot-column values using row columns first, then JSON payload fallback.
    *
+   * Implements hybrid columnar storage pattern:
+   * 1. Prefer values from dedicated hot columns (fast, indexed)
+   * 2. Fall back to JSON schema fields if hot columns are null/unset
+   * 3. Use safe defaults if neither source has data
+   *
+   * This ensures compatibility with characters created before hot columns were added
+   * and provides resilience if data synchronization issues occur.
+   *
+   * @param object $record
+   *   Database record from dc_campaign_characters table.
+   * @param array $characterData
+   *   Parsed character_data JSON payload.
+   *
    * @return array{hp_current:int,hp_max:int,armor_class:int,experience_points:int}
-   *   Row-preferred hot values.
+   *   Row-preferred hot values with JSON fallback.
    */
   public function resolveHotColumnsForRecord(object $record, array $characterData): array {
     $fromJson = $this->extractHotColumnsFromData($characterData);
