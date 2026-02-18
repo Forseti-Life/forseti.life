@@ -1,12 +1,102 @@
 /**
  * @file TurnManagementSystem.js
  * System for managing turn order, initiative, and round progression.
+ * 
+ * SCHEMA CONFORMANCE NOTES (DCC-0252):
+ * =====================================
+ * This is a **client-side ECS system** that manages turn-based combat state.
+ * It operates on runtime component data and can be hydrated from server-authoritative
+ * state. Combat encounter state changes must be synchronized to the backend via API
+ * calls to persist to database tables.
+ * 
+ * Database Tables (see dungeoncrawler_content.install):
+ * ------------------------------------------------------
+ * 
+ * ### combat_encounters Table (Lines 179-238)
+ * Tracks active and historical combat encounters with:
+ * - id: Primary key (serial)
+ * - campaign_id: Owning campaign (optional)
+ * - room_id: Room identifier where combat occurs
+ * - status: Encounter status (setup|active|paused|ended) - maps to TurnManagementSystem.combatState
+ * - current_round: Current combat round - synced from TurnManagementSystem.currentRound
+ * - turn_index: Current turn index in initiative order - synced from TurnManagementSystem.currentTurnIndex
+ * - created/updated: Timestamps
+ * 
+ * ### combat_participants Table (Lines 240-357)
+ * Participants within a combat encounter with:
+ * - id: Primary key (serial)
+ * - encounter_id: Linked encounter
+ * - entity_id: External entity identifier from the map/ECS
+ * - entity_ref: External reference (character/content id)
+ * - name: Display name
+ * - team: Team designation (player/enemy/ally/neutral) - synced from CombatComponent.team
+ * - initiative: Final initiative value - synced from CombatComponent.initiativeResult
+ * - initiative_roll: Raw d20 roll if rolled server-side
+ * - ac: Armor Class - synced from StatsComponent.ac
+ * - hp: Current hit points - synced from StatsComponent.currentHp
+ * - max_hp: Maximum hit points - synced from StatsComponent.maxHp
+ * - actions_remaining: Actions left this turn - synced from ActionsComponent.actionsRemaining
+ * - attacks_this_turn: Attacks made this turn (for MAP) - synced from CombatComponent.attacksMade
+ * - position_x/position_y: Grid/hex position
+ * - is_defeated: Boolean defeated flag - synced from CombatComponent.isDefeated
+ * - created/updated: Timestamps
+ * 
+ * JSON Column Mapping (state_data.metadata):
+ * ------------------------------------------
+ * The following metadata fields are stored in the state_data JSON column of dc_campaign_characters:
+ * 
+ * | ECS Component Property | state_data.metadata Field | Description |
+ * |------------------------|---------------------------|-------------|
+ * | CombatComponent.initiativeResult | metadata.initiative | Final initiative value |
+ * | CombatComponent.initiativeRoll | metadata.initiativeRoll | Raw d20 roll |
+ * | CombatComponent.team | metadata.team | Team designation |
+ * | CombatComponent.inCombat | metadata.inCombat | Combat participation flag |
+ * | CombatComponent.turnOrder | metadata.turnOrder | Position in initiative order |
+ * | ActionsComponent.actionsRemaining | metadata.actionsRemaining | Actions left this turn |
+ * | CombatComponent.attacksMade | metadata.attacksMade | Attacks made this turn (MAP tracking) |
+ * 
+ * PERSISTENCE FLOW:
+ * =================
+ * 1. TurnManagementSystem manages local turn state (client-side authority)
+ * 2. For server-authoritative mode, use hydrateFromServer() to load encounter state
+ * 3. Frontend calls backend API endpoint (e.g., /api/encounter/{id}/advance-turn)
+ * 4. Backend updates combat_encounters table (current_round, turn_index, status)
+ * 5. Backend updates combat_participants table (initiative, team, actions_remaining, etc.)
+ * 6. Backend syncs to dc_campaign_characters hot columns and state_data JSON
+ * 7. Frontend rehydrates from updated server state
+ * 
+ * IMPORTANT: Changes made to ECS components are transient until persisted via API.
+ * 
+ * Server Hydration:
+ * ------------------
+ * The hydrateFromServer() method expects a payload matching the structure from
+ * CombatEncounterApiController::buildEncounterResponse() with:
+ * - initiative_order: Array of {entity_id, initiative, name, team, ...}
+ * - turn_index: Current turn index (0-based)
+ * - current_round: Current round number (1-based)
+ * - status: Encounter status (setup|active|paused|ended)
+ * 
+ * @see dungeoncrawler_content.install Lines 179-238 (combat_encounters table)
+ * @see dungeoncrawler_content.install Lines 240-357 (combat_participants table)
+ * @see ../index.js Lines 50-54 (Component-to-Schema Mapping table)
+ * @see ../System.js Lines 20-80 (Database Schema Integration documentation)
+ * @see CombatEncounterApiController::buildEncounterResponse() (server payload structure)
  */
 
 import { System } from '../System.js';
 
 /**
  * Combat state.
+ * 
+ * Note: This enum represents client-side combat state transitions.
+ * When syncing to the database combat_encounters.status field, map as follows:
+ * - INACTIVE → null/no encounter record (pre-combat)
+ * - ROLLING_INITIATIVE → 'setup' (initializing encounter)
+ * - IN_PROGRESS → 'active' (combat in progress)
+ * - ENDED → 'ended' (combat completed)
+ * 
+ * The database also supports 'paused' status for temporarily stopped encounters,
+ * which is not currently used in this client-side state machine.
  */
 export const CombatState = {
   INACTIVE: 'inactive',       // No combat
