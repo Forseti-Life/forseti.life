@@ -119,6 +119,7 @@
         },
         "custom": {
           "type": "string",
+          "minLength": 1,
           "maxLength": 500,
           "description": "Non-standard disarm method (narrative description)."
         }
@@ -175,16 +176,18 @@
       "type": "array",
       "items": { "type": "string", "minLength": 1, "maxLength": 50 },
       "uniqueItems": true,
+      "maxItems": 8,
       "description": "Damage types and conditions the hazard is immune to."
     },
     "resistances": {
       "type": "array",
+      "maxItems": 5,
       "items": {
         "type": "object",
         "required": ["type", "value"],
         "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "minLength": 1, "description": "Damage type resisted." },
+          "type": { "type": "string", "minLength": 1, "maxLength": 50, "description": "Damage type resisted." },
           "value": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Amount of resistance." }
         }
       },
@@ -192,12 +195,13 @@
     },
     "weaknesses": {
       "type": "array",
+      "maxItems": 5,
       "items": {
         "type": "object",
         "required": ["type", "value"],
         "additionalProperties": false,
         "properties": {
-          "type": { "type": "string", "minLength": 1, "description": "Damage type weakness." },
+          "type": { "type": "string", "minLength": 1, "maxLength": 50, "description": "Damage type weakness." },
           "value": { "type": "integer", "minimum": 1, "maximum": 30, "description": "Additional damage taken." }
         }
       },
@@ -246,6 +250,7 @@
         "damage_type": {
           "type": "string",
           "minLength": 1,
+          "maxLength": 50,
           "examples": ["piercing", "slashing", "bludgeoning", "fire", "cold", "acid", "electricity", "poison"],
           "description": "Type of damage dealt by the hazard."
         },
