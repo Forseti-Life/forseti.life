@@ -36,7 +36,7 @@ JSON Schemas serve multiple purposes:
 | `creature.schema.json` | Monsters, NPCs, beasts | ✓ | 1101 | Entity spawning |
 | `dungeon_level.schema.json` | Complete dungeon floor | ✓ | 298 | Level generation |
 | `encounter.schema.json` | Combat & initiative | ✓ | 568 | Combat engine |
-| `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 289 | Runtime entity management |
+| `entity_instance.schema.json` | Placed entities (runtime) | ✓ | 312 | Runtime entity management |
 | `hazard.schema.json` | Environmental hazards | ✓ | 476 | PF2e hazards |
 | `hexmap.schema.json` | Hex-based dungeon map | ✓ | 247 | Map structure |
 | `item.schema.json` | Equipment & loot | ✓ | 441 | Inventory system |
@@ -173,6 +173,15 @@ Canonical runtime placement in this schema is `entities[]` via `entity_instance.
 **Primary Runtime Entity Representation**: Unified placed-entity runtime instance (`creature`, `item`, `obstacle`) with placement and mutable state.
 
 **Purpose**: This is the canonical data structure for all placed entities in dungeon levels at runtime, referenced by `dungeon_level.schema.json` in the `entities[]` array. Provides consistent interface for entity lifecycle management (spawn, move, despawn).
+
+**Recently improved (2026-02-18):**
+- Added maxLength constraints to all UUID and ID fields (entity_instance_id, room_id, content_id, version)
+- Added hex coordinate bounds (q, r: ±999) supporting 2000×2000 hex grids
+- Added maxItems: 100 constraint to inventory array to prevent unbounded growth
+- Added maxProperties: 50 constraint to metadata object for state management protection
+- Enhanced spawn_type documentation clarifying usage across creature/item/obstacle types
+- Enhanced metadata documentation with common key examples (patrol_pattern, aggression_level, detected, etc.)
+- Improved inventory_item version field description clarifying replay override behavior
 
 **Key Features**:
 - **Unified Entity Model**: Single schema handles creatures, items, and obstacles
