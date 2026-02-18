@@ -35,8 +35,9 @@
     "level": { "type": "integer", "minimum": 0, "maximum": 25 },
     "rarity": {
       "type": "string",
-      "enum": ["common", "uncommon", "rare", "unique"],
-      "default": "common"
+      "enum": ["common", "uncommon", "rare", "epic", "legendary"],
+      "default": "common",
+      "description": "Item rarity tier. Determines visual styling (color/glow) and AI generation parameters."
     },
     "traits": {
       "type": "array",
