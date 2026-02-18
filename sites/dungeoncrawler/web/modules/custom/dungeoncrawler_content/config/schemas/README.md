@@ -217,6 +217,10 @@ Combat encounters with creatures, initiative, and tactical state.
 - Added `campaign_id` field to support actual database implementation patterns
 - Enhanced documentation clarifying database storage vs schema specification
 - Improved validation constraints and examples
+- **2026-02-18**: Changed `schema_version` to use `const` instead of `default` for semantic correctness
+- **2026-02-18**: Added required fields to `xp_budget` object (total, party_level, party_size)
+- **2026-02-18**: Added `minLength` constraint to `condition.source` field
+- **2026-02-18**: Added examples to `hex_position`, `condition`, and `roll_result` definitions
 
 **Defines:**
 - Encounter metadata (type, status, threat level)
@@ -228,6 +232,8 @@ Combat encounters with creatures, initiative, and tactical state.
 - AI-generated narrative elements
 
 **Note:** Runtime data is stored in relational tables (`combat_encounters`, `combat_participants`, `combat_conditions`, `combat_actions`) while this schema serves as documentation and validation specification.
+
+**Review Status**: ✅ Reviewed (DCC-0018, 2026-02-18) - See `REVIEW_SUMMARY_DCC-0018.md`
 
 
 #### `hazard.schema.json`
