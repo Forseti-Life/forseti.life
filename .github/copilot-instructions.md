@@ -47,7 +47,6 @@ This is a multi-site Drupal workspace featuring:
 
 - **Allowed writer paths**: Local Drupal/PHP automation in `dungeoncrawler_tester` (including import/reconcile flows) may read and mutate repository-root `Issues.md` when synchronizing confirmed GitHub issue state.
 - **Required conversion behavior**: For open-row conversion, PHP automation must: identify Open rows in `Issues.md` → create/find matching open GitHub issue → confirm open state via GitHub API → remove matching local Open row(s).
-- **Agent restriction**: Copilot/LLM agents working issue content must not directly edit `Issues.md` as part of issue execution workflow.
 - **Operational exception**: Manual human cleanup edits are allowed when explicitly requested.
 
 ### Drupal Development Standards
