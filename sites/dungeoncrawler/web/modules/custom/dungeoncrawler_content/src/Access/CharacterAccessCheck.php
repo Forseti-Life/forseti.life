@@ -52,9 +52,12 @@ class CharacterAccessCheck implements AccessInterface {
       return AccessResult::forbidden()->cachePerPermissions();
     }
 
-    // Load character and check ownership.
-    $query = $this->database->select('dungeoncrawler_characters', 'c')
-      ->fields('c', ['user_id'])
+    // Load character from unified dc_campaign_characters table.
+    // This table stores both library characters (campaign_id = 0) and
+    // campaign-scoped instances (campaign_id > 0).
+    // Uses hot columns for high-frequency fields and JSON for flexible data.
+    $query = $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['uid'])
       ->condition('c.id', $character_id)
       ->execute();
     
@@ -65,7 +68,7 @@ class CharacterAccessCheck implements AccessInterface {
     }
 
     // Check if user owns the character.
-    if ($character['user_id'] == $account->id()) {
+    if ($character['uid'] == $account->id()) {
       return AccessResult::allowed()
         ->cachePerPermissions()
         ->cachePerUser()

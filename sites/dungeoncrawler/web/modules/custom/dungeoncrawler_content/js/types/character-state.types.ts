@@ -5,7 +5,38 @@
  * Based on the design document:
  * docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md
  * 
+ * SCHEMA CONFORMANCE NOTES:
+ * These TypeScript interfaces define the **runtime API format** (camelCase) for character
+ * state. This is NOT the same as the database storage format (snake_case).
+ * 
+ * Three-layer architecture:
+ * 1. **TypeScript** (this file): Runtime API contract for client-side consumption
+ *    - Uses camelCase naming (experiencePoints, hitPoints, spellSlots)
+ *    - Nested structures (basicInfo, resources, defenses)
+ *    - Source of truth for TypeScript type checking
+ * 
+ * 2. **JSON Schema** (config/schemas/character.schema.json): Storage validation
+ *    - Uses snake_case naming (experience_points, hit_points, spell_slots)
+ *    - Flatter structure matching database expectations
+ *    - Validates data persisted to character_data column
+ * 
+ * 3. **Database Hot Columns** (dc_campaign_characters table): Query optimization
+ *    - Core identity: name, level, ancestry, class
+ *    - Combat/gameplay: hp_current, hp_max, armor_class, experience_points
+ *    - Position tracking: position_q, position_r, last_room_id
+ *    - Enables fast filtering without JSON path queries
+ *    - Synchronized with JSON payload by PHP service
+ *    - Note: Position fields managed by ECS PositionComponent, not CharacterState
+ * 
+ * The PHP CharacterStateService handles translation between these layers:
+ * - READ: Database (snake_case + hot columns) → API (camelCase nested)
+ * - WRITE: API (camelCase nested) → Database (snake_case + hot columns sync)
+ * 
+ * TypeScript code should ONLY use these interfaces. Never manually convert between
+ * snake_case and camelCase - the PHP service handles all schema translation.
+ * 
  * @see docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md#characterstate-object
+ * @see js/SCHEMA_ALIGNMENT.md
  */
 
 /**
@@ -34,6 +65,8 @@ export interface CharacterState {
   };
   
   // Ability Scores
+  // NOTE: Uses full names (strength, dexterity) not abbreviations (str, dex)
+  // JSON schema uses abbreviated names, PHP service translates between formats
   abilities: {
     strength: number;
     dexterity: number;
@@ -474,3 +507,31 @@ export interface UpdateOperation {
   timestamp: number;
   version: number;
 }
+
+/**
+ * ARCHITECTURE NOTES:
+ * 
+ * Position Tracking
+ * -----------------
+ * Character position data (hex coordinates, room location) is managed by the ECS 
+ * (Entity Component System) using PositionComponent, not directly in CharacterState.
+ * These fields are stored in database hot columns for performance:
+ * - position_q, position_r: Hex axial coordinates
+ * - last_room_id: Most recent room location
+ * 
+ * @see js/ecs/components/PositionComponent.js
+ * @see js/ecs/index.js for component-to-schema mapping
+ * 
+ * Hot Columns vs CharacterState
+ * -----------------------------
+ * The dc_campaign_characters table includes 11 hot columns for query optimization.
+ * CharacterState exposes the character sheet fields (name, level, HP, etc.) but not
+ * the position/location fields which are ECS-managed runtime gameplay state.
+ * 
+ * Complete hot column list:
+ * - Core identity: name, level, ancestry, class
+ * - Combat/gameplay: hp_current, hp_max, armor_class, experience_points
+ * - Position tracking: position_q, position_r, last_room_id (ECS-managed)
+ * 
+ * @see js/SCHEMA_ALIGNMENT.md for detailed field mapping
+ */

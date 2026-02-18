@@ -2,17 +2,52 @@
  * @file CombatComponent.js
  * Component for combat-related data (initiative, team, etc.).
  * 
- * Database Mapping:
- * - Runtime state stored in dc_campaign_characters.character_data JSON
- * - Active combat data stored in combat_participants table during encounters
- * - Initiative fields map to: initiative (final result), initiative_roll (d20 roll)
- * - Team enum values match combat_participants.team column constraints
+ * ## Database Schema Mapping
+ * 
+ * This component maps to the `combat_participants` table hot columns when persisted
+ * to the database during combat encounters. The ECS uses multiple components to represent
+ * a full combat participant, while the database denormalizes frequently-accessed fields.
+ * 
+ * ### ECS to Database Mapping:
+ * 
+ * **CombatComponent fields → combat_participants columns:**
+ * - `initiativeBonus` → (not stored; used for rolling)
+ * - `initiativeRoll` → `initiative_roll` (raw d20 roll)
+ * - `initiativeResult` → `initiative` (final initiative score)
+ * - `team` → `team` (player/enemy/ally/neutral)
+ * - `inCombat` → (derived from encounter_id presence)
+ * - `isDefeated` → `is_defeated` (boolean flag)
+ * - `hasTakenTurn` → (runtime state, not persisted)
+ * - `turnOrder` → (derived from initiative ordering)
+ * - `weaponProficiency` → (not stored; combat calculation only)
+ * - `attackBonus` → (not stored; combat calculation only)
+ * - `armorProficiency` → (not stored; combat calculation only)
+ * 
+ * **Fields from other components → combat_participants columns:**
+ * - StatsComponent.ac → `ac` (Armor Class)
+ * - StatsComponent.currentHp → `hp` (current hit points)
+ * - StatsComponent.maxHp → `max_hp` (maximum hit points)
+ * - ActionsComponent.actionsRemaining → `actions_remaining`
+ * - ActionsComponent.attacksMadeThisTurn → `attacks_this_turn`
+ * - PositionComponent.x → `position_x`
+ * - PositionComponent.y → `position_y`
+ * - IdentityComponent.name → `name`
+ * - Entity.id → `entity_id`
+ * 
+ * ### Hot Column Strategy:
+ * 
+ * The database uses "hot columns" for frequently accessed combat data to avoid
+ * parsing JSON payloads during combat. When saving to the database, fields from
+ * multiple ECS components are denormalized into a single `combat_participants` row.
+ * When loading from the database, these hot columns are distributed back to their
+ * respective ECS components.
  */
 
 import { Component } from '../Component.js';
 
 /**
  * Team affiliations.
+ * Maps directly to combat_participants.team varchar(32) column.
  * @readonly
  * @enum {string}
  */
@@ -41,6 +76,12 @@ const CombatConstants = {
  * 
  * Stores combat-related data including initiative, team affiliation,
  * and combat state. Follows ECS pattern - data container only, no complex logic.
+ * 
+ * This component stores only combat-specific state. Other combat-relevant data
+ * is stored in companion components (StatsComponent for HP/AC, ActionsComponent
+ * for action economy, PositionComponent for map position). When persisting to
+ * the database, fields from all these components are denormalized into the
+ * combat_participants table hot columns.
  * 
  * @extends Component
  */
@@ -264,15 +305,21 @@ export class CombatComponent extends Component {
   /**
    * Serialize component to JSON for persistence.
    * 
-   * Maps to database storage:
-   * - character_data/state_data JSON in dc_campaign_characters (ECS runtime state)
-   * - combat_participants table fields during active encounters:
-   *   - initiativeResult → initiative (final value)
-   *   - initiativeRoll → initiative_roll (raw d20)
-   *   - team → team (varchar 32)
-   *   - isDefeated → is_defeated (tiny int boolean)
+   * This method returns the ECS component state. When persisting to the database,
+   * the combat_participants table stores a subset of these fields:
+   * - initiativeRoll → initiative_roll
+   * - initiativeResult → initiative (final score)
+   * - team → team
+   * - isDefeated → is_defeated
    * 
-   * @returns {Object} Serialized component data conforming to unified schema
+   * Fields NOT persisted to database (runtime/calculation only):
+   * - initiativeBonus (used for rolling, not stored)
+   * - inCombat (derived from encounter_id presence)
+   * - hasTakenTurn (runtime state only)
+   * - turnOrder (derived from initiative ordering)
+   * - weaponProficiency, attackBonus, armorProficiency (calculation helpers)
+   * 
+   * @returns {Object} Serialized component data
    */
   toJSON() {
     return {
@@ -321,15 +368,15 @@ export class CombatComponent extends Component {
   /**
    * Deserialize component from JSON data.
    * 
-   * Accepts data from:
-   * - character_data/state_data JSON fields (dc_campaign_characters)
-   * - combat_participants table snapshot (with field mapping)
+   * When loading from database combat_participants table, the following mappings apply:
+   * - initiative_roll → initiativeRoll (raw d20 roll)
+   * - initiative → initiativeResult (final initiative score)
+   * - team → team (player/enemy/ally/neutral)
+   * - is_defeated → isDefeated (boolean flag)
    * 
-   * Field mapping for combat_participants:
-   * - initiative → initiativeResult
-   * - initiative_roll → initiativeRoll
-   * - team → team
-   * - is_defeated → isDefeated
+   * Note: Other combat_participants columns (ac, hp, max_hp, actions_remaining,
+   * attacks_this_turn, position_x, position_y) should be loaded into their respective
+   * ECS components (StatsComponent, ActionsComponent, PositionComponent).
    * 
    * @param {Object} data - Serialized component data
    * @param {number} [data.initiativeBonus] - Initiative bonus

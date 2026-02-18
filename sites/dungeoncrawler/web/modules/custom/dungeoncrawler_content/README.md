@@ -361,6 +361,32 @@ The refactoring maintains 100% functional compatibility while improving:
 - Documentation for future developers
 - Defensive programming practices
 
+### character-step-3.js Improvements (DCC-0231)
+
+The `character-step-3.js` file has been refactored to align with patterns established in step-1 and step-2, addressing schema conformance and code quality issues:
+
+- **Configuration Constants**: Extracted magic strings and values into comprehensive CONFIG object (maxBoosts, selectors, cssClasses, messages, buttonText)
+- **State Management**: Replaced global variables (`selectedBackground`, `selectedBoosts`) with local state object for better encapsulation
+- **JSDoc Documentation**: Added comprehensive function documentation for all functions with parameter and return type information
+- **Helper Functions**: Extracted validation logic into `validateForm()` and error handling into `handleAjaxError()` functions
+- **Defensive Programming**: Added guard clauses for missing DOM elements and null checks in all helper functions
+- **Consistent Error Handling**: Aligned with step-1 and step-2 patterns, including server error message extraction from `xhr.responseJSON`
+- **Better AJAX Handling**: Added `dataType: 'json'`, safer response validation, and proper state management
+- **Form Initialization**: Added guard clause and proper element validation before attaching event handlers
+
+**Schema Conformance Notes**:
+The refactoring ensures alignment with the module's unified JSON/hot-column architecture:
+- Hot columns (`hp_current`, `hp_max`, `armor_class`, etc.) for high-frequency gameplay queries
+- JSON payloads (`character_data`, `state_data`) for flexible character details
+- Background and ability boost selections feed into `character_data` JSON structure during character creation
+
+The refactoring maintains 100% functional compatibility while improving:
+- Code consistency across all character creation steps
+- Maintainability through better organization and documentation
+- Error handling and defensive programming
+- State management and encapsulation
+- Alignment with established module patterns
+
 ### game-cards.css Improvements (DCC-0038)
 
 The `game-cards.css` file has been refactored to improve maintainability and consistency:
@@ -376,6 +402,27 @@ The refactoring maintains 100% visual consistency while improving code quality:
 - 35 rule blocks organized by component type
 - Shared base styles reduce duplication by ~90 lines
 - All hardcoded colors replaced with semantic variable names
+
+### game-cards.js Schema Conformance (DCC-0253)
+
+The `game-cards.js` file has been reviewed and updated for schema conformance and documentation accuracy:
+
+- **Schema Documentation**: Enhanced file header now clearly documents the data flow from database to UI
+- **Architecture Alignment**: Documentation explicitly references the module's unified JSON/hot-column architecture
+- **Data Flow Clarity**: Added numbered steps explaining how rarity data flows from `dungeoncrawler_content_registry.rarity` through templates to JavaScript
+- **Pattern Consistency**: File header now matches documentation patterns established in `character-sheet.js`
+
+**Key clarifications**:
+- Rarity data originates from `dungeoncrawler_content_registry.rarity` field (varchar, values: common, uncommon, rare, epic, legendary)
+- Templates pre-render rarity as CSS class modifiers (`item-card--{rarity}`)
+- JavaScript provides enhanced interactive effects (legendary glow on hover), not database queries
+- This follows the module's pattern where frequently-accessed display properties are template-rendered rather than client-side queried
+
+The review maintains 100% functional compatibility while improving:
+- Documentation accuracy regarding database schema references
+- Clarity on the relationship between database, templates, CSS, and JavaScript
+- Alignment with module-wide architectural patterns
+- Developer understanding of the complete data flow
 
 ## Development
 
@@ -426,11 +473,11 @@ Place in `templates/` directory following Drupal naming conventions.
 
 ### Character Database Issues
 ```bash
-# Check if character table exists
-./vendor/bin/drush sqlq "SHOW TABLES LIKE 'dungeoncrawler_characters';"
+# Check if character table exists (unified table for library and campaign characters)
+./vendor/bin/drush sqlq "SHOW TABLES LIKE 'dc_campaign_characters';"
 
-# Reinstall module schema
-./vendor/bin/drush sql:query "DROP TABLE IF EXISTS dungeoncrawler_characters;"
+# Reinstall module schema (WARNING: This will delete all character data)
+./vendor/bin/drush sql:query "DROP TABLE IF EXISTS dc_campaign_characters;"
 ./vendor/bin/drush en dungeoncrawler_content -y
 ```
 

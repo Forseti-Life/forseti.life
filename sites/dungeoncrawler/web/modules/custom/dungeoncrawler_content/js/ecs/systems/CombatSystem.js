@@ -1,6 +1,39 @@
 /**
  * @file CombatSystem.js
  * System for handling combat actions (attacks, damage, etc.).
+ * 
+ * SCHEMA CONFORMANCE NOTES (DCC-0249):
+ * =====================================
+ * This is a **client-side ECS system** that operates on runtime component data.
+ * It does NOT directly persist to the database. Combat state changes (HP, position)
+ * must be synchronized to the backend via API calls to persist to hot columns.
+ * 
+ * Database Hot Columns (dc_campaign_characters table):
+ * - hp_current, hp_max: Synced from resources.hitPoints in state_data JSON
+ * - armor_class: Synced from defenses.armorClass.total in state_data JSON
+ * - position_q, position_r: Synced from position.{q,r} in state_data JSON (hex axial coordinates)
+ * - experience_points: Synced from basicInfo.experiencePoints in state_data JSON
+ * - last_room_id: Synced from location.roomId in state_data JSON (most recent room)
+ * 
+ * Hot columns are maintained by CharacterStateService::saveState() which extracts
+ * these values from the JSON payload and updates both the state_data column and
+ * the individual hot columns atomically. This provides:
+ * 1. Fast queries for combat-critical data without JSON parsing
+ * 2. Single source of truth (JSON payload is authoritative)
+ * 3. Consistency guarantee via database transaction
+ * 
+ * PERSISTENCE FLOW:
+ * =================
+ * 1. CombatSystem modifies StatsComponent (e.g., HP via takeDamage())
+ * 2. Frontend calls backend API endpoint (e.g., /api/character/{id}/update)
+ * 3. Backend calls CharacterStateService::updateHitPoints() or saveState()
+ * 4. CharacterStateService extracts hot columns from JSON and updates both atomically
+ * 
+ * IMPORTANT: Changes made to ECS components are transient until persisted via API.
+ * 
+ * @see CharacterStateService::saveState() for hot column synchronization
+ * @see CharacterStateService::updateHitPoints() for HP-specific updates
+ * @see dungeoncrawler_content.install for dc_campaign_characters schema
  */
 
 import { System } from '../System.js';
@@ -24,7 +57,11 @@ export const AttackResult = {
  * - Damage rolls
  * - Critical hits/misses
  * - Multiple Attack Penalty (MAP)
- * - Damage application
+ * - Damage application (transient - requires backend sync for persistence)
+ * 
+ * NOTE: This system operates on ECS components (StatsComponent, CombatComponent).
+ * All state changes are runtime-only until synchronized to the database via
+ * CharacterStateService API calls. See file header for schema conformance details.
  */
 export class CombatSystem extends System {
   constructor(entityManager) {
@@ -76,6 +113,14 @@ export class CombatSystem extends System {
   
   /**
    * Get attack bonus for an entity.
+   * 
+   * Reads from ECS components populated from database schema:
+   * - CombatComponent.attackBonus: derived from character_data JSON
+   * - CombatComponent.weaponProficiency: derived from character_data JSON
+   * - StatsComponent.abilities.strength: derived from character_data JSON
+   * 
+   * These values should match the JSON payload structure used by CharacterStateService.
+   * 
    * @param {Entity} attacker - Attacking entity
    * @returns {number} - Attack bonus
    */
@@ -94,6 +139,12 @@ export class CombatSystem extends System {
   
   /**
    * Perform an attack roll.
+   * 
+   * SCHEMA CONFORMANCE:
+   * - Reads AC from StatsComponent.ac (maps to hot column armor_class)
+   * - AC is extracted from state_data -> defenses.armorClass.total
+   * - Attack calculations are client-side only; results must be sent to backend
+   * 
    * @param {Entity} attacker - Attacking entity
    * @param {Entity} target - Target entity
    * @returns {Object} - {result, roll, total, ac, damage}
@@ -127,7 +178,7 @@ export class CombatSystem extends System {
     const attackBonus = this.getAttackBonus(attacker);
     const attackTotal = attackRoll + attackBonus + mapPenalty;
     
-    // Get target AC
+    // Get target AC (from hot column armor_class via StatsComponent)
     const targetAC = targetStats.ac;
     
     // Determine result
@@ -160,7 +211,7 @@ export class CombatSystem extends System {
         damage += this.rollDice(1, 6);
       }
       
-      // Apply damage to target
+      // Apply damage to target (transient - requires API sync)
       this.applyDamage(target, damage);
     }
     
@@ -192,6 +243,15 @@ export class CombatSystem extends System {
   
   /**
    * Apply damage to an entity.
+   * 
+   * SCHEMA CONFORMANCE: This method modifies StatsComponent.currentHp which maps to:
+   * - Hot Column: dc_campaign_characters.hp_current
+   * - JSON Path: state_data -> resources.hitPoints.current
+   * 
+   * Changes are TRANSIENT until persisted via backend API call.
+   * Frontend should call CharacterStateService::updateHitPoints() or saveState()
+   * to synchronize hp_current hot column with the JSON payload.
+   * 
    * @param {Entity} target - Target entity
    * @param {number} damage - Damage amount
    * @returns {boolean} - True if target is still alive
@@ -204,7 +264,7 @@ export class CombatSystem extends System {
       return true;
     }
     
-    // Apply damage
+    // Apply damage (transient change - requires API sync for persistence)
     const actualDamage = stats.takeDamage(damage);
     
     // Check if defeated
@@ -229,6 +289,13 @@ export class CombatSystem extends System {
   
   /**
    * Heal an entity.
+   * 
+   * SCHEMA CONFORMANCE: This method modifies StatsComponent.currentHp which maps to:
+   * - Hot Column: dc_campaign_characters.hp_current
+   * - JSON Path: state_data -> resources.hitPoints.current
+   * 
+   * Changes are TRANSIENT until persisted via backend API call.
+   * 
    * @param {Entity} target - Target entity
    * @param {number} amount - Healing amount
    * @returns {number} - Actual HP healed
@@ -240,6 +307,7 @@ export class CombatSystem extends System {
       return 0;
     }
     
+    // Apply healing (transient change - requires API sync for persistence)
     const healed = stats.heal(amount);
     
     console.log(`${target.getComponent('IdentityComponent')?.name || target.id} healed for ${healed} HP`);
@@ -249,6 +317,13 @@ export class CombatSystem extends System {
   
   /**
    * Check if entity can attack target.
+   * 
+   * SCHEMA CONFORMANCE:
+   * - Position checks use PositionComponent (q, r hex axial coordinates)
+   * - Position maps to hot columns: position_q, position_r
+   * - Position is extracted from state_data -> position.{q,r}
+   * - Room tracking maps to hot column: last_room_id from state_data -> location.roomId
+   * 
    * @param {Entity} attacker - Attacking entity
    * @param {Entity} target - Target entity
    * @returns {Object} - {canAttack, reason}
@@ -279,6 +354,7 @@ export class CombatSystem extends System {
     }
     
     // Check range (for now, assume melee - must be adjacent)
+    // Position coordinates (q, r) map to hot columns for fast spatial queries
     const attackerPos = attacker.getComponent('PositionComponent');
     const targetPos = target.getComponent('PositionComponent');
     if (attackerPos && targetPos) {

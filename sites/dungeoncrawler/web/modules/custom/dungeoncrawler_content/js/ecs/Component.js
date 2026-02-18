@@ -5,26 +5,33 @@
  * This implements the Component pattern from Entity-Component-System (ECS) architecture.
  * Components are pure data containers with no game logic - logic belongs in Systems.
  * 
- * ## Database Schema Alignment
+ * ## Database Schema Integration
  * 
- * Components serialize to JSON for storage in `character_data` column (dc_campaign_characters table).
- * Frequently-accessed properties are also extracted to "hot columns" for efficient queries:
+ * Components serialize to JSON for storage in database TEXT fields (character_data, state_data).
+ * The database schema uses a hybrid "hot-column" architecture for performance:
  * 
- * - **Hot Columns** (indexed, searchable):
- *   - hp_current, hp_max (from StatsComponent)
- *   - armor_class (from StatsComponent)
- *   - position_q, position_r (from PositionComponent)
- *   - experience_points (from character state)
- *   - last_room_id (from location tracking)
+ * **Hot Columns** (dc_campaign_characters table):
+ * - `hp_current`, `hp_max` (int) - Direct column storage for fast combat queries
+ * - `armor_class` (int) - AC value for combat resolution
+ * - `position_q`, `position_r` (int) - Hex grid coordinates for movement
+ * - `experience_points` (int) - XP tracking
+ * - `last_room_id` (varchar) - Current location
  * 
- * - **JSON Blob** (complete state):
- *   - All component data serialized via toJSON()
- *   - Stored in `character_data` column for full reconstruction
+ * **JSON Payload Columns**:
+ * - `character_data` (TEXT) - Full character sheet as JSON
+ * - `state_data` (TEXT) - Campaign-scoped runtime state
+ * - `default_character_data` (TEXT) - Template baseline
  * 
- * Hot columns are synchronized by PHP CharacterStateService when state is saved.
+ * PHP services extract hot-column values from nested state structure:
+ * - `state.resources.hitPoints.current` → `hp_current` column
+ * - `state.defenses.armorClass.total` → `armor_class` column
+ * - `state.position.{q,r}` → `position_q`, `position_r` columns
  * 
- * @see /src/Service/CharacterStateService.php - Hot column extraction (lines 742-856)
- * @see dungeoncrawler_content.install - Schema definitions (lines 1282-1324)
+ * Component.toJSON() produces the JSON payload structure. Hot-column extraction
+ * is handled by PHP services (CharacterStateService) during database writes.
+ * 
+ * @see dungeoncrawler_content.install - Schema definitions with hot-column fields
+ * @see CharacterStateService::updateCharacterState() - Hot-column extraction logic
  * 
  * @example
  * // Extend Component for custom components
@@ -66,14 +73,16 @@ export class Component {
    * Automatically handles nested objects and arrays. Circular references are detected
    * and excluded from the output with a console warning.
    * 
-   * **Important**: The `type` field is always included in serialization output to enable
-   * proper component reconstruction from stored data. The `type` field corresponds to
-   * the component class name and is essential for polymorphic deserialization.
+   * **Schema Conformance Note**: This method produces JSON for database TEXT columns
+   * (character_data, state_data). Hot-column extraction (hp_current, position_q, etc.)
+   * is handled server-side by PHP services. Components should structure data to match
+   * the expected nested format:
+   * - Health data: `resources.hitPoints.{current, max}`
+   * - Defense data: `defenses.armorClass.{total, value}`
+   * - Position data: `position.{q, r}`
+   * - Location data: `location.roomId` or `roomId`
    * 
-   * **Database Mapping**: Serialized output is stored in `character_data` JSON column.
-   * Some properties may also be extracted to hot columns for efficient querying.
-   * 
-   * @returns {Object} Serialized component data (plain object with type field)
+   * @returns {Object} Serialized component data (plain object)
    */
   toJSON() {
     const data = {
@@ -136,6 +145,11 @@ export class Component {
    * Default implementation creates a new instance and assigns all properties.
    * Note: This preserves the prototype chain of the component class.
    * 
+   * **Schema Conformance Note**: When loading from database, this receives data from
+   * JSON TEXT columns (character_data, state_data). Hot-column values (hp_current, etc.)
+   * are NOT included in this data - they exist as separate database columns and should
+   * be synchronized server-side during save operations.
+   * 
    * @param {Object} data - Serialized component data
    * @returns {Component} New component instance
    * @throws {Error} If data is invalid or malformed
@@ -171,14 +185,10 @@ export class Component {
    * Validate component data.
    * Override in subclasses to implement validation logic.
    * 
-   * Validation should check:
-   * - Required properties are present
-   * - Property values are within valid ranges
-   * - Data types are correct
-   * - Relationships between properties are consistent
-   * 
-   * **Schema Conformance**: If this component maps to database hot columns,
-   * validation should ensure data can be safely extracted for those columns.
+   * For components that map to hot columns, validation should check that:
+   * - Data structure matches expected nested format (e.g., resources.hitPoints)
+   * - Values are within valid ranges (e.g., currentHp >= 0, ac >= 0)
+   * - Required fields for hot-column extraction are present
    * 
    * @returns {boolean} True if component data is valid
    * @example

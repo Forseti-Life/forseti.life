@@ -149,15 +149,25 @@ class CampaignControllerTest extends BrowserTestBase {
       ->execute();
 
     // Create character for character_owner
-    $character_id = $database->insert('dc_characters')
+    $character_id = $database->insert('dc_campaign_characters')
       ->fields([
         'uuid' => \Drupal::service('uuid')->generate(),
-        'user_id' => $character_owner->id(),
+        'campaign_id' => 0,
+        'character_id' => 0,
+        'instance_id' => \Drupal::service('uuid')->generate(),
+        'uid' => $character_owner->id(),
         'name' => 'Test Character',
         'class' => 'fighter',
-        'race' => 'human',
+        'ancestry' => 'human',
         'level' => 1,
-        'experience' => 0,
+        'hp_current' => 10,
+        'hp_max' => 10,
+        'armor_class' => 10,
+        'experience_points' => 0,
+        'position_q' => 0,
+        'position_r' => 0,
+        'last_room_id' => '',
+        'type' => 'pc',
         'status' => 1,
         'character_data' => json_encode([]),
         'created' => time(),

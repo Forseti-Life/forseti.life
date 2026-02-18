@@ -322,15 +322,25 @@ class ApiRoutesTest extends BrowserTestBase {
 
     // Create a character owned by the first user
     $database = \Drupal::database();
-    $character_id = $database->insert('dc_characters')
+    $character_id = $database->insert('dc_campaign_characters')
       ->fields([
         'uuid' => \Drupal::service('uuid')->generate(),
-        'user_id' => $owner->id(),
+        'campaign_id' => 0,
+        'character_id' => 0,
+        'instance_id' => \Drupal::service('uuid')->generate(),
+        'uid' => $owner->id(),
         'name' => 'Owner Character',
         'class' => 'fighter',
-        'race' => 'human',
+        'ancestry' => 'human',
         'level' => 1,
-        'experience' => 0,
+        'hp_current' => 10,
+        'hp_max' => 10,
+        'armor_class' => 10,
+        'experience_points' => 0,
+        'position_q' => 0,
+        'position_r' => 0,
+        'last_room_id' => '',
+        'type' => 'pc',
         'status' => 1,
         'character_data' => json_encode([]),
         'created' => time(),
@@ -354,15 +364,25 @@ class ApiRoutesTest extends BrowserTestBase {
 
     // Create a character owned by the first user
     $database = \Drupal::database();
-    $character_id = $database->insert('dc_characters')
+    $character_id = $database->insert('dc_campaign_characters')
       ->fields([
         'uuid' => \Drupal::service('uuid')->generate(),
-        'user_id' => $owner->id(),
+        'campaign_id' => 0,
+        'character_id' => 0,
+        'instance_id' => \Drupal::service('uuid')->generate(),
+        'uid' => $owner->id(),
         'name' => 'Owner Character',
         'class' => 'fighter',
-        'race' => 'human',
+        'ancestry' => 'human',
         'level' => 1,
-        'experience' => 0,
+        'hp_current' => 10,
+        'hp_max' => 10,
+        'armor_class' => 10,
+        'experience_points' => 0,
+        'position_q' => 0,
+        'position_r' => 0,
+        'last_room_id' => '',
+        'type' => 'pc',
         'status' => 1,
         'character_data' => json_encode([]),
         'created' => time(),
