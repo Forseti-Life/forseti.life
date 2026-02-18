@@ -24,7 +24,7 @@
 // Component: Base class for data-only component types
 // System: Base class for logic that operates on entities
 // EntityManager: Central registry for entities and component queries
-export { Entity } from './Entity.js';
+export { Entity, EntityType, DatabaseEntityType } from './Entity.js';
 export { Component } from './Component.js';
 export { System } from './System.js';
 export { EntityManager } from './EntityManager.js';
