@@ -15,8 +15,16 @@ room_persistence: true
 monster_permadeath: true
 items_per_page: 12
 show_game_stats: true
+generated_image_provider: gemini
 gemini_image_enabled: false
 gemini_image_model: gemini-2.0-flash-exp
 gemini_image_endpoint: 'https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent'
 gemini_image_timeout: 30
 gemini_image_api_key: ''
+vertex_image_enabled: false
+vertex_image_project_id: ''
+vertex_image_location: us-central1
+vertex_image_model: imagen-3.0-generate-002
+vertex_image_endpoint: 'https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/{model}:predict'
+vertex_image_timeout: 30
+vertex_image_api_key: ''

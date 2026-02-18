@@ -30,6 +30,8 @@ print_info() {
     echo -e "${BLUE}[i]${NC} $1"
 }
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 # Check directory structure
 print_info "Checking directory structure..."
 if [ -d "/workspaces/stlouisintegration.com/sites/stlouisintegration" ]; then
@@ -142,6 +144,18 @@ if [ -d "web/themes/custom/stlouisintegration" ]; then
     fi
 else
     print_warning "Custom theme 'stlouisintegration' directory not found"
+fi
+
+# Check OpenClaw runtime integration
+print_info "Checking OpenClaw runtime..."
+if [ -x "$SCRIPT_DIR/verify-openclaw.sh" ]; then
+    if "$SCRIPT_DIR/verify-openclaw.sh" >/dev/null 2>&1; then
+        print_status "OpenClaw runtime verification passed"
+    else
+        print_warning "OpenClaw runtime verification failed (run ./script/verify-openclaw.sh for details)"
+    fi
+else
+    print_warning "OpenClaw verification script not found at $SCRIPT_DIR/verify-openclaw.sh"
 fi
 
 print_info "Verification complete!"

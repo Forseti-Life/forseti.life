@@ -409,6 +409,10 @@ import combatApi from './hexmap-api.js';
         this.elements.entityActions.textContent = actions ? actions.getActionDisplay?.() || `${actions.actionsRemaining}/${actions.maxActions ?? actions.actionsRemaining} actions` : '-';
       }
 
+      if (this.elements.characterName) {
+        this.elements.characterName.textContent = identity?.name || 'Select a character';
+      }
+
       if (this.elements.characterType) {
           this.elements.characterType.textContent = identity?.entityType || '-';
         }
@@ -429,12 +433,60 @@ import combatApi from './hexmap-api.js';
           this.elements.characterSpeed.textContent = movement ? `${movement.movementSpeed} ft` : '-';
         }
         if (this.elements.characterActions) {
-          this.elements.characterActions.textContent = actions ? actions.getActionDisplay() : '-';
+          this.elements.characterActions.textContent = actions
+            ? (actions.getActionDisplay?.() || `${actions.actionsRemaining}/${actions.maxActions ?? actions.actionsRemaining} actions`)
+            : '-';
         }
         if (this.elements.characterInventory) {
           // Placeholder until inventory wiring is implemented; keep the list readable.
           this.elements.characterInventory.innerHTML = '<li class="inventory-empty">Inventory not loaded in this demo</li>';
         }
+    }
+
+    /**
+     * Hydrate character sheet from launch context when no entity is selected yet.
+     */
+    showLaunchCharacter(launchCharacter) {
+      if (!launchCharacter || typeof launchCharacter !== 'object') {
+        return;
+      }
+
+      const name = launchCharacter.name || 'Selected character';
+      const ancestry = launchCharacter.ancestry || '';
+      const characterClass = launchCharacter.class || '';
+      const level = Number(launchCharacter.level) || 0;
+      const hpCurrent = Number(launchCharacter.hp_current);
+      const hpMax = Number(launchCharacter.hp_max);
+      const armorClass = Number(launchCharacter.armor_class);
+
+      if (this.elements.characterName) {
+        this.elements.characterName.textContent = name;
+      }
+      if (this.elements.characterType) {
+        const subtitleParts = [ancestry, characterClass].filter(Boolean);
+        this.elements.characterType.textContent = subtitleParts.length ? subtitleParts.join(' ') : 'Type —';
+      }
+      if (this.elements.characterTeam) {
+        this.elements.characterTeam.textContent = launchCharacter.team || 'player';
+      }
+      if (this.elements.characterLevel) {
+        this.elements.characterLevel.textContent = level > 0 ? `Lvl ${level}` : 'Lvl —';
+      }
+      if (this.elements.characterHp) {
+        this.elements.characterHp.textContent = Number.isFinite(hpCurrent) && Number.isFinite(hpMax) ? `${hpCurrent}/${hpMax}` : '-';
+      }
+      if (this.elements.characterAc) {
+        this.elements.characterAc.textContent = Number.isFinite(armorClass) ? `${armorClass}` : '-';
+      }
+      if (this.elements.characterSpeed) {
+        this.elements.characterSpeed.textContent = '-';
+      }
+      if (this.elements.characterActions) {
+        this.elements.characterActions.textContent = '-';
+      }
+      if (this.elements.characterInventory) {
+        this.elements.characterInventory.innerHTML = '<li class="inventory-empty">Inventory not loaded in this demo</li>';
+      }
     }
 
     /**
@@ -640,6 +692,9 @@ import combatApi from './hexmap-api.js';
     // Launch context from campaign/tavern flow.
     launchContext: {},
 
+    // Launch character summary from campaign flow for initial sheet hydration.
+    launchCharacter: {},
+
     // Dungeon payload for room-aware rendering and transitions.
     dungeonData: {},
     activeRoomId: null,
@@ -667,6 +722,7 @@ import combatApi from './hexmap-api.js';
       // Schema: dungeon_level.schema.json + hexmap.schema.json + entity_instance.schema.json
       this.launchContext = settings?.dungeoncrawlerContent?.hexmapLaunchContext || {};
       this.dungeonData = settings?.dungeoncrawlerContent?.hexmapDungeonData || {};
+      this.launchCharacter = settings?.dungeoncrawlerContent?.hexmapLaunchCharacter || {};
       this.activeRoomId = this.dungeonData?.active_room_id || null;
 
       this.initPixiApp(container[0]);
@@ -676,6 +732,16 @@ import combatApi from './hexmap-api.js';
       this.setupInteraction();
       this.applyDungeonData();
       this.applyLaunchContext();
+
+      try {
+        const launchEntitySelected = this.applyLaunchCharacterSelection();
+        if (!launchEntitySelected) {
+          this.applyLaunchCharacterSummary();
+        }
+      } catch (error) {
+        console.error('Launch character hydration failed; falling back to summary.', error);
+        this.applyLaunchCharacterSummary();
+      }
       
       // Start game loop and track for cleanup
       const updateCallback = (delta) => this.update(delta);
@@ -744,6 +810,7 @@ import combatApi from './hexmap-api.js';
 
       this.launchContext = {};
       this.dungeonData = {};
+      this.launchCharacter = {};
       this.activeRoomId = null;
       
       console.log('Hexmap cleanup complete');
@@ -2820,6 +2887,93 @@ import combatApi from './hexmap-api.js';
       } else {
         console.warn('Launch context start hex not found in current grid:', startQ, startR, context);
       }
+    }
+
+    ,
+
+    /**
+     * Find best player entity candidate for launch hydration.
+     * Prefers a player-team entity on the launch start hex.
+     * @returns {Entity|null}
+     */
+    findLaunchPlayerEntity: function () {
+      if (!this.entityManager) {
+        return null;
+      }
+
+      const entities = this.entityManager.getEntitiesWith('PositionComponent', 'CombatComponent');
+      if (!Array.isArray(entities) || !entities.length) {
+        return null;
+      }
+
+      const playerEntities = entities.filter((entity) => {
+        const combat = entity.getComponent('CombatComponent');
+        if (!combat) {
+          return false;
+        }
+
+        return combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+      });
+
+      if (!playerEntities.length) {
+        return null;
+      }
+
+      const startQ = Number.isFinite(Number(this.launchContext?.start_q)) ? Number(this.launchContext.start_q) : 0;
+      const startR = Number.isFinite(Number(this.launchContext?.start_r)) ? Number(this.launchContext.start_r) : 0;
+      const onStartHex = playerEntities.find((entity) => {
+        const pos = entity.getComponent('PositionComponent');
+        return pos && pos.q === startQ && pos.r === startR;
+      });
+
+      return onStartHex || playerEntities[0] || null;
+    }
+
+    ,
+
+    /**
+     * Select launch player entity to hydrate character sheet.
+     * @returns {boolean}
+     */
+    applyLaunchCharacterSelection: function () {
+      if (!this.stateManager || this.stateManager.get('selectedEntity')) {
+        return true;
+      }
+
+      const hasCampaignContext = Number(this.launchContext?.campaign_id || 0) > 0;
+      if (!hasCampaignContext) {
+        return false;
+      }
+
+      const entity = this.findLaunchPlayerEntity();
+      if (!entity) {
+        return false;
+      }
+
+      this.selectEntity(entity);
+      return true;
+    }
+
+    ,
+
+    /**
+     * Populate character sheet from launch character context when no entity is selected.
+     */
+    applyLaunchCharacterSummary: function () {
+      if (!this.uiManager || !this.stateManager) {
+        return;
+      }
+
+      if (this.stateManager.get('selectedEntity')) {
+        return;
+      }
+
+      const hasCampaignContext = Number(this.launchContext?.campaign_id || 0) > 0;
+      if (!hasCampaignContext) {
+        return;
+      }
+
+      this.uiManager.showLaunchCharacter(this.launchCharacter || {});
     }
   };
 

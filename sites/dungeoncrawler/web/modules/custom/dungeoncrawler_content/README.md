@@ -23,6 +23,7 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 
 ### Campaign Management System
 - **Campaign-first entry flow**: Start adventure by creating a campaign, then select or create a character
+- **Default tavern dungeon backfill**: Campaigns without dungeon rows auto-seed a Tavern Entrance dungeon into `dc_campaign_dungeons` when opening dungeon selection
 - **Centralized page wrapper for management forms**: `management_form_page` template for themed create/edit pages
 - **Tavern entrance launch flow**: After creating a campaign, route to campaign tavern entrance to select character and launch hexmap
 - **Archive flow with confirmation checkbox**: Campaign archive requires checking a confirmation box and hides campaigns from the active list without deleting them
@@ -40,6 +41,7 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
    - `/characters?campaign_id={id}` switches My Characters into campaign selection mode
    - Character creation preserves `campaign_id` through step redirects
    - Campaign character selection resolves hexmap launch context (`dungeon_level_id`, `map_id`, `room_id`, `next_room_id`) from the latest campaign dungeon record instead of static IDs
+   - `/hexmap` now receives a launch-character summary from campaign context and uses it to hydrate the bottom character sheet immediately on initial load (before entity selection/combat turn hydration)
 
 ### Game Object Management
 - **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
@@ -65,13 +67,26 @@ Core content module for the AI-generated living dungeon crawler RPG. Provides ch
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
 - **About** (`/about`) - Game information and technology
 
-### Gemini Image Generation Integration (Stub)
-- **Dashboard panel**: `/admin/content/dungeoncrawler` includes a **Gemini Image Generation (Stub)** panel.
-- **Stub request form**: Captures prompt, style, aspect ratio, negative prompt, and campaign context.
-- **Integration service**: `dungeoncrawler_content.gemini_image_generator` normalizes payloads and supports both stub mode and live Gemini requests.
-- **Live-mode settings**: Configure under `/admin/config/content/dungeoncrawler` (enable toggle, model, endpoint, timeout, API key).
-- **API key source**: Prefer `GEMINI_API_KEY` env var; optional config-stored key is also supported.
-- **Operator setup aid**: Dashboard panel includes a copy-ready Linux/Apache `GEMINI_API_KEY` export snippet plus reload/cache steps.
+### AI Image Generation Integration (Gemini + Vertex)
+- **Dashboard panel**: `/admin/content/dungeoncrawler` includes an **AI Image Generation (Gemini + Vertex)** panel.
+- **Provider-aware request form**: Captures provider (Gemini/Vertex), prompt, style, aspect ratio, negative prompt, and campaign context.
+- **Integration layer**: `dungeoncrawler_content.image_generation_integration` routes generation requests to provider services.
+- **Provider services**:
+   - `dungeoncrawler_content.gemini_image_generator`
+   - `dungeoncrawler_content.vertex_image_generator`
+- **Admin settings**: Configure under `/admin/config/content/dungeoncrawler`:
+   - Default provider (`generated_image_provider`)
+   - Gemini live settings + key (`GEMINI_API_KEY` or config)
+   - Vertex live settings + key (`VERTEX_API_KEY` or config)
+- **Operator setup aid**: Dashboard includes copy-ready Linux/Apache env export snippet for both providers plus reload/cache steps.
+- **Storage design reference**: See `GENERATED_IMAGE_STORAGE_DESIGN.md` for object-table review and proposed generated-image persistence model.
+- **Phase 1 storage tables**: `dc_generated_images` (asset metadata) and `dc_generated_image_links` (object-slot links) via update hook `10010`.
+- **Storage write behavior**: Base64 image output is written to `public://generated-images/YYYY/MM` when available; environments without writable public files fallback to `temporary://generated-images/YYYY/MM` so persistence still succeeds.
+- **Phase 1 read APIs**:
+   - `GET /api/image/{image_uuid}`
+   - `GET /api/images/object/{table_name}/{object_id}?campaign_id=&slot=&variant=`
+   - `GET /api/campaign/{campaign_id}/images?table_name=&object_id=&slot=`
+- **Canonical prompt reference**: `GEMINI_IMAGE_PROMPTS.md` in this module root contains the system prompt + runtime payload template for hexmap token generation.
 
 ### Navigation Structure
 

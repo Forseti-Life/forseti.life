@@ -29,6 +29,8 @@ class GameObjectInventoryService {
     'dc_campaign_encounter_templates' => 'Encounter template objects available to campaigns.',
     'dc_campaign_loot_tables' => 'Loot table objects used by campaign generation.',
     'dc_campaign_content_registry' => 'Campaign content object registry and lookup records.',
+    'dc_generated_images' => 'Canonical generated image asset records (provider, prompts, URI, metadata).',
+    'dc_generated_image_links' => 'Polymorphic links from generated images to campaign/template objects and slots.',
     'dungeoncrawler_content_registry' => 'Global content registry objects for generator lookups.',
     'dungeoncrawler_content_loot_tables' => 'Global loot table objects used by the generator.',
     'dungeoncrawler_content_encounter_templates' => 'Global encounter template objects.',

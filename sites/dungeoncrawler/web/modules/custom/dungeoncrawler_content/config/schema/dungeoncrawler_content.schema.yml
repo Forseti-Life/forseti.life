@@ -23,6 +23,9 @@ dungeoncrawler_content.settings:
     show_game_stats:
       type: boolean
       label: 'Show game stats on content pages'
+    generated_image_provider:
+      type: string
+      label: 'Default generated image provider'
     gemini_image_enabled:
       type: boolean
       label: 'Enable Gemini image generation live mode'
@@ -38,3 +41,24 @@ dungeoncrawler_content.settings:
     gemini_image_api_key:
       type: string
       label: 'Gemini API key'
+    vertex_image_enabled:
+      type: boolean
+      label: 'Enable Vertex image generation live mode'
+    vertex_image_project_id:
+      type: string
+      label: 'Vertex project ID'
+    vertex_image_location:
+      type: string
+      label: 'Vertex location'
+    vertex_image_model:
+      type: string
+      label: 'Vertex image model'
+    vertex_image_endpoint:
+      type: string
+      label: 'Vertex endpoint template'
+    vertex_image_timeout:
+      type: integer
+      label: 'Vertex request timeout (seconds)'
+    vertex_image_api_key:
+      type: string
+      label: 'Vertex API key'

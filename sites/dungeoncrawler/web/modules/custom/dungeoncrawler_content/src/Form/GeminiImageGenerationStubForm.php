@@ -6,26 +6,35 @@ use Drupal\Core\DependencyInjection\ContainerInjectionInterface;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\Component\Utility\Html;
-use Drupal\dungeoncrawler_content\Service\GeminiImageGenerationService;
+use Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService;
+use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
- * Dashboard form for Gemini image generation integration stubbing.
+ * Dashboard form for image generation integration stubbing.
  */
 class GeminiImageGenerationStubForm extends FormBase implements ContainerInjectionInterface {
 
   /**
-   * Gemini stub service.
+   * Integration service.
    *
-   * @var \Drupal\dungeoncrawler_content\Service\GeminiImageGenerationService
+   * @var \Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService
    */
-  protected GeminiImageGenerationService $geminiImageService;
+  protected ImageGenerationIntegrationService $integrationService;
+
+  /**
+   * Generated image repository.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\GeneratedImageRepository
+   */
+  protected GeneratedImageRepository $generatedImageRepository;
 
   /**
    * Constructs a GeminiImageGenerationStubForm.
    */
-  public function __construct(GeminiImageGenerationService $gemini_image_service) {
-    $this->geminiImageService = $gemini_image_service;
+  public function __construct(ImageGenerationIntegrationService $integration_service, GeneratedImageRepository $generated_image_repository) {
+    $this->integrationService = $integration_service;
+    $this->generatedImageRepository = $generated_image_repository;
   }
 
   /**
@@ -33,7 +42,8 @@ class GeminiImageGenerationStubForm extends FormBase implements ContainerInjecti
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('dungeoncrawler_content.gemini_image_generator'),
+      $container->get('dungeoncrawler_content.image_generation_integration'),
+      $container->get('dungeoncrawler_content.generated_image_repository'),
     );
   }
 
@@ -54,6 +64,20 @@ class GeminiImageGenerationStubForm extends FormBase implements ContainerInjecti
       '#description' => $this->t('Describe the scene to generate. This is stored only in stub logs for now.'),
       '#required' => TRUE,
       '#rows' => 3,
+    ];
+
+    $integration_status = $this->integrationService->getIntegrationStatus();
+    $default_provider = (string) ($integration_status['default_provider'] ?? 'gemini');
+
+    $form['provider'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Provider'),
+      '#options' => [
+        'gemini' => $this->t('Gemini'),
+        'vertex' => $this->t('Vertex (Vertix)'),
+      ],
+      '#default_value' => $default_provider,
+      '#description' => $this->t('Choose the provider for this request. Default is configured in admin settings.'),
     ];
 
     $form['style'] = [
@@ -93,14 +117,65 @@ class GeminiImageGenerationStubForm extends FormBase implements ContainerInjecti
       '#maxlength' => 255,
     ];
 
+    $form['link_context'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Object link context (optional)'),
+      '#open' => FALSE,
+    ];
+
+    $form['link_context']['campaign_id'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Campaign ID'),
+      '#min' => 1,
+      '#description' => $this->t('Required when linking campaign-scoped assets.'),
+    ];
+
+    $form['link_context']['table_name'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Table name'),
+      '#maxlength' => 128,
+      '#description' => $this->t('Example: dc_campaign_characters, dc_campaign_rooms, dungeoncrawler_content_dungeons'),
+    ];
+
+    $form['link_context']['object_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Object ID'),
+      '#maxlength' => 128,
+      '#description' => $this->t('Object identifier in the selected table (numeric IDs allowed).'),
+    ];
+
+    $form['link_context']['slot'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Image slot'),
+      '#options' => [
+        'portrait' => $this->t('Portrait'),
+        'token' => $this->t('Token'),
+        'card' => $this->t('Card art'),
+        'splash' => $this->t('Splash'),
+        'background' => $this->t('Background'),
+      ],
+      '#default_value' => 'portrait',
+    ];
+
+    $form['link_context']['visibility'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Visibility'),
+      '#options' => [
+        'owner' => $this->t('Owner only'),
+        'campaign_party' => $this->t('Campaign party'),
+        'public' => $this->t('Public'),
+      ],
+      '#default_value' => 'owner',
+    ];
+
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Queue Gemini Stub Request'),
+      '#value' => $this->t('Queue Image Request'),
       '#button_type' => 'primary',
     ];
 
-    $result = $form_state->get('gemini_stub_result');
+    $result = $form_state->get('image_generation_result');
     if (is_array($result)) {
       $form['result'] = [
         '#type' => 'details',
@@ -141,6 +216,23 @@ class GeminiImageGenerationStubForm extends FormBase implements ContainerInjecti
           '#markup' => '<p><strong>' . $this->t('Image URL') . ':</strong> ' . Html::escape($result['output']['image_url']) . '</p>',
         ];
       }
+
+      if (!empty($result['storage']) && is_array($result['storage'])) {
+        $storage = $result['storage'];
+        $form['result']['storage_status'] = [
+          '#markup' => '<p><strong>' . $this->t('Storage persisted') . ':</strong> ' . (!empty($storage['stored']) ? 'yes' : 'no') . '</p>',
+        ];
+        if (!empty($storage['image_uuid'])) {
+          $form['result']['storage_uuid'] = [
+            '#markup' => '<p><strong>' . $this->t('Stored image UUID') . ':</strong> ' . Html::escape((string) $storage['image_uuid']) . '</p>',
+          ];
+        }
+        if (!empty($storage['url'])) {
+          $form['result']['storage_url'] = [
+            '#markup' => '<p><strong>' . $this->t('Resolved client URL') . ':</strong> ' . Html::escape((string) $storage['url']) . '</p>',
+          ];
+        }
+      }
     }
 
     return $form;
@@ -153,6 +245,16 @@ class GeminiImageGenerationStubForm extends FormBase implements ContainerInjecti
     $prompt = trim((string) $form_state->getValue('prompt'));
     if (mb_strlen($prompt) < 12) {
       $form_state->setErrorByName('prompt', $this->t('Prompt must be at least 12 characters for a usable generation request.'));
+    }
+
+    $table_name = trim((string) $form_state->getValue('table_name'));
+    $object_id = trim((string) $form_state->getValue('object_id'));
+    if (($table_name === '') !== ($object_id === '')) {
+      $form_state->setErrorByName('table_name', $this->t('Table name and object ID must be provided together when linking image context.'));
+    }
+
+    if ($table_name !== '' && !preg_match('/^(dc_|dungeoncrawler_content_)[A-Za-z0-9_]+$/', $table_name)) {
+      $form_state->setErrorByName('table_name', $this->t('Table name must start with dc_ or dungeoncrawler_content_.'));
     }
   }
 
@@ -169,18 +271,47 @@ class GeminiImageGenerationStubForm extends FormBase implements ContainerInjecti
       'requested_by_uid' => (int) $this->currentUser()->id(),
     ];
 
-    $result = $this->geminiImageService->generateImage($payload);
-    $form_state->set('gemini_stub_result', $result);
+    $provider = (string) $form_state->getValue('provider');
+
+    $result = $this->integrationService->generateImage($payload, $provider);
+
+    $link_context = [
+      'campaign_id' => $form_state->getValue('campaign_id'),
+      'table_name' => trim((string) $form_state->getValue('table_name')),
+      'object_id' => trim((string) $form_state->getValue('object_id')),
+      'slot' => $form_state->getValue('slot'),
+      'variant' => 'original',
+      'visibility' => $form_state->getValue('visibility'),
+      'scope_type' => $form_state->getValue('campaign_id') ? 'campaign' : 'template',
+      'is_primary' => 1,
+      'owner_uid' => (int) $this->currentUser()->id(),
+    ];
+
+    $result['storage'] = $this->generatedImageRepository->persistGeneratedImage($result, $link_context);
+    $form_state->set('image_generation_result', $result);
     $form_state->setRebuild(TRUE);
 
     if (!empty($result['success'])) {
-      $this->messenger()->addStatus($this->t('Gemini request @request_id completed in @mode mode.', [
+      $this->messenger()->addStatus($this->t('@provider request @request_id completed in @mode mode.', [
+        '@provider' => strtoupper((string) ($result['provider'] ?? $provider)),
         '@request_id' => $result['request_id'],
         '@mode' => (string) $result['mode'],
       ]));
+
+      if (!empty($result['storage']['stored'])) {
+        $this->messenger()->addStatus($this->t('Generated image persisted as @image_uuid.', [
+          '@image_uuid' => (string) ($result['storage']['image_uuid'] ?? ''),
+        ]));
+      }
+      elseif (!empty($result['storage']['reason'])) {
+        $this->messenger()->addWarning($this->t('Image was generated but not persisted (@reason).', [
+          '@reason' => (string) $result['storage']['reason'],
+        ]));
+      }
     }
     else {
-      $this->messenger()->addError($this->t('Gemini request @request_id failed: @message', [
+      $this->messenger()->addError($this->t('@provider request @request_id failed: @message', [
+        '@provider' => strtoupper((string) ($result['provider'] ?? $provider)),
         '@request_id' => $result['request_id'] ?? 'unknown',
         '@message' => (string) ($result['message'] ?? 'Unknown error'),
       ]));

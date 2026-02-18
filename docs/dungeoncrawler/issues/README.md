@@ -87,6 +87,7 @@ Each major issue includes:
 - **Mechanics**: `/docs/dungeoncrawler/0X-*.md` - Game mechanics reference
 - **Implementation**: `/docs/dungeoncrawler/PR-*.md` - Implementation guides
 - **Tracker Audit (2026-02-18)**: `tracker-validity-review-2026-02-18.md` - semantic validity and consolidation plan for active DCC tracker rows
+- **Tracker Supersede Map (2026-02-18)**: `tracker-supersede-map-2026-02-18.md` - exact keep-open vs supersede ID mapping for tracker cleanup
 
 ## Contributing
 
@@ -99,4 +100,4 @@ When adding new design documents:
 
 ---
 
-**Last Updated**: 2026-02-12
+**Last Updated**: 2026-02-18

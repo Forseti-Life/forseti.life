@@ -84,6 +84,17 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       '#description' => $this->t('When enabled, dashboard image requests attempt a live Gemini API call when an API key is available.'),
     ];
 
+    $form['ai_settings']['generated_image_provider'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Default image provider'),
+      '#options' => [
+        'gemini' => $this->t('Gemini'),
+        'vertex' => $this->t('Vertex (Vertix)'),
+      ],
+      '#default_value' => $config->get('generated_image_provider') ?? 'gemini',
+      '#description' => $this->t('Default provider used by dashboard image generation when no provider override is selected.'),
+    ];
+
     $form['ai_settings']['gemini_image_model'] = [
       '#type' => 'textfield',
       '#title' => $this->t('Gemini image model'),
@@ -112,6 +123,61 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       '#type' => 'password',
       '#title' => $this->t('Gemini API key (optional)'),
       '#description' => $this->t('Prefer environment variable GEMINI_API_KEY. If set here, this value is stored in Drupal configuration.'),
+      '#maxlength' => 255,
+      '#attributes' => [
+        'autocomplete' => 'new-password',
+      ],
+    ];
+
+    $form['ai_settings']['vertex_image_enabled'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Enable Vertex image generation live mode'),
+      '#default_value' => $config->get('vertex_image_enabled') ?? FALSE,
+      '#description' => $this->t('When enabled, dashboard image requests can use Vertex live API calls when configured credentials are available.'),
+    ];
+
+    $form['ai_settings']['vertex_image_project_id'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Vertex project ID'),
+      '#default_value' => $config->get('vertex_image_project_id') ?? '',
+      '#maxlength' => 255,
+    ];
+
+    $form['ai_settings']['vertex_image_location'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Vertex location'),
+      '#default_value' => $config->get('vertex_image_location') ?? 'us-central1',
+      '#maxlength' => 64,
+    ];
+
+    $form['ai_settings']['vertex_image_model'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Vertex image model'),
+      '#default_value' => $config->get('vertex_image_model') ?? 'imagen-3.0-generate-002',
+      '#maxlength' => 255,
+      '#description' => $this->t('Model name used for Vertex image requests. Example: imagen-3.0-generate-002.'),
+    ];
+
+    $form['ai_settings']['vertex_image_endpoint'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Vertex endpoint template'),
+      '#default_value' => $config->get('vertex_image_endpoint') ?? 'https://{location}-aiplatform.googleapis.com/v1/projects/{project_id}/locations/{location}/publishers/google/models/{model}:predict',
+      '#maxlength' => 512,
+      '#description' => $this->t('Endpoint template. Supports placeholders: {project_id}, {location}, {model}.'),
+    ];
+
+    $form['ai_settings']['vertex_image_timeout'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Vertex request timeout (seconds)'),
+      '#default_value' => $config->get('vertex_image_timeout') ?? 30,
+      '#min' => 5,
+      '#max' => 120,
+    ];
+
+    $form['ai_settings']['vertex_image_api_key'] = [
+      '#type' => 'password',
+      '#title' => $this->t('Vertex API key (optional)'),
+      '#description' => $this->t('Prefer environment variable VERTEX_API_KEY. If set here, this value is stored in Drupal configuration.'),
       '#maxlength' => 255,
       '#attributes' => [
         'autocomplete' => 'new-password',
@@ -151,10 +217,17 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       ->set('rarity_tiers', $form_state->getValue('rarity_tiers'))
       ->set('room_persistence', $form_state->getValue('room_persistence'))
       ->set('monster_permadeath', $form_state->getValue('monster_permadeath'))
+      ->set('generated_image_provider', (string) $form_state->getValue('generated_image_provider'))
       ->set('gemini_image_enabled', $form_state->getValue('gemini_image_enabled'))
       ->set('gemini_image_model', trim((string) $form_state->getValue('gemini_image_model')))
       ->set('gemini_image_endpoint', trim((string) $form_state->getValue('gemini_image_endpoint')))
       ->set('gemini_image_timeout', (int) $form_state->getValue('gemini_image_timeout'))
+      ->set('vertex_image_enabled', $form_state->getValue('vertex_image_enabled'))
+      ->set('vertex_image_project_id', trim((string) $form_state->getValue('vertex_image_project_id')))
+      ->set('vertex_image_location', trim((string) $form_state->getValue('vertex_image_location')))
+      ->set('vertex_image_model', trim((string) $form_state->getValue('vertex_image_model')))
+      ->set('vertex_image_endpoint', trim((string) $form_state->getValue('vertex_image_endpoint')))
+      ->set('vertex_image_timeout', (int) $form_state->getValue('vertex_image_timeout'))
       ->set('items_per_page', $form_state->getValue('items_per_page'))
       ->set('show_game_stats', $form_state->getValue('show_game_stats'))
       ->save();
@@ -163,6 +236,13 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
     if ($submitted_key !== '') {
       $this->config('dungeoncrawler_content.settings')
         ->set('gemini_image_api_key', $submitted_key)
+        ->save();
+    }
+
+    $submitted_vertex_key = trim((string) $form_state->getValue('vertex_image_api_key'));
+    if ($submitted_vertex_key !== '') {
+      $this->config('dungeoncrawler_content.settings')
+        ->set('vertex_image_api_key', $submitted_vertex_key)
         ->save();
     }
 

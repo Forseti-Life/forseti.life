@@ -519,6 +519,45 @@ dungeoncrawler_content.api.combat_get:
   options:
     _format: json
 
+# ------------------------------------------------------------------------------
+# Generated Image API Endpoints
+# ------------------------------------------------------------------------------
+
+dungeoncrawler_content.api.image_get:
+  path: '/api/image/{image_uuid}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GeneratedImageApiController::getImage'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    image_uuid: '[A-Za-z0-9-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.images_object:
+  path: '/api/images/object/{table_name}/{object_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GeneratedImageApiController::getObjectImages'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    table_name: '[A-Za-z0-9_]+'
+    object_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.campaign_images:
+  path: '/api/campaign/{campaign_id}/images'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\GeneratedImageApiController::getCampaignImages'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
 dungeoncrawler_content.api.combat_set:
   path: '/api/combat/set'
   defaults:

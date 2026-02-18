@@ -79,7 +79,9 @@ This workspace supports two independent Drupal websites:
 ### Core Setup Scripts
 - **complete-setup.sh** - 🔧 **Complete multi-site environment setup** (use for first-time setup)
 - **quick-start.sh** - 🚀 **Rapid startup** after workspace restarts (starts services, tests sites)
-- **verify-setup.sh** - ✅ **Comprehensive verification** of entire multi-site setup
+- **verify-setup.sh** - ✅ **Comprehensive verification** of entire multi-site setup, including OpenClaw runtime check when `verify-openclaw.sh` is present
+- **setup.sh** - 🦞 **Primary full-environment installer** for Forseti + Dungeoncrawler; includes OpenClaw CLI integration (upgrades Node.js to 22.x when needed, then installs `openclaw@2026.2.17`; if requirements still fail, logs guidance and continues)
+- **verify-openclaw.sh** - 🧪 **OpenClaw runtime verification** (checks Node.js requirement, PATH, CLI execution, and global npm package state)
 
 ### Issue Tracker Automation
 - **import-open-issues-to-github.sh** - 🧾 Imports **Open** rows from `Issues.md` into GitHub using existing Drupal GitHub client services (`dungeoncrawler_tester.github_issue_pr_client`), attempts Copilot assignment (`@copilot`), and processes in creation batches (default: stop after 50 new issues per run).

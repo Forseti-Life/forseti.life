@@ -378,11 +378,22 @@ else
 fi
 
 print_status "Checking Node.js and npm installation..."
+OPENCLAW_MIN_NODE="22.12.0"
 if command -v node &> /dev/null; then
-    print_status "Node.js is already installed: $(node --version)"
+    NODE_VERSION_RAW=$(node --version | sed 's/^v//')
+    print_status "Node.js is already installed: v$NODE_VERSION_RAW"
+
+    # OpenClaw requires Node >= 22.12.0
+    if [ "$(printf '%s\n' "$OPENCLAW_MIN_NODE" "$NODE_VERSION_RAW" | sort -V | head -n1)" != "$OPENCLAW_MIN_NODE" ]; then
+        print_warning "Node.js v$NODE_VERSION_RAW is below OpenClaw requirement (>= $OPENCLAW_MIN_NODE)"
+        print_status "Upgrading Node.js to 22.x for OpenClaw compatibility..."
+        curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+        sudo apt install -y nodejs
+        print_status "Node.js upgraded: $(node --version)"
+    fi
 else
     print_status "Installing Node.js..."
-    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
     sudo apt install -y nodejs
 fi
 
@@ -392,6 +403,41 @@ if command -v npm &> /dev/null; then
 else
     print_warning "npm not found - installing separately..."
     sudo apt install -y npm
+fi
+
+# ------------------------------------------------------------------------------
+# 1.5.0 OpenClaw CLI Installation
+# ------------------------------------------------------------------------------
+print_status "Checking OpenClaw CLI installation..."
+NODE_VERSION_RAW=$(node --version 2>/dev/null | sed 's/^v//')
+if command -v openclaw &> /dev/null; then
+    if [ "$(printf '%s\n' "$OPENCLAW_MIN_NODE" "$NODE_VERSION_RAW" | sort -V | head -n1)" != "$OPENCLAW_MIN_NODE" ]; then
+        print_warning "⚠️  OpenClaw is installed but requires Node >= $OPENCLAW_MIN_NODE; detected Node $(node --version)"
+        print_warning "Upgrade Node.js, then run: openclaw --version"
+    else
+        OPENCLAW_VERSION=$(openclaw --version 2>/dev/null | head -n1 || echo "unknown")
+        print_status "OpenClaw is already installed: $OPENCLAW_VERSION"
+    fi
+else
+    if [ "$(printf '%s\n' "$OPENCLAW_MIN_NODE" "$NODE_VERSION_RAW" | sort -V | head -n1)" != "$OPENCLAW_MIN_NODE" ]; then
+        print_warning "⚠️  OpenClaw requires Node >= $OPENCLAW_MIN_NODE; detected Node.js $(node --version)"
+        print_warning "Skipping OpenClaw install to keep setup.sh successful"
+        print_warning "Upgrade Node.js, then run: sudo npm install -g openclaw@2026.2.17"
+    else
+        print_status "Installing OpenClaw CLI from npm..."
+        if sudo npm install -g openclaw@2026.2.17; then
+            if command -v openclaw &> /dev/null; then
+                OPENCLAW_VERSION=$(openclaw --version 2>/dev/null | head -n1 || echo "unknown")
+                print_status "✅ OpenClaw installed successfully: $OPENCLAW_VERSION"
+            else
+                print_warning "⚠️  OpenClaw package installed but CLI was not found on PATH"
+                print_warning "Try a new shell session, then run: openclaw --version"
+            fi
+        else
+            print_warning "⚠️  OpenClaw install failed; continuing setup"
+            print_warning "Try manually: sudo npm install -g openclaw@2026.2.17"
+        fi
+    fi
 fi
 
 print_status "Checking additional development tools..."

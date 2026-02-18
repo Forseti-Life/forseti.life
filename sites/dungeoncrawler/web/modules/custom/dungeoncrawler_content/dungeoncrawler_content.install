@@ -15,6 +15,7 @@
  * - 10004: Campaign-scoped content tables (rooms, dungeons, instances)
  * - 10005: Unified entity model (polymorphic character types)
  * - 10007: Consolidate dc_characters → dc_campaign_characters (unified table)
+ * - 10010: Generated image asset/link tables
  *
  * @see dungeoncrawler_content_schema()
  */
@@ -1619,6 +1620,253 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  $schema['dc_generated_images'] = [
+    'description' => 'Canonical generated image asset records.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'image_uuid' => [
+        'type' => 'varchar',
+        'length' => 36,
+        'not null' => TRUE,
+        'description' => 'Unique image UUID.',
+      ],
+      'owner_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Image owner user ID.',
+      ],
+      'provider' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'gemini',
+        'description' => 'Generation provider identifier.',
+      ],
+      'provider_request_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Provider request ID.',
+      ],
+      'provider_model' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Provider model name.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 24,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'pending, ready, failed, deleted.',
+      ],
+      'mime_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Image MIME type.',
+      ],
+      'width' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Image width in pixels.',
+      ],
+      'height' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Image height in pixels.',
+      ],
+      'bytes' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Image byte size.',
+      ],
+      'storage_scheme' => [
+        'type' => 'varchar',
+        'length' => 24,
+        'not null' => TRUE,
+        'default' => 'public',
+        'description' => 'public, private, s3, etc.',
+      ],
+      'file_uri' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Canonical file URI/path for image.',
+      ],
+      'public_url' => [
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => FALSE,
+        'description' => 'Optional public or CDN URL.',
+      ],
+      'sha256' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Content hash for deduplication.',
+      ],
+      'prompt_text' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Generation prompt text.',
+      ],
+      'negative_prompt' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Negative prompt text.',
+      ],
+      'generation_params' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Generation parameter JSON payload.',
+      ],
+      'safety_metadata' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Safety metadata JSON payload.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Created timestamp.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Updated timestamp.',
+      ],
+      'deleted' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Deleted timestamp (0 means active).',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'image_uuid' => ['image_uuid'],
+    ],
+    'indexes' => [
+      'owner_uid_created' => ['owner_uid', 'created'],
+      'status_created' => ['status', 'created'],
+      'sha256' => ['sha256'],
+      'provider_request' => ['provider', 'provider_request_id'],
+    ],
+  ];
+
+  $schema['dc_generated_image_links'] = [
+    'description' => 'Polymorphic links between generated images and game objects.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'image_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Linked generated image id.',
+      ],
+      'scope_type' => [
+        'type' => 'varchar',
+        'length' => 24,
+        'not null' => TRUE,
+        'default' => 'campaign',
+        'description' => 'template, campaign, fact.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Campaign context when applicable.',
+      ],
+      'table_name' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Linked object table name.',
+      ],
+      'object_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Linked object identifier.',
+      ],
+      'slot' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'portrait',
+        'description' => 'portrait, token, card, splash, etc.',
+      ],
+      'variant' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'original',
+        'description' => 'original, small, medium, etc.',
+      ],
+      'is_primary' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Whether this is the primary image for slot.',
+      ],
+      'sort_weight' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Ordering weight.',
+      ],
+      'visibility' => [
+        'type' => 'varchar',
+        'length' => 24,
+        'not null' => TRUE,
+        'default' => 'owner',
+        'description' => 'owner, campaign_party, public.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Created timestamp.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Updated timestamp.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'image_id' => ['image_id'],
+      'campaign_lookup' => ['campaign_id', 'table_name', 'object_id'],
+      'object_slot_primary' => ['table_name', 'object_id', 'slot', 'is_primary'],
+      'scope_campaign' => ['scope_type', 'campaign_id'],
+    ],
+  ];
+
   $schema['dungeoncrawler_content_campaigns'] = [
     'description' => 'Global campaign template definitions.',
     'fields' => [
@@ -2338,5 +2586,34 @@ function dungeoncrawler_content_update_10009() {
   catch (\Exception $e) {
     \Drupal::logger('dungeoncrawler_content')->error('Update 10009 failed: @error', ['@error' => $e->getMessage()]);
     throw new \Drupal\Core\Utility\UpdateException('Failed to migrate combat_participants coordinates: ' . $e->getMessage());
+  }
+}
+
+/**
+ * Add generated image asset/link tables.
+ */
+function dungeoncrawler_content_update_10010() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $schema_handler = $database->schema();
+  $messages = [];
+
+  try {
+    foreach (['dc_generated_images', 'dc_generated_image_links'] as $table_name) {
+      if (!$schema_handler->tableExists($table_name)) {
+        $schema_handler->createTable($table_name, $schema[$table_name]);
+        $messages[] = 'Created ' . $table_name;
+      }
+    }
+
+    if (empty($messages)) {
+      return t('Generated image tables already exist.');
+    }
+
+    return t('Generated image tables update complete: @messages', ['@messages' => implode(' ', $messages)]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10010 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to add generated image tables: ' . $e->getMessage());
   }
 }

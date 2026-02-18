@@ -6,7 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\dungeoncrawler_content\Form\GeminiImageGenerationStubForm;
-use Drupal\dungeoncrawler_content\Service\GeminiImageGenerationService;
+use Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -29,11 +29,11 @@ class DashboardController extends ControllerBase {
   protected $formBuilder;
 
   /**
-   * Gemini integration service.
+  * Provider integration service.
    *
-   * @var \Drupal\dungeoncrawler_content\Service\GeminiImageGenerationService
+  * @var \Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService
    */
-  protected $geminiImageService;
+  protected $integrationService;
 
   /**
    * Constructs a DashboardController object.
@@ -42,13 +42,13 @@ class DashboardController extends ControllerBase {
    *   The entity type manager.
    * @param \Drupal\Core\Form\FormBuilderInterface $form_builder
    *   The form builder.
-   * @param \Drupal\dungeoncrawler_content\Service\GeminiImageGenerationService $gemini_image_service
-   *   Gemini integration service.
+   * @param \Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService $integration_service
+   *   Provider integration service.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, FormBuilderInterface $form_builder, GeminiImageGenerationService $gemini_image_service) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, FormBuilderInterface $form_builder, ImageGenerationIntegrationService $integration_service) {
     $this->entityTypeManager = $entity_type_manager;
     $this->formBuilder = $form_builder;
-    $this->geminiImageService = $gemini_image_service;
+    $this->integrationService = $integration_service;
   }
 
   /**
@@ -58,7 +58,7 @@ class DashboardController extends ControllerBase {
     return new static(
       $container->get('entity_type.manager'),
       $container->get('form_builder'),
-      $container->get('dungeoncrawler_content.gemini_image_generator'),
+      $container->get('dungeoncrawler_content.image_generation_integration'),
     );
   }
 
@@ -113,25 +113,38 @@ class DashboardController extends ControllerBase {
       '#markup' => '<p>' . $this->t('The dungeon grows procedurally as adventurers explore. Use Structure → Content Types to manage dungeon rooms, AI creatures, items, and quests.') . '</p>',
     ];
 
-    $gemini_status = $this->geminiImageService->getIntegrationStatus();
-    $mode_label = ($gemini_status['enabled'] && $gemini_status['has_api_key']) ? 'live-ready' : 'stub';
+    $integration_status = $this->integrationService->getIntegrationStatus();
+    $gemini_status = $integration_status['providers']['gemini'] ?? [];
+    $vertex_status = $integration_status['providers']['vertex'] ?? [];
+    $default_provider = (string) ($integration_status['default_provider'] ?? 'gemini');
+
+    $gemini_mode = (!empty($gemini_status['enabled']) && !empty($gemini_status['has_api_key'])) ? 'live-ready' : 'stub';
+    $vertex_mode = (!empty($vertex_status['enabled']) && !empty($vertex_status['has_api_key'])) ? 'live-ready' : 'stub';
 
     $build['gemini_image_generation'] = [
       '#type' => 'details',
-      '#title' => $this->t('🖼️ Gemini Image Generation (Stub)'),
+      '#title' => $this->t('🖼️ AI Image Generation (Gemini + Vertex)'),
       '#open' => TRUE,
       '#attributes' => ['class' => ['game-content-dashboard']],
       'overview' => [
-        '#markup' => '<p>' . $this->t('Use this panel to stage prompt payloads for Google Gemini image generation. This is currently a non-production stub that validates inputs and logs a structured request without calling an external API.') . '</p>',
+        '#markup' => '<p>' . $this->t('Use this panel to stage prompt payloads for Gemini or Vertex image generation. When live mode and credentials are configured, requests call the selected provider; otherwise they run as integration stubs.') . '</p>',
       ],
       'status' => [
         '#theme' => 'item_list',
         '#items' => [
-          $this->t('Provider target: Gemini image generation API'),
-          $this->t('Current mode: @mode', ['@mode' => $mode_label]),
-          $this->t('Live mode enabled: @enabled', ['@enabled' => $gemini_status['enabled'] ? 'yes' : 'no']),
-          $this->t('API key source: @source', ['@source' => (string) $gemini_status['api_key_source']]),
-          $this->t('Model: @model', ['@model' => (string) $gemini_status['model']]),
+          $this->t('Default provider: @provider', ['@provider' => $default_provider]),
+          $this->t('Gemini mode: @mode (enabled: @enabled, key source: @source, model: @model)', [
+            '@mode' => $gemini_mode,
+            '@enabled' => !empty($gemini_status['enabled']) ? 'yes' : 'no',
+            '@source' => (string) ($gemini_status['api_key_source'] ?? 'none'),
+            '@model' => (string) ($gemini_status['model'] ?? ''),
+          ]),
+          $this->t('Vertex mode: @mode (enabled: @enabled, key source: @source, model: @model)', [
+            '@mode' => $vertex_mode,
+            '@enabled' => !empty($vertex_status['enabled']) ? 'yes' : 'no',
+            '@source' => (string) ($vertex_status['api_key_source'] ?? 'none'),
+            '@model' => (string) ($vertex_status['model'] ?? ''),
+          ]),
           $this->t('Integration output: request ID + normalized payload preview'),
         ],
       ],
@@ -139,11 +152,12 @@ class DashboardController extends ControllerBase {
         '#markup' => '<h4>' . $this->t('Server Environment Setup') . '</h4>',
       ],
       'setup_help_text' => [
-        '#markup' => '<p>' . $this->t('Set GEMINI_API_KEY as an environment variable for the web server user, then reload Apache and rebuild cache.') . '</p>',
+        '#markup' => '<p>' . $this->t('Set GEMINI_API_KEY and/or VERTEX_API_KEY as environment variables for the web server user, then reload Apache and rebuild cache.') . '</p>',
       ],
       'setup_help_commands' => [
         '#markup' => '<pre>sudo tee -a /etc/apache2/envvars >/dev/null &lt;&lt;\'EOF\'
 export GEMINI_API_KEY="YOUR_GEMINI_API_KEY"
+export VERTEX_API_KEY="YOUR_VERTEX_API_KEY"
 EOF
 
 sudo systemctl reload apache2

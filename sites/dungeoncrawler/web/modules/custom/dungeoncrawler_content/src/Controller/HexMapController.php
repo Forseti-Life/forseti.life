@@ -51,6 +51,7 @@ class HexMapController extends ControllerBase {
     ];
 
     $dungeon_payload = $this->loadDungeonPayload($launch_context);
+    $launch_character = $this->loadLaunchCharacterSummary($launch_context);
 
     return [
       '#theme' => 'hexmap_demo',
@@ -64,6 +65,7 @@ class HexMapController extends ControllerBase {
           'dungeoncrawlerContent' => [
             'hexmapLaunchContext' => $launch_context,
             'hexmapDungeonData' => $dungeon_payload,
+            'hexmapLaunchCharacter' => $launch_character,
           ],
         ],
       ],
@@ -71,6 +73,122 @@ class HexMapController extends ControllerBase {
         'max-age' => 0,
         'contexts' => ['url.query_args:campaign_id', 'url.query_args:character_id', 'url.query_args:dungeon_level_id', 'url.query_args:map_id', 'url.query_args:room_id', 'url.query_args:next_room_id', 'url.query_args:start_q', 'url.query_args:start_r'],
       ],
+    ];
+  }
+
+  /**
+   * Load lightweight launch character summary for UI hydration.
+   *
+   * @param array $launch_context
+   *   Current launch context query values.
+   *
+   * @return array
+   *   Character summary for character sheet fallback.
+   */
+  protected function loadLaunchCharacterSummary(array $launch_context): array {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    $character_id = (int) ($launch_context['character_id'] ?? 0);
+
+    if ($campaign_id <= 0 || $character_id <= 0) {
+      return [];
+    }
+
+    $query = $this->database->select('dc_campaign_characters', 'cc')
+      ->fields('cc', ['id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'character_data'])
+      ->condition('campaign_id', $campaign_id);
+
+    $character_match = $query->orConditionGroup()
+      ->condition('character_id', $character_id)
+      ->condition('id', $character_id)
+      ->condition('instance_id', sprintf('pc-%d-%d', $campaign_id, $character_id));
+
+    $record = $query
+      ->condition($character_match)
+      ->orderBy('updated', 'DESC')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$record) {
+      // Fallback to canonical library/fact character record by direct ID.
+      $record = $this->database->select('dc_campaign_characters', 'cc')
+        ->fields('cc', ['id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'character_data'])
+        ->condition('id', $character_id)
+        ->orderBy('updated', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchAssoc();
+    }
+
+    if (!$record) {
+      return [
+        'name' => sprintf('Character %d', $character_id),
+        'level' => 0,
+        'ancestry' => '',
+        'class' => '',
+        'hp_current' => 0,
+        'hp_max' => 0,
+        'armor_class' => 0,
+        'team' => 'player',
+        'entity_type' => 'player_character',
+      ];
+    }
+
+    $character_data = json_decode((string) ($record['character_data'] ?? '{}'), TRUE);
+    if (!is_array($character_data)) {
+      $character_data = [];
+    }
+
+    $name = (string) ($record['name'] ?? '');
+    if ($name === '') {
+      $name = (string) ($character_data['name'] ?? sprintf('Character %d', $character_id));
+    }
+
+    $ancestry = (string) ($record['ancestry'] ?? '');
+    if ($ancestry === '') {
+      $ancestry = is_array($character_data['ancestry'] ?? NULL)
+        ? (string) ($character_data['ancestry']['name'] ?? '')
+        : (string) ($character_data['ancestry'] ?? '');
+    }
+
+    $class = (string) ($record['class'] ?? '');
+    if ($class === '') {
+      $class = is_array($character_data['class'] ?? NULL)
+        ? (string) ($character_data['class']['name'] ?? '')
+        : (string) ($character_data['class'] ?? '');
+    }
+
+    $hp_max = (int) ($record['hp_max'] ?? 0);
+    if ($hp_max <= 0) {
+      $hp_max = (int) ($character_data['hp']['max'] ?? $character_data['calculated_stats']['max_hp'] ?? 0);
+    }
+
+    $hp_current = (int) ($record['hp_current'] ?? 0);
+    if ($hp_current <= 0 && $hp_max > 0) {
+      $hp_current = (int) ($character_data['hp']['current'] ?? $hp_max);
+    }
+
+    $armor_class = (int) ($record['armor_class'] ?? 0);
+    if ($armor_class <= 0) {
+      $armor_class = (int) ($character_data['ac'] ?? $character_data['calculated_stats']['ac'] ?? 0);
+    }
+
+    $level = (int) ($record['level'] ?? 0);
+    if ($level <= 0) {
+      $level = (int) ($character_data['level'] ?? 0);
+    }
+
+    return [
+      'name' => $name,
+      'level' => $level,
+      'ancestry' => $ancestry,
+      'class' => $class,
+      'hp_current' => $hp_current,
+      'hp_max' => $hp_max,
+      'armor_class' => $armor_class,
+      'team' => 'player',
+      'entity_type' => 'player_character',
     ];
   }
 
