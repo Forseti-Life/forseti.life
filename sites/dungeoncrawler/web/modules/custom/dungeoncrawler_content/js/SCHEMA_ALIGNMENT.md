@@ -85,16 +85,28 @@ When character state is saved:
 
 ## Field Name Mapping
 
-| TypeScript (API)          | JSON Schema (Storage)     | Hot Column (DB)   |
-|---------------------------|---------------------------|-------------------|
-| `characterId`             | N/A                       | `id`              |
-| `basicInfo.name`          | `name`                    | `name`            |
-| `basicInfo.level`         | `level`                   | `level`           |
-| `basicInfo.experiencePoints` | `experience_points`    | N/A               |
-| `basicInfo.ancestry`      | `ancestry`                | `ancestry`        |
-| `basicInfo.class`         | `class`                   | `class`           |
-| `resources.hitPoints.current` | `hit_points.current`  | `hp_current`      |
-| `resources.hitPoints.max` | `hit_points.max`          | `hp_max`          |
+| TypeScript (API)          | JSON Schema (Storage)     | Hot Column (DB)   | Notes |
+|---------------------------|---------------------------|-------------------|-------|
+| `characterId`             | N/A                       | `id`              | |
+| `basicInfo.name`          | `name`                    | `name`            | Hot column |
+| `basicInfo.level`         | `level`                   | `level`           | Hot column |
+| `basicInfo.experiencePoints` | `experience_points`    | N/A               | |
+| `basicInfo.ancestry`      | `ancestry`                | `ancestry`        | Hot column |
+| `basicInfo.class`         | `class`                   | `class`           | Hot column |
+| `abilities.strength`      | `abilities.str`           | N/A               | Full vs abbreviated |
+| `abilities.dexterity`     | `abilities.dex`           | N/A               | Full vs abbreviated |
+| `abilities.constitution`  | `abilities.con`           | N/A               | Full vs abbreviated |
+| `abilities.intelligence`  | `abilities.int`           | N/A               | Full vs abbreviated |
+| `abilities.wisdom`        | `abilities.wis`           | N/A               | Full vs abbreviated |
+| `abilities.charisma`      | `abilities.cha`           | N/A               | Full vs abbreviated |
+| `resources.hitPoints.current` | `hit_points.current`  | `hp_current`      | Hot column |
+| `resources.hitPoints.max` | `hit_points.max`          | `hp_max`          | Hot column |
+
+**Note on Abilities**: The TypeScript interface uses full property names (strength, dexterity, etc.)
+for better developer ergonomics, while the JSON schema uses traditional D&D abbreviations (str, dex, etc.).
+The PHP service translates between these formats. In practice, the character_data JSON currently stores
+the full names to match the TypeScript format, with the JSON schema accepting abbreviated input during
+character creation.
 
 ## Unified vs Hot-Column Structures
 

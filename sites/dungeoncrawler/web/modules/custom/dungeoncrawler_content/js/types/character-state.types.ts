@@ -62,6 +62,8 @@ export interface CharacterState {
   };
   
   // Ability Scores
+  // NOTE: Uses full names (strength, dexterity) not abbreviations (str, dex)
+  // JSON schema uses abbreviated names, PHP service translates between formats
   abilities: {
     strength: number;
     dexterity: number;
