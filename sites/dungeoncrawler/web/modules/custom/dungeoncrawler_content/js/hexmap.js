@@ -666,6 +666,10 @@ import combatApi from './hexmap-api.js';
       this.uiManager = new UIManager();
       this.stateManager = new StateManager();
       this.setupStateSubscriptions();
+      
+      // Load dungeon data from drupalSettings (populated by HexMapController.php)
+      // Data flow: dc_campaign_dungeons.dungeon_data (JSON column) -> HexMapController::normalizeDungeonPayload() -> drupalSettings
+      // Schema: dungeon_level.schema.json + hexmap.schema.json + entity_instance.schema.json
       this.launchContext = settings?.dungeoncrawlerContent?.hexmapLaunchContext || {};
       this.dungeonData = settings?.dungeoncrawlerContent?.hexmapDungeonData || {};
       this.activeRoomId = this.dungeonData?.active_room_id || null;
@@ -2661,6 +2665,14 @@ import combatApi from './hexmap-api.js';
      * Apply dungeon payload and initialize active room view.
      */
     applyDungeonData: function () {
+      // Validate schema version for compatibility
+      const schemaVersion = this.dungeonData?.schema_version;
+      if (!schemaVersion) {
+        console.warn('Dungeon payload missing schema_version field. Assuming 1.0.0.');
+      } else if (schemaVersion !== '1.0.0') {
+        console.warn(`Dungeon schema version ${schemaVersion} may not be fully compatible. Expected 1.0.0.`);
+      }
+
       const rooms = this.dungeonData?.rooms;
       if (!rooms || Object.keys(rooms).length === 0) {
         return;
