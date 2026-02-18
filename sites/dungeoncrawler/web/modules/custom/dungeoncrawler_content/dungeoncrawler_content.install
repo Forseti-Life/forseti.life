@@ -183,7 +183,7 @@ function dungeoncrawler_content_schema() {
         'type' => 'varchar',
         'length' => 20,
         'not null' => FALSE,
-        'description' => 'Rarity: common, uncommon, rare, unique',
+        'description' => 'Rarity: common, uncommon, rare, epic, legendary',
       ],
       'tags' => [
         'type' => 'text',
@@ -776,7 +776,7 @@ function dungeoncrawler_content_schema() {
         'type' => 'varchar',
         'length' => 20,
         'not null' => FALSE,
-        'description' => 'Rarity: common, uncommon, rare, unique',
+        'description' => 'Rarity: common, uncommon, rare, epic, legendary',
       ],
       'tags' => [
         'type' => 'text',
