@@ -150,6 +150,7 @@ class HexMapController extends ControllerBase {
     }
 
     return [
+      'schema_version' => (string) ($decoded['schema_version'] ?? '1.0.0'),
       'level_id' => (string) ($decoded['level_id'] ?? ''),
       'map_id' => (string) ($decoded['hex_map']['map_id'] ?? ''),
       'active_room_id' => $active_room_id,
