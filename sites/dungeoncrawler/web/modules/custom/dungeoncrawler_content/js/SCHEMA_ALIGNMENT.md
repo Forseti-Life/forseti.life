@@ -66,10 +66,26 @@ interface CharacterState {
 
 ### Database Hot Columns
 These fields are **denormalized** in `dc_campaign_characters` for performance:
+
+**Core Identity** (indexed for filtering):
 - `name` (varchar, indexed)
 - `level` (int, indexed)
 - `ancestry` (varchar, indexed)
 - `class` (varchar, indexed)
+
+**Combat/Gameplay** (high-frequency updates):
+- `hp_current` (int, indexed)
+- `hp_max` (int)
+- `armor_class` (int)
+- `experience_points` (int, indexed)
+
+**Position Tracking** (ECS-managed):
+- `position_q` (int) - Hex axial Q coordinate
+- `position_r` (int) - Hex axial R coordinate
+- `last_room_id` (varchar) - Most recent room location
+
+**Note**: Position hot columns are managed by the ECS (Entity Component System) PositionComponent, 
+not directly exposed in CharacterState TypeScript interface. See `js/ecs/components/PositionComponent.js`.
 
 ### Why Hot Columns?
 Hot columns enable:
@@ -87,26 +103,35 @@ When character state is saved:
 
 | TypeScript (API)          | JSON Schema (Storage)     | Hot Column (DB)   | Notes |
 |---------------------------|---------------------------|-------------------|-------|
-| `characterId`             | N/A                       | `id`              | |
-| `basicInfo.name`          | `name`                    | `name`            | Hot column |
-| `basicInfo.level`         | `level`                   | `level`           | Hot column |
-| `basicInfo.experiencePoints` | `experience_points`    | N/A               | |
-| `basicInfo.ancestry`      | `ancestry`                | `ancestry`        | Hot column |
-| `basicInfo.class`         | `class`                   | `class`           | Hot column |
+| `characterId`             | N/A                       | `id`              | Primary key |
+| `basicInfo.name`          | `name`                    | `name`            | Hot column (indexed) |
+| `basicInfo.level`         | `level`                   | `level`           | Hot column (indexed) |
+| `basicInfo.experiencePoints` | `experience_points`    | `experience_points` | Hot column (indexed) |
+| `basicInfo.ancestry`      | `ancestry`                | `ancestry`        | Hot column (indexed) |
+| `basicInfo.class`         | `class`                   | `class`           | Hot column (indexed) |
 | `abilities.strength`      | `abilities.str`           | N/A               | Full vs abbreviated |
 | `abilities.dexterity`     | `abilities.dex`           | N/A               | Full vs abbreviated |
 | `abilities.constitution`  | `abilities.con`           | N/A               | Full vs abbreviated |
 | `abilities.intelligence`  | `abilities.int`           | N/A               | Full vs abbreviated |
 | `abilities.wisdom`        | `abilities.wis`           | N/A               | Full vs abbreviated |
 | `abilities.charisma`      | `abilities.cha`           | N/A               | Full vs abbreviated |
-| `resources.hitPoints.current` | `hit_points.current`  | `hp_current`      | Hot column |
+| `resources.hitPoints.current` | `hit_points.current`  | `hp_current`      | Hot column (indexed) |
 | `resources.hitPoints.max` | `hit_points.max`          | `hp_max`          | Hot column |
+| `defenses.armorClass.base` | `armor_class`            | `armor_class`     | Hot column |
+| N/A (ECS PositionComponent) | `placement.hex.q`       | `position_q`      | Hot column (ECS-managed) |
+| N/A (ECS PositionComponent) | `placement.hex.r`       | `position_r`      | Hot column (ECS-managed) |
+| N/A (ECS metadata)        | `state_data.location.roomId` | `last_room_id` | Hot column (ECS-managed) |
 
 **Note on Abilities**: The TypeScript interface uses full property names (strength, dexterity, etc.)
 for better developer ergonomics, while the JSON schema uses traditional D&D abbreviations (str, dex, etc.).
 The PHP service translates between these formats. In practice, the character_data JSON currently stores
 the full names to match the TypeScript format, with the JSON schema accepting abbreviated input during
 character creation.
+
+**Note on Position Fields**: The position_q, position_r, and last_room_id hot columns are managed by 
+the ECS (Entity Component System) through PositionComponent and are not directly exposed in the 
+CharacterState TypeScript interface. These fields track runtime gameplay position and are used for 
+spatial queries and entity management.
 
 ## Unified vs Hot-Column Structures
 
@@ -203,3 +228,5 @@ This separation allows:
 - JSON Schema: `config/schemas/character.schema.json`
 - PHP Service: `src/Service/CharacterStateService.php`
 - Database Schema: `dungeoncrawler_content.install`
+- ECS Architecture: `js/ecs/index.js` (for position_q, position_r, last_room_id hot columns)
+- Position Component: `js/ecs/components/PositionComponent.js`
