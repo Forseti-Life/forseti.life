@@ -587,15 +587,6 @@ Character creation step schemas (partial versioning):
 - ✓ `character_options_step6.json` (v1.0.0)
 - ✓ `character_options_step8.json` (v1.0.0)
 - Pending: Steps 1, 5, 7 (UI-only schemas - lower priority)
-Schemas with versioning (recently added):
-- ✓ `obstacle.schema.json`
-- ✓ `obstacle_object_catalog.schema.json`
-- ✓ `room.schema.json` (DCC-0027: Added comprehensive array bounds 2026-02-18)
-
-Schemas pending versioning:
-- `character_options_step[1-2,4-5,7].json` (UI-only schemas - lower priority)
-- `obstacle.schema.json` (needs versioning for production use)
-- `obstacle_object_catalog.schema.json` (needs versioning for production use)
 
 ### Adding New Properties
 1. Update the appropriate schema file
