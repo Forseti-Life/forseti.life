@@ -43,8 +43,8 @@ JSON Schemas serve multiple purposes:
 | `obstacle.schema.json` | Map obstacles | ✓ | 231 | Traversal blockers |
 | `obstacle_object_catalog.schema.json` | Reusable obstacle definitions | ✓ | 224 | Obstacle templates |
 | `party.schema.json` | Adventuring party | ✓ | 441 | Party management |
-| `room.schema.json` | Individual dungeon rooms | ✓ | 941 | Room generation |
-| `trap.schema.json` | Mechanical & magical traps | ✓ | 330 | Trap mechanics |
+| `room.schema.json` | Individual dungeon rooms | ✓ | 471 | Room generation |
+| `trap.schema.json` | Mechanical & magical traps | ✓ | 440 | Trap mechanics |
 
 ## Schema Categories
 
@@ -427,6 +427,15 @@ PF2e-compatible traps and snares (simple and complex). Traps are hidden threats 
 - Added comprehensive examples section with simple and complex trap patterns
 - Improved consistency with hazard.schema.json structure and validation patterns
 
+**Further improved (2026-02-18, DCC-0028):**
+- Added 8 `maxLength` constraints to string fields for data integrity (name: 200, description: 2000, trigger: 1000, disable.custom: 500, conditions_applied items: 100, effect.description: 2000, immunities items: 50, reset.conditions: 500)
+- Added `maxItems: 10` to traits array to prevent unreasonably large trait lists
+- Added `maximum: 10080` (1 week) to reset_time_minutes for realistic reset timeframes
+- Enhanced documentation for reset_time_minutes to clarify maximum constraint
+- All changes maintain backward compatibility; existing valid data remains valid
+- Total: 10 validation constraints added for consistency with hazard.schema.json
+- See: `REVIEW_SUMMARY_DCC-0028.md`
+
 **Defines:**
 - Simple traps: One-time dangers (dart trap, pit trap)
 - Complex traps: Ongoing threats that act in initiative order
@@ -447,6 +456,7 @@ PF2e-compatible traps and snares (simple and complex). Traps are hidden threats 
 - Comprehensive examples demonstrating simple and complex trap patterns
 - Maximum value constraints aligned with hazard.schema (resistances/weaknesses max: 30)
 - Enhanced damage_type field to support multiple damage types (e.g., "piercing, poison")
+- Bounded string fields prevent database overflow and UI rendering issues
 
 ## Schema Standards
 
