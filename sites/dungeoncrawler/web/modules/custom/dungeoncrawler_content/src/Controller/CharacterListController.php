@@ -55,6 +55,7 @@ class CharacterListController extends ControllerBase {
     foreach ($characters as $record) {
       $data = $this->characterManager->getCharacterData($record);
       $char = $data['character'] ?? [];
+      $hot = $this->characterManager->resolveHotColumnsForRecord($record, $data);
 
       $view_url = Url::fromRoute('dungeoncrawler_content.character_view', ['character_id' => $record->id]);
       if ($campaign_id > 0) {
@@ -76,9 +77,9 @@ class CharacterListController extends ControllerBase {
         'level' => $record->level,
         'ancestry' => $record->ancestry,
         'class' => $record->class,
-        'hp_current' => (int) ($record->hp_current ?? ($char['hit_points']['current'] ?? 0)),
-        'hp_max' => (int) ($record->hp_max ?? ($char['hit_points']['max'] ?? 0)),
-        'ac' => (int) ($record->armor_class ?? ($char['armor_class'] ?? 10)),
+        'hp_current' => $hot['hp_current'],
+        'hp_max' => $hot['hp_max'],
+        'ac' => $hot['armor_class'],
         'status' => $record->status ? 'active' : 'dead',
         'portrait' => $record->portrait,
         'heritage' => $char['ancestry']['heritage'] ?? '',

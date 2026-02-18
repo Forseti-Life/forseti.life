@@ -178,6 +178,7 @@ class CampaignController extends ControllerBase {
     foreach ($characters as $record) {
       $data = $this->characterManager->getCharacterData($record);
       $char = $data['character'] ?? [];
+      $hot = $this->characterManager->resolveHotColumnsForRecord($record, $data);
 
       $select_url = NULL;
       if ((int) $record->status === 1) {
@@ -193,9 +194,9 @@ class CampaignController extends ControllerBase {
         'level' => (int) $record->level,
         'ancestry' => $record->ancestry,
         'class' => $record->class,
-        'hp_current' => (int) ($record->hp_current ?? ($char['hit_points']['current'] ?? 0)),
-        'hp_max' => (int) ($record->hp_max ?? ($char['hit_points']['max'] ?? 0)),
-        'ac' => (int) ($record->armor_class ?? ($char['armor_class'] ?? 10)),
+        'hp_current' => $hot['hp_current'],
+        'hp_max' => $hot['hp_max'],
+        'ac' => $hot['armor_class'],
         'status' => $record->status ? 'active' : 'dead',
         'portrait' => $record->portrait,
         'alignment' => $char['personality']['alignment'] ?? '',
@@ -263,13 +264,7 @@ class CampaignController extends ControllerBase {
     if (!is_array($character_data)) {
       $character_data = [];
     }
-    $character_payload = is_array($character_data['character'] ?? NULL) ? $character_data['character'] : [];
-    $hit_points = is_array($character_payload['hit_points'] ?? NULL) ? $character_payload['hit_points'] : [];
-
-    $hp_max = (int) ($character->hp_max ?? ($hit_points['max'] ?? 0));
-    $hp_current = (int) ($character->hp_current ?? ($hit_points['current'] ?? $hp_max));
-    $armor_class = (int) ($character->armor_class ?? ($character_payload['armor_class'] ?? 10));
-    $experience_points = (int) ($character->experience_points ?? ($character_payload['experience_points'] ?? 0));
+    $hot = $this->characterManager->resolveHotColumnsForRecord($character, $character_data);
 
     $this->database->merge('dc_campaign_characters')
       ->keys([
@@ -284,10 +279,10 @@ class CampaignController extends ControllerBase {
         'level' => (int) $character->level,
         'ancestry' => (string) $character->ancestry,
         'class' => (string) $character->class,
-        'hp_current' => $hp_current,
-        'hp_max' => $hp_max,
-        'armor_class' => $armor_class,
-        'experience_points' => $experience_points,
+        'hp_current' => $hot['hp_current'],
+        'hp_max' => $hot['hp_max'],
+        'armor_class' => $hot['armor_class'],
+        'experience_points' => $hot['experience_points'],
         'position_q' => 0,
         'position_r' => 0,
         'last_room_id' => '',

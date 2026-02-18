@@ -42,8 +42,10 @@ class CharacterViewController extends ControllerBase {
       throw new AccessDeniedHttpException();
     }
 
-    // Decode character_data JSON
-    $char_data = json_decode($record->character_data, TRUE) ?? [];
+    // Decode character data via manager and normalize nested/flat shape.
+    $decoded = $this->characterManager->getCharacterData($record);
+    $char_data = is_array($decoded['character'] ?? NULL) ? $decoded['character'] : $decoded;
+    $hot = $this->characterManager->resolveHotColumnsForRecord($record, $decoded);
 
     // Support both old flat structure and new nested abilities structure
     $abilities = [];
@@ -53,6 +55,17 @@ class CharacterViewController extends ControllerBase {
         $score = $char_data['abilities'][$short] ?? 10;
         $modifier = floor(($score - 10) / 2);
         $abilities[$long] = [
+          'score' => $score,
+          'modifier' => $modifier,
+        ];
+      }
+    }
+    elseif (!empty($char_data['ability_scores']) && is_array($char_data['ability_scores'])) {
+      // Nested schema format.
+      foreach (['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'] as $ability) {
+        $score = (int) ($char_data['ability_scores'][$ability]['score'] ?? 10);
+        $modifier = floor(($score - 10) / 2);
+        $abilities[$ability] = [
           'score' => $score,
           'modifier' => $modifier,
         ];
@@ -75,10 +88,10 @@ class CharacterViewController extends ControllerBase {
     $con_mod = $abilities['constitution']['modifier'];
     
     // AC calculation (10 + DEX modifier for unarmored)
-    $ac = 10 + $abilities['dexterity']['modifier'];
+    $ac = (int) $hot['armor_class'];
     
     // Max HP from schema or calculate
-    $max_hp = $char_data['hit_points']['max'] ?? 20;
+    $max_hp = (int) $hot['hp_max'];
     
     // Saving throws (proficiency bonus = level + 2 for trained)
     $prof_bonus = $level + 2;
@@ -152,6 +165,58 @@ class CharacterViewController extends ControllerBase {
       $back_url->setOption('query', ['campaign_id' => $campaign_id]);
     }
 
+    $ancestry_name = is_array($char_data['ancestry'] ?? NULL)
+      ? ($char_data['ancestry']['name'] ?? 'Unknown')
+      : ($char_data['ancestry'] ?? 'Unknown');
+    $heritage = is_array($char_data['ancestry'] ?? NULL)
+      ? ($char_data['ancestry']['heritage'] ?? NULL)
+      : ($char_data['heritage'] ?? NULL);
+    $size = is_array($char_data['ancestry'] ?? NULL)
+      ? ($char_data['ancestry']['size'] ?? 'Medium')
+      : ($char_data['size'] ?? 'Medium');
+    $speed = is_array($char_data['ancestry'] ?? NULL)
+      ? ($char_data['ancestry']['speed'] ?? 25)
+      : ($char_data['speed'] ?? 25);
+    $languages = is_array($char_data['ancestry'] ?? NULL)
+      ? ($char_data['ancestry']['languages'] ?? [])
+      : ($char_data['languages'] ?? []);
+
+    $class_name = is_array($char_data['class'] ?? NULL)
+      ? ($char_data['class']['name'] ?? 'Unknown')
+      : ($char_data['class'] ?? 'Unknown');
+    $class_subclass = is_array($char_data['class'] ?? NULL)
+      ? ($char_data['class']['subclass'] ?? NULL)
+      : ($char_data['subclass'] ?? NULL);
+    $class_key_ability = is_array($char_data['class'] ?? NULL)
+      ? ($char_data['class']['key_ability'] ?? 'STR')
+      : 'STR';
+    $class_hp_per_level = is_array($char_data['class'] ?? NULL)
+      ? ((int) ($char_data['class']['hp_per_level'] ?? 8))
+      : 8;
+
+    $equipment_items = is_array($char_data['equipment'] ?? NULL)
+      ? ($char_data['equipment']['stowed'] ?? $char_data['equipment'])
+      : [];
+    $equipment_gold = is_array($char_data['equipment'] ?? NULL)
+      ? ((float) ($char_data['equipment']['currency']['gold'] ?? 15))
+      : ((float) ($char_data['gold'] ?? 15));
+
+    $alignment = is_array($char_data['personality'] ?? NULL)
+      ? ($char_data['personality']['alignment'] ?? NULL)
+      : ($char_data['alignment'] ?? NULL);
+    $deity = is_array($char_data['personality'] ?? NULL)
+      ? ($char_data['personality']['deity'] ?? NULL)
+      : ($char_data['deity'] ?? NULL);
+    $appearance = is_array($char_data['personality'] ?? NULL)
+      ? ($char_data['personality']['appearance'] ?? NULL)
+      : ($char_data['appearance'] ?? NULL);
+    $personality = is_array($char_data['personality'] ?? NULL)
+      ? ($char_data['personality']['traits'][0] ?? NULL)
+      : ($char_data['personality'] ?? NULL);
+    $backstory = is_array($char_data['personality'] ?? NULL)
+      ? ($char_data['personality']['backstory'] ?? NULL)
+      : ($char_data['backstory'] ?? NULL);
+
     $build = [
       '#theme' => 'character_sheet',
       '#character' => [
@@ -159,7 +224,7 @@ class CharacterViewController extends ControllerBase {
         'uuid' => $record->uuid,
         'name' => $char_data['name'] ?? $record->name,
         'level' => $level,
-        'xp' => $char_data['experience_points'] ?? 0,
+        'xp' => (int) ($record->experience_points ?? $char_data['experience_points'] ?? 0),
         'hero_points' => $char_data['hero_points'] ?? 1,
         'status' => $record->status ? 'active' : 'incomplete',
         'portrait' => $record->portrait ?? NULL,
@@ -167,28 +232,28 @@ class CharacterViewController extends ControllerBase {
       ],
       '#char_data' => $char_data,
       '#ancestry' => [
-        'name' => $char_data['ancestry'] ?? 'Unknown',
-        'heritage' => $char_data['heritage'] ?? NULL,
-        'size' => $char_data['size'] ?? 'Medium',
-        'speed' => $char_data['speed'] ?? 25,
-        'languages' => $char_data['languages'] ?? [],
+        'name' => $ancestry_name,
+        'heritage' => $heritage,
+        'size' => $size,
+        'speed' => $speed,
+        'languages' => $languages,
         'traits' => [],
       ],
       '#background' => [
         'name' => $char_data['background'] ?? 'Unknown',
       ],
       '#class_data' => [
-        'name' => $char_data['class'] ?? 'Unknown',
-        'subclass' => $char_data['subclass'] ?? NULL,
-        'key_ability' => 'STR',
-        'hp_per_level' => 8,
+        'name' => $class_name,
+        'subclass' => $class_subclass,
+        'key_ability' => $class_key_ability,
+        'hp_per_level' => $class_hp_per_level,
         'class_features' => [],
         'class_feats' => [],
       ],
       '#abilities' => $abilities,
       '#hp' => [
-        'max' => $char_data['hit_points']['max'] ?? $max_hp,
-        'current' => $char_data['hit_points']['current'] ?? $max_hp,
+        'max' => $max_hp,
+        'current' => (int) $hot['hp_current'],
         'temporary' => $char_data['hit_points']['temp'] ?? 0,
       ],
       '#ac' => $ac,
@@ -198,23 +263,23 @@ class CharacterViewController extends ControllerBase {
       '#melee_attacks' => [],
       '#ranged_attacks' => [],
       '#equipment' => [
-        'gold' => $char_data['gold'] ?? 15,
-        'items' => $char_data['equipment'] ?? [],
+        'gold' => $equipment_gold,
+        'items' => $equipment_items,
       ],
       '#feats' => $char_data['feats'] ?? [],
       '#spells' => $char_data['spells'] ?? NULL,
       '#conditions' => $char_data['conditions'] ?? [],
       '#personality' => [
-        'alignment' => $char_data['alignment'] ?? NULL,
-        'deity' => $char_data['deity'] ?? NULL,
+        'alignment' => $alignment,
+        'deity' => $deity,
         'age' => $char_data['age'] ?? NULL,
         'gender' => $char_data['gender'] ?? NULL,
-        'appearance' => $char_data['appearance'] ?? NULL,
-        'personality' => $char_data['personality'] ?? NULL,
-        'backstory' => $char_data['backstory'] ?? NULL,
+        'appearance' => $appearance,
+        'personality' => $personality,
+        'backstory' => $backstory,
       ],
       '#npc_data' => NULL,
-      '#raw_json' => json_encode($char_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+      '#raw_json' => json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
       '#edit_url' => Url::fromRoute('dungeoncrawler_content.character_edit', ['character_id' => $record->id])->toString(),
       '#delete_url' => Url::fromRoute('dungeoncrawler_content.character_delete', ['character_id' => $record->id])->toString(),
       '#launch_url' => $launch_url->toString(),

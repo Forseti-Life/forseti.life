@@ -719,6 +719,44 @@ class CharacterManager {
   }
 
   /**
+   * Extract hot-column values from character payload.
+   *
+   * @return array{hp_current:int,hp_max:int,armor_class:int,experience_points:int}
+   *   Normalized values for hot relational columns.
+   */
+  public function extractHotColumnsFromData(array $characterData): array {
+    $character = is_array($characterData['character'] ?? NULL) ? $characterData['character'] : $characterData;
+    $hitPoints = is_array($character['hit_points'] ?? NULL) ? $character['hit_points'] : [];
+
+    $hpMax = (int) ($hitPoints['max'] ?? 0);
+    $hpCurrent = (int) ($hitPoints['current'] ?? $hpMax);
+
+    return [
+      'hp_current' => $hpCurrent,
+      'hp_max' => $hpMax,
+      'armor_class' => (int) ($character['armor_class'] ?? 10),
+      'experience_points' => (int) ($character['experience_points'] ?? 0),
+    ];
+  }
+
+  /**
+   * Resolve hot-column values using row columns first, then JSON payload fallback.
+   *
+   * @return array{hp_current:int,hp_max:int,armor_class:int,experience_points:int}
+   *   Row-preferred hot values.
+   */
+  public function resolveHotColumnsForRecord(object $record, array $characterData): array {
+    $fromJson = $this->extractHotColumnsFromData($characterData);
+
+    return [
+      'hp_current' => (int) ($record->hp_current ?? $fromJson['hp_current']),
+      'hp_max' => (int) ($record->hp_max ?? $fromJson['hp_max']),
+      'armor_class' => (int) ($record->armor_class ?? $fromJson['armor_class']),
+      'experience_points' => (int) ($record->experience_points ?? $fromJson['experience_points']),
+    ];
+  }
+
+  /**
    * Check if a character belongs to the current user.
    */
   public function isOwner(object $record): bool {
@@ -747,18 +785,7 @@ class CharacterManager {
    *   Normalized hot-column values.
    */
   private function extractHotColumnValues(array $characterData): array {
-    $character = is_array($characterData['character'] ?? NULL) ? $characterData['character'] : [];
-    $hitPoints = is_array($character['hit_points'] ?? NULL) ? $character['hit_points'] : [];
-
-    $hpMax = (int) ($hitPoints['max'] ?? 0);
-    $hpCurrent = (int) ($hitPoints['current'] ?? $hpMax);
-
-    return [
-      'hp_current' => $hpCurrent,
-      'hp_max' => $hpMax,
-      'armor_class' => (int) ($character['armor_class'] ?? 10),
-      'experience_points' => (int) ($character['experience_points'] ?? 0),
-    ];
+    return $this->extractHotColumnsFromData($characterData);
   }
 
 }
