@@ -27,6 +27,9 @@
  * - entity_instance.schema.json: state.metadata (extensible object)
  * - dc_campaign_characters table: state_data (JSON column)
  * 
+ * ### Non-Persisted Fields:
+ * - `onMovementDepleted` - Runtime callback, not serialized to database
+ * 
  * @see /config/schemas/entity_instance.schema.json
  * @see Component.toJSON() for serialization pattern
  */
@@ -283,6 +286,9 @@ export class MovementComponent extends Component {
    * Serializes all movement-related state for storage in entity_instance.state.metadata.
    * The `type` field enables component identification during deserialization.
    * The `movementModes` object is shallow-copied to prevent reference issues.
+   * 
+   * This method explicitly lists all persisted fields to ensure callbacks like
+   * `onMovementDepleted` are excluded from serialization.
    * 
    * @returns {Object} Serialized component data conforming to state_data.metadata schema
    * 
