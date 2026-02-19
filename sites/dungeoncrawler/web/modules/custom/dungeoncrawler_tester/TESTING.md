@@ -17,6 +17,18 @@ cd sites/dungeoncrawler/web
 ../vendor/bin/phpunit -c modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
+### Playwright UI Tests (Repository Root)
+
+Playwright is the official UI testing suite for hexmap and workflow smoke tests.
+
+```bash
+cd /home/keithaumiller/forseti.life
+npm install
+npx playwright install chromium
+node testing/playwright/test-character-creation.js http://localhost:8080 10000
+node testing/playwright/test-hexmap.js http://localhost:8080 5000
+```
+
 ### With Coverage
 
 ```bash

@@ -94,6 +94,18 @@ cd sites/dungeoncrawler
 ./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
+### Playwright UI Tests (Repository Root)
+
+Playwright is the supported UI testing suite for workflow and hexmap coverage.
+
+```bash
+cd /home/keithaumiller/forseti.life
+npm install
+npx playwright install chromium
+node testing/playwright/test-character-creation.js http://localhost:8080 10000
+node testing/playwright/test-hexmap.js http://localhost:8080 5000
+```
+
 ### Specific Test Suite
 ```bash
 # Unit tests only (fast)

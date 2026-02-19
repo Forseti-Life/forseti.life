@@ -8,6 +8,7 @@
 - PHPUnit configuration tuned for Drupal functional tests.
 - Comprehensive functional test suite (routes + controllers).
 - Testing module README with run commands and grouping.
+- Playwright UI testing suite (hexmap and workflow checks) located in `testing/playwright/`.
 - **Testing Dashboard** - A web-based dashboard for quick access to test documentation, commands, and CI status.
 
 ## Documentation Verification (2026-02-18)
@@ -151,6 +152,15 @@ The dashboard includes:
 ```bash
 cd sites/dungeoncrawler
 ./tests/run-tests.sh
+```
+
+**Playwright UI tests (repository root):**
+```bash
+cd /home/keithaumiller/forseti.life
+npm install
+npx playwright install chromium
+node testing/playwright/test-character-creation.js http://localhost:8080 10000
+node testing/playwright/test-hexmap.js http://localhost:8080 5000
 ```
 
 For complete run instructions, test suites, groups, and examples, see **[tests/README.md](tests/README.md)** - the canonical testing guide.

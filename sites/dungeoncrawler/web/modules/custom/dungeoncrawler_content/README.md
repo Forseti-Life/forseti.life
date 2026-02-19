@@ -626,6 +626,16 @@ cd sites/dungeoncrawler
 ./vendor/bin/phpunit web/modules/custom/dungeoncrawler_content/tests/src/Functional/Routes/CampaignRoutesTest.php
 ```
 
+Playwright is the UI testing suite for hexmap and workflow smoke checks (runs from repository root):
+
+```bash
+cd /home/keithaumiller/forseti.life
+npm install
+npx playwright install chromium
+node testing/playwright/test-character-creation.js http://localhost:8080 10000
+node testing/playwright/test-hexmap.js http://localhost:8080 5000
+```
+
 ### Hexmap UI Review Harness (Playwright Screenshots)
 
 Use this workflow to generate repeatable desktop/mobile screenshots for `/hexmap` UI reviews and before/after comparisons.

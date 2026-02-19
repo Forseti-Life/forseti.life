@@ -415,6 +415,24 @@ else
 fi
 
 # ------------------------------------------------------------------------------
+# 1.5.2 Playwright UI Testing Setup
+# ------------------------------------------------------------------------------
+print_status "Checking Playwright UI testing setup..."
+if [ -f "$WORKSPACE_ROOT/package.json" ]; then
+    if [ ! -d "$WORKSPACE_ROOT/node_modules" ]; then
+        print_status "Installing root npm dependencies (Playwright suite)..."
+        (cd "$WORKSPACE_ROOT" && npm install)
+    else
+        print_status "Root npm dependencies already installed"
+    fi
+
+    print_status "Installing Playwright Chromium browser..."
+    (cd "$WORKSPACE_ROOT" && npx playwright install chromium)
+else
+    print_warning "package.json not found at repo root; skipping Playwright setup"
+fi
+
+# ------------------------------------------------------------------------------
 # 1.5.0 OpenClaw CLI Installation
 # ------------------------------------------------------------------------------
 print_status "Checking OpenClaw CLI installation..."
