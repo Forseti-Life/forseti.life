@@ -6,7 +6,6 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
-use Drupal\dungeoncrawler_content\Service\ItemCombatDataService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -18,23 +17,16 @@ class CharacterViewController extends ControllerBase {
 
   protected CharacterManager $characterManager;
   protected GeneratedImageRepository $imageRepository;
-  protected ItemCombatDataService $itemCombatData;
 
-  public function __construct(
-    CharacterManager $character_manager,
-    GeneratedImageRepository $image_repository,
-    ItemCombatDataService $item_combat_data
-  ) {
+  public function __construct(CharacterManager $character_manager, GeneratedImageRepository $image_repository) {
     $this->characterManager = $character_manager;
     $this->imageRepository = $image_repository;
-    $this->itemCombatData = $item_combat_data;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('dungeoncrawler_content.generated_image_repository'),
-      $container->get('dungeoncrawler_content.item_combat_data'),
     );
   }
 
@@ -246,250 +238,6 @@ class CharacterViewController extends ControllerBase {
       ? ($char_data['personality']['backstory'] ?? NULL)
       : ($char_data['backstory'] ?? NULL);
 
-    // Extract new character creation data
-    $ancestry_feat = $char_data['ancestry_feat'] ?? NULL;
-    $ancestry_feat_data = NULL;
-    if ($ancestry_feat && !empty($ancestry_name)) {
-      $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
-      foreach ($ancestry_feats as $feat) {
-        if ($feat['id'] === $ancestry_feat) {
-          $ancestry_feat_data = $feat;
-          break;
-        }
-      }
-    }
-
-    $class_feat = $char_data['class_feat'] ?? NULL;
-    $class_feat_data = NULL;
-    if ($class_feat && !empty($class_name)) {
-      $class_feats = CharacterManager::CLASS_FEATS[$class_name] ?? [];
-      foreach ($class_feats as $feat) {
-        if ($feat['id'] === $class_feat) {
-          $class_feat_data = $feat;
-          break;
-        }
-      }
-    }
-
-    $trained_skills_list = $char_data['trained_skills'] ?? [];
-    $background_skill = NULL;
-    $background_lore = NULL;
-    $background_feat = NULL;
-    if (!empty($char_data['background'])) {
-      $background_data = CharacterManager::BACKGROUNDS[$char_data['background']] ?? NULL;
-      if ($background_data) {
-        $background_skill = $background_data['skill'] ?? NULL;
-        $background_lore = $background_data['lore'] ?? NULL;
-        $background_feat = $background_data['feat'] ?? NULL;
-      }
-    }
-
-    // Enhance skills array with training status
-    $skills = [];
-    foreach ($skill_list as $skill_name => $ability_key) {
-      $is_trained = in_array($skill_name, $trained_skills_list, TRUE) || ($skill_name === $background_skill);
-      $proficiency = $is_trained ? 'Trained' : 'Untrained';
-      $bonus = $is_trained ? $prof_bonus : 0;
-      
-      $skills[] = [
-        'name' => $skill_name,
-        'modifier' => $abilities[$ability_key]['modifier'] + $bonus,
-        'proficiency' => $proficiency,
-        'trained' => $is_trained,
-      ];
-    }
-
-    // Combat calculations: Melee and Ranged attacks
-    $melee_attacks = [];
-    $ranged_attacks = [];
-    
-    // Determine weapon proficiencies based on class
-    $simple_weapon_prof = 'trained'; // Most classes get simple weapon proficiency
-    $martial_weapon_prof = 'untrained';
-    $unarmed_prof = 'trained'; // Everyone is trained in unarmed
-    
-    if (!empty($class_name)) {
-      // Fighters, Rangers, Barbarians, Champions get martial proficiency
-      if (in_array($class_name, ['fighter', 'ranger', 'barbarian', 'champion'], TRUE)) {
-        $martial_weapon_prof = 'trained';
-      }
-    }
-    
-    // Get starting weapons from equipment or use defaults
-    $weapon_ids = [];
-    if (!empty($char_data['equipment'])) {
-      foreach ($char_data['equipment'] as $item) {
-        if (is_array($item) && isset($item['type']) && $item['type'] === 'weapon') {
-          $weapon_ids[] = $item['id'] ?? NULL;
-        }
-      }
-    }
-    
-    // If no weapons, provide class-appropriate defaults
-    if (empty($weapon_ids)) {
-      if (!empty($class_name)) {
-        $weapon_ids = match ($class_name) {
-          'fighter', 'champion' => ['longsword', 'shortbow'],
-          'ranger' => ['shortsword', 'longbow'],
-          'barbarian' => ['greataxe'],
-          'rogue' => ['rapier', 'shortbow'],
-          'wizard', 'sorcerer' => ['staff', 'crossbow'],
-          'cleric' => ['mace', 'dagger'],
-          'bard' => ['rapier', 'crossbow'],
-          default => ['dagger', 'sling'],
-        };
-      } else {
-        $weapon_ids = ['fist']; // Always have unarmed strike
-      }
-    }
-    
-    // Always include unarmed strike
-    if (!in_array('fist', $weapon_ids, TRUE)) {
-      $weapon_ids[] = 'fist';
-    }
-    
-    // Calculate attacks for each weapon using ItemCombatDataService
-    foreach ($weapon_ids as $weapon_id) {
-      if (empty($weapon_id)) {
-        continue;
-      }
-      
-      // Get weapon data from item templates
-      $weapon = ($weapon_id === 'fist') 
-        ? $this->itemCombatData->getUnarmedStrikeData()
-        : $this->itemCombatData->getWeaponCombatData($weapon_id);
-      
-      if (!$weapon) {
-        // Weapon not found in templates, skip
-        continue;
-      }
-      
-      $category = $weapon['category'];
-      $is_finesse = in_array('Finesse', $weapon['traits'], TRUE);
-      $is_ranged = !empty($weapon['range']);
-      
-      // Determine proficiency bonus for this weapon
-      $weapon_prof_bonus = 0;
-      if ($category === 'simple' && $simple_weapon_prof === 'trained') {
-        $weapon_prof_bonus = $prof_bonus;
-      } elseif ($category === 'martial' && $martial_weapon_prof === 'trained') {
-        $weapon_prof_bonus = $prof_bonus;
-      } elseif ($category === 'unarmed' && $unarmed_prof === 'trained') {
-        $weapon_prof_bonus = $prof_bonus;
-      }
-      
-      // Calculate attack bonus
-      if ($is_ranged) {
-        // Ranged: DEX mod + weapon prof + level + potency
-        $attack_bonus = $abilities['dexterity']['modifier'] + $weapon_prof_bonus;
-      } elseif ($is_finesse) {
-        // Finesse: Use higher of STR or DEX
-        $attack_bonus = max($abilities['strength']['modifier'], $abilities['dexterity']['modifier']) + $weapon_prof_bonus;
-      } else {
-        // Melee: STR mod + weapon prof + level + potency
-        $attack_bonus = $abilities['strength']['modifier'] + $weapon_prof_bonus;
-      }
-      
-      // Calculate damage (damage die + STR for melee, just die for ranged unless Propulsive)
-      $damage_mod = 0;
-      if (!$is_ranged) {
-        $damage_mod = $abilities['strength']['modifier'];
-      } elseif (in_array('Propulsive', $weapon['traits'], TRUE)) {
-        // Propulsive: add half STR (minimum 0)
-        $damage_mod = max(0, (int) floor($abilities['strength']['modifier'] / 2));
-      }
-      
-      $damage_string = $weapon['damage'];
-      if ($damage_mod > 0) {
-        $damage_string .= '+' . $damage_mod;
-      } elseif ($damage_mod < 0) {
-        $damage_string .= $damage_mod;
-      }
-      
-      $attack = [
-        'name' => $weapon['name'],
-        'bonus' => $attack_bonus,
-        'damage' => $damage_string,
-        'damage_type' => $weapon['damage_type'],
-        'traits' => $weapon['traits'],
-      ];
-      
-      if ($is_ranged) {
-        $attack['range'] = $weapon['range'];
-        $ranged_attacks[] = $attack;
-      } else {
-        $melee_attacks[] = $attack;
-      }
-    }
-
-    // Spell data preparation for spellcasting classes
-    $spell_data = NULL;
-    if (!empty($class_name) && $class_name === 'wizard') {
-      // Calculate spell DC and spell attack for Wizard (Arcane tradition)
-      $int_mod = $abilities['intelligence']['modifier'];
-      $spell_proficiency = $prof_bonus; // Trained = level + 2
-      $spell_attack = $int_mod + $spell_proficiency;
-      $spell_dc = 10 + $int_mod + $spell_proficiency;
-
-      // Prepare cantrips
-      $cantrips = [];
-      if (!empty($char_data['cantrips'])) {
-        $cantrip_ids = array_filter((array) $char_data['cantrips']);
-        $available_cantrips = CharacterManager::SPELLS['arcane']['cantrips'] ?? [];
-        foreach ($available_cantrips as $cantrip) {
-          if (in_array($cantrip['id'], $cantrip_ids, TRUE)) {
-            $cantrips[] = [
-              'name' => $cantrip['name'],
-              'rank' => 0,
-              'school' => $cantrip['school'],
-              'actions' => $cantrip['cast'],
-              'traits' => $cantrip['traits'],
-              'description' => $cantrip['description'],
-            ];
-          }
-        }
-      }
-
-      // Prepare 1st level spells
-      $first_level_spells = [];
-      if (!empty($char_data['spells_first'])) {
-        $spell_ids = array_filter((array) $char_data['spells_first']);
-        $available_spells = CharacterManager::SPELLS['arcane']['1st'] ?? [];
-        foreach ($available_spells as $spell) {
-          if (in_array($spell['id'], $spell_ids, TRUE)) {
-            $first_level_spells[] = [
-              'name' => $spell['name'],
-              'rank' => 1,
-              'school' => $spell['school'],
-              'actions' => $spell['cast'],
-              'traits' => $spell['traits'],
-              'description' => $spell['description'],
-            ];
-          }
-        }
-      }
-
-      // Combine all spells
-      $all_spells = array_merge($cantrips, $first_level_spells);
-
-      // Calculate spell slots (Wizard at level 1 has 2 × 1st level slots)
-      // TODO: Add spells per day from INT bonus
-      $spell_slots = [
-        1 => ['max' => 2, 'remaining' => 2],
-      ];
-
-      if (!empty($all_spells)) {
-        $spell_data = [
-          'tradition' => 'arcane',
-          'spell_attack' => $spell_attack,
-          'spell_dc' => $spell_dc,
-          'spells_known' => $all_spells,
-          'spell_slots' => $spell_slots,
-          'focus_points' => NULL,
-        ];
-      }
-    }
-
     $build = [
       '#theme' => 'character_sheet',
       '#character' => [
@@ -514,9 +262,6 @@ class CharacterViewController extends ControllerBase {
       ],
       '#background' => [
         'name' => $char_data['background'] ?? 'Unknown',
-        'skill' => $background_skill,
-        'lore' => $background_lore,
-        'feat' => $background_feat,
       ],
       '#class_data' => [
         'name' => $class_name,
@@ -525,11 +270,6 @@ class CharacterViewController extends ControllerBase {
         'hp_per_level' => $class_hp_per_level,
         'class_features' => [],
         'class_feats' => [],
-      ],
-      '#feats' => [
-        'ancestry' => $ancestry_feat_data,
-        'class' => $class_feat_data,
-        'general' => $char_data['feats'] ?? [],
       ],
       '#abilities' => $abilities,
       '#hp' => [
@@ -541,13 +281,14 @@ class CharacterViewController extends ControllerBase {
       '#saves' => $saves,
       '#perception' => $perception,
       '#skills' => $skills,
-      '#melee_attacks' => $melee_attacks,
-      '#ranged_attacks' => $ranged_attacks,
+      '#melee_attacks' => [],
+      '#ranged_attacks' => [],
       '#equipment' => [
         'gold' => $equipment_gold,
         'items' => $equipment_items,
       ],
-      '#spells' => $spell_data,
+      '#feats' => $char_data['feats'] ?? [],
+      '#spells' => $char_data['spells'] ?? NULL,
       '#conditions' => $char_data['conditions'] ?? [],
       '#personality' => [
         'alignment' => $alignment,

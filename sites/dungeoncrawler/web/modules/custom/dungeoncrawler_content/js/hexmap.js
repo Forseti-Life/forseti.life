@@ -927,13 +927,20 @@ import combatApi from './hexmap-api.js';
 
       try {
         const response = await fetch(`/api/campaign/${campaignId}/room/${roomId}/chat`);
+        
+        // Handle 403 (permission denied) gracefully  
+        if (response.status === 403) {
+          console.warn('Chat access denied for campaign:', campaignId);
+          return; // Silently skip loading - user doesn't have access
+        }
+        
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
         }
 
         const result = await response.json();
         if (result.success && result.data?.messages) {
-          // Clear existing messages except welcome
+          // Clear existing messages
           const log = this.elements.chatLog;
           if (log) {
             log.innerHTML = '';
@@ -950,7 +957,8 @@ import combatApi from './hexmap-api.js';
         }
       } catch (error) {
         console.error('Failed to load chat history:', error);
-        this.appendChatLine('System', 'Welcome to the room. Chat history unavailable.', 'system');
+        // Don't show error message in chat, just log to console
+        // The chat interface will still work for new messages
       }
     }
 

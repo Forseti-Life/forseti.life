@@ -5,11 +5,13 @@ namespace Drupal\dungeoncrawler_content\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\dungeoncrawler_content\Event\EntityDefeatedEvent;
 use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
 use Drupal\dungeoncrawler_content\Service\CharacterStateService;
 use Drupal\dungeoncrawler_content\Service\EncounterAiIntegrationService;
 use Drupal\dungeoncrawler_content\Service\NumberGenerationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -65,15 +67,23 @@ class CombatEncounterApiController extends ControllerBase {
   protected $numberGeneration;
 
   /**
+   * Event dispatcher.
+   *
+   * @var \Symfony\Component\EventDispatcher\EventDispatcherInterface
+   */
+  protected $eventDispatcher;
+
+  /**
    * Constructor.
    */
-  public function __construct(CombatEncounterStore $encounter_store, ConfigFactoryInterface $config_factory, EncounterAiIntegrationService $encounter_ai_integration, Connection $database, CharacterStateService $character_state_service, NumberGenerationService $number_generation) {
+  public function __construct(CombatEncounterStore $encounter_store, ConfigFactoryInterface $config_factory, EncounterAiIntegrationService $encounter_ai_integration, Connection $database, CharacterStateService $character_state_service, NumberGenerationService $number_generation, EventDispatcherInterface $event_dispatcher) {
     $this->encounterStore = $encounter_store;
     $this->configFactory = $config_factory;
     $this->encounterAiIntegration = $encounter_ai_integration;
     $this->database = $database;
     $this->characterStateService = $character_state_service;
     $this->numberGeneration = $number_generation;
+    $this->eventDispatcher = $event_dispatcher;
   }
 
   /**
@@ -86,7 +96,8 @@ class CombatEncounterApiController extends ControllerBase {
       $container->get('dungeoncrawler_content.encounter_ai_integration'),
       $container->get('database'),
       $container->get('dungeoncrawler_content.character_state'),
-      $container->get('dungeoncrawler_content.number_generation')
+      $container->get('dungeoncrawler_content.number_generation'),
+      $container->get('event_dispatcher')
     );
   }
 
@@ -311,11 +322,32 @@ class CombatEncounterApiController extends ControllerBase {
     if ($target && $damage > 0) {
       $hp_before = $target['hp'] ?? NULL;
       $hp_after = $hp_before !== NULL ? max(0, $hp_before - $damage) : NULL;
+      $was_already_defeated = !empty($target['is_defeated']);
 
       $this->encounterStore->updateParticipant((int) $target['id'], [
         'hp' => $hp_after,
         'is_defeated' => ($hp_after !== NULL && $hp_after <= 0) ? 1 : 0,
       ]);
+
+      // Dispatch entity defeated event if this was the lethal blow
+      $is_now_defeated = ($hp_after !== NULL && $hp_after <= 0);
+      if ($is_now_defeated && !$was_already_defeated) {
+        $target_updated = array_merge($target, [
+          'hp' => $hp_after,
+          'is_defeated' => 1,
+        ]);
+        
+        $event = new EntityDefeatedEvent(
+          (int) ($encounter['campaign_id'] ?? 0),
+          (int) $encounter_id,
+          (int) $target['id'],
+          $target_updated,
+          (int) ($attacker['id'] ?? 0),
+          $damage
+        );
+        
+        $this->eventDispatcher->dispatch($event, EntityDefeatedEvent::NAME);
+      }
 
       $this->encounterStore->logDamage([
         'encounter_id' => $encounter_id,
