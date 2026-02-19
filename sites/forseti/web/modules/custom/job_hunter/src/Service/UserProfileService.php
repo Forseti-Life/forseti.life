@@ -43,12 +43,19 @@ class UserProfileService {
    *   Profile completeness percentage (0-100).
    */
   public function calculateProfileCompleteness(User $user) {
-    // Check user entity fields directly for completeness
+    // Get data from jobhunter_job_seeker table
+    $jobSeekerService = \Drupal::service('job_hunter.job_seeker_service');
+    $jobSeekerData = $jobSeekerService->loadByUserId($user->id());
+    
+    if (!$jobSeekerData) {
+      return 0;
+    }
+    
     $completed_weight = 0;
     $total_weight = array_sum(self::FIELD_WEIGHTS);
 
     foreach (self::FIELD_WEIGHTS as $field_name => $weight) {
-      if ($this->isFieldCompleted($user, $field_name)) {
+      if ($this->isJobSeekerFieldCompleted($jobSeekerData, $field_name)) {
         $completed_weight += $weight;
       }
     }
