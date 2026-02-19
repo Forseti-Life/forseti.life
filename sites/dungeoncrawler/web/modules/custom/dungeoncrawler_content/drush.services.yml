@@ -6,3 +6,11 @@ services:
       - '@logger.factory'
     tags:
       - { name: drush.command }
+
+  dungeoncrawler_content.commands.initial_game_content:
+    class: Drupal\dungeoncrawler_content\Commands\InitialGameContentCommands
+    arguments:
+      - '@database'
+      - '@logger.factory'
+    tags:
+      - { name: drush.command }

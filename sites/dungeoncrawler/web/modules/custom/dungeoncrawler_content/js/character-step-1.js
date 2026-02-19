@@ -24,10 +24,7 @@
   // Configuration constants
   // Note: minNameLength matches character.schema.json requirement
   const CONFIG = {
-    minNameLength: 2,
-    errorClass: 'error',
     messages: {
-      nameRequired: 'Please enter a character name (at least 2 characters).',
       saveFailed: 'Failed to save. Please try again.',
       genericError: 'An error occurred.'
     },
@@ -36,20 +33,6 @@
       saving: 'Saving...'
     }
   };
-
-  /**
-   * Validates character name length.
-   *
-   * Validates against character.schema.json requirements:
-   * - minLength: 2 characters (after trimming whitespace)
-   * - maxLength: 100 characters (enforced by backend)
-   * 
-   * @param {string} name - The character name to validate.
-   * @return {boolean} True if name meets minimum length requirement.
-   */
-  function isValidName(name) {
-    return name && name.trim().length >= CONFIG.minNameLength;
-  }
 
   /**
    * Updates submit button state and text.
@@ -90,29 +73,10 @@
           return;
         }
         
-        // Real-time validation
-        $nameInput.on('input', function() {
-          const name = $(this).val();
-          if (isValidName(name)) {
-            $(this).removeClass(CONFIG.errorClass);
-          } else {
-            $(this).addClass(CONFIG.errorClass);
-          }
-        });
-
         // Form submission
         $form.on('submit', function(e) {
           e.preventDefault();
-          
-          const name = $nameInput.val().trim();
-          
-          // Validate name
-          if (!isValidName(name)) {
-            alert(CONFIG.messages.nameRequired);
-            $nameInput.focus();
-            return false;
-          }
-          
+
           const formData = $(this).serialize();
           const actionUrl = $(this).attr('action');
           

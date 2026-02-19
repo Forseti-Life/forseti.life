@@ -72,7 +72,14 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
    * Tests combat start API without authentication - negative case.
    */
   public function testCombatStartApiNegative(): void {
-    $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/start'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeEquals(403);
     
     // Assert error response structure.
@@ -91,7 +98,14 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/end-turn', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/end-turn'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
     $this->assertSession()->statusCodeNotEquals(405);
   }
@@ -103,7 +117,14 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/end', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/end'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
     $this->assertSession()->statusCodeNotEquals(405);
   }
@@ -115,7 +136,14 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/attack', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/attack'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
     $this->assertSession()->statusCodeNotEquals(405);
   }
@@ -155,7 +183,7 @@ class CombatEncounterApiControllerTest extends BrowserTestBase {
    * Tests recommendation preview endpoint returns read-only diagnostics.
    */
   public function testRecommendationPreviewPositive(): void {
-    $admin = $this->drupalCreateUser(['administer dungeoncrawler content']);
+    $admin = $this->drupalCreateUser(['administer dungeoncrawler content', 'access dungeoncrawler characters']);
     $this->drupalLogin($admin);
 
     $start_payload = json_encode([

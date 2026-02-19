@@ -73,7 +73,14 @@ class CharacterApiControllerTest extends BrowserTestBase {
     $user = $this->drupalCreateUser([]);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/save', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/save'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeEquals(403);
     
     // Assert error response structure.

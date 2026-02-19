@@ -26,8 +26,6 @@
       hidden: 'hidden',
     },
     messages: {
-      selectBackground: 'Please select a background.',
-      selectBoosts: 'Please select exactly {count} ability boosts.',
       saveFailed: 'Failed to save. Please try again.',
       genericError: 'An error occurred.',
     },
@@ -121,8 +119,7 @@
    * @param {Object} state - Current form state object.
    */
   function checkFormComplete(state) {
-    const isComplete = state.selectedBackground && state.selectedBoosts.length === CONFIG.maxBoosts;
-    $(CONFIG.selectors.nextButton).prop('disabled', !isComplete);
+    $(CONFIG.selectors.nextButton).prop('disabled', false);
   }
 
   /**
@@ -159,25 +156,6 @@
     if ($errorElement && $errorElement.length) {
       $errorElement.addClass(CONFIG.cssClasses.hidden).hide();
     }
-  }
-
-  /**
-   * Validate form data before submission.
-   * 
-   * @param {Object} state - Current form state object.
-   * @return {Object} Validation result with isValid and message properties.
-   */
-  function validateForm(state) {
-    if (!state.selectedBackground) {
-      return { isValid: false, message: CONFIG.messages.selectBackground };
-    }
-    
-    if (state.selectedBoosts.length !== CONFIG.maxBoosts) {
-      const message = CONFIG.messages.selectBoosts.replace('{count}', CONFIG.maxBoosts);
-      return { isValid: false, message: message };
-    }
-    
-    return { isValid: true };
   }
 
   /**
@@ -256,13 +234,6 @@
         // Form submission
         $form.on('submit', function(e) {
           e.preventDefault();
-
-          // Validate form data
-          const validation = validateForm(state);
-          if (!validation.isValid) {
-            showError($errorMessage, validation.message);
-            return false;
-          }
 
           const formData = $(this).serialize();
           const actionUrl = $(this).attr('action');

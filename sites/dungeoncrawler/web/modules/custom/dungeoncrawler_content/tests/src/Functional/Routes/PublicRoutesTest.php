@@ -36,7 +36,11 @@ class PublicRoutesTest extends BrowserTestBase {
    */
   public function testHomeRouteNegative(): void {
     // Home route should handle POST but won't process form data
-    $this->drupalPost('/home', [], []);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/home'),
+      []
+    );
     // Should still return 200 as GET is allowed
     $this->assertSession()->statusCodeEquals(200);
   }

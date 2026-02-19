@@ -899,10 +899,16 @@ import combatApi from './hexmap-api.js';
           await this.postChatMessage(campaignId, roomId, characterName, message, characterId);
           // Message will appear when server confirms (or from loadChatHistory)
         } catch (error) {
-          console.error('Failed to send chat message:', error);
-          this.appendChatLine('System', `Failed to send message: ${error.message}`, 'system');
-          // Restore message to input so user can retry
-          input.value = message;
+          // Handle permission errors silently (user doesn't have access)
+          if (error.message.includes('403')) {
+            console.warn('Chat message send denied (permission)');
+            // Don't show error in chat, don't restore message, just silently fail
+          } else {
+            console.error('Failed to send chat message:', error);
+            this.appendChatLine('System', `Failed to send message: ${error.message}`, 'system');
+            // Restore message to input so user can retry (non-permission errors only)
+            input.value = message;
+          }
         } finally {
           // Reset loading state
           isSubmitting = false;

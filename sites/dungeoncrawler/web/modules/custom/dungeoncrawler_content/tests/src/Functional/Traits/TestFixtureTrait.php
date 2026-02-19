@@ -17,7 +17,7 @@ trait TestFixtureTrait {
    *   Decoded fixture data.
    */
   protected function loadFixture(string $fixture_path): array {
-    $base_path = dirname(__DIR__, 2) . '/fixtures';
+    $base_path = dirname(__DIR__, 4) . '/fixtures';
     $full_path = $base_path . '/' . $fixture_path;
     
     if (!file_exists($full_path)) {

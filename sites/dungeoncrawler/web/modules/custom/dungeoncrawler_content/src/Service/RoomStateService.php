@@ -4,7 +4,9 @@ namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\dungeoncrawler_content\Event\RoomDiscoveredEvent;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 
 /**
  * Manages per-room runtime state with optimistic versioning.
@@ -13,10 +15,16 @@ class RoomStateService {
 
   private Connection $database;
   private LoggerInterface $logger;
+  private EventDispatcherInterface $eventDispatcher;
 
-  public function __construct(Connection $database, LoggerChannelFactoryInterface $logger_factory) {
+  public function __construct(
+    Connection $database,
+    LoggerChannelFactoryInterface $logger_factory,
+    EventDispatcherInterface $event_dispatcher
+  ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
+    $this->eventDispatcher = $event_dispatcher;
   }
 
   /**
@@ -217,6 +225,7 @@ class RoomStateService {
         ->execute();
     }
     else {
+      // Room is being discovered for the first time
       $this->database->insert('dc_campaign_room_states')
         ->fields([
           'campaign_id' => $campaign_id,
@@ -227,6 +236,41 @@ class RoomStateService {
           'updated' => $now,
         ])
         ->execute();
+
+      // Dispatch room discovered event for first discovery
+      try {
+        $room = $this->database->select('dc_campaign_rooms', 'c')
+          ->fields('c', ['name', 'description', 'environment_tags'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('room_id', $room_id)
+          ->range(0, 1)
+          ->execute()
+          ->fetchAssoc();
+
+        if ($room) {
+          $environment_tags = json_decode($room['environment_tags'] ?? '', TRUE);
+          if (!is_array($environment_tags)) {
+            $environment_tags = [];
+          }
+
+          $event = new RoomDiscoveredEvent(
+            $campaign_id,
+            $room_id,
+            $dungeon_id,
+            $room['name'] ?? 'Unknown Room',
+            $room['description'] ?? '',
+            $environment_tags,
+            (bool) $is_cleared
+          );
+
+          $this->eventDispatcher->dispatch($event, RoomDiscoveredEvent::NAME);
+        }
+      }
+      catch (\Exception $e) {
+        $this->logger->error('Failed to dispatch room discovered event: @error', [
+          '@error' => $e->getMessage(),
+        ]);
+      }
     }
 
     // Return fresh combined view with static room data.

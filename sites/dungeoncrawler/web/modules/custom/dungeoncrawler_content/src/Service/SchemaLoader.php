@@ -209,6 +209,48 @@ class SchemaLoader {
   }
 
   /**
+   * Determine if a submitted value is empty for validation.
+   *
+   * @param mixed $value
+   *   Value to check.
+   *
+   * @return bool
+   *   TRUE when the value should be treated as empty.
+   */
+  private function isEmptyValue($value): bool {
+    if ($value === NULL) {
+      return TRUE;
+    }
+
+    if (is_string($value)) {
+      return trim($value) === '';
+    }
+
+    if (is_array($value)) {
+      return $value === [];
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Read a constraint value from a schema node.
+   *
+   * @param array|null $constraint
+   *   Schema node containing const/default values.
+   *
+   * @return mixed|null
+   *   Constraint value, or NULL when absent.
+   */
+  private function getSchemaConstraintValue(?array $constraint) {
+    if (!is_array($constraint)) {
+      return NULL;
+    }
+
+    return $constraint['const'] ?? $constraint['default'] ?? NULL;
+  }
+
+  /**
    * Get field configuration for a specific step.
    *
    * @param int $step
@@ -273,11 +315,39 @@ class SchemaLoader {
     foreach ($fields as $field_name => $field_config) {
       $properties = $field_config['properties'] ?? [];
       $required = $properties['required']['const'] ?? FALSE;
+      $validation = $properties['validation']['properties'] ?? [];
+      $error_messages = $validation['error_messages']['properties'] ?? [];
+      $value = $data[$field_name] ?? NULL;
 
-      if ($required && empty($data[$field_name])) {
-        $validation = $properties['validation']['properties'] ?? [];
-        $error_msg = $validation['error_message']['const'] ?? "Field {$field_name} is required.";
+      if ($required && $this->isEmptyValue($value)) {
+        $error_msg = $this->getSchemaConstraintValue($error_messages['required'] ?? NULL)
+          ?? "Field {$field_name} is required.";
         $errors[] = $error_msg;
+        continue;
+      }
+
+      if ($this->isEmptyValue($value)) {
+        continue;
+      }
+
+      if (is_string($value)) {
+        $min_length = $this->getSchemaConstraintValue($validation['min_length'] ?? NULL);
+        if ($min_length !== NULL && mb_strlen($value) < (int) $min_length) {
+          $errors[] = $this->getSchemaConstraintValue($error_messages['min_length'] ?? NULL)
+            ?? "{$field_name} must be at least {$min_length} characters.";
+        }
+
+        $max_length = $this->getSchemaConstraintValue($validation['max_length'] ?? NULL);
+        if ($max_length !== NULL && mb_strlen($value) > (int) $max_length) {
+          $errors[] = $this->getSchemaConstraintValue($error_messages['max_length'] ?? NULL)
+            ?? "{$field_name} must be no more than {$max_length} characters.";
+        }
+
+        $pattern = $this->getSchemaConstraintValue($validation['pattern'] ?? NULL);
+        if ($pattern !== NULL && @preg_match('~' . $pattern . '~', $value) !== 1) {
+          $errors[] = $this->getSchemaConstraintValue($error_messages['pattern'] ?? NULL)
+            ?? "{$field_name} has an invalid format.";
+        }
       }
     }
 

@@ -44,9 +44,6 @@
   };
 
   const MESSAGES = {
-    // Schema-defined error messages from character_options_step2.json (must match exactly)
-    SELECT_ANCESTRY: 'Please select an ancestry before continuing.',  // Maps to schema: fields.ancestry.validation.error_messages.required
-    SELECT_HERITAGE: 'Please select a heritage before continuing.',    // Maps to schema: fields.heritage.validation.error_messages.required
     SAVE_ERROR: 'Failed to save. Please try again.',
   };
 
@@ -163,7 +160,6 @@
           
           if (!heritages || heritages.length === 0) {
             $heritageSection.addClass(CSS_CLASSES.HIDDEN);
-            $submitButton.prop('disabled', false);
             return;
           }
 
@@ -176,10 +172,6 @@
           $heritageOptions.html(html);
           $heritageSection.removeClass(CSS_CLASSES.HIDDEN);
           
-          // Disable submit until heritage selected
-          if (!currentHeritageId) {
-            $submitButton.prop('disabled', true);
-          }
         }
 
         /**
@@ -190,29 +182,6 @@
          */
         function updateSubmitButton(disabled, text) {
           $submitButton.prop('disabled', disabled).text(text);
-        }
-
-        /**
-         * Validate form data before submission.
-         * 
-         * Validates required fields per character_options_step2.json validation rules:
-         * - ancestry: required (schema validation.required = true)
-         * - heritage: conditionally required if ancestry has heritage options
-         *
-         * @return {Object} Validation result with isValid and message properties
-         */
-        function validateForm() {
-          if (!$selectedAncestry.val()) {
-            return { isValid: false, message: MESSAGES.SELECT_ANCESTRY };
-          }
-          
-          const ancestryId = $selectedAncestry.val();
-          const heritages = normalizedHeritages[ancestryId];
-          if (heritages && heritages.length > 0 && !$selectedHeritage.val()) {
-            return { isValid: false, message: MESSAGES.SELECT_HERITAGE };
-          }
-          
-          return { isValid: true };
         }
 
         // Handle ancestry card clicks
@@ -256,17 +225,12 @@
           showHeritages(currentAncestry);
         }
 
+        updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
+
         // Handle form submission with AJAX
         $form.on('submit', function(e) {
           e.preventDefault();
-          
-          // Validation
-          const validation = validateForm();
-          if (!validation.isValid) {
-            alert(validation.message);
-            return false;
-          }
-          
+
           // Show loading state
           updateSubmitButton(true, BUTTON_TEXT.SAVING);
           

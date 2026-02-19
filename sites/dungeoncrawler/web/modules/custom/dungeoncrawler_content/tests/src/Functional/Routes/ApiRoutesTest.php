@@ -139,7 +139,11 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/1/state', [], []);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/1/state'),
+      []
+    );
     // Should return 405 for POST on GET-only route
     $this->assertSession()->statusCodeEquals(405);
   }
@@ -212,7 +216,14 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/start', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/start'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
   }
 
@@ -234,7 +245,14 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/end-turn', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/end-turn'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
   }
 
@@ -245,7 +263,14 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/end', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/end'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
   }
 
@@ -256,7 +281,14 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/combat/attack', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/combat/attack'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeNotEquals(404);
   }
 
@@ -275,7 +307,14 @@ class ApiRoutesTest extends BrowserTestBase {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
     $this->drupalLogin($user);
 
-    $this->drupalPost('/api/character/1/summary', [], [], [], ['Content-Type' => 'application/json']);
+    $this->getSession()->getDriver()->getClient()->request(
+      'POST',
+      $this->buildUrl('/api/character/1/summary'),
+      [],
+      [],
+      ['CONTENT_TYPE' => 'application/json'],
+      json_encode([])
+    );
     $this->assertSession()->statusCodeEquals(405);
   }
 

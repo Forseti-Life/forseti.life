@@ -23,6 +23,7 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
 - **Character CRUD Operations**: Create, read, update, delete player characters
 - **Character Service**: `dungeoncrawler_content.character_manager` - Database operations for character data
 - **Template-backed starting equipment**: Character creation step 7 now loads purchase options from `dungeoncrawler_content_item_instances` joined with `dungeoncrawler_content_registry` (with static fallback if template tables are unavailable)
+- **Schema-driven validation**: Character creation validation is centralized server-side via `SchemaLoader::validateStepData` with schema rules; client-side JavaScript is kept to UI state as constraints are standardized.
 - **Portrait generation on completion**: Step 8 can trigger an AI portrait using character attributes plus an optional user prompt, then links the result to `dc_campaign_characters` in generated-image tables.
 - **Character Routes**:
   - `/characters` - List all user's characters
@@ -30,6 +31,11 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
   - `/characters/{id}` - View character sheet
   - `/characters/{id}/edit` - Edit character
   - `/characters/{id}/delete` - Delete character
+
+### Validation Standardization TODO
+- Remove remaining client-side validation from steps 5, 7, and 8 (plus ability boost selector) so server-side schema validation is authoritative.
+- Ensure character_options_step3-8 schemas define min_length, max_length, pattern, and error_messages for fields that need them.
+- Keep Playwright workflow tests aligned with localhost-based URLs once access is verified.
 
 ### Campaign Management System
 - **Campaign-first entry flow**: Start adventure by creating a campaign, then select or create a character

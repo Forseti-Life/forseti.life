@@ -1,0 +1,396 @@
+<?php
+
+namespace Drupal\dungeoncrawler_content\Service;
+
+use Drupal\Component\Uuid\UuidInterface;
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
+use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Psr\Log\LoggerInterface;
+
+/**
+ * Orchestrates complete campaign initialization with default dungeon and rooms.
+ *
+ * Responsible for:
+ * - Creating campaign record
+ * - Creating default starter dungeon based on theme
+ * - Loading initial game content (Tavern Entrance room)
+ * - Setting up NPCs and interactive objects
+ * - Initializing campaign state
+ *
+ * Creates a fully playable campaign in one operation.
+ */
+class CampaignInitializationService {
+
+  protected Connection $database;
+  protected UuidInterface $uuid;
+  protected TimeInterface $time;
+  protected LoggerInterface $logger;
+
+  public function __construct(
+    Connection $database,
+    UuidInterface $uuid,
+    TimeInterface $time,
+    LoggerChannelFactoryInterface $logger_factory
+  ) {
+    $this->database = $database;
+    $this->uuid = $uuid;
+    $this->time = $time;
+    $this->logger = $logger_factory->get('dungeoncrawler_content');
+  }
+
+  /**
+   * Initialize a complete campaign with default dungeon and starting content.
+   *
+   * @param int $uid
+   *   Campaign owner user ID.
+   * @param string $name
+   *   Campaign name.
+   * @param string $theme
+   *   Campaign theme (classic_dungeon, goblin_warrens, undead_crypt).
+   * @param string $difficulty
+   *   Difficulty level (normal, hard, extreme).
+   *
+   * @return int
+   *   Campaign ID on success, or 0 on failure.
+   */
+  public function initializeCampaign(
+    int $uid,
+    string $name,
+    string $theme,
+    string $difficulty
+  ): int {
+    $now = $this->time->getRequestTime();
+
+    try {
+      // 1. Create campaign record
+      $campaign_id = $this->createCampaign($uid, $name, $theme, $difficulty, $now);
+      if (!$campaign_id) {
+        return 0;
+      }
+
+      // 2. Create default starter dungeon
+      $dungeon_id = $this->createStarterDungeon($campaign_id, $theme, $now);
+      if (!$dungeon_id) {
+        $this->logger->error('Failed to create starter dungeon for campaign {campaign_id}', [
+          'campaign_id' => $campaign_id,
+        ]);
+        return 0;
+      }
+
+      // 3. Load Tavern Entrance room and content
+      if (!$this->loadTavernEntranceRoom($campaign_id, $now)) {
+        $this->logger->error('Failed to load tavern entrance for campaign {campaign_id}', [
+          'campaign_id' => $campaign_id,
+        ]);
+        return 0;
+      }
+
+      $this->logger->info('Campaign {campaign_id} initialized with starter dungeon {dungeon_id}', [
+        'campaign_id' => $campaign_id,
+        'dungeon_id' => $dungeon_id,
+      ]);
+
+      return $campaign_id;
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Campaign initialization failed: {error}', ['error' => $e->getMessage()]);
+      return 0;
+    }
+  }
+
+  /**
+   * Create a campaign record.
+   *
+   * @param int $uid
+   *   Campaign owner.
+   * @param string $name
+   *   Campaign name.
+   * @param string $theme
+   *   Theme key.
+   * @param string $difficulty
+   *   Difficulty key.
+   * @param int $now
+   *   Current timestamp.
+   *
+   * @return int
+   *   Campaign ID on success.
+   */
+  private function createCampaign(
+    int $uid,
+    string $name,
+    string $theme,
+    string $difficulty,
+    int $now
+  ): int {
+    $payload = [
+      'schema_version' => '1.0.0',
+      'created_by' => $uid,
+      'started' => FALSE,
+      'progress' => [],
+      'initialized_at' => $now,
+    ];
+
+    return (int) $this->database->insert('dc_campaigns')
+      ->fields([
+        'uuid' => $this->uuid->generate(),
+        'uid' => $uid,
+        'name' => $name,
+        'status' => 'ready',
+        'theme' => $theme,
+        'difficulty' => $difficulty,
+        'campaign_data' => json_encode($payload, JSON_PRETTY_PRINT),
+        'created' => $now,
+        'changed' => $now,
+      ])
+      ->execute();
+  }
+
+  /**
+   * Create a starter dungeon for the campaign.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $theme
+   *   Theme key.
+   * @param int $now
+   *   Current timestamp.
+   *
+   * @return string|FALSE
+   *   Dungeon ID on success, FALSE on failure.
+   */
+  private function createStarterDungeon(
+    int $campaign_id,
+    string $theme,
+    int $now
+  ): string|FALSE {
+    // Dungeon metadata
+    $dungeon_id = 'starter_dungeon_' . $campaign_id;
+    $dungeon_names = [
+      'classic_dungeon' => 'The Forsaken Crypt',
+      'goblin_warrens' => 'Goblin Warren',
+      'undead_crypt' => 'Undead Tomb',
+    ];
+    $dungeon_name = $dungeon_names[$theme] ?? 'The Forsaken Crypt';
+
+    $dungeon_descriptions = [
+      'classic_dungeon' => 'An ancient crypt shrouded in mystery, with secrets waiting to be uncovered.',
+      'goblin_warrens' => 'A chaotic warren of goblin tunnels and chambers, full of mischief and danger.',
+      'undead_crypt' => 'A cursed tomb where the dead refuse to rest, filled with undead horrors.',
+    ];
+    $dungeon_description = $dungeon_descriptions[$theme] ?? 'An ancient mystery waiting to be explored.';
+
+    // Dungeon graph structure (simplified: just Tavern Entrance for now)
+    $dungeon_data = [
+      'schema_version' => '1.0.0',
+      'depth' => 1,
+      'rooms' => [
+        'tavern_entrance' => [
+          'position' => [0, 0],
+          'connections' => [],
+          'priority' => 'entry',
+        ],
+      ],
+      'theme' => $theme,
+      'generated_at' => $now,
+    ];
+
+    $this->database->insert('dc_campaign_dungeons')
+      ->fields([
+        'campaign_id' => $campaign_id,
+        'dungeon_id' => $dungeon_id,
+        'name' => $dungeon_name,
+        'description' => $dungeon_description,
+        'theme' => $theme,
+        'dungeon_data' => json_encode($dungeon_data, JSON_PRETTY_PRINT),
+        'created' => $now,
+        'updated' => $now,
+      ])
+      ->execute();
+
+    return $dungeon_id;
+  }
+
+  /**
+   * Load Tavern Entrance room and content into campaign.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param int $now
+   *   Current timestamp.
+   *
+   * @return bool
+   *   TRUE on success.
+   */
+  private function loadTavernEntranceRoom(int $campaign_id, int $now): bool {
+    // Create room
+    $room_id = 'tavern_entrance';
+    $room_name = 'Tavern Entrance';
+    $room_description = 'You stand in the entrance of a well-established tavern. The common room is warm and comfortable, with flickering candlelight casting dancing shadows across wooden walls. The air smells of ale, bread, and hearth smoke.';
+
+    $layout_data = [
+      'dimensions' => [
+        'hex_radius' => 6,
+        'width' => 13,
+        'height' => 13,
+      ],
+      'terrain_grid' => [
+        ['q' => 0, 'r' => 0, 'type' => 'floor'],
+        ['q' => 1, 'r' => 0, 'type' => 'floor'],
+        ['q' => 2, 'r' => 0, 'type' => 'floor'],
+        ['q' => 3, 'r' => 0, 'type' => 'floor'],
+        ['q' => -1, 'r' => 0, 'type' => 'floor'],
+        ['q' => -2, 'r' => 0, 'type' => 'wall'],
+        ['q' => 0, 'r' => 1, 'type' => 'floor'],
+        ['q' => 1, 'r' => 1, 'type' => 'floor'],
+        ['q' => 2, 'r' => 1, 'type' => 'floor'],
+        ['q' => 0, 'r' => -1, 'type' => 'floor'],
+        ['q' => 1, 'r' => -1, 'type' => 'floor'],
+        ['q' => -1, 'r' => 1, 'type' => 'wall'],
+      ],
+      'safe_zones' => [
+        ['q' => 0, 'r' => 0, 'radius' => 2],
+      ],
+      'exits' => [],
+    ];
+
+    $contents_data = [
+      'npcs' => [
+        [
+          'content_id' => 'tavern_keeper',
+          'name' => 'Eldric',
+          'position' => ['q' => 1, 'r' => 1],
+          'description' => 'A stout, friendly man with a bushy beard',
+          'role' => 'quest_giver',
+          'quests' => [
+            'gather_wine',
+            'gather_torch_components',
+          ],
+        ],
+        [
+          'content_id' => 'scholar_npc',
+          'name' => 'Marta the Scholar',
+          'position' => ['q' => 3, 'r' => 0],
+          'description' => 'A woman studying ancient texts',
+          'role' => 'quest_giver',
+          'quests' => [
+            'collect_spellbooks',
+          ],
+        ],
+      ],
+      'items' => [
+        ['content_id' => 'wine_bottle_1', 'name' => 'Wine Bottle', 'position' => ['q' => 2, 'r' => 0], 'quest_association' => 'gather_wine'],
+        ['content_id' => 'wine_bottle_2', 'name' => 'Wine Bottle', 'position' => ['q' => 1, 'r' => -1], 'quest_association' => 'gather_wine'],
+        ['content_id' => 'wine_bottle_3', 'name' => 'Wine Bottle', 'position' => ['q' => 0, 'r' => 1], 'quest_association' => 'gather_wine'],
+        ['content_id' => 'wine_bottle_4', 'name' => 'Wine Bottle', 'position' => ['q' => -1, 'r' => 0], 'quest_association' => 'gather_wine'],
+        ['content_id' => 'wine_bottle_5', 'name' => 'Wine Bottle', 'position' => ['q' => 2, 'r' => 1], 'quest_association' => 'gather_wine'],
+        ['content_id' => 'spellbook_1', 'name' => 'Ancient Spellbook', 'position' => ['q' => 3, 'r' => 0], 'quest_association' => 'collect_spellbooks'],
+        ['content_id' => 'spellbook_2', 'name' => 'Mystical Tome', 'position' => ['q' => 1, 'r' => 1], 'quest_association' => 'collect_spellbooks'],
+        ['content_id' => 'spellbook_3', 'name' => 'Faded Journal', 'position' => ['q' => 2, 'r' => -1], 'quest_association' => 'collect_spellbooks'],
+        ['content_id' => 'spellbook_4', 'name' => 'Crystal-Bound Codex', 'position' => ['q' => 0, 'r' => -1], 'quest_association' => 'collect_spellbooks'],
+        ['content_id' => 'torch_component_1', 'name' => 'Torch Rod', 'position' => ['q' => 1, 'r' => 0], 'quest_association' => 'gather_torch_components'],
+        ['content_id' => 'torch_component_2', 'name' => 'Cloth Wrapping', 'position' => ['q' => 2, 'r' => 0], 'quest_association' => 'gather_torch_components'],
+        ['content_id' => 'torch_component_3', 'name' => 'Torch Rod', 'position' => ['q' => 0, 'r' => 1], 'quest_association' => 'gather_torch_components'],
+        ['content_id' => 'torch_component_4', 'name' => 'Flint Stone', 'position' => ['q' => -1, 'r' => 0], 'quest_association' => 'gather_torch_components'],
+        ['content_id' => 'torch_component_5', 'name' => 'Cloth Wrapping', 'position' => ['q' => 1, 'r' => -1], 'quest_association' => 'gather_torch_components'],
+        ['content_id' => 'torch_component_6', 'name' => 'Flint Stone', 'position' => ['q' => 2, 'r' => 1], 'quest_association' => 'gather_torch_components'],
+      ],
+      'obstacles' => [],
+    ];
+
+    // Create room record
+    $this->database->insert('dc_campaign_rooms')
+      ->fields([
+        'campaign_id' => $campaign_id,
+        'room_id' => $room_id,
+        'name' => $room_name,
+        'description' => $room_description,
+        'environment_tags' => json_encode(['indoor', 'tavern', 'safe', 'starting_area']),
+        'layout_data' => json_encode($layout_data, JSON_PRETTY_PRINT),
+        'contents_data' => json_encode($contents_data, JSON_PRETTY_PRINT),
+        'created' => $now,
+        'updated' => $now,
+      ])
+      ->execute();
+
+    // Initialize room state
+    $this->database->insert('dc_campaign_room_states')
+      ->fields([
+        'campaign_id' => $campaign_id,
+        'room_id' => $room_id,
+        'is_cleared' => 0,
+        'fog_state' => json_encode(['visibility' => 'initial', 'discovered_hexes' => []]),
+        'last_visited' => $now,
+        'updated' => $now,
+      ])
+      ->execute();
+
+    // Create content objects
+    foreach ($contents_data['items'] as $item) {
+      $schema_data = [
+        'position' => $item['position'] ?? [],
+        'description' => $item['name'] ?? '',
+        'quest_association' => $item['quest_association'] ?? NULL,
+      ];
+
+      $this->database->insert('dc_campaign_content_registry')
+        ->fields([
+          'campaign_id' => $campaign_id,
+          'content_type' => 'item',
+          'content_id' => $item['content_id'],
+          'name' => $item['name'] ?? 'Unknown',
+          'rarity' => 'common',
+          'tags' => json_encode(['collectible', 'tavern']),
+          'schema_data' => json_encode($schema_data),
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+    }
+
+    // Create NPCs
+    foreach ($contents_data['npcs'] as $npc) {
+      $instance_id = 'npc_' . $npc['content_id'];
+      $state_data = [
+        'content_id' => $npc['content_id'],
+        'role' => $npc['role'] ?? 'npc',
+        'description' => $npc['description'] ?? '',
+        'quests' => $npc['quests'] ?? [],
+        'animation_state' => 'idle',
+      ];
+
+      $this->database->insert('dc_campaign_characters')
+        ->fields([
+          'campaign_id' => $campaign_id,
+          'character_id' => 0,
+          'name' => $npc['name'],
+          'level' => 0,
+          'ancestry' => 'humanoid',
+          'class' => 'npc',
+          'hp_current' => 0,
+          'hp_max' => 0,
+          'armor_class' => 0,
+          'experience_points' => 0,
+          'position_q' => $npc['position']['q'],
+          'position_r' => $npc['position']['r'],
+          'last_room_id' => $room_id,
+          'instance_id' => $instance_id,
+          'type' => 'npc',
+          'state_data' => json_encode($state_data),
+          'location_type' => 'room',
+          'location_ref' => $room_id,
+          'is_active' => 1,
+          'uid' => 0,
+          'role' => 'npc',
+          'status' => 1,
+          'joined' => $now,
+          'created' => $now,
+          'changed' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+    }
+
+    return TRUE;
+  }
+}

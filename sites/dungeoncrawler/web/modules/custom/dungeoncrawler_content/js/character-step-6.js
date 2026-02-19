@@ -143,32 +143,6 @@
 
             const $errorMsg = $(SELECTORS.ERROR_MSG);
 
-            // Validation
-            if (!selectedAlignment) {
-              $errorMsg.text('Please select an alignment.').removeClass(CSS_CLASSES.HIDDEN);
-              return;
-            }
-
-            // Optional field validation: age, deity, gender
-            const $ageField = $('#age');
-            const ageValue = $ageField.val();
-            if (ageValue && ageValue.length > 50) {
-              $errorMsg.text('Age cannot exceed 50 characters.').removeClass(CSS_CLASSES.HIDDEN);
-              return;
-            }
-            if (ageValue && !/^[0-9a-zA-Z\s,\-]+$/.test(ageValue)) {
-              $errorMsg.text('Age must contain only letters, numbers, spaces, commas, and hyphens.').removeClass(CSS_CLASSES.HIDDEN);
-              return;
-            }
-
-            const $genderField = $('#gender');
-            const genderValue = $genderField.val();
-            if (genderValue && genderValue.length > 100) {
-              $errorMsg.text('Gender / Pronouns cannot exceed 100 characters.').removeClass(CSS_CLASSES.HIDDEN);
-              return;
-            }
-            
-            // Hide error message
             $errorMsg.addClass(CSS_CLASSES.HIDDEN);
 
             // Prepare form data

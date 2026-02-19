@@ -261,6 +261,67 @@ class CharacterCreationStepForm extends FormBase {
   }
 
   /**
+   * Apply HTML5 validation attributes from schema definitions.
+   *
+   * @param array $element
+   *   The form element to update.
+   * @param array $schema_fields
+   *   Schema field definitions for the current step.
+   * @param string $field_name
+   *   Field name to look up in schema.
+   */
+  private function applySchemaValidationAttributes(array &$element, array $schema_fields, string $field_name): void {
+    $field_schema = $schema_fields[$field_name]['properties'] ?? [];
+    if ($field_schema === []) {
+      return;
+    }
+
+    $validation = $field_schema['validation']['properties'] ?? [];
+    $required = $field_schema['required']['const'] ?? NULL;
+
+    if ($required !== NULL && !isset($element['#required'])) {
+      $element['#required'] = (bool) $required;
+    }
+
+    if (!isset($element['#attributes'])) {
+      $element['#attributes'] = [];
+    }
+
+    $min_length = $this->getSchemaConstraintValue($validation['min_length'] ?? NULL);
+    if ($min_length !== NULL) {
+      $element['#attributes']['minlength'] = (int) $min_length;
+    }
+
+    $max_length = $this->getSchemaConstraintValue($validation['max_length'] ?? NULL);
+    if ($max_length !== NULL) {
+      $element['#maxlength'] = $element['#maxlength'] ?? (int) $max_length;
+      $element['#attributes']['maxlength'] = (int) $max_length;
+    }
+
+    $pattern = $this->getSchemaConstraintValue($validation['pattern'] ?? NULL);
+    if ($pattern !== NULL) {
+      $element['#attributes']['pattern'] = $pattern;
+    }
+  }
+
+  /**
+   * Read a constraint value from a schema node.
+   *
+   * @param array|null $constraint
+   *   Schema node containing const/default values.
+   *
+   * @return mixed|null
+   *   Constraint value, or NULL when absent.
+   */
+  private function getSchemaConstraintValue(?array $constraint) {
+    if (!is_array($constraint)) {
+      return NULL;
+    }
+
+    return $constraint['const'] ?? $constraint['default'] ?? NULL;
+  }
+
+  /**
    * Builds step-specific form fields.
    *
    * @param array $form
@@ -273,6 +334,8 @@ class CharacterCreationStepForm extends FormBase {
    *   The character data for default values.
    */
   private function buildStepFields(&$form, FormStateInterface $form_state, $step, $character_data) {
+    $schema_fields = $this->schemaLoader->getStepFields((int) $step);
+
     switch ($step) {
       case 1:
         // Ability preview at top of form
@@ -303,6 +366,7 @@ class CharacterCreationStepForm extends FormBase {
           '#placeholder' => $this->t('The name your roster will remember'),
           '#description' => $this->t('Your character\'s name will appear in all campaign records and legacy logs.'),
         ];
+        $this->applySchemaValidationAttributes($form['name'], $schema_fields, 'name');
         $form['concept'] = [
           '#type' => 'textarea',
           '#title' => $this->t('Character Concept'),
@@ -311,6 +375,7 @@ class CharacterCreationStepForm extends FormBase {
           '#placeholder' => $this->t('e.g., "Fortune-favored rogue seeking redemption", "Dwarf paladin defending the old ways"'),
           '#description' => $this->t('Optional: Capture your character\'s long-term identity and campaign arc. Think in terms of a character you\'ll want to revisit across many expeditions.'),
         ];
+        $this->applySchemaValidationAttributes($form['concept'], $schema_fields, 'concept');
         break;
 
       case 2:
@@ -345,6 +410,7 @@ class CharacterCreationStepForm extends FormBase {
             'wrapper' => 'heritage-wrapper',
           ],
         ];
+        $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
         $form['heritage'] = [
           '#type' => 'select',
           '#title' => $this->t('Heritage Path'),
@@ -355,6 +421,7 @@ class CharacterCreationStepForm extends FormBase {
           '#prefix' => '<div id="heritage-wrapper">',
           '#suffix' => '</div>',
         ];
+        $this->applySchemaValidationAttributes($form['heritage'], $schema_fields, 'heritage');
 
         // Ancestry Feat Selection
         $selected_ancestry = $form_state->getValue('ancestry') ?: $character_data['ancestry'] ?? '';
@@ -786,6 +853,7 @@ class CharacterCreationStepForm extends FormBase {
           '#default_value' => $character_data['alignment'] ?? '',
           '#description' => $this->t('This character\'s moral and ethical compass will guide roleplay decisions across the entire span of their campaign life.'),
         ];
+        $this->applySchemaValidationAttributes($form['alignment'], $schema_fields, 'alignment');
         $form['deity'] = [
           '#type' => 'textfield',
           '#title' => $this->t('Deity or Guiding Belief (Optional)'),
@@ -793,6 +861,7 @@ class CharacterCreationStepForm extends FormBase {
           '#placeholder' => $this->t('e.g., Iomedae, The Old Gods, Ancestor Oath, Unaligned'),
           '#description' => $this->t('Optional: A spiritual patron or philosophy that will anchor your character\'s identity and roleplay flavor across all campaigns.'),
         ];
+        $this->applySchemaValidationAttributes($form['deity'], $schema_fields, 'deity');
         break;
 
       case 7:

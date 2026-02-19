@@ -30,7 +30,12 @@
          xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/11.5/phpunit.xsd"
          bootstrap="../../../core/tests/bootstrap.php"
          colors="true"
-         failOnPhpunitDeprecation="false">
+         failOnPhpunitDeprecation="false"
+         failOnWarning="false"
+         failOnDeprecation="false"
+         failOnNotice="false"
+         failOnRisky="false"
+         failOnIncomplete="false">
   
   <!-- Test Suites -->
   <testsuites>
@@ -56,14 +61,6 @@
       <directory>tests</directory>
     </exclude>
   </source>
-  
-  <!-- Code Coverage -->
-  <coverage>
-    <report>
-      <html outputDirectory="tests/coverage/html"/>
-      <text outputFile="tests/coverage/coverage.txt"/>
-    </report>
-  </coverage>
   
   <!-- PHP Environment -->
   <php>

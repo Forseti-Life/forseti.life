@@ -33,7 +33,6 @@
 
   // Error message constants
   const MESSAGES = {
-    SELECT_CLASS: 'Please select a class.',
     SAVE_ERROR: 'Failed to save. Please try again.',
   };
 
@@ -103,18 +102,6 @@
     $button.prop('disabled', false).text(BUTTON_TEXT.DEFAULT);
   }
 
-  /**
-   * Validate form data before submission.
-   *
-   * @return {Object} Validation result with isValid and message properties
-   */
-  function validateForm() {
-    if (!selectedClass) {
-      return { isValid: false, message: MESSAGES.SELECT_CLASS };
-    }
-    return { isValid: true };
-  }
-
   Drupal.behaviors.characterStep4 = {
     attach: function (context, settings) {
       // Cache DOM elements with context for proper Drupal integration
@@ -143,17 +130,12 @@
         selectClass(currentClass, $classCards, $selectedClass, $nextButton);
       }
 
+      resetButtonState($nextButton);
+
       // Form submission with validation and AJAX
       once('step4-submit', SELECTORS.FORM, context).forEach((element) => {
         $(element).on('submit', function(e) {
           e.preventDefault();
-
-          // Validate before submission
-          const validation = validateForm();
-          if (!validation.isValid) {
-            showError($errorMessage, validation.message);
-            return;
-          }
 
           const formData = $(this).serialize();
           const actionUrl = $(this).attr('action');
