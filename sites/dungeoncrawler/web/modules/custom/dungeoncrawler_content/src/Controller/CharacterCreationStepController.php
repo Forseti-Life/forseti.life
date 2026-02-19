@@ -2,11 +2,13 @@
 
 namespace Drupal\dungeoncrawler_content\Controller;
 
+use Drupal\Core\Access\CsrfRequestHeaderAccessCheck;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\CharacterPortraitGenerationService;
 use Drupal\dungeoncrawler_content\Service\SchemaLoader;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
@@ -22,12 +24,14 @@ class CharacterCreationStepController extends ControllerBase {
   protected SchemaLoader $schemaLoader;
   protected CsrfTokenGenerator $csrfToken;
   protected Connection $database;
+  protected CharacterPortraitGenerationService $portraitGenerator;
 
-  public function __construct(CharacterManager $character_manager, SchemaLoader $schema_loader, CsrfTokenGenerator $csrf_token, Connection $database) {
+  public function __construct(CharacterManager $character_manager, SchemaLoader $schema_loader, CsrfTokenGenerator $csrf_token, Connection $database, CharacterPortraitGenerationService $portrait_generator) {
     $this->characterManager = $character_manager;
     $this->schemaLoader = $schema_loader;
     $this->csrfToken = $csrf_token;
     $this->database = $database;
+    $this->portraitGenerator = $portrait_generator;
   }
 
   public static function create(ContainerInterface $container) {
@@ -36,6 +40,7 @@ class CharacterCreationStepController extends ControllerBase {
       $container->get('dungeoncrawler_content.schema_loader'),
       $container->get('csrf_token'),
       $container->get('database'),
+      $container->get('dungeoncrawler_content.character_portrait_generator'),
     );
   }
 
@@ -104,7 +109,10 @@ class CharacterCreationStepController extends ControllerBase {
   public function saveStep(int $step, Request $request) {
     // Validate CSRF token
     $token = $request->headers->get('X-CSRF-Token');
-    if (!$token || !$this->csrfToken->validate($token, 'rest')) {
+    if (!$token
+      || (!$this->csrfToken->validate($token, CsrfRequestHeaderAccessCheck::TOKEN_KEY)
+        && !$this->csrfToken->validate($token, 'rest'))
+    ) {
       return new JsonResponse([
         'success' => FALSE,
         'message' => $this->t('Invalid or missing CSRF token.'),
@@ -112,6 +120,7 @@ class CharacterCreationStepController extends ControllerBase {
     }
 
     $character_id = $request->request->get('character_id') ?: $request->query->get('character_id');
+    $campaign_id = $request->request->get('campaign_id') ?: $request->query->get('campaign_id');
     $data = $request->request->all();
     
     // Load existing character
@@ -167,9 +176,21 @@ class CharacterCreationStepController extends ControllerBase {
     if ($step >= 8) {
       // Mark as complete
       $this->characterManager->updateCharacter($character_id, ['status' => 1]);
+      $portrait_result = $this->portraitGenerator->generatePortrait(
+        $character_data,
+        (int) $character_id,
+        (int) $this->currentUser()->id(),
+        $campaign_id !== NULL && $campaign_id !== '' ? (int) $campaign_id : NULL,
+        [
+          'generate' => $data['portrait_generate'] ?? NULL,
+          'user_prompt' => $data['portrait_prompt'] ?? '',
+        ]
+      );
+      $image_summary = $this->buildPortraitSummary($portrait_result);
       return new JsonResponse([
         'success' => TRUE,
         'message' => $this->t('Character created successfully!'),
+        'image_generation' => $image_summary,
         'redirect' => Url::fromRoute('dungeoncrawler_content.character_view', [
           'character_id' => $character_id,
         ])->toString(),
@@ -182,6 +203,28 @@ class CharacterCreationStepController extends ControllerBase {
         'step' => $next_step,
       ])->setOption('query', ['character_id' => $character_id])->toString(),
     ]);
+  }
+
+  /**
+   * Summarizes portrait generation results for responses.
+   */
+  private function buildPortraitSummary(array $result): array {
+    $summary = [
+      'attempted' => (bool) ($result['attempted'] ?? FALSE),
+    ];
+
+    if (!empty($result['reason'])) {
+      $summary['reason'] = (string) $result['reason'];
+    }
+
+    if (!empty($result['storage']) && is_array($result['storage'])) {
+      $summary['stored'] = (bool) ($result['storage']['stored'] ?? FALSE);
+      if (!empty($result['storage']['image_uuid'])) {
+        $summary['image_uuid'] = (string) $result['storage']['image_uuid'];
+      }
+    }
+
+    return $summary;
   }
 
   /**
@@ -262,7 +305,7 @@ class CharacterCreationStepController extends ControllerBase {
       5 => ['free_boosts'],
       6 => ['alignment', 'deity', 'age', 'gender'],
       7 => ['equipment', 'gold'],
-      8 => ['appearance', 'personality', 'backstory'],
+      8 => ['appearance', 'personality', 'backstory', 'portrait_generate', 'portrait_prompt'],
     ];
 
     // Use schema validation
@@ -349,6 +392,8 @@ class CharacterCreationStepController extends ControllerBase {
       'appearance' => '',
       'personality' => '',
       'backstory' => '',
+      'portrait_generate' => 1,
+      'portrait_prompt' => '',
     ];
   }
 

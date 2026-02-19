@@ -4,11 +4,11 @@
  #}
 <div class="dc-character-list">
   <div class="dc-character-list__header">
-    <h1 class="dc-character-list__title">🎯 My Campaigns</h1>
+    <h1 class="dc-character-list__title">🏰 My Legacy Campaigns</h1>
     <div class="dc-sheet__nav-actions">
       <a href="{{ characters_url }}" class="dc-btn dc-btn-secondary">⚔️ My Characters</a>
       <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
-        <span class="dc-btn__icon">+</span> Create New Campaign
+        <span class="dc-btn__icon">+</span> Create New Legacy Campaign
       </a>
     </div>
   </div>
@@ -67,19 +67,19 @@
       <div class="dc-character-list__empty-icon">🧭</div>
       {% if archived_campaigns|length > 0 %}
         <h2>No Active Campaigns</h2>
-        <p>You can create a new campaign or unarchive one below.</p>
+        <p>Create a new legacy campaign or unarchive one below to continue your world history.</p>
       {% else %}
         <h2>No Campaigns Yet</h2>
-        <p>Create your first campaign, then choose a character to start the adventure.</p>
+        <p>Create your first campaign home, then choose a character to begin a long-term story.</p>
       {% endif %}
-      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">Create Your First Campaign</a>
+      <a href="{{ create_url }}" class="dc-btn dc-btn-primary">Create Your First Legacy Campaign</a>
     </div>
   {% endif %}
 
   {% if archived_campaigns|length > 0 %}
     <details class="dc-character-list__empty dc-character-list__archived">
       <summary>Archived Campaigns ({{ archived_campaigns|length }})</summary>
-      <p>These campaigns are hidden from your active campaign list.</p>
+      <p>These campaigns are paused but preserved as part of your growing universe timeline.</p>
       <div class="dc-sheet__nav-actions">
         {% for campaign in archived_campaigns %}
           <div class="dc-campaign-archived-item">

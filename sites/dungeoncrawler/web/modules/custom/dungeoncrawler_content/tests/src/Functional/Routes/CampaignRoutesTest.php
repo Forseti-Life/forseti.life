@@ -162,6 +162,169 @@ class CampaignRoutesTest extends BrowserTestBase {
   }
 
   /**
+   * Tests archive form submit archives campaign and hides active archive action.
+   */
+  public function testCampaignArchiveSubmitUpdatesStatusAndListPlacement(): void {
+    $user = $this->createTestUser();
+    $this->drupalLogin($user);
+
+    $campaign_id = $this->createTestCampaign($user, [
+      'name' => 'Archive Submit Campaign',
+      'status' => 'draft',
+      'campaign_data' => json_encode([]),
+    ]);
+
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->submitForm([
+      'archive_confirm' => 1,
+    ], 'Archive Campaign');
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('archived');
+
+    $campaign_row = \Drupal::database()->select('dc_campaigns', 'c')
+      ->fields('c', ['status', 'campaign_data'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchAssoc();
+
+    $this->assertEquals('archived', $campaign_row['status'], 'Campaign status should be archived.');
+
+    $campaign_data = json_decode((string) ($campaign_row['campaign_data'] ?? '{}'), TRUE);
+    $this->assertIsArray($campaign_data, 'Campaign data should decode to array.');
+    $this->assertArrayHasKey('_archive_meta', $campaign_data, 'Archive metadata should be stored.');
+    $this->assertEquals('draft', $campaign_data['_archive_meta']['previous_status'] ?? NULL, 'Previous status should be recorded for restore.');
+
+    $this->drupalGet('/campaigns');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->responseNotContains("/campaigns/{$campaign_id}/archive");
+
+    $active_bucket_count = (int) \Drupal::database()->select('dc_campaigns', 'c')
+      ->condition('id', $campaign_id)
+      ->condition('uid', (int) $user->id())
+      ->condition('status', 'archived', '<>')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertEquals(0, $active_bucket_count, 'Archived campaign should not remain in active bucket query.');
+
+    $archived_bucket_count = (int) \Drupal::database()->select('dc_campaigns', 'c')
+      ->condition('id', $campaign_id)
+      ->condition('uid', (int) $user->id())
+      ->condition('status', 'archived')
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertEquals(1, $archived_bucket_count, 'Archived campaign should be present in archived bucket query.');
+  }
+
+  /**
+   * Tests archive submit requires confirmation checkbox and does not mutate.
+   */
+  public function testCampaignArchiveSubmitRequiresConfirmationCheckbox(): void {
+    $user = $this->createTestUser();
+    $this->drupalLogin($user);
+
+    $campaign_id = $this->createTestCampaign($user, [
+      'name' => 'Archive Checkbox Campaign',
+      'status' => 'draft',
+      'campaign_data' => json_encode([]),
+    ]);
+
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->submitForm([], 'Archive Campaign');
+
+    $this->assertSession()->statusCodeEquals(200);
+
+    $status_after_submit = (string) \Drupal::database()->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('draft', $status_after_submit, 'Campaign should remain unarchived when confirmation is missing.');
+  }
+
+  /**
+   * Tests unarchive submit restores previous campaign status and list placement.
+   */
+  public function testCampaignUnarchiveSubmitRestoresPreviousStatus(): void {
+    $user = $this->createTestUser();
+    $this->drupalLogin($user);
+
+    $campaign_id = $this->createTestCampaign($user, [
+      'name' => 'Unarchive Submit Campaign',
+      'status' => 'ready',
+      'campaign_data' => json_encode([]),
+    ]);
+
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->submitForm([
+      'archive_confirm' => 1,
+    ], 'Archive Campaign');
+
+    $this->drupalGet("/campaigns/{$campaign_id}/unarchive");
+    $this->assertSession()->statusCodeEquals(200);
+    $this->submitForm([], 'Unarchive Campaign');
+
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->pageTextContains('unarchived');
+
+    $campaign_row = \Drupal::database()->select('dc_campaigns', 'c')
+      ->fields('c', ['status', 'campaign_data'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchAssoc();
+
+    $this->assertEquals('ready', $campaign_row['status'], 'Campaign should restore to pre-archive status.');
+
+    $campaign_data = json_decode((string) ($campaign_row['campaign_data'] ?? '{}'), TRUE);
+    $this->assertIsArray($campaign_data, 'Campaign data should decode to array.');
+    $this->assertArrayNotHasKey('_archive_meta', $campaign_data, 'Archive metadata should be removed after unarchive.');
+
+    $this->drupalGet('/campaigns');
+    $this->assertSession()->statusCodeEquals(200);
+    $this->assertSession()->responseContains("/campaigns/{$campaign_id}/archive");
+    $this->assertSession()->responseNotContains("/campaigns/{$campaign_id}/unarchive");
+  }
+
+  /**
+   * Tests non-owner cannot archive or unarchive and status remains unchanged.
+   */
+  public function testCampaignArchiveAndUnarchiveDeniedForNonOwnerWithoutMutation(): void {
+    $owner = $this->createTestUser();
+    $other_user = $this->createTestUser();
+
+    $campaign_id = $this->createTestCampaign($owner, [
+      'name' => 'Ownership Guard Campaign',
+      'status' => 'draft',
+      'campaign_data' => json_encode([]),
+    ]);
+
+    $this->drupalLogin($other_user);
+    $this->drupalGet("/campaigns/{$campaign_id}/archive");
+    $this->assertSession()->statusCodeEquals(403);
+
+    $status_after_archive_attempt = \Drupal::database()->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('draft', $status_after_archive_attempt, 'Status should remain unchanged after denied archive.');
+
+    $this->drupalGet("/campaigns/{$campaign_id}/unarchive");
+    $this->assertSession()->statusCodeEquals(403);
+
+    $status_after_unarchive_attempt = \Drupal::database()->select('dc_campaigns', 'c')
+      ->fields('c', ['status'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchField();
+    $this->assertEquals('draft', $status_after_unarchive_attempt, 'Status should remain unchanged after denied unarchive.');
+  }
+
+  /**
    * Tests campaign dungeon selection route - positive case.
    */
   public function testCampaignDungeonsRoutePositive(): void {

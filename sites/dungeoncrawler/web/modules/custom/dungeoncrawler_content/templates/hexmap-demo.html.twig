@@ -9,10 +9,15 @@
  */
 #}
 
-<div class="hexmap-container">
+  <div class="hexmap-container" id="hexmap-container">
   <div class="hexmap-header">
-    <h1>{{ 'Hex Map Demo'|t }}</h1>
-    <p>{{ 'Interactive hexagonal grid powered by PixiJS'|t }}</p>
+    <div class="hexmap-header__top">
+      <div>
+        <h1>{{ 'Hex Map Demo'|t }}</h1>
+        <p>{{ 'Interactive hexagonal grid powered by PixiJS'|t }}</p>
+      </div>
+      <button id="fullscreen-toggle" class="btn btn-icon" title="{{ 'Enter fullscreen'|t }}">{{ '⛶'|t }}</button>
+    </div>
     
     <div class="hexmap-controls">
       <div class="control-group control-group--config">
@@ -57,7 +62,7 @@
     <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
       <!-- PixiJS canvas will be inserted here -->
 
-      <div id="turn-hud" class="turn-hud">
+      <div id="turn-hud" class="turn-hud" style="display:none;">
         <div class="turn-hud__row">
           <span id="turn-owner" class="pill pill-strong">{{ 'No active combat'|t }}</span>
           <span id="current-round" class="pill pill-round">{{ 'Round 0'|t }}</span>
@@ -109,6 +114,170 @@
           </div>
           <p id="action-instruction" class="action-instruction">{{ 'Select a hostile target to attack.'|t }}</p>
         </div>
+      </div>
+    </div>
+
+    <div class="hexmap-chat" id="hexmap-chat">
+      <div class="hexmap-chat__header">
+        <h3>{{ 'Room Dialogue'|t }}</h3>
+        <span class="chip chip-live" id="chat-status">{{ 'Open'|t }}</span>
+      </div>
+      <div class="hexmap-chat__log" id="chat-log" aria-live="polite">
+        <div class="chat-line chat-line--system">{{ 'You are in a quiet room. Try saying hello.'|t }}</div>
+      </div>
+      <form class="hexmap-chat__input" id="chat-form">
+        <input id="chat-input" type="text" placeholder="{{ 'Say something to the room...'|t }}" autocomplete="off" />
+        <button id="chat-send" class="btn btn-primary" type="submit">{{ 'Send'|t }}</button>
+      </form>
+    </div>
+  </div>
+
+  <div class="character-sheet">
+    <div class="character-sheet__header">
+      <div>
+        <p class="eyebrow">{{ 'Character Sheet'|t }}</p>
+        <h2 id="char-name">{{ 'Select a character'|t }}</h2>
+        <p id="char-type" class="muted">{{ 'Type —'|t }}</p>
+      </div>
+      <div class="character-badges">
+        <span id="char-ancestry" class="pill pill-muted">{{ 'Ancestry —'|t }}</span>
+        <span id="char-level" class="pill pill-strong">{{ 'Lvl —'|t }}</span>
+      </div>
+    </div>
+
+    <div class="character-sheet__core-stats">
+      <div class="stat-card">
+        <p class="label">{{ 'HP'|t }}</p>
+        <p id="char-hp" class="stat-value">-</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">{{ 'AC'|t }}</p>
+        <p id="char-ac" class="stat-value">-</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">{{ 'Hero'|t }}</p>
+        <p id="char-hero" class="stat-value">-</p>
+      </div>
+      <div class="stat-card">
+        <p class="label">{{ 'XP'|t }}</p>
+        <p id="char-xp" class="stat-value">-</p>
+      </div>
+    </div>
+
+    <div class="character-sheet__section">
+      <div class="section-header" data-section="abilities">
+        <h4>{{ 'Abilities'|t }}</h4>
+        <span class="section-toggle">▾</span>
+      </div>
+      <div class="section-body" data-section="abilities">
+        <div class="ability-scores">
+          <div class="ability-score">
+            <span class="ability-label">{{ 'STR'|t }}</span>
+            <span id="char-str" class="ability-value">10</span>
+            <span id="char-str-mod" class="ability-mod">+0</span>
+          </div>
+          <div class="ability-score">
+            <span class="ability-label">{{ 'DEX'|t }}</span>
+            <span id="char-dex" class="ability-value">10</span>
+            <span id="char-dex-mod" class="ability-mod">+0</span>
+          </div>
+          <div class="ability-score">
+            <span class="ability-label">{{ 'CON'|t }}</span>
+            <span id="char-con" class="ability-value">10</span>
+            <span id="char-con-mod" class="ability-mod">+0</span>
+          </div>
+          <div class="ability-score">
+            <span class="ability-label">{{ 'INT'|t }}</span>
+            <span id="char-int" class="ability-value">10</span>
+            <span id="char-int-mod" class="ability-mod">+0</span>
+          </div>
+          <div class="ability-score">
+            <span class="ability-label">{{ 'WIS'|t }}</span>
+            <span id="char-wis" class="ability-value">10</span>
+            <span id="char-wis-mod" class="ability-mod">+0</span>
+          </div>
+          <div class="ability-score">
+            <span class="ability-label">{{ 'CHA'|t }}</span>
+            <span id="char-cha" class="ability-value">10</span>
+            <span id="char-cha-mod" class="ability-mod">+0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="character-sheet__section">
+      <div class="section-header" data-section="saves">
+        <h4>{{ 'Saving Throws'|t }}</h4>
+        <span class="section-toggle">▾</span>
+      </div>
+      <div class="section-body" data-section="saves">
+        <div class="saves-grid">
+          <div class="save-item">
+            <span class="save-label">{{ 'Fort'|t }}</span>
+            <span id="char-fort" class="save-value">+0</span>
+          </div>
+          <div class="save-item">
+            <span class="save-label">{{ 'Ref'|t }}</span>
+            <span id="char-ref" class="save-value">+0</span>
+          </div>
+          <div class="save-item">
+            <span class="save-label">{{ 'Will'|t }}</span>
+            <span id="char-will" class="save-value">+0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="character-sheet__section collapsed">
+      <div class="section-header" data-section="skills">
+        <h4>{{ 'Skills'|t }}</h4>
+        <span class="section-toggle">▸</span>
+      </div>
+      <div class="section-body" data-section="skills" style="display:none;">
+        <ul id="char-skills" class="skills-list">
+          <li class="skills-empty">{{ 'No skills loaded'|t }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="character-sheet__section">
+      <div class="section-header" data-section="conditions">
+        <h4>{{ 'Conditions'|t }}</h4>
+        <span class="section-toggle">▾</span>
+      </div>
+      <div class="section-body" data-section="conditions">
+        <ul id="char-conditions" class="conditions-list">
+          <li class="conditions-empty">{{ 'None'|t }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="character-sheet__section collapsed">
+      <div class="section-header" data-section="inventory">
+        <h4>{{ 'Inventory'|t }}</h4>
+        <span class="section-toggle">▸</span>
+      </div>
+      <div class="section-body" data-section="inventory" style="display:none;">
+        <div id="char-currency" class="currency-display">
+          <span class="currency-item"><span class="currency-label">{{ 'GP:'|t }}</span> <span id="char-gp">0</span></span>
+          <span class="currency-item"><span class="currency-label">{{ 'SP:'|t }}</span> <span id="char-sp">0</span></span>
+          <span class="currency-item"><span class="currency-label">{{ 'CP:'|t }}</span> <span id="char-cp">0</span></span>
+        </div>
+        <ul id="char-inventory" class="inventory-list">
+          <li class="inventory-empty">{{ 'No items'|t }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="character-sheet__section collapsed">
+      <div class="section-header" data-section="features">
+        <h4>{{ 'Features & Feats'|t }}</h4>
+        <span class="section-toggle">▸</span>
+      </div>
+      <div class="section-body" data-section="features" style="display:none;">
+        <ul id="char-features" class="features-list">
+          <li class="features-empty">{{ 'No features loaded'|t }}</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -201,49 +370,6 @@
         <li>{{ 'Click blue hex to move selected creature'|t }}</li>
         <li><strong>{{ 'Combat:'|t }}</strong> {{ 'Start Combat to roll initiative'|t }}</li>
         <li>{{ 'Actions on your turn: Move, Attack, End Turn'|t }}</li>
-      </ul>
-    </div>
-  </div>
-
-  <div class="character-sheet">
-    <div class="character-sheet__header">
-      <div>
-        <p class="eyebrow">{{ 'Character Sheet'|t }}</p>
-        <h2 id="char-name">{{ 'Select a character'|t }}</h2>
-        <p id="char-type" class="muted">{{ 'Type —'|t }}</p>
-      </div>
-      <div class="character-badges">
-        <span id="char-team" class="pill pill-muted">{{ 'Team —'|t }}</span>
-        <span id="char-level" class="pill pill-strong">{{ 'Lvl —'|t }}</span>
-      </div>
-    </div>
-
-    <div class="character-sheet__stats">
-      <div class="stat-card">
-        <p class="label">{{ 'HP'|t }}</p>
-        <p id="char-hp" class="stat-value">-</p>
-      </div>
-      <div class="stat-card">
-        <p class="label">{{ 'AC'|t }}</p>
-        <p id="char-ac" class="stat-value">-</p>
-      </div>
-      <div class="stat-card">
-        <p class="label">{{ 'Speed'|t }}</p>
-        <p id="char-speed" class="stat-value">-</p>
-      </div>
-      <div class="stat-card">
-        <p class="label">{{ 'Actions'|t }}</p>
-        <p id="char-actions" class="stat-value">-</p>
-      </div>
-    </div>
-
-    <div class="character-sheet__inventory">
-      <div class="inventory-header">
-        <h4>{{ 'Inventory'|t }}</h4>
-        <p class="muted">{{ 'Quick view only; wiring to full sheet is in progress.'|t }}</p>
-      </div>
-      <ul id="char-inventory" class="inventory-list">
-        <li class="inventory-empty">{{ 'No items loaded yet'|t }}</li>
       </ul>
     </div>
   </div>

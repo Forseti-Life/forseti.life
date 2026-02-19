@@ -2,7 +2,12 @@
 
 namespace Drupal\dungeoncrawler_content\Controller;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Controller\ControllerBase;
+use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 /**
  * Documentation page for encounter AI integration architecture.
@@ -10,9 +15,40 @@ use Drupal\Core\Controller\ControllerBase;
 class EncounterAiIntegrationController extends ControllerBase {
 
   /**
+   * Database connection.
+   */
+  protected Connection $database;
+
+  /**
+   * Time service.
+   */
+  protected TimeInterface $time;
+
+  /**
+   * Constructs controller.
+   */
+  public function __construct(Connection $database, TimeInterface $time) {
+    $this->database = $database;
+    $this->time = $time;
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public static function create(ContainerInterface $container) {
+    return new static(
+      $container->get('database'),
+      $container->get('datetime.time')
+    );
+  }
+
+  /**
    * Render encounter AI integration overview and current implementation status.
    */
-  public function overview() {
+  public function overview(Request $request) {
+    $window = $this->resolveWindow((string) $request->query->get('window', '24h'));
+    $window_query = '?window=' . $window['key'];
+
     $phaseStatus = [
       'Phase 0 — Blueprint and route visibility' => 'Complete',
       'Phase 1 — Read-only orchestration scaffold' => 'Complete',
@@ -33,7 +69,7 @@ class EncounterAiIntegrationController extends ControllerBase {
       '#type' => 'container',
       '#attributes' => ['class' => ['encounter-ai-integration-doc']],
       'header' => [
-        '#markup' => '<h2>Encounter AI Integration Blueprint</h2><p>Design summary and implementation progress for AI-assisted encounter orchestration.</p><p>Blueprint source: AI_ENCOUNTER_INTEGRATION.md</p><p><a href="/architecture/encounter-ai-integration">Refresh this status page</a></p>',
+        '#markup' => '<h2>Encounter AI Integration Blueprint</h2><p>Design summary and implementation progress for AI-assisted encounter orchestration.</p><p>Blueprint source: AI_ENCOUNTER_INTEGRATION.md</p><p><strong>Window:</strong> <a href="/architecture/encounter-ai-integration?window=24h">24h</a> · <a href="/architecture/encounter-ai-integration?window=7d">7d</a> · <a href="/architecture/encounter-ai-integration?window=30d">30d</a></p><p><a href="/architecture/encounter-ai-integration' . $window_query . '">Refresh this status page</a> · <a href="/architecture/encounter-ai-integration/metrics.csv' . $window_query . '">Download metrics CSV</a></p>',
       ],
       '#cache' => [
         'max-age' => 0,
@@ -67,11 +103,204 @@ class EncounterAiIntegrationController extends ControllerBase {
       ];
     }
 
+    $metrics = $this->buildOperationalMetrics($window['seconds']);
+    if (!$metrics['available']) {
+      $build['metrics'] = [
+        '#type' => 'details',
+        '#open' => TRUE,
+        '#title' => sprintf('Operational metrics (%s)', $window['label']),
+        'notice' => [
+          '#markup' => '<p>Operational metrics are unavailable because ai_conversation usage table or required fields are missing in this environment.</p>',
+        ],
+      ];
+    }
+    else {
+      $build['metrics'] = [
+        '#type' => 'details',
+        '#open' => TRUE,
+        '#title' => sprintf('Operational metrics (%s)', $window['label']),
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['Metric', 'Value'],
+          '#rows' => [
+            ['Tracked requests', (string) $metrics['tracked_requests']],
+            ['Tracked attempts', (string) $metrics['tracked_attempts']],
+            ['Average attempts/request', number_format($metrics['avg_attempts'], 2)],
+            ['Fallback requests', (string) $metrics['fallback_requests']],
+            ['Fallback rate', number_format($metrics['fallback_rate'], 2) . '%'],
+            ['Recommendation requests', (string) $metrics['recommendation_requests']],
+            ['Narration requests', (string) $metrics['narration_requests']],
+            ['Rows missing request_id', (string) $metrics['rows_missing_request_id']],
+          ],
+        ],
+      ];
+    }
+
     $build['next'] = [
       '#markup' => '<p><strong>Next implementation target:</strong> add functional coverage for ai_conversation recommendation/narration wiring, deterministic fallback behavior, and timeline persistence paths (requires working test DB configuration).</p>',
     ];
 
     return $build;
+  }
+
+  /**
+   * Export last-24h operational metrics as CSV.
+   */
+  public function exportMetricsCsv(Request $request): Response {
+    $window = $this->resolveWindow((string) $request->query->get('window', '24h'));
+    $metrics = $this->buildOperationalMetrics($window['seconds']);
+    $timestamp = gmdate('Y-m-d_H-i-s', $this->time->getCurrentTime());
+    $filename = sprintf('encounter-ai-metrics-%s-%s.csv', $window['key'], $timestamp);
+
+    $lines = [
+      ['metric', 'value'],
+    ];
+
+    if (empty($metrics['available'])) {
+      $lines[] = ['status', 'unavailable'];
+      $lines[] = ['reason', 'ai_conversation usage table or required fields missing'];
+    }
+    else {
+      $lines[] = ['window', $window['label']];
+      $lines[] = ['tracked_requests', (string) $metrics['tracked_requests']];
+      $lines[] = ['tracked_attempts', (string) $metrics['tracked_attempts']];
+      $lines[] = ['avg_attempts_per_request', number_format((float) $metrics['avg_attempts'], 4, '.', '')];
+      $lines[] = ['fallback_requests', (string) $metrics['fallback_requests']];
+      $lines[] = ['fallback_rate_percent', number_format((float) $metrics['fallback_rate'], 4, '.', '')];
+      $lines[] = ['recommendation_requests', (string) $metrics['recommendation_requests']];
+      $lines[] = ['narration_requests', (string) $metrics['narration_requests']];
+      $lines[] = ['rows_missing_request_id', (string) $metrics['rows_missing_request_id']];
+    }
+
+    $csv = '';
+    foreach ($lines as $line) {
+      $csv .= $this->formatCsvRow($line);
+    }
+
+    $response = new Response($csv);
+    $response->headers->set('Content-Type', 'text/csv; charset=UTF-8');
+    $response->headers->set('Content-Disposition', 'attachment; filename="' . $filename . '"');
+
+    return $response;
+  }
+
+  /**
+   * Build last-24h operational metrics from ai_conversation usage logs.
+   *
+   * @return array<string, mixed>
+   *   Metrics envelope.
+   */
+  private function buildOperationalMetrics(int $window_seconds): array {
+    $table = 'ai_conversation_api_usage';
+    if (!$this->database->schema()->tableExists($table)) {
+      return ['available' => FALSE];
+    }
+
+    if (!$this->database->schema()->fieldExists($table, 'success') || !$this->database->schema()->fieldExists($table, 'context_data')) {
+      return ['available' => FALSE];
+    }
+
+    $since = $this->time->getCurrentTime() - $window_seconds;
+    $rows = $this->database->select($table, 'u')
+      ->fields('u', ['operation', 'success', 'context_data'])
+      ->condition('module', 'dungeoncrawler_content')
+      ->condition('operation', ['encounter_npc_recommendation', 'encounter_narration'], 'IN')
+      ->condition('timestamp', $since, '>=')
+      ->execute()
+      ->fetchAll();
+
+    $requests = [];
+    $rows_missing_request_id = 0;
+
+    foreach ($rows as $row) {
+      $context = json_decode((string) ($row->context_data ?? ''), TRUE);
+      if (!is_array($context)) {
+        $rows_missing_request_id++;
+        continue;
+      }
+
+      $request_id = trim((string) ($context['request_id'] ?? ''));
+      if ($request_id === '') {
+        $rows_missing_request_id++;
+        continue;
+      }
+
+      if (!isset($requests[$request_id])) {
+        $requests[$request_id] = [
+          'attempts' => 0,
+          'success' => FALSE,
+          'operation' => (string) ($row->operation ?? ''),
+        ];
+      }
+
+      $requests[$request_id]['attempts']++;
+      if ((int) $row->success === 1) {
+        $requests[$request_id]['success'] = TRUE;
+      }
+    }
+
+    $tracked_requests = count($requests);
+    $tracked_attempts = 0;
+    $fallback_requests = 0;
+    $recommendation_requests = 0;
+    $narration_requests = 0;
+
+    foreach ($requests as $request) {
+      $tracked_attempts += (int) $request['attempts'];
+      if (empty($request['success'])) {
+        $fallback_requests++;
+      }
+
+      if (($request['operation'] ?? '') === 'encounter_npc_recommendation') {
+        $recommendation_requests++;
+      }
+      elseif (($request['operation'] ?? '') === 'encounter_narration') {
+        $narration_requests++;
+      }
+    }
+
+    $avg_attempts = $tracked_requests > 0 ? ($tracked_attempts / $tracked_requests) : 0.0;
+    $fallback_rate = $tracked_requests > 0 ? (($fallback_requests / $tracked_requests) * 100) : 0.0;
+
+    return [
+      'available' => TRUE,
+      'tracked_requests' => $tracked_requests,
+      'tracked_attempts' => $tracked_attempts,
+      'avg_attempts' => $avg_attempts,
+      'fallback_requests' => $fallback_requests,
+      'fallback_rate' => $fallback_rate,
+      'recommendation_requests' => $recommendation_requests,
+      'narration_requests' => $narration_requests,
+      'rows_missing_request_id' => $rows_missing_request_id,
+    ];
+  }
+
+  /**
+   * Resolve user-selected metrics window.
+   *
+   * @return array{key:string,label:string,seconds:int}
+   *   Normalized window descriptor.
+   */
+  private function resolveWindow(string $window): array {
+    return match ($window) {
+      '7d' => ['key' => '7d', 'label' => 'last 7d', 'seconds' => 7 * 86400],
+      '30d' => ['key' => '30d', 'label' => 'last 30d', 'seconds' => 30 * 86400],
+      default => ['key' => '24h', 'label' => 'last 24h', 'seconds' => 86400],
+    };
+  }
+
+  /**
+   * Format values as a CSV row.
+   *
+   * @param array<int, string> $columns
+   *   Row columns.
+   */
+  private function formatCsvRow(array $columns): string {
+    $escaped = array_map(static function (string $value): string {
+      return '"' . str_replace('"', '""', $value) . '"';
+    }, $columns);
+
+    return implode(',', $escaped) . "\n";
   }
 
 }

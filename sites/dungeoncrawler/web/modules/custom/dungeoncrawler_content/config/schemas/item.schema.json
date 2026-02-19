@@ -320,6 +320,64 @@
         }
       }
     },
+    "container_stats": {
+      "type": ["object", "null"],
+      "additionalProperties": false,
+      "description": "Container-specific statistics. Makes this item capable of holding other items. Common for backpacks, satchels, chests, bags of holding, etc.",
+      "properties": {
+        "capacity": {
+          "type": "number",
+          "minimum": 0.1,
+          "maximum": 1000,
+          "description": "Maximum bulk capacity this container can hold. Standard backpack = 4 bulk, bag of holding = 25 bulk."
+        },
+        "capacity_reduction": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 1,
+          "default": 0,
+          "description": "Fraction of contained bulk that counts toward carrier's burden. 0 = weightless (bag of holding), 1 = full weight, 0.5 = half weight."
+        },
+        "can_lock": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this container can be locked with a key or mechanism."
+        },
+        "lock_dc": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 50,
+          "description": "DC to pick the lock if container is locked. Only relevant if can_lock is true."
+        },
+        "is_locked": {
+          "type": "boolean",
+          "default": false,
+          "description": "Runtime state: whether the container is currently locked. This is mutable state and should be tracked in item_instances."
+        },
+        "access_time": {
+          "type": "string",
+          "enum": ["free", "interact", "2_actions", "3_actions"],
+          "default": "interact",
+          "description": "Number of actions required to retrieve an item from this container."
+        },
+        "water_resistant": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this container protects contents from water damage."
+        },
+        "extradimensional": {
+          "type": "boolean",
+          "default": false,
+          "description": "Whether this is an extradimensional container (e.g., bag of holding, portable hole). Affects interactions with other magic."
+        },
+        "container_type": {
+          "type": "string",
+          "enum": ["backpack", "satchel", "pouch", "chest", "barrel", "crate", "bag_of_holding", "sack", "case", "quiver"],
+          "description": "Specific type of container for visual representation and game mechanics."
+        }
+      },
+      "required": ["capacity"]
+    },
     "magic_properties": {
       "type": ["object", "null"],
       "additionalProperties": false,

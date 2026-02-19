@@ -442,11 +442,106 @@ themes/custom/{themename}/
 - **Performance**: Fast loading and responsive design
 
 ## Testing & Debugging
+
+### General Testing Standards
 - Test with various content types and forms
 - Verify mobile responsiveness across devices
 - Test contact forms and lead generation functionality
 - Use Drush commands for debugging and maintenance
 - Implement proper error reporting for failed operations
+
+### Automated JavaScript Console Testing (Playwright)
+
+**Purpose**: Automatically detect JavaScript console errors without manual browser inspection. Essential for catching syntax errors, runtime exceptions, and network failures in complex pages like hexmap.
+
+**Installation**:
+```bash
+# One-time setup in workspace root
+npm install --save-dev playwright
+```
+
+**Playwright Testing Scripts** (Located in `/testing/playwright/`):
+
+1. **capture-console.js** - Capture all browser console output
+   - **Usage**: `node capture-console.js <url> [timeout] [output-file]`
+   - **Example**: `node testing/playwright/capture-console.js http://localhost:8080/game 10000`
+   - **Outputs**:
+     - Real-time to stdout (formatted with timestamps and severity levels)
+     - Optional JSON file with full details
+   - **Captures**: console.log/error/warning/info/debug, network errors, page errors
+
+2. **test-hexmap.js** - Automated hexmap console error detection
+   - **Usage**: `node test-hexmap.js [base-url] [timeout]`
+   - **Example**: `node testing/playwright/test-hexmap.js http://localhost:8080`
+   - **Exit Codes** (for CI/CD):
+     - `0` = No errors found (PASS)
+     - `1` = Console errors detected or test failed (FAIL)
+   - **Fails If**: Any console errors, page crashes, or load failures detected
+
+**Development Workflow**:
+
+```bash
+# Before committing JavaScript changes:
+node testing/playwright/test-hexmap.js http://localhost:8080
+
+# If errors found, run detailed capture:
+node testing/playwright/capture-console.js http://localhost:8080/game 10000
+
+# Fix errors in hexmap.js, then verify:
+node --check sites/forseti/modules/custom/dungeoncrawler_content/assets/hexmap.js
+node testing/playwright/test-hexmap.js http://localhost:8080
+```
+
+**CI/CD Integration**:
+
+```yaml
+# Example GitHub Actions integration
+- name: Test JavaScript Console
+  run: |
+    npm install --save-dev playwright
+    node testing/playwright/test-hexmap.js http://localhost:8080
+    if [ $? -ne 0 ]; then
+      echo "Console errors detected - build failed"
+      exit 1
+    fi
+```
+
+**Common Error Patterns**:
+- **Syntax Errors**: `Uncaught SyntaxError` - Fix with `node --check <file.js>`
+- **Missing Methods**: `TypeError: xxx is not a function` - Verify method definitions
+- **Network Failures**: `Failed to fetch` - Check API endpoints and CORS
+- **Type Errors**: `Cannot read property 'x' of undefined` - Check initialization order
+
+**When to Use**:
+- After any JavaScript modifications
+- Before creating pull requests
+- In pre-commit hooks
+- As part of CI/CD pipeline
+- When debugging complex interactive features (hexmap, character sheet, etc.)
+
+**Key Files for JavaScript Testing**:
+- Main game code: `sites/forseti/modules/custom/dungeoncrawler_content/assets/hexmap.js` (4218 lines)
+- Test scripts: `/testing/playwright/capture-console.js`, `/testing/playwright/test-hexmap.js`
+- Documentation: `/testing/playwright/README.md`
+
+**Troubleshooting**:
+
+| Issue | Solution |
+|-------|----------|
+| Playwright not installed | Run `npm install --save-dev playwright` from workspace root |
+| Script not executable | Run `chmod +x testing/playwright/*.js` |
+| Timeout errors | Increase timeout: `node capture-console.js http://localhost:8080 20000` |
+| Connection refused | Ensure Apache is running: `sudo systemctl start apache2` |
+| CORS/network errors | Check API endpoints are accessible from browser |
+| No output | Add debug: `node capture-console.js <url> <timeout> output.json` then check JSON file |
+
+**Post-JavaScript-Edit Checklist**:
+1. ✅ Run Playwright test before committing
+2. ✅ Verify exit code 0 (no errors)
+3. ✅ If errors found, run capture for details
+4. ✅ Fix syntax/errors locally
+5. ✅ Re-run test to confirm fix
+6. ✅ Commit with confidence
 
 ## Documentation Standards
 - Comprehensive README.md files for each module

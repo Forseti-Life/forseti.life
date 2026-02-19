@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_content\Service;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Config\ImmutableConfig;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use GuzzleHttp\ClientInterface;
 use GuzzleHttp\Exception\GuzzleException;
@@ -30,6 +31,11 @@ class VertexImageGenerationService {
   protected ConfigFactoryInterface $configFactory;
 
   /**
+   * Database connection.
+   */
+  protected Connection $database;
+
+  /**
    * HTTP client.
    */
   protected ClientInterface $httpClient;
@@ -37,10 +43,11 @@ class VertexImageGenerationService {
   /**
    * Constructs VertexImageGenerationService.
    */
-  public function __construct(LoggerChannelFactoryInterface $logger_factory, TimeInterface $time, ConfigFactoryInterface $config_factory, ClientInterface $http_client) {
+  public function __construct(LoggerChannelFactoryInterface $logger_factory, TimeInterface $time, ConfigFactoryInterface $config_factory, Connection $database, ClientInterface $http_client) {
     $this->loggerFactory = $logger_factory;
     $this->time = $time;
     $this->configFactory = $config_factory;
+    $this->database = $database;
     $this->httpClient = $http_client;
   }
 
@@ -89,6 +96,15 @@ class VertexImageGenerationService {
       'campaign_context' => trim((string) ($payload['campaign_context'] ?? '')),
       'requested_by_uid' => (int) ($payload['requested_by_uid'] ?? 0),
       'requested_at' => $timestamp,
+      'campaign_id' => $this->normalizeInt($payload['campaign_id'] ?? NULL),
+      'map_id' => $this->normalizeString($payload['map_id'] ?? ''),
+      'dungeon_id' => $this->normalizeString($payload['dungeon_id'] ?? ($payload['dungeon'] ?? '')),
+      'room_id' => $this->normalizeString($payload['room_id'] ?? ($payload['room'] ?? '')),
+      'hex_q' => $this->normalizeInt($payload['hex_q'] ?? NULL),
+      'hex_r' => $this->normalizeInt($payload['hex_r'] ?? NULL),
+      'entity_type' => $this->normalizeString($payload['entity_type'] ?? ''),
+      'terrain_type' => $this->normalizeString($payload['terrain_type'] ?? ''),
+      'habitat_name' => $this->normalizeString($payload['habitat_name'] ?? ''),
     ];
 
     if (!$status['enabled'] || !$status['has_api_key']) {
@@ -122,6 +138,12 @@ class VertexImageGenerationService {
     $project_id = $this->resolveProjectId($config);
     $location = $this->resolveLocation($config);
     $model = $this->resolveModel($config);
+
+    $cached = $this->loadCachedResult($normalized_payload, $model);
+    if ($cached !== NULL) {
+      return $cached;
+    }
+
     $endpoint = $this->buildEndpoint($this->resolveEndpointTemplate($config), $project_id, $location, $model, $api_key);
     $timeout = $this->resolveTimeout($config);
     $request_body = $this->buildVertexRequestBody($normalized_payload);
@@ -142,6 +164,8 @@ class VertexImageGenerationService {
       }
 
       $parsed_output = $this->extractOutput($decoded);
+
+      $this->storeCacheEntry($normalized_payload, $model, $decoded, $parsed_output, 'ready');
 
       $this->loggerFactory->get('dungeoncrawler_content')->notice('Vertex image generation live request completed.', [
         'request_id' => $request_id,
@@ -167,6 +191,10 @@ class VertexImageGenerationService {
         'message' => $exception->getMessage(),
       ]);
 
+      $this->storeCacheEntry($normalized_payload, $model, [
+        'error' => $exception->getMessage(),
+      ], NULL, 'failed');
+
       return [
         'success' => FALSE,
         'provider' => 'vertex',
@@ -178,6 +206,154 @@ class VertexImageGenerationService {
         'payload' => $normalized_payload,
       ];
     }
+  }
+
+  /**
+   * Attempt to load a cached result before calling the provider.
+   */
+  private function loadCachedResult(array $normalized_payload, string $model): ?array {
+    if (!$this->hasPromptCacheTable()) {
+      return NULL;
+    }
+
+    $prompt_hash = $this->buildPromptHash($normalized_payload, $model);
+
+    $record = $this->database->select($this->getPromptCacheTable(), 'c')
+      ->fields('c')
+      ->condition('provider', 'vertex')
+      ->condition('provider_model', $model)
+      ->condition('prompt_hash', $prompt_hash)
+      ->condition('status', 'ready')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!is_array($record)) {
+      return NULL;
+    }
+
+    $output_payload = [];
+    if (!empty($record['output_payload']) && is_string($record['output_payload'])) {
+      $decoded = json_decode($record['output_payload'], TRUE);
+      if (is_array($decoded)) {
+        $output_payload = $decoded;
+      }
+    }
+
+    if (empty($output_payload)) {
+      return NULL;
+    }
+
+    $this->database->update($this->getPromptCacheTable())
+      ->fields([
+        'hits' => ((int) ($record['hits'] ?? 0)) + 1,
+        'updated' => $this->time->getCurrentTime(),
+      ])
+      ->condition('id', (int) $record['id'])
+      ->execute();
+
+    return [
+      'success' => TRUE,
+      'provider' => 'vertex',
+      'provider_model' => $model,
+      'mode' => 'cache',
+      'request_id' => 'vertex-cache-' . (string) $record['id'],
+      'status' => 'cached',
+      'message' => 'Vertex cache hit.',
+      'payload' => $normalized_payload,
+      'output' => $output_payload,
+      'cache' => [
+        'cache_id' => (int) $record['id'],
+        'prompt_hash' => $prompt_hash,
+      ],
+    ];
+  }
+
+  /**
+   * Store a cache entry for the prompt and response.
+   */
+  private function storeCacheEntry(array $normalized_payload, string $model, array $response_payload, ?array $output_payload, string $status): void {
+    if (!$this->hasPromptCacheTable()) {
+      return;
+    }
+
+    $prompt_hash = $this->buildPromptHash($normalized_payload, $model);
+    $now = $this->time->getCurrentTime();
+
+    $fields = [
+      'provider' => 'vertex',
+      'provider_model' => $model,
+      'prompt_hash' => $prompt_hash,
+      'prompt_text' => $normalized_payload['prompt'],
+      'negative_prompt' => $normalized_payload['negative_prompt'],
+      'style' => $normalized_payload['style'],
+      'aspect_ratio' => $normalized_payload['aspect_ratio'],
+      'status' => $status,
+      'request_payload' => json_encode($normalized_payload, JSON_UNESCAPED_UNICODE),
+      'response_payload' => json_encode($response_payload, JSON_UNESCAPED_UNICODE),
+      'output_payload' => $output_payload !== NULL ? json_encode($output_payload, JSON_UNESCAPED_UNICODE) : NULL,
+      'campaign_id' => $normalized_payload['campaign_id'],
+      'map_id' => $this->normalizeString($normalized_payload['map_id'] ?? ''),
+      'dungeon_id' => $this->normalizeString($normalized_payload['dungeon_id'] ?? ''),
+      'room_id' => $this->normalizeString($normalized_payload['room_id'] ?? ''),
+      'hex_q' => $normalized_payload['hex_q'],
+      'hex_r' => $normalized_payload['hex_r'],
+      'entity_type' => $this->normalizeString($normalized_payload['entity_type'] ?? ''),
+      'terrain_type' => $this->normalizeString($normalized_payload['terrain_type'] ?? ''),
+      'habitat_name' => $this->normalizeString($normalized_payload['habitat_name'] ?? ''),
+      'updated' => $now,
+    ];
+
+    $existing_id = $this->database->select($this->getPromptCacheTable(), 'c')
+      ->fields('c', ['id'])
+      ->condition('provider', 'vertex')
+      ->condition('provider_model', $model)
+      ->condition('prompt_hash', $prompt_hash)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if ($existing_id) {
+      $this->database->update($this->getPromptCacheTable())
+        ->fields($fields)
+        ->condition('id', (int) $existing_id)
+        ->execute();
+      return;
+    }
+
+    $fields['created'] = $now;
+    $this->database->insert($this->getPromptCacheTable())
+      ->fields($fields)
+      ->execute();
+  }
+
+  /**
+   * Build a deterministic prompt hash for cache lookup.
+   */
+  private function buildPromptHash(array $normalized_payload, string $model): string {
+    $hash_payload = [
+      'prompt' => $normalized_payload['prompt'],
+      'negative_prompt' => $normalized_payload['negative_prompt'],
+      'style' => $normalized_payload['style'],
+      'aspect_ratio' => $normalized_payload['aspect_ratio'],
+      'model' => $model,
+    ];
+
+    return hash('sha256', json_encode($hash_payload, JSON_UNESCAPED_UNICODE));
+  }
+
+  /**
+   * Check if the prompt cache table exists.
+   */
+  private function hasPromptCacheTable(): bool {
+    return $this->database->schema()->tableExists($this->getPromptCacheTable());
+  }
+
+  /**
+   * Get the prompt cache table name.
+   */
+  private function getPromptCacheTable(): string {
+    return 'dungeoncrawler_content_image_prompt_cache';
   }
 
   /**
@@ -278,6 +454,32 @@ class VertexImageGenerationService {
         'negativePrompt' => $normalized_payload['negative_prompt'],
       ],
     ];
+  }
+
+  /**
+   * Normalize a value to a trimmed string.
+   */
+  private function normalizeString($value): string {
+    if (!is_scalar($value)) {
+      return '';
+    }
+
+    return trim((string) $value);
+  }
+
+  /**
+   * Normalize a numeric value to int or NULL.
+   */
+  private function normalizeInt($value): ?int {
+    if ($value === NULL || $value === '') {
+      return NULL;
+    }
+
+    if (is_numeric($value)) {
+      return (int) $value;
+    }
+
+    return NULL;
   }
 
   /**

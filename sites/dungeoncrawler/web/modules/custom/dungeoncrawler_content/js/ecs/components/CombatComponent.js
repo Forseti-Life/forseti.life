@@ -59,19 +59,6 @@ export const Team = {
 };
 
 /**
- * Constants for combat calculations.
- * @readonly
- */
-const CombatConstants = {
-  /** Standard d20 die size for initiative and attack rolls */
-  D20: 20,
-  /** Minimum roll value on a d20 */
-  MIN_D20_ROLL: 1,
-  /** Maximum roll value on a d20 */
-  MAX_D20_ROLL: 20
-};
-
-/**
  * CombatComponent
  * 
  * Stores combat-related data including initiative, team affiliation,
@@ -132,19 +119,30 @@ export class CombatComponent extends Component {
   }
   
   /**
-   * Roll initiative using d20 + perception + initiative bonus.
+   * Client-side initiative rolling is disabled in server-authoritative combat mode.
    * 
-   * @param {number} [perceptionBonus=0] - Perception bonus to add to the roll
-   * @returns {number} The final initiative result
+   * @deprecated Use setInitiativeFromServer() with API payload data.
+   * @returns {number|null} Existing initiative result if already set
    */
-  rollInitiative(perceptionBonus = 0) {
-    // Roll d20
-    this.initiativeRoll = Math.floor(Math.random() * CombatConstants.D20) + CombatConstants.MIN_D20_ROLL;
-    
-    // Calculate result: d20 + perception + initiativeBonus
-    this.initiativeResult = this.initiativeRoll + perceptionBonus + this.initiativeBonus;
-    
+  rollInitiative() {
+    console.warn('CombatComponent.rollInitiative() is disabled. Hydrate initiative from server combat APIs.');
     return this.initiativeResult;
+  }
+
+  /**
+   * Set initiative fields from server-authoritative encounter data.
+   * 
+   * @param {number} result - Final initiative score from server
+   * @param {number|null} [roll=null] - Raw d20 initiative roll from server
+   * @throws {TypeError} If result is not a number
+   */
+  setInitiativeFromServer(result, roll = null) {
+    if (typeof result !== 'number' || isNaN(result)) {
+      throw new TypeError(`Initiative result must be a number, got: ${result}`);
+    }
+
+    this.initiativeResult = result;
+    this.initiativeRoll = (typeof roll === 'number' && Number.isFinite(roll)) ? roll : null;
   }
   
   /**
@@ -157,7 +155,7 @@ export class CombatComponent extends Component {
     if (typeof result !== 'number' || isNaN(result)) {
       throw new TypeError(`Initiative result must be a number, got: ${result}`);
     }
-    this.initiativeResult = result;
+    this.setInitiativeFromServer(result, null);
   }
   
   /**

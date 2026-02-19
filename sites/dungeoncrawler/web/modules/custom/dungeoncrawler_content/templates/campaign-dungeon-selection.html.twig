@@ -3,7 +3,7 @@
  #}
 <div class="dc-character-list">
   <div class="dc-character-list__header">
-    <h1 class="dc-character-list__title">🗺️ Dungeon Selection</h1>
+    <h1 class="dc-character-list__title">🗺️ Legacy Dungeon Selection</h1>
     <div class="dc-sheet__nav-actions">
       <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Campaigns</a>
       <a href="{{ tavern_url }}" class="dc-btn dc-btn-secondary">🍻 Tavern Entrance</a>
@@ -16,9 +16,9 @@
       Theme: <strong>{{ campaign.theme }}</strong> · Difficulty: <strong>{{ campaign.difficulty }}</strong> · Status: <strong>{{ campaign.status }}</strong>
     </p>
     {% if campaign.active_character_id > 0 %}
-      <p>Active character selected. Choose any available dungeon to enter.</p>
+      <p>Active character selected. Choose a dungeon to continue this campaign's permanent timeline.</p>
     {% else %}
-      <p>No active character selected yet. You can still preview and open available dungeons.</p>
+      <p>No active character selected yet. You can still scout available dungeons before committing a character.</p>
     {% endif %}
   </div>
 
@@ -73,7 +73,7 @@
     <div class="dc-character-list__empty">
       <div class="dc-character-list__empty-icon">🧱</div>
       <h2>No Dungeons Available</h2>
-      <p>This campaign does not have any dungeon records in the database yet.</p>
+      <p>This campaign has no dungeon records yet. Create campaign activity first to establish its world footprint.</p>
     </div>
   {% endif %}
 </div>

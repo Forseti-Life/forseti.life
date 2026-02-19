@@ -75,6 +75,121 @@ class CharacterManager {
   ];
 
   /**
+   * PF2e Ancestry Feats (Level 1 feats available at character creation).
+   * Organized by ancestry with feat traits, prerequisites, and effects.
+   */
+  const ANCESTRY_FEATS = [
+    'Human' => [
+      ['id' => 'adapted-cantrip', 'name' => 'Adapted Cantrip', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => 'Choose one cantrip from the arcane, divine, occult, or primal spell list. You can cast this spelled as an innate spell at will.'],
+      ['id' => 'cooperative-nature', 'name' => 'Cooperative Nature', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => 'Aid grants a +5 circumstance bonus to skill checks instead of +2, and a +2 circumstance bonus to attack rolls or AC instead of +1.'],
+      ['id' => 'general-training', 'name' => 'General Training', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => 'You gain one 1st-level general feat.'],
+      ['id' => 'haughty-obstinacy', 'name' => 'Haughty Obstinacy', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => '+1 circumstance bonus to Will saves against mental effects. On a success, the effect source is temporarily immune to further attempts for 10 minutes.'],
+      ['id' => 'natural-ambition', 'name' => 'Natural Ambition', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => 'You gain a 1st-level class feat for your class.'],
+      ['id' => 'natural-skill', 'name' => 'Natural Skill', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => 'You gain training in two skills of your choice.'],
+      ['id' => 'unconventional-weaponry', 'name' => 'Unconventional Weaponry', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+        'benefit' => 'Choose one uncommon weapon. You gain access to that weapon and become trained in that weapon.'],
+    ],
+    'Dwarf' => [
+      ['id' => 'dwarven-lore', 'name' => 'Dwarven Lore', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
+        'benefit' => 'Trained in Crafting and Religion. Gain Crafting Lore and Dwarven Lore.'],
+      ['id' => 'dwarven-weapon-familiarity', 'name' => 'Dwarven Weapon Familiarity', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
+        'benefit' => 'You are trained with the battle axe, pick, and warhammer, and all dwarf weapons. For proficiency, treat martial dwarf weapons as simple, and advanced dwarf weapons as martial.'],
+      ['id' => 'rock-runner', 'name' => 'Rock Runner', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
+        'benefit' => 'You can ignore difficult terrain caused by rubble and uneven ground made of stone and earth. Acrobatics DC to Balance on narrow surfaces and uneven ground made of stone or earth reduced by 2.'],
+      ['id' => 'stonecunning', 'name' => 'Stonecunning', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
+        'benefit' => '+2 circumstance bonus on Perception checks to notice unusual stonework. When not Seeking, get a check to find unusual stonework anyway.'],
+      ['id' => 'unburdened-iron', 'name' => 'Unburdened Iron', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
+        'benefit' => 'Ignore the reduction to Speed from wearing armor and reduce the encumbered speed penalty from 5 feet to only 0 feet.'],
+      ['id' => 'vengeful-hatred', 'name' => 'Vengeful Hatred', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
+        'benefit' => 'Choose drow, duergar, giant, or orc when you take this feat. +1 circumstance damage per weapon die against creatures with that trait.'],
+    ],
+    'Elf' => [
+      ['id' => 'ancestral-longevity', 'name' => 'Ancestral Longevity', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => 'You become trained in one skill of your choice. Once per day after rest, you can switch which skill you are trained in.'],
+      ['id' => 'elven-lore', 'name' => 'Elven Lore', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => 'Trained in Arcana and Nature. Gain Elven Lore skill.'],
+      ['id' => 'elven-weapon-familiarity', 'name' => 'Elven Weapon Familiarity', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => 'You are trained with longbows, composite longbows, longswords, rapiers, shortbows, and composite shortbows. For proficiency, treat martial elf weapons as simple, and advanced elf weapons as martial.'],
+      ['id' => 'forlorn', 'name' => 'Forlorn', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => '+1 circumstance bonus on saving throws against emotion effects. If you roll a success on a save against an emotion effect, you get a critical success instead.'],
+      ['id' => 'nimble-elf', 'name' => 'Nimble Elf', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => 'Your Speed increases to 35 feet.'],
+      ['id' => 'otherworldly-magic', 'name' => 'Otherworldly Magic', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => 'Choose one cantrip from the primal spell list. You can cast it as a primal innate spell at will.'],
+      ['id' => 'unwavering-mien', 'name' => 'Unwavering Mien', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
+        'benefit' => 'When you roll a success on a saving throw against a mental effect, you critically succeed instead.'],
+    ],
+    'Gnome' => [
+      ['id' => 'animal-accomplice', 'name' => 'Animal Accomplice', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'You gain a familiar. If you retrain this feat, you lose the familiar.'],
+      ['id' => 'burrow-elocutionist', 'name' => 'Burrow Elocutionist', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'You can speak with burrowing animals (badgers, moles, rabbits, etc.). This doesn\'t make them friendly.'],
+      ['id' => 'fey-fellowship', 'name' => 'Fey Fellowship', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'Fey creatures of your level or lower automatically improve their attitude toward you by one step (hostile becomes unfriendly, unfriendly becomes indifferent, etc.).'],
+      ['id' => 'first-world-magic', 'name' => 'First World Magic', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'Choose one primal cantrip. You can cast it as a primal innate spell at will.'],
+      ['id' => 'gnome-obsession', 'name' => 'Gnome Obsession', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'Choose a Lore skill. You become trained in that skill and gain the Assurance skill feat with it.'],
+      ['id' => 'gnome-weapon-familiarity', 'name' => 'Gnome Weapon Familiarity', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'Trained with glaive and kukri. For proficiency, treat martial gnome weapons as simple, advanced gnome weapons as martial.'],
+      ['id' => 'illusion-sense', 'name' => 'Illusion Sense', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'You automatically get a Perception check to disbelieve illusions you can see, with a +2 circumstance bonus.'],
+    ],
+    'Goblin' => [
+      ['id' => 'burn-it', 'name' => 'Burn It!', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'Fire damage you deal with non-magical weapons and alchemical items gains a +1 status bonus. Resistance to your fire damage is reduced by an amount equal to half your level (minimum 1).'],
+      ['id' => 'city-scavenger', 'name' => 'City Scavenger', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'You know the urban environment intimately. You can Subsist using Society or Survival in a settlement. You can use Society in place of Survival to Track and Seek in urban environments.'],
+      ['id' => 'goblin-lore', 'name' => 'Goblin Lore', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'Trained in Nature and Stealth. Gain Goblin Lore skill.'],
+      ['id' => 'goblin-scuttle', 'name' => 'Goblin Scuttle', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'When an ally ends a move action adjacent to you, you can Step as a reaction.'],
+      ['id' => 'goblin-song', 'name' => 'Goblin Song', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'You sing annoying songs. Attempt a Performance check against the Will DC of a single enemy within 30 feet. Success imposes frightened 1, critical success frightened 2. Target is then temporarily immune for 1 hour.'],
+      ['id' => 'goblin-weapon-familiarity', 'name' => 'Goblin Weapon Familiarity', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'Trained with dogslicers and horsechoppers. For proficiency, treat martial goblin weapons as simple, advanced goblin weapons as martial.'],
+      ['id' => 'junk-tinker', 'name' => 'Junk Tinker', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
+        'benefit' => 'Trained in Crafting. You can Craft nonmagical items from junk. Crafting DCs for such items are 5 easier, but items are shoddy (break on failed attack/check).'],
+    ],
+    'Halfling' => [
+      ['id' => 'distracting-shadows', 'name' => 'Distracting Shadows', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'You have a knack for avoiding notice. You can use creatures one or more sizes larger than you as cover for Hide and Sneak checks.'],
+      ['id' => 'halfling-lore', 'name' => 'Halfling Lore', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'Trained in Acrobatics and Stealth. Gain Halfling Lore skill.'],
+      ['id' => 'halfling-luck', 'name' => 'Halfling Luck', 'level' => 1, 'traits' => ['Halfling', 'Fortune'], 'prerequisites' => '',
+        'benefit' => 'You can reroll a failed skill check or save once per day. Must use second result even if worse.'],
+      ['id' => 'halfling-weapon-familiarity', 'name' => 'Halfling Weapon Familiarity', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'Trained with sling and halfling sling staff. For proficiency, treat martial halfling weapons as simple, advanced halfling weapons as martial.'],
+      ['id' => 'sure-feet', 'name' => 'Sure Feet', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'You can attempt Acrobatics checks to Balance on narrow surfaces and uneven ground without rolling. On a critical failure, you succeed instead.'],
+      ['id' => 'titan-slinger', 'name' => 'Titan Slinger', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'Your thrown weapons and sling range increment increased by 10 feet. Increases to 20 feet at 13th level.'],
+      ['id' => 'unfettered-halfling', 'name' => 'Unfettered Halfling', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
+        'benefit' => 'Success on a check to Escape is automatically a critical success. +2 circumstance bonus to checks to Escape.'],
+    ],
+    'Orc' => [
+      ['id' => 'hold-scarred', 'name' => 'Hold-Scarred Orc', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => '',
+        'benefit' => 'Trained in Stealth. Gain the Terrain Stalker feat for underground terrain. If you retrain out of this feat, you lose Terrain Stalker.'],
+      ['id' => 'orc-ferocity', 'name' => 'Orc Ferocity', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => '',
+        'benefit' => 'Once per day when reduced to 0 HP, you remain at 1 HP and become wounded 1 (or increase your wounded by 1).'],
+      ['id' => 'orc-sight', 'name' => 'Orc Sight', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => 'Low-light vision',
+        'benefit' => 'Your low-light vision is replaced with darkvision.'],
+      ['id' => 'orc-superstition', 'name' => 'Orc Superstition', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => '',
+        'benefit' => '+1 circumstance bonus to saving throws against magic. If you succeed at a save against a magical effect, treat it as a critical success instead (once per day).'],
+      ['id' => 'orc-weapon-familiarity', 'name' => 'Orc Weapon Familiarity', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => '',
+        'benefit' => 'Trained with the falchion and greataxe. For proficiency, treat martial orc weapons as simple, advanced orc weapons as martial.'],
+      ['id' => 'orc-weapon-carnage', 'name' => 'Orc Weapon Carnage', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => 'Orc Weapon Familiarity',
+        'benefit' => 'When you critically succeed at an attack roll with an orc weapon, you apply the weapon\'s critical specialization effect.'],
+    ],
+  ];
+
+  /**
    * PF2e backgrounds with mechanical benefits.
    * Each background grants: 2 free ability boosts (player choice), 1 skill training, 1 lore, and 1 skill feat.
    */
@@ -429,6 +544,169 @@ class CharacterManager {
       'spellcasting' => 'Patron spellcasting, Intelligence',
       'trained_skills' => 3,
     ],
+  ];
+
+  /**
+   * PF2e Class Feats (Level 1 feats available at character creation).
+   * Organized by class with feat traits, prerequisites, and effects.
+   */
+  const CLASS_FEATS = [
+    'fighter' => [
+      ['id' => 'double-slice', 'name' => 'Double Slice', 'level' => 1, 'traits' => ['Fighter'], 'prerequisites' => '',
+        'benefit' => 'You lash out at your foe with both weapons. Make two Strikes, one with each of your two melee weapons, each using your current multiple attack penalty. Both Strikes must have the same target. If the second Strike hits, combine their damage for the purposes of resistances and weaknesses. Apply your multiple attack penalty to the Strikes normally.'],
+      ['id' => 'exacting-strike', 'name' => 'Exacting Strike', 'level' => 1, 'traits' => ['Fighter', 'Press'], 'prerequisites' => '',
+        'benefit' => 'You make a controlled attack, fully accounting for your momentum. Make a melee Strike. It counts as two attacks when calculating your multiple attack penalty. If this Strike fails, you don\'t increase your multiple attack penalty.'],
+      ['id' => 'point-blank-shot', 'name' => 'Point-Blank Shot', 'level' => 1, 'traits' => ['Fighter', 'Open', 'Stance'], 'prerequisites' => '',
+        'benefit' => 'You take aim to pick off nearby enemies quickly. When using a ranged volley weapon while in this stance, you don\'t take the penalty for attacking within the weapon\'s volley range. When using a ranged weapon that doesn\'t have the volley trait, you gain a +2 circumstance bonus to damage rolls on attacks against targets within the weapon\'s first range increment.'],
+      ['id' => 'power-attack', 'name' => 'Power Attack', 'level' => 1, 'traits' => ['Fighter', 'Flourish'], 'prerequisites' => '',
+        'benefit' => 'You unleash a particularly powerful attack that clobbers your foe but leaves you a bit unbalanced. Make a melee Strike. This counts as two attacks when calculating your multiple attack penalty. If this Strike hits, you deal an extra die of weapon damage.'],
+      ['id' => 'reactive-shield', 'name' => 'Reactive Shield', 'level' => 1, 'traits' => ['Fighter'], 'prerequisites' => '',
+        'benefit' => 'Trigger: An enemy hits you with a melee Strike. You can snap your shield into place just as you would take a blow, avoiding the hit at the last second. You immediately use the Raise a Shield action and gain your shield\'s bonus to AC. The circumstance bonus applies to your AC when you\'re determining the outcome of the triggering attack.'],
+      ['id' => 'snagging-strike', 'name' => 'Snagging Strike', 'level' => 1, 'traits' => ['Fighter'], 'prerequisites' => '',
+        'benefit' => 'You combine an attack with quick grappling moves to throw an enemy off balance as long as it stays in your reach. Make a Strike while wielding a weapon with the two-hand trait, using only one hand. If this Strike hits and deals damage, the target is flat-footed until the start of your next turn.'],
+    ],
+    'rogue' => [
+      ['id' => 'nimble-dodge', 'name' => 'Nimble Dodge', 'level' => 1, 'traits' => ['Rogue'], 'prerequisites' => '',
+        'benefit' => 'Trigger: A creature targets you with an attack and you can see the attacker. You deftly dodge out of the way, gaining a +2 circumstance bonus to AC against the triggering attack.'],
+      ['id' => 'trap-finder', 'name' => 'Trap Finder', 'level' => 1, 'traits' => ['Rogue'], 'prerequisites' => '',
+        'benefit' => 'You have an intuitive sense that alerts you to the dangers and presence of traps. You gain a +1 circumstance bonus to Perception checks to find traps, to AC against attacks made by traps, and to saves against traps. You can find traps that require legendary proficiency in Perception. If you critically fail a check to Disable a Device on a trap, you don\'t trigger it.'],
+      ['id' => 'twin-feint', 'name' => 'Twin Feint', 'level' => 1, 'traits' => ['Rogue'], 'prerequisites' => '',
+        'benefit' => 'You make a dazzling series of attacks with both weapons, using the first attack to throw your foe off guard against a second attack. Make one Strike with each of your two melee weapons, both against the same target. The target is automatically flat-footed against the second attack.'],
+      ['id' => 'you-re-next', 'name' => 'You\'re Next', 'level' => 1, 'traits' => ['Rogue', 'Emotion', 'Fear', 'Mental'], 'prerequisites' => '',
+        'benefit' => 'Trigger: You reduce an enemy to 0 Hit Points. After downing a foe, you menace another to sow fear. Attempt an Intimidation check with a +2 circumstance bonus to Demoralize a single creature that you can see and that can see you. This creature doesn\'t need to be within 30 feet, but it must be able to perceive the creature you just killed.'],
+    ],
+    'wizard' => [
+      ['id' => 'counterspell', 'name' => 'Counterspell', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Trigger: A creature Casts a Spell that you have prepared. When a foe Casts a Spell and you can see its manifestations, you can use your own magic to counter it. You expend a prepared spell to counter the triggering creature\'s casting of that same spell. You lose your spell slot as if you had cast 
+
+the triggering spell. You then attempt to counteract the triggering spell.'],
+      ['id' => 'eschew-materials', 'name' => 'Eschew Materials', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'You can use clever workarounds to replicate the arcane essence of certain materials. When Casting a Spell that requires material components, you can provide these material components without a spell component pouch by drawing intricate replacement sigils in the air. Unlike when providing somatic components, you still must have a hand completely free. This doesn\'t remove the need for any materials listed in the spell\'s cost entry.'],
+      ['id' => 'familiar', 'name' => 'Familiar', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'You make a pact with a creature that serves you and assists your spellcasting. You gain a familiar.'],
+      ['id' => 'hand-of-the-apprentice', 'name' => 'Hand of the Apprentice', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => 'Universalist wizard',
+        'benefit' => 'You can magically hurl your weapon at your foe. You gain the Hand of the Apprentice arcane school spell. If you don\'t already have one, you gain a focus pool of 1 Focus Point, which you can Refocus by studying your spellbook.'],
+      ['id' => 'reach-spell', 'name' => 'Reach Spell', 'level' => 1, 'traits' => ['Concentrate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'You extend your spell\'s range. If the next action you use is to Cast a Spell that has a range, increase that spell\'s range by 30 feet. As is standard for increasing spell ranges, if the spell normally has a range of touch, you extend its range to 30 feet.'],
+      ['id' => 'widen-spell', 'name' => 'Widen Spell', 'level' => 1, 'traits' => ['Manipulate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'You manipulate the energy of your spell, causing it to affect a wider area. If the next action you use is to Cast a Spell that has an area of a burst, cone, or line and doesn\'t have a duration, increase the area of that spell. Add 5 feet to the radius of a burst that normally has a radius of at least 10 feet (a burst with a smaller radius is not affected). Add 5 feet to the length of a cone or line that is normally 15 feet long or smaller, and add 10 feet to the length of a larger cone or line.'],
+    ],
+    'ranger' => [
+      ['id' => 'animal-companion', 'name' => 'Animal Companion', 'level' => 1, 'traits' => ['Ranger'], 'prerequisites' => '',
+        'benefit' => 'You gain the service of a young animal companion that travels with you and obeys your commands. The rules for animal companions appear on page 214.'],
+      ['id' => 'crossbow-ace', 'name' => 'Crossbow Ace', 'level' => 1, 'traits' => ['Ranger'], 'prerequisites' => '',
+        'benefit' => 'Your extensive practice with the crossbow has helped you develop an eye for trajectory. When you use a crossbow, the Quick Draw action also reloads the crossbow. When your crossbow is loaded, you can reload without drawing weapon hand.'],
+      ['id' => 'hunted-shot', 'name' => 'Hunted Shot', 'level' => 1, 'traits' => ['Flourish', 'Ranger'], 'prerequisites' => '',
+        'benefit' => 'You carefully track a target and then launch two arrows in rapid succession. Make two Strikes against your prey with your ranged weapon, or one Strike if your weapon has the volley trait. If both hit, combine their damage for resistances and weaknesses. Apply your multiple attack penalty to both. This attack counts as two attacks for your multiple attack penalty.'],
+      ['id' => 'monster-hunter', 'name' => 'Monster Hunter', 'level' => 1, 'traits' => ['Ranger'], 'prerequisites' => '',
+        'benefit' => 'You swear to hunt down a specific type of creature. Choose one of the following monster types: aberration, animal, beast, construct, dragon, elemental, fey, fungus, giant, humanoid, ooze, or undead. You gain a +2 circumstance bonus to Recall Knowledge checks and Investigation checks against creatures with this trait.'],
+      ['id' => 'twin-takedown', 'name' => 'Twin Takedown', 'level' => 1, 'traits' => ['Flourish', 'Ranger'], 'prerequisites' => '',
+        'benefit' => 'You swiftly move from one opponent to the next. Make two Strikes, each against a different target and with a different weapon. The second Strike takes the normal multiple attack penalty, but the Double Slice ability applies.'],
+    ],
+  ];
+
+  /**
+   * PF2e Spells database (Cantrips and 1st level spells).
+   * Organized by tradition (Arcane, Divine, Occult, Primal).
+   */
+  const SPELLS = [
+    'arcane' => [
+      // Cantrips (Level 0)
+      'cantrips' => [
+        ['id' => 'acid-splash', 'name' => 'Acid Splash', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Acid', 'Attack', 'Cantrip', 'Evocation'],
+          'description' => 'You splash a glob of acid that deals 1d6 acid damage plus 1 splash damage. On a critical hit, the target takes 2 splash damage instead of 1.'],
+        ['id' => 'chill-touch', 'name' => 'Chill Touch', 'level' => 0, 'school' => 'Necromancy', 'cast' => '2 actions', 'range' => 'touch', 'traits' => ['Cantrip', 'Necromancy', 'Negative'],
+          'description' => 'Your touch does 1d4 negative damage and 1 persistent negative damage. The target\'s healing from positive energy is reduced by half until the persistent damage ends.'],
+        ['id' => 'daze', 'name' => 'Daze', 'level' => 0, 'school' => 'Enchantment', 'cast' => '2 actions', 'range' => '60 feet', 'traits' => ['Cantrip', 'Enchantment', 'Mental', 'Nonlethal'],
+          'description' => 'You cloud the target\'s mind. The target must attempt a Will save. Success: 1d6 mental damage. Critical Failure: 4d6 mental damage and stunned 1.'],
+        ['id' => 'detect-magic', 'name' => 'Detect Magic', 'level' => 0, 'school' => 'Divination', 'cast' => '2 actions', 'duration' => 'sustained', 'traits' => ['Cantrip', 'Detection', 'Divination'],
+          'description' => 'You send out a pulse that registers the presence of magic. Detects magic auras within 30 feet and reveals their school and strength.'],
+        ['id' => 'electric-arc', 'name' => 'Electric Arc', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Cantrip', 'Electricity', 'Evocation'],
+          'description' => 'An arc of lightning leaps from you to up to two targets. Each target takes 1d4 electricity damage (basic Reflex save).'],
+        ['id' => 'ghost-sound', 'name' => 'Ghost Sound', 'level' => 0, 'school' => 'Illusion', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Auditory', 'Cantrip', 'Illusion'],
+          'description' => 'You create an auditory illusion of simple sounds. The sound can be as loud as four normal humans talking.'],
+        ['id' => 'light', 'name' => 'Light', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => 'touch', 'duration' => 'until your next daily preparations', 'traits' => ['Cantrip', 'Evocation', 'Light'],
+          'description' => 'The object glows, shedding bright light in a 20-foot radius (and dim light for the next 20 feet).'],
+        ['id' => 'mage-hand', 'name' => 'Mage Hand', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '30 feet', 'duration' => 'sustained', 'traits' => ['Cantrip', 'Evocation'],
+          'description' => 'You create a floating, disembodied hand. It can manipulate objects (lift up to 1 Bulk, but can\'t attack).'],
+        ['id' => 'prestidigitation', 'name' => 'Prestidigitation', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '10 feet', 'duration' => 'sustained', 'traits' => ['Cantrip', 'Evocation'],
+          'description' => 'Simple magical effects: create harmless sensory effects, lift up to 1 Bulk, color/clean/soil objects, chill/warm/flavor food.'],
+        ['id' => 'produce-flame', 'name' => 'Produce Flame', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Attack', 'Cantrip', 'Evocation', 'Fire'],
+          'description' => 'A small ball of flame appears in your hand. You can throw it as a ranged attack that deals 1d4 fire damage plus 1 splash fire damage.'],
+        ['id' => 'ray-of-frost', 'name' => 'Ray of Frost', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '120 feet', 'traits' => ['Attack', 'Cantrip', 'Cold', 'Evocation'],
+          'description' => 'You blast an icy ray. The ray deals 1d4 cold damage. On a critical hit, the target is slowed 1 until the end of your next turn.'],
+        ['id' => 'read-aura', 'name' => 'Read Aura', 'level' => 0, 'school' => 'Divination', 'cast' => '1 minute', 'traits' => ['Cantrip', 'Detection', 'Divination'],
+          'description' => 'You study the aura of one object or creature to learn its magical, religious, or alignment qualities.'],
+        ['id' => 'shield', 'name' => 'Shield', 'level' => 0, 'school' => 'Abjuration', 'cast' => '1 action', 'duration' => 'until the start of your next turn', 'traits' => ['Abjuration', 'Cantrip', 'Force'],
+          'description' => 'You raise a magical shield. Gain a +1 circumstance bonus to AC. You can Shield Block with your shield spell (Hardness 5, 20 HP).'],
+        ['id' => 'tanglefoot', 'name' => 'Tanglefoot', 'level' => 0, 'school' => 'Conjuration', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Attack', 'Cantrip', 'Conjuration'],
+          'description' => 'A mass of sticky webbing clings to the target. The target takes a -10-foot status penalty to Speed for 1 round (critical hit: immobilized for 1 round then -10 Speed for 1 round).'],
+        ['id' => 'telekinetic-projectile', 'name' => 'Telekinetic Projectile', 'level' => 0, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Attack', 'Cantrip', 'Evocation'],
+          'description' => 'You hurl a loose object at the target. The object deals 1d6 bludgeoning, piercing, or slashing damage (your choice).'],
+      ],
+      // 1st Level Spells
+      '1st' => [
+        ['id' => 'burning-hands', 'name' => 'Burning Hands', 'level' => 1, 'school' => 'Evocation', 'cast' => '2 actions', 'area' => '15-foot cone', 'traits' => ['Evocation', 'Fire'],
+          'description' => 'Gouts of flame rush from your hands. Creatures in the area take 2d6 fire damage (basic Reflex save).'],
+        ['id' => 'charm', 'name' => 'Charm', 'level' => 1, 'school' => 'Enchantment', 'cast' => '2 actions', 'range' => '30 feet', 'duration' => '1 hour', 'traits' => ['Emotion', 'Enchantment', 'Incapacitation', 'Mental'],
+          'description' => 'The target views you as a good friend. They don\'t necessarily agree with everything you say, but they respond positively to you. Critical Success: The target is unaffected and aware you tried to charm it. Success: Unaffected. Failure: Attitude improves by one step. Critical Failure: Improves by two steps.'],
+        ['id' => 'color-spray', 'name' => 'Color Spray', 'level' => 1, 'school' => 'Illusion', 'cast' => '2 actions', 'area' => '15-foot cone', 'traits' => ['Illusion', 'Incapacitation', 'Visual'],
+          'description' => 'Vivid colors overwhelm creatures in the area. Each creature must attempt a Will save. Critical Success: Unaffected. Success: Dazzled until the end of your next turn. Failure: Stunned 1, blinded and dazzled for 1 round. Critical Failure: Stunned for 1 round and blinded for 1 minute.'],
+        ['id' => 'fear', 'name' => 'Fear', 'level' => 1, 'school' => 'Enchantment', 'cast' => '2 actions', 'range' => '30 feet', 'traits' => ['Emotion', 'Enchantment', 'Fear', 'Mental'],
+          'description' => 'You plant fear in the target. It must attempt a Will save. Critical Success: Unaffected. Success: Frightened 1. Failure: Frightened 2. Critical Failure: Frightened 3 and fleeing for 1 round.'],
+        ['id' => 'grease', 'name' => 'Grease', 'level' => 1, 'school' => 'Conjuration', 'cast' => '2 actions', 'range' => '30 feet', 'duration' => '1 minute', 'traits' => ['Conjuration'],
+          'description' => 'You conjure grease in a 10-foot square. Creatures entering or standing in the grease must succeed at Acrobatics check (DC = spell DC) or fall prone. A creature can avoid this by Balancing through it.'],
+        ['id' => 'mage-armor', 'name' => 'Mage Armor', 'level' => 1, 'school' => 'Abjuration', 'cast' => '2 actions', 'duration' => 'until your next daily preparations', 'traits' => ['Abjuration', 'Force'],
+          'description' => 'You ward yourself with shimmering magical energy, gaining a +1 item bonus to AC and a +1 item bonus to saves against magic missiles. While wearing mage armor, you use your unarmored proficiency.'],
+        ['id' => 'magic-missile', 'name' => 'Magic Missile', 'level' => 1, 'school' => 'Evocation', 'cast' => '1 to 3 actions', 'range' => '120 feet', 'traits' => ['Evocation', 'Force'],
+          'description' => 'You send a dart of force streaking toward a creature. The dart automatically hits and deals 1d4+1 force damage. If you Cast this Spell using 2 actions, create two darts. If you Cast this Spell using 3 actions, create three darts.'],
+        ['id' => 'ray-of-enfeeblement', 'name' => 'Ray of Enfeeblement', 'level' => 1, 'school' => 'Necromancy', 'cast' => '2 actions', 'range' => '30 feet', 'duration' => '1 minute', 'traits' => ['Attack', 'Necromancy'],
+          'description' => 'A ray that saps the target\'s strength. The target takes a -2 status penalty to Strength-based attack rolls, damage rolls, Athletics checks, and Strength-based skill checks.'],
+        ['id' => 'shocking-grasp', 'name' => 'Shocking Grasp', 'level' => 1, 'school' => 'Evocation', 'cast' => '2 actions', 'range' => 'touch', 'traits' => ['Attack', 'Electricity', 'Evocation'],
+          'description' => 'You shroud your hands in a crackling field of lightning. Make a melee spell attack. On a hit, the target takes 2d12 electricity damage. If the target is wearing metal armor or is made of metal, you gain a +1 circumstance bonus to your attack roll with shocking grasp.'],
+        ['id' => 'sleep', 'name' => 'Sleep', 'level' => 1, 'school' => 'Enchantment', 'cast' => '2 actions', 'range' => '30 feet', 'duration' => '1 minute', 'traits' => ['Enchantment', 'Incapacitation', 'Mental', 'Sleep'],
+          'description' => 'Each creature in a 5-foot burst must attempt a Will save. Critical Success: Unaffected. Success: -1 status penalty to Perception checks for identifying creatures until the end of your next turn. Failure: Falls unconscious. Critical Failure: Falls unconscious for 1 minute.'],
+        ['id' => 'true-strike', 'name' => 'True Strike', 'level' => 1, 'school' => 'Divination', 'cast' => '1 action', 'duration' => 'until the end of your turn', 'traits' => ['Divination', 'Fortune'],
+          'description' => 'A glimpse into the future ensures your next blow strikes true. The next attack roll you make before the end of your turn gains a +10 circumstance bonus.'],
+      ],
+    ],
+  ];
+
+  /**
+   * PF2e Weapons database with essential weapons for combat calculations.
+   * Includes damage dice, category, group, traits, and range for each weapon.
+   */
+  const WEAPONS = [
+    // Simple Melee Weapons
+    'club' => ['name' => 'Club', 'damage' => '1d6', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'club', 'hands' => 1, 'traits' => ['Thrown 10 ft']],
+    'dagger' => ['name' => 'Dagger', 'damage' => '1d4', 'damage_type' => 'piercing', 'category' => 'simple', 'group' => 'knife', 'hands' => 1, 'traits' => ['Agile', 'Finesse', 'Thrown 10 ft', 'Versatile S']],
+    'mace' => ['name' => 'Mace', 'damage' => '1d6', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'club', 'hands' => 1, 'traits' => ['Agile', 'Finesse', 'Shove']],
+    'spear' => ['name' => 'Spear', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'simple', 'group' => 'spear', 'hands' => 1, 'traits' => ['Thrown 20 ft']],
+    'staff' => ['name' => 'Staff', 'damage' => '1d4', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'club', 'hands' => 1, 'traits' => ['Two-Hand 1d8']],
+    
+    // Simple Ranged Weapons
+    'crossbow' => ['name' => 'Crossbow', 'damage' => '1d8', 'damage_type' => 'piercing', 'category' => 'simple', 'group' => 'bow', 'hands' => 2, 'range' => '120 feet', 'traits' => ['Reload 1']],
+    'sling' => ['name' => 'Sling', 'damage' => '1d6', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'sling', 'hands' => 1, 'range' => '50 feet', 'traits' => ['Propulsive']],
+    
+    // Martial Melee Weapons
+    'battleaxe' => ['name' => 'Battle Axe', 'damage' => '1d8', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'axe', 'hands' => 1, 'traits' => ['Sweep']],
+    'falchion' => ['name' => 'Falchion', 'damage' => '1d10', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 2, 'traits' => ['Forceful', 'Sweep']],
+    'greatsword' => ['name' => 'Greatsword', 'damage' => '1d12', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 2, 'traits' => ['Versatile P']],
+    'longsword' => ['name' => 'Longsword', 'damage' => '1d8', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Versatile P']],
+    'rapier' => ['name' => 'Rapier', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Deadly d8', 'Disarm', 'Finesse']],
+    'scimitar' => ['name' => 'Scimitar', 'damage' => '1d6', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Forceful', 'Sweep']],
+    'shortsword' => ['name' => 'Shortsword', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Agile', 'Finesse', 'Versatile S']],
+    'warhammer' => ['name' => 'Warhammer', 'damage' => '1d8', 'damage_type' => 'bludgeoning', 'category' => 'martial', 'group' => 'hammer', 'hands' => 1, 'traits' => ['Shove']],
+    'greataxe' => ['name' => 'Greataxe', 'damage' => '1d12', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'axe', 'hands' => 2, 'traits' => ['Sweep']],
+    
+    // Martial Ranged Weapons
+    'composite-longbow' => ['name' => 'Composite Longbow', 'damage' => '1d8', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '100 feet', 'traits' => ['Deadly d10', 'Propulsive', 'Volley 30 ft']],
+    'composite-shortbow' => ['name' => 'Composite Shortbow', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '60 feet', 'traits' => ['Deadly d10', 'Propulsive']],
+    'longbow' => ['name' => 'Longbow', 'damage' => '1d8', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '100 feet', 'traits' => ['Deadly d10', 'Volley 30 ft']],
+    'shortbow' => ['name' => 'Shortbow', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '60 feet', 'traits' => ['Deadly d10']],
+    
+    // Unarmed Strike
+    'fist' => ['name' => 'Fist', 'damage' => '1d4', 'damage_type' => 'bludgeoning', 'category' => 'unarmed', 'group' => 'brawling', 'hands' => 0, 'traits' => ['Agile', 'Finesse', 'Nonlethal', 'Unarmed']],
   ];
 
   public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid) {

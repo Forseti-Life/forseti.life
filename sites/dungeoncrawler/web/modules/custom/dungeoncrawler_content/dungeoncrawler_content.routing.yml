@@ -123,6 +123,15 @@ dungeoncrawler_content.encounter_ai_integration:
   requirements:
     _permission: 'access content'
 
+dungeoncrawler_content.encounter_ai_integration_metrics_csv:
+  path: '/architecture/encounter-ai-integration/metrics.csv'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\EncounterAiIntegrationController::exportMetricsCsv'
+    _title: 'Encounter AI Metrics CSV'
+  methods: [GET]
+  requirements:
+    _permission: 'access content'
+
 # ==============================================================================
 # DEMO/TESTING ROUTES
 # ==============================================================================
@@ -310,6 +319,41 @@ dungeoncrawler_content.api.character_load:
     _format: json
 
 # ------------------------------------------------------------------------------
+# Ability Score API Endpoints (Pathbuilder-style real-time calculation)
+# ------------------------------------------------------------------------------
+
+dungeoncrawler_content.api.ability_scores_calculate:
+  path: '/api/characters/ability-scores/calculate'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\AbilityScoreApiController::calculate'
+  methods: [POST]
+  requirements:
+    _permission: 'create dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.ability_scores_validate_boost:
+  path: '/api/characters/ability-scores/validate-boost'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\AbilityScoreApiController::validateBoost'
+  methods: [POST]
+  requirements:
+    _permission: 'create dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.ability_scores_available_boosts:
+  path: '/api/characters/ability-scores/available-boosts/{step}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\AbilityScoreApiController::getAvailableBoosts'
+  methods: [GET]
+  requirements:
+    _permission: 'create dungeoncrawler characters'
+    step: 'ancestry|background|class|free'
+  options:
+    _format: json
+
+# ------------------------------------------------------------------------------
 # Character State API Endpoints
 # ------------------------------------------------------------------------------
 
@@ -378,6 +422,31 @@ dungeoncrawler_content.api.room_state_get:
   requirements:
     _permission: 'access dungeoncrawler characters'
     dungeon_id: '[A-Za-z0-9_-]+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+# Room Chat API - Persistent dialogue storage per room
+dungeoncrawler_content.api.room_chat_get:
+  path: '/api/campaign/{campaign_id}/room/{room_id}/chat'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomChatController::getChatHistory'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.room_chat_post:
+  path: '/api/campaign/{campaign_id}/room/{room_id}/chat'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomChatController::postChatMessage'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
     room_id: '[A-Za-z0-9_-]+'
   options:
     _format: json
@@ -456,6 +525,84 @@ dungeoncrawler_content.api.character_inventory:
   requirements:
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
+  options:
+    _format: json
+
+# ==============================================================================
+# INVENTORY MANAGEMENT API ENDPOINTS
+# ==============================================================================
+# Comprehensive inventory management and transfer system for managing items
+# between characters and containers.
+
+dungeoncrawler_content.api.inventory_get:
+  path: '/api/inventory/{owner_type}/{owner_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::getInventory'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    owner_type: 'character|container'
+    owner_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.inventory_add_item:
+  path: '/api/inventory/{owner_type}/{owner_id}/item'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::addItem'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    owner_type: 'character|container'
+    owner_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.inventory_remove_item:
+  path: '/api/inventory/{owner_type}/{owner_id}/item/{item_instance_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::removeItem'
+  methods: [DELETE]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    owner_type: 'character|container'
+    owner_id: '[A-Za-z0-9_-]+'
+    item_instance_id: '[A-Za-z0-9_.]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.inventory_transfer:
+  path: '/api/inventory/transfer'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::transferItems'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.inventory_change_location:
+  path: '/api/inventory/{owner_type}/{owner_id}/item/{item_instance_id}/location'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::changeItemLocation'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    owner_type: 'character|container'
+    owner_id: '[A-Za-z0-9_-]+'
+    item_instance_id: '[A-Za-z0-9_.]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.inventory_capacity:
+  path: '/api/inventory/{owner_type}/{owner_id}/capacity'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::getCapacity'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    owner_type: 'character|container'
+    owner_id: '[A-Za-z0-9_-]+'
   options:
     _format: json
 
@@ -680,5 +827,245 @@ dungeoncrawler_content.api.entities_list:
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
+  options:
+    _format: json
+
+# ==============================================================================
+# DUNGEON GENERATION API ENDPOINTS
+# ==============================================================================
+# Procedural dungeon generation API endpoints for creating and managing
+# dynamically generated dungeons with rooms, encounters, and entities.
+
+# Generate complete dungeon with multiple levels
+dungeoncrawler_content.api.generate_dungeon:
+  path: '/api/campaign/{campaign_id}/dungeons/generate'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonGeneratorController::generateDungeon'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+# Get complete dungeon with all levels
+dungeoncrawler_content.api.get_dungeon:
+  path: '/api/campaign/{campaign_id}/dungeons/{dungeon_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonGeneratorController::getDungeon'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    dungeon_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+# Get single dungeon level
+dungeoncrawler_content.api.get_dungeon_level:
+  path: '/api/campaign/{campaign_id}/dungeons/{dungeon_id}/levels/{depth}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonGeneratorController::getDungeonLevel'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    dungeon_id: '[A-Za-z0-9_-]+'
+    depth: '\d+'
+  options:
+    _format: json
+
+# Extend dungeon with new level
+dungeoncrawler_content.api.add_dungeon_level:
+  path: '/api/campaign/{campaign_id}/dungeons/{dungeon_id}/levels'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonGeneratorController::addDungeonLevel'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    dungeon_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+# ==============================================================================
+# ROOM GENERATION API ENDPOINTS
+# ==============================================================================
+# Individual room generation for dungeon levels.
+
+# Generate new room in dungeon level
+dungeoncrawler_content.api.generate_room:
+  path: '/api/campaign/{campaign_id}/dungeons/{dungeon_id}/levels/{depth}/rooms'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomGeneratorController::createRoom'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    dungeon_id: '[A-Za-z0-9_-]+'
+    depth: '\d+'
+  options:
+    _format: json
+
+# Get room details
+dungeoncrawler_content.api.get_room:
+  path: '/api/campaign/{campaign_id}/dungeons/{dungeon_id}/rooms/{room_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomGeneratorController::getRoom'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    dungeon_id: '[A-Za-z0-9_-]+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+# Regenerate room (admin only)
+dungeoncrawler_content.api.regenerate_room:
+  path: '/api/campaign/{campaign_id}/dungeons/{dungeon_id}/rooms/{room_id}/regenerate'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomGeneratorController::regenerateRoom'
+  methods: [POST]
+  requirements:
+    _permission: 'administer dungeoncrawler content'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    dungeon_id: '[A-Za-z0-9_-]+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+# ==============================================================================
+# QUEST SYSTEM API ENDPOINTS
+# ==============================================================================
+# Quest generation, tracking, and reward management.
+
+# Generate a quest from a template
+dungeoncrawler_content.api.quest_generate:
+  path: '/api/campaign/{campaign_id}/quests/generate'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestGeneratorController::generate'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+# Generate multiple quests for a location
+dungeoncrawler_content.api.quest_generate_for_location:
+  path: '/api/campaign/{campaign_id}/quests/generate-for-location'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestGeneratorController::generateForLocation'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+# Get available quests for campaign
+dungeoncrawler_content.api.quest_list_available:
+  path: '/api/campaign/{campaign_id}/quests/available'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::getAvailableQuests'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+# Start a quest
+dungeoncrawler_content.api.quest_start:
+  path: '/api/campaign/{campaign_id}/quests/{quest_id}/start'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::startQuest'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    quest_id: '[a-z0-9_-]+'
+  options:
+    _format: json
+
+# Update quest progress
+dungeoncrawler_content.api.quest_update_progress:
+  path: '/api/campaign/{campaign_id}/quests/{quest_id}/progress'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::updateProgress'
+  methods: [PUT]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    quest_id: '[a-z0-9_-]+'
+  options:
+    _format: json
+
+# Complete a quest
+dungeoncrawler_content.api.quest_complete:
+  path: '/api/campaign/{campaign_id}/quests/{quest_id}/complete'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::completeQuest'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    quest_id: '[a-z0-9_-]+'
+  options:
+    _format: json
+
+# Get quest journal for character
+dungeoncrawler_content.api.quest_journal:
+  path: '/api/campaign/{campaign_id}/character/{character_id}/quest-journal'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::getQuestJournal'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    character_id: '[a-z0-9_-]+'
+  options:
+    _format: json
+
+# Claim quest rewards
+dungeoncrawler_content.api.quest_claim_rewards:
+  path: '/api/campaign/{campaign_id}/quests/{quest_id}/rewards/claim'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestRewardController::claimRewards'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    quest_id: '[a-z0-9_-]+'
+  options:
+    _format: json
+
+# Get reward summary for quest
+dungeoncrawler_content.api.quest_get_rewards:
+  path: '/api/campaign/{campaign_id}/quests/{quest_id}/rewards'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\QuestRewardController::getRewardSummary'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    quest_id: '[a-z0-9_-]+'
   options:
     _format: json

@@ -36,12 +36,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Ancestry & Heritage",
+      "const": "Ancestry & Heritage Foundation",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Choose your character's ancestry and heritage, which determine your physical traits, innate abilities, and cultural background.",
+      "const": "Choose the lineage foundation that will shape your character's long-term strengths, identity, and campaign presence.",
       "description": "Explanation of what happens in this step"
     },
     "fields": {
@@ -61,7 +61,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose Your Ancestry",
+              "const": "Choose Your Legacy Ancestry",
               "description": "Field label"
             },
             "required": {
@@ -145,7 +145,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Your ancestry represents your character's lineage and heritage. It determines hit points, size, speed, ability boosts/flaws, starting languages, and special senses like darkvision.",
+              "const": "Ancestry sets your baseline survivability and identity across the full campaign timeline.",
               "description": "Helper text displayed to user"
             },
             "validation": {
@@ -186,7 +186,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose Your Heritage",
+              "const": "Choose Your Heritage Path",
               "description": "Field label"
             },
             "required": {
@@ -455,20 +455,20 @@
       },
       "default": [
         {
-          "title": "Choosing Your Ancestry",
-          "text": "Your ancestry provides mechanical benefits like ability boosts, hit points, and special senses. Choose based on both story and mechanics."
+          "title": "Think Long-Term",
+          "text": "Choose ancestry for durability and play feel over many sessions, not only early optimization."
         },
         {
-          "title": "Understanding Ability Boosts",
-          "text": "Ability boosts marked 'Free' let you choose any ability score. Strategic choices here can enhance your character's effectiveness."
+          "title": "Role Consistency",
+          "text": "Use boosts and heritage traits to reinforce your intended role in your long-term roster."
         },
         {
-          "title": "Size Considerations",
-          "text": "Small ancestries have advantages in tight spaces but may have reduced reach for melee attacks."
+          "title": "Campaign Practicality",
+          "text": "Size, movement, and senses affect day-to-day dungeon decision making more than many players expect."
         },
         {
-          "title": "Vision Types",
-          "text": "Darkvision lets you see in darkness up to 60 feet. Low-light vision lets you see in dim light as if it were bright light."
+          "title": "Vision Matters",
+          "text": "Darkvision and low-light vision are quality-of-life advantages that pay off repeatedly in persistent exploration."
         }
       ]
     },

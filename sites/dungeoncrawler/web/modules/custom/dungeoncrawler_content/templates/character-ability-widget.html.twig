@@ -1,0 +1,527 @@
+{#
+/**
+ * @file
+ * Pathbuilder-inspired Ability Score Widget
+ *
+ * Reusable component that displays ability scores with Pathbuilder 2e's
+ * clean visual design: large score, modifier, and source breakdown.
+ *
+ * This widget can be used in multiple contexts:
+ * - Character creation steps 2-8 (preview of current scores)
+ * - Character sheet display
+ * - API-driven real-time updates
+ *
+ * Variables:
+ * - abilities: Array of ability data with scores, modifiers, and sources
+ *   Structure: {
+ *     'strength': {
+ *       'score': 18,
+ *       'modifier': 4,
+ *       'sources': [
+ *         {'type': 'base', 'value': 10, 'source': 'Base score'},
+ *         {'type': 'boost', 'value': 2, 'source': 'Dwarf ancestry', 'step': 'ancestry'},
+ *         ...
+ *       ]
+ *     },
+ *     ...
+ *   }
+ * - mode: Display mode
+ *   - 'full': Full display with source breakdown (default)
+ *   - 'compact': Compact display (score + modifier only)
+ *   - 'interactive': Interactive mode with boost selection
+ * - show_sources: Whether to show source breakdown (default: true)
+ * - highlight_changes: Whether to highlight recent changes (default: false)
+ *
+ * @see \Drupal\dungeoncrawler_content\Service\AbilityScoreTracker
+ */
+#}
+
+{% set mode = mode|default('full') %}
+{% set show_sources = show_sources is defined ? show_sources : true %}
+{% set highlight_changes = highlight_changes|default(false) %}
+
+<div class="ability-score-widget ability-score-widget--{{ mode }}" data-mode="{{ mode }}">
+  
+  {% if mode == 'full' and abilities %}
+    <div class="abilities-grid">
+      {% for ability_key, ability_data in abilities %}
+        {% set ability_name = ability_key|capitalize %}
+        {% set score = ability_data.score|default(10) %}
+        {% set modifier = ability_data.modifier|default(0) %}
+        {% set sources = ability_data.sources|default([]) %}
+        {% set has_boost = sources|length > 1 %}
+        {% set has_flaw = sources|filter(s => s.type == 'flaw')|length > 0 %}
+        
+        <div class="ability-card {% if has_boost %}ability-card--boosted{% endif %} {% if has_flaw %}ability-card--flawed{% endif %}" 
+             data-ability="{{ ability_key }}"
+             data-score="{{ score }}"
+             data-modifier="{{ modifier }}">
+          
+          {# Ability Icon #}
+          <div class="ability-icon">
+            {% if ability_key == 'strength' %}💪
+            {% elseif ability_key == 'dexterity' %}🎯
+            {% elseif ability_key == 'constitution' %}❤️
+            {% elseif ability_key == 'intelligence' %}🧠
+            {% elseif ability_key == 'wisdom' %}🔮
+            {% elseif ability_key == 'charisma' %}✨
+            {% endif %}
+          </div>
+          
+          {# Ability Name #}
+          <h3 class="ability-name">{{ ability_name }}</h3>
+          
+          {# Score Display (Pathbuilder-style: large prominent number) #}
+          <div class="score-display {% if highlight_changes %}score-display--changed{% endif %}">
+            <span class="score-value">{{ score }}</span>
+            <span class="modifier-value {% if modifier >= 0 %}modifier-positive{% else %}modifier-negative{% endif %}">
+              {{ modifier >= 0 ? '+' ~ modifier : modifier }}
+            </span>
+          </div>
+          
+          {# Source Breakdown (tooltip-style on hover) #}
+          {% if show_sources and sources|length > 0 %}
+            <div class="ability-sources">
+              {% for source in sources %}
+                {% set badge_class = source.type == 'flaw' ? 'source-badge--flaw' : 'source-badge--boost' %}
+                <span class="source-badge {{ badge_class }}" 
+                      title="{{ source.source }}"
+                      data-type="{{ source.type }}"
+                      data-value="{{ source.value }}"
+                      data-step="{{ source.step|default('') }}">
+                  {% if source.type == 'base' %}
+                    Base {{ source.value }}
+                  {% elseif source.type == 'boost' %}
+                    +{{ source.value }}
+                  {% elseif source.type == 'flaw' %}
+                    {{ source.value }}
+                  {% endif %}
+                </span>
+              {% endfor %}
+            </div>
+            
+            {# Detailed source list (hidden, shown on click/hover) #}
+            <div class="ability-sources-detail" style="display: none;">
+              <strong>Score Breakdown:</strong>
+              <ul class="source-list">
+                {% for source in sources %}
+                  <li class="source-item source-item--{{ source.type }}">
+                    <span class="source-change">
+                      {% if source.type == 'boost' %}+{{ source.value }}
+                      {% elseif source.type == 'flaw' %}{{ source.value }}
+                      {% else %}{{ source.value }}
+                      {% endif %}
+                    </span>
+                    <span class="source-text">{{ source.source }}</span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endif %}
+          
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  {% if mode == 'compact' and abilities %}
+    <div class="abilities-compact">
+      {% for ability_key, ability_data in abilities %}
+        {% set ability_abbr = ability_key|slice(0, 3)|upper %}
+        {% set score = ability_data.score|default(10) %}
+        {% set modifier = ability_data.modifier|default(0) %}
+        
+        <div class="ability-compact-item" data-ability="{{ ability_key }}">
+          <span class="ability-abbr">{{ ability_abbr }}</span>
+          <span class="ability-score">{{ score }}</span>
+          <span class="ability-modifier {% if modifier >= 0 %}positive{% else %}negative{% endif %}">
+            ({{ modifier >= 0 ? '+' ~ modifier : modifier }})
+          </span>
+        </div>
+      {% endfor %}
+    </div>
+  {% endif %}
+  
+  {% if mode == 'interactive' %}
+    <div class="abilities-interactive">
+      <div class="boost-selector-header">
+        <h3>Select Abilities to Boost</h3>
+        <div class="boost-counter">
+          <span class="boosts-remaining" data-remaining="{{ boosts_remaining|default(4) }}">
+            {{ boosts_remaining|default(4) }}
+          </span>
+          <span class="boosts-total"> / {{ boosts_total|default(4) }}</span>
+          <span class="counter-label"> boosts remaining</span>
+        </div>
+      </div>
+      
+      <div class="abilities-grid abilities-grid--interactive">
+        {% for ability_key, ability_data in abilities %}
+          {% set ability_name = ability_key|capitalize %}
+          {% set score = ability_data.score|default(10) %}
+          {% set modifier = ability_data.modifier|default(0) %}
+          {% set is_selected = ability_data.selected|default(false) %}
+          {% set is_disabled = ability_data.disabled|default(false) %}
+          
+          <div class="ability-card ability-card--selectable {% if is_selected %}ability-card--selected{% endif %} {% if is_disabled %}ability-card--disabled{% endif %}"
+               data-ability="{{ ability_key }}"
+               data-score="{{ score }}"
+               data-modifier="{{ modifier }}"
+               {% if not is_disabled %}tabindex="0" role="button"{% endif %}>
+            
+            {# Selection Indicator #}
+            <div class="selection-indicator">
+              <input type="checkbox" 
+                     name="ability_boost_{{ ability_key }}" 
+                     value="{{ ability_key }}"
+                     {% if is_selected %}checked{% endif %}
+                     {% if is_disabled %}disabled{% endif %}
+                     class="ability-checkbox">
+              <span class="checkmark"></span>
+            </div>
+            
+            {# Ability Icon #}
+            <div class="ability-icon">
+              {% if ability_key == 'strength' %}💪
+              {% elseif ability_key == 'dexterity' %}🎯
+              {% elseif ability_key == 'constitution' %}❤️
+              {% elseif ability_key == 'intelligence' %}🧠
+              {% elseif ability_key == 'wisdom' %}🔮
+              {% elseif ability_key == 'charisma' %}✨
+              {% endif %}
+            </div>
+            
+            {# Ability Name #}
+            <h3 class="ability-name">{{ ability_name }}</h3>
+            
+            {# Current Score Preview #}
+            <div class="score-preview">
+              <span class="current-score">{{ score }}</span>
+              {% if not is_selected %}
+                <span class="arrow-icon">→</span>
+                <span class="preview-score">{{ score < 18 ? score + 2 : score + 1 }}</span>
+              {% endif %}
+            </div>
+            
+            {# Modifier Preview #}
+            <div class="modifier-preview">
+              <span class="current-modifier {{ modifier >= 0 ? 'positive' : 'negative' }}">
+                ({{ modifier >= 0 ? '+' ~ modifier : modifier }})
+              </span>
+            </div>
+            
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+  
+  {% if not abilities %}
+    <div class="ability-widget-empty">
+      <p class="empty-message">No ability scores calculated yet. Select your ancestry, background, and class to see your ability scores.</p>
+    </div>
+  {% endif %}
+  
+</div>
+
+{# Inline CSS for Pathbuilder-inspired styling #}
+<style>
+.ability-score-widget {
+  width: 100%;
+  margin: 1rem 0;
+}
+
+.abilities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 1rem;
+  margin: 1rem 0;
+}
+
+.ability-card {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border: 2px solid #dee2e6;
+  border-radius: 12px;
+  padding: 1rem;
+  text-align: center;
+  transition: all 0.3s ease;
+  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.ability-card:hover {
+  border-color: #6c757d;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.ability-card--boosted {
+  border-color: #28a745;
+  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+}
+
+.ability-card--flawed {
+  border-color: #dc3545;
+  background: linear-gradient(135deg, #f8d7da 0%, #f1aeb5 100%);
+}
+
+.ability-icon {
+  font-size: 2rem;
+  margin-bottom: 0.5rem;
+}
+
+.ability-name {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0.5rem 0;
+  color: #212529;
+}
+
+.score-display {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.score-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #212529;
+  line-height: 1;
+}
+
+.modifier-value {
+  font-size: 1.25rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.modifier-positive {
+  color: #28a745;
+}
+
+.modifier-negative {
+  color: #dc3545;
+}
+
+.score-display--changed .score-value {
+  animation: scoreChange 0.5s ease;
+}
+
+@keyframes scoreChange {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.2); color: #ffc107; }
+}
+
+.ability-sources {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.source-badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: help;
+}
+
+.source-badge--boost {
+  background: #28a745;
+  color: white;
+}
+
+.source-badge--flaw {
+  background: #dc3545;
+  color: white;
+}
+
+.ability-sources-detail {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: white;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin-top: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 100;
+  min-width: 200px;
+  text-align: left;
+}
+
+.source-list {
+  list-style: none;
+  padding: 0;
+  margin: 0.5rem 0 0 0;
+}
+
+.source-item {
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.source-change {
+  font-weight: 700;
+  margin-right: 0.5rem;
+}
+
+.source-item--boost .source-change {
+  color: #28a745;
+}
+
+.source-item--flaw .source-change {
+  color: #dc3545;
+}
+
+/* Compact mode */
+.abilities-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+}
+
+.ability-compact-item {
+  display: flex;
+  gap: 0.5rem;
+  align-items: baseline;
+}
+
+.ability-abbr {
+  font-weight: 700;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.ability-score {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #212529;
+}
+
+.ability-modifier {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Interactive mode */
+.ability-card--selectable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.ability-card--selectable:focus {
+  outline: 2px solid #007bff;
+  outline-offset: 2px;
+}
+
+.ability-card--selected {
+  border-color: #007bff;
+  background: linear-gradient(135deg, #cfe2ff 0%, #9ec5fe 100%);
+}
+
+.ability-card--disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.selection-indicator {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+}
+
+.ability-checkbox {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.checkmark {
+  display: inline-block;
+  width: 24px;
+  height: 24px;
+  border: 2px solid #6c757d;
+  border-radius: 4px;
+  background: white;
+  position: relative;
+}
+
+.ability-card--selected .checkmark {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.ability-card--selected .checkmark::after {
+  content: '✓';
+  position: absolute;
+  color: white;
+  font-size: 18px;
+  font-weight: bold;
+  top: -2px;
+  left: 3px;
+}
+
+.score-preview {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  margin: 0.5rem 0;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.arrow-icon {
+  color: #6c757d;
+}
+
+.preview-score {
+  color: #28a745;
+}
+
+.boost-selector-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  background: #e9ecef;
+  border-radius: 8px;
+}
+
+.boost-counter {
+  font-size: 1.25rem;
+}
+
+.boosts-remaining {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #007bff;
+}
+
+.ability-widget-empty {
+  text-align: center;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+}
+
+.empty-message {
+  color: #6c757d;
+  margin: 0;
+}
+</style>

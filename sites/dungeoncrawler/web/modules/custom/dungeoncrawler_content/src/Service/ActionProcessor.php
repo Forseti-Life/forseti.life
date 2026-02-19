@@ -22,13 +22,15 @@ class ActionProcessor {
   protected $conditionManager;
   protected $logger;
   protected $store;
+  protected $numberGeneration;
 
-  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store) {
+  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation) {
     $this->calculator = $calculator;
     $this->hpManager = $hp_manager;
     $this->conditionManager = $condition_manager;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
     $this->store = $store;
+    $this->numberGeneration = $number_generation;
   }
 
   /**
@@ -84,7 +86,9 @@ class ActionProcessor {
     $attacker_mod = $this->conditionManager->getConditionModifiers($attacker_id, 'attack', $encounter_id);
     $target_ac_mod = $this->conditionManager->getConditionModifiers($target_id, 'ac', $encounter_id);
 
-    $roll_natural = isset($weapon['natural_roll']) ? (int) $weapon['natural_roll'] : rand(1, 20);
+    $roll_natural = isset($weapon['natural_roll'])
+      ? max(1, min(20, (int) $weapon['natural_roll']))
+      : $this->numberGeneration->rollPathfinderDie(20);
     $attack_total = $roll_natural + $base_attack_bonus + $attacker_mod + $map_penalty;
 
     $target_ac = (int) ($target['ac'] ?? 10) + $target_ac_mod;

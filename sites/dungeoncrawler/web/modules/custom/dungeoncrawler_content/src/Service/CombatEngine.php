@@ -38,13 +38,15 @@ class CombatEngine {
    * @var \Drupal\dungeoncrawler_content\Service\HPManager
    */
   protected $hpManager;
+  protected $numberGeneration;
 
-  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager) {
+  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation) {
     $this->database = $database;
     $this->stateManager = $state_manager;
     $this->actionProcessor = $action_processor;
     $this->store = $store;
     $this->hpManager = $hp_manager;
+    $this->numberGeneration = $number_generation;
   }
 
   /**
@@ -288,7 +290,7 @@ class CombatEngine {
       if ($condition['condition_type'] === 'persistent_damage') {
         $damage = (int) ($condition['value'] ?? 0);
         $result = $this->hpManager->applyDamage($participant_id, $damage, 'persistent', ['condition' => 'persistent_damage'], $encounter_id);
-        $flat_check = rand(1, 20);
+        $flat_check = $this->numberGeneration->rollPathfinderDie(20);
         $cleared = $flat_check >= 15;
 
         if ($cleared) {

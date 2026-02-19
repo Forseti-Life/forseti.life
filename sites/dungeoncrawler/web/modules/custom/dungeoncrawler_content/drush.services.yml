@@ -1,0 +1,8 @@
+services:
+  dungeoncrawler_content.commands.quest_template:
+    class: Drupal\dungeoncrawler_content\Commands\QuestTemplateCommands
+    arguments:
+      - '@database'
+      - '@logger.factory'
+    tags:
+      - { name: drush.command }

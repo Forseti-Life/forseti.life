@@ -60,12 +60,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Ability Scores",
+      "const": "Ability Profile",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Determine your character's ability scores by applying boosts from your ancestry, background, class, and four free boosts. Each ability starts at 10.",
+      "const": "Finalize the stat profile your character will carry through long-term campaign play and legacy progression.",
       "description": "Explanation of what happens in this step"
     },
     "fields": {
@@ -83,7 +83,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Current Ability Scores",
+              "const": "Current Legacy Ability Profile",
               "description": "Field label"
             },
             "abilities": {
@@ -172,7 +172,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Each ability score starts at 10. Each boost you apply increases it by +2. The modifier is (Score - 10) / 2, rounded down.",
+              "const": "Each ability starts at 10 and gains +2 per boost. Build for sustained campaign performance, not only first-session burst.",
               "description": "Helper text explaining ability score mechanics"
             }
           },
@@ -189,7 +189,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose 4 Free Ability Boosts",
+              "const": "Choose 4 Long-Term Focus Boosts",
               "description": "Field label"
             },
             "required": {
@@ -209,7 +209,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "You have 4 free ability boosts to assign. You can boost the same ability score with multiple boosts, making it easier to focus on your key abilities.",
+              "const": "Assign 4 boosts to support your long-term role. You can stack boosts on key abilities when needed.",
               "description": "Helper text displayed to user"
             },
             "validation": {
@@ -391,12 +391,12 @@
         "type": "string"
       },
       "default": [
-        "Your class's key ability should be your highest score. Most classes want it at 16 or 18 at level 1.",
-        "Constitution affects your hit points. Every character benefits from a decent Constitution score.",
-        "You can't exceed 18 in any ability during character creation. Later levels provide opportunities to increase abilities further.",
-        "A score of 10 has a +0 modifier. Each 2 points above 10 adds +1 to the modifier (12=+1, 14=+2, 16=+3, 18=+4).",
-        "Some ancestries have ability flaws (shown as -2). This is balanced by their other benefits.",
-        "Spread your boosts wisely - extreme specialization can leave you vulnerable in certain situations."
+        "Keep your class key ability high, but preserve enough breadth to survive varied encounters over time.",
+        "Constitution and Dexterity often determine whether a character remains reliable deep into a campaign.",
+        "18 is the creation cap; this is your baseline legacy profile before later progression milestones.",
+        "A balanced modifier spread usually outperforms fragile min-max builds in persistent world play.",
+        "Accept tradeoffs intentionally: every boost should support your long-term role identity.",
+        "Plan with future roster synergy in mind so retired and active characters feel strategically distinct."
       ]
     },
     "examples": {

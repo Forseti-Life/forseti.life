@@ -44,6 +44,16 @@ character-creation:
   dependencies:
     - dungeoncrawler_content/character-step-base
 
+# Pathbuilder-style ability score boost selector
+ability-boost-selector:
+  js:
+    js/ability-boost-selector.js: {}
+  dependencies:
+    - core/drupal
+    - core/jquery
+    - core/once
+    - core/drupalSettings
+
 # Individual step libraries - now depend on character-step-base
 character-step-1:
   js:

@@ -93,12 +93,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Class",
+      "const": "Class & Campaign Role",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Choose your character's class, which determines their capabilities, hit points, proficiencies, and role in the party.",
+      "const": "Choose your class with your long-term party role in mind: this drives power curve, survivability, and campaign identity.",
       "description": "Explanation of what happens in this step"
     },
     "fields": {
@@ -116,7 +116,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose Your Class",
+              "const": "Choose Your Long-Term Class Role",
               "description": "Field label"
             },
             "required": {
@@ -141,7 +141,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Your class is your character's profession and provides their combat role, special abilities, and proficiencies. Choose a class that matches your desired playstyle.",
+              "const": "Your class defines your long-term gameplay identity. Choose one you want to run for many sessions.",
               "description": "Helper text displayed to user"
             },
             "validation": {
@@ -284,12 +284,12 @@
         "type": "string"
       },
       "default": [
-        "Hit Points (HP) determine how much damage you can take. Higher HP classes (typically 10-12 HP) are more durable in combat, while lower HP classes (typically 6-8 HP) are more fragile.",
-        "Key Ability is the most important stat for your class. Make sure to boost it with your free ability improvements.",
-        "Spellcasting classes (see class_categories.spellcasters: wizard, cleric, druid, sorcerer, bard, oracle, witch) can cast powerful spells but tend to have lower HP.",
-        "Martial classes (see class_categories.martial: fighter, barbarian, ranger, monk, champion, swashbuckler) excel in physical combat with weapons.",
-        "Skill specialists (see class_categories.skill_specialists: rogue, investigator, alchemist) focus on skills, expertise, and versatility with exceptional numbers of trained skills and unique abilities.",
-        "Consider your party composition - balanced parties with different roles tend to handle challenges better."
+        "Choose for campaign endurance: if you won't enjoy this class at session 20, pick another now.",
+        "Your key ability should remain a top priority because it drives your class identity and reliability.",
+        "Spellcasters offer flexible answers and scaling utility, but need positioning discipline and team protection.",
+        "Martial classes deliver stable frontline pressure and strong consistency in persistent dungeon runs.",
+        "Skill specialists shine in exploration, utility, and problem-solving that compounds across campaign history.",
+        "Build a roster mindset: your class should complement current and future characters in your account legacy."
       ]
     },
     "examples": {

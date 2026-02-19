@@ -329,6 +329,16 @@
       "maxLength": 5000,
       "description": "Character backstory. Optional flavor text for roleplaying."
     },
+    "portrait_generate": {
+      "type": "boolean",
+      "default": true,
+      "description": "Whether to generate a portrait when character creation completes."
+    },
+    "portrait_prompt": {
+      "type": "string",
+      "maxLength": 500,
+      "description": "Optional user prompt to guide portrait generation."
+    },
     "feats": {
       "type": "array",
       "uniqueItems": true,

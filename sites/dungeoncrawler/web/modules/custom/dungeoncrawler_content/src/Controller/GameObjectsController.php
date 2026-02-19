@@ -155,6 +155,10 @@ class GameObjectsController extends ControllerBase {
     if ($edit_requested && !empty($primary_key_values)) {
       $row = $this->gameObjectInventory->loadTableRowByPrimaryKey($selected_table, $primary_key_values);
       if (!empty($row)) {
+        if ($selected_table === 'dungeoncrawler_content_image_prompt_cache') {
+          $build['prompt_cache_card'] = $this->buildPromptCacheDetailCard($row);
+        }
+
         $image_links_card = $this->buildGeneratedImageLinksCard($selected_table, $selected_metadata, $primary_key_values, $row, $filters);
         if (!empty($image_links_card)) {
           $build['row_images_card'] = $image_links_card;
@@ -941,6 +945,82 @@ class GameObjectsController extends ControllerBase {
         ],
       ],
     ];
+  }
+
+  /**
+   * Builds prompt cache detail card for cached image generation rows.
+   */
+  protected function buildPromptCacheDetailCard(array $row): array {
+    $summary_rows = [
+      [$this->t('Provider'), $this->formatCellValue($row['provider'] ?? NULL)],
+      [$this->t('Model'), $this->formatCellValue($row['provider_model'] ?? NULL)],
+      [$this->t('Status'), $this->formatCellValue($row['status'] ?? NULL)],
+      [$this->t('Hits'), $this->formatCellValue($row['hits'] ?? NULL)],
+      [$this->t('Prompt Hash'), $this->formatCellValue($row['prompt_hash'] ?? NULL)],
+      [$this->t('Campaign ID'), $this->formatCellValue($row['campaign_id'] ?? NULL)],
+      [$this->t('Map ID'), $this->formatCellValue($row['map_id'] ?? NULL)],
+      [$this->t('Dungeon ID'), $this->formatCellValue($row['dungeon_id'] ?? NULL)],
+      [$this->t('Room ID'), $this->formatCellValue($row['room_id'] ?? NULL)],
+      [$this->t('Hex Q'), $this->formatCellValue($row['hex_q'] ?? NULL)],
+      [$this->t('Hex R'), $this->formatCellValue($row['hex_r'] ?? NULL)],
+      [$this->t('Entity Type'), $this->formatCellValue($row['entity_type'] ?? NULL)],
+      [$this->t('Terrain Type'), $this->formatCellValue($row['terrain_type'] ?? NULL)],
+      [$this->t('Habitat Name'), $this->formatCellValue($row['habitat_name'] ?? NULL)],
+    ];
+
+    return [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['card', 'card-dungeoncrawler', 'mb-4']],
+      'body' => [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['card-body']],
+        'heading' => [
+          '#markup' => '<h3 class="h5 mb-3">' . $this->t('Prompt Cache Entry') . '</h3>',
+        ],
+        'summary' => [
+          '#type' => 'table',
+          '#header' => [$this->t('Field'), $this->t('Value')],
+          '#rows' => $summary_rows,
+          '#attributes' => ['class' => ['game-content-dashboard']]
+        ],
+        'prompt' => [
+          '#markup' => '<h4 class="h6 mt-3 mb-2">' . $this->t('Prompt Text') . '</h4>'
+            . '<pre class="mb-3">' . $this->escapeText((string) ($row['prompt_text'] ?? '')) . '</pre>',
+        ],
+        'negative_prompt' => [
+          '#markup' => '<h4 class="h6 mt-2 mb-2">' . $this->t('Negative Prompt') . '</h4>'
+            . '<pre class="mb-3">' . $this->escapeText((string) ($row['negative_prompt'] ?? '')) . '</pre>',
+        ],
+        'request_payload' => [
+          '#markup' => '<h4 class="h6 mt-2 mb-2">' . $this->t('Request Payload') . '</h4>'
+            . '<pre class="mb-3">' . $this->escapeText($this->formatJsonPayload($row['request_payload'] ?? NULL)) . '</pre>',
+        ],
+        'response_payload' => [
+          '#markup' => '<h4 class="h6 mt-2 mb-2">' . $this->t('Response Payload') . '</h4>'
+            . '<pre class="mb-3">' . $this->escapeText($this->formatJsonPayload($row['response_payload'] ?? NULL)) . '</pre>',
+        ],
+        'output_payload' => [
+          '#markup' => '<h4 class="h6 mt-2 mb-2">' . $this->t('Output Payload') . '</h4>'
+            . '<pre class="mb-0">' . $this->escapeText($this->formatJsonPayload($row['output_payload'] ?? NULL)) . '</pre>',
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Format stored JSON payloads for display.
+   */
+  protected function formatJsonPayload(mixed $payload): string {
+    if (!is_string($payload) || trim($payload) === '') {
+      return '';
+    }
+
+    $decoded = json_decode($payload, TRUE);
+    if (is_array($decoded)) {
+      return (string) json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+    }
+
+    return $payload;
   }
 
 }

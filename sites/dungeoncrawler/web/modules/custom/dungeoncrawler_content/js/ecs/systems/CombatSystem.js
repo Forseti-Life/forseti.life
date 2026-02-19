@@ -53,9 +53,9 @@ export const AttackResult = {
  * CombatSystem
  * 
  * Handles combat mechanics including:
- * - Attack rolls (d20 + bonuses vs AC)
- * - Damage rolls
- * - Critical hits/misses
+ * - Attack legality checks (range, hostility, actions)
+ * - Server-result attack projection for ECS/UI callbacks
+ * - Damage application from server-authoritative outcomes
  * - Multiple Attack Penalty (MAP)
  * - Damage application (transient - requires backend sync for persistence)
  * 
@@ -67,10 +67,20 @@ export class CombatSystem extends System {
   constructor(entityManager) {
     super(entityManager);
     this.priority = 30; // Run after turn management (10), before movement (50)
+    this.requireServerResultPayload = true;
     
     // Callbacks for UI/animation
     this.onAttackCallback = null;
     this.onDamageCallback = null;
+  }
+
+  /**
+   * Enable or disable strict server-result enforcement.
+   *
+   * @param {boolean} required
+   */
+  setServerResultRequirement(required) {
+    this.requireServerResultPayload = Boolean(required);
   }
   
   /**
@@ -86,29 +96,6 @@ export class CombatSystem extends System {
    */
   update(deltaTime) {
     // Combat system is event-driven
-  }
-  
-  /**
-   * Roll a die.
-   * @param {number} sides - Number of sides on the die
-   * @returns {number} - Result (1 to sides)
-   */
-  rollDie(sides) {
-    return Math.floor(Math.random() * sides) + 1;
-  }
-  
-  /**
-   * Roll multiple dice and sum.
-   * @param {number} count - Number of dice
-   * @param {number} sides - Sides per die
-   * @returns {number} - Total
-   */
-  rollDice(count, sides) {
-    let total = 0;
-    for (let i = 0; i < count; i++) {
-      total += this.rollDie(sides);
-    }
-    return total;
   }
   
   /**
@@ -138,18 +125,19 @@ export class CombatSystem extends System {
   }
   
   /**
-   * Perform an attack roll.
+   * Project a server-authoritative attack outcome into ECS/UI state.
    * 
    * SCHEMA CONFORMANCE:
    * - Reads AC from StatsComponent.ac (maps to hot column armor_class)
-   * - AC is extracted from state_data -> defenses.armorClass.total
-   * - Attack calculations are client-side only; results must be sent to backend
+   * - Uses backend-provided attack/damage outcomes from /api/combat/attack
+   * - Does not perform any random roll generation client-side
    * 
    * @param {Entity} attacker - Attacking entity
    * @param {Entity} target - Target entity
-   * @returns {Object} - {result, roll, total, ac, damage}
+   * @param {Object} [serverResult=null] - Server-authoritative attack result payload
+   * @returns {Object|null} - Normalized attack data, or null when no server result is provided
    */
-  makeAttack(attacker, target) {
+  makeAttack(attacker, target, serverResult = null) {
     const attackerCombat = attacker.getComponent('CombatComponent');
     const attackerActions = attacker.getComponent('ActionsComponent');
     const targetStats = target.getComponent('StatsComponent');
@@ -157,6 +145,15 @@ export class CombatSystem extends System {
     
     if (!attackerCombat || !targetStats) {
       console.warn('Missing components for attack');
+      return null;
+    }
+
+    if (!serverResult || typeof serverResult !== 'object') {
+      const message = 'CombatSystem.makeAttack() requires server-authoritative result payload.';
+      if (this.requireServerResultPayload) {
+        throw new Error(message);
+      }
+      console.warn(message);
       return null;
     }
     
@@ -171,47 +168,37 @@ export class CombatSystem extends System {
       mapPenalty = mapResult;
     }
     
-    // Roll attack (d20)
-    const attackRoll = this.rollDie(20);
-    
-    // Calculate attack total
+    const attackRoll = Number(
+      serverResult.attackRoll
+      ?? serverResult.attack_roll
+      ?? serverResult.roll
+      ?? serverResult.natural
+      ?? 0
+    );
+
     const attackBonus = this.getAttackBonus(attacker);
-    const attackTotal = attackRoll + attackBonus + mapPenalty;
+
+    const attackTotal = Number(
+      serverResult.attackTotal
+      ?? serverResult.attack_total
+      ?? serverResult.total
+      ?? (attackRoll + attackBonus + mapPenalty)
+    );
     
     // Get target AC (from hot column armor_class via StatsComponent)
     const targetAC = targetStats.ac;
     
-    // Determine result
-    let result;
-    if (attackRoll === 20) {
-      result = AttackResult.CRITICAL_HIT;
-    } else if (attackRoll === 1) {
-      result = AttackResult.CRITICAL_MISS;
-    } else if (attackTotal >= targetAC) {
-      // Check for critical hit (beat AC by 10+)
-      if (attackTotal >= targetAC + 10) {
-        result = AttackResult.CRITICAL_HIT;
-      } else {
-        result = AttackResult.HIT;
-      }
-    } else {
-      result = AttackResult.MISS;
-    }
+    const result = String(
+      serverResult.result
+      ?? serverResult.degree
+      ?? serverResult.outcome
+      ?? AttackResult.MISS
+    ).toLowerCase();
     
-    // Roll damage if hit or critical
-    let damage = 0;
-    if (result === AttackResult.HIT || result === AttackResult.CRITICAL_HIT) {
-      // Basic damage: 1d6 + STR mod
-      const stats = attacker.getComponent('StatsComponent');
-      const strMod = stats ? stats.getAbilityModifier('strength') : 0;
-      damage = this.rollDice(1, 6) + strMod;
-      
-      // Double damage dice on critical hit
-      if (result === AttackResult.CRITICAL_HIT) {
-        damage += this.rollDice(1, 6);
-      }
-      
-      // Apply damage to target (transient - requires API sync)
+    // Apply server damage only when explicitly requested by caller.
+    const damage = Number(serverResult.damage ?? serverResult.total_damage ?? 0);
+    const shouldApplyDamage = Boolean(serverResult.applyDamage === true);
+    if (shouldApplyDamage && Number.isFinite(damage) && damage > 0) {
       this.applyDamage(target, damage);
     }
     
@@ -371,9 +358,14 @@ export class CombatSystem extends System {
    * Execute attack action (checks actions, performs attack).
    * @param {Entity} attacker - Attacking entity
    * @param {Entity} target - Target entity
+   * @param {Object} [serverResult=null] - Server-authoritative attack result payload
    * @returns {Object|null} - Attack data or null if failed
    */
-  attack(attacker, target) {
+  attack(attacker, target, serverResult = null) {
+    if ((!serverResult || typeof serverResult !== 'object') && this.requireServerResultPayload) {
+      throw new Error('CombatSystem.attack() blocked: missing server-authoritative result payload.');
+    }
+
     // Check if attack is valid
     const check = this.canAttack(attacker, target);
     if (!check.canAttack) {
@@ -381,8 +373,8 @@ export class CombatSystem extends System {
       return null;
     }
 
-    // Perform attack (consumes actions inside makeAttack via ActionsComponent.makeAttack)
-    return this.makeAttack(attacker, target);
+    // Perform attack using server-authoritative result payload only.
+    return this.makeAttack(attacker, target, serverResult);
   }
   
   /**

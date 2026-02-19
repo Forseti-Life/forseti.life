@@ -184,6 +184,22 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
       'path' => $path . '/templates',
     ],
 
+    // Pathbuilder-style ability score widget with interactive boost selection.
+    // Supports three modes: full (detailed), compact (minimal), interactive (selectable).
+    'character_ability_widget' => [
+      'variables' => [
+        'abilities' => [],
+        'mode' => 'full',
+        'show_sources' => TRUE,
+        'highlight_changes' => FALSE,
+        'boosts_remaining' => 0,
+        'boosts_total' => 4,
+        'attributes' => [],
+      ],
+      'template' => 'character-ability-widget',
+      'path' => $path . '/templates',
+    ],
+
     // Hexmap demo interface for dungeon exploration.
     'hexmap_demo' => [
       'variables' => [

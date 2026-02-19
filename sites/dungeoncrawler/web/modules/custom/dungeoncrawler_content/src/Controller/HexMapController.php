@@ -179,6 +179,41 @@ class HexMapController extends ControllerBase {
       $level = (int) ($character_data['level'] ?? 0);
     }
 
+    // Extract ability scores
+    $abilities = $character_data['abilities'] ?? [];
+    if (!is_array($abilities)) {
+      $abilities = [
+        'strength' => 10,
+        'dexterity' => 10,
+        'constitution' => 10,
+        'intelligence' => 10,
+        'wisdom' => 10,
+        'charisma' => 10,
+      ];
+    }
+
+    // Extract skills
+    $skills = $character_data['skills'] ?? [];
+    if (!is_array($skills)) {
+      $skills = [];
+    }
+
+    // Extract features/feats
+    $feats = $character_data['feats'] ?? [];
+    if (!is_array($feats)) {
+      $feats = [];
+    }
+
+    // Extract inventory
+    $equipment = $character_data['equipment'] ?? [];
+    $gold = $character_data['gold'] ?? 0;
+
+    // Extract hero points
+    $hero_points = $character_data['hero_points'] ?? 1;
+
+    // Extract conditions
+    $conditions = $character_data['conditions'] ?? [];
+
     return [
       'name' => $name,
       'level' => $level,
@@ -189,6 +224,18 @@ class HexMapController extends ControllerBase {
       'armor_class' => $armor_class,
       'team' => 'player',
       'entity_type' => 'player_character',
+      // Enhanced character sheet data
+      'abilities' => $abilities,
+      'skills' => $skills,
+      'feats' => $feats,
+      'equipment' => $equipment,
+      'currency' => [
+        'gp' => $gold,
+        'sp' => 0,
+        'cp' => 0,
+      ],
+      'hero_points' => $hero_points,
+      'conditions' => $conditions,
     ];
   }
 

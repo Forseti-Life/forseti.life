@@ -72,6 +72,8 @@ class EncounterAiIntegrationService {
         'strike',
         'step',
         'stride',
+        'interact',
+        'talk',
         'demoralize',
         'raise_shield',
         'end_turn',

@@ -17,18 +17,103 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Finishing Touches",
+      "const": "Legacy Identity",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Bring your character to life with personal details like age, gender, appearance, personality traits, and a compelling backstory.",
+      "const": "Complete the details that make your character memorable from first expedition to eventual retirement.",
       "description": "Explanation of what happens in this step"
     },
     "fields": {
       "type": "object",
       "description": "Form fields available in this step",
       "properties": {
+        "portrait_generate": {
+          "type": "object",
+          "description": "Toggle portrait generation",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "checkbox",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Generate a character portrait",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Creates a portrait using the configured AI image provider after character creation.",
+              "description": "Helper text"
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text"]
+        },
+        "portrait_prompt": {
+          "type": "object",
+          "description": "Optional prompt to guide portrait generation",
+          "properties": {
+            "field_type": {
+              "type": "string",
+              "const": "textarea",
+              "description": "HTML input type"
+            },
+            "label": {
+              "type": "string",
+              "const": "Portrait prompt (optional)",
+              "description": "Field label"
+            },
+            "required": {
+              "type": "boolean",
+              "const": false,
+              "description": "Optional field"
+            },
+            "placeholder": {
+              "type": "string",
+              "const": "e.g., rugged veteran with a weathered cloak, warm amber lighting",
+              "description": "Placeholder text"
+            },
+            "help_text": {
+              "type": "string",
+              "const": "Add extra visual direction. Character attributes will be injected automatically.",
+              "description": "Helper text"
+            },
+            "validation": {
+              "type": "object",
+              "properties": {
+                "max_length": {
+                  "type": "integer",
+                  "const": 500,
+                  "description": "Maximum character count"
+                },
+                "rows": {
+                  "type": "integer",
+                  "const": 3,
+                  "description": "Visible rows in textarea"
+                },
+                "error_messages": {
+                  "type": "object",
+                  "properties": {
+                    "max_length": {
+                      "type": "string",
+                      "const": "Portrait prompt cannot exceed 500 characters."
+                    }
+                  },
+                  "required": ["max_length"]
+                }
+              },
+              "required": ["max_length", "rows", "error_messages"]
+            }
+          },
+          "required": ["field_type", "label", "required", "help_text", "validation"]
+        },
         "age": {
           "type": "object",
           "description": "Character age field",
@@ -40,7 +125,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Age",
+              "const": "Age / Life Stage",
               "description": "Field label"
             },
             "required": {
@@ -50,12 +135,12 @@
             },
             "placeholder": {
               "type": "string",
-              "const": "e.g., 25, young adult, ancient",
+              "const": "e.g., 25, young adult, veteran, elder",
               "description": "Placeholder text"
             },
             "help_text": {
               "type": "string",
-              "const": "Your character's age. Can be specific (25 years) or descriptive (young, middle-aged). Different ancestries age at different rates.",
+              "const": "Optional detail that helps frame your character's long-term arc and perspective.",
               "description": "Helper text"
             },
             "validation": {
@@ -116,7 +201,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Your character's gender identity and preferred pronouns. This is entirely up to you and has no mechanical effects.",
+              "const": "Identity detail for roleplay consistency. This has no mechanical impact.",
               "description": "Helper text"
             },
             "validation": {
@@ -153,7 +238,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Physical Appearance",
+              "const": "Appearance & Presence",
               "description": "Field label"
             },
             "required": {
@@ -163,12 +248,12 @@
             },
             "placeholder": {
               "type": "string",
-              "const": "Describe your character's physical features: height, build, hair, eyes, notable features...",
+              "const": "Describe the details other players will remember: silhouette, gear style, expression, notable marks...",
               "description": "Placeholder text"
             },
             "help_text": {
               "type": "string",
-              "const": "Describe how your character looks. Include physical features, distinguishing marks, typical clothing, or anything else that makes them recognizable.",
+              "const": "Capture recognizable visual details that stay consistent across long campaign play.",
               "description": "Helper text"
             },
             "validation": {
@@ -211,7 +296,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Personality & Mannerisms",
+              "const": "Personality & Table Voice",
               "description": "Field label"
             },
             "required": {
@@ -221,12 +306,12 @@
             },
             "placeholder": {
               "type": "string",
-              "const": "What is your character like? Brave, cautious, sarcastic, earnest, curious...",
+              "const": "How does your character speak, decide, and react under pressure over many sessions?",
               "description": "Placeholder text"
             },
             "help_text": {
               "type": "string",
-              "const": "Describe your character's personality, quirks, habits, speech patterns, or emotional tendencies. What makes them tick?",
+              "const": "Define habits and tone you can sustain consistently through a full campaign arc.",
               "description": "Helper text"
             },
             "validation": {
@@ -269,7 +354,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Backstory",
+              "const": "Backstory & Legacy Goal",
               "description": "Field label"
             },
             "required": {
@@ -279,12 +364,12 @@
             },
             "placeholder": {
               "type": "string",
-              "const": "Where did your character come from? What experiences shaped them? Why did they become an adventurer?",
+              "const": "Where did they start, why do they stay in this world, and what ending might define their retirement?",
               "description": "Placeholder text"
             },
             "help_text": {
               "type": "string",
-              "const": "Tell your character's story. Include their origins, key life events, relationships, motivations, and goals. This helps the GM integrate your character into the campaign.",
+              "const": "Capture the origin, motivations, and long-term goals that will shape this character's campaign legacy.",
               "description": "Helper text"
             },
             "validation": {
@@ -480,12 +565,12 @@
         "type": "string"
       },
       "default": [
-        "These fields are all optional but add depth to your character and help with roleplaying.",
-        "Your backstory doesn't need to be elaborate - a few sentences about motivations and goals is enough to start.",
-        "Think about how your background choice connects to your backstory.",
-        "Consider leaving some elements of your backstory mysterious to discover during play.",
-        "Your character's personality can evolve during gameplay - this is just a starting point.",
-        "Coordinate with your GM and other players to create connections between characters and the campaign world."
+        "Keep it concise and playable: a strong paragraph beats a long, unfocused biography.",
+        "Connect backstory to campaign intent—why this character stays, fights, and grows here.",
+        "Define one unresolved thread you can explore over future sessions.",
+        "Leave room for evolution so your character can change naturally through play.",
+        "A retirement end-state idea can make your long-form arc more satisfying.",
+        "Your first draft is enough; legacy identity strengthens as campaign history accumulates."
       ]
     }
   },

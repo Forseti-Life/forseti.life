@@ -27,7 +27,7 @@ class CombatEncounterStore {
    *
    * @return int Encounter ID.
    */
-  public function createEncounter(?int $campaign_id, ?string $room_id, array $participants): int {
+  public function createEncounter(?int $campaign_id, ?string $room_id, array $participants, ?string $map_id = NULL): int {
     $txn = $this->database->startTransaction();
     $now = time();
 
@@ -35,6 +35,7 @@ class CombatEncounterStore {
       ->fields([
         'campaign_id' => $campaign_id,
         'room_id' => $room_id,
+        'map_id' => $map_id,
         'status' => 'active',
         'current_round' => 1,
         'turn_index' => 0,

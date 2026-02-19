@@ -2,6 +2,7 @@
 
 namespace Drupal\Tests\dungeoncrawler_content\Functional\CharacterCreation;
 
+use Drupal\Core\Url;
 use Drupal\Tests\BrowserTestBase;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 
@@ -45,7 +46,9 @@ class CharacterCreationWorkflowTest extends BrowserTestBase {
 
     // 2. Navigate to character creation
     $this->drupalGet('/characters/create');
-    $this->assertSession()->statusCodeEquals(200);
+    $status_code = $this->getSession()->getStatusCode();
+    $response_body = $this->getSession()->getPage()->getContent();
+    $this->assertSame(200, $status_code, 'Step save should return 200. Body: ' . $response_body);
     $this->assertSession()->pageTextContains('Create Character');
 
     // Step 1: Character Name and Concept
@@ -372,6 +375,135 @@ class CharacterCreationWorkflowTest extends BrowserTestBase {
     // Verify character was created with all persisted data
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('Persistent Data Test');
+  }
+
+  /**
+   * Tests AJAX step-save endpoint creates draft and returns step redirect.
+   */
+  public function testStepSaveEndpointCreatesDraftAndAdvancesStep(): void {
+    $user = $this->drupalCreateUser(['create dungeoncrawler characters', 'access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $csrf_token = trim((string) $this->drupalGet('session/token'));
+    $request = $this->postStepSaveRequest(1, [
+      'name' => 'Step Save Draft',
+      'concept' => 'Step-save endpoint verification.',
+    ], [
+      'X-CSRF-Token' => $csrf_token,
+    ]);
+
+    $this->assertSame(200, $request['status'], 'Step save should return 200. Body: ' . $request['body']);
+
+    $response = $request['json'];
+    $this->assertIsArray($response, 'Response should decode as JSON array.');
+    $this->assertTrue($response['success'] ?? FALSE, 'Step save should succeed with valid payload.');
+    $this->assertNotEmpty($response['redirect'] ?? NULL, 'Step save should return redirect URL.');
+    $this->assertStringContainsString('/characters/create/step/2', (string) $response['redirect'], 'Redirect should advance to step 2.');
+
+    $character_id = 0;
+    if (preg_match('/character_id=(\d+)/', (string) $response['redirect'], $matches)) {
+      $character_id = (int) $matches[1];
+    }
+
+    $this->assertGreaterThan(0, $character_id, 'Redirect should include created draft character_id.');
+
+    $character_row = \Drupal::database()->select('dc_campaign_characters', 'cc')
+      ->fields('cc', ['id', 'uid', 'name', 'status', 'character_data'])
+      ->condition('id', $character_id)
+      ->execute()
+      ->fetchAssoc();
+
+    $this->assertNotFalse($character_row, 'Draft character should exist in database.');
+    $this->assertEquals((int) $user->id(), (int) ($character_row['uid'] ?? 0), 'Draft should belong to logged-in user.');
+    $this->assertEquals('Step Save Draft', $character_row['name'] ?? '', 'Draft should persist submitted name.');
+    $this->assertEquals(0, (int) ($character_row['status'] ?? -1), 'Draft should remain incomplete status.');
+
+    $character_data = json_decode((string) ($character_row['character_data'] ?? '{}'), TRUE);
+    $this->assertIsArray($character_data, 'Draft character_data should decode.');
+    $this->assertEquals(2, (int) ($character_data['step'] ?? 0), 'Draft step should advance to next step.');
+  }
+
+  /**
+   * Tests AJAX step-save endpoint rejects invalid payload with validation error.
+   */
+  public function testStepSaveEndpointRejectsInvalidPayload(): void {
+    $user = $this->drupalCreateUser(['create dungeoncrawler characters', 'access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $csrf_token = trim((string) $this->drupalGet('session/token'));
+    $request = $this->postStepSaveRequest(1, [
+      'name' => '',
+      'concept' => 'Missing required name.',
+    ], [
+      'X-CSRF-Token' => $csrf_token,
+    ]);
+
+    $this->assertSame(400, $request['status'], 'Invalid payload should return 400. Body: ' . $request['body']);
+
+    $response = $request['json'];
+    $this->assertIsArray($response, 'Response should decode as JSON array.');
+    $this->assertFalse($response['success'] ?? TRUE, 'Step save should fail with invalid payload.');
+    $this->assertArrayHasKey('message', $response, 'Validation response should include message.');
+    $this->assertStringContainsString('required', strtolower((string) $response['message']), 'Validation message should indicate required-field failure.');
+
+    $created_count = (int) \Drupal::database()->select('dc_campaign_characters', 'cc')
+      ->condition('uid', (int) $user->id())
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertEquals(0, $created_count, 'Invalid step payload must not create a draft character row.');
+  }
+
+  /**
+   * Tests AJAX step-save endpoint rejects missing CSRF token.
+   */
+  public function testStepSaveEndpointRejectsMissingCsrfToken(): void {
+    $user = $this->drupalCreateUser(['create dungeoncrawler characters', 'access dungeoncrawler characters']);
+    $this->drupalLogin($user);
+
+    $request = $this->postStepSaveRequest(1, [
+      'name' => 'No Token Character',
+      'concept' => 'Missing token should fail.',
+    ]);
+
+    $this->assertSame(403, $request['status'], 'Missing CSRF token should return 403. Body: ' . $request['body']);
+
+    $response = $request['json'];
+    $this->assertIsArray($response, 'Response should decode as JSON array.');
+    $this->assertFalse($response['success'] ?? TRUE, 'Request without CSRF token must fail.');
+    $this->assertStringContainsString('csrf', strtolower((string) ($response['message'] ?? '')), 'Response should mention CSRF token requirement.');
+
+    $created_count = (int) \Drupal::database()->select('dc_campaign_characters', 'cc')
+      ->condition('uid', (int) $user->id())
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+    $this->assertEquals(0, $created_count, 'Request without CSRF token must not create a draft character row.');
+  }
+
+  /**
+   * Sends a step-save POST request using BrowserTest HTTP client.
+   */
+  private function postStepSaveRequest(int $step, array $payload, array $headers = []): array {
+    $url = Url::fromUserInput("/characters/create/step/{$step}/save")
+      ->setAbsolute(TRUE)
+      ->toString();
+
+    $response = $this->getHttpClient()->post($url, [
+      'headers' => ['Accept' => 'application/json'] + $headers,
+      'cookies' => $this->getSessionCookies(),
+      'http_errors' => FALSE,
+      'form_params' => $payload,
+    ]);
+
+    $body = (string) $response->getBody();
+    $decoded = json_decode($body, TRUE);
+
+    return [
+      'status' => $response->getStatusCode(),
+      'body' => $body,
+      'json' => is_array($decoded) ? $decoded : [],
+    ];
   }
 
 }

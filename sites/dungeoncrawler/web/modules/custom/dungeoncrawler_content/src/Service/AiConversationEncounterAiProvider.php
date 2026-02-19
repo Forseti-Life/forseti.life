@@ -2,6 +2,7 @@
 
 namespace Drupal\dungeoncrawler_content\Service;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\ai_conversation\Service\AIApiService;
 
@@ -21,6 +22,11 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
   protected LoggerChannelFactoryInterface $loggerFactory;
 
   /**
+   * Config factory.
+   */
+  protected ConfigFactoryInterface $configFactory;
+
+  /**
    * Deterministic fallback provider.
    */
   protected StubEncounterAiProvider $fallbackProvider;
@@ -28,9 +34,10 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
   /**
    * Constructs provider.
    */
-  public function __construct(AIApiService $ai_api_service, LoggerChannelFactoryInterface $logger_factory, StubEncounterAiProvider $fallback_provider) {
+  public function __construct(AIApiService $ai_api_service, LoggerChannelFactoryInterface $logger_factory, ConfigFactoryInterface $config_factory, StubEncounterAiProvider $fallback_provider) {
     $this->aiApiService = $ai_api_service;
     $this->loggerFactory = $logger_factory;
+    $this->configFactory = $config_factory;
     $this->fallbackProvider = $fallback_provider;
   }
 
@@ -38,31 +45,48 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
    * {@inheritdoc}
    */
   public function recommendNpcAction(array $context): array {
-    $response = $this->aiApiService->invokeModelDirect(
+    $response = $this->invokeWithRetry(
       $this->buildRecommendationPrompt($context),
-      'dungeoncrawler_content',
       'encounter_npc_recommendation',
       $this->buildContextData($context),
       [
-        'max_tokens' => 800,
+        'max_tokens' => $this->getRecommendationMaxTokens(),
         'skip_cache' => TRUE,
         'system_prompt' => $this->buildRecommendationSystemPrompt(),
       ]
     );
 
     if (empty($response['success'])) {
-      return $this->fallbackRecommendation($context, (string) ($response['error'] ?? 'AI response was not successful.'));
+      return $this->fallbackRecommendation(
+        $context,
+        (string) ($response['error'] ?? 'AI response was not successful.'),
+        (int) ($response['request_attempts'] ?? 1),
+        (string) ($response['request_id'] ?? '')
+      );
     }
 
     $parsed = $this->decodeModelResponse((string) ($response['response'] ?? ''));
     if (!is_array($parsed)) {
-      return $this->fallbackRecommendation($context, 'Unable to parse recommendation payload from ai_conversation response.');
+      return $this->fallbackRecommendation(
+        $context,
+        'Unable to parse recommendation payload from ai_conversation response.',
+        (int) ($response['request_attempts'] ?? 1),
+        (string) ($response['request_id'] ?? '')
+      );
     }
 
     $normalized = $this->normalizeRecommendation($parsed, $context);
     if ($normalized === NULL) {
-      return $this->fallbackRecommendation($context, 'Recommendation payload missing required fields.');
+      return $this->fallbackRecommendation(
+        $context,
+        'Recommendation payload missing required fields.',
+        (int) ($response['request_attempts'] ?? 1),
+        (string) ($response['request_id'] ?? '')
+      );
     }
+
+    $normalized['request_attempts'] = (int) ($response['request_attempts'] ?? 1);
+    $normalized['request_id'] = (string) ($response['request_id'] ?? '');
 
     return $normalized;
   }
@@ -71,30 +95,44 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
    * {@inheritdoc}
    */
   public function generateEncounterNarration(array $context): array {
-    $response = $this->aiApiService->invokeModelDirect(
+    $response = $this->invokeWithRetry(
       $this->buildNarrationPrompt($context),
-      'dungeoncrawler_content',
       'encounter_narration',
       $this->buildContextData($context),
       [
-        'max_tokens' => 500,
+        'max_tokens' => $this->getNarrationMaxTokens(),
         'skip_cache' => TRUE,
         'system_prompt' => $this->buildNarrationSystemPrompt(),
       ]
     );
 
     if (empty($response['success'])) {
-      return $this->fallbackNarration($context, (string) ($response['error'] ?? 'AI response was not successful.'));
+      return $this->fallbackNarration(
+        $context,
+        (string) ($response['error'] ?? 'AI response was not successful.'),
+        (int) ($response['request_attempts'] ?? 1),
+        (string) ($response['request_id'] ?? '')
+      );
     }
 
     $parsed = $this->decodeModelResponse((string) ($response['response'] ?? ''));
     if (!is_array($parsed)) {
-      return $this->fallbackNarration($context, 'Unable to parse narration payload from ai_conversation response.');
+      return $this->fallbackNarration(
+        $context,
+        'Unable to parse narration payload from ai_conversation response.',
+        (int) ($response['request_attempts'] ?? 1),
+        (string) ($response['request_id'] ?? '')
+      );
     }
 
     $narration = trim((string) ($parsed['narration'] ?? ''));
     if ($narration === '') {
-      return $this->fallbackNarration($context, 'Narration payload missing required narration field.');
+      return $this->fallbackNarration(
+        $context,
+        'Narration payload missing required narration field.',
+        (int) ($response['request_attempts'] ?? 1),
+        (string) ($response['request_id'] ?? '')
+      );
     }
 
     return [
@@ -103,6 +141,8 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
       'narration' => $narration,
       'style' => (string) ($parsed['style'] ?? 'neutral-tactical'),
       'fallback_used' => FALSE,
+      'request_attempts' => (int) ($response['request_attempts'] ?? 1),
+      'request_id' => (string) ($response['request_id'] ?? ''),
     ];
   }
 
@@ -121,8 +161,12 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
    */
   private function buildRecommendationPrompt(array $context): string {
     $current_actor = is_array($context['current_actor'] ?? NULL) ? $context['current_actor'] : [];
+    $current_actor_profile = is_array($context['current_actor_profile'] ?? NULL) ? $context['current_actor_profile'] : [];
     $allowed_actions = is_array($context['allowed_actions'] ?? NULL) ? $context['allowed_actions'] : [];
     $participants = is_array($context['participants'] ?? NULL) ? $context['participants'] : [];
+    $visible_references = is_array($context['visible_references'] ?? NULL) ? $context['visible_references'] : [];
+    $line_of_sight = is_array($context['line_of_sight'] ?? NULL) ? $context['line_of_sight'] : [];
+    $conversation_options = is_array($context['conversation_options'] ?? NULL) ? $context['conversation_options'] : [];
 
     return json_encode([
       'task' => 'Choose a single legal tactical action for the active NPC combatant.',
@@ -131,6 +175,7 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
         'allowed_actions' => $allowed_actions,
         'must_match_active_actor' => TRUE,
         'action_cost_max' => (int) ($current_actor['actions_remaining'] ?? 3),
+        'conversation_allowed_when_visible' => TRUE,
       ],
       'encounter' => [
         'campaign_id' => (int) ($context['campaign_id'] ?? 0),
@@ -139,6 +184,10 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
         'current_round' => (int) ($context['current_round'] ?? 1),
         'turn_index' => (int) ($context['turn_index'] ?? 0),
         'current_actor' => $current_actor,
+        'current_actor_profile' => $current_actor_profile,
+        'visible_references' => $visible_references,
+        'line_of_sight' => $line_of_sight,
+        'conversation_options' => $conversation_options,
         'participants' => $participants,
       ],
       'required_response_schema' => [
@@ -148,7 +197,10 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
           'type' => 'string',
           'target_instance_id' => 'string|null',
           'action_cost' => 'integer',
-          'parameters' => 'object',
+          'parameters' => [
+            'message' => 'string_optional_for_talk',
+            'notes' => 'object_optional',
+          ],
         ],
         'alternatives' => 'array',
         'rationale' => 'string',
@@ -218,6 +270,105 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
       'current_round' => (int) ($context['current_round'] ?? 1),
       'current_actor_entity_ref' => (string) ($current_actor['entity_ref'] ?? ''),
     ];
+  }
+
+  /**
+   * Invoke ai_conversation model call with retry policy.
+   *
+   * @param string $prompt
+   *   Prompt payload.
+   * @param string $operation
+   *   Operation identifier for usage tracking.
+   * @param array<string, mixed> $context_data
+   *   Tracking context payload.
+   * @param array<string, mixed> $options
+   *   Invocation options.
+   *
+   * @return array<string, mixed>
+   *   Response envelope with request attempts metadata.
+   */
+  private function invokeWithRetry(string $prompt, string $operation, array $context_data, array $options): array {
+    $max_attempts = $this->getMaxAttempts();
+    $request_id = $this->buildRequestId($operation, $context_data);
+    $last_response = [
+      'success' => FALSE,
+      'error' => 'AI call attempts exhausted.',
+    ];
+
+    for ($attempt = 1; $attempt <= $max_attempts; $attempt++) {
+      $response = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'dungeoncrawler_content',
+        $operation,
+        $context_data + [
+          'attempt' => $attempt,
+          'request_id' => $request_id,
+        ],
+        $options
+      );
+
+      if (!empty($response['success'])) {
+        $response['request_attempts'] = $attempt;
+        $response['request_id'] = $request_id;
+        return $response;
+      }
+
+      $last_response = is_array($response) ? $response : $last_response;
+      $this->loggerFactory->get('dungeoncrawler_content')->warning('Encounter AI provider attempt failed.', [
+        'provider' => $this->getProviderName(),
+        'operation' => $operation,
+        'attempt' => $attempt,
+        'max_attempts' => $max_attempts,
+        'error' => (string) ($last_response['error'] ?? 'Unknown failure'),
+      ]);
+    }
+
+    $last_response['request_attempts'] = $max_attempts;
+    $last_response['request_id'] = $request_id;
+    return $last_response;
+  }
+
+  /**
+   * Build stable request identifier for grouped retry tracking.
+   *
+   * @param string $operation
+   *   AI operation name.
+   * @param array<string, mixed> $context_data
+   *   Encounter context metadata.
+   */
+  private function buildRequestId(string $operation, array $context_data): string {
+    $encounter_id = (int) ($context_data['encounter_id'] ?? 0);
+    $round = (int) ($context_data['current_round'] ?? 0);
+    $entropy = microtime(TRUE) . '|' . mt_rand();
+
+    return substr(hash('sha256', $operation . '|' . $encounter_id . '|' . $round . '|' . $entropy), 0, 20);
+  }
+
+  /**
+   * Resolve maximum attempts per encounter AI request.
+   */
+  private function getMaxAttempts(): int {
+    $config = $this->configFactory->get('dungeoncrawler_content.settings');
+    $configured = (int) ($config->get('encounter_ai_retry_attempts') ?? 2);
+    return max(1, min(3, $configured));
+  }
+
+  /**
+   * Resolve max tokens for recommendation requests.
+   */
+  private function getRecommendationMaxTokens(): int {
+    $config = $this->configFactory->get('dungeoncrawler_content.settings');
+    $configured = (int) ($config->get('encounter_ai_recommendation_max_tokens') ?? 800);
+    return max(200, min(2000, $configured));
+  }
+
+  /**
+   * Resolve max tokens for narration requests.
+   */
+  private function getNarrationMaxTokens(): int {
+    $config = $this->configFactory->get('dungeoncrawler_content.settings');
+    $configured = (int) ($config->get('encounter_ai_narration_max_tokens') ?? 500);
+    return max(120, min(1200, $configured));
   }
 
   /**
@@ -321,7 +472,7 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
    * @return array<string, mixed>
    *   Deterministic fallback recommendation.
    */
-  private function fallbackRecommendation(array $context, string $reason): array {
+  private function fallbackRecommendation(array $context, string $reason, int $request_attempts, string $request_id): array {
     $this->loggerFactory->get('dungeoncrawler_content')->warning('Encounter AI recommendation fell back to deterministic provider.', [
       'provider' => $this->getProviderName(),
       'reason' => $reason,
@@ -333,6 +484,8 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
     $fallback['provider'] = $this->getProviderName();
     $fallback['fallback_used'] = TRUE;
     $fallback['fallback_reason'] = $reason;
+    $fallback['request_attempts'] = max(1, $request_attempts);
+    $fallback['request_id'] = $request_id;
 
     return $fallback;
   }
@@ -348,7 +501,7 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
    * @return array<string, mixed>
    *   Fallback narration payload.
    */
-  private function fallbackNarration(array $context, string $reason): array {
+  private function fallbackNarration(array $context, string $reason, int $request_attempts, string $request_id): array {
     $this->loggerFactory->get('dungeoncrawler_content')->warning('Encounter narration fell back to deterministic provider.', [
       'provider' => $this->getProviderName(),
       'reason' => $reason,
@@ -360,6 +513,8 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
     $fallback['provider'] = $this->getProviderName();
     $fallback['fallback_used'] = TRUE;
     $fallback['fallback_reason'] = $reason;
+    $fallback['request_attempts'] = max(1, $request_attempts);
+    $fallback['request_id'] = $request_id;
 
     return $fallback;
   }

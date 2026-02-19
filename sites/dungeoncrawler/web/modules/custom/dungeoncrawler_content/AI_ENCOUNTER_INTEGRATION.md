@@ -144,6 +144,11 @@ Current implementation state:
 Current implementation state:
 
 - DB-independent unit tests are in place for AI provider/integration behavior.
+- ai_conversation-backed provider now uses bounded retry attempts and configurable token budgets for recommendation/narration calls.
+- Architecture status page now shows last-24h operational metrics (fallback rate and average attempts) derived from ai_conversation usage logs.
+- Operational metrics are exportable as CSV via `/architecture/encounter-ai-integration/metrics.csv`.
+- Metrics panel and CSV export support selectable windows via query string (`?window=24h|7d|30d`).
+- Encounter AI retries now share a `request_id` in usage context metadata, enabling request-level aggregation for observability.
 - Remaining hardening coverage is functional/integration flow validation in Browser tests.
 
 ## Acceptance Checklist for DCC-0224

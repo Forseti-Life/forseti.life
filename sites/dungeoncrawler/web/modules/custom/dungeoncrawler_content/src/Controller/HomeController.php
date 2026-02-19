@@ -21,15 +21,15 @@ class HomeController extends ControllerBase {
     $isAuthenticated = $this->currentUser()->isAuthenticated();
 
     $primaryCtaUrl = $campaignHubUrl;
-    $primaryCtaLabel = $this->t('Start Your Adventure');
+    $primaryCtaLabel = $this->t('Start Your Legacy Campaign');
     $secondaryCtaLabel = $this->t('Learn More');
 
     if (!$isAuthenticated) {
       $primaryCtaUrl = Url::fromRoute('user.login', [], [
         'query' => ['destination' => $campaignHubUrl],
       ])->toString();
-      $primaryCtaLabel = $this->t('Sign In to Start');
-      $secondaryCtaLabel = $this->t('Learn How It Works');
+      $primaryCtaLabel = $this->t('Sign In to Build Your Legacy');
+      $secondaryCtaLabel = $this->t('Learn the Legacy Loop');
     }
 
     // Home page entry-point render array for process flow.

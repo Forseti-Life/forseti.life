@@ -93,6 +93,11 @@ class CharacterStateController extends ControllerBase {
   protected function hasCharacterAccess(string $character_id): bool {
     $uid = $this->currentUser()->id();
     
+    // Admin users can access any character
+    if ($this->currentUser()->hasPermission('administer dungeoncrawler')) {
+      return TRUE;
+    }
+    
     // Check if user owns the character
     $owner_uid = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c', ['uid'])
@@ -101,7 +106,32 @@ class CharacterStateController extends ControllerBase {
       ->execute()
       ->fetchField();
     
-    return $owner_uid && $owner_uid == $uid;
+    if ($owner_uid && $owner_uid == $uid) {
+      return TRUE;
+    }
+    
+    // In campaign context, check if user has a character in the same campaign
+    $campaign_record = $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['campaign_id', 'uid'])
+      ->condition('id', $character_id)
+      ->execute()
+      ->fetchAssoc();
+    
+    if ($campaign_record && $campaign_record['campaign_id'] > 0) {
+      // Check if current user has a character in this campaign
+      $user_in_campaign = $this->database->select('dc_campaign_characters', 'c')
+        ->condition('campaign_id', $campaign_record['campaign_id'])
+        ->condition('uid', $uid)
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+      
+      if ($user_in_campaign > 0) {
+        return TRUE;
+      }
+    }
+    
+    return FALSE;
   }
 
   /**

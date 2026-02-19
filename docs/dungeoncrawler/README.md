@@ -1,7 +1,13 @@
-# Pathfinder 2E Game Mechanics Documentation
+# Dungeon Crawler Forseti Life Documentation Hub
 
-Myrandom notes
-PixiJS: Technically a high-performance 2D rendering engine rather than a full "game engine," it is often used as the foundation for browser games that require extreme speed.
+This directory contains player reference material, system design notes, and implementation documentation for Dungeon Crawler Forseti Life.
+
+## Player Audience Focus
+
+For on-site user documentation and marketing copy, the primary audience is:
+- Former tabletop/classic RPG players returning for long-form campaign play
+- Players seeking a permanent home for characters to live, adventure, and retire
+- Parties who value continuity, progression history, and world persistence
 
 ## Documentation Verification Notes (2026-02-18)
 
@@ -15,7 +21,7 @@ PixiJS: Technically a high-performance 2D rendering engine rather than a full "g
 
 ## Overview
 
-This documentation provides comprehensive guides to the core game mechanics and process flows of Pathfinder 2nd Edition (PF2E). These guides are designed to help players and GMs quickly reference the structured procedures that drive gameplay.
+This documentation provides comprehensive guides to the core PF2e-inspired mechanics and campaign processes used by Dungeon Crawler Forseti Life. These guides support both quick in-session lookups and long-term character/campaign planning.
 
 ## Quick Reference Guides
 
@@ -57,6 +63,15 @@ This documentation provides comprehensive guides to the core game mechanics and 
    - Experience point system
    - Character progression milestones
 
+## Architecture & System Design Documents
+
+- **[Room & Dungeon Generator Architecture](./ROOM_DUNGEON_GENERATOR_ARCHITECTURE.md)**: Procedural dungeon and room generation with hex-based layouts, entity placement, and tileset generation
+- **[Quest Tracker & Generator Architecture](./QUEST_TRACKER_GENERATOR_ARCHITECTURE.md)**: Campaign-level quest system with procedural generation, progress tracking, and reward distribution
+- **[Quest System Quick Reference](./QUEST_SYSTEM_QUICK_REFERENCE.md)**: Implementation guide with code examples and API usage
+- **[Quest Implementation Status - Phase 2 Complete ✅](./QUEST_IMPLEMENTATION_PHASE2_COMPLETE.md)**: Current implementation status - Database, services, templates, and Drush commands operational
+- **[Character Tracking System](./CHARACTER_TRACKING_SYSTEM.md)**: Campaign character and NPC management with state persistence
+- **[Database Schema Design](./database-schema-design.md)**: Complete database architecture following Library → Campaign → Runtime pattern
+
 ## Document Structure
 
 Each guide follows aconsistent structure:
@@ -78,6 +93,11 @@ Start with these documents in order:
 3. Skill Checks (to understand basic task resolution)
 4. Combat and Encounter Mechanics (to understand combat flow)
 
+Then continue with on-site gameplay flow:
+5. Create/open a campaign at `/campaigns`
+6. Select a completed character via Tavern Entrance
+7. Launch into hexmap and begin persistent campaign progression
+
 ### For Experienced Players
 
 Use as quick reference:
@@ -85,6 +105,7 @@ Use as quick reference:
 - Clarify edge cases
 - Reference tables and DCs
 - Share with new players
+- Plan long-term builds intended for campaign continuity and eventual retirement arcs
 
 ### For Game Masters
 
@@ -238,6 +259,26 @@ Design documents for upcoming features and system improvements:
    - Design proposal for real-time character management (WebSocket section is future-state)
    - Mobile-responsive design
    - Resource tracking and condition management
+
+## System Implementation Documents
+
+Production systems and features:
+
+1. **[Inventory Management & Transfer System](./INVENTORY_MANAGEMENT_SYSTEM.md)**
+   - Complete inventory management for characters and containers
+   - Item transfers between inventories
+   - PF2e-compliant bulk and encumbrance calculations
+   - Capacity enforcement and permission validation
+   - Audit logging and transaction safety
+   - **Quick Start**: [INVENTORY_IMPLEMENTATION_GUIDE.md](./INVENTORY_IMPLEMENTATION_GUIDE.md)
+
+2. **[Quest Tracker & Generator System](./QUEST_TRACKER_GENERATOR_ARCHITECTURE.md)**
+   - Procedural quest generation from templates
+   - Campaign-level quest tracking with progress persistence
+   - Multi-phase objectives with branching paths
+   - PF2e-compliant XP and reward scaling
+   - Integration with combat, exploration, and inventory systems
+   - **Quick Start**: [QUEST_SYSTEM_QUICK_REFERENCE.md](./QUEST_SYSTEM_QUICK_REFERENCE.md)
 
 ## Document History
 

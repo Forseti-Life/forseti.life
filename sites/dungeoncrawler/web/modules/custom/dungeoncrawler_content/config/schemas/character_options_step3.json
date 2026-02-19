@@ -61,12 +61,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Background",
+      "const": "Background & Prior Life",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "default": "Choose your character's background, representing their life before becoming an adventurer. Each background grants ability boosts, a trained skill, a lore skill, and a skill feat.",
+      "default": "Choose the life path your character brings into the campaign. This anchors skills, roleplay voice, and long-term growth direction.",
       "description": "Instructions shown to the player for this step"
     },
     "fields": {
@@ -85,7 +85,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose Your Background",
+              "const": "Choose Your Pre-Campaign Background",
               "description": "Field label"
             },
             "required": {
@@ -192,7 +192,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Your background represents what you did before becoming an adventurer. Each grants 2 ability boosts of your choice, training in a skill, a lore specialty, and a skill feat.",
+              "const": "Background defines who your character was before adventuring and what expertise they bring into long-form play.",
               "description": "Helper text displayed to user"
             },
             "validation": {
@@ -226,7 +226,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose 2 Ability Boosts",
+              "const": "Choose 2 Legacy Setup Boosts",
               "description": "Field label"
             },
             "required": {
@@ -413,20 +413,20 @@
       },
       "default": [
         {
-          "title": "Narrative First",
-          "text": "Choose a background that fits your character's story. The mechanical benefits are all useful, so prioritize narrative."
+          "title": "Identity Over Min-Max",
+          "text": "Select a background that supports your long-term character voice and goals, not just short-term bonuses."
         },
         {
-          "title": "Free Ability Boosts",
-          "text": "The 2 ability boosts from your background are completely free choice - use them to shore up weaknesses or enhance strengths."
+          "title": "Durable Build Choices",
+          "text": "Use your background boosts to reinforce strengths while protecting weak points that can hurt late-campaign play."
         },
         {
-          "title": "Skill Training Matters",
-          "text": "Skill training from backgrounds helps define what your character is good at outside of combat."
+          "title": "Skill Identity",
+          "text": "Background skills often define your non-combat signature and social utility across many sessions."
         },
         {
-          "title": "Lore Skills",
-          "text": "Lore skills represent specialized knowledge and can unlock unique dialogue options and skill checks."
+          "title": "Lore Payoff",
+          "text": "Lore choices create recurring roleplay hooks that help your character feel lived-in and memorable."
         }
       ]
     },

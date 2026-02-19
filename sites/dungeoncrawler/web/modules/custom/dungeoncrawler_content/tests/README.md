@@ -8,6 +8,7 @@ Comprehensive test suite for the Dungeon Crawler content module.
 - [Testing Strategy Design Document](../../../../docs/dungeoncrawler/issues/issue-testing-strategy-design.md)
 - [Testing Quick Start Guide](../../../../docs/dungeoncrawler/testing/README.md)
 - [Documentation Index](../../../../docs/dungeoncrawler/issues/testing-strategy-index.md)
+- [Prioritized Test Case Matrix](TEST_CASE_MATRIX.md)
 
 ## 🏗️ Structure
 

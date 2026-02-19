@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -15,16 +16,19 @@ class CharacterListController extends ControllerBase {
 
   protected CharacterManager $characterManager;
   protected Connection $database;
+  protected GeneratedImageRepository $imageRepository;
 
-  public function __construct(CharacterManager $character_manager, Connection $database) {
+  public function __construct(CharacterManager $character_manager, Connection $database, GeneratedImageRepository $image_repository) {
     $this->characterManager = $character_manager;
     $this->database = $database;
+    $this->imageRepository = $image_repository;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('database'),
+      $container->get('dungeoncrawler_content.generated_image_repository'),
     );
   }
 
@@ -70,6 +74,23 @@ class CharacterListController extends ControllerBase {
         ])->toString();
       }
 
+      // Load portrait from generated images
+      $portraits = $this->imageRepository->loadImagesForObject(
+        'dc_campaign_characters',
+        (string) $record->id,
+        NULL,
+        'portrait',
+        'original'
+      );
+      $portrait_url = NULL;
+      if (!empty($portraits)) {
+        $file_uri = $portraits[0]['file_uri'] ?? $portraits[0]['public_url'] ?? NULL;
+        if ($file_uri) {
+          // Convert Drupal stream wrapper to web-accessible URL
+          $portrait_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file_uri);
+        }
+      }
+
       $character_cards[] = [
         'id' => $record->id,
         'uuid' => $record->uuid,
@@ -81,7 +102,7 @@ class CharacterListController extends ControllerBase {
         'hp_max' => $hot['hp_max'],
         'ac' => $hot['armor_class'],
         'status' => $record->status ? 'active' : 'dead',
-        'portrait' => $record->portrait,
+        'portrait' => $portrait_url,
         'heritage' => $char['ancestry']['heritage'] ?? '',
         'alignment' => $char['personality']['alignment'] ?? '',
         'url' => $view_url->toString(),

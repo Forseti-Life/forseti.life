@@ -2,6 +2,8 @@
 
 namespace Drupal\Tests\dungeoncrawler_content\Unit\Service;
 
+use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\Config\ImmutableConfig;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
 use Drupal\Tests\UnitTestCase;
@@ -23,6 +25,8 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
 
   protected LoggerChannelFactoryInterface $loggerFactory;
 
+  protected ConfigFactoryInterface $configFactory;
+
   protected StubEncounterAiProvider $fallbackProvider;
 
   protected AiConversationEncounterAiProvider $provider;
@@ -32,7 +36,16 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
 
     $this->aiApiService = $this->createMock(AIApiService::class);
     $this->loggerFactory = $this->createMock(LoggerChannelFactoryInterface::class);
+    $this->configFactory = $this->createMock(ConfigFactoryInterface::class);
     $this->fallbackProvider = new StubEncounterAiProvider();
+
+    $config = $this->createMock(ImmutableConfig::class);
+    $config->method('get')->willReturnMap([
+      ['encounter_ai_retry_attempts', 2],
+      ['encounter_ai_recommendation_max_tokens', 800],
+      ['encounter_ai_narration_max_tokens', 500],
+    ]);
+    $this->configFactory->method('get')->with('dungeoncrawler_content.settings')->willReturn($config);
 
     $logger = $this->createMock(LoggerChannelInterface::class);
     $this->loggerFactory->method('get')->willReturn($logger);
@@ -40,6 +53,7 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
     $this->provider = new AiConversationEncounterAiProvider(
       $this->aiApiService,
       $this->loggerFactory,
+      $this->configFactory,
       $this->fallbackProvider
     );
   }
@@ -82,6 +96,7 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
     $this->assertSame('strike', $recommendation['recommended_action']['type']);
     $this->assertSame('pc-1', $recommendation['recommended_action']['target_instance_id']);
     $this->assertSame('Close threat in reach.', $recommendation['rationale']);
+    $this->assertSame(1, $recommendation['request_attempts']);
   }
 
   /**
@@ -102,6 +117,45 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
     $this->assertSame('strike', $recommendation['recommended_action']['type']);
     $this->assertSame('pc-1', $recommendation['recommended_action']['target_instance_id']);
     $this->assertStringContainsString('Transport failure', (string) $recommendation['fallback_reason']);
+    $this->assertSame(2, $recommendation['request_attempts']);
+  }
+
+  /**
+   * @covers ::recommendNpcAction
+   */
+  public function testRecommendNpcActionRetriesAndSucceedsOnSecondAttempt(): void {
+    $context = $this->buildEncounterContext();
+
+    $this->aiApiService->expects($this->exactly(2))
+      ->method('invokeModelDirect')
+      ->willReturnOnConsecutiveCalls(
+        [
+          'success' => FALSE,
+          'error' => 'Transient timeout',
+        ],
+        [
+          'success' => TRUE,
+          'response' => json_encode([
+            'version' => 'v1',
+            'actor_instance_id' => 'npc-1',
+            'recommended_action' => [
+              'type' => 'strike',
+              'target_instance_id' => 'pc-1',
+              'action_cost' => 1,
+              'parameters' => [],
+            ],
+            'alternatives' => [],
+            'rationale' => 'Recovered on retry.',
+            'confidence' => 0.7,
+          ]),
+        ]
+      );
+
+    $recommendation = $this->provider->recommendNpcAction($context);
+
+    $this->assertFalse($recommendation['fallback_used']);
+    $this->assertSame('Recovered on retry.', $recommendation['rationale']);
+    $this->assertSame(2, $recommendation['request_attempts']);
   }
 
   /**
@@ -141,6 +195,7 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
     $this->assertSame('ai_conversation', $narration['provider']);
     $this->assertFalse($narration['fallback_used']);
     $this->assertSame('The goblin lunges forward with practiced aggression.', $narration['narration']);
+    $this->assertSame(1, $narration['request_attempts']);
   }
 
   /**
@@ -159,6 +214,7 @@ class AiConversationEncounterAiProviderTest extends UnitTestCase {
     $this->assertSame('ai_conversation', $narration['provider']);
     $this->assertTrue($narration['fallback_used']);
     $this->assertStringContainsString('Round', $narration['narration']);
+    $this->assertSame(1, $narration['request_attempts']);
   }
 
   /**

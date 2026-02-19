@@ -22,7 +22,9 @@ import combatApi from './hexmap-api.js';
       this.elements = {};
       this.ensureActionFooter();
       this.setupActionFooterToggle();
+      this.setupFullscreenToggle();
       this.cacheElements();
+      this.setupChatLog();
     }
 
     /**
@@ -111,6 +113,48 @@ import combatApi from './hexmap-api.js';
       footer.dataset.initialStateApplied = 'true';
     }
 
+    setupFullscreenToggle() {
+      const btn = document.getElementById('fullscreen-toggle');
+      if (!btn || btn.dataset.bound === 'true') {
+        return;
+      }
+
+      btn.dataset.bound = 'true';
+      btn.addEventListener('click', () => {
+        const container = document.getElementById('hexmap-container');
+        if (!container) {
+          return;
+        }
+
+        const isFullscreen = document.fullscreenElement !== null;
+
+        if (isFullscreen) {
+          // Exit fullscreen
+          document.exitFullscreen().catch(() => {});
+          btn.textContent = '⛶';
+          container.classList.remove('fullscreen');
+        } else {
+          // Enter fullscreen
+          container.requestFullscreen().catch(() => {});
+          btn.textContent = '⛌';
+          container.classList.add('fullscreen');
+        }
+      });
+
+      // Listen for fullscreen change events (e.g., user presses Esc)
+      document.addEventListener('fullscreenchange', () => {
+        const btn = document.getElementById('fullscreen-toggle');
+        const isFullscreen = document.fullscreenElement !== null;
+        if (btn) {
+          btn.textContent = isFullscreen ? '⛌' : '⛶';
+          const container = document.getElementById('hexmap-container');
+          if (container) {
+            container.classList.toggle('fullscreen', isFullscreen);
+          }
+        }
+      });
+    }
+
     /**
      * Cache frequently accessed DOM elements.
      */
@@ -162,14 +206,75 @@ import combatApi from './hexmap-api.js';
         // Character sheet panel
         characterName: document.getElementById('char-name'),
         characterType: document.getElementById('char-type'),
-        characterTeam: document.getElementById('char-team'),
+        characterAncestry: document.getElementById('char-ancestry'),
         characterLevel: document.getElementById('char-level'),
         characterHp: document.getElementById('char-hp'),
         characterAc: document.getElementById('char-ac'),
-        characterSpeed: document.getElementById('char-speed'),
-        characterActions: document.getElementById('char-actions'),
-        characterInventory: document.getElementById('char-inventory')
+        characterHero: document.getElementById('char-hero'),
+        characterXp: document.getElementById('char-xp'),
+        characterStr: document.getElementById('char-str'),
+        characterStrMod: document.getElementById('char-str-mod'),
+        characterDex: document.getElementById('char-dex'),
+        characterDexMod: document.getElementById('char-dex-mod'),
+        characterCon: document.getElementById('char-con'),
+        characterConMod: document.getElementById('char-con-mod'),
+        characterInt: document.getElementById('char-int'),
+        characterIntMod: document.getElementById('char-int-mod'),
+        characterWis: document.getElementById('char-wis'),
+        characterWisMod: document.getElementById('char-wis-mod'),
+        characterCha: document.getElementById('char-cha'),
+        characterChaMod: document.getElementById('char-cha-mod'),
+        characterFort: document.getElementById('char-fort'),
+        characterRef: document.getElementById('char-ref'),
+        characterWill: document.getElementById('char-will'),
+        characterSkills: document.getElementById('char-skills'),
+        characterConditions: document.getElementById('char-conditions'),
+        characterGp: document.getElementById('char-gp'),
+        characterSp: document.getElementById('char-sp'),
+        characterCp: document.getElementById('char-cp'),
+        characterInventory: document.getElementById('char-inventory'),
+        characterFeatures: document.getElementById('char-features'),
+
+        // Dialog log & chat
+        chatLog: document.getElementById('chat-log'),
+        chatForm: document.getElementById('chat-form'),
+        chatInput: document.getElementById('chat-input'),
+        chatSend: document.getElementById('chat-send')
       };
+
+      this.setupCharacterSheetSections();
+    }
+
+    /**
+     * Setup collapsible character sheet sections.
+     */
+    setupCharacterSheetSections() {
+      const sectionHeaders = document.querySelectorAll('.character-sheet__section .section-header');
+      sectionHeaders.forEach(header => {
+        if (header.dataset.bound === 'true') return;
+        header.dataset.bound = 'true';
+
+        header.addEventListener('click', () => {
+          const section = header.closest('.character-sheet__section');
+          const sectionName = header.dataset.section;
+          const body = section.querySelector(`.section-body[data-section="${sectionName}"]`);
+          const toggle = header.querySelector('.section-toggle');
+
+          if (!body || !toggle) return;
+
+          const isCollapsed = section.classList.contains('collapsed');
+
+          if (isCollapsed) {
+            section.classList.remove('collapsed');
+            body.style.display = '';
+            toggle.textContent = '▾';
+          } else {
+            section.classList.add('collapsed');
+            body.style.display = 'none';
+            toggle.textContent = '▸';
+          }
+        });
+      });
     }
 
     /**
@@ -479,48 +584,180 @@ import combatApi from './hexmap-api.js';
     }
 
     /**
-     * Hydrate character sheet from launch context when no entity is selected yet.
+     * Display character sheet from either legacy launchCharacter or full API state.
      */
     showLaunchCharacter(launchCharacter) {
       if (!launchCharacter || typeof launchCharacter !== 'object') {
         return;
       }
 
-      const name = launchCharacter.name || 'Selected character';
-      const ancestry = launchCharacter.ancestry || '';
-      const characterClass = launchCharacter.class || '';
-      const level = Number(launchCharacter.level) || 0;
-      const hpCurrent = Number(launchCharacter.hp_current);
-      const hpMax = Number(launchCharacter.hp_max);
-      const armorClass = Number(launchCharacter.armor_class);
+      console.log('showLaunchCharacter received:', launchCharacter);
 
-      if (this.elements.characterName) {
-        this.elements.characterName.textContent = name;
-      }
+      // Support both legacy format and new API state format
+      const state = launchCharacter.data || launchCharacter;
+      const basicInfo = state.basicInfo || {};
+      const abilities = state.abilities || {};
+      const resources = state.resources || {};
+      const defenses = state.defenses || {};
+      const conditions = state.conditions || [];
+      const skills = state.skills || [];
+      const features = state.features || {};
+      const feats = state.feats || []; // Direct feats array from legacy format
+      const equipment = state.equipment || [];
+      const inventory = state.inventory || resources.inventory || {};
+      
+      // Normalize ability scores (support both short 'str' and long 'strength' keys)
+      const normalizeAbilities = (abs) => ({
+        strength: abs.strength || abs.str || 10,
+        dexterity: abs.dexterity || abs.dex || 10,
+        constitution: abs.constitution || abs.con || 10,
+        intelligence: abs.intelligence || abs.int || 10,
+        wisdom: abs.wisdom || abs.wis || 10,
+        charisma: abs.charisma || abs.cha || 10,
+      });
+      const normalizedAbilities = normalizeAbilities(abilities);
+
+      // Basic info
+      const name = basicInfo.name || state.name || launchCharacter.name || 'Selected character';
+      const ancestry = basicInfo.ancestry || state.ancestry || launchCharacter.ancestry || '';
+      const characterClass = basicInfo.class || state.class || launchCharacter.class || '';
+      const level = Number(basicInfo.level || state.level || launchCharacter.level || 0);
+      
+      // Resources
+      const hpCurrent = Number(resources.hitPoints?.current ?? state.hp_current ?? launchCharacter.hp_current ?? 0);
+      const hpMax = Number(resources.hitPoints?.max ?? state.hp_max ?? launchCharacter.hp_max ?? 0);
+      const heroCurrent = Number(resources.heroPoints?.current ?? state.hero_points ?? launchCharacter.hero_points ?? 1);
+      const heroMax = Number(resources.heroPoints?.max ?? 3);
+      const armorClass = Number(defenses.armorClass ?? state.armor_class ?? launchCharacter.armor_class ?? 0);
+      const xp = Number(basicInfo.experiencePoints ?? state.experience_points ?? 0);
+      
+      // Currency (support both API format and legacy format)
+      const currency = inventory.currency || state.currency || { 
+        gp: state.gold || 0, 
+        sp: 0, 
+        cp: 0 
+      };
+
+      // Calculate ability modifiers
+      const calcMod = (score) => {
+        const mod = Math.floor((score - 10) / 2);
+        return mod >= 0 ? `+${mod}` : `${mod}`;
+      };
+
+      // Update basic info
+      if (this.elements.characterName) this.elements.characterName.textContent = name;
       if (this.elements.characterType) {
         const subtitleParts = [ancestry, characterClass].filter(Boolean);
         this.elements.characterType.textContent = subtitleParts.length ? subtitleParts.join(' ') : 'Type —';
       }
-      if (this.elements.characterTeam) {
-        this.elements.characterTeam.textContent = launchCharacter.team || 'player';
-      }
-      if (this.elements.characterLevel) {
-        this.elements.characterLevel.textContent = level > 0 ? `Lvl ${level}` : 'Lvl —';
-      }
+      if (this.elements.characterAncestry) this.elements.characterAncestry.textContent = ancestry || '—';
+      if (this.elements.characterLevel) this.elements.characterLevel.textContent = level > 0 ? `Lvl ${level}` : 'Lvl —';
+
+      // Update core stats
       if (this.elements.characterHp) {
         this.elements.characterHp.textContent = Number.isFinite(hpCurrent) && Number.isFinite(hpMax) ? `${hpCurrent}/${hpMax}` : '-';
       }
       if (this.elements.characterAc) {
-        this.elements.characterAc.textContent = Number.isFinite(armorClass) ? `${armorClass}` : '-';
+        this.elements.characterAc.textContent = armorClass > 0 ? `${armorClass}` : '-';
       }
-      if (this.elements.characterSpeed) {
-        this.elements.characterSpeed.textContent = '-';
+      if (this.elements.characterHero) {
+        this.elements.characterHero.textContent = `${heroCurrent}/${heroMax}`;
       }
-      if (this.elements.characterActions) {
-        this.elements.characterActions.textContent = '-';
+
+      // Update ability scores
+      const abilityPairs = [
+        ['Str', normalizedAbilities.strength],
+        ['Dex', normalizedAbilities.dexterity],
+        ['Con', normalizedAbilities.constitution],
+        ['Int', normalizedAbilities.intelligence],
+        ['Wis', normalizedAbilities.wisdom],
+        ['Cha', normalizedAbilities.charisma]
+      ];
+
+      abilityPairs.forEach(([name, score]) => {
+        const valueEl = this.elements[`character${name}`];
+        const modEl = this.elements[`character${name}Mod`];
+        if (valueEl) valueEl.textContent = score;
+        if (modEl) modEl.textContent = calcMod(score);
+      });
+
+      // Update saving throws
+      const saves = defenses.savingThrows || {};
+      if (this.elements.characterFort) {
+        const fort = saves.fortitude || defenses.fortitude || 0;
+        this.elements.characterFort.textContent = fort >= 0 ? `+${fort}` : `${fort}`;
       }
+      if (this.elements.characterRef) {
+        const ref = saves.reflex || defenses.reflex || 0;
+        this.elements.characterRef.textContent = ref >= 0 ? `+${ref}` : `${ref}`;
+      }
+      if (this.elements.characterWill) {
+        const will = saves.will || defenses.will || 0;
+        this.elements.characterWill.textContent = will >= 0 ? `+${will}` : `${will}`;
+      }
+
+      // Update skills
+      if (this.elements.characterSkills) {
+        if (Array.isArray(skills) && skills.length > 0) {
+          this.elements.characterSkills.innerHTML = skills
+            .map(skill => {
+              const name = skill.name || skill;
+              const bonus = skill.modifier !== undefined ? (skill.modifier >= 0 ? `+${skill.modifier}` : skill.modifier) : '';
+              return `<li><span>${name}</span><span>${bonus}</span></li>`;
+            })
+            .join('');
+        } else {
+          this.elements.characterSkills.innerHTML = '<li class="skills-empty">No skills</li>';
+        }
+      }
+
+      // Update conditions
+      if (this.elements.characterConditions) {
+        if (Array.isArray(conditions) && conditions.length > 0) {
+          const conditionNames = conditions.map(c => typeof c === 'string' ? c : (c.name || 'Unknown'));
+          this.elements.characterConditions.innerHTML = conditionNames
+            .map(name => `<li>${name}</li>`)
+            .join('');
+        } else {
+          this.elements.characterConditions.innerHTML = '<li class="conditions-empty">No conditions</li>';
+        }
+      }
+
+      // Update currency
+      if (this.elements.characterGp) this.elements.characterGp.textContent = currency.gp || 0;
+      if (this.elements.characterSp) this.elements.characterSp.textContent = currency.sp || 0;
+      if (this.elements.characterCp) this.elements.characterCp.textContent = currency.cp || 0;
+
+      // Update inventory (support both equipment array and inventory.carried)
       if (this.elements.characterInventory) {
-        this.elements.characterInventory.innerHTML = '<li class="inventory-empty">Inventory not loaded in this demo</li>';
+        const carried = inventory.carried || equipment || [];
+        const worn = inventory.worn || {};
+        const weapons = worn.weapons || [];
+        const allItems = [...weapons, ...carried];
+        
+        if (allItems.length > 0) {
+          this.elements.characterInventory.innerHTML = allItems
+            .map(item => `<li>${item.name || item}</li>`)
+            .join('');
+        } else {
+          this.elements.characterInventory.innerHTML = '<li class="inventory-empty">No items</li>';
+        }
+      }
+
+      // Update features
+      if (this.elements.characterFeatures) {
+        const ancestryFeatures = features.ancestryFeatures || [];
+        const classFeatures = features.classFeatures || [];
+        const feats = features.feats || [];
+        const allFeatures = [...ancestryFeatures, ...classFeatures, ...feats];
+        
+        if (allFeatures.length > 0) {
+          this.elements.characterFeatures.innerHTML = allFeatures
+            .map(feat => `<li>${feat.name || feat}</li>`)
+            .join('');
+        } else {
+          this.elements.characterFeatures.innerHTML = '<li class="features-empty">No features</li>';
+        }
       }
     }
 
@@ -596,6 +833,178 @@ import combatApi from './hexmap-api.js';
           this.elements[key].textContent = value;
         }
       });
+    }
+
+    /**
+     * Initialize the dialog log and chat input.
+     */
+    setupChatLog() {
+      const form = this.elements.chatForm;
+      const input = this.elements.chatInput;
+      const log = this.elements.chatLog;
+
+      if (!form || !input || !log || form.dataset.bound === 'true') {
+        return;
+      }
+
+      form.dataset.bound = 'true';
+      let isSubmitting = false;
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        
+        // Prevent double submission
+        if (isSubmitting) {
+          return;
+        }
+
+        const message = input.value.trim();
+        if (!message) {
+          return;
+        }
+
+        // Validate message length (matches backend limit)
+        if (message.length > 2000) {
+          this.appendChatLine('System', 'Message too long (max 2000 characters)', 'system');
+          return;
+        }
+
+        // Get context from state manager
+        const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
+        const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+        const characterData = this.stateManager.hexmap?.characterData || {};
+        const characterName = characterData.name || 'You';
+        const characterId = characterData.id || null;
+
+        if (!campaignId || !roomId) {
+          this.appendChatLine('System', 'Unable to send message: No active room', 'system');
+          return;
+        }
+
+        // Set loading state
+        isSubmitting = true;
+        const sendButton = this.elements.chatSend;
+        const originalText = sendButton?.textContent;
+        if (sendButton) {
+          sendButton.disabled = true;
+          sendButton.textContent = 'Sending...';
+        }
+
+        // Clear input immediately for better UX
+        input.value = '';
+
+        // Send to server
+        try {
+          await this.postChatMessage(campaignId, roomId, characterName, message, characterId);
+          // Message will appear when server confirms (or from loadChatHistory)
+        } catch (error) {
+          console.error('Failed to send chat message:', error);
+          this.appendChatLine('System', `Failed to send message: ${error.message}`, 'system');
+          // Restore message to input so user can retry
+          input.value = message;
+        } finally {
+          // Reset loading state
+          isSubmitting = false;
+          if (sendButton) {
+            sendButton.disabled = false;
+            sendButton.textContent = originalText || 'Send';
+          }
+        }
+      });
+
+      // Load chat history when entering a room
+      this.loadChatHistory();
+    }
+
+    async loadChatHistory() {
+      const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
+      const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+
+      if (!campaignId || !roomId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/room/${roomId}/chat`);
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}`);
+        }
+
+        const result = await response.json();
+        if (result.success && result.data?.messages) {
+          // Clear existing messages except welcome
+          const log = this.elements.chatLog;
+          if (log) {
+            log.innerHTML = '';
+          }
+
+          // Render all messages
+          result.data.messages.forEach(msg => {
+            this.appendChatLine(msg.speaker, msg.message, msg.type);
+          });
+
+          if (result.data.messages.length === 0) {
+            this.appendChatLine('System', 'Welcome to the room. Start a conversation!', 'system');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load chat history:', error);
+        this.appendChatLine('System', 'Welcome to the room. Chat history unavailable.', 'system');
+      }
+    }
+
+    async postChatMessage(campaignId, roomId, speaker, message, characterId = null) {
+      const response = await fetch(`/api/campaign/${campaignId}/room/${roomId}/chat`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          speaker,
+          message,
+          type: 'player',
+          character_id: characterId,
+        }),
+      });
+
+      if (!response.ok) {
+        const result = await response.json().catch(() => ({}));
+        throw new Error(result.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.error || 'Unknown error');
+      }
+
+      // Reload chat history to show confirmed message
+      await this.loadChatHistory();
+
+      return result;
+    }
+
+    appendChatLine(speaker, message, type = 'npc') {
+      const log = this.elements.chatLog;
+      if (!log) {
+        return;
+      }
+
+      const line = document.createElement('div');
+      line.className = `chat-line chat-line--${type}`;
+
+      if (speaker) {
+        const name = document.createElement('span');
+        name.className = 'chat-line__speaker';
+        name.textContent = `${speaker}:`;
+        line.appendChild(name);
+      }
+
+      const text = document.createElement('span');
+      text.textContent = message;
+      line.appendChild(text);
+
+      log.appendChild(line);
+      log.scrollTop = log.scrollHeight;
     }
   }
 
@@ -765,6 +1174,10 @@ import combatApi from './hexmap-api.js';
       this.launchContext = settings?.dungeoncrawlerContent?.hexmapLaunchContext || {};
       this.dungeonData = settings?.dungeoncrawlerContent?.hexmapDungeonData || {};
       this.launchCharacter = settings?.dungeoncrawlerContent?.hexmapLaunchCharacter || {};
+
+      console.log('HexMap Init - Launch Context:', this.launchContext);
+      console.log('HexMap Init - Launch Character:', this.launchCharacter);
+      console.log('HexMap Init - Has Dungeon Data:', Object.keys(this.dungeonData).length > 0);
       this.activeRoomId = this.dungeonData?.active_room_id || null;
       this.currentUserId = Number(settings?.user?.uid || 0);
 
@@ -2065,18 +2478,21 @@ import combatApi from './hexmap-api.js';
       const encounterId = this.stateManager.get('encounterId');
       if (!encounterId) {
         console.info('Combat action skipped; no active encounter id.', payload);
-        return false;
+        return null;
       }
 
       try {
+        // Always use mapId from stateManager (captured from startCombat response).
+        const mapId = this.stateManager.get('mapId');
         const serverState = await combatApi.performAction({
           encounterId,
+          ...(mapId ? { mapId } : {}),
           ...payload
         });
 
         if (!serverState) {
           console.error('Combat action returned no state; keeping current client view.');
-          return false;
+          return null;
         }
 
         if (serverState.encounter_id) {
@@ -2089,11 +2505,106 @@ import combatApi from './hexmap-api.js';
           this.syncSelectedToCurrentTurn();
         }
 
-        return true;
+        return serverState;
       } catch (err) {
         console.error('Combat action via API failed; client will not fall back.', err);
-        return false;
+        return null;
       }
+    },
+
+    /**
+     * Apply backend-authoritative world delta returned by combat action API.
+     * @param {Object|null} worldDelta
+     */
+    applyWorldDelta: function (worldDelta) {
+      if (!worldDelta || typeof worldDelta !== 'object') {
+        return;
+      }
+
+      const type = String(worldDelta.type || '');
+      const roomId = String(worldDelta.room_id || this.activeRoomId || '');
+      const targetHex = worldDelta.target_hex || {};
+      const destinationHex = worldDelta.destination_hex || {};
+
+      if (type === 'open_passage') {
+        const connectionId = worldDelta.connection_id;
+        const connections = Array.isArray(this.dungeonData?.connections) ? this.dungeonData.connections : [];
+        connections.forEach((connection) => {
+          if (connectionId && connection.connection_id !== connectionId) {
+            return;
+          }
+
+          const fromMatch = connection?.from_room === roomId
+            && Number(connection?.from_hex?.q) === Number(targetHex.q)
+            && Number(connection?.from_hex?.r) === Number(targetHex.r);
+          const toMatch = connection?.to_room === roomId
+            && Number(connection?.to_hex?.q) === Number(targetHex.q)
+            && Number(connection?.to_hex?.r) === Number(targetHex.r);
+
+          if (!connectionId && !fromMatch && !toMatch) {
+            return;
+          }
+
+          connection.is_passable = true;
+          connection.is_discovered = true;
+        });
+      }
+
+      if (type === 'open_door') {
+        const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+        entities.forEach((entity) => {
+          if (entity?.entity_type !== 'obstacle') {
+            return;
+          }
+
+          const placement = entity?.placement;
+          if (!placement || placement.room_id !== roomId) {
+            return;
+          }
+
+          if (Number(placement?.hex?.q) !== Number(targetHex.q) || Number(placement?.hex?.r) !== Number(targetHex.r)) {
+            return;
+          }
+
+          entity.state = entity.state || {};
+          entity.state.metadata = entity.state.metadata || {};
+          entity.state.metadata.passable = true;
+        });
+      }
+
+      if (type === 'move_object') {
+        const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+        entities.forEach((entity) => {
+          if (entity?.entity_type !== 'obstacle') {
+            return;
+          }
+
+          const placement = entity?.placement;
+          if (!placement || placement.room_id !== roomId) {
+            return;
+          }
+
+          if (Number(placement?.hex?.q) !== Number(targetHex.q) || Number(placement?.hex?.r) !== Number(targetHex.r)) {
+            return;
+          }
+
+          placement.hex.q = Number(destinationHex.q);
+          placement.hex.r = Number(destinationHex.r);
+        });
+
+        // Move matching ECS obstacle sprite/entity as well.
+        const ecsObstacle = this.findObstacleEntityAtHex(Number(targetHex.q), Number(targetHex.r));
+        if (ecsObstacle) {
+          const pos = ecsObstacle.getComponent('PositionComponent');
+          if (pos) {
+            pos.q = Number(destinationHex.q);
+            pos.r = Number(destinationHex.r);
+          }
+        }
+      }
+
+      this.paintActiveRoom();
+      this.refreshFogOfWar();
     },
 
     /**
@@ -2131,15 +2642,13 @@ import combatApi from './hexmap-api.js';
           actionCost: 1,
           targetId: connection.connection_id,
           targetHex: { q: targetQ, r: targetR }
-        }).then((ok) => {
-          if (!ok) {
+        }).then((serverState) => {
+          if (!serverState) {
             return;
           }
-          connection.is_passable = true;
-          connection.is_discovered = true;
+
+          this.applyWorldDelta(serverState.world_delta || null);
           console.info('Interaction: opened room connection', { connectionId: connection.connection_id, q: targetQ, r: targetR });
-          this.paintActiveRoom();
-          this.refreshFogOfWar(actor);
         });
         return true;
       }
@@ -2183,33 +2692,17 @@ import combatApi from './hexmap-api.js';
           targetId: this.getObjectIdAtHex(targetQ, targetR) || null,
           targetHex: { q: targetQ, r: targetR },
           destinationHex: destination
-        }).then((ok) => {
-          if (!ok) {
+        }).then((serverState) => {
+          if (!serverState) {
             return;
           }
 
-          const payloadObstacle = this.findObstaclePayloadAtHex(targetQ, targetR);
-          if (payloadObstacle?.placement?.hex) {
-            payloadObstacle.placement.hex.q = destination.q;
-            payloadObstacle.placement.hex.r = destination.r;
-          }
-
-          const ecsObstacle = this.findObstacleEntityAtHex(targetQ, targetR);
-          if (ecsObstacle) {
-            const pos = ecsObstacle.getComponent('PositionComponent');
-            if (pos) {
-              pos.q = destination.q;
-              pos.r = destination.r;
-            }
-          }
+          this.applyWorldDelta(serverState.world_delta || null);
 
           console.info('Interaction: moved obstacle', {
             from: { q: targetQ, r: targetR },
             to: destination
           });
-
-          this.paintActiveRoom();
-          this.refreshFogOfWar(actor);
         });
         return true;
       }
@@ -2227,21 +2720,14 @@ import combatApi from './hexmap-api.js';
             targetId: this.getObjectIdAtHex(targetQ, targetR) || null,
             targetHex: { q: targetQ, r: targetR },
             label
-          }).then((ok) => {
-            if (!ok) {
+          }).then((serverState) => {
+            if (!serverState) {
               return;
             }
 
-            const payloadObstacle = this.findObstaclePayloadAtHex(targetQ, targetR);
-            if (payloadObstacle) {
-              payloadObstacle.state = payloadObstacle.state || {};
-              payloadObstacle.state.metadata = payloadObstacle.state.metadata || {};
-              payloadObstacle.state.metadata.passable = true;
-            }
+            this.applyWorldDelta(serverState.world_delta || null);
 
             console.info('Interaction: opened door-like obstacle', { q: targetQ, r: targetR, label });
-            this.paintActiveRoom();
-            this.refreshFogOfWar(actor);
           });
           return true;
         }
@@ -2263,9 +2749,12 @@ import combatApi from './hexmap-api.js';
         const identity = entity.getComponent('IdentityComponent');
         const combat = entity.getComponent('CombatComponent');
         const stats = entity.getComponent('StatsComponent');
+        const position = entity.getComponent('PositionComponent');
 
         return {
           entityId: entity.id,
+          entityRef: entity.dcEntityRef || entity.instanceId || null,
+          characterId: entity.dcCharacterId || null,
           name: identity?.name || `Entity ${entity.id}`,
           team: combat?.team,
           initiative: combat?.getInitiative ? combat.getInitiative() : null,
@@ -2274,6 +2763,7 @@ import combatApi from './hexmap-api.js';
           ac: stats?.ac,
           hp: stats?.currentHp,
           max_hp: stats?.maxHp,
+          position: position ? { q: position.q, r: position.r } : null,
         };
       });
     },
@@ -2340,6 +2830,11 @@ import combatApi from './hexmap-api.js';
 
         if (serverState.encounter_id) {
           this.stateManager.set('encounterId', serverState.encounter_id);
+        }
+
+        if (serverState.map_id) {
+          this.stateManager.set('mapId', serverState.map_id);
+          console.log('Captured map_id from startCombat:', serverState.map_id);
         }
 
         if (typeof this.turnManagementSystem.hydrateFromServer === 'function') {
@@ -2477,6 +2972,7 @@ import combatApi from './hexmap-api.js';
 
       const payload = {
         encounterId,
+        ...(this.stateManager.get('mapId') ? { mapId: this.stateManager.get('mapId') } : {}),
         attackerId: attacker?.id,
         targetId: target?.id,
         action: 'attack'
@@ -2497,6 +2993,19 @@ import combatApi from './hexmap-api.js';
           this.stateManager.set('serverCombatMode', true);
           this.turnManagementSystem.hydrateFromServer(serverState);
           this.syncSelectedToCurrentTurn();
+        }
+
+        const actionResult = serverState.action_result || {};
+        const projectedResult = {
+          result: actionResult.result || actionResult.outcome || (actionResult.hit ? AttackResult.HIT : AttackResult.MISS),
+          attackRoll: actionResult.attack_roll,
+          attackTotal: actionResult.attack_total,
+          damage: Number(actionResult.damage || 0),
+          applyDamage: false
+        };
+
+        if (this.combatSystem && attacker && target) {
+          this.combatSystem.makeAttack(attacker, target, projectedResult);
         }
       } catch (err) {
         console.error('Attack via API failed; client will not fall back.', err);
@@ -3143,7 +3652,12 @@ import combatApi from './hexmap-api.js';
           initiativeBonus: metadata.initiative_bonus
         };
 
-        this.createEntityObject(q, r, entityType, entityName, null, options);
+        const created = this.createEntityObject(q, r, entityType, entityName, null, options);
+        if (created) {
+          created.dcEntityRef = entity?.instance_id || entity?.entity_ref?.content_id || null;
+          created.dcCharacterId = Number(metadata.character_id || entity?.character_id || 0) || null;
+          created.dcStatePayload = entity?.state || null;
+        }
       });
 
       // Auto-enter initiative only once per campaign-backed encounter context.
@@ -3662,11 +4176,48 @@ import combatApi from './hexmap-api.js';
       }
 
       const hasCampaignContext = Number(this.launchContext?.campaign_id || 0) > 0;
+      const characterId = Number(this.launchContext?.character_id || 0);
+
       if (!hasCampaignContext) {
         return;
       }
 
+      // First display launch character, then load full state from API if available
       this.uiManager.showLaunchCharacter(this.launchCharacter || {});
+
+      // Load full character state from API
+      if (characterId > 0) {
+        this.loadCharacterFromApi(characterId);
+      }
+    }
+
+    ,
+
+    /**
+     * Load full character state from API and display in character sheet.
+     */
+    loadCharacterFromApi: function (characterId) {
+      if (!characterId || !this.uiManager) {
+        return;
+      }
+
+      const url = `/api/character/${characterId}/state`;
+      
+      fetch(url)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success && data.data) {
+            this.uiManager.showLaunchCharacter(data.data);
+          }
+        })
+        .catch(error => {
+          console.log('Character API load optional; demo continues:', error);
+        });
     }
   };
 

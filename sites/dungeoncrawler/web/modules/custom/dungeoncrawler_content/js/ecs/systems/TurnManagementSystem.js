@@ -57,7 +57,7 @@
  * 
  * PERSISTENCE FLOW:
  * =================
- * 1. TurnManagementSystem manages local turn state (client-side authority)
+ * 1. TurnManagementSystem manages local turn state using server-hydrated values
  * 2. For server-authoritative mode, use hydrateFromServer() to load encounter state
  * 3. Frontend calls backend API endpoint (e.g., /api/encounter/{id}/advance-turn)
  * 4. Backend updates combat_encounters table (current_round, turn_index, status)
@@ -109,7 +109,7 @@ export const CombatState = {
  * TurnManagementSystem
  * 
  * Manages turn-based combat including:
- * - Initiative rolling and ordering
+ * - Initiative ordering from server-authoritative values
  * - Turn progression
  * - Round tracking
  * - Action economy integration
@@ -152,7 +152,12 @@ export class TurnManagementSystem extends System {
    * Start combat encounter.
    */
   startCombat(options = {}) {
-    const { force = false } = options;
+    const { force = false, allowLocalStart = false } = options;
+
+    if (!allowLocalStart && !this.serverHydrated) {
+      console.warn('TurnManagementSystem.startCombat() blocked: hydrateFromServer() is required for server-authoritative combat.');
+      return;
+    }
 
     if (this.combatState !== CombatState.INACTIVE) {
       if (!force) {
@@ -176,7 +181,7 @@ export class TurnManagementSystem extends System {
       combat.enterCombat();
     }
     
-    // Roll initiative for all combatants
+    // Build initiative order from hydrated/server-provided initiative values
     this.rollInitiative();
 
     if (this.initiativeOrder.length === 0) {
@@ -194,36 +199,44 @@ export class TurnManagementSystem extends System {
   }
   
   /**
-   * Roll initiative for all combatants.
+   * Build initiative order from existing initiative values.
+   *
+   * No random rolls are performed client-side. Initiative values must be
+   * provided by server payloads via hydrateFromServer().
    */
   rollInitiative() {
-    const combatants = this.entityManager.getEntitiesWith('CombatComponent', 'StatsComponent');
+    const combatants = this.entityManager.getEntitiesWith('CombatComponent');
+
+    if (!this.serverHydrated) {
+      console.warn('TurnManagementSystem.rollInitiative() called before server hydration; initiative values may be stale.');
+    }
     
     const initiatives = [];
     
     for (const entity of combatants) {
       const combat = entity.getComponent('CombatComponent');
-      const stats = entity.getComponent('StatsComponent');
-      
-      // Roll initiative (d20 + perception)
-      const result = combat.rollInitiative(stats.perception);
+      const result = Number(combat.getInitiative());
+      const initiative = Number.isFinite(result) ? result : 0;
+      const roll = Number(combat.initiativeRoll);
       
       initiatives.push({
         entityId: entity.id,
-        initiative: result,
-        roll: combat.initiativeRoll
+        initiative,
+        roll: Number.isFinite(roll) ? roll : 0
       });
-      
-      console.log(`Entity ${entity.id} rolled initiative: ${combat.initiativeRoll} + ${stats.perception} = ${result}`);
+
+      console.log(`Entity ${entity.id} initiative (server): ${initiative} (roll=${initiatives[initiatives.length - 1].roll})`);
     }
     
-    // Sort by initiative (highest first), with roll as tiebreaker
+    // Sort by initiative (highest first), with roll as tiebreaker, then entityId.
     initiatives.sort((a, b) => {
       if (b.initiative !== a.initiative) {
         return b.initiative - a.initiative;
       }
-      // Tiebreaker: higher roll goes first
-      return b.roll - a.roll;
+      if (b.roll !== a.roll) {
+        return b.roll - a.roll;
+      }
+      return String(a.entityId).localeCompare(String(b.entityId));
     });
     
     // Set turn order
@@ -234,7 +247,44 @@ export class TurnManagementSystem extends System {
       return init.entityId;
     });
     
-    console.log('Initiative order:', this.initiativeOrder);
+    console.log('Initiative order (server values):', this.initiativeOrder);
+  }
+
+  /**
+   * Resolve a server participant reference to a local ECS entity.
+   *
+   * @param {string|number} serverEntityId
+   * @returns {Entity|null}
+   */
+  resolveEntityFromServerId(serverEntityId) {
+    const direct = this.entityManager.getEntity(serverEntityId);
+    if (direct) {
+      return direct;
+    }
+
+    const numericId = Number(serverEntityId);
+    if (Number.isFinite(numericId)) {
+      const numeric = this.entityManager.getEntity(numericId);
+      if (numeric) {
+        return numeric;
+      }
+    }
+
+    const serverIdString = String(serverEntityId);
+    const combatants = this.entityManager.getEntitiesWith('CombatComponent');
+    for (const entity of combatants) {
+      if (String(entity.id) === serverIdString) {
+        return entity;
+      }
+      if (entity.dcEntityRef && String(entity.dcEntityRef) === serverIdString) {
+        return entity;
+      }
+      if (entity.dcCharacterId && String(entity.dcCharacterId) === serverIdString) {
+        return entity;
+      }
+    }
+
+    return null;
   }
   
   /**
@@ -453,6 +503,7 @@ export class TurnManagementSystem extends System {
     this.currentTurnIndex = -1;
     this.currentRound = 0;
     this.combatState = CombatState.INACTIVE;
+    this.serverHydrated = false;
     
     if (this.onCombatStateChangeCallback) {
       this.onCombatStateChangeCallback(this.combatState);
@@ -517,24 +568,53 @@ export class TurnManagementSystem extends System {
    * @param {Object} serverState
    */
   hydrateFromServer(serverState = {}) {
-    const order = Array.isArray(serverState.initiative_order)
-      ? serverState.initiative_order.map((entry) => entry.entity_id)
+    const initiativeEntries = Array.isArray(serverState.initiative_order)
+      ? serverState.initiative_order
       : [];
 
-    const participants = Array.isArray(serverState.participants) ? serverState.participants : [];
-    participants.forEach((participant) => {
-      const entityId = Number(participant?.entity_id);
-      if (!Number.isFinite(entityId)) {
+    const order = [];
+    const initiativeByEntityId = new Map();
+    initiativeEntries.forEach((entry, index) => {
+      const entity = this.resolveEntityFromServerId(entry?.entity_id);
+      if (!entity) {
         return;
       }
 
-      const entity = this.entityManager.getEntity(entityId);
+      order.push(entity.id);
+      initiativeByEntityId.set(entity.id, {
+        initiative: Number(entry?.initiative),
+        order: index,
+      });
+    });
+
+    const participants = Array.isArray(serverState.participants) ? serverState.participants : [];
+    participants.forEach((participant) => {
+      const entity = this.resolveEntityFromServerId(participant?.entity_id);
       if (!entity) {
         return;
       }
 
       const combat = entity.getComponent('CombatComponent');
       if (combat) {
+        const participantInitiative = Number(participant?.initiative);
+        const orderInitiative = initiativeByEntityId.get(entity.id)?.initiative;
+        const initiativeResult = Number.isFinite(participantInitiative)
+          ? participantInitiative
+          : (Number.isFinite(orderInitiative) ? orderInitiative : null);
+
+        const initiativeRoll = Number(participant?.initiative_roll);
+        if (Number.isFinite(initiativeResult)) {
+          combat.setInitiativeFromServer(
+            initiativeResult,
+            Number.isFinite(initiativeRoll) ? initiativeRoll : null
+          );
+        }
+
+        const resolvedOrder = initiativeByEntityId.get(entity.id)?.order;
+        if (Number.isInteger(resolvedOrder)) {
+          combat.turnOrder = resolvedOrder;
+        }
+
         if (participant?.team) {
           combat.team = participant.team;
         }

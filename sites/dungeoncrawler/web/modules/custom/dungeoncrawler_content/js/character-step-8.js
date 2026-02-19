@@ -17,7 +17,8 @@
     ERROR_MESSAGE: '#error-message',
     APPEARANCE_FIELD: '#appearance',
     PERSONALITY_FIELD: '#personality',
-    BACKSTORY_FIELD: '#backstory'
+    BACKSTORY_FIELD: '#backstory',
+    PORTRAIT_PROMPT_FIELD: '#portrait_prompt'
   };
 
   // CSS classes
@@ -37,7 +38,8 @@
       validationError: 'Please correct the errors below.',
       appearanceTooLong: 'Physical Appearance cannot exceed 1000 characters.',
       personalityTooLong: 'Personality & Mannerisms cannot exceed 1000 characters.',
-      backstoryTooLong: 'Backstory cannot exceed 5000 characters.'
+      backstoryTooLong: 'Backstory cannot exceed 5000 characters.',
+      portraitPromptTooLong: 'Portrait prompt cannot exceed 500 characters.'
     },
     buttonText: {
       submit: '🎉 Create Character',
@@ -47,7 +49,8 @@
     validation: {
       appearanceMaxLength: 1000,
       personalityMaxLength: 1000,
-      backstoryMaxLength: 5000
+      backstoryMaxLength: 5000,
+      portraitPromptMaxLength: 500
     }
   };
 
@@ -162,6 +165,20 @@
       markFieldInvalid($backstory, backstoryValidation.message);
       errors.push(backstoryValidation.message);
       isValid = false;
+    }
+
+    const $portraitPrompt = $(SELECTORS.PORTRAIT_PROMPT_FIELD);
+    if ($portraitPrompt.length) {
+      const portraitValue = $portraitPrompt.val();
+      const portraitValidation = validateField($portraitPrompt, portraitValue, {
+        maxLength: CONFIG.validation.portraitPromptMaxLength,
+        errorMessage: CONFIG.messages.portraitPromptTooLong
+      });
+      if (!portraitValidation.isValid) {
+        markFieldInvalid($portraitPrompt, portraitValidation.message);
+        errors.push(portraitValidation.message);
+        isValid = false;
+      }
     }
 
     return { isValid, errors };

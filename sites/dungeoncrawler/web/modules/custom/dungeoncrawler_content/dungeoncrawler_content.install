@@ -3017,3 +3017,51 @@ function dungeoncrawler_content_update_10013() {
     throw new \Drupal\Core\Utility\UpdateException('Failed to add prompt cache table: ' . $e->getMessage());
   }
 }
+
+/**
+ * Create quest system tables (templates, chains, campaign quests, progress).
+ */
+function dungeoncrawler_content_update_10014() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $schema_handler = $database->schema();
+
+  $quest_tables = [
+    'dungeoncrawler_content_quest_templates',
+    'dungeoncrawler_content_quest_chains',
+    'dc_campaign_quests',
+    'dc_campaign_quest_progress',
+    'dc_campaign_quest_log',
+    'dc_campaign_quest_rewards_claimed',
+  ];
+
+  $created = [];
+  $skipped = [];
+
+  try {
+    foreach ($quest_tables as $table_name) {
+      if (!$schema_handler->tableExists($table_name)) {
+        $schema_handler->createTable($table_name, $schema[$table_name]);
+        $created[] = $table_name;
+        \Drupal::logger('dungeoncrawler_content')->info('Created quest table: @table', ['@table' => $table_name]);
+      }
+      else {
+        $skipped[] = $table_name;
+      }
+    }
+
+    $message = '';
+    if (!empty($created)) {
+      $message .= 'Created quest tables: ' . implode(', ', $created) . '. ';
+    }
+    if (!empty($skipped)) {
+      $message .= 'Skipped existing tables: ' . implode(', ', $skipped) . '.';
+    }
+
+    return t($message ?: 'No quest tables needed creation.');
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10014 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to create quest system tables: ' . $e->getMessage());
+  }
+}

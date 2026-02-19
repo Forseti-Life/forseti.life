@@ -91,6 +91,33 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       '#description' => $this->t('When enabled, AI narration snippets are logged as encounter timeline events (`ai_narration`) during NPC auto-play.'),
     ];
 
+    $form['ai_settings']['encounter_ai_retry_attempts'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Encounter AI retry attempts'),
+      '#default_value' => $config->get('encounter_ai_retry_attempts') ?? 2,
+      '#min' => 1,
+      '#max' => 3,
+      '#description' => $this->t('Maximum Bedrock invocation attempts per encounter recommendation/narration request before deterministic fallback.'),
+    ];
+
+    $form['ai_settings']['encounter_ai_recommendation_max_tokens'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Encounter AI recommendation max tokens'),
+      '#default_value' => $config->get('encounter_ai_recommendation_max_tokens') ?? 800,
+      '#min' => 200,
+      '#max' => 2000,
+      '#description' => $this->t('Token budget passed to Bedrock recommendation calls.'),
+    ];
+
+    $form['ai_settings']['encounter_ai_narration_max_tokens'] = [
+      '#type' => 'number',
+      '#title' => $this->t('Encounter AI narration max tokens'),
+      '#default_value' => $config->get('encounter_ai_narration_max_tokens') ?? 500,
+      '#min' => 120,
+      '#max' => 1200,
+      '#description' => $this->t('Token budget passed to Bedrock narration calls.'),
+    ];
+
     $form['ai_settings']['gemini_image_enabled'] = [
       '#type' => 'checkbox',
       '#title' => $this->t('Enable Gemini image generation live mode'),
@@ -241,6 +268,9 @@ class DungeonCrawlerSettingsForm extends ConfigFormBase {
       ->set('monster_permadeath', $form_state->getValue('monster_permadeath'))
       ->set('encounter_ai_npc_autoplay_enabled', $form_state->getValue('encounter_ai_npc_autoplay_enabled'))
       ->set('encounter_ai_narration_enabled', $form_state->getValue('encounter_ai_narration_enabled'))
+      ->set('encounter_ai_retry_attempts', (int) $form_state->getValue('encounter_ai_retry_attempts'))
+      ->set('encounter_ai_recommendation_max_tokens', (int) $form_state->getValue('encounter_ai_recommendation_max_tokens'))
+      ->set('encounter_ai_narration_max_tokens', (int) $form_state->getValue('encounter_ai_narration_max_tokens'))
       ->set('generated_image_provider', (string) $form_state->getValue('generated_image_provider'))
       ->set('gemini_image_enabled', $form_state->getValue('gemini_image_enabled'))
       ->set('gemini_image_model', trim((string) $form_state->getValue('gemini_image_model')))

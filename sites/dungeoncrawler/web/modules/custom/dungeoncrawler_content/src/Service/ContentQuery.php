@@ -23,13 +23,21 @@ class ContentQuery {
   protected $database;
 
   /**
+   * Number generation service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NumberGenerationService
+   */
+  protected $numberGeneration;
+
+  /**
    * Constructs a ContentQuery object.
    *
    * @param \Drupal\Core\Database\Connection $database
    *   The database connection.
    */
-  public function __construct(Connection $database) {
+  public function __construct(Connection $database, NumberGenerationService $number_generation) {
     $this->database = $database;
+    $this->numberGeneration = $number_generation;
   }
 
   /**
@@ -289,27 +297,17 @@ class ContentQuery {
    *   Rolled result.
    */
   protected function rollDice(string $dice_notation): int {
-    // Handle constant values (no dice)
     if (is_numeric($dice_notation)) {
       return (int) $dice_notation;
     }
-    
-    // Parse dice notation: XdY+Z or XdY-Z
-    $pattern = '/^(\d+)d(\d+)([\+\-]\d+)?$/i';
-    if (!preg_match($pattern, $dice_notation, $matches)) {
+
+    try {
+      $result = $this->numberGeneration->rollNotation($dice_notation);
+      return (int) ($result['total'] ?? 0);
+    }
+    catch (\InvalidArgumentException $exception) {
       return 0;
     }
-    
-    $num_dice = (int) $matches[1];
-    $die_size = (int) $matches[2];
-    $modifier = isset($matches[3]) ? (int) $matches[3] : 0;
-    
-    $total = 0;
-    for ($i = 0; $i < $num_dice; $i++) {
-      $total += random_int(1, $die_size);
-    }
-    
-    return $total + $modifier;
   }
 
 }

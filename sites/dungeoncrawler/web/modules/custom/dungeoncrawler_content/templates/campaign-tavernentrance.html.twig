@@ -3,12 +3,12 @@
  #}
 <div class="dc-character-list">
   <div class="dc-character-list__header">
-    <h1 class="dc-character-list__title">🍻 Tavern Entrance</h1>
+    <h1 class="dc-character-list__title">🍻 Legacy Tavern Entrance</h1>
     <div class="dc-sheet__nav-actions">
       <a href="{{ back_url }}" class="dc-btn dc-btn-secondary">← Back to Campaigns</a>
       <a href="{{ dungeon_selection_url }}" class="dc-btn dc-btn-secondary">🗺️ Select Dungeon</a>
       <a href="{{ create_character_url }}" class="dc-btn dc-btn-primary">
-        <span class="dc-btn__icon">+</span> Create New Character
+        <span class="dc-btn__icon">+</span> Create New Legacy Character
       </a>
     </div>
   </div>
@@ -18,7 +18,7 @@
     <p>
       Theme: <strong>{{ campaign.theme }}</strong> · Difficulty: <strong>{{ campaign.difficulty }}</strong> · Status: <strong>{{ campaign.status }}</strong>
     </p>
-    <p>Select a completed character to launch this campaign in the hexmap.</p>
+    <p>Select a completed character to carry this campaign forward in the persistent hexmap world.</p>
   </div>
 
   {% if characters|length > 0 %}
@@ -59,7 +59,7 @@
 
             {% if char.select_url %}
               <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
-                <span class="dc-btn dc-btn-success">▶️ Launch Campaign</span>
+                <span class="dc-btn dc-btn-success">▶️ Continue Legacy</span>
               </div>
             {% else %}
               <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
@@ -76,8 +76,8 @@
     <div class="dc-character-list__empty">
       <div class="dc-character-list__empty-icon">🧙</div>
       <h2>No Characters Available</h2>
-      <p>Create a character first, then return to the tavern entrance to launch your campaign.</p>
-      <a href="{{ create_character_url }}" class="dc-btn dc-btn-primary">Create Your First Character</a>
+      <p>Create a character first, then return to launch a long-term campaign journey.</p>
+      <a href="{{ create_character_url }}" class="dc-btn dc-btn-primary">Create Your First Legacy Character</a>
     </div>
   {% endif %}
 </div>

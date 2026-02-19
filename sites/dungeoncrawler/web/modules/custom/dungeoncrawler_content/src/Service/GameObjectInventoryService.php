@@ -42,6 +42,7 @@ class GameObjectInventoryService {
     'dungeoncrawler_content_room_states' => 'Global room-state template baselines.',
     'dungeoncrawler_content_item_instances' => 'Global item instance templates.',
     'dungeoncrawler_content_log' => 'Global narrative/event log templates.',
+    'dungeoncrawler_content_image_prompt_cache' => 'Cached image prompt requests and responses for Vertex lookups.',
   ];
 
   /**

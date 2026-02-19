@@ -105,12 +105,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Alignment & Deity",
+      "const": "Values & Convictions",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Define your character's moral and ethical perspective through alignment, and optionally choose a deity they worship.",
+      "const": "Define the values that guide your character's decisions across the full life of a campaign.",
       "description": "Explanation of what happens in this step"
     },
     "fields": {
@@ -128,7 +128,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose Your Alignment",
+              "const": "Choose Your Legacy Alignment",
               "description": "Field label"
             },
             "required": {
@@ -194,7 +194,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Alignment represents your character's moral and ethical outlook. It's a guide for roleplaying, not a strict rule. Most adventuring parties work best with good or neutral alignments.",
+              "const": "Use alignment as a roleplay compass for long-term consistency, not a rigid rule that blocks character growth.",
               "description": "Helper text displayed to user"
             },
             "validation": {
@@ -244,7 +244,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Choose a Deity (Required for Clerics & Champions)",
+              "const": "Choose a Deity or Guiding Belief (Required for Clerics & Champions)",
               "description": "Field label indicating conditional requirement"
             },
             "required": {
@@ -445,11 +445,11 @@
       },
       "$comment": "Steps 4-8 use simple string tips for brevity, while steps 1-3 use structured objects with title/text properties",
       "default": [
-        "Alignment is a roleplaying tool, not a straitjacket. Your character can act in complex ways within their alignment.",
-        "Evil alignments are generally not recommended for new players or most campaigns.",
-        "Your deity choice can unlock special abilities and flavor for divine characters.",
-        "Clerics can use their deity's favored weapon with proficiency, even if it's normally outside their class proficiencies.",
-        "You can change alignment during play if your character's actions consistently reflect a different worldview."
+        "Choose a worldview you can roleplay consistently over many sessions.",
+        "Party trust and long-term campaign cohesion usually benefit from cooperative alignments.",
+        "Deity choice can provide strong identity anchors for divine and conviction-driven characters.",
+        "If your character evolves, alignment can evolve too—treat it as living narrative guidance.",
+        "Use this step to define why your character stays in the world long enough to become a legend."
       ]
     }
   },

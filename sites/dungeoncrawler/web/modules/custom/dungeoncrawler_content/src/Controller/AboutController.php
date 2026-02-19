@@ -26,7 +26,7 @@ class AboutController extends ControllerBase {
           <div class="card-body p-5">
             <h1 class="display-3 mb-4">Dungeon Crawler Life</h1>
             <p class="lead fs-3">Where Forseti Guides Every Adventure</p>
-            <p class="fs-5 text-muted">A living dungeon shaped by your choices, your party, and your next risk</p>
+            <p class="fs-5 text-muted">A living RPG home where your characters can adventure, evolve, and retire with purpose</p>
           </div>
         </div>',
       ],
@@ -39,15 +39,15 @@ class AboutController extends ControllerBase {
         '#markup' => '<div class="card bg-dark text-light">
           <div class="card-body p-4">
             <h2 class="card-title mb-4">The Vision</h2>
-            <p class="lead">Dungeon Crawler Life is a living campaign world where Forseti, your Game Master, keeps every expedition responsive, dangerous, and story-rich.</p>
-            <p>Traditional dungeon crawlers can feel static after enough runs. Our goal is a world that reacts: encounters shift, rooms evolve, and narrative hooks adapt to your decisions in real time.</p>
+            <p class="lead">Dungeon Crawler Forseti Life is designed for former tabletop and classic RPG players who want a permanent home for their heroes.</p>
+            <p>Instead of disposable runs, we focus on long-form continuity: campaigns persist, characters carry history, and retirement can become part of your account\'s living legacy.</p>
             <p>Using advanced AI technology, Dungeon Crawler Life generates:</p>
             <ul>
-              <li><strong>Unique Creatures:</strong> Each enemy you encounter is procedurally generated with its own abilities, behaviors, and appearance</li>
-              <li><strong>Dynamic Rooms:</strong> Dungeon layouts adapt to your playstyle and challenge level</li>
-              <li><strong>Living Items:</strong> Weapons and artifacts with procedurally generated lore and powers</li>
-              <li><strong>Emergent Quests:</strong> Storylines that branch and evolve based on your choices</li>
-              <li><strong>Adaptive Challenges:</strong> The dungeon learns from your tactics and responds accordingly</li>
+              <li><strong>Persistent Campaign Homes:</strong> Your campaign space remains available for repeat sessions and long arcs</li>
+              <li><strong>Character-First Continuity:</strong> Build a roster that can evolve from first run to final retirement</li>
+              <li><strong>Dynamic Rooms and Encounters:</strong> AI-assisted generation adds variety without losing campaign continuity</li>
+              <li><strong>Living Items and Progression:</strong> Equipment choices reinforce your character\'s long-term identity</li>
+              <li><strong>Evolving Universe Story:</strong> Your choices become part of the wider Dungeon Crawler timeline</li>
             </ul>
           </div>
         </div>',
@@ -63,32 +63,32 @@ class AboutController extends ControllerBase {
       [
         'icon' => '🤖',
         'title' => 'Forseti-Guided Generation',
-        'description' => 'Forseti orchestrates dynamic content so every crawl feels authored for your current campaign.',
+        'description' => 'Forseti orchestrates dynamic content while preserving campaign continuity and player identity.',
       ],
       [
         'icon' => '🎲',
-        'title' => 'Infinite Replayability',
-        'description' => 'No two adventures are the same. Each playthrough offers new challenges, creatures, and treasures.',
+        'title' => 'Enduring Replayability',
+        'description' => 'Return with the same heroes or successor characters as your world history expands.',
       ],
       [
         'icon' => '🧠',
-        'title' => 'Adaptive Difficulty',
-        'description' => 'The dungeon analyzes your performance and adjusts to provide the perfect level of challenge.',
+        'title' => 'Campaign-Scale Challenge',
+        'description' => 'Difficulty and pacing support both fresh starts and deep, returning campaign runs.',
       ],
       [
         'icon' => '🌍',
-        'title' => 'Hex-Based World',
-        'description' => 'Explore a vast world divided into hexagonal regions, each with unique biomes and dangers.',
+        'title' => 'Persistent Hex World',
+        'description' => 'Explore and revisit regions with outcomes that stay meaningful across sessions.',
       ],
       [
         'icon' => '⚔️',
         'title' => 'Classic RPG Mechanics',
-        'description' => 'Built on time-tested D&D-inspired rules that tabletop gamers will recognize and love.',
+        'description' => 'Built on familiar tactical foundations that former tabletop players can immediately read.',
       ],
       [
         'icon' => '📱',
         'title' => 'Play Anywhere',
-        'description' => 'Continue your campaign from web or mobile without losing momentum.',
+        'description' => 'Continue your campaign home from web or mobile without losing progression context.',
       ],
     ];
 
@@ -149,8 +149,8 @@ class AboutController extends ControllerBase {
         '#markup' => '<div class="card bg-dark text-light">
           <div class="card-body p-4 text-center">
             <h2 class="card-title mb-4">The Team</h2>
-            <p class="lead">Dungeon Crawler Life is built by a small studio team focused on living-world RPG systems, with Forseti serving as the Game Master voice guiding every adventure.</p>
-            <p>We believe that games should be: <strong>innovative</strong>, <strong>accessible</strong>, and <strong>infinitely replayable</strong>.</p>
+            <p class="lead">Dungeon Crawler Life is built by a small studio team focused on living-world RPG systems and long-term character attachment.</p>
+            <p>We believe RPG worlds should be: <strong>persistent</strong>, <strong>welcoming to returning players</strong>, and <strong>worth investing years into</strong>.</p>
           </div>
         </div>',
       ],
@@ -162,11 +162,11 @@ class AboutController extends ControllerBase {
       'content' => [
         '#markup' => '<div class="card bg-primary text-light border-0">
           <div class="card-body p-5">
-            <h2 class="card-title mb-4">Ready for Your Next Expedition?</h2>
-            <p class="lead mb-4">Gather your party and let Forseti open the first chamber.</p>
+            <h2 class="card-title mb-4">Ready to Build a Permanent Character Home?</h2>
+            <p class="lead mb-4">Create your roster, launch your first campaign, and grow into the wider Forseti universe.</p>
             <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
-              <a href="/characters/create" class="btn btn-light btn-lg px-5">Create Character</a>
-              <a href="/how-to-play" class="btn btn-outline-light btn-lg px-5">Learn More</a>
+              <a href="/characters/create" class="btn btn-light btn-lg px-5">Create Legacy Character</a>
+              <a href="/how-to-play" class="btn btn-outline-light btn-lg px-5">Read Player Guide</a>
             </div>
           </div>
         </div>',

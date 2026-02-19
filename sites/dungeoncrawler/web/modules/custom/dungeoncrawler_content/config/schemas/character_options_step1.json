@@ -57,12 +57,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Name & Concept",
+      "const": "Legacy Name & Concept",
       "description": "Display name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Begin your adventure by choosing your character's name and defining their core concept.",
+      "const": "Start your long-term story by naming your character and defining the role they will grow into across campaigns.",
       "description": "Instructions displayed to the player"
     },
     "fields": {
@@ -84,17 +84,17 @@
             },
             "label": {
               "type": "string",
-              "default": "Character Name",
+              "default": "Legacy Character Name",
               "description": "Field label displayed to user"
             },
             "placeholder": {
               "type": "string",
-              "default": "Enter your character's name",
+              "default": "Enter the name you'll want in your roster long-term",
               "description": "Placeholder text in input field"
             },
             "help_text": {
               "type": "string",
-              "default": "Choose a name that fits your character's ancestry and background. This is how other players will know you.",
+              "default": "Choose a name that supports long-term campaign identity and is easy for other players to remember.",
               "description": "Additional guidance shown below field"
             },
             "required": {
@@ -162,17 +162,17 @@
             },
             "label": {
               "type": "string",
-              "default": "Character Concept",
+              "default": "Legacy Character Concept",
               "description": "Field label displayed to user"
             },
             "placeholder": {
               "type": "string",
-              "default": "Describe your character's core concept in a few sentences...",
+              "default": "Describe the role this character will fill across a long campaign...",
               "description": "Placeholder text in textarea"
             },
             "help_text": {
               "type": "string",
-              "default": "What's your character's story? Are they a brave warrior seeking glory, a cunning rogue escaping their past, or a wise scholar pursuing forbidden knowledge? This helps guide your choices in later steps.",
+              "default": "Define motivation, role, and tone now so later choices create a coherent long-term arc.",
               "description": "Additional guidance shown below field"
             },
             "required": {
@@ -288,9 +288,9 @@
       },
       "minItems": 1,
       "default": [
-        "Don't worry too much about your name at this stage - you can always change it later. Focus on creating a character concept that excites you!",
-        "Different ancestries have different naming traditions. Dwarves often have clan names, elves prefer flowing melodic names, and goblins love silly-sounding names.",
-        "Your concept will guide your choices in ancestry, background, and class. Think about what kind of hero you want to play - brave, cunning, wise, or something else entirely."
+        "Pick a name that you can imagine seeing in your roster for a long time, not just one quick run.",
+        "Write a concept that supports repeat campaign sessions: role in party, motivations, and growth direction.",
+        "A clear concept now makes later choices (ancestry, background, class, and gear) feel coherent and intentional."
       ]
     }
   },

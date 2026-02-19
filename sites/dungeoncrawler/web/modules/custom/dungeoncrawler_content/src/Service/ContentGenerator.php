@@ -21,13 +21,21 @@ class ContentGenerator {
   protected $contentQuery;
 
   /**
+   * Number generation service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NumberGenerationService
+   */
+  protected $numberGeneration;
+
+  /**
    * Constructs a ContentGenerator object.
    *
    * @param \Drupal\dungeoncrawler_content\Service\ContentQuery $content_query
    *   The content query service.
    */
-  public function __construct(ContentQuery $content_query) {
+  public function __construct(ContentQuery $content_query, NumberGenerationService $number_generation) {
     $this->contentQuery = $content_query;
+    $this->numberGeneration = $number_generation;
   }
 
   /**
@@ -146,7 +154,7 @@ class ContentGenerator {
       }
       
       // Pick a random creature
-      $creature = $candidates[array_rand($candidates)];
+      $creature = $candidates[$this->randomArrayIndex($candidates)];
       
       // Calculate creature XP (simplified - should match PF2e XP chart)
       $creature_xp = $this->getCreatureXP($creature['level'] ?? 1);
@@ -324,8 +332,8 @@ class ContentGenerator {
   protected function generateHoardItems(int $level, string $hoard_type): array {
     $item_counts = [
       'minor' => 1,
-      'moderate' => random_int(2, 3),
-      'major' => random_int(3, 5),
+      'moderate' => $this->numberGeneration->rollRange(2, 3),
+      'major' => $this->numberGeneration->rollRange(3, 5),
     ];
     
     $count = $item_counts[$hoard_type] ?? 1;
@@ -333,7 +341,7 @@ class ContentGenerator {
     
     for ($i = 0; $i < $count; $i++) {
       // Query for level-appropriate items
-      $item_level = $level + random_int(-1, 1);
+      $item_level = $level + $this->numberGeneration->rollRange(-1, 1);
       $rarity = $hoard_type === 'major' && $i === 0 ? 'rare' : 'common';
       
       $candidates = $this->contentQuery->queryItems([
@@ -343,7 +351,7 @@ class ContentGenerator {
       ], 10);
       
       if (!empty($candidates)) {
-        $item = $candidates[array_rand($candidates)];
+        $item = $candidates[$this->randomArrayIndex($candidates)];
         $items[] = [
           'item_id' => $item['content_id'],
           'name' => $item['name'],
@@ -370,22 +378,21 @@ class ContentGenerator {
     if (is_numeric($notation)) {
       return (int) $notation;
     }
-    
-    $pattern = '/^(\d+)d(\d+)([\+\-]\d+)?$/i';
-    if (!preg_match($pattern, $notation, $matches)) {
+
+    try {
+      $result = $this->numberGeneration->rollNotation($notation);
+      return (int) ($result['total'] ?? 0);
+    }
+    catch (\InvalidArgumentException $exception) {
       return 0;
     }
-    
-    $num_dice = (int) $matches[1];
-    $die_size = (int) $matches[2];
-    $modifier = isset($matches[3]) ? (int) $matches[3] : 0;
-    
-    $total = 0;
-    for ($i = 0; $i < $num_dice; $i++) {
-      $total += random_int(1, $die_size);
-    }
-    
-    return $total + $modifier;
+  }
+
+  /**
+   * Pick a random valid index from a non-empty array.
+   */
+  protected function randomArrayIndex(array $items): int {
+    return $this->numberGeneration->rollRange(0, count($items) - 1);
   }
 
   /**

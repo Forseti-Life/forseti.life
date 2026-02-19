@@ -4,9 +4,11 @@ namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Config\ConfigFactoryInterface;
-use Drupal\Component\Utility\Random;
+use Drupal\Core\Database\Connection;
 use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
+use Drupal\dungeoncrawler_content\Service\CharacterStateService;
 use Drupal\dungeoncrawler_content\Service\EncounterAiIntegrationService;
+use Drupal\dungeoncrawler_content\Service\NumberGenerationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -42,12 +44,36 @@ class CombatEncounterApiController extends ControllerBase {
   protected $encounterAiIntegration;
 
   /**
+   * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
+   * Character state service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\CharacterStateService
+   */
+  protected $characterStateService;
+
+  /**
+   * Number generation service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NumberGenerationService
+   */
+  protected $numberGeneration;
+
+  /**
    * Constructor.
    */
-  public function __construct(CombatEncounterStore $encounter_store, ConfigFactoryInterface $config_factory, EncounterAiIntegrationService $encounter_ai_integration) {
+  public function __construct(CombatEncounterStore $encounter_store, ConfigFactoryInterface $config_factory, EncounterAiIntegrationService $encounter_ai_integration, Connection $database, CharacterStateService $character_state_service, NumberGenerationService $number_generation) {
     $this->encounterStore = $encounter_store;
     $this->configFactory = $config_factory;
     $this->encounterAiIntegration = $encounter_ai_integration;
+    $this->database = $database;
+    $this->characterStateService = $character_state_service;
+    $this->numberGeneration = $number_generation;
   }
 
   /**
@@ -57,7 +83,10 @@ class CombatEncounterApiController extends ControllerBase {
     return new static(
       $container->get('dungeoncrawler_content.combat_encounter_store'),
       $container->get('config.factory'),
-      $container->get('dungeoncrawler_content.encounter_ai_integration')
+      $container->get('dungeoncrawler_content.encounter_ai_integration'),
+      $container->get('database'),
+      $container->get('dungeoncrawler_content.character_state'),
+      $container->get('dungeoncrawler_content.number_generation')
     );
   }
 
@@ -93,7 +122,8 @@ class CombatEncounterApiController extends ControllerBase {
     $encounter_id = $this->encounterStore->createEncounter(
       $data['campaignId'] ?? NULL,
       $data['roomId'] ?? NULL,
-      $participants
+      $participants,
+      $data['mapId'] ?? NULL
     );
 
     // Persist the computed turn index.
@@ -276,7 +306,7 @@ class CombatEncounterApiController extends ControllerBase {
     }
 
     $requested_damage = isset($data['damage']) ? (int) $data['damage'] : 0;
-    $damage = $requested_damage > 0 ? $requested_damage : random_int(1, 8);
+    $damage = $requested_damage > 0 ? $requested_damage : $this->numberGeneration->rollRange(1, 8);
 
     if ($target && $damage > 0) {
       $hp_before = $target['hp'] ?? NULL;
@@ -410,6 +440,11 @@ class CombatEncounterApiController extends ControllerBase {
       ]);
     }
 
+    $world_delta = NULL;
+    if ($action_type === 'interact') {
+      $world_delta = $this->applyInteractionWorldMutation($encounter, $data, $data['mapId'] ?? NULL);
+    }
+
     $this->encounterStore->logAction([
       'encounter_id' => (int) $encounter_id,
       'participant_id' => (int) $actor['id'],
@@ -420,11 +455,13 @@ class CombatEncounterApiController extends ControllerBase {
         'target' => $data['targetId'] ?? NULL,
         'interaction_type' => $data['interactionType'] ?? NULL,
         'target_hex' => $data['targetHex'] ?? NULL,
+        'destination_hex' => $data['destinationHex'] ?? NULL,
         'message' => $data['message'] ?? NULL,
       ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
       'result' => json_encode([
         'accepted' => TRUE,
         'cost' => $cost,
+        'world_delta' => $world_delta,
       ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
     ]);
 
@@ -437,8 +474,207 @@ class CombatEncounterApiController extends ControllerBase {
       'cost' => $cost,
       'interaction_type' => $data['interactionType'] ?? NULL,
     ];
+    if ($world_delta !== NULL) {
+      $response['world_delta'] = $world_delta;
+    }
 
     return new JsonResponse($response);
+  }
+
+  /**
+   * Apply interaction world mutation and persist to campaign dungeon data.
+   *
+   * Uses deterministic composite key (campaign_id, map_id) to identify the correct
+   * dungeon row, ensuring correctness in multi-dungeon campaign scenarios.
+   *
+   * @param array $encounter
+   * @param array $data
+   * @param string|null $map_id
+   *
+   * @return array|null
+   */
+  protected function applyInteractionWorldMutation(array $encounter, array $data, ?string $map_id = NULL): ?array {
+    $campaign_id = isset($encounter['campaign_id']) ? (int) $encounter['campaign_id'] : 0;
+    if ($campaign_id <= 0) {
+      return NULL;
+    }
+
+    $target_hex = $data['targetHex'] ?? NULL;
+    if (!is_array($target_hex) || !isset($target_hex['q']) || !isset($target_hex['r'])) {
+      return NULL;
+    }
+
+    $interaction_type = (string) ($data['interactionType'] ?? '');
+    $target_q = (int) $target_hex['q'];
+    $target_r = (int) $target_hex['r'];
+    $room_id = (string) ($encounter['room_id'] ?? '');
+
+    // Build composite key query: (campaign_id, map_id) lookup.
+    $query = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['id', 'dungeon_data'])
+      ->condition('campaign_id', $campaign_id);
+
+    // Use map_id for deterministic lookup if provided.
+    if (!empty($map_id)) {
+      $query->condition('dungeon_id', $map_id);
+    } else {
+      // Fallback to most-recent if map_id not supplied (operational exception).
+      $query->orderBy('updated', 'DESC')->orderBy('id', 'DESC')->range(0, 1);
+    }
+
+    $row = $query->execute()->fetchAssoc();
+
+    if (!$row || empty($row['dungeon_data'])) {
+      return NULL;
+    }
+
+    $payload = json_decode((string) $row['dungeon_data'], TRUE);
+    if (!is_array($payload)) {
+      return NULL;
+    }
+
+    $delta = NULL;
+    if ($interaction_type === 'open_passage') {
+      $delta = $this->openPassageInPayload($payload, $room_id, $target_q, $target_r);
+    }
+    elseif ($interaction_type === 'open_door') {
+      $delta = $this->openDoorInPayload($payload, $room_id, $target_q, $target_r);
+    }
+    elseif ($interaction_type === 'move_object') {
+      $destination_hex = $data['destinationHex'] ?? NULL;
+      if (is_array($destination_hex) && isset($destination_hex['q']) && isset($destination_hex['r'])) {
+        $delta = $this->moveObstacleInPayload(
+          $payload,
+          $room_id,
+          $target_q,
+          $target_r,
+          (int) $destination_hex['q'],
+          (int) $destination_hex['r']
+        );
+      }
+    }
+
+    if ($delta === NULL) {
+      return NULL;
+    }
+
+    $this->database->update('dc_campaign_dungeons')
+      ->fields([
+        'dungeon_data' => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+        'updated' => time(),
+      ])
+      ->condition('id', (int) $row['id'])
+      ->execute();
+
+    return $delta;
+  }
+
+  /**
+   * Open a blocked connection in payload and return world delta.
+   */
+  protected function openPassageInPayload(array &$payload, string $room_id, int $q, int $r): ?array {
+    if (!isset($payload['hex_map']['connections']) || !is_array($payload['hex_map']['connections'])) {
+      return NULL;
+    }
+
+    foreach ($payload['hex_map']['connections'] as &$connection) {
+      $from_match = (($connection['from_room'] ?? '') === $room_id)
+        && ((int) ($connection['from_hex']['q'] ?? 0) === $q)
+        && ((int) ($connection['from_hex']['r'] ?? 0) === $r);
+      $to_match = (($connection['to_room'] ?? '') === $room_id)
+        && ((int) ($connection['to_hex']['q'] ?? 0) === $q)
+        && ((int) ($connection['to_hex']['r'] ?? 0) === $r);
+
+      if (!$from_match && !$to_match) {
+        continue;
+      }
+
+      $connection['is_passable'] = TRUE;
+      $connection['is_discovered'] = TRUE;
+
+      return [
+        'type' => 'open_passage',
+        'room_id' => $room_id,
+        'target_hex' => ['q' => $q, 'r' => $r],
+        'connection_id' => $connection['connection_id'] ?? NULL,
+      ];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Mark a door-like obstacle passable in payload and return world delta.
+   */
+  protected function openDoorInPayload(array &$payload, string $room_id, int $q, int $r): ?array {
+    if (!isset($payload['entities']) || !is_array($payload['entities'])) {
+      return NULL;
+    }
+
+    foreach ($payload['entities'] as &$entity) {
+      if (($entity['entity_type'] ?? '') !== 'obstacle') {
+        continue;
+      }
+
+      $placement = $entity['placement'] ?? [];
+      if (($placement['room_id'] ?? '') !== $room_id) {
+        continue;
+      }
+
+      if ((int) ($placement['hex']['q'] ?? 0) !== $q || (int) ($placement['hex']['r'] ?? 0) !== $r) {
+        continue;
+      }
+
+      $entity['state'] = is_array($entity['state'] ?? NULL) ? $entity['state'] : [];
+      $entity['state']['metadata'] = is_array($entity['state']['metadata'] ?? NULL) ? $entity['state']['metadata'] : [];
+      $entity['state']['metadata']['passable'] = TRUE;
+
+      return [
+        'type' => 'open_door',
+        'room_id' => $room_id,
+        'target_hex' => ['q' => $q, 'r' => $r],
+        'target_id' => $entity['instance_id'] ?? ($entity['entity_ref']['content_id'] ?? NULL),
+      ];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Move an obstacle in payload and return world delta.
+   */
+  protected function moveObstacleInPayload(array &$payload, string $room_id, int $from_q, int $from_r, int $to_q, int $to_r): ?array {
+    if (!isset($payload['entities']) || !is_array($payload['entities'])) {
+      return NULL;
+    }
+
+    foreach ($payload['entities'] as &$entity) {
+      if (($entity['entity_type'] ?? '') !== 'obstacle') {
+        continue;
+      }
+
+      $placement = $entity['placement'] ?? [];
+      if (($placement['room_id'] ?? '') !== $room_id) {
+        continue;
+      }
+
+      if ((int) ($placement['hex']['q'] ?? 0) !== $from_q || (int) ($placement['hex']['r'] ?? 0) !== $from_r) {
+        continue;
+      }
+
+      $entity['placement']['hex']['q'] = $to_q;
+      $entity['placement']['hex']['r'] = $to_r;
+
+      return [
+        'type' => 'move_object',
+        'room_id' => $room_id,
+        'target_hex' => ['q' => $from_q, 'r' => $from_r],
+        'destination_hex' => ['q' => $to_q, 'r' => $to_r],
+        'target_id' => $entity['instance_id'] ?? ($entity['entity_ref']['content_id'] ?? NULL),
+      ];
+    }
+
+    return NULL;
   }
 
   /**
@@ -462,7 +698,7 @@ class CombatEncounterApiController extends ControllerBase {
       $initiative = $entity['initiative'] ?? NULL;
       $initiative_roll = NULL;
       if ($initiative === NULL) {
-        $roll = random_int(1, 20);
+        $roll = $this->numberGeneration->rollPathfinderDie(20);
         $bonus = (int) ($entity['perception'] ?? 0) + (int) ($entity['initiative_bonus'] ?? 0);
         $initiative = $roll + $bonus;
         $initiative_roll = $roll;
@@ -472,7 +708,8 @@ class CombatEncounterApiController extends ControllerBase {
       $max_hp = isset($entity['max_hp']) ? (int) $entity['max_hp'] : NULL;
 
       $participants[] = [
-        'entity_id' => $entity_id,
+        'entity_id' => isset($entity['characterId']) ? (int) $entity['characterId'] : $entity_id,
+        'entity_ref' => $entity['entityRef'] ?? $entity['instanceId'] ?? ($entity['entity_ref'] ?? NULL),
         'name' => $name,
         'team' => $entity['team'] ?? NULL,
         'initiative' => $initiative,
@@ -480,6 +717,9 @@ class CombatEncounterApiController extends ControllerBase {
         'ac' => isset($entity['ac']) ? (int) $entity['ac'] : NULL,
         'hp' => $hp,
         'max_hp' => $max_hp,
+        'actions_remaining' => isset($entity['actions_remaining']) ? (int) $entity['actions_remaining'] : 3,
+        'position_q' => isset($entity['position_q']) ? (int) $entity['position_q'] : (isset($entity['position']['q']) ? (int) $entity['position']['q'] : NULL),
+        'position_r' => isset($entity['position_r']) ? (int) $entity['position_r'] : (isset($entity['position']['r']) ? (int) $entity['position']['r'] : NULL),
         'is_defeated' => (bool) ($entity['is_defeated'] ?? FALSE),
       ];
     }
@@ -493,6 +733,7 @@ class CombatEncounterApiController extends ControllerBase {
   protected function buildEncounterResponse(array $encounter): array {
     $participants = $encounter['participants'] ?? [];
     $turn_index = $encounter['turn_index'] ?? 0;
+    $encounter_id = (int) ($encounter['id'] ?? $encounter['encounter_id'] ?? 0);
 
     $normalized_participants = [];
     $initiative_order = [];
@@ -515,11 +756,13 @@ class CombatEncounterApiController extends ControllerBase {
     }
 
     $current_participant = $normalized_participants[$turn_index] ?? NULL;
+    $latest_ai_turn_plan = $encounter_id > 0 ? $this->loadLatestAiTurnPlan($encounter_id) : NULL;
 
     return [
-      'encounter_id' => $encounter['id'] ?? $encounter['encounter_id'],
+      'encounter_id' => $encounter_id,
       'campaign_id' => $encounter['campaign_id'],
       'room_id' => $encounter['room_id'],
+      'map_id' => $encounter['map_id'] ?? NULL,
       'status' => $encounter['status'],
       'current_round' => $encounter['current_round'],
       'turn_index' => $turn_index,
@@ -527,6 +770,37 @@ class CombatEncounterApiController extends ControllerBase {
       'initiative_order' => $initiative_order,
       'participants' => $normalized_participants,
       'current_participant' => $current_participant,
+      'latest_ai_turn_plan' => $latest_ai_turn_plan,
+    ];
+  }
+
+  /**
+   * Load most recent ai_turn_plan timeline event for an encounter.
+   */
+  protected function loadLatestAiTurnPlan(int $encounter_id): ?array {
+    $row = $this->database->select('combat_actions', 'a')
+      ->fields('a', ['id', 'participant_id', 'payload', 'result', 'created'])
+      ->condition('encounter_id', $encounter_id)
+      ->condition('action_type', 'ai_turn_plan')
+      ->orderBy('created', 'DESC')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$row) {
+      return NULL;
+    }
+
+    $payload = json_decode((string) ($row['payload'] ?? ''), TRUE);
+    $result = json_decode((string) ($row['result'] ?? ''), TRUE);
+
+    return [
+      'action_id' => (int) $row['id'],
+      'participant_id' => (int) ($row['participant_id'] ?? 0),
+      'created' => (int) ($row['created'] ?? 0),
+      'payload' => is_array($payload) ? $payload : [],
+      'result' => is_array($result) ? $result : [],
     ];
   }
 
@@ -603,16 +877,19 @@ class CombatEncounterApiController extends ControllerBase {
     $action_type = 'strike';
     $target_idx = $this->findFirstAlivePlayerIndex($participants);
     $ai_context = NULL;
+    $ai_response = NULL;
+    $action_parameters = [];
 
-    if ($this->isEncounterAiNpcAutoplayEnabled()) {
-      try {
-        $campaign_id = isset($encounter['campaign_id']) && $encounter['campaign_id'] !== NULL
-          ? (int) $encounter['campaign_id']
-          : 0;
-        $encounter_id = isset($encounter['id']) ? (int) $encounter['id'] : (int) ($encounter['encounter_id'] ?? 0);
+    try {
+      $campaign_id = isset($encounter['campaign_id']) && $encounter['campaign_id'] !== NULL
+        ? (int) $encounter['campaign_id']
+        : 0;
+      $encounter_id = isset($encounter['id']) ? (int) $encounter['id'] : (int) ($encounter['encounter_id'] ?? 0);
 
-        $context = $this->encounterAiIntegration->buildEncounterContext($campaign_id, $encounter_id, $encounter);
-        $ai_context = $context;
+      $context = $this->buildActorTurnAiContext($encounter, $current, $participants, $campaign_id, $encounter_id);
+      $ai_context = $context;
+
+      if ($this->isEncounterAiNpcAutoplayEnabled()) {
         $ai_response = $this->encounterAiIntegration->requestNpcActionRecommendation($context);
         $validation = $ai_response['validation'] ?? [];
 
@@ -620,25 +897,36 @@ class CombatEncounterApiController extends ControllerBase {
           $recommendation = is_array($ai_response['recommendation'] ?? NULL) ? $ai_response['recommendation'] : [];
           $recommended_action = is_array($recommendation['recommended_action'] ?? NULL) ? $recommendation['recommended_action'] : [];
           $action_type = (string) ($recommended_action['type'] ?? 'strike');
+          $action_parameters = is_array($recommended_action['parameters'] ?? NULL) ? $recommended_action['parameters'] : [];
 
-          if ($action_type === 'strike') {
-            $target_ref = (string) ($recommended_action['target_instance_id'] ?? '');
+          $target_ref = (string) ($recommended_action['target_instance_id'] ?? '');
+          if ($target_ref !== '') {
             $target_idx = $this->findParticipantIndexByReference($participants, $target_ref);
-            if ($target_idx === NULL) {
-              $target_idx = $this->findFirstAlivePlayerIndex($participants);
-            }
+          }
+
+          if ($target_idx === NULL && $action_type !== 'end_turn') {
+            $target_idx = $this->findFirstAlivePlayerIndex($participants);
           }
         }
       }
-      catch (\Throwable $exception) {
-        $this->logger('dungeoncrawler_content')->warning('Encounter AI autoplay fallback: @message', [
-          '@message' => $exception->getMessage(),
-        ]);
-      }
+    }
+    catch (\Throwable $exception) {
+      $this->logger('dungeoncrawler_content')->warning('Encounter AI autoplay fallback: @message', [
+        '@message' => $exception->getMessage(),
+      ]);
+    }
+
+    if (is_array($ai_response) && isset($current['id'])) {
+      $this->persistAiTurnPlanEvent($encounter, (int) $current['id'], $ai_context ?? [], $ai_response);
     }
 
     if ($this->isEncounterAiNarrationEnabled() && is_array($ai_context) && isset($current['id'])) {
       $this->persistEncounterNarrationEvent($encounter, (int) $current['id'], $ai_context);
+    }
+
+    if ($action_type === 'talk') {
+      $this->runNpcTalkAction($encounter, $current, $participants, $target_idx, $action_parameters);
+      return;
     }
 
     if ($action_type !== 'strike' || $target_idx === NULL) {
@@ -646,7 +934,7 @@ class CombatEncounterApiController extends ControllerBase {
     }
 
     $target = $participants[$target_idx];
-    $damage = random_int(1, 6);
+    $damage = $this->numberGeneration->rollRange(1, 6);
     $hp_before = $target['hp'] ?? NULL;
     $hp_after = $hp_before !== NULL ? max(0, $hp_before - $damage) : NULL;
 
@@ -664,6 +952,353 @@ class CombatEncounterApiController extends ControllerBase {
       'hp_before' => $hp_before,
       'hp_after' => $hp_after,
     ]);
+  }
+
+  /**
+   * Build enriched AI context for non-player turn planning.
+   */
+  protected function buildActorTurnAiContext(array $encounter, array $current, array $participants, int $campaign_id, int $encounter_id): array {
+    $context = $this->encounterAiIntegration->buildEncounterContext($campaign_id, $encounter_id, $encounter);
+    $room_entities = $this->loadEncounterRoomEntities($encounter);
+    $actor_profile = $this->buildActorProfile($encounter, $current, $room_entities);
+    $visibility = $this->buildVisibleReferences($current, $participants, $room_entities, $actor_profile);
+
+    $context['turn_phase'] = 'start_of_turn';
+    $context['current_actor_profile'] = $actor_profile;
+    $context['visible_references'] = $visibility['references'];
+    $context['line_of_sight'] = $visibility['line_of_sight'];
+    $context['conversation_options'] = $this->buildConversationOptions($current, $actor_profile, $visibility['references']);
+
+    return $context;
+  }
+
+  /**
+   * Build actor profile with full state payload when available.
+   */
+  protected function buildActorProfile(array $encounter, array $current, array $room_entities): array {
+    $room_entity = $this->findRoomEntityForParticipant($current, $room_entities);
+    $character_state = NULL;
+    $character_id = isset($current['entity_id']) ? (int) $current['entity_id'] : 0;
+    $campaign_id = isset($encounter['campaign_id']) ? (int) $encounter['campaign_id'] : 0;
+    $instance_id = !empty($current['entity_ref']) ? (string) $current['entity_ref'] : NULL;
+
+    if ($character_id > 0 && $campaign_id > 0) {
+      try {
+        $character_state = $this->characterStateService->getState((string) $character_id, $campaign_id, $instance_id);
+      }
+      catch (\Throwable $exception) {
+        $character_state = NULL;
+      }
+    }
+
+    $skills = $this->extractSkills($character_state, $room_entity);
+    $motivations = $this->extractMotivations($character_state, $room_entity);
+    $intelligence = $this->extractIntelligence($character_state, $room_entity);
+
+    return [
+      'entity_ref' => (string) ($current['entity_ref'] ?? ''),
+      'entity_id' => (int) ($current['entity_id'] ?? 0),
+      'name' => (string) ($current['name'] ?? 'Unknown'),
+      'team' => (string) ($current['team'] ?? 'neutral'),
+      'combat_snapshot' => $current,
+      'character_state' => $character_state,
+      'state_payload' => is_array($room_entity['state'] ?? NULL) ? $room_entity['state'] : [],
+      'skills' => $skills,
+      'motivations' => $motivations,
+      'intelligence' => $intelligence,
+    ];
+  }
+
+  /**
+   * Build a visibility/line-of-sight envelope for AI turn planning.
+   */
+  protected function buildVisibleReferences(array $current, array $participants, array $room_entities, array $actor_profile): array {
+    $position_map = $this->buildParticipantPositionMap($participants, $room_entities);
+    $current_ref = (string) ($current['entity_ref'] ?? $current['entity_id'] ?? '');
+    $origin = $position_map[$current_ref] ?? NULL;
+
+    $intelligence = (int) ($actor_profile['intelligence'] ?? 10);
+    $base_radius = max(4, min(12, 6 + intdiv(max(0, $intelligence - 10), 2)));
+    $references = [];
+
+    foreach ($participants as $participant) {
+      if (!empty($participant['is_defeated'])) {
+        continue;
+      }
+
+      $ref = (string) ($participant['entity_ref'] ?? $participant['entity_id'] ?? '');
+      if ($ref === '' || $ref === $current_ref) {
+        continue;
+      }
+
+      $target_pos = $position_map[$ref] ?? NULL;
+      $distance = NULL;
+      if (is_array($origin) && is_array($target_pos)) {
+        $distance = $this->hexDistance((int) $origin['q'], (int) $origin['r'], (int) $target_pos['q'], (int) $target_pos['r']);
+      }
+
+      $line_of_sight = $distance === NULL ? TRUE : $distance <= $base_radius;
+      if (!$line_of_sight) {
+        continue;
+      }
+
+      $references[] = [
+        'entity_ref' => $ref,
+        'name' => (string) ($participant['name'] ?? 'Unknown'),
+        'team' => (string) ($participant['team'] ?? 'neutral'),
+        'distance' => $distance,
+        'line_of_sight' => TRUE,
+      ];
+    }
+
+    return [
+      'references' => $references,
+      'line_of_sight' => [
+        'algorithm' => 'hex_radius',
+        'radius' => $base_radius,
+      ],
+    ];
+  }
+
+  /**
+   * Build conversation hint payload for AI action planning.
+   */
+  protected function buildConversationOptions(array $current, array $actor_profile, array $visible_references): array {
+    $intelligence = (int) ($actor_profile['intelligence'] ?? 10);
+    $skills = is_array($actor_profile['skills'] ?? NULL) ? $actor_profile['skills'] : [];
+    $motivations = is_array($actor_profile['motivations'] ?? NULL) ? $actor_profile['motivations'] : [];
+    $can_talk = !empty($visible_references) && $intelligence >= 6;
+
+    return [
+      'can_talk' => $can_talk,
+      'preferred_tone' => !empty($motivations) ? 'goal_driven' : 'tactical',
+      'skills' => $skills,
+      'motivations' => $motivations,
+      'default_message' => sprintf('%s calls out a tactical warning.', (string) ($current['name'] ?? 'The combatant')),
+    ];
+  }
+
+  /**
+   * Execute a non-damaging NPC talk action.
+   */
+  protected function runNpcTalkAction(array $encounter, array $current, array $participants, ?int $target_idx, array $parameters): void {
+    $target = $target_idx !== NULL ? ($participants[$target_idx] ?? NULL) : NULL;
+    $message = trim((string) ($parameters['message'] ?? $parameters['utterance'] ?? ''));
+    if ($message === '') {
+      $message = sprintf('%s barks an order across the battlefield.', (string) ($current['name'] ?? 'The combatant'));
+    }
+
+    $this->encounterStore->logAction([
+      'encounter_id' => (int) ($encounter['id'] ?? $encounter['encounter_id']),
+      'participant_id' => (int) $current['id'],
+      'action_type' => 'talk',
+      'target_id' => $target['id'] ?? NULL,
+      'payload' => json_encode([
+        'actor' => $current['entity_ref'] ?? $current['entity_id'] ?? NULL,
+        'target' => $target['entity_ref'] ?? $target['entity_id'] ?? NULL,
+        'message' => $message,
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+      'result' => json_encode([
+        'accepted' => TRUE,
+        'delivered' => TRUE,
+      ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+    ]);
+  }
+
+  /**
+   * Persist AI-generated turn plan to encounter timeline.
+   */
+  protected function persistAiTurnPlanEvent(array $encounter, int $participant_id, array $context, array $ai_response): void {
+    try {
+      $this->encounterStore->logAction([
+        'encounter_id' => (int) ($encounter['id'] ?? $encounter['encounter_id']),
+        'participant_id' => $participant_id,
+        'action_type' => 'ai_turn_plan',
+        'target_id' => NULL,
+        'payload' => json_encode([
+          'visible_references' => $context['visible_references'] ?? [],
+          'line_of_sight' => $context['line_of_sight'] ?? [],
+          'conversation_options' => $context['conversation_options'] ?? [],
+          'actor_skills' => $context['current_actor_profile']['skills'] ?? [],
+          'actor_motivations' => $context['current_actor_profile']['motivations'] ?? [],
+          'actor_intelligence' => $context['current_actor_profile']['intelligence'] ?? NULL,
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+        'result' => json_encode([
+          'provider' => $ai_response['provider'] ?? 'unknown',
+          'validation' => $ai_response['validation'] ?? [],
+          'recommendation' => $ai_response['recommendation'] ?? [],
+          'requested_at' => $ai_response['requested_at'] ?? time(),
+        ], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
+      ]);
+    }
+    catch (\Throwable $exception) {
+      $this->logger('dungeoncrawler_content')->warning('Failed to persist ai_turn_plan event: @message', [
+        '@message' => $exception->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Load room entities for this encounter from campaign dungeon payload.
+   */
+  protected function loadEncounterRoomEntities(array $encounter): array {
+    $campaign_id = isset($encounter['campaign_id']) ? (int) $encounter['campaign_id'] : 0;
+    if ($campaign_id <= 0) {
+      return [];
+    }
+
+    $query = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['dungeon_data'])
+      ->condition('campaign_id', $campaign_id);
+
+    if (!empty($encounter['map_id'])) {
+      $query->condition('dungeon_id', (string) $encounter['map_id']);
+    }
+    else {
+      $query->orderBy('updated', 'DESC')->orderBy('id', 'DESC')->range(0, 1);
+    }
+
+    $row = $query->execute()->fetchAssoc();
+    if (!$row || empty($row['dungeon_data'])) {
+      return [];
+    }
+
+    $payload = json_decode((string) $row['dungeon_data'], TRUE);
+    if (!is_array($payload)) {
+      return [];
+    }
+
+    $entities = $payload['entities'] ?? [];
+    return is_array($entities) ? $entities : [];
+  }
+
+  /**
+   * Find corresponding room entity for encounter participant.
+   */
+  protected function findRoomEntityForParticipant(array $participant, array $room_entities): ?array {
+    $ref = (string) ($participant['entity_ref'] ?? '');
+    $name = (string) ($participant['name'] ?? '');
+
+    foreach ($room_entities as $entity) {
+      $instance_id = (string) ($entity['instance_id'] ?? '');
+      $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
+      $entity_name = (string) ($entity['state']['metadata']['display_name'] ?? $entity['state']['metadata']['name'] ?? '');
+
+      if ($ref !== '' && ($instance_id === $ref || $content_id === $ref)) {
+        return is_array($entity) ? $entity : NULL;
+      }
+
+      if ($name !== '' && $entity_name !== '' && $entity_name === $name) {
+        return is_array($entity) ? $entity : NULL;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Build participant position map for LOS calculations.
+   */
+  protected function buildParticipantPositionMap(array $participants, array $room_entities): array {
+    $map = [];
+
+    foreach ($participants as $participant) {
+      $ref = (string) ($participant['entity_ref'] ?? $participant['entity_id'] ?? '');
+      if ($ref === '') {
+        continue;
+      }
+
+      if (isset($participant['position_q'], $participant['position_r'])) {
+        $map[$ref] = [
+          'q' => (int) $participant['position_q'],
+          'r' => (int) $participant['position_r'],
+        ];
+        continue;
+      }
+
+      $room_entity = $this->findRoomEntityForParticipant($participant, $room_entities);
+      if (is_array($room_entity) && isset($room_entity['placement']['hex']['q'], $room_entity['placement']['hex']['r'])) {
+        $map[$ref] = [
+          'q' => (int) $room_entity['placement']['hex']['q'],
+          'r' => (int) $room_entity['placement']['hex']['r'],
+        ];
+      }
+    }
+
+    return $map;
+  }
+
+  /**
+   * Calculate hex distance using axial coordinates.
+   */
+  protected function hexDistance(int $q1, int $r1, int $q2, int $r2): int {
+    $dq = $q2 - $q1;
+    $dr = $r2 - $r1;
+    $ds = (-$q2 - $r2) - (-$q1 - $r1);
+    return max(abs($dq), abs($dr), abs($ds));
+  }
+
+  /**
+   * Extract skills from actor state payload(s).
+   */
+  protected function extractSkills(?array $character_state, ?array $room_entity): array {
+    $skills = [];
+
+    if (is_array($character_state['skills'] ?? NULL)) {
+      $skills = $character_state['skills'];
+    }
+    elseif (is_array($character_state['npcDefinition']['skills'] ?? NULL)) {
+      $skills = $character_state['npcDefinition']['skills'];
+    }
+
+    if (empty($skills) && is_array($room_entity['state']['metadata']['skills'] ?? NULL)) {
+      $skills = $room_entity['state']['metadata']['skills'];
+    }
+
+    return $skills;
+  }
+
+  /**
+   * Extract motivations from actor state payload(s).
+   */
+  protected function extractMotivations(?array $character_state, ?array $room_entity): array {
+    $motivations = [];
+
+    if (is_array($character_state['npcDefinition']['motivations'] ?? NULL)) {
+      $motivations = $character_state['npcDefinition']['motivations'];
+    }
+    elseif (!empty($character_state['basicInfo']['personality'])) {
+      $motivations[] = (string) $character_state['basicInfo']['personality'];
+    }
+
+    if (empty($motivations) && is_array($room_entity['state']['metadata']['motivations'] ?? NULL)) {
+      $motivations = $room_entity['state']['metadata']['motivations'];
+    }
+
+    return $motivations;
+  }
+
+  /**
+   * Extract intelligence score from actor state payload(s).
+   */
+  protected function extractIntelligence(?array $character_state, ?array $room_entity): int {
+    $score = 10;
+
+    if (isset($character_state['abilities']['intelligence'])) {
+      $score = (int) $character_state['abilities']['intelligence'];
+    }
+    elseif (isset($character_state['npcDefinition']['abilities']['intelligence'])) {
+      $score = (int) $character_state['npcDefinition']['abilities']['intelligence'];
+    }
+    elseif (isset($character_state['npcDefinition']['intelligence'])) {
+      $score = (int) $character_state['npcDefinition']['intelligence'];
+    }
+
+    if ($score <= 0 && isset($room_entity['state']['metadata']['intelligence'])) {
+      $score = (int) $room_entity['state']['metadata']['intelligence'];
+    }
+
+    return $score > 0 ? $score : 10;
   }
 
   /**

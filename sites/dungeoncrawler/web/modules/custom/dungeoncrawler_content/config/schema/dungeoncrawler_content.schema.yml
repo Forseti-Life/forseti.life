@@ -23,6 +23,15 @@ dungeoncrawler_content.settings:
     encounter_ai_narration_enabled:
       type: boolean
       label: 'Persist AI narration events to encounter timeline'
+    encounter_ai_retry_attempts:
+      type: integer
+      label: 'Encounter AI retry attempts per request'
+    encounter_ai_recommendation_max_tokens:
+      type: integer
+      label: 'Encounter AI recommendation max tokens'
+    encounter_ai_narration_max_tokens:
+      type: integer
+      label: 'Encounter AI narration max tokens'
     items_per_page:
       type: integer
       label: 'Items per page'

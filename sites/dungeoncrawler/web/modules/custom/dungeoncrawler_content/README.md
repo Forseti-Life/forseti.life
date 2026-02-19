@@ -9,12 +9,21 @@
 
 Core content module for the living dungeon crawler RPG. Provides character management, game content types, and navigation structure for the Dungeoncrawler universe.
 
+### Player-Facing Positioning (2026-02-18)
+
+Current game-facing messaging is intentionally tuned for former tabletop/classic RPG players who want:
+- A persistent campaign home rather than disposable one-off sessions
+- Long-term character continuity across adventures
+- A clear path for character retirement and successor roster play
+- Participation in a constantly growing Dungeon Crawler Forseti Life universe
+
 ## Features
 
 ### Character Management System
 - **Character CRUD Operations**: Create, read, update, delete player characters
 - **Character Service**: `dungeoncrawler_content.character_manager` - Database operations for character data
 - **Template-backed starting equipment**: Character creation step 7 now loads purchase options from `dungeoncrawler_content_item_instances` joined with `dungeoncrawler_content_registry` (with static fallback if template tables are unavailable)
+- **Portrait generation on completion**: Step 8 can trigger an AI portrait using character attributes plus an optional user prompt, then links the result to `dc_campaign_characters` in generated-image tables.
 - **Character Routes**:
   - `/characters` - List all user's characters
   - `/characters/create` - Create new character
@@ -44,6 +53,18 @@ Core content module for the living dungeon crawler RPG. Provides character manag
    - Campaign character selection resolves hexmap launch context (`dungeon_level_id`, `map_id`, `room_id`, `next_room_id`) from the latest campaign dungeon record instead of static IDs
    - `/hexmap` now receives a launch-character summary from campaign context and uses it to hydrate the bottom character sheet immediately on initial load (before entity selection/combat turn hydration)
 
+### Room Chat System
+- **Persistent dialogue log**: `/hexmap` includes a chat panel below the map for in-room conversation
+- **Per-room storage**: Chat messages are stored in `dc_campaign_dungeons.dungeon_data` under each room's chat array
+- **Message types**: Supports player, NPC, and system messages with distinct styling
+- **LLM context reference**: Chat history is available for AI characters to reference previous dialogue
+- **API endpoints**:
+   - `GET /api/campaign/{campaign_id}/room/{room_id}/chat` - Fetch chat history
+   - `POST /api/campaign/{campaign_id}/room/{room_id}/chat` - Post new message
+- **Auto-load on room entry**: Chat history loads automatically when entering a room
+- **Responsive design**: Full width on mobile, matches sidebar margins on desktop
+- **Complete documentation**: See `CHAT_SYSTEM.md` in the dungeoncrawler site root for architecture, testing, and integration details
+
 ### Game Object Management
 - **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
 - **Inventory service layer**: Table discovery, object classification, and row loading are centralized in `dungeoncrawler_content.game_object_inventory` (`Drupal\\dungeoncrawler_content\\Service\\GameObjectInventoryService`).
@@ -67,7 +88,7 @@ Core content module for the living dungeon crawler RPG. Provides character manag
 ### Information Pages
 - **World Lore** (`/world`) - Living dungeon background and lore
 - **How to Play** (`/how-to-play`) - Game mechanics and tutorial
-- **About** (`/about`) - Game information, technology, and Forseti Game Master framing
+- **About** (`/about`) - Game information, technology, and legacy-world framing for long-term character play
 
 ### AI Image Generation Integration (Gemini + Vertex)
 - **Dashboard panel**: `/admin/content/dungeoncrawler` includes an **AI Image Generation (Gemini + Vertex)** panel.
@@ -78,6 +99,8 @@ Core content module for the living dungeon crawler RPG. Provides character manag
 - **Provider services**:
    - `dungeoncrawler_content.gemini_image_generator`
    - `dungeoncrawler_content.vertex_image_generator`
+- **Terrain generation service**: `dungeoncrawler_content.terrain_image_generator` builds hexmap-ready terrain/habitat images (Vertex default, Gemini optional).
+- **Tileset generation**: `TerrainImageGenerationService::generateTilesetFromExample()` can read `config/examples/goblin-warren-tileset.json` and generate only missing tiles (prompt cache hit returns instead of re-calling Vertex).
 - **Admin settings**: Configure under `/admin/config/content/dungeoncrawler`:
    - Default provider (`generated_image_provider`)
    - Gemini live settings + key (`GEMINI_API_KEY` or config)
@@ -86,6 +109,7 @@ Core content module for the living dungeon crawler RPG. Provides character manag
 - **Operator setup aid**: Dashboard includes copy-ready Linux/Apache env export snippet for both providers plus reload/cache steps.
 - **Storage design reference**: See `GENERATED_IMAGE_STORAGE_DESIGN.md` for object-table review and proposed generated-image persistence model.
 - **Phase 1 storage tables**: `dc_generated_images` (asset metadata) and `dc_generated_image_links` (object-slot links) via update hook `10010`.
+- **Prompt cache table**: `dungeoncrawler_content_image_prompt_cache` caches Vertex prompt requests/responses (including hex context) for lookup before live API calls via update hook `10013`.
 - **Storage write behavior**: Base64 image output is written to `public://generated-images/YYYY/MM` when available; environments without writable public files fallback to `temporary://generated-images/YYYY/MM` so persistence still succeeds.
 - **Phase 1 read APIs**:
    - `GET /api/image/{image_uuid}`
@@ -130,6 +154,30 @@ Handles all character-related database operations:
 **Class**: `Drupal\dungeoncrawler_content\Service\GameContentManager`
 
 Manages game content and procedural generation integration.
+
+#### Terrain Image Generator
+**Service ID**: `dungeoncrawler_content.terrain_image_generator`  
+**Class**: `Drupal\dungeoncrawler_content\Service\TerrainImageGenerationService`
+
+Builds terrain or habitat images from JSON attributes, routes to Vertex/Gemini, and optionally persists to generated-image tables.
+
+#### Terrain Image Prompt Builder
+**Service ID**: `dungeoncrawler_content.terrain_image_prompt_builder`  
+**Class**: `Drupal\dungeoncrawler_content\Service\TerrainImagePromptBuilder`
+
+Converts campaign/dungeon/room/habitat attributes into hexmap-ready prompt text.
+
+#### Number Generation Service
+**Service ID**: `dungeoncrawler_content.number_generation`  
+**Class**: `Drupal\dungeoncrawler_content\Service\NumberGenerationService`
+
+Provides Pathfinder-compatible dice and number generation:
+- Pathfinder dice: `d4`, `d6`, `d8`, `d10`, `d12`, `d20`, `d100`
+- Percentile roll helper (`1-100`)
+- Generic inclusive range helper (`rollRange(min, max)`)
+- Generic `1-100` die-side support for multiple dice
+- Dice notation parsing for formats like `1d20`, `2d6+3`, `4d8-1`
+- Deterministic generation support via `SeededRandomSequence` for seed-scoped dungeon/room/terrain/encounter/entity reproducibility without global RNG mutation
 
 ## File Structure
 
@@ -337,20 +385,26 @@ Standard permissions for authenticated users to access and manage their own cont
 
 ### Hexmap Combat API Context
 - Server-authoritative combat endpoints (`/api/combat/*`) require authenticated gameplay context and `access dungeoncrawler characters` permission.
+- ECS combat systems no longer generate local random initiative/attack/damage rolls; turn order and combat outcomes are hydrated from `/api/combat/*` responses.
+- Attack UI callbacks are projected from backend `action_result` payloads after hydration; client-side attack resolution does not re-roll or re-apply damage.
+- `CombatSystem.attack()` and `CombatSystem.makeAttack()` now fail fast in strict mode when invoked without a server-authoritative result payload.
+- `TurnManagementSystem.startCombat()` is now guarded to require prior `hydrateFromServer()` in server-authoritative mode (unless explicitly overridden for local testing).
 - Hexmap client only auto-starts server combat when a valid `campaign_id` launch context is present.
 - Direct `/hexmap` demo access without campaign context remains available for map/UI exploration, but does not auto-initiate server combat encounters.
 - Hexmap action rail includes streamlined player actions (`Move`, `Attack`, `Interact`, `Talk`, `End Turn`) with disabled-state semantics synchronized to turn/action availability.
 - Interact mode supports adjacent object interactions (door-like obstacle opening, movable obstacle push/reposition, blocked room-connection opening) using 1-action economy rules.
 - `/api/combat/action` is backend-authoritative for non-attack actions: only `interact` and `talk` are accepted, with server-enforced costs (`interact=1`, `talk=0`) regardless of client payload.
+- Successful interact actions now persist canonical world mutations into campaign dungeon payload (`dc_campaign_dungeons.dungeon_data`) and return a `world_delta` consumed by the hexmap client.
 - Fog-of-war can be toggled in the header controls; visibility uses player-centered vision range plus line-of-sight checks against impassable obstacles.
 - Read-only encounter AI recommendation preview endpoint (`POST /api/combat/recommendation-preview`) is admin-only and does not mutate encounter state.
 - NPC auto-play can use validated encounter AI recommendations only when `encounter_ai_npc_autoplay_enabled` is enabled in Dungeon Settings; default remains deterministic fallback behavior.
 - Encounter narration timeline logging is available when `encounter_ai_narration_enabled` is enabled; narration events are persisted as `ai_narration` rows in `combat_actions`.
 
-### Mechanics Review Notes (Current Constraints)
-- `Interact`/`Talk` are now validated server-side for turn ownership and action economy, but object-state mutation (door opened, obstacle moved, connection opened) is still applied by the client after API acceptance.
-- Because room/object authoritative state is not yet committed by a dedicated backend mutation endpoint, reconnects or alternate clients can diverge from the initiating client's local interaction result.
-- Recommended follow-up: add campaign-scoped interaction mutation endpoints (or extend combat action processing) to persist room/object state server-side and return canonical updated room payload.
+### Mechanics Review Notes (Phase 4: Deterministic Dungeon Targeting)
+- `Interact`/`Talk` are validated server-side for turn ownership and action economy; interact world changes are now persisted server-side and mirrored via `world_delta`.
+- **Phase 4 Complete (2026-02-19):** Encounter `map_id` linkage is now captured from `startCombat` API response and passed to all combat action payloads. The `/api/combat/action` handler uses deterministic `(campaign_id, dungeon_id=mapId)` compound key for dungeon-row mutations when available, with fallback to most-recent when `mapId` is unavailable.
+- Frontend captures `map_id` from `startCombat` response and stores in `stateManager`, ensuring all subsequent action payloads include the correct dungeon identifier.
+- Deterministic targeting eliminates the prior constraint where multiple active dungeons per campaign could cause mutations to target the wrong row.
 - **`create dungeoncrawler characters`** - Create new characters in the character creation wizard. Includes access to character step forms and save operations.
 - **`edit own dungeoncrawler characters`** - Edit own characters. Access is further restricted by the `CharacterAccessCheck` service to ensure users can only modify their own characters.
 - **`delete own dungeoncrawler characters`** - Delete own characters. Access is further restricted by the `CharacterAccessCheck` service to prevent deletion of characters owned by other users.
@@ -504,14 +558,27 @@ The review maintains 100% functional compatibility while improving:
 ### Encounter AI Integration (Phase 2 Guarded)
 
 - `CombatEncounterApiController` NPC turn loop now supports AI-driven recommendation execution behind config gate `encounter_ai_npc_autoplay_enabled`.
+- At the start of each non-player turn, AI context now includes actor combat snapshot, actor state payload, skills, motivations, intelligence score, and line-of-sight visible references.
+- AI turn-plan events are now persisted in `combat_actions` with `action_type` set to `ai_turn_plan` for auditability.
+- Combat encounter responses now include `latest_ai_turn_plan` so the frontend can render the most recent AI plan without separate timeline queries.
+- Validated AI recommendations can now choose conversational turn actions (`talk`) in addition to tactical actions like `strike`.
 - Invalid/unavailable recommendation paths use deterministic fallback targeting (first alive player).
 - Toggle is available at `/admin/config/content/dungeoncrawler` under AI Generation Settings.
+- Bedrock invocation resilience is configurable with `encounter_ai_retry_attempts`, `encounter_ai_recommendation_max_tokens`, and `encounter_ai_narration_max_tokens`.
 
 ### Encounter Narration Integration (Phase 3 Guarded)
 
 - NPC turn loop can persist narration timeline events when `encounter_ai_narration_enabled` is enabled.
 - Narration entries are stored in `combat_actions` with `action_type` set to `ai_narration`.
 - Payload includes provider narration content and request metadata for audit/debug context.
+
+### Encounter AI Observability (Phase 4)
+
+- `/architecture/encounter-ai-integration` now includes a last-24h operational metrics panel sourced from `ai_conversation_api_usage`.
+- Metrics include tracked requests, tracked attempts, average attempts per request, fallback rate, and recommendation/narration request split.
+- Encounter AI requests now emit a shared `request_id` across retries so request-level fallback and attempt aggregation is deterministic.
+- Metrics panel and CSV export support query windows via `?window=24h|7d|30d`.
+- Export endpoint: `/architecture/encounter-ai-integration/metrics.csv?window=24h` (or `7d`, `30d`).
 
 
 ### Adding New Routes

@@ -12,12 +12,12 @@
     },
     "step_name": {
       "type": "string",
-      "const": "Equipment",
+      "const": "Loadout & Supplies",
       "description": "Human-readable name for this step"
     },
     "step_description": {
       "type": "string",
-      "const": "Purchase your starting equipment using your starting gold. Choose weapons, armor, and adventuring gear that suit your class and playstyle.",
+      "const": "Assemble a practical starting loadout that supports your character's role across repeat campaign sessions.",
       "description": "Explanation of what happens in this step"
     },
     "fields": {
@@ -35,7 +35,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Available Gold",
+              "const": "Legacy Starting Gold",
               "description": "Field label"
             },
             "value": {
@@ -45,7 +45,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "You start with 15 gold pieces (gp) to purchase equipment. Plan carefully - you'll need weapons, armor, and basic adventuring supplies.",
+              "const": "You start with 15 gp. Prioritize durable essentials first, then tune your kit for sustained campaign play.",
               "description": "Helper text"
             }
           },
@@ -62,7 +62,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Select Equipment",
+              "const": "Select Legacy Starting Equipment",
               "description": "Field label"
             },
             "required": {
@@ -104,7 +104,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Browse equipment by category and add items to your inventory. Your remaining gold is displayed at the top.",
+              "const": "Browse equipment by category and build a practical loadout for repeat campaign sessions.",
               "description": "Helper text"
             },
             "validation": {
@@ -151,7 +151,7 @@
             },
             "label": {
               "type": "string",
-              "const": "Equipment Presets",
+              "const": "Legacy Loadout Presets",
               "description": "Field label"
             },
             "presets": {
@@ -257,7 +257,7 @@
             },
             "help_text": {
               "type": "string",
-              "const": "Select a preset package optimized for your class, or customize your equipment manually.",
+              "const": "Choose a class-aligned preset for a stable baseline, then customize as your campaign style develops.",
               "description": "Helper text"
             }
           },
@@ -325,12 +325,12 @@
         "type": "string"
       },
       "default": [
-        "Prioritize weapons you're proficient with. Check your class's weapon proficiencies.",
-        "Armor is essential for front-line fighters. Spellcasters often skip armor or use light armor.",
-        "Don't forget basic supplies: bedroll, rations, torches, rope, and a backpack.",
-        "Save a few gold pieces for future purchases like potions or spell components.",
-        "Bulk represents encumbrance. Most characters can carry 5 + Strength modifier bulk before becoming encumbered.",
-        "Equipment presets are balanced packages that work well for new characters."
+        "Start with reliable gear you can use well, not expensive items you cannot support.",
+        "Frontliners need survivability basics; backline builds still need emergency options.",
+        "Basic supplies are campaign multipliers—they prevent avoidable setbacks over long runs.",
+        "Leave room for adaptation as your character's story and role evolve.",
+        "Manage bulk early so your legacy character remains practical in real exploration flow.",
+        "Preset kits are solid foundations; customize once you know your campaign's pressure points."
       ]
     }
   },

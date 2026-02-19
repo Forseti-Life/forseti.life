@@ -85,6 +85,9 @@ Multi-room dungeon level example with goblin-themed rooms, creatures, and enviro
 
 **Documentation:** See `REVIEW_SUMMARY_DCC-0003.md` (Phase 1), `REFACTORING_SUMMARY_DCC-0003_PHASE2.md` (Phase 2), and `DCC-0003_PHASE3_COMPLETION_SUMMARY.md` (Phase 3) for detailed refactoring history and quality metrics.
 
+### goblin-warren-tileset.json
+Structured tileset definition for a base goblin warren dungeon. Intended as a generator ingest template for terrain, props, and effects. Schema pending.
+
 ## Schema Relationships
 
 ```
