@@ -99,6 +99,60 @@ Each table directory includes default JSON files with template rows to provide a
 
 **Note**: This is an initial creature extraction. The Bestiary books contain hundreds more creatures that can be added through refined extraction methods.
 
+### Comprehensive PF2E Spell Library
+
+**As of February 19, 2026**, this library includes **all spells from 3 Pathfinder 2E spellcasting books**:
+
+**Source Coverage:**
+- Core Rulebook (4th Printing): 786 spell entries
+- Secrets of Magic: 518 spell entries
+- Advanced Player's Guide: 139 spell entries
+
+**Total: 728 unique spells** (merged from 1,443 raw extractions)
+
+**Spell Breakdown:**
+- **By Level:**
+  - Cantrips (Level 0): 61
+  - Level 1: 117
+  - Level 2: 114
+  - Level 3: 82
+  - Level 4: 93
+  - Level 5: 86
+  - Level 6: 49
+  - Level 7: 43
+  - Level 8: 34
+  - Level 9: 26
+  - Level 10: 23
+
+- **By Tradition:**
+  - Arcane: 388 spells
+  - Primal: 398 spells
+  - Occult: 357 spells
+  - Divine: 253 spells
+
+- **By School:**
+  - Evocation: 141 spells
+  - Transmutation: 108 spells
+  - Conjuration: 91 spells
+  - Necromancy: 89 spells
+  - Abjuration: 80 spells
+  - Others: 219 spells
+
+**Key Features:**
+- Spell names extracted from structured spell list sections
+- Spell level (0-10) and school classification
+- Tradition associations (spells can belong to multiple traditions)
+- Rarity and heightening information
+- Source book attribution with line-level traceability
+- Ready for spellcasting character creation, spell selection, and magic item generation
+
+**Extraction Method:**
+Unlike items and creatures which required OCR pattern matching, spells were extracted from structured spell list sections in the source books (e.g., "Arcane Spell List", "Divine 2nd-Level Spells"). This provided higher quality extraction with proper spell names like "Magic Missile", "Fireball", "Detect Magic" rather than game mechanics text.
+
+**Files:**
+- `dungeoncrawler_content_registry/default_registry_examples.json` - 728 spell definitions (appended to items + creatures)
+- **Total Registry Entries: 1,232** (431 items + 73 creatures + 728 spells)
+
 ### Production Deployment
 
 Templates are automatically imported to production via **update hook 10012** in `dungeoncrawler_content.install`. When code is deployed:
