@@ -1059,10 +1059,10 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('Read-only preview. Edit via Step 3 consolidated JSON or individual fields above.'),
     ];
 
-    // Experience & Education Section
+    // Experience & Education & Credentials Section
     $form['experience_education'] = [
       '#type' => 'details',
-      '#title' => $this->t('🎓 Experience & Education'),
+      '#title' => $this->t('🎓 Experience, Education & Credentials'),
       '#open' => FALSE,
       '#weight' => 4,
     ];
@@ -1217,6 +1217,101 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Demonstration Projects Data (JSON)'),
       '#default_value' => json_encode($consolidated['demonstration_projects'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
       '#rows' => 10,
+      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+    ];
+
+    // Publications Section (editable JSON)
+    $form['publications_section'] = [
+      '#type' => 'details',
+      '#title' => $this->t('📚 Publications & Research'),
+      '#open' => FALSE,
+      '#weight' => 8.5,
+    ];
+    $form['publications_section']['info'] = [
+      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+    ];
+    $form['publications_section']['field_publications_json'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Publications Data (JSON)'),
+      '#description' => $this->t('Peer-reviewed articles, conference papers, books, and other published works. Auto-extracted from resume via GenAI.'),
+      '#default_value' => json_encode($consolidated['publications'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#rows' => 10,
+      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+    ];
+
+    // Certifications Section (structured JSON - updated)
+    $form['certifications_section'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🏆 Certifications & Licenses'),
+      '#open' => FALSE,
+      '#weight' => 8.7,
+    ];
+    $form['certifications_section']['info'] = [
+      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected. This replaces the simple text field above.</em></p>',
+    ];
+    $form['certifications_section']['field_certifications_json'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Certifications Data (JSON)'),
+      '#description' => $this->t('Professional certifications, licenses, and credentials with issuing organization and dates. Auto-extracted from resume via GenAI.'),
+      '#default_value' => json_encode($consolidated['certifications'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#rows' => 8,
+      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+    ];
+
+    // Patents Section (editable JSON)
+    $form['patents_section'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🔬 Patents & Intellectual Property'),
+      '#open' => FALSE,
+      '#weight' => 8.9,
+    ];
+    $form['patents_section']['info'] = [
+      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+    ];
+    $form['patents_section']['field_patents_json'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Patents Data (JSON)'),
+      '#description' => $this->t('Patent filings, grants, and inventions. Auto-extracted from resume via GenAI.'),
+      '#default_value' => json_encode($consolidated['patents'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#rows' => 8,
+      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+    ];
+
+    // Awards & Honors Section (editable JSON)
+    $form['awards_section'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🏅 Awards & Honors'),
+      '#open' => FALSE,
+      '#weight' => 9.1,
+    ];
+    $form['awards_section']['info'] = [
+      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+    ];
+    $form['awards_section']['field_awards_json'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Awards & Honors Data (JSON)'),
+      '#description' => $this->t('Professional awards, recognitions, and honors. Auto-extracted from resume via GenAI.'),
+      '#default_value' => json_encode($consolidated['awards_and_honors'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#rows' => 8,
+      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+    ];
+
+    // Languages Section (editable JSON)
+    $form['languages_section'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🌍 Languages & Proficiencies'),
+      '#open' => FALSE,
+      '#weight' => 9.3,
+    ];
+    $form['languages_section']['info'] = [
+      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+    ];
+    $form['languages_section']['field_languages_json'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Languages Data (JSON)'),
+      '#description' => $this->t('Languages spoken and proficiency levels (native, fluent, professional, intermediate, basic). Auto-extracted from resume via GenAI.'),
+      '#default_value' => json_encode($consolidated['languages'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#rows' => 6,
       '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
     ];
 
@@ -3158,6 +3253,11 @@ class UserProfileForm extends FormBase {
       'field_strategic_differentiators_json' => 'strategic_differentiators',
       'field_leadership_philosophy_json' => 'leadership_philosophy',
       'field_demonstration_projects_json' => 'demonstration_projects',
+      'field_publications_json' => 'publications',
+      'field_certifications_json' => 'certifications',
+      'field_patents_json' => 'patents',
+      'field_awards_json' => 'awards_and_honors',
+      'field_languages_json' => 'languages',
       'field_consulting_practice_json' => 'consulting_practice',
       'field_early_career_json' => 'early_career',
       'field_education_json' => 'education',
@@ -4140,6 +4240,11 @@ PROMPT;
           'technical_expertise' => [],
           'leadership_philosophy' => [],
           'demonstration_projects' => [],
+          'publications' => [],
+          'certifications' => [],
+          'patents' => [],
+          'awards_and_honors' => [],
+          'languages' => [],
         ];
       }
       
@@ -4339,9 +4444,80 @@ PROMPT;
       }
     }
     
+    // Publications - dedupe by title and authors
+    if (!empty($new_data['publications'])) {
+      if (empty($consolidated['publications'])) {
+        $consolidated['publications'] = [];
+      }
+      foreach ($new_data['publications'] as $publication) {
+        $title = $publication['title'] ?? '';
+        $authors = isset($publication['authors']) && is_array($publication['authors']) 
+          ? implode('|', $publication['authors']) 
+          : ($publication['authors'] ?? '');
+        $key = $title . '|' . $authors;
+        $exists = false;
+        foreach ($consolidated['publications'] as $existing) {
+          $existingTitle = $existing['title'] ?? '';
+          $existingAuthors = isset($existing['authors']) && is_array($existing['authors']) 
+            ? implode('|', $existing['authors']) 
+            : ($existing['authors'] ?? '');
+          $existingKey = $existingTitle . '|' . $existingAuthors;
+          if ($key === $existingKey) {
+            $exists = true;
+            break;
+          }
+        }
+        if (!$exists) {
+          $consolidated['publications'][] = $publication;
+          $additions++;
+        }
+      }
+    }
+    
     // Certifications - dedupe by name
     if (!empty($new_data['certifications'])) {
       $additions += $this->mergeArraySection($consolidated, 'certifications', $new_data['certifications'], 'name');
+    }
+    
+    // Patents - dedupe by patent number or title and inventors
+    if (!empty($new_data['patents'])) {
+      if (empty($consolidated['patents'])) {
+        $consolidated['patents'] = [];
+      }
+      foreach ($new_data['patents'] as $patent) {
+        $patentNumber = $patent['patent_number'] ?? '';
+        $title = $patent['title'] ?? '';
+        $inventors = isset($patent['inventors']) && is_array($patent['inventors']) 
+          ? implode('|', $patent['inventors']) 
+          : ($patent['inventors'] ?? '');
+        
+        // Try to dedupe by patent_number first, then fallback to title|inventors
+        $key = !empty($patentNumber) 
+          ? $patentNumber 
+          : ($title . '|' . $inventors);
+        
+        $exists = false;
+        foreach ($consolidated['patents'] as $existing) {
+          $existingPatentNumber = $existing['patent_number'] ?? '';
+          $existingTitle = $existing['title'] ?? '';
+          $existingInventors = isset($existing['inventors']) && is_array($existing['inventors']) 
+            ? implode('|', $existing['inventors']) 
+            : ($existing['inventors'] ?? '');
+          
+          $existingKey = !empty($existingPatentNumber) 
+            ? $existingPatentNumber 
+            : ($existingTitle . '|' . $existingInventors);
+          
+          if ($key === $existingKey) {
+            $exists = true;
+            break;
+          }
+        }
+        if (!$exists) {
+          $consolidated['patents'][] = $patent;
+          $additions++;
+        }
+      }
     }
     
     // Awards and honors - dedupe by title and organization

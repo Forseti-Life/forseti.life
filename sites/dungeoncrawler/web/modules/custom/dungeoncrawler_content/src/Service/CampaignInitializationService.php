@@ -413,18 +413,20 @@ class CampaignInitializationService {
       return;
     }
 
+    $npc_ids = $this->resolveNpcInstanceIds($campaign_id, ['tavern_keeper', 'scholar_npc']);
+
     $starter_templates = [
       'gather_wine' => [
         'item_name' => 'wine bottle',
-        'giver_npc_id' => 'tavern_keeper',
+        'giver_npc_id' => $npc_ids['tavern_keeper'] ?? NULL,
       ],
       'gather_torch_components' => [
         'item_name' => 'torch components',
-        'giver_npc_id' => 'tavern_keeper',
+        'giver_npc_id' => $npc_ids['tavern_keeper'] ?? NULL,
       ],
       'collect_spellbooks' => [
         'item_name' => 'spellbooks',
-        'giver_npc_id' => 'scholar_npc',
+        'giver_npc_id' => $npc_ids['scholar_npc'] ?? NULL,
       ],
     ];
 
@@ -474,6 +476,42 @@ class CampaignInitializationService {
         ->fields($quest_data)
         ->execute();
     }
+  }
+
+  /**
+   * Resolve NPC instance IDs for a campaign by content IDs.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $content_ids
+   *   Content IDs to resolve (without npc_ prefix).
+   *
+   * @return array
+   *   Map of content_id => npc numeric ID.
+   */
+  private function resolveNpcInstanceIds(int $campaign_id, array $content_ids): array {
+    if (empty($content_ids)) {
+      return [];
+    }
+
+    $instance_ids = array_map(static function (string $content_id): string {
+      return 'npc_' . $content_id;
+    }, $content_ids);
+
+    $rows = $this->database->select('dc_campaign_characters', 'cc')
+      ->fields('cc', ['id', 'instance_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('instance_id', $instance_ids, 'IN')
+      ->execute()
+      ->fetchAllKeyed(1, 0);
+
+    $map = [];
+    foreach ($rows as $instance_id => $id) {
+      $content_id = preg_replace('/^npc_/', '', (string) $instance_id);
+      $map[$content_id] = (int) $id;
+    }
+
+    return $map;
   }
 
   /**

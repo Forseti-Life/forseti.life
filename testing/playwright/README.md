@@ -63,6 +63,31 @@ node testing/playwright/test-hexmap.js || exit 1
 - `0` = All tests passed, no errors
 - `1` = Console errors detected
 
+### 3. test-jobhunter-resume-tailoring.js
+
+Automates the Job Hunter resume flow: upload resume, wait for parsing, tailor resume, generate PDF.
+
+**Usage:**
+```bash
+node testing/playwright/test-jobhunter-resume-tailoring.js <base-url> [resume-path]
+```
+
+**Examples:**
+```bash
+# Use default resume path
+node testing/playwright/test-jobhunter-resume-tailoring.js http://localhost:8080
+
+# Explicit resume path
+node testing/playwright/test-jobhunter-resume-tailoring.js http://localhost:8080 /mnt/chromeos/MyFiles/Downloads/KeithAumillerA.pdf
+```
+
+**Environment Variables:**
+- `PLAYWRIGHT_USERNAME` / `PLAYWRIGHT_PASSWORD`
+- `PLAYWRIGHT_RESUME_PATH`
+- `JOBHUNTER_JOB_ID`
+- `PLAYWRIGHT_HEADLESS` / `PLAYWRIGHT_SLOWMO`
+- `PLAYWRIGHT_TIMEOUT_MS` / `PLAYWRIGHT_POLL_DELAY_MS` / `PLAYWRIGHT_MAX_POLLS`
+
 ## Quick Commands
 
 ### Test Hexmap for Console Errors
@@ -81,6 +106,9 @@ export PLAYWRIGHT_LOGIN_PATH="/user"
 
 node testing/playwright/test-character-creation.js http://localhost:8080 10000
 node testing/playwright/test-hexmap.js http://localhost:8080 5000
+
+# Fast-mode happy path (headless, no slow-mo)
+PLAYWRIGHT_HEADLESS=1 PLAYWRIGHT_SLOWMO=0 node testing/playwright/test-happy-path-simple.js http://localhost:8080
 ```
 
 ### Capture and Save Console Logs

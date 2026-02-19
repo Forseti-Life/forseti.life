@@ -314,7 +314,7 @@ class QuestGeneratorService {
         // Add type-specific fields
         switch ($obj['type']) {
           case 'kill':
-            $target_count = $obj['target_count'] ?? $this->numberGeneration->randomInt(
+            $target_count = $obj['target_count'] ?? $this->numberGeneration->rollRange(
               $obj['target_count_range'][0] ?? 5,
               $obj['target_count_range'][1] ?? 10
             );
@@ -324,7 +324,7 @@ class QuestGeneratorService {
             break;
 
           case 'collect':
-            $target_count = $obj['target_count'] ?? $this->numberGeneration->randomInt(3, 8);
+            $target_count = $obj['target_count'] ?? $this->numberGeneration->rollRange(3, 8);
             $generated_obj['item'] = $this->resolveVariables($obj['item'] ?? $obj['target'], $variables);
             $generated_obj['current'] = 0;
             $generated_obj['target_count'] = $target_count;
@@ -404,7 +404,7 @@ class QuestGeneratorService {
 
       if (!empty($rewards_schema['gold']['randomize'])) {
         $variance = (int) ($gold * 0.3); // 30% variance
-        $gold = $this->numberGeneration->randomInt(
+        $gold = $this->numberGeneration->rollRange(
           max(1, $gold - $variance),
           $gold + $variance
         );

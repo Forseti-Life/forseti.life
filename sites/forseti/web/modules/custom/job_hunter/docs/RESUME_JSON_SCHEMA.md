@@ -31,6 +31,11 @@ This document defines the JSON schema used for storing parsed resume data in the
 | `technical_expertise` | object | No | Skills organized by category |
 | `leadership_philosophy` | object | No | Leadership style and influences |
 | `demonstration_projects` | array | No | Portfolio projects |
+| `publications` | array | No | Published works and research papers |
+| `certifications` | array | No | Professional certifications and licenses |
+| `patents` | array | No | Patent filings and grants |
+| `awards_and_honors` | array | No | Awards, recognitions, and honors |
+| `languages` | array | No | Language proficiencies |
 | `job_search_preferences` | object | No | User-provided job search criteria and eligibility |
 
 ---

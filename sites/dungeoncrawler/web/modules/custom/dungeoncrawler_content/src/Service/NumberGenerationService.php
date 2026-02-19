@@ -60,6 +60,21 @@ class NumberGenerationService {
   }
 
   /**
+   * Alias for rollRange() to match older service expectations.
+   *
+   * @param int $minimum
+   *   Lower bound (inclusive).
+   * @param int $maximum
+   *   Upper bound (inclusive).
+   *
+   * @return int
+   *   Random integer in range.
+   */
+  public function randomInt(int $minimum, int $maximum): int {
+    return $this->rollRange($minimum, $maximum);
+  }
+
+  /**
    * Roll one or more dice in standard notation.
    *
    * Examples: 1d20, 2d6+3, 4d8-1, 1d100.

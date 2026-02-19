@@ -62,6 +62,7 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
    - `/hexmap` now receives a launch-character summary from campaign context and uses it to hydrate the bottom character sheet immediately on initial load (before entity selection/combat turn hydration)
    - Campaign initialization now seeds starter quest templates from `templates/quests` when missing and generates default tavern quests for new campaigns
    - Selecting a character auto-starts a starter quest and `/hexmap` attaches a quest summary payload in `drupalSettings.dungeoncrawlerContent.hexmapQuestSummary`
+   - Quest completion posts an NPC dialog line into the tavern entrance room chat log for immediate player feedback
 
 ### Game Object Management
 - **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
@@ -159,6 +160,7 @@ Provides Pathfinder-compatible dice and number generation:
 - Percentile roll helper (`1-100`)
 - Generic `1-100` die-side support for multiple dice
 - Dice notation parsing for formats like `1d20`, `2d6+3`, `4d8-1`
+- Legacy alias: `randomInt($min, $max)` maps to `rollRange()`
 
 #### Ability Score Tracker
 **Service ID**: `dungeoncrawler_content.ability_score_tracker`  

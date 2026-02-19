@@ -25,6 +25,31 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
   use QueueWorkerBaseTrait;
 
   /**
+   * Maximum characters for core profile chunks.
+   */
+  private const CORE_CHUNK_SIZE = 8000;
+
+  /**
+   * Maximum characters for professional experience chunks.
+   */
+  private const EXPERIENCE_CHUNK_SIZE = 6000;
+
+  /**
+   * Max tokens for core profile responses.
+   */
+  private const CORE_MAX_TOKENS = 6000;
+
+  /**
+   * Max tokens for professional experience responses.
+   */
+  private const EXPERIENCE_MAX_TOKENS = 7000;
+
+  /**
+   * Maximum retry depth for splitting experience chunks.
+   */
+  private const EXPERIENCE_SPLIT_DEPTH = 2;
+
+  /**
    * The config factory.
    *
    * @var \Drupal\Core\Config\ConfigFactoryInterface
@@ -77,19 +102,17 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
       $result = $this->parseResumeProdMode($extracted_text, $filename, $uid);
       $parsed_data = $result['parsed_data'];
       $raw_responses = $result['raw_responses'];
+      $raw_core_responses = $raw_responses['core'] ?? [];
+      $raw_experience_responses = $raw_responses['experience'] ?? [];
 
       // Store successful result with raw responses for debugging
-      // Concatenate all chunk responses for storage
-      $all_raw_responses = '';
-      foreach ($raw_responses as $chunk_name => $raw_response) {
-        $all_raw_responses .= "=== $chunk_name ===\n" . $raw_response . "\n\n";
-      }
+      $core_raw_text = $this->formatRawResponses($raw_core_responses);
       
       $connection->update('jobhunter_resume_parsed_data')
         ->fields([
           'parsed_data' => json_encode($parsed_data),
-          'raw_genai_response_core' => $all_raw_responses,
-          'raw_genai_response_experience' => json_encode($raw_responses),
+          'raw_genai_response_core' => $core_raw_text,
+          'raw_genai_response_experience' => json_encode($raw_experience_responses),
           'status' => 'complete',
           'error_message' => NULL,
           'changed' => \Drupal::time()->getRequestTime(),
@@ -156,53 +179,29 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     $username = $user ? $user->getAccountName() : "uid:$uid";
     
     // Track raw responses for debugging
-    $raw_responses = [];
-    
-    // Split resume into chunks of max 10,000 characters at natural breaks
-    $chunks = $this->chunkResumeText($extracted_text, 10000);
-    $logger->info('📊 Resume split into @count chunks for processing', ['@count' => count($chunks)]);
-    
-    // Parse each chunk and collect all experience data
-    $all_experiences = [];
-    $core_data = NULL;
-    $chunk_num = 0;
-    
-    foreach ($chunks as $chunk) {
-      $chunk_num++;
-      $logger->info('🔄 Queue Chunk @num/@total: Processing @chars characters', [
-        '@num' => $chunk_num,
-        '@total' => count($chunks),
-        '@chars' => strlen($chunk),
-      ]);
-      
-      // Parse this chunk for both core profile and experience
-      $chunk_prompt = $this->buildChunkPrompt($chunk, $filename);
-      $result = $this->callBedrockAndParse($chunk_prompt, "chunk_$chunk_num", $filename, $username, $uid);
-      $chunk_data = $result['parsed_data'];
-      $raw_responses["chunk_$chunk_num"] = $result['raw_response'];
-      
-      if (!$chunk_data) {
-        $logger->warning('⚠️ Chunk @num failed to parse, skipping', ['@num' => $chunk_num]);
-        continue;
-      }
-      
-      // First chunk with core data wins
-      if (!$core_data && !empty($chunk_data['contact_info'])) {
-        $core_data = $chunk_data;
-        // Remove experience from core data as we'll merge separately
-        unset($core_data['professional_experience']);
-        $logger->info('✅ Core profile data extracted from chunk @num', ['@num' => $chunk_num]);
-      }
-      
-      // Collect experience from all chunks
-      if (!empty($chunk_data['professional_experience'])) {
-        $all_experiences = array_merge($all_experiences, $chunk_data['professional_experience']);
-        $logger->info('✅ Found @count jobs in chunk @num', [
-          '@count' => count($chunk_data['professional_experience']),
-          '@num' => $chunk_num,
-        ]);
-      }
-    }
+    $raw_responses = [
+      'core' => [],
+      'experience' => [],
+    ];
+
+    // Parse core profile data in smaller chunks to avoid token limits.
+    $core_data = $this->parseCoreProfileFromChunks(
+      $extracted_text,
+      $filename,
+      $uid,
+      $username,
+      $raw_responses
+    );
+
+    // Parse professional experience in smaller passes with retry splits.
+    $experience_result = $this->parseProfessionalExperienceChunks(
+      $extracted_text,
+      $filename,
+      $uid,
+      $username
+    );
+    $all_experiences = $experience_result['experiences'];
+    $raw_responses['experience'] = $experience_result['raw_responses'];
 
     if (!$core_data) {
       // Suspend queue - GenAI may have succeeded but JSON parsing failed
@@ -210,8 +209,8 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     }
 
     // Add all collected experiences to final data
-    $core_data['professional_experience'] = $all_experiences;
-    $logger->info('✅ Total jobs collected: @count', ['@count' => count($all_experiences)]);
+    $core_data['professional_experience'] = $this->dedupeProfessionalExperience($all_experiences);
+    $logger->info('✅ Total jobs collected: @count', ['@count' => count($core_data['professional_experience'])]);
 
     return [
       'parsed_data' => $core_data,
@@ -300,8 +299,11 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
         '@context' => $context_msg,
       ]);
       return [
+        'success' => FALSE,
         'parsed_data' => NULL,
         'raw_response' => $result['error'] ?? 'Unknown error',
+        'stop_reason' => $result['stop_reason'] ?? NULL,
+        'error' => $result['error'] ?? 'Unknown error',
       ];
     }
 
@@ -334,8 +336,11 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
           '@keys' => count($parsed_data),
         ]);
         return [
+          'success' => TRUE,
           'parsed_data' => $parsed_data,
           'raw_response' => $response_text,
+          'stop_reason' => $stop_reason,
+          'error' => NULL,
         ];
       } else {
         $logger->error('🔴 Queue @chunk JSON decode error: @error. JSON length: @len chars, First 500 chars: @sample', [
@@ -357,9 +362,217 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
     }
 
     return [
+      'success' => TRUE,
       'parsed_data' => NULL,
       'raw_response' => $response_text,
+      'stop_reason' => $stop_reason,
+      'error' => NULL,
     ];
+  }
+
+  /**
+   * Parse core profile sections from smaller chunks until contact info is found.
+   */
+  private function parseCoreProfileFromChunks($extracted_text, $filename, $uid, $username, array &$raw_responses) {
+    $logger = \Drupal::logger('job_hunter');
+    $chunks = $this->chunkResumeText($extracted_text, self::CORE_CHUNK_SIZE);
+    $logger->info('📊 Core profile parsing in @count chunks', ['@count' => count($chunks)]);
+
+    $chunk_num = 0;
+    foreach ($chunks as $chunk) {
+      $chunk_num++;
+      $chunk_name = "core_chunk_{$chunk_num}";
+      $logger->info('🔄 Core chunk @num/@total: @chars chars', [
+        '@num' => $chunk_num,
+        '@total' => count($chunks),
+        '@chars' => strlen($chunk),
+      ]);
+
+      $prompt = $this->buildCoreProfilePrompt($chunk, $filename);
+      $result = $this->callBedrockAndParse($prompt, $chunk_name, $filename, $username, $uid, self::CORE_MAX_TOKENS);
+      $raw_responses['core'][$chunk_name] = $result['raw_response'] ?? '';
+
+      if (!empty($result['parsed_data']) && !empty($result['parsed_data']['contact_info'])) {
+        $logger->info('✅ Core profile data extracted from @chunk', ['@chunk' => $chunk_name]);
+        return $result['parsed_data'];
+      }
+
+      if ($this->isTokenLimitResult($result)) {
+        $logger->warning('⚠️ Core chunk @chunk hit token limit; continuing with next chunk', [
+          '@chunk' => $chunk_name,
+        ]);
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Parse professional experience in smaller passes with split retries.
+   */
+  private function parseProfessionalExperienceChunks($extracted_text, $filename, $uid, $username) {
+    $logger = \Drupal::logger('job_hunter');
+    $chunks = $this->chunkResumeText($extracted_text, self::EXPERIENCE_CHUNK_SIZE);
+    $logger->info('📊 Experience parsing in @count chunks', ['@count' => count($chunks)]);
+
+    $all_experiences = [];
+    $raw_responses = [];
+
+    $chunk_num = 0;
+    foreach ($chunks as $chunk) {
+      $chunk_num++;
+      $chunk_name = "experience_chunk_{$chunk_num}";
+      $logger->info('🔄 Experience chunk @num/@total: @chars chars', [
+        '@num' => $chunk_num,
+        '@total' => count($chunks),
+        '@chars' => strlen($chunk),
+      ]);
+
+      $result = $this->parseExperienceChunkWithRetries(
+        $chunk,
+        $chunk_name,
+        $filename,
+        $username,
+        $uid,
+        0
+      );
+
+      $all_experiences = array_merge($all_experiences, $result['experiences']);
+      $raw_responses = array_merge($raw_responses, $result['raw_responses']);
+    }
+
+    return [
+      'experiences' => $all_experiences,
+      'raw_responses' => $raw_responses,
+    ];
+  }
+
+  /**
+   * Parse a single experience chunk, retrying with smaller splits on token limits.
+   */
+  private function parseExperienceChunkWithRetries($chunk_text, $chunk_name, $filename, $username, $uid, $depth) {
+    $logger = \Drupal::logger('job_hunter');
+    $prompt = $this->buildProfessionalExperiencePrompt($chunk_text, $filename);
+    $result = $this->callBedrockAndParse(
+      $prompt,
+      $chunk_name,
+      $filename,
+      $username,
+      $uid,
+      self::EXPERIENCE_MAX_TOKENS
+    );
+
+    $raw_responses = [$chunk_name => $result['raw_response'] ?? ''];
+
+    if (!empty($result['parsed_data']['professional_experience'])) {
+      $logger->info('✅ Experience parsed in @chunk: @count jobs', [
+        '@chunk' => $chunk_name,
+        '@count' => count($result['parsed_data']['professional_experience']),
+      ]);
+      return [
+        'experiences' => $result['parsed_data']['professional_experience'],
+        'raw_responses' => $raw_responses,
+      ];
+    }
+
+    if ($this->isTokenLimitResult($result) && $depth < self::EXPERIENCE_SPLIT_DEPTH) {
+      $logger->warning('⚠️ Experience chunk @chunk hit token limit, splitting (depth @depth)', [
+        '@chunk' => $chunk_name,
+        '@depth' => $depth,
+      ]);
+      $subchunks = $this->splitChunkForRetry($chunk_text);
+      $split_experiences = [];
+      foreach ($subchunks as $index => $subchunk) {
+        $child_name = $chunk_name . '_part_' . ($index + 1);
+        $child_result = $this->parseExperienceChunkWithRetries(
+          $subchunk,
+          $child_name,
+          $filename,
+          $username,
+          $uid,
+          $depth + 1
+        );
+        $split_experiences = array_merge($split_experiences, $child_result['experiences']);
+        $raw_responses = array_merge($raw_responses, $child_result['raw_responses']);
+      }
+
+      return [
+        'experiences' => $split_experiences,
+        'raw_responses' => $raw_responses,
+      ];
+    }
+
+    return [
+      'experiences' => [],
+      'raw_responses' => $raw_responses,
+    ];
+  }
+
+  /**
+   * Split a chunk into smaller pieces for retry.
+   */
+  private function splitChunkForRetry($chunk_text) {
+    $lines = explode("\n", $chunk_text);
+    if (count($lines) > 1) {
+      $mid = (int) ceil(count($lines) / 2);
+      return [
+        implode("\n", array_slice($lines, 0, $mid)),
+        implode("\n", array_slice($lines, $mid)),
+      ];
+    }
+
+    $length = strlen($chunk_text);
+    if ($length <= 1) {
+      return [$chunk_text];
+    }
+
+    $mid = (int) floor($length / 2);
+    return [
+      substr($chunk_text, 0, $mid),
+      substr($chunk_text, $mid),
+    ];
+  }
+
+  /**
+   * Check if the GenAI response indicates a token limit failure.
+   */
+  private function isTokenLimitResult(array $result) {
+    if (!empty($result['stop_reason']) && $result['stop_reason'] === 'max_tokens') {
+      return TRUE;
+    }
+
+    $error = strtolower((string) ($result['error'] ?? ''));
+    return strpos($error, 'token') !== FALSE || strpos($error, 'queue_tokens') !== FALSE;
+  }
+
+  /**
+   * Build a single raw response string for logging and storage.
+   */
+  private function formatRawResponses(array $responses) {
+    $output = '';
+    foreach ($responses as $chunk_name => $raw_response) {
+      $output .= "=== {$chunk_name} ===\n" . $raw_response . "\n\n";
+    }
+
+    return $output;
+  }
+
+  /**
+   * De-duplicate professional experiences by company, title, and start date.
+   */
+  private function dedupeProfessionalExperience(array $experiences) {
+    $unique_experiences = [];
+    $seen_keys = [];
+
+    foreach ($experiences as $exp) {
+      $key = ($exp['company'] ?? '') . '|' . ($exp['title'] ?? '') . '|' . ($exp['start_date'] ?? '');
+      if (!isset($seen_keys[$key])) {
+        $seen_keys[$key] = TRUE;
+        $unique_experiences[] = $exp;
+      }
+    }
+
+    return $unique_experiences;
   }
 
   /**
@@ -639,6 +852,21 @@ JSON SCHEMA:
   },
   "demonstration_projects": [
     {"name": "Project", "url": "https://...", "technologies": ["tech1"], "description": "Desc"}
+  ],
+  "publications": [
+    {"title": "Publication Title", "authors": ["Author1", "Author2"], "publication_venue": "Journal/Conference Name", "date": "YYYY-MM", "url": "https://...", "doi": "doi:xx.xxxx/xxxxx"}
+  ],
+  "certifications": [
+    {"name": "Certification Name", "issuing_organization": "Organization", "date": "YYYY-MM", "expiration": "YYYY-MM or null", "verification_url": "https://..."}
+  ],
+  "patents": [
+    {"title": "Patent Title", "patent_number": "US7,123,456", "status": "granted|pending|abandoned", "filing_date": "YYYY-MM", "inventors": ["Inventor1", "Inventor2"]}
+  ],
+  "awards_and_honors": [
+    {"title": "Award Name", "issuing_organization": "Organization", "date": "YYYY-MM", "description": "Award description"}
+  ],
+  "languages": [
+    {"language": "Language Name", "proficiency": "native|fluent|professional|elementary"}
   ]
 }
 
@@ -647,7 +875,7 @@ RESUME TEXT:
 {$extracted_text}
 ---
 
-Return the JSON object with all core profile sections. Do NOT include professional_experience.
+Return the JSON object with all core profile sections including publications, certifications, patents, awards, and languages. Do NOT include professional_experience.
 PROMPT;
   }
 

@@ -586,37 +586,7 @@ function job_hunter_entity_view_alter(array &$build, \Drupal\Core\Entity\EntityI
   }
 }
 
-/**
- * Implements hook_form_FORM_ID_alter() for user registration form.
- * 
- * Add link to job profile setup after registration.
- */
-function job_hunter_form_user_register_form_alter(&$form, \Drupal\Core\Form\FormStateInterface $form_state, $form_id) {
-  $form['job_profile_info'] = [
-    '#type' => 'details',
-    '#title' => t('Job Application Profile'),
-    '#description' => t('After registration, you can set up your comprehensive job application profile to start applying for positions automatically.'),
-    '#open' => FALSE,
-    '#weight' => 10,
-  ];
-  
-  $form['job_profile_info']['info'] = [
-    '#type' => 'markup',
-    '#markup' => '<p>' . t('Your job application profile will include:') . '</p>
-      <ul>
-        <li>' . t('Resume upload and management') . '</li>
-        <li>' . t('Professional summary and skills') . '</li>
-        <li>' . t('Work authorization and salary preferences') . '</li>
-        <li>' . t('LinkedIn and portfolio links') . '</li>
-        <li>' . t('Job search preferences and keywords') . '</li>
-      </ul>',
-  ];
-  
-  // Hide the auto-populated primary resume text field from user edit forms
-  if (isset($form['field_primary_resume_text'])) {
-    $form['field_primary_resume_text']['#access'] = FALSE;
-  }
-}
+
 
 /**
  * Implements hook_user_insert().

@@ -56,6 +56,7 @@ class ErrorQueueController extends ControllerBase {
       ->getQuery()
       ->condition('type', 'error_queue')
       ->sort('created', 'DESC')
+      ->pager(25)
       ->accessCheck(TRUE);
 
     $error_ids = $query->execute();
@@ -64,11 +65,19 @@ class ErrorQueueController extends ControllerBase {
     // Build table rows
     $rows = [];
     foreach ($errors as $error) {
+      $message = trim($error->get('field_error_message')->value ?? '');
+      if ($message === '') {
+        $message = $this->t('No message');
+      }
+      $message_preview = (strlen($message) > 50)
+        ? substr($message, 0, 50) . '...'
+        : $message;
+
       $rows[] = [
         'message' => [
           'data' => [
             '#type' => 'link',
-            '#title' => substr($error->get('field_error_message')->value, 0, 50) . '...',
+            '#title' => $message_preview,
             '#url' => \Drupal\Core\Url::fromRoute('job_hunter.error_queue_view', ['error_id' => $error->id()]),
           ],
         ],

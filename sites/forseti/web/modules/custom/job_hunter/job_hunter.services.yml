@@ -57,6 +57,31 @@ services:
     tags:
       - { name: drush.command }
 
+  job_hunter.resume_parse_command:
+    class: Drupal\job_hunter\Commands\ResumeParseDrushCommand
+    arguments: ['@entity_type.manager', '@database', '@config.factory', '@ai_conversation.ai_api_service']
+    tags:
+      - { name: drush.command }
+
   job_hunter.error_queue_service:
     class: Drupal\job_hunter\Service\ErrorQueueService
     arguments: ['@entity_type.manager', '@logger.factory']
+  
+  job_hunter.application_submission_service:
+    class: Drupal\job_hunter\Service\ApplicationSubmissionService
+    arguments: 
+      - '@database'
+      - '@logger.factory'
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@messenger'
+      - '@job_hunter.job_seeker_service'
+      - '@job_hunter.user_profile_service'
+      - '@job_hunter.credential_management_service'
+  
+  job_hunter.credential_management_service:
+    class: Drupal\job_hunter\Service\CredentialManagementService
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@config.factory'

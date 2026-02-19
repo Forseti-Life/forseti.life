@@ -62,6 +62,8 @@ function job_hunter_install() {
     _job_hunter_create_job_search_results_table();
     _job_hunter_create_search_history_table();
     _job_hunter_create_saved_jobs_table();
+    _job_hunter_create_applications_table();
+    _job_hunter_create_employer_credentials_table();
     
     // Create content types and fields
     _job_hunter_create_error_queue_content_type();
@@ -120,6 +122,182 @@ function _job_hunter_create_saved_jobs_table() {
 function job_hunter_update_9026() {
   _job_hunter_create_saved_jobs_table();
   return t('Created jobhunter_saved_jobs table for per-user My Jobs mappings.');
+}
+
+/**
+ * Create jobhunter_applications table.
+ *
+ * Tracks job applications and their submission status, enabling automatic
+ * submission via browser automation as well as manual tracking.
+ */
+function _job_hunter_create_applications_table() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_applications')) {
+    return;
+  }
+
+  $table_schema = [
+    'description' => 'Job application tracking and submission history.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'User ID'],
+      'job_id' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Job requirement ID'],
+      'tailored_resume_used' => ['type' => 'text', 'description' => 'The tailored resume content used for this application'],
+      'submission_status' => [
+        'type' => 'varchar',
+        'length' => 50,
+        'default' => 'pending',
+        'description' => 'Status: pending, processing, submitted, failed, manual_required',
+      ],
+      'submission_method' => [
+        'type' => 'varchar',
+        'length' => 20,
+        'default' => 'auto',
+        'description' => 'auto or manual',
+      ],
+      'submission_date' => ['type' => 'varchar', 'length' => 19, 'description' => 'When application was submitted (YYYY-MM-DD HH:MM:SS)'],
+      'confirmation_reference' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'description' => 'Application reference number or confirmation ID from employer',
+      ],
+      'confirmation_screenshot' => ['type' => 'blob', 'description' => 'Screenshot of confirmation page'],
+      'automation_success' => ['type' => 'int', 'default' => 0, 'description' => 'Whether automation succeeded (1=yes)'],
+      'admin_review_required' => ['type' => 'int', 'default' => 0, 'description' => 'Whether admin review needed (1=yes)'],
+      'error_details' => ['type' => 'text', 'description' => 'JSON details of submission error'],
+      'created' => ['type' => 'varchar', 'length' => 19, 'description' => 'Created timestamp (YYYY-MM-DD HH:MM:SS)'],
+      'changed' => ['type' => 'varchar', 'length' => 19, 'description' => 'Last updated timestamp (YYYY-MM-DD HH:MM:SS)'],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+      'job_id' => ['job_id'],
+      'uid_job' => ['uid', 'job_id'],
+      'status' => ['submission_status'],
+      'admin_review' => ['admin_review_required'],
+      'created' => ['created'],
+    ],
+    'foreign keys' => [
+      'uid_fk' => [
+        'table' => 'users',
+        'columns' => ['uid' => 'uid'],
+      ],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_applications', $table_schema);
+}
+
+/**
+ * Create applications table on update.
+ */
+function job_hunter_update_9027() {
+  _job_hunter_create_applications_table();
+  return t('Created jobhunter_applications table for application tracking and submission.');
+}
+
+/**
+ * Create jobhunter_employer_credentials table.
+ *
+ * Securely stores employer site credentials needed for automated job application
+ * submission via browser automation. All credentials are encrypted at rest.
+ *
+ * SECURITY NOTES:
+ * - Credentials are encrypted using Drupal's encryption service
+ * - Access requires authentication and permission checks
+ * - All access is logged (without plaintext credentials)
+ * - User can only access their own credentials
+ * - Admin can manage credentials for audit purposes
+ */
+function _job_hunter_create_employer_credentials_table() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_employer_credentials')) {
+    return;
+  }
+
+  $table_schema = [
+    'description' => 'Securely encrypted employer credentials for automated job application submission.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'User ID'],
+      'company_id' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Company/employer ID (jobhunter_companies)'],
+      'credential_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'basic',
+        'description' => 'Type: basic (username+password) or api_token',
+      ],
+      'encrypted_data' => [
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => TRUE,
+        'description' => 'Base64-encoded encrypted credential data (JSON)',
+      ],
+      'submission_url' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'description' => 'URL where these credentials are used (e.g., ATS login page)',
+      ],
+      'created' => [
+        'type' => 'varchar',
+        'length' => 19,
+        'not null' => TRUE,
+        'description' => 'Created timestamp (YYYY-MM-DD HH:MM:SS)',
+      ],
+      'updated' => [
+        'type' => 'varchar',
+        'length' => 19,
+        'not null' => TRUE,
+        'description' => 'Last updated timestamp (YYYY-MM-DD HH:MM:SS)',
+      ],
+      'last_verified' => [
+        'type' => 'varchar',
+        'length' => 19,
+        'description' => 'Last successful verification timestamp (YYYY-MM-DD HH:MM:SS)',
+      ],
+      'verification_status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'default' => 'unverified',
+        'description' => 'unverified, verified, failed, expired',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'user_company_type' => ['uid', 'company_id', 'credential_type'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+      'company_id' => ['company_id'],
+      'credential_type' => ['credential_type'],
+      'verification_status' => ['verification_status'],
+      'uid_company' => ['uid', 'company_id'],
+      'created' => ['created'],
+    ],
+    'foreign keys' => [
+      'uid_fk' => [
+        'table' => 'users',
+        'columns' => ['uid' => 'uid'],
+      ],
+      'company_id_fk' => [
+        'table' => 'jobhunter_companies',
+        'columns' => ['company_id' => 'id'],
+      ],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_employer_credentials', $table_schema);
+}
+
+/**
+ * Create employer credentials table on update.
+ */
+function job_hunter_update_9028() {
+  _job_hunter_create_employer_credentials_table();
+  return t('Created jobhunter_employer_credentials table for securely storing encrypted employer credentials.');
 }
 
 /**

@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\dungeoncrawler_content\Service\RoomChatService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -29,6 +30,13 @@ class QuestTrackerController extends ControllerBase {
   protected $logger;
 
   /**
+   * Room chat service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\RoomChatService
+   */
+  protected RoomChatService $chatService;
+
+  /**
    * Constructs a QuestTrackerController object.
    *
    * @param \Drupal\Core\Database\Connection $database
@@ -36,9 +44,10 @@ class QuestTrackerController extends ControllerBase {
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
    *   The logger factory.
    */
-  public function __construct(Connection $database, LoggerChannelFactoryInterface $logger_factory) {
+  public function __construct(Connection $database, LoggerChannelFactoryInterface $logger_factory, RoomChatService $chat_service) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
+    $this->chatService = $chat_service;
   }
 
   /**
@@ -47,7 +56,8 @@ class QuestTrackerController extends ControllerBase {
   public static function create(ContainerInterface $container): self {
     return new static(
       $container->get('database'),
-      $container->get('logger.factory')
+      $container->get('logger.factory'),
+      $container->get('dungeoncrawler_content.room_chat_service')
     );
   }
 
@@ -65,7 +75,17 @@ class QuestTrackerController extends ControllerBase {
   public function getAvailableQuests(int $campaign_id): JsonResponse {
     try {
       $available = $this->database->select('dc_campaign_quests', 'q')
-        ->fields('q', ['quest_id', 'quest_name', 'quest_description', 'quest_type', 'quest_level'])
+        ->fields('q', [
+          'quest_id',
+          'quest_name',
+          'quest_description',
+          'quest_type',
+          'generated_objectives',
+          'generated_rewards',
+          'giver_npc_id',
+          'location_id',
+          'status',
+        ])
         ->condition('q.campaign_id', $campaign_id)
         ->condition('q.status', 'available')
         ->execute()
@@ -122,10 +142,7 @@ class QuestTrackerController extends ControllerBase {
 
       $quest_tracker = \Drupal::service('dungeoncrawler_content.quest_tracker');
 
-      $entity_id = $character_id ?? $party_id;
-      $entity_type = $character_id ? 'character' : 'party';
-
-      $result = $quest_tracker->startQuest($campaign_id, $quest_id, $entity_id, $entity_type);
+      $result = $quest_tracker->startQuest($campaign_id, $quest_id, $character_id, $party_id);
 
       if (!$result) {
         return new JsonResponse([
@@ -262,6 +279,8 @@ class QuestTrackerController extends ControllerBase {
         ], 500);
       }
 
+      $this->postQuestCompletionDialog($campaign_id, $quest_id, (int) $payload['entity_id']);
+
       return new JsonResponse([
         'success' => TRUE,
         'message' => 'Quest completed',
@@ -294,9 +313,9 @@ class QuestTrackerController extends ControllerBase {
   public function getQuestJournal(int $campaign_id, string $character_id): JsonResponse {
     try {
       $quests = $this->database->select('dc_campaign_quest_progress', 'qp')
-        ->fields('qp', ['quest_id', 'campaign_id', 'entity_id', 'objective_states', 'current_phase', 'status', 'started_at', 'completed_at'])
+        ->fields('qp', ['quest_id', 'campaign_id', 'character_id', 'objective_states', 'current_phase', 'started_at', 'completed_at', 'outcome'])
         ->condition('qp.campaign_id', $campaign_id)
-        ->condition('qp.entity_id', $character_id)
+        ->condition('qp.character_id', $character_id)
         ->execute()
         ->fetchAllAssoc('quest_id');
 
@@ -317,6 +336,57 @@ class QuestTrackerController extends ControllerBase {
         'success' => FALSE,
         'error' => 'Internal server error',
       ], 500);
+    }
+  }
+
+  /**
+   * Post a quest completion message to room chat.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $quest_id
+   *   Quest ID.
+   * @param int $character_id
+   *   Character ID completing the quest.
+   */
+  protected function postQuestCompletionDialog(int $campaign_id, string $quest_id, int $character_id): void {
+    try {
+      $quest = $this->database->select('dc_campaign_quests', 'q')
+        ->fields('q', ['quest_name', 'giver_npc_id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('quest_id', $quest_id)
+        ->execute()
+        ->fetchAssoc();
+
+      if (empty($quest)) {
+        return;
+      }
+
+      $speaker = 'Quest Giver';
+      if (!empty($quest['giver_npc_id'])) {
+        $npc_name = $this->database->select('dc_campaign_characters', 'cc')
+          ->fields('cc', ['name'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('id', (int) $quest['giver_npc_id'])
+          ->execute()
+          ->fetchField();
+        if (!empty($npc_name)) {
+          $speaker = $npc_name;
+        }
+      }
+
+      $message = sprintf('Quest complete: %s', $quest['quest_name'] ?? $quest_id);
+      $this->chatService->postMessage(
+        $campaign_id,
+        'tavern_entrance',
+        $speaker,
+        $message,
+        'npc',
+        $character_id
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to post quest completion dialog: @error', ['@error' => $e->getMessage()]);
     }
   }
 
