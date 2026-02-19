@@ -16,6 +16,7 @@
  * - 10005: Unified entity model (polymorphic character types)
  * - 10007: Consolidate dc_characters → dc_campaign_characters (unified table)
  * - 10010: Generated image asset/link tables
+ * - 10014: Quest system tables (templates, chains, campaign quests, progress tracking)
  *
  * @see dungeoncrawler_content_schema()
  */
@@ -198,6 +199,12 @@ function dungeoncrawler_content_schema() {
         'not null' => FALSE,
         'description' => 'Room identifier where combat occurs.',
       ],
+      'map_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Map/dungeon identifier for deterministic dungeon payload lookup.',
+      ],
       'status' => [
         'type' => 'varchar',
         'length' => 16,
@@ -235,6 +242,7 @@ function dungeoncrawler_content_schema() {
     'primary key' => ['id'],
     'indexes' => [
       'campaign_status' => ['campaign_id', 'status'],
+      'campaign_map' => ['campaign_id', 'map_id'],
     ],
   ];
 
@@ -1867,6 +1875,161 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  $schema['dungeoncrawler_content_image_prompt_cache'] = [
+    'description' => 'Cached image prompt requests and responses for provider lookups.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'provider' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'vertex',
+        'description' => 'Provider identifier.',
+      ],
+      'provider_model' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Provider model name.',
+      ],
+      'prompt_hash' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'SHA-256 hash of prompt + parameters.',
+      ],
+      'prompt_text' => [
+        'type' => 'text',
+        'not null' => TRUE,
+        'description' => 'Prompt text sent to provider.',
+      ],
+      'negative_prompt' => [
+        'type' => 'text',
+        'not null' => FALSE,
+        'description' => 'Negative prompt text.',
+      ],
+      'style' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Style parameter.',
+      ],
+      'aspect_ratio' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => FALSE,
+        'description' => 'Aspect ratio parameter.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 24,
+        'not null' => TRUE,
+        'default' => 'ready',
+        'description' => 'ready, failed.',
+      ],
+      'request_payload' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Normalized request payload JSON.',
+      ],
+      'response_payload' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Raw provider response JSON.',
+      ],
+      'output_payload' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Normalized output JSON payload.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'description' => 'Campaign context when available.',
+      ],
+      'map_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Map or dungeon identifier.',
+      ],
+      'dungeon_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Dungeon identifier when provided.',
+      ],
+      'room_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'description' => 'Room identifier when provided.',
+      ],
+      'hex_q' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Hex axial q coordinate.',
+      ],
+      'hex_r' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Hex axial r coordinate.',
+      ],
+      'entity_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+        'description' => 'Entity type (floortile, background, etc.).',
+      ],
+      'terrain_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Terrain type when provided.',
+      ],
+      'habitat_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Habitat name when provided.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Created timestamp.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Updated timestamp.',
+      ],
+      'hits' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Cache hit count.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'provider_prompt' => ['provider', 'prompt_hash'],
+      'provider_model_prompt' => ['provider', 'provider_model', 'prompt_hash'],
+      'campaign_room' => ['campaign_id', 'room_id'],
+      'map_hex' => ['map_id', 'hex_q', 'hex_r'],
+    ],
+  ];
+
   $schema['dungeoncrawler_content_campaigns'] = [
     'description' => 'Global campaign template definitions.',
     'fields' => [
@@ -2108,6 +2271,148 @@ function dungeoncrawler_content_schema() {
       'room_id' => ['room_id'],
       'created' => ['created'],
     ],
+  ];
+
+  // Quest System Tables (Library → Campaign → Runtime pattern)
+  
+  // Library table: Quest templates
+  $schema['dungeoncrawler_content_quest_templates'] = [
+    'description' => 'Library of reusable quest templates for procedural generation.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'template_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Unique template identifier (e.g., rescue_merchant, slay_beast).'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Template name (may contain variables like {target}).'],
+      'description' => ['type' => 'text', 'not null' => TRUE, 'description' => 'Quest description template.'],
+      'quest_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Type: main_story, side_quest, bounty, patrol, delivery, rescue, exploration, social, crafting.'],
+      'level_min' => ['type' => 'int', 'not null' => TRUE, 'default' => 1, 'description' => 'Minimum party level.'],
+      'level_max' => ['type' => 'int', 'not null' => TRUE, 'default' => 20, 'description' => 'Maximum party level.'],
+      'tags' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON array of tags (combat, exploration, social, dungeon).'],
+      'objectives_schema' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON schema defining objectives with variables and branching.'],
+      'rewards_schema' => ['type' => 'text', 'not null' => TRUE, 'description' => 'JSON schema for XP, gold, items, reputation rewards.'],
+      'prerequisites' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON prerequisites (completed_quests, reputation, items).'],
+      'story_impact' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON defining how completion affects campaign state.'],
+      'estimated_duration_minutes' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Estimated time to complete.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when created.'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when updated.'],
+      'version' => ['type' => 'varchar', 'length' => 20, 'not null' => FALSE, 'description' => 'Template version.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['template_id' => ['template_id']],
+    'indexes' => ['type_level' => ['quest_type', 'level_min', 'level_max']],
+  ];
+
+  // Library table: Quest chains
+  $schema['dungeoncrawler_content_quest_chains'] = [
+    'description' => 'Quest chains defining multi-quest storylines.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'chain_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Unique chain identifier.'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Chain name.'],
+      'description' => ['type' => 'text', 'not null' => TRUE, 'description' => 'Chain description.'],
+      'quest_sequence' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON array of quest_template_ids in order.'],
+      'branching_paths' => ['type' => 'text', 'size' => 'big', 'not null' => FALSE, 'description' => 'JSON defining conditional branches based on choices.'],
+      'chain_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Type: linear, branching, parallel.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when created.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['chain_id' => ['chain_id']],
+  ];
+
+  // Campaign table: Active quests
+  $schema['dc_campaign_quests'] = [
+    'description' => 'Active quests in campaigns, instantiated from templates.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Campaign this quest belongs to.'],
+      'quest_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Unique quest identifier in this campaign.'],
+      'source_template_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'FK to dungeoncrawler_content_quest_templates.template_id.'],
+      'quest_name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Generated quest name with variables resolved.'],
+      'quest_description' => ['type' => 'text', 'not null' => TRUE, 'description' => 'Generated quest description.'],
+      'quest_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Type from template.'],
+      'quest_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON: campaign-specific variables, NPCs, locations.'],
+      'generated_objectives' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON array of objectives with current values.'],
+      'generated_rewards' => ['type' => 'text', 'not null' => TRUE, 'description' => 'JSON: XP, gold, items scaled to party level.'],
+      'status' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => 'available', 'description' => 'Status: available, active, completed, failed, abandoned.'],
+      'giver_npc_id' => ['type' => 'int', 'not null' => FALSE, 'description' => 'NPC who gave the quest.'],
+      'location_id' => ['type' => 'varchar', 'length' => 128, 'not null' => FALSE, 'description' => 'Location where quest is available/active.'],
+      'parent_chain_id' => ['type' => 'int', 'not null' => FALSE, 'description' => 'If part of a chain, references chain.'],
+      'chain_position' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Position in quest chain.'],
+      'created_at' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when quest generated.'],
+      'available_at' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Unix timestamp when quest became available.'],
+      'expires_at' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Unix timestamp when quest expires (if time-limited).'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['campaign_quest' => ['campaign_id', 'quest_id']],
+    'indexes' => [
+      'campaign_status' => ['campaign_id', 'status'],
+      'source_template' => ['source_template_id'],
+      'location' => ['location_id'],
+    ],
+  ];
+
+  // Runtime table: Quest progress
+  $schema['dc_campaign_quest_progress'] = [
+    'description' => 'Real-time quest progress tracking per character/party.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Campaign ID.'],
+      'quest_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Quest identifier.'],
+      'character_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'description' => 'Character tracking progress (NULL for party quests).'],
+      'party_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'description' => 'Party tracking progress (NULL for individual quests).'],
+      'objective_states' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON: each objective with current/target values.'],
+      'current_phase' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Current phase/step in quest progression.'],
+      'branch_choice' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Choice made at branching point (if applicable).'],
+      'variables' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON: runtime variables for quest logic.'],
+      'started_at' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Unix timestamp when quest started.'],
+      'last_updated' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Unix timestamp of last progress update.'],
+      'completed_at' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Unix timestamp when completed (NULL if active).'],
+      'outcome' => ['type' => 'varchar', 'length' => 50, 'not null' => FALSE, 'description' => 'Outcome: success, failure, partial, abandoned.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_quest_character' => ['campaign_id', 'quest_id', 'character_id'],
+      'campaign_quest_party' => ['campaign_id', 'quest_id', 'party_id'],
+    ],
+    'indexes' => [
+      'character_active' => ['character_id', 'completed_at'],
+      'party_active' => ['party_id', 'completed_at'],
+    ],
+  ];
+
+  // Runtime table: Quest log
+  $schema['dc_campaign_quest_log'] = [
+    'description' => 'Quest event log for narrative tracking and debugging.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Campaign ID.'],
+      'quest_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Quest identifier.'],
+      'character_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'description' => 'Character who triggered event.'],
+      'event_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Event: started, objective_completed, phase_advanced, completed, failed.'],
+      'event_data' => ['type' => 'text', 'not null' => TRUE, 'description' => 'JSON: event-specific data.'],
+      'narrative_text' => ['type' => 'text', 'not null' => FALSE, 'description' => 'Human-readable journal entry.'],
+      'timestamp' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Unix timestamp of event.'],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'campaign_quest' => ['campaign_id', 'quest_id', 'timestamp'],
+      'character_log' => ['character_id', 'timestamp'],
+    ],
+  ];
+
+  // Runtime table: Claimed rewards
+  $schema['dc_campaign_quest_rewards_claimed'] = [
+    'description' => 'Tracks rewards claimed from completed quests.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Campaign ID.'],
+      'quest_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Quest identifier.'],
+      'character_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Character who claimed reward.'],
+      'reward_data' => ['type' => 'text', 'not null' => TRUE, 'description' => 'JSON: XP, gold, items, reputation granted.'],
+      'claimed_at' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Unix timestamp when reward claimed.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['campaign_quest_character' => ['campaign_id', 'quest_id', 'character_id']],
+    'indexes' => ['character' => ['character_id', 'claimed_at']],
   ];
 
   return $schema;
@@ -2615,5 +2920,100 @@ function dungeoncrawler_content_update_10010() {
   catch (\Exception $e) {
     \Drupal::logger('dungeoncrawler_content')->error('Update 10010 failed: @error', ['@error' => $e->getMessage()]);
     throw new \Drupal\Core\Utility\UpdateException('Failed to add generated image tables: ' . $e->getMessage());
+  }
+}
+
+/**
+ * Add map_id field to combat_encounters for deterministic dungeon lookups.
+ */
+function dungeoncrawler_content_update_10011() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $schema_handler = $database->schema();
+  $table_name = 'combat_encounters';
+
+  try {
+    // Add map_id column if it doesn't exist.
+    if (!$schema_handler->fieldExists($table_name, 'map_id')) {
+      $spec = [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'Map/dungeon identifier for deterministic dungeon payload lookup.',
+      ];
+      $schema_handler->addField($table_name, 'map_id', $spec);
+    }
+
+    // Add campaign_map index if it doesn't exist.
+    if (!$schema_handler->indexExists($table_name, 'campaign_map')) {
+      $schema_handler->addIndex($table_name, 'campaign_map', ['campaign_id', 'map_id'], $schema[$table_name]);
+    }
+
+    return t('Added map_id field and campaign_map index to combat_encounters table.');
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10011 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to add map_id field to combat_encounters: ' . $e->getMessage());
+  }
+}
+
+/**
+ * Import template content from config/examples/templates/ directory.
+ * 
+ * This imports all template objects (registry items, item instances, loot tables,
+ * etc.) from JSON files into database tables. Includes 129 registry items and
+ * 114 item instances from PF2E Core Rulebook + Advanced Players Guide.
+ */
+function dungeoncrawler_content_update_10012() {
+  try {
+    $summary = \Drupal::service('dungeoncrawler_content.template_importer')->importTemplates();
+    
+    $message = t('Template import completed: @processed rows processed, @inserted inserted, @updated updated, @skipped skipped, @errors errors.', [
+      '@processed' => $summary['table_rows_processed'] ?? 0,
+      '@inserted' => $summary['table_rows_inserted'] ?? 0,
+      '@updated' => $summary['table_rows_updated'] ?? 0,
+      '@skipped' => $summary['table_rows_skipped'] ?? 0,
+      '@errors' => $summary['table_rows_errors'] ?? 0,
+    ]);
+    
+    // Log detailed summary if available
+    if (!empty($summary['table_results'])) {
+      foreach ($summary['table_results'] as $table => $result) {
+        \Drupal::logger('dungeoncrawler_content')->info('Template import for @table: @inserted inserted, @updated updated', [
+          '@table' => $table,
+          '@inserted' => $result['inserted'] ?? 0,
+          '@updated' => $result['updated'] ?? 0,
+        ]);
+      }
+    }
+    
+    return $message;
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10012 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to import template content: ' . $e->getMessage());
+  }
+}
+
+/**
+ * Add prompt cache table for image generation.
+ */
+function dungeoncrawler_content_update_10013() {
+  $schema = dungeoncrawler_content_schema();
+  $database = \Drupal::database();
+  $schema_handler = $database->schema();
+
+  try {
+    $table_name = 'dungeoncrawler_content_image_prompt_cache';
+    if (!$schema_handler->tableExists($table_name)) {
+      $schema_handler->createTable($table_name, $schema[$table_name]);
+      return t('Created prompt cache table: @table', ['@table' => $table_name]);
+    }
+
+    return t('Prompt cache table already exists.');
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10013 failed: @error', ['@error' => $e->getMessage()]);
+    throw new \Drupal\Core\Utility\UpdateException('Failed to add prompt cache table: ' . $e->getMessage());
   }
 }

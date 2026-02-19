@@ -35,22 +35,86 @@ Rows are merged using each table's unique keys (or primary key fallback).
 
 ## Library Baseline (2026-02-18)
 
-Each table directory now includes a single default JSON file with **10 template rows** to provide a larger starter library for generation, testing, and encounter design.
+Each table directory includes default JSON files with template rows to provide a starter library for generation, testing, and encounter design.
 
-Item-focused directories may include additional rows beyond this baseline to support character-creation equipment purchasing and starter loot pools sourced from Pathfinder Core Rulebook equipment lists.
+### Comprehensive PF2E Item Library
 
-Expanded tables:
-- `dungeoncrawler_content_campaigns`
-- `dungeoncrawler_content_characters`
-- `dungeoncrawler_content_dungeons`
-- `dungeoncrawler_content_encounter_instances`
-- `dungeoncrawler_content_encounter_templates`
-- `dungeoncrawler_content_item_instances`
-- `dungeoncrawler_content_log`
-- `dungeoncrawler_content_loot_tables`
-- `dungeoncrawler_content_registry`
-- `dungeoncrawler_content_rooms`
-- `dungeoncrawler_content_room_states`
+**As of February 18, 2026**, this library includes a **complete extraction of all Pathfinder 2E equipment items** from 6 official source books:
+
+**Source Coverage:**
+- Core Rulebook (4th Printing): 279 items
+- Guns & Gears: 57 items
+- Secrets of Magic: 55 items
+- Advanced Player's Guide: 35 items
+- Gods & Magic: 3 items
+- Gamemastery Guide: 2 items
+
+**Total: 431 items**
+
+**Item Breakdown:**
+- Weapons: 93
+- Armor: 51
+- Magic Items: 44
+- Adventuring Gear: 243
+
+**Key Features:**
+- Full source book attribution for every item
+- Price information extracted from source text (when available)
+- Item type classification (weapon/armor/magic_item/adventuring_gear)
+- Reference traceability with line numbers and extraction methods
+- Ready for character creation, shopping, and loot generation
+
+**Files:**
+- `dungeoncrawler_content_registry/default_registry_examples.json` - 431 item definitions
+
+### Comprehensive PF2E Creature Library
+
+**As of February 19, 2026**, this library includes **creatures from 3 Pathfinder 2E Bestiary books**:
+
+**Source Coverage:**
+- Bestiary 1: 20 creatures
+- Bestiary 2: 32 creatures
+- Bestiary 3: 21 creatures
+
+**Total: 73 creatures**
+
+**Creature Breakdown:**
+- Generic creatures: 61
+- Fiends (demons/devils): 4
+- Undead: 2
+- Plants: 2
+- Oozes: 2
+- Celestials: 1
+- Dragons: 1
+
+**Key Features:**
+- Creature type classification
+- Level ranges from 0 to 18
+- Source book attribution
+- Trait information when available
+- Ready for encounter generation
+
+**Files:**
+- `dungeoncrawler_content_registry/default_registry_examples.json` - 73 creature definitions (appended to items)
+
+**Note**: This is an initial creature extraction. The Bestiary books contain hundreds more creatures that can be added through refined extraction methods.
+
+### Production Deployment
+
+Templates are automatically imported to production via **update hook 10012** in `dungeoncrawler_content.install`. When code is deployed:
+
+1. GitHub Actions pushes new code to production
+2. `drush updatedb` runs automatically
+3. Update hook 10012 imports all templates
+4. Production database has complete PF2E item library + creature library
+
+The import is idempotent - running multiple times is safe.
+
+### Other Template Tables
+
+All other template tables include **10 baseline rows** each:
+- Campaigns, Characters, Dungeons, Rooms, Encounters
+- Loot Tables, Room States, Logs, Item Instances
 
 ## Pathfinder Reference Alignment
 
