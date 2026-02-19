@@ -428,6 +428,14 @@ job_hunter.user_profile_dashboard:
   requirements:
     _permission: 'access job hunter'
 
+job_hunter.user_profile_summary:
+  path: '/jobhunter/profile/summary'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\UserProfileController::profileDashboard'
+    _title: 'Profile Status'
+  requirements:
+    _permission: 'access job hunter'
+
 job_hunter.user_profile_edit:
   path: '/jobhunter/profile/edit'
   defaults:

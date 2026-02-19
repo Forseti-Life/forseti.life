@@ -179,3 +179,9 @@ opportunity-management:
     - core/drupal
     - core/jquery
     - core/once
+user-profile-styling:
+  css:
+    theme:
+      css/profile.css: {}
+  dependencies:
+    - core/drupal

@@ -1,0 +1,75 @@
+{#
+  @file
+  Template for displaying user profile completeness progress.
+
+  Variables:
+  - completeness: Percentage 0-100 of profile completion
+  - is_complete: Boolean indicating if profile meets minimum requirements
+  - validation_errors: Array of validation error messages
+#}
+
+{{ attach_library('job_hunter/user-profile-styling') }}
+
+<div class="profile-completeness-container">
+  <div class="completeness-header">
+    <h2>{{ 'Your Job Search Profile'|t }}</h2>
+    <p class="completeness-subtitle">
+      {% if is_complete %}
+        {{ 'Your profile is ready!'|t }}
+      {% else %}
+        {{ 'Complete your profile to start your job search.'|t }}
+      {% endif %}
+    </p>
+  </div>
+
+  {# Progress bar #}
+  <div class="completeness-progress">
+    <div class="progress-track">
+      <div class="progress-bar" style="width: {{ completeness }}%">
+        <span class="progress-text">{{ completeness }}%</span>
+      </div>
+    </div>
+  </div>
+
+  {# Validation errors if any #}
+  {% if validation_errors %}
+    <div class="alert alert-warning validation-errors">
+      <h3>{{ 'Action Required'|t }}</h3>
+      <ul>
+        {% for error in validation_errors %}
+          <li {{ loop.index0 == 0 ? 'class="first"' : '' }}>
+            <strong>
+              {% if error == 'Resume file is required to use the job application system.' %}
+                {{ '📄 Resume'|t }}
+              {% elseif error == 'Work authorization status is required.' %}
+                {{ '🛂 Work Authorization'|t }}
+              {% elseif error == 'Available start date is required.' %}
+                {{ '📅 Start Date'|t }}
+              {% elseif error == 'Remote work preference is required.' %}
+                {{ '🏠 Remote Preference'|t }}
+              {% else %}
+                {{ 'Profile'|t }}
+              {% endif %}
+            </strong>
+            <span>{{ error }}</span>
+          </li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  {# Status messaging #}
+  {% if is_complete %}
+    <div class="alert alert-success profile-ready">
+      <p>✓ {{ 'Your profile is complete and ready for job matching and applications.'|t }}</p>
+    </div>
+  {% elseif completeness >= 70 %}
+    <div class="alert alert-info profile-nearly-complete">
+      <p>{{ 'You\'re almost there! Complete the remaining items to unlock all features.'|t }}</p>
+    </div>
+  {% else %}
+    <div class="alert alert-info profile-start">
+      <p>{{ 'Get started by filling out the fields below.'|t }}</p>
+    </div>
+  {% endif %}
+</div>

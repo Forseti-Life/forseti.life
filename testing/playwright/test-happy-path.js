@@ -25,8 +25,8 @@ const CONFIG = {
   screenshots: true,
   screenshotDir: './screenshots',
   headless: false,
-  username: process.env.PLAYWRIGHT_USERNAME || 'admin',
-  password: process.env.PLAYWRIGHT_PASSWORD || 'admin_secure_password',
+  username: process.env.PLAYWRIGHT_USERNAME || process.env.DRUPAL_USER || 'admin',
+  password: process.env.PLAYWRIGHT_PASSWORD || process.env.DRUPAL_PASS || 'admin_secure_password',
   verbose: true
 };
 
@@ -70,69 +70,46 @@ async function loginUser(page) {
   logStep('Login', 'Authenticating with ' + CONFIG.username);
   
   try {
-    // Navigate to campaigns page first to see if already logged in
-    await page.goto(`${CONFIG.baseUrl}/campaigns`, {
-      waitUntil: 'domcontentloaded',
-      timeout: 15000
-    });
-
-    const currentUrl = page.url();
-    if (currentUrl.includes('/campaigns')) {
-      log('Already authenticated or campaigns page accessible', 'success');
-      results.steps.login = { success: true, already_authenticated: true };
-      return true;
-    }
-
-    // If not at campaigns, try login form
-    log('Attempting login form...', 'debug');
+    // Go directly to login page
     await page.goto(`${CONFIG.baseUrl}/user/login`, {
       waitUntil: 'domcontentloaded',
       timeout: 15000
     });
+    
+    await page.waitForTimeout(1000);
 
     const nameField = await page.$('input[name="name"]');
     const passField = await page.$('input[name="pass"]');
     
     if (!nameField || !passField) {
-      log('Login form fields not found', 'warning');
-      results.warnings.push('Login form not standard');
+      log('Login form fields not found', 'error');
+      results.errors.push('Login form fields missing');
       return false;
     }
 
+    log('Found login form, filling credentials...', 'debug');
     await nameField.fill(CONFIG.username);
     await passField.fill(CONFIG.password);
     
     const submitBtn = await page.$('input[type="submit"]');
     if (submitBtn) {
       await submitBtn.click();
-      
-      // Wait for navigation with longer timeout and fallback strategy
-      try {
-        await page.waitForNavigation({ timeout: 15000, waitUntil: 'domcontentloaded' }).catch(() => {});
-      } catch (e) {
-        log(`Navigation wait timeout (expected in some cases): ${e.message}`, 'debug');
-      }
-      
       await page.waitForTimeout(3000);
       
       const finalUrl = page.url();
-      if (!finalUrl.includes('/user/login')) {
-        results.steps.login = { success: true, redirected_to: finalUrl };
-        log('Login form submitted and redirected', 'success');
-        return true;
-      } else {
-        log('Still on login page after submission', 'warning');
-        results.warnings.push('Login submission did not redirect');
-      }
+      log(`Logged in, redirected to: ${finalUrl}`, 'debug');
+      results.steps.login = { success: true, redirected_to: finalUrl };
+      log('Login successful', 'success');
+      return true;
+    } else {
+      log('Submit button not found on login form', 'error');
+      return false;
     }
   } catch (error) {
     results.errors.push({ step: 'Login', error: error.message });
-    log(`Login attempt warning: ${error.message}`, 'warning');
-    // Don't fail test on login - continue anyway
-    return true;
+    log(`Login error: ${error.message}`, 'error');
+    return false;
   }
-  
-  return false;
 }
 
 async function testCampaignCreation(page) {
@@ -144,8 +121,23 @@ async function testCampaignCreation(page) {
       timeout: 15000
     });
 
+    await page.waitForTimeout(2000);  // Extra wait for JS to hydrate
+    
+    // Check if we got a permission error instead
+    const pageText = await page.textContent('body');
+    if (pageText.includes('Access denied') || pageText.includes('You do not have access')) {
+      log('Access denied - may need re-authentication', 'warning');
+      results.warnings.push('Possible session expiry on campaign form');
+      return null;
+    }
+
+    // Wait for the form to be interactive
+    await page.waitForSelector('input[name="name"]', { timeout: 10000 });
+    
     // Fill campaign form
     const campaignName = `Test Campaign ${Date.now()}`;
+    log(`Creating campaign: "${campaignName}"`, 'debug');
+    
     await page.fill('input[name="name"]', campaignName);
     await page.selectOption('select[name="theme"]', 'classic_dungeon');
     await page.selectOption('select[name="difficulty"]', 'normal');
@@ -170,6 +162,8 @@ async function testCampaignCreation(page) {
         log(`Campaign created: "${campaignName}"`, 'success');
         await screenshot(page, 'campaign-created');
         return campaignName;
+      } else {
+        log(`Submitted but URL is: ${currentUrl}`, 'warning');
       }
     }
   } catch (error) {

@@ -1022,6 +1022,76 @@ class UserProfileController extends ControllerBase {
   }
 
   /**
+   * Display user's job search profile dashboard.
+   *
+   * @return array
+   *   The render array for the profile dashboard.
+   */
+  public function profileDashboard() {
+    // Get current user
+    $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
+
+    if (!$user) {
+      throw new AccessDeniedHttpException();
+    }
+
+    /** @var \Drupal\job_hunter\Service\UserJobProfileService $profile_service */
+    $profile_service = \Drupal::service('job_hunter.user_job_profile_service');
+
+    // Calculate profile completeness
+    $completeness = $profile_service->getProfileCompleteness($user);
+    $is_complete = $profile_service->isProfileComplete($user);
+    $validation_errors = $profile_service->validateProfile($user);
+    $profile_summary = $profile_service->getProfileSummary($user);
+
+    // Build render array
+    $build = [];
+
+    // Profile completeness section
+    $build['completeness'] = [
+      '#theme' => 'profile_completeness',
+      '#completeness' => $completeness,
+      '#is_complete' => $is_complete,
+      '#validation_errors' => $validation_errors,
+    ];
+
+    // Profile summary
+    $build['summary'] = [
+      '#theme' => 'profile_summary',
+      '#summary' => $profile_summary,
+      '#user' => $user,
+    ];
+
+    // Action buttons
+    $build['actions'] = [
+      '#type' => 'container',
+      '#attributes' => ['class' => ['profile-actions']],
+    ];
+
+    $build['actions']['edit'] = [
+      '#type' => 'link',
+      '#title' => t('Edit Profile'),
+      '#url' => Url::fromRoute('entity.user.edit_form', ['user' => $user->id()]),
+      '#attributes' => ['class' => ['button', 'button-primary']],
+    ];
+
+    if ($is_complete) {
+      $build['actions']['browse_jobs'] = [
+        '#type' => 'link',
+        '#title' => t('Browse Available Jobs'),
+        '#url' => Url::fromRoute('job_hunter.job_browser'),
+        '#attributes' => ['class' => ['button', 'button-primary']],
+      ];
+    }
+
+    $build['#cache'] = [
+      'max-age' => 0,
+    ];
+
+    return $build;
+  }
+
+  /**
    * Tailor resume for a specific job opportunity.
    *
    * @param int $job

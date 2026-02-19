@@ -1,6 +1,6 @@
 # Job Application Automation Module
 
-**Last Updated:** February 6, 2026
+**Last Updated:** February 18, 2026
 
 ## 📚 Documentation
 
@@ -524,6 +524,212 @@ User clicks "Generate" → tailorResumeAjax()
 | processing | ❌ | ✅ | ✅ | ❌ | ❌ | ❌ |
 | completed | ❌ | ✅ | ✅ | ✅ | ✅ | ✅ |
 | failed | ✅ (Retry) | ✅ | ✅ | ❌ | ❌ | ❌ |
+
+### User Profile Forms **[✅ IMPLEMENTED]**
+
+The User Profile Forms feature provides a comprehensive profile management system that allows users to maintain job search information required for job matching and application automation.
+
+#### Profile Completeness System
+
+Users are assigned a profile completeness percentage (0-100%) calculated from two categories:
+
+**Required Fields (70% weight):**
+- 📄 Resume file (`field_resume`)
+- 🛂 Work authorization status (`field_work_authorization`)
+- 📅 Available start date (`field_available_start_date`)
+- 🏠 Remote work preference (`field_remote_preference`)
+
+**Optional Fields (30% weight):**
+- Professional summary
+- Key skills
+- Professional keywords
+- Salary expectations
+- Target companies
+
+**Calculation Logic:**
+```
+Required Completeness = (Filled Required Fields / 4) × 70%
+Optional Completeness = (Filled Optional Fields / 5) × 30%
+Total Profile % = Required Completeness + Optional Completeness
+```
+
+#### Access Points
+
+| Path | Purpose | Access |
+|------|---------|--------|
+| `/jobhunter/profile/summary` | Profile dashboard with completeness indicator | Authenticated users |
+| `/user/{uid}/edit` | Edit profile with organized fieldsets | User or admin |
+| `/user/register` | Registration form with job search section | Anonymous (registration enabled) |
+
+#### Profile Dashboard (`/jobhunter/profile/summary`)
+
+The profile dashboard displays:
+
+1. **Completeness Progress Bar**
+   - Visual progress indicator showing 0-100%
+   - Color-coded status (red: incomplete, yellow: nearly complete, green: complete)
+   - Animated transitions on profile updates
+
+2. **Validation Alerts** (if profile incomplete)
+   - Lists all missing required fields with emoji icons
+   - Provides specific guidance for each field
+   - Includes links to edit form for quick completion
+
+3. **Profile Summary Table**
+   - All 9 tracked profile fields displayed
+   - Current value or "Missing" badge
+   - Completion indicator (✅ or 🔲)
+   - Smart value display per field type:
+     - Resume: Filename with file icon
+     - Dates: Formatted (Month Day, Year)
+     - Salary: Currency format with range
+     - Remote/Authorization: Text display
+     - Companies: Count with term naming
+
+#### Form Organization
+
+**User Registration Form** (`/user/register`)
+- New section: "Job Search Profile" (fieldset)
+- Displays 4 required fields with descriptions
+- Minimizes overwhelm for new users
+- Descriptions provide inline help text
+
+**User Edit Form** (`/user/{uid}/edit`)
+- New section: "Job Search Information" (collapsible)
+- All 11 profile fields organized by category:
+  - Basic Information (resume, authorization, dates)
+  - Work Preferences (remote, relocation, travel requirements)
+  - Professional Details (summary, skills, keywords)
+  - Compensation (salary expectations)
+  - Target Companies (company selection)
+- Field descriptions from service provide guidance
+- Organized tabs/fieldsets prevent cognitive overload
+
+#### Service Architecture
+
+**Service:** `UserJobProfileService` (`src/Service/UserJobProfileService.php`)
+
+```php
+// Get profile as percentage (0-100)
+$completeness = $service->getProfileCompleteness($user);
+
+// Check if profile meets minimum requirements
+$is_complete = $service->isProfileComplete($user);
+
+// Get validation errors for missing fields
+$errors = $service->validateProfile($user);
+
+// Get summary of all profile fields for display
+$summary = $service->getProfileSummary($user);
+
+// Get field descriptions for form labels
+$descriptions = $service->getFieldDescriptions();
+
+// Update completeness tracking fields
+$service->updateProfileCompleteness($user);
+```
+
+#### CSS Styling
+
+Profile display uses centralized CSS styling via the `job_hunter/user-profile-styling` library:
+
+**Files:**
+- `css/profile.css` - All profile-related styling
+
+**Key Classes:**
+- `.profile-completeness-container` - Dashboard container
+- `.progress-bar` - Animated completeness progress bar
+- `.validation-errors` - Missing field alerts with styling
+- `.profile-summary-container` - Field summary table wrapper
+- `.profile-fields-table` - Profile fields data table with responsive design
+- `.badge-success` / `.badge-incomplete` - Field status badges
+
+**Responsive Design:**
+- Desktop: Full table layout with hover effects
+- Tablet: Readable with adjusted padding
+- Mobile: Card-based layout with data attributes
+
+#### Testing
+
+**Unit Tests:** `tests/src/Unit/Service/UserJobProfileServiceTest.php`
+- Profile completeness calculation with various field combinations
+- Validation error detection for required fields
+- Completion status checks
+- Profile summary generation
+- Field descriptions retrieval
+
+**Functional Tests:** `tests/src/Functional/UserProfileFormTest.php`
+- Registration form includes job search fields
+- Edit form requires job search section
+- Profile completeness updates on save
+- Validation errors display correctly
+- Profile marked complete when required fields filled
+
+**Running Tests:**
+```bash
+# Run all job_hunter tests
+./vendor/bin/phpunit modules/custom/job_hunter/tests
+
+# Run only profile service tests
+./vendor/bin/phpunit modules/custom/job_hunter/tests/src/Unit/Service/UserJobProfileServiceTest.php
+
+# Run only profile form tests
+./vendor/bin/phpunit modules/custom/job_hunter/tests/src/Functional/UserProfileFormTest.php
+```
+
+#### Hooks Implementation
+
+**Form Alteration Hooks** (job_hunter.module):
+
+1. `hook_form_user_register_form_alter()`
+   - Adds job_search_profile fieldset with required fields
+   - Sets field descriptions from service
+   - Makes registration form collect essential profile info
+
+2. `hook_form_user_form_alter()`
+   - Reorganizes 11 profile fields into collapsible sections
+   - Adds descriptions from service for guidance
+   - Attaches submit handler for tracking
+
+3. `job_hunter_user_form_submit()`
+   - After form save, updates profile completeness tracking
+   - Updates `field_profile_completeness` and `field_last_profile_update`
+   - Displays success message with profile status
+
+#### Controller Methods
+
+**ProfileDashboard** (UserProfileController::profileDashboard())
+- Loads current user profile
+- Calls service methods to fetch metrics
+- Renders profile-completeness and profile-summary templates
+- Sets no-cache headers for real-time display
+- Provides profile summary + validation errors + action buttons
+
+#### Database Fields
+
+**Core Profile Fields (User Entity):**
+- `field_resume` - File field for resume upload
+- `field_work_authorization` - Select list (US Citizen, Green Card, etc.)
+- `field_available_start_date` - Date field
+- `field_remote_preference` - Select (Remote Only, On-Site Only, Hybrid, Any)
+- `field_professional_summary` - Long text field
+- `field_key_skills` - Multi-value text field (skills list)
+- `field_professional_keywords` - Text field
+- `field_salary_expectation` - Entity reference range (min/max salary nodes)
+- `field_target_companies` - Multi-select entity reference to company nodes
+
+**Tracking Fields:**
+- `field_profile_completeness` - Integer (0-100%)
+- `field_last_profile_update` - Timestamp field
+
+#### Next Actions
+
+The User Profile Forms provide the foundation for:
+1. **Job Matching** - Uses profile data to find relevant jobs
+2. **Application Automation** - Requires complete profile before submission
+3. **AI Tailoring** - Uses profile fields to contextualize resume generation
+4. **User Dashboard** - Displays recommendations based on profile completeness
+
 - **Content Management:** `/node/add/{type}` - **[✅ WORKING]** - Standard Drupal content creation forms
 - **Employer Management:** `/job-application/employers` - **[🔄 TODO]** - Add employers and manage credentials  
 - **Application History:** `/job-application/history` - **[🔄 TODO]** - View all applications and their status
