@@ -32,9 +32,10 @@ This is a multi-site Drupal workspace featuring:
 ### Core Principles
 
 1. **NO QUICK FIXES**: Always diagnose properly, understand root causes, and implement sustainable solutions
-2. **Drupal-Native First**: Use Drupal's built-in features (nodes, fields, Views) before creating custom code
-3. **Documentation Required**: Update README files after all changes
-4. **Process Over Speed**: Understand systems thoroughly before implementing solutions
+2. **NO BACKWARD COMPATIBILITY CONCERNS**: Break existing implementations when necessary to achieve proper architecture. Refactor aggressively, consolidate redundant systems, and prioritize clean design over preserving legacy patterns.
+3. **Drupal-Native First**: Use Drupal's built-in features (nodes, fields, Views) before creating custom code
+4. **Documentation Required**: Update README files after all changes
+5. **Process Over Speed**: Understand systems thoroughly before implementing solutions
 
 ### Work Tracking and Status Policy
 
