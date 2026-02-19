@@ -10,7 +10,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$SCRIPT_DIR/DB Backup"
 DATABASE_NAME="theoryofconspiracies_dev"
 MYSQL_USER="drupal_user"
-MYSQL_PASSWORD="drupal_secure_password"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
 MYSQL_HOST="127.0.0.1"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -18,6 +18,11 @@ echo "🚀 AmISafe Database Export (Pure SQL) Starting..."
 echo "📂 Backup Directory: $BACKUP_DIR"
 echo "🗄️ Database: $DATABASE_NAME"
 echo "⏰ Timestamp: $TIMESTAMP"
+
+if [ -z "${MYSQL_PASSWORD}" ]; then
+    echo "ERROR: MYSQL_PASSWORD must be set in the environment." >&2
+    exit 1
+fi
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"

@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Form\CampaignCreateForm;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\QuestTrackerService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -20,11 +21,13 @@ class CampaignController extends ControllerBase {
   protected Connection $database;
   protected CharacterManager $characterManager;
   protected FormBuilderInterface $formBuilderService;
+  protected QuestTrackerService $questTracker;
 
-  public function __construct(Connection $database, CharacterManager $character_manager, FormBuilderInterface $form_builder) {
+  public function __construct(Connection $database, CharacterManager $character_manager, FormBuilderInterface $form_builder, QuestTrackerService $quest_tracker) {
     $this->database = $database;
     $this->characterManager = $character_manager;
     $this->formBuilderService = $form_builder;
+    $this->questTracker = $quest_tracker;
   }
 
   /**
@@ -35,6 +38,7 @@ class CampaignController extends ControllerBase {
       $container->get('database'),
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('form_builder'),
+      $container->get('dungeoncrawler_content.quest_tracker'),
     );
   }
 
@@ -299,6 +303,18 @@ class CampaignController extends ControllerBase {
         $decoded = [];
       }
 
+      $enter_url = NULL;
+      if (!empty($campaign->active_character_id)) {
+        $enter_url = Url::fromRoute('dungeoncrawler_content.hexmap_demo', [], [
+          'query' => $this->buildHexmapLaunchQuery(
+            $campaign_id,
+            (int) $campaign->active_character_id,
+            $decoded,
+            (string) $dungeon->dungeon_id
+          ),
+        ])->toString();
+      }
+
       $dungeon_cards[] = [
         'id' => (int) $dungeon->id,
         'dungeon_id' => (string) $dungeon->dungeon_id,
@@ -308,9 +324,7 @@ class CampaignController extends ControllerBase {
         'room_count' => $this->countDungeonRooms($decoded),
         'created' => date('M j, Y', (int) $dungeon->created),
         'updated' => date('M j, Y', (int) $dungeon->updated),
-        'enter_url' => Url::fromRoute('dungeoncrawler_content.hexmap_demo', [], [
-          'query' => $this->buildHexmapLaunchQuery($campaign_id, (int) ($campaign->active_character_id ?? 0), $decoded, (string) $dungeon->dungeon_id),
-        ])->toString(),
+        'enter_url' => $enter_url,
       ];
     }
 
@@ -382,6 +396,20 @@ class CampaignController extends ControllerBase {
    * Build canonical hexmap launch query payload.
    */
   private function buildHexmapLaunchQuery(int $campaign_id, int $character_id, array $decoded, string $map_id): array {
+    if (empty($decoded)) {
+      $seed_payload = $this->loadTavernDungeonSeedPayload();
+      if (is_array($seed_payload)) {
+        $decoded = $seed_payload;
+        if ($map_id === '') {
+          $map_id = (string) ($seed_payload['hex_map']['map_id'] ?? '');
+        }
+      }
+    }
+
+    if ($map_id === '' && !empty($decoded['hex_map']['map_id'])) {
+      $map_id = (string) $decoded['hex_map']['map_id'];
+    }
+
     $room_context = $this->extractRoomContext($decoded);
 
     return [
@@ -550,7 +578,11 @@ class CampaignController extends ControllerBase {
       ->condition('id', $campaign_id)
       ->execute();
 
+    $this->startStarterQuest($campaign_id, $character_id);
+
     $this->messenger()->addStatus($this->t('Character selected for campaign.'));
+
+    $this->ensureDefaultTavernDungeonExists($campaign_id, (string) ($campaign->theme ?? 'classic_dungeon'));
 
     $launch_query = $this->buildHexmapLaunchQuery($campaign_id, $character_id, [], '');
 
@@ -568,6 +600,42 @@ class CampaignController extends ControllerBase {
     return $this->redirect('dungeoncrawler_content.hexmap_demo', [], [
       'query' => $launch_query,
     ]);
+  }
+
+  /**
+   * Start a default starter quest when a character is selected.
+   */
+  private function startStarterQuest(int $campaign_id, int $character_id): void {
+    $preferred_templates = ['gather_wine', 'gather_torch_components', 'collect_spellbooks'];
+
+    $available = $this->database->select('dc_campaign_quests', 'q')
+      ->fields('q', ['quest_id', 'source_template_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('status', 'available')
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    if (empty($available)) {
+      return;
+    }
+
+    $quest_id = NULL;
+    foreach ($preferred_templates as $template_id) {
+      foreach ($available as $quest) {
+        if (($quest['source_template_id'] ?? '') === $template_id) {
+          $quest_id = $quest['quest_id'] ?? NULL;
+          break 2;
+        }
+      }
+    }
+
+    if (!$quest_id) {
+      $quest_id = $available[0]['quest_id'] ?? NULL;
+    }
+
+    if ($quest_id) {
+      $this->questTracker->startQuest($campaign_id, $quest_id, $character_id);
+    }
   }
 
 }

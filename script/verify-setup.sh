@@ -86,16 +86,21 @@ fi
 
 # Check database connections
 print_info "Checking database connections..."
-if mysql -u drupal_user -pdrupal_secure_password -h 127.0.0.1 -e "USE ${PRIMARY_DB_NAME}; SELECT 1;" >/dev/null 2>&1; then
-    print_status "$PRIMARY_SITE_NAME database accessible"
+DB_PASSWORD="${DB_PASSWORD:-}"
+if [ -z "$DB_PASSWORD" ]; then
+    print_warning "DB_PASSWORD not set; skipping database connection checks"
 else
-    print_error "$PRIMARY_SITE_NAME database connection failed"
-fi
+    if mysql -u drupal_user -p"$DB_PASSWORD" -h 127.0.0.1 -e "USE ${PRIMARY_DB_NAME}; SELECT 1;" >/dev/null 2>&1; then
+        print_status "$PRIMARY_SITE_NAME database accessible"
+    else
+        print_error "$PRIMARY_SITE_NAME database connection failed"
+    fi
 
-if mysql -u drupal_user -pdrupal_secure_password -h 127.0.0.1 -e "USE ${SECONDARY_DB_NAME}; SELECT 1;" >/dev/null 2>&1; then
-    print_status "$SECONDARY_SITE_NAME database accessible"
-else
-    print_error "$SECONDARY_SITE_NAME database connection failed"
+    if mysql -u drupal_user -p"$DB_PASSWORD" -h 127.0.0.1 -e "USE ${SECONDARY_DB_NAME}; SELECT 1;" >/dev/null 2>&1; then
+        print_status "$SECONDARY_SITE_NAME database accessible"
+    else
+        print_error "$SECONDARY_SITE_NAME database connection failed"
+    fi
 fi
 
 # Check website accessibility

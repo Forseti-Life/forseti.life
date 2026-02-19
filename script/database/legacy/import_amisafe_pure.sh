@@ -18,9 +18,14 @@ DB_HOST="127.0.0.1"
 DB_PORT="3306"
 DB_NAME="theoryofconspiracies_dev"
 DB_USER="drupal_user"
-DB_PASS="drupal_secure_password"
+DB_PASS="${DB_PASSWORD:-}"
 BACKUP_DIR="/workspaces/stlouisintegration.com/scripts/database/DB Backup"
 TIMESTAMP=$(date +"%Y%m%d_%H%M%S")
+
+if [ -z "$DB_PASS" ]; then
+    echo -e "${RED}❌ DB_PASSWORD is not set${NC}"
+    exit 1
+fi
 
 echo -e "${BLUE}📂 Backup Directory: ${BACKUP_DIR}${NC}"
 echo -e "${BLUE}🗄️ Database: ${DB_NAME}${NC}"

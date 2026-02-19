@@ -40,9 +40,13 @@ class H3ExclusionAnalyzer:
     def __init__(self, 
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
-                 mysql_password: str = 'drupal_secure_password',
+                 mysql_password: str = None,
                  mysql_database: str = 'theoryofconspiracies_dev'):
         """Initialize the exclusion analyzer."""
+        if mysql_password is None:
+            mysql_password = os.environ.get('DB_PASSWORD')
+        if not mysql_password:
+            raise ValueError('DB_PASSWORD environment variable is required or pass mysql_password')
         self.mysql_config = {
             'host': mysql_host,
             'user': mysql_user,

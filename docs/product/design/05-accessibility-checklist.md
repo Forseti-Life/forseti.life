@@ -619,7 +619,7 @@ We welcome your feedback on the accessibility of Forseti. Please contact us if:
 - You encounter accessibility barriers
 - You have suggestions for improvement
 
-Contact: accessibility@forseti.life
+Contact: support@forseti.life
 
 ## Technical Specifications
 Forseti relies on the following technologies:

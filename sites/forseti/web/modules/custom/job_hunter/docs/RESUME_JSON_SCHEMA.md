@@ -68,24 +68,24 @@ Personal and contact information with structured web presence.
 ```json
 {
   "contact_info": {
-    "full_name": "Keith Aumiller",
-    "credentials": ["MBA", "BS Psychology"],
-    "headline": "Business Data Engineering & AI Leader",
+    "full_name": "Jane Doe",
+    "credentials": ["MBA"],
+    "headline": "Data Engineering Leader",
     "location": {
-      "city": "Philadelphia",
-      "state": "PA"
+      "city": "Sample City",
+      "state": "ST"
     },
-    "phone": "(314) 369-0811",
-    "email": "keith.aumiller@stlouisintegration.com",
+    "phone": "(555) 555-5555",
+    "email": "support@forseti.life",
     "websites": [
-      {"type": "personal", "url": "https://stlouisintegration.com"},
-      {"type": "github", "url": "https://github.com/keithaumiller"},
-      {"type": "linkedin", "url": "https://linkedin.com/in/keithaumiller"},
-      {"type": "demo", "url": "https://thetruthperspective.org"}
+      {"type": "personal", "url": "https://forseti.life"},
+      {"type": "github", "url": "https://github.com/your-handle"},
+      {"type": "linkedin", "url": "https://linkedin.com/in/your-handle"},
+      {"type": "demo", "url": "https://forseti.life/demo"}
     ],
     "linkedin": {
-      "followers": "14k",
-      "groups_administered": ["Artificial Intelligence and Deep Learning 600k+ member"]
+      "followers": "0",
+      "groups_administered": ["Sample Community Group"]
     }
   }
 }

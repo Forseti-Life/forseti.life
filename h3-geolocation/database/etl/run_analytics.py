@@ -43,7 +43,7 @@ class AnalyticsRunner:
     def __init__(self,
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
-                 mysql_password: str = 'drupal_secure_password',
+                 mysql_password: str = None,
                  mysql_database: str = 'amisafe_database',
                  mysql_socket: str = None,
                  state_file: str = 'analytics_state.json'):
@@ -418,12 +418,18 @@ def main():
     )
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
-    parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
+    parser.add_argument('--mysql-password', default=os.environ.get('DB_PASSWORD'), help='MySQL password (from DB_PASSWORD env var)')
     parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
     parser.add_argument('--resolutions', nargs='+', type=int, default=[13, 12, 11, 10, 9, 8, 7, 6, 5],
                         help='H3 resolutions to process (default: 13-5, high to low)')
     parser.add_argument('--force', action='store_true',
                         help='Force reprocessing even if already complete')
+    
+    args = parser.parse_args()
+    
+    if not args.mysql_password:
+        print('ERROR: DB_PASSWORD environment variable is required')
+        sys.exit(1)
     parser.add_argument('--state-file', default='analytics_state.json',
                         help='State file for checkpoints (default: analytics_state.json)')
     parser.add_argument('--status', action='store_true',

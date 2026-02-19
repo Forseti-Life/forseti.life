@@ -187,21 +187,31 @@ class CharacterCreationStepController extends ControllerBase {
         ]
       );
       $image_summary = $this->buildPortraitSummary($portrait_result);
+      $view_url = Url::fromRoute('dungeoncrawler_content.character_view', [
+        'character_id' => $character_id,
+      ]);
+      if ($campaign_id !== NULL && $campaign_id !== '') {
+        $view_url->setOption('query', ['campaign_id' => $campaign_id]);
+      }
+
       return new JsonResponse([
         'success' => TRUE,
         'message' => $this->t('Character created successfully!'),
         'image_generation' => $image_summary,
-        'redirect' => Url::fromRoute('dungeoncrawler_content.character_view', [
-          'character_id' => $character_id,
-        ])->toString(),
+        'redirect' => $view_url->toString(),
       ]);
+    }
+
+    $next_query = ['character_id' => $character_id];
+    if ($campaign_id !== NULL && $campaign_id !== '') {
+      $next_query['campaign_id'] = $campaign_id;
     }
 
     return new JsonResponse([
       'success' => TRUE,
       'redirect' => Url::fromRoute('dungeoncrawler_content.character_step', [
         'step' => $next_step,
-      ])->setOption('query', ['character_id' => $character_id])->toString(),
+      ])->setOption('query', $next_query)->toString(),
     ]);
   }
 

@@ -1,7 +1,27 @@
-# Multi-Site Drupal Workspace
-Multiple Drupal websites in a shared development environment
+# Forseti.life Open Source Platform
+Multi-site Drupal workspace for community-managed, decentralized internet services
 
-**Last Updated:** February 6, 2026
+**Last Updated:** February 19, 2026
+
+## Mission
+Democratize and decentralize internet services by building community-managed versions of core systems for scientific, technology-focused, and tolerant people.
+
+## Current Focus
+- Job Hunter (primary product focus)
+- Dungeon Crawler (primary product focus)
+- Scientific experimentation and clinical trials (early-stage)
+- Community safety application (early-stage)
+
+## Open Source Status
+This repository is fully open source. Contributors are welcome. See the contribution guide and code of conduct before opening pull requests.
+
+- Contribution guide: [CONTRIBUTING.md](CONTRIBUTING.md)
+- Code of conduct: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- Security policy: [SECURITY.md](SECURITY.md)
+- License: [LICENSE](LICENSE)
+
+## Development Process
+We use a full-stack, fully automated development process with an architecture-first workflow. Documentation is treated as a first-class artifact, and architectural changes are documented before implementation.
 
 ## Quick Start
 
@@ -698,6 +718,35 @@ AWS_DEFAULT_REGION=us-west-2
 - **Region:** Defaults to us-west-2 for consistent development
 
 This modular approach provides comprehensive job application automation with AI-powered resume tailoring and conversational interfaces while maintaining clear separation of concerns and centralized AI service management.
+
+## Public Release Checklist
+
+Before deploying this repository as a public open source project, ensure the following:
+
+- ✅ **No hardcoded secrets**: All database passwords, API keys, and credentials removed from code
+- ✅ **Environment variables**: Required secrets use env vars (DB_PASSWORD, AWS_ACCESS_KEY_ID, etc.)
+- ✅ **.gitignore**: Configured to exclude .env files, credentials, and sensitive artifacts  
+- ✅ **License**: Apache 2.0 license included (see [LICENSE](LICENSE))
+- ✅ **Contributing guide**: [CONTRIBUTING.md](CONTRIBUTING.md) establishes collaboration guidelines
+- ✅ **Code of conduct**: [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) with support contact
+- ✅ **Security policy**: [SECURITY.md](SECURITY.md) with responsible disclosure process
+- ✅ **Documentation**: README and architecture guides complete in [docs/](docs/)
+- ✅ **No personal data**: Resume files, personal emails, and identifiable info removed
+- ✅ **Example configs**: `.env.example` provided for required environment variables
+- ✅ **CI/CD updates**: GitHub Actions workflows use `${{ secrets.VARIABLE_NAME }}` instead of hardcoded values
+- ✅ **Script hardening**: Setup/database scripts require environment variable passwords
+- ✅ **Third-party properly attributed**: Vendor code and dependencies properly licensed
+
+### Deployment on Public Mirror
+When deploying to GitHub (or similar public platform):
+1. Remove any remaining `.env` files from history
+2. Ensure all CI/CD workflows reference secrets, not hardcoded values
+3. Run security scanning on dependencies
+4. Generate SBOM (Software Bill of Materials) for compliance
+5. Create initial GitHub Issues from [Issues.md](Issues.md) if desired
+
+---
+
 # Deployment test Sun Sep 28 13:58:23 UTC 2025
 # Test deployment trigger
 # Navigation menu deployment - Sun Sep 28 22:04:48 UTC 2025

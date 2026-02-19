@@ -72,6 +72,9 @@
 
       // Load character data from form or data attributes
       self.loadCharacterData(context);
+
+      // Sync available boosts once we have data
+      self.syncAvailableBoosts();
     },
 
     /**
@@ -166,22 +169,36 @@
       const $checkbox = $card.find('.ability-checkbox');
 
       if (isSelected) {
-        // Deselect
         self.deselectAbility($card, ability);
-      } else {
-        // Select (if under max limit)
-        if (self.state.selectedBoosts.length < self.state.maxBoosts) {
-          self.selectAbility($card, ability);
-        } else {
-          self.showMaxBoostsWarning();
-        }
+        self.updateBoostCounter();
+        self.debouncedRecalculate();
+        self.syncAvailableBoosts();
+        return;
       }
 
-      // Update boost counter
-      self.updateBoostCounter();
+      if (self.state.selectedBoosts.length >= self.state.maxBoosts) {
+        self.showMaxBoostsWarning();
+        return;
+      }
 
-      // Recalculate scores with debounce
-      self.debouncedRecalculate();
+      self.validateBoostSelection(ability)
+        .done(function (response) {
+          if (!response || response.valid === false) {
+            const message = response && response.error
+              ? response.error
+              : 'This boost selection is not valid.';
+            self.showError(message);
+            return;
+          }
+
+          self.selectAbility($card, ability);
+          self.updateBoostCounter();
+          self.debouncedRecalculate();
+          self.syncAvailableBoosts();
+        })
+        .fail(function () {
+          self.showError('Failed to validate boost selection.');
+        });
     },
 
     /**
@@ -343,7 +360,91 @@
         self.state.characterData = $widget.data('character-data');
       }
 
+      ['background_boosts', 'free_boosts'].forEach(function (key) {
+        if (typeof self.state.characterData[key] === 'string') {
+          try {
+            self.state.characterData[key] = JSON.parse(self.state.characterData[key]);
+          } catch (e) {
+            self.state.characterData[key] = [];
+          }
+        }
+      });
+
       console.log('Loaded character data:', self.state.characterData);
+    },
+
+    /**
+     * Validate a boost selection via API.
+     */
+    validateBoostSelection: function (ability) {
+      const self = this;
+
+      return $.ajax({
+        url: CONFIG.API_ENDPOINTS.VALIDATE_BOOST,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({
+          ability: ability,
+          step: self.state.currentStep,
+          selected_boosts: self.state.selectedBoosts,
+          current_character_data: self.buildCharacterDataForSelection(),
+        }),
+        dataType: 'json',
+      });
+    },
+
+    /**
+     * Sync available boosts and disabled state.
+     */
+    syncAvailableBoosts: function () {
+      const self = this;
+
+      const characterData = self.buildCharacterDataForSelection();
+
+      $.ajax({
+        url: `${CONFIG.API_ENDPOINTS.AVAILABLE_BOOSTS}/${self.state.currentStep}`,
+        method: 'GET',
+        data: {
+          character_data: JSON.stringify(characterData),
+        },
+        dataType: 'json',
+      })
+        .done(function (response) {
+          if (!response || !response.available) {
+            return;
+          }
+
+          const available = response.available || [];
+          const disabled = response.disabled || [];
+
+          $('.ability-card--selectable').each(function () {
+            const $card = $(this);
+            const ability = $card.data('ability');
+            const isSelected = self.state.selectedBoosts.includes(ability);
+            const shouldDisable = disabled.includes(ability) || (!available.includes(ability) && !isSelected);
+
+            $card.toggleClass('ability-card--disabled', shouldDisable);
+            $card.find('.ability-checkbox').prop('disabled', shouldDisable);
+          });
+        });
+    },
+
+    /**
+     * Build character data for API payloads.
+     */
+    buildCharacterDataForSelection: function () {
+      const self = this;
+      const characterData = Object.assign({}, self.state.characterData);
+
+      if (self.state.currentStep === 'background') {
+        characterData.background_boosts = self.state.selectedBoosts;
+      } else if (self.state.currentStep === 'class') {
+        characterData.class_key_ability = self.state.selectedBoosts[0] || null;
+      } else if (self.state.currentStep === 'free') {
+        characterData.free_boosts = self.state.selectedBoosts;
+      }
+
+      return characterData;
     },
 
     /**
@@ -360,16 +461,7 @@
       self.state.isCalculating = true;
 
       // Build character data with current selections
-      const characterData = Object.assign({}, self.state.characterData);
-
-      // Add current boost selections based on step
-      if (self.state.currentStep === 'background') {
-        characterData.background_boosts = self.state.selectedBoosts;
-      } else if (self.state.currentStep === 'class') {
-        characterData.class_key_ability = self.state.selectedBoosts[0] || null;
-      } else if (self.state.currentStep === 'free') {
-        characterData.free_boosts = self.state.selectedBoosts;
-      }
+      const characterData = self.buildCharacterDataForSelection();
 
       // Show loading indicator
       self.showLoadingIndicator();
@@ -562,14 +654,7 @@
             return false;
           }
 
-          // Add selected boosts as hidden inputs
-          selector.state.selectedBoosts.forEach(function (ability) {
-            $('<input>').attr({
-              type: 'hidden',
-              name: 'ability_boosts[]',
-              value: ability,
-            }).appendTo($form);
-          });
+          selector.updateHiddenField();
         });
       });
     },

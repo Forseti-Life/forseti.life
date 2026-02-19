@@ -1,8 +1,8 @@
 # Forseti.life - Documentation Hub
 
-**Last Updated**: January 3, 2026  
+**Last Updated**: February 19, 2026  
 **Repository**: forseti.life  
-**Products**: Forseti Safety Platform, AmISafe Mobile App
+**Products**: Job Hunter, Dungeon Crawler, Scientific Experimentation + Clinical Trials (early), Community Safety (early)
 
 ---
 
@@ -19,9 +19,11 @@
 ## Overview
 
 This directory contains comprehensive documentation for the Forseti.life project, including:
-- **Forseti Safety Platform**: Web-based hyperlocal crime safety visualization
-- **AmISafe Mobile App**: React Native mobile app with background monitoring and proactive alerts
-- **H3 Geolocation System**: Crime data processing pipeline using Uber's H3 hexagonal indexing
+- **Job Hunter**: Hiring and job search automation product focus
+- **Dungeon Crawler**: AI-assisted Pathfinder 2e experience
+- **Scientific Experimentation + Clinical Trials**: Early-stage product line
+- **Community Safety**: Safety platform and mobile capabilities (early-stage)
+- **H3 Geolocation System**: Geospatial processing pipeline using Uber's H3 hexagonal indexing
 
 ---
 
@@ -175,17 +177,19 @@ Comprehensive overview of:
 
 ## Backup & Restore
 
+All paths and commands below are examples. Replace `<site>` and backup locations with values appropriate for your environment.
+
 ### Backup Strategy
 
 **Daily Backups** - Automated via Backup and Migrate module
 - Source: Default Database
-- Destination: `/var/backups/forseti/daily`
+- Destination: `/var/backups/<site>/daily`
 - Retention: 7 days
 - Schedule: Every 24 hours (86400 seconds)
 
 **Weekly Backups** - Full site backup
 - Source: Entire Site (database + files)
-- Destination: `/var/backups/forseti/weekly`
+- Destination: `/var/backups/<site>/weekly`
 - Retention: 20 weeks
 - Schedule: Every 7 days (604800 seconds)
 
@@ -220,7 +224,7 @@ Comprehensive overview of:
 
 **Via Command Line:**
 ```bash
-cd /var/www/html/forseti
+cd /var/www/html/<site>
 
 # Database backup
 ./vendor/bin/drush sql:dump --result-file=../backup-$(date +%Y%m%d-%H%M%S).sql
@@ -233,15 +237,15 @@ tar -czf ../backup-full-$(date +%Y%m%d-%H%M%S).tar.gz .
 
 **Database Restoration:**
 ```bash
-cd /var/www/html/forseti
+cd /var/www/html/<site>
 
 # For compressed backups (.gz)
-gunzip -c /var/backups/forseti/daily/backup-TIMESTAMP.sql.gz | \
+gunzip -c /var/backups/<site>/daily/backup-TIMESTAMP.sql.gz | \
   sudo -u www-data ./vendor/bin/drush sql:cli
 
 # For regular SQL files
 sudo -u www-data ./vendor/bin/drush sql:cli < \
-  /var/backups/forseti/daily/backup-TIMESTAMP.sql
+  /var/backups/<site>/daily/backup-TIMESTAMP.sql
 ```
 
 **Full Site Restoration:**
@@ -249,11 +253,11 @@ sudo -u www-data ./vendor/bin/drush sql:cli < \
 cd /var/www/html
 
 # Extract full site backup
-sudo tar -xzf /var/backups/forseti/weekly/backup-TIMESTAMP.tar.gz
+sudo tar -xzf /var/backups/<site>/weekly/backup-TIMESTAMP.tar.gz
 
 # Fix permissions
-sudo chown -R www-data:www-data forseti/
-sudo chmod -R 755 forseti/
+sudo chown -R www-data:www-data <site>/
+sudo chmod -R 755 <site>/
 ```
 
 **Through Drupal Interface:**

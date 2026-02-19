@@ -46,7 +46,7 @@ Line 37 had a duplicate/malformed attribute that broke the XML structure:
 Tests require a MySQL database to be available with the credentials specified in phpunit.xml:
 - Database: `dungeoncrawler_dev`
 - User: `drupal_user`
-- Password: `drupal_secure_password`
+- Password: `your_db_password`
 - Host: `127.0.0.1:3306`
 
 ## Changes Made

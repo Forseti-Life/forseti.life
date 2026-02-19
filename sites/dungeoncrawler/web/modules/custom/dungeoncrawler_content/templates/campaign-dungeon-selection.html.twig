@@ -25,6 +25,7 @@
   {% if dungeons|length > 0 %}
     <div class="dc-character-grid">
       {% for dungeon in dungeons %}
+        {% if dungeon.enter_url %}
         <a href="{{ dungeon.enter_url }}" class="dc-character-card dc-character-card--active">
           <div class="dc-character-card__portrait">
             <div class="dc-character-card__portrait-placeholder">
@@ -67,6 +68,50 @@
 
           <div class="dc-character-card__arrow">›</div>
         </a>
+        {% else %}
+        <div class="dc-character-card dc-character-card--disabled">
+          <div class="dc-character-card__portrait">
+            <div class="dc-character-card__portrait-placeholder">
+              <span class="dc-character-card__initial">{{ dungeon.name|first|upper }}</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__info">
+            <h3 class="dc-character-card__name">{{ dungeon.name }}</h3>
+            <div class="dc-character-card__subtitle">
+              {{ dungeon.theme ? dungeon.theme|replace({'_': ' '})|title : 'Dungeon' }}
+            </div>
+
+            <div class="dc-character-card__stats">
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">Rooms</span>
+                <span class="dc-character-card__stat-value">{{ dungeon.room_count }}</span>
+              </div>
+              <div class="dc-character-card__stat">
+                <span class="dc-character-card__stat-label">ID</span>
+                <span class="dc-character-card__stat-value">{{ dungeon.dungeon_id }}</span>
+              </div>
+            </div>
+
+            {% if dungeon.description %}
+              <div class="dc-character-card__meta">
+                <span>{{ dungeon.description|length > 120 ? dungeon.description|slice(0, 120) ~ '…' : dungeon.description }}</span>
+              </div>
+            {% endif %}
+
+            <div class="dc-character-card__meta">
+              <span>Updated {{ dungeon.updated }}</span>
+              <span>Created {{ dungeon.created }}</span>
+            </div>
+
+            <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
+              <span class="dc-btn dc-btn-warning">Select a character to enter</span>
+            </div>
+          </div>
+
+          <div class="dc-character-card__arrow">›</div>
+        </div>
+        {% endif %}
       {% endfor %}
     </div>
   {% else %}

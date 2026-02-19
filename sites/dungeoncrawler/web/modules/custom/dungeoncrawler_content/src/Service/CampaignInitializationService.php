@@ -5,8 +5,10 @@ namespace Drupal\dungeoncrawler_content\Service;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
+use Drupal\dungeoncrawler_content\Service\QuestGeneratorService;
 
 /**
  * Orchestrates complete campaign initialization with default dungeon and rooms.
@@ -26,17 +28,23 @@ class CampaignInitializationService {
   protected UuidInterface $uuid;
   protected TimeInterface $time;
   protected LoggerInterface $logger;
+  protected ModuleExtensionList $moduleList;
+  protected QuestGeneratorService $questGenerator;
 
   public function __construct(
     Connection $database,
     UuidInterface $uuid,
     TimeInterface $time,
-    LoggerChannelFactoryInterface $logger_factory
+    LoggerChannelFactoryInterface $logger_factory,
+    ModuleExtensionList $module_list,
+    QuestGeneratorService $quest_generator
   ) {
     $this->database = $database;
     $this->uuid = $uuid;
     $this->time = $time;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
+    $this->moduleList = $module_list;
+    $this->questGenerator = $quest_generator;
   }
 
   /**
@@ -85,6 +93,8 @@ class CampaignInitializationService {
         ]);
         return 0;
       }
+
+      $this->seedStarterQuests($campaign_id, $difficulty, $now);
 
       $this->logger->info('Campaign {campaign_id} initialized with starter dungeon {dungeon_id}', [
         'campaign_id' => $campaign_id,
@@ -392,5 +402,149 @@ class CampaignInitializationService {
     }
 
     return TRUE;
+  }
+
+  /**
+   * Seed starter quest templates and create initial campaign quests.
+   */
+  private function seedStarterQuests(int $campaign_id, string $difficulty, int $now): void {
+    if (!$this->database->schema()->tableExists('dungeoncrawler_content_quest_templates')
+      || !$this->database->schema()->tableExists('dc_campaign_quests')) {
+      return;
+    }
+
+    $starter_templates = [
+      'gather_wine' => [
+        'item_name' => 'wine bottle',
+        'giver_npc_id' => 'tavern_keeper',
+      ],
+      'gather_torch_components' => [
+        'item_name' => 'torch components',
+        'giver_npc_id' => 'tavern_keeper',
+      ],
+      'collect_spellbooks' => [
+        'item_name' => 'spellbooks',
+        'giver_npc_id' => 'scholar_npc',
+      ],
+    ];
+
+    $this->ensureQuestTemplatesLoaded(array_keys($starter_templates), $now);
+
+    $difficulty_map = [
+      'normal' => 'moderate',
+      'hard' => 'severe',
+      'extreme' => 'extreme',
+    ];
+    $quest_difficulty = $difficulty_map[$difficulty] ?? 'moderate';
+
+    foreach ($starter_templates as $template_id => $overrides) {
+      $existing = $this->database->select('dc_campaign_quests', 'q')
+        ->fields('q', ['quest_id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('source_template_id', $template_id)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($existing) {
+        continue;
+      }
+
+      $context = array_merge([
+        'party_level' => 1,
+        'difficulty' => $quest_difficulty,
+        'location' => 'tavern_entrance',
+        'location_tags' => ['tavern', 'starting_area'],
+      ], $overrides);
+
+      $quest_data = $this->questGenerator->generateQuestFromTemplate(
+        $template_id,
+        $campaign_id,
+        $context
+      );
+
+      if (empty($quest_data)) {
+        $this->logger->warning('Starter quest generation failed for template {template_id}', [
+          'template_id' => $template_id,
+        ]);
+        continue;
+      }
+
+      $this->database->insert('dc_campaign_quests')
+        ->fields($quest_data)
+        ->execute();
+    }
+  }
+
+  /**
+   * Ensure quest templates are loaded from module JSON files.
+   */
+  private function ensureQuestTemplatesLoaded(array $template_ids, int $now): void {
+    $module_path = $this->moduleList->getPath('dungeoncrawler_content');
+    $template_dir = DRUPAL_ROOT . '/' . $module_path . '/templates/quests';
+
+    foreach ($template_ids as $template_id) {
+      $existing = $this->database->select('dungeoncrawler_content_quest_templates', 't')
+        ->fields('t', ['id'])
+        ->condition('template_id', $template_id)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($existing) {
+        continue;
+      }
+
+      $path = $template_dir . '/' . $template_id . '.json';
+      $template = $this->readJsonFile($path);
+      if (!is_array($template)) {
+        $this->logger->warning('Quest template file not found or invalid: {path}', ['path' => $path]);
+        continue;
+      }
+
+      if (empty($template['template_id']) || empty($template['name']) || empty($template['quest_type'])) {
+        $this->logger->warning('Quest template missing required fields: {path}', ['path' => $path]);
+        continue;
+      }
+
+      $record = [
+        'template_id' => $template['template_id'],
+        'name' => $template['name'],
+        'description' => $template['description'] ?? '',
+        'quest_type' => $template['quest_type'],
+        'level_min' => $template['level_min'] ?? 1,
+        'level_max' => $template['level_max'] ?? 20,
+        'objectives_schema' => json_encode($template['objectives_schema'] ?? []),
+        'rewards_schema' => json_encode($template['rewards_schema'] ?? []),
+        'prerequisites' => isset($template['prerequisites']) ? json_encode($template['prerequisites']) : NULL,
+        'tags' => isset($template['tags']) ? json_encode($template['tags']) : NULL,
+        'story_impact' => isset($template['story_impact']) ? json_encode($template['story_impact']) : NULL,
+        'estimated_duration_minutes' => $template['estimated_duration_minutes'] ?? NULL,
+        'version' => $template['version'] ?? '1.0.0',
+        'created' => $now,
+        'updated' => $now,
+      ];
+
+      $this->database->insert('dungeoncrawler_content_quest_templates')
+        ->fields($record)
+        ->execute();
+    }
+  }
+
+  /**
+   * Read and decode a JSON file into an associative array.
+   */
+  private function readJsonFile(string $path): ?array {
+    if (!is_file($path)) {
+      return NULL;
+    }
+
+    $contents = file_get_contents($path);
+    if ($contents === FALSE) {
+      return NULL;
+    }
+
+    $decoded = json_decode($contents, TRUE);
+    return is_array($decoded) ? $decoded : NULL;
   }
 }

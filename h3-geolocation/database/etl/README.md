@@ -65,7 +65,7 @@ source h3-env/bin/activate
 
 # 2. Set environment variables
 export DB_USER='stlouis_user'
-export DB_PASSWORD='StLouis2024!Secure#DB'
+export DB_PASSWORD='<your_database_password>'  # Required: set from secrets
 export DB_SOCKET='/var/run/mysqld/mysqld.sock'
 ```
 
@@ -103,7 +103,7 @@ nohup ./database/etl/run_complete_pipeline.sh --full > pipeline.log 2>&1 &
 | Variable | Default | Description |
 |----------|---------|-------------|
 | `DB_USER` | `stlouis_user` | MySQL username |
-| `DB_PASSWORD` | `StLouis2024!Secure#DB` | MySQL password |
+| `DB_PASSWORD` | - | MySQL password (required) |
 | `DB_SOCKET` | - | MySQL socket path (recommended) |
 | `DB_HOST` | `127.0.0.1` | MySQL host (if not using socket) |
 | `DB_NAME` | `amisafe_database` | Target database |
@@ -247,7 +247,7 @@ tail -f database/pipeline_*.log
 ### Database Statistics
 ```bash
 # Run stats query
-mysql -u stlouis_user -p'StLouis2024!Secure#DB' \
+mysql -u stlouis_user -p\"$DB_PASSWORD\" \
       -S /var/run/mysqld/mysqld.sock amisafe_database << 'EOF'
 SELECT 
     'Bronze' as Layer, COUNT(*) as Records 
@@ -283,12 +283,12 @@ pip install pandas numpy h3 mysql-connector-python folium matplotlib plotly seab
 # Check MySQL is running
 sudo systemctl status mysql
 
-# Test socket connection
-mysql -u stlouis_user -p'StLouis2024!Secure#DB' \
-      -S /var/run/mysqld/mysqld.sock amisafe_database -e "SELECT 1;"
+# Test socket connection (set DB_PASSWORD environment variable first)
+mysql -u stlouis_user -p\"$DB_PASSWORD\" \
+      -S /var/run/mysqld/mysqld.sock amisafe_database -e \"SELECT 1;\"
 
 # Verify socket path
-mysqladmin -u stlouis_user -p'StLouis2024!Secure#DB' variables | grep socket
+mysqladmin -u stlouis_user -p\"$DB_PASSWORD\" variables | grep socket
 ```
 
 ### Issue: CSV Files Not Found

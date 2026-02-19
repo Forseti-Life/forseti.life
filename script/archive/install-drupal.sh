@@ -36,18 +36,23 @@ PROJECT_NAME="stlouisintegration"
 PROJECT_DIR="/workspaces/stlouisintegration.com/drupal"
 DB_NAME="stlouisintegration_dev"
 DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
+DB_PASSWORD="${DB_PASSWORD:-}"
 DB_HOST="localhost"
 SITE_NAME="St. Louis Integration"
 ADMIN_USER="admin"
-ADMIN_PASSWORD="admin_secure_password"
-ADMIN_EMAIL="admin@stlouisintegration.com"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+ADMIN_EMAIL="support@forseti.life"
 
 # Check if .env file exists and source it
 ENV_FILE="/workspaces/stlouisintegration.com/.env"
 if [ -f "$ENV_FILE" ]; then
     print_status "Loading configuration from .env file..."
     source "$ENV_FILE"
+fi
+
+if [ -z "${DB_PASSWORD}" ] || [ -z "${ADMIN_PASSWORD}" ]; then
+    print_error "DB_PASSWORD and ADMIN_PASSWORD must be set in the environment."
+    exit 1
 fi
 
 print_step "1. Checking prerequisites..."

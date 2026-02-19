@@ -17,7 +17,7 @@ NC='\033[0m' # No Color
 # Configuration
 API_BASE_URL="http://localhost/api/amisafe"
 DB_USER="drupal_user"
-DB_PASS="drupal_secure_password"
+DB_PASS="${DB_PASSWORD:-}"
 DB_HOST="127.0.0.1"
 DB_NAME="stlouisintegration_dev"
 HEXAGONS_TO_TEST=5
@@ -27,6 +27,11 @@ INCIDENTS_PER_HEXAGON=10
 TIMESTAMP=$(date '+%Y%m%d_%H%M%S')
 REPORT_DIR="/workspaces/stlouisintegration.com/testing/amisafe"
 REPORT_FILE="${REPORT_DIR}/granular_filter_test_${TIMESTAMP}.md"
+
+if [ -z "$DB_PASS" ]; then
+    echo -e "${RED}❌ DB_PASSWORD is not set${NC}"
+    exit 1
+fi
 
 # Ensure report directory exists
 mkdir -p "$REPORT_DIR"

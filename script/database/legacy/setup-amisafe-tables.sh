@@ -10,8 +10,13 @@ echo "🚀 Setting up AmISafe tables in Drupal database..."
 # Database configuration (using existing Drupal database)
 DB_HOST="127.0.0.1"
 DB_USER="drupal_user"
-DB_PASS="drupal_secure_password"
+DB_PASS="${DB_PASSWORD:-}"
 DB_NAME="theoryofconspiracies_dev"
+
+if [ -z "$DB_PASS" ]; then
+    echo "❌ DB_PASSWORD is not set"
+    exit 1
+fi
 
 echo "📋 Creating amisafe_raw_incidents table..."
 mysql -u "$DB_USER" -p"$DB_PASS" -h "$DB_HOST" "$DB_NAME" << 'EOF'

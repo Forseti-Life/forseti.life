@@ -493,7 +493,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: drupal
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: drupal_test
         ports:
           - 3306:3306
@@ -537,7 +537,7 @@ jobs:
       mysql:
         image: mysql:8.0
         env:
-          MYSQL_ROOT_PASSWORD: drupal
+          MYSQL_ROOT_PASSWORD: ${{ secrets.MYSQL_ROOT_PASSWORD }}
           MYSQL_DATABASE: drupal_test
         ports:
           - 3306:3306
@@ -560,7 +560,7 @@ jobs:
         run: |
           cd sites/dungeoncrawler/web
           ../vendor/bin/drush site:install standard \
-            --db-url=mysql://root:drupal@127.0.0.1:3306/drupal_test \
+            --db-url=mysql://root:${{ secrets.MYSQL_ROOT_PASSWORD }}@127.0.0.1:3306/drupal_test \
             --yes
           ../vendor/bin/drush en dungeoncrawler_content -y
       

@@ -8,11 +8,16 @@
 CRIME_MAP_URL="http://localhost/amisafe/crime-map"
 API_BASE_URL="http://localhost/api/amisafe"
 REPORT_DIR="/workspaces/stlouisintegration.com/testing/amisafe"
-DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
+DB_USER="${DB_USER:-drupal_user}"
+DB_PASSWORD="${DB_PASSWORD:-}"
 DB_HOST="127.0.0.1"
 DB_NAME="stlouisintegration_dev"
 MANUAL_TEST_FILE="${REPORT_DIR}/manual_filter_test_checklist.md"
+
+if [ -z "${DB_PASSWORD}" ]; then
+    echo "ERROR: DB_PASSWORD must be set in the environment." >&2
+    exit 1
+fi
 
 # Colors for output
 RED='\033[0;31m'

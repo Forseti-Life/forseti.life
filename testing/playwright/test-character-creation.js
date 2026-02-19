@@ -23,7 +23,10 @@ const CONFIG = {
   screenshots: true,
   screenshotDir: './screenshots',
   hostHeader: process.env.HOST_HEADER || '',
-  loginUrl: process.env.PLAYWRIGHT_LOGIN_URL || process.env.LOGIN_URL || ''
+  loginUrl: process.env.PLAYWRIGHT_LOGIN_URL || process.env.LOGIN_URL || '',
+  loginPath: process.env.PLAYWRIGHT_LOGIN_PATH || '/user',
+  username: process.env.PLAYWRIGHT_USERNAME || process.env.PLAYWRIGHT_USER || '',
+  password: process.env.PLAYWRIGHT_PASSWORD || process.env.PLAYWRIGHT_PASS || ''
 };
 
 // Track test results
@@ -74,6 +77,35 @@ function setupConsoleCapture(page, stepName) {
       console.error(`❌ [${stepName}] HTTP ${response.status()}: ${response.url()}`);
     }
   });
+}
+
+async function loginWithCredentials(page) {
+  if (!CONFIG.username || !CONFIG.password) {
+    return;
+  }
+
+  const loginTarget = CONFIG.loginPath.startsWith('http')
+    ? CONFIG.loginPath
+    : `${CONFIG.baseUrl}${CONFIG.loginPath}`;
+
+  console.log(`Logging in via credentials at: ${loginTarget}`);
+
+  await page.goto(loginTarget, { waitUntil: 'domcontentloaded', timeout: 15000 });
+
+  const nameInput = await page.$('input[name="name"]');
+  const passInput = await page.$('input[name="pass"]');
+  const submitButton = await page.$('input#edit-submit, button#edit-submit, button[type="submit"], input[type="submit"]');
+
+  if (!nameInput || !passInput || !submitButton) {
+    results.warnings.push({ step: 'Login', message: 'Login form fields not found at login path.' });
+    console.warn('⚠️  Login form fields not found at login path.');
+    return;
+  }
+
+  await nameInput.fill(CONFIG.username);
+  await passInput.fill(CONFIG.password);
+  await submitButton.click();
+  await page.waitForTimeout(1500);
 }
 
 /**
@@ -145,7 +177,7 @@ async function testStep2(page) {
   
   try {
     // Check for ancestry selection cards
-    const ancestryCards = await page.$$('.ancestry-card, [data-ancestry]');
+    const ancestryCards = await page.$$('.ancestry-card');
     results.steps[stepName] = {
       loaded: true,
       ancestryOptions: ancestryCards.length
@@ -159,7 +191,7 @@ async function testStep2(page) {
       await page.waitForTimeout(1000);
       
       // Check if heritage options appear
-      const heritageCards = await page.$$('.heritage-card, [data-heritage]');
+      const heritageCards = await page.$$('.heritage-card');
       results.steps[stepName].heritageOptions = heritageCards.length;
       console.log(`  Found ${heritageCards.length} heritage options`);
       
@@ -263,6 +295,13 @@ async function runTests() {
       } catch (error) {
         results.warnings.push({ step: 'Login', message: error.message });
         console.warn(`⚠️  Login navigation warning: ${error.message}`);
+      }
+    } else if (CONFIG.username && CONFIG.password) {
+      try {
+        await loginWithCredentials(page);
+      } catch (error) {
+        results.warnings.push({ step: 'Login', message: error.message });
+        console.warn(`⚠️  Login form warning: ${error.message}`);
       }
     }
 

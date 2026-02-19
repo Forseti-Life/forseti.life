@@ -1603,4 +1603,4 @@ Now that you understand the complete founder journey, you're ready to:
 **Document Version**: 1.0  
 **Created**: January 10, 2026  
 **Maintained By**: Forseti Product Team  
-**For Questions**: founder-support@forseti.life
+**For Questions**: support@forseti.life

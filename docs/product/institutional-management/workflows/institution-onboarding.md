@@ -474,7 +474,7 @@ Our compliance team is reviewing your documents. This typically takes 1-2 busine
 What's next:
 Once approved, you'll receive an email to set up your subscription and payment.
 
-Questions? Email compliance@forseti.life
+Questions? Email support@forseti.life
 
 Thank you,
 The Forseti Team

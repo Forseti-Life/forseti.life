@@ -18,6 +18,9 @@ async function testHexmap(baseUrl = 'http://localhost:8080', waitTime = 5000) {
   const context = await browser.newContext();
   const page = await context.newPage();
   const loginUrl = process.env.PLAYWRIGHT_LOGIN_URL || process.env.LOGIN_URL || '';
+  const loginPath = process.env.PLAYWRIGHT_LOGIN_PATH || '/user';
+  const username = process.env.PLAYWRIGHT_USERNAME || process.env.PLAYWRIGHT_USER || '';
+  const password = process.env.PLAYWRIGHT_PASSWORD || process.env.PLAYWRIGHT_PASS || '';
 
   let hasErrors = false;
   const errors = [];
@@ -47,6 +50,22 @@ async function testHexmap(baseUrl = 'http://localhost:8080', waitTime = 5000) {
   try {
     if (loginUrl) {
       await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    } else if (username && password) {
+      const loginTarget = loginPath.startsWith('http') ? loginPath : `${baseUrl}${loginPath}`;
+      await page.goto(loginTarget, { waitUntil: 'domcontentloaded', timeout: 30000 });
+
+      const nameInput = await page.$('input[name="name"]');
+      const passInput = await page.$('input[name="pass"]');
+      const submitButton = await page.$('input#edit-submit, button#edit-submit, button[type="submit"], input[type="submit"]');
+
+      if (nameInput && passInput && submitButton) {
+        await nameInput.fill(username);
+        await passInput.fill(password);
+        await submitButton.click();
+        await page.waitForTimeout(1500);
+      } else {
+        console.warn('⚠️  Login form fields not found at login path.');
+      }
     }
 
     const hexmapUrl = `${baseUrl}/hexmap`;

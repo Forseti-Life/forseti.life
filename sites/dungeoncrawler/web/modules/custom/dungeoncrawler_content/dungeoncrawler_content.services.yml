@@ -32,6 +32,10 @@ services:
   dungeoncrawler_content.schema_loader:
     class: Drupal\dungeoncrawler_content\Service\SchemaLoader
 
+  dungeoncrawler_content.ability_score_tracker:
+    class: Drupal\dungeoncrawler_content\Service\AbilityScoreTracker
+    arguments: ['@dungeoncrawler_content.character_manager']
+
   # Access Control Services
   dungeoncrawler_content.character_access_check:
     class: Drupal\dungeoncrawler_content\Access\CharacterAccessCheck
@@ -64,7 +68,7 @@ services:
 
   dungeoncrawler_content.vertex_image_generator:
     class: Drupal\dungeoncrawler_content\Service\VertexImageGenerationService
-    arguments: ['@logger.factory', '@datetime.time', '@config.factory', '@http_client']
+    arguments: ['@logger.factory', '@datetime.time', '@config.factory', '@database', '@http_client']
 
   dungeoncrawler_content.image_generation_integration:
     class: Drupal\dungeoncrawler_content\Service\ImageGenerationIntegrationService
@@ -161,7 +165,13 @@ services:
 
   dungeoncrawler_content.campaign_initialization:
     class: Drupal\dungeoncrawler_content\Service\CampaignInitializationService
-    arguments: ['@database', '@uuid', '@datetime.time', '@logger.factory']
+    arguments:
+      - '@database'
+      - '@uuid'
+      - '@datetime.time'
+      - '@logger.factory'
+      - '@extension.list.module'
+      - '@dungeoncrawler_content.quest_generator'
 
   dungeoncrawler_content.room_state_service:
     class: Drupal\dungeoncrawler_content\Service\RoomStateService

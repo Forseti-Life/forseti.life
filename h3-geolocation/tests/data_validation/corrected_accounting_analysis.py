@@ -25,10 +25,13 @@ class CorrectedAccountingAnalysis:
     
     def __init__(self):
         """Initialize the corrected analysis."""
+        db_password = os.environ.get('DB_PASSWORD')
+        if not db_password:
+            raise ValueError('DB_PASSWORD environment variable is required')
         self.mysql_config = {
             'host': '127.0.0.1',
             'user': 'drupal_user',
-            'password': 'drupal_secure_password',
+            'password': db_password,
             'database': 'theoryofconspiracies_dev',
             'autocommit': True
         }

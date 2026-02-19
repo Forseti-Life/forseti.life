@@ -34,8 +34,13 @@ print_step() {
 # Configuration - MODIFIED FOR STLOUISINTEGRATION
 DB_HOST="127.0.0.1"
 DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
+DB_PASSWORD="${DB_PASSWORD:-}"
 DB_NAME="stlouisintegration_dev"  # <-- CHANGED FROM theoryofconspiracies_dev
+
+if [ -z "${DB_PASSWORD}" ]; then
+    print_error "DB_PASSWORD must be set in the environment."
+    exit 1
+fi
 
 # Function to execute SQL with proper error handling
 execute_sql() {

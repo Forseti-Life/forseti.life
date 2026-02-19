@@ -11,7 +11,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BACKUP_DIR="$SCRIPT_DIR/DB Backup"
 DATABASE_NAME="theoryofconspiracies_dev"
 MYSQL_USER="drupal_user"
-MYSQL_PASSWORD="drupal_secure_password"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
 MYSQL_HOST="127.0.0.1"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
@@ -30,6 +30,11 @@ echo -e "${YELLOW}🗄️ Database: $DATABASE_NAME${NC}"
 echo -e "${YELLOW}⏰ Timestamp: $TIMESTAMP${NC}"
 echo -e "${YELLOW}✨ Features: H3:13 Granular Filtering Support${NC}"
 echo ""
+
+if [ -z "${MYSQL_PASSWORD}" ]; then
+    echo -e "${RED}❌ MYSQL_PASSWORD must be set in the environment${NC}"
+    exit 1
+fi
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"

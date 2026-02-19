@@ -10,8 +10,13 @@ echo "🚀 Setting up AmISafe Database..."
 # Database configuration
 DB_HOST="127.0.0.1"
 DB_USER="drupal_user"
-DB_PASS="drupal_secure_password"
+DB_PASS="${DB_PASSWORD:-}"
 DB_NAME="amisafe"
+
+if [ -z "$DB_PASS" ]; then
+    echo "❌ DB_PASSWORD is not set"
+    exit 1
+fi
 
 # Create database
 echo "📊 Creating amisafe database..."

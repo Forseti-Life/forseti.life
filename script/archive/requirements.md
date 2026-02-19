@@ -181,7 +181,7 @@ CREATE DATABASE stlouisintegration_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_uni
 CREATE DATABASE theoryofconspiracies_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 -- Create user with access to both databases
-CREATE USER 'drupal_user'@'127.0.0.1' IDENTIFIED BY 'drupal_secure_password';
+CREATE USER 'drupal_user'@'127.0.0.1' IDENTIFIED BY '${DRUPAL_DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON stlouisintegration_dev.* TO 'drupal_user'@'127.0.0.1';
 GRANT ALL PRIVILEGES ON theoryofconspiracies_dev.* TO 'drupal_user'@'127.0.0.1';
 FLUSH PRIVILEGES;

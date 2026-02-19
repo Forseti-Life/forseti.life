@@ -18,12 +18,17 @@ NC='\033[0m' # No Color
 # Database configuration
 DB_NAME="theoryofconspiracies_dev"
 DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
+DB_PASSWORD="${DB_PASSWORD:-}"
 DB_HOST="127.0.0.1"
 
 echo -e "${BLUE}===================================================${NC}"
 echo -e "${BLUE}H3 Geolocation Pipeline Database Setup${NC}"
 echo -e "${BLUE}===================================================${NC}"
+
+if [ -z "${DB_PASSWORD}" ]; then
+    echo -e "${RED}✗ DB_PASSWORD must be set in the environment${NC}"
+    exit 1
+fi
 
 # Check if MySQL is running
 echo -e "${YELLOW}Checking MySQL service status...${NC}"

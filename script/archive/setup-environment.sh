@@ -323,6 +323,12 @@ fi
 
 # Configure MySQL database for Drupal
 print_status "Configuring MySQL database..."
+DRUPAL_DB_PASSWORD="${DRUPAL_DB_PASSWORD:-}"
+DRUPAL_ADMIN_PASSWORD="${DRUPAL_ADMIN_PASSWORD:-CHANGE_ME}"
+if [ -z "$DRUPAL_DB_PASSWORD" ]; then
+    print_error "DRUPAL_DB_PASSWORD is not set. Export it before running this script."
+    exit 1
+fi
 
 # Ensure MySQL is running before database operations
 if ! sudo mysql -e "SELECT 1;" &>/dev/null; then
@@ -337,7 +343,7 @@ else
     print_status "Creating MySQL database and user for Drupal..."
     sudo mysql <<EOF
 CREATE DATABASE IF NOT EXISTS stlouisintegration_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS 'drupal_user'@'127.0.0.1' IDENTIFIED BY 'drupal_secure_password';
+CREATE USER IF NOT EXISTS 'drupal_user'@'127.0.0.1' IDENTIFIED BY '${DRUPAL_DB_PASSWORD}';
 GRANT ALL PRIVILEGES ON stlouisintegration_dev.* TO 'drupal_user'@'127.0.0.1';
 FLUSH PRIVILEGES;
 EOF
@@ -476,15 +482,15 @@ fi
 print_status "Environment setup completed successfully!"
 print_status "Next steps:"
 echo "1. Reload environment: source ~/.bashrc"
-echo "2. Install Drupal: cd drupal && ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=admin -y"
-echo "3. Access site at http://localhost with admin/admin credentials"
+echo "2. Install Drupal: cd drupal && ./vendor/bin/drush site:install standard --db-url=mysql://drupal_user:${DRUPAL_DB_PASSWORD}@127.0.0.1:3306/stlouisintegration_dev --site-name='St. Louis Integration Dev' --account-name=admin --account-pass=${DRUPAL_ADMIN_PASSWORD} -y"
+echo "3. Access site at http://localhost with admin/${DRUPAL_ADMIN_PASSWORD} credentials"
 
 print_warning "Remember to:"
 echo "- Reload environment first: source ~/.bashrc"
 echo "- PHP 8.3 is now default via aliases: php = /usr/bin/php8.3, composer uses PHP 8.3"
 echo "- Composer dependencies: Automatically installed during setup"
 echo "- Start services if needed: sudo service mysql start && sudo service apache2 start"
-echo "- Site credentials: Username 'admin' / Password 'admin'"
+echo "- Site credentials: Username 'admin' / Password '${DRUPAL_ADMIN_PASSWORD}'"
 
 # Test website availability
 print_status "Testing website availability..."

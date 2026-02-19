@@ -127,6 +127,13 @@ class CharacterCreationStepForm extends FormBase {
     $form_state->set('character_id', $character_id);
     $form_state->set('campaign_id', $campaign_id);
 
+    if ($campaign_id) {
+      $form['campaign_id'] = [
+        '#type' => 'hidden',
+        '#value' => $campaign_id,
+      ];
+    }
+
     // Load schema for tips and descriptions
     $schema = $this->schemaLoader->loadStepSchema($step);
     $step_name = $schema['properties']['step_name']['const']
@@ -398,6 +405,58 @@ class CharacterCreationStepForm extends FormBase {
           '#help_text' => $this->t('Current ability scores (from ancestry)'),
         ];
 
+        $heritage_payload = [];
+        foreach (CharacterManager::HERITAGES as $ancestry_name => $heritages) {
+          $ancestry_id = strtolower(str_replace(' ', '-', $ancestry_name));
+          $heritage_payload[$ancestry_id] = $heritages;
+        }
+
+        $heritage_json = Html::escape(json_encode(
+          $heritage_payload,
+          JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+        ));
+
+        $selected_ancestry = (string) ($character_data['ancestry'] ?? '');
+        $ancestry_cards_markup = '<div class="ancestry-selection" data-heritages="' . $heritage_json . '">';
+        $ancestry_cards_markup .= '<div class="ancestry-grid">';
+
+        foreach (CharacterManager::ANCESTRIES as $ancestry_name => $ancestry_data) {
+          $ancestry_id = strtolower(str_replace(' ', '-', $ancestry_name));
+          $selected_class = $selected_ancestry === $ancestry_id ? ' selected' : '';
+          $boosts = $ancestry_data['boosts'] ?? [];
+          $boosts_label = $boosts ? implode(', ', $boosts) : 'None';
+          $flaw = $ancestry_data['flaw'] ?? '';
+          $vision = $ancestry_data['vision'] ?? 'normal';
+
+          $ancestry_cards_markup .= '<div class="ancestry-card' . $selected_class . '" data-ancestry="' . Html::escape($ancestry_id) . '">';
+          $ancestry_cards_markup .= '<h3>' . Html::escape($ancestry_name) . '</h3>';
+          $ancestry_cards_markup .= '<div class="ancestry-stats">';
+          $ancestry_cards_markup .= '<span class="stat"><strong>HP:</strong> ' . (int) ($ancestry_data['hp'] ?? 0) . '</span>';
+          $ancestry_cards_markup .= '<span class="stat"><strong>Size:</strong> ' . Html::escape((string) ($ancestry_data['size'] ?? '')) . '</span>';
+          $ancestry_cards_markup .= '<span class="stat"><strong>Speed:</strong> ' . (int) ($ancestry_data['speed'] ?? 0) . 'ft</span>';
+          $ancestry_cards_markup .= '</div>';
+          $ancestry_cards_markup .= '<div class="ancestry-traits">';
+          $ancestry_cards_markup .= '<span><strong>Boosts:</strong> ' . Html::escape($boosts_label) . '</span>';
+          if ($flaw !== '') {
+            $ancestry_cards_markup .= '<span><strong>Flaw:</strong> ' . Html::escape($flaw) . '</span>';
+          }
+          $ancestry_cards_markup .= '<span><strong>Vision:</strong> ' . Html::escape($vision) . '</span>';
+          $ancestry_cards_markup .= '</div>';
+          $ancestry_cards_markup .= '</div>';
+        }
+
+        $ancestry_cards_markup .= '</div>';
+        $ancestry_cards_markup .= '<div id="heritageSelection" class="heritage-section hidden">';
+        $ancestry_cards_markup .= '<h3>' . $this->t('Choose a Heritage') . '</h3>';
+        $ancestry_cards_markup .= '<div id="heritageOptions" class="heritage-grid"></div>';
+        $ancestry_cards_markup .= '</div>';
+        $ancestry_cards_markup .= '</div>';
+
+        $form['ancestry_cards'] = [
+          '#type' => 'markup',
+          '#markup' => $ancestry_cards_markup,
+        ];
+
         $form['ancestry'] = [
           '#type' => 'select',
           '#title' => $this->t('Legacy Ancestry'),
@@ -410,6 +469,7 @@ class CharacterCreationStepForm extends FormBase {
             'wrapper' => 'heritage-wrapper',
           ],
         ];
+        $form['ancestry']['#attributes']['class'][] = 'dc-visually-hidden';
         $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
         $form['heritage'] = [
           '#type' => 'select',
@@ -421,6 +481,7 @@ class CharacterCreationStepForm extends FormBase {
           '#prefix' => '<div id="heritage-wrapper">',
           '#suffix' => '</div>',
         ];
+        $form['heritage']['#attributes']['class'][] = 'dc-visually-hidden';
         $this->applySchemaValidationAttributes($form['heritage'], $schema_fields, 'heritage');
 
         // Ancestry Feat Selection

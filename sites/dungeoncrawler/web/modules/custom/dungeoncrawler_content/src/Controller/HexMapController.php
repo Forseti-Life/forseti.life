@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\dungeoncrawler_content\Service\QuestTrackerService;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -15,9 +16,11 @@ class HexMapController extends ControllerBase {
   protected RequestStack $requestStack;
 
   protected Connection $database;
-  public function __construct(RequestStack $request_stack, Connection $database) {
+  protected QuestTrackerService $questTracker;
+  public function __construct(RequestStack $request_stack, Connection $database, QuestTrackerService $quest_tracker) {
     $this->requestStack = $request_stack;
     $this->database = $database;
+    $this->questTracker = $quest_tracker;
   }
 
   /**
@@ -27,6 +30,7 @@ class HexMapController extends ControllerBase {
     return new static(
       $container->get('request_stack'),
       $container->get('database'),
+      $container->get('dungeoncrawler_content.quest_tracker'),
     );
   }
 
@@ -52,6 +56,7 @@ class HexMapController extends ControllerBase {
 
     $dungeon_payload = $this->loadDungeonPayload($launch_context);
     $launch_character = $this->loadLaunchCharacterSummary($launch_context);
+    $quest_summary = $this->loadQuestSummary($launch_context);
 
     return [
       '#theme' => 'hexmap_demo',
@@ -66,6 +71,7 @@ class HexMapController extends ControllerBase {
             'hexmapLaunchContext' => $launch_context,
             'hexmapDungeonData' => $dungeon_payload,
             'hexmapLaunchCharacter' => $launch_character,
+            'hexmapQuestSummary' => $quest_summary,
           ],
         ],
       ],
@@ -236,6 +242,50 @@ class HexMapController extends ControllerBase {
       ],
       'hero_points' => $hero_points,
       'conditions' => $conditions,
+    ];
+  }
+
+  /**
+   * Load active and available quest summaries for launch context.
+   */
+  protected function loadQuestSummary(array $launch_context): array {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    $character_id = (int) ($launch_context['character_id'] ?? 0);
+
+    if ($campaign_id <= 0 || $character_id <= 0) {
+      return [];
+    }
+
+    $location_id = (string) ($launch_context['room_id'] ?? '');
+    if ($location_id === '') {
+      $location_id = (string) ($launch_context['map_id'] ?? '');
+    }
+    if ($location_id === '') {
+      $location_id = 'tavern_entrance';
+    }
+
+    $active = $this->questTracker->getActiveQuests($campaign_id, $character_id);
+    $available = $this->questTracker->getAvailableQuests($campaign_id, $location_id, $character_id);
+
+    $normalize = static function (array $quest): array {
+      $quest['generated_objectives'] = json_decode((string) ($quest['generated_objectives'] ?? '[]'), TRUE) ?? [];
+      $quest['generated_rewards'] = json_decode((string) ($quest['generated_rewards'] ?? '[]'), TRUE) ?? [];
+      $quest['objective_states'] = json_decode((string) ($quest['objective_states'] ?? '[]'), TRUE) ?? [];
+      $quest['quest_data'] = json_decode((string) ($quest['quest_data'] ?? '{}'), TRUE) ?? [];
+      return $quest;
+    };
+
+    $active_summary = array_map($normalize, $active);
+    $available_summary = array_map($normalize, $available);
+
+    return [
+      'location_id' => $location_id,
+      'active' => $active_summary,
+      'available' => $available_summary,
+      'counts' => [
+        'active' => count($active_summary),
+        'available' => count($available_summary),
+      ],
     ];
   }
 

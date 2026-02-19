@@ -52,10 +52,10 @@ class EnhancedTransformProcessor:
     Provides complete record accounting and comprehensive processing reports.
     """
     
-    def __init__(self, 
+    def __init__(self,
                  mysql_host: str = '127.0.0.1',
                  mysql_user: str = 'drupal_user',
-                 mysql_password: str = 'drupal_secure_password',
+                 mysql_password: str = None,
                  mysql_database: str = 'amisafe_database',
                  mysql_socket: str = None,
                  reports_dir: str = None):
@@ -1433,11 +1433,15 @@ def main():
     parser.add_argument('--batch-size', type=int, default=25000, help='Batch size for processing')
     parser.add_argument('--mysql-host', default='127.0.0.1', help='MySQL host')
     parser.add_argument('--mysql-user', default='drupal_user', help='MySQL user')
-    parser.add_argument('--mysql-password', default='drupal_secure_password', help='MySQL password')
+    parser.add_argument('--mysql-password', default=os.environ.get('DB_PASSWORD'), help='MySQL password (from DB_PASSWORD env var)')
     parser.add_argument('--mysql-database', default='amisafe_database', help='MySQL database')
     parser.add_argument('--mysql-socket', default=None, help='MySQL unix socket path (e.g., /var/run/mysqld/mysqld.sock)')
     
     args = parser.parse_args()
+    
+    if not args.mysql_password:
+        print('ERROR: DB_PASSWORD environment variable is required')
+        sys.exit(1)
     
     # Initialize enhanced processor
     processor = EnhancedTransformProcessor(

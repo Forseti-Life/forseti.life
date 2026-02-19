@@ -83,7 +83,7 @@ h3-geolocation/
 ### Setup
 ```bash
 export DB_USER='stlouis_user'
-export DB_PASSWORD='StLouis2024!Secure#DB'
+export DB_PASSWORD='<your_database_password>'  # Required: set from secrets
 export DB_SOCKET='/var/run/mysqld/mysqld.sock'
 cd /var/www/html/stlouisintegration/h3-geolocation
 source h3-env/bin/activate
@@ -136,7 +136,7 @@ ps aux | grep run_complete_pipeline
 
 ### Database Stats
 ```bash
-mysql -u stlouis_user -p'StLouis2024!Secure#DB' \
+mysql -u stlouis_user -p"$DB_PASSWORD" \
       -S /var/run/mysqld/mysqld.sock amisafe_database << 'EOF'
 -- Record counts
 SELECT 
@@ -171,7 +171,7 @@ pip install pandas numpy h3 mysql-connector-python folium matplotlib plotly seab
 **MySQL Connection:**
 ```bash
 # Test connection
-mysql -u stlouis_user -p'StLouis2024!Secure#DB' \
+mysql -u stlouis_user -p"$DB_PASSWORD" \
       -S /var/run/mysqld/mysqld.sock -e "SHOW DATABASES;"
 ```
 

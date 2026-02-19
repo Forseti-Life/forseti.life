@@ -265,7 +265,7 @@ When adding new documentation:
 
 ## Questions or Feedback?
 
-Contact: [product@forseti.life](mailto:product@forseti.life)
+Contact: [support@forseti.life](mailto:support@forseti.life)
 
 ---
 

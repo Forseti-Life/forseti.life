@@ -8,7 +8,7 @@
    ```
 
 2. **Edit `phpunit.xml` and set your local values:**
-   - `SIMPLETEST_DB`: Your test database connection string (e.g., `mysql://drupal_user:password@localhost/drupal_test`)
+   - `SIMPLETEST_DB`: Your test database connection string (e.g., `mysql://your_db_user:your_db_password@localhost/drupal_test`)
    - `SIMPLETEST_BASE_URL`: Your local Drupal site URL (e.g., `http://localhost:8080`)
 
 3. **Ensure the test database exists:**

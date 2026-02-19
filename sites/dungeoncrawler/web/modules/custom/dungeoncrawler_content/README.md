@@ -24,6 +24,8 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
 - **Character Service**: `dungeoncrawler_content.character_manager` - Database operations for character data
 - **Template-backed starting equipment**: Character creation step 7 now loads purchase options from `dungeoncrawler_content_item_instances` joined with `dungeoncrawler_content_registry` (with static fallback if template tables are unavailable)
 - **Schema-driven validation**: Character creation validation is centralized server-side via `SchemaLoader::validateStepData` with schema rules; client-side JavaScript is kept to UI state as constraints are standardized.
+- **Step 1 name pattern**: Name validation currently permits letters and spaces only to avoid browser regex parsing errors in HTML `pattern`.
+- **Pathbuilder-style ancestry UI**: Step 2 uses card-based ancestry and heritage selection that syncs to the underlying Form API fields for validation.
 - **Portrait generation on completion**: Step 8 can trigger an AI portrait using character attributes plus an optional user prompt, then links the result to `dc_campaign_characters` in generated-image tables.
 - **Character Routes**:
   - `/characters` - List all user's characters
@@ -58,6 +60,8 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
    - Character creation preserves `campaign_id` through step redirects
    - Campaign character selection resolves hexmap launch context (`dungeon_level_id`, `map_id`, `room_id`, `next_room_id`) from the latest campaign dungeon record instead of static IDs
    - `/hexmap` now receives a launch-character summary from campaign context and uses it to hydrate the bottom character sheet immediately on initial load (before entity selection/combat turn hydration)
+   - Campaign initialization now seeds starter quest templates from `templates/quests` when missing and generates default tavern quests for new campaigns
+   - Selecting a character auto-starts a starter quest and `/hexmap` attaches a quest summary payload in `drupalSettings.dungeoncrawlerContent.hexmapQuestSummary`
 
 ### Game Object Management
 - **Table inventory interface**: Admin page inventories all Dungeon Crawler custom tables (`dc_*` and `dungeoncrawler_content_*`) and summarizes what objects they store.
@@ -155,6 +159,12 @@ Provides Pathfinder-compatible dice and number generation:
 - Percentile roll helper (`1-100`)
 - Generic `1-100` die-side support for multiple dice
 - Dice notation parsing for formats like `1d20`, `2d6+3`, `4d8-1`
+
+#### Ability Score Tracker
+**Service ID**: `dungeoncrawler_content.ability_score_tracker`  
+**Class**: `Drupal\dungeoncrawler_content\Service\AbilityScoreTracker`
+
+Calculates PF2e ability boosts, sources, and validation across the character creation flow.
 
 ## File Structure
 

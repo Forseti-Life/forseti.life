@@ -307,7 +307,7 @@ When adding new tests:
 
 - **Issues:** Report bugs in GitHub Issues with `[mobile-test]` tag
 - **Documentation:** See `test-cases.md` for detailed test specifications
-- **Contact:** admin@stlouisintegration.com
+- **Contact:** support@forseti.life
 
 ---
 

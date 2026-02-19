@@ -13,7 +13,7 @@ DEFAULT_BACKUP_DIR="$SCRIPT_DIR/../../database-exports/dumps"
 BACKUP_DIR="${BACKUP_DIR:-$DEFAULT_BACKUP_DIR}"
 DATABASE_NAME="amisafe_database"
 MYSQL_USER="drupal_user"
-MYSQL_PASSWORD="drupal_secure_password"
+MYSQL_PASSWORD="${MYSQL_PASSWORD:-}"
 MYSQL_HOST="127.0.0.1"
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_FILE_PREFIX="amisafe_complete_${TIMESTAMP}"
@@ -33,6 +33,11 @@ echo -e "${YELLOW}🗄️  Database: $DATABASE_NAME${NC}"
 echo -e "${YELLOW}⏰ Timestamp: $TIMESTAMP${NC}"
 echo -e "${YELLOW}✨ Features: 9 H3 Resolutions, 84 Columns, 21 Procedures${NC}"
 echo ""
+
+if [ -z "${MYSQL_PASSWORD}" ]; then
+    echo -e "${RED}❌ MYSQL_PASSWORD must be set in the environment${NC}"
+    exit 1
+fi
 
 # Create backup directory if it doesn't exist
 mkdir -p "$BACKUP_DIR"

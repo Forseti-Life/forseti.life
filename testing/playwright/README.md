@@ -71,6 +71,18 @@ cd /home/keithaumiller/forseti.life
 node testing/playwright/test-hexmap.js http://localhost:8080
 ```
 
+### Authenticate via /user Login
+Provide credentials to run tests without a reset URL:
+
+```bash
+export PLAYWRIGHT_USERNAME="playwright_player"
+export PLAYWRIGHT_PASSWORD="<your_password>"
+export PLAYWRIGHT_LOGIN_PATH="/user"
+
+node testing/playwright/test-character-creation.js http://localhost:8080 10000
+node testing/playwright/test-hexmap.js http://localhost:8080 5000
+```
+
 ### Capture and Save Console Logs
 ```bash
 node testing/playwright/capture-console.js http://localhost:8080/hexmap 10000 /tmp/hexmap-console.json

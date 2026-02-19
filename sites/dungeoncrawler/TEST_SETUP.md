@@ -33,7 +33,7 @@ This will:
 Tests require a dedicated test database. Update the connection string in `web/modules/custom/dungeoncrawler_tester/phpunit.xml` if needed:
 
 ```xml
-<env name="SIMPLETEST_DB" value="mysql://drupal_user:drupal_secure_password@127.0.0.1:3306/dungeoncrawler_dev"/>
+<env name="SIMPLETEST_DB" value="mysql://your_db_user:your_db_password@127.0.0.1:3306/dungeoncrawler_dev"/>
 ```
 
 Replace with your actual database credentials.

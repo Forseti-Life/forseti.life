@@ -23,13 +23,14 @@
 
   // Constants
   const SELECTORS = {
-    FORM: '#step2Form',
+    FORM: 'form.character-creation-form',
     ANCESTRY_CARD: '.ancestry-card',
     HERITAGE_SECTION: '#heritageSelection',
     HERITAGE_OPTIONS: '#heritageOptions',
-    SUBMIT_BUTTON: '#step2Submit',
-    SELECTED_ANCESTRY: '#selectedAncestry',  // Stored: dc_characters.ancestry (hot-column) + character_data.ancestry.name (JSON)
-    SELECTED_HERITAGE: '#selectedHeritage',  // Stored: character_data.ancestry.heritage (JSON-only, NOT a hot-column)
+    SUBMIT_BUTTON: 'button[type="submit"], input[type="submit"]',
+    SELECTED_ANCESTRY: 'select[name="ancestry"]',
+    SELECTED_HERITAGE: 'select[name="heritage"]',
+    HERITAGE_DATA_HOST: '.ancestry-selection',
   };
 
   const CSS_CLASSES = {
@@ -68,9 +69,10 @@
         const $ancestryCards = $(SELECTORS.ANCESTRY_CARD, context);
         const $heritageSection = $(SELECTORS.HERITAGE_SECTION, context);
         const $heritageOptions = $(SELECTORS.HERITAGE_OPTIONS, context);
-        const $submitButton = $(SELECTORS.SUBMIT_BUTTON, context);
-        const $selectedAncestry = $(SELECTORS.SELECTED_ANCESTRY);
-        const $selectedHeritage = $(SELECTORS.SELECTED_HERITAGE);
+        const $submitButton = $(SELECTORS.SUBMIT_BUTTON, context).first();
+        const $selectedAncestry = $(SELECTORS.SELECTED_ANCESTRY, context);
+        const $selectedHeritage = $(SELECTORS.SELECTED_HERITAGE, context);
+        const $heritageHost = $(SELECTORS.HERITAGE_DATA_HOST, context).first();
         
         /**
          * Parse and normalize heritage data from form attribute.
@@ -88,7 +90,7 @@
          */
         function parseHeritageData() {
           try {
-            const rawData = $form.attr('data-heritages') || '{}';
+            const rawData = $heritageHost.attr('data-heritages') || '{}';
             const parsed = JSON.parse(rawData);
             
             if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
@@ -194,13 +196,21 @@
             $(this).addClass(CSS_CLASSES.SELECTED);
             
             // Update hidden field
-            $selectedAncestry.val(ancestryId);
+            if ($selectedAncestry.length) {
+              $selectedAncestry.val(ancestryId).trigger('change');
+            }
             
             // Clear heritage selection
-            $selectedHeritage.val('');
+            if ($selectedHeritage.length) {
+              $selectedHeritage.val('');
+            }
             
             // Show heritages for this ancestry
             showHeritages(ancestryId);
+
+            if ($submitButton.length) {
+              $submitButton.prop('disabled', false);
+            }
           });
         });
 
@@ -213,7 +223,9 @@
           $(this).addClass(CSS_CLASSES.SELECTED);
           
           // Update hidden field
-          $selectedHeritage.val(heritageId);
+          if ($selectedHeritage.length) {
+            $selectedHeritage.val(heritageId);
+          }
           
           // Enable submit button
           $submitButton.prop('disabled', false);

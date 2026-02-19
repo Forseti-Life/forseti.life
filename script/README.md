@@ -180,13 +180,13 @@ The setup scripts use these default values:
 
 **Database User:**
 - Username: `drupal_user`
-- Password: `drupal_secure_password`
+- Password: `your_db_password`
 - Host: `127.0.0.1`
 
 **Admin Accounts (Both Sites):**
 - Username: `admin`
-- Password: `admin_secure_password`
-- Email: `admin@stlouisintegration.com` / `admin@theoryofconspiracies.com`
+- Password: `your_admin_password`
+- Email: `support@forseti.life`
 
 ### Custom Configuration (.env file)
 Create a `.env` file in the project root to override defaults:

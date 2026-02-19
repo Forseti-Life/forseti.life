@@ -52,7 +52,7 @@ SQLSTATE[HY000] [1049] Unknown database 'theoryofconspiracies_dev'
 **Solution**:
 ```bash
 # Check if both databases exist
-mysql -u drupal_user -pdrupal_secure_password -e "SHOW DATABASES;"
+mysql -u drupal_user -p"$DRUPAL_DB_PASSWORD" -e "SHOW DATABASES;"
 
 # Create missing database
 mysql -u root -e "CREATE DATABASE theoryofconspiracies_dev CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"

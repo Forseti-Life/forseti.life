@@ -4,6 +4,7 @@ Generate Resolution 5 Citywide Hexagon for Philadelphia
 Creates a single hexagon that encompasses the entire city for citywide statistics.
 """
 
+import os
 import mysql.connector
 import h3
 from datetime import datetime
@@ -23,11 +24,21 @@ def create_resolution_5_hexagon():
     
     try:
         # Connect to database
+        db_host = os.environ.get('DB_HOST', 'localhost')
+        db_name = os.environ.get('DB_NAME')
+        db_user = os.environ.get('DB_USER')
+        db_password = os.environ.get('DB_PASSWORD')
+
+        if not db_name or not db_user or not db_password:
+            raise ValueError(
+                'DB_NAME, DB_USER, and DB_PASSWORD must be set in the environment.'
+            )
+
         connection = mysql.connector.connect(
-            host='localhost',
-            database='theoryofconspiracies_dev',
-            user='root',
-            password='rootpassword'
+            host=db_host,
+            database=db_name,
+            user=db_user,
+            password=db_password
         )
         
         cursor = connection.cursor()

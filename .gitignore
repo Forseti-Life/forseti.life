@@ -48,11 +48,19 @@ Thumbs.db
 
 # Environment files
 .env.local
+.env
+.env.*
+!.env.example
+!**/.env.example
+!**/.env.*.example
 
 # APK files - ignore all except production download location
 *.apk
 !sites/forseti/web/sites/default/files/forseti/mobile/*.apk
 .env.*.local
+
+# Resume artifacts
+resume/
 
 # Node modules and package files
 node_modules/

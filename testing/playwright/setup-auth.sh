@@ -24,7 +24,9 @@ ensure_role() {
     run_drush role:create "${role}"
   fi
   if [ "$#" -gt 0 ]; then
-    run_drush role:perm:add "${role}" "$@" || true
+    local perms
+    perms=$(IFS=','; echo "$*")
+    run_drush role:perm:add "${role}" "${perms}" || true
   fi
 }
 
@@ -36,7 +38,7 @@ ensure_user() {
   if ! run_drush user:information "${username}" --fields=uid --format=table >/dev/null 2>&1; then
     run_drush user:create "${username}" --mail="${email}" --password="${password}"
   else
-    run_drush user:password "${username}" --password="${password}"
+    run_drush user:password "${username}" "${password}"
   fi
 }
 
@@ -52,11 +54,16 @@ ADMIN_ROLE="dc_playwright_admin"
 PLAYER_USER="playwright_player"
 ADMIN_USER="admin"
 
-PLAYER_PASS="${PLAYWRIGHT_PLAYER_PASS:-PlaywrightPlayer2026!}"
-ADMIN_PASS="${PLAYWRIGHT_ADMIN_PASS:-admin_secure_password}"
+PLAYER_PASS="${PLAYWRIGHT_PLAYER_PASS:-}"
+ADMIN_PASS="${PLAYWRIGHT_ADMIN_PASS:-}"
 
 PLAYER_EMAIL="${PLAYWRIGHT_PLAYER_EMAIL:-playwright_player@dungeoncrawler.local}"
 ADMIN_EMAIL="${PLAYWRIGHT_ADMIN_EMAIL:-admin@dungeoncrawler.local}"
+
+if [ -z "${PLAYER_PASS}" ] || [ -z "${ADMIN_PASS}" ]; then
+  echo "ERROR: PLAYWRIGHT_PLAYER_PASS and PLAYWRIGHT_ADMIN_PASS must be set." >&2
+  exit 1
+fi
 
 ensure_role "${PLAYER_ROLE}" \
   "access dungeoncrawler characters" \

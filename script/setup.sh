@@ -29,40 +29,58 @@ fi
 
 echo "[INFO] Using workspace root: $WORKSPACE_ROOT"
 
-# ------------------------------------------------------------------------------
-# CONFIGURATION VARIABLES
-# ------------------------------------------------------------------------------
-# Colors for output
+# ==============================================================================
+# COLORS FOR OUTPUT (defined early for use in wizard)
+# ==============================================================================
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-# Project configuration - Forseti (main site)
-PROJECT_NAME="forseti"
-PROJECT_DIR="$WORKSPACE_ROOT/sites/forseti"
-DB_NAME="forseti_dev"
-DB_USER="drupal_user"
-DB_PASSWORD="drupal_secure_password"
-DB_HOST="127.0.0.1"
-SITE_NAME="Forseti"
-ADMIN_USER="admin"
-ADMIN_PASSWORD="admin_secure_password"
-ADMIN_EMAIL="admin@forseti.life"
+# ==============================================================================
+# WIZARD HELPER FUNCTIONS
+# ==============================================================================
+get_input_with_default() {
+    local prompt="$1"
+    local default="$2"
+    local input=""
+    
+    if [ -n "$default" ]; then
+        read -p "$(echo -e "${BLUE}${prompt}${NC} [${default}]: ")" input
+        [ -z "$input" ] && input="$default"
+    else
+        read -p "$(echo -e "${BLUE}${prompt}${NC}: ")" input
+    fi
+    echo "$input"
+}
 
-# Project configuration - Dungeon Crawler (sub-site)
-DC_PROJECT_NAME="dungeoncrawler"
-DC_PROJECT_DIR="$WORKSPACE_ROOT/sites/dungeoncrawler"
-DC_DB_NAME="dungeoncrawler_dev"
-DC_SITE_NAME="Dungeon Crawler"
-DC_ADMIN_EMAIL="admin@dungeoncrawler.forseti.life"
-DC_DEV_PORT="8080"
+get_secret_input() {
+    local prompt="$1"
+    local input=""
+    
+    read -sp "$(echo -e "${BLUE}${prompt}${NC}: ")" input
+    echo ""
+    echo "$input"
+}
 
-# Shared authentication configuration
-# Both sites share the same hash_salt and cookie domain for SSO
-SHARED_HASH_SALT="lsV6IOGvHJOJ04VsQ_cy9aMNbRtyhVdBlP9b-KX9Xj43rhdN3x8sf8zCyJFaPmkFgAU0ZdTCpw"
-SHARED_COOKIE_DOMAIN=".forseti.life"
+confirm_action() {
+    local prompt="$1"
+    local response=""
+    
+    read -p "$(echo -e "${YELLOW}${prompt}${NC} (y/N): ")" -n 1 -r response
+    echo ""
+    [[ $response =~ ^[Yy]$ ]]
+}
+
+generate_random_password() {
+    local length=${1:-24}
+    openssl rand -base64 $length | tr -d "=+/" | cut -c1-$length
+}
+
+# ==============================================================================
+# CHECK AND LOAD ENVIRONMENT
+# ==============================================================================
 
 # Check if .env file exists and source it
 ENV_FILE="$WORKSPACE_ROOT/.env"
@@ -70,6 +88,156 @@ if [ -f "$ENV_FILE" ]; then
     echo -e "${GREEN}[INFO]${NC} Loading configuration from .env file..."
     source "$ENV_FILE"
 fi
+
+# Set defaults from environment or .env
+DB_PASSWORD="${DB_PASSWORD:-}"
+ADMIN_PASSWORD="${ADMIN_PASSWORD:-}"
+SHARED_HASH_SALT="${SHARED_HASH_SALT:-}"
+ADMIN_USER="${ADMIN_USER:-admin}"
+ADMIN_EMAIL="${ADMIN_EMAIL:-support@forseti.life}"
+
+# ==============================================================================
+# SETUP WIZARD
+# ==============================================================================
+
+echo ""
+echo "=== SETUP WIZARD ==="
+echo "This wizard will gather configuration values for your Forseti.life development environment."
+echo ""
+
+# Check if values are already set from .env or environment
+if [ -z "${DB_PASSWORD}" ] || [ -z "${ADMIN_PASSWORD}" ] || [ -z "${SHARED_HASH_SALT}" ]; then
+    WIZARD_MODE="interactive"
+    
+    echo -e "${YELLOW}Required Configuration Missing${NC}"
+    echo "The following values need to be provided:"
+    [ -z "${DB_PASSWORD}" ] && echo "  • Database Password"
+    [ -z "${ADMIN_PASSWORD}" ] && echo "  • Admin Account Password"
+    [ -z "${SHARED_HASH_SALT}" ] && echo "  • Hash Salt (for security)"
+    echo ""
+    
+    # Database Password
+    if [ -z "${DB_PASSWORD}" ]; then
+        echo -e "${BLUE}Database Configuration${NC}"
+        SUGGESTED_DB_PASS=$(generate_random_password 20)
+        echo "A secure password will be generated if you press Enter without typing."
+        DB_PASSWORD=$(get_secret_input "MySQL Database Password (drupal_user)")
+        
+        if [ -z "$DB_PASSWORD" ]; then
+            DB_PASSWORD="$SUGGESTED_DB_PASS"
+            echo -e "${GREEN}✓ Generated password: ${YELLOW}${DB_PASSWORD}${NC}"
+        fi
+    fi
+    
+    echo ""
+    
+    # Admin Password
+    if [ -z "${ADMIN_PASSWORD}" ]; then
+        echo -e "${BLUE}Admin Account Configuration${NC}"
+        SUGGESTED_ADMIN_PASS=$(generate_random_password 20)
+        echo "A secure password will be generated if you press Enter without typing."
+        ADMIN_PASSWORD=$(get_secret_input "Admin Account Password (username: admin)")
+        
+        if [ -z "$ADMIN_PASSWORD" ]; then
+            ADMIN_PASSWORD="$SUGGESTED_ADMIN_PASS"
+            echo -e "${GREEN}✓ Generated password: ${YELLOW}${ADMIN_PASSWORD}${NC}"
+        fi
+    fi
+    
+    echo ""
+    
+    # Hash Salt
+    if [ -z "${SHARED_HASH_SALT}" ]; then
+        echo -e "${BLUE}Security Configuration${NC}"
+        SUGGESTED_SALT=$(generate_random_password 74)
+        echo "A secure hash salt will be generated if you press Enter without typing."
+        SHARED_HASH_SALT=$(get_secret_input "Drupal Hash Salt (leave empty to generate)")
+        
+        if [ -z "$SHARED_HASH_SALT" ]; then
+            SHARED_HASH_SALT="$SUGGESTED_SALT"
+            echo -e "${GREEN}✓ Generated salt: $(echo ${SHARED_HASH_SALT:0:32})...${NC}"
+        fi
+    fi
+    
+    echo ""
+    
+    # Optional: Customize other values
+    echo -e "${BLUE}Optional Configuration${NC}"
+    if confirm_action "Customize admin username? (default: admin)"; then
+        ADMIN_USER=$(get_input_with_default "Admin Username" "admin")
+    else
+        ADMIN_USER="admin"
+    fi
+    
+    if confirm_action "Customize admin email? (default: support@forseti.life)"; then
+        ADMIN_EMAIL=$(get_input_with_default "Admin Email" "support@forseti.life")
+    else
+        ADMIN_EMAIL="support@forseti.life"
+    fi
+    
+    echo ""
+    
+    # Option to save to .env file
+    if confirm_action "Save configuration to .env file for future runs?"; then
+        ENV_FILE="$WORKSPACE_ROOT/.env"
+        cat > "$ENV_FILE" <<EOF
+# Forseti.life Development Environment Configuration
+# Generated: $(date)
+
+# Database Configuration
+DB_PASSWORD='${DB_PASSWORD}'
+
+# Admin Account Configuration
+ADMIN_PASSWORD='${ADMIN_PASSWORD}'
+
+# Security Configuration
+SHARED_HASH_SALT='${SHARED_HASH_SALT}'
+
+# Optional: Customize these values as needed
+ADMIN_USER='${ADMIN_USER}'
+ADMIN_EMAIL='${ADMIN_EMAIL}'
+EOF
+        echo -e "${GREEN}✓ Configuration saved to ${ENV_FILE}${NC}"
+        echo -e "${YELLOW}[SECURITY WARNING] This file contains secrets. Add it to .gitignore if not already present.${NC}"
+    fi
+else
+    WIZARD_MODE="env_loaded"
+    echo -e "${GREEN}✓ Configuration loaded from environment or .env file${NC}"
+fi
+
+echo ""
+echo "=== Configuration Summary ==="
+echo "  Database user: drupal_user"
+echo "  Database password: $(echo ${DB_PASSWORD:0:6})***"
+echo "  Admin username: ${ADMIN_USER}"
+echo "  Admin password: $(echo ${ADMIN_PASSWORD:0:6})***"
+echo "  Hash salt: $(echo ${SHARED_HASH_SALT:0:32})..."
+echo ""
+
+# ------------------------------------------------------------------------------
+# CONFIGURATION VARIABLES
+# ------------------------------------------------------------------------------
+
+# Project configuration - Forseti (main site)
+PROJECT_NAME="forseti"
+PROJECT_DIR="$WORKSPACE_ROOT/sites/forseti"
+DB_NAME="forseti_dev"
+DB_USER="drupal_user"
+DB_HOST="127.0.0.1"
+SITE_NAME="Forseti"
+ADMIN_EMAIL="${ADMIN_EMAIL:-support@forseti.life}"
+
+# Project configuration - Dungeon Crawler (sub-site)
+DC_PROJECT_NAME="dungeoncrawler"
+DC_PROJECT_DIR="$WORKSPACE_ROOT/sites/dungeoncrawler"
+DC_DB_NAME="dungeoncrawler_dev"
+DC_SITE_NAME="Dungeon Crawler"
+DC_ADMIN_EMAIL="support@forseti.life"
+DC_DEV_PORT="8080"
+
+# Shared authentication configuration
+# Both sites share the same hash_salt and cookie domain for SSO
+SHARED_COOKIE_DOMAIN=".forseti.life"
 
 # ------------------------------------------------------------------------------
 # UTILITY FUNCTIONS

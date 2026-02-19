@@ -34,10 +34,23 @@ set -e  # Exit on any error
 
 # Configuration
 DB_USER="${DB_USER:-stlouis_user}"
-DB_PASSWORD="${DB_PASSWORD:-StLouis2024!Secure#DB}"
+DB_PASSWORD="${DB_PASSWORD:-}"
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_NAME="${DB_NAME:-amisafe_database}"
 H3_RESOLUTIONS="${H3_RESOLUTIONS:-13 12 11 10 9 8 7 6 5}"
+
+# Validate required environment variables
+if [ -z "${DB_PASSWORD}" ]; then
+    echo "ERROR: DB_PASSWORD environment variable is required." >&2
+    echo "Set it from your secrets manager or environment:" >&2
+    echo "  export DB_PASSWORD='<your_database_password>'" >&2
+    exit 1
+fi
+
+if [ -z "${DB_PASSWORD}" ]; then
+    echo "ERROR: DB_PASSWORD must be set in the environment." >&2
+    exit 1
+fi
 
 # Auto-detect MySQL socket if skip-grant-tables is enabled
 if [ -z "${DB_SOCKET}" ]; then

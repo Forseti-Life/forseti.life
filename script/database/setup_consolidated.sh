@@ -36,7 +36,7 @@ NC='\033[0m' # No Color
 # Database configuration
 DB_HOST="${DB_HOST:-127.0.0.1}"
 DB_USER="${DB_USER:-drupal_user}"
-DB_PASSWORD="${DB_PASSWORD:-drupal_secure_password}"
+DB_PASSWORD="${DB_PASSWORD:-}"
 DB_NAME="${1:-amisafe_database}"  # Dedicated AmISafe database
 
 # Logging functions
@@ -94,6 +94,11 @@ execute_sql() {
 # Check system prerequisites
 check_prerequisites() {
     print_section "Checking Prerequisites"
+
+    if [ -z "${DB_PASSWORD}" ]; then
+        print_error "DB_PASSWORD must be set in the environment."
+        exit 1
+    fi
     
     # Check if MySQL/MariaDB is running
     if ! pgrep -x mysqld > /dev/null && ! pgrep -x mariadbd > /dev/null; then
