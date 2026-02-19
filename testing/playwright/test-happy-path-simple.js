@@ -45,7 +45,8 @@ async function runTest() {
   try {
     // Step 1: Login
     log('Step 1: Login', 'info');
-    await page.goto(`${CONFIG.baseUrl}/user/login`, { waitUntil: 'load', timeout: 10000 });
+    await page.goto(`${CONFIG.baseUrl}/user/login`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(1000);
     
     await page.fill('input[name="name"]', CONFIG.username);
     await page.fill('input[name="pass"]', CONFIG.password);
@@ -53,7 +54,7 @@ async function runTest() {
     const submitBtn = await page.$('input[type="submit"]');
     if (submitBtn) {
       await submitBtn.click();
-      await page.waitForTimeout(2000);
+      await page.waitForTimeout(3000);
       
       const url = page.url();
       if (!url.includes('/user/login')) {
@@ -65,7 +66,8 @@ async function runTest() {
 
     // Step 2: Create Campaign
     log('\nStep 2: Campaign Creation', 'info');
-    await page.goto(`${CONFIG.baseUrl}/campaigns/create`, { waitUntil: 'load', timeout: 10000 });
+    await page.goto(`${CONFIG.baseUrl}/campaigns/create`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(1000);
     
     const campaignName = `Test Campaign ${Date.now()}`;
     await page.fill('input[name="name"]', campaignName);
@@ -90,7 +92,8 @@ async function runTest() {
 
     // Step 3: Character Creation Step 1
     log('\nStep 3: Character Creation (Step 1)', 'info');
-    await page.goto(`${CONFIG.baseUrl}/characters/create/step/1`, { waitUntil: 'load', timeout: 10000 });
+    await page.goto(`${CONFIG.baseUrl}/characters/create/step/1`, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(1000);
     
     await page.fill('input[name="name"]', 'Test Hero');
     await page.fill('textarea[name="concept"]', 'A brave adventurer testing the system');
