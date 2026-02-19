@@ -198,55 +198,6 @@ class UserProfileForm extends FormBase {
       ],
     ];
 
-    // Resume Import Section (AI-powered)
-    if ($this->aiApiService) {
-      $form['resume_import'] = [
-        '#type' => 'details',
-        '#title' => $this->t('🤖 AI Resume Import'),
-        '#description' => $this->t('Upload your resume and let AI automatically fill out your profile fields.'),
-        '#open' => FALSE,
-        '#attributes' => ['class' => ['resume-import-section']],
-      ];
-
-      $form['resume_import']['import_file'] = [
-        '#type' => 'managed_file',
-        '#title' => $this->t('Upload Resume'),
-        '#description' => $this->t('Upload your resume (PDF, Word, or text format). Our AI will parse it and pre-fill your profile.'),
-        '#upload_validators' => [
-          'file_validate_extensions' => ['pdf docx doc txt'],
-          'file_validate_size' => [10 * 1024 * 1024], // 10MB
-        ],
-        '#upload_location' => 'private://resumes/temp',
-        '#ajax' => [
-          'callback' => '::fileUploadAjax',
-          'wrapper' => 'resume-import-status',
-          'progress' => [
-            'type' => 'throbber',
-            'message' => $this->t('Uploading...'),
-          ],
-        ],
-      ];
-
-      $form['resume_import']['parse_resume'] = [
-        '#type' => 'button',
-        '#value' => $this->t('Parse Resume with AI'),
-        '#ajax' => [
-          'callback' => '::parseResumeAjax',
-          'wrapper' => 'profile-form-wrapper',
-          'progress' => [
-            'type' => 'throbber',
-            'message' => $this->t('Parsing your resume with AI...'),
-          ],
-        ],
-        '#attributes' => ['class' => ['button--primary', 'resume-parse-button']],
-      ];
-
-      $form['resume_import']['status'] = [
-        '#type' => 'container',
-        '#attributes' => ['id' => 'resume-import-status'],
-      ];
-    }
-
     $form['#prefix'] = '<div id="profile-form-wrapper">' . $form['#prefix'];
     $form['#suffix'] .= '</div>';
 
