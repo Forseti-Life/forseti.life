@@ -36,7 +36,7 @@ class QuestTrackerController extends ControllerBase {
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
    *   The logger factory.
    */
-  public function __construct(Database $database, LoggerChannelFactoryInterface $logger_factory) {
+  public function __construct(Connection $database, LoggerChannelFactoryInterface $logger_factory) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
   }

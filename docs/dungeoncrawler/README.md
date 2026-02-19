@@ -68,7 +68,9 @@ This documentation provides comprehensive guides to the core PF2e-inspired mecha
 - **[Room & Dungeon Generator Architecture](./ROOM_DUNGEON_GENERATOR_ARCHITECTURE.md)**: Procedural dungeon and room generation with hex-based layouts, entity placement, and tileset generation
 - **[Quest Tracker & Generator Architecture](./QUEST_TRACKER_GENERATOR_ARCHITECTURE.md)**: Campaign-level quest system with procedural generation, progress tracking, and reward distribution
 - **[Quest System Quick Reference](./QUEST_SYSTEM_QUICK_REFERENCE.md)**: Implementation guide with code examples and API usage
-- **[Quest Implementation Status - Phase 2 Complete ✅](./QUEST_IMPLEMENTATION_PHASE2_COMPLETE.md)**: Current implementation status - Database, services, templates, and Drush commands operational
+- **[Quest API Documentation](./QUEST_API_DOCUMENTATION.md)**: Complete REST API reference for quest endpoints (Phase 3)
+- **[Quest Implementation Status - Phase 2 Complete ✅](./QUEST_IMPLEMENTATION_PHASE2_COMPLETE.md)**: Phase 2 implementation - Database, services, templates, and Drush commands
+- **[Quest Implementation Status - Phase 3 Complete ✅](./QUEST_IMPLEMENTATION_PHASE3_COMPLETE.md)**: Phase 3 implementation - REST API controllers, routing, and integration framework
 - **[Character Tracking System](./CHARACTER_TRACKING_SYSTEM.md)**: Campaign character and NPC management with state persistence
 - **[Database Schema Design](./database-schema-design.md)**: Complete database architecture following Library → Campaign → Runtime pattern
 
@@ -273,11 +275,13 @@ Production systems and features:
    - **Quick Start**: [INVENTORY_IMPLEMENTATION_GUIDE.md](./INVENTORY_IMPLEMENTATION_GUIDE.md)
 
 2. **[Quest Tracker & Generator System](./QUEST_TRACKER_GENERATOR_ARCHITECTURE.md)**
-   - Procedural quest generation from templates
-   - Campaign-level quest tracking with progress persistence
-   - Multi-phase objectives with branching paths
-   - PF2e-compliant XP and reward scaling
-   - Integration with combat, exploration, and inventory systems
+   - Procedural quest generation from templates (Phase 1-2: ✅ Complete)
+   - Campaign-level quest tracking with progress persistence (Phase 1-2: ✅ Complete)
+   - Multi-phase objectives with branching paths (Phase 1-2: ✅ Complete)
+   - REST API endpoints for quest management (Phase 3: ✅ Complete)
+   - Integration with combat, exploration, and inventory systems (Phase 4: In Progress)
+   - **API Reference**: [QUEST_API_DOCUMENTATION.md](./QUEST_API_DOCUMENTATION.md)
+   - **Phase Status**: [Phase 2 Complete](./QUEST_IMPLEMENTATION_PHASE2_COMPLETE.md) | [Phase 3 Complete](./QUEST_IMPLEMENTATION_PHASE3_COMPLETE.md)
    - **Quick Start**: [QUEST_SYSTEM_QUICK_REFERENCE.md](./QUEST_SYSTEM_QUICK_REFERENCE.md)
 
 ## Document History

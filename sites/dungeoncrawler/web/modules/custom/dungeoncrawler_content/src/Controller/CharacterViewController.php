@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
+use Drupal\dungeoncrawler_content\Service\ItemCombatDataService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -17,16 +18,23 @@ class CharacterViewController extends ControllerBase {
 
   protected CharacterManager $characterManager;
   protected GeneratedImageRepository $imageRepository;
+  protected ItemCombatDataService $itemCombatData;
 
-  public function __construct(CharacterManager $character_manager, GeneratedImageRepository $image_repository) {
+  public function __construct(
+    CharacterManager $character_manager,
+    GeneratedImageRepository $image_repository,
+    ItemCombatDataService $item_combat_data
+  ) {
     $this->characterManager = $character_manager;
     $this->imageRepository = $image_repository;
+    $this->itemCombatData = $item_combat_data;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('dungeoncrawler_content.generated_image_repository'),
+      $container->get('dungeoncrawler_content.item_combat_data'),
     );
   }
 
@@ -340,13 +348,22 @@ class CharacterViewController extends ControllerBase {
       $weapon_ids[] = 'fist';
     }
     
-    // Calculate attacks for each weapon
+    // Calculate attacks for each weapon using ItemCombatDataService
     foreach ($weapon_ids as $weapon_id) {
-      if (empty($weapon_id) || !isset(CharacterManager::WEAPONS[$weapon_id])) {
+      if (empty($weapon_id)) {
         continue;
       }
       
-      $weapon = CharacterManager::WEAPONS[$weapon_id];
+      // Get weapon data from item templates
+      $weapon = ($weapon_id === 'fist') 
+        ? $this->itemCombatData->getUnarmedStrikeData()
+        : $this->itemCombatData->getWeaponCombatData($weapon_id);
+      
+      if (!$weapon) {
+        // Weapon not found in templates, skip
+        continue;
+      }
+      
       $category = $weapon['category'];
       $is_finesse = in_array('Finesse', $weapon['traits'], TRUE);
       $is_ranged = !empty($weapon['range']);

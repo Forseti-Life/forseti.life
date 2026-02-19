@@ -672,43 +672,6 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     ],
   ];
 
-  /**
-   * PF2e Weapons database with essential weapons for combat calculations.
-   * Includes damage dice, category, group, traits, and range for each weapon.
-   */
-  const WEAPONS = [
-    // Simple Melee Weapons
-    'club' => ['name' => 'Club', 'damage' => '1d6', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'club', 'hands' => 1, 'traits' => ['Thrown 10 ft']],
-    'dagger' => ['name' => 'Dagger', 'damage' => '1d4', 'damage_type' => 'piercing', 'category' => 'simple', 'group' => 'knife', 'hands' => 1, 'traits' => ['Agile', 'Finesse', 'Thrown 10 ft', 'Versatile S']],
-    'mace' => ['name' => 'Mace', 'damage' => '1d6', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'club', 'hands' => 1, 'traits' => ['Agile', 'Finesse', 'Shove']],
-    'spear' => ['name' => 'Spear', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'simple', 'group' => 'spear', 'hands' => 1, 'traits' => ['Thrown 20 ft']],
-    'staff' => ['name' => 'Staff', 'damage' => '1d4', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'club', 'hands' => 1, 'traits' => ['Two-Hand 1d8']],
-    
-    // Simple Ranged Weapons
-    'crossbow' => ['name' => 'Crossbow', 'damage' => '1d8', 'damage_type' => 'piercing', 'category' => 'simple', 'group' => 'bow', 'hands' => 2, 'range' => '120 feet', 'traits' => ['Reload 1']],
-    'sling' => ['name' => 'Sling', 'damage' => '1d6', 'damage_type' => 'bludgeoning', 'category' => 'simple', 'group' => 'sling', 'hands' => 1, 'range' => '50 feet', 'traits' => ['Propulsive']],
-    
-    // Martial Melee Weapons
-    'battleaxe' => ['name' => 'Battle Axe', 'damage' => '1d8', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'axe', 'hands' => 1, 'traits' => ['Sweep']],
-    'falchion' => ['name' => 'Falchion', 'damage' => '1d10', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 2, 'traits' => ['Forceful', 'Sweep']],
-    'greatsword' => ['name' => 'Greatsword', 'damage' => '1d12', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 2, 'traits' => ['Versatile P']],
-    'longsword' => ['name' => 'Longsword', 'damage' => '1d8', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Versatile P']],
-    'rapier' => ['name' => 'Rapier', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Deadly d8', 'Disarm', 'Finesse']],
-    'scimitar' => ['name' => 'Scimitar', 'damage' => '1d6', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Forceful', 'Sweep']],
-    'shortsword' => ['name' => 'Shortsword', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'sword', 'hands' => 1, 'traits' => ['Agile', 'Finesse', 'Versatile S']],
-    'warhammer' => ['name' => 'Warhammer', 'damage' => '1d8', 'damage_type' => 'bludgeoning', 'category' => 'martial', 'group' => 'hammer', 'hands' => 1, 'traits' => ['Shove']],
-    'greataxe' => ['name' => 'Greataxe', 'damage' => '1d12', 'damage_type' => 'slashing', 'category' => 'martial', 'group' => 'axe', 'hands' => 2, 'traits' => ['Sweep']],
-    
-    // Martial Ranged Weapons
-    'composite-longbow' => ['name' => 'Composite Longbow', 'damage' => '1d8', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '100 feet', 'traits' => ['Deadly d10', 'Propulsive', 'Volley 30 ft']],
-    'composite-shortbow' => ['name' => 'Composite Shortbow', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '60 feet', 'traits' => ['Deadly d10', 'Propulsive']],
-    'longbow' => ['name' => 'Longbow', 'damage' => '1d8', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '100 feet', 'traits' => ['Deadly d10', 'Volley 30 ft']],
-    'shortbow' => ['name' => 'Shortbow', 'damage' => '1d6', 'damage_type' => 'piercing', 'category' => 'martial', 'group' => 'bow', 'hands' => 2, 'range' => '60 feet', 'traits' => ['Deadly d10']],
-    
-    // Unarmed Strike
-    'fist' => ['name' => 'Fist', 'damage' => '1d4', 'damage_type' => 'bludgeoning', 'category' => 'unarmed', 'group' => 'brawling', 'hands' => 0, 'traits' => ['Agile', 'Finesse', 'Nonlethal', 'Unarmed']],
-  ];
-
   public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid) {
     $this->database = $database;
     $this->currentUser = $current_user;

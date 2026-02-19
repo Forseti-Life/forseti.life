@@ -15,7 +15,8 @@ const { chromium } = require('playwright');
 
 async function testHexmap(baseUrl = 'http://localhost:8080', waitTime = 5000) {
   const browser = await chromium.launch();
-  const page = await browser.createContext().then(ctx => ctx.newPage());
+  const context = await browser.newContext();
+  const page = await context.newPage();
 
   let hasErrors = false;
   const errors = [];
@@ -69,6 +70,7 @@ async function testHexmap(baseUrl = 'http://localhost:8080', waitTime = 5000) {
     console.error(`❌ Navigation Error: ${error.message}`);
   }
 
+  await context.close();
   await browser.close();
 
   // Summary

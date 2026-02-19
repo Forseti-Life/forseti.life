@@ -17,7 +17,7 @@ const path = require('path');
 
 async function captureConsole(url, timeout = 10000, outputFile = null) {
   const browser = await chromium.launch();
-  const context = await browser.createContext();
+  const context = await browser.newContext();
   const page = await context.newPage();
 
   // Arrays to store console messages
@@ -102,6 +102,7 @@ async function captureConsole(url, timeout = 10000, outputFile = null) {
     });
   }
 
+  await context.close();
   await browser.close();
 
   // Format output

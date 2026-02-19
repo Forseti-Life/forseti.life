@@ -18,7 +18,8 @@ import combatApi from './hexmap-api.js';
    * Decouples business logic from DOM manipulation.
    */
   class UIManager {
-    constructor() {
+    constructor(stateManager = null) {
+      this.stateManager = stateManager;
       this.elements = {};
       this.ensureActionFooter();
       this.setupActionFooterToggle();
@@ -912,8 +913,8 @@ import combatApi from './hexmap-api.js';
         }
       });
 
-      // Load chat history when entering a room
-      this.loadChatHistory();
+      // Chat history will be loaded when room becomes active
+      // (via state subscription or explicit call from room change handler)
     }
 
     async loadChatHistory() {
@@ -1166,6 +1167,8 @@ import combatApi from './hexmap-api.js';
       // Initialize managers
       this.uiManager = new UIManager();
       this.stateManager = new StateManager();
+      this.uiManager.stateManager = this.stateManager; // Give UIManager access to state manager
+      this.stateManager.hexmap = this; // Allow state manager to reference hexmap methods
       this.setupStateSubscriptions();
       
       // Load dungeon data from drupalSettings (populated by HexMapController.php)
@@ -3979,6 +3982,10 @@ import combatApi from './hexmap-api.js';
       this.paintActiveRoom();
       this.renderActiveRoomEntities();
       this.refreshFogOfWar();
+      // Load chat history for the newly active room
+      if (this.uiManager && this.uiManager.loadChatHistory) {
+        this.uiManager.loadChatHistory();
+      }
       console.log('Active room set:', roomId);
     },
 

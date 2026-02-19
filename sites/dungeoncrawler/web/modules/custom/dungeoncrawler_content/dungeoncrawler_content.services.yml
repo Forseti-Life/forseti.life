@@ -47,6 +47,10 @@ services:
     class: Drupal\dungeoncrawler_content\Service\ContainerManagementService
     arguments: ['@database']
 
+  dungeoncrawler_content.item_combat_data:
+    class: Drupal\dungeoncrawler_content\Service\ItemCombatDataService
+    arguments: ['@database']
+
   dungeoncrawler_content.number_generation:
     class: Drupal\dungeoncrawler_content\Service\NumberGenerationService
 
