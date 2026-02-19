@@ -43,19 +43,12 @@ class UserProfileService {
    *   Profile completeness percentage (0-100).
    */
   public function calculateProfileCompleteness(User $user) {
-    // Get data from jobhunter_job_seeker table
-    $jobSeekerService = \Drupal::service('job_hunter.job_seeker_service');
-    $jobSeekerData = $jobSeekerService->loadByUserId($user->id());
-    
-    if (!$jobSeekerData) {
-      return 0;
-    }
-    
+    // Check user entity fields directly for completeness
     $completed_weight = 0;
     $total_weight = array_sum(self::FIELD_WEIGHTS);
 
     foreach (self::FIELD_WEIGHTS as $field_name => $weight) {
-      if ($this->isJobSeekerFieldCompleted($jobSeekerData, $field_name)) {
+      if ($this->isFieldCompleted($user, $field_name)) {
         $completed_weight += $weight;
       }
     }
@@ -190,18 +183,17 @@ class UserProfileService {
    *   Validation results with ready, errors, warnings, and recommendations.
    */
   public function validateForJobApplicationFromProfile(User $user) {
-    $profile = $this->getJobSeekerProfile($user);
-    $completeness = $this->calculateProfileCompletenessFromProfile($user);
+    $completeness = $this->calculateProfileCompleteness($user);
     $errors = [];
     $warnings = [];
     $recommendations = [];
 
     // Critical Requirements (Blocking - cannot apply without these)
-    if (!$profile || !$this->isProfileFieldCompleted($profile, 'field_resume_file')) {
+    if (!$this->isFieldCompleted($user, 'field_resume_file')) {
       $errors[] = $this->t('Resume upload is required - employers need to see your qualifications.');
     }
 
-    if (!$profile || !$this->isProfileFieldCompleted($profile, 'field_work_authorization')) {
+    if (!$this->isFieldCompleted($user, 'field_work_authorization')) {
       $errors[] = $this->t('Work authorization status is required - employers must verify eligibility.');
     }
 
@@ -212,9 +204,11 @@ class UserProfileService {
     }
 
     // Enhanced Data Quality Checks
-    if ($this->isFieldCompleted($user, 'field_salary_expectation_min') && $this->isFieldCompleted($user, 'field_salary_expectation_max')) {
-      $min_salary = $user->get('field_salary_expectation_min')->value;
-      $max_salary = $user->get('field_salary_expectation_max')->value;
+    if ($this->isFieldCompleted($user, 'field_salary_expectation_min') && 
+        $user->hasField('field_salary_expectation_max') && 
+        !$user->get('field_salary_expectation_max')->isEmpty()) {
+      $min_salary = (int)$user->get('field_salary_expectation_min')->value;
+      $max_salary = (int)$user->get('field_salary_expectation_max')->value;
       
       if ($min_salary >= $max_salary) {
         $errors[] = $this->t('Minimum salary must be less than maximum salary.');
@@ -227,14 +221,14 @@ class UserProfileService {
 
     // Professional Presence Validation
     if ($this->isFieldCompleted($user, 'field_linkedin_url')) {
-      $linkedin_url = $user->get('field_linkedin_url')->uri;
+      $linkedin_url = $user->get('field_linkedin_url')->uri ?? '';
       if (!preg_match('/linkedin\.com\/in\//i', $linkedin_url)) {
         $warnings[] = $this->t('LinkedIn URL should be a profile link (linkedin.com/in/yourname).');
       }
     }
 
     if ($this->isFieldCompleted($user, 'field_github_url')) {
-      $github_url = $user->get('field_github_url')->uri;
+      $github_url = $user->get('field_github_url')->uri ?? '';
       if (!preg_match('/github\.com\//i', $github_url)) {
         $warnings[] = $this->t('GitHub URL should be a valid GitHub profile or repository link.');
       }
@@ -360,6 +354,173 @@ class UserProfileService {
     $value = $jobSeekerData->$db_field ?? null;
     
     return !empty($value);
+  }
+
+  /**
+   * Updates profile completeness for job application readiness.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param bool $save
+   *   Whether to save the user entity.
+   *
+   * @return int
+   *   Updated completeness percentage.
+   */
+  protected function updateProfileCompletenessFromProfile(User $user, $save = TRUE) {
+    $completeness = $this->calculateProfileCompleteness($user);
+    
+    // Store in field if available
+    if ($user->hasField('field_profile_completeness')) {
+      $user->set('field_profile_completeness', $completeness);
+    }
+    
+    if ($save) {
+      $user->save();
+    }
+    
+    return $completeness;
+  }
+
+  /**
+   * Gets missing field recommendations for profile.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param int $limit
+   *   Maximum recommendations to return.
+   *
+   * @return array
+   *   Array of missing field names with weights.
+   */
+  protected function getMissingFieldRecommendationsFromProfile(User $user, $limit = 5) {
+    $recommendations = [];
+    
+    foreach (self::FIELD_WEIGHTS as $field_name => $weight) {
+      if (!$this->isFieldCompleted($user, $field_name)) {
+        $recommendations[] = [
+          'field' => $field_name,
+          'weight' => $weight,
+          'impact' => $this->getFieldImpactDescription($field_name),
+        ];
+      }
+    }
+    
+    // Sort by weight descending
+    usort($recommendations, function($a, $b) {
+      return $b['weight'] <=> $a['weight'];
+    });
+    
+    return array_slice($recommendations, 0, $limit);
+  }
+
+  /**
+   * Gets description of field impact on application success.
+   *
+   * @param string $field_name
+   *   The field name.
+   *
+   * @return string
+   *   Impact description.
+   */
+  protected function getFieldImpactDescription($field_name) {
+    $descriptions = [
+      'field_resume_file' => 'Resume is required by all employers',
+      'field_work_authorization' => 'Work authorization status is critical for hiring',
+      'field_professional_summary' => 'Summary helps employers quickly understand your value',
+      'field_skills_summary' => 'Skills improve keyword matching in applications',
+      'field_experience_years' => 'Experience helps employers assess seniority level',
+      'field_education_level' => 'Education verification is often required',
+      'field_linkedin_url' => 'LinkedIn profile adds credibility and background verification',
+      'field_salary_expectation_min' => 'Salary expectations help filter suitable roles',
+      'field_available_start_date' => 'Start date is commonly requested',
+      'field_portfolio_url' => 'Portfolio demonstrates your work quality',
+      'field_github_url' => 'GitHub shows technical contributions and code quality',
+      'field_certifications' => 'Certifications validate specialized skills',
+      'field_remote_preference' => 'Remote preference reduces irrelevant applications',
+    ];
+    
+    return $descriptions[$field_name] ?? 'Improves profile completeness';
+  }
+
+  /**
+   * Calculates application readiness score.
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   * @param int $completeness
+   *   Profile completeness percentage.
+   * @param array $errors
+   *   Validation errors.
+   * @param array $warnings
+   *   Validation warnings.
+   *
+   * @return int
+   *   Readiness score 0-100.
+   */
+  protected function calculateApplicationReadinessScore(User $user, $completeness, array $errors, array $warnings) {
+    // Base score on completeness
+    $score = $completeness;
+    
+    // Penalize for critical errors
+    $score -= (count($errors) * 10);
+    
+    // Minor penalty for warnings
+    $score -= (count($warnings) * 3);
+    
+    // Bonus for critical fields
+    if ($this->isFieldCompleted($user, 'field_resume_file')) {
+      if ($completeness >= 50) {
+        $score += 5;
+      }
+    }
+    
+    if ($this->isFieldCompleted($user, 'field_professional_summary') && 
+        $this->isFieldCompleted($user, 'field_skills_summary')) {
+      $score += 5;
+    }
+    
+    // Ensure score is in valid range
+    return max(0, min(100, $score));
+  }
+
+  /**
+   * Gets job seeker profile (placeholder for potential profile entity).
+   *
+   * @param \Drupal\user\Entity\User $user
+   *   The user entity.
+   *
+   * @return object|null
+   *   Profile object or NULL if not applicable.
+   */
+  protected function getJobSeekerProfile(User $user) {
+    // Currently profiles are stored as user entity fields
+    // This method is here for future expansion to profile entities if needed
+    return TRUE; // User entity itself is the profile
+  }
+
+  /**
+   * Checks if a profile field is completed.
+   *
+   * @param mixed $profile
+   *   The profile entity.
+   * @param string $field_name
+   *   The field name.
+   *
+   * @return bool
+   *   TRUE if field is completed.
+   */
+  protected function isProfileFieldCompleted($profile, $field_name) {
+    // If profile is the user entity
+    if ($profile === TRUE) {
+      return FALSE; // This shouldn't be called this way
+    }
+    
+    if ($profile instanceof User) {
+      return $this->isFieldCompleted($profile, $field_name);
+    }
+    
+    return FALSE;
   }
 
 }
