@@ -63,7 +63,11 @@ function job_hunter_install() {
     _job_hunter_create_search_history_table();
     _job_hunter_create_saved_jobs_table();
     
-    $messenger->addMessage(t('Job Hunter module installed successfully. Custom database tables created.'));
+    // Create content types and fields
+    _job_hunter_create_error_queue_content_type();
+    _job_hunter_create_error_queue_fields();
+    
+    $messenger->addMessage(t('Job Hunter module installed successfully. Custom database tables and error queue content type created.'));
     $logger->info('Job Hunter module installation completed.');
     
   }
@@ -1579,4 +1583,194 @@ function _job_hunter_create_search_history_table() {
   ];
 
   $database->schema()->createTable('jobhunter_search_history', $schema);
+}
+/**
+ * Create error_queue content type.
+ *
+ * The error queue stores system errors from automation workflows for admin review.
+ */
+function _job_hunter_create_error_queue_content_type() {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  
+  // Check if error_queue content type already exists
+  $node_type_storage = $entity_type_manager->getStorage('node_type');
+  if ($node_type_storage->load('error_queue')) {
+    return;
+  }
+
+  // Create the error_queue content type
+  $type = $entity_type_manager->getStorage('node_type')->create([
+    'type' => 'error_queue',
+    'name' => t('Error Queue'),
+    'description' => t('System automation errors for admin review'),
+    'preview_mode' => 0,
+    'display_submitted' => FALSE,
+  ]);
+  $type->save();
+}
+
+/**
+ * Create error_queue content type fields.
+ */
+function _job_hunter_create_error_queue_fields() {
+  $entity_type_manager = \Drupal::entityTypeManager();
+  $field_storage_config_storage = $entity_type_manager->getStorage('field_storage_config');
+  $field_config_storage = $entity_type_manager->getStorage('field_config');
+
+  // Define fields to create
+  $fields = [
+    'field_error_message' => [
+      'label' => t('Error Message'),
+      'type' => 'text_long',
+      'required' => TRUE,
+      'description' => t('Full error message and details'),
+    ],
+    'field_error_type' => [
+      'label' => t('Error Type'),
+      'type' => 'list_string',
+      'required' => TRUE,
+      'description' => t('Category of error'),
+      'allowed_values' => [
+        'authentication' => t('Authentication'),
+        'scraping' => t('Scraping'),
+        'submission' => t('Submission'),
+        'technical' => t('Technical'),
+        'validation' => t('Validation'),
+      ],
+    ],
+    'field_priority' => [
+      'label' => t('Priority'),
+      'type' => 'list_string',
+      'required' => TRUE,
+      'description' => t('Error priority level'),
+      'allowed_values' => [
+        'low' => t('Low'),
+        'medium' => t('Medium'),
+        'high' => t('High'),
+        'critical' => t('Critical'),
+      ],
+    ],
+    'field_status' => [
+      'label' => t('Status'),
+      'type' => 'list_string',
+      'required' => FALSE,
+      'description' => t('Error resolution status'),
+      'allowed_values' => [
+        'new' => t('New'),
+        'in_progress' => t('In Progress'),
+        'resolved' => t('Resolved'),
+      ],
+    ],
+    'field_fixed' => [
+      'label' => t('Fixed'),
+      'type' => 'boolean',
+      'required' => FALSE,
+      'description' => t('Mark error as fixed'),
+    ],
+    'field_error_data' => [
+      'label' => t('Error Data (JSON)'),
+      'type' => 'text_long',
+      'required' => FALSE,
+      'description' => t('Technical error details in JSON format'),
+    ],
+    'field_user_ref' => [
+      'label' => t('Affected User'),
+      'type' => 'entity_reference',
+      'required' => FALSE,
+      'description' => t('User affected by this error'),
+      'target_type' => 'user',
+    ],
+    'field_company_ref' => [
+      'label' => t('Related Company'),
+      'type' => 'entity_reference',
+      'required' => FALSE,
+      'description' => t('Company involved in this error'),
+      'target_type' => 'node',
+      'target_bundle' => 'company',
+    ],
+    'field_job_ref' => [
+      'label' => t('Related Job'),
+      'type' => 'entity_reference',
+      'required' => FALSE,
+      'description' => t('Job posting involved in this error'),
+      'target_type' => 'node',
+      'target_bundle' => 'job_posting',
+    ],
+  ];
+
+  // Create each field
+  foreach ($fields as $field_name => $field_config) {
+    $label = $field_config['label'];
+    $field_type = $field_config['type'];
+    $required = $field_config['required'] ?? FALSE;
+    $description = $field_config['description'] ?? '';
+
+    // Check if field storage already exists
+    if ($field_storage_config_storage->load('node.' . $field_name)) {
+      continue;
+    }
+
+    // Create field storage
+    $field_storage = $field_storage_config_storage->create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'type' => $field_type,
+      'settings' => [],
+    ]);
+
+    // Add allowed values for list fields
+    if (in_array($field_type, ['list_string', 'list_integer'])) {
+      $field_storage->setSetting('allowed_values', $field_config['allowed_values'] ?? []);
+    }
+
+    // Add target type and target bundle for entity references
+    if ($field_type === 'entity_reference') {
+      $field_storage->setSetting('target_type', $field_config['target_type']);
+    }
+
+    try {
+      $field_storage->save();
+    } catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error creating field storage @field: @error', [
+        '@field' => $field_name,
+        '@error' => $e->getMessage(),
+      ]);
+      continue;
+    }
+
+    // Create field instance
+    if ($field_config_storage->load('node.error_queue.' . $field_name)) {
+      continue;
+    }
+
+    $field = $field_config_storage->create([
+      'field_name' => $field_name,
+      'entity_type' => 'node',
+      'bundle' => 'error_queue',
+      'label' => $label,
+      'required' => $required,
+      'description' => $description,
+      'default_value' => [],
+    ]);
+
+    // Set field settings based on type
+    if ($field_type === 'entity_reference') {
+      $settings = $field->getSettings();
+      $settings['handler'] = 'default';
+      $settings['handler_settings'] = [
+        'target_bundles' => [$field_config['target_bundle'] ?? NULL],
+        'auto_create' => FALSE,
+      ];
+      $field->setSettings($settings);
+    }
+
+    try {
+      $field->save();
+    } catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('Error creating field @field: @error', [
+        '@field' => $field_name,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+  }
 }

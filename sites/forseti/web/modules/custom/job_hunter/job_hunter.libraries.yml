@@ -185,3 +185,10 @@ user-profile-styling:
       css/profile.css: {}
   dependencies:
     - core/drupal
+
+error-queue-styling:
+  css:
+    theme:
+      css/error-queue.css: {}
+  dependencies:
+    - core/drupal

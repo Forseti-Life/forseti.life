@@ -71,12 +71,13 @@ async function loginUser(page) {
   
   try {
     // Go directly to login page
+    logStep('Login', 'Navigating to /user/login', 'debug');
     await page.goto(`${CONFIG.baseUrl}/user/login`, {
       waitUntil: 'domcontentloaded',
       timeout: 15000
     });
     
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(1500);
 
     const nameField = await page.$('input[name="name"]');
     const passField = await page.$('input[name="pass"]');
@@ -93,14 +94,37 @@ async function loginUser(page) {
     
     const submitBtn = await page.$('input[type="submit"]');
     if (submitBtn) {
+      log('Submitting login form...', 'debug');
       await submitBtn.click();
-      await page.waitForTimeout(3000);
+      
+      // Wait for navigation but don't fail if it doesn't happen immediately
+      try {
+        await page.waitForNavigation({ timeout: 8000, waitUntil: 'domcontentloaded' }).catch(() => {});
+      } catch (e) {
+        // Navigation timeout is not fatal
+        log('Navigation wait timeout (expected)', 'debug');
+      }
+      
+      await page.waitForTimeout(2000);
       
       const finalUrl = page.url();
-      log(`Logged in, redirected to: ${finalUrl}`, 'debug');
-      results.steps.login = { success: true, redirected_to: finalUrl };
-      log('Login successful', 'success');
-      return true;
+      log(`After login, URL: ${finalUrl}`, 'debug');
+      
+      // Check if we're logged in by looking for authenticated content
+      const pageText = await page.textContent('body');
+      if (pageText.includes('Campaign') || pageText.includes('My Campaigns') || !finalUrl.includes('/user/login')) {
+        results.steps.login = { success: true, redirected_to: finalUrl };
+        log('Login successful', 'success');
+        return true;
+      } else if (finalUrl.includes('/user/login')) {
+        log('Still on login page - credentials may be invalid', 'error');
+        results.errors.push('Login failed - still on login page');
+        return false;
+      } else {
+        log('On different page after login', 'debug');
+        results.steps.login = { success: true, redirected_to: finalUrl };
+        return true;
+      }
     } else {
       log('Submit button not found on login form', 'error');
       return false;
