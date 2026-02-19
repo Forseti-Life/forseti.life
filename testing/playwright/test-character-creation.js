@@ -23,7 +23,7 @@ const CONFIG = {
   screenshots: true,
   screenshotDir: './screenshots',
   hostHeader: process.env.HOST_HEADER || '',
-  loginUrl: process.env.LOGIN_URL || ''
+  loginUrl: process.env.PLAYWRIGHT_LOGIN_URL || process.env.LOGIN_URL || ''
 };
 
 // Track test results

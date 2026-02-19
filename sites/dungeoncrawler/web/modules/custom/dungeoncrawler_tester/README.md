@@ -159,6 +159,7 @@ cd sites/dungeoncrawler
 cd /home/keithaumiller/forseti.life
 npm install
 npx playwright install chromium
+./testing/playwright/setup-auth.sh
 node testing/playwright/test-character-creation.js http://localhost:8080 10000
 node testing/playwright/test-hexmap.js http://localhost:8080 5000
 ```

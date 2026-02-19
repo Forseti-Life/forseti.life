@@ -17,6 +17,7 @@ async function testHexmap(baseUrl = 'http://localhost:8080', waitTime = 5000) {
   const browser = await chromium.launch();
   const context = await browser.newContext();
   const page = await context.newPage();
+  const loginUrl = process.env.PLAYWRIGHT_LOGIN_URL || process.env.LOGIN_URL || '';
 
   let hasErrors = false;
   const errors = [];
@@ -44,6 +45,10 @@ async function testHexmap(baseUrl = 'http://localhost:8080', waitTime = 5000) {
   });
 
   try {
+    if (loginUrl) {
+      await page.goto(loginUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
+    }
+
     const hexmapUrl = `${baseUrl}/hexmap`;
     console.log(`Testing: ${hexmapUrl}`);
     console.log(`Timeout: ${waitTime}ms\n`);
