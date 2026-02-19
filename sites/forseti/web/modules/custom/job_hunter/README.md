@@ -21,6 +21,7 @@ This module has comprehensive documentation organized for different audiences:
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
 ## Maintenance Notes
+- 2026-02-19: Unified profile form resume parsing with ResumeGenAiParsingWorker chunked parsing to ensure a single shared GenAI flow and avoid token limits.
 - 2026-02-19: Aligned error queue admin routes with the standard admin permission and added paging plus safe message previews to the error list.
 - 2026-02-19: Split resume parsing into core and professional experience passes with adaptive chunk splitting to avoid token limits.
 - 2026-02-17: Refactored `JobDiscoveryService` end-to-end for schema safety and consistency: centralized logger access, added shared company-field resolver (`name` vs `company_name`), and applied that resolver to saved-job list filtering/sorting and company dropdown queries.

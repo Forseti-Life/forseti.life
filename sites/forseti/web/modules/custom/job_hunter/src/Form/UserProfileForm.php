@@ -14,6 +14,7 @@ use Drupal\Core\Datetime\DrupalDateTime;
 use Drupal\job_hunter\Service\UserProfileService;
 use Drupal\job_hunter\Service\JobSeekerService;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
+use Drupal\job_hunter\Plugin\QueueWorker\ResumeGenAiParsingWorker;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\InvokeCommand;
 
@@ -539,6 +540,7 @@ class UserProfileForm extends FormBase {
               '#type' => 'details',
               '#title' => $this->t('📄 @name', ['@name' => $file_info['file']->getFilename()]),
               '#open' => FALSE,
+              '#attributes' => ['style' => 'color: #333; background: #f9f9f9; padding: 10px;'],
             ];
             
             $form['resume_workflow']['individual_json_editors']['json_' . $json_index]['parsed_data_' . $parsed_record->id] = [
@@ -834,6 +836,68 @@ class UserProfileForm extends FormBase {
       '#rows' => 4,
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_keywords_interested'),
     ];
+    
+    // Add suggested keywords from resume parsing
+    $suggested_keywords = $this->getSuggestedKeywords($job_seeker_profile);
+    if (!empty($suggested_keywords)) {
+      $form['search_assist']['suggested_keywords'] = [
+        '#type' => 'details',
+        '#title' => $this->t('💡 Suggested Keywords (from your resume)'),
+        '#description' => $this->t('These keywords were extracted from your resume. Click any keyword to add it to your list above.'),
+        '#open' => TRUE,
+        '#attributes' => ['class' => ['suggested-keywords-section']],
+      ];
+      
+      $keywords_markup = '<div class="suggested-keywords-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">';
+      foreach ($suggested_keywords as $keyword) {
+        $keywords_markup .= '<span class="suggested-keyword" style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; border: 1px solid #90caf9;" onclick="addKeywordToTextarea(\'' . addslashes($keyword) . '\')">' . htmlspecialchars($keyword) . '</span>';
+      }
+      $keywords_markup .= '</div>';
+      
+      $form['search_assist']['suggested_keywords']['keywords_display'] = [
+        '#type' => 'markup',
+        '#markup' => $keywords_markup,
+      ];
+      
+      // Add JavaScript to handle click-to-add functionality
+      $form['search_assist']['suggested_keywords']['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#value' => "
+            function addKeywordToTextarea(keyword) {
+              var textarea = document.querySelector('textarea[name=\"field_keywords_interested\"]');
+              if (textarea) {
+                var currentValue = textarea.value.trim();
+                var lines = currentValue.split('\\n').map(function(line) { return line.trim(); }).filter(function(line) { return line.length > 0; });
+                
+                // Check if keyword already exists (case-insensitive)
+                var keywordLower = keyword.toLowerCase();
+                var exists = lines.some(function(line) { return line.toLowerCase() === keywordLower; });
+                
+                if (!exists) {
+                  lines.push(keyword);
+                  textarea.value = lines.join('\\n');
+                  
+                  // Visual feedback
+                  var addedKeyword = event.target;
+                  addedKeyword.style.background = '#c8e6c9';
+                  addedKeyword.style.borderColor = '#81c784';
+                  addedKeyword.style.color = '#2e7d32';
+                  setTimeout(function() {
+                    addedKeyword.style.background = '#e3f2fd';
+                    addedKeyword.style.borderColor = '#90caf9';
+                    addedKeyword.style.color = '#1976d2';
+                  }, 1000);
+                } else {
+                  alert('Keyword \"' + keyword + '\" is already in your list.');
+                }
+              }
+            }
+          ",
+        ],
+        'suggested-keywords-js',
+      ];
+    }
 
     $form['search_assist']['field_target_job_titles'] = [
       '#type' => 'textarea',
@@ -848,7 +912,20 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Cover Letter Template'),
       '#description' => $this->t('Default cover letter template for applications'),
       '#rows' => 6,
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_cover_letter_template'),
+      '#default_value' => $form_state->get('generated_cover_letter') ?: $this->getConsolidatedValue($job_seeker_profile, 'field_cover_letter_template'),
+    ];
+    
+    // Add "Generate Cover Letter" button
+    $form['search_assist']['generate_cover_letter'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('✨ Generate Cover Letter Template from Resume'),
+      '#submit' => ['::generateCoverLetterSubmit'],
+      '#limit_validation_errors' => [],
+      '#attributes' => [
+        'class' => ['button', 'button--action'],
+        'style' => 'margin-top: 5px; background-color: #4caf50; color: white;',
+      ],
+      '#description' => $this->t('Automatically generate a professional cover letter template based on your resume data.'),
     ];
 
     $form['search_assist']['field_references_available'] = [
@@ -863,6 +940,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('📋 Demographic Information (Optional - For EEO Purposes)'),
       '#description' => $this->t('This information is optional and used for Equal Employment Opportunity (EEO) reporting. Providing this information is voluntary and will not affect your job search.'),
       '#open' => FALSE,
+      '#attributes' => ['style' => 'color: #333; background: #f9f9f9; padding: 10px;'],
     ];
 
     $form['search_assist']['demographic_info']['field_gender'] = [
@@ -1060,7 +1138,10 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('📚 Education History'),
       '#open' => FALSE,
-      '#attributes' => ['class' => ['education-entries-display']],
+      '#attributes' => [
+        'class' => ['education-entries-display'],
+        'style' => 'color: #333; background: #f9f9f9; padding: 10px;'
+      ],
     ];
     $form['experience_education']['education_entries']['info'] = [
       '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
@@ -1088,6 +1169,17 @@ class UserProfileForm extends FormBase {
       '#open' => FALSE,
       '#weight' => 3,
     ];
+    
+    // Add display of early career positions if available
+    $early_career_display = $this->buildEarlyCareerDisplay($job_seeker_profile);
+    if ($early_career_display) {
+      $form['professional_experience']['early_career_display'] = [
+        '#type' => 'markup',
+        '#markup' => $early_career_display,
+        '#weight' => -10,
+      ];
+    }
+    
     $form['professional_experience']['info'] = [
       '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected in the preview.</em></p>',
     ];
@@ -2692,6 +2784,73 @@ class UserProfileForm extends FormBase {
   }
 
   /**
+   * Submit handler for generating cover letter template from resume data.
+   */
+  public function generateCoverLetterSubmit(array &$form, FormStateInterface $form_state) {
+    $uid = \Drupal::currentUser()->id();
+    
+    try {
+      // Load job seeker profile
+      $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
+      if (!$job_seeker_profile || empty($job_seeker_profile->consolidated_profile_json)) {
+        \Drupal::messenger()->addWarning($this->t('No resume data found. Please upload and parse your resume first.'));
+        $this->logWarning('Cover letter generation attempted but no resume data for uid @uid', ['@uid' => $uid]);
+        return;
+      }
+      
+      $consolidated = json_decode($job_seeker_profile->consolidated_profile_json, TRUE);
+      if (!$consolidated) {
+        throw new \Exception('Unable to parse consolidated profile JSON.');
+      }
+      
+      $this->logInfo('Generating cover letter for uid @uid with consolidated data', ['@uid' => $uid]);
+      
+      // Generate cover letter template
+      $cover_letter = $this->buildCoverLetterTemplate($consolidated);
+      
+      if (empty($cover_letter)) {
+        \Drupal::messenger()->addWarning($this->t('Unable to generate cover letter. Please ensure your resume contains profile information.'));
+        $this->logWarning('Cover letter generation returned empty for uid @uid', ['@uid' => $uid]);
+        return;
+      }
+      
+      $this->logInfo('Generated cover letter with @chars characters', ['@chars' => strlen($cover_letter)]);
+      
+      // Update consolidated JSON with cover letter
+      $updated_consolidated = $consolidated;
+      if (!isset($updated_consolidated['job_search_preferences'])) {
+        $updated_consolidated['job_search_preferences'] = [];
+      }
+      $updated_consolidated['job_search_preferences']['cover_letter_template'] = $cover_letter;
+      
+      // Update in database
+      $update_result = $this->jobSeekerService->update($job_seeker_profile->id, [
+        'consolidated_profile_json' => json_encode($updated_consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+      ]);
+      
+      if (!$update_result) {
+        throw new \Exception('Failed to update job seeker profile in database');
+      }
+      
+      // Update the field value in form state so it shows immediately
+      $form_state->setValue('field_cover_letter_template', $cover_letter);
+      
+      // Force the form element to update its default value
+      $form_state->set('generated_cover_letter', $cover_letter);
+      
+      $this->logInfo('Successfully generated and saved cover letter template for user @uid', ['@uid' => $uid]);
+      \Drupal::messenger()->addStatus($this->t('✨ Cover letter template generated successfully! Review and customize it below.'));
+      
+    } catch (\Exception $e) {
+      $this->logError('Error generating cover letter: @error', ['@error' => $e->getMessage()]);
+      \Drupal::messenger()->addError($this->t('Error generating cover letter: @error', ['@error' => $e->getMessage()]));
+    }
+    
+    // Rebuild form to show generated content
+    $form_state->setRebuild(TRUE);
+  }
+
+  /**
    * Submit handler for parsing a resume with AI.
    * 
    * Process Flow:
@@ -2834,6 +2993,222 @@ class UserProfileForm extends FormBase {
     $years = max(0, $current_year - $graduation_year);
     
     return $years;
+  }
+
+  /**
+   * Extract suggested keywords from resume technical expertise and other profile data.
+   *
+   * @param object|null $job_seeker_profile
+   *   The job seeker profile object.
+   *
+   * @return array
+   *   Array of suggested keyword strings.
+   */
+  private function getSuggestedKeywords($job_seeker_profile) {
+    if (!$job_seeker_profile || empty($job_seeker_profile->consolidated_profile_json)) {
+      return [];
+    }
+
+    $consolidated = json_decode($job_seeker_profile->consolidated_profile_json, TRUE);
+    if (!$consolidated) {
+      return [];
+    }
+
+    $keywords = [];
+
+    // Extract from technical expertise categories
+    if (!empty($consolidated['technical_expertise']['categories'])) {
+      foreach ($consolidated['technical_expertise']['categories'] as $category) {
+        // Add category name as a keyword
+        if (!empty($category['name'])) {
+          $keywords[] = $category['name'];
+        }
+        
+        // Add top skills from each category (limit to 5 per category to avoid overwhelming)
+        if (!empty($category['skills']) && is_array($category['skills'])) {
+          $top_skills = array_slice($category['skills'], 0, 5);
+          foreach ($top_skills as $skill) {
+            if (is_string($skill)) {
+              $keywords[] = $skill;
+            } elseif (is_array($skill) && !empty($skill['name'])) {
+              $keywords[] = $skill['name'];
+            }
+          }
+        }
+      }
+    }
+
+    // Extract from executive profile (industry focus)
+    if (!empty($consolidated['executive_profile'])) {
+      $exec_profile = $consolidated['executive_profile'];
+      if (is_array($exec_profile)) {
+        // Check for industry_focus array
+        if (!empty($exec_profile['industry_focus']) && is_array($exec_profile['industry_focus'])) {
+          $keywords = array_merge($keywords, $exec_profile['industry_focus']);
+        }
+      }
+    }
+
+    // Extract from job titles (split pipe-separated titles)
+    if (!empty($consolidated['job_search_preferences']['target_titles'])) {
+      $titles = $consolidated['job_search_preferences']['target_titles'];
+      if (is_array($titles)) {
+        foreach ($titles as $title_group) {
+          // Split by pipe if it's a combined string
+          $split_titles = preg_split('/\s*\|\s*/', $title_group);
+          $keywords = array_merge($keywords, $split_titles);
+        }
+      } elseif (is_string($titles)) {
+        $split_titles = preg_split('/\s*\|\s*/', $titles);
+        $keywords = array_merge($keywords, $split_titles);
+      }
+    }
+
+    // Extract from early career companies (Fortune 50, notable companies)
+    if (!empty($consolidated['early_career']['positions']) && is_array($consolidated['early_career']['positions'])) {
+      foreach ($consolidated['early_career']['positions'] as $position) {
+        if (!empty($position['company'])) {
+          $keywords[] = $position['company'];
+        }
+      }
+    }
+
+    // Extract from leadership philosophy key themes
+    if (!empty($consolidated['leadership_philosophy']['key_themes']) && is_array($consolidated['leadership_philosophy']['key_themes'])) {
+      $keywords = array_merge($keywords, $consolidated['leadership_philosophy']['key_themes']);
+    }
+
+    // Clean and deduplicate keywords
+    $keywords = array_map('trim', $keywords);
+    $keywords = array_filter($keywords); // Remove empty strings
+    $keywords = array_unique($keywords);
+    
+    // Sort alphabetically
+    sort($keywords);
+
+    // Limit to top 30 keywords to avoid overwhelming the user
+    return array_slice($keywords, 0, 30);
+  }
+
+  /**
+   * Build a professional cover letter template from resume data.
+   *
+   * @param array $consolidated
+   *   The consolidated profile JSON data.
+   *
+   * @return string
+   *   The generated cover letter template.
+   */
+  private function buildCoverLetterTemplate(array $consolidated) {
+    $template = '';
+    
+    // Header with contact info
+    $contact = $consolidated['contact_info'] ?? [];
+    $full_name = $contact['full_name'] ?? 'Your Name';
+    $email = $contact['email'] ?? 'your.email@example.com';
+    $phone = $contact['phone'] ?? '(555) 555-5555';
+    
+    $location = '';
+    if (!empty($contact['location']['city']) && !empty($contact['location']['state'])) {
+      $location = $contact['location']['city'] . ', ' . $contact['location']['state'];
+    } elseif (!empty($contact['location']['city'])) {
+      $location = $contact['location']['city'];
+    } elseif (!empty($contact['location']['state'])) {
+      $location = $contact['location']['state'];
+    }
+    
+    // Build header
+    $template .= "{$full_name}\n";
+    if ($location) {
+      $template .= "{$location}\n";
+    }
+    $template .= "{$email} | {$phone}\n\n";
+    $template .= "[Date]\n\n";
+    $template .= "[Hiring Manager Name]\n";
+    $template .= "[Company Name]\n";
+    $template .= "[Company Address]\n\n";
+    $template .= "Dear Hiring Manager,\n\n";
+    
+    // Opening paragraph - Express interest and highlight experience
+    $exec_profile = '';
+    if (!empty($consolidated['executive_profile'])) {
+      if (is_string($consolidated['executive_profile'])) {
+        $exec_profile = $consolidated['executive_profile'];
+      } elseif (is_array($consolidated['executive_profile']) && !empty($consolidated['executive_profile'][0]['summary'])) {
+        $exec_profile = $consolidated['executive_profile'][0]['summary'];
+      }
+    }
+    
+    $years = $consolidated['job_search_preferences']['experience_years'] ?? '10+';
+    $template .= "I am writing to express my strong interest in the [Position Title] role at [Company Name]. ";
+    $template .= "As a {$exec_profile}, I bring {$years} years of proven expertise in delivering transformative results. ";
+    $template .= "I am excited about the opportunity to contribute to your organization's continued success.\n\n";
+    
+    // Second paragraph - Highlight key skills and achievements
+    $template .= "Throughout my career, I have developed deep expertise across several critical areas:\n\n";
+    
+    // Extract top 3 technical categories
+    if (!empty($consolidated['technical_expertise']['categories'])) {
+      $categories = array_slice($consolidated['technical_expertise']['categories'], 0, 3);
+      foreach ($categories as $category) {
+        if (!empty($category['name'])) {
+          $template .= "• {$category['name']}";
+          if (!empty($category['skills']) && is_array($category['skills'])) {
+            $top_skills = array_slice($category['skills'], 0, 3);
+            $skills_str = is_array($top_skills[0]) 
+              ? implode(', ', array_column($top_skills, 'name'))
+              : implode(', ', $top_skills);
+            $template .= " - including {$skills_str}";
+          }
+          $template .= "\n";
+        }
+      }
+      $template .= "\n";
+    }
+    
+    // Third paragraph - Notable experience and achievements
+    $template .= "In my recent roles, I have:\n\n";
+    
+    // Extract from early career or consulting practice
+    if (!empty($consolidated['early_career']['positions'])) {
+      $notable_companies = array_slice($consolidated['early_career']['positions'], 0, 3);
+      foreach ($notable_companies as $position) {
+        if (!empty($position['company']) && !empty($position['focus'])) {
+          $template .= "• At {$position['company']}: {$position['focus']}\n";
+        }
+      }
+      $template .= "\n";
+    } elseif (!empty($consolidated['consulting_practice']['notable_engagements'])) {
+      $engagements = array_slice($consolidated['consulting_practice']['notable_engagements'], 0, 3);
+      foreach ($engagements as $engagement) {
+        if (!empty($engagement['client']) && !empty($engagement['description'])) {
+          $template .= "• {$engagement['client']}: {$engagement['description']}\n";
+        }
+      }
+      $template .= "\n";
+    }
+    
+    // Fourth paragraph - Leadership philosophy (if available)
+    if (!empty($consolidated['leadership_philosophy']['statement'])) {
+      $philosophy = $consolidated['leadership_philosophy']['statement'];
+      // Shorten if too long
+      if (strlen($philosophy) > 300) {
+        $philosophy = substr($philosophy, 0, 297) . '...';
+      }
+      $template .= "My leadership approach focuses on {$philosophy}\n\n";
+    }
+    
+    // Closing paragraph
+    $template .= "I am confident that my experience, technical expertise, and proven track record of ";
+    $template .= "delivering measurable business impact make me an ideal candidate for this role. ";
+    $template .= "I would welcome the opportunity to discuss how my skills and background align with ";
+    $template .= "[Company Name]'s goals and how I can contribute to your team's continued success.\n\n";
+    
+    $template .= "Thank you for considering my application. I look forward to speaking with you soon.\n\n";
+    $template .= "Sincerely,\n";
+    $template .= $full_name;
+    
+    return $template;
   }
 
   /**
@@ -3546,76 +3921,48 @@ class UserProfileForm extends FormBase {
   }
 
   /**
-   * STEP 5B Helper: Parse resume in production mode (call GenAI service).
+   * STEP 5B Helper: Parse resume in production mode (GenAI service).
    *
-   * Uses chunked approach: Call 1 for core profile, Call 2 for professional experience.
-   * This avoids token limit truncation issues.
+   * Delegates to ResumeGenAiParsingWorker to keep one shared parsing flow.
    */
   private function parseResumeProdMode($extracted_text, $filename) {
     $logger = \Drupal::logger('job_hunter');
-    
-    $logger->info('🚀 STEP 5B: PRODUCTION MODE - Starting chunked GenAI parsing', [
+    $uid = (int) $this->currentUser->id();
+
+    $logger->info('🚀 STEP 5B: PRODUCTION MODE - Delegating to queue worker parser', [
       'filename' => $filename,
       'text_length' => strlen($extracted_text),
+      'uid' => $uid,
     ]);
 
     try {
-      // Get AWS configuration
-      $config = $this->configFactory->get('ai_conversation.settings');
-      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
-      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
+      $worker = $this->createResumeGenAiWorker();
+      $reflection = new \ReflectionClass($worker);
+      $method = $reflection->getMethod('parseResumeProdMode');
+      $method->setAccessible(TRUE);
 
-      $sdk_config = [
-        'region' => $aws_region,
-        'version' => 'latest',
-      ];
-      
-      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-        $sdk_config['credentials'] = [
-          'key' => $aws_access_key,
-          'secret' => $aws_secret_key,
-        ];
+      $result = $method->invoke($worker, $extracted_text, $filename, $uid);
+
+      if (!is_array($result) || empty($result['parsed_data'])) {
+        throw new \Exception('Resume parsing returned empty data.');
       }
 
-      $sdk = new \Aws\Sdk($sdk_config);
-      $bedrock = $sdk->createBedrockRuntime();
-      $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
-
-      // CALL 1: Parse core profile (everything except professional_experience)
-      $logger->info('📄 GenAI Call 1/2: Parsing core profile sections');
-      $core_prompt = $this->buildCoreProfilePrompt($extracted_text, $filename);
-      $core_data = $this->callBedrockAndParse($bedrock, $model, $core_prompt, $filename, 'core');
-      
-      if (!$core_data) {
-        throw new \Exception('Failed to parse core profile sections');
-      }
-      $logger->info('✅ GenAI Call 1/2: Core profile parsed successfully');
-
-      // CALL 2: Parse professional experience only
-      $logger->info('💼 GenAI Call 2/2: Parsing professional experience');
-      $experience_prompt = $this->buildProfessionalExperiencePrompt($extracted_text, $filename);
-      $experience_data = $this->callBedrockAndParse($bedrock, $model, $experience_prompt, $filename, 'experience');
-      
-      if (!$experience_data) {
-        throw new \Exception('Failed to parse professional experience');
-      }
-      $logger->info('✅ GenAI Call 2/2: Professional experience parsed successfully');
-
-      // Merge results
-      $merged_data = $core_data;
-      $merged_data['professional_experience'] = $experience_data['professional_experience'] ?? [];
-      
-      $logger->info('🎉 Resume parsing complete: @jobs jobs extracted', [
-        '@jobs' => count($merged_data['professional_experience']),
-      ]);
-
-      return $merged_data;
-      
+      return $result['parsed_data'];
     } catch (\Exception $e) {
       $logger->error('GenAI service error: @error', ['@error' => $e->getMessage()]);
       throw $e;
     }
+  }
+
+  /**
+   * Create a ResumeGenAiParsingWorker instance with injected dependencies.
+   */
+  private function createResumeGenAiWorker(): ResumeGenAiParsingWorker {
+    $worker = new ResumeGenAiParsingWorker([], 'job_hunter_genai_parsing', []);
+    $worker->configFactory = $this->configFactory;
+    $worker->aiApiService = $this->aiApiService;
+
+    return $worker;
   }
 
   /**
