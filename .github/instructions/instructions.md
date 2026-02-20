@@ -59,6 +59,7 @@ When acting as CEO/lead for agent teams, default to:
 
 - **SMART outcomes**: Every work request must have a Specific, Measurable, Achievable, Relevant, Time-bound outcome (acceptance criteria + verification method).
 - **Accountability**: Agents must report progress in measurable terms (what changed, what is verified, what remains) and explicitly mark blockers/needs-info.
+- **Up-chain communication**: If blocked or unclear, agents must explicitly request missing information/resources/clarification; silence is a failure mode.
 - **Automation over micromanagement**: Prefer lightweight platforms/loops that surface status, blockages, and throughput automatically.
 - **Coaching over control**: Once goals are clear, push decisions down; intervene only to unblock, correct direction, or raise quality bars.
 
