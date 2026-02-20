@@ -7,6 +7,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
+use Drupal\Core\State\StateInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -18,12 +19,14 @@ final class DashboardController extends ControllerBase {
   public function __construct(
     private readonly Connection $database,
     private readonly DateFormatterInterface $dateFormatter,
+    private readonly StateInterface $state,
   ) {}
 
   public static function create(ContainerInterface $container): static {
     return new static(
       $container->get('database'),
       $container->get('date.formatter'),
+      $container->get('state'),
     );
   }
 
@@ -31,6 +34,8 @@ final class DashboardController extends ControllerBase {
    * Dashboard listing all agents.
    */
   public function dashboard(): array {
+    $token = (string) $this->state->get('copilot_agent_tracker.telemetry_token', '');
+
     $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen'])
       ->orderBy('last_seen', 'DESC')
@@ -53,7 +58,8 @@ final class DashboardController extends ControllerBase {
     return [
       '#type' => 'container',
       'help' => [
-        '#markup' => '<p>Tracks high-level agent status updates and work item progress. Do not post raw conversation logs.</p>',
+        '#markup' => '<p>Tracks high-level agent status updates and work item progress. Do not post raw conversation logs.</p>'
+          . ($token ? '<p><strong>Telemetry token</strong> (send as <code>X-Copilot-Agent-Tracker-Token</code>): <code>' . $token . '</code></p>' : ''),
       ],
       'agents' => [
         '#type' => 'table',
@@ -129,4 +135,3 @@ final class DashboardController extends ControllerBase {
   }
 
 }
-

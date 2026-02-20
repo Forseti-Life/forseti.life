@@ -132,3 +132,15 @@ function copilot_agent_tracker_schema(): array {
   return $schema;
 }
 
+/**
+ * Implements hook_install().
+ */
+function copilot_agent_tracker_install(): void {
+  // Generate an internal telemetry token stored in state (not in git).
+  // This allows non-browser senders (e.g. HQ scripts) to post sanitized events.
+  $state = \Drupal::state();
+  if (!$state->get('copilot_agent_tracker.telemetry_token')) {
+    $token = \Drupal\Component\Utility\Crypt::randomBytesBase64(32);
+    $state->set('copilot_agent_tracker.telemetry_token', $token);
+  }
+}

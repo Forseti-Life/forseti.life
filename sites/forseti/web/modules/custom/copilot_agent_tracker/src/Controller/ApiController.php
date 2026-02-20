@@ -8,6 +8,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Internal API endpoint for posting agent telemetry.
@@ -28,6 +29,12 @@ final class ApiController extends ControllerBase {
    * POST /api/copilot-agent-tracker/event
    */
   public function event(Request $request): JsonResponse {
+    $token_header = (string) $request->headers->get('X-Copilot-Agent-Tracker-Token', '');
+    $token_state = (string) $this->state()->get('copilot_agent_tracker.telemetry_token', '');
+    if ($token_state === '' || $token_header === '' || !hash_equals($token_state, $token_header)) {
+      throw new AccessDeniedHttpException('Invalid telemetry token.');
+    }
+
     $content = (string) $request->getContent();
     if ($content === '') {
       throw new BadRequestHttpException('Missing JSON payload.');
@@ -66,4 +73,3 @@ final class ApiController extends ControllerBase {
   }
 
 }
-
