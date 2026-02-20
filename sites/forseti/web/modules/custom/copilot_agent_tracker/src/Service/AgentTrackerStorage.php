@@ -34,7 +34,7 @@ final class AgentTrackerStorage {
 
     // Upsert agent status.
     $this->database->merge('copilot_agent_tracker_agents')
-      ->key(['agent_id' => $agent_id])
+      ->key('agent_id', $agent_id)
       ->fields([
         'role' => $payload['role'] ?? NULL,
         'website' => $payload['website'] ?? NULL,
@@ -64,4 +64,3 @@ final class AgentTrackerStorage {
   }
 
 }
-
