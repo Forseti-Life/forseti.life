@@ -173,6 +173,7 @@ class UserProfileForm extends FormBase {
     $form['profile_progress'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['profile-progress']],
+      '#weight' => -200,
     ];
     $form['profile_progress']['progress'] = [
       '#type' => 'html_tag',
@@ -204,6 +205,12 @@ class UserProfileForm extends FormBase {
 
     // Load job seeker profile data
     $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
+
+    // Repair legacy resume parsing state and consolidate if everything is parsed but merged metadata is missing.
+    $this->normalizeResumeParsedDataStatuses($uid);
+    $this->ensureResumeConsolidationUpToDate($uid);
+    // Reload job seeker profile in case consolidation updated consolidated_profile_json.
+    $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
     
     // Resume Management Section - displayed at top of page (not in accordion)
     $form['resume_workflow'] = [
@@ -231,8 +238,8 @@ class UserProfileForm extends FormBase {
       '#multiple' => TRUE, // Allow multiple file selection
       '#upload_location' => $user_resume_dir,
       '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'pdf doc docx'],
-        'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
+        'file_validate_extensions' => ['pdf doc docx'],
+        'file_validate_size' => [10 * 1024 * 1024],
       ],
       '#default_value' => [], // Always empty - don't show existing files here
       '#progress_indicator' => 'bar', // Shows progress bar during upload
@@ -307,11 +314,12 @@ class UserProfileForm extends FormBase {
               $job_seeker_id = $this->jobSeekerService->create($job_seeker_data);
               $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
             }
+            $job_seeker_id = (int) $job_seeker_profile->id;
             
             // Check if resume record exists
             $resume_record = $database->select('jobhunter_job_seeker_resumes', 'jsr')
               ->fields('jsr', ['id', 'extracted_text'])
-              ->condition('job_seeker_id', $uid)
+              ->condition('job_seeker_id', $job_seeker_id)
               ->condition('file_id', $file_id)
               ->execute()
               ->fetchAssoc();
@@ -324,7 +332,7 @@ class UserProfileForm extends FormBase {
               // Auto-register: Insert resume record
               $resume_record_id = $database->insert('jobhunter_job_seeker_resumes')
                 ->fields([
-                  'job_seeker_id' => $uid,
+                  'job_seeker_id' => $job_seeker_id,
                   'file_id' => $file_id,
                   'resume_name' => pathinfo($filename, PATHINFO_FILENAME),
                   'created' => time(),
@@ -338,14 +346,7 @@ class UserProfileForm extends FormBase {
             $parsing_status = NULL;
             $parsing_error = NULL;
             if ($is_registered) {
-              $parsed_record = $database->select('jobhunter_resume_parsed_data', 'rpd')
-                ->fields('rpd', ['parsed_data', 'status', 'error_message'])
-                ->condition('uid', $uid)
-                ->condition('resume_file_id', $file_id)
-                ->orderBy('changed', 'DESC')
-                ->range(0, 1)
-                ->execute()
-                ->fetchAssoc();
+              $parsed_record = $this->getLatestParsedRecordForFile($database, $uid, $file_id, $file_uri, $filename);
               
               if ($parsed_record) {
                 $parsing_status = $parsed_record['status'];
@@ -385,7 +386,7 @@ class UserProfileForm extends FormBase {
             $is_queued = ($parsing_status === 'queued');
             $is_processing = ($parsing_status === 'processing');
             $is_error = ($parsing_status === 'error');
-            $is_complete = ($parsing_status === 'complete' || $parsing_status === 'dev_mock');
+            $is_complete = in_array($parsing_status, ['complete', 'completed'], TRUE);
             
             if ($parsed_data && is_array($parsed_data) && $is_complete) {
               // Check for schema v1.0 keys
@@ -907,25 +908,34 @@ class UserProfileForm extends FormBase {
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_target_job_titles'),
     ];
 
+    $auto_cover_letter = $form_state->get('generated_cover_letter');
+    if (!$auto_cover_letter && $job_seeker_profile && !empty($consolidated)) {
+      $existing_cover_letter = $consolidated['job_search_preferences']['cover_letter_template'] ?? '';
+      if (empty($existing_cover_letter)) {
+        $generated_cover_letter = $this->buildCoverLetterTemplate($consolidated);
+        if (!empty($generated_cover_letter)) {
+          $auto_cover_letter = $generated_cover_letter;
+          $form_state->set('generated_cover_letter', $generated_cover_letter);
+
+          $updated_consolidated = $consolidated;
+          if (!isset($updated_consolidated['job_search_preferences'])) {
+            $updated_consolidated['job_search_preferences'] = [];
+          }
+          $updated_consolidated['job_search_preferences']['cover_letter_template'] = $generated_cover_letter;
+
+          $this->jobSeekerService->update($job_seeker_profile->id, [
+            'consolidated_profile_json' => json_encode($updated_consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+          ]);
+        }
+      }
+    }
+
     $form['search_assist']['field_cover_letter_template'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Cover Letter Template'),
       '#description' => $this->t('Default cover letter template for applications'),
       '#rows' => 6,
-      '#default_value' => $form_state->get('generated_cover_letter') ?: $this->getConsolidatedValue($job_seeker_profile, 'field_cover_letter_template'),
-    ];
-    
-    // Add "Generate Cover Letter" button
-    $form['search_assist']['generate_cover_letter'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('✨ Generate Cover Letter Template from Resume'),
-      '#submit' => ['::generateCoverLetterSubmit'],
-      '#limit_validation_errors' => [],
-      '#attributes' => [
-        'class' => ['button', 'button--action'],
-        'style' => 'margin-top: 5px; background-color: #4caf50; color: white;',
-      ],
-      '#description' => $this->t('Automatically generate a professional cover letter template based on your resume data.'),
+      '#default_value' => $auto_cover_letter ?: $this->getConsolidatedValue($job_seeker_profile, 'field_cover_letter_template'),
     ];
 
     $form['search_assist']['field_references_available'] = [
@@ -955,7 +965,7 @@ class UserProfileForm extends FormBase {
         'other' => $this->t('Other'),
         'prefer_not_to_say' => $this->t('Prefer not to say'),
       ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_gender'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_gender', ''),
     ];
 
     $form['search_assist']['demographic_info']['field_race_ethnicity'] = [
@@ -973,7 +983,7 @@ class UserProfileForm extends FormBase {
         'two_or_more' => $this->t('Two or More Races'),
         'prefer_not_to_say' => $this->t('Prefer not to say'),
       ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_race_ethnicity'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_race_ethnicity', ''),
     ];
 
     $form['search_assist']['demographic_info']['field_veteran_status'] = [
@@ -986,7 +996,7 @@ class UserProfileForm extends FormBase {
         'veteran' => $this->t('I identify as one or more of the classifications of protected veteran'),
         'prefer_not_to_say' => $this->t('Prefer not to say'),
       ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_veteran_status'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_veteran_status', ''),
     ];
 
     $form['search_assist']['demographic_info']['field_disability_status'] = [
@@ -999,7 +1009,7 @@ class UserProfileForm extends FormBase {
         'yes_disability' => $this->t('Yes, I have a disability (or previously had a disability)'),
         'prefer_not_to_say' => $this->t('Prefer not to say'),
       ],
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_disability_status'),
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_disability_status', ''),
     ];
 
     // Core Information Section - Contact Info + Professional Summary
@@ -1073,26 +1083,11 @@ class UserProfileForm extends FormBase {
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_skills_summary'),
     ];
 
-    // JSON Preview for Contact Info
-    $form['core_info']['json_preview'] = [
-      '#type' => 'details',
-      '#title' => $this->t('📋 JSON Preview: contact_info'),
-      '#open' => FALSE,
-    ];
-    $form['core_info']['json_preview']['json_display'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Current JSON Data'),
-      '#default_value' => json_encode($contact_info, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-      '#rows' => 10,
-      '#attributes' => ['readonly' => 'readonly', 'style' => 'font-family: monospace; font-size: 11px; background: #f5f5f5;'],
-      '#description' => $this->t('Read-only preview. Edit via Step 3 consolidated JSON or individual fields above.'),
-    ];
-
     // Experience & Education & Credentials Section
     $form['experience_education'] = [
       '#type' => 'details',
       '#title' => $this->t('🎓 Experience, Education & Credentials'),
-      '#open' => FALSE,
+      '#open' => TRUE,
       '#weight' => 4,
     ];
 
@@ -1137,12 +1132,21 @@ class UserProfileForm extends FormBase {
     $form['experience_education']['education_entries'] = [
       '#type' => 'details',
       '#title' => $this->t('📚 Education History'),
-      '#open' => FALSE,
+      '#open' => TRUE,
       '#attributes' => [
         'class' => ['education-entries-display'],
         'style' => 'color: #333; background: #f9f9f9; padding: 10px;'
       ],
     ];
+
+    $education_display = $this->buildEducationDisplay($job_seeker_profile);
+    if ($education_display) {
+      $form['experience_education']['education_entries']['education_display'] = [
+        '#type' => 'markup',
+        '#markup' => $education_display,
+        '#weight' => -20,
+      ];
+    }
     $form['experience_education']['education_entries']['info'] = [
       '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
     ];
@@ -1166,9 +1170,18 @@ class UserProfileForm extends FormBase {
     $form['professional_experience'] = [
       '#type' => 'details',
       '#title' => $this->t('💼 Professional Experience'),
-      '#open' => FALSE,
+      '#open' => TRUE,
       '#weight' => 3,
     ];
+
+    $professional_experience_display = $this->buildProfessionalExperienceDisplay($job_seeker_profile);
+    if ($professional_experience_display) {
+      $form['professional_experience']['professional_experience_display'] = [
+        '#type' => 'markup',
+        '#markup' => $professional_experience_display,
+        '#weight' => -20,
+      ];
+    }
     
     // Add display of early career positions if available
     $early_career_display = $this->buildEarlyCareerDisplay($job_seeker_profile);
@@ -1180,15 +1193,148 @@ class UserProfileForm extends FormBase {
       ];
     }
     
-    $form['professional_experience']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected in the preview.</em></p>',
+    // Professional Experience Structured Editor
+    // Stores to consolidated_profile_json.professional_experience on save.
+    $form['professional_experience']['editor_info'] = [
+      '#markup' => '<p class="description"><em>Add and edit roles below. Saving updates your consolidated profile.</em></p>',
     ];
-    $form['professional_experience']['field_professional_experience_json'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Professional Experience Data (JSON)'),
-      '#default_value' => json_encode($consolidated['professional_experience'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-      '#rows' => 15,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+
+    $form['professional_experience']['experience_editor'] = [
+      '#type' => 'container',
+      '#prefix' => '<div id="professional-experience-editor-wrapper">',
+      '#suffix' => '</div>',
+    ];
+
+    $existing_roles = $consolidated['professional_experience'] ?? [];
+    if (!is_array($existing_roles)) {
+      $existing_roles = [];
+    }
+
+    // Track number of rows in form state (AJAX add/remove).
+    $row_count = $form_state->get('professional_experience_row_count');
+    if ($row_count === NULL) {
+      $row_count = max(1, count($existing_roles));
+      $form_state->set('professional_experience_row_count', $row_count);
+    }
+
+    $form['professional_experience']['experience_editor']['professional_experience_entries'] = [
+      '#type' => 'container',
+      '#tree' => TRUE,
+    ];
+
+    for ($i = 0; $i < $row_count; $i++) {
+      $role = is_array($existing_roles[$i] ?? NULL) ? $existing_roles[$i] : [];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i] = [
+        '#type' => 'details',
+        '#title' => $this->t('Role @num', ['@num' => $i + 1]),
+        '#open' => FALSE,
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['company'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Company'),
+        '#default_value' => $role['company'] ?? '',
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['title'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Title'),
+        '#default_value' => $role['title'] ?? '',
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['dates'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['container-inline']],
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['dates']['start_date'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Start (YYYY-MM)'),
+        '#size' => 10,
+        '#default_value' => $role['start_date'] ?? '',
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['dates']['end_date'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('End (YYYY-MM or blank)'),
+        '#size' => 10,
+        '#default_value' => $role['end_date'] ?? '',
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['location'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Location'),
+        '#default_value' => $role['location'] ?? '',
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['employment_type'] = [
+        '#type' => 'select',
+        '#title' => $this->t('Employment Type'),
+        '#options' => [
+          '' => $this->t('- Select -'),
+          'direct' => $this->t('Direct'),
+          'consulting' => $this->t('Consulting'),
+        ],
+        '#default_value' => $role['employment_type'] ?? '',
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['via_company'] = [
+        '#type' => 'textfield',
+        '#title' => $this->t('Via Company (optional)'),
+        '#default_value' => $role['via_company'] ?? '',
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['company_context'] = [
+        '#type' => 'textarea',
+        '#title' => $this->t('Company Context (optional)'),
+        '#rows' => 2,
+        '#default_value' => $role['company_context'] ?? '',
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['highlights'] = [
+        '#type' => 'textarea',
+        '#title' => $this->t('Highlights (optional)'),
+        '#rows' => 4,
+        '#default_value' => $role['highlights'] ?? $role['description'] ?? '',
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['key_achievements'] = [
+        '#type' => 'textarea',
+        '#title' => $this->t('Key Achievements (one per line)'),
+        '#rows' => 4,
+        '#default_value' => is_array($role['key_achievements'] ?? NULL) ? implode("\n", $role['key_achievements']) : ($role['key_achievements'] ?? ''),
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['technologies'] = [
+        '#type' => 'textarea',
+        '#title' => $this->t('Technologies (comma or newline separated)'),
+        '#rows' => 3,
+        '#default_value' => is_array($role['technologies'] ?? NULL) ? implode("\n", $role['technologies']) : ($role['technologies'] ?? ''),
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['remove'] = [
+        '#type' => 'submit',
+        '#value' => $this->t('Remove Role'),
+        '#name' => 'remove_professional_experience_' . $i,
+        '#submit' => ['::removeProfessionalExperienceRow'],
+        '#limit_validation_errors' => [],
+        '#ajax' => [
+          'callback' => '::professionalExperienceAjaxCallback',
+          'wrapper' => 'professional-experience-editor-wrapper',
+        ],
+        '#attributes' => [
+          'class' => ['button'],
+          'data-remove-index' => (string) $i,
+        ],
+      ];
+    }
+
+    $form['professional_experience']['experience_editor']['add_role'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Add Role'),
+      '#submit' => ['::addProfessionalExperienceRow'],
+      '#limit_validation_errors' => [],
+      '#ajax' => [
+        'callback' => '::professionalExperienceAjaxCallback',
+        'wrapper' => 'professional-experience-editor-wrapper',
+      ],
+      '#attributes' => ['class' => ['button', 'button--primary']],
     ];
 
     // Technical Expertise Section (editable JSON)
@@ -1468,7 +1614,162 @@ class UserProfileForm extends FormBase {
       ],
     ];
 
+    // Standardize JSON editing + formatted display inside accordion sections.
+    $this->standardizeAccordionJsonFields($form);
+
     return $form;
+  }
+
+  /**
+   * Standardize JSON field editing and display inside accordion sections.
+   *
+   * For each JSON textarea inside a details section, inject a display element
+   * immediately above it:
+   * - If JSON is valid: show pretty-printed JSON.
+   * - If JSON is invalid: show the parse error message.
+   *
+   * The JSON textarea remains editable.
+   */
+  private function standardizeAccordionJsonFields(array &$form): void {
+    $this->walkForJsonFields($form, FALSE);
+  }
+
+  /**
+   * Recursive walk to find JSON textareas under details sections.
+   */
+  private function walkForJsonFields(array &$element, bool $in_details): void {
+    $current_in_details = $in_details;
+    if (isset($element['#type']) && $element['#type'] === 'details') {
+      $current_in_details = TRUE;
+    }
+
+    foreach ($element as $key => &$child) {
+      if (!is_string($key) || str_starts_with($key, '#') || !is_array($child)) {
+        continue;
+      }
+
+      // Recurse into children first.
+      $this->walkForJsonFields($child, $current_in_details);
+
+      if (!$current_in_details) {
+        continue;
+      }
+
+      if (($child['#type'] ?? NULL) !== 'textarea') {
+        continue;
+      }
+
+      if (!empty($child['#job_hunter_json_standardized'])) {
+        continue;
+      }
+
+      if (!$this->isJsonFieldKey($key)) {
+        continue;
+      }
+
+      // Ensure JSON fields are editable.
+      if (isset($child['#disabled']) && $child['#disabled'] === TRUE) {
+        $child['#disabled'] = FALSE;
+      }
+
+      $this->wrapJsonTextareaInAccordion($child);
+      $child['#job_hunter_json_standardized'] = TRUE;
+    }
+    unset($child);
+  }
+
+  /**
+   * Determine whether a form element key represents a JSON field.
+   */
+  private function isJsonFieldKey(string $key): bool {
+    $key_lower = strtolower($key);
+    if ($key_lower === 'consolidated_profile_json') {
+      return TRUE;
+    }
+    return str_contains($key_lower, 'json') || str_ends_with($key_lower, '_json');
+  }
+
+  /**
+   * Render the JSON display markup.
+   */
+  private function wrapJsonTextareaInAccordion(array &$textarea): void {
+    if (!empty($textarea['#jh_json_wrapped'])) {
+      return;
+    }
+
+    $title = (string) ($textarea['#title'] ?? $this->t('JSON'));
+    $raw = (string) ($textarea['#default_value'] ?? '');
+    $formatted_markup = $this->buildJsonFormattedMarkup($raw);
+
+    // Hide the field label and use the accordion summary as the label.
+    $textarea['#title_display'] = 'invisible';
+
+    $textarea['#prefix'] =
+      '<details class="jh-json-field">'
+      . '<summary>' . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</summary>'
+      . '<div class="details-wrapper">'
+      . $formatted_markup
+      . '<div class="jh-json-editor">';
+
+    $textarea['#suffix'] = '</div></div></details>';
+    $textarea['#jh_json_wrapped'] = TRUE;
+  }
+
+  /**
+   * Build a theme-styled, human-readable rendering of JSON.
+   * If JSON is invalid, returns an error block.
+   */
+  private function buildJsonFormattedMarkup(string $raw): string {
+    $raw_trimmed = trim($raw);
+    if ($raw_trimmed === '') {
+      return '<div class="jh-json-render"><em>'
+        . htmlspecialchars((string) $this->t('No data yet.'), ENT_QUOTES, 'UTF-8')
+        . '</em></div>';
+    }
+
+    $decoded = json_decode($raw_trimmed, TRUE);
+    if (json_last_error() !== JSON_ERROR_NONE) {
+      return '<div class="jh-json-render"><div class="messages messages--error">'
+        . htmlspecialchars((string) $this->t('Invalid JSON: @error', ['@error' => json_last_error_msg()]), ENT_QUOTES, 'UTF-8')
+        . '</div></div>';
+    }
+
+    return '<div class="jh-json-render">' . $this->renderJsonValue($decoded) . '</div>';
+  }
+
+  /**
+   * Render a decoded JSON value as HTML.
+   */
+  private function renderJsonValue(mixed $value, int $depth = 0): string {
+    if ($depth > 6) {
+      return '<em>' . htmlspecialchars((string) $this->t('…'), ENT_QUOTES, 'UTF-8') . '</em>';
+    }
+
+    if (is_array($value)) {
+      $is_assoc = array_keys($value) !== range(0, count($value) - 1);
+      $html = $is_assoc ? '<dl class="jh-json-dl">' : '<ul class="jh-json-ul">';
+      foreach ($value as $k => $v) {
+        if ($is_assoc) {
+          $html .= '<dt>' . htmlspecialchars((string) $k, ENT_QUOTES, 'UTF-8') . '</dt>';
+          $html .= '<dd>' . $this->renderJsonValue($v, $depth + 1) . '</dd>';
+        }
+        else {
+          $html .= '<li>' . $this->renderJsonValue($v, $depth + 1) . '</li>';
+        }
+      }
+      $html .= $is_assoc ? '</dl>' : '</ul>';
+      return $html;
+    }
+
+    if (is_bool($value)) {
+      return htmlspecialchars($value ? 'true' : 'false', ENT_QUOTES, 'UTF-8');
+    }
+    if ($value === NULL) {
+      return '<em>null</em>';
+    }
+
+    // Numbers and strings.
+    return nl2br(htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8'));
   }
 
   /**
@@ -1501,7 +1802,6 @@ class UserProfileForm extends FormBase {
     
     // Validate JSON editor fields
     $json_fields = [
-      'field_professional_experience_json' => 'Professional Experience',
       'field_technical_expertise_json' => 'Technical Expertise',
       'field_strategic_differentiators_json' => 'Strategic Differentiators',
       'field_leadership_philosophy_json' => 'Leadership Philosophy',
@@ -1519,6 +1819,21 @@ class UserProfileForm extends FormBase {
           $form_state->setErrorByName($field, 
             $this->t('@label must be valid JSON format. Error: @error', 
               ['@label' => $label, '@error' => json_last_error_msg()]));
+        }
+      }
+    }
+
+    // Validate professional experience entry dates.
+    $entries = $form_state->getValue(['professional_experience', 'experience_editor', 'professional_experience_entries']);
+    if (is_array($entries)) {
+      foreach ($entries as $idx => $entry) {
+        $start = trim((string) ($entry['dates']['start_date'] ?? ''));
+        $end = trim((string) ($entry['dates']['end_date'] ?? ''));
+        if ($start !== '' && !preg_match('/^\d{4}-\d{2}$/', $start)) {
+          $form_state->setErrorByName('professional_experience', $this->t('Role @num: Start date must be in YYYY-MM format.', ['@num' => $idx + 1]));
+        }
+        if ($end !== '' && !preg_match('/^\d{4}-\d{2}$/', $end)) {
+          $form_state->setErrorByName('professional_experience', $this->t('Role @num: End date must be in YYYY-MM format (or blank).', ['@num' => $idx + 1]));
         }
       }
     }
@@ -1594,10 +1909,11 @@ class UserProfileForm extends FormBase {
           $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
           $this->logInfo('📁 Auto-created job seeker profile for uid: @uid', ['@uid' => $uid]);
         }
+        $job_seeker_id = (int) $job_seeker_profile->id;
         
         // Check if already registered
         $existing = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-          ->condition('job_seeker_id', $uid)
+          ->condition('job_seeker_id', $job_seeker_id)
           ->condition('file_id', $file->id())
           ->countQuery()
           ->execute()
@@ -1606,7 +1922,7 @@ class UserProfileForm extends FormBase {
         if ($existing == 0) {
           // Check if this is the first resume
           $existing_count = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-            ->condition('job_seeker_id', $uid)
+            ->condition('job_seeker_id', $job_seeker_id)
             ->countQuery()
             ->execute()
             ->fetchField();
@@ -1616,7 +1932,7 @@ class UserProfileForm extends FormBase {
           // Register resume
           $resume_id = $connection->insert('jobhunter_job_seeker_resumes')
             ->fields([
-              'job_seeker_id' => $uid,
+              'job_seeker_id' => $job_seeker_id,
               'file_id' => $file->id(),
               'resume_name' => pathinfo($file->getFilename(), PATHINFO_FILENAME),
               'is_primary' => $is_primary,
@@ -1646,62 +1962,36 @@ class UserProfileForm extends FormBase {
                 '@filename' => $file->getFilename(),
               ]);
               
-              // Check if development mode for sync parsing
-              $is_development = $this->isDevelopmentEnvironment();
-              
-              if ($is_development) {
-                // DEV: Parse synchronously with mock data
-                $parsed_data = $this->parseResumeDevMode($extracted_text, $file->getFilename(), $uid, ['id' => $resume_id, 'file_id' => $file->id()]);
-                
-                $timestamp = \Drupal::time()->getRequestTime();
-                $connection->insert('jobhunter_resume_parsed_data')
-                  ->fields([
-                    'uid' => $uid,
-                    'resume_file_id' => $file->id(),
-                    'resume_path' => $file->getFileUri(),
-                    'parsed_data' => json_encode($parsed_data),
-                    'status' => 'dev_mock',
-                    'error_message' => NULL,
-                    'created' => $timestamp,
-                    'changed' => $timestamp,
-                  ])
-                  ->execute();
-                  
-                $this->logInfo('📁 DEV: Sync-parsed resume: @filename', [
-                  '@filename' => $file->getFilename(),
-                ]);
-              } else {
-                // PROD: Queue for background processing
-                $timestamp = \Drupal::time()->getRequestTime();
-                
-                // Create placeholder record with 'queued' status
-                $connection->insert('jobhunter_resume_parsed_data')
-                  ->fields([
-                    'uid' => $uid,
-                    'resume_file_id' => $file->id(),
-                    'resume_path' => $file->getFileUri(),
-                    'parsed_data' => json_encode(['status' => 'queued']),
-                    'status' => 'queued',
-                    'error_message' => NULL,
-                    'created' => $timestamp,
-                    'changed' => $timestamp,
-                  ])
-                  ->execute();
-                
-                // Queue the GenAI parsing job
-                $queue = \Drupal::queue('job_hunter_genai_parsing');
-                $queue->createItem([
+              // Always queue for background processing (dev and prod both use Bedrock).
+              $timestamp = \Drupal::time()->getRequestTime();
+
+              // Create placeholder record with 'queued' status
+              $connection->insert('jobhunter_resume_parsed_data')
+                ->fields([
                   'uid' => $uid,
-                  'resume_id' => $resume_id,
-                  'file_id' => $file->id(),
-                  'extracted_text' => $extracted_text,
-                  'filename' => $file->getFilename(),
-                ]);
-                
-                $this->logInfo('📁 PROD: Queued resume for GenAI parsing: @filename', [
-                  '@filename' => $file->getFilename(),
-                ]);
-              }
+                  'resume_file_id' => $file->id(),
+                  'resume_path' => $file->getFileUri(),
+                  'parsed_data' => json_encode(['status' => 'queued']),
+                  'status' => 'queued',
+                  'error_message' => NULL,
+                  'created' => $timestamp,
+                  'changed' => $timestamp,
+                ])
+                ->execute();
+
+              // Queue the GenAI parsing job
+              $queue = \Drupal::queue('job_hunter_genai_parsing');
+              $queue->createItem([
+                'uid' => $uid,
+                'resume_id' => $resume_id,
+                'file_id' => $file->id(),
+                'extracted_text' => $extracted_text,
+                'filename' => $file->getFilename(),
+              ]);
+
+              $this->logInfo('📁 Queued resume for GenAI parsing: @filename', [
+                '@filename' => $file->getFilename(),
+              ]);
             }
           } catch (\Exception $e) {
             $this->logError('📁 Auto-parse failed: @error', [
@@ -1715,12 +2005,7 @@ class UserProfileForm extends FormBase {
     // Clear the upload field and show appropriate message
     $form_state->setValue('field_resume_file', []);
     
-    $is_development = $this->isDevelopmentEnvironment();
-    if ($is_development) {
-      \Drupal::messenger()->addStatus($this->t('Resume uploaded and processed successfully.'));
-    } else {
-      \Drupal::messenger()->addStatus($this->t('Resume uploaded! AI parsing has been queued. Please check back in 2-3 minutes for results.'));
-    }
+    \Drupal::messenger()->addStatus($this->t('Resume uploaded! AI parsing has been queued. Please check back in 2-3 minutes for results.'));
     
     // Return AJAX response with redirect to force page reload
     $response = new \Drupal\Core\Ajax\AjaxResponse();
@@ -1771,6 +2056,7 @@ class UserProfileForm extends FormBase {
       $job_seeker_id = $this->jobSeekerService->create(['uid' => $uid]);
       $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
     }
+    $job_seeker_id = (int) $job_seeker_profile->id;
     
     foreach ($fids as $fid) {
       $file = \Drupal\file\Entity\File::load($fid);
@@ -1791,7 +2077,7 @@ class UserProfileForm extends FormBase {
       // Check if already registered
       $existing_record = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
         ->fields('jsr', ['id', 'extracted_text'])
-        ->condition('job_seeker_id', $uid)
+        ->condition('job_seeker_id', $job_seeker_id)
         ->condition('file_id', $file->id())
         ->execute()
         ->fetchAssoc();
@@ -1822,7 +2108,7 @@ class UserProfileForm extends FormBase {
       else {
         // New file - register it
         $existing_count = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-          ->condition('job_seeker_id', $uid)
+          ->condition('job_seeker_id', $job_seeker_id)
           ->countQuery()
           ->execute()
           ->fetchField();
@@ -1832,7 +2118,7 @@ class UserProfileForm extends FormBase {
         // Register resume
         $resume_id = $connection->insert('jobhunter_job_seeker_resumes')
           ->fields([
-            'job_seeker_id' => $uid,
+            'job_seeker_id' => $job_seeker_id,
             'file_id' => $file->id(),
             'resume_name' => pathinfo($file->getFilename(), PATHINFO_FILENAME),
             'is_primary' => $is_primary,
@@ -1863,55 +2149,34 @@ class UserProfileForm extends FormBase {
             '@filename' => $file->getFilename(),
           ]);
           
-          // Check if development mode
-          $is_development = $this->isDevelopmentEnvironment();
+          // Always queue for background processing (dev and prod both use Bedrock).
           $timestamp = \Drupal::time()->getRequestTime();
-          
-          if ($is_development) {
-            // DEV: Parse synchronously with mock data
-            $parsed_data = $this->parseResumeDevMode($extracted_text, $file->getFilename(), $uid, ['id' => $resume_id, 'file_id' => $file->id()]);
-            
-            $connection->insert('jobhunter_resume_parsed_data')
-              ->fields([
-                'uid' => $uid,
-                'resume_file_id' => $file->id(),
-                'resume_path' => $file->getFileUri(),
-                'parsed_data' => json_encode($parsed_data),
-                'status' => 'dev_mock',
-                'error_message' => NULL,
-                'created' => $timestamp,
-                'changed' => $timestamp,
-              ])
-              ->execute();
-          } else {
-            // PROD: Queue for background processing
-            $connection->insert('jobhunter_resume_parsed_data')
-              ->fields([
-                'uid' => $uid,
-                'resume_file_id' => $file->id(),
-                'resume_path' => $file->getFileUri(),
-                'parsed_data' => json_encode(['status' => 'queued']),
-                'status' => 'queued',
-                'error_message' => NULL,
-                'created' => $timestamp,
-                'changed' => $timestamp,
-              ])
-              ->execute();
-            
-            // Queue the GenAI parsing job
-            $queue = \Drupal::queue('job_hunter_genai_parsing');
-            $queue->createItem([
+          $connection->insert('jobhunter_resume_parsed_data')
+            ->fields([
               'uid' => $uid,
-              'resume_id' => $resume_id,
-              'file_id' => $file->id(),
-              'extracted_text' => $extracted_text,
-              'filename' => $file->getFilename(),
-            ]);
-            
-            $this->logInfo('📁 Queued for GenAI parsing: @filename', [
-              '@filename' => $file->getFilename(),
-            ]);
-          }
+              'resume_file_id' => $file->id(),
+              'resume_path' => $file->getFileUri(),
+              'parsed_data' => json_encode(['status' => 'queued']),
+              'status' => 'queued',
+              'error_message' => NULL,
+              'created' => $timestamp,
+              'changed' => $timestamp,
+            ])
+            ->execute();
+
+          // Queue the GenAI parsing job
+          $queue = \Drupal::queue('job_hunter_genai_parsing');
+          $queue->createItem([
+            'uid' => $uid,
+            'resume_id' => $resume_id,
+            'file_id' => $file->id(),
+            'extracted_text' => $extracted_text,
+            'filename' => $file->getFilename(),
+          ]);
+
+          $this->logInfo('📁 Queued for GenAI parsing: @filename', [
+            '@filename' => $file->getFilename(),
+          ]);
         }
       } catch (\Exception $e) {
         $this->logError('📁 Processing failed for @filename: @error', [
@@ -1924,12 +2189,7 @@ class UserProfileForm extends FormBase {
     }
     
     if ($processed_count > 0) {
-      $is_development = $this->isDevelopmentEnvironment();
-      if ($is_development) {
-        \Drupal::messenger()->addStatus($this->t('@count resume(s) uploaded and processed successfully.', ['@count' => $processed_count]));
-      } else {
-        \Drupal::messenger()->addStatus($this->t('@count resume(s) uploaded! AI parsing has been queued. Check back in 2-3 minutes for results.', ['@count' => $processed_count]));
-      }
+      \Drupal::messenger()->addStatus($this->t('@count resume(s) uploaded! AI parsing has been queued. Check back in 2-3 minutes for results.', ['@count' => $processed_count]));
     }
     
     // Redirect to refresh the page
@@ -2197,7 +2457,7 @@ class UserProfileForm extends FormBase {
     
     // Check if already registered
     $existing = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-      ->condition('job_seeker_id', $uid)
+      ->condition('job_seeker_id', (int) $job_seeker_profile->id)
       ->condition('file_id', $file->id())
       ->countQuery()
       ->execute()
@@ -2210,7 +2470,7 @@ class UserProfileForm extends FormBase {
     
     // Check if this is the first resume (make it primary)
     $existing_count = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-      ->condition('job_seeker_id', $uid)
+      ->condition('job_seeker_id', (int) $job_seeker_profile->id)
       ->countQuery()
       ->execute()
       ->fetchField();
@@ -2220,7 +2480,7 @@ class UserProfileForm extends FormBase {
     // Insert into jobhunter_job_seeker_resumes table
     $resume_id = $connection->insert('jobhunter_job_seeker_resumes')
       ->fields([
-        'job_seeker_id' => $uid,
+        'job_seeker_id' => (int) $job_seeker_profile->id,
         'file_id' => $file->id(),
         'resume_name' => pathinfo($filename, PATHINFO_FILENAME),
         'is_primary' => $is_primary,
@@ -2238,7 +2498,7 @@ class UserProfileForm extends FormBase {
     
     $this->logInfo('📝 Resume registered with ID: @id', ['@id' => $resume_id]);
     
-    // AUTO-PARSE: Extract text and parse with AI
+    // AUTO-PARSE: Extract text and queue GenAI parsing (Bedrock) for background processing.
     try {
       $extracted_text = $this->extractTextFromFile($file);
       
@@ -2254,36 +2514,33 @@ class UserProfileForm extends FormBase {
           '@filename' => $filename,
         ]);
         
-        // Parse with AI (dev or prod mode)
-        $is_development = $this->isDevelopmentEnvironment();
-        
-        if ($is_development) {
-          $parsed_data = $this->parseResumeDevMode($extracted_text, $filename, $uid, ['id' => $resume_id, 'file_id' => $file->id()]);
-        } else {
-          $parsed_data = $this->parseResumeProdMode($extracted_text, $filename);
-        }
-        
-        // Store individual resume parsed data
+        // Create placeholder parsed-data record and queue parsing.
         $timestamp = \Drupal::time()->getRequestTime();
         $connection->insert('jobhunter_resume_parsed_data')
           ->fields([
             'uid' => $uid,
             'resume_file_id' => $file->id(),
             'resume_path' => $file->getFileUri(),
-            'parsed_data' => json_encode($parsed_data),
-            'status' => $is_development ? 'dev_mock' : 'completed',
+            'parsed_data' => json_encode(['status' => 'queued']),
+            'status' => 'queued',
             'error_message' => NULL,
             'created' => $timestamp,
             'changed' => $timestamp,
           ])
           ->execute();
-        
-        $this->logInfo('📝 Auto-parsed resume: @filename', ['@filename' => $filename]);
-        
-        // Build consolidated JSON and apply to profile
-        $this->buildConsolidatedJsonAndApplyToProfile($uid, $parsed_data);
-        
-        \Drupal::messenger()->addStatus($this->t('Resume "@filename" has been registered and parsed successfully!', ['@filename' => $filename]));
+
+        $queue = \Drupal::queue('job_hunter_genai_parsing');
+        $queue->createItem([
+          'uid' => $uid,
+          'resume_id' => $resume_id,
+          'file_id' => $file->id(),
+          'extracted_text' => $extracted_text,
+          'filename' => $filename,
+        ]);
+
+        $this->logInfo('📝 Queued resume for GenAI parsing: @filename', ['@filename' => $filename]);
+
+        \Drupal::messenger()->addStatus($this->t('Resume "@filename" has been registered. AI parsing has been queued.', ['@filename' => $filename]));
       } else {
         \Drupal::messenger()->addStatus($this->t('Resume "@filename" has been registered. (Text extraction returned empty - check file format)', ['@filename' => $filename]));
       }
@@ -2339,8 +2596,10 @@ class UserProfileForm extends FormBase {
         ]);
         
         // Delete from jobhunter_job_seeker_resumes
+        $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
+        $job_seeker_id = $job_seeker_profile ? (int) $job_seeker_profile->id : 0;
         $deleted_resume = $connection->delete('jobhunter_job_seeker_resumes')
-          ->condition('job_seeker_id', $uid)
+          ->condition('job_seeker_id', $job_seeker_id)
           ->condition('file_id', $file_id)
           ->execute();
         $logger->info('🗑️ Deleted @count resume records for file_id @fid', [
@@ -2555,9 +2814,14 @@ class UserProfileForm extends FormBase {
       ]);
       
       // Get all resumes for this user
+      $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
+      $job_seeker_ids = array_values(array_unique(array_filter([
+        (int) $uid,
+        (int) ($job_seeker_profile->id ?? 0),
+      ])));
       $resumes = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
         ->fields('jsr', ['id', 'file_id', 'resume_name'])
-        ->condition('job_seeker_id', $uid)
+        ->condition('job_seeker_id', $job_seeker_ids, 'IN')
         ->execute()
         ->fetchAll();
       
@@ -2900,15 +3164,9 @@ class UserProfileForm extends FormBase {
       $this->storeExtractedText($connection, $resume_record['id'], $extracted_text, $filename);
       
       // ===================================================================
-      // STEP 5: Parse Resume with GenAI Service
+      // STEP 5: Parse Resume with GenAI Service (Bedrock)
       // ===================================================================
-      $is_development = $this->isDevelopmentEnvironment();
-      
-      if ($is_development) {
-        $parsed_data = $this->parseResumeDevMode($extracted_text, $filename, $uid, $resume_record);
-      } else {
-        $parsed_data = $this->parseResumeProdMode($extracted_text, $filename);
-      }
+      $parsed_data = $this->parseResumeProdMode($extracted_text, $filename);
       
       // ===================================================================
       // STEP 6: Store Individual Resume Parsed Data
@@ -2920,7 +3178,7 @@ class UserProfileForm extends FormBase {
           'resume_file_id' => $resume_record['file_id'],
           'resume_path' => $file_uri,
           'parsed_data' => json_encode($parsed_data),
-          'status' => $is_development ? 'dev_mock' : 'completed',
+          'status' => 'complete',
           'error_message' => NULL,
           'created' => $timestamp,
           'changed' => $timestamp,
@@ -3558,7 +3816,203 @@ class UserProfileForm extends FormBase {
       }
     }
 
+    // Final fallback for online presence: derive URLs directly from uploaded resume(s)
+    // when GenAI didn't populate contact_info.websites.
+    if (in_array($field_name, ['field_linkedin_url', 'field_github_url', 'field_portfolio_url'], TRUE)) {
+      $uid = (int) ($job_seeker_profile->uid ?? \Drupal::currentUser()->id());
+      $derived = $this->deriveOnlinePresenceFromResumes($uid, $consolidated);
+      if ($field_name === 'field_linkedin_url' && !empty($derived['linkedin'])) {
+        return $derived['linkedin'];
+      }
+      if ($field_name === 'field_github_url' && !empty($derived['github'])) {
+        return $derived['github'];
+      }
+      if ($field_name === 'field_portfolio_url' && !empty($derived['portfolio'])) {
+        return $derived['portfolio'];
+      }
+    }
+
     return $default;
+  }
+
+  /**
+   * Derive online presence URLs from extracted resume text and other consolidated fields.
+   *
+   * If extracted_text is missing for a resume record, this will attempt extraction
+   * from the file and backfill the resume table.
+   */
+  private function deriveOnlinePresenceFromResumes(int $uid, ?array $consolidated = NULL): array {
+    static $cache = [];
+    if (isset($cache[$uid])) {
+      return $cache[$uid];
+    }
+
+    $derived = [
+      'linkedin' => '',
+      'github' => '',
+      'portfolio' => '',
+    ];
+
+    // First, try to infer a portfolio/personal site from consolidated fields.
+    if (is_array($consolidated)) {
+      $cp = $consolidated['consulting_practice'] ?? NULL;
+      if (is_array($cp)) {
+        foreach (['website', 'url'] as $k) {
+          if (empty($derived['portfolio']) && !empty($cp[$k]) && is_string($cp[$k])) {
+            $derived['portfolio'] = $cp[$k];
+          }
+        }
+      }
+
+      if (empty($derived['portfolio']) && !empty($consolidated['demonstration_projects']) && is_array($consolidated['demonstration_projects'])) {
+        foreach ($consolidated['demonstration_projects'] as $proj) {
+          if (is_array($proj) && !empty($proj['url']) && is_string($proj['url'])) {
+            $derived['portfolio'] = $proj['url'];
+            break;
+          }
+        }
+      }
+    }
+
+    $connection = \Drupal::database();
+    $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
+    $job_seeker_ids = array_values(array_unique(array_filter([
+      (int) $uid,
+      (int) ($job_seeker_profile->id ?? 0),
+    ])));
+    $rows = $connection->select('jobhunter_job_seeker_resumes', 'r')
+      ->fields('r', ['id', 'file_id', 'extracted_text'])
+      ->condition('job_seeker_id', $job_seeker_ids, 'IN')
+      ->execute()
+      ->fetchAll();
+
+    $all_text = '';
+    foreach ($rows as $row) {
+      $text = is_string($row->extracted_text ?? NULL) ? $row->extracted_text : '';
+      if ($text === '' && !empty($row->file_id)) {
+        $file = \Drupal\file\Entity\File::load((int) $row->file_id);
+        if ($file) {
+          $text = $this->extractTextFromFile($file);
+          if (is_string($text) && $text !== '') {
+            $connection->update('jobhunter_job_seeker_resumes')
+              ->fields(['extracted_text' => $text])
+              ->condition('id', (int) $row->id)
+              ->execute();
+          }
+        }
+      }
+      if (is_string($text) && $text !== '') {
+        $all_text .= "\n" . $text;
+      }
+    }
+
+    $urls = $this->extractUrlsFromText($all_text);
+    foreach ($urls as $url) {
+      $lower = strtolower($url);
+      if (empty($derived['linkedin']) && str_contains($lower, 'linkedin.com')) {
+        $derived['linkedin'] = $url;
+      }
+      if (empty($derived['github']) && str_contains($lower, 'github.com')) {
+        $derived['github'] = $url;
+      }
+    }
+
+    if (empty($derived['portfolio'])) {
+      foreach ($urls as $url) {
+        $lower = strtolower($url);
+        if (str_contains($lower, 'linkedin.com') || str_contains($lower, 'github.com')) {
+          continue;
+        }
+        $derived['portfolio'] = $url;
+        break;
+      }
+    }
+
+    // Persist into consolidated_profile_json if websites are missing.
+    // This makes the rest of the form (and future loads) consistent.
+    if (is_array($consolidated)) {
+      $existing_sites = $consolidated['contact_info']['websites'] ?? NULL;
+      $needs_write = empty($existing_sites) && (
+        !empty($derived['linkedin']) ||
+        !empty($derived['github']) ||
+        !empty($derived['portfolio'])
+      );
+
+      if ($needs_write) {
+        if (!isset($consolidated['contact_info']) || !is_array($consolidated['contact_info'])) {
+          $consolidated['contact_info'] = [];
+        }
+        $sites = [];
+        if (!empty($derived['linkedin'])) {
+          $sites[] = ['type' => 'linkedin', 'url' => $derived['linkedin']];
+        }
+        if (!empty($derived['github'])) {
+          $sites[] = ['type' => 'github', 'url' => $derived['github']];
+        }
+        if (!empty($derived['portfolio'])) {
+          $sites[] = ['type' => 'personal', 'url' => $derived['portfolio']];
+        }
+        $consolidated['contact_info']['websites'] = $sites;
+
+        try {
+          $connection->update('jobhunter_job_seeker')
+            ->fields(['consolidated_profile_json' => json_encode($consolidated)])
+            ->condition('uid', $uid)
+            ->execute();
+        } catch (\Exception $e) {
+          // Non-fatal; derived values still returned for this request.
+        }
+      }
+    }
+
+    $cache[$uid] = $derived;
+    return $derived;
+  }
+
+  /**
+   * Extract and normalize URLs from plain text.
+   */
+  private function extractUrlsFromText(string $text): array {
+    if ($text === '') {
+      return [];
+    }
+
+    $candidates = [];
+
+    if (preg_match_all('~https?://[^\s<>()\[\]"\'`]+~i', $text, $m)) {
+      $candidates = array_merge($candidates, $m[0]);
+    }
+    if (preg_match_all('~\bwww\.[^\s<>()\[\]"\'`]+~i', $text, $m2)) {
+      foreach ($m2[0] as $u) {
+        $candidates[] = 'https://' . $u;
+      }
+    }
+    if (preg_match_all('~\blinkedin\.com/[^\s<>()\[\]"\'`]+~i', $text, $m3)) {
+      foreach ($m3[0] as $u) {
+        $candidates[] = 'https://' . $u;
+      }
+    }
+    if (preg_match_all('~\bgithub\.com/[^\s<>()\[\]"\'`]+~i', $text, $m4)) {
+      foreach ($m4[0] as $u) {
+        $candidates[] = 'https://' . $u;
+      }
+    }
+
+    $normalized = [];
+    foreach ($candidates as $u) {
+      if (!is_string($u) || $u === '') {
+        continue;
+      }
+      $u = rtrim($u, ".,);:]\"'>");
+      // Very basic sanity.
+      if (!preg_match('~^https?://~i', $u)) {
+        continue;
+      }
+      $normalized[] = $u;
+    }
+
+    $normalized = array_values(array_unique($normalized));
+    return $normalized;
   }
 
   /**
@@ -3574,7 +4028,6 @@ class UserProfileForm extends FormBase {
   private function setConsolidatedValue(array &$consolidated, string $field_name, $value) {
     // Handle JSON editor fields - these replace entire sections
     $json_fields = [
-      'field_professional_experience_json' => 'professional_experience',
       'field_technical_expertise_json' => 'technical_expertise',
       'field_strategic_differentiators_json' => 'strategic_differentiators',
       'field_leadership_philosophy_json' => 'leadership_philosophy',
@@ -3789,7 +4242,6 @@ class UserProfileForm extends FormBase {
       'field_city',
       'field_state',
       // JSON editor fields
-      'field_professional_experience_json',
       'field_technical_expertise_json',
       'field_strategic_differentiators_json',
       'field_leadership_philosophy_json',
@@ -3812,6 +4264,97 @@ class UserProfileForm extends FormBase {
       $consolidated['extraction_metadata']['last_form_sync'] = date('c');
       $job_seeker_data['consolidated_profile_json'] = json_encode($consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
     }
+
+    // Sync structured professional experience editor.
+    $experience_entries = $form_state->getValue(['professional_experience', 'experience_editor', 'professional_experience_entries']);
+    if (is_array($experience_entries)) {
+      $existing_roles = $consolidated['professional_experience'] ?? [];
+      if (!is_array($existing_roles)) {
+        $existing_roles = [];
+      }
+
+      $roles = [];
+      foreach ($experience_entries as $idx => $entry) {
+        if (!is_array($entry)) {
+          continue;
+        }
+        $company = trim((string) ($entry['company'] ?? ''));
+        $title = trim((string) ($entry['title'] ?? ''));
+        if ($company === '' && $title === '') {
+          continue;
+        }
+
+        $start = trim((string) ($entry['dates']['start_date'] ?? ''));
+        $end = trim((string) ($entry['dates']['end_date'] ?? ''));
+        $tech_raw = (string) ($entry['technologies'] ?? '');
+        $ach_raw = (string) ($entry['key_achievements'] ?? '');
+
+        $technologies = array_values(array_filter(array_map('trim', preg_split('/[\n,]+/', $tech_raw))));
+        $achievements = array_values(array_filter(array_map('trim', preg_split('/\R+/', $ach_raw))));
+
+        $role = is_array($existing_roles[$idx] ?? NULL) ? $existing_roles[$idx] : [];
+        $role['company'] = $company;
+        $role['title'] = $title;
+        $role['employment_type'] = trim((string) ($entry['employment_type'] ?? ''));
+        $role['via_company'] = trim((string) ($entry['via_company'] ?? ''));
+        $role['start_date'] = $start;
+        $role['end_date'] = $end === '' ? NULL : $end;
+        $role['location'] = trim((string) ($entry['location'] ?? ''));
+        $role['company_context'] = trim((string) ($entry['company_context'] ?? ''));
+        $role['highlights'] = trim((string) ($entry['highlights'] ?? ''));
+        $role['key_achievements'] = $achievements;
+        $role['technologies'] = $technologies;
+
+        $roles[] = $role;
+      }
+
+      if (!empty($roles)) {
+        $consolidated['professional_experience'] = $roles;
+      }
+      else {
+        $consolidated['professional_experience'] = [];
+      }
+
+      $consolidated['extraction_metadata']['last_form_sync'] = date('c');
+      $job_seeker_data['consolidated_profile_json'] = json_encode($consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES);
+    }
+  }
+
+  /**
+   * AJAX callback for professional experience editor.
+   */
+  public function professionalExperienceAjaxCallback(array &$form, FormStateInterface $form_state): array {
+    return $form['professional_experience']['experience_editor'];
+  }
+
+  /**
+   * Add another professional experience row.
+   */
+  public function addProfessionalExperienceRow(array &$form, FormStateInterface $form_state): void {
+    $count = (int) ($form_state->get('professional_experience_row_count') ?? 1);
+    $form_state->set('professional_experience_row_count', $count + 1);
+    $form_state->setRebuild(TRUE);
+  }
+
+  /**
+   * Remove a professional experience row.
+   */
+  public function removeProfessionalExperienceRow(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $idx = (int) ($trigger['#attributes']['data-remove-index'] ?? -1);
+    $count = (int) ($form_state->get('professional_experience_row_count') ?? 1);
+
+    if ($idx >= 0) {
+      $values = $form_state->getValue(['professional_experience', 'experience_editor', 'professional_experience_entries']);
+      if (is_array($values) && isset($values[$idx])) {
+        unset($values[$idx]);
+        $values = array_values($values);
+        $form_state->setValue(['professional_experience', 'experience_editor', 'professional_experience_entries'], $values);
+      }
+    }
+
+    $form_state->set('professional_experience_row_count', max(1, $count - 1));
+    $form_state->setRebuild(TRUE);
   }
 
   /**
@@ -3844,10 +4387,15 @@ class UserProfileForm extends FormBase {
    * STEP 1 Helper: Load resume record from database.
    */
   private function loadResumeRecord($resume_id, $uid, $connection) {
+    $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
+    $job_seeker_ids = array_values(array_unique(array_filter([
+      (int) $uid,
+      (int) ($job_seeker_profile->id ?? 0),
+    ])));
     $resume_record = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
       ->fields('jsr', ['id', 'file_id', 'resume_name', 'extracted_text'])
       ->condition('id', $resume_id)
-      ->condition('job_seeker_id', $uid)
+      ->condition('job_seeker_id', $job_seeker_ids, 'IN')
       ->execute()
       ->fetchAssoc();
 
@@ -3868,7 +4416,9 @@ class UserProfileForm extends FormBase {
     }
 
     $file_uri = $file->getFileUri();
-    if (!file_exists($file_uri)) {
+
+    $file_path = \Drupal::service('file_system')->realpath($file_uri);
+    if (!$file_path || !file_exists($file_path)) {
       throw new \Exception("Resume file not found: " . basename($file_uri));
     }
     
@@ -4849,6 +5399,170 @@ PROMPT;
   }
 
   /**
+   * Normalizes legacy status values in jobhunter_resume_parsed_data.
+   */
+  private function normalizeResumeParsedDataStatuses(int $uid): void {
+    try {
+      $connection = \Drupal::database();
+      // Legacy rows may have used 'completed' instead of 'complete'.
+      $connection->update('jobhunter_resume_parsed_data')
+        ->fields(['status' => 'complete', 'changed' => \Drupal::time()->getRequestTime()])
+        ->condition('uid', $uid)
+        ->condition('status', 'completed')
+        ->execute();
+    }
+    catch (\Exception $e) {
+      // Non-fatal: UI can still fall back to tolerant checks.
+      $this->logWarning('Resume parsed_data status normalization failed: @error', ['@error' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Fetches the latest parsed record for a given file.
+   *
+   * If no record exists for the current file ID, attempts to find a legacy
+   * record by matching filename in resume_path and repairs resume_file_id.
+   */
+  private function getLatestParsedRecordForFile($connection, int $uid, int $file_id, string $file_uri, string $filename): ?array {
+    $parsed_record = $connection->select('jobhunter_resume_parsed_data', 'rpd')
+      ->fields('rpd', ['id', 'parsed_data', 'status', 'error_message', 'resume_file_id'])
+      ->condition('uid', $uid)
+      ->condition('resume_file_id', $file_id)
+      ->orderBy('changed', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if ($parsed_record) {
+      return $parsed_record;
+    }
+
+    // Legacy fallback: match by filename in resume_path.
+    $like = '%' . $connection->escapeLike('/' . $filename);
+    $legacy = $connection->select('jobhunter_resume_parsed_data', 'rpd')
+      ->fields('rpd', ['id', 'parsed_data', 'status', 'error_message', 'resume_file_id', 'resume_path'])
+      ->condition('uid', $uid)
+      ->condition('resume_path', $like, 'LIKE')
+      ->orderBy('changed', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (empty($legacy)) {
+      return NULL;
+    }
+
+    // Repair linkage if needed (and safe).
+    if (!empty($legacy['resume_file_id']) && (int) $legacy['resume_file_id'] !== $file_id) {
+      try {
+        $connection->update('jobhunter_resume_parsed_data')
+          ->fields([
+            'resume_file_id' => $file_id,
+            'resume_path' => $file_uri,
+            'changed' => \Drupal::time()->getRequestTime(),
+          ])
+          ->condition('id', (int) $legacy['id'])
+          ->execute();
+        $legacy['resume_file_id'] = $file_id;
+        $legacy['resume_path'] = $file_uri;
+      }
+      catch (\Exception $e) {
+        $this->logWarning('Failed to repair resume_file_id on parsed_data row @id: @error', [
+          '@id' => $legacy['id'],
+          '@error' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    if (($legacy['status'] ?? NULL) === 'completed') {
+      $legacy['status'] = 'complete';
+    }
+
+    return $legacy;
+  }
+
+  /**
+   * Ensures consolidated_profile_json has extraction_metadata.source_files when
+   * all resume parsing is complete.
+   */
+  private function ensureResumeConsolidationUpToDate(int $uid): void {
+    try {
+      $connection = \Drupal::database();
+
+      $pending = (int) $connection->select('jobhunter_resume_parsed_data', 'rpd')
+        ->condition('uid', $uid)
+        ->condition('status', ['queued', 'processing'], 'IN')
+        ->countQuery()
+        ->execute()
+        ->fetchField();
+
+      if ($pending > 0) {
+        return;
+      }
+
+      $complete_rows = $connection->select('jobhunter_resume_parsed_data', 'rpd')
+        ->fields('rpd', ['resume_file_id'])
+        ->condition('uid', $uid)
+        ->condition('status', 'complete')
+        ->execute()
+        ->fetchCol();
+
+      if (empty($complete_rows)) {
+        return;
+      }
+
+      $profile = $connection->select('jobhunter_job_seeker', 'js')
+        ->fields('js', ['consolidated_profile_json'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
+
+      $consolidated = [];
+      if (!empty($profile['consolidated_profile_json'])) {
+        $consolidated = json_decode($profile['consolidated_profile_json'], TRUE) ?: [];
+      }
+
+      $source_files = $consolidated['extraction_metadata']['source_files'] ?? [];
+      if (!is_array($source_files)) {
+        $source_files = [];
+      }
+
+      $expected_filenames = [];
+      foreach ($complete_rows as $fid) {
+        $file = \Drupal\file\Entity\File::load((int) $fid);
+        if ($file) {
+          $expected_filenames[] = $file->getFilename();
+        }
+      }
+      $expected_filenames = array_values(array_unique(array_filter($expected_filenames)));
+
+      // If consolidation already includes every file, do nothing.
+      $missing = array_values(array_diff($expected_filenames, $source_files));
+      if (empty($missing)) {
+        return;
+      }
+
+      // Run the exact same consolidation logic as the queue worker.
+      $worker = \Drupal\job_hunter\Plugin\QueueWorker\ResumeGenAiParsingWorker::create(
+        \Drupal::getContainer(),
+        [],
+        'job_hunter_genai_parsing',
+        []
+      );
+      $ref = new \ReflectionClass($worker);
+      $method = $ref->getMethod('consolidateAllParsedData');
+      $method->setAccessible(TRUE);
+      $method->invoke($worker, $uid);
+    }
+    catch (\Exception $e) {
+      $this->logWarning('Auto-consolidation check failed for uid @uid: @error', [
+        '@uid' => $uid,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  /**
    * Helper to merge an array section by a key field.
    */
   private function mergeArraySection(array &$consolidated, string $section, array $newItems, string $keyField): int {
@@ -5121,7 +5835,8 @@ PROMPT;
       ->fetchField();
 
     $timestamp = \Drupal::time()->getRequestTime();
-    $status = $is_development ? 'dev_mock' : 'pending';
+    // Parsed data exists at this point, so status is complete.
+    $status = 'complete';
 
     if ($existing) {
       // Update existing record
@@ -5168,29 +5883,8 @@ PROMPT;
    *   TRUE if in development environment, FALSE if in production.
    */
   protected function isDevelopmentEnvironment(): bool {
-    // Check for GitHub Codespaces environment variable
-    if (getenv('CODESPACES') === 'true') {
-      return TRUE;
-    }
-    
-    // Check for common development indicators
-    if (getenv('ENVIRONMENT') === 'development' || 
-        getenv('APP_ENV') === 'dev' ||
-        $_SERVER['SERVER_NAME'] === 'localhost' ||
-        strpos($_SERVER['HTTP_HOST'] ?? '', 'codespace') !== FALSE) {
-      return TRUE;
-    }
-    
-    // Check Drupal site URI for development patterns
-    $request = \Drupal::request();
-    $host = $request->getHost();
-    if (strpos($host, 'localhost') !== FALSE || 
-        strpos($host, '127.0.0.1') !== FALSE ||
-        strpos($host, 'codespace') !== FALSE ||
-        strpos($host, '.local') !== FALSE) {
-      return TRUE;
-    }
-    
+    // Dev/prod both use Bedrock. Keep the method for backward compatibility
+    // with older code paths, but never treat an environment as "mock".
     return FALSE;
   }
 
@@ -5374,24 +6068,52 @@ PROMPT;
         return file_get_contents($file_path);
         
       case 'pdf':
-        // Try to use pdftotext if available
-        if (shell_exec('which pdftotext')) {
-          $output = shell_exec("pdftotext " . escapeshellarg($file_path) . " -");
-          return $output;
+        // Use pdftotext; don't rely on PATH/which (web SAPI PATH can be minimal).
+        $pdftotext = NULL;
+        foreach (['/usr/bin/pdftotext', '/bin/pdftotext', 'pdftotext'] as $candidate) {
+          if ($candidate === 'pdftotext' || file_exists($candidate)) {
+            $pdftotext = $candidate;
+            break;
+          }
+        }
+        if ($pdftotext) {
+          $cmd = escapeshellcmd($pdftotext) . ' ' . escapeshellarg($file_path) . ' -';
+          $output = shell_exec($cmd);
+          return is_string($output) ? $output : '';
         }
         break;
         
       case 'doc':
       case 'docx':
         // Handle DOCX files with docx2txt
-        if (strtolower($extension) === 'docx' && shell_exec('which docx2txt')) {
-          $output = shell_exec("docx2txt " . escapeshellarg($file_path) . " -");
-          return $output;
+        if (strtolower($extension) === 'docx') {
+          $docx2txt = NULL;
+          foreach (['/usr/bin/docx2txt', '/bin/docx2txt', 'docx2txt'] as $candidate) {
+            if ($candidate === 'docx2txt' || file_exists($candidate)) {
+              $docx2txt = $candidate;
+              break;
+            }
+          }
+          if ($docx2txt) {
+            $cmd = escapeshellcmd($docx2txt) . ' ' . escapeshellarg($file_path) . ' -';
+            $output = shell_exec($cmd);
+            return is_string($output) ? $output : '';
+          }
         }
         // Handle DOC files with antiword
-        if (strtolower($extension) === 'doc' && shell_exec('which antiword')) {
-          $output = shell_exec("antiword " . escapeshellarg($file_path));
-          return $output;
+        if (strtolower($extension) === 'doc') {
+          $antiword = NULL;
+          foreach (['/usr/bin/antiword', '/bin/antiword', 'antiword'] as $candidate) {
+            if ($candidate === 'antiword' || file_exists($candidate)) {
+              $antiword = $candidate;
+              break;
+            }
+          }
+          if ($antiword) {
+            $cmd = escapeshellcmd($antiword) . ' ' . escapeshellarg($file_path);
+            $output = shell_exec($cmd);
+            return is_string($output) ? $output : '';
+          }
         }
         break;
     }
@@ -5528,7 +6250,9 @@ PROMPT;
       return '';
     }
 
+    $count = is_array($consolidated['professional_experience']) ? count($consolidated['professional_experience']) : 0;
     $html = '<div class="professional-experience-display" style="max-height: 600px; overflow-y: auto;">';
+    $html .= '<div style="margin: 0 0 10px 0; color: #495057; font-weight: bold;">Recent Professional Experience (' . (int) $count . ' roles)</div>';
     
     foreach ($consolidated['professional_experience'] as $job) {
       $company = htmlspecialchars($job['company'] ?? 'Unknown Company');

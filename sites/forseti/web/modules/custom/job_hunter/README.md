@@ -21,6 +21,7 @@ This module has comprehensive documentation organized for different audiences:
 A comprehensive AI-powered Drupal module that automates the entire job application process using Generative AI. This system analyzes user resumes, scrapes job postings from employer websites, tailors applications using AI, and automatically submits applications across multiple employer platforms.
 
 ## Maintenance Notes
+- 2026-02-19: Auto-generate cover letter templates on profile load when missing, removing the manual generate button.
 - 2026-02-19: Unified profile form resume parsing with ResumeGenAiParsingWorker chunked parsing to ensure a single shared GenAI flow and avoid token limits.
 - 2026-02-19: Aligned error queue admin routes with the standard admin permission and added paging plus safe message previews to the error list.
 - 2026-02-19: Split resume parsing into core and professional experience passes with adaptive chunk splitting to avoid token limits.
@@ -202,18 +203,25 @@ now includes a single note indicating all salary values are in USD.
 }
 ```
 
-#### **Current Scope: JSON Storage ONLY** **[🎯 FOCUSED]**
+#### **Current Scope: JSON + Projections** **[🎯 FOCUSED]**
 
-The workflow is currently simplified to focus exclusively on JSON storage in two fields:
-1. **Individual Resume Data**: `jobhunter_resume_parsed_data.parsed_data` (per resume file)
-2. **Consolidated Profile Data**: `jobhunter_job_seeker.consolidated_profile_json` (merged from all resumes)
+The workflow uses a hybrid approach:
+1. **AI Artifacts (JSON)**
+   - **Individual Resume Data**: `jobhunter_resume_parsed_data.parsed_data` (per resume file)
+   - **Consolidated Profile Data**: `jobhunter_job_seeker.consolidated_profile_json` (merged from all resumes)
+2. **Query-Friendly Projections (Columns)**
+   - A small set of commonly-filtered fields are written into dedicated columns on
+     `jobhunter_job_seeker` (e.g., location, remote preference, salary range, key URLs).
+   - These projection columns are **derived** from `consolidated_profile_json` and can be
+     rebuilt at any time; they exist to support fast filtering/sorting and workflow checks
+     without requiring JSON parsing.
 
 **Features Deferred (Commented Out)**:
 - ❌ Profile text field population (professional_summary, skills, certifications columns)
 - ❌ Job history relational table inserts (`jobhunter_job_history` table unused)
 - ❌ Education history relational table inserts (`jobhunter_education_history` table unused)
 
-These features exist in the codebase but are commented out per development priorities. Future implementation will populate relational tables and profile text fields from the consolidated JSON data.
+These features exist in the codebase but are commented out per development priorities. Future implementation may populate relational tables and/or Drupal fields from the consolidated JSON data.
 
 ### **Automatic Resume Tailoring** (Consolidated from resume_tailoring module):
 1. **Create Job Posting** - Add new job_posting node with company, title, and description **[✅ WORKING]**

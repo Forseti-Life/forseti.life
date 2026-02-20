@@ -255,11 +255,10 @@ To manually remove items after uninstall:
 
 ### How do I access job seeker profiles?
 - **View profile:** `/jobhunter/profile`
-- **Create profile:** `/jobseeker/add`
-- **Edit profile:** `/jobseeker/{id}/edit`
+- **Edit profile:** `/jobhunter/profile/edit`
 - **Dashboard:** `/jobhunter`
 
-All routes require administrator permission (`administer job application automation`).
+All routes require appropriate permissions (typically `access job hunter` for members, and admin permissions for administrative pages).
 
 ### Can I use a different AI service?
 The module is architected with a service layer (`ResumeTailoringService`). You can create an alternative service implementation for different AI providers. However, the default implementation is tightly coupled to AWS Bedrock.

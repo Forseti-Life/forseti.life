@@ -301,6 +301,185 @@ function job_hunter_update_9028() {
 }
 
 /**
+ * Add projection columns to jobhunter_job_seeker for query-friendly access.
+ *
+ * These fields are derived from consolidated_profile_json and are intended
+ * for filtering/sorting without JSON parsing.
+ */
+function job_hunter_update_9029() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_job_seeker')) {
+    return t('Table jobhunter_job_seeker does not exist.');
+  }
+
+  $fields = [
+    'full_name' => [
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => 'Projected full name from consolidated profile JSON.',
+    ],
+    'contact_email' => [
+      'type' => 'varchar',
+      'length' => 255,
+      'description' => 'Projected email from consolidated profile JSON.',
+    ],
+    'contact_phone' => [
+      'type' => 'varchar',
+      'length' => 64,
+      'description' => 'Projected phone from consolidated profile JSON.',
+    ],
+    'location_city' => [
+      'type' => 'varchar',
+      'length' => 128,
+      'description' => 'Projected city from consolidated profile JSON.',
+    ],
+    'location_state' => [
+      'type' => 'varchar',
+      'length' => 64,
+      'description' => 'Projected state/region from consolidated profile JSON.',
+    ],
+    'remote_preference' => [
+      'type' => 'varchar',
+      'length' => 32,
+      'description' => 'Projected remote preference (remote|hybrid|onsite|any).',
+    ],
+    'relocation_willing' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'default' => 0,
+      'description' => 'Projected relocation willingness (1=yes,0=no).',
+    ],
+    'salary_min' => [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Projected minimum salary expectation.',
+    ],
+    'salary_max' => [
+      'type' => 'int',
+      'not null' => FALSE,
+      'description' => 'Projected maximum salary expectation.',
+    ],
+    'available_start_date' => [
+      'type' => 'varchar',
+      'length' => 10,
+      'description' => 'Projected available start date (YYYY-MM-DD).',
+    ],
+    'linkedin_url' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'description' => 'Projected LinkedIn URL from consolidated profile JSON.',
+    ],
+    'github_url' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'description' => 'Projected GitHub URL from consolidated profile JSON.',
+    ],
+    'portfolio_url' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'description' => 'Projected portfolio/personal site URL from consolidated profile JSON.',
+    ],
+    'projection_updated' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Timestamp when projection columns were last updated.',
+    ],
+  ];
+
+  $added = [];
+  foreach ($fields as $name => $spec) {
+    if (!$schema->fieldExists('jobhunter_job_seeker', $name)) {
+      $schema->addField('jobhunter_job_seeker', $name, $spec);
+      $added[] = $name;
+    }
+  }
+
+  // Add a few lightweight indexes for common filters.
+  if (!$schema->indexExists('jobhunter_job_seeker', 'idx_location_state')) {
+    $schema->addIndex('jobhunter_job_seeker', 'idx_location_state', ['location_state'], [
+      'fields' => [
+        'location_state' => ['type' => 'varchar', 'length' => 64],
+      ],
+    ]);
+  }
+  if (!$schema->indexExists('jobhunter_job_seeker', 'idx_remote_preference')) {
+    $schema->addIndex('jobhunter_job_seeker', 'idx_remote_preference', ['remote_preference'], [
+      'fields' => [
+        'remote_preference' => ['type' => 'varchar', 'length' => 32],
+      ],
+    ]);
+  }
+  if (!$schema->indexExists('jobhunter_job_seeker', 'idx_salary_min')) {
+    $schema->addIndex('jobhunter_job_seeker', 'idx_salary_min', ['salary_min'], [
+      'fields' => [
+        'salary_min' => ['type' => 'int'],
+      ],
+    ]);
+  }
+
+  if (empty($added)) {
+    return t('No update needed - projection columns already exist.');
+  }
+
+  return t('Added projection columns to jobhunter_job_seeker: @columns', [
+    '@columns' => implode(', ', $added),
+  ]);
+}
+
+/**
+ * Ensure projection indexes exist for jobhunter_job_seeker.
+ *
+ * This is separate from 9029 because 9029 may have partially applied before
+ * failing (e.g., columns created but indexes missing).
+ */
+function job_hunter_update_9030() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_job_seeker')) {
+    return t('Table jobhunter_job_seeker does not exist.');
+  }
+
+  $created = [];
+
+  if (!$schema->indexExists('jobhunter_job_seeker', 'idx_location_state') && $schema->fieldExists('jobhunter_job_seeker', 'location_state')) {
+    $schema->addIndex('jobhunter_job_seeker', 'idx_location_state', ['location_state'], [
+      'fields' => [
+        'location_state' => ['type' => 'varchar', 'length' => 64],
+      ],
+    ]);
+    $created[] = 'idx_location_state';
+  }
+
+  if (!$schema->indexExists('jobhunter_job_seeker', 'idx_remote_preference') && $schema->fieldExists('jobhunter_job_seeker', 'remote_preference')) {
+    $schema->addIndex('jobhunter_job_seeker', 'idx_remote_preference', ['remote_preference'], [
+      'fields' => [
+        'remote_preference' => ['type' => 'varchar', 'length' => 32],
+      ],
+    ]);
+    $created[] = 'idx_remote_preference';
+  }
+
+  if (!$schema->indexExists('jobhunter_job_seeker', 'idx_salary_min') && $schema->fieldExists('jobhunter_job_seeker', 'salary_min')) {
+    $schema->addIndex('jobhunter_job_seeker', 'idx_salary_min', ['salary_min'], [
+      'fields' => [
+        'salary_min' => ['type' => 'int'],
+      ],
+    ]);
+    $created[] = 'idx_salary_min';
+  }
+
+  if (empty($created)) {
+    return t('No update needed - projection indexes already exist.');
+  }
+
+  return t('Created projection indexes: @indexes', [
+    '@indexes' => implode(', ', $created),
+  ]);
+}
+
+/**
  * Implements hook_uninstall().
  */
 function job_hunter_uninstall() {

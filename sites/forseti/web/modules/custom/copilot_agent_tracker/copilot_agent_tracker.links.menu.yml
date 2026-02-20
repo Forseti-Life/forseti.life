@@ -1,0 +1,7 @@
+copilot_agent_tracker.dashboard:
+  title: 'Copilot Agent Tracker'
+  description: 'View agent status and a sanitized event stream.'
+  route_name: copilot_agent_tracker.dashboard
+  parent: system.admin_reports
+  weight: 50
+

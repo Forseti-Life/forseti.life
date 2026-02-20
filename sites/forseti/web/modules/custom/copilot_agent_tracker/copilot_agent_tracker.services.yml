@@ -1,0 +1,5 @@
+services:
+  copilot_agent_tracker.storage:
+    class: Drupal\copilot_agent_tracker\Service\AgentTrackerStorage
+    arguments: ['@database', '@datetime.time']
+

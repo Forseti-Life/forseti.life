@@ -251,11 +251,18 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
    */
   protected function updateJobSubmissionStatus(int $job_id, string $status): void {
     $connection = \Drupal::database();
+    // jobhunter_job_requirements does not track submission_status/submission_date.
+    // Use existing workflow fields.
+    $fields = [
+      // Preserve schema semantics: status is the main lifecycle marker.
+      'status' => $status === 'submitted' ? 'applied' : $status,
+      // applied_on_date is explicitly designed for applied tracking.
+      'applied_on_date' => date('Y-m-d'),
+      'updated' => \Drupal::time()->getRequestTime(),
+    ];
+
     $connection->update('jobhunter_job_requirements')
-      ->fields([
-        'submission_status' => $status,
-        'submission_date' => date('Y-m-d H:i:s'),
-      ])
+      ->fields($fields)
       ->condition('id', $job_id)
       ->execute();
   }

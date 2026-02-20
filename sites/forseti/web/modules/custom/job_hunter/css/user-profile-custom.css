@@ -10,6 +10,7 @@
   margin: 0 auto;
   padding: 2rem 1rem;
   background: #f5f7fa;
+  color: #1a202c;
 }
 
 /* Page Title Styling */
@@ -79,7 +80,7 @@
   cursor: pointer;
   font-size: 1.125rem;
   font-weight: 600;
-  color: #2d3748;
+  color: #1a202c;
   border-bottom: 1px solid #e2e8f0;
   transition: all 0.2s ease;
   list-style: none;
@@ -108,14 +109,15 @@
 
 .user-profile-form details .details-wrapper {
   padding: 1.5rem;
+  color: #1a202c;
 }
 
 .user-profile-form details .details-description {
-  color: #718096;
+  color: #2d3748;
   font-size: 0.875rem;
   margin-bottom: 1.25rem;
   padding: 0.75rem 1rem;
-  background: #f7fafc;
+  background: #edf2f7;
   border-left: 3px solid #3182ce;
   border-radius: 4px;
 }
@@ -135,9 +137,9 @@
 
 .user-profile-form .form-item .description {
   font-size: 0.8125rem;
-  color: #718096;
+  color: #4a5568;
   margin-top: 0.25rem;
-  font-style: italic;
+  font-style: normal;
 }
 
 .user-profile-form input[type="text"],
@@ -255,9 +257,71 @@
 }
 
 .user-profile-form details details summary {
-  background: #f7fafc !important;
+  background: #edf2f7 !important;
   font-size: 0.9375rem;
   padding: 0.875rem 1rem;
+  color: #1a202c;
+}
+
+/* JSON display blocks inserted above JSON textareas */
+.user-profile-form pre {
+  background: #edf2f7;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  color: #1a202c;
+  overflow: auto;
+  max-height: 420px;
+}
+
+/* Per-field JSON accordions (collapsed by default) */
+.user-profile-form details.jh-json-field {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  background: #ffffff;
+}
+
+.user-profile-form details.jh-json-field > summary {
+  background: #edf2f7;
+  font-size: 0.95rem;
+  padding: 0.9rem 1rem;
+  color: #1a202c;
+}
+
+.user-profile-form details.jh-json-field .details-wrapper {
+  padding: 1rem;
+}
+
+.user-profile-form .jh-json-render {
+  background: #f7fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.user-profile-form .jh-json-dl {
+  margin: 0;
+}
+
+.user-profile-form .jh-json-dl dt {
+  font-weight: 700;
+  color: #1a202c;
+  margin-top: 0.75rem;
+}
+
+.user-profile-form .jh-json-dl dt:first-child {
+  margin-top: 0;
+}
+
+.user-profile-form .jh-json-dl dd {
+  margin: 0.25rem 0 0.5rem 0;
+  color: #2d3748;
+}
+
+.user-profile-form .jh-json-ul {
+  margin: 0.25rem 0 0 1.25rem;
+  color: #2d3748;
 }
 
 /* Radio Buttons */

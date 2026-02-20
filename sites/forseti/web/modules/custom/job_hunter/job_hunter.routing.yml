@@ -215,25 +215,6 @@ job_hunter.documentation.faq:
   requirements:
     _permission: 'administer job application automation'
 
-# Job Seeker Profile Add
-job_hunter.job_seeker_add:
-  path: '/jobseeker/add'
-  defaults:
-    _form: '\Drupal\job_hunter\Form\JobSeekerForm'
-    _title: 'Create Job Seeker Profile'
-  requirements:
-    _permission: 'administer job application automation'
-
-# Job Seeker Profile Edit
-job_hunter.job_seeker_edit:
-  path: '/jobseeker/{job_seeker_id}/edit'
-  defaults:
-    _form: '\Drupal\job_hunter\Form\JobSeekerForm'
-    _title: 'Edit Job Seeker Profile'
-  requirements:
-    _permission: 'administer job application automation'
-    job_seeker_id: \d+
-
 # Job Seeker Profile View - Redirect to Edit
 job_hunter.user_job_seeker_view:
   path: '/jobhunter/profile'

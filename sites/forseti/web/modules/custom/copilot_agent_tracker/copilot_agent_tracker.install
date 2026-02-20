@@ -1,0 +1,134 @@
+<?php
+
+/**
+ * @file
+ * Install schema for Copilot Agent Tracker.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function copilot_agent_tracker_schema(): array {
+  $schema['copilot_agent_tracker_agents'] = [
+    'description' => 'Tracks Copilot agent status and last-seen timestamps.',
+    'fields' => [
+      'agent_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'role' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+      ],
+      'website' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'module' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'active',
+      ],
+      'current_action' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'last_seen' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Arbitrary JSON metadata (sanitized, no secrets).',
+      ],
+    ],
+    'primary key' => ['agent_id'],
+    'indexes' => [
+      'last_seen' => ['last_seen'],
+      'website' => ['website'],
+      'module' => ['module'],
+    ],
+  ];
+
+  $schema['copilot_agent_tracker_events'] = [
+    'description' => 'Append-only agent event stream (high-level status, no raw chat logs).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'agent_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'session_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'work_item_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'website' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'module' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+      ],
+      'action' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => FALSE,
+      ],
+      'summary' => [
+        'type' => 'text',
+        'not null' => TRUE,
+      ],
+      'details' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'agent_id' => ['agent_id'],
+      'session_id' => ['session_id'],
+      'work_item_id' => ['work_item_id'],
+      'created' => ['created'],
+    ],
+  ];
+
+  return $schema;
+}
+

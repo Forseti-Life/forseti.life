@@ -1,0 +1,27 @@
+copilot_agent_tracker.dashboard:
+  path: '/admin/reports/copilot-agent-tracker'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::dashboard'
+    _title: 'Copilot Agent Tracker'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.agent:
+  path: '/admin/reports/copilot-agent-tracker/agent/{agent_id}'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::agent'
+    _title: 'Agent'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.api_event:
+  path: '/api/copilot-agent-tracker/event'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\ApiController::event'
+  methods: [POST]
+  requirements:
+    _permission: 'post copilot agent telemetry'
+  options:
+    _format: json
+    _csrf_request_header_mode: 'true'
+

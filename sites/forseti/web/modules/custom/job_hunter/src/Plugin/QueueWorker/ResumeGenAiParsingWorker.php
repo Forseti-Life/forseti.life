@@ -667,6 +667,19 @@ class ResumeGenAiParsingWorker extends QueueWorkerBase implements ContainerFacto
         ->condition('uid', $uid)
         ->execute();
 
+      // Update projection columns for query-friendly access.
+      try {
+        /** @var \Drupal\job_hunter\Service\JobSeekerService $job_seeker_service */
+        $job_seeker_service = \Drupal::service('job_hunter.job_seeker_service');
+        $job_seeker_service->updateProfileProjections((int) $uid, $consolidated);
+      }
+      catch (\Exception $e) {
+        $logger->warning('⚠️ Queue: Consolidation projections update failed for user @uid: @error', [
+          '@uid' => $uid,
+          '@error' => $e->getMessage(),
+        ]);
+      }
+
       $logger->info('✅ Queue: Consolidated @count resumes for user @uid (@exp experiences)', [
         '@count' => count($results),
         '@uid' => $uid,

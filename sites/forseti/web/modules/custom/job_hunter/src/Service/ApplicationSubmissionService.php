@@ -233,7 +233,7 @@ class ApplicationSubmissionService {
       }
 
       // Check profile completeness
-      $profile_completion = $this->userProfileService->calculateProfileCompletion($user);
+      $profile_completion = $this->userProfileService->calculateProfileCompleteness($user);
       if ($profile_completion < 90) {
         $errors[] = 'Your profile is only ' . $profile_completion . '% complete. Please complete your profile to at least 90% before applying.';
         $details['profile_completion'] = $profile_completion;
@@ -339,17 +339,13 @@ class ApplicationSubmissionService {
    */
   public function prepareApplicationData(int $uid, int $job_id): array {
     $user = $this->entityTypeManager->getStorage('user')->load($uid);
-    $job = $this->database->select('jobhunter_job_requirements', 'j')
-      ->fields('j')
-      ->condition('id', $job_id)
-      ->execute()
-      ->fetchAssoc();
+    $job = $this->getJobDetails($job_id) ?? [];
 
-    // Get consolidated profile
+    // Get consolidated profile (from jobhunter_job_seeker.consolidated_profile_json).
     $consolidated = $this->jobSeekerService->getConsolidatedProfile($uid);
 
-    // Extract tailored resume if available
-    $tailored_resume = $this->getTailoredResumeForJob($job_id);
+    // Extract tailored resume if available (per-user).
+    $tailored_resume = $this->getTailoredResumeForJob($uid, $job_id);
 
     return [
       'user_id' => $uid,
@@ -477,11 +473,15 @@ class ApplicationSubmissionService {
    *   Job data or NULL if not found.
    */
   protected function getJobDetails(int $job_id): ?array {
-    return $this->database->select('jobhunter_job_requirements', 'j')
+    $query = $this->database->select('jobhunter_job_requirements', 'j')
       ->fields('j')
-      ->condition('id', $job_id)
-      ->execute()
-      ->fetchAssoc();
+      ->condition('j.id', $job_id);
+
+    // Provide a stable company_name in result payloads without denormalizing.
+    $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+    $query->addField('c', 'name', 'company_name');
+
+    return $query->execute()->fetchAssoc();
   }
 
   /**
@@ -493,9 +493,10 @@ class ApplicationSubmissionService {
    * @return string|null
    *   The tailored resume text or NULL if not available.
    */
-  protected function getTailoredResumeForJob(int $job_id): ?string {
+  protected function getTailoredResumeForJob(int $uid, int $job_id): ?string {
     $result = $this->database->select('jobhunter_tailored_resumes', 't')
-      ->fields('t', ['content'])
+      ->fields('t', ['tailored_resume_json'])
+      ->condition('uid', $uid)
       ->condition('job_id', $job_id)
       ->orderBy('created', 'DESC')
       ->range(0, 1)

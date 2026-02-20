@@ -164,7 +164,7 @@ class JobHunterHomeController extends ControllerBase {
     // User profile section
     $build['#user_profile'] = [
       'view_url' => Url::fromRoute('job_hunter.user_job_seeker_view')->toString(),
-      'edit_url' => Url::fromRoute('job_hunter.job_seeker_edit', ['job_seeker_id' => $user_id])->toString(),
+      'edit_url' => Url::fromRoute('job_hunter.user_profile_edit')->toString(),
     ];
 
     // Job discovery section

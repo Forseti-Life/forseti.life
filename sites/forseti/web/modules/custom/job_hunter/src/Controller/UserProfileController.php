@@ -129,7 +129,7 @@ class UserProfileController extends ControllerBase {
       '#attributes' => ['class' => ['profile-dashboard-header']],
     ];
 
-    $build['header']['title'] = [
+    $content['header']['title'] = [
       '#type' => 'html_tag',
       '#tag' => 'h1',
       '#value' => $this->t('My Job Application Profile'),
@@ -576,9 +576,7 @@ class UserProfileController extends ControllerBase {
    *   A redirect response to the current user's profile.
    */
   public function myProfile() {
-    return $this->redirect('job_hunter.user_profile_dashboard', [
-      'user' => $this->currentUser->id(),
-    ]);
+    return $this->redirect('job_hunter.user_profile_dashboard');
   }
 
   /**
@@ -588,9 +586,7 @@ class UserProfileController extends ControllerBase {
    *   A redirect response to the current user's profile edit form.
    */
   public function myProfileEdit() {
-    return $this->redirect('job_hunter.user_profile_edit', [
-      'user' => $this->currentUser->id(),
-    ]);
+    return $this->redirect('job_hunter.user_profile_edit');
   }
 
   /**
@@ -653,7 +649,7 @@ class UserProfileController extends ControllerBase {
     
     if (!$profile) {
       $this->messenger()->addError($this->t('Please complete your job seeker profile first before starting job discovery.'));
-      return $this->redirect('job_hunter.job_seeker_add');
+      return $this->redirect('job_hunter.user_profile_edit');
     }
 
     // Load available companies
@@ -711,7 +707,7 @@ class UserProfileController extends ControllerBase {
     
     if (!$profile) {
       $this->messenger()->addError($this->t('Please complete your job seeker profile first before starting job discovery.'));
-      return $this->redirect('job_hunter.job_seeker_add');
+      return $this->redirect('job_hunter.user_profile_edit');
     }
 
     // Load job opportunities for this specific company

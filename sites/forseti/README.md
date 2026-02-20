@@ -75,6 +75,11 @@ Named after the Norse god of justice and peaceful resolution, Forseti represents
 - No sale or sharing of personal data
 - Transparent data usage policies
 
+## Development Testing (Resume Profile)
+
+- `test-complete-profile-generation.php`: End-to-end resume upload → parse → consolidate workflow
+- `verify-form-field-mapping.php`: Field-by-field form mapping verification and report generation
+
 ## Style Guide
 
 ### Brand Identity
