@@ -84,6 +84,7 @@ This workspace supports two independent Drupal websites:
 - **verify-openclaw.sh** - 🧪 **OpenClaw runtime verification** (checks Node.js requirement, PATH, CLI execution, and global npm package state)
 - **openclaw-chat.sh** - 💬 **One-command OpenClaw chat wrapper** for quick local agent prompts (`--agent`, `--session-id`, and `--json` supported)
 - **openclaw-agentic-loop.sh** - 🔁 **Bounded agentic loop runner** for iterative goal execution with interval/max-iterations controls and log output
+- **copilot/chat-loop.sh** - 💬 **Command-line Copilot chat loop** (wraps the `copilot` CLI, persists a session id under `~/.copilot/wrappers/`, supports `:new` / `:exit`)
 
 ### Issue Tracker Automation
 - **import-open-issues-to-github.sh** - 🧾 Imports **Open** rows from `Issues.md` into GitHub using existing Drupal GitHub client services (`dungeoncrawler_tester.github_issue_pr_client`), attempts Copilot assignment (`@copilot`), and processes in creation batches (default: stop after 50 new issues per run).

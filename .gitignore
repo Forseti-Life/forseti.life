@@ -108,6 +108,11 @@ drupal/web/sites/default/files/*
 
 # Testing results
 testing/results/
+testing/artifacts/
+
+# Local verification artifacts (keep in issues, not git)
+sites/forseti/FORM_FIELD_MAPPING_REPORT.md
+sites/forseti/verify-form-field-mapping.php
 
 # Drupal/PHPUnit test runtime artifacts
 **/.phpunit.result.cache
@@ -115,6 +120,9 @@ sites/*/web/sites/simpletest/
 sites/*/web/sites/*/simpletest/
 sites/dungeoncrawler/web/sites/simpletest/*
 sites/forseti/web/sites/simpletest/*
+
+# Drupal generated images (do not commit)
+sites/*/web/sites/*/files/generated-images/
 
 # OS generated files
 *~

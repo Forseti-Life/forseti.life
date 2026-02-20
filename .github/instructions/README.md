@@ -1,15 +1,3 @@
-Temp notes for me:
-
-on /jobhunter
-
-move the button "+ Add Job Posting" in the first "Step 2" to the second "Step 2" area and then lets simplify the whole dashboard. 
-
-I see no reason for the first section of "Step 1" "Step 2" then the rest of the steps.
-
-it seems redundant to me.
-
-
-
 # AI Instructions Directory
 
 This directory contains comprehensive development instructions and guidelines for the Forseti.life project.
@@ -26,6 +14,8 @@ The `instructions.md` file serves as the primary reference for AI-assisted devel
 
 #### Core Development Policies
 - **Development Process Policy**: No quick fixes mandate, proper diagnostic procedures
+- **Testing Protocol (Mandatory)**: Field-by-field form mapping verification with expected vs actual outcomes and a thorough report
+- **Playwright Validation (Mandatory)**: Browser-based form verification, console error checks, and evidence artifacts are required for website testing
 - **AI Persona Guidelines**: Technical analytical approach with caring professionalism
 - **Context Requirements**: Mandatory file inclusions for every interaction
 - **Issues.md Mutation Policy**: PHP tester automation may remove confirmed-converted Open rows; Copilot/LLM issue-work agents must not directly edit `Issues.md`

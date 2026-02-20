@@ -13,6 +13,31 @@ applyTo: '**'
 
 **PROCESS OVER SPEED**: Take time to understand the system, investigate thoroughly, and implement sustainable solutions that won't create technical debt.
 
+## TESTING PROTOCOL (MANDATORY)
+
+All form-related changes and resume parsing changes must follow a **field-by-field verification protocol**:
+
+1. **Inventory all fields** on every affected form (including nested details and JSON editors).
+2. **Map every field** to its input source (consolidated JSON path, DB column, or user-entered value).
+3. **Validate expected outcomes** by comparing each field’s default/display value to its mapped source.
+4. **Record discrepancies** with exact field names, expected values, actual values, and suspected root cause.
+5. **Re-test end-to-end** after fixes (upload → extract → parse → consolidate → form display).
+6. **Provide a thorough report** that lists every field, its mapping, expected value, actual value, and pass/fail status.
+
+### Website Validation Methodology (Playwright Required)
+
+For all website/form verification, Playwright is mandatory (not optional):
+
+1. Run backend data pipeline validation (upload/parse/consolidate).
+2. Run Playwright against the real form page to verify rendered UI values.
+3. Capture browser console output and fail testing on JS errors.
+4. Assert field-by-field expected values in the DOM for required fields.
+5. Save artifacts (console log + screenshots + assertion output) as test evidence.
+
+Do not mark testing complete unless both backend validation and Playwright UI validation pass.
+
+This protocol is required for every resume/profile workflow update. Partial checks are not acceptable.
+
 ## STATUS TRACKING POLICY
 
 - Do not create new `Summary.md` files for implementation status tracking.

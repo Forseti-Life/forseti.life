@@ -88,6 +88,26 @@ node testing/playwright/test-jobhunter-resume-tailoring.js http://localhost:8080
 - `PLAYWRIGHT_HEADLESS` / `PLAYWRIGHT_SLOWMO`
 - `PLAYWRIGHT_TIMEOUT_MS` / `PLAYWRIGHT_POLL_DELAY_MS` / `PLAYWRIGHT_MAX_POLLS`
 
+### 4. test-jobhunter-profile-edit-status.js
+
+Validates `/jobhunter/profile/edit` status indicators without uploading anything.
+
+Checks:
+- `Individual JSON Stored: Yes`
+- `Merged to Consolidated: Yes`
+- Education preview renders visible text (fails if HTML exists but `innerText` is empty)
+
+**Usage:**
+```bash
+export ULI_URL="<one-time-login-url>"  # preferred
+node testing/playwright/test-jobhunter-profile-edit-status.js http://127.0.0.1
+
+# Or login with credentials
+export PLAYWRIGHT_USERNAME="admin"
+export PLAYWRIGHT_PASSWORD="<password>"
+node testing/playwright/test-jobhunter-profile-edit-status.js http://127.0.0.1
+```
+
 ## Quick Commands
 
 ### Test Hexmap for Console Errors
