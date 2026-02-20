@@ -14,7 +14,7 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
   /**
    * Shared AI API integration service.
    */
-  protected AIApiService $aiApiService;
+  protected ?AIApiService $aiApiService;
 
   /**
    * Logger factory.
@@ -34,7 +34,7 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
   /**
    * Constructs provider.
    */
-  public function __construct(AIApiService $ai_api_service, LoggerChannelFactoryInterface $logger_factory, ConfigFactoryInterface $config_factory, StubEncounterAiProvider $fallback_provider) {
+  public function __construct(?AIApiService $ai_api_service, LoggerChannelFactoryInterface $logger_factory, ConfigFactoryInterface $config_factory, StubEncounterAiProvider $fallback_provider) {
     $this->aiApiService = $ai_api_service;
     $this->loggerFactory = $logger_factory;
     $this->configFactory = $config_factory;
@@ -290,6 +290,16 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
   private function invokeWithRetry(string $prompt, string $operation, array $context_data, array $options): array {
     $max_attempts = $this->getMaxAttempts();
     $request_id = $this->buildRequestId($operation, $context_data);
+
+    if ($this->aiApiService === NULL) {
+      return [
+        'success' => FALSE,
+        'error' => 'ai_conversation.ai_api_service is not available (module disabled or misconfigured).',
+        'request_attempts' => 1,
+        'request_id' => $request_id,
+      ];
+    }
+
     $last_response = [
       'success' => FALSE,
       'error' => 'AI call attempts exhausted.',

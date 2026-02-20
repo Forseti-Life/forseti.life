@@ -142,7 +142,7 @@ services:
   dungeoncrawler_content.encounter_ai_provider.ai_conversation:
     class: Drupal\dungeoncrawler_content\Service\AiConversationEncounterAiProvider
     arguments:
-      - '@ai_conversation.ai_api_service'
+      - '@?ai_conversation.ai_api_service'
       - '@logger.factory'
       - '@config.factory'
       - '@dungeoncrawler_content.encounter_ai_provider.stub'
