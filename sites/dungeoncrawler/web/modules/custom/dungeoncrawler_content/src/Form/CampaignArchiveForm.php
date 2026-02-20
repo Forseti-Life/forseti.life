@@ -87,24 +87,7 @@ class CampaignArchiveForm extends ConfirmFormBase {
 
     $form = parent::buildForm($form, $form_state);
 
-    $form['archive_confirm'] = [
-      '#type' => 'checkbox',
-      '#title' => $this->t('I confirm I want to archive this campaign.'),
-      '#required' => TRUE,
-    ];
-
     return $form;
-  }
-
-  /**
-   * {@inheritdoc}
-   */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
-    parent::validateForm($form, $form_state);
-
-    if (empty($form_state->getValue('archive_confirm'))) {
-      $form_state->setErrorByName('archive_confirm', $this->t('Please confirm the archive action by checking the box.'));
-    }
   }
 
   /**

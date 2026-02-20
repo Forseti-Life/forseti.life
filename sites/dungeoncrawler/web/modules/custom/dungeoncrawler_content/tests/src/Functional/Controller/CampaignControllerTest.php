@@ -213,7 +213,7 @@ class CampaignControllerTest extends BrowserTestBase {
   }
 
   /**
-   * Tests campaign archive requires checkbox confirmation.
+   * Tests campaign archive uses standard ConfirmFormBase confirmation only.
    */
   public function testCampaignArchiveCheckboxConfirmation(): void {
     $user = $this->drupalCreateUser(['access dungeoncrawler characters']);
@@ -234,23 +234,9 @@ class CampaignControllerTest extends BrowserTestBase {
 
     $this->drupalGet("/campaigns/{$campaign_id}/archive");
     $this->assertSession()->statusCodeEquals(200);
-    $this->assertSession()->pageTextContains('I confirm I want to archive this campaign.');
+    $this->assertSession()->pageTextNotContains('I confirm I want to archive this campaign.');
 
-    $this->submitForm([
-      'archive_confirm' => 0,
-    ], 'Archive Campaign');
-    $this->assertSession()->pageTextContains('Please confirm the archive action by checking the box.');
-
-    $status_after_failed_attempt = $database->select('dc_campaigns', 'c')
-      ->fields('c', ['status'])
-      ->condition('id', $campaign_id)
-      ->execute()
-      ->fetchField();
-    $this->assertEquals('draft', $status_after_failed_attempt);
-
-    $this->submitForm([
-      'archive_confirm' => 1,
-    ], 'Archive Campaign');
+    $this->submitForm([], 'Archive Campaign');
 
     $status_after_success = $database->select('dc_campaigns', 'c')
       ->fields('c', ['status'])
@@ -359,9 +345,7 @@ class CampaignControllerTest extends BrowserTestBase {
       ->execute();
 
     $this->drupalGet("/campaigns/{$campaign_id}/archive");
-    $this->submitForm([
-      'archive_confirm' => 1,
-    ], 'Archive Campaign');
+    $this->submitForm([], 'Archive Campaign');
 
     $status_after_archive = $database->select('dc_campaigns', 'c')
       ->fields('c', ['status'])

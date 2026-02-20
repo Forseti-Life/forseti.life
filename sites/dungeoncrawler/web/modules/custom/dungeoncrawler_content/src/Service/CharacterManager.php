@@ -687,6 +687,8 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       ->fields('c')
       ->condition('c.uid', $uid)
       ->condition('c.campaign_id', 0)
+      // Archived characters are hidden from the roster and selection flows.
+      ->condition('c.status', 2, '<>')
       ->orderBy('c.changed', 'DESC')
       ->execute()
       ->fetchAll();

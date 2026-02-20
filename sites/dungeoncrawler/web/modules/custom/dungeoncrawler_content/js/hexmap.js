@@ -1164,6 +1164,9 @@ import combatApi from './hexmap-api.js';
     // Dungeon payload for room-aware rendering and transitions.
     dungeonData: {},
     activeRoomId: null,
+
+    // Procedural tile textures for terrain rendering.
+    tileTextures: null,
     
     // Cleanup tracking
     eventListeners: [],
@@ -3529,6 +3532,184 @@ import combatApi from './hexmap-api.js';
     },
 
     /**
+     * Draw a hex with a repeating texture fill.
+     * @param {PIXI.Graphics} hex - Hex graphic
+     * @param {PIXI.Texture} texture - Texture to fill with (should be repeat-wrapped)
+     * @param {number} lineWidth - Border width
+     * @param {number} lineColor - Border color
+     * @param {number} alpha - Fill alpha
+     */
+    drawHexTexture: function (hex, texture, lineWidth, lineColor, alpha = 1) {
+      if (!texture) {
+        this.drawHexStyle(hex, 0x2d4b36, lineWidth, lineColor, alpha);
+        return;
+      }
+
+      hex.clear();
+
+      // Scale the pattern relative to the current hex size.
+      const matrix = new PIXI.Matrix();
+      const scale = Math.max(0.5, Math.min(2.0, this.config.hexSize / 32));
+      matrix.scale(scale, scale);
+
+      hex.beginTextureFill({ texture, matrix, alpha });
+      hex.lineStyle(lineWidth, lineColor, 1);
+
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const x = this.config.hexSize * Math.cos(angle);
+        const y = this.config.hexSize * Math.sin(angle);
+
+        if (i === 0) {
+          hex.moveTo(x, y);
+        } else {
+          hex.lineTo(x, y);
+        }
+      }
+      hex.closePath();
+      hex.endFill();
+    },
+
+    /**
+     * Return a cached procedural texture for a terrain key.
+     * @param {string} key - 'floor' | 'wall'
+     * @returns {PIXI.Texture|null}
+     */
+    getTileTexture: function (key) {
+      if (typeof PIXI === 'undefined') {
+        return null;
+      }
+
+      if (!this.tileTextures || typeof this.tileTextures !== 'object') {
+        this.tileTextures = {};
+      }
+
+      if (this.tileTextures[key]) {
+        return this.tileTextures[key];
+      }
+
+      const canvas = this.generateTileCanvas(key, 64);
+      if (!canvas) {
+        return null;
+      }
+
+      const texture = PIXI.Texture.from(canvas);
+      if (texture?.baseTexture && PIXI.WRAP_MODES) {
+        texture.baseTexture.wrapMode = PIXI.WRAP_MODES.REPEAT;
+      }
+
+      this.tileTextures[key] = texture;
+      return texture;
+    },
+
+    /**
+     * Procedurally generate a small repeating canvas tile.
+     * Uses existing palette values already present in hex styling.
+     * @param {string} key - 'floor' | 'wall'
+     * @param {number} size - Canvas size
+     * @returns {HTMLCanvasElement|null}
+     */
+    generateTileCanvas: function (key, size = 64) {
+      if (typeof document === 'undefined') {
+        return null;
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        return null;
+      }
+
+      const fill = (hex, alpha = 1) => {
+        const value = Number(hex) >>> 0;
+        const r = (value >> 16) & 0xff;
+        const g = (value >> 8) & 0xff;
+        const b = value & 0xff;
+        ctx.fillStyle = `rgba(${r}, ${g}, ${b}, ${alpha})`;
+      };
+
+      // Deterministic pseudo-random generator (xorshift32) for stable patterns.
+      let seed = 0;
+      const seedString = `${key}:${size}`;
+      for (let i = 0; i < seedString.length; i++) {
+        seed = ((seed << 5) - seed + seedString.charCodeAt(i)) | 0;
+      }
+      const rand = () => {
+        seed ^= seed << 13;
+        seed ^= seed >> 17;
+        seed ^= seed << 5;
+        return ((seed >>> 0) % 10000) / 10000;
+      };
+
+      if (key === 'floor') {
+        // Base: active room floor palette.
+        fill(0x2d4b36, 1);
+        ctx.fillRect(0, 0, size, size);
+
+        // Subtle plank lines.
+        fill(0x4d7a5b, 0.22);
+        for (let x = 0; x < size; x += 8) {
+          ctx.fillRect(x + 1, 0, 1, size);
+        }
+
+        // Light noise speckles.
+        fill(0x4d7a5b, 0.18);
+        for (let i = 0; i < 120; i++) {
+          const x = Math.floor(rand() * size);
+          const y = Math.floor(rand() * size);
+          ctx.fillRect(x, y, 1, 1);
+        }
+
+        return canvas;
+      }
+
+      if (key === 'wall') {
+        // Base: outside/neutral palette already used.
+        fill(0x2d3748, 1);
+        ctx.fillRect(0, 0, size, size);
+
+        // Stone blocks.
+        fill(0x4a5568, 0.42);
+        const blockH = 10;
+        const blockW = 14;
+        for (let y = 0; y < size + blockH; y += blockH) {
+          const offset = (Math.floor(y / blockH) % 2) * Math.floor(blockW / 2);
+          for (let x = -offset; x < size + blockW; x += blockW) {
+            const w = blockW - 2 - Math.floor(rand() * 3);
+            const h = blockH - 2 - Math.floor(rand() * 3);
+            ctx.fillRect(x + 1, y + 1, w, h);
+          }
+        }
+
+        // Mortar lines.
+        fill(0x4a5568, 0.25);
+        for (let i = 0; i < 10; i++) {
+          const y = Math.floor(rand() * size);
+          ctx.fillRect(0, y, size, 1);
+        }
+
+        return canvas;
+      }
+
+      return null;
+    },
+
+    /**
+     * Resolve a simple terrain key for visuals / UI labels.
+     * @param {{movable: boolean, passable: boolean}|null} obstacleProfile
+     * @param {boolean} inActiveRoom
+     * @returns {'floor'|'wall'|'outside'}
+     */
+    resolveTerrainKey: function (obstacleProfile, inActiveRoom) {
+      if (obstacleProfile && !obstacleProfile.passable && !obstacleProfile.movable) {
+        return 'wall';
+      }
+      return inActiveRoom ? 'floor' : 'outside';
+    },
+
+    /**
      * Check whether a hex coordinate belongs to the active room.
      * @param {number} q - Axial q coordinate
      * @param {number} r - Axial r coordinate
@@ -3556,7 +3737,8 @@ import combatApi from './hexmap-api.js';
 
       if (obstacleProfile) {
         if (!obstacleProfile.passable && !obstacleProfile.movable) {
-          this.drawHexStyle(hex, 0x5b2b2b, 2, 0x8b3a3a, 0.95);
+          // Fixed impassable obstacle: treat as a wall tile.
+          this.drawHexTexture(hex, this.getTileTexture('wall'), 2, 0x8b3a3a, 0.95);
           return;
         }
 
@@ -3575,7 +3757,7 @@ import combatApi from './hexmap-api.js';
       }
 
       if (this.isHexInActiveRoom(q, r)) {
-        this.drawHexStyle(hex, 0x2d4b36, 2, 0x4d7a5b, 1);
+        this.drawHexTexture(hex, this.getTileTexture('floor'), 2, 0x4d7a5b, 1);
       } else {
         this.drawHexStyle(hex, 0x2d3748, 1, 0x4a5568, 1);
       }
@@ -3881,9 +4063,13 @@ import combatApi from './hexmap-api.js';
       const inRoom = Boolean(hex);
       const obstacleProfile = this.getObstacleMobilityAtHex(q, r);
 
+       const terrainKey = this.resolveTerrainKey(obstacleProfile, inRoom);
+       const roomTerrain = room.terrain?.type && room.terrain.type !== 'unknown' ? String(room.terrain.type) : null;
+       const terrainLabel = roomTerrain ? `${terrainKey} (${roomTerrain})` : terrainKey;
+
       return {
         roomName: inRoom ? room.name : `${room.name} (outside footprint)` ,
-        terrain: room.terrain?.type || 'unknown',
+        terrain: terrainLabel,
         elevationFt: inRoom && Number.isFinite(Number(hex?.elevation_ft)) ? Number(hex.elevation_ft) : null,
         lighting: room.lighting?.level || 'unknown',
         passability: this.describePassability(obstacleProfile, inRoom),

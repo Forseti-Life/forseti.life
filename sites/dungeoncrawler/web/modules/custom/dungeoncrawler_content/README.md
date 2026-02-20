@@ -776,7 +776,7 @@ Located in `tests/src/Functional/`
 #### ✅ Edge Cases & Negative Flows
 - Non-existent campaign/character IDs
 - Invalid (non-numeric) ID parameters
-- Missing required permissions
+- Missing login (anonymous user access attempts)
 - Anonymous user access attempts
 - Selecting other user's characters for campaigns
 - Editing/deleting other user's characters
@@ -793,7 +793,7 @@ All POST-only API endpoints verified to reject GET requests with 405:
 
 All GET-only API endpoints verified to reject POST requests with 405:
 - `/api/character/load/{id}` (GET only)
-- `/api/character/{id}/state` (GET only)
+- `/api/character/{id}/state` (GET only; requires login + ownership)
 - `/api/character/{id}/summary` (GET only)
 
 ### Test Patterns & Conventions

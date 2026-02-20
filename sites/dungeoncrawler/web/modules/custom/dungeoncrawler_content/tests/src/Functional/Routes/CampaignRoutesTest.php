@@ -176,9 +176,7 @@ class CampaignRoutesTest extends BrowserTestBase {
 
     $this->drupalGet("/campaigns/{$campaign_id}/archive");
     $this->assertSession()->statusCodeEquals(200);
-    $this->submitForm([
-      'archive_confirm' => 1,
-    ], 'Archive Campaign');
+    $this->submitForm([], 'Archive Campaign');
 
     $this->assertSession()->statusCodeEquals(200);
     $this->assertSession()->pageTextContains('archived');
@@ -220,9 +218,9 @@ class CampaignRoutesTest extends BrowserTestBase {
   }
 
   /**
-   * Tests archive submit requires confirmation checkbox and does not mutate.
+   * Tests archive submit does not require extra confirmation fields.
    */
-  public function testCampaignArchiveSubmitRequiresConfirmationCheckbox(): void {
+  public function testCampaignArchiveSubmitDoesNotRequireExtraConfirmation(): void {
     $user = $this->createTestUser();
     $this->drupalLogin($user);
 
@@ -243,7 +241,7 @@ class CampaignRoutesTest extends BrowserTestBase {
       ->condition('id', $campaign_id)
       ->execute()
       ->fetchField();
-    $this->assertEquals('draft', $status_after_submit, 'Campaign should remain unarchived when confirmation is missing.');
+    $this->assertEquals('archived', $status_after_submit, 'Campaign should be archived after confirmation submit.');
   }
 
   /**
@@ -260,9 +258,7 @@ class CampaignRoutesTest extends BrowserTestBase {
     ]);
 
     $this->drupalGet("/campaigns/{$campaign_id}/archive");
-    $this->submitForm([
-      'archive_confirm' => 1,
-    ], 'Archive Campaign');
+    $this->submitForm([], 'Archive Campaign');
 
     $this->drupalGet("/campaigns/{$campaign_id}/unarchive");
     $this->assertSession()->statusCodeEquals(200);

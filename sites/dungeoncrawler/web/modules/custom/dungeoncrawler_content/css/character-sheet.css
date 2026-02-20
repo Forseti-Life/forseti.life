@@ -73,6 +73,7 @@
 
 /* Character Card */
 .dc-character-card {
+  position: relative;
   display: flex;
   align-items: stretch;
   background: var(--dc-deep-cavern);
@@ -82,7 +83,6 @@
   text-decoration: none;
   color: var(--dc-text);
   transition: all 0.2s ease;
-  cursor: pointer;
 }
 
 .dc-character-card:hover {
@@ -99,9 +99,17 @@
   border-color: var(--dc-torch-gold);
 }
 
-.dc-character-card--dead {
-  opacity: 0.7;
-  border-color: var(--dc-danger);
+.dc-character-card--active {
+  /* Default active state - no special styling needed */
+}
+
+.dc-character-card--incomplete {
+  border-left: 3px solid var(--dc-warning);
+}
+
+.dc-character-card--archived {
+  opacity: 0.6;
+  border-color: var(--dc-text-muted);
 }
 
 .dc-character-card--disabled {
@@ -152,9 +160,14 @@
   font-weight: 700;
 }
 
-.dc-character-card__status-badge--dead {
-  background: var(--dc-danger);
-  color: #fff;
+.dc-character-card__status-badge--incomplete {
+  background: var(--dc-warning);
+  color: var(--dc-abyss);
+}
+
+.dc-character-card__status-badge--archived {
+  background: var(--dc-text-muted);
+  color: var(--dc-abyss);
 }
 
 .dc-character-card__info {
@@ -231,6 +244,63 @@
 
 .dc-character-card:hover .dc-character-card__arrow {
   color: var(--dc-torch-gold);
+}
+
+/* Main card link - covers most of the card */
+.dc-character-card__main-link {
+  display: flex;
+  align-items: stretch;
+  flex: 1;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dc-character-card__main-link:hover {
+  color: inherit;
+  text-decoration: none;
+}
+
+.dc-character-card__main-link--disabled {
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+.dc-character-card:has(.dc-character-card__main-link:hover) {
+  border-color: var(--dc-torch-gold);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px var(--dc-gold-glow);
+}
+
+/* Archive button - positioned in top-right corner */
+.dc-character-card__archive-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 10;
+  font-size: 1rem;
+  padding: 0.4rem 0.65rem;
+  background: var(--dc-stone);
+  border: 1px solid var(--dc-border);
+  border-radius: var(--dc-radius-sm);
+  color: var(--dc-text-muted);
+  text-decoration: none;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  line-height: 1;
+}
+
+.dc-character-card__archive-btn:hover {
+  background: var(--dc-warning);
+  border-color: var(--dc-warning);
+  color: var(--dc-abyss);
+  text-decoration: none;
+  transform: scale(1.1);
+}
+
+/* Action text styling */
+.dc-character-card__action-text {
+  margin-top: 0.5rem;
 }
 
 /* Empty State */
@@ -849,6 +919,14 @@
   background: var(--dc-danger);
   color: #fff;
   text-decoration: none;
+}
+
+.dc-btn-muted {
+  background: transparent;
+  color: var(--dc-text-muted);
+  border-color: var(--dc-border);
+  cursor: not-allowed;
+  opacity: 0.6;
 }
 
 .dc-btn__icon {

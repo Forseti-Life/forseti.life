@@ -8,6 +8,7 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Form\CampaignCreateForm;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Drupal\dungeoncrawler_content\Service\QuestTrackerService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
@@ -22,12 +23,14 @@ class CampaignController extends ControllerBase {
   protected CharacterManager $characterManager;
   protected FormBuilderInterface $formBuilderService;
   protected QuestTrackerService $questTracker;
+  protected GeneratedImageRepository $imageRepository;
 
-  public function __construct(Connection $database, CharacterManager $character_manager, FormBuilderInterface $form_builder, QuestTrackerService $quest_tracker) {
+  public function __construct(Connection $database, CharacterManager $character_manager, FormBuilderInterface $form_builder, QuestTrackerService $quest_tracker, GeneratedImageRepository $image_repository) {
     $this->database = $database;
     $this->characterManager = $character_manager;
     $this->formBuilderService = $form_builder;
     $this->questTracker = $quest_tracker;
+    $this->imageRepository = $image_repository;
   }
 
   /**
@@ -39,6 +42,7 @@ class CampaignController extends ControllerBase {
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('form_builder'),
       $container->get('dungeoncrawler_content.quest_tracker'),
+      $container->get('dungeoncrawler_content.generated_image_repository'),
     );
   }
 
@@ -139,7 +143,7 @@ class CampaignController extends ControllerBase {
         'created' => date('M j, Y', (int) $campaign->created),
         'changed' => date('M j, Y', (int) $campaign->changed),
         'can_launch' => $can_launch,
-        'action_label' => (string) $this->t('Enter Tavern'),
+        'action_label' => (string) $this->t('Launch Campaign'),
         'url' => $action_url,
         'dungeons_url' => Url::fromRoute('dungeoncrawler_content.campaign_dungeons', [
           'campaign_id' => $campaign_id,
@@ -216,11 +220,61 @@ class CampaignController extends ControllerBase {
       $hot = $this->characterManager->resolveHotColumnsForRecord($record, $data);
 
       $select_url = NULL;
-      if ((int) $record->status === 1) {
+      $continue_url = NULL;
+      $archive_url = NULL;
+      // Step is stored in character_data JSON, default to 8 if not found
+      $step = (int) ($char['step'] ?? 8);
+      $status = (int) $record->status;
+      
+      // Completed characters (status=1 and step=8): Can be selected for campaign
+      if ($status === 1 && $step >= 8) {
         $select_url = Url::fromRoute('dungeoncrawler_content.campaign_select_character', [
           'campaign_id' => $campaign_id,
           'character_id' => (int) $record->id,
         ])->toString();
+      }
+      // Incomplete characters (status=0 or step<8): Can continue creation
+      elseif ($status === 0 || $step < 8) {
+        $continue_url = Url::fromRoute('dungeoncrawler_content.character_step', [
+          'step' => $step,
+        ], [
+          'query' => ['character_id' => (int) $record->id],
+        ])->toString();
+      }
+      
+      // Archive URL for non-archived characters (archived characters are hidden).
+      if ($status !== 2) {
+        $archive_url = Url::fromRoute('dungeoncrawler_content.character_archive', [
+          'character_id' => (int) $record->id,
+        ], [
+          'query' => ['destination' => '/campaigns/' . $campaign_id . '/tavernentrance'],
+        ])->toString();
+      }
+
+      // Load portrait from generated images
+      $portraits = $this->imageRepository->loadImagesForObject(
+        'dc_campaign_characters',
+        (string) $record->id,
+        NULL,
+        'portrait',
+        'original'
+      );
+      $portrait_url = NULL;
+      if (!empty($portraits)) {
+        $file_uri = $portraits[0]['file_uri'] ?? $portraits[0]['public_url'] ?? NULL;
+        if ($file_uri) {
+          // Convert Drupal stream wrapper to web-accessible URL
+          $portrait_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file_uri);
+        }
+      }
+
+      // Determine status class for styling
+      $status_class = 'active';
+      if ($status === 2) {
+        $status_class = 'archived';
+      }
+      elseif ($status === 0 || $step < 8) {
+        $status_class = 'incomplete';
       }
 
       $character_cards[] = [
@@ -232,11 +286,14 @@ class CampaignController extends ControllerBase {
         'hp_current' => $hot['hp_current'],
         'hp_max' => $hot['hp_max'],
         'ac' => $hot['armor_class'],
-        'status' => $record->status ? 'active' : 'dead',
-        'portrait' => $record->portrait,
+        'status' => $status_class,
+        'portrait' => $portrait_url,
         'alignment' => $char['personality']['alignment'] ?? '',
         'created' => date('M j, Y', (int) $record->created),
         'select_url' => $select_url,
+        'step' => $step,
+        'continue_url' => $continue_url,
+        'archive_url' => $archive_url,
       ];
     }
 

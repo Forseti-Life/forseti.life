@@ -69,7 +69,7 @@
           <div class="dc-character-card__arrow">›</div>
         </a>
         {% else %}
-        <div class="dc-character-card dc-character-card--disabled">
+        <a href="{{ tavern_url }}" class="dc-character-card">
           <div class="dc-character-card__portrait">
             <div class="dc-character-card__portrait-placeholder">
               <span class="dc-character-card__initial">{{ dungeon.name|first|upper }}</span>
@@ -105,12 +105,12 @@
             </div>
 
             <div class="dc-character-card__meta dc-character-card__meta--campaign-state">
-              <span class="dc-btn dc-btn-warning">Select a character to enter</span>
+              <span class="dc-btn dc-btn-warning">👤 Select a character to enter</span>
             </div>
           </div>
 
           <div class="dc-character-card__arrow">›</div>
-        </div>
+        </a>
         {% endif %}
       {% endfor %}
     </div>

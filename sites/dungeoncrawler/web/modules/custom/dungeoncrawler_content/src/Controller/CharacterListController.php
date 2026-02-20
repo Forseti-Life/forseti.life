@@ -67,10 +67,36 @@ class CharacterListController extends ControllerBase {
       }
 
       $select_url = NULL;
-      if ($campaign_id > 0 && (int) $record->status === 1) {
+      $continue_url = NULL;
+      $archive_url = NULL;
+      $status = (int) $record->status;
+      $step = (int) ($char['step'] ?? 8);
+
+      // Campaign selection only allows completed characters.
+      if ($campaign_id > 0 && $status === 1 && $step >= 8) {
         $select_url = Url::fromRoute('dungeoncrawler_content.campaign_select_character', [
           'campaign_id' => $campaign_id,
           'character_id' => $record->id,
+        ])->toString();
+      }
+      // Incomplete characters can continue creation.
+      elseif ($status === 0 || $step < 8) {
+        $continue_url = Url::fromRoute('dungeoncrawler_content.character_step', [
+          'step' => $step,
+        ], [
+          'query' => ['character_id' => (int) $record->id],
+        ])->toString();
+      }
+
+      // Non-archived characters can be archived from the roster.
+      if ($status !== 2) {
+        $destination = Url::fromRoute('dungeoncrawler_content.characters', [], [
+          'query' => $campaign_id > 0 ? ['campaign_id' => $campaign_id] : [],
+        ])->toString();
+        $archive_url = Url::fromRoute('dungeoncrawler_content.character_archive', [
+          'character_id' => (int) $record->id,
+        ], [
+          'query' => ['destination' => $destination],
         ])->toString();
       }
 
@@ -101,12 +127,15 @@ class CharacterListController extends ControllerBase {
         'hp_current' => $hot['hp_current'],
         'hp_max' => $hot['hp_max'],
         'ac' => $hot['armor_class'],
-        'status' => $record->status ? 'active' : 'dead',
+        'status' => $this->getCharacterStatusClass($record, $char),
         'portrait' => $portrait_url,
         'heritage' => $char['ancestry']['heritage'] ?? '',
         'alignment' => $char['personality']['alignment'] ?? '',
         'url' => $view_url->toString(),
         'select_url' => $select_url,
+        'step' => $step,
+        'continue_url' => $continue_url,
+        'archive_url' => $archive_url,
         'created' => date('M j, Y', $record->created),
       ];
     }
@@ -133,6 +162,36 @@ class CharacterListController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Determine character status class for consistent UI state.
+   * 
+   * @param object $record
+   *   Character database record.
+   * @param array $char
+   *   Decoded character_data JSON.
+   * 
+   * @return string
+   *   Status class: 'active', 'incomplete', or 'archived'.
+   */
+  private function getCharacterStatusClass(object $record, array $char): string {
+    $status = (int) $record->status;
+    $step = (int) ($char['step'] ?? 8);
+    
+    // Status values:
+    // 0 = incomplete/draft
+    // 1 = complete/active
+    // 2 = archived
+    if ($status === 2) {
+      return 'archived';
+    }
+    elseif ($status === 1 && $step >= 8) {
+      return 'active';
+    }
+    else {
+      return 'incomplete';
+    }
   }
 
 }
