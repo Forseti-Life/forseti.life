@@ -11,7 +11,7 @@ use Drupal\Core\Url;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Component\Serialization\Json;
-use Drupal\Component\Render\Markup;
+use Drupal\Core\Render\Markup;
 use Drupal\copilot_agent_tracker\Form\AgentDashboardFilterForm;
 use Drupal\copilot_agent_tracker\Form\ComposeAgentMessageForm;
 use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
@@ -166,6 +166,7 @@ final class DashboardController extends ControllerBase {
       ->fetchAll();
 
     $ceo_meta = [];
+    $ceo_last_seen = 0;
     $pending_rows = [];
     $agent_meta = [];
 
@@ -180,54 +181,89 @@ final class DashboardController extends ControllerBase {
         }
       }
 
-      if (($row->agent_id ?? '') === 'ceo-copilot') {
-        $ceo_meta = is_array($meta) ? $meta : [];
+      $agent_id_for_meta = (string) ($row->agent_id ?? '');
+      if ($agent_id_for_meta === $self_agent_prefix || str_starts_with($agent_id_for_meta, $self_agent_prefix . '-')) {
+        $seen = (int) ($row->last_seen ?? 0);
+        if ($seen >= $ceo_last_seen) {
+          $ceo_last_seen = $seen;
+          $ceo_meta = is_array($meta) ? $meta : [];
+        }
       }
-      else {
-        $agent_meta[(string) ($row->agent_id ?? '')] = is_array($meta) ? $meta : [];
-      }
+      $agent_meta[$agent_id_for_meta] = is_array($meta) ? $meta : [];
 
-      $inbox_count = (int) ($meta['inbox_count'] ?? 0);
-      if ($inbox_count > 0 || in_array((string) ($row->status ?? ''), ['blocked', 'needs-info'], TRUE)) {
-        $pending_rows[] = [
-          Link::fromTextAndUrl((string) $row->agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => (string) $row->agent_id]))->toString(),
-          $row->website ?? '',
-          $row->module ?? '',
-          $row->role ?? '',
-          $row->status ?? '',
-          $row->current_action ?? '',
-          (string) $inbox_count,
-          $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
-        ];
-      }
-    }
-
-    $agent_options = [];
-    foreach ($rows as $row) {
       $agent_id = trim((string) ($row->agent_id ?? ''));
       if ($agent_id === '') {
         continue;
       }
-      // Prevent sending inbox items to the CEO inbox / internal CEO sub-sessions.
+      // Prevent showing the CEO inbox / internal CEO sub-sessions on the waiting-on-keith agent list.
       if ($agent_id === $self_agent_prefix || str_starts_with($agent_id, $self_agent_prefix . '-')) {
         continue;
       }
-      $website = trim((string) ($row->website ?? ''));
-      $module = trim((string) ($row->module ?? ''));
-      $role = trim((string) ($row->role ?? ''));
+
+      $inbox_count = (int) ($meta['inbox_count'] ?? 0);
+      $pending_rows[] = [
+        Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString(),
+        $row->website ?? '',
+        $row->module ?? '',
+        $row->role ?? '',
+        $row->status ?? '',
+        $row->current_action ?? '',
+        (string) $inbox_count,
+        $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
+      ];
+    }
+
+    // Compose dropdown includes ALL agents, including CEO threads.
+    // CEO threads are ordered first for convenience.
+    $agent_options = [];
+    $ceo_ids = [];
+    foreach ($rows as $row) {
+      $agent_id = trim((string) ($row->agent_id ?? ''));
+      if ($agent_id === '' || !str_starts_with($agent_id, $self_agent_prefix)) {
+        continue;
+      }
+      $ceo_ids[] = $agent_id;
+    }
+    sort($ceo_ids);
+    // Force ceo-copilot first if present.
+    if (in_array($self_agent_prefix, $ceo_ids, TRUE)) {
+      $ceo_ids = array_values(array_unique(array_merge([$self_agent_prefix], array_diff($ceo_ids, [$self_agent_prefix]))));
+    }
+
+    $all_ids = [];
+    foreach ($rows as $row) {
+      $agent_id = trim((string) ($row->agent_id ?? ''));
+      if ($agent_id !== '') {
+        $all_ids[] = $agent_id;
+      }
+    }
+    $all_ids = array_values(array_unique($all_ids));
+    sort($all_ids);
+    $ordered_ids = array_values(array_unique(array_merge($ceo_ids, $all_ids)));
+
+    $by_id = [];
+    foreach ($rows as $row) {
+      $agent_id = trim((string) ($row->agent_id ?? ''));
+      if ($agent_id !== '') {
+        $by_id[$agent_id] = $row;
+      }
+    }
+
+    foreach ($ordered_ids as $agent_id) {
+      $row = $by_id[$agent_id] ?? NULL;
+      $website = trim((string) ($row?->website ?? ''));
+      $module = trim((string) ($row?->module ?? ''));
+      $role = trim((string) ($row?->role ?? ''));
       $label = $agent_id;
       if ($website !== '' || $module !== '' || $role !== '') {
         $label .= ' (' . ($website ?: '-') . '/' . ($module ?: '-') . ($role ? (' - ' . $role) : '') . ')';
       }
       $agent_options[$agent_id] = $label;
     }
-    ksort($agent_options);
 
     $sent = $this->database->select('copilot_agent_tracker_replies', 'r')
       ->fields('r', ['id', 'to_agent_id', 'in_reply_to', 'message', 'created', 'consumed', 'consumed_at', 'hq_item_id'])
       ->condition('dismissed', 0)
-      ->condition('to_agent_id', $self_agent_prefix, '<>')
-      ->condition('to_agent_id', $self_agent_prefix . '-%', 'NOT LIKE')
       ->orderBy('created', 'DESC')
       ->range(0, 50)
       ->execute()
@@ -374,7 +410,7 @@ final class DashboardController extends ControllerBase {
         '#type' => 'table',
         '#header' => ['Agent', 'Website', 'Module', 'Role', 'Status', 'Current action', 'Inbox', 'Last seen'],
         '#rows' => $pending_rows,
-        '#empty' => $this->t('No pending items.'),
+        '#empty' => $this->t('No agents found.'),
       ],
       '#cache' => [
         'max-age' => 0,
@@ -394,7 +430,9 @@ final class DashboardController extends ControllerBase {
 
     $row = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['metadata'])
-      ->condition('agent_id', 'ceo-copilot')
+      ->condition('agent_id', 'ceo-copilot%', 'LIKE')
+      ->orderBy('last_seen', 'DESC')
+      ->range(0, 1)
       ->execute()
       ->fetchAssoc();
 
@@ -479,7 +517,9 @@ final class DashboardController extends ControllerBase {
   public function waitingOnKeithMessage(string $item_id): array {
     $row = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['metadata'])
-      ->condition('agent_id', 'ceo-copilot')
+      ->condition('agent_id', 'ceo-copilot%', 'LIKE')
+      ->orderBy('last_seen', 'DESC')
+      ->range(0, 1)
       ->execute()
       ->fetchAssoc();
 

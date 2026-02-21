@@ -39,11 +39,20 @@ final class ComposeAgentMessageForm extends FormBase {
    *   Agent options keyed by agent_id.
    */
   public function buildForm(array $form, FormStateInterface $form_state, array $agents = []): array {
+    $default_to = '';
+    if (isset($agents['ceo-copilot'])) {
+      $default_to = 'ceo-copilot';
+    }
+    elseif (count($agents) === 1) {
+      $default_to = (string) array_key_first($agents);
+    }
+
     $form['to_agent_id'] = [
       '#type' => 'select',
       '#title' => $this->t('To agent'),
       '#options' => ['' => $this->t('- Select -')] + $agents,
       '#required' => TRUE,
+      '#default_value' => $default_to,
     ];
 
     $form['message'] = [
