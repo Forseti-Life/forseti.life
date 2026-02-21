@@ -371,6 +371,18 @@ The autodeploy clears the cache on the server during deployment. Do not recomend
 - Follow hook implementation patterns
 - Use proper caching strategies for performance
 
+### Drupal Forms: managed_file validators
+When using `#type: managed_file`, prefer Drupal core validators:
+- `file_validate_extensions`
+- `file_validate_size`
+Avoid unknown validator keys (they may silently fail).
+
+### Custom tables: ID correctness
+When querying/inserting into custom tables, confirm whether a column stores:
+- Drupal `uid`
+- a custom entity primary key
+Do not assume `uid === <custom_id>`; verify schema before coding.
+
 ## Theme and Styling Standards
 
 **CENTRALIZED STYLING MANDATE**: All styling must be managed through the theme's centralized CSS architecture:
