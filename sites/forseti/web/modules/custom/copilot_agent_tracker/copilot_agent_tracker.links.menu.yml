@@ -5,3 +5,9 @@ copilot_agent_tracker.dashboard:
   parent: system.admin_reports
   weight: 50
 
+copilot_agent_tracker.waiting_on_keith:
+  title: 'Waiting on Keith'
+  description: 'Inbox-style view of pending decision items.'
+  route_name: copilot_agent_tracker.waiting_on_keith
+  parent: system.admin_reports
+  weight: 51

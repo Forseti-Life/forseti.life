@@ -8,6 +8,7 @@ use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\State\StateInterface;
+use Drupal\Component\Serialization\Json;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -69,6 +70,79 @@ final class DashboardController extends ControllerBase {
         '#header' => ['Agent', 'Role', 'Website', 'Module', 'Status', 'Current action', 'Last seen'],
         '#rows' => $table_rows,
         '#empty' => $this->t('No agent updates yet.'),
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Inbox-style view for Keith/CEO pending decisions.
+   */
+  public function waitingOnKeith(): array {
+    $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
+      ->orderBy('website', 'ASC')
+      ->orderBy('module', 'ASC')
+      ->orderBy('role', 'ASC')
+      ->orderBy('last_seen', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    $ceo_meta = [];
+    $pending_rows = [];
+
+    foreach ($rows as $row) {
+      $meta = [];
+      if (!empty($row->metadata)) {
+        try {
+          $meta = Json::decode((string) $row->metadata) ?? [];
+        }
+        catch (\Throwable) {
+          $meta = [];
+        }
+      }
+
+      if (($row->agent_id ?? '') === 'ceo-copilot') {
+        $ceo_meta = is_array($meta) ? $meta : [];
+      }
+
+      $inbox_count = (int) ($meta['inbox_count'] ?? 0);
+      if ($inbox_count > 0 || in_array((string) ($row->status ?? ''), ['blocked', 'needs-info'], TRUE)) {
+        $pending_rows[] = [
+          Link::fromTextAndUrl((string) $row->agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => (string) $row->agent_id]))->toString(),
+          $row->website ?? '',
+          $row->module ?? '',
+          $row->role ?? '',
+          $row->status ?? '',
+          $row->current_action ?? '',
+          (string) $inbox_count,
+          $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
+        ];
+      }
+    }
+
+    $items = [];
+    foreach (($ceo_meta['inbox_items'] ?? []) as $i) {
+      $items[] = (string) $i;
+    }
+
+    return [
+      '#type' => 'container',
+      'help' => [
+        '#markup' => '<p>This page shows a CEO-style inbox view derived from HQ sync metadata (not raw chat logs).</p>',
+      ],
+      'ceo' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('CEO inbox items (from HQ sync)'),
+        '#items' => $items ?: [$this->t('No inbox items detected.')],
+      ],
+      'pending' => [
+        '#type' => 'table',
+        '#header' => ['Agent', 'Website', 'Module', 'Role', 'Status', 'Current action', 'Inbox', 'Last seen'],
+        '#rows' => $pending_rows,
+        '#empty' => $this->t('No pending items.'),
       ],
       '#cache' => [
         'max-age' => 0,
