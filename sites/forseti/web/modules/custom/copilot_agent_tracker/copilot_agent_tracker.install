@@ -129,6 +129,52 @@ function copilot_agent_tracker_schema(): array {
     ],
   ];
 
+  $schema['copilot_agent_tracker_replies'] = [
+    'description' => 'CEO/operator replies entered in Drupal UI to be consumed by HQ.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'not null' => TRUE,
+      ],
+      'to_agent_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+      ],
+      'in_reply_to' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+      ],
+      'message' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'consumed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'consumed_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'consumed' => ['consumed'],
+      'to_agent_id' => ['to_agent_id'],
+      'created' => ['created'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -142,5 +188,21 @@ function copilot_agent_tracker_install(): void {
   if (!$state->get('copilot_agent_tracker.telemetry_token')) {
     $token = \Drupal\Component\Utility\Crypt::randomBytesBase64(32);
     $state->set('copilot_agent_tracker.telemetry_token', $token);
+  }
+}
+
+/**
+ * Create replies table for UI->HQ responses.
+ */
+function copilot_agent_tracker_update_8001(): void {
+  $schema = copilot_agent_tracker_schema();
+  $spec = $schema['copilot_agent_tracker_replies'] ?? NULL;
+  if (!$spec) {
+    return;
+  }
+  $db = \Drupal::database();
+  $schema_handler = $db->schema();
+  if (!$schema_handler->tableExists('copilot_agent_tracker_replies')) {
+    $schema_handler->createTable('copilot_agent_tracker_replies', $spec);
   }
 }

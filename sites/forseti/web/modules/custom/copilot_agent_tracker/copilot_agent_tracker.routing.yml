@@ -22,6 +22,14 @@ copilot_agent_tracker.waiting_on_keith:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.waiting_on_keith_message:
+  path: '/admin/reports/waitingonkeith/{item_id}'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::waitingOnKeithMessage'
+    _title: 'Inbox message'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.api_event:
   path: '/api/copilot-agent-tracker/event'
   defaults:

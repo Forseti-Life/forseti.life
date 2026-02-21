@@ -9,6 +9,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\State\StateInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -123,9 +124,30 @@ final class DashboardController extends ControllerBase {
       }
     }
 
-    $items = [];
-    foreach (($ceo_meta['inbox_items'] ?? []) as $i) {
-      $items[] = (string) $i;
+    $messages = [];
+    foreach (($ceo_meta['inbox_messages'] ?? []) as $m) {
+      if (!is_array($m)) {
+        continue;
+      }
+      $item_id = (string) ($m['item_id'] ?? '');
+      if ($item_id === '') {
+        continue;
+      }
+      $messages[] = $m;
+    }
+
+    $message_rows = [];
+    foreach ($messages as $m) {
+      $item_id = (string) ($m['item_id'] ?? '');
+      $from = (string) ($m['from_agent'] ?? '');
+      $subject = (string) ($m['subject'] ?? $item_id);
+      $body = (string) ($m['body'] ?? '');
+      $preview = mb_substr(trim($body), 0, 160);
+      $message_rows[] = [
+        Link::fromTextAndUrl($subject, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $item_id]))->toString(),
+        $from,
+        $preview,
+      ];
     }
 
     return [
@@ -133,10 +155,11 @@ final class DashboardController extends ControllerBase {
       'help' => [
         '#markup' => '<p>This page shows a CEO-style inbox view derived from HQ sync metadata (not raw chat logs).</p>',
       ],
-      'ceo' => [
-        '#theme' => 'item_list',
-        '#title' => $this->t('CEO inbox items (from HQ sync)'),
-        '#items' => $items ?: [$this->t('No inbox items detected.')],
+      'messages' => [
+        '#type' => 'table',
+        '#header' => ['Subject', 'From', 'Preview'],
+        '#rows' => $message_rows,
+        '#empty' => $this->t('No inbox items detected.'),
       ],
       'pending' => [
         '#type' => 'table',
@@ -144,6 +167,66 @@ final class DashboardController extends ControllerBase {
         '#rows' => $pending_rows,
         '#empty' => $this->t('No pending items.'),
       ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Message detail view with reply form.
+   */
+  public function waitingOnKeithMessage(string $item_id): array {
+    $row = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['metadata'])
+      ->condition('agent_id', 'ceo-copilot')
+      ->execute()
+      ->fetchAssoc();
+
+    $meta = [];
+    if (!empty($row['metadata'])) {
+      try {
+        $meta = Json::decode((string) $row['metadata']) ?? [];
+      }
+      catch (\Throwable) {
+        $meta = [];
+      }
+    }
+
+    $message = NULL;
+    foreach (($meta['inbox_messages'] ?? []) as $m) {
+      if (is_array($m) && (string) ($m['item_id'] ?? '') === $item_id) {
+        $message = $m;
+        break;
+      }
+    }
+    if (!$message) {
+      throw new NotFoundHttpException();
+    }
+
+    $from_agent = (string) ($message['from_agent'] ?? '');
+    $subject = (string) ($message['subject'] ?? $item_id);
+    $body = (string) ($message['body'] ?? '');
+
+    return [
+      '#type' => 'container',
+      'header' => [
+        '#markup' => '<h2>' . $this->t('Message: @subject', ['@subject' => $subject]) . '</h2>'
+          . '<p><strong>' . $this->t('From') . ':</strong> ' . $this->t('@from', ['@from' => $from_agent ?: '-']) . '</p>',
+      ],
+      'body' => [
+        '#type' => 'details',
+        '#title' => $this->t('Message body'),
+        '#open' => TRUE,
+        'content' => [
+          '#type' => 'textarea',
+          '#title' => $this->t('Ask'),
+          '#value' => $body,
+          '#rows' => 18,
+          '#attributes' => ['readonly' => 'readonly'],
+        ],
+      ],
+      'reply' => $this->formBuilder()->getForm(InboxReplyForm::class, $item_id, $from_agent),
       '#cache' => [
         'max-age' => 0,
       ],
