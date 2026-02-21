@@ -175,6 +175,37 @@ function copilot_agent_tracker_schema(): array {
     ],
   ];
 
+  $schema['copilot_agent_tracker_inbox_resolutions'] = [
+    'description' => 'Tracks which CEO inbox items have been resolved/dismissed in Drupal UI.',
+    'fields' => [
+      'item_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+      ],
+      'resolved' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'resolved_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'resolved_by_uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['item_id'],
+    'indexes' => [
+      'resolved' => ['resolved'],
+      'resolved_at' => ['resolved_at'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -204,5 +235,21 @@ function copilot_agent_tracker_update_8001(): void {
   $schema_handler = $db->schema();
   if (!$schema_handler->tableExists('copilot_agent_tracker_replies')) {
     $schema_handler->createTable('copilot_agent_tracker_replies', $spec);
+  }
+}
+
+/**
+ * Create inbox resolution table for immediate UI dismissal.
+ */
+function copilot_agent_tracker_update_8002(): void {
+  $schema = copilot_agent_tracker_schema();
+  $spec = $schema['copilot_agent_tracker_inbox_resolutions'] ?? NULL;
+  if (!$spec) {
+    return;
+  }
+  $db = \Drupal::database();
+  $schema_handler = $db->schema();
+  if (!$schema_handler->tableExists('copilot_agent_tracker_inbox_resolutions')) {
+    $schema_handler->createTable('copilot_agent_tracker_inbox_resolutions', $spec);
   }
 }

@@ -5,13 +5,16 @@ namespace Drupal\copilot_agent_tracker\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Datetime\DateFormatterInterface;
+use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\State\StateInterface;
 use Drupal\Component\Serialization\Json;
+use Drupal\copilot_agent_tracker\Form\AgentDashboardFilterForm;
 use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
  * Admin dashboard for agent/session tracking.
@@ -22,6 +25,8 @@ final class DashboardController extends ControllerBase {
     private readonly Connection $database,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly StateInterface $state,
+    private readonly FormBuilderInterface $formBuilder,
+    private readonly RequestStack $requestStack,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -29,6 +34,8 @@ final class DashboardController extends ControllerBase {
       $container->get('database'),
       $container->get('date.formatter'),
       $container->get('state'),
+      $container->get('form_builder'),
+      $container->get('request_stack'),
     );
   }
 
@@ -37,6 +44,13 @@ final class DashboardController extends ControllerBase {
    */
   public function dashboard(): array {
     $token = (string) $this->state->get('copilot_agent_tracker.telemetry_token', '');
+
+    $request = $this->requestStack->getCurrentRequest();
+    $selected = [
+      'product' => (string) ($request?->query->get('product') ?? ''),
+      'status' => (string) ($request?->query->get('status') ?? ''),
+      'role' => (string) ($request?->query->get('role') ?? ''),
+    ];
 
     $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen'])
@@ -47,14 +61,58 @@ final class DashboardController extends ControllerBase {
       ->execute()
       ->fetchAllAssoc('agent_id');
 
+    $products = [];
+    $statuses = [];
+    $roles = [];
+    foreach ($rows as $row) {
+      $website = (string) ($row->website ?? '');
+      $module = (string) ($row->module ?? '');
+      $product_key = $website . '::' . $module;
+      $products[$product_key] = ($website ?: '-') . ' / ' . ($module ?: '-');
+
+      $status = trim((string) ($row->status ?? ''));
+      if ($status !== '') {
+        $statuses[$status] = $status;
+      }
+
+      $role = trim((string) ($row->role ?? ''));
+      if ($role !== '') {
+        $roles[$role] = $role;
+      }
+    }
+    asort($products);
+    ksort($statuses);
+    ksort($roles);
+
+    $filter_form = $this->formBuilder->getForm(AgentDashboardFilterForm::class, [
+      'products' => $products,
+      'statuses' => $statuses,
+      'roles' => $roles,
+    ], $selected);
+
     $table_rows = [];
     foreach ($rows as $agent_id => $row) {
+      $website = (string) ($row->website ?? '');
+      $module = (string) ($row->module ?? '');
+      $status = (string) ($row->status ?? '');
+      $role = (string) ($row->role ?? '');
+
+      if ($selected['product'] !== '' && ($website . '::' . $module) !== $selected['product']) {
+        continue;
+      }
+      if ($selected['status'] !== '' && $status !== $selected['status']) {
+        continue;
+      }
+      if ($selected['role'] !== '' && $role !== $selected['role']) {
+        continue;
+      }
+
       $table_rows[] = [
         Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString(),
-        $row->role ?? '',
-        $row->website ?? '',
-        $row->module ?? '',
-        $row->status ?? '',
+        $role,
+        $website,
+        $module,
+        $status,
         $row->current_action ?? '',
         $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
       ];
@@ -66,6 +124,7 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<p>Tracks high-level agent status updates and work item progress. Do not post raw conversation logs.</p>'
           . ($token ? '<p><strong>Telemetry token</strong> (send as <code>X-Copilot-Agent-Tracker-Token</code>): <code>' . $token . '</code></p>' : ''),
       ],
+      'filters' => $filter_form,
       'agents' => [
         '#type' => 'table',
         '#header' => ['Agent', 'Role', 'Website', 'Module', 'Status', 'Current action', 'Last seen'],
@@ -82,6 +141,13 @@ final class DashboardController extends ControllerBase {
    * Inbox-style view for Keith/CEO pending decisions.
    */
   public function waitingOnKeith(): array {
+    $resolved = $this->database->select('copilot_agent_tracker_inbox_resolutions', 'r')
+      ->fields('r', ['item_id'])
+      ->condition('resolved', 1)
+      ->execute()
+      ->fetchCol();
+    $resolved = array_fill_keys($resolved ?: [], TRUE);
+
     $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
       ->orderBy('website', 'ASC')
@@ -131,6 +197,9 @@ final class DashboardController extends ControllerBase {
       }
       $item_id = (string) ($m['item_id'] ?? '');
       if ($item_id === '') {
+        continue;
+      }
+      if (!empty($resolved[$item_id])) {
         continue;
       }
       $messages[] = $m;

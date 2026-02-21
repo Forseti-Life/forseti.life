@@ -48,7 +48,7 @@ final class InboxReplyForm extends FormBase {
     $form['reply'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Reply'),
-      '#required' => TRUE,
+      '#required' => FALSE,
       '#rows' => 8,
       '#description' => $this->t('This will be queued back to HQ for delivery to the agent.'),
     ];
@@ -56,10 +56,16 @@ final class InboxReplyForm extends FormBase {
     $form['actions'] = [
       '#type' => 'actions',
     ];
-    $form['actions']['submit'] = [
+    $form['actions']['send'] = [
       '#type' => 'submit',
       '#value' => $this->t('Send reply'),
       '#button_type' => 'primary',
+      '#name' => 'send_reply',
+    ];
+    $form['actions']['resolve'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Resolve'),
+      '#name' => 'resolve_only',
     ];
 
     return $form;
@@ -73,19 +79,53 @@ final class InboxReplyForm extends FormBase {
     $to_agent_id = (string) $form_state->getValue('to_agent_id');
     $reply = (string) $form_state->getValue('reply');
 
-    $this->database->insert('copilot_agent_tracker_replies')
+    $trigger = (string) ($form_state->getTriggeringElement()['#name'] ?? '');
+    $now = (int) $this->time->getRequestTime();
+
+    if ($trigger === 'send_reply') {
+      if (trim($reply) === '') {
+        $form_state->setErrorByName('reply', $this->t('Reply cannot be empty when sending.'));
+        return;
+      }
+      if ($to_agent_id === '') {
+        $form_state->setErrorByName('to_agent_id', $this->t('Missing destination agent.'));
+        return;
+      }
+      if ($item_id === '') {
+        $form_state->setErrorByName('item_id', $this->t('Missing inbox item id.'));
+        return;
+      }
+
+      $this->database->insert('copilot_agent_tracker_replies')
+        ->fields([
+          'to_agent_id' => $to_agent_id,
+          'in_reply_to' => $item_id,
+          'message' => $reply,
+          'created' => $now,
+          'consumed' => 0,
+          'consumed_at' => 0,
+        ])
+        ->execute();
+    }
+
+    // Immediately dismiss from the UI inbox list.
+    $this->database->merge('copilot_agent_tracker_inbox_resolutions')
+      ->key('item_id', $item_id)
       ->fields([
-        'to_agent_id' => $to_agent_id,
-        'in_reply_to' => $item_id,
-        'message' => $reply,
-        'created' => (int) $this->time->getRequestTime(),
-        'consumed' => 0,
-        'consumed_at' => 0,
+        'resolved' => 1,
+        'resolved_at' => $now,
+        'resolved_by_uid' => (int) $this->currentUser()->id(),
       ])
       ->execute();
 
-    $this->messenger()->addStatus($this->t('Reply queued for @agent.', ['@agent' => $to_agent_id]));
+    if ($trigger === 'send_reply') {
+      $this->messenger()->addStatus($this->t('Reply queued for @agent; removed from inbox.', ['@agent' => $to_agent_id]));
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Marked resolved; removed from inbox.'));
+    }
+
+    $form_state->setRedirect('copilot_agent_tracker.waiting_on_keith');
   }
 
 }
-
