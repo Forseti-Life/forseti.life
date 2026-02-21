@@ -38,6 +38,9 @@ final class DashboardController extends ControllerBase {
 
     $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen'])
+      ->orderBy('website', 'ASC')
+      ->orderBy('module', 'ASC')
+      ->orderBy('role', 'ASC')
       ->orderBy('last_seen', 'DESC')
       ->execute()
       ->fetchAllAssoc('agent_id');
