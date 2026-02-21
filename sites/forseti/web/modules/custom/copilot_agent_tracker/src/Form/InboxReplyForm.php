@@ -49,6 +49,7 @@ final class InboxReplyForm extends FormBase {
       '#type' => 'textarea',
       '#title' => $this->t('Reply'),
       '#required' => FALSE,
+      '#default_value' => $item_id !== '' ? 'approved' : '',
       '#rows' => 8,
       '#description' => $this->t('This will be queued back to HQ for delivery to the agent.'),
     ];

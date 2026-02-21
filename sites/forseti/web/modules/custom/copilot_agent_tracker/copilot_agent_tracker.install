@@ -166,12 +166,35 @@ function copilot_agent_tracker_schema(): array {
         'not null' => TRUE,
         'default' => 0,
       ],
+      'hq_item_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => FALSE,
+        'description' => 'HQ inbox item id created from this row (set by HQ consumer).',
+      ],
+      'dismissed' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'dismissed_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'dismissed_by_uid' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
     ],
     'primary key' => ['id'],
     'indexes' => [
       'consumed' => ['consumed'],
       'to_agent_id' => ['to_agent_id'],
       'created' => ['created'],
+      'hq_item_id' => ['hq_item_id'],
+      'dismissed' => ['dismissed'],
     ],
   ];
 
@@ -251,5 +274,46 @@ function copilot_agent_tracker_update_8002(): void {
   $schema_handler = $db->schema();
   if (!$schema_handler->tableExists('copilot_agent_tracker_inbox_resolutions')) {
     $schema_handler->createTable('copilot_agent_tracker_inbox_resolutions', $spec);
+  }
+}
+
+/**
+ * Add hq_item_id to replies for sent-message tracking.
+ */
+function copilot_agent_tracker_update_8003(): void {
+  $db = \Drupal::database();
+  $schema_handler = $db->schema();
+  if (!$schema_handler->tableExists('copilot_agent_tracker_replies')) {
+    return;
+  }
+  if ($schema_handler->fieldExists('copilot_agent_tracker_replies', 'hq_item_id')) {
+    return;
+  }
+  $schema = copilot_agent_tracker_schema();
+  $spec = $schema['copilot_agent_tracker_replies']['fields']['hq_item_id'] ?? NULL;
+  if ($spec) {
+    $schema_handler->addField('copilot_agent_tracker_replies', 'hq_item_id', $spec);
+  }
+}
+
+/**
+ * Add dismissed fields to sent-replies so operators can hide completed threads.
+ */
+function copilot_agent_tracker_update_8004(): void {
+  $db = \Drupal::database();
+  $schema_handler = $db->schema();
+  if (!$schema_handler->tableExists('copilot_agent_tracker_replies')) {
+    return;
+  }
+
+  $schema = copilot_agent_tracker_schema();
+  foreach (['dismissed', 'dismissed_at', 'dismissed_by_uid'] as $field) {
+    if ($schema_handler->fieldExists('copilot_agent_tracker_replies', $field)) {
+      continue;
+    }
+    $spec = $schema['copilot_agent_tracker_replies']['fields'][$field] ?? NULL;
+    if ($spec) {
+      $schema_handler->addField('copilot_agent_tracker_replies', $field, $spec);
+    }
   }
 }

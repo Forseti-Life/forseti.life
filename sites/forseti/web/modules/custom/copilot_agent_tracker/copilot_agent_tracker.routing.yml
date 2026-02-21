@@ -30,6 +30,14 @@ copilot_agent_tracker.waiting_on_keith_message:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.dismiss_sent_message:
+  path: '/admin/reports/waitingonkeith/sent/{reply_id}/dismiss'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::dismissSentMessage'
+    _title: 'Dismiss sent message'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.api_event:
   path: '/api/copilot-agent-tracker/event'
   defaults:

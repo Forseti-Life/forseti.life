@@ -9,11 +9,15 @@ use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\State\StateInterface;
+use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Component\Serialization\Json;
 use Drupal\copilot_agent_tracker\Form\AgentDashboardFilterForm;
+use Drupal\copilot_agent_tracker\Form\ComposeAgentMessageForm;
 use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpFoundation\RequestStack;
 
 /**
@@ -25,8 +29,9 @@ final class DashboardController extends ControllerBase {
     private readonly Connection $database,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly StateInterface $state,
-    private readonly FormBuilderInterface $formBuilder,
-    private readonly RequestStack $requestStack,
+    private readonly FormBuilderInterface $dashboardFormBuilder,
+    private readonly RequestStack $dashboardRequestStack,
+    private readonly CsrfTokenGenerator $csrfToken,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -36,6 +41,7 @@ final class DashboardController extends ControllerBase {
       $container->get('state'),
       $container->get('form_builder'),
       $container->get('request_stack'),
+      $container->get('csrf_token'),
     );
   }
 
@@ -45,7 +51,7 @@ final class DashboardController extends ControllerBase {
   public function dashboard(): array {
     $token = (string) $this->state->get('copilot_agent_tracker.telemetry_token', '');
 
-    $request = $this->requestStack->getCurrentRequest();
+    $request = $this->dashboardRequestStack->getCurrentRequest();
     $selected = [
       'product' => (string) ($request?->query->get('product') ?? ''),
       'status' => (string) ($request?->query->get('status') ?? ''),
@@ -84,7 +90,7 @@ final class DashboardController extends ControllerBase {
     ksort($statuses);
     ksort($roles);
 
-    $filter_form = $this->formBuilder->getForm(AgentDashboardFilterForm::class, [
+    $filter_form = $this->dashboardFormBuilder->getForm(AgentDashboardFilterForm::class, [
       'products' => $products,
       'statuses' => $statuses,
       'roles' => $roles,
@@ -159,6 +165,7 @@ final class DashboardController extends ControllerBase {
 
     $ceo_meta = [];
     $pending_rows = [];
+    $agent_meta = [];
 
     foreach ($rows as $row) {
       $meta = [];
@@ -173,6 +180,9 @@ final class DashboardController extends ControllerBase {
 
       if (($row->agent_id ?? '') === 'ceo-copilot') {
         $ceo_meta = is_array($meta) ? $meta : [];
+      }
+      else {
+        $agent_meta[(string) ($row->agent_id ?? '')] = is_array($meta) ? $meta : [];
       }
 
       $inbox_count = (int) ($meta['inbox_count'] ?? 0);
@@ -190,6 +200,31 @@ final class DashboardController extends ControllerBase {
       }
     }
 
+    $agent_options = [];
+    foreach ($rows as $row) {
+      $agent_id = trim((string) ($row->agent_id ?? ''));
+      if ($agent_id === '') {
+        continue;
+      }
+      $website = trim((string) ($row->website ?? ''));
+      $module = trim((string) ($row->module ?? ''));
+      $role = trim((string) ($row->role ?? ''));
+      $label = $agent_id;
+      if ($website !== '' || $module !== '' || $role !== '') {
+        $label .= ' (' . ($website ?: '-') . '/' . ($module ?: '-') . ($role ? (' - ' . $role) : '') . ')';
+      }
+      $agent_options[$agent_id] = $label;
+    }
+    ksort($agent_options);
+
+    $sent = $this->database->select('copilot_agent_tracker_replies', 'r')
+      ->fields('r', ['id', 'to_agent_id', 'in_reply_to', 'message', 'created', 'consumed', 'consumed_at', 'hq_item_id'])
+      ->condition('dismissed', 0)
+      ->orderBy('created', 'DESC')
+      ->range(0, 50)
+      ->execute()
+      ->fetchAll();
+
     $messages = [];
     foreach (($ceo_meta['inbox_messages'] ?? []) as $m) {
       if (!is_array($m)) {
@@ -203,6 +238,14 @@ final class DashboardController extends ControllerBase {
         continue;
       }
       $messages[] = $m;
+    }
+
+    $ceo_by_agent = [];
+    foreach ($messages as $m) {
+      $from = trim((string) ($m['from_agent'] ?? ''));
+      if ($from !== '') {
+        $ceo_by_agent[$from][] = $m;
+      }
     }
 
     $message_rows = [];
@@ -228,10 +271,79 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+    $sent_thread_items = [];
+    foreach ($sent as $s) {
+      $to_agent_id = (string) ($s->to_agent_id ?? '');
+      $created = (int) ($s->created ?? 0);
+      $title = ($created ? $this->dateFormatter->format($created, 'short') : '-') . ' -> ' . $to_agent_id;
+      $dismiss_token = $this->csrfToken->get('dismiss-sent:' . (int) $s->id);
+      $dismiss_link = Link::fromTextAndUrl(
+        $this->t('Dismiss'),
+        Url::fromRoute('copilot_agent_tracker.dismiss_sent_message', ['reply_id' => (int) $s->id], ['query' => ['token' => $dismiss_token]])
+      )->toString();
+
+      $hq_item_id = trim((string) ($s->hq_item_id ?? ''));
+      $state = 'Queued';
+      if (!empty($s->consumed)) {
+        $state = 'Delivered';
+        $items = $agent_meta[$to_agent_id]['inbox_items'] ?? [];
+        if ($hq_item_id !== '' && is_array($items) && in_array($hq_item_id, $items, TRUE)) {
+          $state = 'Pending (in agent inbox)';
+        }
+      }
+
+      $sub_links = [];
+      $sent_ymd = $created ? gmdate('Ymd', $created) : '';
+      foreach (($ceo_by_agent[$to_agent_id] ?? []) as $m) {
+        $item_id = (string) ($m['item_id'] ?? '');
+        if ($item_id === '') {
+          continue;
+        }
+        if ($sent_ymd !== '' && strcmp(substr($item_id, 0, 8), $sent_ymd) < 0) {
+          continue;
+        }
+        $sub_links[] = Link::fromTextAndUrl($item_id, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $item_id]))->toString();
+      }
+
+      $sent_thread_items[] = [
+        '#type' => 'details',
+        '#title' => $title,
+        '#open' => FALSE,
+        'meta' => [
+          '#markup' => '<p><strong>Status:</strong> ' . $this->t('@s', ['@s' => $state]) . ' &nbsp; ' . $dismiss_link . '<br>'
+            . '<strong>HQ item:</strong> ' . $this->t('@h', ['@h' => ($hq_item_id ?: '-')]) . '</p>',
+        ],
+        'message' => [
+          '#type' => 'item',
+          '#title' => $this->t('Message'),
+          '#markup' => '<pre style="white-space:pre-wrap;max-height:240px;overflow:auto;">' . htmlspecialchars((string) ($s->message ?? '')) . '</pre>',
+        ],
+        'sub' => [
+          '#type' => 'item',
+          '#title' => $this->t('Sub-items'),
+          '#markup' => $sub_links ? ('<ul><li>' . implode('</li><li>', $sub_links) . '</li></ul>') : '<em>None detected.</em>',
+        ],
+      ];
+    }
+
     return [
       '#type' => 'container',
       'help' => [
         '#markup' => '<p>This page shows a CEO-style inbox view derived from HQ sync metadata (not raw chat logs).</p>',
+      ],
+      'compose' => [
+        '#type' => 'details',
+        '#title' => $this->t('Compose message'),
+        '#open' => FALSE,
+        'form' => $this->formBuilder()->getForm(ComposeAgentMessageForm::class, $agent_options),
+      ],
+      'sent_threads' => [
+        '#type' => 'details',
+        '#title' => $this->t('Sent messages'),
+        '#open' => FALSE,
+        'items' => $sent_thread_items ?: [
+          '#markup' => '<em>No sent messages yet.</em>',
+        ],
       ],
       'messages' => [
         '#type' => 'table',
@@ -249,6 +361,29 @@ final class DashboardController extends ControllerBase {
         'max-age' => 0,
       ],
     ];
+  }
+
+  /**
+   * Dismiss a sent message thread from the Waiting on Keith page.
+   */
+  public function dismissSentMessage(int $reply_id): RedirectResponse {
+    $request = $this->dashboardRequestStack->getCurrentRequest();
+    $token = (string) ($request?->query->get('token') ?? '');
+    if (!$this->csrfToken->validate($token, 'dismiss-sent:' . $reply_id)) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $this->database->update('copilot_agent_tracker_replies')
+      ->fields([
+        'dismissed' => 1,
+        'dismissed_at' => (int) \Drupal::time()->getRequestTime(),
+        'dismissed_by_uid' => (int) $this->currentUser()->id(),
+      ])
+      ->condition('id', $reply_id)
+      ->execute();
+
+    $this->messenger()->addStatus($this->t('Sent message dismissed.'));
+    return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.waiting_on_keith')->toString());
   }
 
   /**
