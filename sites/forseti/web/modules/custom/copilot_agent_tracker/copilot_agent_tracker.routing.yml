@@ -30,6 +30,14 @@ copilot_agent_tracker.waiting_on_keith_message:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.waiting_on_keith_approve:
+  path: '/admin/reports/waitingonkeith/{item_id}/approve'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::approveWaitingOnKeithItem'
+    _title: 'Approve'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.dismiss_sent_message:
   path: '/admin/reports/waitingonkeith/sent/{reply_id}/dismiss'
   defaults:

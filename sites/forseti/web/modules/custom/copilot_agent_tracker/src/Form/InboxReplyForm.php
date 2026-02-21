@@ -92,8 +92,16 @@ final class InboxReplyForm extends FormBase {
         $form_state->setErrorByName('to_agent_id', $this->t('Missing destination agent.'));
         return;
       }
+      if (strlen($to_agent_id) > 128) {
+        $form_state->setErrorByName('to_agent_id', $this->t('Invalid destination agent.'));
+        return;
+      }
       if ($item_id === '') {
         $form_state->setErrorByName('item_id', $this->t('Missing inbox item id.'));
+        return;
+      }
+      if (strlen($item_id) > 255) {
+        $form_state->setErrorByName('item_id', $this->t('Invalid inbox item id.'));
         return;
       }
 

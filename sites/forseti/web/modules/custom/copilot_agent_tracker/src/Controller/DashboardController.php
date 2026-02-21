@@ -11,6 +11,7 @@ use Drupal\Core\Url;
 use Drupal\Core\State\StateInterface;
 use Drupal\Core\Access\CsrfTokenGenerator;
 use Drupal\Component\Serialization\Json;
+use Drupal\Component\Render\Markup;
 use Drupal\copilot_agent_tracker\Form\AgentDashboardFilterForm;
 use Drupal\copilot_agent_tracker\Form\ComposeAgentMessageForm;
 use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
@@ -147,6 +148,7 @@ final class DashboardController extends ControllerBase {
    * Inbox-style view for Keith/CEO pending decisions.
    */
   public function waitingOnKeith(): array {
+    $self_agent_prefix = 'ceo-copilot';
     $resolved = $this->database->select('copilot_agent_tracker_inbox_resolutions', 'r')
       ->fields('r', ['item_id'])
       ->condition('resolved', 1)
@@ -206,6 +208,10 @@ final class DashboardController extends ControllerBase {
       if ($agent_id === '') {
         continue;
       }
+      // Prevent sending inbox items to the CEO inbox / internal CEO sub-sessions.
+      if ($agent_id === $self_agent_prefix || str_starts_with($agent_id, $self_agent_prefix . '-')) {
+        continue;
+      }
       $website = trim((string) ($row->website ?? ''));
       $module = trim((string) ($row->module ?? ''));
       $role = trim((string) ($row->role ?? ''));
@@ -220,6 +226,8 @@ final class DashboardController extends ControllerBase {
     $sent = $this->database->select('copilot_agent_tracker_replies', 'r')
       ->fields('r', ['id', 'to_agent_id', 'in_reply_to', 'message', 'created', 'consumed', 'consumed_at', 'hq_item_id'])
       ->condition('dismissed', 0)
+      ->condition('to_agent_id', $self_agent_prefix, '<>')
+      ->condition('to_agent_id', $self_agent_prefix . '-%', 'NOT LIKE')
       ->orderBy('created', 'DESC')
       ->range(0, 50)
       ->execute()
@@ -260,8 +268,19 @@ final class DashboardController extends ControllerBase {
       $decision = (string) ($m['decision_needed'] ?? '');
       $recommendation = (string) ($m['recommendation'] ?? '');
       $preview = mb_substr(trim($body), 0, 160);
+
+      $subject_link = Link::fromTextAndUrl($subject, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $item_id]))->toString();
+      $approve_link = '';
+      if ($from !== '' && strlen($from) <= 128) {
+        $token = $this->csrfToken->get('approve-inbox:' . $item_id);
+        $approve_link = ' ' . Link::fromTextAndUrl(
+          $this->t('Approve'),
+          Url::fromRoute('copilot_agent_tracker.waiting_on_keith_approve', ['item_id' => $item_id], ['query' => ['token' => $token]])
+        )->toString();
+      }
+
       $message_rows[] = [
-        Link::fromTextAndUrl($subject, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $item_id]))->toString(),
+        Markup::create($subject_link . $approve_link),
         $from,
         ($website ?: '-') . ' / ' . ($module ?: '-'),
         $role ?: '-',
@@ -361,6 +380,74 @@ final class DashboardController extends ControllerBase {
         'max-age' => 0,
       ],
     ];
+  }
+
+  /**
+   * Quickly approve a Waiting on Keith inbox item (send "approved" + resolve).
+   */
+  public function approveWaitingOnKeithItem(string $item_id): RedirectResponse {
+    $request = $this->dashboardRequestStack->getCurrentRequest();
+    $token = (string) ($request?->query->get('token') ?? '');
+    if (!$this->csrfToken->validate($token, 'approve-inbox:' . $item_id)) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $row = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['metadata'])
+      ->condition('agent_id', 'ceo-copilot')
+      ->execute()
+      ->fetchAssoc();
+
+    $meta = [];
+    if (!empty($row['metadata'])) {
+      try {
+        $meta = Json::decode((string) $row['metadata']) ?? [];
+      }
+      catch (\Throwable) {
+        $meta = [];
+      }
+    }
+
+    $message = NULL;
+    foreach (($meta['inbox_messages'] ?? []) as $m) {
+      if (is_array($m) && (string) ($m['item_id'] ?? '') === $item_id) {
+        $message = $m;
+        break;
+      }
+    }
+    if (!$message) {
+      throw new NotFoundHttpException();
+    }
+
+    $to_agent_id = trim((string) ($message['from_agent'] ?? ''));
+    if ($to_agent_id === '' || strlen($to_agent_id) > 128) {
+      $this->messenger()->addError($this->t('Cannot approve: missing or invalid destination agent.'));
+      return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.waiting_on_keith')->toString());
+    }
+
+    $now = (int) \Drupal::time()->getRequestTime();
+    $this->database->insert('copilot_agent_tracker_replies')
+      ->fields([
+        'to_agent_id' => $to_agent_id,
+        'in_reply_to' => $item_id,
+        'message' => 'approved',
+        'created' => $now,
+        'consumed' => 0,
+        'consumed_at' => 0,
+      ])
+      ->execute();
+
+    $this->database->merge('copilot_agent_tracker_inbox_resolutions')
+      ->key('item_id', $item_id)
+      ->fields([
+        'resolved' => 1,
+        'resolved_at' => $now,
+        'resolved_by_uid' => (int) $this->currentUser()->id(),
+      ])
+      ->execute();
+
+    $this->messenger()->addStatus($this->t('Approved and removed from inbox.'));
+    return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.waiting_on_keith')->toString());
   }
 
   /**
