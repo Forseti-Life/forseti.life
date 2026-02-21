@@ -142,10 +142,19 @@ final class DashboardController extends ControllerBase {
       $from = (string) ($m['from_agent'] ?? '');
       $subject = (string) ($m['subject'] ?? $item_id);
       $body = (string) ($m['body'] ?? '');
+      $website = (string) ($m['website'] ?? '');
+      $module = (string) ($m['module'] ?? '');
+      $role = (string) ($m['role'] ?? '');
+      $decision = (string) ($m['decision_needed'] ?? '');
+      $recommendation = (string) ($m['recommendation'] ?? '');
       $preview = mb_substr(trim($body), 0, 160);
       $message_rows[] = [
         Link::fromTextAndUrl($subject, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $item_id]))->toString(),
         $from,
+        ($website ?: '-') . ' / ' . ($module ?: '-'),
+        $role ?: '-',
+        mb_substr(trim($decision), 0, 80),
+        mb_substr(trim($recommendation), 0, 80),
         $preview,
       ];
     }
@@ -157,7 +166,7 @@ final class DashboardController extends ControllerBase {
       ],
       'messages' => [
         '#type' => 'table',
-        '#header' => ['Subject', 'From', 'Preview'],
+        '#header' => ['Subject', 'From', 'Product', 'Role', 'Decision needed', 'Recommendation', 'Preview'],
         '#rows' => $message_rows,
         '#empty' => $this->t('No inbox items detected.'),
       ],
@@ -207,12 +216,43 @@ final class DashboardController extends ControllerBase {
     $from_agent = (string) ($message['from_agent'] ?? '');
     $subject = (string) ($message['subject'] ?? $item_id);
     $body = (string) ($message['body'] ?? '');
+    $website = (string) ($message['website'] ?? '');
+    $module = (string) ($message['module'] ?? '');
+    $role = (string) ($message['role'] ?? '');
+    $decision = (string) ($message['decision_needed'] ?? '');
+    $recommendation = (string) ($message['recommendation'] ?? '');
 
     return [
       '#type' => 'container',
       'header' => [
         '#markup' => '<h2>' . $this->t('Message: @subject', ['@subject' => $subject]) . '</h2>'
-          . '<p><strong>' . $this->t('From') . ':</strong> ' . $this->t('@from', ['@from' => $from_agent ?: '-']) . '</p>',
+          . '<p><strong>' . $this->t('From') . ':</strong> ' . $this->t('@from', ['@from' => $from_agent ?: '-']) . '</p>'
+          . '<p><strong>' . $this->t('Product') . ':</strong> ' . $this->t('@p', ['@p' => ($website ?: '-') . ' / ' . ($module ?: '-')]) . '</p>'
+          . '<p><strong>' . $this->t('Role') . ':</strong> ' . $this->t('@r', ['@r' => $role ?: '-']) . '</p>',
+      ],
+      'decision' => [
+        '#type' => 'details',
+        '#title' => $this->t('Decision needed'),
+        '#open' => TRUE,
+        'content' => [
+          '#type' => 'textarea',
+          '#title' => $this->t('Decision'),
+          '#value' => $decision,
+          '#rows' => 6,
+          '#attributes' => ['readonly' => 'readonly'],
+        ],
+      ],
+      'recommendation' => [
+        '#type' => 'details',
+        '#title' => $this->t('Recommendation'),
+        '#open' => TRUE,
+        'content' => [
+          '#type' => 'textarea',
+          '#title' => $this->t('Recommendation'),
+          '#value' => $recommendation,
+          '#rows' => 6,
+          '#attributes' => ['readonly' => 'readonly'],
+        ],
       ],
       'body' => [
         '#type' => 'details',
