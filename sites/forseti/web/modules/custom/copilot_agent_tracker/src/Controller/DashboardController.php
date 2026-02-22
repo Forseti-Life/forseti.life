@@ -212,6 +212,13 @@ final class DashboardController extends ControllerBase {
         continue;
       }
 
+      // Do not include paused seats in the prioritization queue.
+      // CEO can unpause them if their scope is needed.
+      $status = trim((string) ($row->status ?? ''));
+      if (strtolower($status) === 'paused') {
+        continue;
+      }
+
       $inbox_count = (int) ($meta['inbox_count'] ?? 0);
 
       // Prefer effective ROI (includes small time-based aging bonus from HQ).
