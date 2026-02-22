@@ -412,7 +412,27 @@ final class DashboardController extends ControllerBase {
     return [
       '#type' => 'container',
       'help' => [
-        '#markup' => '<p>This page shows a CEO-style inbox view derived from HQ sync metadata (not raw chat logs).</p>',
+        '#markup' => '<h2>Process Flow (Authority)</h2>'
+          . '<p><strong>Purpose:</strong> keep work progressing with a single inbox/outbox per configured agent seat, with a clean audit trail.</p>'
+          . '<p><strong>Authority for non-CEO agents:</strong> HQ org-wide + role instructions (copilot-sessions-hq: <code>org-chart/org-wide.instructions.md</code> and <code>org-chart/roles/*.instructions.md</code>). Agents select the next work item from their seat inbox; if idle, they generate role-appropriate work.</p>'
+          . '<hr>'
+          . '<h3>Keith (Human owner) — what to do next</h3>'
+          . '<ol>'
+          . '<li>Open this page and review the <strong>Messages</strong> table (CEO inbox items needing decision).</li>'
+          . '<li>For each message: read <em>Decision needed</em> + <em>Recommendation</em>, then decide: approve / request clarification / deprioritize.</li>'
+          . '<li>If you approve: click <strong>Approve</strong> (it sends an “approved” reply back to the originating agent and resolves the item).</li>'
+          . '<li>If you need changes: reply with specific direction (scope, stage breaks, acceptance criteria, constraints).</li>'
+          . '<li>Check <strong>Sent messages</strong> to ensure replies were delivered and are pending in the intended agent inbox.</li>'
+          . '<li>Daily/periodic: confirm top OKR priorities and adjust only the smallest number of constraints needed to unblock execution.</li>'
+          . '</ol>'
+          . '<h3>CEO (ceo-copilot) — operating loop</h3>'
+          . '<ol>'
+          . '<li>Run HQ status + blocker review (HQ scripts): <code>scripts/hq-status.sh</code> and <code>scripts/hq-blockers.sh</code>.</li>'
+          . '<li>Ensure every PM seat has an active queue for BA/Dev/QA (one inbox per seat; no new agent IDs).</li>'
+          . '<li>When blocked: either provide missing inputs (files/paths/URLs) in a single inbox item, or escalate to Keith with options.</li>'
+          . '<li>When idle: seed continuous improvement work for HQ processes and tooling (delegated as inbox items).</li>'
+          . '<li>Publish status telemetry from HQ to this tracker (cron) and keep the agent list clean (configured seats only).</li>'
+          . '</ol>',
       ],
       'compose' => [
         '#type' => 'details',
