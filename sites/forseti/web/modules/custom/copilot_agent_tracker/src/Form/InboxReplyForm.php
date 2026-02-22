@@ -83,27 +83,15 @@ final class InboxReplyForm extends FormBase {
     $trigger = (string) ($form_state->getTriggeringElement()['#name'] ?? '');
     $now = (int) $this->time->getRequestTime();
 
+    // Defensive guard: validation should have caught this.
+    if ($item_id === '' || strlen($item_id) > 255) {
+      $this->messenger()->addError($this->t('Unable to process: invalid inbox item id.'));
+      $form_state->setRedirect('copilot_agent_tracker.waiting_on_keith');
+      return;
+    }
+
     if ($trigger === 'send_reply') {
-      if (trim($reply) === '') {
-        $form_state->setErrorByName('reply', $this->t('Reply cannot be empty when sending.'));
-        return;
-      }
-      if ($to_agent_id === '') {
-        $form_state->setErrorByName('to_agent_id', $this->t('Missing destination agent.'));
-        return;
-      }
-      if (strlen($to_agent_id) > 128) {
-        $form_state->setErrorByName('to_agent_id', $this->t('Invalid destination agent.'));
-        return;
-      }
-      if ($item_id === '') {
-        $form_state->setErrorByName('item_id', $this->t('Missing inbox item id.'));
-        return;
-      }
-      if (strlen($item_id) > 255) {
-        $form_state->setErrorByName('item_id', $this->t('Invalid inbox item id.'));
-        return;
-      }
+      // At this point validateForm() guarantees reply/to_agent_id are sane.
 
       $this->database->insert('copilot_agent_tracker_replies')
         ->fields([
@@ -135,6 +123,40 @@ final class InboxReplyForm extends FormBase {
     }
 
     $form_state->setRedirect('copilot_agent_tracker.waiting_on_keith');
+  }
+
+  /**
+   * {@inheritdoc}
+   */
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
+    $item_id = (string) $form_state->getValue('item_id');
+    $to_agent_id = (string) $form_state->getValue('to_agent_id');
+    $reply = (string) $form_state->getValue('reply');
+    $trigger = (string) ($form_state->getTriggeringElement()['#name'] ?? '');
+
+    if ($item_id === '') {
+      $form_state->setErrorByName('item_id', $this->t('Missing inbox item id.'));
+      return;
+    }
+    if (strlen($item_id) > 255) {
+      $form_state->setErrorByName('item_id', $this->t('Invalid inbox item id.'));
+      return;
+    }
+
+    if ($trigger === 'send_reply') {
+      if (trim($reply) === '') {
+        $form_state->setErrorByName('reply', $this->t('Reply cannot be empty when sending.'));
+        return;
+      }
+      if ($to_agent_id === '') {
+        $form_state->setErrorByName('to_agent_id', $this->t('Missing destination agent.'));
+        return;
+      }
+      if (strlen($to_agent_id) > 128) {
+        $form_state->setErrorByName('to_agent_id', $this->t('Invalid destination agent.'));
+        return;
+      }
+    }
   }
 
 }

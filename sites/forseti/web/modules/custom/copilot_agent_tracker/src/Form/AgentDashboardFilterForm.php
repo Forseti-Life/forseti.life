@@ -21,9 +21,9 @@ final class AgentDashboardFilterForm extends FormBase {
    * {@inheritdoc}
    *
    * @param array $options
-   *   Keys: products, statuses, roles.
+   *   Keys: products, roles.
    * @param array $selected
-   *   Keys: product, status, role.
+   *   Keys: product, role.
    */
   public function buildForm(array $form, FormStateInterface $form_state, array $options = [], array $selected = []): array {
     $form['#method'] = 'get';
@@ -39,12 +39,6 @@ final class AgentDashboardFilterForm extends FormBase {
       '#title' => $this->t('Product'),
       '#options' => ['' => $this->t('- All -')] + ($options['products'] ?? []),
       '#default_value' => (string) ($selected['product'] ?? ''),
-    ];
-    $form['filters']['status'] = [
-      '#type' => 'select',
-      '#title' => $this->t('Status'),
-      '#options' => ['' => $this->t('- All -')] + ($options['statuses'] ?? []),
-      '#default_value' => (string) ($selected['status'] ?? ''),
     ];
     $form['filters']['role'] = [
       '#type' => 'select',
@@ -77,7 +71,7 @@ final class AgentDashboardFilterForm extends FormBase {
     $values = $form_state->getValues();
 
     $query = [];
-    foreach (['product', 'status', 'role'] as $k) {
+    foreach (['product', 'role'] as $k) {
       $v = isset($values[$k]) ? trim((string) $values[$k]) : '';
       if ($v !== '') {
         $query[$k] = $v;

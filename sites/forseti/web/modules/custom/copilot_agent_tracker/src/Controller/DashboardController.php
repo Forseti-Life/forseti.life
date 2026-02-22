@@ -55,7 +55,6 @@ final class DashboardController extends ControllerBase {
     $request = $this->dashboardRequestStack->getCurrentRequest();
     $selected = [
       'product' => (string) ($request?->query->get('product') ?? ''),
-      'status' => (string) ($request?->query->get('status') ?? ''),
       'role' => (string) ($request?->query->get('role') ?? ''),
     ];
 
@@ -69,7 +68,6 @@ final class DashboardController extends ControllerBase {
       ->fetchAllAssoc('agent_id');
 
     $products = [];
-    $statuses = [];
     $roles = [];
     foreach ($rows as $row) {
       $website = (string) ($row->website ?? '');
@@ -77,23 +75,16 @@ final class DashboardController extends ControllerBase {
       $product_key = $website . '::' . $module;
       $products[$product_key] = ($website ?: '-') . ' / ' . ($module ?: '-');
 
-      $status = trim((string) ($row->status ?? ''));
-      if ($status !== '') {
-        $statuses[$status] = $status;
-      }
-
       $role = trim((string) ($row->role ?? ''));
       if ($role !== '') {
         $roles[$role] = $role;
       }
     }
     asort($products);
-    ksort($statuses);
     ksort($roles);
 
     $filter_form = $this->dashboardFormBuilder->getForm(AgentDashboardFilterForm::class, [
       'products' => $products,
-      'statuses' => $statuses,
       'roles' => $roles,
     ], $selected);
 
@@ -107,9 +98,6 @@ final class DashboardController extends ControllerBase {
       if ($selected['product'] !== '' && ($website . '::' . $module) !== $selected['product']) {
         continue;
       }
-      if ($selected['status'] !== '' && $status !== $selected['status']) {
-        continue;
-      }
       if ($selected['role'] !== '' && $role !== $selected['role']) {
         continue;
       }
@@ -119,7 +107,6 @@ final class DashboardController extends ControllerBase {
         $role,
         $website,
         $module,
-        $status,
         $row->current_action ?? '',
         $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
       ];
@@ -134,7 +121,7 @@ final class DashboardController extends ControllerBase {
       'filters' => $filter_form,
       'agents' => [
         '#type' => 'table',
-        '#header' => ['Agent', 'Role', 'Website', 'Module', 'Status', 'Current action', 'Last seen'],
+        '#header' => ['Agent', 'Role', 'Website', 'Module', 'Current action', 'Last seen'],
         '#rows' => $table_rows,
         '#empty' => $this->t('No agent updates yet.'),
       ],
@@ -167,6 +154,7 @@ final class DashboardController extends ControllerBase {
 
     $ceo_meta = [];
     $ceo_last_seen = 0;
+    $pending_items = [];
     $pending_rows = [];
     $agent_meta = [];
 
@@ -225,7 +213,26 @@ final class DashboardController extends ControllerBase {
       }
 
       $inbox_count = (int) ($meta['inbox_count'] ?? 0);
-      $pending_rows[] = [
+
+      // Prefer effective ROI (includes small time-based aging bonus from HQ).
+      // Fall back to base ROI for older payloads.
+      $next_inbox_roi = (int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 1));
+      if ($next_inbox_roi < 1) {
+        $next_inbox_roi = 1;
+      }
+
+      // Sort key: prioritize agents with pending inbox items, then highest ROI.
+      // (ROI is published from HQ as metadata.next_inbox_roi.)
+      $sort_has_inbox = $inbox_count > 0 ? 1 : 0;
+      $sort_roi = $sort_has_inbox ? $next_inbox_roi : 0;
+      $sort_last_seen = (int) ($row->last_seen ?? 0);
+
+      $pending_items[] = [
+        'sort_has_inbox' => $sort_has_inbox,
+        'sort_roi' => $sort_roi,
+        'sort_last_seen' => $sort_last_seen,
+        'agent_id' => $agent_id,
+        'row' => [
         Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString(),
         $row->website ?? '',
         $row->module ?? '',
@@ -234,7 +241,35 @@ final class DashboardController extends ControllerBase {
         $row->current_action ?? '',
         (string) $inbox_count,
         $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
+        ],
       ];
+    }
+
+    // Apply org-level ordering: highest ROI first, while keeping agents with no inbox items at the bottom.
+    usort($pending_items, static function (array $a, array $b): int {
+      // Has inbox first.
+      $c = ($b['sort_has_inbox'] ?? 0) <=> ($a['sort_has_inbox'] ?? 0);
+      if ($c !== 0) {
+        return $c;
+      }
+      // Highest ROI first.
+      $c = ($b['sort_roi'] ?? 0) <=> ($a['sort_roi'] ?? 0);
+      if ($c !== 0) {
+        return $c;
+      }
+      // Most recently seen first.
+      $c = ($b['sort_last_seen'] ?? 0) <=> ($a['sort_last_seen'] ?? 0);
+      if ($c !== 0) {
+        return $c;
+      }
+      // Stable-ish tie-breaker.
+      return strcmp((string) ($a['agent_id'] ?? ''), (string) ($b['agent_id'] ?? ''));
+    });
+
+    foreach ($pending_items as $it) {
+      if (!empty($it['row']) && is_array($it['row'])) {
+        $pending_rows[] = $it['row'];
+      }
     }
 
     // Compose dropdown includes ALL agents, including CEO threads.
