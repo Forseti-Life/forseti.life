@@ -170,6 +170,25 @@ final class DashboardController extends ControllerBase {
     $pending_rows = [];
     $agent_meta = [];
 
+    $is_legacy_agent_id = static function (string $agent_id): bool {
+      // Legacy bug: HQ briefly published per-inbox-item "agent ids" into the tracker.
+      // These contain dated/task suffixes like:
+      //   pm-foo-20260220-product-...
+      //   ...-reply-keith-...
+      //   ...-needs-...
+      //   ...-clarify-escalation-...
+      if ($agent_id === '') {
+        return TRUE;
+      }
+      if (preg_match('/-\\d{8}(-|$)/', $agent_id)) {
+        return TRUE;
+      }
+      if (str_contains($agent_id, '-reply-keith-') || str_contains($agent_id, '-needs-') || str_contains($agent_id, '-clarify-escalation-')) {
+        return TRUE;
+      }
+      return FALSE;
+    };
+
     foreach ($rows as $row) {
       $meta = [];
       if (!empty($row->metadata)) {
@@ -197,6 +216,11 @@ final class DashboardController extends ControllerBase {
       }
       // Prevent showing the CEO inbox / internal CEO sub-sessions on the waiting-on-keith agent list.
       if ($agent_id === $self_agent_prefix || str_starts_with($agent_id, $self_agent_prefix . '-')) {
+        continue;
+      }
+
+      // Hide legacy per-item IDs so the report shows only real agent seats.
+      if ($is_legacy_agent_id($agent_id)) {
         continue;
       }
 
@@ -250,6 +274,10 @@ final class DashboardController extends ControllerBase {
     }
 
     foreach ($ordered_ids as $agent_id) {
+      // Keep CEO threads, but hide legacy per-item IDs from the compose dropdown.
+      if ($agent_id !== $self_agent_prefix && !str_starts_with($agent_id, $self_agent_prefix . '-') && $is_legacy_agent_id($agent_id)) {
+        continue;
+      }
       $row = $by_id[$agent_id] ?? NULL;
       $website = trim((string) ($row?->website ?? ''));
       $module = trim((string) ($row?->module ?? ''));
