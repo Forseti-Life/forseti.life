@@ -719,6 +719,100 @@ final class DashboardController extends ControllerBase {
   }
 
   /**
+   * Release Notes admin report (HQ-driven).
+   *
+   * Data source: CEO metadata published from HQ (scripts/publish-forseti-agent-tracker.sh)
+   * under metadata.release_notes.
+   */
+  public function releaseNotes(): array {
+    // Resolve CEO metadata (same approach as Waiting on Keith).
+    $row = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['metadata', 'last_seen'])
+      ->condition('agent_id', 'ceo-copilot%', 'LIKE')
+      ->orderBy('last_seen', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $meta = [];
+    if (!empty($row['metadata'])) {
+      try {
+        $meta = Json::decode((string) $row['metadata']) ?? [];
+      }
+      catch (\Throwable) {
+        $meta = [];
+      }
+    }
+
+    $entries = $meta['release_notes'] ?? [];
+    if (!is_array($entries)) {
+      $entries = [];
+    }
+
+    $items = [];
+    foreach ($entries as $e) {
+      if (!is_array($e)) {
+        continue;
+      }
+      $rid = trim((string) ($e['release_id'] ?? ''));
+      if ($rid === '') {
+        continue;
+      }
+      $state = trim((string) ($e['state'] ?? '')) ?: 'unknown';
+
+      $details = [];
+      $fields = [
+        'plan' => 'Release plan',
+        'change_list' => 'Change list',
+        'test_evidence' => 'Test evidence',
+        'risk_security' => 'Risk + security',
+        'rollback' => 'Rollback',
+        'human_approval' => 'Human approval',
+        'release_notes' => 'Release notes',
+      ];
+      foreach ($fields as $k => $title) {
+        $txt = (string) ($e[$k] ?? '');
+        $txt = trim($txt);
+        if ($txt === '') {
+          continue;
+        }
+        $details[] = [
+          '#type' => 'details',
+          '#title' => $this->t('@t', ['@t' => $title]),
+          '#open' => FALSE,
+          '#markup' => '<pre style="white-space:pre-wrap;max-height:260px;overflow:auto;">' . htmlspecialchars($txt) . '</pre>',
+        ];
+      }
+
+      // Link to Waiting on Keith message view if it's a pending needs-* item.
+      $rid_link = $rid;
+      if (preg_match('/^\d{8}-needs-/', $rid)) {
+        $rid_link = Link::fromTextAndUrl($rid, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $rid]))->toString();
+      }
+
+      $items[] = [
+        '#type' => 'details',
+        '#title' => Markup::create($rid_link . ' — ' . htmlspecialchars($state)),
+        '#open' => FALSE,
+        'body' => $details ?: ['#markup' => '<em>No details published.</em>'],
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      'help' => [
+        '#markup' => '<p>This page is driven by HQ release candidate artifacts and is coordinated by the CEO. Pending release candidates should appear here and in <a href="/admin/reports/waitingonkeith">Waiting on Keith</a> for human approval.</p>',
+      ],
+      'items' => $items ?: [
+        '#markup' => '<em>No release candidates or shipped releases published yet.</em>',
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
    * Agent detail page.
    */
   public function agent(string $agent_id): array {

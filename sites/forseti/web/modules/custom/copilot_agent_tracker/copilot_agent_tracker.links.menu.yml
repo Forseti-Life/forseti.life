@@ -11,3 +11,10 @@ copilot_agent_tracker.waiting_on_keith:
   route_name: copilot_agent_tracker.waiting_on_keith
   parent: system.admin_reports
   weight: 51
+
+copilot_agent_tracker.release_notes:
+  title: 'Release Notes'
+  description: 'Coordinated release tracking (pending + shipped).'
+  route_name: copilot_agent_tracker.release_notes
+  parent: system.admin_reports
+  weight: 52
