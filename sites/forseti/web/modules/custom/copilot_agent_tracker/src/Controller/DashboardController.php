@@ -444,11 +444,42 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+    // Organizational priorities (published from HQ into CEO metadata).
+    $priority_items = [];
+    $org_priorities = $ceo_meta['org_priorities'] ?? [];
+    if (is_array($org_priorities)) {
+      foreach ($org_priorities as $p) {
+        if (!is_array($p)) {
+          continue;
+        }
+        $k = trim((string) ($p['key'] ?? ''));
+        $score = $p['score'] ?? NULL;
+        if ($k === '' || $score === NULL) {
+          continue;
+        }
+        $priority_items[] = $this->t('@k: @v', ['@k' => $k, '@v' => (string) $score]);
+      }
+    }
+
     return [
       '#type' => 'container',
+      'priorities' => [
+        '#type' => 'container',
+        'title' => [
+          '#markup' => '<h2>Organizational priorities</h2>',
+        ],
+        'list' => $priority_items ? [
+          '#theme' => 'item_list',
+          '#items' => $priority_items,
+        ] : [
+          '#markup' => '<em>No priorities published yet.</em>',
+        ],
+      ],
       'help' => [
-        '#markup' => '<h2>Process Flow (Authority)</h2>'
-          . '<p><strong>Purpose:</strong> keep work progressing with a single inbox/outbox per configured agent seat, with a clean audit trail.</p>'
+        '#type' => 'details',
+        '#title' => $this->t('Process flow (authority)'),
+        '#open' => FALSE,
+        '#markup' => '<p><strong>Purpose:</strong> keep work progressing with a single inbox/outbox per configured agent seat, with a clean audit trail.</p>'
           . '<p><strong>Authority for non-CEO agents:</strong> HQ org-wide + role instructions (copilot-sessions-hq: <code>org-chart/org-wide.instructions.md</code> and <code>org-chart/roles/*.instructions.md</code>). Agents select the next work item from their seat inbox; if idle, they generate role-appropriate work.</p>'
           . '<hr>'
           . '<h3>Keith (Human owner) — what to do next</h3>'
