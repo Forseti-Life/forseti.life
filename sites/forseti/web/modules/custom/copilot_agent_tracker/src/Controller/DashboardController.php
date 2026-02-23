@@ -848,214 +848,27 @@ final class DashboardController extends ControllerBase {
       ->execute()
       ->fetchAll();
 
-    $meta = [];
-    if (!empty($agent['metadata'])) {
-      try {
-        $decoded = Json::decode((string) $agent['metadata']);
-        $meta = is_array($decoded) ? $decoded : [];
-      }
-      catch (\Throwable) {
-        $meta = [];
-      }
-    }
-
-    $inbox_items = [];
-    if (!empty($meta['inbox_items_detail']) && is_array($meta['inbox_items_detail'])) {
-      foreach ($meta['inbox_items_detail'] as $it) {
-        if (!is_array($it)) {
-          continue;
-        }
-        $iid = trim((string) ($it['item_id'] ?? ''));
-        if ($iid === '') {
-          continue;
-        }
-        $inbox_items[$iid] = $it;
-      }
-    }
-    elseif (!empty($meta['inbox_items']) && is_array($meta['inbox_items'])) {
-      foreach ($meta['inbox_items'] as $iid) {
-        $iid = trim((string) $iid);
-        if ($iid !== '') {
-          $inbox_items[$iid] = ['item_id' => $iid];
-        }
-      }
-    }
-
-    $queue_rows = [];
-    foreach ($inbox_items as $iid => $it) {
-      $roi = (int) ($it['roi'] ?? 0);
-      $eff = (int) ($it['effective_roi'] ?? 0);
-      $mtime = (int) ($it['mtime'] ?? 0);
-      $preview = (string) ($it['preview'] ?? '');
-
-      $link_html = Link::fromTextAndUrl($iid, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $iid]))->toString();
-
-      $queue_rows[] = [
-        Markup::create($link_html),
-        $roi > 0 ? (string) $roi : '-',
-        $eff > 0 ? (string) $eff : '-',
-        $mtime ? $this->dateFormatter->format($mtime, 'short') : '-',
-        $preview !== '' ? htmlspecialchars($preview) : '',
-      ];
-    }
-
-    $event_rows = [];
-    foreach ($events as $e) {
-      $event_rows[] = [
-        $e->created ? $this->dateFormatter->format((int) $e->created, 'short') : '',
-        $e->action ?? '',
-        $e->status ?? '',
-        $e->summary ?? '',
-        $e->session_id ?? '',
-        $e->work_item_id ?? '',
-      ];
-    }
-
-      $outbox_results = [];
-      if (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) {
-        $outbox_results = $meta['outbox_results'];
-      }
-
-      $counts_7d = [];
-      if (!empty($outbox_results['counts_7d']) && is_array($outbox_results['counts_7d'])) {
-        $counts_7d = $outbox_results['counts_7d'];
-      }
-
-      $count_done_7d = (int) ($counts_7d['done'] ?? 0);
-      $count_in_progress_7d = (int) ($counts_7d['in_progress'] ?? 0);
-      $count_needs_info_7d = (int) ($counts_7d['needs-info'] ?? 0);
-      $count_blocked_7d = (int) ($counts_7d['blocked'] ?? 0);
-      $count_total_7d = (int) ($counts_7d['total'] ?? 0);
-      $count_forwarded_7d = $count_needs_info_7d + $count_blocked_7d;
-
-      $metrics_items = [];
-      $metrics_items[] = 'Inbox items: ' . (string) ((int) ($meta['inbox_count'] ?? count($inbox_items)));
-      $metrics_items[] = 'Next inbox ROI: ' . (string) ((int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 0)));
-      $metrics_items[] = 'Results (7d) — completed: ' . (string) $count_done_7d
-        . ', forwarded (needs-info+blocked): ' . (string) $count_forwarded_7d
-        . ', in_progress: ' . (string) $count_in_progress_7d
-        . ', total: ' . (string) $count_total_7d;
-
-      $last_outbox_mtime = (int) ($outbox_results['last_mtime'] ?? 0);
-      if ($last_outbox_mtime > 0) {
-        $metrics_items[] = 'Last outbox update: ' . $this->dateFormatter->format($last_outbox_mtime, 'short');
-      }
-
-        $role_kpis = [];
-        if (!empty($meta['role_kpis']) && is_array($meta['role_kpis'])) {
-          $role_kpis = $meta['role_kpis'];
-        }
-
-        $kpi_value = trim((string) ($role_kpis['value'] ?? ''));
-        if ($kpi_value !== '') {
-          $metrics_items[] = 'Value I add: ' . $kpi_value;
-        }
-
-        $kpi_cost = (!empty($role_kpis['cost']) && is_array($role_kpis['cost'])) ? $role_kpis['cost'] : [];
-        $kpi_quality = (!empty($role_kpis['quality']) && is_array($role_kpis['quality'])) ? $role_kpis['quality'] : [];
-        $kpi_speed = (!empty($role_kpis['speed']) && is_array($role_kpis['speed'])) ? $role_kpis['speed'] : [];
-
-        if ($kpi_cost) {
-          $metrics_items[] = Markup::create('<strong>Cost KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_cost), 0, 6))));
-        }
-        if ($kpi_quality) {
-          $metrics_items[] = Markup::create('<strong>Quality KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_quality), 0, 6))));
-        }
-        if ($kpi_speed) {
-          $metrics_items[] = Markup::create('<strong>Speed KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_speed), 0, 6))));
-        }
-
-      $results_completed = [];
-      $results_forwarded = [];
-      $results_in_progress = [];
-      $results_other = [];
-      if (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) {
-        foreach ($outbox_results['recent'] as $r) {
-          if (!is_array($r)) {
-            continue;
-          }
-          $rid = trim((string) ($r['item_id'] ?? ''));
-          if ($rid === '') {
-            continue;
-          }
-          $rstatus = trim((string) ($r['status'] ?? ''));
-          $rsummary = trim((string) ($r['summary'] ?? ''));
-          $rroi = (int) ($r['roi'] ?? 0);
-          $rmtime = (int) ($r['mtime'] ?? 0);
-          $rexcerpt = (string) ($r['excerpt'] ?? '');
-
-          $title_bits = [];
-          $title_bits[] = htmlspecialchars($rid);
-          if ($rstatus !== '') {
-            $title_bits[] = htmlspecialchars($rstatus);
-          }
-          if ($rroi > 0) {
-            $title_bits[] = 'ROI ' . $rroi;
-          }
-          $title = implode(' — ', $title_bits);
-
-          $meta_bits = [];
-          if ($rmtime > 0) {
-            $meta_bits[] = '<strong>' . $this->t('Updated') . ':</strong> ' . $this->dateFormatter->format($rmtime, 'short');
-          }
-          if ($rsummary !== '') {
-            $meta_bits[] = '<strong>' . $this->t('Summary') . ':</strong> ' . htmlspecialchars($rsummary);
-          }
-
-          $body = '';
-          if ($rexcerpt !== '') {
-            $body = '<pre style="white-space: pre-wrap;">' . htmlspecialchars($rexcerpt) . '</pre>';
-          }
-          else {
-            $body = '<em>No excerpt published.</em>';
-          }
-
-          $normalized = strtolower(str_replace(' ', '_', $rstatus));
-          if ($normalized === 'needsinfo') {
-            $normalized = 'needs-info';
-          }
-
-          $item_render = [
-            '#type' => 'details',
-            '#title' => Markup::create($title),
-            '#open' => FALSE,
-            'meta' => [
-              '#markup' => $meta_bits ? '<p>' . implode('<br/>', $meta_bits) . '</p>' : '',
-            ],
-            'body' => [
-              '#markup' => $body,
-            ],
-          ];
-
-          if ($normalized === 'done') {
-            $results_completed[] = $item_render;
-          }
-          elseif ($normalized === 'needs-info' || $normalized === 'blocked') {
-            $results_forwarded[] = $item_render;
-          }
-          elseif ($normalized === 'in_progress') {
-            $results_in_progress[] = $item_render;
-          }
-          else {
-            $results_other[] = $item_render;
-          }
-        }
-      }
+    $meta = $this->decodeAgentMetadata($agent);
+    $inbox_items = $this->extractInboxItems($meta);
+    $queue_rows = $this->buildQueueRows($agent_id, $inbox_items);
+    $event_rows = $this->buildEventRows($events);
+    $metrics_items = $this->buildAgentMetricsItems($meta, $inbox_items);
+    $results = $this->buildAgentResultsSections($meta);
 
     return [
       '#type' => 'container',
       'summary' => [
         '#markup' => '<h2>' . $this->t('Agent: @id', ['@id' => $agent_id]) . '</h2>',
       ],
-        'metrics' => [
-          '#type' => 'details',
-          '#title' => $this->t('Metrics'),
-          '#open' => TRUE,
-          'items' => [
-            '#theme' => 'item_list',
-            '#items' => $metrics_items,
-          ],
+      'metrics' => [
+        '#type' => 'details',
+        '#title' => $this->t('Metrics'),
+        '#open' => TRUE,
+        'items' => [
+          '#theme' => 'item_list',
+          '#items' => $metrics_items,
         ],
+      ],
       'meta' => [
         '#theme' => 'item_list',
         '#items' => [
@@ -1066,38 +879,7 @@ final class DashboardController extends ControllerBase {
           'Current action: ' . ($agent['current_action'] ?? ''),
         ],
       ],
-        'results' => [
-          '#type' => 'details',
-          '#title' => $this->t('Results'),
-          '#open' => TRUE,
-          'help' => [
-            '#markup' => '<p><strong>Completed</strong> = Status done. <strong>Forwarded</strong> = Status needs-info/blocked (requires a decision or missing input). This is derived from HQ outbox updates.</p>',
-          ],
-          'completed' => [
-            '#type' => 'details',
-            '#title' => $this->t('Completed (recent)'),
-            '#open' => TRUE,
-            'items' => $results_completed ?: ['#markup' => '<em>No completed results published yet.</em>'],
-          ],
-          'forwarded' => [
-            '#type' => 'details',
-            '#title' => $this->t('Forwarded / needs decision (recent)'),
-            '#open' => TRUE,
-            'items' => $results_forwarded ?: ['#markup' => '<em>No forwarded/escalated results published yet.</em>'],
-          ],
-          'in_progress' => [
-            '#type' => 'details',
-            '#title' => $this->t('In progress (recent)'),
-            '#open' => FALSE,
-            'items' => $results_in_progress ?: ['#markup' => '<em>No in-progress results published yet.</em>'],
-          ],
-          'other' => [
-            '#type' => 'details',
-            '#title' => $this->t('Other (recent)'),
-            '#open' => FALSE,
-            'items' => $results_other ?: ['#markup' => '<em>No other results published yet.</em>'],
-          ],
-        ],
+      'results' => $results,
       'queue' => [
         '#type' => 'details',
         '#title' => $this->t('Inbox queue'),
@@ -1117,6 +899,244 @@ final class DashboardController extends ControllerBase {
       ],
       '#cache' => [
         'max-age' => 0,
+      ],
+    ];
+  }
+
+  private function decodeAgentMetadata(array $agent): array {
+    if (empty($agent['metadata'])) {
+      return [];
+    }
+    try {
+      $decoded = Json::decode((string) $agent['metadata']);
+      return is_array($decoded) ? $decoded : [];
+    }
+    catch (\Throwable) {
+      return [];
+    }
+  }
+
+  private function extractInboxItems(array $meta): array {
+    $inbox_items = [];
+
+    if (!empty($meta['inbox_items_detail']) && is_array($meta['inbox_items_detail'])) {
+      foreach ($meta['inbox_items_detail'] as $it) {
+        if (!is_array($it)) {
+          continue;
+        }
+        $iid = trim((string) ($it['item_id'] ?? ''));
+        if ($iid === '') {
+          continue;
+        }
+        $inbox_items[$iid] = $it;
+      }
+      return $inbox_items;
+    }
+
+    if (!empty($meta['inbox_items']) && is_array($meta['inbox_items'])) {
+      foreach ($meta['inbox_items'] as $iid) {
+        $iid = trim((string) $iid);
+        if ($iid !== '') {
+          $inbox_items[$iid] = ['item_id' => $iid];
+        }
+      }
+    }
+
+    return $inbox_items;
+  }
+
+  private function buildQueueRows(string $agent_id, array $inbox_items): array {
+    $queue_rows = [];
+    foreach ($inbox_items as $iid => $it) {
+      $roi = (int) ($it['roi'] ?? 0);
+      $eff = (int) ($it['effective_roi'] ?? 0);
+      $mtime = (int) ($it['mtime'] ?? 0);
+      $preview = (string) ($it['preview'] ?? '');
+
+      $link_html = Link::fromTextAndUrl($iid, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $iid]))->toString();
+
+      $queue_rows[] = [
+        Markup::create($link_html),
+        $roi > 0 ? (string) $roi : '-',
+        $eff > 0 ? (string) $eff : '-',
+        $mtime ? $this->dateFormatter->format($mtime, 'short') : '-',
+        $preview !== '' ? htmlspecialchars($preview) : '',
+      ];
+    }
+    return $queue_rows;
+  }
+
+  private function buildEventRows(array $events): array {
+    $event_rows = [];
+    foreach ($events as $e) {
+      $event_rows[] = [
+        $e->created ? $this->dateFormatter->format((int) $e->created, 'short') : '',
+        $e->action ?? '',
+        $e->status ?? '',
+        $e->summary ?? '',
+        $e->session_id ?? '',
+        $e->work_item_id ?? '',
+      ];
+    }
+    return $event_rows;
+  }
+
+  private function buildAgentMetricsItems(array $meta, array $inbox_items): array {
+    $metrics_items = [];
+    $metrics_items[] = 'Inbox items: ' . (string) ((int) ($meta['inbox_count'] ?? count($inbox_items)));
+    $metrics_items[] = 'Next inbox ROI: ' . (string) ((int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 0)));
+
+    $outbox_results = (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) ? $meta['outbox_results'] : [];
+    $counts_7d = (!empty($outbox_results['counts_7d']) && is_array($outbox_results['counts_7d'])) ? $outbox_results['counts_7d'] : [];
+
+    $count_done_7d = (int) ($counts_7d['done'] ?? 0);
+    $count_in_progress_7d = (int) ($counts_7d['in_progress'] ?? 0);
+    $count_needs_info_7d = (int) ($counts_7d['needs-info'] ?? 0);
+    $count_blocked_7d = (int) ($counts_7d['blocked'] ?? 0);
+    $count_total_7d = (int) ($counts_7d['total'] ?? 0);
+    $count_forwarded_7d = $count_needs_info_7d + $count_blocked_7d;
+
+    $metrics_items[] = 'Results (7d) — completed: ' . (string) $count_done_7d
+      . ', forwarded (needs-info+blocked): ' . (string) $count_forwarded_7d
+      . ', in_progress: ' . (string) $count_in_progress_7d
+      . ', total: ' . (string) $count_total_7d;
+
+    $last_outbox_mtime = (int) ($outbox_results['last_mtime'] ?? 0);
+    if ($last_outbox_mtime > 0) {
+      $metrics_items[] = 'Last outbox update: ' . $this->dateFormatter->format($last_outbox_mtime, 'short');
+    }
+
+    $role_kpis = (!empty($meta['role_kpis']) && is_array($meta['role_kpis'])) ? $meta['role_kpis'] : [];
+
+    $kpi_value = trim((string) ($role_kpis['value'] ?? ''));
+    if ($kpi_value !== '') {
+      $metrics_items[] = 'Value I add: ' . $kpi_value;
+    }
+
+    $kpi_cost = (!empty($role_kpis['cost']) && is_array($role_kpis['cost'])) ? $role_kpis['cost'] : [];
+    $kpi_quality = (!empty($role_kpis['quality']) && is_array($role_kpis['quality'])) ? $role_kpis['quality'] : [];
+    $kpi_speed = (!empty($role_kpis['speed']) && is_array($role_kpis['speed'])) ? $role_kpis['speed'] : [];
+
+    if ($kpi_cost) {
+      $metrics_items[] = Markup::create('<strong>Cost KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_cost), 0, 6))));
+    }
+    if ($kpi_quality) {
+      $metrics_items[] = Markup::create('<strong>Quality KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_quality), 0, 6))));
+    }
+    if ($kpi_speed) {
+      $metrics_items[] = Markup::create('<strong>Speed KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_speed), 0, 6))));
+    }
+
+    return $metrics_items;
+  }
+
+  private function buildAgentResultsSections(array $meta): array {
+    $outbox_results = (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) ? $meta['outbox_results'] : [];
+
+    $results_completed = [];
+    $results_forwarded = [];
+    $results_in_progress = [];
+    $results_other = [];
+
+    if (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) {
+      foreach ($outbox_results['recent'] as $r) {
+        if (!is_array($r)) {
+          continue;
+        }
+        $rid = trim((string) ($r['item_id'] ?? ''));
+        if ($rid === '') {
+          continue;
+        }
+        $rstatus = trim((string) ($r['status'] ?? ''));
+        $rsummary = trim((string) ($r['summary'] ?? ''));
+        $rroi = (int) ($r['roi'] ?? 0);
+        $rmtime = (int) ($r['mtime'] ?? 0);
+        $rexcerpt = (string) ($r['excerpt'] ?? '');
+
+        $title_bits = [];
+        $title_bits[] = htmlspecialchars($rid);
+        if ($rstatus !== '') {
+          $title_bits[] = htmlspecialchars($rstatus);
+        }
+        if ($rroi > 0) {
+          $title_bits[] = 'ROI ' . $rroi;
+        }
+        $title = implode(' — ', $title_bits);
+
+        $meta_bits = [];
+        if ($rmtime > 0) {
+          $meta_bits[] = '<strong>' . $this->t('Updated') . ':</strong> ' . $this->dateFormatter->format($rmtime, 'short');
+        }
+        if ($rsummary !== '') {
+          $meta_bits[] = '<strong>' . $this->t('Summary') . ':</strong> ' . htmlspecialchars($rsummary);
+        }
+
+        $body = $rexcerpt !== ''
+          ? '<pre style="white-space: pre-wrap;">' . htmlspecialchars($rexcerpt) . '</pre>'
+          : '<em>No excerpt published.</em>';
+
+        $normalized = strtolower(str_replace(' ', '_', $rstatus));
+        if ($normalized === 'needsinfo') {
+          $normalized = 'needs-info';
+        }
+
+        $item_render = [
+          '#type' => 'details',
+          '#title' => Markup::create($title),
+          '#open' => FALSE,
+          'meta' => [
+            '#markup' => $meta_bits ? '<p>' . implode('<br/>', $meta_bits) . '</p>' : '',
+          ],
+          'body' => [
+            '#markup' => $body,
+          ],
+        ];
+
+        if ($normalized === 'done') {
+          $results_completed[] = $item_render;
+        }
+        elseif ($normalized === 'needs-info' || $normalized === 'blocked') {
+          $results_forwarded[] = $item_render;
+        }
+        elseif ($normalized === 'in_progress') {
+          $results_in_progress[] = $item_render;
+        }
+        else {
+          $results_other[] = $item_render;
+        }
+      }
+    }
+
+    return [
+      '#type' => 'details',
+      '#title' => $this->t('Results'),
+      '#open' => TRUE,
+      'help' => [
+        '#markup' => '<p><strong>Completed</strong> = Status done. <strong>Forwarded</strong> = Status needs-info/blocked (requires a decision or missing input). This is derived from HQ outbox updates.</p>',
+      ],
+      'completed' => [
+        '#type' => 'details',
+        '#title' => $this->t('Completed (recent)'),
+        '#open' => TRUE,
+        'items' => $results_completed ?: ['#markup' => '<em>No completed results published yet.</em>'],
+      ],
+      'forwarded' => [
+        '#type' => 'details',
+        '#title' => $this->t('Forwarded / needs decision (recent)'),
+        '#open' => TRUE,
+        'items' => $results_forwarded ?: ['#markup' => '<em>No forwarded/escalated results published yet.</em>'],
+      ],
+      'in_progress' => [
+        '#type' => 'details',
+        '#title' => $this->t('In progress (recent)'),
+        '#open' => FALSE,
+        'items' => $results_in_progress ?: ['#markup' => '<em>No in-progress results published yet.</em>'],
+      ],
+      'other' => [
+        '#type' => 'details',
+        '#title' => $this->t('Other (recent)'),
+        '#open' => FALSE,
+        'items' => $results_other ?: ['#markup' => '<em>No other results published yet.</em>'],
       ],
     ];
   }
