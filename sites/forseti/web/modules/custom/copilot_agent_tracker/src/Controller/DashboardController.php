@@ -468,6 +468,11 @@ final class DashboardController extends ControllerBase {
 
     return [
       '#type' => 'container',
+      '#attached' => [
+        'library' => [
+          'copilot_agent_tracker/waitingonkeith_autorefresh',
+        ],
+      ],
       'priorities' => [
         '#type' => 'container',
         'title' => [
@@ -518,6 +523,10 @@ final class DashboardController extends ControllerBase {
         'items' => $sent_thread_items ?: [
           '#markup' => '<em>No sent messages yet.</em>',
         ],
+      ],
+      'todo_title' => [
+        '#type' => 'container',
+        '#markup' => '<h2 id="todo-for-keith">Todo for Keith</h2>',
       ],
       'messages' => [
         '#type' => 'table',
