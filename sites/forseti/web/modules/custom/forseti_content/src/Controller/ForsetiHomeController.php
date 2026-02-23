@@ -98,9 +98,9 @@ class ForsetiHomeController extends ControllerBase {
                 </div>
               </div>
               
-              <div class="text-center mt-4">
+              <div class="d-flex flex-wrap justify-content-center gap-2 mt-4">
                 <a href="/how-it-works" class="btn btn-outline-primary">Learn How It Works</a>
-                <a href="/contact" class="btn btn-outline-primary ms-2">Contact Us</a>
+                <a href="/contact" class="btn btn-outline-primary">Contact Us</a>
               </div>
             </div>
           </div>
