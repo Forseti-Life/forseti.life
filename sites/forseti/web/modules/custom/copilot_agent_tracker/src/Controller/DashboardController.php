@@ -841,6 +841,57 @@ final class DashboardController extends ControllerBase {
       ->execute()
       ->fetchAll();
 
+    $meta = [];
+    if (!empty($agent['metadata'])) {
+      try {
+        $decoded = Json::decode((string) $agent['metadata']);
+        $meta = is_array($decoded) ? $decoded : [];
+      }
+      catch (\Throwable) {
+        $meta = [];
+      }
+    }
+
+    $inbox_items = [];
+    if (!empty($meta['inbox_items_detail']) && is_array($meta['inbox_items_detail'])) {
+      foreach ($meta['inbox_items_detail'] as $it) {
+        if (!is_array($it)) {
+          continue;
+        }
+        $iid = trim((string) ($it['item_id'] ?? ''));
+        if ($iid === '') {
+          continue;
+        }
+        $inbox_items[$iid] = $it;
+      }
+    }
+    elseif (!empty($meta['inbox_items']) && is_array($meta['inbox_items'])) {
+      foreach ($meta['inbox_items'] as $iid) {
+        $iid = trim((string) $iid);
+        if ($iid !== '') {
+          $inbox_items[$iid] = ['item_id' => $iid];
+        }
+      }
+    }
+
+    $queue_rows = [];
+    foreach ($inbox_items as $iid => $it) {
+      $roi = (int) ($it['roi'] ?? 0);
+      $eff = (int) ($it['effective_roi'] ?? 0);
+      $mtime = (int) ($it['mtime'] ?? 0);
+      $preview = (string) ($it['preview'] ?? '');
+
+      $link_html = Link::fromTextAndUrl($iid, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $iid]))->toString();
+
+      $queue_rows[] = [
+        Markup::create($link_html),
+        $roi > 0 ? (string) $roi : '-',
+        $eff > 0 ? (string) $eff : '-',
+        $mtime ? $this->dateFormatter->format($mtime, 'short') : '-',
+        $preview !== '' ? htmlspecialchars($preview) : '',
+      ];
+    }
+
     $event_rows = [];
     foreach ($events as $e) {
       $event_rows[] = [
@@ -868,11 +919,131 @@ final class DashboardController extends ControllerBase {
           'Current action: ' . ($agent['current_action'] ?? ''),
         ],
       ],
+      'queue' => [
+        '#type' => 'details',
+        '#title' => $this->t('Inbox queue'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['Item', 'ROI', 'Effective ROI', 'Updated', 'Preview'],
+          '#rows' => $queue_rows,
+          '#empty' => $this->t('No inbox items published for this agent.'),
+        ],
+      ],
       'events' => [
         '#type' => 'table',
         '#header' => ['When', 'Action', 'Status', 'Summary', 'Session', 'Work item'],
         '#rows' => $event_rows,
         '#empty' => $this->t('No events yet.'),
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Agent inbox item detail view (from HQ-published metadata).
+   */
+  public function agentInboxItem(string $agent_id, string $item_id): array {
+    $agent = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['agent_id', 'role', 'website', 'module', 'metadata'])
+      ->condition('agent_id', $agent_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$agent) {
+      throw new NotFoundHttpException();
+    }
+
+    $meta = [];
+    if (!empty($agent['metadata'])) {
+      try {
+        $decoded = Json::decode((string) $agent['metadata']);
+        $meta = is_array($decoded) ? $decoded : [];
+      }
+      catch (\Throwable) {
+        $meta = [];
+      }
+    }
+
+    $detail = NULL;
+    if (!empty($meta['inbox_items_detail']) && is_array($meta['inbox_items_detail'])) {
+      foreach ($meta['inbox_items_detail'] as $it) {
+        if (is_array($it) && (string) ($it['item_id'] ?? '') === $item_id) {
+          $detail = $it;
+          break;
+        }
+      }
+    }
+
+    if (!$detail) {
+      return [
+        '#type' => 'container',
+        'header' => [
+          '#markup' => '<h2>' . $this->t('Inbox item: @item', ['@item' => $item_id]) . '</h2>'
+            . '<p><strong>' . $this->t('Agent') . ':</strong> ' . $this->t('@a', ['@a' => $agent_id]) . '</p>',
+        ],
+        'missing' => [
+          '#markup' => '<p><em>No detail published for this item yet.</em> This usually means HQ has not published the newer inbox detail payload. Re-run the HQ publish job and refresh.</p>',
+        ],
+        '#cache' => [
+          'max-age' => 0,
+        ],
+      ];
+    }
+
+    $roi = (int) ($detail['roi'] ?? 0);
+    $eff = (int) ($detail['effective_roi'] ?? 0);
+    $mtime = (int) ($detail['mtime'] ?? 0);
+    $files = $detail['files'] ?? [];
+    $files = is_array($files) ? $files : [];
+    $body_source = (string) ($detail['body_source'] ?? '');
+    $body = (string) ($detail['body'] ?? '');
+
+    $file_markup = '<em>None</em>';
+    if ($files) {
+      $safe = array_map(static fn($v) => htmlspecialchars((string) $v), $files);
+      $file_markup = '<ul><li>' . implode('</li><li>', $safe) . '</li></ul>';
+    }
+
+    return [
+      '#type' => 'container',
+      'header' => [
+        '#markup' => '<h2>' . $this->t('Inbox item: @item', ['@item' => $item_id]) . '</h2>'
+          . '<p><strong>' . $this->t('Agent') . ':</strong> ' . $this->t('@a', ['@a' => $agent_id]) . '</p>'
+          . '<p><strong>' . $this->t('Product') . ':</strong> ' . $this->t('@p', ['@p' => (($agent['website'] ?? '') ?: '-') . ' / ' . (($agent['module'] ?? '') ?: '-')]) . '</p>'
+          . '<p><strong>' . $this->t('Role') . ':</strong> ' . $this->t('@r', ['@r' => ($agent['role'] ?? '') ?: '-']) . '</p>',
+      ],
+      'meta' => [
+        '#theme' => 'item_list',
+        '#items' => [
+          'ROI: ' . ($roi > 0 ? (string) $roi : '-'),
+          'Effective ROI: ' . ($eff > 0 ? (string) $eff : '-'),
+          'Updated: ' . ($mtime ? $this->dateFormatter->format($mtime, 'short') : '-'),
+          'Source file: ' . ($body_source !== '' ? $body_source : '-'),
+        ],
+      ],
+      'files' => [
+        '#type' => 'details',
+        '#title' => $this->t('Files'),
+        '#open' => FALSE,
+        '#markup' => $file_markup,
+      ],
+      'body' => [
+        '#type' => 'details',
+        '#title' => $this->t('Content'),
+        '#open' => TRUE,
+        'content' => [
+          '#type' => 'textarea',
+          '#title' => $this->t('Body'),
+          '#value' => $body,
+          '#rows' => 22,
+          '#attributes' => ['readonly' => 'readonly'],
+        ],
+      ],
+      'back' => [
+        '#markup' => '<p>' . Link::fromTextAndUrl($this->t('Back to agent'), Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString() . '</p>',
       ],
       '#cache' => [
         'max-age' => 0,

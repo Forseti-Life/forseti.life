@@ -14,6 +14,14 @@ copilot_agent_tracker.agent:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.agent_inbox_item:
+  path: '/admin/reports/copilot-agent-tracker/agent/{agent_id}/inbox/{item_id}'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::agentInboxItem'
+    _title: 'Inbox item'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.waiting_on_keith:
   path: '/admin/reports/waitingonkeith'
   defaults:
