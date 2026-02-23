@@ -921,13 +921,20 @@ final class DashboardController extends ControllerBase {
         $counts_7d = $outbox_results['counts_7d'];
       }
 
+      $count_done_7d = (int) ($counts_7d['done'] ?? 0);
+      $count_in_progress_7d = (int) ($counts_7d['in_progress'] ?? 0);
+      $count_needs_info_7d = (int) ($counts_7d['needs-info'] ?? 0);
+      $count_blocked_7d = (int) ($counts_7d['blocked'] ?? 0);
+      $count_total_7d = (int) ($counts_7d['total'] ?? 0);
+      $count_forwarded_7d = $count_needs_info_7d + $count_blocked_7d;
+
       $metrics_items = [];
       $metrics_items[] = 'Inbox items: ' . (string) ((int) ($meta['inbox_count'] ?? count($inbox_items)));
       $metrics_items[] = 'Next inbox ROI: ' . (string) ((int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 0)));
-      $metrics_items[] = 'Results (7d) — done: ' . (string) ((int) ($counts_7d['done'] ?? 0))
-        . ', needs-info: ' . (string) ((int) ($counts_7d['needs-info'] ?? 0))
-        . ', blocked: ' . (string) ((int) ($counts_7d['blocked'] ?? 0))
-        . ', total: ' . (string) ((int) ($counts_7d['total'] ?? 0));
+      $metrics_items[] = 'Results (7d) — completed: ' . (string) $count_done_7d
+        . ', forwarded (needs-info+blocked): ' . (string) $count_forwarded_7d
+        . ', in_progress: ' . (string) $count_in_progress_7d
+        . ', total: ' . (string) $count_total_7d;
 
       $last_outbox_mtime = (int) ($outbox_results['last_mtime'] ?? 0);
       if ($last_outbox_mtime > 0) {
@@ -958,7 +965,10 @@ final class DashboardController extends ControllerBase {
           $metrics_items[] = Markup::create('<strong>Speed KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_speed), 0, 6))));
         }
 
-      $results_items = [];
+      $results_completed = [];
+      $results_forwarded = [];
+      $results_in_progress = [];
+      $results_other = [];
       if (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) {
         foreach ($outbox_results['recent'] as $r) {
           if (!is_array($r)) {
@@ -1000,7 +1010,12 @@ final class DashboardController extends ControllerBase {
             $body = '<em>No excerpt published.</em>';
           }
 
-          $results_items[] = [
+          $normalized = strtolower(str_replace(' ', '_', $rstatus));
+          if ($normalized === 'needsinfo') {
+            $normalized = 'needs-info';
+          }
+
+          $item_render = [
             '#type' => 'details',
             '#title' => Markup::create($title),
             '#open' => FALSE,
@@ -1011,6 +1026,19 @@ final class DashboardController extends ControllerBase {
               '#markup' => $body,
             ],
           ];
+
+          if ($normalized === 'done') {
+            $results_completed[] = $item_render;
+          }
+          elseif ($normalized === 'needs-info' || $normalized === 'blocked') {
+            $results_forwarded[] = $item_render;
+          }
+          elseif ($normalized === 'in_progress') {
+            $results_in_progress[] = $item_render;
+          }
+          else {
+            $results_other[] = $item_render;
+          }
         }
       }
 
@@ -1042,8 +1070,32 @@ final class DashboardController extends ControllerBase {
           '#type' => 'details',
           '#title' => $this->t('Results'),
           '#open' => TRUE,
-          'items' => $results_items ?: [
-            '#markup' => '<em>No outbox results published for this agent yet.</em>',
+          'help' => [
+            '#markup' => '<p><strong>Completed</strong> = Status done. <strong>Forwarded</strong> = Status needs-info/blocked (requires a decision or missing input). This is derived from HQ outbox updates.</p>',
+          ],
+          'completed' => [
+            '#type' => 'details',
+            '#title' => $this->t('Completed (recent)'),
+            '#open' => TRUE,
+            'items' => $results_completed ?: ['#markup' => '<em>No completed results published yet.</em>'],
+          ],
+          'forwarded' => [
+            '#type' => 'details',
+            '#title' => $this->t('Forwarded / needs decision (recent)'),
+            '#open' => TRUE,
+            'items' => $results_forwarded ?: ['#markup' => '<em>No forwarded/escalated results published yet.</em>'],
+          ],
+          'in_progress' => [
+            '#type' => 'details',
+            '#title' => $this->t('In progress (recent)'),
+            '#open' => FALSE,
+            'items' => $results_in_progress ?: ['#markup' => '<em>No in-progress results published yet.</em>'],
+          ],
+          'other' => [
+            '#type' => 'details',
+            '#title' => $this->t('Other (recent)'),
+            '#open' => FALSE,
+            'items' => $results_other ?: ['#markup' => '<em>No other results published yet.</em>'],
           ],
         ],
       'queue' => [
