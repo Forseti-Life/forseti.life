@@ -911,11 +911,99 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+      $outbox_results = [];
+      if (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) {
+        $outbox_results = $meta['outbox_results'];
+      }
+
+      $counts_7d = [];
+      if (!empty($outbox_results['counts_7d']) && is_array($outbox_results['counts_7d'])) {
+        $counts_7d = $outbox_results['counts_7d'];
+      }
+
+      $metrics_items = [];
+      $metrics_items[] = 'Inbox items: ' . (string) ((int) ($meta['inbox_count'] ?? count($inbox_items)));
+      $metrics_items[] = 'Next inbox ROI: ' . (string) ((int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 0)));
+      $metrics_items[] = 'Results (7d) — done: ' . (string) ((int) ($counts_7d['done'] ?? 0))
+        . ', needs-info: ' . (string) ((int) ($counts_7d['needs-info'] ?? 0))
+        . ', blocked: ' . (string) ((int) ($counts_7d['blocked'] ?? 0))
+        . ', total: ' . (string) ((int) ($counts_7d['total'] ?? 0));
+
+      $last_outbox_mtime = (int) ($outbox_results['last_mtime'] ?? 0);
+      if ($last_outbox_mtime > 0) {
+        $metrics_items[] = 'Last outbox update: ' . $this->dateFormatter->format($last_outbox_mtime, 'short');
+      }
+
+      $results_items = [];
+      if (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) {
+        foreach ($outbox_results['recent'] as $r) {
+          if (!is_array($r)) {
+            continue;
+          }
+          $rid = trim((string) ($r['item_id'] ?? ''));
+          if ($rid === '') {
+            continue;
+          }
+          $rstatus = trim((string) ($r['status'] ?? ''));
+          $rsummary = trim((string) ($r['summary'] ?? ''));
+          $rroi = (int) ($r['roi'] ?? 0);
+          $rmtime = (int) ($r['mtime'] ?? 0);
+          $rexcerpt = (string) ($r['excerpt'] ?? '');
+
+          $title_bits = [];
+          $title_bits[] = htmlspecialchars($rid);
+          if ($rstatus !== '') {
+            $title_bits[] = htmlspecialchars($rstatus);
+          }
+          if ($rroi > 0) {
+            $title_bits[] = 'ROI ' . $rroi;
+          }
+          $title = implode(' — ', $title_bits);
+
+          $meta_bits = [];
+          if ($rmtime > 0) {
+            $meta_bits[] = '<strong>' . $this->t('Updated') . ':</strong> ' . $this->dateFormatter->format($rmtime, 'short');
+          }
+          if ($rsummary !== '') {
+            $meta_bits[] = '<strong>' . $this->t('Summary') . ':</strong> ' . htmlspecialchars($rsummary);
+          }
+
+          $body = '';
+          if ($rexcerpt !== '') {
+            $body = '<pre style="white-space: pre-wrap;">' . htmlspecialchars($rexcerpt) . '</pre>';
+          }
+          else {
+            $body = '<em>No excerpt published.</em>';
+          }
+
+          $results_items[] = [
+            '#type' => 'details',
+            '#title' => Markup::create($title),
+            '#open' => FALSE,
+            'meta' => [
+              '#markup' => $meta_bits ? '<p>' . implode('<br/>', $meta_bits) . '</p>' : '',
+            ],
+            'body' => [
+              '#markup' => $body,
+            ],
+          ];
+        }
+      }
+
     return [
       '#type' => 'container',
       'summary' => [
         '#markup' => '<h2>' . $this->t('Agent: @id', ['@id' => $agent_id]) . '</h2>',
       ],
+        'metrics' => [
+          '#type' => 'details',
+          '#title' => $this->t('Metrics'),
+          '#open' => TRUE,
+          'items' => [
+            '#theme' => 'item_list',
+            '#items' => $metrics_items,
+          ],
+        ],
       'meta' => [
         '#theme' => 'item_list',
         '#items' => [
@@ -926,6 +1014,14 @@ final class DashboardController extends ControllerBase {
           'Current action: ' . ($agent['current_action'] ?? ''),
         ],
       ],
+        'results' => [
+          '#type' => 'details',
+          '#title' => $this->t('Results'),
+          '#open' => TRUE,
+          'items' => $results_items ?: [
+            '#markup' => '<em>No outbox results published for this agent yet.</em>',
+          ],
+        ],
       'queue' => [
         '#type' => 'details',
         '#title' => $this->t('Inbox queue'),
