@@ -202,10 +202,8 @@ final class DashboardController extends ControllerBase {
       if ($agent_id === '') {
         continue;
       }
-      // Prevent showing the CEO inbox / internal CEO sub-sessions on the waiting-on-keith agent list.
-      if ($agent_id === $self_agent_prefix || str_starts_with($agent_id, $self_agent_prefix . '-')) {
-        continue;
-      }
+
+      // Include CEO agents in the pending-agent list so the report reflects the full set of tracked seats.
 
       // Hide legacy per-item IDs so the report shows only real agent seats.
       if ($is_legacy_agent_id($agent_id)) {

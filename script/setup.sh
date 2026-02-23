@@ -730,6 +730,50 @@ if [ -f "$H3_ENV_DIR/bin/python" ]; then
     fi
 fi
 
+# ------------------------------------------------------------------------------
+# 1.7 Copilot Sessions HQ Orchestrator (LangGraph) Setup
+# ------------------------------------------------------------------------------
+print_status "Checking for copilot-sessions-hq LangGraph orchestrator dependencies..."
+
+# Best-effort: detect the HQ repo location (supports both /workspaces and /home paths)
+HQ_ROOT=""
+if [ -d "/workspaces/copilot-sessions-hq" ]; then
+    HQ_ROOT="/workspaces/copilot-sessions-hq"
+elif [ -d "/home/keithaumiller/copilot-sessions-hq" ]; then
+    HQ_ROOT="/home/keithaumiller/copilot-sessions-hq"
+fi
+
+ORCHESTRATOR_DIR="${HQ_ROOT}/orchestrator"
+ORCHESTRATOR_REQS="${ORCHESTRATOR_DIR}/requirements.txt"
+ORCHESTRATOR_VENV="${ORCHESTRATOR_DIR}/.venv"
+
+if [ -n "${HQ_ROOT}" ] && [ -f "${ORCHESTRATOR_REQS}" ]; then
+    if [ ! -d "${ORCHESTRATOR_VENV}" ]; then
+        print_status "Creating orchestrator virtual environment at ${ORCHESTRATOR_VENV}..."
+        python3 -m venv "${ORCHESTRATOR_VENV}" || print_warning "⚠️  Failed to create orchestrator venv (continuing)"
+    else
+        print_status "✅ Orchestrator virtual environment already exists"
+    fi
+
+    if [ -x "${ORCHESTRATOR_VENV}/bin/pip" ]; then
+        print_status "Installing/updating orchestrator Python packages (LangGraph)..."
+        "${ORCHESTRATOR_VENV}/bin/pip" install --upgrade pip >/dev/null 2>&1 || true
+        "${ORCHESTRATOR_VENV}/bin/pip" install -r "${ORCHESTRATOR_REQS}" || print_warning "⚠️  Orchestrator pip install failed (continuing)"
+
+        # Verify imports (best-effort)
+        ORCH_VERIFY=$("${ORCHESTRATOR_VENV}/bin/python" -c "import langgraph, pydantic, yaml; print('orchestrator packages verified')" 2>/dev/null || echo "FAILED")
+        if [ "${ORCH_VERIFY}" = "orchestrator packages verified" ]; then
+            print_status "✅ LangGraph orchestrator dependencies verified"
+        else
+            print_warning "⚠️  LangGraph orchestrator dependency verification failed"
+        fi
+    else
+        print_warning "⚠️  Orchestrator venv pip not found; skipping LangGraph install"
+    fi
+else
+    print_status "ℹ️  copilot-sessions-hq orchestrator not detected; skipping LangGraph install"
+fi
+
 # Configure environment for PHP 8.3
 print_status "Configuring environment for PHP 8.3..."
 BASHRC_FILE="$HOME/.bashrc"
