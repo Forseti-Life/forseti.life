@@ -155,6 +155,7 @@ final class DashboardController extends ControllerBase {
     $ceo_meta = [];
     $ceo_last_seen = 0;
     $pending_items = [];
+    $pending_agent_ids = [];
     $pending_rows = [];
     $agent_meta = [];
 
@@ -210,12 +211,8 @@ final class DashboardController extends ControllerBase {
         continue;
       }
 
-      // Do not include paused seats in the prioritization queue.
-      // CEO can unpause them if their scope is needed.
       $status = trim((string) ($row->status ?? ''));
-      if (strtolower($status) === 'paused') {
-        continue;
-      }
+      $is_paused = strtolower($status) === 'paused';
 
       $inbox_count = (int) ($meta['inbox_count'] ?? 0);
 
@@ -228,9 +225,17 @@ final class DashboardController extends ControllerBase {
 
       // Sort key: prioritize agents with pending inbox items, then highest ROI.
       // (ROI is published from HQ as metadata.next_inbox_roi.)
-      $sort_has_inbox = $inbox_count > 0 ? 1 : 0;
-      $sort_roi = $sort_has_inbox ? $next_inbox_roi : 0;
+      // Paused seats should still be visible on this page, but not prioritized.
+      $sort_has_inbox = (!$is_paused && $inbox_count > 0) ? 1 : 0;
+      $sort_roi = (!$is_paused && $sort_has_inbox) ? $next_inbox_roi : 0;
       $sort_last_seen = (int) ($row->last_seen ?? 0);
+
+      $website_cell = trim((string) ($row->website ?? ''));
+      $module_cell = trim((string) ($row->module ?? ''));
+      $role_cell = trim((string) ($row->role ?? ''));
+      $status_cell = trim((string) ($row->status ?? ''));
+      $action_cell = trim((string) ($row->current_action ?? ''));
+      $last_seen_cell = $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '-';
 
       $pending_items[] = [
         'sort_has_inbox' => $sort_has_inbox,
@@ -239,15 +244,57 @@ final class DashboardController extends ControllerBase {
         'agent_id' => $agent_id,
         'row' => [
         Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString(),
-        $row->website ?? '',
-        $row->module ?? '',
-        $row->role ?? '',
-        $row->status ?? '',
-        $row->current_action ?? '',
+        $website_cell !== '' ? $website_cell : '-',
+        $module_cell !== '' ? $module_cell : '-',
+        $role_cell !== '' ? $role_cell : '-',
+        $status_cell !== '' ? $status_cell : '-',
+        $action_cell !== '' ? $action_cell : '-',
         (string) $inbox_count,
-        $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
+        $last_seen_cell,
         ],
       ];
+
+      $pending_agent_ids[$agent_id] = TRUE;
+    }
+
+    // Ensure *all* configured seats are represented, even if a seat hasn't
+    // published telemetry yet (or was recently added).
+    $configured = $ceo_meta['configured_seats'] ?? [];
+    if (is_array($configured)) {
+      foreach ($configured as $maybe_id) {
+        $id = trim((string) $maybe_id);
+        if ($id === '' || !is_string($maybe_id) && !is_numeric($maybe_id)) {
+          continue;
+        }
+        if (!empty($pending_agent_ids[$id])) {
+          continue;
+        }
+        // Keep legacy noise out of the report.
+        if ($is_legacy_agent_id($id)) {
+          continue;
+        }
+
+        // If the seat exists in the agents table but was excluded earlier for
+        // some reason, let it show up normally (link works).
+        // Otherwise, render a placeholder row without a broken link.
+        $pending_items[] = [
+          'sort_has_inbox' => 0,
+          'sort_roi' => 0,
+          'sort_last_seen' => 0,
+          'agent_id' => $id,
+          'row' => [
+            $id,
+            '-',
+            '-',
+            '-',
+            'missing',
+            'no telemetry yet',
+            '0',
+            '-',
+          ],
+        ];
+        $pending_agent_ids[$id] = TRUE;
+      }
     }
 
     // Apply org-level ordering: highest ROI first, while keeping agents with no inbox items at the bottom.
@@ -303,7 +350,20 @@ final class DashboardController extends ControllerBase {
     }
     $all_ids = array_values(array_unique($all_ids));
     sort($all_ids);
-    $ordered_ids = array_values(array_unique(array_merge($ceo_ids, $all_ids)));
+    // Prefer configured seat ordering if HQ published it.
+    $configured_ids = [];
+    if (is_array($ceo_meta['configured_seats'] ?? NULL)) {
+      foreach (($ceo_meta['configured_seats'] ?? []) as $maybe_id) {
+        $id = trim((string) $maybe_id);
+        if ($id !== '' && !$is_legacy_agent_id($id)) {
+          $configured_ids[] = $id;
+        }
+      }
+      $configured_ids = array_values(array_unique($configured_ids));
+      sort($configured_ids);
+    }
+
+    $ordered_ids = array_values(array_unique(array_merge($ceo_ids, $configured_ids, $all_ids)));
 
     $by_id = [];
     foreach ($rows as $row) {
