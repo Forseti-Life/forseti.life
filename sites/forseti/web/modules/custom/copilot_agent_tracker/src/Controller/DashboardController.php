@@ -934,6 +934,30 @@ final class DashboardController extends ControllerBase {
         $metrics_items[] = 'Last outbox update: ' . $this->dateFormatter->format($last_outbox_mtime, 'short');
       }
 
+        $role_kpis = [];
+        if (!empty($meta['role_kpis']) && is_array($meta['role_kpis'])) {
+          $role_kpis = $meta['role_kpis'];
+        }
+
+        $kpi_value = trim((string) ($role_kpis['value'] ?? ''));
+        if ($kpi_value !== '') {
+          $metrics_items[] = 'Value I add: ' . $kpi_value;
+        }
+
+        $kpi_cost = (!empty($role_kpis['cost']) && is_array($role_kpis['cost'])) ? $role_kpis['cost'] : [];
+        $kpi_quality = (!empty($role_kpis['quality']) && is_array($role_kpis['quality'])) ? $role_kpis['quality'] : [];
+        $kpi_speed = (!empty($role_kpis['speed']) && is_array($role_kpis['speed'])) ? $role_kpis['speed'] : [];
+
+        if ($kpi_cost) {
+          $metrics_items[] = Markup::create('<strong>Cost KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_cost), 0, 6))));
+        }
+        if ($kpi_quality) {
+          $metrics_items[] = Markup::create('<strong>Quality KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_quality), 0, 6))));
+        }
+        if ($kpi_speed) {
+          $metrics_items[] = Markup::create('<strong>Speed KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_speed), 0, 6))));
+        }
+
       $results_items = [];
       if (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) {
         foreach ($outbox_results['recent'] as $r) {
