@@ -15,6 +15,7 @@ use Drupal\Core\Render\Markup;
 use Drupal\copilot_agent_tracker\Form\AgentDashboardFilterForm;
 use Drupal\copilot_agent_tracker\Form\ComposeAgentMessageForm;
 use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
+use Drupal\copilot_agent_tracker\Form\OrgAutomationToggleForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -526,13 +527,20 @@ final class DashboardController extends ControllerBase {
       }
     }
 
+    // Org-wide automation controls (status published from HQ; toggle delegates back to HQ).
+    $org_control = $ceo_meta['org_control'] ?? [];
+    if (!is_array($org_control)) {
+      $org_control = [];
+    }
+    $org_control += [
+      'enabled' => TRUE,
+      'updated_at' => NULL,
+      'updated_by' => NULL,
+      'reason' => NULL,
+    ];
+
     return [
       '#type' => 'container',
-      '#attached' => [
-        'library' => [
-          'copilot_agent_tracker/waitingonkeith_autorefresh',
-        ],
-      ],
       'priorities' => [
         '#type' => 'container',
         'title' => [
@@ -544,6 +552,12 @@ final class DashboardController extends ControllerBase {
         ] : [
           '#markup' => '<em>No priorities published yet.</em>',
         ],
+      ],
+      'org_controls' => [
+        '#type' => 'details',
+        '#title' => $this->t('Org automation'),
+        '#open' => FALSE,
+        'form' => $this->formBuilder()->getForm(OrgAutomationToggleForm::class, $org_control),
       ],
       'help' => [
         '#type' => 'details',

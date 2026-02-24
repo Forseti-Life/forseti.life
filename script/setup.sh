@@ -636,7 +636,7 @@ else
 fi
 
 print_status "Checking additional development tools..."
-TOOLS=("unzip" "wget" "curl" "vim" "htop")
+TOOLS=("unzip" "wget" "curl" "vim" "htop" "cmake")
 MISSING_TOOLS=()
 
 for tool in "${TOOLS[@]}"; do
