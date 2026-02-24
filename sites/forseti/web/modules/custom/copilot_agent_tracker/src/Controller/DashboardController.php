@@ -925,7 +925,7 @@ final class DashboardController extends ControllerBase {
     $meta = $this->decodeAgentMetadata($agent);
     $inbox_items = $this->extractInboxItems($meta);
 
-    $active_item_id = trim((string) ($meta['next_inbox'] ?? ''));
+    $active_item_id = trim((string) ($meta['active_inbox'] ?? ''));
     $outbox_results = (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) ? $meta['outbox_results'] : [];
     $outbox_recent = (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) ? $outbox_results['recent'] : [];
     $outbox_status_by_id = [];
@@ -1375,11 +1375,11 @@ final class DashboardController extends ControllerBase {
     $agent_status = trim((string) ($agent['status'] ?? ''));
     $agent_action = trim((string) ($agent['current_action'] ?? ''));
     $agent_last_seen = (int) ($agent['last_seen'] ?? 0);
-    $agent_next_inbox = trim((string) ($meta['next_inbox'] ?? ''));
+    $agent_active_inbox = trim((string) ($meta['active_inbox'] ?? ''));
 
     $active_on_this = FALSE;
     if (strtolower($agent_status) === 'in_progress') {
-      if ($agent_next_inbox !== '' && $agent_next_inbox === $item_id) {
+      if ($agent_active_inbox !== '' && $agent_active_inbox === $item_id) {
         $active_on_this = TRUE;
       }
       elseif ($agent_action !== '' && str_contains($agent_action, $item_id)) {
@@ -1394,8 +1394,8 @@ final class DashboardController extends ControllerBase {
     if ($active_on_this) {
       $activity_items[] = Markup::create('<strong>Actively executing this item.</strong>');
     }
-    elseif (strtolower($agent_status) === 'in_progress' && $agent_next_inbox !== '' && $agent_next_inbox !== $item_id) {
-      $other_link = Link::fromTextAndUrl($agent_next_inbox, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $agent_next_inbox]))->toString();
+    elseif (strtolower($agent_status) === 'in_progress' && $agent_active_inbox !== '' && $agent_active_inbox !== $item_id) {
+      $other_link = Link::fromTextAndUrl($agent_active_inbox, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $agent_active_inbox]))->toString();
       $activity_items[] = Markup::create('Active item: ' . $other_link);
     }
 
