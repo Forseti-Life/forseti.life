@@ -927,9 +927,11 @@ final class DashboardController extends ControllerBase {
     $queue_rows = $this->buildQueueRows($agent_id, $inbox_items);
     $event_rows = $this->buildEventRows($events);
     $metrics_items = $this->buildAgentMetricsItems($meta, $inbox_items);
-    $results = $this->buildAgentResultsSections($meta);
+    $collapse_details = ($agent_id === 'dev-forseti');
+    $results = $this->buildAgentResultsSections($meta, !$collapse_details);
 
     $qa_counts = (!empty($meta['qa_test_counts']) && is_array($meta['qa_test_counts'])) ? $meta['qa_test_counts'] : [];
+    $qa_last = (!empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit'])) ? $meta['qa_last_audit'] : [];
     $is_qa = (($agent['role'] ?? '') === 'tester') || str_starts_with($agent_id, 'qa-');
     $qa_counts_items = [];
     if ($is_qa) {
@@ -937,6 +939,26 @@ final class DashboardController extends ControllerBase {
       $qa_counts_items[] = 'Functional tests: ' . (string) ((int) ($qa_counts['functional'] ?? 0));
       $qa_counts_items[] = 'Integration tests: ' . (string) ((int) ($qa_counts['integration'] ?? 0));
       $qa_counts_items[] = 'Total: ' . (string) ((int) ($qa_counts['total'] ?? 0));
+    }
+
+    $qa_last_items = [];
+    if ($is_qa && $qa_last) {
+      $qa_last_items[] = 'Status: ' . (string) ($qa_last['status'] ?? '-');
+      if (!empty($qa_last['run_id'])) {
+        $qa_last_items[] = 'Last run: ' . (string) $qa_last['run_id'];
+      }
+      if (!empty($qa_last['base_url'])) {
+        $qa_last_items[] = 'Base URL: ' . (string) $qa_last['base_url'];
+      }
+      $qa_last_items[] = 'URL checks: ' . (string) ((int) ($qa_last['url_checks_total'] ?? 0))
+        . ' (failed ' . (string) ((int) ($qa_last['url_checks_failed'] ?? 0)) . ')';
+      $qa_last_items[] = 'Route checks: ' . (string) ((int) ($qa_last['route_checks_total'] ?? 0))
+        . ' (failed ' . (string) ((int) ($qa_last['route_checks_failed'] ?? 0)) . ')';
+      $qa_last_items[] = 'Permission violations: ' . (string) ((int) ($qa_last['permission_violation_count'] ?? 0));
+      $roles = (!empty($qa_last['roles_covered']) && is_array($qa_last['roles_covered'])) ? $qa_last['roles_covered'] : [];
+      if ($roles) {
+        $qa_last_items[] = 'Roles covered: ' . implode(', ', array_slice(array_map('strval', $roles), 0, 8));
+      }
     }
 
     return [
@@ -954,10 +976,20 @@ final class DashboardController extends ControllerBase {
           '#items' => $qa_counts_items,
         ],
       ] : [],
+      'qa_last_run' => ($is_qa && $qa_last_items) ? [
+        '#type' => 'container',
+        'title' => [
+          '#markup' => '<p><strong>QA last run (scripted)</strong></p>',
+        ],
+        'items' => [
+          '#theme' => 'item_list',
+          '#items' => $qa_last_items,
+        ],
+      ] : [],
       'metrics' => [
         '#type' => 'details',
         '#title' => $this->t('Metrics'),
-        '#open' => TRUE,
+        '#open' => !$collapse_details,
         'items' => [
           '#theme' => 'item_list',
           '#items' => $metrics_items,
@@ -977,7 +1009,7 @@ final class DashboardController extends ControllerBase {
       'queue' => [
         '#type' => 'details',
         '#title' => $this->t('Inbox queue'),
-        '#open' => TRUE,
+        '#open' => !$collapse_details,
         'table' => [
           '#type' => 'table',
           '#header' => ['Item', 'ROI', 'Effective ROI', 'Updated', 'Preview'],
@@ -1124,7 +1156,7 @@ final class DashboardController extends ControllerBase {
     return $metrics_items;
   }
 
-  private function buildAgentResultsSections(array $meta): array {
+  private function buildAgentResultsSections(array $meta, bool $open = TRUE): array {
     $outbox_results = (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) ? $meta['outbox_results'] : [];
 
     $results_completed = [];
@@ -1204,20 +1236,20 @@ final class DashboardController extends ControllerBase {
     return [
       '#type' => 'details',
       '#title' => $this->t('Results'),
-      '#open' => TRUE,
+      '#open' => $open,
       'help' => [
         '#markup' => '<p><strong>Completed</strong> = Status done. <strong>Forwarded</strong> = Status needs-info/blocked (requires a decision or missing input). This is derived from HQ outbox updates.</p>',
       ],
       'completed' => [
         '#type' => 'details',
         '#title' => $this->t('Completed (recent)'),
-        '#open' => TRUE,
+        '#open' => $open,
         'items' => $results_completed ?: ['#markup' => '<em>No completed results published yet.</em>'],
       ],
       'forwarded' => [
         '#type' => 'details',
         '#title' => $this->t('Forwarded / needs decision (recent)'),
-        '#open' => TRUE,
+        '#open' => $open,
         'items' => $results_forwarded ?: ['#markup' => '<em>No forwarded/escalated results published yet.</em>'],
       ],
       'in_progress' => [
@@ -1240,7 +1272,7 @@ final class DashboardController extends ControllerBase {
    */
   public function agentInboxItem(string $agent_id, string $item_id): array {
     $agent = $this->database->select('copilot_agent_tracker_agents', 'a')
-      ->fields('a', ['agent_id', 'role', 'website', 'module', 'metadata'])
+      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
       ->condition('agent_id', $agent_id)
       ->execute()
       ->fetchAssoc();
@@ -1270,12 +1302,43 @@ final class DashboardController extends ControllerBase {
       }
     }
 
+    $agent_status = trim((string) ($agent['status'] ?? ''));
+    $agent_action = trim((string) ($agent['current_action'] ?? ''));
+    $agent_last_seen = (int) ($agent['last_seen'] ?? 0);
+    $agent_next_inbox = trim((string) ($meta['next_inbox'] ?? ''));
+
+    $active_on_this = FALSE;
+    if (strtolower($agent_status) === 'in_progress') {
+      if ($agent_next_inbox !== '' && $agent_next_inbox === $item_id) {
+        $active_on_this = TRUE;
+      }
+      elseif ($agent_action !== '' && str_contains($agent_action, $item_id)) {
+        $active_on_this = TRUE;
+      }
+    }
+
+    $activity_items = [];
+    $activity_items[] = 'Agent status: ' . ($agent_status !== '' ? $agent_status : '-');
+    $activity_items[] = 'Last seen: ' . ($agent_last_seen ? $this->dateFormatter->format($agent_last_seen, 'short') : '-');
+    $activity_items[] = 'Current action: ' . ($agent_action !== '' ? $agent_action : '-');
+    if ($active_on_this) {
+      $activity_items[] = Markup::create('<strong>Actively executing this item.</strong>');
+    }
+    elseif (strtolower($agent_status) === 'in_progress' && $agent_next_inbox !== '' && $agent_next_inbox !== $item_id) {
+      $other_link = Link::fromTextAndUrl($agent_next_inbox, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $agent_next_inbox]))->toString();
+      $activity_items[] = Markup::create('Active item: ' . $other_link);
+    }
+
     if (!$detail) {
       return [
         '#type' => 'container',
         'header' => [
           '#markup' => '<h2>' . $this->t('Inbox item: @item', ['@item' => $item_id]) . '</h2>'
             . '<p><strong>' . $this->t('Agent') . ':</strong> ' . $this->t('@a', ['@a' => $agent_id]) . '</p>',
+        ],
+        'activity' => [
+          '#theme' => 'item_list',
+          '#items' => $activity_items,
         ],
         'missing' => [
           '#markup' => '<p><em>No detail published for this item yet.</em> This usually means HQ has not published the newer inbox detail payload. Re-run the HQ publish job and refresh.</p>',
@@ -1307,6 +1370,15 @@ final class DashboardController extends ControllerBase {
           . '<p><strong>' . $this->t('Agent') . ':</strong> ' . $this->t('@a', ['@a' => $agent_id]) . '</p>'
           . '<p><strong>' . $this->t('Product') . ':</strong> ' . $this->t('@p', ['@p' => (($agent['website'] ?? '') ?: '-') . ' / ' . (($agent['module'] ?? '') ?: '-')]) . '</p>'
           . '<p><strong>' . $this->t('Role') . ':</strong> ' . $this->t('@r', ['@r' => ($agent['role'] ?? '') ?: '-']) . '</p>',
+      ],
+      'activity' => [
+        '#type' => 'details',
+        '#title' => $this->t('Agent activity (latest published)'),
+        '#open' => TRUE,
+        'items' => [
+          '#theme' => 'item_list',
+          '#items' => $activity_items,
+        ],
       ],
       'meta' => [
         '#theme' => 'item_list',
