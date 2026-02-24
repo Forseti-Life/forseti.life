@@ -415,6 +415,9 @@ final class DashboardController extends ControllerBase {
         continue;
       }
       $status = strtolower(trim((string) ($a['status'] ?? '')));
+      if ($status === 'paused') {
+        continue;
+      }
       $inbox_count = (int) ($a['inbox_count'] ?? 0);
       if ($status === 'in_progress' || $inbox_count > 0 || $status === 'blocked' || $status === 'needs-info') {
         $relevant_agents[] = $a;
