@@ -25,8 +25,8 @@ copilot_agent_tracker.agent_inbox_item:
 copilot_agent_tracker.waiting_on_keith:
   path: '/admin/reports/waitingonkeith'
   defaults:
-    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::waitingOnKeith'
-    _title: 'Waiting on Keith'
+     _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::waitingOnKeithRedirect'
+     _title: 'Waiting on Keith'
   requirements:
     _permission: 'administer copilot agent tracker'
 

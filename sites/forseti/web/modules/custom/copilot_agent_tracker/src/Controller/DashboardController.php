@@ -60,7 +60,7 @@ final class DashboardController extends ControllerBase {
     ];
 
     $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
-      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen'])
+      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
       ->orderBy('website', 'ASC')
       ->orderBy('module', 'ASC')
       ->orderBy('role', 'ASC')
@@ -103,12 +103,28 @@ final class DashboardController extends ControllerBase {
         continue;
       }
 
+      $meta = [];
+      if (!empty($row->metadata)) {
+        try {
+          $meta = Json::decode((string) $row->metadata) ?? [];
+        }
+        catch (\Throwable) {
+          $meta = [];
+        }
+      }
+      $inbox_count = 0;
+      if (is_array($meta) && isset($meta['inbox_count'])) {
+        $inbox_count = (int) $meta['inbox_count'];
+      }
+
       $table_rows[] = [
         Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString(),
-        $role,
         $website,
         $module,
+        $role,
+        $status,
         $row->current_action ?? '',
+        (string) $inbox_count,
         $row->last_seen ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
       ];
     }
@@ -119,10 +135,17 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<p>Tracks high-level agent status updates and work item progress. Do not post raw conversation logs.</p>'
           . ($token ? '<p><strong>Telemetry token</strong> (send as <code>X-Copilot-Agent-Tracker-Token</code>): <code>' . $token . '</code></p>' : ''),
       ],
+      'todo_separator' => [
+        '#markup' => '<hr>',
+      ],
+      'todo' => $this->buildWaitingOnKeithView(),
+      'agents_separator' => [
+        '#markup' => '<hr>',
+      ],
       'filters' => $filter_form,
       'agents' => [
         '#type' => 'table',
-        '#header' => ['Agent', 'Role', 'Website', 'Module', 'Current action', 'Last seen'],
+        '#header' => ['Agent', 'Website', 'Module', 'Role', 'Status', 'Current action', 'Inbox', 'Last seen'],
         '#rows' => $table_rows,
         '#empty' => $this->t('No agent updates yet.'),
       ],
@@ -133,9 +156,33 @@ final class DashboardController extends ControllerBase {
   }
 
   /**
+   * Consolidated entry point for Keith/CEO pending decisions.
+   *
+   * This report is now rendered within the main dashboard page to avoid
+   * splitting the workflow across two separate admin reports.
+   */
+  public function waitingOnKeithRedirect(): RedirectResponse {
+    $url = Url::fromRoute('copilot_agent_tracker.dashboard', [], [
+      'fragment' => 'todo-for-keith',
+    ]);
+    return new RedirectResponse($url->toString(), 301);
+  }
+
+  /**
+   * Backward-compatible controller method.
+   *
+   * Some environments may temporarily have stale route caches that still
+   * reference `::waitingOnKeith`. Keep this method callable and delegate to the
+   * canonical redirect.
+   */
+  public function waitingOnKeith(): RedirectResponse {
+    return $this->waitingOnKeithRedirect();
+  }
+
+  /**
    * Inbox-style view for Keith/CEO pending decisions.
    */
-  public function waitingOnKeith(): array {
+  private function buildWaitingOnKeithView(): array {
     $self_agent_prefix = 'ceo-copilot';
     $resolved = $this->database->select('copilot_agent_tracker_inbox_resolutions', 'r')
       ->fields('r', ['item_id'])
@@ -155,9 +202,6 @@ final class DashboardController extends ControllerBase {
 
     $ceo_meta = [];
     $ceo_last_seen = 0;
-    $pending_items = [];
-    $pending_agent_ids = [];
-    $pending_rows = [];
     $agent_meta = [];
 
     $is_legacy_agent_id = static function (string $agent_id): bool {
@@ -608,12 +652,6 @@ final class DashboardController extends ControllerBase {
         '#rows' => $message_rows,
         '#empty' => $this->t('No inbox items detected.'),
       ],
-      'pending' => [
-        '#type' => 'table',
-        '#header' => ['Agent', 'Website', 'Module', 'Role', 'Status', 'Current action', 'Inbox', 'Last seen'],
-        '#rows' => $pending_rows,
-        '#empty' => $this->t('No agents found.'),
-      ],
       '#cache' => [
         'max-age' => 0,
       ],
@@ -662,7 +700,7 @@ final class DashboardController extends ControllerBase {
     $to_agent_id = trim((string) ($message['from_agent'] ?? ''));
     if ($to_agent_id === '' || strlen($to_agent_id) > 128) {
       $this->messenger()->addError($this->t('Cannot approve: missing or invalid destination agent.'));
-      return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.waiting_on_keith')->toString());
+      return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.dashboard', [], ['fragment' => 'todo-for-keith'])->toString());
     }
 
     $now = (int) \Drupal::time()->getRequestTime();
@@ -687,7 +725,7 @@ final class DashboardController extends ControllerBase {
       ->execute();
 
     $this->messenger()->addStatus($this->t('Approved and removed from inbox.'));
-    return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.waiting_on_keith')->toString());
+    return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.dashboard', [], ['fragment' => 'todo-for-keith'])->toString());
   }
 
   /**
@@ -710,7 +748,7 @@ final class DashboardController extends ControllerBase {
       ->execute();
 
     $this->messenger()->addStatus($this->t('Sent message dismissed.'));
-    return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.waiting_on_keith')->toString());
+    return new RedirectResponse(Url::fromRoute('copilot_agent_tracker.dashboard', [], ['fragment' => 'todo-for-keith'])->toString());
   }
 
   /**
@@ -1089,131 +1127,7 @@ final class DashboardController extends ControllerBase {
     try {
       $decoded = Json::decode((string) $agent['metadata']);
       return is_array($decoded) ? $decoded : [];
-    }
-    catch (\Throwable) {
-      return [];
-    }
-  }
-
-  private function extractInboxItems(array $meta): array {
-    $inbox_items = [];
-
-    if (!empty($meta['inbox_items_detail']) && is_array($meta['inbox_items_detail'])) {
-      foreach ($meta['inbox_items_detail'] as $it) {
-        if (!is_array($it)) {
-          continue;
-        }
-        $iid = trim((string) ($it['item_id'] ?? ''));
-        if ($iid === '') {
-          continue;
-        }
-        $inbox_items[$iid] = $it;
       }
-      return $inbox_items;
-    }
-
-    if (!empty($meta['inbox_items']) && is_array($meta['inbox_items'])) {
-      foreach ($meta['inbox_items'] as $iid) {
-        $iid = trim((string) $iid);
-        if ($iid !== '') {
-          $inbox_items[$iid] = ['item_id' => $iid];
-        }
-      }
-    }
-
-    return $inbox_items;
-  }
-
-  private function buildQueueRows(string $agent_id, array $inbox_items, string $active_item_id = '', array $outbox_status_by_id = []): array {
-    $queue_rows = [];
-    foreach ($inbox_items as $iid => $it) {
-      $roi = (int) ($it['roi'] ?? 0);
-      $eff = (int) ($it['effective_roi'] ?? 0);
-      $mtime = (int) ($it['mtime'] ?? 0);
-      $preview = (string) ($it['preview'] ?? '');
-
-      $link_html = Link::fromTextAndUrl($iid, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $iid]))->toString();
-      $is_active = ($active_item_id !== '' && $iid === $active_item_id);
-      if ($is_active) {
-        $link_html = '<strong>' . $link_html . '</strong>';
-      }
-
-      $preview_bits = [];
-      if ($is_active) {
-        $preview_bits[] = 'ACTIVE';
-      }
-      $known_status = trim((string) ($outbox_status_by_id[$iid] ?? ''));
-      if ($known_status !== '') {
-        $preview_bits[] = 'Status: ' . $known_status;
-      }
-      $preview = trim((string) $preview);
-      if ($preview !== '') {
-        $preview_bits[] = $preview;
-      }
-
-      $queue_rows[] = [
-        Markup::create($link_html),
-        $roi > 0 ? (string) $roi : '-',
-        $eff > 0 ? (string) $eff : '-',
-        $mtime ? $this->dateFormatter->format($mtime, 'short') : '-',
-        $preview_bits ? htmlspecialchars(implode(' — ', $preview_bits)) : '',
-      ];
-    }
-    return $queue_rows;
-  }
-
-  private function buildEventRows(array $events): array {
-    $event_rows = [];
-    foreach ($events as $e) {
-      $event_rows[] = [
-        $e->created ? $this->dateFormatter->format((int) $e->created, 'short') : '',
-        $e->action ?? '',
-        $e->status ?? '',
-        $e->summary ?? '',
-        $e->session_id ?? '',
-        $e->work_item_id ?? '',
-      ];
-    }
-    return $event_rows;
-  }
-
-  private function buildAgentMetricsItems(array $meta, array $inbox_items): array {
-    $metrics_items = [];
-    $metrics_items[] = 'Inbox items: ' . (string) ((int) ($meta['inbox_count'] ?? count($inbox_items)));
-    $metrics_items[] = 'Next inbox ROI: ' . (string) ((int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 0)));
-
-    $outbox_results = (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) ? $meta['outbox_results'] : [];
-    $counts_7d = (!empty($outbox_results['counts_7d']) && is_array($outbox_results['counts_7d'])) ? $outbox_results['counts_7d'] : [];
-
-    $count_done_7d = (int) ($counts_7d['done'] ?? 0);
-    $count_in_progress_7d = (int) ($counts_7d['in_progress'] ?? 0);
-    $count_needs_info_7d = (int) ($counts_7d['needs-info'] ?? 0);
-    $count_blocked_7d = (int) ($counts_7d['blocked'] ?? 0);
-    $count_total_7d = (int) ($counts_7d['total'] ?? 0);
-    $count_forwarded_7d = $count_needs_info_7d + $count_blocked_7d;
-
-    $metrics_items[] = 'Results (7d) — completed: ' . (string) $count_done_7d
-      . ', forwarded (needs-info+blocked): ' . (string) $count_forwarded_7d
-      . ', in_progress: ' . (string) $count_in_progress_7d
-      . ', total: ' . (string) $count_total_7d;
-
-    $last_outbox_mtime = (int) ($outbox_results['last_mtime'] ?? 0);
-    if ($last_outbox_mtime > 0) {
-      $metrics_items[] = 'Last outbox update: ' . $this->dateFormatter->format($last_outbox_mtime, 'short');
-    }
-
-    $role_kpis = (!empty($meta['role_kpis']) && is_array($meta['role_kpis'])) ? $meta['role_kpis'] : [];
-
-    $kpi_value = trim((string) ($role_kpis['value'] ?? ''));
-    if ($kpi_value !== '') {
-      $metrics_items[] = 'Value I add: ' . $kpi_value;
-    }
-
-    $kpi_cost = (!empty($role_kpis['cost']) && is_array($role_kpis['cost'])) ? $role_kpis['cost'] : [];
-    $kpi_quality = (!empty($role_kpis['quality']) && is_array($role_kpis['quality'])) ? $role_kpis['quality'] : [];
-    $kpi_speed = (!empty($role_kpis['speed']) && is_array($role_kpis['speed'])) ? $role_kpis['speed'] : [];
-
-    if ($kpi_cost) {
       $metrics_items[] = Markup::create('<strong>Cost KPIs</strong>:<br/>' . htmlspecialchars(implode(' | ', array_slice(array_map('strval', $kpi_cost), 0, 6))));
     }
     if ($kpi_quality) {
