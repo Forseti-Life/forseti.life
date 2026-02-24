@@ -929,11 +929,31 @@ final class DashboardController extends ControllerBase {
     $metrics_items = $this->buildAgentMetricsItems($meta, $inbox_items);
     $results = $this->buildAgentResultsSections($meta);
 
+    $qa_counts = (!empty($meta['qa_test_counts']) && is_array($meta['qa_test_counts'])) ? $meta['qa_test_counts'] : [];
+    $is_qa = (($agent['role'] ?? '') === 'tester') || str_starts_with($agent_id, 'qa-');
+    $qa_counts_items = [];
+    if ($is_qa) {
+      $qa_counts_items[] = 'Unit tests: ' . (string) ((int) ($qa_counts['unit'] ?? 0));
+      $qa_counts_items[] = 'Functional tests: ' . (string) ((int) ($qa_counts['functional'] ?? 0));
+      $qa_counts_items[] = 'Integration tests: ' . (string) ((int) ($qa_counts['integration'] ?? 0));
+      $qa_counts_items[] = 'Total: ' . (string) ((int) ($qa_counts['total'] ?? 0));
+    }
+
     return [
       '#type' => 'container',
       'summary' => [
         '#markup' => '<h2>' . $this->t('Agent: @id', ['@id' => $agent_id]) . '</h2>',
       ],
+      'qa_roster' => ($is_qa && $qa_counts_items) ? [
+        '#type' => 'container',
+        'title' => [
+          '#markup' => '<p><strong>QA test roster</strong></p>',
+        ],
+        'items' => [
+          '#theme' => 'item_list',
+          '#items' => $qa_counts_items,
+        ],
+      ] : [],
       'metrics' => [
         '#type' => 'details',
         '#title' => $this->t('Metrics'),
