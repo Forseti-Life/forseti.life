@@ -924,7 +924,26 @@ final class DashboardController extends ControllerBase {
 
     $meta = $this->decodeAgentMetadata($agent);
     $inbox_items = $this->extractInboxItems($meta);
-    $queue_rows = $this->buildQueueRows($agent_id, $inbox_items);
+
+    $active_item_id = trim((string) ($meta['next_inbox'] ?? ''));
+    $outbox_results = (!empty($meta['outbox_results']) && is_array($meta['outbox_results'])) ? $meta['outbox_results'] : [];
+    $outbox_recent = (!empty($outbox_results['recent']) && is_array($outbox_results['recent'])) ? $outbox_results['recent'] : [];
+    $outbox_status_by_id = [];
+    foreach ($outbox_recent as $r) {
+      if (!is_array($r)) {
+        continue;
+      }
+      $rid = trim((string) ($r['item_id'] ?? ''));
+      if ($rid === '') {
+        continue;
+      }
+      $rst = trim((string) ($r['status'] ?? ''));
+      if ($rst !== '') {
+        $outbox_status_by_id[$rid] = $rst;
+      }
+    }
+
+    $queue_rows = $this->buildQueueRows($agent_id, $inbox_items, $active_item_id, $outbox_status_by_id);
     $event_rows = $this->buildEventRows($events);
     $metrics_items = $this->buildAgentMetricsItems($meta, $inbox_items);
     $collapse_details = ($agent_id === 'dev-forseti');
@@ -961,11 +980,45 @@ final class DashboardController extends ControllerBase {
       }
     }
 
+    $active_summary_items = [];
+    if ($active_item_id !== '' && !empty($inbox_items[$active_item_id]) && is_array($inbox_items[$active_item_id])) {
+      $it = $inbox_items[$active_item_id];
+      $active_summary_items[] = Markup::create('<strong>' . htmlspecialchars($active_item_id) . '</strong>');
+      $roi = (int) ($it['roi'] ?? 0);
+      $eff = (int) ($it['effective_roi'] ?? 0);
+      $mtime = (int) ($it['mtime'] ?? 0);
+      $preview = trim((string) ($it['preview'] ?? ''));
+      if ($roi > 0) {
+        $active_summary_items[] = 'ROI: ' . (string) $roi;
+      }
+      if ($eff > 0) {
+        $active_summary_items[] = 'Effective ROI: ' . (string) $eff;
+      }
+      if ($mtime > 0) {
+        $active_summary_items[] = 'Updated: ' . $this->dateFormatter->format($mtime, 'short');
+      }
+      if ($preview !== '') {
+        $active_summary_items[] = 'Preview: ' . $preview;
+      }
+
+      $active_link = Link::fromTextAndUrl($this->t('Open active item'), Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $active_item_id]))->toString();
+      $active_summary_items[] = Markup::create($active_link);
+    }
+
     return [
       '#type' => 'container',
       'summary' => [
         '#markup' => '<h2>' . $this->t('Agent: @id', ['@id' => $agent_id]) . '</h2>',
       ],
+      'active_item' => $active_summary_items ? [
+        '#type' => 'details',
+        '#title' => $this->t('Active work item'),
+        '#open' => TRUE,
+        'items' => [
+          '#theme' => 'item_list',
+          '#items' => $active_summary_items,
+        ],
+      ] : [],
       'qa_roster' => ($is_qa && $qa_counts_items) ? [
         '#type' => 'container',
         'title' => [
@@ -1071,7 +1124,7 @@ final class DashboardController extends ControllerBase {
     return $inbox_items;
   }
 
-  private function buildQueueRows(string $agent_id, array $inbox_items): array {
+  private function buildQueueRows(string $agent_id, array $inbox_items, string $active_item_id = '', array $outbox_status_by_id = []): array {
     $queue_rows = [];
     foreach ($inbox_items as $iid => $it) {
       $roi = (int) ($it['roi'] ?? 0);
@@ -1080,13 +1133,30 @@ final class DashboardController extends ControllerBase {
       $preview = (string) ($it['preview'] ?? '');
 
       $link_html = Link::fromTextAndUrl($iid, Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $iid]))->toString();
+      $is_active = ($active_item_id !== '' && $iid === $active_item_id);
+      if ($is_active) {
+        $link_html = '<strong>' . $link_html . '</strong>';
+      }
+
+      $preview_bits = [];
+      if ($is_active) {
+        $preview_bits[] = 'ACTIVE';
+      }
+      $known_status = trim((string) ($outbox_status_by_id[$iid] ?? ''));
+      if ($known_status !== '') {
+        $preview_bits[] = 'Status: ' . $known_status;
+      }
+      $preview = trim((string) $preview);
+      if ($preview !== '') {
+        $preview_bits[] = $preview;
+      }
 
       $queue_rows[] = [
         Markup::create($link_html),
         $roi > 0 ? (string) $roi : '-',
         $eff > 0 ? (string) $eff : '-',
         $mtime ? $this->dateFormatter->format($mtime, 'short') : '-',
-        $preview !== '' ? htmlspecialchars($preview) : '',
+        $preview_bits ? htmlspecialchars(implode(' — ', $preview_bits)) : '',
       ];
     }
     return $queue_rows;
