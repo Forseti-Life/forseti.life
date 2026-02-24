@@ -90,6 +90,7 @@ final class DashboardController extends ControllerBase {
     ], $selected);
 
     $table_rows = [];
+    $visible_agents = [];
     foreach ($rows as $agent_id => $row) {
       $website = (string) ($row->website ?? '');
       $module = (string) ($row->module ?? '');
@@ -112,10 +113,33 @@ final class DashboardController extends ControllerBase {
           $meta = [];
         }
       }
-      $inbox_count = 0;
-      if (is_array($meta) && isset($meta['inbox_count'])) {
-        $inbox_count = (int) $meta['inbox_count'];
+
+      $active_item_id = '';
+      if (is_array($meta) && isset($meta['active_inbox'])) {
+        $active_item_id = trim((string) ($meta['active_inbox'] ?? ''));
       }
+
+      $inbox_count = (int) ($meta['inbox_count'] ?? 0);
+      $next_item_id = '';
+      if (is_array($meta) && isset($meta['next_inbox'])) {
+        $next_item_id = trim((string) ($meta['next_inbox'] ?? ''));
+      }
+      $next_inbox_roi = (int) ($meta['next_inbox_effective_roi'] ?? ($meta['next_inbox_roi'] ?? 0));
+
+      $visible_agents[] = [
+        'agent_id' => (string) $agent_id,
+        'website' => $website,
+        'module' => $module,
+        'role' => $role,
+        'status' => $status,
+        'current_action' => (string) ($row->current_action ?? ''),
+        'last_seen' => (int) ($row->last_seen ?? 0),
+        'active_item_id' => $active_item_id,
+        'inbox_count' => $inbox_count,
+        'next_item_id' => $next_item_id,
+        'next_inbox_roi' => $next_inbox_roi,
+        'meta' => is_array($meta) ? $meta : [],
+      ];
 
       $table_rows[] = [
         Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString(),
@@ -129,10 +153,13 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+    $release_stages = $this->buildReleaseStageAccordion($visible_agents);
+
     return [
       '#type' => 'container',
       'help' => [
         '#markup' => '<p>Tracks high-level agent status updates and work item progress. Do not post raw conversation logs.</p>'
+          . '<p><strong>Release stage view</strong> (below) is a best-effort inference based on agent role + tracker metadata. It includes in-progress, queued (inbox), and blocked work when available.</p>'
           . ($token ? '<p><strong>Telemetry token</strong> (send as <code>X-Copilot-Agent-Tracker-Token</code>): <code>' . $token . '</code></p>' : ''),
       ],
       'todo_separator' => [
@@ -143,6 +170,7 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<hr>',
       ],
       'filters' => $filter_form,
+      'release_stages' => $release_stages,
       'agents' => [
         '#type' => 'table',
         '#header' => ['Agent', 'Website', 'Module', 'Role', 'Status', 'Current action', 'Inbox', 'Last seen'],
@@ -153,6 +181,236 @@ final class DashboardController extends ControllerBase {
         'max-age' => 0,
       ],
     ];
+  }
+
+  /**
+   * Builds a nested accordion view of active work by release stage and product.
+   *
+   * Render placement requirement (per request): above the agent table, below the
+   * rest of the dashboard content.
+   */
+  private function buildReleaseStageAccordion(array $agents): array {
+    $relevant_agents = [];
+    foreach ($agents as $a) {
+      if (!is_array($a)) {
+        continue;
+      }
+      $status = strtolower(trim((string) ($a['status'] ?? '')));
+      $inbox_count = (int) ($a['inbox_count'] ?? 0);
+      if ($status === 'in_progress' || $inbox_count > 0 || $status === 'blocked' || $status === 'needs-info') {
+        $relevant_agents[] = $a;
+      }
+    }
+
+    $stages = [
+      0 => 'Stage 0 — Start of cycle (scope freeze + suite readiness)',
+      1 => 'Stage 1 — Intake (backlog; next cycle once frozen)',
+      2 => 'Stage 2 — Triage / routing / dedupe',
+      3 => 'Stage 3 — Execution (implementation)',
+      4 => 'Stage 4 — Verification (QA regression loop)',
+      5 => 'Stage 5 — Release candidate assembly',
+      6 => 'Stage 6 — Signoff (coordinated release)',
+      7 => 'Stage 7 — Ship',
+      8 => 'Stage 8 — Post-release QA (production)',
+      9 => 'Stage 9 — Continuous improvement',
+    ];
+
+    $by_stage_product = [];
+    foreach ($relevant_agents as $a) {
+      $stage = $this->inferReleaseStage($a);
+      $website = trim((string) ($a['website'] ?? ''));
+      $module = trim((string) ($a['module'] ?? ''));
+      $product_key = $website . '::' . $module;
+      if (!isset($by_stage_product[$stage])) {
+        $by_stage_product[$stage] = [];
+      }
+      if (!isset($by_stage_product[$stage][$product_key])) {
+        $by_stage_product[$stage][$product_key] = [
+          'website' => $website,
+          'module' => $module,
+          'agents' => [],
+        ];
+      }
+      $by_stage_product[$stage][$product_key]['agents'][] = $a;
+    }
+
+    $build = [
+      '#type' => 'container',
+      'title' => [
+        '#markup' => '<h3>Release stage (active work, grouped by product)</h3>',
+      ],
+    ];
+
+    if (!$relevant_agents) {
+      $build['empty'] = [
+        '#markup' => '<em>No active, queued, or blocked work is currently visible.</em>',
+      ];
+      return $build;
+    }
+
+    foreach ($stages as $stage_id => $stage_title) {
+      $products = $by_stage_product[$stage_id] ?? [];
+      $agent_count = 0;
+      $active_count = 0;
+      $queued_count = 0;
+      $blocked_count = 0;
+      foreach ($products as $p) {
+        $agents_in_product = (is_array($p['agents'] ?? NULL)) ? $p['agents'] : [];
+        $agent_count += count($agents_in_product);
+        foreach ($agents_in_product as $a) {
+          if (!is_array($a)) {
+            continue;
+          }
+          $s = strtolower(trim((string) ($a['status'] ?? '')));
+          $c = (int) ($a['inbox_count'] ?? 0);
+          if ($s === 'in_progress') {
+            $active_count++;
+          }
+          elseif ($s === 'blocked' || $s === 'needs-info') {
+            $blocked_count++;
+          }
+          elseif ($c > 0) {
+            $queued_count++;
+          }
+        }
+      }
+      $product_count = count($products);
+      $title = $stage_title
+        . ' (' . (string) $product_count . ' product' . ($product_count === 1 ? '' : 's')
+        . ' — ' . (string) $active_count . ' active, ' . (string) $queued_count . ' queued, ' . (string) $blocked_count . ' blocked)';
+
+      $stage_build = [
+        '#type' => 'details',
+        '#title' => $this->t('@t', ['@t' => $title]),
+        '#open' => FALSE,
+      ];
+
+      if (!$products) {
+        $stage_build['empty'] = [
+          '#markup' => '<em>No active, queued, or blocked work inferred for this stage.</em>',
+        ];
+        $build['stage_' . (string) $stage_id] = $stage_build;
+        continue;
+      }
+
+      // Stable ordering.
+      ksort($products);
+      foreach ($products as $product_key => $p) {
+        $website = (string) ($p['website'] ?? '');
+        $module = (string) ($p['module'] ?? '');
+        $label = ($website ?: '-') . ' / ' . ($module ?: '-') . ' (' . (string) count($p['agents']) . ')';
+
+        $items = [];
+        foreach (($p['agents'] ?? []) as $a) {
+          if (!is_array($a)) {
+            continue;
+          }
+          $agent_id = (string) ($a['agent_id'] ?? '');
+          $active_item_id = trim((string) ($a['active_item_id'] ?? ''));
+          $next_item_id = trim((string) ($a['next_item_id'] ?? ''));
+          $next_inbox_roi = (int) ($a['next_inbox_roi'] ?? 0);
+          $inbox_count = (int) ($a['inbox_count'] ?? 0);
+          $status = strtolower(trim((string) ($a['status'] ?? '')));
+          $current_action = trim((string) ($a['current_action'] ?? ''));
+
+          $agent_link = Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString();
+          $parts = [$agent_link];
+
+          if ($status !== '') {
+            $parts[] = 'Status: ' . htmlspecialchars($status);
+          }
+
+          if ($status === 'in_progress' && $active_item_id !== '') {
+            $item_link = Link::fromTextAndUrl(
+              $active_item_id,
+              Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $active_item_id])
+            )->toString();
+            $parts[] = 'Active: ' . $item_link;
+          }
+          elseif ($next_item_id !== '') {
+            $item_link = Link::fromTextAndUrl(
+              $next_item_id,
+              Url::fromRoute('copilot_agent_tracker.agent_inbox_item', ['agent_id' => $agent_id, 'item_id' => $next_item_id])
+            )->toString();
+            $parts[] = 'Next: ' . $item_link;
+            if ($next_inbox_roi > 0) {
+              $parts[] = 'ROI: ' . (string) $next_inbox_roi;
+            }
+          }
+
+          if ($inbox_count > 0) {
+            $parts[] = 'Inbox: ' . (string) $inbox_count;
+          }
+          if ($current_action !== '') {
+            $parts[] = 'Action: ' . htmlspecialchars($current_action);
+          }
+          $items[] = Markup::create(implode(' — ', $parts));
+        }
+
+        $stage_build['product_' . md5($product_key)] = [
+          '#type' => 'details',
+          '#title' => $this->t('@t', ['@t' => $label]),
+          '#open' => FALSE,
+          'items' => [
+            '#theme' => 'item_list',
+            '#items' => $items ?: [Markup::create('<em>No visible work.</em>')],
+          ],
+        ];
+      }
+
+      $build['stage_' . (string) $stage_id] = $stage_build;
+    }
+
+    return $build;
+  }
+
+  /**
+   * Best-effort inference of release stage for an active agent.
+   *
+   * Uses role + active inbox item id patterns. This is intentionally simple and
+   * uses only already-published tracker fields.
+   */
+  private function inferReleaseStage(array $a): int {
+    $role = trim((string) ($a['role'] ?? ''));
+    $agent_id = trim((string) ($a['agent_id'] ?? ''));
+    $active_item_id = trim((string) ($a['active_item_id'] ?? ''));
+    $current_action = strtolower(trim((string) ($a['current_action'] ?? '')));
+    $meta = (!empty($a['meta']) && is_array($a['meta'])) ? $a['meta'] : [];
+
+    if ($active_item_id !== '' && str_contains($active_item_id, 'release-preflight-test-suite')) {
+      return 0;
+    }
+
+    // If QA is actively auditing production, treat it as post-release QA.
+    if (($role === 'tester' || str_starts_with($agent_id, 'qa-')) && !empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit'])) {
+      $base = strtolower((string) ($meta['qa_last_audit']['base_url'] ?? ''));
+      if (str_starts_with($base, 'https://forseti.life') || str_starts_with($base, 'https://dungeoncrawler.forseti.life')) {
+        if (str_contains($current_action, 'audit') || str_contains($current_action, 'qa')) {
+          return 8;
+        }
+      }
+    }
+
+    if ($role === 'tester' || str_starts_with($agent_id, 'qa-')) {
+      return 4;
+    }
+    if ($role === 'software-developer' || str_starts_with($agent_id, 'dev-')) {
+      return 3;
+    }
+    if ($role === 'business-analyst' || str_starts_with($agent_id, 'ba-')) {
+      return 2;
+    }
+    if ($role === 'product-manager' || str_starts_with($agent_id, 'pm-')) {
+      if (str_contains($current_action, 'signoff') || str_contains($active_item_id, 'signoff')) {
+        return 6;
+      }
+      if (str_contains($current_action, 'ship') || str_contains($current_action, 'push')) {
+        return 7;
+      }
+      return 5;
+    }
+
+    return 3;
   }
 
   /**
