@@ -153,6 +153,7 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+    $current_release = $this->buildCurrentReleaseSummary($visible_agents);
     $release_stages = $this->buildReleaseStageAccordion($visible_agents);
 
     return [
@@ -170,6 +171,7 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<hr>',
       ],
       'filters' => $filter_form,
+      'current_release' => $current_release,
       'release_stages' => $release_stages,
       'agents' => [
         '#type' => 'table',
@@ -179,6 +181,184 @@ final class DashboardController extends ControllerBase {
       ],
       '#cache' => [
         'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Builds a "current release" summary block.
+   *
+   * Uses CEO-published metadata.release_notes to infer the current release id
+   * and uses QA agent metadata (qa_last_audit) to show per-product PASS/FAIL.
+   */
+  private function buildCurrentReleaseSummary(array $agents): array {
+    $current_release_id = '';
+
+    // Pull most-recent CEO metadata and infer current release id.
+    $row = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['metadata', 'last_seen'])
+      ->condition('agent_id', 'ceo-copilot%', 'LIKE')
+      ->orderBy('last_seen', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $ceo_meta = [];
+    if (!empty($row['metadata'])) {
+      try {
+        $ceo_meta = Json::decode((string) $row['metadata']) ?? [];
+      }
+      catch (\Throwable) {
+        $ceo_meta = [];
+      }
+    }
+
+    $entries = (is_array($ceo_meta) && !empty($ceo_meta['release_notes']) && is_array($ceo_meta['release_notes'])) ? $ceo_meta['release_notes'] : [];
+    if ($entries) {
+      $candidates = [];
+      $fallback = [];
+      foreach ($entries as $e) {
+        if (!is_array($e)) {
+          continue;
+        }
+        $rid = trim((string) ($e['release_id'] ?? ''));
+        if ($rid === '') {
+          continue;
+        }
+        $fallback[] = $rid;
+
+        $state = strtolower(trim((string) ($e['state'] ?? '')));
+        // Treat anything not explicitly shipped/released as "current" candidate.
+        if ($state === '' || $state === 'pending' || $state === 'candidate' || $state === 'needs_approval' || $state === 'needs-approval') {
+          $candidates[] = $rid;
+          continue;
+        }
+        if (!in_array($state, ['shipped', 'released', 'done', 'closed'], TRUE)) {
+          $candidates[] = $rid;
+        }
+      }
+
+      $pick_from = $candidates ?: $fallback;
+      if ($pick_from) {
+        // Release ids are typically YYYYMMDD-*; lexicographic max approximates newest.
+        sort($pick_from);
+        $current_release_id = (string) end($pick_from);
+      }
+    }
+
+    $release_notes_url = Url::fromRoute('copilot_agent_tracker.release_notes');
+    $release_notes_link = Link::fromTextAndUrl('Release notes / features / evidence', $release_notes_url)->toString();
+    $release_id_link = $current_release_id !== ''
+      ? Link::fromTextAndUrl($current_release_id, $release_notes_url)->toString()
+      : '-';
+
+    // Build per-product QA status table.
+    $by_product = [];
+    foreach ($agents as $a) {
+      if (!is_array($a)) {
+        continue;
+      }
+      $website = trim((string) ($a['website'] ?? ''));
+      $module = trim((string) ($a['module'] ?? ''));
+      $product_key = $website . '::' . $module;
+      if (!isset($by_product[$product_key])) {
+        $by_product[$product_key] = [
+          'website' => $website,
+          'module' => $module,
+          'agents' => [],
+        ];
+      }
+      $by_product[$product_key]['agents'][] = $a;
+    }
+    ksort($by_product);
+
+    $qa_rows = [];
+    foreach ($by_product as $product_key => $p) {
+      $website = (string) ($p['website'] ?? '');
+      $module = (string) ($p['module'] ?? '');
+      $product_label = ($website ?: '-') . ' / ' . ($module ?: '-');
+
+      $pm_agent = NULL;
+      $qa_agent = NULL;
+      foreach (($p['agents'] ?? []) as $a) {
+        if (!is_array($a)) {
+          continue;
+        }
+        $agent_id = (string) ($a['agent_id'] ?? '');
+        $role = (string) ($a['role'] ?? '');
+        if ($pm_agent === NULL && ($role === 'product-manager' || str_starts_with($agent_id, 'pm-'))) {
+          $pm_agent = $a;
+        }
+        if ($role === 'tester' || str_starts_with($agent_id, 'qa-')) {
+          $qa_agent = $a;
+        }
+      }
+
+      $qa_status = 'UNKNOWN';
+      $qa_details = '-';
+      $qa_link = '-';
+      $features_link = '-';
+
+      if (is_array($pm_agent)) {
+        $pm_agent_id = (string) ($pm_agent['agent_id'] ?? '');
+        if ($pm_agent_id !== '') {
+          $features_link = Link::fromTextAndUrl('Features', Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $pm_agent_id]))->toString();
+        }
+      }
+
+      if (is_array($qa_agent)) {
+        $qa_agent_id = (string) ($qa_agent['agent_id'] ?? '');
+        $qa_link = Link::fromTextAndUrl($qa_agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $qa_agent_id]))->toString();
+
+        $meta = (!empty($qa_agent['meta']) && is_array($qa_agent['meta'])) ? $qa_agent['meta'] : [];
+        $qa_last = (!empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit'])) ? $meta['qa_last_audit'] : [];
+
+        $failed = (int) ($qa_last['url_checks_failed'] ?? 0) + (int) ($qa_last['route_checks_failed'] ?? 0) + (int) ($qa_last['permission_violation_count'] ?? 0);
+        $run_id = trim((string) ($qa_last['run_id'] ?? ''));
+        $status = strtolower(trim((string) ($qa_last['status'] ?? '')));
+
+        if ($failed > 0 || $status === 'issues' || $status === 'fail' || $status === 'failed') {
+          $qa_status = 'FAIL';
+        }
+        elseif ($status === 'clean' || $status === 'pass' || $status === 'passed') {
+          $qa_status = 'PASS';
+        }
+
+        $qa_details_parts = [];
+        if ($run_id !== '') {
+          $qa_details_parts[] = 'Run: ' . htmlspecialchars($run_id);
+        }
+        if (!empty($qa_last['base_url'])) {
+          $qa_details_parts[] = 'Base: ' . htmlspecialchars((string) $qa_last['base_url']);
+        }
+        $qa_details_parts[] = 'Failed checks: ' . (string) max(0, $failed);
+        $qa_details = $qa_details_parts ? implode(' — ', $qa_details_parts) : '-';
+      }
+
+      $qa_rows[] = [
+        htmlspecialchars($product_label),
+        Markup::create('<strong>' . htmlspecialchars($qa_status) . '</strong>'),
+        Markup::create($qa_details),
+        Markup::create($features_link),
+        Markup::create($qa_link),
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      'title' => [
+        '#markup' => '<h3>Current release</h3>',
+      ],
+      'summary' => [
+        '#markup' => '<p><strong>Release id:</strong> ' . $release_id_link . '</p>'
+          . '<p><strong>Links:</strong> ' . $release_notes_link . '</p>'
+          . '<p><em>The release stage section below marks the inferred current stage as “CURRENT”.</em></p>',
+      ],
+      'qa_table' => [
+        '#type' => 'table',
+        '#header' => ['Product', 'QA status', 'Last QA run (summary)', 'Features', 'QA page'],
+        '#rows' => $qa_rows,
+        '#empty' => $this->t('No products visible.'),
       ],
     ];
   }
@@ -234,6 +414,41 @@ final class DashboardController extends ControllerBase {
       $by_stage_product[$stage][$product_key]['agents'][] = $a;
     }
 
+    // Infer "current" stage from the work distribution.
+    // Priority: most active agents, then blocked, then queued.
+    $current_stage_id = 0;
+    $best_score = -1;
+    foreach (array_keys($stages) as $sid) {
+      $products = $by_stage_product[$sid] ?? [];
+      $active = 0;
+      $queued = 0;
+      $blocked = 0;
+      foreach ($products as $p) {
+        $agents_in_product = (is_array($p['agents'] ?? NULL)) ? $p['agents'] : [];
+        foreach ($agents_in_product as $a) {
+          if (!is_array($a)) {
+            continue;
+          }
+          $s = strtolower(trim((string) ($a['status'] ?? '')));
+          $c = (int) ($a['inbox_count'] ?? 0);
+          if ($s === 'in_progress') {
+            $active++;
+          }
+          elseif ($s === 'blocked' || $s === 'needs-info') {
+            $blocked++;
+          }
+          elseif ($c > 0) {
+            $queued++;
+          }
+        }
+      }
+      $score = ($active * 1000000) + ($blocked * 10000) + $queued;
+      if ($score > $best_score) {
+        $best_score = $score;
+        $current_stage_id = (int) $sid;
+      }
+    }
+
     $build = [
       '#type' => 'container',
       'title' => [
@@ -279,10 +494,14 @@ final class DashboardController extends ControllerBase {
         . ' (' . (string) $product_count . ' product' . ($product_count === 1 ? '' : 's')
         . ' — ' . (string) $active_count . ' active, ' . (string) $queued_count . ' queued, ' . (string) $blocked_count . ' blocked)';
 
+      if ((int) $stage_id === (int) $current_stage_id) {
+        $title = 'CURRENT → ' . $title;
+      }
+
       $stage_build = [
         '#type' => 'details',
         '#title' => $this->t('@t', ['@t' => $title]),
-        '#open' => FALSE,
+        '#open' => ((int) $stage_id === (int) $current_stage_id),
       ];
 
       if (!$products) {
