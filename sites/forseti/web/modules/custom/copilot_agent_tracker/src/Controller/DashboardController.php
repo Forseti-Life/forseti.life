@@ -260,6 +260,13 @@ final class DashboardController extends ControllerBase {
       }
       $website = trim((string) ($a['website'] ?? ''));
       $module = trim((string) ($a['module'] ?? ''));
+
+      // Internal/unscoped seats (e.g. agent-code-review) publish empty website+module.
+      // They should not appear as a "- / -" product row.
+      if ($website === '' && $module === '') {
+        continue;
+      }
+
       $product_key = $website . '::' . $module;
       if (!isset($by_product[$product_key])) {
         $by_product[$product_key] = [
@@ -280,12 +287,21 @@ final class DashboardController extends ControllerBase {
 
       $pm_agent = NULL;
       $qa_agent = NULL;
+      $saw_paused = FALSE;
+      $saw_non_paused = FALSE;
       foreach (($p['agents'] ?? []) as $a) {
         if (!is_array($a)) {
           continue;
         }
         $agent_id = (string) ($a['agent_id'] ?? '');
         $role = (string) ($a['role'] ?? '');
+        $agent_status = strtolower(trim((string) ($a['status'] ?? '')));
+        if ($agent_status === 'paused') {
+          $saw_paused = TRUE;
+        }
+        elseif ($agent_status !== '') {
+          $saw_non_paused = TRUE;
+        }
         if ($pm_agent === NULL && ($role === 'product-manager' || str_starts_with($agent_id, 'pm-'))) {
           $pm_agent = $a;
         }
@@ -294,8 +310,10 @@ final class DashboardController extends ControllerBase {
         }
       }
 
-      $qa_status = 'UNKNOWN';
-      $qa_details = '-';
+      $product_paused = ($saw_paused && !$saw_non_paused);
+
+      $qa_status = $product_paused ? 'PAUSED' : 'NOT RUN';
+      $qa_details = $product_paused ? 'Paused' : '-';
       $qa_link = '-';
       $features_link = '-';
 
@@ -306,33 +324,54 @@ final class DashboardController extends ControllerBase {
         }
       }
 
-      if (is_array($qa_agent)) {
+      if ($product_paused) {
+        // Keep the explicit PAUSED marker; do not attempt to interpret QA data.
+      }
+      elseif (!is_array($qa_agent)) {
+        $qa_status = 'NO QA';
+        $qa_details = 'No QA seat for this product';
+      }
+      else {
         $qa_agent_id = (string) ($qa_agent['agent_id'] ?? '');
         $qa_link = Link::fromTextAndUrl($qa_agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $qa_agent_id]))->toString();
 
         $meta = (!empty($qa_agent['meta']) && is_array($qa_agent['meta'])) ? $qa_agent['meta'] : [];
         $qa_last = (!empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit'])) ? $meta['qa_last_audit'] : [];
 
-        $failed = (int) ($qa_last['url_checks_failed'] ?? 0) + (int) ($qa_last['route_checks_failed'] ?? 0) + (int) ($qa_last['permission_violation_count'] ?? 0);
-        $run_id = trim((string) ($qa_last['run_id'] ?? ''));
-        $status = strtolower(trim((string) ($qa_last['status'] ?? '')));
+        if (!$qa_last) {
+          $qa_status = 'NOT RUN';
+          $qa_details = 'No QA audit published yet';
+        }
+        else {
+          $failed = (int) ($qa_last['url_checks_failed'] ?? 0) + (int) ($qa_last['route_checks_failed'] ?? 0) + (int) ($qa_last['permission_violation_count'] ?? 0);
+          $run_id = trim((string) ($qa_last['run_id'] ?? ''));
+          $status = strtolower(trim((string) ($qa_last['status'] ?? '')));
+          $base_url = trim((string) ($qa_last['base_url'] ?? ''));
 
-        if ($failed > 0 || $status === 'issues' || $status === 'fail' || $status === 'failed') {
-          $qa_status = 'FAIL';
-        }
-        elseif ($status === 'clean' || $status === 'pass' || $status === 'passed') {
-          $qa_status = 'PASS';
-        }
+          if ($failed > 0 || in_array($status, ['issues', 'fail', 'failed'], TRUE)) {
+            $qa_status = 'FAIL';
+          }
+          elseif (in_array($status, ['clean', 'pass', 'passed'], TRUE)) {
+            $qa_status = 'PASS';
+          }
+          elseif ($failed === 0 && ($run_id !== '' || $base_url !== '')) {
+            // If we have a concrete run published and zero failures, treat it as PASS.
+            $qa_status = 'PASS';
+          }
+          else {
+            $qa_status = 'NOT RUN';
+          }
 
-        $qa_details_parts = [];
-        if ($run_id !== '') {
-          $qa_details_parts[] = 'Run: ' . htmlspecialchars($run_id);
+          $qa_details_parts = [];
+          if ($run_id !== '') {
+            $qa_details_parts[] = 'Run: ' . htmlspecialchars($run_id);
+          }
+          if ($base_url !== '') {
+            $qa_details_parts[] = 'Base: ' . htmlspecialchars($base_url);
+          }
+          $qa_details_parts[] = 'Failed checks: ' . (string) max(0, $failed);
+          $qa_details = $qa_details_parts ? implode(' — ', $qa_details_parts) : '-';
         }
-        if (!empty($qa_last['base_url'])) {
-          $qa_details_parts[] = 'Base: ' . htmlspecialchars((string) $qa_last['base_url']);
-        }
-        $qa_details_parts[] = 'Failed checks: ' . (string) max(0, $failed);
-        $qa_details = $qa_details_parts ? implode(' — ', $qa_details_parts) : '-';
       }
 
       $qa_rows[] = [
