@@ -294,6 +294,37 @@ final class DashboardController extends ControllerBase {
     }
     ksort($by_product);
 
+    // Website-level fallback QA seats, used when a module row has no direct QA.
+    // Prefer seats scoped only to the website (module empty) when available.
+    $qa_fallback_by_website = [];
+    foreach ($agents as $a) {
+      if (!is_array($a)) {
+        continue;
+      }
+      $agent_id = (string) ($a['agent_id'] ?? '');
+      $role = (string) ($a['role'] ?? '');
+      $website = trim((string) ($a['website'] ?? ''));
+      if ($website === '') {
+        continue;
+      }
+      if (!($role === 'tester' || str_starts_with($agent_id, 'qa-'))) {
+        continue;
+      }
+
+      $candidate_module = trim((string) ($a['module'] ?? ''));
+      $meta = (!empty($a['meta']) && is_array($a['meta'])) ? $a['meta'] : [];
+      $has_audit = !empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit']);
+      $score = ($has_audit ? 2 : 0) + ($candidate_module === '' ? 1 : 0);
+
+      if (!isset($qa_fallback_by_website[$website]) || $score > (int) ($qa_fallback_by_website[$website]['score'] ?? -1)) {
+        $qa_fallback_by_website[$website] = [
+          'agent' => $a,
+          'has_audit' => $has_audit,
+          'score' => $score,
+        ];
+      }
+    }
+
     $qa_rows = [];
     foreach ($by_product as $product_key => $p) {
       $website = (string) ($p['website'] ?? '');
@@ -302,6 +333,8 @@ final class DashboardController extends ControllerBase {
 
       $pm_agent = NULL;
       $qa_agent = NULL;
+      $qa_agent_has_audit = FALSE;
+      $qa_is_website_fallback = FALSE;
       $saw_paused = FALSE;
       $saw_non_paused = FALSE;
       foreach (($p['agents'] ?? []) as $a) {
@@ -321,7 +354,29 @@ final class DashboardController extends ControllerBase {
           $pm_agent = $a;
         }
         if ($role === 'tester' || str_starts_with($agent_id, 'qa-')) {
-          $qa_agent = $a;
+          $meta = (!empty($a['meta']) && is_array($a['meta'])) ? $a['meta'] : [];
+          $has_audit = !empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit']);
+          if (!is_array($qa_agent) || (!$qa_agent_has_audit && $has_audit)) {
+            $qa_agent = $a;
+            $qa_agent_has_audit = $has_audit;
+          }
+        }
+      }
+
+      if ($website !== '' && isset($qa_fallback_by_website[$website])) {
+        $fallback = $qa_fallback_by_website[$website];
+        $fallback_agent = $fallback['agent'] ?? NULL;
+        $fallback_has_audit = (bool) ($fallback['has_audit'] ?? FALSE);
+        if (
+          is_array($fallback_agent)
+          && (
+            !is_array($qa_agent)
+            || (!$qa_agent_has_audit && $fallback_has_audit)
+          )
+        ) {
+          $qa_agent = $fallback_agent;
+          $qa_agent_has_audit = $fallback_has_audit;
+          $qa_is_website_fallback = TRUE;
         }
       }
 
@@ -383,6 +438,9 @@ final class DashboardController extends ControllerBase {
           }
           if ($base_url !== '') {
             $qa_details_parts[] = 'Base: ' . htmlspecialchars($base_url);
+          }
+          if ($qa_is_website_fallback) {
+            $qa_details_parts[] = 'Scope: website QA seat';
           }
           $qa_details_parts[] = 'Failed checks: ' . (string) max(0, $failed);
           $qa_details = $qa_details_parts ? implode(' — ', $qa_details_parts) : '-';
