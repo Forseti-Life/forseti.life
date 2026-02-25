@@ -225,6 +225,9 @@ final class DashboardController extends ControllerBase {
         if ($rid === '') {
           continue;
         }
+        if (!preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $rid)) {
+          continue;
+        }
         $fallback[] = $rid;
 
         $state = strtolower(trim((string) ($e['state'] ?? '')));
@@ -244,6 +247,18 @@ final class DashboardController extends ControllerBase {
         sort($pick_from);
         $current_release_id = (string) end($pick_from);
       }
+    }
+
+    if ($current_release_id === '') {
+      $current_release_id = $this->inferReleaseIdFromInFlightAgents($agents);
+    }
+
+    if ($current_release_id === '') {
+      $current_release_id = $this->inferReleaseIdFromQaPreflightArtifacts();
+    }
+
+    if ($current_release_id === '') {
+      $current_release_id = $this->inferReleaseIdFromSignoffs();
     }
 
     $release_notes_url = Url::fromRoute('copilot_agent_tracker.release_notes');
@@ -403,6 +418,142 @@ final class DashboardController extends ControllerBase {
   }
 
   /**
+   * Infers in-flight release id from active/queued release-cycle item ids.
+   *
+   * This is intended to resolve "Current release" before the first QA cycle
+   * has completed and before release notes/signoff artifacts are available.
+   */
+  private function inferReleaseIdFromInFlightAgents(array $agents): string {
+    $candidates = [];
+
+    foreach ($agents as $a) {
+      if (!is_array($a)) {
+        continue;
+      }
+
+      $tokens = [
+        trim((string) ($a['active_item_id'] ?? '')),
+        trim((string) ($a['next_item_id'] ?? '')),
+      ];
+
+      $action = trim((string) ($a['current_action'] ?? ''));
+      if ($action !== '') {
+        if (preg_match_all('/\b\d{8}-(?:release-preflight-test-suite|release-ready)-[A-Za-z0-9._-]+\b/', $action, $m)) {
+          foreach (($m[0] ?? []) as $tok) {
+            $tokens[] = trim((string) $tok);
+          }
+        }
+      }
+
+      foreach ($tokens as $tok) {
+        if ($tok === '') {
+          continue;
+        }
+        // Examples:
+        // 20260224-release-preflight-test-suite-20260224-coordinated-release
+        // 20260224-release-ready-20260224-coordinated-release
+        if (preg_match('/^\d{8}-(?:release-preflight-test-suite|release-ready)-(.+)$/', $tok, $m)) {
+          $rid = trim((string) ($m[1] ?? ''));
+          if ($rid !== '' && preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $rid)) {
+            $candidates[] = $rid;
+          }
+        }
+      }
+    }
+
+    if (!$candidates) {
+      return '';
+    }
+
+    sort($candidates);
+    return (string) end($candidates);
+  }
+
+  /**
+   * Infers release id from QA preflight inbox/outbox artifact naming.
+   *
+   * Pattern:
+   *   <date>-release-preflight-test-suite-<release-id>
+   */
+  private function inferReleaseIdFromQaPreflightArtifacts(): string {
+    $paths = [];
+
+    $inbox = glob('/home/keithaumiller/copilot-sessions-hq/sessions/qa-*/inbox/*release-preflight-test-suite-*') ?: [];
+    foreach ($inbox as $p) {
+      $paths[] = $p;
+    }
+
+    $outbox = glob('/home/keithaumiller/copilot-sessions-hq/sessions/qa-*/outbox/*release-preflight-test-suite-*.md') ?: [];
+    foreach ($outbox as $p) {
+      $paths[] = $p;
+    }
+
+    if (!$paths) {
+      return '';
+    }
+
+    $best_id = '';
+    $best_mtime = 0;
+    foreach ($paths as $path) {
+      $name = basename($path);
+      $name = preg_replace('/\.md$/', '', $name) ?? $name;
+      if (!preg_match('/^\d{8}-release-preflight-test-suite-(.+)$/', $name, $m)) {
+        continue;
+      }
+      $rid = trim((string) ($m[1] ?? ''));
+      if ($rid === '' || !preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $rid)) {
+        continue;
+      }
+
+      $mtime = @filemtime($path);
+      if (!is_int($mtime)) {
+        $mtime = 0;
+      }
+      if ($mtime > $best_mtime || ($mtime === $best_mtime && strcmp($rid, $best_id) > 0)) {
+        $best_mtime = $mtime;
+        $best_id = $rid;
+      }
+    }
+
+    return $best_id;
+  }
+
+  /**
+   * Fallback release-id inference from PM release-signoff artifacts in HQ.
+   */
+  private function inferReleaseIdFromSignoffs(): string {
+    $pattern = '/home/keithaumiller/copilot-sessions-hq/sessions/pm-*/artifacts/release-signoffs/*.md';
+    $files = glob($pattern) ?: [];
+    if (!$files) {
+      return '';
+    }
+
+    $best_id = '';
+    $best_mtime = 0;
+    foreach ($files as $path) {
+      $mtime = @filemtime($path);
+      if (!is_int($mtime)) {
+        $mtime = 0;
+      }
+      $rid = pathinfo($path, PATHINFO_FILENAME);
+      $rid = trim((string) $rid);
+      if ($rid === '') {
+        continue;
+      }
+      if (!preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $rid)) {
+        continue;
+      }
+      // Release ids are generally YYYYMMDD-*; accept best-effort fallback too.
+      if ($mtime > $best_mtime || ($mtime === $best_mtime && strcmp($rid, $best_id) > 0)) {
+        $best_mtime = $mtime;
+        $best_id = $rid;
+      }
+    }
+
+    return $best_id;
+  }
+
+  /**
    * Builds a nested accordion view of active work by release stage and product.
    *
    * Render placement requirement (per request): above the agent table, below the
@@ -419,7 +570,18 @@ final class DashboardController extends ControllerBase {
         continue;
       }
       $inbox_count = (int) ($a['inbox_count'] ?? 0);
-      if ($status === 'in_progress' || $inbox_count > 0 || $status === 'blocked' || $status === 'needs-info') {
+      $role = trim((string) ($a['role'] ?? ''));
+      $agent_id = trim((string) ($a['agent_id'] ?? ''));
+      $meta = (!empty($a['meta']) && is_array($a['meta'])) ? $a['meta'] : [];
+      $stage3_velocity = (!empty($meta['stage3_velocity']) && is_array($meta['stage3_velocity'])) ? $meta['stage3_velocity'] : [];
+      $latest_open_issues = (int) ($stage3_velocity['latest_open_issues'] ?? 0);
+      $is_dev_seat = ($role === 'software-developer' || str_starts_with($agent_id, 'dev-'));
+      $has_open_issues = ($is_dev_seat && $latest_open_issues > 0);
+
+      if ($status === 'in_progress' || $inbox_count > 0 || $status === 'blocked' || $status === 'needs-info' || $has_open_issues) {
+        $a['stage3_latest_open_issues'] = $latest_open_issues;
+        $a['stage3_resolved_per_15'] = (float) ($stage3_velocity['resolved_per_15_minutes'] ?? 0);
+        $a['stage3_handoff_signal'] = trim((string) ($stage3_velocity['workflow']['handoff_signal'] ?? ''));
         $relevant_agents[] = $a;
       }
     }
@@ -465,6 +627,7 @@ final class DashboardController extends ControllerBase {
       $active = 0;
       $queued = 0;
       $blocked = 0;
+      $open_issue_idle = 0;
       foreach ($products as $p) {
         $agents_in_product = (is_array($p['agents'] ?? NULL)) ? $p['agents'] : [];
         foreach ($agents_in_product as $a) {
@@ -482,9 +645,12 @@ final class DashboardController extends ControllerBase {
           elseif ($c > 0) {
             $queued++;
           }
+          elseif ($s === 'idle' && (int) ($a['stage3_latest_open_issues'] ?? 0) > 0) {
+            $open_issue_idle++;
+          }
         }
       }
-      $score = ($active * 1000000) + ($blocked * 10000) + $queued;
+      $score = ($active * 1000000) + ($blocked * 10000) + ($open_issue_idle * 100) + $queued;
       if ($score > $best_score) {
         $best_score = $score;
         $current_stage_id = (int) $sid;
@@ -511,6 +677,7 @@ final class DashboardController extends ControllerBase {
       $active_count = 0;
       $queued_count = 0;
       $blocked_count = 0;
+      $open_issue_idle_count = 0;
       foreach ($products as $p) {
         $agents_in_product = (is_array($p['agents'] ?? NULL)) ? $p['agents'] : [];
         $agent_count += count($agents_in_product);
@@ -529,12 +696,15 @@ final class DashboardController extends ControllerBase {
           elseif ($c > 0) {
             $queued_count++;
           }
+          elseif ($s === 'idle' && (int) ($a['stage3_latest_open_issues'] ?? 0) > 0) {
+            $open_issue_idle_count++;
+          }
         }
       }
       $product_count = count($products);
       $title = $stage_title
         . ' (' . (string) $product_count . ' product' . ($product_count === 1 ? '' : 's')
-        . ' — ' . (string) $active_count . ' active, ' . (string) $queued_count . ' queued, ' . (string) $blocked_count . ' blocked)';
+        . ' — ' . (string) $active_count . ' active, ' . (string) $queued_count . ' queued, ' . (string) $blocked_count . ' blocked, ' . (string) $open_issue_idle_count . ' idle-open-issues)';
 
       if ((int) $stage_id === (int) $current_stage_id) {
         $title = 'CURRENT → ' . $title;
@@ -573,6 +743,8 @@ final class DashboardController extends ControllerBase {
           $inbox_count = (int) ($a['inbox_count'] ?? 0);
           $status = strtolower(trim((string) ($a['status'] ?? '')));
           $current_action = trim((string) ($a['current_action'] ?? ''));
+          $role = trim((string) ($a['role'] ?? ''));
+          $is_dev_row = ($role === 'software-developer' || str_starts_with($agent_id, 'dev-'));
 
           $agent_link = Link::fromTextAndUrl($agent_id, Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => $agent_id]))->toString();
           $parts = [$agent_link];
@@ -601,6 +773,18 @@ final class DashboardController extends ControllerBase {
 
           if ($inbox_count > 0) {
             $parts[] = 'Inbox: ' . (string) $inbox_count;
+          }
+          $latest_open_issues = (int) ($a['stage3_latest_open_issues'] ?? 0);
+          $resolved_per_15 = (float) ($a['stage3_resolved_per_15'] ?? 0);
+          $handoff_signal = trim((string) ($a['stage3_handoff_signal'] ?? ''));
+          if ($is_dev_row || $latest_open_issues > 0) {
+            $parts[] = 'Open issues: ' . (string) $latest_open_issues;
+          }
+          if ($is_dev_row || $resolved_per_15 > 0 || $latest_open_issues > 0) {
+            $parts[] = 'Resolved/15m: ' . htmlspecialchars((string) $resolved_per_15);
+          }
+          if ($handoff_signal !== '') {
+            $parts[] = 'Handoff: ' . htmlspecialchars($handoff_signal);
           }
           if ($current_action !== '') {
             $parts[] = 'Action: ' . htmlspecialchars($current_action);
