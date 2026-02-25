@@ -38,6 +38,14 @@ copilot_agent_tracker.release_notes:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.release_notes_release:
+  path: '/admin/reports/copilot-agent-tracker/releases/{release_id}'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::releaseNotesRelease'
+    _title: 'Release Status'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.waiting_on_keith_message:
   path: '/admin/reports/waitingonkeith/{item_id}'
   defaults:

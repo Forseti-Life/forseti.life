@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Exception\RouteNotFoundException;
 
 /**
  * Admin dashboard for agent/session tracking.
@@ -264,7 +265,7 @@ final class DashboardController extends ControllerBase {
     $release_notes_url = Url::fromRoute('copilot_agent_tracker.release_notes');
     $release_notes_link = Link::fromTextAndUrl('Release notes / features / evidence', $release_notes_url)->toString();
     $release_id_link = $current_release_id !== ''
-      ? Link::fromTextAndUrl($current_release_id, $release_notes_url)->toString()
+      ? Link::fromTextAndUrl($current_release_id, $this->safeReleaseNotesDetailUrl($current_release_id))->toString()
       : '-';
 
     // Build per-product QA status table.
@@ -1612,29 +1613,7 @@ final class DashboardController extends ControllerBase {
    * under metadata.release_notes.
    */
   public function releaseNotes(): array {
-    // Resolve CEO metadata (same approach as Waiting on Keith).
-    $row = $this->database->select('copilot_agent_tracker_agents', 'a')
-      ->fields('a', ['metadata', 'last_seen'])
-      ->condition('agent_id', 'ceo-copilot%', 'LIKE')
-      ->orderBy('last_seen', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-
-    $meta = [];
-    if (!empty($row['metadata'])) {
-      try {
-        $meta = Json::decode((string) $row['metadata']) ?? [];
-      }
-      catch (\Throwable) {
-        $meta = [];
-      }
-    }
-
-    $entries = $meta['release_notes'] ?? [];
-    if (!is_array($entries)) {
-      $entries = [];
-    }
+    $entries = $this->loadReleaseNotesEntries();
 
     $items = [];
     foreach ($entries as $e) {
@@ -1676,6 +1655,9 @@ final class DashboardController extends ControllerBase {
       if (preg_match('/^\d{8}-needs-/', $rid)) {
         $rid_link = Link::fromTextAndUrl($rid, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $rid]))->toString();
       }
+      elseif (preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $rid)) {
+        $rid_link = Link::fromTextAndUrl($rid, $this->safeReleaseNotesDetailUrl($rid))->toString();
+      }
 
       $items[] = [
         '#type' => 'details',
@@ -1697,6 +1679,112 @@ final class DashboardController extends ControllerBase {
         'max-age' => 0,
       ],
     ];
+  }
+
+  /**
+   * Release notes detail page for one release id.
+   */
+  public function releaseNotesRelease(string $release_id): array {
+    $release_id = trim($release_id);
+    if ($release_id === '' || !preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $release_id)) {
+      throw new NotFoundHttpException();
+    }
+
+    $entries = $this->loadReleaseNotesEntries();
+    $entry = NULL;
+    foreach ($entries as $e) {
+      if (!is_array($e)) {
+        continue;
+      }
+      if ((string) ($e['release_id'] ?? '') === $release_id) {
+        $entry = $e;
+        break;
+      }
+    }
+
+    if (!is_array($entry)) {
+      throw new NotFoundHttpException();
+    }
+
+    $state = trim((string) ($entry['state'] ?? '')) ?: 'unknown';
+    $details = [];
+    $fields = [
+      'plan' => 'Release plan',
+      'change_list' => 'Change list',
+      'test_evidence' => 'Test evidence',
+      'risk_security' => 'Risk + security',
+      'rollback' => 'Rollback',
+      'human_approval' => 'Human approval',
+      'release_notes' => 'Release notes',
+    ];
+    foreach ($fields as $k => $title) {
+      $txt = trim((string) ($entry[$k] ?? ''));
+      if ($txt === '') {
+        continue;
+      }
+      $details[] = [
+        '#type' => 'details',
+        '#title' => $this->t('@t', ['@t' => $title]),
+        '#open' => TRUE,
+        '#markup' => '<pre style="white-space:pre-wrap;max-height:360px;overflow:auto;">' . htmlspecialchars($txt) . '</pre>',
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      'summary' => [
+        '#markup' => '<p><strong>Release id:</strong> ' . htmlspecialchars($release_id) . '</p>'
+          . '<p><strong>State:</strong> ' . htmlspecialchars($state) . '</p>'
+          . '<p><a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a></p>',
+      ],
+      'details' => $details ?: [
+        '#markup' => '<em>No details published for this release yet.</em>',
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Loads release note entries from CEO metadata.
+   */
+  private function loadReleaseNotesEntries(): array {
+    $row = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['metadata', 'last_seen'])
+      ->condition('agent_id', 'ceo-copilot%', 'LIKE')
+      ->orderBy('last_seen', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $meta = [];
+    if (!empty($row['metadata'])) {
+      try {
+        $meta = Json::decode((string) $row['metadata']) ?? [];
+      }
+      catch (\Throwable) {
+        $meta = [];
+      }
+    }
+
+    $entries = $meta['release_notes'] ?? [];
+    if (!is_array($entries)) {
+      return [];
+    }
+    return $entries;
+  }
+
+  /**
+   * Returns release-detail URL with safe fallback when route cache is stale.
+   */
+  private function safeReleaseNotesDetailUrl(string $release_id): Url {
+    try {
+      return Url::fromRoute('copilot_agent_tracker.release_notes_release', ['release_id' => $release_id]);
+    }
+    catch (RouteNotFoundException) {
+      return Url::fromRoute('copilot_agent_tracker.release_notes');
+    }
   }
 
   /**
