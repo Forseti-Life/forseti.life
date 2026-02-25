@@ -16,3 +16,9 @@ services:
     arguments: ['@state', '@dungeoncrawler_tester.stage_issue_sync', '@dungeoncrawler_tester.stage_definitions', '@logger.factory']
     tags:
       - { name: drush.command }
+
+  dungeoncrawler_tester.qa_user.commands:
+    class: Drupal\dungeoncrawler_tester\Commands\QaUserCommands
+    arguments: ['@entity_type.manager', '@logger.factory']
+    tags:
+      - { name: drush.command }
