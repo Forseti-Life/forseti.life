@@ -3,6 +3,7 @@ langcode: en
 status: true
 dependencies:
   config:
+    - node.type.ai_conversation
     - node.type.article
     - node.type.page
     - taxonomy.vocabulary.tags
@@ -29,6 +30,7 @@ permissions:
   - 'access files overview'
   - 'access toolbar'
   - 'administer url aliases'
+  - 'create ai_conversation content'
   - 'create article content'
   - 'create page content'
   - 'create terms in tags'
@@ -38,6 +40,7 @@ permissions:
   - 'delete own files'
   - 'delete own page content'
   - 'delete page revisions'
+  - 'edit own ai_conversation content'
   - 'edit own article content'
   - 'edit own comments'
   - 'edit own page content'

@@ -44,3 +44,4 @@ permissions:
   - 'skip comment approval'
   - 'use ai conversation'
   - 'use text format basic_html'
+  - 'view own unpublished content'
