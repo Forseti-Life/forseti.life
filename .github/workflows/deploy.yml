@@ -178,18 +178,32 @@ jobs:
             fi
             
             if [ "$DRUSH_NEEDED" = true ]; then
-              # Import configuration (applies config YAML changes from git)
-              echo "Importing configuration..."
-              CONFIG_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1) || CONFIG_EXIT=$?
+              # Partial config import: apply only configs that exist in sync dir and have changed.
+              # Uses PHP eval to avoid drush config:import's full-snapshot requirement.
+              # Safe with partial exports: never deletes configs not in sync dir.
+              echo "Importing configuration (partial)..."
+              CONFIG_OUTPUT=$(sudo -u www-data ./vendor/bin/drush php:eval "
+                \$sync = Drupal::service('config.storage.sync');
+                \$active = Drupal::service('config.storage');
+                \$count = 0;
+                foreach (\$sync->listAll() as \$name) {
+                  \$sync_data = \$sync->read(\$name);
+                  \$active_data = \$active->read(\$name);
+                  if (\$sync_data !== \$active_data) {
+                    \$active->write(\$name, \$sync_data);
+                    echo 'Imported: ' . \$name . PHP_EOL;
+                    \$count++;
+                  }
+                }
+                echo \$count . ' config(s) imported.' . PHP_EOL;
+              " 2>&1) || CONFIG_EXIT=$?
               CONFIG_EXIT=${CONFIG_EXIT:-0}
-              echo "🐛 drush config:import exit code: $CONFIG_EXIT"
+              echo "🐛 config import exit code: $CONFIG_EXIT"
               if [ $CONFIG_EXIT -ne 0 ]; then
                 echo "⚠️ Config import had warnings (exit code: $CONFIG_EXIT)"
-                echo "--- Full config import output ---"
                 echo "$CONFIG_OUTPUT"
-                echo "--- End config import output ---"
               else
-                echo "$CONFIG_OUTPUT" | grep -i 'import\|no changes\|nothing\|processed' || echo "ℹ️ Config import complete"
+                echo "$CONFIG_OUTPUT"
               fi
 
               # Database updates (applies schema changes from module updates)
