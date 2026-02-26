@@ -271,7 +271,7 @@ class UserProfileController extends ControllerBase {
 
         $widget['recommendations']['list'] = [
           '#theme' => 'item_list',
-          '#items' => $missing_fields,
+          '#items' => array_map(function($rec) { return $rec['impact']; }, $missing_fields),
           '#attributes' => ['class' => ['recommendations-list']],
         ];
       }

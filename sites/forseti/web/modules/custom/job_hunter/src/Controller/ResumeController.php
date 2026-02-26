@@ -4,7 +4,7 @@ namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
-use Drupal\Core\Datetime\TimeInterface;
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\job_hunter\Service\ResumePdfService;
 use Psr\Log\LoggerInterface;

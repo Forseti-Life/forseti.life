@@ -100,20 +100,20 @@ class UserJobProfileService {
   public function validateProfile(UserInterface $user): array {
     $errors = [];
 
-    // Check required fields
-    if ($user->get('field_resume_file')->isEmpty()) {
+    // Check required fields (guard with hasField to avoid unknown field exceptions)
+    if (!$user->hasField('field_resume_file') || $user->get('field_resume_file')->isEmpty()) {
       $errors['resume'] = t('Resume file is required to use the job application system.');
     }
 
-    if ($user->get('field_work_authorization')->isEmpty()) {
+    if (!$user->hasField('field_work_authorization') || $user->get('field_work_authorization')->isEmpty()) {
       $errors['authorization'] = t('Work authorization status is required.');
     }
 
-    if ($user->get('field_available_start_date')->isEmpty()) {
+    if (!$user->hasField('field_available_start_date') || $user->get('field_available_start_date')->isEmpty()) {
       $errors['availability'] = t('Available start date is required.');
     }
 
-    if ($user->get('field_remote_preference')->isEmpty()) {
+    if (!$user->hasField('field_remote_preference') || $user->get('field_remote_preference')->isEmpty()) {
       $errors['remote'] = t('Remote work preference is required.');
     }
 

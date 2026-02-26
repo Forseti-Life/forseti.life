@@ -961,7 +961,7 @@ class CompanyController extends ControllerBase {
   public function jobTailoring($job_id) {
     try {
       // Get current user
-      $user = $this->entityTypeManager->getStorage('user')->load($this->currentUser->id());
+      $user = $this->entityTypeManager()->getStorage('user')->load($this->currentUser->id());
       
       // Load the job
       $job = $this->database->select('jobhunter_job_requirements', 'j')

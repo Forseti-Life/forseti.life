@@ -1,4 +1,8 @@
 services:
+  logger.channel.job_hunter:
+    parent: logger.channel_base
+    arguments: ['job_hunter']
+
   job_hunter.job_seeker_service:
     class: Drupal\job_hunter\Service\JobSeekerService
     arguments: ['@database', '@current_user']
