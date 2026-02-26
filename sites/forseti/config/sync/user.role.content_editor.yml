@@ -29,6 +29,7 @@ permissions:
   - 'access contextual links'
   - 'access files overview'
   - 'access toolbar'
+  - 'administer ai conversation'
   - 'administer url aliases'
   - 'create ai_conversation content'
   - 'create article content'
