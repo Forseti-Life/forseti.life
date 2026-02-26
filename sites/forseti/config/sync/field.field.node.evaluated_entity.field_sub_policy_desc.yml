@@ -1,4 +1,4 @@
-uuid: 15a48e1c-5600-4aed-89b5-a333c50ff9bc
+uuid: 8527895b-b54f-4e58-9d0f-9aa297e8d918
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_policy_desc
 field_name: field_sub_policy_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Policy Description'
-description: 'AI-provided description for policy sub-dimension'
+label: 'Policy Compliance Description'
+description: 'AI-provided description for Policy Compliance sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

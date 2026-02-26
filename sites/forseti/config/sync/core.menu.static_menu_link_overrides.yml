@@ -7,51 +7,21 @@ definitions:
     weight: 0
     expanded: false
     enabled: true
-  forseti__about:
-    weight: -50
-    menu_name: main
-    parent: ''
-    enabled: true
-    expanded: false
-  forseti__talk_with_forseti:
-    weight: -44
-    menu_name: main
-    parent: ''
-    expanded: false
-    enabled: true
-  forseti__how_it_works:
-    weight: -48
-    menu_name: main
-    parent: ''
-    expanded: true
-    enabled: true
-  forseti__safety_map:
-    weight: -49
-    menu_name: main
-    parent: ''
-    expanded: false
-    enabled: true
-  forseti__community:
-    weight: -47
-    menu_name: main
-    parent: ''
-    expanded: false
-    enabled: true
   standard__front_page:
     enabled: false
     menu_name: main
     parent: ''
     expanded: false
-    weight: -46
-  forseti__mobile_app:
-    weight: -45
+    weight: 0
+  forseti_content__institutional:
+    enabled: false
     menu_name: main
     parent: ''
+    weight: 5
     expanded: false
-    enabled: true
-  forseti__privacy:
-    weight: -50
-    parent: forseti.community
+  institutional_management__main_menu:
+    enabled: false
     menu_name: main
+    parent: ''
+    weight: 5
     expanded: false
-    enabled: true

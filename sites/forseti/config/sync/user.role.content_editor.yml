@@ -1,4 +1,4 @@
-uuid: a1dea94d-1971-410b-9154-27feab2cf5d5
+uuid: dc412d97-60a6-4c71-a3fa-f5c9c9d90471
 langcode: en
 status: true
 dependencies:
@@ -7,6 +7,7 @@ dependencies:
     - node.type.page
     - taxonomy.vocabulary.tags
   module:
+    - ai_conversation
     - comment
     - contextual
     - file
@@ -42,6 +43,7 @@ permissions:
   - 'edit own page content'
   - 'edit terms in tags'
   - 'revert all revisions'
+  - 'use ai conversation'
   - 'view all revisions'
   - 'view own unpublished content'
   - 'view the administration theme'

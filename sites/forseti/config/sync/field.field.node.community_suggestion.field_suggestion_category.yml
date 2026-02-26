@@ -1,4 +1,4 @@
-uuid: 6f8313ea-7ce8-49da-bbad-9b1038a698a5
+uuid: 570a5065-c2f2-42f6-8f18-3a307f777978
 langcode: en
 status: true
 dependencies:
@@ -15,7 +15,7 @@ label: Category
 description: 'Category of the suggestion'
 required: false
 translatable: true
-default_value: null
+default_value: {  }
 default_value_callback: ''
 settings: {  }
 field_type: list_string

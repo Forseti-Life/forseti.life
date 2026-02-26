@@ -1,4 +1,4 @@
-uuid: 3f6c91ae-d806-4b99-81b3-b7b325a00b5d
+uuid: 61a1e704-4d2b-4ef4-a807-8a783045a8cb
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_institutional_desc
 field_name: field_sub_institutional_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Institutional Description'
-description: 'AI-provided description for institutional sub-dimension'
+label: 'Institutional Backing Description'
+description: 'AI-provided description for Institutional Backing sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

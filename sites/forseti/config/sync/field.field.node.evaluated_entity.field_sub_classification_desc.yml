@@ -1,4 +1,4 @@
-uuid: 2c9b5809-3ee4-4862-8782-60c9fa947e40
+uuid: ba098b5e-6b01-4e93-8907-741d22cadc12
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_classification_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Classification Description'
-description: 'AI-provided description for classification sub-dimension'
+description: 'AI-provided description for Classification sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

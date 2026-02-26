@@ -1,4 +1,4 @@
-uuid: 57674d48-d75d-4eb6-86bd-1fdb0d954638
+uuid: eda6b95d-512c-48f2-a1d0-6d3c811ba03a
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_sources_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Sources Description'
-description: 'AI-provided description for sources sub-dimension'
+description: 'AI-provided description for Sources sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

@@ -1,4 +1,4 @@
-uuid: a706ec99-820e-4681-acea-ed48b375c858
+uuid: cc817aad-a601-44da-9a83-e5c6c7d79ca8
 langcode: en
 status: true
 dependencies:
@@ -13,7 +13,7 @@ label: Conversation
 description: 'Reference to the conversation where this suggestion was made'
 required: false
 translatable: true
-default_value: null
+default_value: {  }
 default_value_callback: ''
 settings:
   handler: 'default:node'

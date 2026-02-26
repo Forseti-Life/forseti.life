@@ -1,4 +1,4 @@
-uuid: d2583d03-ce0f-4867-8fa9-483081a47e72
+uuid: 4ee2ed80-2dcf-4cf7-a872-f3dcbb336a73
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_granularity_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Granularity Description'
-description: 'AI-provided description for granularity sub-dimension'
+description: 'AI-provided description for Granularity sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

@@ -1,4 +1,4 @@
-uuid: 9107b334-a6d2-4a7b-a9e1-ef4ee9652897
+uuid: 417ba02c-2cec-41eb-a39b-6fdbd5e472eb
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_centrality_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Centrality Description'
-description: 'AI-provided description for centrality sub-dimension'
+description: 'AI-provided description for Centrality sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

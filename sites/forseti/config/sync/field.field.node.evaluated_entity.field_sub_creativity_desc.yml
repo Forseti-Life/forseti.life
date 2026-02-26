@@ -1,4 +1,4 @@
-uuid: 133640e1-9a5f-408a-b293-4632acf91c99
+uuid: 43c28bd6-cedd-4ca7-af85-359a58f91cca
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_creativity_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Creativity Description'
-description: 'AI-provided description for creativity sub-dimension'
+description: 'AI-provided description for Creativity sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

@@ -1,4 +1,4 @@
-uuid: 0610d97e-93c0-4c47-8fbe-89c2e776d808
+uuid: ed8d5a33-359e-4a44-9d3c-d799cc005dbd
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_info_flow_desc
 field_name: field_sub_info_flow_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Info Flow Description'
-description: 'AI-provided description for info_flow sub-dimension'
+label: 'Information Flow Control Description'
+description: 'AI-provided description for Information Flow Control sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

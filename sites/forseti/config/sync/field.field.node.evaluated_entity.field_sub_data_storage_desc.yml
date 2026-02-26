@@ -1,4 +1,4 @@
-uuid: 7bd2034a-0fe7-4ec1-ad6f-502d3f5f2e22
+uuid: 07bbb503-3255-46b4-96e0-788c07b31d99
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_data_storage_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Data Storage Description'
-description: 'AI-provided description for data_storage sub-dimension'
+description: 'AI-provided description for Data Storage sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

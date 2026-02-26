@@ -1,4 +1,4 @@
-uuid: 3f432f01-c877-4199-9740-20dd9eca0dc7
+uuid: e5f44944-4d02-4d73-b322-a5c9a41d6888
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_legal_desc
 field_name: field_sub_legal_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Legal Description'
-description: 'AI-provided description for legal sub-dimension'
+label: 'Legal Authorization Description'
+description: 'AI-provided description for Legal Authorization sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

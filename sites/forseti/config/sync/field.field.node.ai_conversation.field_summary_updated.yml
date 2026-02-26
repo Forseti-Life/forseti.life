@@ -1,4 +1,4 @@
-uuid: 56c96fb5-216f-4fd1-8e35-26650b55497c
+uuid: f180fd95-0929-4ef3-b12f-d088038b9f48
 langcode: en
 status: true
 dependencies:
@@ -13,7 +13,7 @@ label: 'Summary Updated'
 description: 'When the conversation summary was last updated'
 required: false
 translatable: true
-default_value: null
+default_value: {  }
 default_value_callback: ''
 settings: {  }
 field_type: timestamp

@@ -1,4 +1,4 @@
-uuid: 789b7b85-3ed1-45e4-8956-0dd52cb8e0c0
+uuid: 3c2857cc-2a7c-4dce-9f35-f5d68f61e867
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_network_effects_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Network Effects Description'
-description: 'AI-provided description for network_effects sub-dimension'
+description: 'AI-provided description for Network Effects sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

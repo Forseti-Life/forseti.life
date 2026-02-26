@@ -1,4 +1,4 @@
-uuid: b56b3514-973d-4023-a033-a507311fd6b8
+uuid: 7c07757c-e1cd-45cc-8256-1b31a9a25d3c
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_planning_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Planning Description'
-description: 'AI-provided description for planning sub-dimension'
+description: 'AI-provided description for Planning sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

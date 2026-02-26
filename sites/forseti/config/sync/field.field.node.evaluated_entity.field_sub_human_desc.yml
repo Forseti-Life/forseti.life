@@ -1,4 +1,4 @@
-uuid: c4ce36dd-513f-40f3-9485-85d94c2e623d
+uuid: 1266dc88-125c-4821-9dc1-5585c913a52e
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_human_desc
 field_name: field_sub_human_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Human Description'
-description: 'AI-provided description for human sub-dimension'
+label: 'Human Resources Description'
+description: 'AI-provided description for Human Resources sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

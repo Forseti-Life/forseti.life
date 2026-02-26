@@ -1,4 +1,4 @@
-uuid: 2ba6255d-59da-42fc-a127-4a6819200101
+uuid: 53020278-466c-4d69-bef9-e39215b43bfd
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_reasoning_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Reasoning Description'
-description: 'AI-provided description for reasoning sub-dimension'
+description: 'AI-provided description for Reasoning sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

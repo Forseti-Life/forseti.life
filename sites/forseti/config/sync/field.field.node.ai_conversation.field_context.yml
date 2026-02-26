@@ -1,4 +1,4 @@
-uuid: 7a6424c5-dcba-4a39-b8c1-60f7afc2d835
+uuid: 82e3386c-a1ff-40d7-a539-94b7660f2489
 langcode: en
 status: true
 dependencies:
@@ -15,7 +15,7 @@ label: Context
 description: 'System prompt or conversation context'
 required: false
 translatable: true
-default_value: null
+default_value: {  }
 default_value_callback: ''
 settings:
   allowed_formats: {  }

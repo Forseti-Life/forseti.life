@@ -1,17 +1,18 @@
-uuid: 95b3b749-bec6-45b9-ab7e-f239ca19f060
+uuid: 7219f405-3958-45b2-b063-505f035b8c38
 langcode: en
 status: true
 dependencies:
   config:
     - filter.format.basic_html
-    - filter.format.webform_default
     - node.type.ai_conversation
     - node.type.evaluated_entity
   module:
-    - agent_evaluation
+    - ai_conversation
     - comment
+    - contact
     - file
     - filter
+    - group
     - job_hunter
     - node
     - search
@@ -26,27 +27,20 @@ is_admin: false
 permissions:
   - 'access comments'
   - 'access content'
-  - 'access job discovery'
   - 'access job hunter'
   - 'access shortcuts'
-  - 'access user job applications'
+  - 'access site-wide contact form'
   - 'create ai_conversation content'
   - 'create evaluated_entity content'
-  - 'create job_posting content'
+  - 'create family group'
+  - 'create institution group'
   - 'delete own ai_conversation content'
   - 'delete own evaluated_entity content'
   - 'delete own files'
-  - 'delete own job_posting content'
   - 'edit own ai_conversation content'
   - 'edit own evaluated_entity content'
-  - 'edit own job application profile'
-  - 'edit own job_posting content'
   - 'post comments'
   - 'search content'
   - 'skip comment approval'
   - 'use ai conversation'
   - 'use text format basic_html'
-  - 'use text format webform_default'
-  - 'view job application reports'
-  - 'view job_posting content'
-  - 'view own job application profile'

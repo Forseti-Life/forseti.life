@@ -1,4 +1,4 @@
-uuid: b2c6bcd9-2806-4593-8ea8-c12d5aca2923
+uuid: e36232cf-b5d2-450f-b375-d67b1bdf1d9e
 langcode: en
 status: true
 dependencies:
@@ -8,10 +8,12 @@ dependencies:
     - system
   theme:
     - forseti
+_core:
+  default_config_hash: U_Dhbg9nSjrh62bG3YIEbeHlyXDoJZYVKg5fjfLLQ0M
 id: forseti_main_menu
 theme: forseti
 region: navbar_left
-weight: -2
+weight: -5
 provider: null
 plugin: 'system_menu_block:main'
 settings:
@@ -20,6 +22,6 @@ settings:
   label_display: '0'
   provider: system
   level: 1
-  depth: null
+  depth: 2
   expand_all_items: false
 visibility: {  }

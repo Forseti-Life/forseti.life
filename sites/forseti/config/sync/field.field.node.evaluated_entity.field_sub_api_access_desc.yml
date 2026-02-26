@@ -1,4 +1,4 @@
-uuid: 18ea7308-4bfe-498d-bc52-39ec61f12731
+uuid: 9d7b7d7d-6179-447b-8be2-cf8f5c7baecb
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_api_access_desc
 field_name: field_sub_api_access_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Api Access Description'
-description: 'AI-provided description for api_access sub-dimension'
+label: 'API Access Description'
+description: 'AI-provided description for API Access sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

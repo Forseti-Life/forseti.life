@@ -1,4 +1,4 @@
-uuid: 29e96766-994b-466e-a8ae-58a942780f02
+uuid: a76a3d59-e093-42bd-8af0-95796ccccbf3
 langcode: en
 status: true
 dependencies:
@@ -15,7 +15,7 @@ label: 'Conversation Summary'
 description: 'Rolling summary of older conversation messages'
 required: false
 translatable: true
-default_value: null
+default_value: {  }
 default_value_callback: ''
 settings:
   allowed_formats: {  }

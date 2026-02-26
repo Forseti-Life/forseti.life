@@ -1,4 +1,4 @@
-uuid: 8cc7de38-b172-4c23-9289-6d69399eb2c2
+uuid: 8f78b6b8-356a-47b7-b822-cdb5f926528b
 langcode: en
 status: true
 dependencies:
@@ -12,10 +12,10 @@ field_name: field_sub_connectivity_desc
 entity_type: node
 bundle: evaluated_entity
 label: 'Connectivity Description'
-description: 'AI-provided description for connectivity sub-dimension'
+description: 'AI-provided description for Connectivity sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

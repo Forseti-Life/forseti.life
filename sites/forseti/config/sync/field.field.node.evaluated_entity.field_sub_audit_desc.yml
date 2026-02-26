@@ -1,4 +1,4 @@
-uuid: 88393d58-ae8d-4d9c-b3ed-2abfd98d8d8e
+uuid: 9efe8cb3-f4ee-4e03-9c37-654a6ea061d0
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_audit_desc
 field_name: field_sub_audit_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Audit Description'
-description: 'AI-provided description for audit sub-dimension'
+label: 'Audit & Accountability Description'
+description: 'AI-provided description for Audit & Accountability sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

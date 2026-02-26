@@ -1,4 +1,4 @@
-uuid: 1c682795-09a8-4a06-a542-6290bfec90b0
+uuid: 35281500-0a8a-4ec0-8c57-adef11c41c00
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_computational_desc
 field_name: field_sub_computational_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Computational Description'
-description: 'AI-provided description for computational sub-dimension'
+label: 'Computational Resources Description'
+description: 'AI-provided description for Computational Resources sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

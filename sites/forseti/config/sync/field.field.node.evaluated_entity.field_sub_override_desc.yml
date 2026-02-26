@@ -1,4 +1,4 @@
-uuid: 76fc6df5-f4fa-4a7a-a111-b8f9c3cddbc2
+uuid: 64e7fb2b-bd5d-4e31-8c50-2c09fb9a2af2
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_override_desc
 field_name: field_sub_override_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Override Description'
-description: 'AI-provided description for override sub-dimension'
+label: 'Override Capability Description'
+description: 'AI-provided description for Override Capability sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }

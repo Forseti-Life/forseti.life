@@ -1,4 +1,4 @@
-uuid: 461cea60-9ca4-4c32-aeec-3291b7109b66
+uuid: 1e6dbc8e-ef26-4e67-b5e2-c9b2f6525f58
 langcode: en
 status: true
 dependencies:
@@ -15,7 +15,7 @@ label: Messages
 description: 'Conversation messages'
 required: false
 translatable: true
-default_value: null
+default_value: {  }
 default_value_callback: ''
 settings:
   allowed_formats: {  }

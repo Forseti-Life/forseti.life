@@ -1,4 +1,4 @@
-uuid: 4b6de937-82e1-470f-bd25-59fbede78b9e
+uuid: 9e7f27c4-02c2-46cd-be8e-ae2133f005f2
 langcode: en
 status: true
 dependencies:
@@ -11,11 +11,11 @@ id: node.evaluated_entity.field_sub_coalition_desc
 field_name: field_sub_coalition_desc
 entity_type: node
 bundle: evaluated_entity
-label: 'Coalition Description'
-description: 'AI-provided description for coalition sub-dimension'
+label: 'Coalition Building Description'
+description: 'AI-provided description for Coalition Building sub-dimension'
 required: false
 translatable: true
-default_value: {  }
+default_value: null
 default_value_callback: ''
 settings:
   allowed_formats: {  }
