@@ -8,14 +8,12 @@ on:
       - 'sites/forseti/web/themes/custom/**'
       - 'sites/forseti/composer.json'
       - 'sites/forseti/composer.lock'
-      # Config changes require manual deployment - excluded from auto-deploy
-      # - 'sites/forseti/config/sync/**'
+      - 'sites/forseti/config/sync/**'
       - 'sites/dungeoncrawler/web/modules/custom/**'
       - 'sites/dungeoncrawler/web/themes/custom/**'
       - 'sites/dungeoncrawler/composer.json'
       - 'sites/dungeoncrawler/composer.lock'
-      # Config changes require manual deployment - excluded from auto-deploy
-      # - 'sites/dungeoncrawler/config/sync/**'
+      - 'sites/dungeoncrawler/config/sync/**'
       - 'h3-geolocation/**'
       - 'script/production/**'
       - '.github/workflows/deploy.yml'
@@ -144,63 +142,13 @@ jobs:
               echo "✅ Themes deployed"
             fi
             
-            # Deploy configuration - DISABLED FOR SAFETY
-            #
-            # ⚠️ IMPORTANT: Config deployment is intentionally disabled to prevent
-            # accidentally overwriting production with out-of-sync dev config.
-            #
-            # WHY THIS IS DISABLED:
-            # - Dev and prod configs can legitimately differ (see .config-differences.yml)
-            # - Automatic deployment could wipe production-specific settings
-            # - Config changes need review and testing before production deployment
-            # - Some modules only exist in one environment (backup_migrate in prod, devel in dev)
-            #
-            # HOW TO PROPERLY DEPLOY CONFIG:
-            #
-            # 1. ALWAYS sync from production first:
-            #    cd ~/forseti.life/script/production
-            #    ./compare-config.sh forseti root@your-server
-            #    ./reconcile-config.sh forseti root@your-server use-prod
-            #
-            # 2. Make and test your config changes in development:
-            #    drush config:set system.site name "New Name"
-            #    drush config:export -y
-            #
-            # 3. Compare changes before committing:
-            #    git diff sites/forseti/config/sync/
-            #    ./compare-config.sh forseti root@your-server
-            #
-            # 4. If new expected differences, document them:
-            #    Edit sites/forseti/.config-differences.yml
-            #    Add patterns for environment-specific configs
-            #
-            # 5. Commit changes:
-            #    git add sites/forseti/config/sync/
-            #    git add sites/forseti/.config-differences.yml  # if updated
-            #    git commit -m "Update config: describe your changes"
-            #    git push
-            #
-            # 6. Manually deploy to production:
-            #    ssh root@your-server
-            #    cd /var/www/html/forseti
-            #    git pull origin main
-            #    
-            #    # Review what will be imported:
-            #    sudo -u www-data ./vendor/bin/drush config:import --preview=list
-            #    
-            #    # Import if changes look correct:
-            #    sudo -u www-data ./vendor/bin/drush config:import -y
-            #    sudo -u www-data ./vendor/bin/drush cache:rebuild
-            #
-            # See: script/production/README.md for complete workflows
-            #
-            # if [ -d "${SITE_PATH}/config/sync" ]; then
-            #   echo "Deploying configuration..."
-            #   sudo rsync -aq --delete "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
-            #   CONFIG_DEPLOYED=true
-            #   echo "✅ Configuration deployed"
-            # fi
-            echo "ℹ️ Config deployment disabled (handle manually - see script/production/README.md)"
+            # Deploy configuration (sync config YAML files; no --delete to preserve prod-only configs)
+            if [ -d "${SITE_PATH}/config/sync" ]; then
+              echo "Deploying configuration..."
+              sudo rsync -azq "${SITE_PATH}/config/sync/" "${SITE_ROOT}/config/sync/"
+              CONFIG_DEPLOYED=true
+              echo "✅ Configuration deployed"
+            fi
             
             # Composer update (only if files changed)
             local COMPOSER_CHANGED=false
@@ -225,15 +173,25 @@ jobs:
             
             # Determine if drush commands are needed
             local DRUSH_NEEDED=false
-            if [ "$COMPOSER_CHANGED" = true ] || [ "$MODULES_DEPLOYED" = true ]; then
+            if [ "$COMPOSER_CHANGED" = true ] || [ "$MODULES_DEPLOYED" = true ] || [ "$CONFIG_DEPLOYED" = true ]; then
               DRUSH_NEEDED=true
             fi
             
             if [ "$DRUSH_NEEDED" = true ]; then
-              # Skip config import - handle manually when needed
-              # echo "Importing configuration..."
-              # DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1)
-              
+              # Import configuration (applies config YAML changes from git)
+              echo "Importing configuration..."
+              CONFIG_OUTPUT=$(sudo -u www-data ./vendor/bin/drush config:import -y 2>&1) || CONFIG_EXIT=$?
+              CONFIG_EXIT=${CONFIG_EXIT:-0}
+              echo "🐛 drush config:import exit code: $CONFIG_EXIT"
+              if [ $CONFIG_EXIT -ne 0 ]; then
+                echo "⚠️ Config import had warnings (exit code: $CONFIG_EXIT)"
+                echo "--- Full config import output ---"
+                echo "$CONFIG_OUTPUT"
+                echo "--- End config import output ---"
+              else
+                echo "$CONFIG_OUTPUT" | grep -i 'import\|no changes\|nothing\|processed' || echo "ℹ️ Config import complete"
+              fi
+
               # Database updates (applies schema changes from module updates)
               echo "Checking for database updates..."
               DRUSH_OUTPUT=$(sudo -u www-data ./vendor/bin/drush updatedb -y 2>&1) || DRUSH_EXIT=$?
