@@ -2,6 +2,7 @@
 
 namespace Drupal\jobhunter_tester\Commands;
 
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelInterface;
@@ -40,6 +41,7 @@ class QaUserCommands extends DrushCommands {
 
   public function __construct(
     private EntityTypeManagerInterface $entityTypeManager,
+    private Connection $database,
     LoggerChannelFactoryInterface $loggerFactory,
   ) {
     parent::__construct();
@@ -93,6 +95,9 @@ class QaUserCommands extends DrushCommands {
       }
 
       $user = $this->ensureQaUser($rid);
+      if ($rid === 'authenticated') {
+        $this->ensureJobSeekerProfile((int) $user->id());
+      }
       $result[] = [
         'role'   => $rid,
         'uid'    => (int) $user->id(),
@@ -191,6 +196,36 @@ class QaUserCommands extends DrushCommands {
     );
 
     return $user;
+  }
+
+  /**
+   * Ensure a minimal jobhunter_job_seeker record exists for the given uid.
+   *
+   * The job_hunter module gates access to most /jobhunter/* routes by checking
+   * whether the current user has a job_seeker profile row. QA test users that
+   * need to probe those routes must have at least a stub record.
+   */
+  private function ensureJobSeekerProfile(int $uid): void {
+    $exists = $this->database->select('jobhunter_job_seeker', 'js')
+      ->fields('js', ['id'])
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchField();
+
+    if (!$exists) {
+      $ts = \Drupal::time()->getRequestTime();
+      $this->database->insert('jobhunter_job_seeker')
+        ->fields([
+          'uid'     => $uid,
+          'created' => $ts,
+          'changed' => $ts,
+        ])
+        ->execute();
+      $this->jhtLogger->info(
+        'Created stub jobhunter_job_seeker profile for uid @uid',
+        ['@uid' => $uid],
+      );
+    }
   }
 
 }
