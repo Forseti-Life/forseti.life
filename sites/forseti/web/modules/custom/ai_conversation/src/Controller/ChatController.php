@@ -67,7 +67,11 @@ class ChatController extends ControllerBase {
       return AccessResult::forbidden();
     }
 
-    if ($node->getOwnerId() === $account->id() || $account->hasPermission('administer content')) {
+    if (
+      $node->getOwnerId() === $account->id()
+      || $account->hasPermission('administer content')
+      || $account->hasPermission('administer ai conversation')
+    ) {
       return AccessResult::allowed();
     }
     
