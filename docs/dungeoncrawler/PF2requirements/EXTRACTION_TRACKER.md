@@ -21,7 +21,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 3 | Chapter 3: Classes (p.66) | `references/core-ch03-classes.md` | `[x]` |
 | 4 | Chapter 4: Skills (p.232) | `references/core-ch04-skills.md` | `[x]` |
 | 5 | Chapter 5: Feats (p.254) | `references/core-ch05-feats.md` | `[x]` |
-| 6 | Chapter 6: Equipment (p.270) | `references/core-ch06-equipment.md` | `[ ]` |
+| 6 | Chapter 6: Equipment (p.270) | `references/core-ch06-equipment.md` | `[x]` |
 | 7 | Chapter 7: Spells (p.296) | `references/core-ch07-spells.md` | `[ ]` |
 | 8 | Chapter 8: The Age of Lost Omens (p.416) | `references/core-ch08-age-of-lost-omens.md` | `[ ]` |
 | 9 | Chapter 9: Playing the Game (p.442) | `references/core-ch09-playing-the-game.md` | `[ ]` |
