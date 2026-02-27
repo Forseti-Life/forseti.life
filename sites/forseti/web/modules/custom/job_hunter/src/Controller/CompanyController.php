@@ -649,14 +649,30 @@ class CompanyController extends ControllerBase {
       ->fetchObject();
 
     // Header with edit link
+    $raw_title = $jobValue($job, 'job_title');
+    $display_title = $extracted['position']['title']
+      ?? ($raw_title ?: 'Job Requisition #' . $job_id);
+
+    $raw_company = '';
+    $company_id = $jobValue($job, 'company_id');
+    if ($company_id) {
+      $company_node = \Drupal::entityTypeManager()->getStorage('node')->load($company_id);
+      if ($company_node) {
+        $raw_company = $company_node->getTitle();
+      }
+    }
+    $display_company = $extracted
+      ? (($extracted['company']['name'] ?? '') . ($extracted['company']['industry'] ? ' — ' . $extracted['company']['industry'] : ''))
+      : $raw_company;
+
     $content['header'] = [
       '#type' => 'container',
       '#attributes' => ['class' => ['job-view-header']],
       'title' => [
-        '#markup' => '<h2>' . ($extracted['position']['title'] ?? 'Job Requisition #' . $job_id) . '</h2>',
+        '#markup' => '<h2>' . htmlspecialchars($display_title) . '</h2>',
       ],
       'company' => [
-        '#markup' => $extracted ? '<p class="job-company"><strong>' . ($extracted['company']['name'] ?? '') . '</strong> — ' . ($extracted['company']['industry'] ?? '') . '</p>' : '',
+        '#markup' => $display_company ? '<p class="job-company"><strong>' . htmlspecialchars($display_company) . '</strong></p>' : '',
       ],
       'actions' => [
         '#type' => 'container',
@@ -716,7 +732,73 @@ class CompanyController extends ControllerBase {
         '#markup' => '<div class="job-info-box">' . implode('<br>', $source_info) . '</div>',
       ];
     }
-    
+
+    // AI extraction status notice + raw scraped fields when AI parsing is not yet complete.
+    $ai_status = $jobValue($job, 'ai_extraction_status') ?? 'pending';
+    if (!$extracted) {
+      $status_labels = [
+        'pending'    => ['label' => '⏳ AI parsing pending',    'class' => 'messages--warning'],
+        'queued'     => ['label' => '⏳ AI parsing queued',     'class' => 'messages--warning'],
+        'processing' => ['label' => '⚙️ AI parsing in progress', 'class' => 'messages--warning'],
+        'failed'     => ['label' => '⚠️ AI parsing failed — showing raw scraped data below', 'class' => 'messages--error'],
+      ];
+      $badge = $status_labels[$ai_status] ?? ['label' => '⏳ AI parsing not yet run', 'class' => 'messages--warning'];
+      $content['ai_status_notice'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['messages', $badge['class']]],
+        '#markup' => $badge['label'],
+      ];
+
+      // Show all available raw scraped fields.
+      $raw_rows = [];
+      $raw_field_map = [
+        'job_title'       => 'Job Title',
+        'location'        => 'Location',
+        'salary_range'    => 'Salary Range',
+        'remote_option'   => 'Remote Option',
+        'employment_type' => 'Employment Type',
+        'status'          => 'Status',
+      ];
+      foreach ($raw_field_map as $col => $label) {
+        $val = $jobValue($job, $col);
+        if (!empty($val)) {
+          $raw_rows[] = '<dt>' . $label . '</dt><dd>' . htmlspecialchars((string) $val) . '</dd>';
+        }
+      }
+
+      $raw_desc   = $jobValue($job, 'job_description');
+      $raw_req    = $jobValue($job, 'requirements');
+
+      $content['raw_scraped'] = [
+        '#type'       => 'details',
+        '#title'      => $this->t('Scraped Job Information'),
+        '#open'       => TRUE,
+        '#attributes' => ['class' => ['job-section']],
+      ];
+
+      if (!empty($raw_rows)) {
+        $content['raw_scraped']['meta'] = [
+          '#markup' => '<dl class="job-details">' . implode('', $raw_rows) . '</dl>',
+        ];
+      }
+
+      if (!empty($raw_desc)) {
+        $content['raw_scraped']['description'] = [
+          '#type'  => 'container',
+          'label'  => ['#markup' => '<h3>Job Description</h3>'],
+          'body'   => ['#markup' => '<div class="raw-text">' . nl2br(htmlspecialchars($raw_desc)) . '</div>'],
+        ];
+      }
+
+      if (!empty($raw_req)) {
+        $content['raw_scraped']['requirements'] = [
+          '#type'  => 'container',
+          'label'  => ['#markup' => '<h3>Requirements</h3>'],
+          'body'   => ['#markup' => '<div class="raw-text">' . nl2br(htmlspecialchars($raw_req)) . '</div>'],
+        ];
+      }
+    }
+
     // Extracted Job Data section
     if ($extracted) {
       $content['extracted'] = [
@@ -937,6 +1019,7 @@ class CompanyController extends ControllerBase {
           .status-queued { color: #3b82f6; font-weight: 600; }
           .status-processing { color: #8b5cf6; font-weight: 600; }
           .status-failed { color: #ef4444; font-weight: 600; }
+          .raw-text { white-space: pre-wrap; font-size: 0.95em; line-height: 1.6; margin: 10px 0; }
         ',
       ],
       'job_view_styles',
