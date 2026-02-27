@@ -21,7 +21,7 @@ const { launchBrowser, humanType, humanDelay, takeScreenshot, extractConfirmatio
  * @returns {Promise<object>}  Result object
  */
 async function apply(payload, buildResult) {
-  const { apply_url, personal_info, profile, resume_pdf_path, cover_letter, screenshot_dir, application_id, options = {} } = payload;
+  const { apply_url, personal_info, resume_pdf_path, cover_letter, screenshot_dir, application_id, options = {} } = payload;
 
   if (!resume_pdf_path || !require('fs').existsSync(resume_pdf_path)) {
     return buildResult({
@@ -79,7 +79,7 @@ async function apply(payload, buildResult) {
       'input[name*="linkedin"]',
       'input[placeholder*="LinkedIn"]',
     ];
-    if (profile.linkedin_url && await fillFirstMatch(page, linkedinSelectors, profile.linkedin_url)) {
+    if (personal_info.linkedin_url && await fillFirstMatch(page, linkedinSelectors, personal_info.linkedin_url)) {
       fields_filled.push('linkedin_url');
     } else {
       fields_skipped.push('linkedin_url');
@@ -251,7 +251,7 @@ function buildFieldMap(payload) {
     email:       p.email      || '',
     phone:       p.phone      || '',
     location:    [p.city, p.state].filter(Boolean).join(', '),
-    linkedin:    (payload.profile || {}).linkedin_url || '',
+    linkedin:    p.linkedin_url || '',
   };
 }
 

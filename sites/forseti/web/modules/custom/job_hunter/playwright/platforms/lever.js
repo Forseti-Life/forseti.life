@@ -13,7 +13,7 @@
 const { launchBrowser, humanDelay, takeScreenshot, extractConfirmationNumber } = require('../utils/stealth');
 
 async function apply(payload, buildResult) {
-  const { apply_url, personal_info, profile, resume_pdf_path, cover_letter, screenshot_dir, application_id, options = {} } = payload;
+  const { apply_url, personal_info, resume_pdf_path, cover_letter, screenshot_dir, application_id, options = {} } = payload;
 
   if (!resume_pdf_path || !require('fs').existsSync(resume_pdf_path)) {
     return buildResult({
@@ -47,10 +47,10 @@ async function apply(payload, buildResult) {
     if (await fill(page, 'input[name=phone]', personal_info.phone)) fields_filled.push('phone');
     else fields_skipped.push('phone');
 
-    if (await fill(page, 'input[name=org]', (payload.profile || {}).current_company || '')) fields_filled.push('current_company');
+    if (await fill(page, 'input[name=org]', personal_info.current_company || (payload.experience || {}).current_company || '')) fields_filled.push('current_company');
     else fields_skipped.push('current_company');
 
-    if (profile.linkedin_url && await fill(page, 'input[name="urls[LinkedIn]"]', profile.linkedin_url)) fields_filled.push('linkedin_url');
+    if (personal_info.linkedin_url && await fill(page, 'input[name="urls[LinkedIn]"]', personal_info.linkedin_url)) fields_filled.push('linkedin_url');
     else fields_skipped.push('linkedin_url');
 
     // Resume upload

@@ -6,6 +6,7 @@ use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Messenger\MessengerInterface;
 use Drupal\user\UserInterface;
 use Drupal\node\NodeInterface;
@@ -79,6 +80,13 @@ class ApplicationSubmissionService {
   protected $credentialManagementService;
 
   /**
+   * The file system service.
+   *
+   * @var \Drupal\Core\File\FileSystemInterface
+   */
+  protected $fileSystem;
+
+  /**
    * Constructs an ApplicationSubmissionService.
    *
    * @param \Drupal\Core\Database\Connection $database
@@ -97,6 +105,8 @@ class ApplicationSubmissionService {
    *   The user profile service.
    * @param \Drupal\job_hunter\Service\CredentialManagementService $credential_management_service
    *   The credential management service.
+   * @param \Drupal\Core\File\FileSystemInterface $file_system
+   *   The file system service.
    */
   public function __construct(
     Connection $database,
@@ -106,7 +116,8 @@ class ApplicationSubmissionService {
     MessengerInterface $messenger,
     JobSeekerService $job_seeker_service,
     UserProfileService $user_profile_service,
-    CredentialManagementService $credential_management_service
+    CredentialManagementService $credential_management_service,
+    FileSystemInterface $file_system
   ) {
     $this->database = $database;
     $this->loggerFactory = $logger_factory;
@@ -116,6 +127,7 @@ class ApplicationSubmissionService {
     $this->jobSeekerService = $job_seeker_service;
     $this->userProfileService = $user_profile_service;
     $this->credentialManagementService = $credential_management_service;
+    $this->fileSystem = $file_system;
   }
 
   /**
@@ -376,6 +388,7 @@ class ApplicationSubmissionService {
 
     // Extract tailored resume if available.
     $tailored_resume = $this->getTailoredResumeForJob($uid, $job_id);
+    $resume_pdf_path = $this->getResumePdfPath($uid, $job_id);
 
     return [
       'uid'          => $uid,
@@ -385,14 +398,16 @@ class ApplicationSubmissionService {
       'company_name' => $job['company_name'] ?? '',
       'job_title'    => $job['job_title'] ?? '',
       'personal_info' => [
-        'first_name' => $first_name,
-        'last_name'  => $last_name,
-        'full_name'  => $full_name,
-        'email'      => $seeker['contact_email'] ?? ($contact['email'] ?? ''),
-        'phone'      => $seeker['contact_phone'] ?? ($contact['phone'] ?? ''),
-        'city'       => $seeker['location_city'] ?? ($loc['city'] ?? ''),
-        'state'      => $seeker['location_state'] ?? ($loc['state'] ?? ''),
-        'zip'        => $loc['zip'] ?? '',
+        'first_name'   => $first_name,
+        'last_name'    => $last_name,
+        'full_name'    => $full_name,
+        'email'        => $seeker['contact_email'] ?? ($contact['email'] ?? ''),
+        'phone'        => $seeker['contact_phone'] ?? ($contact['phone'] ?? ''),
+        'city'         => $seeker['location_city'] ?? ($loc['city'] ?? ''),
+        'state'        => $seeker['location_state'] ?? ($loc['state'] ?? ''),
+        'zip'          => $loc['zip'] ?? '',
+        'linkedin_url' => $seeker['linkedin_url'] ?? ($contact['linkedin_url'] ?? ''),
+        'website_url'  => $seeker['website_url'] ?? ($contact['website'] ?? ''),
       ],
       'work_auth' => [
         'status'  => $prefs['work_authorization'] ?? 'US_CITIZEN',
@@ -412,6 +427,10 @@ class ApplicationSubmissionService {
       'certifications'   => $consolidated['certifications'] ?? [],
       'languages'        => $consolidated['languages'] ?? [],
       'tailored_resume'  => $tailored_resume,
+      'resume'           => [
+        'pdf_path' => $resume_pdf_path,
+      ],
+      'cover_letter'     => '',
       'salary_expectations' => [
         'min' => $seeker['salary_min'] ?? ($prefs['salary_min'] ?? ''),
         'max' => $seeker['salary_max'] ?? ($prefs['salary_max'] ?? ''),
@@ -521,11 +540,13 @@ class ApplicationSubmissionService {
   /**
    * Gets the tailored resume for a specific job.
    *
+   * @param int $uid
+   *   The user ID.
    * @param int $job_id
    *   The job requirement ID.
    *
    * @return string|null
-   *   The tailored resume text or NULL if not available.
+   *   The tailored resume JSON text or NULL if not available.
    */
   protected function getTailoredResumeForJob(int $uid, int $job_id): ?string {
     $result = $this->database->select('jobhunter_tailored_resumes', 't')
@@ -538,6 +559,39 @@ class ApplicationSubmissionService {
       ->fetchField();
 
     return $result;
+  }
+
+  /**
+   * Gets the real filesystem path of the most recent tailored resume PDF.
+   *
+   * Resolves the private:// URI stored in jobhunter_tailored_resumes.pdf_path
+   * to an absolute path the Node.js bridge can read.
+   *
+   * @param int $uid
+   *   The user ID.
+   * @param int $job_id
+   *   The job requirement ID.
+   *
+   * @return string|null
+   *   Absolute filesystem path to the PDF, or NULL if not generated yet.
+   */
+  protected function getResumePdfPath(int $uid, int $job_id): ?string {
+    $uri = $this->database->select('jobhunter_tailored_resumes', 't')
+      ->fields('t', ['pdf_path'])
+      ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
+      ->isNotNull('pdf_path')
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if (!$uri) {
+      return NULL;
+    }
+
+    $real_path = $this->fileSystem->realpath($uri);
+    return ($real_path && file_exists($real_path)) ? $real_path : NULL;
   }
 
   /**

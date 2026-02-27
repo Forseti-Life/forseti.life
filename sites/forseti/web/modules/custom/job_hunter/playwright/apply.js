@@ -49,6 +49,12 @@ const PLATFORM_MAP = {
   icims:           './platforms/icims',
 };
 
+// Normalize resume_pdf_path — handlers expect a flat top-level key.
+// PHP sends: { resume: { pdf_path: '/abs/path/file.pdf' } }
+if (!payload.resume_pdf_path && payload.resume && payload.resume.pdf_path) {
+  payload.resume_pdf_path = payload.resume.pdf_path;
+}
+
 const handlerPath = PLATFORM_MAP[platform] || './platforms/generic';
 let handler;
 try {

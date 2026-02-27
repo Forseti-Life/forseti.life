@@ -88,6 +88,7 @@ services:
       - '@job_hunter.job_seeker_service'
       - '@job_hunter.user_profile_service'
       - '@job_hunter.credential_management_service'
+      - '@file_system'
   
   job_hunter.credential_management_service:
     class: Drupal\job_hunter\Service\CredentialManagementService
