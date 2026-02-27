@@ -560,7 +560,7 @@ job_hunter.company_research:
     _controller: '\Drupal\job_hunter\Controller\CompanyResearchController::researchPage'
     _title: 'Company Research'
   requirements:
-    _permission: 'administer job application automation'
+    _permission: 'access job hunter'
 
 # Company Management Routes
 job_hunter.companies_list:
