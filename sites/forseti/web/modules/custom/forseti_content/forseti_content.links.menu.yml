@@ -5,13 +5,6 @@ forseti_content.about:
   weight: -40
   expanded: true
 
-forseti_content.about_overview:
-  title: 'About'
-  route_name: forseti_content.about
-  menu_name: main
-  parent: forseti_content.about
-  weight: -40
-
 forseti_content.legal:
   title: 'Legal'
   route_name: forseti_content.legal
@@ -31,13 +24,6 @@ forseti_content.talk_with_forseti:
   route_name: forseti_content.talk_with_forseti
   menu_name: main
   weight: -25
-
-forseti_content.how_it_works_overview:
-  title: 'How It Works'
-  route_name: forseti_content.how_it_works
-  menu_name: main
-  parent: forseti_content.how_it_works
-  weight: -30
 
 forseti_content.agent_hierarchy:
   title: 'Agent Power Framework'
