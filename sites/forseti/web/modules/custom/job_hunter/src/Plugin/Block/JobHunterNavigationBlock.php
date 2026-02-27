@@ -118,6 +118,13 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
         'weight' => 80,
       ];
 
+      $navigation['credentials'] = [
+        'title' => $this->t('ATS Credentials'),
+        'url' => Url::fromRoute('job_hunter.credentials'),
+        'icon' => 'key',
+        'weight' => 82,
+      ];
+
       $navigation['queue_management'] = [
         'title' => $this->t('Queue Management'),
         'url' => Url::fromRoute('job_hunter.queue_management'),
