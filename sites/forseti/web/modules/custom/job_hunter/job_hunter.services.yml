@@ -67,6 +67,12 @@ services:
     tags:
       - { name: drush.command }
 
+  job_hunter.job_parsing_commands:
+    class: Drupal\job_hunter\Commands\JobParsingCommands
+    arguments: ['@database', '@queue']
+    tags:
+      - { name: drush.command }
+
   job_hunter.error_queue_service:
     class: Drupal\job_hunter\Service\ErrorQueueService
     arguments: ['@entity_type.manager', '@logger.factory']

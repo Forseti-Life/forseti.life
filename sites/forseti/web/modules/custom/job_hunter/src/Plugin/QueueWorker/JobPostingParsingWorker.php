@@ -51,20 +51,38 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
    */
   public function processItem($data) {
     $job_id = $data['job_id'];
-    $raw_posting_text = $data['raw_posting_text'];
+    $raw_posting_text = $data['raw_posting_text'] ?? '';
 
     $logger = \Drupal::logger('job_hunter');
-    
+    $connection = \Drupal::database();
+
+    // If the queue item has no text, fall back to DB columns (handles scraped jobs).
+    if (empty($raw_posting_text)) {
+      $job_row = $connection->select('jobhunter_job_requirements', 'j')
+        ->fields('j', ['raw_posting_text', 'job_description'])
+        ->condition('id', $job_id)
+        ->execute()
+        ->fetchObject();
+      $raw_posting_text = ($job_row->raw_posting_text ?? '') ?: ($job_row->job_description ?? '');
+    }
+
+    if (empty($raw_posting_text)) {
+      $logger->error('❌ Job @id has no text to parse — skipping.', ['@id' => $job_id]);
+      $connection->update('jobhunter_job_requirements')
+        ->fields(['ai_extraction_status' => 'failed', 'updated' => time()])
+        ->condition('id', $job_id)
+        ->execute();
+      return;
+    }
+
     // Get job preview for logging
     $text_preview = substr($raw_posting_text, 0, 100);
     $text_preview = preg_replace('/\s+/', ' ', $text_preview);
-    
+
     $logger->info('🔄 Queue: Starting GenAI parsing for job @id. Preview: "@preview..."', [
       '@id' => $job_id,
       '@preview' => $text_preview,
     ]);
-
-    $connection = \Drupal::database();
 
     try {
       // Update status to processing

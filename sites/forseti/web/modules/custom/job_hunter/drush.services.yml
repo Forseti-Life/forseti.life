@@ -1,0 +1,6 @@
+services:
+  job_hunter.job_parsing_commands:
+    class: Drupal\job_hunter\Commands\JobParsingCommands
+    arguments: ['@database', '@queue']
+    tags:
+      - { name: drush.command }

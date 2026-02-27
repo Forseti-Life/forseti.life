@@ -49,7 +49,7 @@ class JobPostingController extends ControllerBase {
     try {
       // Get job details.
       $job = $database->select(self::TABLE_NAME, 'j')
-        ->fields('j', ['id', 'raw_posting_text', 'ai_extraction_status'])
+        ->fields('j', ['id', 'raw_posting_text', 'job_description', 'ai_extraction_status'])
         ->condition('id', $job_id)
         ->execute()
         ->fetchObject();
@@ -59,8 +59,11 @@ class JobPostingController extends ControllerBase {
         return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
       }
 
-      if (empty($job->raw_posting_text)) {
-        $this->messenger()->addError($this->t('Cannot retry parsing: No raw posting text available.'));
+      // Fall back to job_description for jobs scraped without raw_posting_text.
+      $posting_text = $job->raw_posting_text ?: $job->job_description;
+
+      if (empty($posting_text)) {
+        $this->messenger()->addError($this->t('Cannot retry parsing: No job text available to parse.'));
         return $this->redirect('job_hunter.job_view', ['job_id' => $job_id]);
       }
 
@@ -76,11 +79,11 @@ class JobPostingController extends ControllerBase {
           ->condition('id', $job_id)
           ->execute();
 
-        // Re-queue for AI parsing.
+        // Re-queue for AI parsing using best available text.
         $queue = \Drupal::queue(self::QUEUE_NAME);
         $queue->createItem([
           'job_id' => $job_id,
-          'raw_posting_text' => $job->raw_posting_text,
+          'raw_posting_text' => $posting_text,
         ]);
 
         // Log the action.
