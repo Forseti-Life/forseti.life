@@ -231,7 +231,7 @@ job_hunter.company_job_discovery:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::companyJobDiscovery'
     _title: 'Job Discovery'
   requirements:
-    _permission: 'administer job application automation'
+    _permission: 'access job hunter'
     company: \d+
 
 # Job Discovery - Unified Search Results (GET)
@@ -250,7 +250,7 @@ job_hunter.job_discovery_search_ajax:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::jobDiscoverySearch'
   requirements:
-    _permission: 'administer job application automation'
+    _permission: 'access job hunter'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
@@ -260,7 +260,7 @@ job_hunter.save_job:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::saveJob'
   requirements:
-    _permission: 'administer job application automation'
+    _permission: 'access job hunter'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
@@ -514,7 +514,7 @@ job_hunter.company_research:
     _controller: '\Drupal\job_hunter\Controller\CompanyResearchController::researchPage'
     _title: 'Company Research'
   requirements:
-    _permission: 'access job hunter'
+    _permission: 'administer job application automation'
 
 # Company Management Routes
 job_hunter.companies_list:
