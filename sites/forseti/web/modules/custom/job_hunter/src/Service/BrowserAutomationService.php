@@ -238,20 +238,23 @@ class BrowserAutomationService {
       }
     }
 
-    // Phase 1: For automatable platforms (Greenhouse, Lever, Ashby, SmartRecruiters, Workable)
-    // these don't require login for the public apply form.
+    // Phase 2: Automatable platforms — run Playwright bridge.
     if (in_array($ats_platform, self::AUTOMATABLE_PLATFORMS)) {
-      // Build form field map so the user knows exactly what to fill.
+      $bridge_result = $this->runPlaywrightBridge($app_data, $apply_url, $ats_platform, $application_id, FALSE);
+      if ($bridge_result !== NULL) {
+        return $bridge_result;
+      }
+      // Bridge unavailable — fall through to manual_required.
       $field_map = $this->buildFieldMapForJob($uid, $job_id, $ats_platform);
       return [
-        'success'              => FALSE, // Phase 2 will set TRUE when form fill works.
+        'success'              => FALSE,
         'outcome'              => 'manual_required',
         'apply_url'            => $apply_url,
         'ats_platform'         => $ats_platform,
         'ats_label'            => $ats_label,
         'confirmation'         => '',
-        'error'                => 'Browser automation Phase 2 not yet active for ' . $ats_label,
-        'reason'               => 'phase2_pending',
+        'error'                => 'Playwright bridge unavailable for ' . $ats_label,
+        'reason'               => 'bridge_unavailable',
         'instructions'         => 'Your tailored resume and profile data are ready. Click the link to apply on ' . $ats_label . '. Your profile fields are pre-mapped below.',
         'field_map'            => $field_map,
         'requires_credentials' => FALSE,
