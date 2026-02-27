@@ -407,7 +407,7 @@ class ApplicationSubmissionService {
         'state'        => $seeker['location_state'] ?? ($loc['state'] ?? ''),
         'zip'          => $loc['zip'] ?? '',
         'linkedin_url' => $seeker['linkedin_url'] ?? ($contact['linkedin_url'] ?? ''),
-        'website_url'  => $seeker['website_url'] ?? ($contact['website'] ?? ''),
+        'website_url'  => $seeker['portfolio_url'] ?? ($contact['website'] ?? ''),
       ],
       'work_auth' => [
         'status'  => $prefs['work_authorization'] ?? 'US_CITIZEN',
