@@ -282,19 +282,23 @@ class BrowserAutomationService {
       ];
     }
 
-    // Login-required ATS WITH credentials → ready for Phase 2 automation.
+    // Login-required ATS WITH credentials → run Playwright bridge.
     if ($requires_credentials && $has_credentials) {
+      $bridge_result = $this->runPlaywrightBridge($app_data, $apply_url, $ats_platform, $application_id, FALSE);
+      if ($bridge_result !== NULL) {
+        return $bridge_result;
+      }
       $field_map = $this->buildFieldMapForJob($uid, $job_id, $ats_platform);
       return [
-        'success'              => FALSE, // Phase 2 will do actual submit.
+        'success'              => FALSE,
         'outcome'              => 'manual_required',
         'apply_url'            => $apply_url,
         'ats_platform'         => $ats_platform,
         'ats_label'            => $ats_label,
         'confirmation'         => '',
-        'error'                => 'Automated login form fill not yet active (Phase 2)',
-        'reason'               => 'phase2_pending',
-        'instructions'         => 'Credentials found for ' . $ats_label . '. Automated submission will be available in Phase 2. Apply manually using your stored credentials.',
+        'error'                => 'Playwright bridge unavailable for ' . $ats_label,
+        'reason'               => 'bridge_unavailable',
+        'instructions'         => 'Credentials found for ' . $ats_label . '. Automated submission will retry. Apply manually using your stored credentials.',
         'field_map'            => $field_map,
         'requires_credentials' => TRUE,
         'has_credentials'      => TRUE,
@@ -347,8 +351,10 @@ class BrowserAutomationService {
       $consolidated = $this->jobSeekerService->getConsolidatedProfile($uid);
 
       $job = $this->database->select('jobhunter_job_requirements', 'j')
-        ->fields('j', ['job_title', 'company_name'])
-        ->condition('id', $job_id)
+        ->fields('j', ['job_title'])
+        ->fields('c', ['company_name'])
+        ->leftJoin('jobhunter_companies', 'c', 'c.id = j.company_id')
+        ->condition('j.id', $job_id)
         ->execute()
         ->fetchAssoc() ?: [];
 
