@@ -215,33 +215,6 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
   }
 
   /**
-   * Detects the ATS platform from job URL.
-   *
-   * @param string $job_url
-   *   The job URL.
-   *
-   * @return string
-   *   The ATS platform type (workday, greenhouse, taleo, custom, unknown).
-   */
-  protected function detectATSPlatform(string $job_url): string {
-    $url_lower = strtolower($job_url);
-
-    if (strpos($url_lower, 'workday') !== FALSE) {
-      return 'workday';
-    } elseif (strpos($url_lower, 'greenhouse') !== FALSE) {
-      return 'greenhouse';
-    } elseif (strpos($url_lower, 'taleo') !== FALSE) {
-      return 'taleo';
-    } elseif (strpos($url_lower, 'applicanttrack') !== FALSE) {
-      return 'applicanttrack';
-    } elseif (strpos($url_lower, 'lever') !== FALSE) {
-      return 'lever';
-    }
-
-    return 'custom';
-  }
-
-  /**
    * Updates the job submission status in jobhunter_job_requirements.
    *
    * @param int $job_id
