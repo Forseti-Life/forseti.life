@@ -338,8 +338,8 @@ class CompanyController extends ControllerBase {
       // Parse extracted JSON for better title display using helper method
       $extracted = $this->safeJsonDecode($job->extracted_json, 'job requirements', $job->id);
       // Use extracted title if available, fall back to job_title, then to a default
-      $job_title = $extracted['position']['title'] ?? ($job->job_title ?? 'Job #' . $job->id);
-      $company_name = $extracted['company']['name'] ?? ($job->company_name ?? 'Unknown');
+      $job_title = $extracted['job_title'] ?? ($job->job_title ?? 'Job #' . $job->id);
+      $company_name = $extracted['company_name'] ?? ($job->company_name ?? 'Unknown');
       
       // Determine AI parsing status
       $has_raw_text = !empty($job->raw_posting_text);
@@ -650,7 +650,7 @@ class CompanyController extends ControllerBase {
 
     // Header with edit link
     $raw_title = $jobValue($job, 'job_title');
-    $display_title = $extracted['position']['title']
+    $display_title = $extracted['job_title']
       ?? ($raw_title ?: 'Job Requisition #' . $job_id);
 
     $raw_company = '';
@@ -662,7 +662,7 @@ class CompanyController extends ControllerBase {
       }
     }
     $display_company = $extracted
-      ? (($extracted['company']['name'] ?? '') . ($extracted['company']['industry'] ? ' — ' . $extracted['company']['industry'] : ''))
+      ? (($extracted['company_name'] ?? '') . (!empty($extracted['industry']) ? ' — ' . $extracted['industry'] : ''))
       : $raw_company;
 
     $content['header'] = [
@@ -809,87 +809,89 @@ class CompanyController extends ControllerBase {
       ];
       
       // Position info
-      if (!empty($extracted['position'])) {
-        $pos = $extracted['position'];
+      if (!empty($extracted['job_title']) || !empty($extracted['employment_type']) || !empty($extracted['experience_years'])) {
+        $loc = $extracted['location'] ?? [];
+        $location_str = is_array($loc) ? ($loc['full_location'] ?? implode(', ', array_filter([$loc['city'] ?? '', $loc['state'] ?? '']))) : (string) $loc;
         $content['extracted']['position'] = [
           '#type' => 'container',
           '#attributes' => ['class' => ['job-subsection']],
           '#markup' => '<h3>Position</h3>' .
             '<dl class="job-details">' .
-            '<dt>Title</dt><dd>' . ($pos['title'] ?? 'N/A') . '</dd>' .
-            '<dt>Level</dt><dd>' . ($pos['level'] ?? 'N/A') . '</dd>' .
-            '<dt>Department</dt><dd>' . ($pos['department'] ?? 'N/A') . '</dd>' .
-            '<dt>Reports To</dt><dd>' . ($pos['reports_to'] ?? 'N/A') . '</dd>' .
-            '<dt>Team Size</dt><dd>' . ($pos['team_size'] ?? 'N/A') . '</dd>' .
-            '<dt>Remote</dt><dd>' . (($pos['is_remote'] ?? FALSE) ? 'Yes' : 'No') . '</dd>' .
-            '<dt>Location</dt><dd>' . ($pos['location_requirements'] ?? 'N/A') . '</dd>' .
+            '<dt>Title</dt><dd>' . htmlspecialchars($extracted['job_title'] ?? 'N/A') . '</dd>' .
+            '<dt>Employment Type</dt><dd>' . htmlspecialchars($extracted['employment_type'] ?? 'N/A') . '</dd>' .
+            '<dt>Experience Required</dt><dd>' . htmlspecialchars($extracted['experience_years'] ? $extracted['experience_years'] . ' years' : 'N/A') . '</dd>' .
+            '<dt>Remote</dt><dd>' . htmlspecialchars($extracted['remote_option'] ?? 'N/A') . '</dd>' .
+            '<dt>Location</dt><dd>' . htmlspecialchars($location_str ?: 'N/A') . '</dd>' .
             '</dl>',
         ];
       }
-      
+
       // Compensation
-      if (!empty($extracted['compensation'])) {
-        $comp = $extracted['compensation'];
-        $salary = '';
-        if (!empty($comp['salary_min']) && !empty($comp['salary_max'])) {
-          $salary = '$' . number_format($comp['salary_min']) . ' - $' . number_format($comp['salary_max']);
-        }
+      if (!empty($extracted['salary_range']) || !empty($extracted['benefits'])) {
+        $benefits = $extracted['benefits'] ?? [];
+        $benefits_str = is_array($benefits) ? implode(', ', $benefits) : (string) $benefits;
         $content['extracted']['compensation'] = [
           '#type' => 'container',
           '#markup' => '<h3>Compensation</h3>' .
             '<dl class="job-details">' .
-            '<dt>Salary Range</dt><dd>' . ($salary ?: 'N/A') . '</dd>' .
-            '<dt>Bonus</dt><dd>' . ($comp['bonus_structure'] ?? 'N/A') . '</dd>' .
-            '<dt>Equity</dt><dd>' . (($comp['equity'] ?? FALSE) ? 'Yes' : 'No') . '</dd>' .
+            '<dt>Salary Range</dt><dd>' . htmlspecialchars($extracted['salary_range'] ?? 'N/A') . '</dd>' .
+            '<dt>Application Deadline</dt><dd>' . htmlspecialchars($extracted['application_deadline'] ?? 'N/A') . '</dd>' .
+            '<dt>Visa Sponsorship</dt><dd>' . ($extracted['visa_sponsorship'] ? 'Yes' : 'No') . '</dd>' .
             '</dl>',
         ];
-        if (!empty($comp['benefits_highlights'])) {
+        if (!empty($benefits_str)) {
           $content['extracted']['benefits'] = [
-            '#markup' => '<p><strong>Benefits:</strong> ' . implode(', ', $comp['benefits_highlights']) . '</p>',
+            '#markup' => '<p><strong>Benefits:</strong> ' . htmlspecialchars($benefits_str) . '</p>',
           ];
         }
       }
-      
+
       // Requirements
       if (!empty($extracted['requirements'])) {
         $req = $extracted['requirements'];
+        $req_items = is_array($req) ? '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $req)) . '</li></ul>' : '<p>' . htmlspecialchars((string) $req) . '</p>';
         $content['extracted']['requirements'] = [
           '#type' => 'container',
-          '#markup' => '<h3>Requirements</h3>' .
-            '<dl class="job-details">' .
-            '<dt>Experience</dt><dd>' . ($req['years_experience_min'] ?? '?') . '+ years (preferred: ' . ($req['years_experience_preferred'] ?? '?') . ')</dd>' .
-            '<dt>Education</dt><dd>' . ($req['education_required'] ?? 'N/A') . '</dd>' .
-            '<dt>Preferred</dt><dd>' . ($req['education_preferred'] ?? 'N/A') . '</dd>' .
-            '</dl>',
+          '#markup' => '<h3>Requirements</h3>' . $req_items,
         ];
       }
-      
-      // Role type
-      if (!empty($extracted['role_type'])) {
-        $role = $extracted['role_type'];
-        $content['extracted']['role_type'] = [
+
+      // Qualifications (required + preferred)
+      if (!empty($extracted['qualifications'])) {
+        $qual = $extracted['qualifications'];
+        $qual_html = '<h3>Qualifications</h3>';
+        if (!empty($qual['required'])) {
+          $qual_html .= '<p><strong>Required:</strong></p><ul><li>' . implode('</li><li>', array_map('htmlspecialchars', (array) $qual['required'])) . '</li></ul>';
+        }
+        if (!empty($qual['preferred'])) {
+          $qual_html .= '<p><strong>Preferred:</strong></p><ul><li>' . implode('</li><li>', array_map('htmlspecialchars', (array) $qual['preferred'])) . '</li></ul>';
+        }
+        $content['extracted']['qualifications'] = [
           '#type' => 'container',
-          '#markup' => '<h3>Role Type</h3>' .
-            '<dl class="job-details">' .
-            '<dt>Player-Coach</dt><dd>' . (($role['is_player_coach'] ?? FALSE) ? 'Yes (' . ($role['hands_on_percentage'] ?? 0) . '% hands-on)' : 'No') . '</dd>' .
-            '<dt>Management Scope</dt><dd>' . ($role['management_scope'] ?? 'N/A') . '</dd>' .
-            '<dt>Strategic Scope</dt><dd>' . ($role['strategic_scope'] ?? 'N/A') . '</dd>' .
-            '</dl>',
+          '#markup' => $qual_html,
         ];
       }
-      
+
       // Key responsibilities
-      if (!empty($extracted['key_responsibilities'])) {
+      if (!empty($extracted['responsibilities'])) {
+        $resp = $extracted['responsibilities'];
+        $resp_items = is_array($resp) ? '<ul><li>' . implode('</li><li>', array_map('htmlspecialchars', $resp)) . '</li></ul>' : '<p>' . htmlspecialchars((string) $resp) . '</p>';
         $content['extracted']['responsibilities'] = [
           '#type' => 'container',
-          '#markup' => '<h3>Key Responsibilities</h3><ul><li>' . implode('</li><li>', $extracted['key_responsibilities']) . '</li></ul>',
+          '#markup' => '<h3>Key Responsibilities</h3>' . $resp_items,
         ];
       }
-      
-      // Company culture
-      if (!empty($extracted['company']['culture_keywords'])) {
-        $content['extracted']['culture'] = [
-          '#markup' => '<p><strong>Culture:</strong> ' . implode(', ', $extracted['company']['culture_keywords']) . '</p>',
+
+      // Company info
+      if (!empty($extracted['company_name']) || !empty($extracted['industry']) || !empty($extracted['company_description'])) {
+        $content['extracted']['company_info'] = [
+          '#type' => 'container',
+          '#markup' => '<h3>Company</h3>' .
+            '<dl class="job-details">' .
+            '<dt>Name</dt><dd>' . htmlspecialchars($extracted['company_name'] ?? 'N/A') . '</dd>' .
+            '<dt>Industry</dt><dd>' . htmlspecialchars($extracted['industry'] ?? 'N/A') . '</dd>' .
+            '</dl>' .
+            (!empty($extracted['company_description']) ? '<p>' . htmlspecialchars($extracted['company_description']) . '</p>' : ''),
         ];
       }
     }
