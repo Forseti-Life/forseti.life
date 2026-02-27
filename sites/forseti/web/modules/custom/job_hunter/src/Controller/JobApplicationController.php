@@ -1237,7 +1237,7 @@ class JobApplicationController extends ControllerBase {
         ],
       ],
       '#cache' => [
-        'contexts' => ['url.query_args'],
+        'contexts' => ['url.query_args', 'user'],
         'tags' => ['job_hunter:search'],
         'max-age' => 3600,
       ],
