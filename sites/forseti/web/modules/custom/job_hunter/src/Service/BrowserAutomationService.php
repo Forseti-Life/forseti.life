@@ -439,4 +439,220 @@ class BrowserAutomationService {
     }
   }
 
+  /**
+   * Run the Playwright Node.js bridge for automated form submission.
+   *
+   * Payload is written to a temp file (mode 0600), read by Node immediately
+   * and deleted. Credentials never appear in process argv or logs.
+   *
+   * @param array  $app_data       Application data (personal_info, resume, etc.)
+   * @param string $apply_url      Direct ATS apply URL.
+   * @param string $ats_platform   Platform key (greenhouse, lever, etc.)
+   * @param int    $application_id jobhunter_applications.id
+   * @param bool   $dry_run        TRUE = fill form but do not submit.
+   *
+   * @return array|null Result array on success or structured failure; NULL if
+   *   bridge binary is unavailable (caller should fall through to manual).
+   */
+  protected function runPlaywrightBridge(array $app_data, string $apply_url, string $ats_platform, int $application_id, bool $dry_run = FALSE): ?array {
+    $logger = $this->loggerFactory->get('job_hunter');
+
+    // Locate apply.js relative to the Drupal module.
+    $playwright_dir = DRUPAL_ROOT . '/../web/modules/custom/job_hunter/playwright';
+    if (!is_dir($playwright_dir)) {
+      $playwright_dir = DRUPAL_ROOT . '/modules/custom/job_hunter/playwright';
+    }
+    $apply_js = $playwright_dir . '/apply.js';
+
+    if (!file_exists($apply_js)) {
+      $logger->warning('Playwright bridge not found at @path', ['@path' => $apply_js]);
+      return NULL;
+    }
+
+    // Get credentials if needed.
+    $credentials = [];
+    if (in_array($ats_platform, self::LOGIN_REQUIRED_PLATFORMS)) {
+      $cred_service = \Drupal::service('job_hunter.credential_management_service');
+      $company_id   = $this->resolveCompanyId($app_data['job_id'] ?? 0);
+      if ($company_id) {
+        $cred_row = $cred_service->getCredential($app_data['uid'], $company_id, $ats_platform);
+        if ($cred_row) {
+          $credentials = $cred_row;
+        }
+      }
+    }
+
+    // Ensure screenshot directory exists and is writable.
+    $screenshot_dir = '/var/private/forseti/job_hunter/screenshots';
+    if (!is_dir($screenshot_dir)) {
+      @mkdir($screenshot_dir, 0775, TRUE);
+    }
+
+    // Build payload.
+    $payload = [
+      'apply_url'      => $apply_url,
+      'ats_platform'   => $ats_platform,
+      'application_id' => $application_id,
+      'dry_run'        => $dry_run,
+      'screenshot_dir' => $screenshot_dir,
+      'personal_info'  => $app_data['personal_info'] ?? [],
+      'resume'         => $app_data['resume'] ?? [],
+      'cover_letter'   => $app_data['cover_letter'] ?? '',
+      'credentials'    => $credentials,
+    ];
+
+    // Write payload to temp file (0600 — readable only by current process owner).
+    $tmp_file = tempnam(sys_get_temp_dir(), 'jh_pw_');
+    file_put_contents($tmp_file, json_encode($payload));
+    chmod($tmp_file, 0600);
+
+    $cmd = 'node ' . escapeshellarg($apply_js) . ' --payload-file=' . escapeshellarg($tmp_file);
+    $descriptors = [
+      0 => ['pipe', 'r'],
+      1 => ['pipe', 'w'],
+      2 => ['pipe', 'w'],
+    ];
+
+    $process = proc_open($cmd, $descriptors, $pipes, $playwright_dir);
+
+    if (!is_resource($process)) {
+      @unlink($tmp_file);
+      $logger->error('Playwright: proc_open failed for application @id', ['@id' => $application_id]);
+      return NULL;
+    }
+
+    fclose($pipes[0]);
+
+    // 95-second hard cap (bridge enforces 90s internally).
+    $timeout = 95;
+    $start   = time();
+    $stdout  = '';
+    $stderr  = '';
+
+    stream_set_blocking($pipes[1], FALSE);
+    stream_set_blocking($pipes[2], FALSE);
+
+    while (TRUE) {
+      $stdout .= stream_get_contents($pipes[1]);
+      $stderr .= stream_get_contents($pipes[2]);
+
+      $status = proc_get_status($process);
+      if (!$status['running']) {
+        break;
+      }
+
+      if ((time() - $start) >= $timeout) {
+        proc_terminate($process, 9);
+        fclose($pipes[1]);
+        fclose($pipes[2]);
+        proc_close($process);
+        @unlink($tmp_file);
+        $logger->error('Playwright: timeout for application @id', ['@id' => $application_id]);
+        return [
+          'success'              => FALSE,
+          'outcome'              => 'manual_required',
+          'apply_url'            => $apply_url,
+          'ats_platform'         => $ats_platform,
+          'ats_label'            => self::PLATFORM_LABELS[$ats_platform] ?? ucfirst($ats_platform),
+          'confirmation'         => '',
+          'error'                => 'Browser automation timed out after 95 seconds.',
+          'reason'               => 'timeout',
+          'instructions'         => 'The automated form fill timed out. Please apply manually.',
+          'field_map'            => [],
+          'requires_credentials' => FALSE,
+          'has_credentials'      => FALSE,
+        ];
+      }
+
+      usleep(200000); // 200ms poll.
+    }
+
+    // Drain remaining output after process exits.
+    $stdout .= stream_get_contents($pipes[1]);
+    $stderr .= stream_get_contents($pipes[2]);
+    fclose($pipes[1]);
+    fclose($pipes[2]);
+    $exit_code = proc_close($process);
+    @unlink($tmp_file);
+
+    $output = json_decode(trim($stdout), TRUE);
+
+    if (!$output || !isset($output['outcome'])) {
+      $logger->error('Playwright: invalid JSON output for application @id. exit=@exit stderr=@err', [
+        '@id'   => $application_id,
+        '@exit' => $exit_code,
+        '@err'  => substr($stderr, 0, 500),
+      ]);
+      return NULL; // Fall through to manual.
+    }
+
+    $outcome     = $output['outcome'];
+    $reason      = $output['reason'] ?? '';
+    $confirm_num = $output['confirmation_number'] ?? '';
+    $confirm_txt = $output['confirmation_text'] ?? '';
+    $screenshot_pre  = $output['screenshot_pre'] ?? '';
+    $screenshot_post = $output['screenshot_post'] ?? '';
+
+    $success = ($outcome === 'submitted');
+
+    // Persist confirmation data to DB.
+    if ($success) {
+      $this->database->update('jobhunter_applications')
+        ->fields([
+          'submission_status' => 'submitted',
+          'confirmed_at'      => date('Y-m-d H:i:s'),
+          'confirmation_ref'  => $confirm_num ?: $confirm_txt,
+          'changed'           => date('Y-m-d H:i:s'),
+        ])
+        ->condition('id', $application_id)
+        ->execute();
+    }
+
+    // Persist screenshot paths to the latest attempt.
+    if ($screenshot_pre || $screenshot_post || $confirm_txt || $confirm_num) {
+      $attempt_id = $this->database->select('jobhunter_application_attempts', 'a')
+        ->fields('a', ['id'])
+        ->condition('application_id', $application_id)
+        ->orderBy('id', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+      if ($attempt_id) {
+        $update = [];
+        if ($screenshot_pre)  { $update['screenshot_pre_path']  = $screenshot_pre;  }
+        if ($screenshot_post) { $update['screenshot_post_path'] = $screenshot_post; }
+        if ($confirm_txt)     { $update['confirmation_text']    = substr($confirm_txt, 0, 500); }
+        if ($confirm_num)     { $update['confirmation_number']  = substr($confirm_num, 0, 100); }
+        if ($update) {
+          $this->database->update('jobhunter_application_attempts')
+            ->fields($update)
+            ->condition('id', $attempt_id)
+            ->execute();
+        }
+      }
+    }
+
+    $ats_label = self::PLATFORM_LABELS[$ats_platform] ?? ucfirst($ats_platform);
+
+    return [
+      'success'              => $success,
+      'outcome'              => $success ? 'submitted' : 'manual_required',
+      'apply_url'            => $apply_url,
+      'ats_platform'         => $ats_platform,
+      'ats_label'            => $ats_label,
+      'confirmation'         => $confirm_num ?: $confirm_txt,
+      'error'                => $success ? '' : ($output['error'] ?? 'Automation failed — apply manually.'),
+      'reason'               => $reason,
+      'instructions'         => $success
+        ? 'Application submitted successfully via ' . $ats_label . '!'
+        : 'Automated submission failed. Apply manually via the link below.',
+      'field_map'            => [],
+      'requires_credentials' => FALSE,
+      'has_credentials'      => FALSE,
+      'screenshot_pre'       => $screenshot_pre,
+      'screenshot_post'      => $screenshot_post,
+      'dry_run'              => $dry_run,
+    ];
+  }
+
 }
