@@ -251,9 +251,8 @@ job_hunter.job_discovery_search_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::jobDiscoverySearch'
   requirements:
     _permission: 'administer job application automation'
+    _csrf_request_header_mode: 'TRUE'
   methods: [POST]
-  options:
-    _csrf_token: FALSE
 
 # Job Discovery - Save Job Endpoint
 job_hunter.save_job:
@@ -262,9 +261,8 @@ job_hunter.save_job:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::saveJob'
   requirements:
     _permission: 'administer job application automation'
+    _csrf_request_header_mode: 'TRUE'
   methods: [POST]
-  options:
-    _csrf_token: FALSE
 
 # Job Discovery - Legacy Save Job Link Endpoint (GET)
 job_hunter.addposting:
@@ -477,9 +475,8 @@ job_hunter.tailor_resume_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResumeAjax'
   requirements:
     _permission: 'access job hunter'
+    _csrf_request_header_mode: 'TRUE'
   methods: [POST]
-  options:
-    _csrf_token: FALSE
 
 # AJAX endpoint for tailoring status check
 job_hunter.tailor_resume_status_ajax:
@@ -497,9 +494,8 @@ job_hunter.add_skill_to_profile_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::addSkillToProfileAjax'
   requirements:
     _permission: 'access job hunter'
+    _csrf_request_header_mode: 'TRUE'
   methods: [POST]
-  options:
-    _csrf_token: FALSE
 
 # AJAX endpoint for refreshing skills gap analysis
 job_hunter.refresh_skills_gap_ajax:
@@ -508,9 +504,8 @@ job_hunter.refresh_skills_gap_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::refreshSkillsGapAjax'
   requirements:
     _permission: 'access job hunter'
+    _csrf_request_header_mode: 'TRUE'
   methods: [POST]
-  options:
-    _csrf_token: FALSE
 
 # Company Research
 job_hunter.company_research:

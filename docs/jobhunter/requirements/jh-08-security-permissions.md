@@ -1,6 +1,6 @@
 # JobHunter Requirements — JH-08: Security, Permissions & RBAC
 
-**Status summary:** 2 of 6 requirements COMPLETED, 1 PARTIAL, 3 GAP (3 CRITICAL)  
+**Status summary:** 4 of 6 requirements COMPLETED, 1 PARTIAL, 1 GAP  
 **Last updated:** 2026-02-27  
 **Module:** `job_hunter` (forseti.life)
 
@@ -12,43 +12,35 @@ This subsystem defines the security posture of JobHunter: role-based access cont
 
 ### REQ-08.1 — CSRF protection on all state-changing AJAX routes
 
-**Status:** GAP — CRITICAL  
-**Code path:** `job_hunter.routing.yml` (routes: `job_discovery_search_ajax`, `save_job`, `tailor_resume_ajax`, `add_skill_to_profile_ajax`, `refresh_skills_gap_ajax`)
+**Status:** COMPLETED — fixed 2026-02-27  
+**Code path:** `job_hunter.routing.yml` (routes: `job_discovery_search_ajax`, `save_job`, `tailor_resume_ajax`, `add_skill_to_profile_ajax`, `refresh_skills_gap_ajax`); `js/tailor-resume.js`; `js/job-search-results.js`
 
 - All AJAX routes that modify server-side state (create, update, or delete operations) must enforce Drupal's CSRF token validation.
 - CSRF tokens must be embedded in the page at render time and validated server-side on each AJAX request.
 - Failure to supply a valid CSRF token must result in a 403 response; no state change must occur.
-- **GAP (CRITICAL — HIGH urgency):** Five routes are currently missing CSRF protection:
-  - `job_discovery_search_ajax` (`/jobhunter/job-discovery/search`)
-  - `save_job` (`/jobhunter/job-discovery/save`)
-  - `tailor_resume_ajax` (tailoring trigger)
-  - `add_skill_to_profile_ajax` (profile skill update)
-  - `refresh_skills_gap_ajax` (skills gap refresh)
-- Any authenticated user's browser session can be hijacked to perform these operations via a cross-site request from a malicious page.
+- **Fix applied:** Removed `options: _csrf_token: FALSE` from all 5 routes; added `_csrf_request_header_mode: 'TRUE'` to each route's requirements block. Updated `tailor-resume.js` to send `X-CSRF-Token` header on 4 AJAX calls; updated `job-search-results.js` to send the token as a request header instead of in the POST body.
 
 ---
 
 ### REQ-08.2 — SQL injection prevention
 
-**Status:** GAP — CRITICAL  
-**Code path:** `src/Controller/UserProfileController.php` (`queueStatus()` method)
+**Status:** COMPLETED — fixed 2026-02-27  
+**Code path:** `src/Controller/UserProfileController.php` (`getActualQueueStatus()` method)
 
-- All user-supplied input used in database queries must be sanitized using Drupal's database abstraction layer (parameterized queries or `db_like()` escaping).
+- All user-supplied input used in database queries must be sanitized using Drupal's database abstraction layer (parameterized queries or `escapeLike()` escaping).
 - Raw `LIKE` queries must never be constructed from unsanitized request parameters.
-- **GAP (CRITICAL — HIGH urgency):** `UserProfileController::queueStatus()` constructs a raw LIKE query using an unsanitized user-supplied parameter. This allows an authenticated attacker to inject arbitrary SQL fragments into the query.
-- Remediation: Replace the raw LIKE construction with a parameterized query using Drupal's `Database::getConnection()->select()` API with proper placeholder binding.
+- **Fix applied:** Both `$job_id` and `$user_id` are now cast to `(int)` before use, eliminating injection via type coercion. `LIKE` pattern strings are wrapped with `$database->escapeLike()` to prevent wildcard injection in both the `queue` and `jobhunter_queue_suspended` table queries.
 
 ---
 
 ### REQ-08.3 — Path traversal prevention
 
-**Status:** GAP — CRITICAL  
+**Status:** COMPLETED — already fixed (pre-existing)  
 **Code path:** `src/Controller/DocumentationController.php` (`viewDocument()` method)
 
 - Any controller that accepts a file path or file name as a URL parameter must validate that path against an explicit allowlist of permitted files or directories before constructing a filesystem path.
 - User-supplied path components must never be concatenated directly into a `file_get_contents()`, `fopen()`, or equivalent filesystem call.
-- **GAP (CRITICAL — HIGH urgency):** `DocumentationController::viewDocument()` uses the user-supplied `$file` route parameter directly in a filesystem path construction, enabling directory traversal attacks (e.g., `../../etc/passwd`).
-- Remediation: Validate `$file` against an allowlist of known documentation files; reject any value containing path separators or `..` sequences.
+- **Verified:** `DocumentationController::viewDocument()` has an allowlist of 14 permitted filenames and validates the resolved real path against the expected base directory. No fix required.
 
 ---
 

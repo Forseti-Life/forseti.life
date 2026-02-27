@@ -195,6 +195,7 @@
           $.ajax({
             url: '/jobhunter/tailor-resume/ajax',
             type: 'POST',
+            headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             data: {
               job_id: jobId
             },
@@ -259,6 +260,7 @@
           $.ajax({
             url: '/jobhunter/tailor-resume/ajax',
             type: 'POST',
+            headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             data: {
               job_id: jobId,
               force: 1
@@ -613,6 +615,7 @@
           $.ajax({
             url: '/jobhunter/profile/add-skill',
             type: 'POST',
+            headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             dataType: 'json',
             data: {
               skill: skill,
@@ -702,6 +705,7 @@
           $.ajax({
             url: '/jobhunter/tailor-resume/refresh-skills-gap',
             type: 'POST',
+            headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             dataType: 'json',
             data: { job_id: jobId },
             success: function(response) {

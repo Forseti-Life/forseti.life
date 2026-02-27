@@ -81,12 +81,12 @@
             headers: {
               'X-Requested-With': 'XMLHttpRequest',
               'Accept': 'application/json',
-              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+              'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+              'X-CSRF-Token': csrfToken
             },
             credentials: 'same-origin',
             body: new URLSearchParams({
-              job_id: jobId,
-              csrf_token: csrfToken
+              job_id: jobId
             }).toString()
           })
             .then((response) => {

@@ -2181,13 +2181,15 @@ PROMPT;
    */
   private function getActualQueueStatus($user_id, $job_id, $queue_name = 'job_hunter_resume_tailoring') {
     $database = \Drupal::database();
+    $job_id = (int) $job_id;
+    $user_id = (int) $user_id;
     
     // Check if item is in the active queue
     $in_queue = $database->select('queue', 'q')
       ->fields('q', ['item_id'])
       ->condition('name', $queue_name)
-      ->condition('data', '%"job_id":' . $job_id . '%', 'LIKE')
-      ->condition('data', '%"uid":' . $user_id . '%', 'LIKE')
+      ->condition('data', '%' . $database->escapeLike('"job_id":' . $job_id) . '%', 'LIKE')
+      ->condition('data', '%' . $database->escapeLike('"uid":' . $user_id) . '%', 'LIKE')
       ->execute()
       ->fetchField();
     
@@ -2195,8 +2197,8 @@ PROMPT;
     $suspended = $database->select('jobhunter_queue_suspended', 'qs')
       ->fields('qs', ['id'])
       ->condition('queue_name', $queue_name)
-      ->condition('item_data', '%"job_id":' . $job_id . '%', 'LIKE')
-      ->condition('item_data', '%"uid":' . $user_id . '%', 'LIKE')
+      ->condition('item_data', '%' . $database->escapeLike('"job_id":' . $job_id) . '%', 'LIKE')
+      ->condition('item_data', '%' . $database->escapeLike('"uid":' . $user_id) . '%', 'LIKE')
       ->execute()
       ->fetchField();
     
