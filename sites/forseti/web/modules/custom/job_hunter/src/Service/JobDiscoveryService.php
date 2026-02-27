@@ -274,7 +274,7 @@ class JobDiscoveryService {
    * @return array
    *   Array of job objects with company and tailoring information.
    */
-  public function getSavedJobs(array $filters = []): array {
+  public function getSavedJobs(array $filters = [], int $page = 0, int $per_page = 50): array {
     try {
       $company_name_field = $this->getCompanyNameField();
 
@@ -314,6 +314,9 @@ class JobDiscoveryService {
       $query->orderBy('c.' . $company_name_field, 'ASC');
       $query->orderBy('j.job_title', 'ASC');
 
+      // Paginate.
+      $query->range($page * $per_page, $per_page);
+
       $results = $query->execute()->fetchAll();
       
       // Decode JSON fields for template use.
@@ -333,6 +336,86 @@ class JobDiscoveryService {
         '@error' => $e->getMessage(),
       ]);
       return [];
+    }
+  }
+
+  /**
+   * Count saved (non-archived) jobs for the current user, respecting filters.
+   */
+  public function getSavedJobsFiltered(array $filters = []): int {
+    try {
+      $company_name_field = $this->getCompanyNameField();
+      $query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+      $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [
+        ':uid' => $this->currentUser->id(),
+      ]);
+      $query->condition('sj.uid', $this->currentUser->id());
+      if (!empty($filters['company'])) {
+        $query->condition('c.' . $company_name_field, '%' . $this->database->escapeLike($filters['company']) . '%', 'LIKE');
+      }
+      if (!empty($filters['status'])) {
+        $query->condition('j.status', $filters['status']);
+      }
+      else {
+        $query->condition('j.status', 'archived', '!=');
+      }
+      if (!empty($filters['ai_status'])) {
+        $query->condition('j.ai_extraction_status', $filters['ai_status']);
+      }
+      if (!empty($filters['tailoring'])) {
+        $query->condition('tr.tailoring_status', $filters['tailoring']);
+      }
+      $query->addExpression('COUNT(*)', 'total');
+      return (int) $query->execute()->fetchField();
+    }
+    catch (\Exception $e) {
+      return 0;
+    }
+  }
+
+  /**
+   * Get archived jobs for the current user with pagination.
+   */
+  public function getArchivedJobs(int $page = 0, int $per_page = 50): array {
+    try {
+      $company_name_field = $this->getCompanyNameField();
+      $query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $query->fields('j')->condition('sj.uid', $this->currentUser->id());
+      $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
+      $query->addField('c', $company_name_field, 'company_name');
+      $query->leftJoin('jobhunter_tailored_resumes', 'tr', 'j.id = tr.job_id AND tr.uid = :uid', [
+        ':uid' => $this->currentUser->id(),
+      ]);
+      $query->addField('tr', 'tailoring_status');
+      $query->condition('j.status', 'archived');
+      $query->orderBy('c.' . $company_name_field, 'ASC');
+      $query->orderBy('j.job_title', 'ASC');
+      $query->range($page * $per_page, $per_page);
+      return $query->execute()->fetchAll();
+    }
+    catch (\Exception $e) {
+      $this->getLogger()->error('Error fetching archived jobs: @error', ['@error' => $e->getMessage()]);
+      return [];
+    }
+  }
+
+  /**
+   * Count archived jobs for the current user.
+   */
+  public function getArchivedJobsCount(): int {
+    try {
+      $query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $query->condition('sj.uid', $this->currentUser->id());
+      $query->condition('j.status', 'archived');
+      $query->addExpression('COUNT(*)', 'total');
+      return (int) $query->execute()->fetchField();
+    }
+    catch (\Exception $e) {
+      return 0;
     }
   }
 

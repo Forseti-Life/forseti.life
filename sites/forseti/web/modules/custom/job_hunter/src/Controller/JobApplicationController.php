@@ -1042,7 +1042,6 @@ class JobApplicationController extends ControllerBase {
    *   Renderable array for the my jobs page.
    */
   public function myJobs(): array {
-    // Get filter parameters from request.
     $request = $this->requestStack->getCurrentRequest();
     $filters = [
       'company' => $request->query->get('company', ''),
@@ -1050,12 +1049,14 @@ class JobApplicationController extends ControllerBase {
       'ai_status' => $request->query->get('ai_status', ''),
       'tailoring' => $request->query->get('tailoring', ''),
     ];
-    
-    // Get saved jobs and company names for filtering.
-    $jobs = $this->jobDiscoveryService->getSavedJobs($filters);
+    $per_page = 50;
+    $page = max(0, (int) $request->query->get('page', 0));
+
+    $total = $this->jobDiscoveryService->getSavedJobsFiltered($filters);
+    $jobs = $this->jobDiscoveryService->getSavedJobs($filters, $page, $per_page);
     $companies = $this->jobDiscoveryService->getCompanyNames();
-    
-    // Render the template.
+    $total_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
+
     $content = [
       '#theme' => 'my_jobs',
       '#jobs' => $jobs,
@@ -1065,12 +1066,133 @@ class JobApplicationController extends ControllerBase {
       '#filter_ai_status' => $filters['ai_status'],
       '#filter_tailoring' => $filters['tailoring'],
       '#return_url' => $request->getRequestUri(),
+      '#current_page' => $page,
+      '#total_pages' => $total_pages,
+      '#total_jobs' => $total,
       '#cache' => [
         'contexts' => ['user', 'url.query_args'],
         'tags' => ['job_hunter:jobs', 'job_hunter:companies'],
       ],
     ];
-    
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Archive a saved job (sets status to 'archived').
+   */
+  public function archiveJob(int $job_id): RedirectResponse {
+    $request = $this->requestStack->getCurrentRequest();
+    $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
+    if (strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs';
+    }
+
+    if ($this->currentUser()->isAnonymous()) {
+      return new RedirectResponse('/user/login');
+    }
+
+    try {
+      // Verify ownership via jobhunter_saved_jobs before updating status.
+      $owned = $this->database->select('jobhunter_saved_jobs', 'sj')
+        ->fields('sj', ['job_id'])
+        ->condition('sj.uid', (int) $this->currentUser()->id())
+        ->condition('sj.job_id', $job_id)
+        ->execute()
+        ->fetchField();
+
+      if (!$owned) {
+        $this->messenger()->addError($this->t('Job not found.'));
+        return new RedirectResponse($return_to);
+      }
+
+      $this->database->update('jobhunter_job_requirements')
+        ->fields(['status' => 'archived'])
+        ->condition('id', $job_id)
+        ->execute();
+
+      $this->messenger()->addMessage($this->t('Job archived.'));
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Failed to archive job. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to archive job @id: @error', [
+        '@id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
+    return new RedirectResponse($return_to);
+  }
+
+  /**
+   * Unarchive a job (sets status back to 'active').
+   */
+  public function unarchiveJob(int $job_id): RedirectResponse {
+    $request = $this->requestStack->getCurrentRequest();
+    $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs/archive');
+    if (strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs/archive';
+    }
+
+    if ($this->currentUser()->isAnonymous()) {
+      return new RedirectResponse('/user/login');
+    }
+
+    try {
+      $owned = $this->database->select('jobhunter_saved_jobs', 'sj')
+        ->fields('sj', ['job_id'])
+        ->condition('sj.uid', (int) $this->currentUser()->id())
+        ->condition('sj.job_id', $job_id)
+        ->execute()
+        ->fetchField();
+
+      if (!$owned) {
+        $this->messenger()->addError($this->t('Job not found.'));
+        return new RedirectResponse($return_to);
+      }
+
+      $this->database->update('jobhunter_job_requirements')
+        ->fields(['status' => 'active'])
+        ->condition('id', $job_id)
+        ->execute();
+
+      $this->messenger()->addMessage($this->t('Job restored to My Jobs.'));
+    }
+    catch (\Exception $e) {
+      $this->messenger()->addError($this->t('Failed to restore job. Please try again.'));
+      $this->getLogger('job_hunter')->error('Failed to unarchive job @id: @error', [
+        '@id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
+    return new RedirectResponse($return_to);
+  }
+
+  /**
+   * Archive page — shows archived jobs with pagination.
+   */
+  public function myJobsArchive(): array {
+    $request = $this->requestStack->getCurrentRequest();
+    $per_page = 50;
+    $page = max(0, (int) $request->query->get('page', 0));
+
+    $total = $this->jobDiscoveryService->getArchivedJobsCount();
+    $jobs = $this->jobDiscoveryService->getArchivedJobs($page, $per_page);
+    $total_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
+
+    $content = [
+      '#theme' => 'my_jobs_archive',
+      '#jobs' => $jobs,
+      '#current_page' => $page,
+      '#total_pages' => $total_pages,
+      '#total_jobs' => $total,
+      '#cache' => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags' => ['job_hunter:jobs'],
+      ],
+    ];
+
     return $this->wrapWithNavigation($content);
   }
 

@@ -167,8 +167,20 @@ function job_hunter_theme() {
         'filter_ai_status' => '',
         'filter_tailoring' => '',
         'return_url' => '/jobhunter/my-jobs',
+        'current_page' => 0,
+        'total_pages' => 1,
+        'total_jobs' => 0,
       ],
       'template' => 'my-jobs',
+    ],
+    'my_jobs_archive' => [
+      'variables' => [
+        'jobs' => [],
+        'current_page' => 0,
+        'total_pages' => 1,
+        'total_jobs' => 0,
+      ],
+      'template' => 'my-jobs-archive',
     ],
     'company_research_page' => [
       'variables' => [

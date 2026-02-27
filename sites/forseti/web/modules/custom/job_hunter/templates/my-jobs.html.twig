@@ -11,6 +11,9 @@
  * - filter_ai_status: Current AI status filter value
  * - filter_tailoring: Current tailoring filter value
  * - return_url: Current page URL to return to after inline actions
+ * - current_page: Current page number (0-indexed)
+ * - total_pages: Total number of pages
+ * - total_jobs: Total job count matching filters
  */
 #}
 
@@ -21,6 +24,9 @@
   <div class="page-actions">
     <a href="/jobhunter/job/paste" class="button button--primary">
       {{ '+ Add Job Posting'|t }}
+    </a>
+    <a href="/jobhunter/my-jobs/archive" class="button button--secondary">
+      {{ '🗄 Archived Jobs'|t }}
     </a>
   </div>
 
@@ -223,10 +229,10 @@
                     {{ 'Retry Parsing'|t }}
                   </a>
                 {% endif %}
-                <a href="{{ path('job_hunter.job_delete', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}" 
-                   class="button button--small button--danger"
-                   onclick="return confirm('{{ 'Remove this job from My Jobs?'|t }}')">
-                  {{ 'Delete'|t }}
+                <a href="{{ path('job_hunter.job_archive', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}" 
+                   class="button button--small button--warning"
+                   onclick="return confirm('{{ 'Archive this job? You can restore it from Archived Jobs.'|t }}')">
+                  {{ 'Archive'|t }}
                 </a>
               </div>
             </td>
@@ -245,4 +251,29 @@
       </p>
     </div>
   {% endif %}
+
+  {% if total_pages > 1 %}
+    <nav class="pager" aria-label="{{ 'Pagination'|t }}">
+      <ul class="pager__items">
+        {% if current_page > 0 %}
+          <li class="pager__item pager__item--previous">
+            <a href="?page={{ current_page - 1 }}{% if filter_company %}&company={{ filter_company }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_ai_status %}&ai_status={{ filter_ai_status }}{% endif %}{% if filter_tailoring %}&tailoring={{ filter_tailoring }}{% endif %}" rel="prev">
+              ‹ {{ 'Previous'|t }}
+            </a>
+          </li>
+        {% endif %}
+        <li class="pager__item pager__item--current">
+          {{ 'Page %current of %total'|t({'%current': current_page + 1, '%total': total_pages}) }}
+        </li>
+        {% if current_page < total_pages - 1 %}
+          <li class="pager__item pager__item--next">
+            <a href="?page={{ current_page + 1 }}{% if filter_company %}&company={{ filter_company }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_ai_status %}&ai_status={{ filter_ai_status }}{% endif %}{% if filter_tailoring %}&tailoring={{ filter_tailoring }}{% endif %}" rel="next">
+              {{ 'Next'|t }} ›
+            </a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
+
 </div>

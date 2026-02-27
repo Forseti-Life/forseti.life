@@ -308,6 +308,30 @@ job_hunter.my_jobs:
   requirements:
     _permission: 'access job hunter'
 
+job_hunter.my_jobs_archive:
+  path: '/jobhunter/my-jobs/archive'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::myJobsArchive'
+    _title: 'Archived Jobs'
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.job_archive:
+  path: '/jobhunter/my-jobs/{job_id}/archive'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::archiveJob'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.job_unarchive:
+  path: '/jobhunter/my-jobs/{job_id}/unarchive'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::unarchiveJob'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
 job_hunter.toggle_job_applied:
   path: '/jobhunter/my-jobs/{job_id}/applied'
   defaults:
