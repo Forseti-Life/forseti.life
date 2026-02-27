@@ -19,7 +19,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 1 | Chapter 1: Introduction (p.2) | `references/core-ch01-introduction.md` | `[x]` Done (as `chapter-01-introduction.md`) |
 | 2 | Chapter 2: Ancestries & Backgrounds (p.32) | `references/core-ch02-ancestries-backgrounds.md` | `[ ]` |
 | 3 | Chapter 3: Classes (p.66) | `references/core-ch03-classes.md` | `[x]` |
-| 4 | Chapter 4: Skills (p.232) | `references/core-ch04-skills.md` | `[ ]` |
+| 4 | Chapter 4: Skills (p.232) | `references/core-ch04-skills.md` | `[x]` |
 | 5 | Chapter 5: Feats (p.254) | `references/core-ch05-feats.md` | `[ ]` |
 | 6 | Chapter 6: Equipment (p.270) | `references/core-ch06-equipment.md` | `[ ]` |
 | 7 | Chapter 7: Spells (p.296) | `references/core-ch07-spells.md` | `[ ]` |
