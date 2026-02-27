@@ -40,11 +40,12 @@ jobs:
         GITHUB_SHA: ${{ github.sha }}
         GITHUB_ACTOR: ${{ github.actor }}
         COMMIT_MESSAGE: ${{ github.event.head_commit.message }}
+        GITHUB_EVENT_NAME: ${{ github.event_name }}
       with:
         host: ${{ secrets.HOST }}
         username: ${{ secrets.USERNAME }}
         key: ${{ secrets.PRIVATE_KEY }}
-        envs: HUBGIT_PAT,GITHUB_SHA,GITHUB_ACTOR,COMMIT_MESSAGE
+        envs: HUBGIT_PAT,GITHUB_SHA,GITHUB_ACTOR,COMMIT_MESSAGE,GITHUB_EVENT_NAME
         script: |
           set -e
           set -o pipefail
@@ -174,6 +175,10 @@ jobs:
             # Determine if drush commands are needed
             local DRUSH_NEEDED=false
             if [ "$COMPOSER_CHANGED" = true ] || [ "$MODULES_DEPLOYED" = true ] || [ "$CONFIG_DEPLOYED" = true ]; then
+              DRUSH_NEEDED=true
+            fi
+            # Always run drush on manual workflow_dispatch (e.g. post-deploy config sync)
+            if [ "${GITHUB_EVENT_NAME:-}" = "workflow_dispatch" ]; then
               DRUSH_NEEDED=true
             fi
             
