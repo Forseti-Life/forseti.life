@@ -4,7 +4,6 @@ namespace Drupal\job_hunter\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
 use Drupal\Core\Queue\QueueWorkerBase;
-use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\job_hunter\Traits\QueueWorkerBaseTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
@@ -78,8 +77,17 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
       $parsed_data = $this->parseJobPosting($raw_posting_text, $job_id);
 
       if (!$parsed_data) {
-        // Suspend queue - GenAI call may have succeeded but JSON parsing failed
-        throw new SuspendQueueException('Failed to parse job posting. Check logs for JSON parsing errors. Clear cache if prompt needs adjustment.');
+        // Mark this specific job as failed so the queue can continue with other items.
+        // SuspendQueueException would block ALL pending jobs — wrong behavior here.
+        $connection->update('jobhunter_job_requirements')
+          ->fields(['ai_extraction_status' => 'failed', 'updated' => time()])
+          ->condition('id', $job_id)
+          ->execute();
+        \Drupal::logger('job_hunter')->error(
+          '❌ Job posting parsing returned no data for @id — marked failed. Check AIApiService logs.',
+          ['@id' => $job_id]
+        );
+        return;
       }
 
       // Update job record with extracted data
@@ -98,7 +106,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
         }
         if (!empty($extracted['company_name'])) {
           // Look up or create company
-          $company_id = $this->findOrCreateCompany($extracted['company_name'], $extracted);
+          $company_id = $this->findOrCreateCompany($extracted['company_name'], $extracted, $connection);
           if ($company_id) {
             $update_fields['company_id'] = $company_id;
           }
@@ -180,7 +188,7 @@ class JobPostingParsingWorker extends QueueWorkerBase implements ContainerFactor
   /**
    * Parse job posting using AWS Bedrock.
    */
-  private function parseJobPosting($raw_posting_text) {
+  private function parseJobPosting($raw_posting_text, $job_id) {
     $logger = \Drupal::logger('job_hunter');
 
     // CALL 1: Extract job details
@@ -375,8 +383,7 @@ PROMPT;
   /**
    * Find or create company from extracted data.
    */
-  private function findOrCreateCompany($company_name, $extracted_data) {
-    $connection = \Drupal::database();
+  private function findOrCreateCompany($company_name, $extracted_data, $connection) {
 
     // Check if company exists
     $existing = $connection->select('jobhunter_companies', 'c')
@@ -441,7 +448,8 @@ PROMPT;
     if (empty($current_title) && empty($current_company)) {
       return [];
     }
-    
+
+    try {
     // Query other jobs with extracted_json populated (already parsed)
     $query = $connection->select('jobhunter_job_requirements', 'j')
       ->fields('j', ['id', 'job_title', 'extracted_json'])
@@ -451,9 +459,11 @@ PROMPT;
     
     $results = $query->execute()->fetchAll();
     
+    $skipped_count = 0;
     foreach ($results as $job) {
       $other_json = json_decode($job->extracted_json, TRUE);
       if (!$other_json) {
+        $skipped_count++;
         continue;
       }
       
@@ -484,11 +494,26 @@ PROMPT;
         ];
       }
     }
-    
+
+    if ($skipped_count > 0) {
+      \Drupal::logger('job_hunter')->warning(
+        'Skipped @count job(s) with invalid JSON during duplicate detection for job @id',
+        ['@count' => $skipped_count, '@id' => $current_job_id]
+      );
+    }
+
     // Sort by similarity score descending
     usort($duplicates, fn($a, $b) => $b['similarity_score'] <=> $a['similarity_score']);
-    
+
     return $duplicates;
+
+    } catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error(
+        'Duplicate detection failed for job @id: @error',
+        ['@id' => $current_job_id, '@error' => $e->getMessage()]
+      );
+      return [];
+    }
   }
 
   /**
