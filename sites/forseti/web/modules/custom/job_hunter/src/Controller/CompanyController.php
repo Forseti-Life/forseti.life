@@ -9,6 +9,7 @@ use Drupal\Core\Link;
 use Drupal\Core\Url;
 use Drupal\Core\Session\AccountProxyInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 
@@ -290,6 +291,11 @@ class CompanyController extends ControllerBase {
       $query->addField('tr', 'tailoring_status');
       $query->addField('tr', 'tailored_resume_json');
       $query->addField('tr', 'pdf_path');
+      // Join application records for current user.
+      $query->leftJoin('jobhunter_applications', 'app', 'j.id = app.job_id AND app.uid = :app_uid', [':app_uid' => $current_user_id]);
+      $query->addField('app', 'submission_status', 'application_status');
+      $query->addField('app', 'ats_platform', 'application_ats');
+      $query->addField('app', 'automation_success', 'application_automation_success');
       
       // Apply filters
       if (!empty($filter_company)) {
@@ -648,6 +654,16 @@ class CompanyController extends ControllerBase {
       ->execute()
       ->fetchObject();
 
+    // Check existing application record.
+    $existing_application = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'submission_status', 'ats_platform', 'apply_url', 'selected_apply_option', 'attempt_count', 'confirmation_reference', 'submission_date', 'automation_success', 'admin_review_required'])
+      ->condition('uid', $current_user->id())
+      ->condition('job_id', $job_id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
     // Header with edit link
     $raw_title = $jobValue($job, 'job_title');
     $display_title = $extracted['job_title']
@@ -664,6 +680,26 @@ class CompanyController extends ControllerBase {
     $display_company = $extracted
       ? (($extracted['company_name'] ?? '') . (!empty($extracted['industry']) ? ' — ' . $extracted['industry'] : ''))
       : $raw_company;
+
+    // Build Apply button HTML — AJAX-powered, no page refresh.
+    $apply_url_route = Url::fromRoute('job_hunter.job_apply', ['job_id' => $job_id])->toString();
+    $status_url_route = Url::fromRoute('job_hunter.application_status', ['job_id' => $job_id])->toString();
+    $csrf_token = \Drupal::csrfToken()->get('job_apply_' . $job_id);
+
+    if ($existing_application) {
+      $app_status = $existing_application['submission_status'];
+      $status_labels = [
+        'pending'         => ['label' => '⏳ Application Pending', 'class' => 'btn-warning'],
+        'processing'      => ['label' => '⚙️ Submitting...', 'class' => 'btn-warning'],
+        'submitted'       => ['label' => '✅ Applied', 'class' => 'btn-success'],
+        'failed'          => ['label' => '❌ Failed — Retry', 'class' => 'btn-danger'],
+        'manual_required' => ['label' => '📋 Apply Manually', 'class' => 'btn-secondary'],
+      ];
+      $btn_info = $status_labels[$app_status] ?? ['label' => '📤 Apply', 'class' => 'button--primary'];
+      $apply_button_html = '<button class="button ' . $btn_info['class'] . ' btn-apply-job" data-job-id="' . $job_id . '" data-apply-url="' . $apply_url_route . '" data-status-url="' . $status_url_route . '" data-token="' . $csrf_token . '">' . $btn_info['label'] . '</button>';
+    } else {
+      $apply_button_html = '<button class="button button--primary btn-apply-job" data-job-id="' . $job_id . '" data-apply-url="' . $apply_url_route . '" data-status-url="' . $status_url_route . '" data-token="' . $csrf_token . '">📤 Apply</button>';
+    }
 
     $content['header'] = [
       '#type' => 'container',
@@ -689,8 +725,54 @@ class CompanyController extends ControllerBase {
           '#url' => Url::fromRoute('job_hunter.tailor_resume', ['job' => $job_id]),
           '#attributes' => ['class' => ['button', 'button--primary']],
         ],
+        'apply' => [
+          '#markup' => $apply_button_html,
+        ],
       ],
     ];
+
+    // Application status panel (shown when application exists).
+    if ($existing_application) {
+      $app = $existing_application;
+      $status_classes = [
+        'pending'         => 'status-pending',
+        'processing'      => 'status-processing',
+        'submitted'       => 'status-completed',
+        'failed'          => 'status-failed',
+        'manual_required' => 'status-neutral',
+      ];
+      $status_class = $status_classes[$app['submission_status']] ?? 'status-neutral';
+      $status_display = ucwords(str_replace('_', ' ', $app['submission_status']));
+
+      $app_info_parts = [
+        '<strong>Status:</strong> <span class="' . $status_class . '">' . htmlspecialchars($status_display) . '</span>',
+      ];
+      if (!empty($app['ats_platform'])) {
+        $app_info_parts[] = '<strong>ATS Platform:</strong> ' . htmlspecialchars(ucfirst($app['ats_platform']));
+      }
+      if (!empty($app['selected_apply_option'])) {
+        $app_info_parts[] = '<strong>Apply Via:</strong> ' . htmlspecialchars($app['selected_apply_option']);
+      }
+      if (!empty($app['apply_url'])) {
+        $app_info_parts[] = '<strong>Apply URL:</strong> <a href="' . htmlspecialchars($app['apply_url']) . '" target="_blank" rel="noopener">' . htmlspecialchars($app['apply_url']) . ' ↗</a>';
+      }
+      if (!empty($app['confirmation_reference'])) {
+        $app_info_parts[] = '<strong>Confirmation:</strong> ' . htmlspecialchars($app['confirmation_reference']);
+      }
+      if (!empty($app['submission_date'])) {
+        $app_info_parts[] = '<strong>Submitted:</strong> ' . htmlspecialchars($app['submission_date']);
+      }
+      if (!empty($app['attempt_count'])) {
+        $app_info_parts[] = '<strong>Attempts:</strong> ' . (int) $app['attempt_count'];
+      }
+
+      $content['application_status'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['job-application-status', 'job-info-box']],
+        '#markup' => '<h4>📋 Application Status</h4><div class="app-status-details">' . implode('<br>', $app_info_parts) . '</div>',
+        '#cache' => ['contexts' => ['user']],
+      ];
+    }
 
     // Job source information and links
     $source_info = [];
@@ -997,15 +1079,104 @@ class CompanyController extends ControllerBase {
           .job-info-box strong { color: #333; }
           .job-info-box a { color: #667eea; text-decoration: none; }
           .job-info-box a:hover { text-decoration: underline; }
-          .status-completed { color: #10b981; font-weight: 600; }
+          .status-completed, .status-neutral { color: #10b981; font-weight: 600; }
           .status-pending { color: #f59e0b; font-weight: 600; }
           .status-queued { color: #3b82f6; font-weight: 600; }
           .status-processing { color: #8b5cf6; font-weight: 600; }
           .status-failed { color: #ef4444; font-weight: 600; }
           .raw-text { white-space: pre-wrap; font-size: 0.95em; line-height: 1.6; margin: 10px 0; }
+          .job-application-status { margin-bottom: 20px; }
+          .job-application-status h4 { margin: 0 0 10px 0; color: #333; }
+          .app-status-details { line-height: 1.9; }
+          .btn-apply-job { background: #667eea; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 0.95em; }
+          .btn-apply-job:hover { background: #5563d0; }
+          .btn-apply-job.btn-success { background: #10b981; }
+          .btn-apply-job.btn-warning { background: #f59e0b; }
+          .btn-apply-job.btn-danger { background: #ef4444; }
+          .btn-apply-job.btn-secondary { background: #6b7280; }
+          .btn-apply-job:disabled { opacity: 0.6; cursor: not-allowed; }
+          #apply-status-msg { margin-top: 8px; font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+          #apply-status-msg.success { background: #d1fae5; color: #065f46; display: block; }
+          #apply-status-msg.error { background: #fee2e2; color: #991b1b; display: block; }
+          #apply-status-msg.info { background: #dbeafe; color: #1e40af; display: block; }
         ',
       ],
       'job_view_styles',
+    ];
+
+    // Apply button AJAX handler.
+    $content['#attached']['html_head'][] = [
+      [
+        '#tag' => 'script',
+        '#value' => '
+(function() {
+  document.addEventListener("DOMContentLoaded", function() {
+    document.querySelectorAll(".btn-apply-job").forEach(function(btn) {
+      btn.addEventListener("click", function() {
+        var jobId     = btn.dataset.jobId;
+        var applyUrl  = btn.dataset.applyUrl;
+        var token     = btn.dataset.token;
+        var statusEl  = document.getElementById("apply-status-msg");
+
+        btn.disabled = true;
+        btn.textContent = "⏳ Processing...";
+
+        fetch(applyUrl, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": token
+          },
+          credentials: "same-origin"
+        })
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+          if (data.status === "manual_required" || data.ats_platform === "aggregator" || data.ats_platform === "unknown") {
+            btn.textContent = "📋 Apply Manually";
+            btn.classList.remove("btn-apply-job");
+            btn.classList.add("btn-secondary");
+            if (statusEl) {
+              statusEl.className = "info";
+              var link = data.apply_url ? " <a href=\"" + data.apply_url + "\" target=\"_blank\">Open application ↗</a>" : "";
+              statusEl.innerHTML = "✅ Tracked! This job requires manual submission." + link;
+            }
+          } else if (data.success) {
+            btn.textContent = "✅ Applied";
+            btn.classList.add("btn-success");
+            if (statusEl) {
+              statusEl.className = "success";
+              statusEl.textContent = data.message || "Application submitted!";
+            }
+          } else {
+            btn.textContent = "❌ Failed — Retry";
+            btn.classList.add("btn-danger");
+            btn.disabled = false;
+            if (statusEl) {
+              statusEl.className = "error";
+              statusEl.textContent = data.error || "Submission failed. Please try again.";
+            }
+          }
+        })
+        .catch(function(err) {
+          btn.textContent = "❌ Error — Retry";
+          btn.disabled = false;
+          if (statusEl) {
+            statusEl.className = "error";
+            statusEl.textContent = "Network error. Please try again.";
+          }
+        });
+      });
+    });
+  });
+})();
+        ',
+      ],
+      'job_apply_js',
+    ];
+
+    // Status message container (populated by AJAX).
+    $content['apply_status_msg'] = [
+      '#markup' => '<div id="apply-status-msg"></div>',
     ];
     
     return $this->wrapWithNavigation($content);
@@ -1177,6 +1348,135 @@ class CompanyController extends ControllerBase {
     $form = $this->formBuilder->getForm('Drupal\job_hunter\Form\BulkCompanyImportForm');
 
     return $this->wrapWithNavigation($form);
+  }
+
+  /**
+   * POST handler: initiate automated application for a job.
+   *
+   * Route: POST /jobhunter/jobs/{job_id}/apply
+   */
+  public function applyToJob($job_id) {
+    $uid = $this->currentUser->id();
+    if (!$uid) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Not authenticated.'], 403);
+    }
+
+    /** @var \Drupal\job_hunter\Service\ApplicationSubmissionService $submission_service */
+    $submission_service = \Drupal::service('job_hunter.application_submission_service');
+    /** @var \Drupal\job_hunter\Service\ApplyUrlResolverService $resolver */
+    $resolver = \Drupal::service('job_hunter.apply_url_resolver');
+
+    // Validate prerequisites.
+    $validation = $submission_service->validateApplicationPrerequisites($uid, (int) $job_id);
+    if (!$validation['success']) {
+      return new JsonResponse(['success' => FALSE, 'error' => $validation['error'], 'details' => $validation['details']], 422);
+    }
+
+    // Resolve the best apply URL.
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['apply_options', 'job_url', 'company_name', 'job_title'])
+      ->condition('id', (int) $job_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$job) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Job not found.'], 404);
+    }
+
+    $resolved = $resolver->resolve($job);
+
+    // Submit application (queues it for async processing).
+    $result = $submission_service->submitApplication($uid, (int) $job_id, TRUE);
+
+    // If successful, update the application record with URL/ATS metadata.
+    if ($result['success'] && !empty($result['application_id'])) {
+      $this->database->update('jobhunter_applications')
+        ->fields([
+          'apply_url'             => $resolved['url'],
+          'ats_platform'          => $resolved['ats_platform'],
+          'selected_apply_option' => $resolved['selected_option'],
+          'metadata'              => json_encode([
+            'resolution_steps' => $resolved['resolution_steps'],
+            'confidence'       => $resolved['confidence'],
+          ]),
+          'changed' => date('Y-m-d H:i:s'),
+        ])
+        ->condition('id', $result['application_id'])
+        ->execute();
+    }
+
+    // Determine UI message based on ATS platform.
+    $platform = $resolved['ats_platform'];
+    if ($platform === 'manual_required' || $platform === 'aggregator' || $platform === 'unknown') {
+      $apply_url = $resolved['url'] ?: ($job['job_url'] ?? '');
+      return new JsonResponse([
+        'success'          => TRUE,
+        'status'           => 'manual_required',
+        'message'          => 'Application tracked. This job requires manual submission.',
+        'apply_url'        => $apply_url,
+        'ats_platform'     => $platform,
+        'application_id'   => $result['application_id'] ?? NULL,
+      ]);
+    }
+
+    return new JsonResponse([
+      'success'        => $result['success'],
+      'status'         => $result['status'] ?? 'queued',
+      'message'        => $result['message'] ?? 'Application queued for submission.',
+      'ats_platform'   => $platform,
+      'apply_url'      => $resolved['url'],
+      'application_id' => $result['application_id'] ?? NULL,
+    ]);
+  }
+
+  /**
+   * GET handler: return current application status for a job.
+   *
+   * Route: GET /jobhunter/jobs/{job_id}/application-status
+   */
+  public function applicationStatus($job_id) {
+    $uid = $this->currentUser->id();
+    if (!$uid) {
+      return new JsonResponse(['error' => 'Not authenticated.'], 403);
+    }
+
+    $app = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'submission_status', 'ats_platform', 'apply_url', 'selected_apply_option', 'attempt_count', 'confirmation_reference', 'submission_date', 'automation_success', 'admin_review_required', 'created'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', (int) $job_id)
+      ->orderBy('a.created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$app) {
+      return new JsonResponse(['applied' => FALSE]);
+    }
+
+    // Get attempt history.
+    $attempts = $this->database->select('jobhunter_application_attempts', 'at')
+      ->fields('at', ['attempted_at', 'ats_detected', 'outcome', 'error_message'])
+      ->condition('application_id', $app['id'])
+      ->orderBy('attempted_at', 'DESC')
+      ->range(0, 5)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    return new JsonResponse([
+      'applied'                => TRUE,
+      'application_id'         => $app['id'],
+      'status'                 => $app['submission_status'],
+      'ats_platform'           => $app['ats_platform'],
+      'apply_url'              => $app['apply_url'],
+      'selected_apply_option'  => $app['selected_apply_option'],
+      'attempt_count'          => (int) $app['attempt_count'],
+      'confirmation_reference' => $app['confirmation_reference'],
+      'submission_date'        => $app['submission_date'],
+      'automation_success'     => (bool) $app['automation_success'],
+      'admin_review_required'  => (bool) $app['admin_review_required'],
+      'created'                => $app['created'],
+      'attempts'               => $attempts ?: [],
+    ]);
   }
 
 }

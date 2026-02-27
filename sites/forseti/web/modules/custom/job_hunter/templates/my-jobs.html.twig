@@ -134,6 +134,7 @@
           {% set has_tailored_json = job.tailored_resume_json is not empty %}
           {% set has_pdf = job.pdf_path is not empty %}
           {% set is_applied = job.status|default('active') == 'applied' %}
+          {% set app_status = job.application_status %}
           
           <tr>
             <td>
@@ -215,6 +216,17 @@
             </td>
             <td class="operations">
               <div class="dropbutton-wrapper">
+                {% if app_status %}
+                  <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}"
+                     class="button button--small {% if app_status == 'submitted' %}button--success{% elseif app_status == 'failed' %}button--danger{% else %}button--secondary{% endif %}"
+                     title="{{ 'Application status: ' ~ app_status|capitalize }}">
+                    {% if app_status == 'submitted' %}✅ Applied{% elseif app_status == 'manual_required' %}📋 Apply Manually{% elseif app_status == 'failed' %}❌ App Failed{% else %}⏳ App Pending{% endif %}
+                  </a>
+                {% else %}
+                  <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small button--primary">
+                    {{ '📤 Apply'|t }}
+                  </a>
+                {% endif %}
                 <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small">
                   {{ tailoring_status == 'completed' ? 'View Tailored'|t : 'Tailor Resume'|t }}
                 </a>

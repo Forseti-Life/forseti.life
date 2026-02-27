@@ -126,3 +126,24 @@ This subsystem enables the user to discover job postings from multiple external 
 ## Test Coverage
 
 No unit tests exist for `SerpApiService`, `AdzunaApiService`, `UsaJobsApiService`, `CloudTalentSolutionService`, `SearchAggregatorService`, or `AbbVieJobScrapingService`. Estimated coverage: **0%** for this subsystem. Priority test targets: `SearchAggregatorService` normalization and deduplication logic.
+
+---
+
+### REQ-02.10 — remote_preference enum canonicalization
+
+**Status:** GAP
+**Code path:** `job_hunter.install`, `src/Service/CloudTalentSolutionService.php`, `src/Service/JobSeekerService.php`, `src/Service/JobDiscoveryService.php`, `ARCHITECTURE.md`
+
+- A single canonical set of `remote_preference` values must be defined and used consistently across all service, schema, template, and documentation files.
+- Canonical values (proposed): `remote`, `hybrid`, `onsite`, `any` — matching the database schema in `job_hunter.install`.
+- A `JobHunterConstants` class (or equivalent) must define these values as named constants; no string literal spellings of remote preference values are permitted outside this class.
+- `CloudTalentSolutionService` must map all 4 canonical values to Google Cloud Talent API equivalents; the `any` value must not be silently excluded from search queries.
+- `ARCHITECTURE.md`, all templates, and all service methods must use the canonical spellings.
+
+**Acceptance criteria:**
+1. A `JobHunterConstants::REMOTE_PREFERENCE_*` set of constants exists and is used in all call sites.
+2. A search with `remote_preference = any` returns results from Google Cloud Talent (not an empty set).
+3. `grep -r '"remote"\|"hybrid"\|"onsite"\|"any"' web/modules/custom/job_hunter/src/` returns only the constants definition file.
+4. QA verifies by selecting "No Preference" in the job discovery UI and confirming results are returned.
+
+**Added by:** ba-forseti (2026-02-27) — gap candidate from CC-002

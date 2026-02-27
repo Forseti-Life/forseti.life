@@ -95,3 +95,11 @@ services:
       - '@database'
       - '@logger.factory'
       - '@config.factory'
+
+  job_hunter.apply_url_resolver:
+    class: Drupal\job_hunter\Service\ApplyUrlResolverService
+    arguments:
+      - '@logger.factory'
+
+  job_hunter.application_form_mapper:
+    class: Drupal\job_hunter\Service\ApplicationFormMapper

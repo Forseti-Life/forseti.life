@@ -350,6 +350,28 @@ job_hunter.application_submission:
   requirements:
     _permission: 'access job hunter'
 
+# Application automation: initiate apply for a job (POST)
+job_hunter.job_apply:
+  path: '/jobhunter/jobs/{job_id}/apply'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::applyToJob'
+    _title: 'Apply to Job'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+  methods: [POST]
+
+# Application status JSON endpoint
+job_hunter.application_status:
+  path: '/jobhunter/jobs/{job_id}/application-status'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::applicationStatus'
+    _title: 'Application Status'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+  methods: [GET]
+
 # Step 5: Interview & Follow-up
 job_hunter.interview_followup:
   path: '/jobhunter/interview-followup'

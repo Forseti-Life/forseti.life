@@ -121,3 +121,24 @@ This subsystem produces AI-tailored resumes and cover letters for specific job p
 ## Test Coverage
 
 No unit tests exist for `ResumeTailoringWorker`, `CoverLetterTailoringWorker`, or `ResumePdfService`. Estimated coverage: **0%** for this subsystem. Priority test targets: `ResumePdfService` PDF rendering, `ResumeTailoringWorker` retry logic (via `QueueWorkerBaseTrait`), and idempotency of re-tailoring.
+
+---
+
+### REQ-03.10 — AI tailoring cache invalidation policy
+
+**Status:** GAP
+**Code path:** `src/Plugin/QueueWorker/ResumeTailoringWorker.php`
+
+- The AI tailoring result cache must have a defined invalidation policy specifying when a cached result is considered stale and must be regenerated.
+- Cache key: `(uid, job_id, section)` — currently implemented.
+- Cache invalidation must trigger when: (a) the user's consolidated profile changes materially (new resume parsed, profile fields updated), or (b) the user explicitly requests a re-tailoring of a specific job.
+- Returning a cached result silently without informing the user is not acceptable if the user's profile has changed since the result was cached.
+- A cache TTL (time-to-live) of at most 7 days is recommended as a fallback even without explicit invalidation.
+
+**Acceptance criteria:**
+1. Re-tailoring the same job after updating the consolidated profile generates a new AI result (not the cached version).
+2. The user can trigger re-tailoring explicitly from the UI (REQ-03.9 PARTIAL — may be linked).
+3. Cached results older than 7 days are regenerated on next request.
+4. QA verifies by updating a profile field, re-tailoring the same job, and confirming the output differs from the prior cached version.
+
+**Added by:** ba-forseti (2026-02-27) — gap candidate from CC-007

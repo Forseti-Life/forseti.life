@@ -288,17 +288,28 @@ class ApplicationSubmissionService {
         }
       }
 
-      // Check for required fields
-      $required_fields = [
-        'field_contact_email' => 'Email address',
-        'field_contact_phone' => 'Phone number',
-        'field_job_title' => 'Current job title',
-      ];
+      // Check required fields from jobhunter_job_seeker flat columns.
+      $seeker = $this->database->select('jobhunter_job_seeker', 'js')
+        ->fields('js', ['contact_email', 'contact_phone', 'full_name'])
+        ->condition('uid', $uid)
+        ->execute()
+        ->fetchAssoc();
 
-      foreach ($required_fields as $field_name => $display_name) {
-        if (!$user->get($field_name)->value) {
-          $errors[] = 'Missing required field: ' . $display_name;
-          $details['missing_fields'][] = $field_name;
+      if (empty($seeker)) {
+        $errors[] = 'Job seeker profile not found. Please complete your profile.';
+        $details['seeker_profile_missing'] = TRUE;
+      } else {
+        if (empty($seeker['contact_email'])) {
+          $errors[] = 'Missing required field: Email address';
+          $details['missing_fields'][] = 'contact_email';
+        }
+        if (empty($seeker['contact_phone'])) {
+          $errors[] = 'Missing required field: Phone number';
+          $details['missing_fields'][] = 'contact_phone';
+        }
+        if (empty($seeker['full_name'])) {
+          $errors[] = 'Missing required field: Full name';
+          $details['missing_fields'][] = 'full_name';
         }
       }
 
@@ -338,52 +349,72 @@ class ApplicationSubmissionService {
    *   ]
    */
   public function prepareApplicationData(int $uid, int $job_id): array {
-    $user = $this->entityTypeManager->getStorage('user')->load($uid);
     $job = $this->getJobDetails($job_id) ?? [];
 
-    // Get consolidated profile (from jobhunter_job_seeker.consolidated_profile_json).
-    $consolidated = $this->jobSeekerService->getConsolidatedProfile($uid);
+    // Pull contact/profile data from jobhunter_job_seeker flat columns.
+    $seeker = $this->database->select('jobhunter_job_seeker', 'js')
+      ->fields('js')
+      ->condition('uid', $uid)
+      ->execute()
+      ->fetchAssoc() ?: [];
 
-    // Extract tailored resume if available (per-user).
+    // Get consolidated profile JSON for rich nested fields.
+    $consolidated = $this->jobSeekerService->getConsolidatedProfile($uid);
+    $contact      = $consolidated['contact_info'] ?? [];
+    $loc          = $contact['location'] ?? [];
+    $prefs        = $consolidated['job_search_preferences'] ?? [];
+
+    // Split full name.
+    $full_name = $seeker['full_name'] ?? ($contact['name'] ?? '');
+    $name_parts = explode(' ', trim($full_name), 2);
+    $first_name = $name_parts[0] ?? '';
+    $last_name  = $name_parts[1] ?? '';
+
+    $exp_entries = $consolidated['professional_experience'] ?? [];
+    $current_exp = !empty($exp_entries) ? $exp_entries[0] : [];
+    $edu_entries = $consolidated['education'] ?? [];
+
+    // Extract tailored resume if available.
     $tailored_resume = $this->getTailoredResumeForJob($uid, $job_id);
 
     return [
-      'user_id' => $uid,
-      'job_id' => $job_id,
-      'job_url' => $job['job_url'] ?? '',
+      'user_id'      => $uid,
+      'job_id'       => $job_id,
+      'job_url'      => $job['job_url'] ?? '',
+      'apply_options' => $job['apply_options'] ?? '[]',
       'company_name' => $job['company_name'] ?? '',
-      'job_title' => $job['job_title'] ?? '',
+      'job_title'    => $job['job_title'] ?? '',
       'personal_info' => [
-        'first_name' => $user->get('field_first_name')->value ?? '',
-        'last_name' => $user->get('field_last_name')->value ?? '',
-        'email' => $user->getEmail(),
-        'phone' => $user->get('field_contact_phone')->value ?? '',
-        'address' => $user->get('field_address')->value ?? '',
-        'city' => $user->get('field_city')->value ?? '',
-        'state' => $user->get('field_state')->value ?? '',
-        'zip' => $user->get('field_zip')->value ?? '',
+        'first_name' => $first_name,
+        'last_name'  => $last_name,
+        'full_name'  => $full_name,
+        'email'      => $seeker['contact_email'] ?? ($contact['email'] ?? ''),
+        'phone'      => $seeker['contact_phone'] ?? ($contact['phone'] ?? ''),
+        'city'       => $seeker['location_city'] ?? ($loc['city'] ?? ''),
+        'state'      => $seeker['location_state'] ?? ($loc['state'] ?? ''),
+        'zip'        => $loc['zip'] ?? '',
       ],
       'work_auth' => [
-        'status' => $user->get('field_work_authorization')->value ?? 'US_CITIZEN',
-        'visa_type' => $user->get('field_visa_type')->value,
+        'status'  => $prefs['work_authorization'] ?? 'US_CITIZEN',
+        'visa_type' => NULL,
       ],
       'experience' => [
-        'years' => count($consolidated['professional_experience'] ?? []),
-        'current_title' => $user->get('field_job_title')->value ?? '',
-        'current_company' => $user->get('field_current_company')->value ?? '',
-        'history' => $consolidated['professional_experience'] ?? [],
+        'years'           => (int) ($seeker['experience_years'] ?? count($exp_entries)),
+        'current_title'   => $current_exp['title'] ?? '',
+        'current_company' => $current_exp['company'] ?? '',
+        'history'         => $exp_entries,
       ],
       'education' => [
-        'level' => $consolidated['education_level'] ?? 'Bachelor\'s',
-        'history' => $consolidated['education'] ?? [],
+        'level'   => $seeker['education_level'] ?? 'Bachelor\'s',
+        'history' => $edu_entries,
       ],
-      'skills' => implode(', ', $consolidated['skills'] ?? []),
-      'certifications' => $consolidated['certifications'] ?? [],
-      'languages' => $consolidated['languages'] ?? [],
-      'tailored_resume' => $tailored_resume,
+      'skills'           => $seeker['skills'] ?? implode(', ', $consolidated['skills'] ?? []),
+      'certifications'   => $consolidated['certifications'] ?? [],
+      'languages'        => $consolidated['languages'] ?? [],
+      'tailored_resume'  => $tailored_resume,
       'salary_expectations' => [
-        'min' => $user->get('field_salary_min')->value,
-        'max' => $user->get('field_salary_max')->value,
+        'min' => $seeker['salary_min'] ?? ($prefs['salary_min'] ?? ''),
+        'max' => $seeker['salary_max'] ?? ($prefs['salary_max'] ?? ''),
       ],
     ];
   }
@@ -395,22 +426,25 @@ class ApplicationSubmissionService {
    *   The user ID.
    * @param int $job_id
    *   The job requirement ID.
+   * @param array $extra
+   *   Optional extra fields (ats_platform, apply_url, selected_apply_option).
    *
    * @return int
    *   The application ID.
    */
-  protected function createApplicationRecord(int $uid, int $job_id): int {
+  protected function createApplicationRecord(int $uid, int $job_id, array $extra = []): int {
     $result = $this->database->insert('jobhunter_applications')
-      ->fields([
-        'uid' => $uid,
-        'job_id' => $job_id,
+      ->fields(array_merge([
+        'uid'               => $uid,
+        'job_id'            => $job_id,
         'submission_status' => 'pending',
         'submission_method' => 'auto',
-        'automation_success' => FALSE,
-        'admin_review_required' => FALSE,
-        'created' => date('Y-m-d H:i:s'),
-        'changed' => date('Y-m-d H:i:s'),
-      ])
+        'automation_success'    => 0,
+        'admin_review_required' => 0,
+        'attempt_count'     => 0,
+        'created'           => date('Y-m-d H:i:s'),
+        'changed'           => date('Y-m-d H:i:s'),
+      ], $extra))
       ->execute();
 
     return $result;

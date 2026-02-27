@@ -480,6 +480,89 @@ function job_hunter_update_9030() {
 }
 
 /**
+ * Add application automation tracking columns and attempts table.
+ */
+function job_hunter_update_9031() {
+  $schema = \Drupal::database()->schema();
+  $added = [];
+
+  // Add new columns to jobhunter_applications.
+  $new_columns = [
+    'ats_platform' => [
+      'type' => 'varchar',
+      'length' => 50,
+      'not null' => FALSE,
+      'description' => 'Detected ATS platform: workday, greenhouse, lever, taleo, icims, usajobs, custom, aggregator',
+    ],
+    'apply_url' => [
+      'type' => 'varchar',
+      'length' => 1000,
+      'not null' => FALSE,
+      'description' => 'Resolved canonical apply URL after following aggregator redirects',
+    ],
+    'selected_apply_option' => [
+      'type' => 'varchar',
+      'length' => 100,
+      'not null' => FALSE,
+      'description' => 'Title of the apply_option selected from job apply_options array',
+    ],
+    'attempt_count' => [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Number of submission attempts made',
+    ],
+    'metadata' => [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'JSON metadata: form field mapping, resolution steps, ATS detection details',
+    ],
+  ];
+
+  foreach ($new_columns as $column_name => $spec) {
+    if (!$schema->fieldExists('jobhunter_applications', $column_name)) {
+      $schema->addField('jobhunter_applications', $column_name, $spec);
+      $added[] = "applications.$column_name";
+    }
+  }
+
+  // Create jobhunter_application_attempts table.
+  if (!$schema->tableExists('jobhunter_application_attempts')) {
+    $schema->createTable('jobhunter_application_attempts', [
+      'description' => 'Log of each automated application submission attempt.',
+      'fields' => [
+        'id' => ['type' => 'serial', 'not null' => TRUE],
+        'application_id' => ['type' => 'int', 'not null' => TRUE, 'description' => 'FK to jobhunter_applications.id'],
+        'uid' => ['type' => 'int', 'not null' => TRUE],
+        'attempted_at' => ['type' => 'varchar', 'length' => 19, 'description' => 'YYYY-MM-DD HH:MM:SS'],
+        'url_tried' => ['type' => 'varchar', 'length' => 1000, 'description' => 'URL attempted'],
+        'ats_detected' => ['type' => 'varchar', 'length' => 50, 'description' => 'ATS platform detected at attempt time'],
+        'outcome' => [
+          'type' => 'varchar',
+          'length' => 50,
+          'description' => 'success, failed, manual_required, blocked, timeout, unsupported',
+        ],
+        'duration_ms' => ['type' => 'int', 'default' => 0, 'description' => 'Attempt duration in milliseconds'],
+        'error_message' => ['type' => 'text', 'description' => 'Error message if failed'],
+        'metadata' => ['type' => 'text', 'description' => 'JSON: HTTP status, redirect chain, form fields found'],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'application_id' => ['application_id'],
+        'uid' => ['uid'],
+        'outcome' => ['outcome'],
+        'attempted_at' => ['attempted_at'],
+      ],
+    ]);
+    $added[] = 'table:jobhunter_application_attempts';
+  }
+
+  return empty($added)
+    ? t('No schema changes needed.')
+    : t('Application automation schema updated: @items', ['@items' => implode(', ', $added)]);
+}
+
+/**
  * Implements hook_uninstall().
  */
 function job_hunter_uninstall() {

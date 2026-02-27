@@ -115,3 +115,22 @@ This subsystem provides the asynchronous processing backbone for all AI-intensiv
 ## Test Coverage
 
 No unit tests exist for `QueueWorkerBaseTrait` or any individual queue worker. Estimated coverage: **~5%** (the trait is exercised indirectly by manual testing). Priority test targets: retry counting logic and suspension behavior in `QueueWorkerBaseTrait`, and the AJAX polling endpoint response format.
+
+---
+
+### REQ-06.9 — Per-item queue failure isolation
+
+**Status:** GAP
+**Code path:** `src/Plugin/QueueWorker/ResumeTailoringWorker.php`
+
+- A failure processing a single queue item must not suspend processing for all other users' items in the same queue.
+- When a queue worker encounters an unrecoverable item (e.g., malformed JSON payload, AI service error after max retries), it must move the item to the dead-letter / error queue and continue processing the next item.
+- `SuspendQueueException` must NOT be thrown for single-item failures; it is reserved for infrastructure-level failures that affect all items (e.g., database unavailable, queue service unreachable).
+- Dead-lettered items must be visible in the existing error queue admin UI (REQ-07.x).
+
+**Acceptance criteria:**
+1. Injecting a malformed JSON payload as a tailoring queue item causes only that item to move to the error queue; other users' tailoring items continue processing normally.
+2. `SuspendQueueException` is never thrown in `ResumeTailoringWorker` for payload-level failures.
+3. QA verifies by submitting a bad payload and confirming other items complete within the normal SLA.
+
+**Added by:** ba-forseti (2026-02-27) — gap candidate from CC-006

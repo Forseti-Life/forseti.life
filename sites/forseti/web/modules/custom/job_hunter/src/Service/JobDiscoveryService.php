@@ -294,6 +294,13 @@ class JobDiscoveryService {
       $query->addField('tr', 'tailored_resume_json');
       $query->addField('tr', 'pdf_path');
 
+      // Join application records for current user.
+      $query->leftJoin('jobhunter_applications', 'app', 'j.id = app.job_id AND app.uid = :app_uid', [
+        ':app_uid' => $this->currentUser->id(),
+      ]);
+      $query->addField('app', 'submission_status', 'application_status');
+      $query->addField('app', 'ats_platform', 'application_ats');
+
       // Apply filters.
       if (!empty($filters['company'])) {
         $query->condition('c.' . $company_name_field, '%' . $this->database->escapeLike($filters['company']) . '%', 'LIKE');

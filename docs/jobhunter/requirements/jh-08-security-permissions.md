@@ -97,3 +97,23 @@ No security-focused tests exist. Estimated coverage: **0%**. Priority test targe
 2. Parameterized query verification in `UserProfileController::queueStatus()` (REQ-08.2).
 3. Path allowlist validation in `DocumentationController::viewDocument()` (REQ-08.3).
 4. Cross-user data isolation: confirm that accessing `/jobhunter/profile` as User A cannot return User B's data (REQ-08.4).
+
+---
+
+### REQ-08.7 — Output encoding / XSS prevention
+
+**Status:** GAP
+**Code path:** `templates/google-jobs-job-detail.html.twig`
+
+- All Twig templates that render user-supplied or API-sourced data must apply explicit output encoding appropriate to the context.
+- Data rendered in HTML body context must use `|escape('html')` (or rely on Twig auto-escape, confirmed enabled for the template).
+- Data interpolated into HTML event attributes (e.g., `onclick`) must use `|escape('js')` AND the attribute must be rendered via a `data-*` attribute + JS listener pattern (not inline event handlers with Twig interpolation).
+- Any field that accepts external API data (e.g., `structured_data_json` from Google Jobs API) must be treated as untrusted and escaped before rendering.
+- Failure: stored XSS via a crafted Google Jobs listing is possible with the current unescaped `{{ sync.structured_data_json }}` output.
+
+**Acceptance criteria:**
+1. `{{ sync.structured_data_json }}` in `google-jobs-job-detail.html.twig` is rendered via `|escape('html')` (or wrapped in a raw JSON `<script type="application/json">` block with no Twig interpolation of HTML-context values).
+2. No `onclick="..."` attributes contain unescaped Twig variable interpolation.
+3. QA verifies by injecting `<script>alert(1)</script>` as a job title and confirming it renders as escaped text.
+
+**Added by:** ba-forseti (2026-02-27) — gap candidate from CC-011
