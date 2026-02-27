@@ -733,14 +733,14 @@ class CompanyController extends ControllerBase {
       ];
     }
 
-    // AI extraction status notice + raw scraped fields when AI parsing is not yet complete.
+    // AI extraction status notice when parsing is not yet complete.
     $ai_status = $jobValue($job, 'ai_extraction_status') ?? 'pending';
     if (!$extracted) {
       $status_labels = [
         'pending'    => ['label' => '⏳ AI parsing pending',    'class' => 'messages--warning'],
         'queued'     => ['label' => '⏳ AI parsing queued',     'class' => 'messages--warning'],
         'processing' => ['label' => '⚙️ AI parsing in progress', 'class' => 'messages--warning'],
-        'failed'     => ['label' => '⚠️ AI parsing failed — showing raw scraped data below', 'class' => 'messages--error'],
+        'failed'     => ['label' => '⚠️ AI parsing failed', 'class' => 'messages--error'],
       ];
       $badge = $status_labels[$ai_status] ?? ['label' => '⏳ AI parsing not yet run', 'class' => 'messages--warning'];
       $content['ai_status_notice'] = [
@@ -748,55 +748,6 @@ class CompanyController extends ControllerBase {
         '#attributes' => ['class' => ['messages', $badge['class']]],
         '#markup' => $badge['label'],
       ];
-
-      // Show all available raw scraped fields.
-      $raw_rows = [];
-      $raw_field_map = [
-        'job_title'       => 'Job Title',
-        'location'        => 'Location',
-        'salary_range'    => 'Salary Range',
-        'remote_option'   => 'Remote Option',
-        'employment_type' => 'Employment Type',
-        'status'          => 'Status',
-      ];
-      foreach ($raw_field_map as $col => $label) {
-        $val = $jobValue($job, $col);
-        if (!empty($val)) {
-          $raw_rows[] = '<dt>' . $label . '</dt><dd>' . htmlspecialchars((string) $val) . '</dd>';
-        }
-      }
-
-      $raw_desc   = $jobValue($job, 'job_description');
-      $raw_req    = $jobValue($job, 'requirements');
-
-      $content['raw_scraped'] = [
-        '#type'       => 'details',
-        '#title'      => $this->t('Scraped Job Information'),
-        '#open'       => TRUE,
-        '#attributes' => ['class' => ['job-section']],
-      ];
-
-      if (!empty($raw_rows)) {
-        $content['raw_scraped']['meta'] = [
-          '#markup' => '<dl class="job-details">' . implode('', $raw_rows) . '</dl>',
-        ];
-      }
-
-      if (!empty($raw_desc)) {
-        $content['raw_scraped']['description'] = [
-          '#type'  => 'container',
-          'label'  => ['#markup' => '<h3>Job Description</h3>'],
-          'body'   => ['#markup' => '<div class="raw-text">' . nl2br(htmlspecialchars($raw_desc)) . '</div>'],
-        ];
-      }
-
-      if (!empty($raw_req)) {
-        $content['raw_scraped']['requirements'] = [
-          '#type'  => 'container',
-          'label'  => ['#markup' => '<h3>Requirements</h3>'],
-          'body'   => ['#markup' => '<div class="raw-text">' . nl2br(htmlspecialchars($raw_req)) . '</div>'],
-        ];
-      }
     }
 
     // Extracted Job Data section
@@ -894,8 +845,38 @@ class CompanyController extends ControllerBase {
             (!empty($extracted['company_description']) ? '<p>' . htmlspecialchars($extracted['company_description']) . '</p>' : ''),
         ];
       }
+
+      // AI-extracted job description narrative
+      if (!empty($extracted['job_description'])) {
+        $content['extracted']['job_description'] = [
+          '#type' => 'container',
+          '#markup' => '<h3>Job Description</h3><div class="job-description-text">' . nl2br(htmlspecialchars($extracted['job_description'])) . '</div>',
+        ];
+      }
     }
-    
+
+    // Original job posting — always show when available (pre-parsed source data)
+    $db_description = $jobValue($job, 'job_description');
+    $db_requirements = $jobValue($job, 'requirements');
+    if (!empty($db_description) || !empty($db_requirements)) {
+      $content['original_posting'] = [
+        '#type' => 'details',
+        '#title' => $this->t('Original Job Posting'),
+        '#open' => !$extracted,
+        '#attributes' => ['class' => ['job-section']],
+      ];
+      if (!empty($db_description)) {
+        $content['original_posting']['description'] = [
+          '#markup' => '<h3>Description</h3><div class="raw-text">' . nl2br(htmlspecialchars($db_description)) . '</div>',
+        ];
+      }
+      if (!empty($db_requirements)) {
+        $content['original_posting']['requirements'] = [
+          '#markup' => '<h3>Requirements</h3><div class="raw-text">' . nl2br(htmlspecialchars($db_requirements)) . '</div>',
+        ];
+      }
+    }
+
     // Skills section
     if ($skills) {
       $content['skills'] = [
