@@ -903,3 +903,29 @@ job_hunter.error_queue_count:
     _controller: '\Drupal\job_hunter\Controller\ErrorQueueController::getErrorCount'
   requirements:
     _permission: 'access job hunter'
+
+job_hunter.credentials:
+  path: '/jobhunter/settings/credentials'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CredentialController::credentialsPage'
+    _title: 'ATS Credentials'
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.credentials_delete:
+  path: '/jobhunter/settings/credentials/{credential_id}/delete'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CredentialController::deleteCredential'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    credential_id: '\d+'
+
+job_hunter.credentials_test:
+  path: '/jobhunter/settings/credentials/{credential_id}/test'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CredentialController::testCredential'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    credential_id: '\d+'

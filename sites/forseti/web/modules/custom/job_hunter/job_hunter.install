@@ -563,6 +563,78 @@ function job_hunter_update_9031() {
 }
 
 /**
+ * Implements hook_update_N().
+ *
+ * Phase 2: Add screenshot evidence columns to jobhunter_application_attempts
+ * and confirmation tracking to jobhunter_applications.
+ */
+function job_hunter_update_9032() {
+  $schema = \Drupal::database()->schema();
+  $added = [];
+
+  // Add Phase 2 evidence columns to jobhunter_application_attempts.
+  $attempt_columns = [
+    'screenshot_pre_path' => [
+      'type' => 'varchar',
+      'length' => 500,
+      'not null' => FALSE,
+      'description' => 'Private fs path to pre-submit form screenshot',
+    ],
+    'screenshot_post_path' => [
+      'type' => 'varchar',
+      'length' => 500,
+      'not null' => FALSE,
+      'description' => 'Private fs path to post-submit confirmation screenshot',
+    ],
+    'confirmation_text' => [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'Full confirmation text extracted from the page after submission',
+    ],
+    'confirmation_number' => [
+      'type' => 'varchar',
+      'length' => 100,
+      'not null' => FALSE,
+      'description' => 'Parsed confirmation/reference number (e.g. APP-2026-884321)',
+    ],
+  ];
+
+  foreach ($attempt_columns as $col => $spec) {
+    if (!$schema->fieldExists('jobhunter_application_attempts', $col)) {
+      $schema->addField('jobhunter_application_attempts', $col, $spec);
+      $added[] = "attempts.$col";
+    }
+  }
+
+  // Add confirmation tracking columns to jobhunter_applications.
+  $application_columns = [
+    'confirmed_at' => [
+      'type' => 'varchar',
+      'length' => 19,
+      'not null' => FALSE,
+      'description' => 'Datetime when submission confirmation was captured (YYYY-MM-DD HH:MM:SS)',
+    ],
+    'confirmation_ref' => [
+      'type' => 'varchar',
+      'length' => 100,
+      'not null' => FALSE,
+      'description' => 'Employer confirmation reference number',
+    ],
+  ];
+
+  foreach ($application_columns as $col => $spec) {
+    if (!$schema->fieldExists('jobhunter_applications', $col)) {
+      $schema->addField('jobhunter_applications', $col, $spec);
+      $added[] = "applications.$col";
+    }
+  }
+
+  return empty($added)
+    ? t('No Phase 2 schema changes needed.')
+    : t('Phase 2 evidence schema added: @items', ['@items' => implode(', ', $added)]);
+}
+
+/**
  * Implements hook_uninstall().
  */
 function job_hunter_uninstall() {

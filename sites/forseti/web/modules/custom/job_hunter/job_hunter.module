@@ -282,6 +282,15 @@ function job_hunter_theme() {
       ],
       'template' => 'opportunity-management-page',
     ],
+    'credentials_management' => [
+      'variables' => [
+        'credentials' => [],
+        'companies' => [],
+        'ats_platforms' => [],
+        'add_form' => NULL,
+      ],
+      'template' => 'credentials-management',
+    ],
   ];
 }
 
