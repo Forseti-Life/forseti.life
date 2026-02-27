@@ -338,7 +338,7 @@ class ApplicationSubmissionService {
    * @return array
    *   Application data ready for form submission:
    *   [
-   *     'user_id' => int,
+   *     'uid' => int,
    *     'job_id' => int,
    *     'personal_info' => [...],
    *     'work_auth' => [...],
@@ -378,7 +378,7 @@ class ApplicationSubmissionService {
     $tailored_resume = $this->getTailoredResumeForJob($uid, $job_id);
 
     return [
-      'user_id'      => $uid,
+      'uid'          => $uid,
       'job_id'       => $job_id,
       'job_url'      => $job['job_url'] ?? '',
       'apply_options' => $job['apply_options'] ?? '[]',

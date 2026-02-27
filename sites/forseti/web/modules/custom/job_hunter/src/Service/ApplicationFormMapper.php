@@ -177,13 +177,6 @@ class ApplicationFormMapper {
           'state'               => $address['state'],
         ];
 
-      case 'lever':
-        return [
-          'name'                => $personal['full_name'],
-          'email'               => $personal['email'],
-          'phone'               => $personal['phone'],
-        ];
-
       case 'smartrecruiters':
         return [
           'firstName'           => $personal['first_name'],

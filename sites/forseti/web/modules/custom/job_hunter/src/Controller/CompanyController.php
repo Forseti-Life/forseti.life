@@ -1361,20 +1361,21 @@ class CompanyController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'error' => 'Not authenticated.'], 403);
     }
 
+    // Validate CSRF token from X-CSRF-Token header.
+    $request = $this->requestStack->getCurrentRequest();
+    $token = $request->headers->get('X-CSRF-Token');
+    if (!\Drupal::csrfToken()->validate($token, 'job_apply_' . $job_id)) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Invalid security token.'], 403);
+    }
+
     /** @var \Drupal\job_hunter\Service\ApplicationSubmissionService $submission_service */
     $submission_service = \Drupal::service('job_hunter.application_submission_service');
     /** @var \Drupal\job_hunter\Service\ApplyUrlResolverService $resolver */
     $resolver = \Drupal::service('job_hunter.apply_url_resolver');
 
-    // Validate prerequisites.
-    $validation = $submission_service->validateApplicationPrerequisites($uid, (int) $job_id);
-    if (!$validation['success']) {
-      return new JsonResponse(['success' => FALSE, 'error' => $validation['error'], 'details' => $validation['details']], 422);
-    }
-
-    // Resolve the best apply URL.
+    // Load job (only the columns that actually exist on this table).
     $job = $this->database->select('jobhunter_job_requirements', 'j')
-      ->fields('j', ['apply_options', 'job_url', 'company_name', 'job_title'])
+      ->fields('j', ['id', 'apply_options', 'job_url', 'job_title'])
       ->condition('id', (int) $job_id)
       ->execute()
       ->fetchAssoc();
@@ -1383,13 +1384,22 @@ class CompanyController extends ControllerBase {
       return new JsonResponse(['success' => FALSE, 'error' => 'Job not found.'], 404);
     }
 
+    // Resolve the best apply URL before queuing (result stored on the application record).
     $resolved = $resolver->resolve($job);
 
-    // Submit application (queues it for async processing).
+    // Submit application — this validates prerequisites internally and queues it.
     $result = $submission_service->submitApplication($uid, (int) $job_id, TRUE);
 
-    // If successful, update the application record with URL/ATS metadata.
-    if ($result['success'] && !empty($result['application_id'])) {
+    if (!$result['success'] && ($result['status'] ?? '') !== 'queued') {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error'   => $result['message'] ?? 'Submission failed.',
+        'details' => $result['error'] ?? [],
+      ], 422);
+    }
+
+    // Update the application record with resolved URL and ATS metadata.
+    if (!empty($result['application_id'])) {
       $this->database->update('jobhunter_applications')
         ->fields([
           'apply_url'             => $resolved['url'],
@@ -1405,17 +1415,18 @@ class CompanyController extends ControllerBase {
         ->execute();
     }
 
-    // Determine UI message based on ATS platform.
-    $platform = $resolved['ats_platform'];
-    if ($platform === 'manual_required' || $platform === 'aggregator' || $platform === 'unknown') {
-      $apply_url = $resolved['url'] ?: ($job['job_url'] ?? '');
+    // Determine UI response based on ATS platform.
+    $platform  = $resolved['ats_platform'];
+    $apply_url = $resolved['url'] ?: ($job['job_url'] ?? '');
+
+    if (in_array($platform, ['aggregator', 'unknown', ''])) {
       return new JsonResponse([
-        'success'          => TRUE,
-        'status'           => 'manual_required',
-        'message'          => 'Application tracked. This job requires manual submission.',
-        'apply_url'        => $apply_url,
-        'ats_platform'     => $platform,
-        'application_id'   => $result['application_id'] ?? NULL,
+        'success'        => TRUE,
+        'status'         => 'manual_required',
+        'message'        => 'Application tracked. This job requires manual submission.',
+        'apply_url'      => $apply_url,
+        'ats_platform'   => $platform,
+        'application_id' => $result['application_id'] ?? NULL,
       ]);
     }
 
@@ -1424,7 +1435,7 @@ class CompanyController extends ControllerBase {
       'status'         => $result['status'] ?? 'queued',
       'message'        => $result['message'] ?? 'Application queued for submission.',
       'ats_platform'   => $platform,
-      'apply_url'      => $resolved['url'],
+      'apply_url'      => $apply_url,
       'application_id' => $result['application_id'] ?? NULL,
     ]);
   }
