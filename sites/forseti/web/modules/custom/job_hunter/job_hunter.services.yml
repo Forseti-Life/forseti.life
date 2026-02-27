@@ -103,3 +103,12 @@ services:
 
   job_hunter.application_form_mapper:
     class: Drupal\job_hunter\Service\ApplicationFormMapper
+
+  job_hunter.browser_automation_service:
+    class: Drupal\job_hunter\Service\BrowserAutomationService
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@job_hunter.apply_url_resolver'
+      - '@job_hunter.application_form_mapper'
+      - '@job_hunter.job_seeker_service'

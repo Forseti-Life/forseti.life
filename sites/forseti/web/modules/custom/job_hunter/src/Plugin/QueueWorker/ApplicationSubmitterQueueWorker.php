@@ -72,7 +72,9 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
         []
       );
 
-      // Attempt submission via browser automation
+      // Attempt submission via browser automation.
+      // Inject application_id into app_data so BrowserAutomationService can use it.
+      $app_data['application_id'] = $application_id;
       $result = $this->submitApplicationViaBrowser($app_data);
 
       if ($result['success']) {
@@ -95,11 +97,14 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
         // Update job_requirements table
         $this->updateJobSubmissionStatus($job_id, 'submitted');
       } else {
-        // Submission failed - queue for manual review
-        $logger->warning('⚠️ Application submission failed for user @uid, job @job_id. Error: @error', [
-          '@uid' => $uid,
+        // Submission requires manual action or failed — log and mark accordingly.
+        $reason = $result['reason'] ?? 'unknown';
+        $is_manual = in_array($reason, ['no_direct_ats', 'no_credentials', 'phase2_pending', 'custom_page', 'manual_required']);
+
+        $logger->warning('⚠️ Application requires manual action for user @uid, job @job_id. Reason: @reason', [
+          '@uid'    => $uid,
           '@job_id' => $job_id,
-          '@error' => $result['error'] ?? 'Unknown error',
+          '@reason' => $reason,
         ]);
 
         $this->applicationSubmissionService->updateApplicationStatus(
@@ -107,15 +112,20 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
           'manual_required',
           [
             'error' => [
-              'message' => $result['error'] ?? 'Automation failed',
-              'reason' => $result['reason'] ?? 'unknown',
+              'message'      => $result['error'] ?? 'Manual submission required',
+              'reason'       => $reason,
+              'apply_url'    => $result['apply_url'] ?? '',
+              'ats_platform' => $result['ats_platform'] ?? '',
+              'instructions' => $result['instructions'] ?? '',
             ],
-            'admin_review' => TRUE,
+            'admin_review' => !$is_manual, // Only flag for admin review on true failures.
           ]
         );
 
-        // Queue for admin review
-        $this->queueForErrorQueue($uid, $job_id, $application_id, $result['error'] ?? 'Application submission failed');
+        // Only queue for error review on unexpected failures, not routine manual cases.
+        if (!$is_manual) {
+          $this->queueForErrorQueue($uid, $job_id, $application_id, $result['error'] ?? 'Application submission failed');
+        }
       }
     } catch (SuspendQueueException $e) {
       // Database unavailable or other critical issue
@@ -164,43 +174,33 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
     $logger = \Drupal::logger('job_hunter');
 
     try {
-      // Get BrowserAutomationService (will be created in next phase)
+      /** @var \Drupal\job_hunter\Service\BrowserAutomationService $browser_service */
       $browser_service = \Drupal::service('job_hunter.browser_automation_service');
 
-      if (!$browser_service) {
+      // application_id is passed via app_data by the queue payload.
+      $application_id = (int) ($app_data['application_id'] ?? 0);
+      if (!$application_id) {
         return [
           'success' => FALSE,
-          'error' => 'Browser automation service not available',
-          'reason' => 'unsupported',
+          'error'   => 'No application_id in queue payload',
+          'reason'  => 'missing_application_id',
         ];
       }
 
-      // Validate job URL
-      $job_url = $app_data['job_url'] ?? '';
-      if (empty($job_url)) {
-        return [
-          'success' => FALSE,
-          'error' => 'Job URL not available',
-          'reason' => 'unsupported',
-        ];
-      }
+      $result = $browser_service->processApplication($app_data, $application_id);
 
-      // Detect company/ATS type
-      $ats_type = $this->detectATSPlatform($job_url);
-      $logger->info('Detected ATS platform: @ats for URL @url', [
-        '@ats' => $ats_type,
-        '@url' => $job_url,
-      ]);
-
-      // For MVP, we'll implement a basic response
-      // In phase 2, this will call actual browser automation
-
-      // PLACEHOLDER: Return manual required (since browser automation not yet implemented)
+      // Translate BrowserAutomationService result to the format processItem() expects.
       return [
-        'success' => FALSE,
-        'error' => 'Browser automation framework not yet implemented',
-        'reason' => 'unsupported',
+        'success'       => $result['success'],
+        'confirmation'  => $result['confirmation'] ?? '',
+        'error'         => $result['error'] ?? '',
+        'reason'        => $result['reason'] ?? $result['outcome'] ?? 'manual_required',
+        'apply_url'     => $result['apply_url'] ?? '',
+        'ats_platform'  => $result['ats_platform'] ?? '',
+        'instructions'  => $result['instructions'] ?? '',
+        'field_map'     => $result['field_map'] ?? [],
       ];
+
     } catch (\Exception $e) {
       $logger->error('Exception in browser automation: @error', [
         '@error' => $e->getMessage(),
@@ -208,8 +208,8 @@ class ApplicationSubmitterQueueWorker extends QueueWorkerBase implements Contain
 
       return [
         'success' => FALSE,
-        'error' => $e->getMessage(),
-        'reason' => 'exception',
+        'error'   => $e->getMessage(),
+        'reason'  => 'exception',
       ];
     }
   }
