@@ -721,7 +721,7 @@ class CompanyController extends ControllerBase {
       };
       $source_info[] = '<strong>Tailored Resume:</strong> <a href="' . Url::fromRoute('job_hunter.tailor_resume', ['job' => $job_id])->toString() . '">View/Edit Tailored Resume</a> <span class="' . $status_class . '">(' . $status_text . ')</span>';
       if ($tailored_resume->tailoring_status === 'completed' && !empty($tailored_resume->pdf_path)) {
-        $source_info[] = '<strong>Resume PDF:</strong> <a href="' . Url::fromRoute('job_hunter.resume_pdf', ['job_id' => $job_id])->toString() . '" target="_blank">Download PDF ↗</a>';
+        $source_info[] = '<strong>Resume PDF:</strong> <a href="' . Url::fromRoute('job_hunter.download_tailored_resume_pdf', ['job_id' => $job_id])->toString() . '" target="_blank">Download PDF ↗</a>';
       }
     }
     
