@@ -819,7 +819,7 @@ class JobApplicationController extends ControllerBase {
     $is_ajax = $request->isXmlHttpRequest();
 
     if ($request->isMethod('POST')) {
-      $csrf_token = (string) $request->request->get('csrf_token', '');
+      $csrf_token = $request->headers->get('X-CSRF-Token', '') ?: (string) $request->request->get('csrf_token', '');
       if (!$this->csrfTokenGenerator->validate($csrf_token, 'job_hunter.addposting')) {
         if ($is_ajax) {
           return new JsonResponse([
