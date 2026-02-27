@@ -65,11 +65,13 @@
   {# ================================================== #}
   <div class="tailor-resume-status-header status-header--{{ current_status.color }}">
     <div class="status-header-content">
-      {# Job Title #}
+      {# Job Title — support both flat schema (job_title/company_name) and nested schema (position.title/company.name) #}
+      {% set _jt = job_extracted.job_title ?? job_extracted.position.title ?? '' %}
+      {% set _co = job_extracted.company_name ?? job_extracted.company.name ?? '' %}
       <div class="status-job-info">
-        {% if job_extracted.position.title and job_extracted.company.name %}
-          <h2>{{ job_extracted.position.title }}</h2>
-          <span class="company-name">{{ job_extracted.company.name }}</span>
+        {% if _jt or _co %}
+          {% if _jt %}<h2>{{ _jt }}</h2>{% endif %}
+          {% if _co %}<span class="company-name">{{ _co }}</span>{% endif %}
         {% else %}
           <h2>{{ 'Tailor Resume'|t }}</h2>
         {% endif %}
@@ -211,9 +213,12 @@
       <summary class="job-requirements-summary">
         <h3>{{ 'Job Requirements'|t }}</h3>
         <span class="job-summary-info">
-          {% if job_extracted.position.title %}{{ job_extracted.position.title }}{% endif %}
-          {% if job_extracted.company.name %} • {{ job_extracted.company.name }}{% endif %}
-          {% if job_extracted.compensation.salary_min and job_extracted.compensation.salary_max %}
+          {% set _sum_title = job_extracted.job_title ?? job_extracted.position.title ?? '' %}
+          {% set _sum_co = job_extracted.company_name ?? job_extracted.company.name ?? '' %}
+          {% if _sum_title %}{{ _sum_title }}{% endif %}
+          {% if _sum_co %} • {{ _sum_co }}{% endif %}
+          {% if job_extracted.salary_range %} • {{ job_extracted.salary_range }}
+          {% elseif job_extracted.compensation.salary_min and job_extracted.compensation.salary_max %}
             • ${{ (job_extracted.compensation.salary_min / 1000)|number_format(0) }}k - ${{ (job_extracted.compensation.salary_max / 1000)|number_format(0) }}k
           {% endif %}
         </span>
@@ -223,17 +228,37 @@
           
           {# Position & Company Column #}
           <div class="job-req-column">
-            {% if job_extracted.position %}
+            {% set _pos_title = job_extracted.job_title ?? job_extracted.position.title ?? '' %}
+            {% set _pos_type = job_extracted.employment_type ?? job_extracted.position.employment_type ?? '' %}
+            {% set _pos_exp = job_extracted.experience_years ?? job_extracted.position.level ?? '' %}
+            {% set _pos_remote = job_extracted.remote_option ?? '' %}
+            {% if _pos_title or _pos_type or _pos_exp %}
               <div class="job-req-section">
                 <h4>{{ 'Position'|t }}</h4>
+                {% if _pos_title %}
                 <div class="job-req-item">
                   <span class="label">{{ 'Title:'|t }}</span>
-                  <span class="value">{{ job_extracted.position.title|default('N/A') }}</span>
+                  <span class="value">{{ _pos_title }}</span>
                 </div>
+                {% endif %}
+                {% if _pos_exp %}
                 <div class="job-req-item">
-                  <span class="label">{{ 'Level:'|t }}</span>
-                  <span class="value">{{ job_extracted.position.level|default('N/A') }}</span>
+                  <span class="label">{{ 'Experience:'|t }}</span>
+                  <span class="value">{{ _pos_exp }}</span>
                 </div>
+                {% endif %}
+                {% if _pos_type %}
+                <div class="job-req-item">
+                  <span class="label">{{ 'Type:'|t }}</span>
+                  <span class="value">{{ _pos_type }}</span>
+                </div>
+                {% endif %}
+                {% if _pos_remote %}
+                <div class="job-req-item">
+                  <span class="label">{{ 'Remote:'|t }}</span>
+                  <span class="value">{{ _pos_remote }}</span>
+                </div>
+                {% endif %}
                 {% if job_extracted.role_type.is_player_coach %}
                   <div class="job-req-item">
                     <span class="label">{{ 'Role:'|t }}</span>
@@ -243,25 +268,34 @@
               </div>
             {% endif %}
             
-            {% if job_extracted.company %}
+            {% set _co_name = job_extracted.company_name ?? job_extracted.company.name ?? '' %}
+            {% set _co_industry = job_extracted.industry ?? job_extracted.company.industry ?? '' %}
+            {% if _co_name or _co_industry %}
               <div class="job-req-section">
                 <h4>{{ 'Company'|t }}</h4>
+                {% if _co_name %}
                 <div class="job-req-item">
                   <span class="label">{{ 'Name:'|t }}</span>
-                  <span class="value">{{ job_extracted.company.name|default('N/A') }}</span>
+                  <span class="value">{{ _co_name }}</span>
                 </div>
+                {% endif %}
+                {% if _co_industry %}
                 <div class="job-req-item">
                   <span class="label">{{ 'Industry:'|t }}</span>
-                  <span class="value">{{ job_extracted.company.industry|default('N/A') }}</span>
+                  <span class="value">{{ _co_industry }}</span>
                 </div>
+                {% endif %}
               </div>
             {% endif %}
             
-            {% if job_extracted.compensation.salary_min and job_extracted.compensation.salary_max %}
+            {% set _salary = job_extracted.salary_range ?? '' %}
+            {% if _salary or (job_extracted.compensation.salary_min and job_extracted.compensation.salary_max) %}
               <div class="job-req-section">
                 <h4>{{ 'Compensation'|t }}</h4>
                 <div class="compensation-range">
-                  ${{ job_extracted.compensation.salary_min|number_format }} - ${{ job_extracted.compensation.salary_max|number_format }}
+                  {% if _salary %}{{ _salary }}
+                  {% else %}${{ job_extracted.compensation.salary_min|number_format }} - ${{ job_extracted.compensation.salary_max|number_format }}
+                  {% endif %}
                 </div>
               </div>
             {% endif %}
@@ -525,8 +559,20 @@
                 <ul class="differentiators-list">
                   {% for diff in tailored_resume.strategic_differentiators %}
                     <li class="differentiator-item-inline">
-                      <strong class="diff-title">{{ diff.title }}:</strong>
-                      <span class="diff-description">{{ diff.description }}</span>
+                      {% if diff is mapping %}
+                        {# Schema-correct object format: {title, description} #}
+                        <strong class="diff-title">{{ diff.title }}:</strong>
+                        <span class="diff-description">{{ diff.description }}</span>
+                      {% else %}
+                        {# AI deviation: plain string "Title: description text" #}
+                        {% set _parts = diff|split(': ', 2) %}
+                        {% if _parts|length == 2 %}
+                          <strong class="diff-title">{{ _parts[0] }}:</strong>
+                          <span class="diff-description">{{ _parts[1] }}</span>
+                        {% else %}
+                          <span class="diff-description">{{ diff }}</span>
+                        {% endif %}
+                      {% endif %}
                     </li>
                   {% endfor %}
                 </ul>
@@ -538,35 +584,72 @@
               <div class="resume-section">
                 <h3 class="section-header">Professional Experience</h3>
                 {% for exp in tailored_resume.professional_experience %}
-                  <div class="experience-entry">
-                    <div class="exp-header-line">
-                      <div class="exp-title-company">
-                        <span class="exp-title">{{ exp.title }}</span>
-                        <span class="exp-company"> – {{ exp.company }}</span>
+                  {# Support both flat schema (title at exp level) and nested positions[] (AI deviation) #}
+                  {% if exp.title %}
+                    {# Schema-correct flat format #}
+                    <div class="experience-entry">
+                      <div class="exp-header-line">
+                        <div class="exp-title-company">
+                          <span class="exp-title">{{ exp.title }}</span>
+                          <span class="exp-company"> – {{ exp.company }}</span>
+                        </div>
+                        <div class="exp-date-location">
+                          <span class="exp-dates">{{ exp.start_date }} – {{ exp.end_date|default('Present') }}</span>
+                          {% if exp.location %}<span class="exp-location">{{ exp.location }}</span>{% endif %}
+                        </div>
                       </div>
-                      <div class="exp-date-location">
-                        <span class="exp-dates">{{ exp.start_date }} – {{ exp.end_date|default('Present') }}</span>
-                        {% if exp.location %}<span class="exp-location">{{ exp.location }}</span>{% endif %}
-                      </div>
+                      {% if exp.company_context %}
+                        <div class="exp-context">{{ exp.company_context }}</div>
+                      {% endif %}
+                      {% if exp.responsibility_categories %}
+                        {% for cat in exp.responsibility_categories %}
+                          <div class="responsibility-cat">
+                            <h5 class="cat-header">{{ cat.category }}</h5>
+                            <ul class="achievement-list">
+                              {% for ach in cat.achievements %}
+                                <li class="achievement-bullet">{{ ach.text }}</li>
+                              {% endfor %}
+                            </ul>
+                          </div>
+                        {% endfor %}
+                      {% endif %}
                     </div>
-                    {% if exp.company_context %}
-                      <div class="exp-context">{{ exp.company_context }}</div>
-                    {% endif %}
-                    {% if exp.responsibility_categories %}
-                      {% for cat in exp.responsibility_categories %}
-                        <div class="responsibility-cat">
-                          <h5 class="cat-header">{{ cat.category }}</h5>
+                  {% elseif exp.positions %}
+                    {# AI deviation: nested positions[] wrapper under company name #}
+                    {% for pos in exp.positions %}
+                      <div class="experience-entry">
+                        <div class="exp-header-line">
+                          <div class="exp-title-company">
+                            <span class="exp-title">{{ pos.title }}</span>
+                            <span class="exp-company"> – {{ exp.company }}</span>
+                          </div>
+                          <div class="exp-date-location">
+                            <span class="exp-dates">{{ pos.start_date }} – {{ pos.end_date|default('Present') }}</span>
+                            {% if pos.location %}<span class="exp-location">{{ pos.location }}</span>{% endif %}
+                          </div>
+                        </div>
+                        {% if pos.responsibility_categories %}
+                          {% for cat in pos.responsibility_categories %}
+                            <div class="responsibility-cat">
+                              <h5 class="cat-header">{{ cat.category }}</h5>
+                              <ul class="achievement-list">
+                                {% for ach in cat.achievements %}
+                                  <li class="achievement-bullet">{{ ach.text }}</li>
+                                {% endfor %}
+                              </ul>
+                            </div>
+                          {% endfor %}
+                        {% elseif pos.achievements %}
+                          {# Flat achievements list (no categories) #}
                           <ul class="achievement-list">
-                            {% for ach in cat.achievements %}
-                              <li class="achievement-bullet">
-                                {{ ach.text }}
-                              </li>
+                            {% for ach in pos.achievements %}
+                              <li class="achievement-bullet">{{ ach is mapping ? ach.text : ach }}</li>
                             {% endfor %}
                           </ul>
-                        </div>
-                      {% endfor %}
-                    {% endif %}
-                  </div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  {% endif %}
                 {% endfor %}
               </div>
             {% endif %}

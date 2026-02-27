@@ -1565,8 +1565,8 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
    - `tailoring_metadata`: Object with job_id, job_title, company, tailored_at timestamp, and guidance array
    - `contact_info`: Keep unchanged from original
    - `executive_profile`: Rewrite summary to emphasize relevant experience for this role
-   - `strategic_differentiators`: Prioritize/reword to match job requirements
-   - `professional_experience`: Reorder achievements, emphasize relevant technologies/metrics
+   - `strategic_differentiators`: Prioritize/reword to match job requirements — each item MUST be an object `{"title": "...", "description": "..."}` NOT a plain string
+   - `professional_experience`: Reorder achievements, emphasize relevant technologies/metrics — each entry MUST be a flat object with `title`, `company`, `start_date`, `end_date`, `location`, `company_context`, `responsibility_categories`. Do NOT wrap positions inside a `positions[]` array. Each position held = one flat entry in the array.
    - `consulting_practice`: Include if relevant to role
    - `early_career`: Include if relevant
    - `education`: Keep unchanged
