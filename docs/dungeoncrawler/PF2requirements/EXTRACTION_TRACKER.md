@@ -22,7 +22,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 4 | Chapter 4: Skills (p.232) | `references/core-ch04-skills.md` | `[x]` |
 | 5 | Chapter 5: Feats (p.254) | `references/core-ch05-feats.md` | `[x]` |
 | 6 | Chapter 6: Equipment (p.270) | `references/core-ch06-equipment.md` | `[x]` |
-| 7 | Chapter 7: Spells (p.296) | `references/core-ch07-spells.md` | `[ ]` |
+| 7 | Chapter 7: Spells (p.297) | `references/core-ch07-spells.md` | `[x]` |
 | 8 | Chapter 8: The Age of Lost Omens (p.416) | `references/core-ch08-age-of-lost-omens.md` | `[ ]` |
 | 9 | Chapter 9: Playing the Game (p.442) | `references/core-ch09-playing-the-game.md` | `[ ]` |
 | 10 | Chapter 10: Game Mastering (p.482) | `references/core-ch10-game-mastering.md` | `[ ]` |
