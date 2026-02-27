@@ -294,7 +294,7 @@ Benefits:
     // $form_state->setRedirect('job_hunter.job_review', ['job_id' => $job_id]);
     
     // For now, redirect to jobs list
-    $form_state->setRedirect('job_hunter.jobs_list');
+    $form_state->setRedirect('job_hunter.my_jobs');
   }
 
 }

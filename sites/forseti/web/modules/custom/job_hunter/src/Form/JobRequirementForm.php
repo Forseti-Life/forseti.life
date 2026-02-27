@@ -221,7 +221,7 @@ class JobRequirementForm extends FormBase {
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
-      '#url' => \Drupal\Core\Url::fromRoute('job_hunter.jobs_list'),
+      '#url' => \Drupal\Core\Url::fromRoute('job_hunter.my_jobs'),
       '#attributes' => ['class' => ['button']],
     ];
 
@@ -317,7 +317,7 @@ class JobRequirementForm extends FormBase {
       }
     }
 
-    $form_state->setRedirect('job_hunter.jobs_list');
+    $form_state->setRedirect('job_hunter.my_jobs');
   }
 
   /**

@@ -497,7 +497,7 @@ class CompanyController extends ControllerBase {
               </form>
             </div>',
           '#context' => [
-            'action_url' => Url::fromRoute('job_hunter.jobs_list')->toString(),
+            'action_url' => Url::fromRoute('job_hunter.my_jobs')->toString(),
             'companies' => $companies,
             'filter_company' => $filter_company,
             'filter_status' => $filter_status,
@@ -585,12 +585,12 @@ class CompanyController extends ControllerBase {
         '@id' => $job_id,
         '@error' => $e->getMessage(),
       ]);
-      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+      return new RedirectResponse(Url::fromRoute('job_hunter.my_jobs')->toString());
     }
     
     if (!$job) {
       $this->messenger()->addError($this->t('Job not found.'));
-      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+      return new RedirectResponse(Url::fromRoute('job_hunter.my_jobs')->toString());
     }
 
     $jobValue = static function (object $row, string $field) {
@@ -1042,12 +1042,12 @@ class CompanyController extends ControllerBase {
         '@id' => $job_id,
         '@error' => $e->getMessage(),
       ]);
-      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+      return new RedirectResponse(Url::fromRoute('job_hunter.my_jobs')->toString());
     }
     
     if (!$job) {
       $this->messenger()->addError($this->t('Job not found.'));
-      return new RedirectResponse(Url::fromRoute('job_hunter.jobs_list')->toString());
+      return new RedirectResponse(Url::fromRoute('job_hunter.my_jobs')->toString());
     }
     
     // Parse JSON data using helper method
