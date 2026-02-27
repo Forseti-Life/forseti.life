@@ -1,6 +1,8 @@
 # Step 3: Application Submission - Progress Update
 
-**Overall Status**: Phase 1 COMPLETE ✅ | Phase 1.5 COMPLETE ✅ | Phase 2-4 PENDING 🟠
+**Overall Status**: Phase 1 COMPLETE ✅ | Phase 1.5 COMPLETE ✅ | Phase 1.6 COMPLETE ✅ | Phase 2 REQUIREMENTS DEFINED 🟡 | Phase 3-4 PENDING 🟠
+
+**Phase 1.6 (2026-02-27):** URL resolver, form mapper, BrowserAutomationService Phase 1, Apply button (AJAX + CSRF), application status panel, my-jobs status badges, DB schema update_9031, queue worker refactored. Three post-review bugs fixed (uid key, dead lever case, applyToJob CSRF + column bug).
 
 ---
 
@@ -331,6 +333,8 @@ drush sql:query "SHOW TABLES LIKE 'jobhunter_application%';"
 # Check services registered
 drush php:eval "\$s1 = \Drupal::service('job_hunter.application_submission_service');"
 drush php:eval "\$s2 = \Drupal::service('job_hunter.credential_management_service');"
+drush php:eval "\$s3 = \Drupal::service('job_hunter.apply_url_resolver');"
+drush php:eval "\$s4 = \Drupal::service('job_hunter.browser_automation_service');"
 
 # View recent migrations
 drush updatedb:status
@@ -338,6 +342,32 @@ drush updatedb:status
 
 ---
 
-**Current Status**: ✅ **PRODUCTION READY** for Phase 2  
-**Last Updated**: 2025-02-18  
-**Implementation Time**: 2 efficient sessions (Phase 1 + Phase 1.5)
+### Phase 2: Browser Automation — Playwright Bridge 🟡 REQUIREMENTS DEFINED
+
+**Status:** Requirements written, not yet implemented.  
+**Requirements:** [`PHASE2_BROWSER_AUTOMATION_REQUIREMENTS.md`](PHASE2_BROWSER_AUTOMATION_REQUIREMENTS.md)  
+**Bridge Spec:** [`PLAYWRIGHT_BRIDGE_SPEC.md`](PLAYWRIGHT_BRIDGE_SPEC.md)  
+**Last Updated:** 2026-02-27
+
+**Summary:**
+- Browser bridge: Node.js Playwright subprocess (PHP shell-execs `node apply.js --payload-file=...`)
+- Payload/result contract: JSON over file-based IPC (credentials never in argv)
+- Rollout order: Greenhouse → Lever → Workday → Ashby → SmartRecruiters → iCIMS → Workable → USAJobs
+- All attempts: pre/post screenshots, confirmation capture, `jobhunter_application_attempts` logging
+- Fallback on any failure: `manual_required` with pre-filled field map
+
+**Blockers to resolve before implementation:**
+- [ ] Confirm Node.js ≥ 18 available on server
+- [ ] Confirm private filesystem configured and writable
+- [ ] `npm install` in `playwright/` directory
+- [ ] `npx playwright install chromium`
+- [ ] Build credentials management UI at `/jobhunter/settings/credentials` (required for Track B / Workday)
+
+**New DB columns (update_9032, not yet written):**
+- `jobhunter_application_attempts`: `screenshot_pre_path`, `screenshot_post_path`, `confirmation_text`, `confirmation_number`
+- `jobhunter_applications`: `confirmed_at`, `confirmation_ref`
+
+---
+
+**Current Status**: ✅ **PRODUCTION READY** for Phase 2 implementation  
+**Last Updated**: 2026-02-27
