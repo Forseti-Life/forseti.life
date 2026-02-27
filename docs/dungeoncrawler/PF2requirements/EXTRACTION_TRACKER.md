@@ -38,7 +38,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Chapter | File | Status |
 |---|---------|------|--------|
-| 1 | Chapter 1: Ancestries & Backgrounds (p.6) | `references/apg-ch01-ancestries-backgrounds.md` | `[ ]` |
+| 1 | Chapter 1: Ancestries & Backgrounds (p.6) | `references/apg-ch01-ancestries-backgrounds.md` | `[x]` |
 | 2 | Chapter 2: Classes (p.52) | `references/apg-ch02-classes.md` | `[ ]` |
 | 3 | Chapter 3: Archetypes (p.148) | `references/apg-ch03-archetypes.md` | `[ ]` |
 | 4 | Chapter 4: (Content beyond extracted TOC) | `references/apg-ch04.md` | `[ ]` |
