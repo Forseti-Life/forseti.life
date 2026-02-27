@@ -86,11 +86,17 @@ class SerpApiService {
       return ['jobs' => [], 'total' => 0, 'page' => 1];
     }
 
+    $query = $params['query'] ?? '';
+    if (empty(trim($query))) {
+      $this->loggerFactory->get('job_hunter')->warning('SerpAPI search called with empty query — skipping API call.');
+      return ['jobs' => [], 'total' => 0, 'page' => 1];
+    }
+
     // Build query parameters
     $query_params = [
       'engine' => 'google_jobs',
       'api_key' => $api_key,
-      'q' => $params['query'] ?? '',
+      'q' => $query,
       'num' => $params['results_per_page'] ?? 10,
     ];
 

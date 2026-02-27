@@ -97,7 +97,7 @@ class CompanyForm extends FormBase {
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
-      '#url' => \Drupal\Core\Url::fromRoute('job_hunter.manage_target_companies'),
+      '#url' => \Drupal\Core\Url::fromRoute('job_hunter.companies_list'),
       '#attributes' => ['class' => ['button']],
     ];
 
@@ -141,7 +141,7 @@ class CompanyForm extends FormBase {
       ]));
     }
 
-    $form_state->setRedirect('job_hunter.manage_target_companies');
+    $form_state->setRedirect('job_hunter.companies_list');
   }
 
 }

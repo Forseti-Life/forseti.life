@@ -105,7 +105,7 @@ class CompanyResearchController extends ControllerBase {
       $query = $this->database->select('jobhunter_companies', 'c');
       $query->fields('c', ['id', 'name', 'industry', 'location', 'website', 'description', 'notes', 'active']);
       $query->leftJoin('jobhunter_job_requirements', 'j', 'j.company_id = c.id');
-      $query->leftJoin('jobhunter_job_applications', 'a', 'a.company_id = c.id');
+      $query->leftJoin('jobhunter_applications', 'a', 'a.job_id = j.id');
       $query->addExpression('COUNT(DISTINCT j.id)', 'job_count');
       $query->addExpression('COUNT(DISTINCT a.id)', 'app_count');
       $query->groupBy('c.id');
@@ -138,6 +138,11 @@ class CompanyResearchController extends ControllerBase {
     }, $companies);
     
     try {
+      // Guard against missing table (schema not yet created).
+      if (!\Drupal::database()->schema()->tableExists('company_research_results')) {
+        return [];
+      }
+
       $research_results = $this->database->select('company_research_results', 'r')
         ->fields('r', ['id', 'company_name', 'ats_platform', 'automation_readiness', 'created_at', 'research_date'])
         ->condition('company_name', $company_names, 'IN')

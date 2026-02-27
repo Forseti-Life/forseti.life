@@ -1745,3 +1745,91 @@ function nfr_update_9025() {
   $schema->createTable('nfr_correlation_analysis', $table_schema);
   return t('Created nfr_correlation_analysis table with 100+ fields for statistical analysis.');
 }
+
+/**
+ * Create missing nfr_user_profile table.
+ *
+ * The table was referenced throughout NFRAdminController but was never
+ * included in any create statement. This adds the missing schema.
+ */
+function nfr_update_9026() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('nfr_user_profile')) {
+    return t('Table nfr_user_profile already exists.');
+  }
+
+  $schema->createTable('nfr_user_profile', [
+    'description' => 'NFR participant profile data keyed to Drupal users.',
+    'fields' => [
+      'id' => [
+        'description' => 'Primary key.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'uid' => [
+        'description' => 'Drupal user ID (foreign key to users).',
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'participant_id' => [
+        'description' => 'NFR participant identifier.',
+        'type' => 'varchar',
+        'length' => 20,
+        'not null' => FALSE,
+      ],
+      'first_name' => [
+        'description' => 'Participant first name.',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+      ],
+      'last_name' => [
+        'description' => 'Participant last name.',
+        'type' => 'varchar',
+        'length' => 100,
+        'not null' => FALSE,
+      ],
+      'state' => [
+        'description' => 'US state abbreviation.',
+        'type' => 'varchar',
+        'length' => 2,
+        'not null' => FALSE,
+      ],
+      'profile_completed' => [
+        'description' => 'Whether the profile is marked complete (0/1).',
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'created' => [
+        'description' => 'Unix timestamp when the profile was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'description' => 'Unix timestamp when the profile was last updated.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid' => ['uid'],
+      'participant_id' => ['participant_id'],
+    ],
+    'indexes' => [
+      'state' => ['state'],
+      'profile_completed' => ['profile_completed'],
+      'created' => ['created'],
+    ],
+  ]);
+
+  return t('Created missing nfr_user_profile table.');
+}

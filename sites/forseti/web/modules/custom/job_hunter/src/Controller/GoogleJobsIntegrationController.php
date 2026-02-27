@@ -175,7 +175,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
     $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
     $query->leftJoin('jobhunter_google_jobs_sync', 'g', 'j.id = g.job_id');
     
-    $query->fields('j', ['id', 'job_title', 'created_at'])
+    $query->fields('j', ['id', 'job_title', 'created'])
       ->fields('c', ['company_name'])
       ->fields('g', [
         'is_enabled',
@@ -185,7 +185,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
         'impressions_count',
         'clicks_count',
       ])
-      ->orderBy('j.created_at', 'DESC')
+      ->orderBy('j.created', 'DESC')
       ->range(0, $limit);
     
     $results = $query->execute()->fetchAll();
@@ -196,7 +196,7 @@ class GoogleJobsIntegrationController extends ControllerBase {
         'id' => $row->id,
         'title' => $row->job_title,
         'company' => $row->company_name,
-        'created' => $row->created_at,
+        'created' => $row->created,
         'enabled' => $row->is_enabled ?? 0,
         'validation_status' => $row->validation_status ?? 'pending',
         'last_validated' => $row->last_validated,
