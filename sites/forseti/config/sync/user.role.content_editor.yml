@@ -25,11 +25,11 @@ weight: 2
 is_admin: false
 permissions:
   - 'access administration pages'
+  - 'access content'
   - 'access content overview'
   - 'access contextual links'
   - 'access files overview'
   - 'access toolbar'
-  - 'administer ai conversation'
   - 'administer url aliases'
   - 'create ai_conversation content'
   - 'create article content'

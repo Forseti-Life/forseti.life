@@ -1361,7 +1361,8 @@ class JobApplicationController extends ControllerBase {
       '#cache' => [
         'contexts' => ['url.query_args', 'user'],
         'tags' => ['job_hunter:search'],
-        'max-age' => 3600,
+        // CSRF tokens are per-session, not per-user: must not be cached.
+        'max-age' => 0,
       ],
     ];
 
