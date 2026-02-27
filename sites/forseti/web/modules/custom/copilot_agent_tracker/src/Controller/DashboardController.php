@@ -194,6 +194,7 @@ final class DashboardController extends ControllerBase {
    */
   private function buildCurrentReleaseSummary(array $agents): array {
     $current_release_id = '';
+    $fallback = [];
 
     // Pull most-recent CEO metadata and infer current release id.
     $row = $this->database->select('copilot_agent_tracker_agents', 'a')
@@ -262,11 +263,30 @@ final class DashboardController extends ControllerBase {
       $current_release_id = $this->inferReleaseIdFromSignoffs();
     }
 
+    // Derive previous and next release ids from the known release list.
+    $prev_release_id = '';
+    $next_release_id = '';
+    if ($fallback && $current_release_id !== '') {
+      $sorted_ids = array_values(array_unique($fallback));
+      sort($sorted_ids);
+      $idx = array_search($current_release_id, $sorted_ids, TRUE);
+      if ($idx !== FALSE) {
+        $prev_release_id = $idx > 0 ? $sorted_ids[$idx - 1] : '';
+        $next_release_id = isset($sorted_ids[$idx + 1]) ? $sorted_ids[$idx + 1] : '';
+      }
+    }
+
     $release_notes_url = Url::fromRoute('copilot_agent_tracker.release_notes');
     $release_notes_link = Link::fromTextAndUrl('Release notes / features / evidence', $release_notes_url)->toString();
     $release_id_link = $current_release_id !== ''
       ? Link::fromTextAndUrl($current_release_id, $this->safeReleaseNotesDetailUrl($current_release_id))->toString()
       : '-';
+    $prev_release_link = $prev_release_id !== ''
+      ? Link::fromTextAndUrl($prev_release_id, $this->safeReleaseNotesDetailUrl($prev_release_id))->toString()
+      : '';
+    $next_release_link = $next_release_id !== ''
+      ? Link::fromTextAndUrl($next_release_id, $this->safeReleaseNotesDetailUrl($next_release_id))->toString()
+      : '';
 
     // Build per-product QA status table.
     $by_product = [];
@@ -465,6 +485,8 @@ final class DashboardController extends ControllerBase {
       'summary' => [
         '#markup' => '<p><strong>Release id:</strong> ' . $release_id_link . '</p>'
           . '<p><strong>Links:</strong> ' . $release_notes_link . '</p>'
+          . ($prev_release_link !== '' ? '<p><strong>Last release:</strong> ' . $prev_release_link . '</p>' : '')
+          . ($next_release_link !== '' ? '<p><strong>Next release:</strong> ' . $next_release_link . '</p>' : '')
           . '<p><em>The release stage section below marks the inferred current stage as “CURRENT”.</em></p>',
       ],
       'qa_table' => [

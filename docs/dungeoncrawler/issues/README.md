@@ -67,6 +67,78 @@ This section reflects current implementation coverage in `dungeoncrawler_content
 - `combat-api-endpoints.md` - REST API specification
 - `combat-ui-design.md` - Frontend UI design
 
+---
+
+## PF2E Chapter 1 Requirements Issues (Issues #5–#17)
+
+Extracted from paragraph-by-paragraph analysis of PF2E Core Rulebook Chapter 1.  
+Source reference: `/docs/dungeoncrawler/PF2requirements/references/chapter-01-introduction.md`
+
+### Issue #5: Rules Vocabulary & Glossary
+**File**: `issue-5-rules-vocabulary-glossary.md`  
+**Status**: Open | **Priority**: Medium  
+**Description**: In-game glossary, abbreviation lookup (AC/DC/HP), contextual term display from stat blocks.
+
+### Issue #6: Action Economy System
+**File**: `issue-6-action-economy-system.md`  
+**Status**: Open | **Priority**: Critical  
+**Description**: 3-action budget, action types (Action/Reaction/Free Action), trigger system, activities, multi-mode play.
+
+### Issue #7: Stat Block Data Model
+**File**: `issue-7-stat-block-data-model.md`  
+**Status**: Open | **Priority**: High  
+**Description**: Universal stat block schema — all fields, prerequisites/frequency/trigger/requirements/special enforcement.
+
+### Issue #8: Character Creation Wizard
+**File**: `issue-8-character-creation-wizard.md`  
+**Status**: Open | **Priority**: High  
+**Description**: Non-linear 10-step wizard, higher-level creation, null-safe fields, step-to-field mapping.
+
+### Issue #9: Ability Score System
+**File**: `issue-9-ability-score-system.md`  
+**Status**: Open | **Priority**: Critical  
+**Description**: Six scores, boost/flaw/modifier mechanics, batch uniqueness enforcement, stat dependencies, rolling mode.
+
+### Issue #10: Ancestry System
+**File**: `issue-10-ancestry-system.md`  
+**Status**: Open | **Priority**: High  
+**Description**: Ancestry entity model, heritages, ancestry feats, special senses, alternate boost option, voluntary flaws, 6 core ancestries.
+
+### Issue #11: Background System
+**File**: `issue-11-background-system.md`  
+**Status**: Open | **Priority**: High  
+**Description**: Background entity (typed+free boosts, skill training, Lore skill sub-type, skill feat grant).
+
+### Issue #12: Class System
+**File**: `issue-12-class-system.md`  
+**Status**: Open | **Priority**: Critical  
+**Description**: Class entity, proficiency ranks T/E/M/L, advancement table, spellcasting config, sub-selections (Order), anathema, class-granted languages. All 12 core classes.
+
+### Issue #13: Equipment & Bulk System
+**File**: `issue-13-equipment-bulk-system.md`  
+**Status**: Open | **Priority**: Medium  
+**Description**: Starting wealth 15 gp, currency cp/sp/gp/pp, Bulk calculation (10L=1 Bulk), encumbrance thresholds, armor DEX cap.
+
+### Issue #14: Derived Statistics Calculator
+**File**: `issue-14-derived-statistics-calculator.md`  
+**Status**: Open | **Priority**: Critical  
+**Description**: Proficiency bonus formula, auto-calculation of all derived stats (AC/saves/Perception/skills/strikes/spell DC/Class DC), modifier stacking model, recalculation triggers.
+
+### Issue #15: Alignment System
+**File**: `issue-15-alignment-system.md`  
+**Status**: Open | **Priority**: Low  
+**Description**: Two-axis 9-alignment enum, alignment traits, class restrictions (Champion/Cleric/Druid), mutable alignment, atonement suppression state.
+
+### Issue #16: Character Details & Session Resources
+**File**: `issue-16-character-details-session-resources.md`  
+**Status**: Open | **Priority**: Low  
+**Description**: Hero Points (reset per session, reroll/stabilize spend), narrative detail fields, session state entity, deity field.
+
+### Issue #17: Leveling Up System
+**File**: `issue-17-leveling-up-system.md`  
+**Status**: Open | **Priority**: High  
+**Description**: XP threshold 1,000/level with carryover, level-up transaction (any-order steps, commit-time validation), HP recalc on CON boost, universal proficiency scaling, ability boosts at 5/10/15/20.
+
 ## Design Document Structure
 
 Each major issue includes:
@@ -100,4 +172,4 @@ When adding new design documents:
 
 ---
 
-**Last Updated**: 2026-02-18
+**Last Updated**: 2026-02-27
