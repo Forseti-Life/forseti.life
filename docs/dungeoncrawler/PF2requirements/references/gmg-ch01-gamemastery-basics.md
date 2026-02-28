@@ -252,3 +252,147 @@ Requirements identified:
 - REQ: Character-creation pipeline shall support uncommon/rare starting elements via GM campaign allowlists.
 
 ---
+
+## SECTION: Campaign Structure
+
+### Paragraph — Campaign scopes and progression models
+> "One-shot... Brief campaign... Extended campaign... Epic campaign... top level and time frame guidance."
+
+Requirements identified:
+- REQ: Campaign planner shall support predefined scope templates (one-shot, brief, extended, epic) with configurable level ceilings and expected session cadence.
+- REQ: Campaign templates shall expose adventure-count guidance to structure pacing and progression.
+- REQ: Campaign configuration shall allow promotion from shorter templates to longer arcs without data loss.
+
+---
+
+### Paragraph — Linking adventures and theme transitions
+> "A smooth transition from one adventure to the next ties the story together... use recurring NPCs, clues, fallout, or travel links... consider how each adventure’s theme plays into the campaign as a whole."
+
+Requirements identified:
+- REQ: Adventure graph shall support explicit link artifacts (recurring NPCs, carry-forward clues, consequence fallout, travel bridges).
+- REQ: Campaign timeline shall support interstitial adventures for geographic or narrative transitions.
+- REQ: Theme management shall support both recurring motifs and intentional theme shifts with world-state continuity.
+
+---
+
+### Paragraph — Player goals in campaign structure
+> "Ask what you and the other players enjoy... Find out what each character wants to achieve and look for opportunities you can place in the game world and adventures."
+
+Requirements identified:
+- REQ: Campaign intake shall collect player-preference touchstones and character goals at start and refresh points.
+- REQ: Goal-tracking model shall map each PC goal to supporting hooks in encounters, exploration, downtime, and rewards.
+- REQ: GM planning views should surface uncovered goals to avoid long-term neglect of player priorities.
+
+---
+
+## SECTION: Adventure Design
+
+### Paragraph — Player motivations and engagement
+> "Implementing plot hooks that speak to their motivations... ask in advance what they’d like to see... important thing is getting players engaged, not predicting the future."
+
+Requirements identified:
+- REQ: Adventure authoring shall include per-player motivation hooks and engagement targets.
+- REQ: Hook design shall avoid assuming deterministic player choices while still presenting motivation-aligned opportunities.
+- REQ: Session feedback loop shall capture motivation effectiveness for future adjustment.
+
+---
+
+### Paragraph — Keeping adventures varied
+> "Give players variety through challenge types, locations, NPCs, monsters, and treasure... avoid repetitive scene structures."
+
+Requirements identified:
+- REQ: Adventure balancing tools shall track scene-type diversity (combat/social/problem-solving/stealth/etc.) per session and per arc.
+- REQ: Encounter-set builder shall warn on repetitive composition patterns across consecutive sessions.
+- REQ: Adventure plans shall support spotlight rotation so different player preferences receive targeted content.
+
+---
+
+### Paragraph — Theme and emotional arc
+> "Think about emotional and thematic touchstones... planning for them can give an emotional arc to an adventure."
+
+Requirements identified:
+- REQ: Adventure outline format shall include intended emotional beats (for example triumph, dread, optimism) by scene or phase.
+- REQ: NPC/location design notes shall reference target thematic tone to maintain coherence.
+
+---
+
+### Paragraph — Adventure recipe framework
+> "Styles... Threats... Motivations... Story Arcs... NPCs and Organizations... Mechanics."
+
+Requirements identified:
+- REQ: Adventure generator shall support a six-step recipe pipeline linking style and threat to motivations, arcs, factions, and mechanical content.
+- REQ: Recipe stages shall remain editable during play to accommodate emergent narrative changes.
+- REQ: Opposition modeling shall support multiple non-monolithic adversary groups with internal conflicts.
+
+---
+
+## SECTION: Encounter Design
+
+### Paragraph — Encounter quality dimensions
+> "Good encounters have a place in the story, compelling adversaries, interesting locations, and twists and turns..."
+
+Requirements identified:
+- REQ: Encounter templates shall require narrative purpose, adversary rationale, and location hooks (not only XP/level math).
+- REQ: Encounter metadata shall support dynamic twists/phases to avoid static slugfests.
+
+---
+
+### Paragraph — Encounter variety and composition
+> "Variety... theme, difficulty, complexity, composition, setup, information uncertainty."
+
+Requirements identified:
+- REQ: Encounter planning shall support explicit variety dimensions: theme, threat band, complexity, composition, setup, and information visibility.
+- REQ: Threat scheduling should intentionally mix trivial/low/moderate/severe encounters and gate extreme threats for major set pieces.
+- REQ: Setup profiles shall include ambush, negotiation-collapse, duel, chase transition, retreat, and surrender end states.
+
+---
+
+### Paragraph — Encounter locations and terrain logic
+> "Choose compelling settings... map features impact maneuverability, line of sight, and attack ranges... inhabitant familiarity and terrain adaptation..."
+
+Requirements identified:
+- REQ: Map authoring shall model maneuverability, line-of-sight blockers, range lanes, and cover anchors as first-class encounter features.
+- REQ: Encounter placement shall account for inhabitant terrain familiarity and movement-mode advantages (burrow/climb/swim/fly).
+- REQ: Defensive scenarios shall support "PC home turf" preparation windows for traps, wards, and ambush setup.
+
+---
+
+## SECTION: Drawing Maps
+
+### Paragraph — Map purpose and production constraints
+> "Maps should serve your purposes... tool for tracking action and possibilities... no need for professional art."
+
+Requirements identified:
+- REQ: Map workflow shall prioritize legibility and play utility over visual polish.
+- REQ: Map tooling should support iterative draft/edit cycles with low-friction correction.
+
+---
+
+### Paragraph — Legend, scale, orientation, symbol key
+> "Create a legend... decide scale and orientation... key for symbols..."
+
+Requirements identified:
+- REQ: Every adventure map artifact shall include mandatory metadata: scale, orientation, and symbol legend.
+- REQ: Grid mapping shall support variable scale modes (5-foot tactical, larger strategic scales).
+
+---
+
+### Paragraph — Sketching and map composition
+> "Start sketching... keep maps simple and legible... use real-world references... ensure creatures fit spaces... avoid purposeless rooms and repetitive symmetry."
+
+Requirements identified:
+- REQ: Map validation shall enforce traversability constraints for expected creature sizes and movement.
+- REQ: Room authoring should require stated functional purpose for each encounter area.
+- REQ: Layout guidance shall discourage excessive symmetry/repetition unless intentionally thematic.
+
+---
+
+### Paragraph — Numbering encounter areas and definition pass
+> "Number encounter areas... use numbering in encounter notes... add definition with darker lines/ink for reusable maps."
+
+Requirements identified:
+- REQ: Map-to-encounter linkage shall require stable area IDs (with optional site prefix namespace).
+- REQ: Encounter notes shall reference map area IDs as primary keys for scene indexing.
+- REQ: Finalized map artifacts shall support durable export state for reuse across sessions/adventures.
+
+---
