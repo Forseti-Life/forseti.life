@@ -335,6 +335,13 @@ function dungeoncrawler_content_schema() {
         'not null' => FALSE,
         'description' => 'Axial hex R coordinate.',
       ],
+      'reaction_available' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 1,
+        'description' => 'Boolean: reaction available this round (1 = available, 0 = spent).',
+      ],
       'is_defeated' => [
         'type' => 'int',
         'size' => 'tiny',
@@ -3064,4 +3071,26 @@ function dungeoncrawler_content_update_10014() {
     \Drupal::logger('dungeoncrawler_content')->error('Update 10014 failed: @error', ['@error' => $e->getMessage()]);
     throw new \Drupal\Core\Utility\UpdateException('Failed to create quest system tables: ' . $e->getMessage());
   }
+}
+
+/**
+ * Add reaction_available field to combat_participants for PF2E reaction tracking.
+ */
+function dungeoncrawler_content_update_10015() {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('combat_participants', 'reaction_available')) {
+    $schema->addField('combat_participants', 'reaction_available', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 1,
+      'description' => 'Boolean: reaction available this round (1 = available, 0 = spent).',
+    ]);
+    // Default all existing participants to reaction available.
+    \Drupal::database()->update('combat_participants')
+      ->fields(['reaction_available' => 1])
+      ->execute();
+    return t('Added reaction_available field to combat_participants; all existing participants defaulted to 1 (available).');
+  }
+  return t('reaction_available field already exists on combat_participants; skipped.');
 }

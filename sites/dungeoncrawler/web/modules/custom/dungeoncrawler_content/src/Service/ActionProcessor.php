@@ -6,6 +6,7 @@ use Drupal\dungeoncrawler_content\Service\CombatCalculator;
 use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
 use Drupal\dungeoncrawler_content\Service\ConditionManager;
 use Drupal\dungeoncrawler_content\Service\HPManager;
+use Drupal\dungeoncrawler_content\Service\RulesEngine;
 use Psr\Log\LoggerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
@@ -23,14 +24,16 @@ class ActionProcessor {
   protected $logger;
   protected $store;
   protected $numberGeneration;
+  protected $rulesEngine;
 
-  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation) {
+  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation, RulesEngine $rules_engine) {
     $this->calculator = $calculator;
     $this->hpManager = $hp_manager;
     $this->conditionManager = $condition_manager;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
     $this->store = $store;
     $this->numberGeneration = $number_generation;
+    $this->rulesEngine = $rules_engine;
   }
 
   /**
@@ -74,8 +77,9 @@ class ActionProcessor {
       return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
     }
 
-    if (($attacker['actions_remaining'] ?? 0) < 1) {
-      return ['status' => 'error', 'message' => 'No actions remaining'];
+    $economy = $this->rulesEngine->validateActionEconomy($attacker, 1);
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
     }
 
     $attack_number = (int) ($attacker['attacks_this_turn'] ?? 0) + 1;
@@ -158,8 +162,9 @@ class ActionProcessor {
       return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
     }
 
-    if (($actor['actions_remaining'] ?? 0) < 1) {
-      return ['status' => 'error', 'message' => 'No actions remaining'];
+    $economy = $this->rulesEngine->validateActionEconomy($actor, 1);
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
     }
 
     $end = $this->lastPathCoordinate($path);

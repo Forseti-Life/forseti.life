@@ -143,6 +143,7 @@ class CombatEngine {
     $this->store->updateParticipant((int) $participant_id, [
       'actions_remaining' => 3,
       'attacks_this_turn' => 0,
+      'reaction_available' => 1,
     ]);
 
     return [
@@ -150,6 +151,7 @@ class CombatEngine {
       'participant_id' => (int) $participant_id,
       'turn_state' => 'awaiting_action',
       'actions_remaining' => 3,
+      'reaction_available' => TRUE,
       'attacks_this_turn' => 0,
       'current_round' => (int) ($encounter['current_round'] ?? 1),
     ];

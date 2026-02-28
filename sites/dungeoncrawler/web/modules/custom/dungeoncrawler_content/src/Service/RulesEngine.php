@@ -32,11 +32,55 @@ class RulesEngine {
   /**
    * Validate action economy.
    *
+   * Enforces PF2E three-action economy: 3 actions + 1 reaction per turn.
+   * Valid costs: 1, 2, 3 (integer actions), 'free' (no cost), 'reaction'.
+   *
+   * @param array $participant Participant state array with keys:
+   *   - actions_remaining (int 0–3)
+   *   - reaction_available (bool/int)
+   * @param int|string $action_cost 1, 2, 3, 'free', or 'reaction'.
+   *
+   * @return array ['is_valid' => bool, 'reason' => string, 'actions_after' => int|null]
+   *
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md#action-economy-validation
    */
   public function validateActionEconomy($participant, $action_cost) {
-    // TODO: Check actions_remaining >= action_cost
-    return ['is_valid' => TRUE, 'actions_after' => 0];
+    $valid_costs = [1, 2, 3, 'free', 'reaction'];
+    if (!in_array($action_cost, $valid_costs, TRUE)) {
+      return [
+        'is_valid' => FALSE,
+        'reason' => 'Invalid action cost: ' . json_encode($action_cost) . '. Must be 1, 2, 3, "free", or "reaction".',
+        'actions_after' => NULL,
+      ];
+    }
+
+    $actions_remaining = (int) ($participant['actions_remaining'] ?? 0);
+
+    if ($action_cost === 'free') {
+      return ['is_valid' => TRUE, 'reason' => '', 'actions_after' => $actions_remaining];
+    }
+
+    if ($action_cost === 'reaction') {
+      $available = !empty($participant['reaction_available']);
+      return [
+        'is_valid' => $available,
+        'reason' => $available ? '' : 'Reaction already used this turn.',
+        'actions_after' => $actions_remaining,
+      ];
+    }
+
+    // Integer action cost (1, 2, or 3).
+    $cost = (int) $action_cost;
+    if ($actions_remaining < $cost) {
+      return [
+        'is_valid' => FALSE,
+        'reason' => 'Not enough actions. Need ' . $cost . ', have ' . $actions_remaining . '.',
+        'actions_after' => $actions_remaining,
+      ];
+    }
+
+    $after = max(0, $actions_remaining - $cost);
+    return ['is_valid' => TRUE, 'reason' => '', 'actions_after' => $after];
   }
 
   /**

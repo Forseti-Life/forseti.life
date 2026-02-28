@@ -118,6 +118,11 @@ services:
   dungeoncrawler_content.combat_calculator:
     class: Drupal\dungeoncrawler_content\Service\CombatCalculator
 
+  dungeoncrawler_content.rules_engine:
+    class: Drupal\dungeoncrawler_content\Service\RulesEngine
+    arguments:
+      - '@database'
+
   dungeoncrawler_content.action_processor:
     class: Drupal\dungeoncrawler_content\Service\ActionProcessor
     arguments:
@@ -126,6 +131,8 @@ services:
       - '@dungeoncrawler_content.condition_manager'
       - '@logger.factory'
       - '@dungeoncrawler_content.combat_encounter_store'
+      - '@dungeoncrawler_content.number_generation'
+      - '@dungeoncrawler_content.rules_engine'
 
   dungeoncrawler_content.combat_engine:
     class: Drupal\dungeoncrawler_content\Service\CombatEngine
