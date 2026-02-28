@@ -28,7 +28,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 10 | Chapter 10: Game Mastering (p.482) | `references/core-ch10-game-mastering.md` | `[x]` |
 | 11 | Chapter 11: Crafting & Treasure (p.530) | `references/core-ch11-crafting-treasure.md` | `[x]` |
 
-**Progress: 1 / 11 chapters complete**
+**Progress: 10 / 11 chapters complete**
 
 ---
 
@@ -43,10 +43,10 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 3 | Chapter 3: Archetypes (p.148) | `references/apg-ch03-archetypes.md` | `[x]` |
 | 4 | Chapter 4: Feats (p.201) | `references/apg-ch04-feats.md` | `[x]` |
 | 5 | Chapter 5: Spells (p.210) | `references/apg-ch05-spells.md` | `[x]` |
-| 6 | Chapter 6: Items (p.264) | `references/apg-ch06-items.md` | `[ ]` |
+| 6 | Chapter 6: Items (p.264) | `references/apg-ch06-items.md` | `[x]` |
 | — | ~~Old merged file (incomplete)~~ | `references/apg-ch05-ch06-spells-items.md` | `[SUPERSEDED]` |
 
-**Progress: 5 / 6 chapters complete**
+**Progress: 6 / 6 chapters complete**
 
 ---
 
@@ -56,7 +56,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Chapter | File | Status |
 |---|---------|------|--------|
-| 1 | Chapter 1: Gamemastery Basics (p.6) | `references/gmg-ch01-gamemastery-basics.md` | `[ ]` |
+| 1 | Chapter 1: Gamemastery Basics (p.6) | `references/gmg-ch01-gamemastery-basics.md` | `[~]` |
 | 2 | Chapter 2: Tools (p.54) | `references/gmg-ch02-tools.md` | `[ ]` |
 | 3 | Chapter 3: Subsystems (p.136) | `references/gmg-ch03-subsystems.md` | `[ ]` |
 | 4 | Chapter 4: Variant Rules (p.170) | `references/gmg-ch04-variant-rules.md` | `[ ]` |
@@ -163,8 +163,8 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | Book | Chapters/Sections | Complete | Remaining |
 |------|:-----------------:|:--------:|:---------:|
-| Core Rulebook | 11 | 1 | 10 |
-| Advanced Players Guide | 4 | 0 | 4 |
+| Core Rulebook | 11 | 10 | 1 |
+| Advanced Players Guide | 6 | 6 | 0 |
 | Gamemastery Guide | 4 | 0 | 4 |
 | Guns and Gears | 5 | 0 | 5 |
 | Secrets of Magic | 5 | 0 | 5 |
@@ -172,21 +172,21 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | Bestiary 1 | 3 | 0 | 3 |
 | Bestiary 2 | 2 | 0 | 2 |
 | Bestiary 3 | 3 | 0 | 3 |
-| **TOTAL** | **43** | **1** | **42** |
+| **TOTAL** | **45** | **16** | **29** |
 
-**Overall progress: 1 / 43 chapters/sections extracted**
+**Overall progress: 16 / 45 chapters/sections extracted**
 
 ---
 
 ## Next Up
 **Priority order** (game mechanics first, lore/creatures last):
-1. Core Rulebook Ch.2 — Ancestries & Backgrounds
-2. Core Rulebook Ch.3 — Classes
-3. Core Rulebook Ch.4 — Skills
-4. Core Rulebook Ch.5 — Feats
-5. Core Rulebook Ch.6 — Equipment
-6. Core Rulebook Ch.7 — Spells
-7. Core Rulebook Ch.9 — Playing the Game
-8. Core Rulebook Ch.10 — Game Mastering
-9. Core Rulebook Ch.11 — Crafting & Treasure
-10. Core Rulebook Ch.8 — Age of Lost Omens (lore)
+1. Gamemastery Guide Ch.1 — Gamemastery Basics
+2. Gamemastery Guide Ch.2 — Tools
+3. Gamemastery Guide Ch.3 — Subsystems
+4. Gamemastery Guide Ch.4 — Variant Rules
+5. Guns and Gears Ch.1 — Gears Characters
+6. Guns and Gears Ch.2 — Gears Equipment
+7. Secrets of Magic Ch.1 — Essentials of Magic
+8. Secrets of Magic Ch.2 — Classes
+9. Gods and Magic S.5 — Character Options
+10. Bestiary 1 S.1 — Introduction
