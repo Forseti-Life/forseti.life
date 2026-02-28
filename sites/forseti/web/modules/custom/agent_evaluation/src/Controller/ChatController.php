@@ -9,7 +9,7 @@ use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
-use Drupal\ai_conversation\Service\AIApiServiceInterface;
+use Drupal\ai_conversation\Service\AIApiService;
 use Drupal\Core\Access\AccessResult;
 
 /**
@@ -34,14 +34,14 @@ class ChatController extends ControllerBase {
   /**
    * The AI API service.
    *
-   * @var \Drupal\ai_conversation\Service\AIApiServiceInterface
+  * @var \Drupal\ai_conversation\Service\AIApiService
    */
   protected $aiApiService;
 
   /**
    * Constructs a new ChatController object.
    */
-  public function __construct(EntityTypeManagerInterface $entity_type_manager, AccountInterface $current_user, AIApiServiceInterface $ai_api_service) {
+  public function __construct(EntityTypeManagerInterface $entity_type_manager, AccountInterface $current_user, AIApiService $ai_api_service) {
     $this->entityTypeManager = $entity_type_manager;
     $this->currentUser = $current_user;
     $this->aiApiService = $ai_api_service;

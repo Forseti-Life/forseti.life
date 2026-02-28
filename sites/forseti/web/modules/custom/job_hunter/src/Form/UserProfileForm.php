@@ -1164,10 +1164,13 @@ class UserProfileForm extends FormBase {
 
     // Professional Experience Section (editable JSON)
     $form['professional_experience'] = [
-      '#type' => 'details',
-      '#title' => $this->t('💼 Job Experience'),
-      '#open' => FALSE,
+      '#type' => 'container',
       '#weight' => 3,
+    ];
+
+    $form['professional_experience']['section_title'] = [
+      '#type' => 'markup',
+      '#markup' => '<h3>💼 ' . $this->t('Professional Experience') . '</h3>',
     ];
 
     // Professional Experience Structured Editor

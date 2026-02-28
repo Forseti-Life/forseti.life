@@ -244,9 +244,101 @@ function nfr_uninstall() {
 }
 
 /**
+ * Ensure baseline legacy tables exist for early update hooks.
+ */
+function _nfr_ensure_update_base_tables() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('nfr_questionnaire')) {
+    $schema->createTable('nfr_questionnaire', [
+      'description' => 'Legacy questionnaire table used by incremental NFR update hooks.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Drupal user ID',
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'uid' => ['uid'],
+      ],
+      'indexes' => [
+        'created' => ['created'],
+      ],
+    ]);
+  }
+
+  if (!$schema->tableExists('nfr_job_titles')) {
+    $schema->createTable('nfr_job_titles', [
+      'description' => 'Legacy normalized job titles table used by NFR update hooks.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Drupal user ID',
+        ],
+        'created' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+
+  if (!$schema->tableExists('nfr_incident_frequency')) {
+    $schema->createTable('nfr_incident_frequency', [
+      'description' => 'Legacy incident frequency table used by NFR update hooks.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'not null' => TRUE,
+        ],
+        'uid' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Drupal user ID',
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'uid' => ['uid'],
+      ],
+    ]);
+  }
+}
+
+/**
  * Add missing timestamp columns to normalized work history tables.
  */
 function nfr_update_9003() {
+  _nfr_ensure_update_base_tables();
   $schema = \Drupal::database()->schema();
   
   // Add created and updated to nfr_incident_frequency
@@ -1130,6 +1222,7 @@ function nfr_update_9008() {
  * Add last_section_completed column to track questionnaire progress.
  */
 function nfr_update_9002() {
+  _nfr_ensure_update_base_tables();
   $schema = \Drupal::database()->schema();
   
   if (!$schema->fieldExists('nfr_questionnaire', 'last_section_completed')) {
@@ -1149,6 +1242,7 @@ function nfr_update_9002() {
  * Add missing demographics columns to nfr_questionnaire table.
  */
 function nfr_update_9001() {
+  _nfr_ensure_update_base_tables();
   $schema = \Drupal::database()->schema();
   
   // Add race_other column

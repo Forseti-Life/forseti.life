@@ -710,6 +710,112 @@ function job_hunter_update_9035() {
 }
 
 /**
+ * Ensure SerpAPI metadata columns exist on jobhunter_job_requirements.
+ *
+ * Recovery hook for environments that missed historical update 9024.
+ */
+function job_hunter_update_9036() {
+  $schema = \Drupal::database()->schema();
+  $added = [];
+
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('No update needed: table jobhunter_job_requirements does not exist.');
+  }
+
+  $columns = [
+    'via' => [
+      'type' => 'varchar',
+      'length' => 255,
+      'not null' => FALSE,
+      'description' => 'Source platform where job was posted (e.g., LinkedIn, Indeed).',
+    ],
+    'thumbnail' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'description' => 'Company logo/thumbnail URL.',
+    ],
+    'share_link' => [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+      'description' => 'Google Jobs direct share link.',
+    ],
+    'work_from_home' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Work from home option available (1=yes, 0=no).',
+    ],
+    'health_insurance' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Health insurance benefit offered (1=yes, 0=no).',
+    ],
+    'dental_coverage' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Dental coverage benefit offered (1=yes, 0=no).',
+    ],
+    'paid_time_off' => [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Paid time off benefit offered (1=yes, 0=no).',
+    ],
+    'job_highlights' => [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'JSON-encoded structured highlights (qualifications, responsibilities, benefits).',
+    ],
+    'apply_options' => [
+      'type' => 'text',
+      'not null' => FALSE,
+      'description' => 'JSON-encoded array of application links and options.',
+    ],
+  ];
+
+  foreach ($columns as $column_name => $column_spec) {
+    if (!$schema->fieldExists('jobhunter_job_requirements', $column_name)) {
+      $schema->addField('jobhunter_job_requirements', $column_name, $column_spec);
+      $added[] = $column_name;
+    }
+  }
+
+  if ($schema->fieldExists('jobhunter_job_requirements', 'work_from_home') && !$schema->indexExists('jobhunter_job_requirements', 'idx_work_from_home')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_work_from_home', ['work_from_home'], [
+      'fields' => ['work_from_home' => ['type' => 'int', 'size' => 'tiny']],
+    ]);
+    $added[] = 'idx_work_from_home';
+  }
+
+  if ($schema->fieldExists('jobhunter_job_requirements', 'health_insurance') && !$schema->indexExists('jobhunter_job_requirements', 'idx_health_insurance')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_health_insurance', ['health_insurance'], [
+      'fields' => ['health_insurance' => ['type' => 'int', 'size' => 'tiny']],
+    ]);
+    $added[] = 'idx_health_insurance';
+  }
+
+  if ($schema->fieldExists('jobhunter_job_requirements', 'via') && !$schema->indexExists('jobhunter_job_requirements', 'idx_via')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_via', ['via'], [
+      'fields' => ['via' => ['type' => 'varchar', 'length' => 255]],
+    ]);
+    $added[] = 'idx_via';
+  }
+
+  return empty($added)
+    ? t('No update needed: SerpAPI metadata schema already present.')
+    : t('Added missing SerpAPI metadata schema: @items', ['@items' => implode(', ', $added)]);
+}
+
+/**
  * Implements hook_uninstall().
  */
 function job_hunter_uninstall() {

@@ -42,7 +42,7 @@
       
       {# Quick actions bar #}
       <div class="job-actions">
-        <a href="{{ path('job_hunter.job_edit_form', {'job_id': job_id}) }}" class="btn btn-outline btn-sm">✏️ {{ 'Edit Job'|t }}</a>
+        <a href="{{ path('job_hunter.job_edit', {'job_id': job_id}) }}" class="btn btn-outline btn-sm">✏️ {{ 'Edit Job'|t }}</a>
         <a href="{{ path('job_hunter.my_jobs') }}" class="btn btn-link btn-sm">← {{ 'Back to Jobs'|t }}</a>
       </div>
     </div>

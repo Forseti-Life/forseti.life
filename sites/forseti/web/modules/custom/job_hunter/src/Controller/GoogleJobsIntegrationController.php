@@ -171,12 +171,16 @@ class GoogleJobsIntegrationController extends ControllerBase {
    *   Array of job data.
    */
   protected function getRecentJobsWithSyncStatus($limit = 10) {
+    $company_name_field = $this->database->schema()->fieldExists('jobhunter_companies', 'name')
+      ? 'name'
+      : 'company_name';
+
     $query = $this->database->select('jobhunter_job_requirements', 'j');
     $query->leftJoin('jobhunter_companies', 'c', 'j.company_id = c.id');
     $query->leftJoin('jobhunter_google_jobs_sync', 'g', 'j.id = g.job_id');
+    $query->addField('c', $company_name_field, 'company_name');
     
     $query->fields('j', ['id', 'job_title', 'created'])
-      ->fields('c', ['company_name'])
       ->fields('g', [
         'is_enabled',
         'validation_status',
