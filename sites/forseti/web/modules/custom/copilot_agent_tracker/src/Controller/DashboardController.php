@@ -54,6 +54,21 @@ final class DashboardController extends ControllerBase {
   public function dashboard(): array {
     $token = (string) $this->state->get('copilot_agent_tracker.telemetry_token', '');
 
+    if (!$this->database->schema()->tableExists('copilot_agent_tracker_agents')) {
+      $this->messenger()->addWarning($this->t('Copilot Agent Tracker database tables are missing. Run database updates (for example: drush updb) to create required tables.'));
+      return [
+        '#type' => 'container',
+        'help' => [
+          '#markup' => '<p>Copilot Agent Tracker is enabled, but required database tables have not been created yet.</p>'
+            . '<p>Run database updates, then reload this page.</p>'
+            . ($token ? '<p><strong>Telemetry token</strong> (send as <code>X-Copilot-Agent-Tracker-Token</code>): <code>' . $token . '</code></p>' : ''),
+        ],
+        '#cache' => [
+          'max-age' => 0,
+        ],
+      ];
+    }
+
     $request = $this->dashboardRequestStack->getCurrentRequest();
     $selected = [
       'product' => (string) ($request?->query->get('product') ?? ''),

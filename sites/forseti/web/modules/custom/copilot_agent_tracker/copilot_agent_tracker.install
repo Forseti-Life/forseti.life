@@ -317,3 +317,22 @@ function copilot_agent_tracker_update_8004(): void {
     }
   }
 }
+
+/**
+ * Backfill core tracker tables for existing installs.
+ */
+function copilot_agent_tracker_update_8005(): void {
+  $schema = copilot_agent_tracker_schema();
+  $db = \Drupal::database();
+  $schema_handler = $db->schema();
+
+  foreach (['copilot_agent_tracker_agents', 'copilot_agent_tracker_events'] as $table) {
+    if ($schema_handler->tableExists($table)) {
+      continue;
+    }
+    $spec = $schema[$table] ?? NULL;
+    if ($spec) {
+      $schema_handler->createTable($table, $spec);
+    }
+  }
+}
