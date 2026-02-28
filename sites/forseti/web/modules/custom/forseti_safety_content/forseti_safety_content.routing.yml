@@ -34,7 +34,7 @@ forseti.talk_with_forseti:
     _controller: '\Drupal\forseti_safety_content\Controller\ForsetiPagesController::talkWithForseti'
     _title: 'Talk with Forseti'
   requirements:
-    _permission: 'access content'
+    _user_is_logged_in: 'TRUE'
   options:
     no_cache: TRUE
 
