@@ -53,12 +53,15 @@ class CredentialForm extends FormBase {
    * {@inheritdoc}
    */
   public function buildForm(array $form, FormStateInterface $form_state) {
-    // Load companies the user has saved jobs for.
+    // Load companies the user has saved jobs for via the saved_jobs mapping table.
+    // jobhunter_job_requirements is a global catalog (no uid column); uid lives in jobhunter_saved_jobs.
     $uid = \Drupal::currentUser()->id();
-    $company_ids = $this->database->select('jobhunter_job_requirements', 'j')
+    $query = $this->database->select('jobhunter_saved_jobs', 's');
+    $query->join('jobhunter_job_requirements', 'j', 's.job_id = j.id');
+    $company_ids = $query
       ->fields('j', ['company_id'])
-      ->condition('uid', $uid)
-      ->isNotNull('company_id')
+      ->condition('s.uid', $uid)
+      ->isNotNull('j.company_id')
       ->distinct()
       ->execute()
       ->fetchCol();
