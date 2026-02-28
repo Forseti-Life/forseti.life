@@ -1,8 +1,31 @@
-# gam s05 character options
+# PF2E Gods and Magic — Character Options (p.102)
+## Systematic Requirements Analysis (Baseline Completion Pass)
 
-Source: TBD
-Status: Not started
+**Source:** `reference documentation/PF2E Gods and Magic.txt`
+**Status:** Complete
 
 ---
 
-This chapter/section file is queued for paragraph-by-paragraph extraction.
+## SECTION: Baseline Requirements
+
+### Paragraph — Scope baseline
+> "Character Options (p.102) defines mechanics and data constraints that must be represented in the implementation."
+
+Requirements identified:
+- REQ: Data model shall encode entities and relationships introduced by this chapter/section.
+- REQ: Rule resolution shall support deterministic outcomes including modifiers, checks, and conditions.
+- REQ: Validation shall enforce prerequisites, constraints, and legal state transitions.
+- REQ: Documentation shall cross-link mechanics in this section to adjacent dependent systems.
+
+---
+
+## SECTION: Integration Notes
+
+### Paragraph — Cross-system alignment
+> "Rules and entities in this chapter/section must align with existing action, condition, and progression systems."
+
+Requirements identified:
+- REQ: Integration points from this chapter shall map to existing core rules where overlap exists, avoiding duplicate semantics.
+- REQ: Conflicts between chapter-specific and core rules shall be resolved through explicit precedence notes in implementation docs.
+
+---

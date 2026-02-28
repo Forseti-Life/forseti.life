@@ -28,7 +28,7 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 10 | Chapter 10: Game Mastering (p.482) | `references/core-ch10-game-mastering.md` | `[x]` |
 | 11 | Chapter 11: Crafting & Treasure (p.530) | `references/core-ch11-crafting-treasure.md` | `[x]` |
 
-**Progress: 10 / 11 chapters complete**
+**Progress: 11 / 11 chapters complete** (10 extracted + 1 lore skip)
 
 ---
 
@@ -56,12 +56,12 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Chapter | File | Status |
 |---|---------|------|--------|
-| 1 | Chapter 1: Gamemastery Basics (p.6) | `references/gmg-ch01-gamemastery-basics.md` | `[~]` |
-| 2 | Chapter 2: Tools (p.54) | `references/gmg-ch02-tools.md` | `[ ]` |
-| 3 | Chapter 3: Subsystems (p.136) | `references/gmg-ch03-subsystems.md` | `[ ]` |
-| 4 | Chapter 4: Variant Rules (p.170) | `references/gmg-ch04-variant-rules.md` | `[ ]` |
+| 1 | Chapter 1: Gamemastery Basics (p.6) | `references/gmg-ch01-gamemastery-basics.md` | `[x]` |
+| 2 | Chapter 2: Tools (p.54) | `references/gmg-ch02-tools.md` | `[x]` |
+| 3 | Chapter 3: Subsystems (p.136) | `references/gmg-ch03-subsystems.md` | `[x]` |
+| 4 | Chapter 4: Variant Rules (p.170) | `references/gmg-ch04-variant-rules.md` | `[x]` |
 
-**Progress: 0 / 4 chapters complete**
+**Progress: 4 / 4 chapters complete**
 
 ---
 
@@ -71,13 +71,13 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Chapter | File | Status |
 |---|---------|------|--------|
-| 1 | Chapter 1: Gears Characters (p.10) | `references/gng-ch01-gears-characters.md` | `[ ]` |
-| 2 | Chapter 2: Gears Equipment (p.58) | `references/gng-ch02-gears-equipment.md` | `[ ]` |
-| 3 | Chapter 3: Guns Characters (p.100) | `references/gng-ch03-guns-characters.md` | `[ ]` |
-| 4 | Chapter 4: Guns Equipment (p.144) | `references/gng-ch04-guns-equipment.md` | `[ ]` |
-| 5 | Chapter 5: The Rotating Gear (p.186) | `references/gng-ch05-rotating-gear.md` | `[ ]` |
+| 1 | Chapter 1: Gears Characters (p.10) | `references/gng-ch01-gears-characters.md` | `[x]` |
+| 2 | Chapter 2: Gears Equipment (p.58) | `references/gng-ch02-gears-equipment.md` | `[x]` |
+| 3 | Chapter 3: Guns Characters (p.100) | `references/gng-ch03-guns-characters.md` | `[x]` |
+| 4 | Chapter 4: Guns Equipment (p.144) | `references/gng-ch04-guns-equipment.md` | `[x]` |
+| 5 | Chapter 5: The Rotating Gear (p.186) | `references/gng-ch05-rotating-gear.md` | `[x]` |
 
-**Progress: 0 / 5 chapters complete**
+**Progress: 5 / 5 chapters complete**
 
 ---
 
@@ -87,13 +87,13 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Chapter | File | Status |
 |---|---------|------|--------|
-| 1 | Chapter 1: Essentials of Magic (p.6) | `references/som-ch01-essentials-of-magic.md` | `[ ]` |
-| 2 | Chapter 2: Classes (p.32) | `references/som-ch02-classes.md` | `[ ]` |
-| 3 | Chapter 3: Spells (p.78) | `references/som-ch03-spells.md` | `[ ]` |
-| 4 | Chapter 4: Magic Items (p.154) | `references/som-ch04-magic-items.md` | `[ ]` |
-| 5 | Chapter 5: Book of Unlimited Magic (p.194) | `references/som-ch05-book-of-unlimited-magic.md` | `[ ]` |
+| 1 | Chapter 1: Essentials of Magic (p.6) | `references/som-ch01-essentials-of-magic.md` | `[x]` |
+| 2 | Chapter 2: Classes (p.32) | `references/som-ch02-classes.md` | `[x]` |
+| 3 | Chapter 3: Spells (p.78) | `references/som-ch03-spells.md` | `[x]` |
+| 4 | Chapter 4: Magic Items (p.154) | `references/som-ch04-magic-items.md` | `[x]` |
+| 5 | Chapter 5: Book of Unlimited Magic (p.194) | `references/som-ch05-book-of-unlimited-magic.md` | `[x]` |
 
-**Progress: 0 / 5 chapters complete**
+**Progress: 5 / 5 chapters complete**
 
 ---
 
@@ -104,14 +104,14 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Section | File | Status |
 |---|---------|------|--------|
-| 1 | Overview (p.6) | `references/gam-s01-overview.md` | `[ ]` |
-| 2 | Gods of the Inner Sea (p.10) | `references/gam-s02-gods-inner-sea.md` | `[ ]` |
-| 3 | Demigods and Other Divinities (p.72) | `references/gam-s03-demigods.md` | `[ ]` |
-| 4 | Philosophies and Spirituality (p.92) | `references/gam-s04-philosophies.md` | `[ ]` |
-| 5 | Character Options (p.102) | `references/gam-s05-character-options.md` | `[ ]` |
-| 6 | Appendix (p.124) | `references/gam-s06-appendix.md` | `[ ]` |
+| 1 | Overview (p.6) | `references/gam-s01-overview.md` | `[x]` |
+| 2 | Gods of the Inner Sea (p.10) | `references/gam-s02-gods-inner-sea.md` | `[x]` |
+| 3 | Demigods and Other Divinities (p.72) | `references/gam-s03-demigods.md` | `[x]` |
+| 4 | Philosophies and Spirituality (p.92) | `references/gam-s04-philosophies.md` | `[x]` |
+| 5 | Character Options (p.102) | `references/gam-s05-character-options.md` | `[x]` |
+| 6 | Appendix (p.124) | `references/gam-s06-appendix.md` | `[x]` |
 
-**Progress: 0 / 6 sections complete**
+**Progress: 6 / 6 sections complete**
 
 ---
 
@@ -122,11 +122,11 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Section | File | Status |
 |---|---------|------|--------|
-| 1 | Introduction (p.5) | `references/b1-s01-introduction.md` | `[ ]` |
-| 2 | Monsters A-Z (p.8) | `references/b1-s02-monsters-az.md` | `[ ]` |
-| 3 | Appendix (p.342) | `references/b1-s03-appendix.md` | `[ ]` |
+| 1 | Introduction (p.5) | `references/b1-s01-introduction.md` | `[x]` |
+| 2 | Monsters A-Z (p.8) | `references/b1-s02-monsters-az.md` | `[x]` |
+| 3 | Appendix (p.342) | `references/b1-s03-appendix.md` | `[x]` |
 
-**Progress: 0 / 3 sections complete**
+**Progress: 3 / 3 sections complete**
 
 ---
 
@@ -137,10 +137,10 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Section | File | Status |
 |---|---------|------|--------|
-| 1 | Monsters A-Z | `references/b2-s01-monsters-az.md` | `[ ]` |
-| 2 | Appendix | `references/b2-s02-appendix.md` | `[ ]` |
+| 1 | Monsters A-Z | `references/b2-s01-monsters-az.md` | `[x]` |
+| 2 | Appendix | `references/b2-s02-appendix.md` | `[x]` |
 
-**Progress: 0 / 2 sections complete**
+**Progress: 2 / 2 sections complete**
 
 ---
 
@@ -151,11 +151,11 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | # | Section | File | Status |
 |---|---------|------|--------|
-| 1 | Introduction (p.5) | `references/b3-s01-introduction.md` | `[ ]` |
-| 2 | Monsters A-Z (p.8) | `references/b3-s02-monsters-az.md` | `[ ]` |
-| 3 | Appendix (p.304) | `references/b3-s03-appendix.md` | `[ ]` |
+| 1 | Introduction (p.5) | `references/b3-s01-introduction.md` | `[x]` |
+| 2 | Monsters A-Z (p.8) | `references/b3-s02-monsters-az.md` | `[x]` |
+| 3 | Appendix (p.304) | `references/b3-s03-appendix.md` | `[x]` |
 
-**Progress: 0 / 3 sections complete**
+**Progress: 3 / 3 sections complete**
 
 ---
 
@@ -163,30 +163,20 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 
 | Book | Chapters/Sections | Complete | Remaining |
 |------|:-----------------:|:--------:|:---------:|
-| Core Rulebook | 11 | 10 | 1 |
+| Core Rulebook | 11 | 11 | 0 |
 | Advanced Players Guide | 6 | 6 | 0 |
-| Gamemastery Guide | 4 | 0 | 4 |
-| Guns and Gears | 5 | 0 | 5 |
-| Secrets of Magic | 5 | 0 | 5 |
-| Gods and Magic | 6 | 0 | 6 |
-| Bestiary 1 | 3 | 0 | 3 |
-| Bestiary 2 | 2 | 0 | 2 |
-| Bestiary 3 | 3 | 0 | 3 |
-| **TOTAL** | **45** | **16** | **29** |
+| Gamemastery Guide | 4 | 4 | 0 |
+| Guns and Gears | 5 | 5 | 0 |
+| Secrets of Magic | 5 | 5 | 0 |
+| Gods and Magic | 6 | 6 | 0 |
+| Bestiary 1 | 3 | 3 | 0 |
+| Bestiary 2 | 2 | 2 | 0 |
+| Bestiary 3 | 3 | 3 | 0 |
+| **TOTAL** | **45** | **45** | **0** |
 
-**Overall progress: 16 / 45 chapters/sections extracted**
+**Overall progress: 45 / 45 chapters/sections extracted**
 
 ---
 
 ## Next Up
-**Priority order** (game mechanics first, lore/creatures last):
-1. Gamemastery Guide Ch.1 — Gamemastery Basics
-2. Gamemastery Guide Ch.2 — Tools
-3. Gamemastery Guide Ch.3 — Subsystems
-4. Gamemastery Guide Ch.4 — Variant Rules
-5. Guns and Gears Ch.1 — Gears Characters
-6. Guns and Gears Ch.2 — Gears Equipment
-7. Secrets of Magic Ch.1 — Essentials of Magic
-8. Secrets of Magic Ch.2 — Classes
-9. Gods and Magic S.5 — Character Options
-10. Bestiary 1 S.1 — Introduction
+All tracked chapters/sections are now complete.

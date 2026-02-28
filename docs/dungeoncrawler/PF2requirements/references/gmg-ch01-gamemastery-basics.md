@@ -2,7 +2,7 @@
 ## Systematic Requirements Analysis (Paragraph by Paragraph)
 
 **Source:** `reference documentation/PF2E Gamemastery Guide.txt` (initial pass)
-**Status:** In progress
+**Status:** Complete
 
 ---
 
@@ -394,5 +394,102 @@ Requirements identified:
 - REQ: Map-to-encounter linkage shall require stable area IDs (with optional site prefix namespace).
 - REQ: Encounter notes shall reference map area IDs as primary keys for scene indexing.
 - REQ: Finalized map artifacts shall support durable export state for reuse across sessions/adventures.
+
+---
+
+## SECTION: Adjudicating Rules (Extended)
+
+### Paragraph — Listen to players and shared recall
+> "Sharing the task of remembering the rules makes rules discussions collaborative rather than combative... making the final decision... falls to you."
+
+Requirements identified:
+- REQ: Rules discussion flow shall support collaborative lookup with players while preserving GM final authority for live rulings.
+- REQ: Session tooling should allow distributed source lookup assignments to speed multi-source rule verification.
+- REQ: Rules concerns raised by players shall be captured and not silently dismissed.
+
+---
+
+### Paragraph — Make the call and review later
+> "Often the best ruling is the one that keeps the game moving... This is how we’re playing it now... review between sessions."
+
+Requirements identified:
+- REQ: Live adjudication shall support provisional rulings with deferred post-session review.
+- REQ: Provisional rulings should be announced explicitly as temporary where applicable.
+- REQ: Between-session review workflow shall publish clarified/updated rulings before next session start.
+
+---
+
+### Paragraph — Saying 'Yes, but'
+> "It’s usually better to say 'yes' than 'no,' within reason... allow the player’s creative idea, but tie it into the world and the game rules via consequences."
+
+Requirements identified:
+- REQ: Improvisational adjudication should prefer permissive outcomes bounded by costs, checks, conditions, or constrained one-time effects.
+- REQ: Creative-action resolution library shall support minor bonus, minor penalty, minor damage-plus-rider, or object-triggered save templates.
+- REQ: GM may mark edge-case rulings as one-time exceptions to prevent disruptive long-term precedent.
+
+---
+
+## SECTION: Resolving Problems (Extended)
+
+### Paragraph — Problematic players and intervention model
+> "Handle the problem privately... unacceptable behaviors must be dealt with firmly and decisively..."
+
+Requirements identified:
+- REQ: Table-governance policy shall distinguish coachable behaviors from zero-tolerance behaviors.
+- REQ: Intervention workflow shall default to private conversation channels before public escalation (except urgent harm cases).
+- REQ: Governance logs should support behavior-category tagging and documented outcome decisions.
+
+---
+
+### Paragraph — Safety tools
+> "X-Card and Lines and Veils... allow anyone who feels uncomfortable or unsafe to express discomfort, with clear guidance on response."
+
+Requirements identified:
+- REQ: Campaign setup shall include optional safety tool configuration (X-Card and Lines/Veils equivalents).
+- REQ: Safety interrupts shall provide immediate pause/redirection behavior with no penalty to participating players.
+
+---
+
+### Paragraph — Ejecting player, cheating, and power imbalance
+> "Serially disruptive player... modify behavior or leave... cheating steals fun... power imbalance may require retraining, item removal, or encounter/campaign adjustment."
+
+Requirements identified:
+- REQ: Persistent severe misconduct workflow shall support removal decisions with explicit rationale and finality.
+- REQ: Suspected cheating workflow shall start with correction-first assumptions, then escalate to conduct enforcement when intentional behavior is confirmed.
+- REQ: Power-imbalance mitigation shall support consensual retraining, narrative item off-ramping, and encounter recalibration while preserving group fun.
+
+---
+
+## SECTION: Narrative Collaboration (Extended)
+
+### Paragraph — Shared-control challenges and Story Points
+> "Largest risk... losing a cohesive story... GM recaps events... Story Points allow players to suggest twists or establish facts, but not rewrite entire scenes."
+
+Requirements identified:
+- REQ: Shared-narrative mode shall include recap checkpoints to maintain canonical continuity.
+- REQ: Optional Story Point economy shall allow bounded narrative interventions (quick twist/fact/NPC attitude) with explicit scope limits.
+- REQ: Story Point actions shall be disallowed from auto-resolving whole scenes or massively rewriting setting reality.
+
+---
+
+## SECTION: Special Circumstances
+
+### Paragraph — Pathfinder Society and constrained option access
+> "Organized Play handles some tasks normally in GM purview, such as rules option availability... stay true to scenario while allowing reasonable creative solutions."
+
+Requirements identified:
+- REQ: Organized-play mode shall support campaign-level option allowlists/denylists external to local GM preference.
+- REQ: Scenario-run mode shall enforce baseline script fidelity while allowing GM-adjudicated alternate solution paths.
+- REQ: Alternate challenge bypasses (illusion/social/bribery) shall map to GM-set DC resolution patterns.
+
+---
+
+### Paragraph — Unusual group sizes (small groups)
+> "Small groups can have role gaps... add characters/hirelings/support NPCs... avoid GMPC spotlight theft... consider dual-class/free-archetype variants."
+
+Requirements identified:
+- REQ: Group-size adaptation layer shall support party-compensation options: extra PCs, support NPCs, or character-flexibility variants.
+- REQ: GM-controlled support entities shall have guardrails preventing major-decision dominance or role overshadowing.
+- REQ: Encounter tuning for small groups shall flag high-single-target incapacitation threats and recommend compensating adjustments.
 
 ---
