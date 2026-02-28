@@ -1,6 +1,6 @@
-# APG Chapter 4 (Spells) & Chapter 5 (Items) — Requirements Extraction
+# APG Chapter 5 (Spells) & Chapter 6 (Items) — Requirements Extraction
 
-Source: PF2E Advanced Players Guide, Chapters 4–5 (lines 29055–40047)
+Source: PF2E Advanced Players Guide, Chapters 5–6 (lines 29055–40047)
 Status: Complete
 
 ---
@@ -307,4 +307,3 @@ Status: Complete
 | Alchemical tools | Timeless Salts, Universal Solvent, Forensic Dye |
 | Consumable magic | Candle of Revealing, Dust of Corpse Animation, Terrifying Ammunition, Potion of Shared Memories |
 | Permanent magic | Glamorous Buckler, Victory Plate, Rope of Climbing, Winged Rune, Wand of Overflowing Life |
-

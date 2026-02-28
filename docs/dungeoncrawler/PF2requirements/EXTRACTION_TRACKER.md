@@ -42,11 +42,11 @@ Each chapter should produce a `references/` markdown file with paragraph-by-para
 | 2 | Chapter 2: Classes (p.52) | `references/apg-ch02-classes.md` | `[x]` |
 | 3 | Chapter 3: Archetypes (p.148) | `references/apg-ch03-archetypes.md` | `[x]` |
 | 4 | Chapter 4: Feats (p.201) | `references/apg-ch04-feats.md` | `[x]` |
-| 5 | Chapter 5: Spells (p.210) | `references/apg-ch05-spells.md` | `[ ]` |
+| 5 | Chapter 5: Spells (p.210) | `references/apg-ch05-spells.md` | `[x]` |
 | 6 | Chapter 6: Items (p.264) | `references/apg-ch06-items.md` | `[ ]` |
-| — | ~~Old merged file (incomplete)~~ | `references/apg-ch04-spells-items.md` | `[SUPERSEDED]` |
+| — | ~~Old merged file (incomplete)~~ | `references/apg-ch05-ch06-spells-items.md` | `[SUPERSEDED]` |
 
-**Progress: 4 / 6 chapters complete**
+**Progress: 5 / 6 chapters complete**
 
 ---
 
