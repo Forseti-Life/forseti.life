@@ -299,7 +299,12 @@ class JobDiscoveryService {
         ':app_uid' => $this->currentUser->id(),
       ]);
       $query->addField('app', 'submission_status', 'application_status');
-      $query->addField('app', 'ats_platform', 'application_ats');
+      if ($this->database->schema()->fieldExists('jobhunter_applications', 'ats_platform')) {
+        $query->addField('app', 'ats_platform', 'application_ats');
+      }
+      else {
+        $query->addExpression("''", 'application_ats');
+      }
 
       // Apply filters.
       if (!empty($filters['company'])) {

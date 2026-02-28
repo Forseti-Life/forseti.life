@@ -105,7 +105,29 @@
               }
 
               if (!response.ok) {
-                throw new Error('Request failed');
+                if (response.status === 404) {
+                  // Fall back to legacy GET flow in environments where POST is not routed.
+                  window.location.href = saveUrl;
+                  return null;
+                }
+                return response.text().then((rawBody) => {
+                  let message = `Request failed (${response.status})`;
+                  if (rawBody) {
+                    try {
+                      const payload = JSON.parse(rawBody);
+                      if (payload && payload.message) {
+                        message = payload.message;
+                      }
+                    } catch (e) {
+                      const excerpt = rawBody.replace(/\s+/g, ' ').trim().slice(0, 180);
+                      if (excerpt) {
+                        message = `${message}: ${excerpt}`;
+                      }
+                    }
+                  }
+                  message = `${message} [${response.url}]`;
+                  throw new Error(message);
+                });
               }
 
               return response.json();
@@ -132,7 +154,7 @@
               button.classList.remove('is-saving');
               button.setAttribute('aria-busy', 'false');
               button.textContent = originalText;
-              window.alert('Could not save this job right now. Please try again.');
+              window.alert(error.message || 'Could not save this job right now. Please try again.');
             });
         });
       });

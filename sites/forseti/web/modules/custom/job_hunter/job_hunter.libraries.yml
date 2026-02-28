@@ -131,6 +131,7 @@ target-companies:
     - core/once
 
 job-search-results:
+  version: 1.0.2
   js:
     js/job-search-results.js: {}
   css:

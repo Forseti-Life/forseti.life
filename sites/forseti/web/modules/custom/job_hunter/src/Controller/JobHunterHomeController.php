@@ -117,6 +117,11 @@ class JobHunterHomeController extends ControllerBase {
       'description' => 'Generates personalized cover letters for job applications',
       'icon' => '✉️',
     ],
+    'job_hunter_application_submission' => [
+      'name' => 'Application Submission',
+      'description' => 'Processes queued automated application submissions',
+      'icon' => '🚀',
+    ],
     'job_hunter_text_extraction' => [
       'name' => 'Resume Text Extraction',
       'description' => 'Extracts raw text from PDF/DOCX resume files',

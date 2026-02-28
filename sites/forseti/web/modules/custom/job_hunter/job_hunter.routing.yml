@@ -270,7 +270,7 @@ job_hunter.addposting:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
   requirements:
-    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
   methods: [GET, POST]
 
 # Target Companies Management

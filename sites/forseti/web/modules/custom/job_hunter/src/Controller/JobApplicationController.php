@@ -205,7 +205,7 @@ class JobApplicationController extends ControllerBase {
       '#markup' => '<h2>Job Application View</h2><p>Details for job application ID: ' . $job_application . '</p>',
     ];
     
-    return $this->wrapWithNavigation($content);
+    return $this->wrapWithNavigation($content, ['job_hunter/job-application-dashboard']);
   }
 
   /**
@@ -233,6 +233,7 @@ class JobApplicationController extends ControllerBase {
    */
   private function buildAuthenticatedView($build, $current_user) {
     $user_name = $current_user->getDisplayName();
+    $submission_summary = $this->getApplicationSubmissionSummary((int) $current_user->id());
     
     // Calculate stats
     $profile_completion = $this->calculateProfileCompletion($current_user);
@@ -309,9 +310,10 @@ class JobApplicationController extends ControllerBase {
     ];
     
     // Step 3: Application Submission
+    $application_submission_url = Url::fromRoute('job_hunter.application_submission');
     $build['step3'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['phase-section', 'phase-submission', 'disabled']],
+      '#attributes' => ['class' => ['phase-section', 'phase-submission']],
       'content' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
@@ -320,15 +322,14 @@ class JobApplicationController extends ControllerBase {
                      <div class="phase-info">
                        <h3>Application Submission</h3>
                        <p>Auto-apply to jobs with tailored resumes and cover letters.</p>
-                     </div>
-                     <div class="phase-stat">
-                       <div class="stat-number">0</div>
-                       <div class="stat-label">Auto-Applied</div>
-                     </div>
-                     <div class="phase-actions">
-                       <a href="/jobhunter/application-submission" class="phase-button">View Submissions</a>
-                     </div>
-                     <div class="coming-soon-badge">Coming Soon</div>',
+                      </div>
+                      <div class="phase-stat">
+                        <div class="stat-number">' . (int) $submission_summary['submitted'] . '</div>
+                        <div class="stat-label">Auto-Applied</div>
+                      </div>
+                      <div class="phase-actions">
+                        <a href="' . $application_submission_url->toString() . '" class="phase-button">View Submissions</a>
+                      </div>',
       ],
     ];
 
@@ -862,6 +863,10 @@ class JobApplicationController extends ControllerBase {
       $target_job_id = $this->resolveTargetJobIdFromToken($encoded);
 
       if (!$target_job_id) {
+        $target_job_id = $this->createJobFromSearchPayload($encoded);
+      }
+
+      if (!$target_job_id) {
         if ($is_ajax) {
           return new JsonResponse([
             'success' => FALSE,
@@ -1005,6 +1010,17 @@ class JobApplicationController extends ControllerBase {
    *   Decoded payload array or NULL.
    */
   private function decodeSearchPayloadToken(string $encoded): ?array {
+    $encoded = urldecode($encoded);
+    $raw_json = json_decode($encoded, TRUE);
+    if (is_array($raw_json)) {
+      return $raw_json;
+    }
+    // Query parsing may convert "+" to spaces; restore before base64 decode.
+    $encoded = str_replace(' ', '+', trim($encoded));
+    $remainder = strlen($encoded) % 4;
+    if ($remainder > 0) {
+      $encoded .= str_repeat('=', 4 - $remainder);
+    }
     $decoded = base64_decode(strtr($encoded, '-_', '+/'), TRUE);
     if ($decoded === FALSE) {
       $decoded = base64_decode($encoded, TRUE);
@@ -1016,6 +1032,56 @@ class JobApplicationController extends ControllerBase {
 
     $job_data = json_decode($decoded, TRUE);
     return is_array($job_data) ? $job_data : NULL;
+  }
+
+  /**
+   * Create a minimal Forseti job record from a legacy search payload.
+   *
+   * @param string $encoded
+   *   Raw search token from query string.
+   *
+   * @return int|null
+   *   Created Forseti job ID or NULL if payload is not usable.
+   */
+  private function createJobFromSearchPayload(string $encoded): ?int {
+    $job_data = $this->decodeSearchPayloadToken($encoded);
+    $job_data = is_array($job_data) ? $job_data : [];
+
+    $job_title = trim((string) ($job_data['job_title'] ?? $job_data['title'] ?? 'Imported External Job'));
+
+    $external_job_id = trim((string) ($job_data['htidocid'] ?? $job_data['job_id'] ?? $job_data['id'] ?? $encoded));
+    if ($external_job_id === '' || preg_match('/^(forseti|staging)_\d+$/', $external_job_id)) {
+      return NULL;
+    }
+    $location = trim((string) ($job_data['address_city'] ?? $job_data['location'] ?? ''));
+    $job_url = trim((string) ($job_data['job_url'] ?? $job_data['link'] ?? $job_data['url'] ?? ''));
+    $now = time();
+
+    $fields = [
+      'job_title' => $job_title,
+      'status' => 'active',
+      'created' => $now,
+      'updated' => $now,
+      'external_source' => 'Google Jobs (SerpAPI)',
+      'source_platform' => 'serpapi',
+    ];
+
+    if ($location !== '') {
+      $fields['location'] = $location;
+    }
+    if ($job_url !== '') {
+      $fields['job_url'] = substr($job_url, 0, 512);
+    }
+    if ($external_job_id !== '') {
+      $fields['external_job_id'] = $this->normalizeExternalJobId($external_job_id);
+    }
+    if (!empty($job_data['description'])) {
+      $fields['job_description'] = (string) $job_data['description'];
+    }
+
+    return (int) $this->database->insert('jobhunter_job_requirements')
+      ->fields($fields)
+      ->execute();
   }
 
   /**
@@ -1376,6 +1442,38 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the application submission page.
    */
   public function applicationSubmission() {
+    $uid = (int) $this->currentUser()->id();
+    $summary = $this->getApplicationSubmissionSummary($uid);
+    $applications = $this->getRecentApplicationSubmissions($uid, 25);
+
+    $rows = '';
+    foreach ($applications as $application) {
+      $job_id = (int) ($application['job_id'] ?? 0);
+      $job_title = htmlspecialchars($application['job_title'] ?? ('Job #' . $job_id), ENT_QUOTES, 'UTF-8');
+      $status = htmlspecialchars(ucwords(str_replace('_', ' ', (string) ($application['submission_status'] ?? 'unknown'))), ENT_QUOTES, 'UTF-8');
+      $attempt_count = (int) ($application['attempt_count'] ?? 0);
+      $ats_platform = htmlspecialchars((string) ($application['ats_platform'] ?? ''), ENT_QUOTES, 'UTF-8');
+      $confirmation = htmlspecialchars((string) ($application['confirmation_reference'] ?? $application['confirmation_ref'] ?? ''), ENT_QUOTES, 'UTF-8');
+      $apply_url = (string) ($application['apply_url'] ?? '');
+      $job_url = Url::fromRoute('job_hunter.job_view', ['job_id' => $job_id])->toString();
+      $apply_link = $apply_url !== ''
+        ? '<a href="' . htmlspecialchars($apply_url, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Open Apply URL</a>'
+        : '—';
+
+      $rows .= '<tr>'
+        . '<td><a href="' . htmlspecialchars($job_url, ENT_QUOTES, 'UTF-8') . '">' . $job_title . '</a></td>'
+        . '<td>' . $status . '</td>'
+        . '<td>' . $attempt_count . '</td>'
+        . '<td>' . ($ats_platform !== '' ? $ats_platform : '—') . '</td>'
+        . '<td>' . ($confirmation !== '' ? $confirmation : '—') . '</td>'
+        . '<td>' . $apply_link . '</td>'
+        . '</tr>';
+    }
+
+    if ($rows === '') {
+      $rows = '<tr><td colspan="6">No applications submitted yet. Start from <a href="' . Url::fromRoute('job_hunter.my_jobs')->toString() . '">My Jobs</a>.</td></tr>';
+    }
+
     $content = [
       '#type' => 'container',
       '#attributes' => ['class' => ['application-submission-page']],
@@ -1389,15 +1487,85 @@ class JobApplicationController extends ControllerBase {
         '#tag' => 'p',
         '#value' => 'Auto-apply to jobs with tailored resumes and cover letters.',
       ],
-      'todo' => [
+      'summary' => [
         '#type' => 'html_tag',
         '#tag' => 'div',
-        '#attributes' => ['class' => ['alert', 'alert-warning']],
-        '#value' => '<strong>TODO:</strong> Implement automated application submission.',
+        '#attributes' => ['class' => ['job-info-box']],
+        '#value' => '<strong>Total:</strong> ' . (int) $summary['total']
+          . ' &nbsp;|&nbsp; <strong>Submitted:</strong> ' . (int) $summary['submitted']
+          . ' &nbsp;|&nbsp; <strong>Pending/Processing:</strong> ' . (int) $summary['processing']
+          . ' &nbsp;|&nbsp; <strong>Manual Required:</strong> ' . (int) $summary['manual_required']
+          . ' &nbsp;|&nbsp; <strong>Failed:</strong> ' . (int) $summary['failed'],
+      ],
+      'table' => [
+        '#type' => 'html_tag',
+        '#tag' => 'div',
+        '#attributes' => ['class' => ['job-info-box']],
+        '#value' => '<h3>Recent Application Submissions</h3>'
+          . '<table class="queue-status-table"><thead><tr>'
+          . '<th>Job</th><th>Status</th><th>Attempts</th><th>ATS</th><th>Confirmation</th><th>Action</th>'
+          . '</tr></thead><tbody>'
+          . $rows
+          . '</tbody></table>',
       ],
     ];
     
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Gets summary counts for a user's application submissions.
+   */
+  private function getApplicationSubmissionSummary(int $uid): array {
+    if (!$this->database->schema()->tableExists('jobhunter_applications')) {
+      return ['total' => 0, 'submitted' => 0, 'processing' => 0, 'manual_required' => 0, 'failed' => 0];
+    }
+
+    $base = $this->database->select('jobhunter_applications', 'a')
+      ->condition('a.uid', $uid);
+
+    $total = (int) (clone $base)->countQuery()->execute()->fetchField();
+    $submitted = (int) (clone $base)->condition('a.submission_status', 'submitted')->countQuery()->execute()->fetchField();
+    $processing = (int) (clone $base)->condition('a.submission_status', ['pending', 'processing', 'queued'], 'IN')->countQuery()->execute()->fetchField();
+    $manual_required = (int) (clone $base)->condition('a.submission_status', 'manual_required')->countQuery()->execute()->fetchField();
+    $failed = (int) (clone $base)->condition('a.submission_status', 'failed')->countQuery()->execute()->fetchField();
+
+    return [
+      'total' => $total,
+      'submitted' => $submitted,
+      'processing' => $processing,
+      'manual_required' => $manual_required,
+      'failed' => $failed,
+    ];
+  }
+
+  /**
+   * Gets recent applications with optional fields when available.
+   */
+  private function getRecentApplicationSubmissions(int $uid, int $limit = 25): array {
+    $schema = $this->database->schema();
+    if (!$schema->tableExists('jobhunter_applications')) {
+      return [];
+    }
+    $query = $this->database->select('jobhunter_applications', 'a')
+      ->condition('a.uid', $uid)
+      ->orderBy('a.created', 'DESC')
+      ->range(0, $limit);
+
+    $fields = ['id', 'job_id', 'submission_status'];
+    foreach (['attempt_count', 'ats_platform', 'apply_url', 'confirmation_reference', 'confirmation_ref'] as $optional_field) {
+      if ($schema->fieldExists('jobhunter_applications', $optional_field)) {
+        $fields[] = $optional_field;
+      }
+    }
+    $query->fields('a', $fields);
+
+    if ($schema->tableExists('jobhunter_job_requirements') && $schema->fieldExists('jobhunter_job_requirements', 'job_title')) {
+      $query->leftJoin('jobhunter_job_requirements', 'j', 'a.job_id = j.id');
+      $query->addField('j', 'job_title');
+    }
+
+    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
   }
 
   /**

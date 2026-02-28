@@ -644,6 +644,72 @@ function job_hunter_update_9033() {
 }
 
 /**
+ * Ensure ats_platform exists on jobhunter_applications.
+ *
+ * Recovery hook for environments that missed or partially applied 9032.
+ */
+function job_hunter_update_9034() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_applications')) {
+    return t('No update needed: table jobhunter_applications does not exist.');
+  }
+
+  if ($schema->fieldExists('jobhunter_applications', 'ats_platform')) {
+    return t('No update needed: applications.ats_platform already exists.');
+  }
+
+  $schema->addField('jobhunter_applications', 'ats_platform', [
+    'type' => 'varchar',
+    'length' => 50,
+    'not null' => FALSE,
+    'description' => 'Detected ATS platform: workday, greenhouse, lever, taleo, icims, usajobs, custom, aggregator',
+  ]);
+
+  return t('Added missing applications.ats_platform column.');
+}
+
+/**
+ * Ensure job_hash exists for imported-job deduplication queries.
+ *
+ * Recovery hook for environments that missed historical update 9023.
+ */
+function job_hunter_update_9035() {
+  $schema = \Drupal::database()->schema();
+  $added = [];
+
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('No update needed: table jobhunter_job_requirements does not exist.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'job_hash')) {
+    $schema->addField('jobhunter_job_requirements', 'job_hash', [
+      'type' => 'varchar',
+      'length' => 32,
+      'not null' => FALSE,
+      'description' => 'MD5 hash of normalized company|title|location for cross-source deduplication.',
+    ]);
+    $added[] = 'job_hash';
+  }
+
+  if ($schema->fieldExists('jobhunter_job_requirements', 'job_hash') && !$schema->indexExists('jobhunter_job_requirements', 'idx_job_hash')) {
+    $schema->addIndex('jobhunter_job_requirements', 'idx_job_hash', ['job_hash'], [
+      'fields' => [
+        'job_hash' => [
+          'type' => 'varchar',
+          'length' => 32,
+        ],
+      ],
+    ]);
+    $added[] = 'idx_job_hash';
+  }
+
+  return empty($added)
+    ? t('No update needed: job_hash schema already present.')
+    : t('Added missing job hash schema: @items', ['@items' => implode(', ', $added)]);
+}
+
+/**
  * Implements hook_uninstall().
  */
 function job_hunter_uninstall() {

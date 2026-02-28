@@ -291,7 +291,8 @@
   flex-wrap: wrap;
 }
 
-.btn-save-job {
+.btn-save-job,
+.btn-save-job-link {
   background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
   color: white;
   border: none;
@@ -305,19 +306,22 @@
   transition: all 0.2s;
 }
 
-.btn-save-job:hover {
+.btn-save-job:hover,
+.btn-save-job-link:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(72, 187, 120, 0.4);
 }
 
-.btn-save-job.is-saving {
+.btn-save-job.is-saving,
+.btn-save-job-link.is-saving {
   background: #718096;
   box-shadow: none;
   transform: none;
   cursor: progress;
 }
 
-.btn-save-job.is-saved {
+.btn-save-job.is-saved,
+.btn-save-job-link.is-saved {
   background: #2f855a;
   box-shadow: none;
   transform: none;
@@ -362,6 +366,7 @@
   }
   
   .btn-save-job,
+  .btn-save-job-link,
   .btn-view-job {
     width: 100%;
     justify-content: center;

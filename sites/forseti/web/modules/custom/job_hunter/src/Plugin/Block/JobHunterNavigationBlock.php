@@ -92,6 +92,12 @@ class JobHunterNavigationBlock extends BlockBase implements ContainerFactoryPlug
       'icon' => 'briefcase',
       'weight' => 12,
     ];
+    $navigation['application_submission'] = [
+      'title' => $this->t('Application Submission'),
+      'url' => Url::fromRoute('job_hunter.application_submission'),
+      'icon' => 'send',
+      'weight' => 13,
+    ];
 
     if ($this->currentUser->hasPermission('administer job application automation')) {
       $navigation['job_discovery'] = [

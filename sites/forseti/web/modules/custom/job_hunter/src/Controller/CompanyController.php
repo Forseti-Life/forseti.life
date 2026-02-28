@@ -294,7 +294,12 @@ class CompanyController extends ControllerBase {
       // Join application records for current user.
       $query->leftJoin('jobhunter_applications', 'app', 'j.id = app.job_id AND app.uid = :app_uid', [':app_uid' => $current_user_id]);
       $query->addField('app', 'submission_status', 'application_status');
-      $query->addField('app', 'ats_platform', 'application_ats');
+      if ($this->database->schema()->fieldExists('jobhunter_applications', 'ats_platform')) {
+        $query->addField('app', 'ats_platform', 'application_ats');
+      }
+      else {
+        $query->addExpression("''", 'application_ats');
+      }
       $query->addField('app', 'automation_success', 'application_automation_success');
       
       // Apply filters
@@ -654,13 +659,20 @@ class CompanyController extends ControllerBase {
       ->execute()
       ->fetchObject();
 
-    // Check existing application record.
-    $existing_application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'submission_status', 'ats_platform', 'apply_url', 'selected_apply_option', 'attempt_count', 'confirmation_reference', 'submission_date', 'automation_success', 'admin_review_required'])
+    // Check existing application record (schema-safe across environments).
+    $existing_application_query = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'submission_status', 'apply_url', 'selected_apply_option', 'attempt_count', 'confirmation_reference', 'submission_date', 'automation_success', 'admin_review_required'])
       ->condition('uid', $current_user->id())
       ->condition('job_id', $job_id)
       ->orderBy('created', 'DESC')
-      ->range(0, 1)
+      ->range(0, 1);
+    if ($this->database->schema()->fieldExists('jobhunter_applications', 'ats_platform')) {
+      $existing_application_query->addField('a', 'ats_platform');
+    }
+    else {
+      $existing_application_query->addExpression("''", 'ats_platform');
+    }
+    $existing_application = $existing_application_query
       ->execute()
       ->fetchAssoc();
 
@@ -1400,17 +1412,21 @@ class CompanyController extends ControllerBase {
 
     // Update the application record with resolved URL and ATS metadata.
     if (!empty($result['application_id'])) {
+      $update_fields = [
+        'apply_url'             => $resolved['url'],
+        'selected_apply_option' => $resolved['selected_option'],
+        'metadata'              => json_encode([
+          'resolution_steps' => $resolved['resolution_steps'],
+          'confidence'       => $resolved['confidence'],
+        ]),
+        'changed' => date('Y-m-d H:i:s'),
+      ];
+      if ($this->database->schema()->fieldExists('jobhunter_applications', 'ats_platform')) {
+        $update_fields['ats_platform'] = $resolved['ats_platform'];
+      }
+
       $this->database->update('jobhunter_applications')
-        ->fields([
-          'apply_url'             => $resolved['url'],
-          'ats_platform'          => $resolved['ats_platform'],
-          'selected_apply_option' => $resolved['selected_option'],
-          'metadata'              => json_encode([
-            'resolution_steps' => $resolved['resolution_steps'],
-            'confidence'       => $resolved['confidence'],
-          ]),
-          'changed' => date('Y-m-d H:i:s'),
-        ])
+        ->fields($update_fields)
         ->condition('id', $result['application_id'])
         ->execute();
     }
@@ -1451,12 +1467,20 @@ class CompanyController extends ControllerBase {
       return new JsonResponse(['error' => 'Not authenticated.'], 403);
     }
 
-    $app = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'submission_status', 'ats_platform', 'apply_url', 'selected_apply_option', 'attempt_count', 'confirmation_reference', 'submission_date', 'automation_success', 'admin_review_required', 'created'])
+    $app_query = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'submission_status', 'apply_url', 'selected_apply_option', 'attempt_count', 'confirmation_reference', 'submission_date', 'automation_success', 'admin_review_required', 'created'])
       ->condition('a.uid', $uid)
       ->condition('a.job_id', (int) $job_id)
       ->orderBy('a.created', 'DESC')
-      ->range(0, 1)
+      ->range(0, 1);
+    if ($this->database->schema()->fieldExists('jobhunter_applications', 'ats_platform')) {
+      $app_query->addField('a', 'ats_platform');
+    }
+    else {
+      $app_query->addExpression("''", 'ats_platform');
+    }
+
+    $app = $app_query
       ->execute()
       ->fetchAssoc();
 
