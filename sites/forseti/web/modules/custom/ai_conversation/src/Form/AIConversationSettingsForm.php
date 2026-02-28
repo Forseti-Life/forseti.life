@@ -5,7 +5,10 @@ namespace Drupal\ai_conversation\Form;
 use Drupal\Core\Form\ConfigFormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\ai_conversation\Service\AIApiServiceInterface;
+use Drupal\Core\Ajax\AjaxResponse;
+use Drupal\Core\Ajax\HtmlCommand;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Psr\Log\LoggerInterface;
 
 /**
  * Configure AI Conversation settings.
@@ -51,11 +54,19 @@ class AIConversationSettingsForm extends ConfigFormBase {
   protected $aiApiService;
 
   /**
+   * The logger.
+   *
+   * @var \Psr\Log\LoggerInterface
+   */
+  protected $logger;
+
+  /**
    * {@inheritdoc}
    */
   public static function create(ContainerInterface $container): self {
     $instance = parent::create($container);
     $instance->aiApiService = $container->get('ai_conversation.ai_api_service');
+    $instance->logger = $container->get('logger.channel.ai_conversation');
     return $instance;
   }
 
@@ -79,8 +90,18 @@ class AIConversationSettingsForm extends ConfigFormBase {
   public function buildForm(array $form, FormStateInterface $form_state): array {
     $config = $this->config('ai_conversation.settings');
 
+    // Version debug display
+    $form['version_debug'] = [
+      '#type' => 'markup',
+      '#markup' => '<div style="background: #fff3cd; border: 2px solid #ff9800; padding: 12px; border-radius: 4px; margin-bottom: 20px; font-weight: bold; color: #ff6f00;">⚙️ FORM VERSION: 2025-02-27-v5 (Debug: Changes should appear here)</div>',
+      '#weight' => -100,
+    ];
+
     // Credential status
     $form['credential_status'] = $this->buildCredentialStatus($config);
+
+    // Connection test result status
+    $form['test_result_status'] = $this->buildTestResultStatus();
 
     // AWS Bedrock settings
     $form['aws_settings'] = $this->buildAwsSettings($config);
@@ -141,6 +162,28 @@ class AIConversationSettingsForm extends ConfigFormBase {
       '#list_type' => 'ul',
       '#items' => $status_items,
       '#wrapper_attributes' => ['class' => ['messages', 'messages--status']],
+    ];
+  }
+
+  /**
+   * Build test result status display.
+   *
+   * @return array
+   *   Form element array.
+   */
+  protected function buildTestResultStatus(): array {
+    $last_status = \Drupal::state()->get('ai_conversation.last_connection_test_status', 'Connection: NOT TESTED');
+    $last_details = \Drupal::state()->get('ai_conversation.last_connection_test_details', '');
+
+    $markup = '<div id="aws-test-result-status">' . htmlspecialchars($last_status) . '</div>';
+    if (!empty($last_details)) {
+      $markup .= '<div style="margin-top:8px;" id="aws-test-result-details">' . htmlspecialchars($last_details) . '</div>';
+    }
+
+    return [
+      '#type' => 'markup',
+      '#markup' => $markup,
+      '#weight' => -50,
     ];
   }
 
@@ -352,20 +395,43 @@ class AIConversationSettingsForm extends ConfigFormBase {
     return [
       '#type' => 'details',
       '#title' => $this->t('Connection Test'),
-      '#open' => FALSE,
+      '#open' => TRUE,
+      '#attributes' => ['class' => ['ai-connection-test']],
+      'instructions' => [
+        '#type' => 'markup',
+        '#markup' => '<p style="margin-bottom: 15px;"><strong>Click the button below to verify your AWS Bedrock connection.</strong> You will see a clear <strong style="color: green;">✅ PASS</strong> or <strong style="color: red;">❌ FAIL</strong> message.</p>',
+      ],
       'test_connection' => [
-        '#type' => 'button',
-        '#value' => $this->t('Test AWS Bedrock Connection'),
+        '#type' => 'submit',
+        '#name' => 'test_connection_btn',
+        '#value' => $this->t('🔌 Test AWS Bedrock Connection'),
+        '#submit' => ['::testConnectionSubmit'],
+        '#validate' => [],
+        '#limit_validation_errors' => [],
         '#ajax' => [
-          'callback' => '::testConnection',
+          'callback' => '::testConnectionAjax',
+          'event' => 'click',
           'wrapper' => 'connection-test-result',
-          'method' => 'replace',
+          'method' => 'html',
           'effect' => 'fade',
+          'progress' => [
+            'type' => 'throbber',
+            'message' => $this->t('🔄 Testing connection... (this may take up to 15 seconds)'),
+          ],
+        ],
+        '#attributes' => [
+          'class' => ['button', 'button--primary', 'test-connection-btn'],
+          'id' => 'test-connection-btn',
+          'style' => 'padding: 12px 24px; font-size: 16px;',
         ],
       ],
-      'connection_result' => [
+      'connection_status' => [
         '#type' => 'markup',
-        '#markup' => '<div id="connection-test-result"></div>',
+        '#markup' => '<div id="connection-test-result" style="margin-top: 20px; min-height: 60px; padding: 15px; border-radius: 4px; border: 2px solid #ddd; background-color: #f9f9f9;" class="connection-test-status"></div>',
+      ],
+      'test_note' => [
+        '#type' => 'markup',
+        '#markup' => '<p style="margin-top: 15px; font-size: 12px; color: #666;"><strong>Note:</strong> The first test may take 10-15 seconds as AWS initializes the connection. Subsequent tests will be faster.</p>',
       ],
     ];
   }
@@ -504,46 +570,105 @@ class AIConversationSettingsForm extends ConfigFormBase {
   }
 
   /**
-   * Test the AWS Bedrock connection.
+   * AJAX callback for testing AWS Bedrock connection.
    *
    * @param array $form
    *   The form array.
    * @param \Drupal\Core\Form\FormStateInterface $form_state
    *   The form state.
    *
-   * @return array
-   *   Render array for AJAX response.
+   * @return \Drupal\Core\Ajax\AjaxResponse
+   *   AJAX response with connection test result.
    */
-  public function testConnection(array &$form, FormStateInterface $form_state): array {
+  public function testConnectionAjax(array &$form, FormStateInterface $form_state): AjaxResponse {
+    $response = new AjaxResponse();
+    $this->logger->info('AWS Bedrock connection test initiated');
+    
     try {
-      $result = $this->aiApiService->testConnection();
-
-      $status = $result['success'] ? 'status' : 'error';
-      $message_text = $result['message'];
-
-      if ($result['success'] && !empty($result['model'])) {
-        $message_text .= ' <strong>Model:</strong> ' . $result['model'];
+      $result = $form_state->get('connection_test_result');
+      if (!$result) {
+        $this->logger->info('Calling AIApiService::testConnection() from AJAX callback');
+        $result = $this->aiApiService->testConnection();
       }
+      $this->logger->info('Connection test result: @result', ['@result' => json_encode($result)]);
 
-      if (!$result['success'] && !empty($result['details'])) {
-        $message_text .= '<br><strong>Details:</strong> ' . $result['details'];
+      if ($result['success']) {
+        $status_html = 'Connection: PASS';
+        $detail_html = 'PASS - ' . htmlspecialchars($result['message']);
+        if (!empty($result['model'])) {
+          $detail_html .= ' (Model: ' . htmlspecialchars($result['model']) . ')';
+        }
+        $this->logger->notice('AWS Bedrock connection test PASSED');
+      } else {
+        $message = (string) ($result['message'] ?? 'Connection failed');
+        $is_timeout = stripos($message, 'timeout') !== FALSE;
+        $status_html = $is_timeout ? 'Connection: FAIL (TIMEOUT)' : 'Connection: FAIL';
+        $detail_html = 'FAIL - ' . htmlspecialchars($message);
+        if (!empty($result['details'])) {
+          $detail_html .= ' Details: ' . htmlspecialchars($result['details']);
+        }
+        $this->logger->error('AWS Bedrock connection test FAILED: @message', ['@message' => $message]);
       }
-
-      $message = [
-        '#type' => 'markup',
-        '#markup' => '<div class="messages messages--' . $status . '">' . $message_text . '</div>',
-      ];
     }
     catch (\Exception $e) {
-      $message = [
-        '#type' => 'markup',
-        '#markup' => '<div class="messages messages--error">' .
-          $this->t('Connection test failed: @error', ['@error' => $e->getMessage()]) .
-          '</div>',
-      ];
+      $error_message = (string) $e->getMessage();
+      $is_timeout = stripos($error_message, 'timeout') !== FALSE;
+      $status_html = $is_timeout ? 'Connection: FAIL (TIMEOUT)' : 'Connection: FAIL';
+      $detail_html = 'FAIL - ' . htmlspecialchars($error_message);
+      $this->logger->error('AWS Bedrock connection test FAILED with exception: @error', ['@error' => $error_message]);
     }
 
-    return $message;
+    \Drupal::state()->set('ai_conversation.last_connection_test_status', $status_html);
+    \Drupal::state()->set('ai_conversation.last_connection_test_details', $detail_html);
+    
+    // Update both the status area at top AND the detailed results below
+    $response->addCommand(new HtmlCommand('#aws-test-result-status', $status_html));
+    $response->addCommand(new HtmlCommand('#connection-test-result', $detail_html));
+    return $response;
+  }
+
+  /**
+   * Submit handler for AJAX connection test button.
+   *
+   * @param array $form
+   *   The form array.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   The form state.
+   */
+  public function testConnectionSubmit(array &$form, FormStateInterface $form_state): void {
+    $this->logger->info('AWS Bedrock connection test button clicked from UI (submit handler)');
+
+    try {
+      $result = $this->aiApiService->testConnection();
+      $form_state->set('connection_test_result', $result);
+
+      if (!empty($result['success'])) {
+        $status = 'Connection: PASS';
+        $details = 'PASS - ' . ($result['message'] ?? 'Connection successful');
+      }
+      else {
+        $message = (string) ($result['message'] ?? 'Connection failed');
+        $is_timeout = stripos($message, 'timeout') !== FALSE;
+        $status = $is_timeout ? 'Connection: FAIL (TIMEOUT)' : 'Connection: FAIL';
+        $details = 'FAIL - ' . $message;
+        if (!empty($result['details'])) {
+          $details .= ' Details: ' . $result['details'];
+        }
+      }
+
+      \Drupal::state()->set('ai_conversation.last_connection_test_status', $status);
+      \Drupal::state()->set('ai_conversation.last_connection_test_details', $details);
+      $this->logger->info('Connection test submit handler status: @status', ['@status' => $status]);
+    }
+    catch (\Exception $e) {
+      $message = (string) $e->getMessage();
+      $is_timeout = stripos($message, 'timeout') !== FALSE;
+      $status = $is_timeout ? 'Connection: FAIL (TIMEOUT)' : 'Connection: FAIL';
+      $details = 'FAIL - ' . $message;
+      \Drupal::state()->set('ai_conversation.last_connection_test_status', $status);
+      \Drupal::state()->set('ai_conversation.last_connection_test_details', $details);
+      $this->logger->error('Connection test submit handler exception: @message', ['@message' => $message]);
+    }
   }
 
   /**
@@ -580,6 +705,15 @@ class AIConversationSettingsForm extends ConfigFormBase {
    * {@inheritdoc}
    */
   public function submitForm(array &$form, FormStateInterface $form_state): void {
+    $trigger = $form_state->getTriggeringElement();
+    $trigger_name = $trigger['#name'] ?? 'unknown';
+    $this->logger->info('AI settings submitForm triggered by: @trigger', ['@trigger' => $trigger_name]);
+
+    if ($trigger_name === 'test_connection_btn') {
+      $this->logger->info('Skipping config save during connection test button submit');
+      return;
+    }
+
     $config = $this->config('ai_conversation.settings');
 
     // AWS credentials

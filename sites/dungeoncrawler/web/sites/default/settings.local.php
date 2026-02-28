@@ -7,10 +7,12 @@
  *
  * MySQL VIEWs in dungeoncrawler_dev point to forseti_dev user tables.
  */
+$dc_local_db_password = getenv('DB_PASSWORD') ?: ($databases['default']['default']['password'] ?? '');
+
 $databases['default']['default'] = [
   'database' => 'dungeoncrawler_dev',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $dc_local_db_password,
   'host' => '127.0.0.1',
   'port' => '3306',
   'driver' => 'mysql',
@@ -21,7 +23,7 @@ $databases['default']['default'] = [
 $databases['forseti']['default'] = [
   'database' => 'forseti_dev',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $dc_local_db_password,
   'host' => '127.0.0.1',
   'port' => '3306',
   'driver' => 'mysql',

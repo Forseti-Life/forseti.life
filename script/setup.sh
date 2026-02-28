@@ -549,9 +549,20 @@ print_status "Checking AWS CLI installation..."
 if command -v aws &> /dev/null; then
     print_status "AWS CLI is already installed: $(aws --version 2>&1)"
 else
-    print_status "Installing AWS CLI..."
-    sudo apt install -y awscli
-    print_status "AWS CLI installed: $(aws --version 2>&1)"
+    print_status "Installing AWS CLI v2 (official installer)..."
+    AWS_TEMP_DIR=$(mktemp -d)
+    (
+        cd "$AWS_TEMP_DIR"
+        curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+        unzip -q awscliv2.zip
+        sudo ./aws/install
+    )
+    rm -rf "$AWS_TEMP_DIR"
+    if command -v aws &> /dev/null; then
+        print_status "AWS CLI installed: $(aws --version 2>&1)"
+    else
+        print_warning "AWS CLI installation may have failed; /usr/local/bin/aws should exist after reboot"
+    fi
 fi
 
 print_status "Checking Node.js and npm installation..."
@@ -872,17 +883,32 @@ else
     print_error "❌ Failed to start MySQL - continuing with limited functionality"
 fi
 
-if sudo mysql -e "SELECT User FROM mysql.user WHERE User='drupal_user' AND Host='127.0.0.1';" 2>/dev/null | grep -q drupal_user; then
-    print_status "MySQL drupal_user already exists"
-else
-    print_status "Creating MySQL database and user for Drupal..."
-    sudo mysql <<EOF
+print_status "Setting up MySQL database and user for Drupal..."
+print_status "Note: Recreating user to ensure password is current from .env"
+sudo mysql <<EOF
+-- Drop and recreate user to ensure password matches .env (idempotent)
+DROP USER IF EXISTS '${DB_USER}'@'127.0.0.1';
+DROP USER IF EXISTS '${DB_USER}'@'localhost';
+
+CREATE USER '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+CREATE USER '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
+
+-- Create database
 CREATE DATABASE IF NOT EXISTS ${DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-CREATE USER IF NOT EXISTS '${DB_USER}'@'127.0.0.1' IDENTIFIED BY '${DB_PASSWORD}';
+
+-- Grant privileges (both hosts for compatibility)
 GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
+
 FLUSH PRIVILEGES;
 EOF
-    print_status "MySQL database '${DB_NAME}' and user '${DB_USER}' created"
+
+# Verify database connectivity with the credentials
+if mysql -h 127.0.0.1 -u "${DB_USER}" -p"${DB_PASSWORD}" -e "SELECT 1;" ${DB_NAME} &>/dev/null; then
+    print_status "✅ Database connection verified: ${DB_USER}@127.0.0.1 -> ${DB_NAME}"
+else
+    print_error "❌ Database connection test failed - Drupal installation may fail"
+    print_error "Try: mysql -h 127.0.0.1 -u ${DB_USER} -p${DB_NAME}"
 fi
 
 # Create additional database for AmISafe module
@@ -890,6 +916,7 @@ print_status "Creating AmISafe database..."
 sudo mysql <<EOF
 CREATE DATABASE IF NOT EXISTS amisafe_database CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON amisafe_database.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON amisafe_database.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 print_status "AmISafe database created"
@@ -899,20 +926,14 @@ print_status "Creating Dungeon Crawler database..."
 sudo mysql <<EOF
 CREATE DATABASE IF NOT EXISTS ${DC_DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 GRANT ALL PRIVILEGES ON ${DC_DB_NAME}.* TO '${DB_USER}'@'127.0.0.1';
+GRANT ALL PRIVILEGES ON ${DC_DB_NAME}.* TO '${DB_USER}'@'localhost';
 FLUSH PRIVILEGES;
 EOF
 print_status "Dungeon Crawler database '${DC_DB_NAME}' created"
 
-# Grant localhost user same privileges (required for cross-database MySQL VIEWs)
-print_status "Ensuring localhost grants for cross-database VIEWs..."
-sudo mysql <<EOF
-CREATE USER IF NOT EXISTS '${DB_USER}'@'localhost' IDENTIFIED BY '${DB_PASSWORD}';
-GRANT ALL PRIVILEGES ON ${DB_NAME}.* TO '${DB_USER}'@'localhost';
-GRANT ALL PRIVILEGES ON ${DC_DB_NAME}.* TO '${DB_USER}'@'localhost';
-GRANT ALL PRIVILEGES ON amisafe_database.* TO '${DB_USER}'@'localhost';
-FLUSH PRIVILEGES;
-EOF
-print_status "Localhost grants configured for shared user tables"
+# Note: localhost grants already configured above (both @127.0.0.1 and @localhost created together)
+print_status "Database setup complete: ${DB_USER} has access to all databases from both 127.0.0.1 and localhost"
+
 
 # ------------------------------------------------------------------------------
 # 1.8 Private Files Directory
@@ -1454,18 +1475,6 @@ if [ ! -f "web/sites/default/settings.local.php" ]; then
 /**
  * Local development settings
  */
-
-// Database configuration
-\$databases['default']['default'] = [
-  'database' => '${DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
 
 // Hash salt for local development
 \$settings['hash_salt'] = '$(openssl rand -base64 32)';
@@ -2426,7 +2435,7 @@ if ! grep -q "Shared user tables configuration" web/sites/default/settings.php 2
 \$databases['forseti']['default'] = array (
   'database' => '${DB_NAME}',
   'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
+    'password' => \$databases['default']['default']['password'] ?? '',
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => 3306,
@@ -2474,28 +2483,6 @@ if [ ! -f "web/sites/default/settings.local.php" ]; then
  *
  * MySQL VIEWs in dungeoncrawler_dev point to forseti_dev user tables.
  */
-\$databases['default']['default'] = [
-  'database' => '${DC_DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
-
-\$databases['forseti']['default'] = [
-  'database' => '${DB_NAME}',
-  'username' => '${DB_USER}',
-  'password' => '${DB_PASSWORD}',
-  'host' => '127.0.0.1',
-  'port' => '3306',
-  'driver' => 'mysql',
-  'prefix' => '',
-  'collation' => 'utf8mb4_general_ci',
-];
-
 /**
  * Hash salt must match the main Forseti site for shared sessions.
  */

@@ -845,3 +845,54 @@ function ai_conversation_update_8008() {
 
   return t('Normalized @count field default values for schema compliance.', ['@count' => $updated]);
 }
+
+/**
+ * Ensure API usage debug/cache columns exist.
+ */
+function ai_conversation_update_8009() {
+  $schema = \Drupal::database()->schema();
+  $table = 'ai_conversation_api_usage';
+
+  if (!$schema->tableExists($table)) {
+    return t('Skipped API usage table update because @table does not exist.', ['@table' => $table]);
+  }
+
+  if (!$schema->fieldExists($table, 'success')) {
+    $schema->addField($table, 'success', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => FALSE,
+      'default' => 1,
+      'description' => 'Whether the API call succeeded (1) or failed (0)',
+    ]);
+  }
+
+  if (!$schema->fieldExists($table, 'error_message')) {
+    $schema->addField($table, 'error_message', [
+      'type' => 'text',
+      'size' => 'normal',
+      'not null' => FALSE,
+      'description' => 'Error message if API call failed',
+    ]);
+  }
+
+  if (!$schema->fieldExists($table, 'prompt_preview')) {
+    $schema->addField($table, 'prompt_preview', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'Full prompt sent to AI for debugging',
+    ]);
+  }
+
+  if (!$schema->fieldExists($table, 'response_preview')) {
+    $schema->addField($table, 'response_preview', [
+      'type' => 'text',
+      'size' => 'big',
+      'not null' => FALSE,
+      'description' => 'Full response from AI for debugging/cache',
+    ]);
+  }
+
+  return t('Ensured API usage debug/cache columns exist (success, error_message, prompt_preview, response_preview).');
+}

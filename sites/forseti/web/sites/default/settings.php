@@ -870,10 +870,34 @@ if (file_exists($app_root . '/' . $site_path . '/settings.local.php')) {
 if (file_exists($app_root . '/' . $site_path . '/settings.production.php')) {
   include $app_root . '/' . $site_path . '/settings.production.php';
 }
+
+$forseti_env = [];
+$forseti_env_files = [
+  DRUPAL_ROOT . '/../.env',
+  DRUPAL_ROOT . '/../../../.env',
+];
+foreach ($forseti_env_files as $forseti_env_file) {
+  if (!is_readable($forseti_env_file)) {
+    continue;
+  }
+  foreach (file($forseti_env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $forseti_env_line) {
+    if (strpos(ltrim($forseti_env_line), '#') === 0 || strpos($forseti_env_line, '=') === FALSE) {
+      continue;
+    }
+    [$forseti_env_key, $forseti_env_value] = explode('=', $forseti_env_line, 2);
+    $forseti_env_key = trim($forseti_env_key);
+    $forseti_env_value = trim($forseti_env_value);
+    $forseti_env[$forseti_env_key] = trim($forseti_env_value, "'\"");
+  }
+  break;
+}
+
+$forseti_db_password = getenv('DB_PASSWORD') ?: ($forseti_env['DB_PASSWORD'] ?? '');
+
 $databases['default']['default'] = array (
   'database' => 'forseti_dev',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $forseti_db_password,
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => 3306,
@@ -887,7 +911,7 @@ $databases['default']['default'] = array (
 $databases['amisafe']['default'] = array (
   'database' => 'amisafe_database',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $forseti_db_password,
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => 3306,

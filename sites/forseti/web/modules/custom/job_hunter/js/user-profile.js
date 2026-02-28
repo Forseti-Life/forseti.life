@@ -6,39 +6,32 @@
 (function ($, Drupal, once) {
   'use strict';
 
-  console.log('user-profile.js loaded - version 1.2');
-  console.log('typeof once:', typeof once);
-  console.log('typeof $.fn.once:', typeof $.fn.once);
-  console.log('Drupal version:', Drupal.drupalSettings ? 'settings available' : 'no settings');
+  const REQUIRED_FIELDS = {
+    'field_resume_file': 20,
+    'field_work_authorization': 15,
+    'field_professional_summary': 10,
+    'field_skills_summary': 10,
+    'field_experience_years': 8,
+    'field_education_level': 8,
+    'field_remote_preference': 5,
+    'field_linkedin_url': 5,
+    'field_salary_expectation_min': 5,
+    'field_available_start_date': 5,
+    'field_portfolio_url': 4,
+    'field_github_url': 3,
+    'field_certifications': 2
+  };
 
   Drupal.behaviors.jobApplicationUserProfile = {
-    attach: function (context, settings) {
-      console.log('jobApplicationUserProfile.attach called');
-      console.log('context:', context);
-      console.log('once function available:', typeof once);
-      
-      // Initialize profile form enhancements
-      const profileForms = document.querySelectorAll('.user-profile-form');
-      console.log('Found profile forms:', profileForms.length);
-      
+    attach: function (context) {
       once('profile-form', '.user-profile-form', context).forEach(function (element) {
-        console.log('Processing profile form:', element);
         const $form = $(element);
-        
-        // Real-time profile completeness calculation
+
         initProfileCompletenessTracking($form);
-        
-        // Form section management
         initSectionToggling($form);
-        
-        // Field validation enhancements
         initFieldValidation($form);
-        
-        // Auto-save functionality (optional)
-        // initAutoSave($form);
       });
 
-      // Initialize dashboard enhancements
       once('profile-dashboard', '.profile-dashboard-header', context).forEach(function () {
         initDashboardAnimations();
       });
@@ -49,42 +42,20 @@
    * Initialize real-time profile completeness tracking
    */
   function initProfileCompletenessTracking($form) {
-    const requiredFields = {
-      'field_resume_file': 20,
-      'field_work_authorization': 15,
-      'field_professional_summary': 10,
-      'field_skills_summary': 10,
-      'field_experience_years': 8,
-      'field_education_level': 8,
-      'field_remote_preference': 5,
-      'field_linkedin_url': 5,
-      'field_salary_expectation_min': 5,
-      'field_available_start_date': 5,
-      'field_portfolio_url': 4,
-      'field_github_url': 3,
-      'field_certifications': 2
-    };
-
-    // Check if server has already calculated completeness
     const $progressText = $form.find('.profile-progress-text');
     const serverProgress = $progressText.attr('data-progress');
     
-    // If server provided a value, respect it and don't recalculate on initial load
     if (serverProgress !== undefined && serverProgress !== null) {
-      console.log('Using server-calculated progress:', serverProgress + '%');
-      // Update styling based on server value
       updateFormStyling($form, parseInt(serverProgress));
     } else {
-      // No server value, calculate from form fields
-      updateProfileCompleteness($form, requiredFields);
+      updateProfileCompleteness($form, REQUIRED_FIELDS);
     }
 
-    // Monitor changes to form fields for real-time updates
-    $form.find('input, select, textarea').on('change keyup', function() {
-      setTimeout(function() {
-        updateProfileCompleteness($form, requiredFields);
-      }, 300); // Debounce updates
-    });
+    const debouncedUpdate = debounce(function() {
+      updateProfileCompleteness($form, REQUIRED_FIELDS);
+    }, 300);
+
+    $form.find('input, select, textarea').on('change keyup', debouncedUpdate);
   }
 
   /**
@@ -132,12 +103,24 @@
     if ($progressText.length) {
       $progressText.text(Drupal.t('Profile Completeness: @percent%', { '@percent': completeness }));
       
-      // Update data attribute for CSS styling
       $progressText.attr('data-progress', completeness);
     }
 
-    // Update form styling based on completeness
     updateFormStyling($form, completeness);
+  }
+
+  /**
+   * Create a debounced wrapper for high-frequency handlers.
+   */
+  function debounce(fn, delay) {
+    let timer;
+    return function () {
+      const args = arguments;
+      clearTimeout(timer);
+      timer = setTimeout(function () {
+        fn.apply(null, args);
+      }, delay);
+    };
   }
 
   /**

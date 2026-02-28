@@ -238,8 +238,8 @@ class UserProfileForm extends FormBase {
       '#multiple' => TRUE, // Allow multiple file selection
       '#upload_location' => $user_resume_dir,
       '#upload_validators' => [
-        'file_validate_extensions' => ['pdf doc docx'],
-        'file_validate_size' => [10 * 1024 * 1024],
+        'FileExtension' => ['extensions' => 'pdf doc docx'],
+        'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
       ],
       '#default_value' => [], // Always empty - don't show existing files here
       '#progress_indicator' => 'bar', // Shows progress bar during upload
@@ -507,6 +507,7 @@ class UserProfileForm extends FormBase {
           '#validate' => [],
           '#attributes' => [
             'data-filename' => $file_info['filename'],
+            'data-file-id' => (string) ($file_info['file_id'] ?? ''),
             'class' => ['button', 'button--danger'],
             'style' => 'font-size: 12px; padding: 4px 10px;',
             'onclick' => 'return confirm("Are you sure you want to delete this resume file?");',
@@ -575,11 +576,8 @@ class UserProfileForm extends FormBase {
           '#value' => "
             (function() {
               function moveButtons() {
-                console.log('Moving resume action buttons into status lines');
-                
                 // Move delete buttons
                 var deleteContainers = document.querySelectorAll('.delete-btn-container');
-                console.log('Found ' + deleteContainers.length + ' delete button containers');
                 
                 deleteContainers.forEach(function(container) {
                   var targetId = container.getAttribute('data-target');
@@ -597,7 +595,6 @@ class UserProfileForm extends FormBase {
                 
                 // Move extract text buttons
                 var extractContainers = document.querySelectorAll('.extract-text-btn-container');
-                console.log('Found ' + extractContainers.length + ' extract text containers');
                 
                 extractContainers.forEach(function(container) {
                   var targetId = container.getAttribute('data-target');
@@ -615,7 +612,6 @@ class UserProfileForm extends FormBase {
                 
                 // Move parse JSON buttons
                 var parseJsonContainers = document.querySelectorAll('.parse-json-btn-container');
-                console.log('Found ' + parseJsonContainers.length + ' parse JSON containers');
                 
                 parseJsonContainers.forEach(function(container) {
                   var targetId = container.getAttribute('data-target');
@@ -633,7 +629,6 @@ class UserProfileForm extends FormBase {
                 
                 // Move consolidate buttons
                 var consolidateContainers = document.querySelectorAll('.consolidate-btn-container');
-                console.log('Found ' + consolidateContainers.length + ' consolidate containers');
                 
                 consolidateContainers.forEach(function(container) {
                   var targetId = container.getAttribute('data-target');
@@ -1128,7 +1123,7 @@ class UserProfileForm extends FormBase {
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_education_level'),
     ];
 
-    // Education History Section (editable JSON)
+    // Education History Section (editable text)
     $form['experience_education']['education_entries'] = [
       '#type' => 'details',
       '#title' => $this->t('📚 Education History'),
@@ -1148,14 +1143,15 @@ class UserProfileForm extends FormBase {
       ];
     }
     $form['experience_education']['education_entries']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one entry per line. Save to apply changes.</em></p>',
     ];
     $form['experience_education']['education_entries']['field_education_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Education History Data (JSON)'),
-      '#default_value' => json_encode($consolidated['education'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Education History'),
+      '#description' => $this->t('One item per line. Optional format: Institution | Degree | Year'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'education'),
       '#rows' => 10,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
     $form['experience_education']['field_certifications'] = [
@@ -1168,35 +1164,19 @@ class UserProfileForm extends FormBase {
 
     // Professional Experience Section (editable JSON)
     $form['professional_experience'] = [
-      '#type' => 'details',
-      '#title' => $this->t('💼 Professional Experience'),
-      '#open' => TRUE,
+      '#type' => 'container',
       '#weight' => 3,
     ];
 
-    $professional_experience_display = $this->buildProfessionalExperienceDisplay($job_seeker_profile);
-    if ($professional_experience_display) {
-      $form['professional_experience']['professional_experience_display'] = [
-        '#type' => 'markup',
-        '#markup' => $professional_experience_display,
-        '#weight' => -20,
-      ];
-    }
-    
-    // Add display of early career positions if available
-    $early_career_display = $this->buildEarlyCareerDisplay($job_seeker_profile);
-    if ($early_career_display) {
-      $form['professional_experience']['early_career_display'] = [
-        '#type' => 'markup',
-        '#markup' => $early_career_display,
-        '#weight' => -10,
-      ];
-    }
-    
+    $form['professional_experience']['section_title'] = [
+      '#type' => 'markup',
+      '#markup' => '<h3>💼 ' . $this->t('Professional Experience') . '</h3>',
+    ];
+
     // Professional Experience Structured Editor
     // Stores to consolidated_profile_json.professional_experience on save.
     $form['professional_experience']['editor_info'] = [
-      '#markup' => '<p class="description"><em>Add and edit roles below. Saving updates your consolidated profile.</em></p>',
+      '#markup' => '<p class="description"><em>Edit core fields directly. Optional fields are under Advanced details. Save to persist changes.</em></p>',
     ];
 
     $form['professional_experience']['experience_editor'] = [
@@ -1205,10 +1185,26 @@ class UserProfileForm extends FormBase {
       '#suffix' => '</div>',
     ];
 
-    $existing_roles = $consolidated['professional_experience'] ?? [];
-    if (!is_array($existing_roles)) {
-      $existing_roles = [];
+    $action_message = (string) ($form_state->get('professional_experience_action_message') ?? '');
+    if ($action_message !== '') {
+      $form['professional_experience']['experience_editor']['action_status'] = [
+        '#type' => 'markup',
+        '#markup' => '<div class="messages messages--status" style="margin: 8px 0;">' . htmlspecialchars($action_message) . '</div>',
+      ];
     }
+
+    $existing_roles = $form_state->get('professional_experience_entries_state');
+    if (!is_array($existing_roles)) {
+      $existing_roles = $consolidated['professional_experience'] ?? [];
+      if (!is_array($existing_roles)) {
+        $existing_roles = [];
+      }
+      $existing_roles = array_values($existing_roles);
+      $form_state->set('professional_experience_entries_state', $existing_roles);
+    }
+
+    $existing_roles = $this->ensureProfessionalExperienceRowIds($existing_roles);
+    $this->setProfessionalExperienceEntriesState($form_state, $existing_roles, FALSE);
 
     // Track number of rows in form state (AJAX add/remove).
     $row_count = $form_state->get('professional_experience_row_count');
@@ -1224,11 +1220,18 @@ class UserProfileForm extends FormBase {
 
     for ($i = 0; $i < $row_count; $i++) {
       $role = is_array($existing_roles[$i] ?? NULL) ? $existing_roles[$i] : [];
+      $entry_label = $this->buildProfessionalExperienceEntryLabel($role, $i);
+      $entry_slug = $this->slugifyProfessionalExperienceLabel($entry_label);
+      $entry_row_id = (string) ($role['_row_id'] ?? '');
 
       $form['professional_experience']['experience_editor']['professional_experience_entries'][$i] = [
-        '#type' => 'details',
-        '#title' => $this->t('Role @num', ['@num' => $i + 1]),
-        '#open' => FALSE,
+        '#type' => 'container',
+        '#attributes' => ['class' => ['professional-experience-entry']],
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['entry_label'] = [
+        '#type' => 'markup',
+        '#markup' => '<h4>' . htmlspecialchars($entry_label) . '</h4>',
       ];
 
       $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['company'] = [
@@ -1264,7 +1267,19 @@ class UserProfileForm extends FormBase {
         '#title' => $this->t('Location'),
         '#default_value' => $role['location'] ?? '',
       ];
-      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['employment_type'] = [
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['_row_id'] = [
+        '#type' => 'hidden',
+        '#value' => $entry_row_id,
+      ];
+
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['advanced'] = [
+        '#type' => 'container',
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['advanced']['advanced_label'] = [
+        '#type' => 'markup',
+        '#markup' => '<strong>' . $this->t('Advanced details (optional)') . '</strong>',
+      ];
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['advanced']['employment_type'] = [
         '#type' => 'select',
         '#title' => $this->t('Employment Type'),
         '#options' => [
@@ -1274,13 +1289,13 @@ class UserProfileForm extends FormBase {
         ],
         '#default_value' => $role['employment_type'] ?? '',
       ];
-      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['via_company'] = [
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['advanced']['via_company'] = [
         '#type' => 'textfield',
         '#title' => $this->t('Via Company (optional)'),
         '#default_value' => $role['via_company'] ?? '',
       ];
 
-      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['company_context'] = [
+      $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['advanced']['company_context'] = [
         '#type' => 'textarea',
         '#title' => $this->t('Company Context (optional)'),
         '#rows' => 2,
@@ -1291,36 +1306,47 @@ class UserProfileForm extends FormBase {
         '#type' => 'textarea',
         '#title' => $this->t('Highlights (optional)'),
         '#rows' => 4,
-        '#default_value' => $role['highlights'] ?? $role['description'] ?? '',
+        '#default_value' => ((string) ($role['highlights'] ?? '') !== '')
+          ? (string) $role['highlights']
+          : (((string) ($role['description'] ?? '') !== '')
+            ? (string) $role['description']
+            : $this->buildFallbackHighlightsFromRole($role)),
       ];
 
       $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['key_achievements'] = [
         '#type' => 'textarea',
         '#title' => $this->t('Key Achievements (one per line)'),
         '#rows' => 4,
-        '#default_value' => is_array($role['key_achievements'] ?? NULL) ? implode("\n", $role['key_achievements']) : ($role['key_achievements'] ?? ''),
+        '#default_value' => is_array($role['key_achievements'] ?? NULL)
+          ? implode("\n", $role['key_achievements'])
+          : ((string) ($role['key_achievements'] ?? '') !== ''
+            ? $role['key_achievements']
+            : implode("\n", $this->extractExperienceAchievementTexts($role))),
       ];
 
       $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['technologies'] = [
         '#type' => 'textarea',
         '#title' => $this->t('Technologies (comma or newline separated)'),
         '#rows' => 3,
-        '#default_value' => is_array($role['technologies'] ?? NULL) ? implode("\n", $role['technologies']) : ($role['technologies'] ?? ''),
+        '#default_value' => is_array($role['technologies'] ?? NULL)
+          ? implode("\n", $role['technologies'])
+          : ((string) ($role['technologies'] ?? '') !== ''
+            ? $role['technologies']
+            : implode("\n", $this->extractExperienceTechnologies($role))),
       ];
 
       $form['professional_experience']['experience_editor']['professional_experience_entries'][$i]['remove'] = [
         '#type' => 'submit',
-        '#value' => $this->t('Remove Role'),
-        '#name' => 'remove_professional_experience_' . $i,
+        '#value' => $this->t('Remove @label', ['@label' => $entry_label]),
+        '#name' => 'remove_professional_experience_' . $i . '_' . $entry_slug,
         '#submit' => ['::removeProfessionalExperienceRow'],
         '#limit_validation_errors' => [],
-        '#ajax' => [
-          'callback' => '::professionalExperienceAjaxCallback',
-          'wrapper' => 'professional-experience-editor-wrapper',
-        ],
         '#attributes' => [
           'class' => ['button'],
           'data-remove-index' => (string) $i,
+          'data-remove-row-id' => $entry_row_id,
+          'data-remove-name' => $entry_label,
+          'data-remove-key' => $entry_slug,
         ],
       ];
     }
@@ -1330,14 +1356,10 @@ class UserProfileForm extends FormBase {
       '#value' => $this->t('Add Role'),
       '#submit' => ['::addProfessionalExperienceRow'],
       '#limit_validation_errors' => [],
-      '#ajax' => [
-        'callback' => '::professionalExperienceAjaxCallback',
-        'wrapper' => 'professional-experience-editor-wrapper',
-      ],
       '#attributes' => ['class' => ['button', 'button--primary']],
     ];
 
-    // Technical Expertise Section (editable JSON)
+    // Technical Expertise Section (editable text)
     $form['technical_expertise_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🛠️ Technical Expertise'),
@@ -1345,17 +1367,17 @@ class UserProfileForm extends FormBase {
       '#weight' => 5,
     ];
     $form['technical_expertise_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
     ];
     $form['technical_expertise_section']['field_technical_expertise_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Technical Expertise Data (JSON)'),
-      '#default_value' => json_encode($consolidated['technical_expertise'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Technical Expertise'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'technical_expertise'),
       '#rows' => 15,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Strategic Differentiators Section (editable JSON)
+    // Strategic Differentiators Section (editable text)
     $form['strategic_differentiators_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🎯 Strategic Differentiators'),
@@ -1363,17 +1385,17 @@ class UserProfileForm extends FormBase {
       '#weight' => 6,
     ];
     $form['strategic_differentiators_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
     ];
     $form['strategic_differentiators_section']['field_strategic_differentiators_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Strategic Differentiators Data (JSON)'),
-      '#default_value' => json_encode($consolidated['strategic_differentiators'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Strategic Differentiators'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'strategic_differentiators'),
       '#rows' => 10,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Leadership Philosophy Section (editable JSON)
+    // Leadership Philosophy Section (editable text)
     $form['leadership_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🧭 Leadership Philosophy'),
@@ -1381,17 +1403,17 @@ class UserProfileForm extends FormBase {
       '#weight' => 7,
     ];
     $form['leadership_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
     ];
     $form['leadership_section']['field_leadership_philosophy_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Leadership Philosophy Data (JSON)'),
-      '#default_value' => json_encode($consolidated['leadership_philosophy'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Leadership Philosophy'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'leadership_philosophy'),
       '#rows' => 8,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Demonstration Projects Section (editable JSON)
+    // Demonstration Projects Section (editable text)
     $form['demonstration_projects_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🚀 Demonstration Projects'),
@@ -1399,17 +1421,17 @@ class UserProfileForm extends FormBase {
       '#weight' => 8,
     ];
     $form['demonstration_projects_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one project per line. Save to apply changes.</em></p>',
     ];
     $form['demonstration_projects_section']['field_demonstration_projects_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Demonstration Projects Data (JSON)'),
-      '#default_value' => json_encode($consolidated['demonstration_projects'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Demonstration Projects'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'demonstration_projects'),
       '#rows' => 10,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Publications Section (editable JSON)
+    // Publications Section (editable text)
     $form['publications_section'] = [
       '#type' => 'details',
       '#title' => $this->t('📚 Publications & Research'),
@@ -1417,18 +1439,18 @@ class UserProfileForm extends FormBase {
       '#weight' => 8.5,
     ];
     $form['publications_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one publication per line. Save to apply changes.</em></p>',
     ];
     $form['publications_section']['field_publications_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Publications Data (JSON)'),
-      '#description' => $this->t('Peer-reviewed articles, conference papers, books, and other published works. Auto-extracted from resume via GenAI.'),
-      '#default_value' => json_encode($consolidated['publications'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Publications'),
+      '#description' => $this->t('One publication per line.'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'publications'),
       '#rows' => 10,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Certifications Section (structured JSON - updated)
+    // Certifications Section (editable text)
     $form['certifications_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🏆 Certifications & Licenses'),
@@ -1436,18 +1458,18 @@ class UserProfileForm extends FormBase {
       '#weight' => 8.7,
     ];
     $form['certifications_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected. This replaces the simple text field above.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one certification per line. Save to apply changes.</em></p>',
     ];
     $form['certifications_section']['field_certifications_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Certifications Data (JSON)'),
-      '#description' => $this->t('Professional certifications, licenses, and credentials with issuing organization and dates. Auto-extracted from resume via GenAI.'),
-      '#default_value' => json_encode($consolidated['certifications'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Certifications'),
+      '#description' => $this->t('One certification per line.'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'certifications'),
       '#rows' => 8,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Patents Section (editable JSON)
+    // Patents Section (editable text)
     $form['patents_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🔬 Patents & Intellectual Property'),
@@ -1455,18 +1477,18 @@ class UserProfileForm extends FormBase {
       '#weight' => 8.9,
     ];
     $form['patents_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one patent per line. Save to apply changes.</em></p>',
     ];
     $form['patents_section']['field_patents_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Patents Data (JSON)'),
-      '#description' => $this->t('Patent filings, grants, and inventions. Auto-extracted from resume via GenAI.'),
-      '#default_value' => json_encode($consolidated['patents'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Patents'),
+      '#description' => $this->t('One patent per line.'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'patents'),
       '#rows' => 8,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Awards & Honors Section (editable JSON)
+    // Awards & Honors Section (editable text)
     $form['awards_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🏅 Awards & Honors'),
@@ -1474,18 +1496,18 @@ class UserProfileForm extends FormBase {
       '#weight' => 9.1,
     ];
     $form['awards_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one award per line. Save to apply changes.</em></p>',
     ];
     $form['awards_section']['field_awards_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Awards & Honors Data (JSON)'),
-      '#description' => $this->t('Professional awards, recognitions, and honors. Auto-extracted from resume via GenAI.'),
-      '#default_value' => json_encode($consolidated['awards_and_honors'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Awards & Honors'),
+      '#description' => $this->t('One award per line.'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'awards_and_honors'),
       '#rows' => 8,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Languages Section (editable JSON)
+    // Languages Section (editable text)
     $form['languages_section'] = [
       '#type' => 'details',
       '#title' => $this->t('🌍 Languages & Proficiencies'),
@@ -1493,18 +1515,18 @@ class UserProfileForm extends FormBase {
       '#weight' => 9.3,
     ];
     $form['languages_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one language per line. Save to apply changes.</em></p>',
     ];
     $form['languages_section']['field_languages_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Languages Data (JSON)'),
-      '#description' => $this->t('Languages spoken and proficiency levels (native, fluent, professional, intermediate, basic). Auto-extracted from resume via GenAI.'),
-      '#default_value' => json_encode($consolidated['languages'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Languages'),
+      '#description' => $this->t('One language per line.'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'languages'),
       '#rows' => 6,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Consulting Practice Section (editable JSON)
+    // Consulting Practice Section (editable text)
     $form['consulting_practice_section'] = [
       '#type' => 'details',
       '#title' => $this->t('💼 Consulting Practice'),
@@ -1512,17 +1534,17 @@ class UserProfileForm extends FormBase {
       '#weight' => 9,
     ];
     $form['consulting_practice_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one engagement per line. Save to apply changes.</em></p>',
     ];
     $form['consulting_practice_section']['field_consulting_practice_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Consulting Practice Data (JSON)'),
-      '#default_value' => json_encode($consolidated['consulting_practice'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Consulting Practice'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'consulting_practice'),
       '#rows' => 10,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
-    // Early Career Section (editable JSON)
+    // Early Career Section (editable text)
     $form['early_career_section'] = [
       '#type' => 'details',
       '#title' => $this->t('📜 Early Career'),
@@ -1530,14 +1552,14 @@ class UserProfileForm extends FormBase {
       '#weight' => 10,
     ];
     $form['early_career_section']['info'] = [
-      '#markup' => '<p class="description"><em>Edit the JSON below. Save the form to see changes reflected.</em></p>',
+      '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
     ];
     $form['early_career_section']['field_early_career_json'] = [
       '#type' => 'textarea',
-      '#title' => $this->t('Early Career Data (JSON)'),
-      '#default_value' => json_encode($consolidated['early_career'] ?? [], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+      '#title' => $this->t('Early Career'),
+      '#default_value' => $this->formatSectionForTextarea($consolidated, 'early_career'),
       '#rows' => 6,
-      '#attributes' => ['class' => ['json-editor'], 'style' => 'font-family: monospace;'],
+      '#attributes' => ['style' => 'width: 100%;'],
     ];
 
     // Online Presence Section
@@ -1800,31 +1822,14 @@ class UserProfileForm extends FormBase {
       }
     }
     
-    // Validate JSON editor fields
-    $json_fields = [
-      'field_technical_expertise_json' => 'Technical Expertise',
-      'field_strategic_differentiators_json' => 'Strategic Differentiators',
-      'field_leadership_philosophy_json' => 'Leadership Philosophy',
-      'field_demonstration_projects_json' => 'Demonstration Projects',
-      'field_consulting_practice_json' => 'Consulting Practice',
-      'field_early_career_json' => 'Early Career',
-      'field_education_json' => 'Education History',
-    ];
-    
-    foreach ($json_fields as $field => $label) {
-      $json_value = $form_state->getValue($field);
-      if (!empty($json_value)) {
-        $decoded = json_decode($json_value, TRUE);
-        if (json_last_error() !== JSON_ERROR_NONE) {
-          $form_state->setErrorByName($field, 
-            $this->t('@label must be valid JSON format. Error: @error', 
-              ['@label' => $label, '@error' => json_last_error_msg()]));
-        }
-      }
-    }
+    // Section editors now accept plain text (one item per line), so no JSON
+    // validation is required for those fields.
 
     // Validate professional experience entry dates.
     $entries = $form_state->getValue(['professional_experience', 'experience_editor', 'professional_experience_entries']);
+    if (!is_array($entries)) {
+      $entries = $form_state->getValue('professional_experience_entries');
+    }
     if (is_array($entries)) {
       foreach ($entries as $idx => $entry) {
         $start = trim((string) ($entry['dates']['start_date'] ?? ''));
@@ -2083,25 +2088,28 @@ class UserProfileForm extends FormBase {
         ->fetchAssoc();
       
       if ($existing_record) {
-        // File is registered - check if it needs processing
-        $has_parsed_data = $connection->select('jobhunter_resume_parsed_data', 'rpd')
+        // File is registered - determine parsed-data status.
+        $latest_parsed = $connection->select('jobhunter_resume_parsed_data', 'rpd')
+          ->fields('rpd', ['id', 'status'])
           ->condition('uid', $uid)
           ->condition('resume_file_id', $file->id())
-          ->condition('status', ['complete', 'queued', 'processing'], 'IN')
-          ->countQuery()
+          ->orderBy('changed', 'DESC')
+          ->range(0, 1)
           ->execute()
-          ->fetchField();
-        
-        if ($has_parsed_data > 0) {
-          $this->logInfo('📁 File already processed or queued, skipping: @filename', [
+          ->fetchAssoc();
+
+        // Avoid duplicate queue items while work is already in-flight.
+        if (!empty($latest_parsed['status']) && in_array($latest_parsed['status'], ['queued', 'processing'], TRUE)) {
+          $this->logInfo('📁 File already queued/processing, skipping duplicate queue: @filename', [
             '@filename' => $file->getFilename(),
           ]);
           continue;
         }
-        
-        // File registered but not processed - reprocess it
+
+        // File registered and either never parsed or already completed/error.
+        // Reprocess by resetting/creating parsed-data status to queued below.
         $resume_id = $existing_record['id'];
-        $this->logInfo('📁 File registered but not processed, reprocessing: @filename', [
+        $this->logInfo('📁 File already registered; queueing reprocess: @filename', [
           '@filename' => $file->getFilename(),
         ]);
       }
@@ -2148,21 +2156,45 @@ class UserProfileForm extends FormBase {
             '@chars' => strlen($extracted_text),
             '@filename' => $file->getFilename(),
           ]);
-          
-          // Always queue for background processing (dev and prod both use Bedrock).
+
+          // Upsert parsed-data row to queued so already-complete files are
+          // reprocessed when the user clicks "Process Uploaded Files".
           $timestamp = \Drupal::time()->getRequestTime();
-          $connection->insert('jobhunter_resume_parsed_data')
-            ->fields([
-              'uid' => $uid,
-              'resume_file_id' => $file->id(),
-              'resume_path' => $file->getFileUri(),
-              'parsed_data' => json_encode(['status' => 'queued']),
-              'status' => 'queued',
-              'error_message' => NULL,
-              'created' => $timestamp,
-              'changed' => $timestamp,
-            ])
-            ->execute();
+          $existing_parsed_id = $connection->select('jobhunter_resume_parsed_data', 'rpd')
+            ->fields('rpd', ['id'])
+            ->condition('uid', $uid)
+            ->condition('resume_file_id', $file->id())
+            ->orderBy('changed', 'DESC')
+            ->range(0, 1)
+            ->execute()
+            ->fetchField();
+
+          if ($existing_parsed_id) {
+            $connection->update('jobhunter_resume_parsed_data')
+              ->fields([
+                'resume_path' => $file->getFileUri(),
+                'parsed_data' => json_encode(['status' => 'queued']),
+                'status' => 'queued',
+                'error_message' => NULL,
+                'changed' => $timestamp,
+              ])
+              ->condition('id', $existing_parsed_id)
+              ->execute();
+          }
+          else {
+            $connection->insert('jobhunter_resume_parsed_data')
+              ->fields([
+                'uid' => $uid,
+                'resume_file_id' => $file->id(),
+                'resume_path' => $file->getFileUri(),
+                'parsed_data' => json_encode(['status' => 'queued']),
+                'status' => 'queued',
+                'error_message' => NULL,
+                'created' => $timestamp,
+                'changed' => $timestamp,
+              ])
+              ->execute();
+          }
 
           // Queue the GenAI parsing job
           $queue = \Drupal::queue('job_hunter_genai_parsing');
@@ -2189,7 +2221,7 @@ class UserProfileForm extends FormBase {
     }
     
     if ($processed_count > 0) {
-      \Drupal::messenger()->addStatus($this->t('@count resume(s) uploaded! AI parsing has been queued. Check back in 2-3 minutes for results.', ['@count' => $processed_count]));
+      \Drupal::messenger()->addStatus($this->t('@count resume(s) queued for AI processing. Existing processed files were re-queued when selected. Check back in 2-3 minutes for results.', ['@count' => $processed_count]));
     }
     
     // Redirect to refresh the page
@@ -2559,6 +2591,8 @@ class UserProfileForm extends FormBase {
   public function deleteResumeFileSubmit(array &$form, FormStateInterface $form_state) {
     $triggering_element = $form_state->getTriggeringElement();
     $filename = $triggering_element['#attributes']['data-filename'] ?? NULL;
+    $file_id_attr = $triggering_element['#attributes']['data-file-id'] ?? NULL;
+    $target_file_id = is_numeric($file_id_attr) ? (int) $file_id_attr : 0;
     
     if (!$filename) {
       \Drupal::messenger()->addError($this->t('Could not identify file to delete.'));
@@ -2575,10 +2609,20 @@ class UserProfileForm extends FormBase {
       '@uid' => $uid,
     ]);
     
-    // Find the file entity
-    $file_entities = \Drupal::entityTypeManager()
-      ->getStorage('file')
-      ->loadByProperties(['uri' => $file_uri]);
+    // Find the file entity from the clicked button context first (file ID),
+    // then fallback to URI for legacy buttons.
+    $file_entities = [];
+    if ($target_file_id > 0) {
+      $file_by_id = \Drupal\file\Entity\File::load($target_file_id);
+      if ($file_by_id) {
+        $file_entities[$target_file_id] = $file_by_id;
+      }
+    }
+    if (empty($file_entities)) {
+      $file_entities = \Drupal::entityTypeManager()
+        ->getStorage('file')
+        ->loadByProperties(['uri' => $file_uri]);
+    }
     
     $file_id = NULL;
     if (!empty($file_entities)) {
@@ -4043,9 +4087,12 @@ class UserProfileForm extends FormBase {
     ];
     
     if (isset($json_fields[$field_name])) {
-      $decoded = json_decode($value, TRUE);
+      $decoded = json_decode((string) $value, TRUE);
       if (json_last_error() === JSON_ERROR_NONE) {
         $consolidated[$json_fields[$field_name]] = $decoded;
+      }
+      else {
+        $consolidated[$json_fields[$field_name]] = $this->parsePlainSectionInput($field_name, (string) $value);
       }
       return;
     }
@@ -4246,6 +4293,11 @@ class UserProfileForm extends FormBase {
       'field_strategic_differentiators_json',
       'field_leadership_philosophy_json',
       'field_demonstration_projects_json',
+      'field_publications_json',
+      'field_certifications_json',
+      'field_patents_json',
+      'field_awards_json',
+      'field_languages_json',
       'field_consulting_practice_json',
       'field_early_career_json',
       'field_education_json',
@@ -4267,6 +4319,9 @@ class UserProfileForm extends FormBase {
 
     // Sync structured professional experience editor.
     $experience_entries = $form_state->getValue(['professional_experience', 'experience_editor', 'professional_experience_entries']);
+    if (!is_array($experience_entries)) {
+      $experience_entries = $form_state->getValue('professional_experience_entries');
+    }
     if (is_array($experience_entries)) {
       $existing_roles = $consolidated['professional_experience'] ?? [];
       if (!is_array($existing_roles)) {
@@ -4295,15 +4350,20 @@ class UserProfileForm extends FormBase {
         $role = is_array($existing_roles[$idx] ?? NULL) ? $existing_roles[$idx] : [];
         $role['company'] = $company;
         $role['title'] = $title;
-        $role['employment_type'] = trim((string) ($entry['employment_type'] ?? ''));
-        $role['via_company'] = trim((string) ($entry['via_company'] ?? ''));
+        $advanced = is_array($entry['advanced'] ?? NULL) ? $entry['advanced'] : [];
+        $role['employment_type'] = trim((string) ($advanced['employment_type'] ?? $entry['employment_type'] ?? ''));
+        $role['via_company'] = trim((string) ($advanced['via_company'] ?? $entry['via_company'] ?? ''));
         $role['start_date'] = $start;
         $role['end_date'] = $end === '' ? NULL : $end;
         $role['location'] = trim((string) ($entry['location'] ?? ''));
-        $role['company_context'] = trim((string) ($entry['company_context'] ?? ''));
+        $role['company_context'] = trim((string) ($advanced['company_context'] ?? $entry['company_context'] ?? ''));
         $role['highlights'] = trim((string) ($entry['highlights'] ?? ''));
+        if ($role['highlights'] === '') {
+          $role['highlights'] = $this->buildFallbackHighlightsFromRole($role);
+        }
         $role['key_achievements'] = $achievements;
         $role['technologies'] = $technologies;
+        unset($role['_row_id']);
 
         $roles[] = $role;
       }
@@ -4321,6 +4381,245 @@ class UserProfileForm extends FormBase {
   }
 
   /**
+   * Format a consolidated section as plain text lines for editing.
+   */
+  private function formatSectionForTextarea(array $consolidated, string $section): string {
+    $data = $consolidated[$section] ?? [];
+    if (!is_array($data) || empty($data)) {
+      return '';
+    }
+
+    $lines = [];
+
+    $to_text = static function($value): string {
+      if (is_scalar($value)) {
+        return trim((string) $value);
+      }
+      return '';
+    };
+
+    $normalize_scalar_list = static function(array $values): array {
+      $normalized = [];
+      foreach ($values as $value) {
+        if (is_scalar($value)) {
+          $normalized[] = trim((string) $value);
+        }
+      }
+      return array_values(array_filter($normalized));
+    };
+
+    if ($section === 'technical_expertise') {
+      // Newer schema shape: { categories: [ { name, skills[] } ] }
+      if (isset($data['categories']) && is_array($data['categories'])) {
+        foreach ($data['categories'] as $category_entry) {
+          if (!is_array($category_entry)) {
+            continue;
+          }
+          $label = $to_text($category_entry['name'] ?? 'General');
+          if ($label === '') {
+            $label = 'General';
+          }
+          $skills = !empty($category_entry['skills']) && is_array($category_entry['skills'])
+            ? $normalize_scalar_list($category_entry['skills'])
+            : [];
+
+          if (!empty($skills)) {
+            $lines[] = $label . ': ' . implode(', ', $skills);
+          }
+          elseif ($label !== '') {
+            $lines[] = $label;
+          }
+        }
+      }
+      // Legacy schema shape: { "Category": ["skill1", "skill2"] }
+      else {
+        foreach ($data as $category => $skills) {
+          if (!is_array($skills)) {
+            continue;
+          }
+
+          $normalized_skills = $normalize_scalar_list($skills);
+          if (!empty($normalized_skills)) {
+            $label = is_string($category) ? trim($category) : 'General';
+            $lines[] = $label . ': ' . implode(', ', $normalized_skills);
+          }
+        }
+      }
+
+      return implode("\n", array_values(array_unique(array_filter($lines))));
+    }
+
+    if ($section === 'consulting_practice') {
+      $engagements = [];
+      if (isset($data['engagements']) && is_array($data['engagements'])) {
+        $engagements = $data['engagements'];
+      }
+      elseif (isset($data['notable_engagements']) && is_array($data['notable_engagements'])) {
+        $engagements = $data['notable_engagements'];
+      }
+
+      foreach ($engagements as $engagement) {
+        if (is_array($engagement) && !empty($engagement['client'])) {
+          $client = $to_text($engagement['client']);
+          if ($client !== '') {
+            $lines[] = $client;
+          }
+        }
+      }
+      return implode("\n", array_values(array_unique($lines)));
+    }
+
+    if ($section === 'education') {
+      foreach ($data as $item) {
+        if (is_string($item)) {
+          $lines[] = $item;
+          continue;
+        }
+        if (!is_array($item)) {
+          continue;
+        }
+
+        $institution = $to_text($item['institution'] ?? '');
+        $degree = $to_text($item['degree'] ?? '');
+        $end_date = $to_text($item['end_date'] ?? '');
+
+        if ($institution === '' && $degree === '' && $end_date === '') {
+          continue;
+        }
+
+        if ($institution !== '' || $degree !== '' || $end_date !== '') {
+          $line_parts = [
+            $institution,
+            $degree,
+            $end_date,
+          ];
+          $line_parts = array_map('trim', $line_parts);
+          while (!empty($line_parts) && end($line_parts) === '') {
+            array_pop($line_parts);
+          }
+          $lines[] = implode(' | ', $line_parts);
+        }
+      }
+
+      return implode("\n", array_values(array_unique(array_filter($lines))));
+    }
+
+    foreach ($data as $item) {
+      if (is_string($item)) {
+        $lines[] = $item;
+        continue;
+      }
+      if (!is_array($item)) {
+        continue;
+      }
+
+      foreach (['institution', 'title', 'name', 'language', 'principle', 'company'] as $key) {
+        if (!empty($item[$key]) && is_string($item[$key])) {
+          $lines[] = $item[$key];
+          break;
+        }
+      }
+    }
+
+    return implode("\n", array_values(array_unique(array_filter($lines))));
+  }
+
+  /**
+   * Parse plain text section editor input into structured data.
+   */
+  private function parsePlainSectionInput(string $field_name, string $value): array {
+    $lines = preg_split('/\r\n|\r|\n/', $value) ?: [];
+    $lines = array_values(array_filter(array_map('trim', $lines)));
+
+    if (empty($lines)) {
+      return [];
+    }
+
+    switch ($field_name) {
+      case 'field_technical_expertise_json':
+        $result = [];
+        foreach ($lines as $line) {
+          if (strpos($line, ':') !== FALSE) {
+            [$category, $skills_raw] = array_map('trim', explode(':', $line, 2));
+            $skills = array_values(array_filter(array_map('trim', explode(',', $skills_raw))));
+            if ($category !== '' && !empty($skills)) {
+              $result[$category] = $skills;
+            }
+          }
+          else {
+            $result['General'][] = $line;
+          }
+        }
+        return $result;
+
+      case 'field_strategic_differentiators_json':
+        return array_map(function(string $line): array {
+          return ['title' => $line, 'description' => ''];
+        }, $lines);
+
+      case 'field_leadership_philosophy_json':
+        return array_map(function(string $line): array {
+          return ['principle' => $line];
+        }, $lines);
+
+      case 'field_demonstration_projects_json':
+        return array_map(function(string $line): array {
+          return ['name' => $line, 'description' => ''];
+        }, $lines);
+
+      case 'field_publications_json':
+        return array_map(function(string $line): array {
+          return ['title' => $line];
+        }, $lines);
+
+      case 'field_certifications_json':
+        return array_map(function(string $line): array {
+          return ['name' => $line];
+        }, $lines);
+
+      case 'field_patents_json':
+        return array_map(function(string $line): array {
+          return ['title' => $line];
+        }, $lines);
+
+      case 'field_awards_json':
+        return array_map(function(string $line): array {
+          return ['title' => $line];
+        }, $lines);
+
+      case 'field_languages_json':
+        return array_map(function(string $line): array {
+          return ['language' => $line, 'proficiency' => ''];
+        }, $lines);
+
+      case 'field_consulting_practice_json':
+        return [
+          'engagements' => array_map(function(string $line): array {
+            return ['client' => $line, 'project_name' => '', 'role' => '', 'description' => ''];
+          }, $lines),
+        ];
+
+      case 'field_early_career_json':
+        return array_map(function(string $line): array {
+          return ['company' => $line, 'title' => ''];
+        }, $lines);
+
+      case 'field_education_json':
+        return array_map(function(string $line): array {
+          $parts = array_map('trim', explode('|', $line));
+          return [
+            'institution' => $parts[0] ?? $line,
+            'degree' => $parts[1] ?? '',
+            'end_date' => $parts[2] ?? '',
+          ];
+        }, $lines);
+
+      default:
+        return $lines;
+    }
+  }
+
+  /**
    * AJAX callback for professional experience editor.
    */
   public function professionalExperienceAjaxCallback(array &$form, FormStateInterface $form_state): array {
@@ -4331,8 +4630,21 @@ class UserProfileForm extends FormBase {
    * Add another professional experience row.
    */
   public function addProfessionalExperienceRow(array &$form, FormStateInterface $form_state): void {
-    $count = (int) ($form_state->get('professional_experience_row_count') ?? 1);
-    $form_state->set('professional_experience_row_count', $count + 1);
+    $entries = $form_state->get('professional_experience_entries_state');
+    if (!is_array($entries)) {
+      $entries = [];
+    }
+
+    $submitted_entries = $this->getProfessionalExperienceEntriesFromInput($form_state);
+    if (is_array($submitted_entries)) {
+      $entries = $submitted_entries;
+    }
+
+    $entries[] = [];
+    $entries = $this->ensureProfessionalExperienceRowIds($entries);
+    $this->setProfessionalExperienceEntriesState($form_state, $entries, TRUE);
+    $this->persistProfessionalExperienceEntries($entries);
+    $form_state->set('professional_experience_action_message', (string) $this->t('Added a new role entry.'));
     $form_state->setRebuild(TRUE);
   }
 
@@ -4341,28 +4653,364 @@ class UserProfileForm extends FormBase {
    */
   public function removeProfessionalExperienceRow(array &$form, FormStateInterface $form_state): void {
     $trigger = $form_state->getTriggeringElement();
-    $idx = (int) ($trigger['#attributes']['data-remove-index'] ?? -1);
-    $count = (int) ($form_state->get('professional_experience_row_count') ?? 1);
+    $idx = $this->resolveTriggeredRowIndex($trigger, 'remove_professional_experience_', 'professional_experience_entries');
+    $row_id = '';
+    if (!empty($trigger['#attributes']['data-remove-row-id'])) {
+      $row_id = (string) $trigger['#attributes']['data-remove-row-id'];
+    }
 
-    if ($idx >= 0) {
-      $values = $form_state->getValue(['professional_experience', 'experience_editor', 'professional_experience_entries']);
-      if (is_array($values) && isset($values[$idx])) {
-        unset($values[$idx]);
-        $values = array_values($values);
-        $form_state->setValue(['professional_experience', 'experience_editor', 'professional_experience_entries'], $values);
+    $removed = FALSE;
+
+    $entries = $form_state->get('professional_experience_entries_state');
+    if (!is_array($entries)) {
+      $entries = [];
+    }
+
+    $submitted_entries = $this->getProfessionalExperienceEntriesFromInput($form_state);
+    if (is_array($submitted_entries)) {
+      $entries = $submitted_entries;
+    }
+    $entries = $this->ensureProfessionalExperienceRowIds($entries);
+
+    if ($row_id !== '') {
+      $resolved_idx = $this->findProfessionalExperienceRowIndexById($entries, $row_id);
+      if ($resolved_idx >= 0) {
+        $idx = $resolved_idx;
       }
     }
 
-    $form_state->set('professional_experience_row_count', max(1, $count - 1));
+    if ($idx >= 0) {
+      if (isset($entries[$idx])) {
+        unset($entries[$idx]);
+        $entries = array_values($entries);
+        $this->setProfessionalExperienceEntriesState($form_state, $entries, TRUE);
+        $this->persistProfessionalExperienceEntries($entries);
+        $form_state->set('professional_experience_action_message', (string) $this->t('Removed role entry successfully.'));
+
+        $removed = TRUE;
+      }
+    }
+
+    if (!$removed) {
+      $this->setProfessionalExperienceEntriesState($form_state, $entries, FALSE);
+      $form_state->set('professional_experience_action_message', (string) $this->t('No role was removed. Please try again.'));
+    }
     $form_state->setRebuild(TRUE);
   }
 
   /**
-   * Sync a single field value to consolidated JSON (for AJAX auto-save).
-   *
-   * @param int $uid
-   *   The user ID.
-   
+   * Resolve the clicked row index from a triggering form element.
+   */
+  private function resolveTriggeredRowIndex(array $trigger, string $name_prefix, string $array_parent_key): int {
+    if (isset($trigger['#attributes']['data-remove-index'])) {
+      return (int) $trigger['#attributes']['data-remove-index'];
+    }
+
+    if (!empty($trigger['#name'])) {
+      $name = (string) $trigger['#name'];
+      $quoted_prefix = preg_quote($name_prefix, '/');
+      if (preg_match('/^' . $quoted_prefix . '(\\d+)(?:_.+)?$/', $name, $matches)) {
+        return (int) $matches[1];
+      }
+    }
+
+    if (!empty($trigger['#array_parents']) && is_array($trigger['#array_parents'])) {
+      $entry_pos = array_search($array_parent_key, $trigger['#array_parents'], TRUE);
+      if ($entry_pos !== FALSE && isset($trigger['#array_parents'][$entry_pos + 1])) {
+        return (int) $trigger['#array_parents'][$entry_pos + 1];
+      }
+    }
+
+    return -1;
+  }
+
+  /**
+   * Build display label for a professional experience entry.
+   */
+  private function buildProfessionalExperienceEntryLabel(array $role, int $index): string {
+    $company = trim((string) ($role['company'] ?? ''));
+    $title = trim((string) ($role['title'] ?? ''));
+
+    if ($company !== '' && $title !== '') {
+      return $company . ' — ' . $title;
+    }
+    if ($company !== '') {
+      return $company;
+    }
+    if ($title !== '') {
+      return $title;
+    }
+
+    return (string) $this->t('Role @num', ['@num' => $index + 1]);
+  }
+
+  /**
+   * Create a safe slug for button names/attributes.
+   */
+  private function slugifyProfessionalExperienceLabel(string $label): string {
+    $slug = mb_strtolower($label);
+    $slug = preg_replace('/[^a-z0-9]+/u', '_', $slug);
+    $slug = trim((string) $slug, '_');
+
+    if ($slug === '') {
+      return 'role';
+    }
+
+    return $slug;
+  }
+
+  /**
+   * Get professional experience entries from current raw submitted input.
+   */
+  private function getProfessionalExperienceEntriesFromInput(FormStateInterface $form_state): ?array {
+    $user_input = $form_state->getUserInput();
+
+    if (isset($user_input['professional_experience_entries'])
+      && is_array($user_input['professional_experience_entries'])) {
+      return array_values($user_input['professional_experience_entries']);
+    }
+
+    if (isset($user_input['professional_experience']['experience_editor']['professional_experience_entries'])
+      && is_array($user_input['professional_experience']['experience_editor']['professional_experience_entries'])) {
+      return array_values($user_input['professional_experience']['experience_editor']['professional_experience_entries']);
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Persist professional experience entries state and optionally sync form input.
+   */
+  private function setProfessionalExperienceEntriesState(FormStateInterface $form_state, array $entries, bool $sync_user_input): void {
+    $entries = $this->ensureProfessionalExperienceRowIds(array_values($entries));
+    $form_state->set('professional_experience_entries_state', $entries);
+    $form_state->set('professional_experience_row_count', max(1, count($entries)));
+    $form_state->setValue('professional_experience_entries', $entries);
+    $form_state->setValue(['professional_experience', 'experience_editor', 'professional_experience_entries'], $entries);
+
+    if (!$sync_user_input) {
+      return;
+    }
+
+    $user_input = $form_state->getUserInput();
+    if (!is_array($user_input)) {
+      return;
+    }
+
+    $user_input['professional_experience_entries'] = $entries;
+
+    if (!isset($user_input['professional_experience']) || !is_array($user_input['professional_experience'])) {
+      $user_input['professional_experience'] = [];
+    }
+    if (!isset($user_input['professional_experience']['experience_editor']) || !is_array($user_input['professional_experience']['experience_editor'])) {
+      $user_input['professional_experience']['experience_editor'] = [];
+    }
+
+    $user_input['professional_experience']['experience_editor']['professional_experience_entries'] = $entries;
+    $form_state->setUserInput($user_input);
+  }
+
+  /**
+   * Persist professional experience entries immediately to consolidated JSON.
+   */
+  private function persistProfessionalExperienceEntries(array $entries): void {
+    $uid = (int) \Drupal::currentUser()->id();
+    if ($uid <= 0) {
+      return;
+    }
+
+    $profile = $this->jobSeekerService->loadByUserId($uid);
+    if (!$profile || empty($profile->id)) {
+      return;
+    }
+
+    $consolidated = [];
+    if (!empty($profile->consolidated_profile_json)) {
+      $decoded = json_decode((string) $profile->consolidated_profile_json, TRUE);
+      $consolidated = is_array($decoded) ? $decoded : [];
+    }
+
+    $existing_roles = $consolidated['professional_experience'] ?? [];
+    if (!is_array($existing_roles)) {
+      $existing_roles = [];
+    }
+
+    $roles = [];
+    foreach ($entries as $idx => $entry) {
+      if (!is_array($entry)) {
+        continue;
+      }
+
+      $company = trim((string) ($entry['company'] ?? ''));
+      $title = trim((string) ($entry['title'] ?? ''));
+      if ($company === '' && $title === '') {
+        continue;
+      }
+
+      $advanced = is_array($entry['advanced'] ?? NULL) ? $entry['advanced'] : [];
+      $start = trim((string) ($entry['dates']['start_date'] ?? $entry['start_date'] ?? ''));
+      $end = trim((string) ($entry['dates']['end_date'] ?? $entry['end_date'] ?? ''));
+      $tech_raw = (string) ($entry['technologies'] ?? '');
+      $ach_raw = (string) ($entry['key_achievements'] ?? '');
+
+      $technologies = array_values(array_filter(array_map('trim', preg_split('/[\n,]+/', $tech_raw))));
+      $achievements = array_values(array_filter(array_map('trim', preg_split('/\R+/', $ach_raw))));
+
+      $role = is_array($existing_roles[$idx] ?? NULL) ? $existing_roles[$idx] : [];
+      $role['company'] = $company;
+      $role['title'] = $title;
+      $role['employment_type'] = trim((string) ($advanced['employment_type'] ?? $entry['employment_type'] ?? ''));
+      $role['via_company'] = trim((string) ($advanced['via_company'] ?? $entry['via_company'] ?? ''));
+      $role['start_date'] = $start;
+      $role['end_date'] = $end === '' ? NULL : $end;
+      $role['location'] = trim((string) ($entry['location'] ?? ''));
+      $role['company_context'] = trim((string) ($advanced['company_context'] ?? $entry['company_context'] ?? ''));
+      $role['highlights'] = trim((string) ($entry['highlights'] ?? ''));
+      if ($role['highlights'] === '') {
+        $role['highlights'] = $this->buildFallbackHighlightsFromRole($role);
+      }
+      $role['key_achievements'] = $achievements;
+      $role['technologies'] = $technologies;
+      unset($role['_row_id']);
+
+      $roles[] = $role;
+    }
+
+    $consolidated['professional_experience'] = $roles;
+    if (!isset($consolidated['extraction_metadata']) || !is_array($consolidated['extraction_metadata'])) {
+      $consolidated['extraction_metadata'] = [];
+    }
+    $consolidated['extraction_metadata']['last_form_sync'] = date('c');
+
+    $this->jobSeekerService->update((int) $profile->id, [
+      'consolidated_profile_json' => json_encode($consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
+    ]);
+  }
+
+  /**
+   * Extract achievement text lines from nested responsibility categories.
+   */
+  private function extractExperienceAchievementTexts(array $role): array {
+    $lines = [];
+    $categories = $role['responsibility_categories'] ?? NULL;
+    if (!is_array($categories)) {
+      return [];
+    }
+
+    foreach ($categories as $category) {
+      if (!is_array($category) || empty($category['achievements']) || !is_array($category['achievements'])) {
+        continue;
+      }
+      foreach ($category['achievements'] as $achievement) {
+        if (is_array($achievement)) {
+          $text = trim((string) ($achievement['text'] ?? ''));
+          if ($text !== '') {
+            $lines[] = $text;
+          }
+        }
+        elseif (is_string($achievement)) {
+          $text = trim($achievement);
+          if ($text !== '') {
+            $lines[] = $text;
+          }
+        }
+      }
+    }
+
+    return array_values(array_unique($lines));
+  }
+
+  /**
+   * Extract technologies from nested responsibility categories.
+   */
+  private function extractExperienceTechnologies(array $role): array {
+    $technologies = [];
+    $categories = $role['responsibility_categories'] ?? NULL;
+    if (!is_array($categories)) {
+      return [];
+    }
+
+    foreach ($categories as $category) {
+      if (!is_array($category) || empty($category['achievements']) || !is_array($category['achievements'])) {
+        continue;
+      }
+      foreach ($category['achievements'] as $achievement) {
+        if (!is_array($achievement)) {
+          continue;
+        }
+        $tech_list = $achievement['technologies'] ?? NULL;
+        if (!is_array($tech_list)) {
+          continue;
+        }
+        foreach ($tech_list as $tech) {
+          $name = trim((string) $tech);
+          if ($name !== '') {
+            $technologies[] = $name;
+          }
+        }
+      }
+    }
+
+    return array_values(array_unique($technologies));
+  }
+
+  /**
+   * Build fallback highlights text from achievement lines when empty.
+   */
+  private function buildFallbackHighlightsFromRole(array $role): string {
+    $lines = [];
+
+    $key_achievements = $role['key_achievements'] ?? NULL;
+    if (is_array($key_achievements)) {
+      foreach ($key_achievements as $line) {
+        $text = trim((string) $line);
+        if ($text !== '') {
+          $lines[] = $text;
+        }
+      }
+    }
+
+    if (empty($lines)) {
+      $lines = $this->extractExperienceAchievementTexts($role);
+    }
+
+    if (empty($lines)) {
+      return '';
+    }
+
+    return implode("\n", array_slice($lines, 0, 2));
+  }
+
+  /**
+   * Ensure each professional experience entry has a stable internal row ID.
+   */
+  private function ensureProfessionalExperienceRowIds(array $entries): array {
+    foreach ($entries as $index => $entry) {
+      if (!is_array($entry)) {
+        $entry = [];
+      }
+      if (empty($entry['_row_id']) || !is_string($entry['_row_id'])) {
+        $entry['_row_id'] = 'row_' . md5(microtime(TRUE) . '|' . (string) $index . '|' . random_int(1000, 999999));
+      }
+      $entries[$index] = $entry;
+    }
+
+    return $entries;
+  }
+
+  /**
+   * Resolve row index by stable row ID.
+   */
+  private function findProfessionalExperienceRowIndexById(array $entries, string $row_id): int {
+    foreach ($entries as $index => $entry) {
+      if (is_array($entry) && isset($entry['_row_id']) && (string) $entry['_row_id'] === $row_id) {
+        return (int) $index;
+      }
+    }
+
+    return -1;
+  }
+
   /**
    * Helper: Recursively delete a directory and all its contents.
    */
@@ -4702,6 +5350,9 @@ CRITICAL REQUIREMENTS:
 5. Use YYYY-MM format for all dates (e.g., "2022-06")
 6. Use null for missing optional fields, not empty strings
 7. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
+8. For each professional_experience entry, always include highlights (string), key_achievements (array), and technologies (array)
+9. For responsibility_categories, create at least one category when bullets exist; if uncategorized use "General Responsibilities"
+10. Every achievement object must include text and arrays for metrics, technologies, and keywords (use [] if none)
 
 JSON SCHEMA (v1.0):
 {
@@ -4747,6 +5398,9 @@ JSON SCHEMA (v1.0):
       "end_date": "YYYY-MM or null if current",
       "location": "City, ST",
       "company_context": "Brief company description if provided",
+      "highlights": "1-2 line impact summary for this role",
+      "key_achievements": ["Achievement line 1", "Achievement line 2"],
+      "technologies": ["Snowflake", "Python"],
       "responsibility_categories": [
         {
           "category": "Category Name (from resume headers)",
@@ -4992,6 +5646,9 @@ REQUIREMENTS:
 4. Extract searchable keywords from each achievement
 5. Use YYYY-MM format for dates
 6. Return ONLY valid JSON conforming to RFC 8259 - NO markdown code blocks, USE proper JSON escaping (\n for newlines, \" for quotes)
+7. For each role include highlights (string), key_achievements (array), and technologies (array)
+8. If bullets are present but categories are not explicit, use one category named "General Responsibilities"
+9. Every achievement object must include text and arrays for metrics, technologies, and keywords (use [] if none)
 
 JSON SCHEMA:
 {
@@ -5005,6 +5662,9 @@ JSON SCHEMA:
       "end_date": "YYYY-MM or null if current",
       "location": "City, ST",
       "company_context": "Brief company description if provided",
+      "highlights": "1-2 line impact summary for this role",
+      "key_achievements": ["Achievement line 1", "Achievement line 2"],
+      "technologies": ["Python", "AWS"],
       "responsibility_categories": [
         {
           "category": "Category Name",
@@ -5069,31 +5729,43 @@ PROMPT;
         $consolidated = json_decode($profile['consolidated_profile_json'], TRUE) ?: [];
       }
       
-      // Initialize schema v1.0 structure if empty or missing schema_version
+      // Ensure schema v1.0 structure while preserving existing user data.
       if (empty($consolidated) || empty($consolidated['schema_version'])) {
-        $consolidated = [
-          'schema_version' => '1.0',
-          'extraction_metadata' => [
-            'consolidated_at' => date('c'),
-            'source_files' => [],
-          ],
-          'contact_info' => [],
-          'executive_profile' => [],
-          'organizational_philosophy' => [],
-          'strategic_differentiators' => [],
-          'professional_experience' => [],
-          'consulting_practice' => [],
-          'early_career' => [],
-          'education' => [],
-          'technical_expertise' => [],
-          'leadership_philosophy' => [],
-          'demonstration_projects' => [],
-          'publications' => [],
-          'certifications' => [],
-          'patents' => [],
-          'awards_and_honors' => [],
-          'languages' => [],
-        ];
+        $consolidated['schema_version'] = '1.0';
+      }
+      if (empty($consolidated['extraction_metadata']) || !is_array($consolidated['extraction_metadata'])) {
+        $consolidated['extraction_metadata'] = [];
+      }
+      if (empty($consolidated['extraction_metadata']['source_files']) || !is_array($consolidated['extraction_metadata']['source_files'])) {
+        $consolidated['extraction_metadata']['source_files'] = [];
+      }
+      $consolidated['extraction_metadata']['consolidated_at'] = date('c');
+
+      $required_sections = [
+        'contact_info' => [],
+        'executive_profile' => [],
+        'organizational_philosophy' => [],
+        'strategic_differentiators' => [],
+        'professional_experience' => [],
+        'consulting_practice' => [],
+        'early_career' => [],
+        'education' => [],
+        'technical_expertise' => [],
+        'leadership_philosophy' => [],
+        'demonstration_projects' => [],
+        'publications' => [],
+        'certifications' => [],
+        'patents' => [],
+        'awards_and_honors' => [],
+        'languages' => [],
+        'job_search_preferences' => [],
+        'demographics' => [],
+      ];
+
+      foreach ($required_sections as $section => $default_value) {
+        if (!isset($consolidated[$section]) || !is_array($consolidated[$section])) {
+          $consolidated[$section] = $default_value;
+        }
       }
       
       // Merge latest parsed data - smart deduplicate, returns count of additions
@@ -6229,88 +6901,6 @@ PROMPT;
         }
       }
     }
-  }
-
-  /**
-   * Build HTML display for professional experience from consolidated JSON.
-   *
-   * @param object|null $job_seeker_profile
-   *   The job seeker profile object.
-   *
-   * @return string
-   *   HTML markup for professional experience display.
-   */
-  private function buildProfessionalExperienceDisplay($job_seeker_profile): string {
-    if (!$job_seeker_profile || empty($job_seeker_profile->consolidated_profile_json)) {
-      return '';
-    }
-
-    $consolidated = json_decode($job_seeker_profile->consolidated_profile_json, TRUE);
-    if (!$consolidated || empty($consolidated['professional_experience'])) {
-      return '';
-    }
-
-    $count = is_array($consolidated['professional_experience']) ? count($consolidated['professional_experience']) : 0;
-    $html = '<div class="professional-experience-display" style="max-height: 600px; overflow-y: auto;">';
-    $html .= '<div style="margin: 0 0 10px 0; color: #495057; font-weight: bold;">Recent Professional Experience (' . (int) $count . ' roles)</div>';
-    
-    foreach ($consolidated['professional_experience'] as $job) {
-      $company = htmlspecialchars($job['company'] ?? 'Unknown Company');
-      $title = htmlspecialchars($job['title'] ?? 'Unknown Title');
-      $location = htmlspecialchars($job['location'] ?? '');
-      $start = $job['start_date'] ?? '';
-      $end = $job['end_date'] ?? 'Present';
-      $context = htmlspecialchars($job['company_context'] ?? '');
-      $employment_type = $job['employment_type'] ?? 'direct';
-      $via = $job['via_company'] ?? null;
-
-      $html .= '<div class="job-entry" style="margin-bottom: 20px; padding: 15px; background: #f9f9f9; border-left: 4px solid #0073e6; border-radius: 4px;">';
-      $html .= '<h4 style="margin: 0 0 5px 0; color: #333;">' . $title . '</h4>';
-      $html .= '<div style="font-weight: bold; color: #0073e6;">' . $company;
-      if ($via) {
-        $html .= ' <span style="font-weight: normal; color: #666;">(via ' . htmlspecialchars($via) . ')</span>';
-      }
-      $html .= '</div>';
-      $html .= '<div style="color: #666; font-size: 0.9em;">' . $location . ' | ' . $start . ' – ' . $end . '</div>';
-      
-      if ($context) {
-        $html .= '<p style="margin: 10px 0; font-style: italic; color: #555;">' . $context . '</p>';
-      }
-
-      // Display responsibility categories and achievements
-      if (!empty($job['responsibility_categories'])) {
-        foreach ($job['responsibility_categories'] as $category) {
-          $cat_name = htmlspecialchars($category['category'] ?? 'Responsibilities');
-          $html .= '<div style="margin-top: 10px;">';
-          $html .= '<strong style="color: #444;">' . $cat_name . '</strong>';
-          $html .= '<ul style="margin: 5px 0 10px 20px; padding: 0;">';
-          
-          foreach ($category['achievements'] ?? [] as $achievement) {
-            $text = htmlspecialchars($achievement['text'] ?? '');
-            $metrics = $achievement['metrics'] ?? [];
-            $technologies = $achievement['technologies'] ?? [];
-            
-            $html .= '<li style="margin-bottom: 5px;">' . $text;
-            
-            if (!empty($metrics)) {
-              $html .= ' <span style="color: #28a745; font-weight: bold;">(' . implode(', ', array_map('htmlspecialchars', $metrics)) . ')</span>';
-            }
-            if (!empty($technologies)) {
-              $html .= ' <span style="color: #6c757d; font-size: 0.85em;">[' . implode(', ', array_map('htmlspecialchars', $technologies)) . ']</span>';
-            }
-            
-            $html .= '</li>';
-          }
-          
-          $html .= '</ul></div>';
-        }
-      }
-
-      $html .= '</div>';
-    }
-
-    $html .= '</div>';
-    return $html;
   }
 
   /**

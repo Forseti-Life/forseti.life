@@ -724,6 +724,13 @@ class AIApiService {
    */
   private function getCachedApiResponse(string $module, string $operation, array $context_data) {
     $connection = \Drupal::database();
+    $schema = $connection->schema();
+
+    // If required caching fields are not present yet, skip cache lookup safely.
+    if (!$schema->fieldExists('ai_conversation_api_usage', 'response_preview') ||
+        !$schema->fieldExists('ai_conversation_api_usage', 'success')) {
+      return NULL;
+    }
     
     // Build WHERE clauses for context_data matching
     $query = $connection->select('ai_conversation_api_usage', 'u')
@@ -1078,17 +1085,28 @@ class AIApiService {
       $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
       $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
 
+      // Check if credentials are configured
+      if (empty($aws_access_key) || empty($aws_secret_key)) {
+        return [
+          'success' => FALSE,
+          'message' => 'AWS credentials not configured',
+          'details' => 'Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY environment variables or configure them in the form above.',
+        ];
+      }
+
       $sdk_config = [
         'region' => $aws_region,
         'version' => 'latest',
+        'http' => [
+          'timeout' => 15,
+          'connect_timeout' => 10,
+        ],
       ];
 
-      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-        $sdk_config['credentials'] = [
-          'key' => $aws_access_key,
-          'secret' => $aws_secret_key,
-        ];
-      }
+      $sdk_config['credentials'] = [
+        'key' => $aws_access_key,
+        'secret' => $aws_secret_key,
+      ];
 
       $sdk = new \Aws\Sdk($sdk_config);
       
@@ -1107,21 +1125,60 @@ class AIApiService {
               'content' => 'Hello'
             ]
           ]
-        ])
+        ]),
+        '@http' => [
+          'timeout' => 15,
+          'connect_timeout' => 10,
+        ],
       ]);
 
       $result = json_decode($response['body']->getContents(), true);
       
       if (isset($result['content'][0]['text'])) {
-        return ['success' => TRUE, 'message' => 'AWS Bedrock connection successful'];
+        return [
+          'success' => TRUE,
+          'message' => 'AWS Bedrock connection successful',
+          'model' => $model,
+        ];
       } else {
-        return ['success' => FALSE, 'message' => 'Unexpected API response'];
+        return [
+          'success' => FALSE,
+          'message' => 'AWS Bedrock connection failed',
+          'details' => 'Unexpected API response format',
+        ];
       }
 
+    } catch (\Aws\Exception\AwsException $e) {
+      // AWS-specific exceptions
+      return [
+        'success' => FALSE,
+        'message' => 'AWS Bedrock connection failed',
+        'details' => $e->getAwsErrorMessage() ?: $e->getMessage(),
+      ];
+    } catch (\GuzzleHttp\Exception\ConnectException $e) {
+      // Connection timeout
+      return [
+        'success' => FALSE,
+        'message' => 'AWS Bedrock connection timeout',
+        'details' => 'Could not connect to AWS Bedrock. Check your region and network connectivity.',
+      ];
+    } catch (\GuzzleHttp\Exception\RequestException $e) {
+      // Request timeout or other HTTP errors
+      return [
+        'success' => FALSE,
+        'message' => 'AWS Bedrock request failed',
+        'details' => $e->getMessage(),
+      ];
     } catch (\Exception $e) {
-      return ['success' => FALSE, 'message' => 'AWS Bedrock connection failed: ' . $e->getMessage()];
+      // Generic exception
+      return [
+        'success' => FALSE,
+        'message' => 'AWS Bedrock connection error',
+        'details' => $e->getMessage(),
+      ];
     }
   }
+
 
   /**
    * Get conversation statistics.

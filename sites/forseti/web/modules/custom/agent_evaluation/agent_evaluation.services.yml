@@ -30,4 +30,4 @@ services:
   # agent_evaluation.api_service is now an alias to the ai_conversation service
   agent_evaluation.api_service:
     alias: ai_conversation.ai_api_service
-    deprecated: Use '@ai_conversation.ai_api_service' directly instead
+    deprecated: The "%alias_id%" service is deprecated. Use '@ai_conversation.ai_api_service' directly instead

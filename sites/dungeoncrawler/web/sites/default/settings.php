@@ -887,10 +887,33 @@ $settings['migrate_node_migrate_type_classic'] = FALSE;
  *
  * A secondary 'forseti' database connection is also available for direct queries.
  */
+$dc_env = [];
+$dc_env_files = [
+  DRUPAL_ROOT . '/../.env',
+  DRUPAL_ROOT . '/../../../.env',
+];
+foreach ($dc_env_files as $dc_env_file) {
+  if (!is_readable($dc_env_file)) {
+    continue;
+  }
+  foreach (file($dc_env_file, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) as $dc_env_line) {
+    if (strpos(ltrim($dc_env_line), '#') === 0 || strpos($dc_env_line, '=') === FALSE) {
+      continue;
+    }
+    [$dc_env_key, $dc_env_value] = explode('=', $dc_env_line, 2);
+    $dc_env_key = trim($dc_env_key);
+    $dc_env_value = trim($dc_env_value);
+    $dc_env[$dc_env_key] = trim($dc_env_value, "'\"");
+  }
+  break;
+}
+
+$dc_db_password = getenv('DB_PASSWORD') ?: ($dc_env['DB_PASSWORD'] ?? '');
+
 $databases['default']['default'] = array (
   'database' => 'dungeoncrawler_dev',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $dc_db_password,
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => 3306,
@@ -907,7 +930,7 @@ $databases['default']['default'] = array (
 $databases['forseti']['default'] = array (
   'database' => 'forseti_dev',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $dc_db_password,
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => 3306,
@@ -945,7 +968,7 @@ $config['system.logging']['error_level'] = 'verbose';
 $databases['default']['default'] = array (
   'database' => 'dungeoncrawler_dev',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $dc_db_password,
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => 3306,

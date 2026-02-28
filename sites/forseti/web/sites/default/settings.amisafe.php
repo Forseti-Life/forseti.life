@@ -29,7 +29,7 @@
 $databases['amisafe']['default'] = [
   'database' => 'amisafe_database',
   'username' => 'drupal_user',
-  'password' => 'drupal_secure_password',
+  'password' => $databases['default']['default']['password'] ?? (getenv('DB_PASSWORD') ?: ''),
   'prefix' => '',
   'host' => '127.0.0.1',
   'port' => '3306',

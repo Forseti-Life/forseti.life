@@ -256,13 +256,43 @@ class JobSeekerService {
    *   Optional consolidated profile array to avoid reloading from DB.
    */
   public function updateProfileProjections(int $uid, ?array $consolidated = NULL): void {
+    $schema = $this->database->schema();
+    $projection_columns = [
+      'full_name',
+      'contact_email',
+      'contact_phone',
+      'location_city',
+      'location_state',
+      'remote_preference',
+      'relocation_willing',
+      'salary_min',
+      'salary_max',
+      'available_start_date',
+      'linkedin_url',
+      'github_url',
+      'portfolio_url',
+      'projection_updated',
+    ];
+    $available_columns = [];
+    foreach ($projection_columns as $column) {
+      if ($schema->fieldExists('jobhunter_job_seeker', $column)) {
+        $available_columns[$column] = TRUE;
+      }
+    }
+
+    if (empty($available_columns)) {
+      return;
+    }
+
     $consolidated = $consolidated ?? $this->getConsolidatedProfile($uid);
     if (empty($consolidated)) {
       // Still record projection update time so callers can detect the attempt.
-      $this->database->update('jobhunter_job_seeker')
-        ->fields(['projection_updated' => \Drupal::time()->getRequestTime()])
-        ->condition('uid', $uid)
-        ->execute();
+      if (isset($available_columns['projection_updated'])) {
+        $this->database->update('jobhunter_job_seeker')
+          ->fields(['projection_updated' => \Drupal::time()->getRequestTime()])
+          ->condition('uid', $uid)
+          ->execute();
+      }
       return;
     }
 
@@ -344,10 +374,13 @@ class JobSeekerService {
       'projection_updated' => \Drupal::time()->getRequestTime(),
     ];
 
-    $this->database->update('jobhunter_job_seeker')
-      ->fields($update)
-      ->condition('uid', $uid)
-      ->execute();
+    $filtered_update = array_intersect_key($update, $available_columns);
+    if (!empty($filtered_update)) {
+      $this->database->update('jobhunter_job_seeker')
+        ->fields($filtered_update)
+        ->condition('uid', $uid)
+        ->execute();
+    }
   }
 
 }

@@ -480,9 +480,18 @@ function job_hunter_update_9030() {
 }
 
 /**
- * Add application automation tracking columns and attempts table.
+ * Backfill projection columns after table recreation/schema drift.
  */
 function job_hunter_update_9031() {
+  $result = job_hunter_update_9029();
+  job_hunter_update_9030();
+  return $result;
+}
+
+/**
+ * Add application automation tracking columns and attempts table.
+ */
+function job_hunter_update_9032() {
   $schema = \Drupal::database()->schema();
   $added = [];
 
@@ -568,7 +577,7 @@ function job_hunter_update_9031() {
  * Phase 2: Add screenshot evidence columns to jobhunter_application_attempts
  * and confirmation tracking to jobhunter_applications.
  */
-function job_hunter_update_9032() {
+function job_hunter_update_9033() {
   $schema = \Drupal::database()->schema();
   $added = [];
 
@@ -758,6 +767,20 @@ function _job_hunter_create_job_seeker_table() {
       'certifications' => ['type' => 'text'],
       'job_titles' => ['type' => 'text'],
       'consolidated_profile_json' => ['type' => 'text', 'size' => 'big', 'description' => 'Merged JSON data from all resumes'],
+      'full_name' => ['type' => 'varchar', 'length' => 255, 'description' => 'Projected full name from consolidated profile JSON.'],
+      'contact_email' => ['type' => 'varchar', 'length' => 255, 'description' => 'Projected email from consolidated profile JSON.'],
+      'contact_phone' => ['type' => 'varchar', 'length' => 64, 'description' => 'Projected phone from consolidated profile JSON.'],
+      'location_city' => ['type' => 'varchar', 'length' => 128, 'description' => 'Projected city from consolidated profile JSON.'],
+      'location_state' => ['type' => 'varchar', 'length' => 64, 'description' => 'Projected state/region from consolidated profile JSON.'],
+      'remote_preference' => ['type' => 'varchar', 'length' => 32, 'description' => 'Projected remote preference (remote|hybrid|onsite|any).'],
+      'relocation_willing' => ['type' => 'int', 'size' => 'tiny', 'default' => 0, 'description' => 'Projected relocation willingness (1=yes,0=no).'],
+      'salary_min' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Projected minimum salary expectation.'],
+      'salary_max' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Projected maximum salary expectation.'],
+      'available_start_date' => ['type' => 'varchar', 'length' => 10, 'description' => 'Projected available start date (YYYY-MM-DD).'],
+      'linkedin_url' => ['type' => 'varchar', 'length' => 512, 'description' => 'Projected LinkedIn URL from consolidated profile JSON.'],
+      'github_url' => ['type' => 'varchar', 'length' => 512, 'description' => 'Projected GitHub URL from consolidated profile JSON.'],
+      'portfolio_url' => ['type' => 'varchar', 'length' => 512, 'description' => 'Projected portfolio/personal site URL from consolidated profile JSON.'],
+      'projection_updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Timestamp when projection columns were last updated.'],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'changed' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
