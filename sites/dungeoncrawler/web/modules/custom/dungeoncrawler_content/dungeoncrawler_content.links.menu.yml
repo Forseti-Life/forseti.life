@@ -142,6 +142,13 @@ dungeoncrawler_content.menu.dc_administration_encounter_ai:
   parent: dungeoncrawler_content.menu.dc_administration
   weight: 7
 
+dungeoncrawler_content.menu.dc_administration_architecture:
+  title: 'System Architecture'
+  description: 'Central hub for process flows, requirements, and release gates.'
+  route_name: dungeoncrawler_content.architecture
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 8
+
 # ==============================================================================
 # FOOTER MENU LINKS
 # ==============================================================================

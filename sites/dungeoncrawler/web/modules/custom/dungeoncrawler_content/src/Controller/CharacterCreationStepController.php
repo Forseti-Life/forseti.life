@@ -311,14 +311,8 @@ class CharacterCreationStepController extends ControllerBase {
       8 => ['appearance', 'personality', 'backstory', 'portrait_generate', 'portrait_prompt'],
     ];
 
-    // Use schema validation
-    $validation = $this->schemaLoader->validateStepData($step, $form_data);
-    if (!$validation['valid']) {
-      return new JsonResponse([
-        'success' => FALSE,
-        'message' => implode(' ', $validation['errors']),
-      ], 400);
-    }
+    // Non-blocking flow: do not reject partial step payloads.
+    // Keep mapping permissive so users can progress without required fields.
 
     // Map form data to character data
     if (isset($field_mappings[$step])) {

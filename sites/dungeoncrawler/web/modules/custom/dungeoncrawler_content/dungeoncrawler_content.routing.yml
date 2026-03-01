@@ -96,6 +96,15 @@ dungeoncrawler_content.about:
   requirements:
     _access: 'TRUE'
 
+dungeoncrawler_content.architecture:
+  path: '/architecture'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ArchitectureController::index'
+    _title: 'System Architecture'
+  methods: [GET]
+  requirements:
+    _permission: 'access content'
+
 dungeoncrawler_content.credits:
   path: '/credits'
   defaults:

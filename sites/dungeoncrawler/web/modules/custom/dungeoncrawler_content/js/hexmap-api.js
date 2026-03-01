@@ -6,6 +6,28 @@ const jsonHeaders = {
   'Accept': 'application/json',
 };
 
+async function getJson(url) {
+  const res = await fetch(url, {
+    method: 'GET',
+    headers: {
+      'Accept': 'application/json',
+    },
+    credentials: 'include',
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Request failed ${res.status}: ${text}`);
+  }
+
+  const contentType = res.headers.get('content-type') || '';
+  if (contentType.includes('application/json')) {
+    return await res.json();
+  }
+
+  return {};
+}
+
 async function postJson(url, body) {
   const res = await fetch(url, {
     method: 'POST',
@@ -25,6 +47,19 @@ async function postJson(url, body) {
 }
 
 export default {
+  async getCurrentState(payload) {
+    const params = new URLSearchParams();
+    Object.entries(payload || {}).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') {
+        params.set(key, String(value));
+      }
+    });
+
+    const query = params.toString();
+    const url = query ? `/api/combat/state?${query}` : '/api/combat/state';
+    return getJson(url);
+  },
+
   async startCombat(payload) {
     // Expected payload: { campaignId, roomId, entities }
     return postJson('/api/combat/start', payload);

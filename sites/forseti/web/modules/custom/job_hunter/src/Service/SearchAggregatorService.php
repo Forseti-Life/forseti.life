@@ -1103,7 +1103,7 @@ class SearchAggregatorService {
    *   Existing job ID when found.
    */
   protected function findExistingImportedJobId(?string $job_hash, string $external_job_id, string $job_url, string $external_source): ?int {
-    if (!empty($job_hash)) {
+    if (!empty($job_hash) && $this->database->schema()->fieldExists('jobhunter_job_requirements', 'job_hash')) {
       $existing = $this->database->select('jobhunter_job_requirements', 'j')
         ->fields('j', ['id'])
         ->condition('job_hash', $job_hash)

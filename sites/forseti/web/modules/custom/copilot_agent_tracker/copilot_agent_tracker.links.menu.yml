@@ -11,3 +11,10 @@ copilot_agent_tracker.release_notes:
   route_name: copilot_agent_tracker.release_notes
   parent: system.admin_reports
   weight: 51
+
+copilot_agent_tracker.architecture:
+  title: 'Agentic Architecture'
+  description: 'How agents, process, and systems fit together.'
+  route_name: copilot_agent_tracker.architecture
+  parent: system.admin_reports
+  weight: 52

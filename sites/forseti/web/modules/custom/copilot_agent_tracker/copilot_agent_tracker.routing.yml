@@ -38,11 +38,27 @@ copilot_agent_tracker.release_notes:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.architecture:
+  path: '/admin/reports/copilot-agent-tracker/architecture'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::architecture'
+    _title: 'Agentic Architecture'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.release_notes_release:
   path: '/admin/reports/copilot-agent-tracker/releases/{release_id}'
   defaults:
     _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::releaseNotesRelease'
     _title: 'Release Status'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.release_notes_release_testingresults:
+  path: '/admin/reports/copilot-agent-tracker/releases/{release_id}/testingresults'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::releaseTestingResults'
+    _title: 'Testing Results'
   requirements:
     _permission: 'administer copilot agent tracker'
 

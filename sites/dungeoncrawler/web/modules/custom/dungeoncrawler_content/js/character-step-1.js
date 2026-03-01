@@ -75,10 +75,16 @@
         
         // Form submission
         $form.on('submit', function(e) {
+          const actionUrl = $(this).attr('action');
+
+          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
+          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
+            return;
+          }
+
           e.preventDefault();
 
           const formData = $(this).serialize();
-          const actionUrl = $(this).attr('action');
           
           // Show loading state
           updateSubmitButton($submitButton, true, CONFIG.buttonText.saving);

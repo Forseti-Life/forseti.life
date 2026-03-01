@@ -411,7 +411,7 @@ function job_hunter_cron() {
         
         // Check if this job already exists (hash-based first, then external_job_id fallback)
         $existing = NULL;
-        if ($job_hash) {
+        if ($job_hash && $database->schema()->fieldExists('jobhunter_job_requirements', 'job_hash')) {
           $existing = $database->select('jobhunter_job_requirements', 'j')
             ->fields('j', ['id'])
             ->condition('job_hash', $job_hash)

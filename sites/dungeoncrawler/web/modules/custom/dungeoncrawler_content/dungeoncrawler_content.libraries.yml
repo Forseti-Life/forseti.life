@@ -44,6 +44,13 @@ character-creation:
   dependencies:
     - dungeoncrawler_content/character-step-base
 
+character-creation-style:
+  css:
+    theme:
+      css/character-creation.css: {}
+  dependencies:
+    - dungeoncrawler_content/character-step-base
+
 # Pathbuilder-style ability score boost selector
 ability-boost-selector:
   js:
@@ -148,5 +155,12 @@ credits:
   css:
     theme:
       css/credits.css: {}
+  dependencies:
+    - core/drupal
+
+architecture:
+  css:
+    theme:
+      css/architecture.css: {}
   dependencies:
     - core/drupal

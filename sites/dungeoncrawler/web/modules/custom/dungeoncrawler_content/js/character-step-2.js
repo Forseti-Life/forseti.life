@@ -239,15 +239,22 @@
 
         updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
 
-        // Handle form submission with AJAX
+        // Handle form submission with AJAX only for explicit JSON save endpoints.
+        // For standard Drupal Form API routes, allow native submit/redirect flow.
         $form.on('submit', function(e) {
+          const actionUrl = $form.attr('action');
+
+          // If this is not the dedicated JSON save endpoint, do not hijack submit.
+          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
+            return;
+          }
+
           e.preventDefault();
 
           // Show loading state
           updateSubmitButton(true, BUTTON_TEXT.SAVING);
-          
+
           const formData = $form.serialize();
-          const actionUrl = $form.attr('action');
           
           $.ajax({
             url: actionUrl,

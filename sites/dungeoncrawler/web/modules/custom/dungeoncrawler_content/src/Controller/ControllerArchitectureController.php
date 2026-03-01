@@ -51,6 +51,11 @@ class ControllerArchitectureController extends ControllerBase {
       'header' => [
         '#markup' => '<h2>Controller Architecture & Usage</h2><p>How frontend flows (hexmap, character, campaigns) hit backend controllers.</p>',
       ],
+      '#attached' => [
+        'library' => [
+          'dungeoncrawler_content/architecture',
+        ],
+      ],
       '#cache' => [
         'max-age' => 0,
       ],

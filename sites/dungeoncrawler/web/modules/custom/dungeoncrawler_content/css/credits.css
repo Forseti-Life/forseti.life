@@ -6,28 +6,28 @@
 /* Design System Variables - Aligned with character-sheet.css */
 :root {
   /* Core theme colors (from dungeoncrawler theme) */
-  --dc-stone: #2d2d3d;
-  --dc-deep-cavern: #1a1a2e;
-  --dc-abyss: #0f0f1a;
-  --dc-torch-gold: #f59e0b;
-  --dc-mystic-purple: #7c3aed;
-  --dc-blood-red: #dc2626;
-  --dc-text: #e2e8f0;
-  --dc-text-muted: #94a3b8;
-  --dc-border: #3d3d55;
+  --dc-stone: var(--dc-surface-elevated);
+  --dc-deep-cavern: var(--dc-surface-primary);
+  --dc-abyss: var(--dc-surface-abyss);
+  --dc-torch-gold: var(--bs-warning);
+  --dc-mystic-purple: var(--bs-purple);
+  --dc-blood-red: var(--bs-danger);
+  --dc-text: var(--dc-text-primary);
+  --dc-text-muted: var(--bs-secondary-color);
+  --dc-border: var(--bs-border-color);
   
   /* Credits-specific variables */
-  --credits-bg-card: #f7fafc;
-  --credits-bg-light: #edf2f7;
+  --credits-bg-card: var(--bs-body-bg);
+  --credits-bg-light: var(--bs-tertiary-bg);
   --credits-primary: var(--dc-torch-gold);
   --credits-hover: var(--dc-mystic-purple);
-  --credits-text-dark: #1a202c;
-  --credits-text-normal: #4a5568;
-  --credits-text-muted: #718096;
-  --credits-border-light: #e2e8f0;
-  --credits-border-gray: #cbd5e0;
-  --credits-status-pending: #f6ad55;
-  --credits-status-pending-dark: #ed8936;
+  --credits-text-dark: var(--bs-body-color);
+  --credits-text-normal: var(--bs-secondary-color);
+  --credits-text-muted: color-mix(in srgb, var(--bs-secondary-color) 90%, white);
+  --credits-border-light: var(--bs-border-color);
+  --credits-border-gray: color-mix(in srgb, var(--bs-border-color) 85%, white);
+  --credits-status-pending: color-mix(in srgb, var(--dc-torch-gold) 70%, white);
+  --credits-status-pending-dark: color-mix(in srgb, var(--dc-torch-gold) 90%, black);
   
   /* Spacing scale */
   --space-xs: 10px;
@@ -79,12 +79,12 @@
   background: white;
   border: 2px solid var(--credits-border-light);
   border-radius: 12px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+  box-shadow: 0 4px 6px color-mix(in srgb, black 5%, transparent);
 }
 
 .credit-category h2 {
   margin: 0 0 var(--space-lg) 0;
-  color: #2d3748;
+  color: var(--credits-text-dark);
   font-size: 1.8em;
   font-weight: 600;
   display: flex;
@@ -117,7 +117,7 @@
 .credit-item:hover,
 .credit-item:focus-within {
   border-left-color: var(--credits-hover);
-  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--credits-primary) 15%, transparent);
   transform: translateY(-2px);
 }
 
@@ -132,7 +132,7 @@
   top: -10px;
   right: 10px;
   background: linear-gradient(135deg, var(--credits-status-pending) 0%, var(--credits-status-pending-dark) 100%);
-  color: white;
+  color: var(--bs-light);
   padding: 4px 12px;
   border-radius: 12px;
   font-size: 0.75em;
@@ -173,7 +173,7 @@
   font-size: 0.7em;
   padding: 3px 8px;
   background: var(--credits-primary);
-  color: white;
+  color: var(--bs-light);
   border-radius: 4px;
   font-weight: 600;
 }
@@ -201,7 +201,7 @@
 }
 
 .credit-license strong {
-  color: #2d3748;
+  color: var(--credits-text-dark);
 }
 
 /* Empty Categories */
@@ -229,7 +229,7 @@
 
 .credits-footer h2 {
   margin: 0 0 var(--space-md) 0;
-  color: #2d3748;
+  color: var(--credits-text-dark);
   font-size: 1.8em;
 }
 
@@ -258,7 +258,7 @@
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 0.9em;
-  color: #2d3748;
+  color: var(--credits-text-dark);
 }
 
 .contribute-info a {

@@ -225,5 +225,22 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
       'template' => 'credits-page',
       'path' => $path . '/templates',
     ],
+
+    // System architecture hub page.
+    'architecture_overview' => [
+      'variables' => [
+        'intro' => '',
+        'flow_cards' => [],
+        'requirement_domains' => [],
+        'release_gates' => [],
+        'system_domains' => [],
+        'critical_flows' => [],
+        'architecture_map' => [],
+        'feature_index' => [],
+        'governance_links' => [],
+      ],
+      'template' => 'architecture-overview',
+      'path' => $path . '/templates',
+    ],
   ];
 }

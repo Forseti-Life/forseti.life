@@ -240,6 +240,13 @@
 
         // Handle form submission with AJAX
         $form.on('submit', function(e) {
+          const actionUrl = $form.attr('action');
+
+          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
+          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
+            return;
+          }
+
           e.preventDefault();
 
           // Validate form fields (all fields optional, but must meet constraints if filled)
@@ -254,7 +261,6 @@
 
           // Prepare form data
           const formData = $form.serialize();
-          const actionUrl = $form.attr('action');
 
           // Submit via AJAX
           $.ajax({

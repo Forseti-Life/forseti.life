@@ -130,8 +130,12 @@ class SerpApiService {
       $query_params['start'] = ($params['page'] - 1) * ($params['results_per_page'] ?? 10);
     }
 
+    $log_params = $query_params;
+    if (!empty($log_params['api_key'])) {
+      $log_params['api_key'] = '[redacted]';
+    }
     $this->loggerFactory->get('job_hunter')->info('🔍 SerpAPI Google Jobs search: @params', [
-      '@params' => print_r($query_params, TRUE),
+      '@params' => print_r($log_params, TRUE),
     ]);
 
     try {

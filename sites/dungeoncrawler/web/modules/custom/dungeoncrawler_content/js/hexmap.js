@@ -21,6 +21,8 @@ import combatApi from './hexmap-api.js';
     constructor(stateManager = null) {
       this.stateManager = stateManager;
       this.elements = {};
+      this.lastServerMessageAt = 0;
+      this.serverMessageCooldownMs = 3000;
       this.ensureActionFooter();
       this.setupActionFooterToggle();
       this.setupFullscreenToggle();
@@ -1021,6 +1023,21 @@ import combatApi from './hexmap-api.js';
       log.appendChild(line);
       log.scrollTop = log.scrollHeight;
     }
+
+    showServerUnavailable(message = 'Unable to connect to server. Please try again.') {
+      const now = Date.now();
+      if ((now - this.lastServerMessageAt) < this.serverMessageCooldownMs) {
+        return;
+      }
+
+      this.lastServerMessageAt = now;
+
+      if (this.elements.actionInstruction) {
+        this.elements.actionInstruction.textContent = message;
+      }
+
+      this.appendChatLine('System', message, 'system');
+    }
   }
 
   /**
@@ -1131,7 +1148,8 @@ import combatApi from './hexmap-api.js';
       defaultVisionRange: 8,
       defaultWidth: 800,
       defaultHeight: 600,
-      backgroundColor: 0x1a1a2e
+      backgroundColor: 0x1a1a2e,
+      serverStateSyncIntervalMs: 3000,
     },
     
     // PixiJS containers
@@ -1173,6 +1191,9 @@ import combatApi from './hexmap-api.js';
     stageListeners: [],
     tickerCallbacks: [],
     stateSubscriptions: [],
+    currentStateSyncTimer: null,
+    currentStateSyncInFlight: false,
+    currentStateSyncFailures: 0,
 
     attach: function (context, settings) {
       const container = once('hexmap-init', '#hexmap-canvas-container', context);
@@ -1208,6 +1229,7 @@ import combatApi from './hexmap-api.js';
       this.setupInteraction();
       this.applyDungeonData();
       this.applyLaunchContext();
+      this.startServerStateSync();
 
       try {
         const launchEntitySelected = this.applyLaunchCharacterSelection();
@@ -1260,6 +1282,8 @@ import combatApi from './hexmap-api.js';
       // Unsubscribe state listeners
       this.stateSubscriptions.forEach(unsubscribe => unsubscribe());
       this.stateSubscriptions = [];
+
+      this.stopServerStateSync();
       
       // Cleanup ECS systems
       if (this.entityManager) {
@@ -1296,6 +1320,110 @@ import combatApi from './hexmap-api.js';
       this.activeRoomId = null;
       
       console.log('Hexmap cleanup complete');
+    },
+
+    startServerStateSync: function () {
+      this.stopServerStateSync();
+
+      const intervalMs = Number(this.config?.serverStateSyncIntervalMs || 3000);
+      this.currentStateSyncTimer = setInterval(() => {
+        this.syncCurrentStateFromServer();
+      }, intervalMs);
+
+      this.syncCurrentStateFromServer({ force: true, silent: true });
+    },
+
+    stopServerStateSync: function () {
+      if (this.currentStateSyncTimer) {
+        clearInterval(this.currentStateSyncTimer);
+        this.currentStateSyncTimer = null;
+      }
+      this.currentStateSyncInFlight = false;
+      this.currentStateSyncFailures = 0;
+    },
+
+    buildCurrentStatePayload: function () {
+      return {
+        campaignId: this.resolveCampaignId(),
+        roomId: this.resolveActiveRoomId(),
+        encounterId: this.stateManager.get('encounterId') || null,
+        mapId: this.stateManager.get('mapId') || null,
+      };
+    },
+
+    syncCurrentStateFromServer: async function ({ force = false, silent = false } = {}) {
+      if (!this.canUseServerCombatApi()) {
+        return null;
+      }
+
+      if (this.currentStateSyncInFlight && !force) {
+        return null;
+      }
+
+      const payload = this.buildCurrentStatePayload();
+      if (!payload.campaignId && !payload.encounterId) {
+        return null;
+      }
+
+      this.currentStateSyncInFlight = true;
+
+      try {
+        const serverState = await combatApi.getCurrentState(payload);
+        this.currentStateSyncFailures = 0;
+
+        if (!serverState || typeof serverState !== 'object') {
+          return null;
+        }
+
+        if (serverState.success && serverState.data) {
+          this.applyServerCurrentState(serverState.data);
+          return serverState.data;
+        }
+
+        this.applyServerCurrentState(serverState);
+        return serverState;
+      } catch (err) {
+        this.currentStateSyncFailures += 1;
+        console.error('Current state sync failed:', err);
+        if (!silent && this.currentStateSyncFailures === 1) {
+          this.notifyServerUnavailable();
+        }
+        return null;
+      } finally {
+        this.currentStateSyncInFlight = false;
+      }
+    },
+
+    applyServerCurrentState: function (serverState = {}) {
+      if (!serverState || typeof serverState !== 'object') {
+        return;
+      }
+
+      if (serverState.encounter_id) {
+        this.stateManager.set('encounterId', serverState.encounter_id);
+      }
+
+      if (serverState.map_id) {
+        this.stateManager.set('mapId', serverState.map_id);
+      }
+
+      if (typeof this.turnManagementSystem?.hydrateFromServer === 'function' && Array.isArray(serverState.initiative_order)) {
+        this.stateManager.set('serverCombatMode', true);
+        if (this.combatSystem && typeof this.combatSystem.setServerResultRequirement === 'function') {
+          this.combatSystem.setServerResultRequirement(true);
+        }
+        this.turnManagementSystem.hydrateFromServer(serverState);
+        this.syncSelectedToCurrentTurn();
+      }
+
+      if (serverState.world_delta) {
+        this.applyWorldDelta(serverState.world_delta);
+      }
+
+      const characterState = serverState.character_state || serverState.player_character || serverState.current_character || null;
+      if (characterState && this.uiManager && typeof this.uiManager.showLaunchCharacter === 'function') {
+        this.uiManager.showLaunchCharacter(characterState);
+      }
     },
     
     /**
@@ -2512,6 +2640,7 @@ import combatApi from './hexmap-api.js';
 
         if (!serverState) {
           console.error('Combat action returned no state; keeping current client view.');
+          this.notifyServerUnavailable();
           return null;
         }
 
@@ -2528,6 +2657,7 @@ import combatApi from './hexmap-api.js';
         return serverState;
       } catch (err) {
         console.error('Combat action via API failed; client will not fall back.', err);
+        this.notifyServerUnavailable();
         return null;
       }
     },
@@ -2814,6 +2944,13 @@ import combatApi from './hexmap-api.js';
       return Number.isFinite(uid) && uid > 0;
     },
 
+    notifyServerUnavailable: function () {
+      const message = 'Unable to connect to server. Please try again.';
+      if (this.uiManager && typeof this.uiManager.showServerUnavailable === 'function') {
+        this.uiManager.showServerUnavailable(message);
+      }
+    },
+
     startCombat: async function (options = {}) {
       console.log('Starting combat (server authoritative)...');
 
@@ -2845,6 +2982,7 @@ import combatApi from './hexmap-api.js';
         const serverState = await combatApi.startCombat(payload);
         if (!serverState) {
           console.error('Combat start returned no state; aborting client start.');
+          this.notifyServerUnavailable();
           return;
         }
 
@@ -2859,11 +2997,15 @@ import combatApi from './hexmap-api.js';
 
         if (typeof this.turnManagementSystem.hydrateFromServer === 'function') {
           this.stateManager.set('serverCombatMode', true);
+          if (this.combatSystem && typeof this.combatSystem.setServerResultRequirement === 'function') {
+            this.combatSystem.setServerResultRequirement(true);
+          }
           this.turnManagementSystem.hydrateFromServer(serverState);
           this.syncSelectedToCurrentTurn();
         }
       } catch (err) {
-        console.error('Combat start via API failed; client will not fall back.', err);
+        console.error('Combat start via API failed.', err);
+        this.notifyServerUnavailable();
       }
     },
     
@@ -2889,6 +3031,7 @@ import combatApi from './hexmap-api.js';
         const serverState = await combatApi.endTurn(payload);
         if (!serverState) {
           console.error('End turn returned no state; keeping current client view.');
+          this.notifyServerUnavailable();
           return;
         }
 
@@ -2902,7 +3045,8 @@ import combatApi from './hexmap-api.js';
           this.syncSelectedToCurrentTurn();
         }
       } catch (err) {
-        console.error('Turn end via API failed; client will not fall back.', err);
+        console.error('Turn end via API failed.', err);
+        this.notifyServerUnavailable();
       }
     },
     
@@ -2925,12 +3069,17 @@ import combatApi from './hexmap-api.js';
       try {
         await combatApi.endCombat(payload);
       } catch (err) {
-        console.error('Combat end via API failed; client will not fall back.', err);
+        console.error('Combat end via API failed.', err);
+        this.notifyServerUnavailable();
         return;
       }
 
       this.turnManagementSystem.endCombat();
       this.stateManager.set('encounterId', null);
+      this.stateManager.set('serverCombatMode', false);
+      if (this.combatSystem && typeof this.combatSystem.setServerResultRequirement === 'function') {
+        this.combatSystem.setServerResultRequirement(false);
+      }
       this.deselectEntity();
     },
 
@@ -3002,6 +3151,7 @@ import combatApi from './hexmap-api.js';
         const serverState = await combatApi.performAttack(payload);
         if (!serverState) {
           console.error('Attack returned no state; keeping current client view.');
+          this.notifyServerUnavailable();
           return;
         }
 
@@ -3029,6 +3179,7 @@ import combatApi from './hexmap-api.js';
         }
       } catch (err) {
         console.error('Attack via API failed; client will not fall back.', err);
+        this.notifyServerUnavailable();
       }
     },
 

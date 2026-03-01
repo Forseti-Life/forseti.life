@@ -5,24 +5,24 @@
 
 :root {
   /* Color Palette - Backgrounds */
-  --dc-stone: #2d2d3d;
-  --dc-deep-cavern: #1a1a2e;
-  --dc-abyss: #0f0f1a;
+  --dc-stone: var(--dc-surface-elevated);
+  --dc-deep-cavern: var(--dc-surface-primary);
+  --dc-abyss: var(--dc-surface-abyss);
   
   /* Color Palette - Accents */
-  --dc-torch-gold: #f59e0b;
-  --dc-mystic-purple: #7c3aed;
-  --dc-blood-red: #dc2626;
+  --dc-torch-gold: var(--bs-warning);
+  --dc-mystic-purple: var(--bs-purple);
+  --dc-blood-red: var(--bs-danger);
   
   /* Color Palette - Text */
-  --dc-text: #e2e8f0;
-  --dc-text-muted: #94a3b8;
+  --dc-text: var(--dc-text-primary);
+  --dc-text-muted: var(--bs-secondary-color);
   
   /* Color Palette - UI Elements */
-  --dc-border: #3d3d55;
-  --dc-success: #22c55e;
-  --dc-warning: #f59e0b;
-  --dc-danger: #ef4444;
+  --dc-border: var(--bs-border-color);
+  --dc-success: var(--bs-success);
+  --dc-warning: var(--bs-warning);
+  --dc-danger: var(--bs-danger);
   
   /* Border Radius Values */
   --dc-radius-sm: 4px;
@@ -37,10 +37,10 @@
   --dc-space-xl: 1.5rem;
   
   /* Alpha Variants */
-  --dc-border-alpha-light: rgba(61, 61, 85, 0.3);
-  --dc-border-alpha-medium: rgba(61, 61, 85, 0.5);
-  --dc-gold-glow: rgba(245, 158, 11, 0.15);
-  --dc-gold-focus: rgba(245, 158, 11, 0.2);
+  --dc-border-alpha-light: color-mix(in srgb, var(--dc-border) 30%, transparent);
+  --dc-border-alpha-medium: color-mix(in srgb, var(--dc-border) 50%, transparent);
+  --dc-gold-glow: color-mix(in srgb, var(--dc-torch-gold) 15%, transparent);
+  --dc-gold-focus: color-mix(in srgb, var(--dc-torch-gold) 20%, transparent);
 }
 
 .hidden {
@@ -402,7 +402,7 @@
   left: 0;
   right: 0;
   background: var(--dc-danger);
-  color: #fff;
+  color: var(--bs-light);
   text-align: center;
   font-weight: 700;
   font-size: 0.75rem;
@@ -595,7 +595,7 @@
   line-height: 20px;
   font-size: 0.65rem;
   font-weight: 700;
-  color: #fff;
+  color: var(--bs-light);
 }
 
 .dc-sheet__prof--expert {
@@ -638,7 +638,7 @@
 .dc-sheet__sense-tag {
   font-size: 0.75rem;
   background: var(--dc-mystic-purple);
-  color: #fff;
+  color: var(--bs-light);
   padding: 2px 8px;
   border-radius: var(--dc-radius-sm);
 }
@@ -775,18 +775,18 @@
 }
 
 .dc-sheet__coin--gold {
-  color: #fbbf24;
-  border-color: #fbbf24;
+  color: var(--dc-torch-gold);
+  border-color: var(--dc-torch-gold);
 }
 
 .dc-sheet__coin--silver {
-  color: #94a3b8;
-  border-color: #94a3b8;
+  color: var(--dc-text-muted);
+  border-color: var(--dc-text-muted);
 }
 
 .dc-sheet__coin--copper {
-  color: #cd7f32;
-  border-color: #cd7f32;
+  color: color-mix(in srgb, var(--dc-warning) 75%, var(--dc-danger));
+  border-color: color-mix(in srgb, var(--dc-warning) 75%, var(--dc-danger));
 }
 
 .dc-sheet__bulk {
@@ -871,8 +871,8 @@
 }
 
 .dc-btn-primary:hover {
-  background: #d97706;
-  border-color: #d97706;
+  background: color-mix(in srgb, var(--dc-torch-gold) 85%, black);
+  border-color: color-mix(in srgb, var(--dc-torch-gold) 85%, black);
   color: var(--dc-abyss);
   text-decoration: none;
 }
@@ -921,7 +921,7 @@
 
 .dc-btn-danger:hover {
   background: var(--dc-danger);
-  color: #fff;
+  color: var(--bs-light);
   text-decoration: none;
 }
 

@@ -6,36 +6,40 @@
 /* CSS Custom Properties (Variables) */
 :root {
   /* Colors */
-  --dc-primary: #4ade80;
-  --dc-primary-dark: #22c55e;
-  --dc-primary-overlay-light: rgba(74, 222, 128, 0.1);
-  --dc-primary-overlay: rgba(74, 222, 128, 0.15);
-  --dc-primary-glow: rgba(74, 222, 128, 0.3);
-  --dc-secondary: #06b6d4;
-  --dc-secondary-dark: #0891b2;
-  --dc-secondary-overlay: rgba(6, 182, 212, 0.1);
-  --dc-danger: #ef4444;
-  --dc-danger-dark: #dc2626;
-  --dc-warning: #fbbf24;
-  --dc-warning-dark: #f59e0b;
-  --dc-success: #10b981;
-  --dc-success-dark: #059669;
-  --dc-success-darker: #047857;
-  --dc-bg-dark: #1a1a2e;
-  --dc-bg-darker: #16213e;
-  --dc-bg-dark-alt: #2a2a2a;
-  --dc-bg-dark-overlay: rgba(0, 0, 0, 0.3);
-  --dc-text-light: #e8e8e8;
-  --dc-text-muted: #a0a0a0;
-  --dc-text-subtle: #b0b0b0;
-  --dc-text-disabled: #666;
-  --dc-border-light: rgba(255, 255, 255, 0.1);
-  --dc-border-medium: rgba(255, 255, 255, 0.2);
-  --dc-border-hover: rgba(255, 255, 255, 0.3);
-  --dc-border-dark: #3a3a3a;
-  --dc-card-bg: rgba(30, 30, 46, 0.9);
-  --dc-card-bg-light: rgba(255, 255, 255, 0.05);
-  --dc-card-bg-hover: rgba(255, 255, 255, 0.08);
+  --dc-primary: var(--bs-primary);
+  --dc-primary-dark: color-mix(in srgb, var(--bs-primary) 80%, black);
+  --dc-primary-overlay-light: color-mix(in srgb, var(--bs-primary) 10%, transparent);
+  --dc-primary-overlay: color-mix(in srgb, var(--bs-primary) 15%, transparent);
+  --dc-primary-glow: color-mix(in srgb, var(--bs-primary) 30%, transparent);
+  --dc-secondary: var(--dc-accent-cyan);
+  --dc-secondary-dark: var(--dc-accent-cyan-dark);
+  --dc-secondary-overlay: color-mix(in srgb, var(--dc-accent-cyan) 10%, transparent);
+  --dc-danger: var(--bs-danger);
+  --dc-danger-dark: color-mix(in srgb, var(--bs-danger) 80%, black);
+  --dc-warning: var(--bs-warning);
+  --dc-warning-dark: color-mix(in srgb, var(--bs-warning) 85%, black);
+  --dc-success: var(--bs-success);
+  --dc-success-dark: color-mix(in srgb, var(--bs-success) 80%, black);
+  --dc-success-darker: color-mix(in srgb, var(--bs-success) 70%, black);
+  --dc-bg-dark: var(--dc-surface-primary);
+  --dc-bg-darker: var(--dc-surface-elevated);
+  --dc-bg-dark-alt: color-mix(in srgb, var(--dc-surface-primary) 70%, var(--dc-surface-elevated));
+  --dc-bg-dark-overlay: color-mix(in srgb, var(--dc-bg-dark) 32%, transparent);
+  --dc-text-light: var(--dc-text-primary);
+  --dc-text-muted: var(--dc-text-muted);
+  --dc-text-subtle: color-mix(in srgb, var(--dc-text-primary) 80%, white);
+  --dc-text-disabled: var(--bs-secondary-color);
+  --dc-border-light: color-mix(in srgb, var(--bs-border-color) 45%, transparent);
+  --dc-border-medium: color-mix(in srgb, var(--bs-border-color) 65%, transparent);
+  --dc-border-hover: color-mix(in srgb, var(--bs-border-color) 85%, transparent);
+  --dc-border-dark: var(--bs-border-color);
+  --dc-card-bg: color-mix(in srgb, var(--dc-surface-primary) 90%, transparent);
+  --dc-card-bg-light: color-mix(in srgb, var(--dc-text-primary) 6%, transparent);
+  --dc-card-bg-hover: color-mix(in srgb, var(--dc-text-primary) 10%, transparent);
+  --dc-shadow-strong: 0 8px 32px color-mix(in srgb, var(--dc-bg-dark) 45%, transparent);
+  --dc-shadow-secondary-glow: 0 0 18px color-mix(in srgb, var(--dc-secondary) 35%, transparent);
+  --dc-shadow-success-glow: 0 4px 12px color-mix(in srgb, var(--dc-success) 35%, transparent);
+  --dc-shadow-warning-glow: 0 4px 12px color-mix(in srgb, var(--dc-warning) 30%, transparent);
   
   /* Spacing */
   --dc-space-xs: 0.25rem;
@@ -110,7 +114,7 @@
   background: var(--dc-card-bg);
   border-radius: var(--dc-radius-xl);
   padding: var(--dc-space-xl);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--dc-shadow-strong);
 }
 
 /* Utility Classes */
@@ -312,7 +316,7 @@ textarea.form-control {
 .heritage-card.selected {
   border-color: var(--dc-secondary);
   background: var(--dc-secondary-overlay);
-  box-shadow: 0 0 18px rgba(6, 182, 212, 0.35);
+  box-shadow: var(--dc-shadow-secondary-glow);
 }
 
 .card-description {
@@ -374,17 +378,17 @@ textarea.form-control {
 }
 
 .heritage-card:hover {
-  border-color: #60a5fa;
-  background: rgba(96, 165, 250, 0.1);
+  border-color: var(--dc-secondary);
+  background: var(--dc-secondary-overlay);
 }
 
 .heritage-card.selected {
-  border-color: #60a5fa;
-  background: rgba(96, 165, 250, 0.15);
+  border-color: var(--dc-secondary);
+  background: color-mix(in srgb, var(--dc-secondary) 16%, transparent);
 }
 
 .heritage-card h4 {
-  color: #60a5fa;
+  color: var(--dc-secondary);
   margin-bottom: var(--dc-space-sm);
   font-size: 1rem;
 }
@@ -424,7 +428,7 @@ textarea.form-control {
 
 .btn-primary:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(74, 222, 128, 0.4);
+  box-shadow: var(--dc-shadow-success-glow);
 }
 
 .btn-primary:disabled {
@@ -560,7 +564,7 @@ textarea.form-control {
 
 .alignment-card:hover {
   border-color: var(--dc-secondary);
-  background: #333;
+  background: var(--dc-card-bg-hover);
   transform: translateY(-2px);
 }
 
@@ -607,7 +611,7 @@ textarea.form-control {
   font-size: 1.3rem;
   font-weight: 700;
   margin-bottom: var(--dc-space-xl);
-  box-shadow: 0 4px 12px rgba(251, 191, 36, 0.3);
+  box-shadow: var(--dc-shadow-warning-glow);
 }
 
 .gold-icon {
@@ -652,13 +656,13 @@ textarea.form-control {
 
 .equipment-item:hover {
   border-color: var(--dc-secondary);
-  background: #333;
+  background: var(--dc-card-bg-hover);
 }
 
 .equipment-item .item-name {
   flex: 1;
   font-weight: 600;
-  color: #e0e0e0;
+  color: var(--dc-text-light);
 }
 
 .equipment-item .item-details {
@@ -677,7 +681,7 @@ textarea.form-control {
 
 .btn-add-item {
   background: var(--dc-secondary);
-  color: #fff;
+  color: var(--bs-light);
   border: none;
   padding: var(--dc-space-sm) var(--dc-space-md);
   border-radius: 4px;
@@ -732,7 +736,7 @@ textarea.form-control {
 
 .btn-remove-item {
   background: var(--dc-danger);
-  color: #fff;
+  color: var(--bs-light);
   border: none;
   padding: var(--dc-space-sm) var(--dc-space-md);
   border-radius: 4px;
@@ -760,7 +764,7 @@ textarea.form-control {
 
 /* Step 8: Final Details & Review */
 .character-summary {
-  background: linear-gradient(var(--dc-gradient-angle), rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
+  background: linear-gradient(var(--dc-gradient-angle), var(--dc-secondary-overlay) 0%, color-mix(in srgb, var(--dc-secondary) 6%, transparent) 100%);
   border: 2px solid var(--dc-secondary);
   border-radius: var(--dc-radius-md);
   padding: var(--dc-space-xl);

@@ -1,12 +1,21 @@
 .ai-model-pricing {
+  --amp-surface: var(--bs-body-bg);
+  --amp-surface-muted: var(--bs-tertiary-bg);
+  --amp-border: var(--bs-border-color);
+  --amp-text: var(--bs-body-color);
+  --amp-text-muted: var(--bs-secondary-color);
+  --amp-primary: var(--bs-primary);
+  --amp-warning: var(--bs-warning);
+  --amp-accent: var(--dc-accent-cyan);
+
   max-width: 1200px;
   margin: 20px auto;
   padding: 20px;
 }
 
 .pricing-intro {
-  background: #f0f7ff;
-  border-left: 4px solid #0066cc;
+  background: color-mix(in srgb, var(--amp-primary) 10%, var(--amp-surface));
+  border-left: 4px solid var(--amp-primary);
   padding: 15px;
   margin-bottom: 30px;
 }
@@ -17,7 +26,7 @@
 
 .generation-description {
   font-size: 14px;
-  color: #666;
+  color: var(--amp-text-muted);
   margin-bottom: 20px;
 }
 
@@ -25,29 +34,29 @@
   width: 100%;
   border-collapse: collapse;
   margin: 20px 0;
-  background: white;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--amp-surface);
+  box-shadow: var(--bs-box-shadow-sm);
 }
 
 .pricing-table th {
-  background: #f5f5f5;
+  background: var(--amp-surface-muted);
   padding: 12px;
   text-align: left;
   font-weight: 600;
-  border-bottom: 2px solid #ddd;
+  border-bottom: 2px solid var(--amp-border);
 }
 
 .pricing-table td {
   padding: 12px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid color-mix(in srgb, var(--amp-border) 75%, transparent);
 }
 
 .model-row.claude_4 {
-  background: #fafffe;
+  background: color-mix(in srgb, var(--amp-accent) 6%, var(--amp-surface));
 }
 
 .model-row.claude_3_5 {
-  background: #fffef8;
+  background: color-mix(in srgb, var(--amp-warning) 8%, var(--amp-surface));
 }
 
 .model-name {
@@ -55,22 +64,22 @@
 }
 
 .model-id code {
-  background: #f5f5f5;
+  background: var(--amp-surface-muted);
   padding: 2px 6px;
   border-radius: 3px;
   font-size: 12px;
-  color: #d63384;
+  color: color-mix(in srgb, var(--amp-primary) 75%, var(--amp-accent));
 }
 
 .input-price,
 .output-price {
   font-weight: 600;
-  color: #0066cc;
+  color: var(--amp-primary);
 }
 
 .model-details {
   font-size: 13px;
-  color: #666;
+  color: var(--amp-text-muted);
 }
 
 .model-highlights {
@@ -81,12 +90,12 @@
 .model-status {
   display: block;
   font-style: italic;
-  color: #888;
+  color: color-mix(in srgb, var(--amp-text-muted) 85%, white);
 }
 
 .pricing-notes {
-  background: #fffef5;
-  border: 1px solid #ffd700;
+  background: color-mix(in srgb, var(--amp-warning) 10%, var(--amp-surface));
+  border: 1px solid color-mix(in srgb, var(--amp-warning) 70%, var(--amp-surface));
   padding: 20px;
   margin: 30px 0;
   border-radius: 4px;
@@ -94,7 +103,7 @@
 
 .pricing-notes h3 {
   margin-top: 0;
-  color: #333;
+  color: var(--amp-text);
 }
 
 .pricing-notes ul {
@@ -110,14 +119,14 @@
 .pricing-footer {
   margin-top: 30px;
   padding-top: 20px;
-  border-top: 1px solid #ddd;
+  border-top: 1px solid var(--amp-border);
   text-align: center;
-  color: #666;
+  color: var(--amp-text-muted);
   font-size: 14px;
 }
 
 .pricing-footer a {
-  color: #0066cc;
+  color: var(--amp-primary);
   text-decoration: none;
 }
 

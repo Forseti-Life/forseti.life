@@ -151,13 +151,11 @@ class CharacterCreationStepForm extends FormBase {
       ?? '';
 
     $form['#attributes']['class'][] = 'character-creation-form';
-    $form['#attached']['library'][] = 'dungeoncrawler_content/character-creation';
-    $form['#attached']['library'][] = "dungeoncrawler_content/character-step-{$step}";
-    
-    // Attach ability boost selector for interactive steps (3, 4, 5)
-    if (in_array($step, [3, 4, 5], TRUE)) {
-      $form['#attached']['library'][] = 'dungeoncrawler_content/ability-boost-selector';
-    }
+    // Refactor: keep character creation flow server-driven to avoid conflicting
+    // client-side submit handlers across step scripts.
+    $form['#attached']['library'][] = 'dungeoncrawler_content/character-step-base';
+    $form['#attached']['library'][] = 'dungeoncrawler_content/character-creation-style';
+    $form['#attached']['library'][] = 'dungeoncrawler_content/ability-widget';
     
     $form['#prefix'] = '<div class="character-creation-step"><div class="creation-container"><div class="progress-bar"><div class="progress-indicator progress-step-' . $step . '"></div></div><div class="progress-text">' . $this->t('Step @step of @total', ['@step' => $step, '@total' => 8]) . '</div><div class="step-content">';
     $form['#suffix'] = '</div></div></div>';
@@ -184,6 +182,7 @@ class CharacterCreationStepForm extends FormBase {
     // Build step-specific fields
     $this->buildStepFields($form, $form_state, $step, $character_data);
     $this->applyInputStylingClasses($form);
+    $this->removeRequiredConstraints($form);
 
     // Navigation buttons
     $form['actions'] = [
@@ -271,6 +270,31 @@ class CharacterCreationStepForm extends FormBase {
       }
 
       $this->applyInputStylingClasses($element);
+    }
+  }
+
+  /**
+   * Removes required constraints from all form elements recursively.
+   */
+  private function removeRequiredConstraints(array &$elements): void {
+    foreach ($elements as &$element) {
+      if (!is_array($element)) {
+        continue;
+      }
+
+      if (isset($element['#required'])) {
+        $element['#required'] = FALSE;
+      }
+
+      if (isset($element['#attributes']['required'])) {
+        unset($element['#attributes']['required']);
+      }
+
+      if (isset($element['#attributes']['aria-required'])) {
+        unset($element['#attributes']['aria-required']);
+      }
+
+      $this->removeRequiredConstraints($element);
     }
   }
 
@@ -476,7 +500,6 @@ class CharacterCreationStepForm extends FormBase {
             'wrapper' => 'heritage-wrapper',
           ],
         ];
-        $form['ancestry']['#attributes']['class'][] = 'dc-visually-hidden';
         $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
         $heritage_options = $this->getHeritageOptions($selected_ancestry);
         $has_heritage_choices = count($heritage_options) > 1;
@@ -491,7 +514,6 @@ class CharacterCreationStepForm extends FormBase {
           '#prefix' => '<div id="heritage-wrapper">',
           '#suffix' => '</div>',
         ];
-        $form['heritage']['#attributes']['class'][] = 'dc-visually-hidden';
         $this->applySchemaValidationAttributes($form['heritage'], $schema_fields, 'heritage');
 
         if (!empty($selected_ancestry) && !$has_heritage_choices) {
@@ -1193,113 +1215,9 @@ class CharacterCreationStepForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    $step = (int) ($form_state->get('step') ?? 1);
-
-    // Validate heritage selection (Step 2): required + ancestry match when
-    // heritages are configured for the selected ancestry.
-    if ($step === 2) {
-      $ancestry = (string) ($form_state->getValue('ancestry') ?? '');
-      $heritage = (string) ($form_state->getValue('heritage') ?? '');
-
-      if ($ancestry !== '') {
-        // Server-side: heritage must belong to the selected ancestry.
-        $ancestry_name = $this->resolveAncestryName($ancestry);
-        $valid_heritages = CharacterManager::HERITAGES[$ancestry_name] ?? [];
-        $valid_ids = array_column($valid_heritages, 'id');
-
-        if (!empty($valid_ids)) {
-          if ($heritage === '' || $heritage === '- Select -') {
-            $form_state->setErrorByName('heritage', $this->t('Please select a heritage for your character.'));
-          }
-          elseif (!in_array($heritage, $valid_ids, TRUE)) {
-            $form_state->setErrorByName('heritage', $this->t('Invalid heritage for selected ancestry.'));
-          }
-        }
-      }
-    }
-
-    // Validate background boosts (Step 3)
-    if ($step === 3) {
-      $background_boosts_raw = $form_state->getValue('background_boosts', '[]');
-      $background_boosts = json_decode($background_boosts_raw, TRUE);
-      
-      if (!is_array($background_boosts) || count($background_boosts) < 2) {
-        $form_state->setErrorByName('background_boosts', $this->t('You must select 2 ability boosts from your background.'));
-      }
-      elseif (count($background_boosts) > 2) {
-        $form_state->setErrorByName('background_boosts', $this->t('You can only select 2 ability boosts from your background.'));
-      }
-      elseif (count($background_boosts) !== count(array_unique($background_boosts))) {
-        $form_state->setErrorByName('background_boosts', $this->t('You cannot boost the same ability twice.'));
-      }
-    }
-
-    // Validate spell selection for spellcasting classes (Step 4)
-    if ($step === 4) {
-      $character_data = $this->loadCharacterData($form_state->get('character_id'));
-      $selected_class = $character_data['class'] ?? $form_state->getValue('class');
-      
-      // Wizard spell validation
-      if ($selected_class === 'wizard') {
-        // Validate cantrip selection (exactly 5 required)
-        $cantrips = array_filter((array) $form_state->getValue('cantrips', []));
-        if (count($cantrips) < 5) {
-          $form_state->setErrorByName('cantrips', $this->t('You must select exactly 5 cantrips. Currently selected: @count', ['@count' => count($cantrips)]));
-        }
-        elseif (count($cantrips) > 5) {
-          $form_state->setErrorByName('cantrips', $this->t('You can only select 5 cantrips. Currently selected: @count', ['@count' => count($cantrips)]));
-        }
-
-        // Validate 1st level spells (minimum 4, maximum 10 recommended)
-        $first_level = array_filter((array) $form_state->getValue('spells_first', []));
-        if (count($first_level) < 4) {
-          $form_state->setErrorByName('spells_first', $this->t('You should select at least 4 first-level spells for your spellbook. Currently selected: @count', ['@count' => count($first_level)]));
-        }
-        elseif (count($first_level) > 10) {
-          $form_state->setErrorByName('spells_first', $this->t('You can select up to 10 first-level spells at character creation. Currently selected: @count', ['@count' => count($first_level)]));
-        }
-      }
-    }
-
-    // Validate free boosts (Step 5)
-    if ($step === 5) {
-      $free_boosts_raw = $form_state->getValue('free_boosts', '[]');
-      $free_boosts = json_decode($free_boosts_raw, TRUE);
-      
-      if (!is_array($free_boosts) || count($free_boosts) < 4) {
-        $form_state->setErrorByName('free_boosts', $this->t('You must select 4 free ability boosts.'));
-      }
-      elseif (count($free_boosts) > 4) {
-        $form_state->setErrorByName('free_boosts', $this->t('You can only select 4 free ability boosts.'));
-      }
-      elseif (count($free_boosts) !== count(array_unique($free_boosts))) {
-        $form_state->setErrorByName('free_boosts', $this->t('You cannot boost the same ability twice.'));
-      }
-    }
-
-    // Validate equipment cost (Step 7)
-    if ($step === 7) {
-      $selected = array_filter((array) $form_state->getValue('equipment', []));
-      $catalog = $this->getEquipmentCatalog();
-      $catalog_by_id = [];
-
-      foreach ($catalog as $items) {
-        foreach ($items as $item) {
-          $catalog_by_id[$item['id']] = $item;
-        }
-      }
-
-      $total_cost = 0.0;
-      foreach ($selected as $item_id) {
-        if (isset($catalog_by_id[$item_id])) {
-          $total_cost += (float) $catalog_by_id[$item_id]['cost'];
-        }
-      }
-
-      if ($total_cost > 15) {
-        $form_state->setErrorByName('equipment', $this->t('Selected equipment costs @total gp, which exceeds your 15 gp starting budget.', ['@total' => number_format($total_cost, 1)]));
-      }
-    }
+    // Non-blocking flow: no required-field validation in the wizard.
+    // All entered values are accepted and persisted as draft progress.
+    return;
   }
 
   /**

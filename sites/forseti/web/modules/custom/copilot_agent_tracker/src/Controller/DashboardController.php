@@ -202,6 +202,109 @@ final class DashboardController extends ControllerBase {
   }
 
   /**
+   * Architecture page: how agents, process, and systems fit together.
+   */
+  public function architecture(): array {
+    $agents_rows = [];
+    if ($this->database->schema()->tableExists('copilot_agent_tracker_agents')) {
+      $agents = $this->database->select('copilot_agent_tracker_agents', 'a')
+        ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen'])
+        ->orderBy('website', 'ASC')
+        ->orderBy('module', 'ASC')
+        ->orderBy('role', 'ASC')
+        ->orderBy('agent_id', 'ASC')
+        ->execute()
+        ->fetchAllAssoc('agent_id');
+
+      foreach ($agents as $agent_id => $row) {
+        $agents_rows[] = [
+          (string) $agent_id,
+          (string) ($row->role ?? ''),
+          (string) ($row->website ?? ''),
+          (string) ($row->module ?? ''),
+          (string) ($row->status ?? ''),
+          (string) ($row->current_action ?? ''),
+          !empty($row->last_seen) ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '',
+        ];
+      }
+    }
+
+    $process_rows = [
+      ['1', 'consume_replies', 'scripts/consume-forseti-replies.sh', 'Pull Board/Drupal replies into agent inboxes.'],
+      ['2', 'dispatch_commands', 'inbox/commands/*.md routing', 'Route command items to PM inboxes or CEO triage inbox.'],
+      ['3', 'release_cycle', 'scripts/release-cycle-start.sh + orchestrator state', 'Start/advance coordinated release cycles (interval-gated).'],
+      ['4', 'coordinated_push', 'gh workflow run deploy.yml + release signoffs', 'Auto-deploy once coordinated PM signoffs are complete.'],
+      ['5', 'pick_agents', 'Role weight + ROI prioritization', 'Select executable seats, CEO-first, bounded by agent cap.'],
+      ['6', 'exec_agents', 'scripts/agent-exec-next.sh <agent>', 'Execute one work item per selected agent.'],
+      ['7', 'health_check', 'scripts/hq-status.sh + scripts/hq-blockers.sh', 'Detect stalls, auto-remediate, and escalate stagnation.'],
+      ['8', 'kpi_monitor', 'scripts/release-kpi-monitor.py --auto-remediate', 'Detect handoff gaps and trigger corrective routing.'],
+      ['9', 'publish', 'scripts/publish-forseti-agent-tracker.sh', 'Publish tracker telemetry to Drupal dashboard tables.'],
+    ];
+
+    $systems_rows = [
+      ['Org model', 'org-chart/', 'Roles, seats, ownership, and product-team registry.'],
+      ['Queue state', 'sessions/<agent>/inbox|outbox|artifacts', 'Source-of-truth work queue and outputs.'],
+      ['Orchestrator engine', 'scripts/orchestrator-loop.sh + orchestrator/run.py / orchestrator/langgraph/runner.py', 'Tick scheduler and execution control-flow.'],
+      ['Execution runtime', 'scripts/agent-exec-next.sh', 'Agent seat execution with lock-safe queue handling.'],
+      ['Local LLM layer', 'llm/routing.yaml + llm/runner.py', 'Role/seat model routing for local inference.'],
+      ['Copilot CLI fallback', 'gh copilot --resume (executor path)', 'Fallback runtime when no local model is available.'],
+      ['Release automation', 'tmp/release-cycle-active/ + scripts/release-cycle-*.sh', 'Current/next coordinated release state and transitions.'],
+      ['Control plane', 'tmp/org-control.json + scripts/hq-automation.sh', 'Enable/disable and converge automation loops.'],
+      ['Watchdog', 'scripts/hq-automation-watchdog.sh', 'Enforce desired process state every minute.'],
+      ['Telemetry API', '/api/copilot-agent-tracker/event', 'Accept sanitized runtime telemetry into tracker tables.'],
+      ['Dashboard UI', 'copilot_agent_tracker module routes/controllers', 'Admin report pages for operational visibility.'],
+      ['LangGraph telemetry', 'inbox/responses/langgraph-ticks.jsonl', 'Structured tick results for parity/monitoring.'],
+    ];
+
+    return [
+      '#type' => 'container',
+      'overview' => [
+        '#type' => 'details',
+        '#title' => $this->t('Architecture Overview'),
+        '#open' => TRUE,
+        'summary' => [
+          '#markup' => '<p>This page describes the agentic operating model used by Copilot Sessions HQ: who does the work (agents), how work progresses (process), and where state/execution lives (systems).</p>'
+            . '<p>Execution follows a queue-driven orchestrator loop with role-aware scheduling and publish-to-dashboard telemetry.</p>',
+        ],
+      ],
+      'agents' => [
+        '#type' => 'details',
+        '#title' => $this->t('Agents Inventory'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['Agent ID', 'Role', 'Website', 'Module', 'Status', 'Current action', 'Last seen'],
+          '#rows' => $agents_rows,
+          '#empty' => $this->t('No tracked agents found yet. Ensure telemetry publishing is active.'),
+        ],
+      ],
+      'process' => [
+        '#type' => 'details',
+        '#title' => $this->t('Process Inventory'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['Order', 'Step', 'Primary implementation', 'Purpose'],
+          '#rows' => $process_rows,
+        ],
+      ],
+      'systems' => [
+        '#type' => 'details',
+        '#title' => $this->t('Systems Inventory'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['System', 'Location', 'Purpose'],
+          '#rows' => $systems_rows,
+        ],
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
    * Builds a "current release" summary block.
    *
    * Uses CEO-published metadata.release_notes to infer the current release id
@@ -1689,17 +1792,22 @@ final class DashboardController extends ControllerBase {
 
       // Link to Waiting on Keith message view if it's a pending needs-* item.
       $rid_link = $rid;
+      $links_markup = '';
       if (preg_match('/^\d{8}-needs-/', $rid)) {
         $rid_link = Link::fromTextAndUrl($rid, Url::fromRoute('copilot_agent_tracker.waiting_on_keith_message', ['item_id' => $rid]))->toString();
       }
       elseif (preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $rid)) {
         $rid_link = Link::fromTextAndUrl($rid, $this->safeReleaseNotesDetailUrl($rid))->toString();
+        $release_status_link = Link::fromTextAndUrl('Release status', $this->safeReleaseNotesDetailUrl($rid))->toString();
+        $testing_results_link = Link::fromTextAndUrl('Testing results', $this->safeReleaseTestingResultsUrl($rid))->toString();
+        $links_markup = '<p>' . $release_status_link . ' | ' . $testing_results_link . '</p>';
       }
 
       $items[] = [
         '#type' => 'details',
         '#title' => Markup::create($rid_link . ' — ' . htmlspecialchars($state)),
         '#open' => FALSE,
+        'links' => $links_markup !== '' ? ['#markup' => $links_markup] : [],
         'body' => $details ?: ['#markup' => '<em>No details published.</em>'],
       ];
     }
@@ -1744,6 +1852,7 @@ final class DashboardController extends ControllerBase {
     }
 
     $state = trim((string) ($entry['state'] ?? '')) ?: 'unknown';
+    $testing_results_url = $this->safeReleaseTestingResultsUrl($release_id)->toString();
     $details = [];
     $fields = [
       'plan' => 'Release plan',
@@ -1772,10 +1881,185 @@ final class DashboardController extends ControllerBase {
       'summary' => [
         '#markup' => '<p><strong>Release id:</strong> ' . htmlspecialchars($release_id) . '</p>'
           . '<p><strong>State:</strong> ' . htmlspecialchars($state) . '</p>'
+          . '<p><a href="' . htmlspecialchars($testing_results_url) . '">Testing results (URL validation + functional tests)</a></p>'
           . '<p><a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a></p>',
       ],
       'details' => $details ?: [
         '#markup' => '<em>No details published for this release yet.</em>',
+      ],
+      '#cache' => [
+        'max-age' => 0,
+      ],
+    ];
+  }
+
+  /**
+   * Release testing results page for one release id.
+   */
+  public function releaseTestingResults(string $release_id): array {
+    $release_id = trim($release_id);
+    if ($release_id === '' || !preg_match('/^\d{8}-[A-Za-z0-9._-]+$/', $release_id)) {
+      throw new NotFoundHttpException();
+    }
+
+    $entries = $this->loadReleaseNotesEntries();
+    $entry = NULL;
+    foreach ($entries as $e) {
+      if (!is_array($e)) {
+        continue;
+      }
+      if ((string) ($e['release_id'] ?? '') === $release_id) {
+        $entry = $e;
+        break;
+      }
+    }
+    if (!is_array($entry)) {
+      throw new NotFoundHttpException();
+    }
+
+    $state = trim((string) ($entry['state'] ?? '')) ?: 'unknown';
+    $test_evidence = trim((string) ($entry['test_evidence'] ?? ''));
+    $qa_rows = $this->loadReleaseQaAuditRows($release_id);
+
+    $total_url_checks = 0;
+    $total_url_failed = 0;
+    $total_route_checks = 0;
+    $total_route_failed = 0;
+    $total_permission_violations = 0;
+    $functional_total = 0;
+
+    $url_rows = [];
+    $functional_rows = [];
+    $script_rows = [];
+
+    foreach ($qa_rows as $qa) {
+      $qa_last = (isset($qa['qa_last']) && is_array($qa['qa_last'])) ? $qa['qa_last'] : [];
+      $qa_counts = (isset($qa['qa_counts']) && is_array($qa['qa_counts'])) ? $qa['qa_counts'] : [];
+
+      $url_total = (int) ($qa_last['url_checks_total'] ?? 0);
+      $url_failed = (int) ($qa_last['url_checks_failed'] ?? 0);
+      $route_total = (int) ($qa_last['route_checks_total'] ?? 0);
+      $route_failed = (int) ($qa_last['route_checks_failed'] ?? 0);
+      $permission_violations = (int) ($qa_last['permission_violation_count'] ?? 0);
+
+      $total_url_checks += max(0, $url_total);
+      $total_url_failed += max(0, $url_failed);
+      $total_route_checks += max(0, $route_total);
+      $total_route_failed += max(0, $route_failed);
+      $total_permission_violations += max(0, $permission_violations);
+
+      $functional_count = (int) ($qa_counts['functional'] ?? ($qa_last['functional_tests_total'] ?? 0));
+      $functional_total += max(0, $functional_count);
+
+      $url_status = $this->deriveQaUrlStatus($qa_last);
+      $functional_status = $this->deriveQaFunctionalStatus($qa_counts, $qa_last);
+      $last_run = trim((string) ($qa_last['run_id'] ?? ''));
+      $last_time = (int) ($qa['audit_time'] ?? 0);
+      $last_run_display = $last_run !== ''
+        ? $last_run
+        : ($last_time > 0 ? $this->dateFormatter->format($last_time, 'short') : '-');
+
+      $agent_link = Link::fromTextAndUrl(
+        (string) ($qa['agent_id'] ?? '-'),
+        Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => (string) ($qa['agent_id'] ?? '')])
+      )->toString();
+
+      $url_rows[] = [
+        Markup::create($agent_link),
+        htmlspecialchars((string) ($qa['product'] ?? '-')),
+        htmlspecialchars((string) ($qa_last['base_url'] ?? '-')),
+        (string) max(0, $url_total) . ' / failed ' . (string) max(0, $url_failed),
+        (string) max(0, $route_total) . ' / failed ' . (string) max(0, $route_failed),
+        (string) max(0, $permission_violations),
+        Markup::create('<strong>' . htmlspecialchars($url_status) . '</strong>'),
+        htmlspecialchars($last_run_display),
+      ];
+
+      $functional_rows[] = [
+        Markup::create($agent_link),
+        (string) ((int) ($qa_counts['unit'] ?? 0)),
+        (string) max(0, $functional_count),
+        (string) ((int) ($qa_counts['integration'] ?? 0)),
+        (string) ((int) ($qa_counts['total'] ?? max(0, $functional_count))),
+        Markup::create('<strong>' . htmlspecialchars($functional_status) . '</strong>'),
+        htmlspecialchars($last_run_display),
+      ];
+
+      $scripts = $this->extractQaScriptLabels($qa_last);
+      if (!$scripts) {
+        $scripts = ['qa_last_audit'];
+      }
+      foreach ($scripts as $script_name) {
+        $script_rows[] = [
+          Markup::create($agent_link),
+          htmlspecialchars($script_name),
+          htmlspecialchars($last_run !== '' ? $last_run : '-'),
+          htmlspecialchars((string) ($qa_last['status'] ?? '-')),
+          $last_time > 0 ? $this->dateFormatter->format($last_time, 'short') : '-',
+        ];
+      }
+    }
+
+    $url_overall = ($total_url_failed + $total_route_failed + $total_permission_violations) > 0 ? 'FAIL' : (($total_url_checks + $total_route_checks) > 0 ? 'PASS' : 'NOT RUN');
+    $functional_overall = $functional_total > 0 ? 'RUN' : 'NOT RUN';
+    $scripts_overall = $script_rows ? 'RECORDED' : 'NONE';
+
+    return [
+      '#type' => 'container',
+      'summary' => [
+        '#markup' => '<p><strong>Release id:</strong> ' . htmlspecialchars($release_id) . '</p>'
+          . '<p><strong>State:</strong> ' . htmlspecialchars($state) . '</p>'
+          . '<p><a href="' . $this->safeReleaseNotesDetailUrl($release_id)->toString() . '">Release status details</a> | <a href="' . Url::fromRoute('copilot_agent_tracker.release_notes')->toString() . '">All release notes</a></p>',
+      ],
+      'scoreboard' => [
+        '#type' => 'table',
+        '#header' => ['Testing area', 'Result', 'Details'],
+        '#rows' => [
+          ['URL validation', Markup::create('<strong>' . htmlspecialchars($url_overall) . '</strong>'), 'URL checks: ' . (string) $total_url_checks . ' (failed ' . (string) $total_url_failed . '), route checks: ' . (string) $total_route_checks . ' (failed ' . (string) $total_route_failed . '), permission violations: ' . (string) $total_permission_violations],
+          ['Functional tests', Markup::create('<strong>' . htmlspecialchars($functional_overall) . '</strong>'), 'Functional test count published by QA: ' . (string) $functional_total],
+          ['QA scripts', Markup::create('<strong>' . htmlspecialchars($scripts_overall) . '</strong>'), 'Script/suite entries recorded: ' . (string) count($script_rows)],
+        ],
+      ],
+      'url_validation' => [
+        '#type' => 'details',
+        '#title' => $this->t('URL and route validation by QA seat'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['QA agent', 'Product', 'Base URL', 'URL checks', 'Route checks', 'Permission violations', 'Status', 'Last run'],
+          '#rows' => $url_rows,
+          '#empty' => $this->t('No QA URL validation data published for this release yet.'),
+        ],
+      ],
+      'functional' => [
+        '#type' => 'details',
+        '#title' => $this->t('Functional test execution by QA seat'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['QA agent', 'Unit', 'Functional', 'Integration', 'Total', 'Status', 'Last run'],
+          '#rows' => $functional_rows,
+          '#empty' => $this->t('No functional test execution metadata published for this release yet.'),
+        ],
+      ],
+      'scripts' => [
+        '#type' => 'details',
+        '#title' => $this->t('QA scripts / suites performed'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => ['QA agent', 'Script / suite', 'Run id', 'Status', 'Updated'],
+          '#rows' => $script_rows,
+          '#empty' => $this->t('No QA script metadata published for this release yet.'),
+        ],
+      ],
+      'published_evidence' => [
+        '#type' => 'details',
+        '#title' => $this->t('Published test evidence excerpt'),
+        '#open' => FALSE,
+        '#markup' => $test_evidence !== ''
+          ? '<pre style="white-space:pre-wrap;max-height:320px;overflow:auto;">' . htmlspecialchars($test_evidence) . '</pre>'
+          : '<em>No `test_evidence` text published for this release yet.</em>',
       ],
       '#cache' => [
         'max-age' => 0,
@@ -1822,6 +2106,226 @@ final class DashboardController extends ControllerBase {
     catch (RouteNotFoundException) {
       return Url::fromRoute('copilot_agent_tracker.release_notes');
     }
+  }
+
+  /**
+   * Returns testing-results URL with safe fallback when route cache is stale.
+   */
+  private function safeReleaseTestingResultsUrl(string $release_id): Url {
+    try {
+      return Url::fromRoute('copilot_agent_tracker.release_notes_release_testingresults', ['release_id' => $release_id]);
+    }
+    catch (RouteNotFoundException) {
+      return $this->safeReleaseNotesDetailUrl($release_id);
+    }
+  }
+
+  /**
+   * Loads QA agent rows likely associated with the given release id.
+   */
+  private function loadReleaseQaAuditRows(string $release_id): array {
+    $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
+      ->orderBy('last_seen', 'DESC')
+      ->execute()
+      ->fetchAllAssoc('agent_id');
+
+    $product_token = $this->extractReleaseProductToken($release_id);
+    $matched = [];
+    $fallback = [];
+
+    foreach ($rows as $agent_id => $row) {
+      $agent_id = (string) $agent_id;
+      $role = trim((string) ($row->role ?? ''));
+      if (!($role === 'tester' || str_starts_with($agent_id, 'qa-'))) {
+        continue;
+      }
+
+      $meta = [];
+      if (!empty($row->metadata)) {
+        try {
+          $meta = Json::decode((string) $row->metadata) ?? [];
+        }
+        catch (\Throwable) {
+          $meta = [];
+        }
+      }
+      $qa_last = (!empty($meta['qa_last_audit']) && is_array($meta['qa_last_audit'])) ? $meta['qa_last_audit'] : [];
+      $qa_counts = (!empty($meta['qa_test_counts']) && is_array($meta['qa_test_counts'])) ? $meta['qa_test_counts'] : [];
+      $audit_time = $this->extractQaAuditTime($qa_last);
+
+      $candidate = [
+        'agent_id' => $agent_id,
+        'website' => trim((string) ($row->website ?? '')),
+        'module' => trim((string) ($row->module ?? '')),
+        'product' => (trim((string) ($row->website ?? '')) ?: '-') . ' / ' . (trim((string) ($row->module ?? '')) ?: '-'),
+        'current_action' => trim((string) ($row->current_action ?? '')),
+        'last_seen' => (int) ($row->last_seen ?? 0),
+        'qa_last' => $qa_last,
+        'qa_counts' => $qa_counts,
+        'audit_time' => $audit_time,
+      ];
+
+      if ($qa_last || $qa_counts) {
+        $fallback[$agent_id] = $candidate;
+      }
+
+      if ($this->qaAgentMatchesRelease($candidate, $release_id, $product_token)) {
+        $matched[$agent_id] = $candidate;
+      }
+    }
+
+    if ($matched) {
+      return array_values($matched);
+    }
+    return array_values($fallback);
+  }
+
+  /**
+   * Extracts the product token from a release id.
+   */
+  private function extractReleaseProductToken(string $release_id): string {
+    if (preg_match('/^\d{8}-([a-z0-9._-]+)-release-[a-z0-9._-]+$/i', $release_id, $m)) {
+      return strtolower(trim((string) ($m[1] ?? '')));
+    }
+    return '';
+  }
+
+  /**
+   * Best-effort match of a QA seat to a release id.
+   */
+  private function qaAgentMatchesRelease(array $candidate, string $release_id, string $product_token): bool {
+    $qa_last = (!empty($candidate['qa_last']) && is_array($candidate['qa_last'])) ? $candidate['qa_last'] : [];
+    $haystacks = [
+      strtolower((string) ($candidate['agent_id'] ?? '')),
+      strtolower((string) ($candidate['website'] ?? '')),
+      strtolower((string) ($candidate['module'] ?? '')),
+      strtolower((string) ($candidate['current_action'] ?? '')),
+      strtolower((string) ($qa_last['base_url'] ?? '')),
+      strtolower((string) ($qa_last['release_id'] ?? '')),
+      strtolower((string) ($qa_last['run_id'] ?? '')),
+    ];
+
+    $release_id_lc = strtolower($release_id);
+    foreach ($haystacks as $hay) {
+      if ($hay !== '' && str_contains($hay, $release_id_lc)) {
+        return TRUE;
+      }
+    }
+
+    if ($product_token !== '') {
+      foreach ($haystacks as $hay) {
+        if ($hay !== '' && str_contains($hay, $product_token)) {
+          return TRUE;
+        }
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Derives URL validation status from qa_last_audit metadata.
+   */
+  private function deriveQaUrlStatus(array $qa_last): string {
+    if (!$qa_last) {
+      return 'NOT RUN';
+    }
+
+    $failed = (int) ($qa_last['url_checks_failed'] ?? 0)
+      + (int) ($qa_last['route_checks_failed'] ?? 0)
+      + (int) ($qa_last['permission_violation_count'] ?? 0);
+    $status = strtolower(trim((string) ($qa_last['status'] ?? '')));
+    $ran = ((int) ($qa_last['url_checks_total'] ?? 0) > 0)
+      || ((int) ($qa_last['route_checks_total'] ?? 0) > 0)
+      || trim((string) ($qa_last['run_id'] ?? '')) !== '';
+
+    if ($failed > 0 || in_array($status, ['issues', 'fail', 'failed'], TRUE)) {
+      return 'FAIL';
+    }
+    if (in_array($status, ['clean', 'pass', 'passed'], TRUE)) {
+      return 'PASS';
+    }
+    return $ran ? 'PASS' : 'NOT RUN';
+  }
+
+  /**
+   * Derives functional-test status from QA metadata.
+   */
+  private function deriveQaFunctionalStatus(array $qa_counts, array $qa_last): string {
+    $functional = (int) ($qa_counts['functional'] ?? ($qa_last['functional_tests_total'] ?? 0));
+    $failed = (int) ($qa_last['functional_tests_failed'] ?? 0);
+
+    if ($functional <= 0 && $failed <= 0) {
+      return 'NOT RUN';
+    }
+    if ($failed > 0) {
+      return 'FAIL';
+    }
+    return 'PASS';
+  }
+
+  /**
+   * Extracts script/suite labels from qa_last_audit metadata.
+   */
+  private function extractQaScriptLabels(array $qa_last): array {
+    $labels = [];
+
+    foreach (['script', 'script_name', 'suite', 'runner', 'command'] as $key) {
+      $val = trim((string) ($qa_last[$key] ?? ''));
+      if ($val !== '') {
+        $labels[$val] = TRUE;
+      }
+    }
+
+    foreach (['scripts', 'suites', 'checks'] as $key) {
+      $vals = $qa_last[$key] ?? [];
+      if (!is_array($vals)) {
+        continue;
+      }
+      foreach ($vals as $val) {
+        if (is_string($val) || is_numeric($val)) {
+          $label = trim((string) $val);
+          if ($label !== '') {
+            $labels[$label] = TRUE;
+          }
+          continue;
+        }
+        if (is_array($val)) {
+          foreach (['name', 'id', 'script', 'suite', 'check'] as $nested_key) {
+            $nested = trim((string) ($val[$nested_key] ?? ''));
+            if ($nested !== '') {
+              $labels[$nested] = TRUE;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    return array_slice(array_keys($labels), 0, 12);
+  }
+
+  /**
+   * Extracts an audit timestamp from qa_last_audit metadata.
+   */
+  private function extractQaAuditTime(array $qa_last): int {
+    foreach (['timestamp', 'mtime', 'updated_at', 'completed_at', 'finished_at', 'created'] as $key) {
+      $value = $qa_last[$key] ?? NULL;
+      if (is_numeric($value)) {
+        $epoch = (int) $value;
+        if ($epoch > 0) {
+          return $epoch;
+        }
+      }
+      if (is_string($value) && trim($value) !== '') {
+        $parsed = strtotime($value);
+        if (is_int($parsed) && $parsed > 0) {
+          return $parsed;
+        }
+      }
+    }
+    return 0;
   }
 
   /**

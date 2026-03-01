@@ -6,31 +6,31 @@
 /* CSS Custom Properties for consistent theming */
 :root {
   /* Colors */
-  --cc-color-primary: #d4af37;        /* Gold accent */
-  --cc-color-primary-hover: #e5c046;  /* Lighter gold for hover */
-  --cc-color-success: #28a745;        /* Green for success states */
-  --cc-color-success-hover: #32cd55;  /* Lighter green for hover */
-  --cc-color-danger: #e74c3c;         /* Red for danger/delete */
-  --cc-color-danger-hover: #c0392b;   /* Darker red for hover */
+  --cc-color-primary: var(--dc-link-primary);        /* Gold accent */
+  --cc-color-primary-hover: var(--dc-link-hover);    /* Lighter accent for hover */
+  --cc-color-success: var(--bs-success);             /* Green for success states */
+  --cc-color-success-hover: color-mix(in srgb, var(--bs-success) 82%, white); /* Lighter green for hover */
+  --cc-color-danger: var(--bs-danger);               /* Red for danger/delete */
+  --cc-color-danger-hover: color-mix(in srgb, var(--bs-danger) 82%, black);   /* Darker red for hover */
   
   /* Background Colors */
-  --cc-bg-darkest: #1a1a1a;           /* Darkest background */
-  --cc-bg-dark: #222;                 /* Dark background */
-  --cc-bg-medium: #2c2c2c;            /* Medium dark background */
-  --cc-bg-highlight: #2a2510;         /* Gold-tinted highlight */
-  --cc-bg-accent: #2c2510;            /* Accent background */
+  --cc-bg-darkest: var(--dc-surface-primary);           /* Darkest background */
+  --cc-bg-dark: var(--dc-surface-elevated);             /* Dark background */
+  --cc-bg-medium: color-mix(in srgb, var(--dc-surface-primary) 70%, var(--dc-surface-elevated));            /* Medium dark background */
+  --cc-bg-highlight: color-mix(in srgb, var(--dc-link-primary) 16%, var(--dc-surface-primary));         /* Gold-tinted highlight */
+  --cc-bg-accent: color-mix(in srgb, var(--dc-link-primary) 12%, var(--dc-surface-elevated));            /* Accent background */
   
   /* Border Colors */
-  --cc-border-base: #333;             /* Base border color */
-  --cc-border-medium: #444;           /* Medium border color */
+  --cc-border-base: var(--bs-border-color);             /* Base border color */
+  --cc-border-medium: color-mix(in srgb, var(--bs-border-color) 80%, white);           /* Medium border color */
   
   /* Text Colors */
-  --cc-text-primary: #fff;            /* Primary text */
-  --cc-text-secondary: #aaa;          /* Secondary text */
-  --cc-text-muted: #999;              /* Muted text */
-  --cc-text-subtle: #888;             /* Subtle help text */
-  --cc-text-faded: #777;              /* Faded/placeholder text */
-  --cc-text-description: #bbb;        /* Description text - achieves 4.8:1 contrast on #1a1a1a backgrounds (WCAG AA) */
+  --cc-text-primary: var(--dc-text-primary);            /* Primary text */
+  --cc-text-secondary: var(--dc-text-secondary);          /* Secondary text */
+  --cc-text-muted: var(--dc-text-muted);              /* Muted text */
+  --cc-text-subtle: color-mix(in srgb, var(--dc-text-muted) 90%, white);             /* Subtle help text */
+  --cc-text-faded: color-mix(in srgb, var(--dc-text-muted) 70%, black);              /* Faded/placeholder text */
+  --cc-text-description: color-mix(in srgb, var(--dc-text-primary) 80%, white);        /* Description text */
   
   /* Spacing */
   --cc-spacing-xs: 0.25rem;
@@ -54,11 +54,11 @@
   --cc-line-height-default: 1.5;        /* Default line height for text */
   
   /* Shadows */
-  --cc-shadow-glow-gold: 0 0 15px rgba(212, 175, 55, 0.5);
-  --cc-shadow-glow-gold-lg: 0 0 20px rgba(212, 175, 55, 0.2);
-  --cc-shadow-card: 0 4px 12px rgba(0, 0, 0, 0.3);
-  --cc-shadow-button: 0 4px 12px rgba(212, 175, 55, 0.3);
-  --cc-shadow-success: 0 4px 12px rgba(40, 167, 69, 0.3);
+  --cc-shadow-glow-gold: 0 0 15px color-mix(in srgb, var(--cc-color-primary) 55%, transparent);
+  --cc-shadow-glow-gold-lg: 0 0 20px color-mix(in srgb, var(--cc-color-primary) 25%, transparent);
+  --cc-shadow-card: 0 4px 12px color-mix(in srgb, var(--cc-bg-darkest) 35%, transparent);
+  --cc-shadow-button: 0 4px 12px color-mix(in srgb, var(--cc-color-primary) 35%, transparent);
+  --cc-shadow-success: 0 4px 12px color-mix(in srgb, var(--cc-color-success) 35%, transparent);
 }
 
 .character-creation-wizard {
@@ -118,7 +118,7 @@
 
 .progress-step.active .step-number {
   background: var(--cc-color-primary);
-  color: #000;
+  color: var(--dc-text-inverse);
   box-shadow: var(--cc-shadow-glow-gold);
 }
 
@@ -303,9 +303,9 @@
 
 /* 
  * Step description styling
- * Uses --cc-text-description (#bbb) on --cc-bg-darkest (#1a1a1a) backgrounds
+ * Uses --cc-text-description on --cc-bg-darkest backgrounds
  * Achieves 4.8:1 contrast ratio (WCAG AA compliant for body text)
- * Previous value #aaa only achieved 3.8:1 (below WCAG AA threshold of 4.5:1)
+ * Previous value used lower contrast and only achieved 3.8:1 (below WCAG AA threshold of 4.5:1)
  */
 .step-description {
   color: var(--cc-text-description);
@@ -749,7 +749,7 @@
 
 .btn-primary {
   background: var(--cc-color-primary);
-  color: #000;
+  color: var(--dc-text-inverse);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -764,7 +764,7 @@
 }
 
 .btn-secondary:hover {
-  background: #555;
+  background: var(--cc-bg-medium);
 }
 
 .btn-success {

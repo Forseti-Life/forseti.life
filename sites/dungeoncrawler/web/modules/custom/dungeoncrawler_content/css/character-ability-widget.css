@@ -1,4 +1,17 @@
 .ability-score-widget {
+  --aw-surface: var(--bs-body-bg);
+  --aw-surface-muted: var(--bs-tertiary-bg);
+  --aw-border: var(--bs-border-color);
+  --aw-text: var(--bs-body-color);
+  --aw-text-muted: var(--bs-secondary-color);
+  --aw-primary: var(--bs-primary);
+  --aw-success: var(--bs-success);
+  --aw-danger: var(--bs-danger);
+  --aw-warning: var(--bs-warning);
+  --aw-light: var(--bs-light);
+}
+
+.ability-score-widget {
   width: 100%;
   margin: 1rem 0;
 }
@@ -11,30 +24,30 @@
 }
 
 .ability-card {
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border: 2px solid #dee2e6;
+  background: linear-gradient(135deg, var(--aw-surface-muted) 0%, color-mix(in srgb, var(--aw-surface-muted) 80%, var(--aw-border)) 100%);
+  border: 2px solid var(--aw-border);
   border-radius: 12px;
   padding: 1rem;
   text-align: center;
   transition: all 0.3s ease;
   position: relative;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--bs-box-shadow-sm);
 }
 
 .ability-card:hover {
-  border-color: #6c757d;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  border-color: var(--aw-text-muted);
+  box-shadow: var(--bs-box-shadow);
   transform: translateY(-2px);
 }
 
 .ability-card--boosted {
-  border-color: #28a745;
-  background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+  border-color: var(--aw-success);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--aw-success) 15%, var(--aw-surface)) 0%, color-mix(in srgb, var(--aw-success) 22%, var(--aw-surface)) 100%);
 }
 
 .ability-card--flawed {
-  border-color: #dc3545;
-  background: linear-gradient(135deg, #f8d7da 0%, #f1aeb5 100%);
+  border-color: var(--aw-danger);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--aw-danger) 15%, var(--aw-surface)) 0%, color-mix(in srgb, var(--aw-danger) 22%, var(--aw-surface)) 100%);
 }
 
 .ability-icon {
@@ -46,7 +59,7 @@
   font-size: 1rem;
   font-weight: 600;
   margin: 0.5rem 0;
-  color: #212529;
+  color: var(--aw-text);
 }
 
 .score-display {
@@ -60,7 +73,7 @@
 .score-value {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #212529;
+  color: var(--aw-text);
   line-height: 1;
 }
 
@@ -71,11 +84,11 @@
 }
 
 .modifier-positive {
-  color: #28a745;
+  color: var(--aw-success);
 }
 
 .modifier-negative {
-  color: #dc3545;
+  color: var(--aw-danger);
 }
 
 .score-display--changed .score-value {
@@ -88,7 +101,7 @@
   }
   50% {
     transform: scale(1.2);
-    color: #ffc107;
+    color: var(--aw-warning);
   }
 }
 
@@ -110,13 +123,13 @@
 }
 
 .source-badge--boost {
-  background: #28a745;
-  color: white;
+  background: var(--aw-success);
+  color: var(--aw-light);
 }
 
 .source-badge--flaw {
-  background: #dc3545;
-  color: white;
+  background: var(--aw-danger);
+  color: var(--aw-light);
 }
 
 .ability-sources-detail {
@@ -124,12 +137,12 @@
   top: 100%;
   left: 50%;
   transform: translateX(-50%);
-  background: white;
-  border: 1px solid #dee2e6;
+  background: var(--aw-surface);
+  border: 1px solid var(--aw-border);
   border-radius: 8px;
   padding: 0.75rem;
   margin-top: 0.5rem;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  box-shadow: var(--bs-box-shadow);
   z-index: 100;
   min-width: 200px;
   text-align: left;
@@ -152,11 +165,11 @@
 }
 
 .source-item--boost .source-change {
-  color: #28a745;
+  color: var(--aw-success);
 }
 
 .source-item--flaw .source-change {
-  color: #dc3545;
+  color: var(--aw-danger);
 }
 
 .abilities-compact {
@@ -164,8 +177,8 @@
   flex-wrap: wrap;
   gap: 1rem;
   padding: 0.75rem;
-  background: var(--dc-card-bg, rgba(30, 30, 46, 0.9));
-  border: 1px solid var(--dc-border-light, rgba(255, 255, 255, 0.18));
+  background: var(--dc-card-bg);
+  border: 1px solid var(--dc-border-light);
   border-radius: 8px;
 }
 
@@ -175,32 +188,32 @@
   align-items: baseline;
   padding: 0.25rem 0.5rem;
   border-radius: 6px;
-  background: var(--dc-card-bg-light, rgba(255, 255, 255, 0.06));
+  background: var(--dc-card-bg-light);
 }
 
 .ability-abbr {
   font-weight: 700;
-  color: var(--dc-text-muted, #cbd5e1);
+  color: var(--dc-text-muted);
   font-size: 0.875rem;
 }
 
 .ability-score {
   font-size: 1.25rem;
   font-weight: 700;
-  color: var(--dc-text-light, #f8fafc);
+  color: var(--dc-text-light);
 }
 
 .ability-modifier {
   font-size: 0.875rem;
-  color: var(--dc-text-muted, #cbd5e1);
+  color: var(--dc-text-muted);
 }
 
 .ability-modifier.positive {
-  color: var(--dc-success, #10b981);
+  color: var(--dc-success);
 }
 
 .ability-modifier.negative {
-  color: var(--dc-danger, #ef4444);
+  color: var(--dc-danger);
 }
 
 .ability-card--selectable {
@@ -209,13 +222,13 @@
 }
 
 .ability-card--selectable:focus {
-  outline: 2px solid #007bff;
+  outline: 2px solid var(--aw-primary);
   outline-offset: 2px;
 }
 
 .ability-card--selected {
-  border-color: #007bff;
-  background: linear-gradient(135deg, #cfe2ff 0%, #9ec5fe 100%);
+  border-color: var(--aw-primary);
+  background: linear-gradient(135deg, color-mix(in srgb, var(--aw-primary) 20%, var(--aw-surface)) 0%, color-mix(in srgb, var(--aw-primary) 35%, var(--aw-surface)) 100%);
 }
 
 .ability-card--disabled {
@@ -240,21 +253,21 @@
   display: inline-block;
   width: 24px;
   height: 24px;
-  border: 2px solid #6c757d;
+  border: 2px solid var(--aw-text-muted);
   border-radius: 4px;
-  background: white;
+  background: var(--aw-surface);
   position: relative;
 }
 
 .ability-card--selected .checkmark {
-  background: #007bff;
-  border-color: #007bff;
+  background: var(--aw-primary);
+  border-color: var(--aw-primary);
 }
 
 .ability-card--selected .checkmark::after {
   content: '✓';
   position: absolute;
-  color: white;
+  color: var(--aw-light);
   font-size: 18px;
   font-weight: bold;
   top: -2px;
@@ -272,11 +285,11 @@
 }
 
 .arrow-icon {
-  color: #6c757d;
+  color: var(--aw-text-muted);
 }
 
 .preview-score {
-  color: #28a745;
+  color: var(--aw-success);
 }
 
 .boost-selector-header {
@@ -285,7 +298,7 @@
   align-items: center;
   margin-bottom: 1rem;
   padding: 1rem;
-  background: #e9ecef;
+  background: var(--aw-surface-muted);
   border-radius: 8px;
 }
 
@@ -296,18 +309,18 @@
 .boosts-remaining {
   font-size: 2rem;
   font-weight: 700;
-  color: #007bff;
+  color: var(--aw-primary);
 }
 
 .ability-widget-empty {
   text-align: center;
   padding: 2rem;
-  background: #f8f9fa;
+  background: var(--aw-surface-muted);
   border-radius: 8px;
-  border: 2px dashed #dee2e6;
+  border: 2px dashed var(--aw-border);
 }
 
 .empty-message {
-  color: #6c757d;
+  color: var(--aw-text-muted);
   margin: 0;
 }

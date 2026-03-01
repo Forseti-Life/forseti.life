@@ -71,6 +71,11 @@ class EncounterAiIntegrationController extends ControllerBase {
       'header' => [
         '#markup' => '<h2>Encounter AI Integration Blueprint</h2><p>Design summary and implementation progress for AI-assisted encounter orchestration.</p><p>Blueprint source: AI_ENCOUNTER_INTEGRATION.md</p><p><strong>Window:</strong> <a href="/architecture/encounter-ai-integration?window=24h">24h</a> · <a href="/architecture/encounter-ai-integration?window=7d">7d</a> · <a href="/architecture/encounter-ai-integration?window=30d">30d</a></p><p><a href="/architecture/encounter-ai-integration' . $window_query . '">Refresh this status page</a> · <a href="/architecture/encounter-ai-integration/metrics.csv' . $window_query . '">Download metrics CSV</a></p>',
       ],
+      '#attached' => [
+        'library' => [
+          'dungeoncrawler_content/architecture',
+        ],
+      ],
       '#cache' => [
         'max-age' => 0,
       ],

@@ -1,15 +1,15 @@
 .dc-queue-page {
-  --dc-bg: var(--bs-body-bg, #ffffff);
-  --dc-text: var(--bs-body-color, #212529);
-  --dc-muted: var(--bs-secondary-color, #6c757d);
-  --dc-border: var(--bs-border-color, #dee2e6);
-  --dc-surface: var(--bs-tertiary-bg, #f8f9fa);
-  --dc-primary: var(--bs-primary, #0d6efd);
-  --dc-secondary: var(--bs-secondary, #6c757d);
-  --dc-danger: var(--bs-danger, #dc3545);
-  --dc-warning: var(--bs-warning, #ffc107);
-  --dc-success: var(--bs-success, #198754);
-  --dc-info: var(--bs-info, #0dcaf0);
+  --dc-bg: var(--bs-body-bg);
+  --dc-text: var(--bs-body-color);
+  --dc-muted: var(--bs-secondary-color);
+  --dc-border: var(--bs-border-color);
+  --dc-surface: var(--bs-tertiary-bg);
+  --dc-primary: var(--bs-primary);
+  --dc-secondary: var(--bs-secondary);
+  --dc-danger: var(--bs-danger);
+  --dc-warning: var(--bs-warning);
+  --dc-success: var(--bs-success);
+  --dc-info: var(--bs-info);
 
   max-width: 1100px;
   margin: 0 auto;
@@ -39,13 +39,9 @@
   font-weight: 600;
 }
 
-.dc-queue-message-success { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
-.dc-queue-message-error { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
-.dc-queue-message-info { background: #e0f2fe; color: #075985; border: 1px solid #bae6fd; }
-
-.dc-queue-message-success { background: color-mix(in srgb, var(--dc-success) 18%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-success) 80%, #000); border: 1px solid color-mix(in srgb, var(--dc-success) 45%, var(--dc-bg)); }
-.dc-queue-message-error { background: color-mix(in srgb, var(--dc-danger) 18%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-danger) 80%, #000); border: 1px solid color-mix(in srgb, var(--dc-danger) 45%, var(--dc-bg)); }
-.dc-queue-message-info { background: color-mix(in srgb, var(--dc-info) 18%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-info) 80%, #000); border: 1px solid color-mix(in srgb, var(--dc-info) 45%, var(--dc-bg)); }
+.dc-queue-message-success { background: color-mix(in srgb, var(--dc-success) 18%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-success) 80%, black); border: 1px solid color-mix(in srgb, var(--dc-success) 45%, var(--dc-bg)); }
+.dc-queue-message-error { background: color-mix(in srgb, var(--dc-danger) 18%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-danger) 80%, black); border: 1px solid color-mix(in srgb, var(--dc-danger) 45%, var(--dc-bg)); }
+.dc-queue-message-info { background: color-mix(in srgb, var(--dc-info) 18%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-info) 80%, black); border: 1px solid color-mix(in srgb, var(--dc-info) 45%, var(--dc-bg)); }
 
 .queue-controls {
   display: flex;
@@ -91,11 +87,11 @@
   width: 10px; height: 10px; border-radius: 999px; background: var(--dc-muted);
 }
 .last-refresh-inline { font-size: 0.9rem; color: var(--dc-muted); }
-.status-pill.refreshing { background: color-mix(in srgb, var(--dc-info) 16%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-info) 85%, #000); }
+.status-pill.refreshing { background: color-mix(in srgb, var(--dc-info) 16%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-info) 85%, black); }
 .status-pill.refreshing .dot { background: var(--dc-info); animation: dc-pulse 1s infinite; }
-.status-pill.running { background: color-mix(in srgb, var(--dc-success) 16%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-success) 85%, #000); }
+.status-pill.running { background: color-mix(in srgb, var(--dc-success) 16%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-success) 85%, black); }
 .status-pill.running .dot { background: var(--dc-success); }
-.status-pill.pending { background: color-mix(in srgb, var(--dc-warning) 20%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-warning) 90%, #000); }
+.status-pill.pending { background: color-mix(in srgb, var(--dc-warning) 20%, var(--dc-bg)); color: color-mix(in srgb, var(--dc-warning) 90%, black); }
 .status-pill.pending .dot { background: var(--dc-warning); }
 
 .count-pill {
@@ -103,7 +99,7 @@
   padding: 0.35rem 0.6rem;
   border-radius: 6px;
   background: color-mix(in srgb, var(--dc-primary) 12%, var(--dc-bg));
-  color: color-mix(in srgb, var(--dc-primary) 80%, #000);
+  color: color-mix(in srgb, var(--dc-primary) 80%, black);
 }
 
 .refresh-meta { display: grid; gap: 0.15rem; font-size: 0.9rem; color: var(--dc-muted); }

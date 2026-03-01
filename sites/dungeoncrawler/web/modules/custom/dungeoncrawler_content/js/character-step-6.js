@@ -139,6 +139,13 @@
         // Handle form submission with AJAX
         once('step6-submit', SELECTORS.FORM, context).forEach((formEl) => {
           $(formEl).on('submit', function(e) {
+            const actionUrl = $form.attr('action');
+
+            // Use native Drupal form submit unless this is an explicit JSON save endpoint.
+            if (!actionUrl || actionUrl.indexOf('/save') === -1) {
+              return;
+            }
+
             e.preventDefault();
 
             const $errorMsg = $(SELECTORS.ERROR_MSG);
@@ -147,7 +154,6 @@
 
             // Prepare form data
             const formData = $form.serialize();
-            const actionUrl = $form.attr('action');
 
             // Submit via AJAX
             $.ajax({
