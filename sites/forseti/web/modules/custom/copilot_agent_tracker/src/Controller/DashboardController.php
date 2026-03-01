@@ -28,6 +28,11 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  */
 final class DashboardController extends ControllerBase {
 
+  // LangGraph telemetry file paths (single source of truth for path changes).
+  const LANGGRAPH_TICKS_FILE = '/home/keithaumiller/copilot-sessions-hq/inbox/responses/langgraph-ticks.jsonl';
+  const LANGGRAPH_PARITY_FILE = '/home/keithaumiller/copilot-sessions-hq/inbox/responses/langgraph-parity-latest.json';
+  const LANGGRAPH_FEATURE_PROGRESS_FILE = '/home/keithaumiller/copilot-sessions-hq/dashboards/LANGGRAPH_FEATURE_PROGRESS.md';
+
   public function __construct(
     private readonly Connection $database,
     private readonly DateFormatterInterface $dateFormatter,
@@ -256,6 +261,8 @@ final class DashboardController extends ControllerBase {
       ['LangGraph telemetry', 'inbox/responses/langgraph-ticks.jsonl', 'Structured tick results for parity/monitoring.'],
     ];
 
+    $langgraph = $this->buildLanggraphTroubleshootingPanels();
+
     return [
       '#type' => 'container',
       'overview' => [
@@ -298,10 +305,263 @@ final class DashboardController extends ControllerBase {
           '#rows' => $systems_rows,
         ],
       ],
+      'langgraph_troubleshooting' => [
+        '#type' => 'details',
+        '#title' => $this->t('LangGraph Troubleshooting Interfaces'),
+        '#open' => TRUE,
+        'help' => [
+          '#markup' => '<p>Operational signals from HQ runtime artifacts for diagnosing orchestration issues quickly.</p>',
+        ],
+        'engine' => [
+          '#type' => 'table',
+          '#header' => ['Interface item', 'Current signal', 'Source'],
+          '#rows' => $langgraph['engine_rows'],
+          '#empty' => $this->t('No engine signals available.'),
+        ],
+        'tick' => [
+          '#type' => 'table',
+          '#header' => ['Tick health item', 'Current signal', 'Source'],
+          '#rows' => $langgraph['tick_rows'],
+          '#empty' => $this->t('No tick health signals available.'),
+        ],
+        'nodes' => [
+          '#type' => 'table',
+          '#header' => ['Node', 'Last status', 'Details'],
+          '#rows' => $langgraph['node_rows'],
+          '#empty' => $this->t('No node signals available.'),
+        ],
+        'parity' => [
+          '#type' => 'table',
+          '#header' => ['Parity item', 'Current signal', 'Source'],
+          '#rows' => $langgraph['parity_rows'],
+          '#empty' => $this->t('No parity signals available.'),
+        ],
+        'release' => [
+          '#type' => 'table',
+          '#header' => ['Release-cycle item', 'Current signal', 'Source'],
+          '#rows' => $langgraph['release_rows'],
+          '#empty' => $this->t('No release-cycle signals available.'),
+        ],
+        'errors' => [
+          '#type' => 'table',
+          '#header' => ['Error signal', 'Current signal', 'Source'],
+          '#rows' => $langgraph['error_rows'],
+          '#empty' => $this->t('No error signals available.'),
+        ],
+      ],
       '#cache' => [
         'max-age' => 0,
       ],
     ];
+  }
+
+  /**
+   * Builds LangGraph troubleshooting panels from HQ runtime artifacts.
+   */
+  private function buildLanggraphTroubleshootingPanels(): array {
+    $hq_root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/keithaumiller/copilot-sessions-hq'), '/');
+
+    $ticks_path = $hq_root . '/inbox/responses/langgraph-ticks.jsonl';
+    $parity_path = $hq_root . '/inbox/responses/langgraph-parity-latest.json';
+    $orchestrator_log_path = $hq_root . '/inbox/responses/orchestrator-latest.log';
+    $release_state_dir = $hq_root . '/tmp/release-cycle-active';
+
+    $last_tick = $this->readLastJsonlObject($ticks_path);
+    $last_tick_ts = '';
+    if (is_array($last_tick) && isset($last_tick['ts'])) {
+      $last_tick_ts = (string) ($last_tick['ts'] ?? '');
+    }
+
+    $last_tick_age = '';
+    if ($last_tick_ts !== '') {
+      $tick_time = strtotime($last_tick_ts);
+      if ($tick_time !== FALSE) {
+        $last_tick_age = max(0, time() - (int) $tick_time) . 's';
+      }
+    }
+
+    $steps = [];
+    if (is_array($last_tick) && isset($last_tick['step_results']) && is_array($last_tick['step_results'])) {
+      $steps = $last_tick['step_results'];
+    }
+    $summary = is_array($steps['summarize_tick'] ?? NULL) ? $steps['summarize_tick'] : [];
+
+    $errors = [];
+    if (is_array($summary) && isset($summary['errors']) && is_array($summary['errors'])) {
+      $errors = $summary['errors'];
+    }
+
+    $parity = $this->readJsonFile($parity_path);
+    $parity_ok = is_array($parity) && isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
+
+    $engine_mode = 'unknown';
+    $orchestrator_log_snippet = '';
+    if (is_readable($orchestrator_log_path)) {
+      $log = (string) @file_get_contents($orchestrator_log_path);
+      $orchestrator_log_snippet = trim($log);
+      if (str_contains($orchestrator_log_snippet, '"steps"')) {
+        $engine_mode = 'langgraph';
+      }
+    }
+
+    $release_rows = [];
+    if (is_dir($release_state_dir)) {
+      $files = glob($release_state_dir . '/*.release_id') ?: [];
+      sort($files);
+      foreach ($files as $release_file) {
+        $team = basename((string) $release_file, '.release_id');
+        $current_release = trim((string) @file_get_contents((string) $release_file));
+        $next_release_file = $release_state_dir . '/' . $team . '.next_release_id';
+        $next_release = is_readable($next_release_file) ? trim((string) @file_get_contents($next_release_file)) : '';
+        $release_rows[] = [
+          (string) $team,
+          'current=' . ($current_release !== '' ? $current_release : '-') . ' | next=' . ($next_release !== '' ? $next_release : '-'),
+          'tmp/release-cycle-active/' . $team . '.release_id',
+        ];
+      }
+    }
+
+    if (!$release_rows) {
+      $release_rows[] = ['coordinated teams', 'No active release-cycle state files found.', 'tmp/release-cycle-active/'];
+    }
+
+    $engine_rows = [
+      ['Engine mode', $engine_mode, 'inbox/responses/orchestrator-latest.log'],
+      ['HQ root path', $hq_root, 'COPILOT_HQ_ROOT env (or default path)'],
+      ['Ticks artifact', is_readable($ticks_path) ? 'available' : 'missing', 'inbox/responses/langgraph-ticks.jsonl'],
+      ['Parity artifact', is_readable($parity_path) ? 'available' : 'missing', 'inbox/responses/langgraph-parity-latest.json'],
+    ];
+
+    $selected_agents = '-';
+    if (is_array($summary) && !empty($summary['selected_agents']) && is_array($summary['selected_agents'])) {
+      $selected_agents = implode(', ', array_map('strval', $summary['selected_agents']));
+    }
+
+    $tick_rows = [
+      ['Last tick timestamp', $last_tick_ts !== '' ? $last_tick_ts : 'unavailable', 'langgraph-ticks.jsonl'],
+      ['Last tick age', $last_tick_age !== '' ? $last_tick_age : 'unavailable', 'derived from tick timestamp'],
+      ['Selected agents (last tick)', $selected_agents, 'step_results.summarize_tick.selected_agents'],
+      ['Org enabled (last tick)', isset($summary['org_enabled']) ? ((bool) $summary['org_enabled'] ? 'true' : 'false') : 'unavailable', 'step_results.summarize_tick.org_enabled'],
+    ];
+
+    $expected_nodes = [
+      'gate_org_enabled',
+      'consume_replies',
+      'dispatch_commands',
+      'release_cycle',
+      'coordinated_push',
+      'pick_agents',
+      'exec_agents',
+      'health_check',
+      'kpi_monitor',
+      'publish',
+    ];
+
+    $node_rows = [];
+    foreach ($expected_nodes as $node) {
+      $detail = is_array($steps[$node] ?? NULL) ? $steps[$node] : [];
+      if (!$detail) {
+        $node_rows[] = [$node, 'missing', 'No data in latest tick.'];
+        continue;
+      }
+
+      $status = 'ok';
+      if (isset($detail['error'])) {
+        $status = 'error';
+      }
+      elseif (isset($detail['skipped'])) {
+        $status = 'skipped';
+      }
+
+      $details = [];
+      if (isset($detail['mode'])) {
+        $details[] = 'mode=' . (string) $detail['mode'];
+      }
+      if (isset($detail['rc'])) {
+        $details[] = 'rc=' . (string) $detail['rc'];
+      }
+      if (isset($detail['skipped'])) {
+        $details[] = 'reason=' . (string) $detail['skipped'];
+      }
+      if (isset($detail['error'])) {
+        $details[] = 'error=' . (string) $detail['error'];
+      }
+
+      $node_rows[] = [$node, $status, $details ? implode('; ', $details) : 'ok'];
+    }
+
+    $parity_rows = [
+      ['Parity overall', $parity_ok === NULL ? 'unavailable' : ($parity_ok ? 'true' : 'false'), 'langgraph-parity-latest.json'],
+      [
+        'Selected agents parity',
+        (is_array($parity) && isset($parity['selected_agents']['match'])) ? (((bool) $parity['selected_agents']['match']) ? 'match' : 'mismatch') : 'unavailable',
+        'selected_agents.match',
+      ],
+      [
+        'Step order parity',
+        (is_array($parity) && isset($parity['steps']['match'])) ? (((bool) $parity['steps']['match']) ? 'match' : 'mismatch') : 'unavailable',
+        'steps.match',
+      ],
+    ];
+
+    $error_rows = [
+      ['Latest tick errors', $errors ? (string) count($errors) : '0', 'step_results.summarize_tick.errors'],
+      ['Orchestrator latest log', $orchestrator_log_snippet !== '' ? mb_substr($orchestrator_log_snippet, 0, 240) : 'unavailable', 'inbox/responses/orchestrator-latest.log'],
+    ];
+
+    return [
+      'engine_rows' => $engine_rows,
+      'tick_rows' => $tick_rows,
+      'node_rows' => $node_rows,
+      'parity_rows' => $parity_rows,
+      'release_rows' => $release_rows,
+      'error_rows' => $error_rows,
+    ];
+  }
+
+  /**
+   * Read a JSON file safely.
+   */
+  private function readJsonFile(string $path): array {
+    if (!is_readable($path)) {
+      return [];
+    }
+    try {
+      $raw = (string) file_get_contents($path);
+      if ($raw === '') {
+        return [];
+      }
+      $decoded = json_decode($raw, TRUE);
+      return is_array($decoded) ? $decoded : [];
+    }
+    catch (\Throwable) {
+      return [];
+    }
+  }
+
+  /**
+   * Read the last JSON object from a JSONL file safely.
+   */
+  private function readLastJsonlObject(string $path): array {
+    if (!is_readable($path)) {
+      return [];
+    }
+
+    try {
+      $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+      if (!$lines) {
+        return [];
+      }
+      $last = trim((string) end($lines));
+      if ($last === '') {
+        return [];
+      }
+      $decoded = json_decode($last, TRUE);
+      return is_array($decoded) ? $decoded : [];
+    }
+    catch (\Throwable) {
+      return [];
+    }
   }
 
   /**
@@ -2912,6 +3172,351 @@ final class DashboardController extends ControllerBase {
         'max-age' => 0,
       ],
     ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // LangGraph dashboard helpers.
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Read a flat file safely; log a warning and return NULL on failure.
+   */
+  private function readFileSafe(string $path): ?string {
+    $content = @file_get_contents($path);
+    if ($content === FALSE) {
+      \Drupal::logger('copilot_agent_tracker')->warning('LangGraph dashboard: could not read file @path', ['@path' => $path]);
+      return NULL;
+    }
+    return $content;
+  }
+
+  /**
+   * Parse JSONL content; return array of decoded objects (skip bad lines).
+   *
+   * @return array<int,array<string,mixed>>
+   */
+  private function parseJsonl(string $content): array {
+    $rows = [];
+    foreach (explode("\n", trim($content)) as $line) {
+      $line = trim($line);
+      if ($line === '') {
+        continue;
+      }
+      $decoded = json_decode($line, TRUE);
+      if (is_array($decoded)) {
+        $rows[] = $decoded;
+      }
+    }
+    return $rows;
+  }
+
+  /**
+   * LangGraph Session Monitoring view.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/session
+   */
+  public function langGraphSessionMonitoring(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Session Monitoring') . '</h2>',
+    ];
+
+    $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
+    if ($content === NULL) {
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Tick data unavailable — @path could not be read.', ['@path' => self::LANGGRAPH_TICKS_FILE]) . '</p>'];
+      return $build;
+    }
+
+    $all_ticks = $this->parseJsonl($content);
+    if (empty($all_ticks)) {
+      $build['empty'] = ['#markup' => '<p>' . $this->t('No ticks recorded yet.') . '</p>'];
+      return $build;
+    }
+
+    // Keep last 50 ticks.
+    $ticks = array_slice($all_ticks, -50);
+    $latest = end($ticks);
+    $now = time();
+    $one_hour_ago = $now - 3600;
+
+    // Summary stats.
+    $ticks_last_hour = 0;
+    foreach ($all_ticks as $tick) {
+      $ts = strtotime((string) ($tick['ts'] ?? ''));
+      if ($ts !== FALSE && $ts >= $one_hour_ago) {
+        $ticks_last_hour++;
+      }
+    }
+
+    $dry_run_latest = !empty($latest['dry_run']) ? $this->t('YES (dry run)') : $this->t('no (live)');
+    $build['summary'] = [
+      '#markup' => '<p><strong>' . $this->t('Total ticks shown:') . '</strong> ' . count($ticks)
+        . ' &nbsp;|&nbsp; <strong>' . $this->t('Ticks in last hour:') . '</strong> ' . $ticks_last_hour
+        . ' &nbsp;|&nbsp; <strong>' . $this->t('Latest dry_run:') . '</strong> ' . $dry_run_latest
+        . '</p>',
+    ];
+
+    // Build table rows (newest first).
+    $header = [
+      $this->t('Timestamp'),
+      $this->t('dry_run'),
+      $this->t('publish_enabled'),
+      $this->t('agent_cap'),
+      $this->t('provider'),
+      $this->t('error count'),
+    ];
+
+    $rows = [];
+    foreach (array_reverse($ticks) as $tick) {
+      $error_count = count((array) ($tick['errors'] ?? []));
+      // Also check step_results for any error-status steps.
+      foreach ((array) ($tick['step_results'] ?? []) as $step) {
+        if (is_array($step) && (($step['status'] ?? '') === 'error' || !empty($step['errors']))) {
+          $error_count++;
+        }
+      }
+
+      $row = [
+        'data' => [
+          (string) ($tick['ts'] ?? ''),
+          !empty($tick['dry_run']) ? $this->t('yes') : $this->t('no'),
+          !empty($tick['publish_enabled']) ? $this->t('yes') : $this->t('no'),
+          (string) ($tick['agent_cap'] ?? ''),
+          (string) ($tick['provider'] ?? ''),
+          (string) $error_count,
+        ],
+      ];
+
+      if ($error_count > 0) {
+        $row['class'] = ['color-error'];
+      }
+      $rows[] = $row;
+    }
+
+    $build['table'] = [
+      '#type' => 'table',
+      '#header' => $header,
+      '#rows' => $rows,
+      '#empty' => $this->t('No ticks to display.'),
+    ];
+
+    return $build;
+  }
+
+  /**
+   * LangGraph Feature Progress view.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/feature-progress
+   *
+   * Source: LANGGRAPH_FEATURE_PROGRESS_FILE markdown table (pre-generated
+   * from features/<feature>/feature.md by the orchestrator dashboard generator).
+   */
+  public function langGraphFeatureProgress(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Feature Progress') . '</h2>',
+    ];
+
+    // Parse markdown table from LANGGRAPH_FEATURE_PROGRESS.md.
+    $md = $this->readFileSafe(self::LANGGRAPH_FEATURE_PROGRESS_FILE);
+    $feature_rows = [];
+    if ($md !== NULL) {
+      foreach (explode("\n", $md) as $line) {
+        $line = trim($line);
+        // Match data rows: | col | col | ... (skip header and separator rows).
+        if (str_starts_with($line, '|') && !str_contains($line, '---')) {
+          $cols = array_map('trim', explode('|', trim($line, '|')));
+          // Expect at least 8 cols: Work item | Website | Module | Status | Priority | PM | Dev | QA.
+          if (count($cols) >= 8 && $cols[0] !== 'Work item') {
+            $feature_rows[] = array_values(array_slice($cols, 0, 8));
+          }
+        }
+      }
+    }
+    else {
+      $build['md_warning'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Feature progress file unavailable.') . '</p>'];
+    }
+
+    $build['feature_table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Work item'),
+        $this->t('Website'),
+        $this->t('Module'),
+        $this->t('Status'),
+        $this->t('Priority'),
+        $this->t('PM'),
+        $this->t('Dev'),
+        $this->t('QA'),
+      ],
+      '#rows' => $feature_rows,
+      '#empty' => $this->t('No active features found.'),
+    ];
+
+    // LangGraph telemetry summary.
+    $build['telemetry_heading'] = [
+      '#markup' => '<h3>' . $this->t('LangGraph Telemetry Summary') . '</h3>',
+    ];
+
+    $last_tick_ts = $this->t('unknown');
+    $engine_mode = $this->t('unknown');
+
+    $ticks_content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
+    if ($ticks_content !== NULL) {
+      $ticks = $this->parseJsonl($ticks_content);
+      if (!empty($ticks)) {
+        $latest = end($ticks);
+        $last_tick_ts = (string) ($latest['ts'] ?? 'unknown');
+        $engine_mode = !empty($latest['dry_run']) ? 'dry_run' : 'live';
+      }
+    }
+
+    $parity_ok = $this->t('unknown');
+    $parity_content = $this->readFileSafe(self::LANGGRAPH_PARITY_FILE);
+    if ($parity_content !== NULL) {
+      $parity = json_decode($parity_content, TRUE);
+      if (is_array($parity)) {
+        $parity_ok = isset($parity['parity_ok']) ? ($parity['parity_ok'] ? $this->t('PASS') : $this->t('FAIL')) : $this->t('unknown');
+      }
+    }
+
+    $build['telemetry_summary'] = [
+      '#markup' => '<ul>'
+        . '<li><strong>' . $this->t('Last tick:') . '</strong> ' . $last_tick_ts . '</li>'
+        . '<li><strong>' . $this->t('Engine mode:') . '</strong> ' . $engine_mode . '</li>'
+        . '<li><strong>' . $this->t('Parity status:') . '</strong> ' . $parity_ok . '</li>'
+        . '</ul>',
+    ];
+
+    return $build;
+  }
+
+  /**
+   * LangGraph Engine/Parity Health view.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/parity
+   */
+  public function langGraphParityHealth(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Engine / Parity Health') . '</h2>',
+    ];
+
+    $content = $this->readFileSafe(self::LANGGRAPH_PARITY_FILE);
+    if ($content === NULL) {
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Parity data unavailable — @path could not be read.', ['@path' => self::LANGGRAPH_PARITY_FILE]) . '</p>'];
+      return $build;
+    }
+
+    $parity = json_decode($content, TRUE);
+    if (!is_array($parity)) {
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('No parity data available — file is empty or malformed.') . '</p>'];
+      return $build;
+    }
+
+    $parity_ok = (bool) ($parity['parity_ok'] ?? FALSE);
+
+    // Warning banner when parity fails.
+    if (!$parity_ok) {
+      $build['warning'] = [
+        '#markup' => '<div class="messages messages--warning"><strong>' . $this->t('PARITY FAILURE') . '</strong> — ' . $this->t('LangGraph engine does not match legacy expectations. Review errors below.') . '</div>',
+      ];
+    }
+
+    $status_label = $parity_ok ? $this->t('✔ PASS') : $this->t('✘ FAIL');
+    $agents_match = isset($parity['selected_agents']['match']) ? ($parity['selected_agents']['match'] ? $this->t('yes') : $this->t('no')) : $this->t('n/a');
+    $steps_match = isset($parity['steps']['match']) ? ($parity['steps']['match'] ? $this->t('yes') : $this->t('no')) : $this->t('n/a');
+    $errors = (array) ($parity['errors'] ?? []);
+    $generated_at = (string) ($parity['generated_at'] ?? 'unknown');
+
+    $build['summary_table'] = [
+      '#type' => 'table',
+      '#header' => [$this->t('Field'), $this->t('Value')],
+      '#rows' => [
+        [$this->t('parity_ok'), $status_label],
+        [$this->t('selected_agents.match'), $agents_match],
+        [$this->t('steps.match'), $steps_match],
+        [$this->t('generated_at'), $generated_at],
+        [$this->t('errors'), empty($errors) ? $this->t('(none)') : implode('; ', $errors)],
+      ],
+    ];
+
+    return $build;
+  }
+
+  /**
+   * LangGraph Release-cycle Status Panel.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/release-status
+   */
+  public function langGraphReleaseStatus(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Status Panel') . '</h2>',
+    ];
+
+    $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
+    if ($content === NULL) {
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Tick data unavailable — @path could not be read.', ['@path' => self::LANGGRAPH_TICKS_FILE]) . '</p>'];
+      return $build;
+    }
+
+    $all_ticks = $this->parseJsonl($content);
+    if (empty($all_ticks)) {
+      $build['empty'] = ['#markup' => '<p>' . $this->t('No ticks recorded yet.') . '</p>'];
+      return $build;
+    }
+
+    $latest = end($all_ticks);
+    $publish_enabled = !empty($latest['publish_enabled']);
+    $dry_run = !empty($latest['dry_run']);
+    $agent_cap = (int) ($latest['agent_cap'] ?? 0);
+
+    // Count ticks in last 24h with publish_enabled == true.
+    $cutoff = time() - 86400;
+    $publish_enabled_count = 0;
+    foreach ($all_ticks as $tick) {
+      $ts = strtotime((string) ($tick['ts'] ?? ''));
+      if ($ts !== FALSE && $ts >= $cutoff && !empty($tick['publish_enabled'])) {
+        $publish_enabled_count++;
+      }
+    }
+
+    if (!$publish_enabled) {
+      $build['publish_notice'] = [
+        '#markup' => '<div class="messages messages--warning">' . $this->t('Publishing paused — review orchestrator state.') . '</div>',
+      ];
+    }
+
+    $build['status_table'] = [
+      '#type' => 'table',
+      '#header' => [$this->t('Field'), $this->t('Value')],
+      '#rows' => [
+        [$this->t('Latest tick timestamp'), (string) ($latest['ts'] ?? 'unknown')],
+        [$this->t('publish_enabled'), $publish_enabled ? $this->t('yes') : $this->t('no')],
+        [$this->t('dry_run'), $dry_run ? $this->t('yes (dry run mode)') : $this->t('no (live)')],
+        [$this->t('agent_cap'), (string) $agent_cap],
+        [$this->t('Ticks with publish_enabled=true (last 24h)'), (string) $publish_enabled_count],
+      ],
+    ];
+
+    return $build;
   }
 
 }

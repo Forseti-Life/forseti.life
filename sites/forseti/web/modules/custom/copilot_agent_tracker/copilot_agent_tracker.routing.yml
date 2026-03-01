@@ -97,3 +97,35 @@ copilot_agent_tracker.api_event:
     _access: 'TRUE'
   options:
     _format: json
+
+copilot_agent_tracker.langgraph_session:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/session'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphSessionMonitoring'
+    _title: 'LangGraph Session Monitoring'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.langgraph_feature_progress:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/feature-progress'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphFeatureProgress'
+    _title: 'LangGraph Feature Progress'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.langgraph_parity:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/parity'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphParityHealth'
+    _title: 'LangGraph Engine / Parity Health'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.langgraph_release_status:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/release-status'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphReleaseStatus'
+    _title: 'LangGraph Release-cycle Status'
+  requirements:
+    _permission: 'administer copilot agent tracker'
