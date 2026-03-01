@@ -268,6 +268,19 @@ Benefits:
       ->fields($fields)
       ->execute();
 
+    // Save to the user's saved jobs list.
+    $uid = (int) $this->currentUser->id();
+    if ($uid) {
+      $this->database->insert('jobhunter_saved_jobs')
+        ->fields([
+          'uid' => $uid,
+          'job_id' => $job_id,
+          'created' => $timestamp,
+          'updated' => $timestamp,
+        ])
+        ->execute();
+    }
+
     // Queue for AI parsing if raw text provided
     if (!empty($raw_posting_text)) {
       $queue = \Drupal::queue('job_hunter_job_posting_parsing');

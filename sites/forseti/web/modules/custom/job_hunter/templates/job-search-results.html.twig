@@ -112,7 +112,7 @@
               </p>
             </div>
             <div class="job-result-footer">
-              <a href="{{ path('job_hunter.addposting', {}, {'query': {'job_id': job.id}}) }}" class="btn-save-job-link" data-csrf-token="{{ save_job_csrf_token }}">{{ '💾 Save Job'|t }}</a>
+              <a href="{{ path('job_hunter.addposting', {}, {'query': {'job_id': job.id}}) }}" class="btn-save-job" data-csrf-token="{{ save_job_csrf_token }}">{{ '💾 Save Job'|t }}</a>
               {% if job.url %}
                 <a href="{{ job.url }}" target="_blank" class="btn-view-job" rel="noopener">{{ '🔗 View Original'|t }}</a>
               {% endif %}
