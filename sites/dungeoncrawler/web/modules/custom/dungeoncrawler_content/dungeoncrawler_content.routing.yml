@@ -26,7 +26,6 @@ dungeoncrawler_content.game_objects:
     _title: 'Game Object Manager'
   methods: [GET, POST]
   requirements:
-    _csrf_token: 'TRUE'
     _permission: 'administer dungeoncrawler content'
 
 dungeoncrawler_content.gemini_image_interface:
@@ -178,7 +177,6 @@ dungeoncrawler_content.campaign_create:
     _title: 'Create Campaign'
   methods: [GET, POST]
   requirements:
-    _csrf_token: 'TRUE'
     _permission: 'access dungeoncrawler characters'
 
 dungeoncrawler_content.campaign_archive:
@@ -247,7 +245,6 @@ dungeoncrawler_content.character_step:
     _title: 'Create Character'
   methods: [GET, POST]
   requirements:
-    _csrf_token: 'TRUE'
     _permission: 'create dungeoncrawler characters'
     step: '\d+'
 
