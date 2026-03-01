@@ -414,7 +414,9 @@ class ContentRegistry {
       $errors[] = 'Trap must have numeric stealth_dc';
     }
     
-    if (!isset($data['disable_dc']) || !is_numeric($data['disable_dc'])) {
+    // Accept flat disable_dc OR nested disable.thievery_dc (preferred schema).
+    $disable_dc = $data['disable_dc'] ?? ($data['disable']['thievery_dc'] ?? NULL);
+    if (!isset($disable_dc) || !is_numeric($disable_dc)) {
       $errors[] = 'Trap must have numeric disable_dc';
     }
     
