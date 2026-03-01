@@ -42,6 +42,11 @@ class CharacterAccessCheck implements AccessInterface {
    *   The access result.
    */
   public function access(AccountInterface $account, $character_id = NULL) {
+    // Anonymous users are never allowed to access character pages.
+    if ($account->isAnonymous()) {
+      return AccessResult::forbidden()->cachePerPermissions();
+    }
+
     // Admin can access any character.
     if ($account->hasPermission('administer dungeoncrawler content')) {
       return AccessResult::allowed()->cachePerPermissions();
