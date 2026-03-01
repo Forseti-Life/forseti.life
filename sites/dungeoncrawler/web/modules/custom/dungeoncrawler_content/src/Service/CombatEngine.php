@@ -5,6 +5,8 @@ namespace Drupal\dungeoncrawler_content\Service;
 use Drupal\Core\Database\Connection;
 use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
 use Drupal\dungeoncrawler_content\Service\HPManager;
+use Drupal\dungeoncrawler_content\Service\CombatCalculator;
+use Drupal\dungeoncrawler_content\Service\ConditionManager;
 
 /**
  * Combat Engine service - Main orchestrator for combat operations.
@@ -40,13 +42,25 @@ class CombatEngine {
   protected $hpManager;
   protected $numberGeneration;
 
-  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation) {
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\CombatCalculator
+   */
+  protected $combatCalculator;
+
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\ConditionManager
+   */
+  protected $conditionManager;
+
+  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation, CombatCalculator $combat_calculator = NULL, ConditionManager $condition_manager = NULL) {
     $this->database = $database;
     $this->stateManager = $state_manager;
     $this->actionProcessor = $action_processor;
     $this->store = $store;
     $this->hpManager = $hp_manager;
     $this->numberGeneration = $number_generation;
+    $this->combatCalculator = $combat_calculator ?? new CombatCalculator();
+    $this->conditionManager = $condition_manager;
   }
 
   /**
@@ -58,7 +72,10 @@ class CombatEngine {
   }
 
   /**
-   * Start combat encounter: apply custom initiatives, activate, and start round 1.
+   * Start combat encounter: auto-roll or apply custom initiatives, activate, and start round 1.
+   *
+   * Initiative = d20 + perception modifier for any participant without a custom initiative.
+   * Ties are broken by perception modifier (higher wins), then arbitrarily by participant ID.
    */
   public function startEncounter($encounter_id, array $custom_initiatives = []) {
     $encounter = $this->store->loadEncounter((int) $encounter_id);
@@ -66,8 +83,22 @@ class CombatEngine {
       return ['status' => 'error', 'message' => 'Encounter not found'];
     }
 
-    foreach ($custom_initiatives as $pid => $initiative) {
-      $this->store->updateParticipant((int) $pid, ['initiative' => (int) $initiative]);
+    foreach ($encounter['participants'] as $participant) {
+      $pid = (int) $participant['id'];
+      if (isset($custom_initiatives[$pid])) {
+        $this->store->updateParticipant($pid, ['initiative' => (int) $custom_initiatives[$pid]]);
+      }
+      else {
+        // Auto-roll: Perception check = d20 + perception modifier.
+        // Perception modifier is stored in entity_ref JSON or defaults to 0.
+        $perception_mod = $this->resolvePerceptionModifier($participant);
+        $roll = $this->numberGeneration->rollPathfinderDie(20);
+        $initiative = $roll + $perception_mod;
+        $this->store->updateParticipant($pid, [
+          'initiative' => $initiative,
+          'initiative_roll' => $roll,
+        ]);
+      }
     }
 
     $this->store->updateEncounter((int) $encounter_id, [
@@ -81,7 +112,9 @@ class CombatEngine {
   }
 
   /**
-   * Begin a new round: reset action economy and set turn order to the start.
+   * Begin a new round: sort initiative order, reset action economy, and set turn_index to 0.
+   *
+   * Sort: descending initiative. Ties: higher perception modifier wins; then lower participant ID.
    */
   public function startRound($encounter_id, $round_number) {
     $encounter = $this->store->loadEncounter((int) $encounter_id);
@@ -89,7 +122,21 @@ class CombatEngine {
       return ['status' => 'error', 'message' => 'Encounter not found'];
     }
 
-    foreach ($encounter['participants'] as $participant) {
+    // Sort participants by initiative descending; ties broken by perception mod then ID.
+    $participants = $encounter['participants'];
+    usort($participants, function (array $a, array $b): int {
+      $init_diff = (int) ($b['initiative'] ?? 0) - (int) ($a['initiative'] ?? 0);
+      if ($init_diff !== 0) {
+        return $init_diff;
+      }
+      $perc_diff = $this->resolvePerceptionModifier($b) - $this->resolvePerceptionModifier($a);
+      if ($perc_diff !== 0) {
+        return $perc_diff;
+      }
+      return (int) ($a['id'] ?? 0) - (int) ($b['id'] ?? 0);
+    });
+
+    foreach ($participants as $participant) {
       $this->store->updateParticipant((int) $participant['id'], [
         'actions_remaining' => 3,
         'attacks_this_turn' => 0,
@@ -279,11 +326,13 @@ class CombatEngine {
 
   /**
    * Apply persistent damage and decrement durations.
+   * Also triggers end-of-turn valued condition tick via ConditionManager.
    */
   protected function processEndOfTurnEffects(int $participant_id, int $encounter_id, int $current_round): array {
     $effects = [
       'persistent_damage' => [],
       'expired_conditions' => [],
+      'ticked_conditions' => [],
     ];
 
     $conditions = $this->store->listActiveConditions($participant_id);
@@ -328,7 +377,106 @@ class CombatEngine {
       }
     }
 
+    // Tick valued end_of_turn conditions (frightened, clumsy, etc.) via ConditionManager.
+    if ($this->conditionManager) {
+      $effects['ticked_conditions'] = $this->conditionManager->tickConditions($participant_id, $encounter_id);
+    }
+
     return $effects;
+  }
+
+  /**
+   * Resolve an attack roll and apply damage on hit.
+   *
+   * PF2E rules:
+   *   Roll = d20 + attack_bonus + MAP penalty
+   *   vs. target AC; natural 20 bumps degree up; natural 1 bumps down.
+   *
+   * @param int $participant_id  Attacker participant row ID.
+   * @param int $target_id       Defender participant row ID.
+   * @param array $weapon        ['attack_bonus'=>int,'damage_dice'=>'1d6','damage_type'=>'slashing','is_agile'=>bool]
+   * @param int $encounter_id
+   *
+   * @return array ['roll','attack_bonus','map_penalty','total','target_ac','degree','damage_dealt','damage_result','error']
+   */
+  public function resolveAttack(int $participant_id, int $target_id, array $weapon, int $encounter_id): array {
+    $attacker = $this->database->select('combat_participants', 'p')
+      ->fields('p')
+      ->condition('id', $participant_id)
+      ->condition('encounter_id', $encounter_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$attacker) {
+      return ['error' => "Attacker participant {$participant_id} not found in encounter {$encounter_id}"];
+    }
+
+    $target = $this->database->select('combat_participants', 'p')
+      ->fields('p')
+      ->condition('id', $target_id)
+      ->condition('encounter_id', $encounter_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$target) {
+      return ['error' => "Target participant {$target_id} not found in encounter {$encounter_id}"];
+    }
+
+    $attacks_this_turn = (int) ($attacker['attacks_this_turn'] ?? 0) + 1;
+    $is_agile = !empty($weapon['is_agile']);
+    $map_penalty = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, $is_agile);
+
+    $natural_roll = $this->numberGeneration->rollPathfinderDie(20);
+    $attack_bonus = (int) ($weapon['attack_bonus'] ?? 0);
+    $total = $natural_roll + $attack_bonus + $map_penalty;
+    $target_ac = (int) ($target['ac'] ?? 10);
+
+    $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $target_ac, $natural_roll);
+
+    // Record attack in participant state.
+    $this->store->updateParticipant($participant_id, [
+      'attacks_this_turn' => $attacks_this_turn,
+      'actions_remaining' => max(0, (int) ($attacker['actions_remaining'] ?? 3) - 1),
+    ]);
+
+    $damage_dealt = NULL;
+    $damage_result = NULL;
+
+    if ($degree === 'critical_success' || $degree === 'success') {
+      $damage_roll = $this->numberGeneration->rollNotation($weapon['damage_dice'] ?? '1d4');
+      $base_damage = array_sum($damage_roll['rolls'] ?? [$damage_roll['total'] ?? 1]);
+      if (isset($damage_roll['modifier'])) {
+        $base_damage += (int) $damage_roll['modifier'];
+      }
+      $damage_dealt = ($degree === 'critical_success') ? $base_damage * 2 : $base_damage;
+      $damage_type = $weapon['damage_type'] ?? 'untyped';
+      $damage_result = $this->hpManager->applyDamage($target_id, $damage_dealt, $damage_type, ['attacker' => $participant_id], $encounter_id);
+    }
+
+    return [
+      'roll'          => $natural_roll,
+      'attack_bonus'  => $attack_bonus,
+      'map_penalty'   => $map_penalty,
+      'total'         => $total,
+      'target_ac'     => $target_ac,
+      'degree'        => $degree,
+      'damage_dealt'  => $damage_dealt,
+      'damage_result' => $damage_result,
+      'error'         => NULL,
+    ];
+  }
+
+  /**
+   * Resolve a participant's Perception modifier from entity_ref JSON (defaults to 0).
+   */
+  protected function resolvePerceptionModifier(array $participant): int {
+    if (!empty($participant['entity_ref'])) {
+      $entity = json_decode($participant['entity_ref'], TRUE);
+      if (is_array($entity)) {
+        return (int) ($entity['perception_modifier'] ?? $entity['perception_mod'] ?? 0);
+      }
+    }
+    return 0;
   }
 
   /**

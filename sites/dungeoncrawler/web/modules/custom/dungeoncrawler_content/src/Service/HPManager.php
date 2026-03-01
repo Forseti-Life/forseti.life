@@ -140,7 +140,21 @@ class HPManager {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applydyingcondition
    */
   public function applyDyingCondition($participant_id, $dying_value, $encounter_id) {
-    // TODO: Set unconscious, dying, prone, add wounded if applicable
+    // PF2E: wounded condition increases dying value at start.
+    $active = $this->conditionManager->getActiveConditions($participant_id, $encounter_id);
+    $wounded_value = 0;
+    foreach ($active as $cond) {
+      if ($cond['condition_type'] === 'wounded') {
+        $wounded_value = max($wounded_value, (int) ($cond['value'] ?? 0));
+      }
+    }
+
+    $effective_dying = $dying_value + $wounded_value;
+
+    $this->conditionManager->applyCondition($participant_id, 'dying', $encounter_id, $effective_dying);
+    $this->conditionManager->applyCondition($participant_id, 'unconscious', $encounter_id);
+    $this->conditionManager->applyCondition($participant_id, 'prone', $encounter_id);
+
     return TRUE;
   }
 
@@ -150,7 +164,26 @@ class HPManager {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#stabilizecharacter
    */
   public function stabilizeCharacter($participant_id, $encounter_id) {
-    // TODO: Remove dying, add wounded, set HP to 1
+    // PF2E: on stabilize — remove dying, apply wounded (value = prior dying − 1), set HP to 1.
+    $active = $this->conditionManager->getActiveConditions($participant_id, $encounter_id);
+    $dying_value = 0;
+    foreach ($active as $cond) {
+      if ($cond['condition_type'] === 'dying') {
+        $dying_value = max($dying_value, (int) ($cond['value'] ?? 1));
+        $this->conditionManager->removeCondition($participant_id, (int) $cond['id'], $encounter_id);
+      }
+    }
+
+    $wounded_stacks = max(0, $dying_value - 1);
+    if ($wounded_stacks > 0) {
+      $this->conditionManager->applyCondition($participant_id, 'wounded', $encounter_id, $wounded_stacks);
+    }
+
+    $this->database->update('combat_participants')
+      ->fields(['hp' => 1, 'is_defeated' => 0, 'updated' => time()])
+      ->condition('id', $participant_id)
+      ->execute();
+
     return TRUE;
   }
 

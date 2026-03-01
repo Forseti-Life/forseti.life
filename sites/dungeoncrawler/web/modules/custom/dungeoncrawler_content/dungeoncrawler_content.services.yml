@@ -142,6 +142,9 @@ services:
       - '@dungeoncrawler_content.action_processor'
       - '@dungeoncrawler_content.combat_encounter_store'
       - '@dungeoncrawler_content.hp_manager'
+      - '@dungeoncrawler_content.number_generation'
+      - '@dungeoncrawler_content.combat_calculator'
+      - '@dungeoncrawler_content.condition_manager'
 
   dungeoncrawler_content.encounter_ai_provider.stub:
     class: Drupal\dungeoncrawler_content\Service\StubEncounterAiProvider
