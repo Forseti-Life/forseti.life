@@ -90,7 +90,7 @@ class CharacterArchiveForm extends ConfirmFormBase {
       ->condition('id', (int) $character_id)
       ->condition('campaign_id', 0)
       ->execute()
-      ->fetchObject();
+      ->fetchObject() ?: NULL;
 
     if (!$this->character) {
       throw new NotFoundHttpException();
