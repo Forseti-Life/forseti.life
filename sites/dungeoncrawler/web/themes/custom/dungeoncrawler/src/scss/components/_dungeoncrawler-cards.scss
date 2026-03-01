@@ -11,20 +11,20 @@
   // Heading styles
   h4,
   h5 {
-    color: #00d4ff !important;
+    color: var(--dc-accent-cyan) !important;
     font-weight: 600;
   }
 
   // Text content
   p,
   li {
-    color: #e8e8e8 !important;
+    color: var(--dc-text-primary) !important;
     line-height: 1.6;
   }
 
   // Form Elements
   label {
-    color: #00d4ff;
+    color: var(--dc-accent-cyan);
     font-weight: 500;
     margin-bottom: 0.5rem;
   }
@@ -36,7 +36,7 @@
   textarea {
     background-color: #1a1a2e;
     border: 1px solid rgba(0, 212, 255, 0.3);
-    color: #e8e8e8;
+    color: var(--dc-text-primary);
     padding: 0.5rem;
     border-radius: 0.25rem;
     width: 100%;
@@ -45,24 +45,24 @@
     &:focus {
       background-color: #1a1a2e;
       border-color: #00d4ff;
-      color: #e8e8e8;
+      color: var(--dc-text-primary);
       outline: none;
       box-shadow: 0 0 0 0.2rem rgba(0, 212, 255, 0.25);
     }
 
     &::placeholder {
-      color: #666;
+      color: var(--dc-text-muted);
     }
   }
 
   // Required field indicator
   .form-required {
-    color: #f44336;
+    color: var(--dc-text-danger-soft);
   }
 
   // Help text
   .description {
-    color: #b8b8b8;
+    color: var(--dc-text-secondary);
     font-size: 0.875rem;
     margin-top: 0.25rem;
   }
@@ -73,7 +73,7 @@
   .webform-button--submit {
     background-color: #00d4ff;
     border: none;
-    color: #1a1a2e;
+    color: var(--dc-text-inverse);
     padding: 0.75rem 2rem;
     font-weight: 600;
     border-radius: 0.25rem;
@@ -104,7 +104,7 @@
     justify-content: center;
     padding: 0.75rem 2rem;
     background: white;
-    color: #333;
+    color: var(--dc-text-primary);
     border: 1px solid #ddd;
     border-radius: 0.25rem;
     text-decoration: none;
@@ -130,13 +130,13 @@
 
   .accordion-button {
     background: #16213e;
-    color: #00d4ff;
+    color: var(--dc-accent-cyan);
     border: none;
     font-weight: 500;
 
     &:not(.collapsed) {
       background: #1a1a2e;
-      color: #00d4ff;
+      color: var(--dc-accent-cyan);
     }
 
     &:focus {
@@ -150,7 +150,7 @@
 
   .accordion-body {
     background: #1a1a2e;
-    color: #e0e0e0;
+    color: var(--dc-text-primary);
     border-top: 1px solid rgba(0, 212, 255, 0.2);
   }
 }
@@ -163,12 +163,12 @@
   padding: 4rem 0;
 
   h2 {
-    color: #00d4ff;
+    color: var(--dc-accent-cyan);
     font-weight: 600;
   }
 
   .lead {
-    color: #e8e8e8;
+    color: var(--dc-text-primary);
     font-size: 1.15rem;
     line-height: 1.6;
   }
@@ -213,7 +213,7 @@
   li {
     padding: 0.5rem 0;
     font-size: 1.1rem;
-    color: #e8e8e8;
+    color: var(--dc-text-primary);
   }
 }
 
@@ -224,7 +224,7 @@
   .btn-primary {
     background: linear-gradient(135deg, #00d4ff 0%, #0099cc 100%);
     border: none;
-    color: #0f172a;
+    color: var(--dc-text-inverse);
     font-weight: 600;
     transition: all 0.3s ease;
     box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3);

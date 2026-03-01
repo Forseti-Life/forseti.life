@@ -89,7 +89,7 @@
     <env name="SIMPLETEST_BASE_URL" value="http://localhost:8080"/>
     
     <!-- Browser output directory -->
-    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="../../../sites/simpletest/browser_output"/>
+    <env name="BROWSERTEST_OUTPUT_DIRECTORY" value="../../../../sites/simpletest/browser_output"/>
     
     <!-- Symfony deprecation helper - disable to prevent deprecations from causing test failures -->
     <env name="SYMFONY_DEPRECATIONS_HELPER" value="disabled"/>

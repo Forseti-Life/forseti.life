@@ -45,10 +45,10 @@
     align-items: center;
     gap: 0.5rem;
     font-size: 0.9rem;
-    color: #b0bec5;
+    color: var(--dc-text-secondary);
     
     &.active {
-      color: #64b5f6;
+      color: var(--dc-accent-cyan);
       font-weight: 600;
     }
 
@@ -58,7 +58,7 @@
   }
 
   .breadcrumb-link {
-    color: #90caf9;
+    color: var(--dc-accent-cyan);
     text-decoration: none;
     padding: 0.4rem 0.8rem;
     border-radius: 4px;
@@ -71,7 +71,7 @@
 
     &:hover,
     &:focus {
-      color: #ffffff;
+      color: var(--dc-text-on-brand);
       background: rgba(100, 181, 246, 0.2);
       border-color: rgba(100, 181, 246, 0.3);
       text-decoration: none;
@@ -85,7 +85,7 @@
       
       i {
         font-size: 1rem;
-        color: #64b5f6;
+        color: var(--dc-accent-cyan);
       }
 
       &:hover,
@@ -94,14 +94,14 @@
         border-color: rgba(100, 181, 246, 0.5);
         
         i {
-          color: #ffffff;
+          color: var(--dc-text-on-brand);
         }
       }
     }
   }
 
   .breadcrumb-current {
-    color: #64b5f6;
+    color: var(--dc-accent-cyan);
     font-weight: 600;
     padding: 0.4rem 0.8rem;
     background: rgba(100, 181, 246, 0.1);
@@ -122,7 +122,7 @@
   }
 
   .breadcrumb-separator {
-    color: #546e7a;
+    color: var(--dc-text-muted);
     font-size: 0.7rem;
     opacity: 0.7;
     margin: 0 0.25rem;
@@ -195,20 +195,20 @@
 @media (prefers-contrast: high) {
   .professional-breadcrumb {
     .breadcrumb-link {
-      border: 2px solid #64b5f6;
+      border: 2px solid currentColor;
       
       &:hover,
       &:focus {
-        border-color: #ffffff;
-        background: #64b5f6;
-        color: #000000;
+        border-color: currentColor;
+        background: var(--dc-accent-cyan);
+        color: black;
       }
     }
 
     .breadcrumb-current {
-      border: 2px solid #64b5f6;
-      background: #64b5f6;
-      color: #000000;
+      border: 2px solid currentColor;
+      background: var(--dc-accent-cyan);
+      color: black;
     }
   }
 }
@@ -216,7 +216,7 @@
 // Focus management for accessibility
 .professional-breadcrumb {
   .breadcrumb-link:focus {
-    outline: 2px solid #64b5f6;
+    outline: 2px solid currentColor;
     outline-offset: 2px;
   }
 }
@@ -225,7 +225,7 @@
 @media print {
   .professional-breadcrumb {
     background: none !important;
-    border: 1px solid #000000;
+    border: 1px solid black;
     padding: 0.5rem;
     margin-bottom: 1rem;
     page-break-inside: avoid;
@@ -233,13 +233,13 @@
     .breadcrumb-link,
     .breadcrumb-current {
       background: none !important;
-      color: #000000 !important;
+      color: black !important;
       border: none !important;
       padding: 0 !important;
     }
 
     .breadcrumb-separator {
-      color: #000000 !important;
+      color: black !important;
     }
 
     &::before {

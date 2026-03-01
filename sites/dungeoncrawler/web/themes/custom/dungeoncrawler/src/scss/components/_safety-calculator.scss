@@ -122,7 +122,7 @@
 // Slider value display
 .slider-value-display {
   font-size: 1.5rem;
-  color: #00d4ff;
+  color: var(--dc-accent-cyan);
   margin-top: 1rem;
   
   .value {
@@ -143,18 +143,18 @@
 // Details/Summary styling for questionnaire
 .card-dungeoncrawler details {
   summary {
-    color: #e8e8e8 !important;
+    color: var(--dc-text-primary) !important;
     font-weight: 500;
     cursor: pointer;
     
     &:hover {
-      color: #00d4ff !important;
+      color: var(--dc-accent-cyan) !important;
     }
   }
   
   // Ensure all text inside details is light colored
   label,
   .form-item label {
-    color: #e8e8e8 !important;
+    color: var(--dc-text-primary) !important;
   }
 }

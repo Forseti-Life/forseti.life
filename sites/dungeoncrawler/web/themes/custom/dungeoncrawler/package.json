@@ -16,6 +16,7 @@
 		"biome:lint": "biome lint --apply src/ components/",
 		"biome:check": "biome check --apply src/ components/",
 		"stylint": "npx stylelint '**/*.scss'",
+		"contrast:check": "./scripts/check-contrast-contract.sh",
 		"stylint-fix": "npx stylelint '**/*.scss' --fix",
 		"watch-poll": "mix watch -- --watch-options-poll=1000",
 		"hot": "mix watch --hot",

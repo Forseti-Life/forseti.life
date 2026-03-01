@@ -98,14 +98,14 @@ user_profile:
 footer:
   css:
     theme:
-      src/css/footer.css: {}
+      build/css/main.style.css: {}
   dependencies:
     - core/drupal
 
 navbar_right:
   css:
     theme:
-      src/css/navbar-right.css: {}
+      build/css/main.style.css: {}
   dependencies:
     - core/drupal
 

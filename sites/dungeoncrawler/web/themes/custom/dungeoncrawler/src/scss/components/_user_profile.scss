@@ -5,7 +5,7 @@
   box-shadow: 0 4px 32px rgba(100, 181, 246, 0.08);
   padding: 2rem 1.5rem 2.5rem 1.5rem;
   margin: 2rem 0;
-  color: #e3f2fd;
+  color: var(--dc-text-primary);
   position: relative;
   overflow: hidden;
 
@@ -26,7 +26,7 @@
     .user-main-title {
       font-size: 2.2rem;
       font-weight: 700;
-      color: #64b5f6;
+      color: var(--dc-accent-cyan);
       margin-bottom: 0.5rem;
     }
     .user-meta-info {
@@ -35,14 +35,14 @@
       gap: 1.5rem;
       .user-meta-item {
         font-size: 1.1rem;
-        color: #b0bec5;
+        color: var(--dc-text-secondary);
         i {
-          color: #64b5f6;
+          color: var(--dc-accent-cyan);
           margin-right: 0.5rem;
         }
         &.professional-summary {
           font-size: 1.15rem;
-          color: #e3f2fd;
+          color: var(--dc-text-primary);
           font-weight: 500;
         }
       }
@@ -57,7 +57,7 @@
     padding: 1.5rem 1.2rem;
     .card-title {
       font-size: 1.2rem;
-      color: #64b5f6;
+      color: var(--dc-accent-cyan);
       font-weight: 600;
       margin-bottom: 1rem;
       i {
@@ -70,14 +70,14 @@
         align-items: center;
         gap: 0.5rem;
         font-size: 1rem;
-        color: #b0bec5;
+        color: var(--dc-text-secondary);
         margin-bottom: 0.7rem;
         i {
-          color: #90caf9;
+          color: var(--dc-accent-cyan);
           font-size: 1.1rem;
         }
         strong {
-          color: #e3f2fd;
+          color: var(--dc-text-primary);
           margin-right: 0.3rem;
         }
       }

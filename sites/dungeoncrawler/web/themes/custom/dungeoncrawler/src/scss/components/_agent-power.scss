@@ -4,7 +4,7 @@
 
 // Utility classes
 .text-muted-light {
-  color: rgba(255, 255, 255, 0.8);
+  color: var(--dc-text-soft);
 }
 
 .hover-lift {
@@ -48,24 +48,24 @@
       margin-bottom: 1rem;
       
       a {
-        color: #00d4ff;
+        color: var(--dc-accent-cyan);
         text-decoration: none;
         transition: color 0.3s ease;
         
         &:hover {
-          color: #33dcff;
+          color: var(--dc-accent-cyan-strong);
           text-decoration: none;
         }
       }
     }
     
     p {
-      color: #e8e8e8;
+      color: var(--dc-text-primary);
       margin-bottom: 0;
     }
     
     .text-muted {
-      color: #b8b8b8 !important;
+      color: var(--dc-text-secondary) !important;
       font-size: 0.95rem;
       line-height: 1.5;
     }
@@ -74,13 +74,13 @@
   // Card header styling — dungeon stone gradient
   .card-header {
     background: linear-gradient(135deg, #1a1a2e 0%, #2d2d3d 100%);
-    color: #00d4ff;
+    color: var(--dc-accent-cyan);
     font-weight: 600;
     border-bottom: 1px solid rgba(0, 212, 255, 0.2);
     padding: 1.25rem 2rem;
     
     h3, h4, h5, .h3, .h4, .h5 {
-      color: #00d4ff;
+      color: var(--dc-accent-cyan);
       margin: 0;
     }
   }
@@ -103,7 +103,7 @@
     &:hover {
       .card-body {
         h5 a {
-          color: #33dcff;
+          color: var(--dc-accent-cyan-strong);
         }
       }
     }
@@ -119,25 +119,25 @@
   border-radius: 4px;
   
   h3, .h3 {
-    color: #00d4ff;
+    color: var(--dc-accent-cyan);
     font-size: 1.25rem;
     margin-bottom: 1rem;
   }
   
   p {
-    color: #e8e8e8;
+    color: var(--dc-text-primary);
     margin-bottom: 0;
     
     strong {
-      color: #00d4ff;
+      color: var(--dc-accent-cyan);
     }
     
     a {
-      color: #00d4ff;
+      color: var(--dc-accent-cyan);
       text-decoration: none;
       
       &:hover {
-        color: #33dcff;
+        color: var(--dc-accent-cyan-strong);
         text-decoration: underline;
       }
     }
@@ -153,17 +153,17 @@
   font-size: 0.9rem;
   
   a {
-    color: #00d4ff;
+    color: var(--dc-accent-cyan);
     text-decoration: none;
     
     &:hover {
-      color: #33dcff;
+      color: var(--dc-accent-cyan-strong);
       text-decoration: underline;
     }
   }
   
   strong {
-    color: #e8e8e8;
+    color: var(--dc-text-primary);
   }
 }
 

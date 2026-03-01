@@ -49,14 +49,14 @@ Built on the Radix base theme with Bootstrap 5, it provides a dark dungeon RPG a
 ```bash
 cd sites/dungeoncrawler/web/themes/custom/dungeoncrawler
 npm install
-npm run build
+npm run production
 ```
 
 ### Development
 ```bash
 npm run watch    # Watch for changes and rebuild
 npm run dev      # Development build
-npm run build    # Production build
+npm run production    # Production build
 ```
 
 ### Enable Theme

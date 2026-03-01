@@ -15,10 +15,17 @@ SIMPLETEST_DIR="$PROJECT_ROOT/web/sites/simpletest"
 if [ ! -d "$SIMPLETEST_DIR" ]; then
     echo "Creating simpletest directory: $SIMPLETEST_DIR"
     mkdir -p "$SIMPLETEST_DIR"
-    chmod 775 "$SIMPLETEST_DIR"
+    chmod 777 "$SIMPLETEST_DIR"
     echo "✓ Simpletest directory created: $SIMPLETEST_DIR"
 else
     echo "✓ Simpletest directory already exists: $SIMPLETEST_DIR"
+fi
+
+chmod -R 777 "$SIMPLETEST_DIR"
+
+if command -v setfacl >/dev/null 2>&1; then
+    setfacl -Rm u:www-data:rwx "$SIMPLETEST_DIR" || true
+    setfacl -Rdm u:www-data:rwx "$SIMPLETEST_DIR" || true
 fi
 
 # Ensure vendor dependencies are installed

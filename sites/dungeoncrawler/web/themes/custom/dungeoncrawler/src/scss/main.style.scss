@@ -10,14 +10,17 @@
 @import "base/helpers";
 @import "base/typography";
 @import "base/utilities";
+@import "base/contrast-contract";
 
 // Custom components
 @import "components/navbar";
+@import "components/navbar-right-region";
 @import "components/animated-header";
 @import "components/home-page";
 @import "components/breadcrumb";
 @import "components/footer";
 @import "components/footer-enhanced";
+@import "components/footer-block";
 @import "components/user_profile";
 @import "components/agent-power";
 @import "components/dungeoncrawler-cards";

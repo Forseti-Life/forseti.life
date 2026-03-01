@@ -27,19 +27,14 @@ if (!defined('DRUPAL_ROOT')) {
   define('DRUPAL_ROOT', dirname(__DIR__, 4));
 }
 
-// Set a single deterministic umask model for test execution.
-//
-// umask(0002) results in:
-// - Files created with 0664 permissions (rw-rw-r--)
-// - Directories created with 0775 permissions (rwxrwxr-x)
-// This allows both the test runner and web server to read/write test files.
-umask(0002);
+// Use permissive umask for functional tests that run against local web servers
+// (e.g., Apache/PHP-FPM as www-data) to avoid cross-user write failures.
+umask(0000);
 
-// Ensure the simpletest directory exists and is writable.
-// This is required for Drupal's BrowserTestBase which creates temporary
-// test site directories under sites/simpletest/.
-// Using 0777 permissions as recommended in phpunit.xml (line 101) for CI/testing.
-$simpletest_dir = __DIR__ . '/../../../../sites/simpletest';
+// Ensure the real web/sites/simpletest directory exists and is writable.
+// __DIR__ = web/modules/custom/dungeoncrawler_tester/tests
+// dirname(__DIR__, 5) = web
+$simpletest_dir = dirname(__DIR__, 5) . '/sites/simpletest';
 if (!is_dir($simpletest_dir)) {
   if (!mkdir($simpletest_dir, 0777, TRUE)) {
     throw new \RuntimeException("Failed to create simpletest directory: $simpletest_dir");
@@ -48,6 +43,14 @@ if (!is_dir($simpletest_dir)) {
 // Ensure the directory has full write permissions.
 if (!chmod($simpletest_dir, 0777)) {
   throw new \RuntimeException("Failed to set permissions on simpletest directory: $simpletest_dir");
+}
+
+$browser_output_dir = $simpletest_dir . '/browser_output';
+if (!is_dir($browser_output_dir) && !mkdir($browser_output_dir, 0777, TRUE)) {
+  throw new \RuntimeException("Failed to create browser output directory: $browser_output_dir");
+}
+if (!chmod($browser_output_dir, 0777)) {
+  throw new \RuntimeException("Failed to set permissions on browser output directory: $browser_output_dir");
 }
 
 // Include the standard Drupal test bootstrap which will handle the rest of the

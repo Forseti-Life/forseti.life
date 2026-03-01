@@ -18,7 +18,7 @@ chmod -R 775 /tmp/dungeoncrawler-simpletest
 # Ensure simpletest directory in web root exists and is writable
 echo "Setting permissions on simpletest directory..."
 mkdir -p web/sites/simpletest
-chmod 775 web/sites/simpletest
+chmod 777 web/sites/simpletest
 
 # Create default site directories if they don't exist
 echo "Ensuring default site directories exist..."
@@ -64,7 +64,11 @@ if [ ! -d "$SITES_SIMPLETEST" ]; then
     mkdir -p "$SITES_SIMPLETEST"
 fi
 
-chmod -R 775 "$SITES_SIMPLETEST"
+chmod -R 777 "$SITES_SIMPLETEST"
+if command -v setfacl >/dev/null 2>&1; then
+    setfacl -Rm u:www-data:rwx "$SITES_SIMPLETEST" || true
+    setfacl -Rdm u:www-data:rwx "$SITES_SIMPLETEST" || true
+fi
 echo -e "${GREEN}✓${NC} Configured permissions for: $SITES_SIMPLETEST"
 
 # Clean up old test sites (optional, uncomment if needed)
