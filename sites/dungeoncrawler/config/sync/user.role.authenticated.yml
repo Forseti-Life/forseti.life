@@ -7,6 +7,7 @@ dependencies:
     - node.type.ai_conversation
   module:
     - comment
+    - dungeoncrawler_content
     - file
     - filter
     - node
@@ -22,8 +23,10 @@ is_admin: false
 permissions:
   - 'access comments'
   - 'access content'
+  - 'access dungeoncrawler characters'
   - 'access shortcuts'
   - 'create ai_conversation content'
+  - 'create dungeoncrawler characters'
   - 'delete own ai_conversation content'
   - 'delete own files'
   - 'edit own ai_conversation content'
