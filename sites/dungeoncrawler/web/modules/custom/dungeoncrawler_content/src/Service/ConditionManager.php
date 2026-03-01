@@ -14,6 +14,59 @@ class ConditionManager {
 
   protected $database;
 
+  /**
+   * Full PF2E condition catalog.
+   *
+   * Keys: condition slug. Values:
+   *   - is_valued: bool — condition has a numeric severity value (e.g. frightened 2)
+   *   - max_value: int — highest allowed value (0 for non-valued)
+   *   - end_trigger: string — when the condition is removed/reduced
+   *       'end_of_turn' = auto-decrements each end-of-turn via tickConditions()
+   *       'save'        = removed on a successful save
+   *       'action'      = removed by spending an action (e.g. Stand up)
+   *       'rest'        = removed only on rest/sleep
+   *       'recovery'    = special rule (dying recovery check)
+   *       'persistent'  = persists until explicitly removed
+   *   - effects: key-value of effect type → base modifier (value multiplied for valued conditions)
+   */
+  const CONDITIONS = [
+    'blinded'      => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => ['flat_check_attacks' => TRUE]],
+    'clumsy'       => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => ['dex_checks' => -1, 'ac' => -1]],
+    'concealed'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'confused'     => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'end_of_turn', 'effects' => []],
+    'controlled'   => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => []],
+    'dazzled'      => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => []],
+    'deafened'     => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => []],
+    'doomed'       => ['is_valued' => TRUE,  'max_value' => 3, 'end_trigger' => 'persistent',  'effects' => []],
+    'drained'      => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'rest',        'effects' => ['max_hp_per_level' => -1]],
+    'dying'        => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'recovery',    'effects' => ['cannot_act' => TRUE]],
+    'encumbered'   => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'enfeebled'    => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => ['str_checks' => -1, 'melee_attack' => -1]],
+    'fascinated'   => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => []],
+    'fatigued'     => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'rest',        'effects' => ['ac' => -1, 'saves' => -1]],
+    'flat_footed'  => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => ['ac' => -2]],
+    'fleeing'      => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'end_of_turn', 'effects' => []],
+    'frightened'   => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => ['checks' => -1, 'dcs' => -1]],
+    'grabbed'      => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'action',      'effects' => ['cannot_move' => TRUE, 'flat_footed' => TRUE]],
+    'hidden'       => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'immobilized'  => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => ['cannot_move' => TRUE]],
+    'invisible'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'observed'     => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'paralyzed'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => ['cannot_act' => TRUE, 'flat_footed' => TRUE]],
+    'petrified'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => ['cannot_act' => TRUE]],
+    'prone'        => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'action',      'effects' => ['ac' => -2, 'attack' => -2]],
+    'quickened'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'end_of_turn', 'effects' => ['extra_action' => 1]],
+    'restrained'   => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'action',      'effects' => ['cannot_move' => TRUE, 'flat_footed' => TRUE]],
+    'sickened'     => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'save',        'effects' => ['checks' => -1, 'dcs' => -1]],
+    'slowed'       => ['is_valued' => TRUE,  'max_value' => 3, 'end_trigger' => 'end_of_turn', 'effects' => []],
+    'stunned'      => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => []],
+    'stupefied'    => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => ['spell_dc' => -1, 'spell_attack' => -1]],
+    'unconscious'  => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => ['cannot_act' => TRUE, 'flat_footed' => TRUE]],
+    'undetected'   => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'unnoticed'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
+    'wounded'      => ['is_valued' => TRUE,  'max_value' => 3, 'end_trigger' => 'persistent',  'effects' => []],
+  ];
+
   public function __construct(Connection $database) {
     $this->database = $database;
   }
@@ -21,32 +74,72 @@ class ConditionManager {
   /**
    * Apply condition to participant.
    *
+   * Validates the condition type against the catalog.
+   * For valued conditions already present: updates value (capped at max_value).
+   * For non-valued conditions already present: no-op (idempotent).
+   *
+   * @return int|false Condition row ID on insert/update, FALSE on no-op, or throws on unknown type.
+   *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applycondition
    */
   public function applyCondition($participant_id, $condition_type, $value, $duration, $source, $encounter_id) {
+    if (!array_key_exists($condition_type, self::CONDITIONS)) {
+      throw new \InvalidArgumentException("Unknown condition type: '{$condition_type}'. Must be one of: " . implode(', ', array_keys(self::CONDITIONS)));
+    }
+
+    $catalog = self::CONDITIONS[$condition_type];
     $now = time();
     [$duration_type, $duration_remaining] = $this->normalizeDuration($duration);
     $applied_at_round = $this->getCurrentRound($encounter_id);
 
+    // Check for an existing active row.
+    $existing = $this->database->select('combat_conditions', 'c')
+      ->fields('c', ['id', 'value'])
+      ->condition('participant_id', $participant_id)
+      ->condition('encounter_id', $encounter_id)
+      ->condition('condition_type', $condition_type)
+      ->isNull('removed_at_round')
+      ->execute()
+      ->fetchObject();
+
+    if ($existing) {
+      if (!$catalog['is_valued']) {
+        // Non-valued: idempotent — already applied, do nothing.
+        return FALSE;
+      }
+      // Valued: update to the higher value, capped at max.
+      $new_value = min((int) $catalog['max_value'], (int) $existing->value + (int) $value);
+      $this->database->update('combat_conditions')
+        ->fields(['value' => $new_value, 'updated' => $now])
+        ->condition('id', $existing->id)
+        ->execute();
+      return (int) $existing->id;
+    }
+
+    $insert_value = $catalog['is_valued']
+      ? min((int) $catalog['max_value'], max(1, (int) $value))
+      : NULL;
+
     return (int) $this->database->insert('combat_conditions')
       ->fields([
-        'participant_id' => $participant_id,
-        'encounter_id' => $encounter_id,
-        'condition_type' => $condition_type,
-        'value' => is_numeric($value) ? (int) $value : NULL,
-        'duration_type' => $duration_type,
+        'participant_id'   => $participant_id,
+        'encounter_id'     => $encounter_id,
+        'condition_type'   => $condition_type,
+        'value'            => $insert_value,
+        'duration_type'    => $duration_type,
         'duration_remaining' => $duration_remaining,
-        'source' => is_string($source) ? $source : json_encode($source),
+        'source'           => is_string($source) ? $source : json_encode($source),
         'applied_at_round' => $applied_at_round,
         'removed_at_round' => NULL,
-        'created' => $now,
-        'updated' => $now,
+        'created'          => $now,
+        'updated'          => $now,
       ])
       ->execute();
   }
 
   /**
-   * Remove condition.
+   * Remove condition (soft delete — sets removed_at_round).
+   * Returns FALSE (no-op) if the condition does not exist on this participant.
    *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#removecondition
    */
@@ -62,9 +155,178 @@ class ConditionManager {
       ->condition('id', $condition_id)
       ->condition('participant_id', $participant_id)
       ->condition('encounter_id', $encounter_id)
+      ->isNull('removed_at_round')
       ->execute();
 
     return $count > 0;
+  }
+
+  /**
+   * Get all active (not-removed) conditions for a participant.
+   *
+   * @return array Associative array keyed by condition row ID.
+   */
+  public function getActiveConditions(int $participant_id, int $encounter_id): array {
+    return $this->database->select('combat_conditions', 'c')
+      ->fields('c')
+      ->condition('participant_id', $participant_id)
+      ->condition('encounter_id', $encounter_id)
+      ->isNull('removed_at_round')
+      ->execute()
+      ->fetchAllAssoc('id', \PDO::FETCH_ASSOC);
+  }
+
+  /**
+   * Decrement valued end_of_turn conditions by 1 at end of a participant's turn.
+   *
+   * Frightened 2 → frightened 1 → removed. Slowed/stunned/clumsy/enfeebled/stupefied
+   * and other 'end_of_turn' valued conditions all follow this rule.
+   *
+   * @param int $participant_id
+   * @param int $encounter_id
+   *
+   * @return array List of ['condition_type' => string, 'old_value' => int, 'new_value' => int|'removed'] for each ticked condition.
+   */
+  public function tickConditions(int $participant_id, int $encounter_id): array {
+    $conditions = $this->getActiveConditions($participant_id, $encounter_id);
+    $now = time();
+    $removed_at_round = $this->getCurrentRound($encounter_id);
+    $ticked = [];
+
+    foreach ($conditions as $row) {
+      $type = $row['condition_type'];
+      $catalog = self::CONDITIONS[$type] ?? NULL;
+
+      if (!$catalog || !$catalog['is_valued'] || $catalog['end_trigger'] !== 'end_of_turn') {
+        continue;
+      }
+
+      $old_value = (int) $row['value'];
+      $new_value = $old_value - 1;
+
+      if ($new_value <= 0) {
+        // Remove the condition entirely.
+        $this->database->update('combat_conditions')
+          ->fields(['removed_at_round' => $removed_at_round, 'updated' => $now])
+          ->condition('id', $row['id'])
+          ->execute();
+        $ticked[] = ['condition_type' => $type, 'old_value' => $old_value, 'new_value' => 'removed'];
+      }
+      else {
+        $this->database->update('combat_conditions')
+          ->fields(['value' => $new_value, 'updated' => $now])
+          ->condition('id', $row['id'])
+          ->execute();
+        $ticked[] = ['condition_type' => $type, 'old_value' => $old_value, 'new_value' => $new_value];
+      }
+    }
+
+    return $ticked;
+  }
+
+  /**
+   * Process the dying/recovery rules at start of a dying participant's turn.
+   *
+   * PF2E rules:
+   *   Roll 1d20 flat check against DC 10 (no modifiers).
+   *   1          = critical failure → dying value +2
+   *   2–9        = failure          → dying value +1
+   *   10–19      = success          → dying value -1
+   *   20         = critical success → dying value -2 (0 or below → conscious, remove dying)
+   *   dying 4    = dead (regardless of doomed modifier — simplified)
+   *
+   * @param int $participant_id
+   * @param int $encounter_id
+   *
+   * @return array [
+   *   'roll'         => int (1–20),
+   *   'outcome'      => 'critical_failure'|'failure'|'success'|'critical_success',
+   *   'dying_before' => int,
+   *   'dying_after'  => int,
+   *   'dead'         => bool,
+   *   'conscious'    => bool,
+   * ]
+   */
+  public function processDying(int $participant_id, int $encounter_id): array {
+    $conditions = $this->getActiveConditions($participant_id, $encounter_id);
+    $dying_row = NULL;
+    foreach ($conditions as $row) {
+      if ($row['condition_type'] === 'dying') {
+        $dying_row = $row;
+        break;
+      }
+    }
+
+    if (!$dying_row) {
+      return ['error' => 'Participant does not have the dying condition.'];
+    }
+
+    $dying_before = (int) $dying_row['value'];
+    $roll = mt_rand(1, 20);
+
+    if ($roll === 1) {
+      $outcome = 'critical_failure';
+      $delta = +2;
+    }
+    elseif ($roll <= 9) {
+      $outcome = 'failure';
+      $delta = +1;
+    }
+    elseif ($roll <= 19) {
+      $outcome = 'success';
+      $delta = -1;
+    }
+    else {
+      $outcome = 'critical_success';
+      $delta = -2;
+    }
+
+    $dying_after = max(0, $dying_before + $delta);
+    $now = time();
+    $current_round = $this->getCurrentRound($encounter_id);
+
+    if ($dying_after <= 0) {
+      // Participant stabilizes — remove the dying condition.
+      $this->database->update('combat_conditions')
+        ->fields(['removed_at_round' => $current_round, 'updated' => $now])
+        ->condition('id', $dying_row['id'])
+        ->execute();
+      return [
+        'roll' => $roll, 'outcome' => $outcome,
+        'dying_before' => $dying_before, 'dying_after' => 0,
+        'dead' => FALSE, 'conscious' => TRUE,
+      ];
+    }
+
+    if ($dying_after >= 4) {
+      // Participant dies — remove dying, mark participant dead.
+      $this->database->update('combat_conditions')
+        ->fields(['removed_at_round' => $current_round, 'updated' => $now])
+        ->condition('id', $dying_row['id'])
+        ->execute();
+      // Mark participant as removed from encounter (dead).
+      $this->database->update('combat_participants')
+        ->fields(['removed_at_round' => $current_round, 'status' => 'dead'])
+        ->condition('id', $participant_id)
+        ->execute();
+      return [
+        'roll' => $roll, 'outcome' => $outcome,
+        'dying_before' => $dying_before, 'dying_after' => $dying_after,
+        'dead' => TRUE, 'conscious' => FALSE,
+      ];
+    }
+
+    // Update dying value.
+    $this->database->update('combat_conditions')
+      ->fields(['value' => $dying_after, 'updated' => $now])
+      ->condition('id', $dying_row['id'])
+      ->execute();
+
+    return [
+      'roll' => $roll, 'outcome' => $outcome,
+      'dying_before' => $dying_before, 'dying_after' => $dying_after,
+      'dead' => FALSE, 'conscious' => FALSE,
+    ];
   }
 
   /**
@@ -167,13 +429,12 @@ class ConditionManager {
   }
 
   /**
-   * Process dying condition.
+   * Process dying condition (compatibility wrapper).
    *
-   * @see /docs/dungeoncrawler/issues/combat-engine-service.md#processdyingcondition
+   * @deprecated Use processDying() directly.
    */
   public function processDyingCondition($participant_id, $constitution_modifier, $encounter_id) {
-    // TODO: Roll recovery check, adjust dying value
-    return [];
+    return $this->processDying((int) $participant_id, (int) $encounter_id);
   }
 
   protected function getCurrentRound(int $encounter_id): int {

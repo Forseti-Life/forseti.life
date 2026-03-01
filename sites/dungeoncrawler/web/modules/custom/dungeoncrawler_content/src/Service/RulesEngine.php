@@ -96,10 +96,60 @@ class RulesEngine {
   /**
    * Check condition restrictions.
    *
+   * Queries active combat_conditions for the participant and returns the most
+   * restrictive applicable restriction for the given action type.
+   *
+   * Rules implemented:
+   *   - paralyzed  → cannot_act (all actions blocked)
+   *   - unconscious → cannot_act (all actions blocked)
+   *   - petrified  → cannot_act (all actions blocked)
+   *   - dying      → cannot_act (all actions blocked while dying)
+   *   - grabbed    → cannot_move (movement actions blocked)
+   *   - immobilized → cannot_move
+   *   - restrained → cannot_move
+   *
+   * @param array|object $participant Participant row; must contain 'id' and 'encounter_id'.
+   * @param string $action_type The action type being attempted.
+   *
+   * @return array ['can_act' => bool, 'restriction' => string]
+   *
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md#condition-restriction-rules
    */
   public function checkConditionRestrictions($participant, $action_type) {
-    // TODO: Check paralyzed, unconscious, immobilized, etc.
+    $participant = (array) $participant;
+    $participant_id = (int) ($participant['id'] ?? 0);
+    $encounter_id   = (int) ($participant['encounter_id'] ?? 0);
+
+    if (!$participant_id || !$encounter_id) {
+      return ['can_act' => TRUE, 'restriction' => ''];
+    }
+
+    $blocking_act  = ['paralyzed', 'unconscious', 'petrified', 'dying'];
+    $blocking_move = ['grabbed', 'immobilized', 'restrained'];
+
+    $rows = $this->database->select('combat_conditions', 'c')
+      ->fields('c', ['condition_type'])
+      ->condition('participant_id', $participant_id)
+      ->condition('encounter_id', $encounter_id)
+      ->isNull('removed_at_round')
+      ->execute()
+      ->fetchCol();
+
+    foreach ($blocking_act as $cond) {
+      if (in_array($cond, $rows, TRUE)) {
+        return ['can_act' => FALSE, 'restriction' => "Cannot act: {$cond}"];
+      }
+    }
+
+    $move_actions = ['move', 'stride', 'step', 'crawl', 'fly', 'swim'];
+    if (in_array($action_type, $move_actions, TRUE)) {
+      foreach ($blocking_move as $cond) {
+        if (in_array($cond, $rows, TRUE)) {
+          return ['can_act' => FALSE, 'restriction' => "Cannot move: {$cond}"];
+        }
+      }
+    }
+
     return ['can_act' => TRUE, 'restriction' => ''];
   }
 
