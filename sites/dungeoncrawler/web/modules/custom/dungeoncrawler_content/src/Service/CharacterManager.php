@@ -672,6 +672,126 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     ],
   ];
 
+  /**
+   * PF2E starting equipment by class.
+   * Each class entry lists the standard starting gear at level 1.
+   * Items reference IDs from EquipmentCatalogService::CATALOG.
+   */
+  const STARTING_EQUIPMENT = [
+    'fighter' => [
+      'weapons'  => ['longsword', 'dagger'],
+      'armor'    => ['scale-mail'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'torch', 'flint-steel'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Scale mail + longsword + dagger is the standard fighter kit.',
+    ],
+    'rogue' => [
+      'weapons'  => ['shortsword', 'dagger', 'shortbow'],
+      'armor'    => ['leather-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'rope', 'waterskin'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Light armor, quick weapons, climbing gear.',
+    ],
+    'wizard' => [
+      'weapons'  => ['staff', 'dagger'],
+      'armor'    => [],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'chalk', 'lantern-hooded', 'oil-pint'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Wizards rely on spells; minimal mundane kit.',
+    ],
+    'cleric' => [
+      'weapons'  => ['mace', 'dagger'],
+      'armor'    => ['chain-shirt'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'torch', 'waterskin'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Chain shirt and mace, standard healer loadout.',
+    ],
+    'ranger' => [
+      'weapons'  => ['shortsword', 'dagger', 'longbow'],
+      'armor'    => ['leather-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'rope', 'flint-steel'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Longbow + light melee; ranger wilderness kit.',
+    ],
+    'bard' => [
+      'weapons'  => ['rapier', 'dagger'],
+      'armor'    => ['leather-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'chalk', 'waterskin'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Rapier + leather for the performative combatant.',
+    ],
+    'barbarian' => [
+      'weapons'  => ['greataxe', 'dagger'],
+      'armor'    => ['hide-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'torch', 'waterskin'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Two-handed greataxe and hide armor.',
+    ],
+    'champion' => [
+      'weapons'  => ['longsword', 'dagger'],
+      'armor'    => ['breastplate'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'torch', 'flint-steel'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Heavy warrior of faith; breastplate + longsword.',
+    ],
+    'druid' => [
+      'weapons'  => ['staff', 'dagger'],
+      'armor'    => ['hide-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'rope', 'flint-steel'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Nature magic; hide armor, simple weapons.',
+    ],
+    'monk' => [
+      'weapons'  => ['dagger'],
+      'armor'    => [],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'torch', 'waterskin'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Unarmed combatant; no armor needed.',
+    ],
+    'sorcerer' => [
+      'weapons'  => ['dagger'],
+      'armor'    => [],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'chalk', 'lantern-hooded'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Innate magic user; light travel kit.',
+    ],
+    'alchemist' => [
+      'weapons'  => ['dagger', 'crossbow'],
+      'armor'    => ['leather-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'waterskin', 'flint-steel'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Crossbow + dagger + leather for the field alchemist.',
+    ],
+    'investigator' => [
+      'weapons'  => ['rapier', 'dagger'],
+      'armor'    => ['studded-leather'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'chalk', 'lantern-hooded'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Finesse + studded leather for the analytical combatant.',
+    ],
+    'oracle' => [
+      'weapons'  => ['mace', 'dagger'],
+      'armor'    => ['chain-shirt'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'torch', 'waterskin'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Divine conduit; chain shirt and mace.',
+    ],
+    'swashbuckler' => [
+      'weapons'  => ['rapier', 'dagger'],
+      'armor'    => ['leather-armor'],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'rope', 'chalk'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Finesse fighter; rapier and light armor.',
+    ],
+    'witch' => [
+      'weapons'  => ['staff', 'dagger'],
+      'armor'    => [],
+      'gear'     => ['backpack', 'bedroll', 'rations-week', 'chalk', 'oil-pint'],
+      'currency' => ['gp' => 15],
+      'note'     => 'Patron spellcaster; minimal kit.',
+    ],
+  ];
+
   public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid) {
     $this->database = $database;
     $this->currentUser = $current_user;

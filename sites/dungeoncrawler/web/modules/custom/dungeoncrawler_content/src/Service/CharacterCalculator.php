@@ -174,18 +174,19 @@ class CharacterCalculator {
   /**
    * Calculate armor class.
    *
-   * Formula: 10 + DEX + armor + shield + proficiency + level + other
+   * Formula: 10 + DEX (capped by armor max_dex) + armor_bonus + shield + proficiency + level + other
    *
    * @param array $characterData
    *   Character data with DEX, armor bonuses, proficiency.
+   *   Optional keys:
+   *     - armor_dex_cap: int  Maximum DEX modifier allowed by equipped armor.
+   *       NULL means no cap (unarmored). When set to 0 the cap is respected (e.g. Full Plate).
    *
    * @return array
    *   AC calculation with total and breakdown.
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   ac_calculation section
-   *
-   * TODO: Implement AC calculation
    */
   public function calculateArmorClass(array $characterData): array {
     $abilities = $characterData['abilities'] ?? [];
@@ -195,6 +196,12 @@ class CharacterCalculator {
       ?? 10
     );
     $dexModifier = $this->calculateAbilityModifier($dexScore);
+
+    // Apply armor dex cap when armor is equipped.
+    // Key presence (even with value 0) means the cap applies.
+    if (array_key_exists('armor_dex_cap', $characterData) && $characterData['armor_dex_cap'] !== NULL) {
+      $dexModifier = min($dexModifier, (int) $characterData['armor_dex_cap']);
+    }
 
     $level = max(0, (int) ($characterData['level'] ?? 1));
     $armorBonus = (int) ($characterData['armor_bonus'] ?? 0);

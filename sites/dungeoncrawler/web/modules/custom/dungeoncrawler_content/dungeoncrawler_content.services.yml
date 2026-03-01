@@ -118,6 +118,9 @@ services:
   dungeoncrawler_content.combat_calculator:
     class: Drupal\dungeoncrawler_content\Service\CombatCalculator
 
+  dungeoncrawler_content.equipment_catalog:
+    class: Drupal\dungeoncrawler_content\Service\EquipmentCatalogService
+
   dungeoncrawler_content.rules_engine:
     class: Drupal\dungeoncrawler_content\Service\RulesEngine
     arguments:
