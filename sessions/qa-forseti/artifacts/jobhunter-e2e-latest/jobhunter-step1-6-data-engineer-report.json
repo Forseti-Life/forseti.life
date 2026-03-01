@@ -1,5 +1,5 @@
 {
-  "startedAt": "2026-03-01T05:43:05.552Z",
+  "startedAt": "2026-03-01T07:33:32.073Z",
   "baseUrl": "http://localhost",
   "criteria": {
     "roleQuery": "Data Engineer",
@@ -29,7 +29,7 @@
     "step2_search": {
       "url": "http://localhost/jobhunter/job-discovery",
       "screenshot": "sessions/qa-forseti/artifacts/jobhunter-e2e-latest/step2-job-discovery.png",
-      "saved": false,
+      "saved": true,
       "foundMatchingRoleInPhiladelphia": true
     },
     "step3-submission-page": {
@@ -46,12 +46,12 @@
     }
   },
   "submission": {
-    "success": false,
-    "message": "",
-    "attempts": 6,
+    "success": true,
+    "message": "Marked as applied.",
+    "attempts": 1,
     "role": "Data Engineer"
   },
   "consoleErrors": [],
-  "finishedAt": "2026-03-01T05:44:07.639Z",
+  "finishedAt": "2026-03-01T07:34:01.827Z",
   "finalUrl": "http://localhost/jobhunter"
 }
