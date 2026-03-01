@@ -46,6 +46,22 @@ final class LlmManagementForm extends FormBase {
     $runner_script = $this->getRunnerScript();
     $cache_root = $this->getRuntimeCacheRoot();
 
+    // Graceful "not configured" check: show an info notice if the runtime is
+    // not set up, but still render the page (do not throw or log at Error).
+    $env_ready = is_file($python_bin) && is_file($runner_script);
+    if (!$env_ready) {
+      $missing = [];
+      if (!is_file($python_bin)) {
+        $missing[] = $this->t('Python runtime not found: @p', ['@p' => $python_bin]);
+      }
+      if (!is_file($runner_script)) {
+        $missing[] = $this->t('LLM runner script not found: @s', ['@s' => $runner_script]);
+      }
+      foreach ($missing as $m) {
+        $this->messenger()->addWarning($m);
+      }
+    }
+
     $form['summary'] = [
       '#type' => 'details',
       '#title' => $this->t('Environment and runtime'),
@@ -298,7 +314,9 @@ final class LlmManagementForm extends FormBase {
     @chmod($script_file, 0755);
 
     try {
-      $launcher = new Process(['bash', '-lc', 'nohup ' . escapeshellarg($script_file) . ' >/dev/null 2>&1 & echo $!']);
+      // Use non-login shell (-c not -lc) to avoid heavy .bashrc/.bash_profile
+      // overhead which can push launcher past the 10s timeout.
+      $launcher = new Process(['bash', '-c', 'nohup ' . escapeshellarg($script_file) . ' >/dev/null 2>&1 & echo $!']);
       $launcher->setTimeout(10);
       $launcher->run();
 
@@ -600,7 +618,10 @@ final class LlmManagementForm extends FormBase {
       );
     }
     else {
-      $this->getLogger('copilot_agent_tracker')->error(
+      // Warning (not error): failed LLM test jobs on this dev tool page are
+      // expected when the model is unavailable or the environment is not set up.
+      // Error-level would pollute production log monitoring.
+      $this->getLogger('copilot_agent_tracker')->warning(
         'LLM_CALL_FAILED job_id=@job_id user_id=@user username=@username model=@model max_length=@max_length prompt=@prompt runtime_sec=@runtime_sec exit_code=@exit_code error=@error_preview',
         $context
       );
