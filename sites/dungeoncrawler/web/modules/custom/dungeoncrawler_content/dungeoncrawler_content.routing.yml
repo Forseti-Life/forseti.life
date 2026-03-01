@@ -1224,3 +1224,13 @@ dungeoncrawler_content.api.dice_roll:
     _access: 'TRUE'
   options:
     _format: json
+
+dungeoncrawler_content.api.rules_check:
+  path: '/rules/check'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RulesCheckController::check'
+  methods: [POST]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json

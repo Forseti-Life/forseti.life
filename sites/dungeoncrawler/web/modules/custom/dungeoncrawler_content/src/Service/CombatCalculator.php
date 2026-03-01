@@ -174,4 +174,77 @@ class CombatCalculator {
     return $order[$newIndex];
   }
 
+  /**
+   * Simple DC by level (PF2E Core Rulebook Table 10-5).
+   * Levels 1–20.
+   */
+  const SIMPLE_DC = [
+    1 => 15, 2 => 16, 3 => 18,  4 => 19,  5 => 20,
+    6 => 22, 7 => 23, 8 => 24,  9 => 26, 10 => 27,
+    11 => 28, 12 => 30, 13 => 31, 14 => 32, 15 => 34,
+    16 => 35, 17 => 36, 18 => 38, 19 => 39, 20 => 40,
+  ];
+
+  /**
+   * Task DC by difficulty tier (PF2E Core Rulebook Chapter 10).
+   */
+  const TASK_DC = [
+    'trivial'    => 10,
+    'low'        => 15,
+    'moderate'   => 20,
+    'high'       => 25,
+    'extreme'    => 30,
+    'incredible' => 40,
+  ];
+
+  /**
+   * Determine degree of success using PF2E four-degree model.
+   *
+   * Note: method name preserves the AC typo "Degre" for interface consistency.
+   *
+   * @param int $rollTotal     Total roll result (d20 + modifiers).
+   * @param int $dc            Difficulty class.
+   * @param bool $naturalTwenty Whether the raw d20 was a 20 (bumps degree up).
+   * @param bool $naturalOne   Whether the raw d20 was a 1 (bumps degree down).
+   *
+   * @return string 'critical_success' | 'success' | 'failure' | 'critical_failure'
+   */
+  public function determineDegreOfSuccess(int $rollTotal, int $dc, bool $naturalTwenty = FALSE, bool $naturalOne = FALSE): string {
+    $naturalRoll = $naturalTwenty ? 20 : ($naturalOne ? 1 : NULL);
+    return $this->calculateDegreeOfSuccess($rollTotal, $dc, $naturalRoll);
+  }
+
+  /**
+   * Get the Simple DC for a given character/creature level (PF2E Table 10-5).
+   *
+   * @param int $level  Level 1–20. Negative/zero → error array. >20 → capped at 20.
+   *
+   * @return int|array  DC integer, or ['error' => '...'] on invalid input.
+   */
+  public function getSimpleDC(int $level) {
+    if ($level <= 0) {
+      return ['error' => "Level must be a positive integer (1–20), got: {$level}."];
+    }
+    $capped = min($level, 20);
+    return self::SIMPLE_DC[$capped];
+  }
+
+  /**
+   * Get the DC for a named difficulty tier.
+   *
+   * Valid tiers: trivial (10), low (15), moderate (20), high (25), extreme (30), incredible (40).
+   *
+   * @param string $difficulty  Difficulty tier name (case-insensitive).
+   *
+   * @return int|array  DC integer, or ['error' => '...'] on unknown tier.
+   */
+  public function getTaskDC(string $difficulty) {
+    $key = strtolower(trim($difficulty));
+    if (!isset(self::TASK_DC[$key])) {
+      $valid = implode(', ', array_keys(self::TASK_DC));
+      return ['error' => "Unknown difficulty tier: '{$difficulty}'. Valid tiers: {$valid}."];
+    }
+    return self::TASK_DC[$key];
+  }
+
 }
