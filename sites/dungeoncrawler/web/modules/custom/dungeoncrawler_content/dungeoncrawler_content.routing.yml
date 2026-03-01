@@ -26,6 +26,7 @@ dungeoncrawler_content.game_objects:
     _title: 'Game Object Manager'
   methods: [GET, POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer dungeoncrawler content'
 
 dungeoncrawler_content.gemini_image_interface:
@@ -177,6 +178,7 @@ dungeoncrawler_content.campaign_create:
     _title: 'Create Campaign'
   methods: [GET, POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access dungeoncrawler characters'
 
 dungeoncrawler_content.campaign_archive:
@@ -223,6 +225,7 @@ dungeoncrawler_content.campaign_select_character:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::selectCharacter'
   methods: [GET, POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access dungeoncrawler characters'
     campaign_id: '\d+'
     character_id: '\d+'
@@ -244,6 +247,7 @@ dungeoncrawler_content.character_step:
     _title: 'Create Character'
   methods: [GET, POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'create dungeoncrawler characters'
     step: '\d+'
 
@@ -253,6 +257,7 @@ dungeoncrawler_content.character_save_step:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::saveStep'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'create dungeoncrawler characters'
     step: '\d+'
 
@@ -313,6 +318,7 @@ dungeoncrawler_content.api.character_save:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterApiController::saveCharacter'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'create dungeoncrawler characters'
   options:
     _format: json
@@ -338,6 +344,7 @@ dungeoncrawler_content.api.ability_scores_calculate:
     _controller: '\Drupal\dungeoncrawler_content\Controller\AbilityScoreApiController::calculate'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'create dungeoncrawler characters'
   options:
     _format: json
@@ -348,6 +355,7 @@ dungeoncrawler_content.api.ability_scores_validate_boost:
     _controller: '\Drupal\dungeoncrawler_content\Controller\AbilityScoreApiController::validateBoost'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'create dungeoncrawler characters'
   options:
     _format: json
@@ -399,6 +407,7 @@ dungeoncrawler_content.api.dungeon_state_set:
     _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonStateController::setState'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     dungeon_id: '[A-Za-z0-9_-]+'
   options:
@@ -455,6 +464,7 @@ dungeoncrawler_content.api.room_chat_post:
     _controller: '\Drupal\dungeoncrawler_content\Controller\RoomChatController::postChatMessage'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     campaign_id: '\d+'
     room_id: '[A-Za-z0-9_-]+'
@@ -478,6 +488,7 @@ dungeoncrawler_content.api.character_state_update:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::updateState'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -489,6 +500,7 @@ dungeoncrawler_content.api.character_cast_spell:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::castSpell'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -500,6 +512,7 @@ dungeoncrawler_content.api.character_hit_points:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::updateHitPoints'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -511,6 +524,7 @@ dungeoncrawler_content.api.character_add_condition:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::addCondition'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -533,6 +547,7 @@ dungeoncrawler_content.api.character_inventory:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::updateInventory'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -562,6 +577,7 @@ dungeoncrawler_content.api.inventory_add_item:
     _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::addItem'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     owner_type: 'character|container'
     owner_id: '[A-Za-z0-9_-]+'
@@ -587,6 +603,7 @@ dungeoncrawler_content.api.inventory_transfer:
     _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::transferItems'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -597,6 +614,7 @@ dungeoncrawler_content.api.inventory_change_location:
     _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::changeItemLocation'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     owner_type: 'character|container'
     owner_id: '[A-Za-z0-9_-]+'
@@ -622,6 +640,7 @@ dungeoncrawler_content.api.character_experience:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::gainExperience'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -633,6 +652,7 @@ dungeoncrawler_content.api.character_level_up:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::levelUp'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -644,6 +664,7 @@ dungeoncrawler_content.api.character_start_turn:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::startTurn'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     character_id: '\d+'
   options:
@@ -659,6 +680,7 @@ dungeoncrawler_content.api.combat_start:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::start'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -669,6 +691,7 @@ dungeoncrawler_content.api.combat_end_turn:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::endTurn'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -679,6 +702,7 @@ dungeoncrawler_content.api.combat_end:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::end'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -689,6 +713,7 @@ dungeoncrawler_content.api.combat_attack:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::attack'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -699,6 +724,7 @@ dungeoncrawler_content.api.combat_action:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::action'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -709,6 +735,7 @@ dungeoncrawler_content.api.combat_get:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::get'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -719,6 +746,7 @@ dungeoncrawler_content.api.combat_recommendation_preview:
     _controller: '\Drupal\dungeoncrawler_content\Controller\EncounterAiPreviewController::preview'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'administer dungeoncrawler content'
   options:
     _format: json
@@ -768,6 +796,7 @@ dungeoncrawler_content.api.combat_set:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CombatEncounterApiController::set'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
   options:
     _format: json
@@ -796,6 +825,7 @@ dungeoncrawler_content.api.entity_spawn:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::spawnEntity'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -808,6 +838,7 @@ dungeoncrawler_content.api.entity_move:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignEntityController::moveEntity'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -853,6 +884,7 @@ dungeoncrawler_content.api.generate_dungeon:
     _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonGeneratorController::generateDungeon'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -895,6 +927,7 @@ dungeoncrawler_content.api.add_dungeon_level:
     _controller: '\Drupal\dungeoncrawler_content\Controller\DungeonGeneratorController::addDungeonLevel'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -914,6 +947,7 @@ dungeoncrawler_content.api.generate_room:
     _controller: '\Drupal\dungeoncrawler_content\Controller\RoomGeneratorController::createRoom'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -944,6 +978,7 @@ dungeoncrawler_content.api.regenerate_room:
     _controller: '\Drupal\dungeoncrawler_content\Controller\RoomGeneratorController::regenerateRoom'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'administer dungeoncrawler content'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -964,6 +999,7 @@ dungeoncrawler_content.api.quest_generate:
     _controller: '\Drupal\dungeoncrawler_content\Controller\QuestGeneratorController::generate'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -977,6 +1013,7 @@ dungeoncrawler_content.api.quest_generate_for_location:
     _controller: '\Drupal\dungeoncrawler_content\Controller\QuestGeneratorController::generateForLocation'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -1003,6 +1040,7 @@ dungeoncrawler_content.api.quest_start:
     _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::startQuest'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -1031,6 +1069,7 @@ dungeoncrawler_content.api.quest_complete:
     _controller: '\Drupal\dungeoncrawler_content\Controller\QuestTrackerController::completeQuest'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
@@ -1059,6 +1098,7 @@ dungeoncrawler_content.api.quest_claim_rewards:
     _controller: '\Drupal\dungeoncrawler_content\Controller\QuestRewardController::claimRewards'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     _permission: 'access dungeoncrawler characters'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'

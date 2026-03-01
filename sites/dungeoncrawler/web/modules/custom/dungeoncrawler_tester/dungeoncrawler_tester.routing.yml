@@ -36,6 +36,7 @@ dungeoncrawler_tester.import_open_issues_reconcile_start:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::startImportOpenIssuesReconcileAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.import_open_issues_reconcile_tick:
@@ -44,6 +45,7 @@ dungeoncrawler_tester.import_open_issues_reconcile_tick:
     _controller: '\Drupal\dungeoncrawler_tester\Controller\TestingDashboardIssueAutomationController::tickImportOpenIssuesReconcileAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 dungeoncrawler_tester.import_open_issues_reconcile_status:
