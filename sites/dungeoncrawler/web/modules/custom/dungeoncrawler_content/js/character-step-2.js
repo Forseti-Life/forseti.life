@@ -30,6 +30,7 @@
     SUBMIT_BUTTON: 'button[type="submit"], input[type="submit"]',
     SELECTED_ANCESTRY: 'select[name="ancestry"]',
     SELECTED_HERITAGE: 'select[name="heritage"]',
+    SELECTED_ANCESTRY_FEAT: 'input[name="ancestry_feat"]',
     HERITAGE_DATA_HOST: '.ancestry-selection',
   };
 
@@ -199,6 +200,9 @@
             if ($selectedHeritage.length) {
               $selectedHeritage.val('');
             }
+
+            // Clear stale ancestry feat choice before submit.
+            $(SELECTORS.SELECTED_ANCESTRY_FEAT, context).prop('checked', false);
             
             // Show heritages for this ancestry
             showHeritages(ancestryId);
@@ -231,6 +235,17 @@
         if (currentAncestry) {
           showHeritages(currentAncestry);
         }
+
+        // Dropdown ancestry changes (keyboard/manual select) also clear
+        // dependent selections before form submit.
+        once('ancestry-select-change', SELECTORS.SELECTED_ANCESTRY, context).forEach(function(selectElement) {
+          $(selectElement).on('change', function() {
+            if ($selectedHeritage.length) {
+              $selectedHeritage.val('');
+            }
+            $(SELECTORS.SELECTED_ANCESTRY_FEAT, context).prop('checked', false);
+          });
+        });
 
         updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
 

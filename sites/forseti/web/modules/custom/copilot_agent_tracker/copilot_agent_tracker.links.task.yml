@@ -1,0 +1,29 @@
+copilot_agent_tracker.langgraph_dashboard_tab:
+  route_name: copilot_agent_tracker.langgraph_dashboard
+  title: 'Overview'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 0
+
+copilot_agent_tracker.langgraph_session_tab:
+  route_name: copilot_agent_tracker.langgraph_session
+  title: 'Session'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 1
+
+copilot_agent_tracker.langgraph_feature_progress_tab:
+  route_name: copilot_agent_tracker.langgraph_feature_progress
+  title: 'Feature Progress'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 2
+
+copilot_agent_tracker.langgraph_parity_tab:
+  route_name: copilot_agent_tracker.langgraph_parity
+  title: 'Parity Health'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 3
+
+copilot_agent_tracker.langgraph_release_status_tab:
+  route_name: copilot_agent_tracker.langgraph_release_status
+  title: 'Release Status'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 4

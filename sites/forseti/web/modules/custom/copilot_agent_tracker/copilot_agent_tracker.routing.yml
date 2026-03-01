@@ -106,6 +106,14 @@ copilot_agent_tracker.langgraph_session:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.langgraph_dashboard:
+  path: '/admin/reports/copilot-agent-tracker/langgraph'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphDashboard'
+    _title: 'LangGraph Dashboard'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.langgraph_feature_progress:
   path: '/admin/reports/copilot-agent-tracker/langgraph/feature-progress'
   defaults:

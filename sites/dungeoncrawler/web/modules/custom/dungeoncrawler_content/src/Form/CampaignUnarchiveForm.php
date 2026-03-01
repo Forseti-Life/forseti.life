@@ -4,10 +4,13 @@ namespace Drupal\dungeoncrawler_content\Form;
 
 use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Form\ConfirmFormBase;
 use Drupal\Core\Form\FormStateInterface;
+use Drupal\Core\Session\AccountProxyInterface;
 use Drupal\Core\Url;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -17,11 +20,13 @@ class CampaignUnarchiveForm extends ConfirmFormBase {
 
   protected Connection $database;
   protected TimeInterface $time;
+  protected AccountProxyInterface $currentUser;
   protected ?object $campaign = NULL;
 
-  public function __construct(Connection $database, TimeInterface $time) {
+  public function __construct(Connection $database, TimeInterface $time, AccountProxyInterface $current_user) {
     $this->database = $database;
     $this->time = $time;
+    $this->currentUser = $current_user;
   }
 
   /**
@@ -31,6 +36,7 @@ class CampaignUnarchiveForm extends ConfirmFormBase {
     return new static(
       $container->get('database'),
       $container->get('datetime.time'),
+      $container->get('current_user'),
     );
   }
 
@@ -68,6 +74,10 @@ class CampaignUnarchiveForm extends ConfirmFormBase {
    * {@inheritdoc}
    */
   public function getCancelUrl() {
+    $destination = \Drupal::request()->query->get('destination');
+    if ($destination) {
+      return Url::fromUserInput($destination);
+    }
     return Url::fromRoute('dungeoncrawler_content.campaigns');
   }
 
@@ -76,13 +86,20 @@ class CampaignUnarchiveForm extends ConfirmFormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, ?int $campaign_id = NULL) {
     $this->campaign = $this->database->select('dc_campaigns', 'c')
-      ->fields('c', ['id', 'name', 'status', 'campaign_data'])
+      ->fields('c', ['id', 'name', 'uid', 'status', 'campaign_data'])
       ->condition('id', (int) $campaign_id)
       ->execute()
       ->fetchObject();
 
     if (!$this->campaign) {
       throw new NotFoundHttpException();
+    }
+
+    if (
+      (int) $this->campaign->uid !== (int) $this->currentUser->id()
+      && !$this->currentUser->hasPermission('administer dungeoncrawler content')
+    ) {
+      throw new AccessDeniedHttpException();
     }
 
     return parent::buildForm($form, $form_state);
@@ -119,6 +136,11 @@ class CampaignUnarchiveForm extends ConfirmFormBase {
       ])
       ->condition('id', (int) $this->campaign->id)
       ->execute();
+
+    Cache::invalidateTags([
+      'dc_campaigns',
+      'dc_campaign:' . (int) $this->campaign->id,
+    ]);
 
     $this->messenger()->addStatus($this->t('%name unarchived. It is now visible on your campaigns list.', [
       '%name' => $this->campaign->name,

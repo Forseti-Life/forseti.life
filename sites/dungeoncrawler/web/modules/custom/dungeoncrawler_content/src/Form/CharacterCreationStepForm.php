@@ -416,6 +416,37 @@ class CharacterCreationStepForm extends FormBase {
         break;
 
       case 2:
+        /*
+         * Step 2 Process Flow Analysis (Ancestry → Heritage → Ancestry Feat)
+         *
+         * Goal:
+         * - Keep all option/validation paths explicit during refactors.
+         * - Distinguish legitimate invalid-value failures from stale UI state.
+         *
+         * Server-side build flow:
+         * 1) Build ancestry cards from CharacterManager::ANCESTRIES.
+         * 2) Build ancestry select (full-submit server processing only).
+         * 3) Build ancestry-dependent fields:
+         *    - heritage select from getHeritageOptions(selected_ancestry)
+         *    - ancestry_feat radios from ANCESTRY_FEATS[resolved ancestry]
+         * 4) Sanitize dependent inputs on every build:
+         *    - #value_callback sanitizeOptionValue for heritage + ancestry_feat
+         *    - clearStaleOptionInput(form_state, key, current_options)
+         *
+         * Client-side coordination (character-step-2.js):
+         * - ancestry card click sets ancestry select and triggers change.
+         * - ancestry change clears heritage + checked ancestry_feat radios.
+         * - submit button only toggles disabled state (no custom transport).
+         *
+         * Legitimate "submitted value ... is not allowed" paths:
+         * - Tampered POST where ancestry_feat/heritage key not in current options.
+         * - Race where ancestry changed but stale dependent value is posted
+         *   before submit/sanitization (mitigated via both JS clearing and
+         *   server-side clearStaleOptionInput + sanitizeOptionValue).
+         *
+         * Non-legitimate path (should not error):
+         * - Normal ancestry switching by user without manual payload tampering.
+         */
         // Ability preview showing ancestry boosts/flaws
         $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
         $abilities_preview = [];
@@ -446,7 +477,12 @@ class CharacterCreationStepForm extends FormBase {
           JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
         ));
 
-        $selected_ancestry = (string) ($character_data['ancestry'] ?? '');
+        $user_input = $form_state->getUserInput();
+        $selected_ancestry = (string) (
+          $form_state->getValue('ancestry')
+          ?: (is_array($user_input) ? ($user_input['ancestry'] ?? '') : '')
+          ?: ($character_data['ancestry'] ?? '')
+        );
         $ancestry_cards_markup = '<div class="ancestry-selection" data-heritages="' . $heritage_json . '">';
         $ancestry_cards_markup .= '<div class="ancestry-grid">';
 
@@ -492,31 +528,44 @@ class CharacterCreationStepForm extends FormBase {
           '#title' => $this->t('Legacy Ancestry'),
           '#required' => TRUE,
           '#options' => $this->getAncestryOptions(),
-          '#default_value' => $character_data['ancestry'] ?? '',
+          '#default_value' => $selected_ancestry,
           '#description' => $this->t('Your character\'s ancestral blood will determine size, speed, special senses, and long-term physical identity across all campaigns.'),
           '#ajax' => [
             'callback' => '::updateHeritageOptions',
-            'wrapper' => 'heritage-wrapper',
+            'wrapper' => 'heritage-path-wrapper',
           ],
+          '#limit_validation_errors' => [['ancestry']],
         ];
         $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
+
+        $form['heritage_dynamic'] = [
+          '#type' => 'container',
+          '#attributes' => [
+            'id' => 'heritage-path-wrapper',
+          ],
+        ];
+
         $heritage_options = $this->getHeritageOptions($selected_ancestry);
         $has_heritage_choices = count($heritage_options) > 1;
+        $selected_heritage = (string) ($form_state->getValue('heritage') ?: ($character_data['heritage'] ?? ''));
+        if ($selected_heritage !== '' && !array_key_exists($selected_heritage, $heritage_options)) {
+          $selected_heritage = '';
+        }
 
-        $form['heritage'] = [
+        $form['heritage_dynamic']['heritage'] = [
           '#type' => 'select',
           '#title' => $this->t('Heritage Path'),
           '#required' => $has_heritage_choices,
           '#options' => $heritage_options,
-          '#default_value' => $character_data['heritage'] ?? '',
+          '#default_value' => $selected_heritage,
+          '#value_callback' => [$this, 'sanitizeOptionValue'],
           '#description' => $this->t('Select a heritage to specialize your ancestry with unique talents and abilities that define your legacy.'),
-          '#prefix' => '<div id="heritage-wrapper">',
-          '#suffix' => '</div>',
         ];
-        $this->applySchemaValidationAttributes($form['heritage'], $schema_fields, 'heritage');
+        $this->clearStaleOptionInput($form_state, 'heritage', $heritage_options);
+        $this->applySchemaValidationAttributes($form['heritage_dynamic']['heritage'], $schema_fields, 'heritage');
 
         if (!empty($selected_ancestry) && !$has_heritage_choices) {
-          $form['heritage_unavailable_notice'] = [
+          $form['heritage_dynamic']['heritage_unavailable_notice'] = [
             '#type' => 'markup',
             '#markup' => '<div class="messages messages--warning">'
               . $this->t('No heritage options are currently configured for this ancestry. You can continue to the next step and set heritage later when available.')
@@ -524,14 +573,21 @@ class CharacterCreationStepForm extends FormBase {
           ];
         }
 
-        // Ancestry Feat Selection
-        $selected_ancestry = $form_state->getValue('ancestry') ?: $character_data['ancestry'] ?? '';
+        // Ancestry Feat Selection — nested inside heritage_dynamic so the AJAX
+        // callback (which returns $form['heritage_dynamic']) refreshes both the
+        // heritage select and the ancestry feat radios in a single response.
+        // This eliminates the stale-value "submitted value not allowed" error
+        // that occurred when ancestry changed but ancestry_feat_dynamic was
+        // rendered outside the AJAX wrapper.
+        $form['heritage_dynamic']['ancestry_feat_dynamic'] = [
+          '#type' => 'container',
+        ];
         if (!empty($selected_ancestry)) {
-          $ancestry_name = $this->resolveAncestryName((string) $selected_ancestry);
+          $ancestry_name = $this->resolveAncestryName($selected_ancestry);
           $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
-          
+
           if (!empty($ancestry_feats)) {
-            $form['ancestry_feat_section'] = [
+            $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_section'] = [
               '#markup' => '<div class="section-instructions ancestry-feat-section">'
                 . '<h3>' . $this->t('Ancestry Feat') . '</h3>'
                 . '<p>' . $this->t('Choose one 1st-level ancestry feat. This represents a special ability or training unique to your ancestry.') . '</p>'
@@ -540,7 +596,7 @@ class CharacterCreationStepForm extends FormBase {
 
             $feat_options = [];
             $feat_descriptions = [];
-            
+
             foreach ($ancestry_feats as $feat) {
               $feat_options[$feat['id']] = $feat['name'];
               $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
@@ -552,24 +608,34 @@ class CharacterCreationStepForm extends FormBase {
               ];
             }
 
-            $form['ancestry_feat'] = [
+            $selected_feat = (string) ($form_state->getValue('ancestry_feat') ?: ($character_data['ancestry_feat'] ?? ''));
+            if ($selected_feat !== '' && !array_key_exists($selected_feat, $feat_options)) {
+              $selected_feat = '';
+            }
+
+            $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat'] = [
               '#type' => 'radios',
               '#title' => $this->t('Select Ancestry Feat'),
               '#options' => $feat_options,
-              '#default_value' => $character_data['ancestry_feat'] ?? '',
+              '#default_value' => $selected_feat,
+              '#value_callback' => [$this, 'sanitizeOptionValue'],
               '#required' => TRUE,
               '#description' => $this->t('Each feat provides unique mechanical benefits that reflect your ancestry\'s culture and abilities.'),
             ];
+            $this->clearStaleOptionInput($form_state, 'ancestry_feat', $feat_options);
 
-            // Add detailed descriptions for each feat
+            // Add detailed descriptions for each feat option via #states.
             foreach ($feat_descriptions as $feat_id => $description_markup) {
-              $form['ancestry_feat_desc_' . $feat_id] = $description_markup;
-              $form['ancestry_feat_desc_' . $feat_id]['#states'] = [
+              $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_desc_' . $feat_id] = $description_markup;
+              $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_desc_' . $feat_id]['#states'] = [
                 'visible' => [
                   ':input[name="ancestry_feat"]' => ['value' => $feat_id],
                 ],
               ];
             }
+          }
+          else {
+            $this->clearStaleOptionInput($form_state, 'ancestry_feat', []);
           }
         }
         break;
@@ -1944,7 +2010,7 @@ class CharacterCreationStepForm extends FormBase {
   }
 
   /**
-   * AJAX callback to update heritage dropdown when ancestry changes.
+   * AJAX callback to refresh ancestry-dependent Step 2 options.
    *
    * @param array $form
    *   The form array.
@@ -1952,15 +2018,105 @@ class CharacterCreationStepForm extends FormBase {
    *   The form state.
    *
    * @return array
-   *   The heritage form element to replace.
+   *   The ancestry-dependent container.
    */
-  public function updateHeritageOptions(array &$form, FormStateInterface $form_state) {
-    // Rebuild heritage options for the new ancestry and reset any prior selection.
-    $ancestry = (string) ($form_state->getValue('ancestry') ?? '');
-    $form['heritage']['#options'] = $this->getHeritageOptions($ancestry);
-    $form['heritage']['#default_value'] = '';
-    $form['heritage']['#value'] = '';
-    return $form['heritage'];
+  public function updateHeritageOptions(array &$form, FormStateInterface $form_state): array {
+    $trigger = $form_state->getTriggeringElement();
+    $current_ancestry = (string) ($trigger['#value'] ?? $form_state->getValue('ancestry') ?? '');
+    $previous_ancestry = (string) ($form_state->get('previous_ancestry_selection') ?? '');
+
+    if ($current_ancestry !== $previous_ancestry) {
+      // Reset ancestry-dependent posted values when ancestry changes.
+      $form_state->setValue('heritage', '');
+      $form_state->setValue('ancestry_feat', '');
+
+      $user_input = $form_state->getUserInput();
+      if (is_array($user_input)) {
+        $user_input['heritage'] = '';
+        $user_input['ancestry_feat'] = '';
+        $user_input['ancestry'] = $current_ancestry;
+        $form_state->setUserInput($user_input);
+      }
+    }
+
+    $form_state->set('previous_ancestry_selection', $current_ancestry);
+    if (method_exists($form_state, 'clearErrors')) {
+      $form_state->clearErrors();
+    }
+    $form_state->setRebuild(TRUE);
+
+    return $form['heritage_dynamic'];
+  }
+
+  /**
+   * Clears stale user input when a submitted option is no longer allowed.
+   *
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   Form state containing posted input.
+   * @param string $input_key
+   *   Input key to sanitize.
+   * @param array $options
+   *   Currently allowed options for this element.
+   */
+  private function clearStaleOptionInput(FormStateInterface $form_state, string $input_key, array $options): void {
+    $user_input = $form_state->getUserInput();
+    if (!is_array($user_input) || !array_key_exists($input_key, $user_input)) {
+      return;
+    }
+
+    $raw_value = $user_input[$input_key];
+    if (!is_scalar($raw_value) && $raw_value !== NULL) {
+      $user_input[$input_key] = '';
+      $form_state->setUserInput($user_input);
+      $form_state->setValue($input_key, '');
+      return;
+    }
+
+    $candidate = trim((string) $raw_value);
+    if ($candidate === '') {
+      return;
+    }
+
+    if (!array_key_exists($candidate, $options)) {
+      $user_input[$input_key] = '';
+      $form_state->setUserInput($user_input);
+      $form_state->setValue($input_key, '');
+    }
+  }
+
+  /**
+   * Sanitizes submitted option values against currently allowed element options.
+   *
+  * Prevents stale ancestry-dependent values from triggering "value not allowed"
+  * errors during ancestry switches.
+   *
+   * @param array $element
+   *   Form element definition.
+   * @param mixed $input
+   *   Submitted value.
+   * @param \Drupal\Core\Form\FormStateInterface $form_state
+   *   Form state.
+   *
+   * @return mixed
+   *   A safe value compatible with current options.
+   */
+  public function sanitizeOptionValue(array &$element, $input, FormStateInterface $form_state) {
+    if ($input === FALSE) {
+      return $element['#default_value'] ?? '';
+    }
+
+    $options = $element['#options'] ?? [];
+
+    if ($input === NULL || $input === '') {
+      return '';
+    }
+
+    if (is_array($input)) {
+      return [];
+    }
+
+    $candidate = (string) $input;
+    return array_key_exists($candidate, $options) ? $candidate : '';
   }
 
 }

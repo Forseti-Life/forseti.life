@@ -16,8 +16,14 @@
   {% if campaigns|length > 0 %}
     <div class="dc-character-grid">
       {% for campaign in campaigns %}
-        <div class="dc-campaign-card-wrapper">
-          <a href="{{ campaign.url }}" class="dc-character-card dc-character-card--{{ campaign.status }}">
+        <div class="dc-character-card dc-character-card--{{ campaign.status }}">
+          {% if campaign.archive_url %}
+            <a href="{{ campaign.archive_url }}" class="dc-character-card__archive-btn" title="Archive {{ campaign.name }}">
+              🗄️
+            </a>
+          {% endif %}
+
+          <a href="{{ campaign.url }}" class="dc-character-card__main-link">
             <div class="dc-character-card__portrait">
               <div class="dc-character-card__portrait-placeholder">
                 <span class="dc-character-card__initial">{{ campaign.name|first|upper }}</span>
@@ -54,40 +60,15 @@
 
             <div class="dc-character-card__arrow">›</div>
           </a>
-
-          <div class="dc-sheet__nav-actions">
-            <a href="{{ campaign.dungeons_url }}" class="dc-btn dc-btn-secondary">Dungeons</a>
-            <a href="{{ campaign.archive_url }}" class="dc-btn dc-btn-secondary">Archive</a>
-          </div>
         </div>
       {% endfor %}
     </div>
   {% else %}
     <div class="dc-character-list__empty">
       <div class="dc-character-list__empty-icon">🧭</div>
-      {% if archived_campaigns|length > 0 %}
-        <h2>No Active Campaigns</h2>
-        <p>Create a new legacy campaign or unarchive one below to continue your world history.</p>
-      {% else %}
-        <h2>No Campaigns Yet</h2>
-        <p>Create your first campaign home, then choose a character to begin a long-term story.</p>
-      {% endif %}
+      <h2>No Campaigns Yet</h2>
+      <p>Create your first campaign home, then choose a character to begin a long-term story.</p>
       <a href="{{ create_url }}" class="dc-btn dc-btn-primary">Create Your First Legacy Campaign</a>
     </div>
-  {% endif %}
-
-  {% if archived_campaigns|length > 0 %}
-    <details class="dc-character-list__empty dc-character-list__archived">
-      <summary>Archived Campaigns ({{ archived_campaigns|length }})</summary>
-      <p>These campaigns are paused but preserved as part of your growing universe timeline.</p>
-      <div class="dc-sheet__nav-actions">
-        {% for campaign in archived_campaigns %}
-          <div class="dc-campaign-archived-item">
-            <span><strong>{{ campaign.name }}</strong> · {{ campaign.status_label }} · Updated {{ campaign.changed }}</span>
-            <a href="{{ campaign.unarchive_url }}" class="dc-btn dc-btn-secondary">Unarchive</a>
-          </div>
-        {% endfor %}
-      </div>
-    </details>
   {% endif %}
 </div>

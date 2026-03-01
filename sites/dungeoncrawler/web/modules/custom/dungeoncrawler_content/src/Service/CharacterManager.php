@@ -36,6 +36,64 @@ class CharacterManager {
   ];
 
   /**
+   * Step 2 Option Selection Tree Reference (Ancestry → Heritage IDs → Feat IDs).
+   *
+   * Purpose:
+   * - Single in-code reference for refactoring Step 2 option wiring.
+   * - Keep branch expectations visible near source-of-truth constants.
+   * - Validate parity when adding/removing ancestries, heritages, or feats.
+   *
+   * Branch summary:
+   * - Total ancestries: 14
+   * - Heritage model: ancestry-dependent select (usually 4 options, Human=1)
+   * - Feat model: ancestry-dependent radios (6-7 options per ancestry)
+   *
+   * Tree:
+   * - Catfolk (heritages: 4, feats: 6)
+   *   H: clawed, hunting, jungle, winter
+   *   F: catfolk-lore, catfolk-weapon-familiarity, graceful-step, feline-eyes, well-groomed, cat-nap
+   * - Dwarf (heritages: 4, feats: 6)
+   *   H: ancient-blooded, forge, rock, strong-blooded
+   *   F: dwarven-lore, dwarven-weapon-familiarity, rock-runner, stonecunning, unburdened-iron, vengeful-hatred
+   * - Elf (heritages: 4, feats: 7)
+   *   H: arctic, cavern, seer, woodland
+   *   F: ancestral-longevity, elven-lore, elven-weapon-familiarity, forlorn, nimble-elf, otherworldly-magic, unwavering-mien
+   * - Gnome (heritages: 4, feats: 7)
+   *   H: chameleon, fey-touched, sensate, umbral
+   *   F: animal-accomplice, burrow-elocutionist, fey-fellowship, first-world-magic, gnome-obsession, gnome-weapon-familiarity, illusion-sense
+   * - Goblin (heritages: 4, feats: 7)
+   *   H: charhide, irongut, razortooth, snow
+   *   F: burn-it, city-scavenger, goblin-lore, goblin-scuttle, goblin-song, goblin-weapon-familiarity, junk-tinker
+   * - Half-Elf (heritages: 4, feats: 6)
+   *   H: ancient-elf-blood, arcane-bloodline, keen-senses, wanderer
+   *   F: elf-atavism, forlorn-half-elf, multitalented, mixed-heritage-adaptability, elven-instincts, cross-cultural-upbringing
+   * - Half-Orc (heritages: 4, feats: 6)
+   *   H: battle-hardened, grim-scarred, orc-sight, unyielding
+   *   F: orc-atavism, feral-endurance, intimidating-glare-half-orc, orc-weapon-familiarity-half-orc, scar-thickened, unyielding-will
+   * - Halfling (heritages: 4, feats: 7)
+   *   H: gutsy, hillock, nomadic, twilight
+   *   F: distracting-shadows, halfling-lore, halfling-luck, halfling-weapon-familiarity, sure-feet, titan-slinger, unfettered-halfling
+   * - Human (heritages: 1, feats: 7)
+   *   H: versatile
+   *   F: adapted-cantrip, cooperative-nature, general-training, haughty-obstinacy, natural-ambition, natural-skill, unconventional-weaponry
+   * - Kobold (heritages: 4, feats: 6)
+   *   H: cavern, dracomancer, dragonscaled, spelunker
+   *   F: kobold-lore, snare-setter, draconic-ties, tunnel-runner, draconic-scout, kobold-weapon-familiarity
+   * - Leshy (heritages: 4, feats: 6)
+   *   H: cactus, gourd, leaf, vine
+   *   F: leshy-lore, seedpod, photosynthetic-recovery, rooted-resilience, verdant-voice, forest-step
+   * - Orc (heritages: 4, feats: 6)
+   *   H: badlands, battle-ready, deep-orc, rainfall
+   *   F: hold-scarred, orc-ferocity, orc-sight, orc-superstition, orc-weapon-familiarity, orc-weapon-carnage
+   * - Ratfolk (heritages: 4, feats: 6)
+   *   H: desert, sewer, shadow, tunnel
+   *   F: ratfolk-lore, cheek-pouches, tunnel-vision, scrounger, communal-instinct, ratfolk-weapon-familiarity
+   * - Tengu (heritages: 4, feats: 6)
+   *   H: dogtooth, jinxed, mountainkeeper, skyborn
+   *   F: tengu-lore, one-toed-hop, squawk, sky-bridge-runner, beak-adept, tengu-weapon-familiarity
+   */
+
+  /**
    * PF2e heritages for each ancestry.
    */
   const HERITAGES = [
@@ -71,6 +129,54 @@ class CharacterManager {
     ],
     'Human' => [
       ['id' => 'versatile', 'name' => 'Versatile Heritage', 'benefit' => 'Extra general feat'],
+    ],
+    'Catfolk' => [
+      ['id' => 'clawed', 'name' => 'Clawed Catfolk', 'benefit' => 'Sharp claws grant an agile unarmed claw attack'],
+      ['id' => 'hunting', 'name' => 'Hunting Catfolk', 'benefit' => 'Enhanced predatory instincts improve tracking and initiative awareness'],
+      ['id' => 'jungle', 'name' => 'Jungle Catfolk', 'benefit' => 'Natural climber with improved movement through foliage and rough growth'],
+      ['id' => 'winter', 'name' => 'Winter Catfolk', 'benefit' => 'Cold adaptation grants minor resistance to cold environments'],
+    ],
+    'Half-Elf' => [
+      ['id' => 'ancient-elf-blood', 'name' => 'Ancient Elf-Blooded', 'benefit' => 'Elven lineage grants broader familiarity with long-lived traditions and magic'],
+      ['id' => 'arcane-bloodline', 'name' => 'Arcane Bloodline', 'benefit' => 'Innate magical aptitude provides a minor cantrip-level magical expression'],
+      ['id' => 'keen-senses', 'name' => 'Keen Senses', 'benefit' => 'Heightened perception grants stronger awareness in low-light conditions'],
+      ['id' => 'wanderer', 'name' => 'Wanderer Half-Elf', 'benefit' => 'Mixed upbringing improves social adaptability and cross-cultural interaction'],
+    ],
+    'Half-Orc' => [
+      ['id' => 'battle-hardened', 'name' => 'Battle-Hardened Half-Orc', 'benefit' => 'Durable frame improves resilience when taking heavy damage'],
+      ['id' => 'grim-scarred', 'name' => 'Grim-Scarred Half-Orc', 'benefit' => 'Intimidating presence boosts social pressure in hostile encounters'],
+      ['id' => 'orc-sight', 'name' => 'Orc-Sighted Half-Orc', 'benefit' => 'Enhanced dark-adapted vision improves low-visibility navigation'],
+      ['id' => 'unyielding', 'name' => 'Unyielding Half-Orc', 'benefit' => 'Refusal to fall grants a brief endurance surge when dropped low'],
+    ],
+    'Kobold' => [
+      ['id' => 'cavern', 'name' => 'Cavern Kobold', 'benefit' => 'Tunnel-bred senses improve underground navigation and hazard awareness'],
+      ['id' => 'dracomancer', 'name' => 'Dracomancer Kobold', 'benefit' => 'Arcane draconic spark grants a minor magical trick'],
+      ['id' => 'dragonscaled', 'name' => 'Dragonscaled Kobold', 'benefit' => 'Scale-hardening grants minor resistance against energy assaults'],
+      ['id' => 'spelunker', 'name' => 'Spelunker Kobold', 'benefit' => 'Nimble caving movement improves squeezing and climbing in confined spaces'],
+    ],
+    'Leshy' => [
+      ['id' => 'cactus', 'name' => 'Cactus Leshy', 'benefit' => 'Spiny body deters attackers and improves arid survival'],
+      ['id' => 'gourd', 'name' => 'Gourd Leshy', 'benefit' => 'Hollowed body grants utility storage and buoyant movement'],
+      ['id' => 'leaf', 'name' => 'Leaf Leshy', 'benefit' => 'Photosynthetic vigor improves recovery in natural light'],
+      ['id' => 'vine', 'name' => 'Vine Leshy', 'benefit' => 'Flexible tendrils improve grasping and maneuvering through vegetation'],
+    ],
+    'Orc' => [
+      ['id' => 'badlands', 'name' => 'Badlands Orc', 'benefit' => 'Harsh-land adaptation grants endurance in extreme environments'],
+      ['id' => 'battle-ready', 'name' => 'Battle-Ready Orc', 'benefit' => 'Martial upbringing improves readiness and opening combat discipline'],
+      ['id' => 'deep-orc', 'name' => 'Deep Orc', 'benefit' => 'Subterranean heritage grants stronger darkness adaptation'],
+      ['id' => 'rainfall', 'name' => 'Rainfall Orc', 'benefit' => 'Wetland survival training improves mobility in mud and heavy terrain'],
+    ],
+    'Ratfolk' => [
+      ['id' => 'desert', 'name' => 'Desert Ratfolk', 'benefit' => 'Heat resilience improves travel and recovery in arid climates'],
+      ['id' => 'sewer', 'name' => 'Sewer Ratfolk', 'benefit' => 'Urban scavenger instincts improve hazard awareness in settlements'],
+      ['id' => 'shadow', 'name' => 'Shadow Ratfolk', 'benefit' => 'Low-profile movement improves stealth in cluttered environments'],
+      ['id' => 'tunnel', 'name' => 'Tunnel Ratfolk', 'benefit' => 'Burrow-network familiarity improves movement through cramped passages'],
+    ],
+    'Tengu' => [
+      ['id' => 'dogtooth', 'name' => 'Dogtooth Tengu', 'benefit' => 'Predatory beak grants improved precision with close-quarters strikes'],
+      ['id' => 'jinxed', 'name' => 'Jinxed Tengu', 'benefit' => 'Ominous luck twists misfortune away from the tengu at critical moments'],
+      ['id' => 'mountainkeeper', 'name' => 'Mountainkeeper Tengu', 'benefit' => 'Highland upbringing improves sure-footed movement on difficult elevations'],
+      ['id' => 'skyborn', 'name' => 'Skyborn Tengu', 'benefit' => 'Windwise instincts improve balance and aerial environment awareness'],
     ],
   ];
 
@@ -172,6 +278,104 @@ class CharacterManager {
         'benefit' => 'Your thrown weapons and sling range increment increased by 10 feet. Increases to 20 feet at 13th level.'],
       ['id' => 'unfettered-halfling', 'name' => 'Unfettered Halfling', 'level' => 1, 'traits' => ['Halfling'], 'prerequisites' => '',
         'benefit' => 'Success on a check to Escape is automatically a critical success. +2 circumstance bonus to checks to Escape.'],
+    ],
+    'Catfolk' => [
+      ['id' => 'catfolk-lore', 'name' => 'Catfolk Lore', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
+        'benefit' => 'You become trained in Acrobatics and Stealth, and gain Catfolk Lore.'],
+      ['id' => 'catfolk-weapon-familiarity', 'name' => 'Catfolk Weapon Familiarity', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
+        'benefit' => 'You are trained with traditional catfolk weapons and treat martial catfolk weapons as simple for proficiency.'],
+      ['id' => 'graceful-step', 'name' => 'Graceful Step', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
+        'benefit' => 'You gain a +2 circumstance bonus to Acrobatics checks to Balance and Tumble Through.'],
+      ['id' => 'feline-eyes', 'name' => 'Feline Eyes', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
+        'benefit' => 'Your low-light vision sharpens; checks relying on sight in dim conditions gain a +1 circumstance bonus.'],
+      ['id' => 'well-groomed', 'name' => 'Well-Groomed', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to Diplomacy checks to Make an Impression in social settings where appearance matters.'],
+      ['id' => 'cat-nap', 'name' => 'Cat Nap', 'level' => 1, 'traits' => ['Catfolk'], 'prerequisites' => '',
+        'benefit' => 'You require less downtime for light rest and can recover from short rests more efficiently.'],
+    ],
+    'Half-Elf' => [
+      ['id' => 'elf-atavism', 'name' => 'Elf Atavism', 'level' => 1, 'traits' => ['Half-Elf'], 'prerequisites' => '',
+        'benefit' => 'You gain one elf ancestry feat for which you meet the prerequisites.'],
+      ['id' => 'forlorn-half-elf', 'name' => 'Forlorn Half-Elf', 'level' => 1, 'traits' => ['Half-Elf'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to saves against emotion effects and can treat one success each day as a critical success.'],
+      ['id' => 'multitalented', 'name' => 'Multitalented', 'level' => 1, 'traits' => ['Half-Elf'], 'prerequisites' => '',
+        'benefit' => 'You gain training in one skill and one additional language of your choice.'],
+      ['id' => 'mixed-heritage-adaptability', 'name' => 'Mixed Heritage Adaptability', 'level' => 1, 'traits' => ['Half-Elf'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to one trained skill of your choice; you can change it after daily preparations.'],
+      ['id' => 'elven-instincts', 'name' => 'Elven Instincts', 'level' => 1, 'traits' => ['Half-Elf'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to initiative rolls and Perception checks to Seek.'],
+      ['id' => 'cross-cultural-upbringing', 'name' => 'Cross-Cultural Upbringing', 'level' => 1, 'traits' => ['Half-Elf'], 'prerequisites' => '',
+        'benefit' => 'You gain Society training and can use Society to Recall Knowledge about either human or elven communities.'],
+    ],
+    'Half-Orc' => [
+      ['id' => 'orc-atavism', 'name' => 'Orc Atavism', 'level' => 1, 'traits' => ['Half-Orc'], 'prerequisites' => '',
+        'benefit' => 'You gain one orc ancestry feat for which you meet the prerequisites.'],
+      ['id' => 'feral-endurance', 'name' => 'Feral Endurance', 'level' => 1, 'traits' => ['Half-Orc'], 'prerequisites' => '',
+        'benefit' => 'Once per day when reduced to 0 HP, you remain at 1 HP and become wounded 1.'],
+      ['id' => 'intimidating-glare-half-orc', 'name' => 'Intimidating Glare', 'level' => 1, 'traits' => ['Half-Orc'], 'prerequisites' => '',
+        'benefit' => 'You can Demoralize a target without sharing a language.'],
+      ['id' => 'orc-weapon-familiarity-half-orc', 'name' => 'Orc Weapon Familiarity', 'level' => 1, 'traits' => ['Half-Orc'], 'prerequisites' => '',
+        'benefit' => 'You are trained in iconic orc weapons and treat martial orc weapons as simple for proficiency.'],
+      ['id' => 'scar-thickened', 'name' => 'Scar-Thickened', 'level' => 1, 'traits' => ['Half-Orc'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to Fortitude saves against persistent bleed and poison effects.'],
+      ['id' => 'unyielding-will', 'name' => 'Unyielding Will', 'level' => 1, 'traits' => ['Half-Orc'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to Will saves against fear effects.'],
+    ],
+    'Kobold' => [
+      ['id' => 'kobold-lore', 'name' => 'Kobold Lore', 'level' => 1, 'traits' => ['Kobold'], 'prerequisites' => '',
+        'benefit' => 'You become trained in Crafting and Stealth and gain Kobold Lore.'],
+      ['id' => 'snare-setter', 'name' => 'Snare Setter', 'level' => 1, 'traits' => ['Kobold'], 'prerequisites' => '',
+        'benefit' => 'You can craft and deploy simple snares more quickly, reducing setup time.'],
+      ['id' => 'draconic-ties', 'name' => 'Draconic Ties', 'level' => 1, 'traits' => ['Kobold'], 'prerequisites' => '',
+        'benefit' => 'Choose a draconic damage type; gain minor resistance to that type.'],
+      ['id' => 'tunnel-runner', 'name' => 'Tunnel Runner', 'level' => 1, 'traits' => ['Kobold'], 'prerequisites' => '',
+        'benefit' => 'You ignore movement penalties from cramped underground passages and gain +2 to Acrobatics checks to Squeeze.'],
+      ['id' => 'draconic-scout', 'name' => 'Draconic Scout', 'level' => 1, 'traits' => ['Kobold'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to initiative and Survival checks when underground.'],
+      ['id' => 'kobold-weapon-familiarity', 'name' => 'Kobold Weapon Familiarity', 'level' => 1, 'traits' => ['Kobold'], 'prerequisites' => '',
+        'benefit' => 'You are trained with traditional kobold weapons and treat martial kobold weapons as simple for proficiency.'],
+    ],
+    'Leshy' => [
+      ['id' => 'leshy-lore', 'name' => 'Leshy Lore', 'level' => 1, 'traits' => ['Leshy'], 'prerequisites' => '',
+        'benefit' => 'You become trained in Nature and Diplomacy and gain Leshy Lore.'],
+      ['id' => 'seedpod', 'name' => 'Seedpod', 'level' => 1, 'traits' => ['Leshy'], 'prerequisites' => '',
+        'benefit' => 'You can produce and throw small seed pods as a minor ranged natural attack.'],
+      ['id' => 'photosynthetic-recovery', 'name' => 'Photosynthetic Recovery', 'level' => 1, 'traits' => ['Leshy'], 'prerequisites' => '',
+        'benefit' => 'When resting in natural sunlight, you recover additional Hit Points.'],
+      ['id' => 'rooted-resilience', 'name' => 'Rooted Resilience', 'level' => 1, 'traits' => ['Leshy'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus against forced movement and effects that would knock you prone.'],
+      ['id' => 'verdant-voice', 'name' => 'Verdant Voice', 'level' => 1, 'traits' => ['Leshy'], 'prerequisites' => '',
+        'benefit' => 'You can communicate simple intent with common plants and gain +1 to Nature checks to influence plant creatures.'],
+      ['id' => 'forest-step', 'name' => 'Forest Step', 'level' => 1, 'traits' => ['Leshy'], 'prerequisites' => '',
+        'benefit' => 'You ignore difficult terrain caused by natural undergrowth.'],
+    ],
+    'Ratfolk' => [
+      ['id' => 'ratfolk-lore', 'name' => 'Ratfolk Lore', 'level' => 1, 'traits' => ['Ratfolk'], 'prerequisites' => '',
+        'benefit' => 'You become trained in Society and Thievery and gain Ratfolk Lore.'],
+      ['id' => 'cheek-pouches', 'name' => 'Cheek Pouches', 'level' => 1, 'traits' => ['Ratfolk'], 'prerequisites' => '',
+        'benefit' => 'You can stow and retrieve a small held item more efficiently each round.'],
+      ['id' => 'tunnel-vision', 'name' => 'Tunnel Vision', 'level' => 1, 'traits' => ['Ratfolk'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to Perception checks to detect movement in narrow corridors and tunnels.'],
+      ['id' => 'scrounger', 'name' => 'Scrounger', 'level' => 1, 'traits' => ['Ratfolk'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to Crafting checks to Repair and to checks to Subsist in settlements.'],
+      ['id' => 'communal-instinct', 'name' => 'Communal Instinct', 'level' => 1, 'traits' => ['Ratfolk'], 'prerequisites' => '',
+        'benefit' => 'When adjacent to an ally, you gain a +1 circumstance bonus to saves against fear.'],
+      ['id' => 'ratfolk-weapon-familiarity', 'name' => 'Ratfolk Weapon Familiarity', 'level' => 1, 'traits' => ['Ratfolk'], 'prerequisites' => '',
+        'benefit' => 'You are trained with traditional ratfolk weapons and treat martial ratfolk weapons as simple for proficiency.'],
+    ],
+    'Tengu' => [
+      ['id' => 'tengu-lore', 'name' => 'Tengu Lore', 'level' => 1, 'traits' => ['Tengu'], 'prerequisites' => '',
+        'benefit' => 'You become trained in Acrobatics and Deception and gain Tengu Lore.'],
+      ['id' => 'one-toed-hop', 'name' => 'One-Toed Hop', 'level' => 1, 'traits' => ['Tengu'], 'prerequisites' => '',
+        'benefit' => 'Your mobility training grants a +2 circumstance bonus to checks to Balance and Leap.'],
+      ['id' => 'squawk', 'name' => 'Squawk', 'level' => 1, 'traits' => ['Tengu'], 'prerequisites' => '',
+        'benefit' => 'You can emit a harsh cry to Demoralize; targets are temporarily immune for 1 hour after you use this effect.'],
+      ['id' => 'sky-bridge-runner', 'name' => 'Sky-Bridge Runner', 'level' => 1, 'traits' => ['Tengu'], 'prerequisites' => '',
+        'benefit' => 'You gain a +1 circumstance bonus to Acrobatics checks while traversing narrow or elevated surfaces.'],
+      ['id' => 'beak-adept', 'name' => 'Beak Adept', 'level' => 1, 'traits' => ['Tengu'], 'prerequisites' => '',
+        'benefit' => 'Your beak Strike gains improved handling and a +1 circumstance bonus to Disarm attempts.'],
+      ['id' => 'tengu-weapon-familiarity', 'name' => 'Tengu Weapon Familiarity', 'level' => 1, 'traits' => ['Tengu'], 'prerequisites' => '',
+        'benefit' => 'You are trained with traditional tengu weapons and treat martial tengu weapons as simple for proficiency.'],
     ],
     'Orc' => [
       ['id' => 'hold-scarred', 'name' => 'Hold-Scarred Orc', 'level' => 1, 'traits' => ['Orc'], 'prerequisites' => '',

@@ -16,6 +16,7 @@ use Drupal\copilot_agent_tracker\Form\AgentDashboardFilterForm;
 use Drupal\copilot_agent_tracker\Form\ComposeAgentMessageForm;
 use Drupal\copilot_agent_tracker\Form\InboxReplyForm;
 use Drupal\copilot_agent_tracker\Form\OrgAutomationToggleForm;
+use Drupal\copilot_agent_tracker\Form\ReleaseManagementCycleForm;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -183,6 +184,17 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<p>Tracks high-level agent status updates and work item progress. Do not post raw conversation logs.</p>'
           . '<p><strong>Release stage view</strong> (below) is a best-effort inference based on agent role + tracker metadata. It includes in-progress, queued (inbox), and blocked work when available.</p>'
           . ($token ? '<p><strong>Telemetry token</strong> (send as <code>X-Copilot-Agent-Tracker-Token</code>): <code>' . $token . '</code></p>' : ''),
+      ],
+      'ops_links' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('Operational troubleshooting views'),
+        '#items' => [
+          Link::fromTextAndUrl($this->t('Agentic Architecture'), Url::fromRoute('copilot_agent_tracker.architecture'))->toString(),
+          Link::fromTextAndUrl($this->t('LangGraph Session Monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
+          Link::fromTextAndUrl($this->t('LangGraph Feature Progress'), Url::fromRoute('copilot_agent_tracker.langgraph_feature_progress'))->toString(),
+          Link::fromTextAndUrl($this->t('LangGraph Engine / Parity Health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+          Link::fromTextAndUrl($this->t('LangGraph Release-cycle Status'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
+        ],
       ],
       'todo_separator' => [
         '#markup' => '<hr>',
@@ -640,6 +652,7 @@ final class DashboardController extends ControllerBase {
       '#title' => $this->t('Operational pages (reference-aligned)'),
       '#items' => [
         Link::fromTextAndUrl($this->t('Main Copilot Agent Tracker'), Url::fromRoute('copilot_agent_tracker.dashboard'))->toString(),
+        Link::fromTextAndUrl($this->t('LangGraph Dashboard (home)'), Url::fromRoute('copilot_agent_tracker.langgraph_dashboard'))->toString(),
         Link::fromTextAndUrl($this->t('LangGraph Session Monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
         Link::fromTextAndUrl($this->t('LangGraph Feature Progress'), Url::fromRoute('copilot_agent_tracker.langgraph_feature_progress'))->toString(),
         Link::fromTextAndUrl($this->t('LangGraph Engine / Parity Health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
@@ -3338,6 +3351,56 @@ final class DashboardController extends ControllerBase {
       }
     }
     return $rows;
+  }
+
+  /**
+   * LangGraph Dashboard home view.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph
+   */
+  public function langGraphDashboard(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Dashboard') . '</h2>',
+    ];
+
+    $build['intro'] = [
+      '#markup' => '<p>This is the LangGraph operational home. Use this page as the starting point for session health, parity, release-cycle status, and troubleshooting.</p>',
+    ];
+
+    $build['nav'] = $this->renderLanggraphReferenceNav();
+
+    $build['ops_control'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Org Automation Control'),
+      '#open' => TRUE,
+      'form' => $this->formBuilder()->getForm(OrgAutomationToggleForm::class, []),
+    ];
+
+    $build['release_cycle_control'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Release Management Cycle Control'),
+      '#open' => TRUE,
+      'help' => [
+        '#markup' => '<p>Start or stop release-cycle automation (release_cycle + coordinated_push) while keeping other automation controls intact.</p>',
+      ],
+      'form' => $this->formBuilder()->getForm(ReleaseManagementCycleForm::class),
+    ];
+
+    $build['waiting'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Waiting on Keith'),
+      '#open' => FALSE,
+      'content' => $this->buildWaitingOnKeithView(),
+    ];
+
+    $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('LangGraph Troubleshooting Interfaces');
+
+    return $build;
   }
 
   /**

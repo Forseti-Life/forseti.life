@@ -119,6 +119,7 @@ class CampaignController extends ControllerBase {
     ];
 
     $campaign_cards = [];
+    $campaigns_destination = Url::fromRoute('dungeoncrawler_content.campaigns')->toString();
     foreach ($campaigns as $campaign) {
       $campaign_id = (int) $campaign->id;
       $active_character_id = (int) ($campaign->active_character_id ?? 0);
@@ -145,34 +146,10 @@ class CampaignController extends ControllerBase {
         'can_launch' => $can_launch,
         'action_label' => (string) $this->t('Launch Campaign'),
         'url' => $action_url,
-        'dungeons_url' => Url::fromRoute('dungeoncrawler_content.campaign_dungeons', [
-          'campaign_id' => $campaign_id,
-        ])->toString(),
         'archive_url' => Url::fromRoute('dungeoncrawler_content.campaign_archive', [
           'campaign_id' => $campaign_id,
-        ])->toString(),
-      ];
-    }
-
-    $archived_campaigns = $this->database->select('dc_campaigns', 'c')
-      ->fields('c')
-      ->condition('uid', $uid)
-      ->condition('status', 'archived')
-      ->orderBy('changed', 'DESC')
-      ->execute()
-      ->fetchAll();
-
-    $archived_campaign_cards = [];
-    foreach ($archived_campaigns as $campaign) {
-      $campaign_id = (int) $campaign->id;
-
-      $archived_campaign_cards[] = [
-        'id' => $campaign_id,
-        'name' => $campaign->name,
-        'status_label' => $status_labels[$campaign->status] ?? ucfirst((string) $campaign->status),
-        'changed' => date('M j, Y', (int) $campaign->changed),
-        'unarchive_url' => Url::fromRoute('dungeoncrawler_content.campaign_unarchive', [
-          'campaign_id' => $campaign_id,
+        ], [
+          'query' => ['destination' => $campaigns_destination],
         ])->toString(),
       ];
     }
@@ -180,7 +157,6 @@ class CampaignController extends ControllerBase {
     return [
       '#theme' => 'campaign_list',
       '#campaigns' => $campaign_cards,
-      '#archived_campaigns' => $archived_campaign_cards,
       '#create_url' => Url::fromRoute('dungeoncrawler_content.campaign_create')->toString(),
       '#characters_url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),
       '#attached' => [
