@@ -1192,6 +1192,13 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   }
 
   /**
+   * Returns the database connection for direct queries by controllers.
+   */
+  public function getDatabase(): Connection {
+    return $this->database;
+  }
+
+  /**
    * Get all characters for the current user, optionally scoped to a campaign.
    */
   public function getUserCharacters(?int $uid = NULL, ?int $campaign_id = NULL): array {

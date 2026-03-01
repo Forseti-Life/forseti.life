@@ -158,7 +158,7 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
         'npc_data' => NULL,
         'raw_json' => '',
         'edit_url' => NULL,
-        'delete_url' => NULL,
+        'archive_url' => NULL,
         'launch_url' => NULL,
         'tavern_url' => NULL,
         'campaign_id' => NULL,

@@ -868,6 +868,13 @@ class CharacterCreationStepForm extends FormBase {
       $form_state->set('cantrip_limit', $num_cantrips);
       $form_state->set('first_spell_limit', $max_first);
 
+      // Expose limits to JS for live checkbox guardrails.
+      // Attached to class_dynamic (not $form) so settings travel with AJAX.
+      $form['class_dynamic']['#attached']['drupalSettings']['characterStep4'] = [
+        'cantripLimit' => $num_cantrips,
+        'firstSpellLimit' => $max_first,
+      ];
+
       // --- Cantrip Selection ---
       $cantrips = $this->characterManager->getSpellsByTradition($tradition, 0);
       $cantrip_options = [];

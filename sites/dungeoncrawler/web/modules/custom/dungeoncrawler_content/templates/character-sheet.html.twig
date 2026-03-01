@@ -17,8 +17,8 @@
         {# Only show Launch Campaign when viewing character IN a campaign context #}
         <a href="{{ launch_url }}" class="dc-btn dc-btn-success">▶️ Launch Campaign</a>
       {% endif %}
-      <a href="{{ edit_url }}" class="dc-btn dc-btn-primary">✏️ Edit</a>
-      <a href="{{ delete_url }}" class="dc-btn dc-btn-danger">🗑️ Delete</a>
+      <a href="/characters/create/step/1?character_id={{ character.id }}" class="dc-btn dc-btn-primary">✏️ Edit</a>
+      <a href="{{ archive_url }}" class="dc-btn dc-btn-danger" onclick="return confirm('Archive this character? You can unarchive later.');">🗄️ Archive</a>
     </div>
   </div>
 
@@ -61,6 +61,31 @@
         <div class="dc-sheet__demographics">
           {% if personality.age %}Age: {{ personality.age }}{% endif %}
           {% if personality.gender %}{% if personality.age %} | {% endif %}{{ personality.gender }}{% endif %}
+        </div>
+      {% endif %}
+      <div class="dc-sheet__details-row">
+        {% if ancestry.size %}
+          <span class="dc-sheet__detail-chip">{{ ancestry.size }}</span>
+        {% endif %}
+        {% if ancestry.speed %}
+          <span class="dc-sheet__detail-chip">{{ ancestry.speed }}ft</span>
+        {% endif %}
+        {% if ancestry.languages|length > 0 %}
+          <span class="dc-sheet__detail-chip">{{ ancestry.languages|join(', ') }}</span>
+        {% elseif char_data.languages|length > 0 %}
+          <span class="dc-sheet__detail-chip">{{ char_data.languages|join(', ') }}</span>
+        {% endif %}
+      </div>
+      {% if ancestry.traits|length > 0 %}
+        <div class="dc-sheet__tags">
+          {% for trait in ancestry.traits %}
+            <span class="dc-sheet__trait-tag">{{ trait }}</span>
+          {% endfor %}
+        </div>
+      {% endif %}
+      {% if ancestry.ancestry_feat.name %}
+        <div class="dc-sheet__feat">
+          <strong>{{ ancestry.ancestry_feat.name }}:</strong> {{ ancestry.ancestry_feat.description }}
         </div>
       {% endif %}
     </div>
@@ -144,61 +169,7 @@
     </div>
   </div>
 
-  {# Ancestry & Class Info #}
-  <div class="dc-sheet__row">
-    <div class="dc-sheet__section dc-sheet__section--half">
-      <h2 class="dc-sheet__section-title">Ancestry — {{ ancestry.name }}</h2>
-      {% if ancestry.heritage %}
-        <div class="dc-sheet__detail"><strong>Heritage:</strong> {{ ancestry.heritage }}</div>
-      {% endif %}
-      <div class="dc-sheet__detail"><strong>Size:</strong> {{ ancestry.size }}</div>
-      <div class="dc-sheet__detail"><strong>Speed:</strong> {{ ancestry.speed }}ft</div>
-      {% if ancestry.languages|length > 0 %}
-        <div class="dc-sheet__detail"><strong>Languages:</strong> {{ ancestry.languages|join(', ') }}</div>
-      {% elseif char_data.languages|length > 0 %}
-        <div class="dc-sheet__detail"><strong>Languages:</strong> {{ char_data.languages|join(', ') }}</div>
-      {% endif %}
-      {% if ancestry.traits|length > 0 %}
-        <div class="dc-sheet__tags">
-          {% for trait in ancestry.traits %}
-            <span class="dc-sheet__trait-tag">{{ trait }}</span>
-          {% endfor %}
-        </div>
-      {% endif %}
-      {% if ancestry.ancestry_feat.name %}
-        <div class="dc-sheet__feat">
-          <strong>{{ ancestry.ancestry_feat.name }}:</strong> {{ ancestry.ancestry_feat.description }}
-        </div>
-      {% endif %}
-    </div>
 
-    <div class="dc-sheet__section dc-sheet__section--half">
-      <h2 class="dc-sheet__section-title">Class — {{ class_data.name }}</h2>
-      {% if class_data.subclass %}
-        <div class="dc-sheet__detail"><strong>Subclass:</strong> {{ class_data.subclass }}</div>
-      {% endif %}
-      <div class="dc-sheet__detail"><strong>Key Ability:</strong> {{ class_data.key_ability }}</div>
-      <div class="dc-sheet__detail"><strong>HP/Level:</strong> {{ class_data.hp_per_level }}</div>
-
-      {% if class_data.class_features|length > 0 %}
-        <div class="dc-sheet__detail"><strong>Features:</strong></div>
-        <ul class="dc-sheet__feature-list">
-          {% for feature in class_data.class_features %}
-            <li>{{ feature }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-
-      {% if class_data.class_feats|length > 0 %}
-        <h3 class="dc-sheet__subsection-title">Class Feats</h3>
-        {% for feat in class_data.class_feats %}
-          <div class="dc-sheet__feat">
-            <strong>{{ feat.name }} (Lvl {{ feat.level }}):</strong> {{ feat.description }}
-          </div>
-        {% endfor %}
-      {% endif %}
-    </div>
-  </div>
 
   {# Skills #}
   {% if skills|length > 0 %}
@@ -322,22 +293,17 @@
         </div>
       {% endif %}
 
-      {% if spells.spells_known|length > 0 %}
+      {% if spells.rank_groups|length > 0 %}
         <h3 class="dc-sheet__subsection-title">Spells Known</h3>
-        {% set spells_by_rank = {} %}
-        {% for spell in spells.spells_known %}
-          {% set rank = spell.rank ?? 0 %}
-          {% set spells_by_rank = spells_by_rank|merge({(rank): spells_by_rank[rank]|default([])|merge([spell])}) %}
-        {% endfor %}
-        {% for rank, rank_spells in spells_by_rank %}
-          <h4 class="dc-sheet__spell-rank-title">Rank {{ rank }}{% if rank == 0 %} (Cantrips){% endif %}</h4>
-          {% if spells.spell_slots[rank] is defined %}
+        {% for group in spells.rank_groups %}
+          <h4 class="dc-sheet__spell-rank-title">{{ group.label }}</h4>
+          {% if group.slots %}
             <div class="dc-sheet__spell-slots">
-              Slots: {{ spells.spell_slots[rank].remaining ?? 0 }} / {{ spells.spell_slots[rank].max }}
+              Slots: {{ group.slots.remaining ?? 0 }} / {{ group.slots.max }}
             </div>
           {% endif %}
           <ul class="dc-sheet__spell-list">
-            {% for spell in rank_spells %}
+            {% for spell in group.spells %}
               <li>{{ spell.name }}</li>
             {% endfor %}
           </ul>

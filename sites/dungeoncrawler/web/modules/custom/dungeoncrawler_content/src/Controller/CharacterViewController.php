@@ -289,7 +289,7 @@ class CharacterViewController extends ControllerBase {
         'items' => $equipment_items,
       ],
       '#feats' => $char_data['feats'] ?? [],
-      '#spells' => $char_data['spells'] ?? NULL,
+      '#spells' => $this->buildSpellsDisplayData($char_data),
       '#conditions' => $char_data['conditions'] ?? [],
       '#personality' => [
         'alignment' => $alignment,
@@ -302,8 +302,8 @@ class CharacterViewController extends ControllerBase {
       ],
       '#npc_data' => NULL,
       '#raw_json' => json_encode($decoded, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
-      '#edit_url' => Url::fromRoute('dungeoncrawler_content.character_edit', ['character_id' => $record->id])->toString(),
-      '#delete_url' => Url::fromRoute('dungeoncrawler_content.character_delete', ['character_id' => $record->id])->toString(),
+      '#edit_url' => Url::fromRoute('dungeoncrawler_content.character_step', ['step' => 1], ['query' => ['character_id' => $record->id]])->toString(),
+      '#archive_url' => Url::fromRoute('dungeoncrawler_content.character_archive', ['character_id' => $record->id])->toString(),
       '#launch_url' => $launch_url->toString(),
       '#tavern_url' => $tavern_url,
       '#campaign_id' => $campaign_id,
@@ -314,6 +314,125 @@ class CharacterViewController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Resolves raw spell IDs into display-ready spell data for the template.
+   *
+   * Converts the stored `spells` structure (cantrips: [id, ...], first_level:
+   * [id, ...]) into a `spells_known` array of {name, rank, school} objects
+   * grouped by spell level, which the character-sheet.html.twig template
+   * expects for rendering.
+   *
+   * @param array $char_data
+   *   Full character data array.
+   *
+   * @return array|null
+   *   Enriched spells data with spells_known, or NULL if not a caster.
+   */
+  private function buildSpellsDisplayData(array $char_data): ?array {
+    $spells_raw = $char_data['spells'] ?? NULL;
+    if (empty($spells_raw) || empty($spells_raw['tradition'])) {
+      return NULL;
+    }
+
+    $spells_known = [];
+
+    // Resolve cantrip IDs → display data (rank 0).
+    $cantrip_ids = $spells_raw['cantrips'] ?? [];
+    if (!empty($cantrip_ids)) {
+      $cantrip_lookup = $this->buildSpellLookup($cantrip_ids);
+      foreach ($cantrip_ids as $id) {
+        $spells_known[] = [
+          'name' => $cantrip_lookup[$id] ?? $this->humanizeName($id),
+          'rank' => 0,
+        ];
+      }
+    }
+
+    // Resolve 1st-level spell IDs → display data (rank 1).
+    $first_ids = $spells_raw['first_level'] ?? [];
+    if (!empty($first_ids)) {
+      $first_lookup = $this->buildSpellLookup($first_ids);
+      foreach ($first_ids as $id) {
+        $spells_known[] = [
+          'name' => $first_lookup[$id] ?? $this->humanizeName($id),
+          'rank' => 1,
+        ];
+      }
+    }
+
+    // Pre-group spells by rank for the template.
+    // Twig's |merge reindexes numeric keys, so we group in PHP.
+    $by_rank = [];
+    foreach ($spells_known as $spell) {
+      $rank = $spell['rank'];
+      $by_rank[$rank][] = $spell;
+    }
+    ksort($by_rank);
+
+    // Build slot info per rank.
+    $slots = $spells_raw['slots'] ?? [];
+    $slot_info = [];
+    if (!empty($slots['first'])) {
+      $slot_info[1] = [
+        'max' => (int) $slots['first'],
+        'remaining' => (int) $slots['first'],
+      ];
+    }
+
+    // Build the rank groups array for the template.
+    $rank_groups = [];
+    foreach ($by_rank as $rank => $rank_spells) {
+      $rank_groups[] = [
+        'rank' => (int) $rank,
+        'label' => $rank === 0 ? 'Cantrips' : 'Rank ' . $rank,
+        'spells' => $rank_spells,
+        'slots' => $slot_info[$rank] ?? NULL,
+      ];
+    }
+
+    // Build enriched spells array for the template.
+    $result = $spells_raw;
+    $result['spells_known'] = $spells_known;
+    $result['rank_groups'] = $rank_groups;
+
+    return $result;
+  }
+
+  /**
+   * Looks up spell display names from the content registry by ID.
+   *
+   * @param array $ids
+   *   Array of content_id strings.
+   *
+   * @return array
+   *   Associative array of content_id => display name.
+   */
+  private function buildSpellLookup(array $ids): array {
+    if (empty($ids)) {
+      return [];
+    }
+    $rows = $this->characterManager->getDatabase()
+      ->select('dungeoncrawler_content_registry', 'r')
+      ->fields('r', ['content_id', 'name'])
+      ->condition('content_id', $ids, 'IN')
+      ->execute()
+      ->fetchAllKeyed();
+    return $rows;
+  }
+
+  /**
+   * Converts a snake_case content_id into a human-readable name.
+   *
+   * @param string $id
+   *   The content_id string, e.g. 'ray_of_frost'.
+   *
+   * @return string
+   *   Human name, e.g. 'Ray Of Frost'.
+   */
+  private function humanizeName(string $id): string {
+    return ucwords(str_replace('_', ' ', $id));
   }
 
   /**

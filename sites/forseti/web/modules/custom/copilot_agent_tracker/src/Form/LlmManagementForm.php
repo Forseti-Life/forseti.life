@@ -8,6 +8,9 @@ use Symfony\Component\Process\Process;
 
 final class LlmManagementForm extends FormBase {
 
+  const JOB_ROOT_DIR = '/tmp/copilot-agent-tracker-llm-jobs';
+  const QUICK_MODEL_ID = 'Qwen/Qwen2.5-0.5B-Instruct';
+
   public function getFormId(): string {
     return 'copilot_agent_tracker_llm_management_form';
   }
@@ -21,11 +24,20 @@ final class LlmManagementForm extends FormBase {
     }
 
     if ($options === []) {
-      $options['Qwen/Qwen2.5-1.5B-Instruct'] = 'Qwen/Qwen2.5-1.5B-Instruct (not detected in local HF cache)';
       $this->messenger()->addWarning($this->t('No local Hugging Face model snapshots were detected under your cache path. You can still submit a test and it may download on first run.'));
     }
 
+    if (!isset($options[self::QUICK_MODEL_ID])) {
+      $options[self::QUICK_MODEL_ID] = self::QUICK_MODEL_ID . ' (quick default; not detected in local HF cache)';
+    }
+    if (!isset($options['Qwen/Qwen2.5-1.5B-Instruct'])) {
+      $options['Qwen/Qwen2.5-1.5B-Instruct'] = 'Qwen/Qwen2.5-1.5B-Instruct (not detected in local HF cache)';
+    }
+
     $default_model = (string) $form_state->getValue('model');
+    if ($default_model === '' && isset($options[self::QUICK_MODEL_ID])) {
+      $default_model = self::QUICK_MODEL_ID;
+    }
     if ($default_model === '' || !isset($options[$default_model])) {
       $default_model = (string) array_key_first($options);
     }
@@ -71,8 +83,8 @@ final class LlmManagementForm extends FormBase {
     $form['max_length'] = [
       '#type' => 'number',
       '#title' => $this->t('Max length'),
-      '#default_value' => (int) $form_state->getValue('max_length', 160),
-      '#min' => 32,
+      '#default_value' => (int) $form_state->getValue('max_length', 24),
+      '#min' => 16,
       '#max' => 512,
       '#required' => TRUE,
     ];
@@ -80,8 +92,59 @@ final class LlmManagementForm extends FormBase {
     $form['actions'] = ['#type' => 'actions'];
     $form['actions']['submit'] = [
       '#type' => 'submit',
-      '#value' => $this->t('Run test'),
+      '#value' => $this->t('Run test (background)'),
       '#button_type' => 'primary',
+    ];
+    $form['actions']['quick_test'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Hello world quick test'),
+      '#submit' => ['::runHelloWorldQuickTest'],
+      '#limit_validation_errors' => [],
+    ];
+    $form['actions']['refresh'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Refresh status'),
+      '#submit' => ['::refreshStatus'],
+      '#limit_validation_errors' => [],
+    ];
+
+    $jobs = $this->getRecentJobs();
+    $job_rows = [];
+    foreach ($jobs as $job) {
+      $job_rows[] = [
+        (string) ($job['job_id'] ?? ''),
+        (string) ($job['status'] ?? ''),
+        (string) ($job['model'] ?? ''),
+        (string) ($job['prompt_preview'] ?? ''),
+        (string) ($job['max_length'] ?? ''),
+        (string) ($job['runtime'] ?? ''),
+        (string) ($job['pid'] ?? ''),
+        (string) ($job['created_at'] ?? ''),
+      ];
+    }
+
+    $form['jobs'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Recent LLM test jobs'),
+      '#open' => TRUE,
+      '#attributes' => [
+        'id' => 'recent-llm-test-jobs',
+      ],
+      'table' => [
+        '#type' => 'table',
+        '#header' => [
+          $this->t('Job ID'),
+          $this->t('Status'),
+          $this->t('Model'),
+          $this->t('Prompt'),
+          $this->t('Max length'),
+          $this->t('Runtime'),
+          $this->t('PID'),
+          $this->t('Created'),
+        ],
+        '#rows' => $job_rows,
+        '#empty' => $this->t('No LLM jobs yet. Click Run test to queue one.'),
+      ],
     ];
 
     $result = $form_state->get('llm_test_result');
@@ -117,8 +180,8 @@ final class LlmManagementForm extends FormBase {
     }
 
     $max_length = (int) $form_state->getValue('max_length');
-    if ($max_length < 32 || $max_length > 512) {
-      $form_state->setErrorByName('max_length', $this->t('Max length must be between 32 and 512.'));
+    if ($max_length < 16 || $max_length > 512) {
+      $form_state->setErrorByName('max_length', $this->t('Max length must be between 16 and 512.'));
     }
   }
 
@@ -163,75 +226,153 @@ final class LlmManagementForm extends FormBase {
       }
     }
 
-    $command = [
-      $python_bin,
-      $runner_script,
-      '--model',
-      $model,
-      '--prompt',
-      $prompt,
-      '--max-length',
-      (string) $max_length,
+    $job_root = $this->getJobRootDir();
+    if (!is_dir($job_root)) {
+      @mkdir($job_root, 0775, TRUE);
+    }
+    if (!is_dir($job_root) || !is_writable($job_root)) {
+      $this->messenger()->addError($this->t('LLM job directory is not writable: @dir', ['@dir' => $job_root]));
+      return;
+    }
+
+    $job_id = date('Ymd-His') . '-' . bin2hex(random_bytes(3));
+    $job_dir = $job_root . '/' . $job_id;
+    @mkdir($job_dir, 0775, TRUE);
+    if (!is_dir($job_dir) || !is_writable($job_dir)) {
+      $this->messenger()->addError($this->t('Failed to create LLM job directory: @dir', ['@dir' => $job_dir]));
+      return;
+    }
+
+    $prompt_file = $job_dir . '/prompt.txt';
+    $stdout_file = $job_dir . '/stdout.log';
+    $stderr_file = $job_dir . '/stderr.log';
+    $state_file = $job_dir . '/state.txt';
+    $started_file = $job_dir . '/started_at.txt';
+    $finished_file = $job_dir . '/finished_at.txt';
+    $exit_file = $job_dir . '/exit_code.txt';
+    $script_file = $job_dir . '/run.sh';
+    $meta_file = $job_dir . '/meta.json';
+
+    file_put_contents($prompt_file, $prompt);
+    file_put_contents($state_file, "queued\n");
+
+    $logger_context = [
+      '@user' => (string) $this->currentUser()->id(),
+      '@username' => (string) $this->currentUser()->getAccountName(),
+      '@job_id' => $job_id,
+      '@model' => $model,
+      '@prompt' => $prompt,
+      '@max_length' => (string) $max_length,
+      '@python_bin' => $python_bin,
+      '@runner_script' => $runner_script,
+      '@hf_home' => $cache_root,
+      '@hub_cache' => $hub_cache,
+      '@transformers_cache' => $transformers_cache,
+      '@timeout_sec' => '0',
     ];
 
-    $process = new Process(
-      $command,
-      NULL,
-      [
-        'HF_HOME' => $cache_root,
-        'HUGGINGFACE_HUB_CACHE' => $hub_cache,
-        'TRANSFORMERS_CACHE' => $transformers_cache,
-        'HF_HUB_CACHE' => $hub_cache,
-        'HF_HUB_DISABLE_TELEMETRY' => '1',
-      ]
-    );
-    $process->setTimeout(240);
+    $script = "#!/usr/bin/env bash\n"
+      . "set -u\n"
+      . "echo running > " . escapeshellarg($state_file) . "\n"
+      . "date +%s > " . escapeshellarg($started_file) . "\n"
+      . "PROMPT=\$(cat " . escapeshellarg($prompt_file) . ")\n"
+      . "HF_HOME=" . escapeshellarg($cache_root) . " "
+      . "HUGGINGFACE_HUB_CACHE=" . escapeshellarg($hub_cache) . " "
+      . "TRANSFORMERS_CACHE=" . escapeshellarg($transformers_cache) . " "
+      . "HF_HUB_CACHE=" . escapeshellarg($hub_cache) . " "
+      . "HF_HUB_DISABLE_TELEMETRY=1 "
+      . escapeshellarg($python_bin) . " " . escapeshellarg($runner_script)
+      . " --model " . escapeshellarg($model)
+      . " --prompt \"\$PROMPT\""
+      . " --max-length " . escapeshellarg((string) $max_length)
+      . " > " . escapeshellarg($stdout_file)
+      . " 2> " . escapeshellarg($stderr_file)
+      . "\n"
+      . "rc=\$?\n"
+      . "date +%s > " . escapeshellarg($finished_file) . "\n"
+      . "echo \$rc > " . escapeshellarg($exit_file) . "\n"
+      . "if [ \"\$rc\" -eq 0 ]; then echo success > " . escapeshellarg($state_file) . "; else echo failed > " . escapeshellarg($state_file) . "; fi\n"
+      . "exit 0\n";
 
-    $start = microtime(TRUE);
+    file_put_contents($script_file, $script);
+    @chmod($script_file, 0755);
 
     try {
-      $process->run();
-      $runtime = microtime(TRUE) - $start;
+      $launcher = new Process(['bash', '-lc', 'nohup ' . escapeshellarg($script_file) . ' >/dev/null 2>&1 & echo $!']);
+      $launcher->setTimeout(10);
+      $launcher->run();
 
-      if (!$process->isSuccessful()) {
-        $error = trim((string) $process->getErrorOutput());
+      if (!$launcher->isSuccessful()) {
+        $error = trim((string) $launcher->getErrorOutput());
         if ($error === '') {
-          $error = trim((string) $process->getOutput());
+          $error = trim((string) $launcher->getOutput());
         }
-        if ($error === '') {
-          $error = 'Unknown LLM process failure.';
-        }
-
-        $this->messenger()->addError($this->t('LLM test failed: @msg', ['@msg' => mb_substr($error, 0, 400)]));
-        $this->getLogger('copilot_agent_tracker')->error('LLM management process failure: model=@model max_length=@max_length error=@error', [
-          '@model' => $model,
-          '@max_length' => (string) $max_length,
+        $this->messenger()->addError($this->t('Failed to queue LLM job: @msg', ['@msg' => mb_substr($error, 0, 400)]));
+        $this->getLogger('copilot_agent_tracker')->error('LLM_CALL_QUEUE_FAILED user_id=@user username=@username model=@model prompt=@prompt error=@error', $logger_context + [
           '@error' => mb_substr($error, 0, 2000),
         ]);
         return;
       }
 
-      $stdout = (string) $process->getOutput();
-      $generated = $this->extractGeneratedText($stdout);
-      if ($generated === '') {
-        $generated = trim($stdout);
-      }
-
-      $form_state->set('llm_test_result', [
+      $pid = trim((string) $launcher->getOutput());
+      $meta = [
+        'job_id' => $job_id,
+        'created_at' => (int) time(),
+        'user_id' => (string) $this->currentUser()->id(),
+        'username' => (string) $this->currentUser()->getAccountName(),
         'model' => $model,
-        'runtime_seconds' => number_format($runtime, 2),
-        'output' => $generated,
-      ]);
-      $form_state->setRebuild(TRUE);
+        'prompt' => $prompt,
+        'max_length' => $max_length,
+        'python_bin' => $python_bin,
+        'runner_script' => $runner_script,
+        'hf_home' => $cache_root,
+        'hub_cache' => $hub_cache,
+        'transformers_cache' => $transformers_cache,
+        'pid' => $pid,
+      ];
+      file_put_contents($meta_file, json_encode($meta, JSON_PRETTY_PRINT));
+
+      $this->getLogger('copilot_agent_tracker')->notice(
+        'LLM_CALL_QUEUED job_id=@job_id user_id=@user username=@username model=@model max_length=@max_length prompt=@prompt pid=@pid python=@python_bin runner=@runner_script hf_home=@hf_home',
+        $logger_context + [
+          '@pid' => $pid,
+        ]
+      );
+
+      $this->messenger()->addStatus($this->t('LLM job queued (ID: @id). Refresh status to see progress/output.', ['@id' => $job_id]));
+      $form_state->setRedirect('<current>');
     }
     catch (\Throwable $e) {
       $this->messenger()->addError($this->t('LLM test failed: @msg', ['@msg' => mb_substr($e->getMessage(), 0, 400)]));
-      $this->getLogger('copilot_agent_tracker')->error('LLM management exception: model=@model max_length=@max_length error=@error', [
-        '@model' => $model,
-        '@max_length' => (string) $max_length,
-        '@error' => mb_substr($e->getMessage(), 0, 2000),
-      ]);
+      $this->getLogger('copilot_agent_tracker')->error(
+        'LLM_CALL_EXCEPTION user_id=@user username=@username model=@model max_length=@max_length prompt=@prompt error=@error',
+        $logger_context + [
+          '@error' => mb_substr($e->getMessage(), 0, 2000),
+        ]
+      );
     }
+  }
+
+  public function refreshStatus(array &$form, FormStateInterface $form_state): void {
+    $this->messenger()->addStatus($this->t('LLM job status refreshed.'));
+    $form_state->setRedirect('<current>', [], ['fragment' => 'recent-llm-test-jobs']);
+  }
+
+  public function runHelloWorldQuickTest(array &$form, FormStateInterface $form_state): void {
+    $model = self::QUICK_MODEL_ID;
+    $available = $form['model']['#options'] ?? [];
+    if (!isset($available[$model])) {
+      $model = trim((string) ($form_state->getValue('model') ?: ($form['model']['#default_value'] ?? '')));
+    }
+    if ($model === '') {
+      $model = self::QUICK_MODEL_ID;
+    }
+
+    $form_state->setValue('model', $model);
+    $form_state->setValue('prompt', 'Reply with one complete sentence confirming this quick local LLM test is working.');
+    $form_state->setValue('max_length', 24);
+
+    $this->submitForm($form, $form_state);
   }
 
   private function getLocalModelIds(): array {
@@ -338,6 +479,134 @@ final class LlmManagementForm extends FormBase {
     }
 
     return '';
+  }
+
+  private function getJobRootDir(): string {
+    $override = trim((string) getenv('COPILOT_HQ_LLM_JOB_DIR'));
+    if ($override !== '') {
+      return rtrim($override, '/');
+    }
+    return self::JOB_ROOT_DIR;
+  }
+
+  private function getRecentJobs(): array {
+    $root = $this->getJobRootDir();
+    if (!is_dir($root)) {
+      return [];
+    }
+
+    $dirs = glob($root . '/*', GLOB_ONLYDIR) ?: [];
+    rsort($dirs, SORT_NATURAL);
+    $dirs = array_slice($dirs, 0, 10);
+
+    $jobs = [];
+    foreach ($dirs as $dir) {
+      $job_id = basename($dir);
+      $meta = [];
+      $meta_file = $dir . '/meta.json';
+      if (is_file($meta_file)) {
+        try {
+          $decoded = json_decode((string) file_get_contents($meta_file), TRUE);
+          if (is_array($decoded)) {
+            $meta = $decoded;
+          }
+        }
+        catch (\Throwable) {
+        }
+      }
+
+      $state = trim((string) (@file_get_contents($dir . '/state.txt') ?: 'queued'));
+      $pid = trim((string) ($meta['pid'] ?? ''));
+      if ($state === 'running' && $pid !== '' && !$this->isProcessRunning((int) $pid)) {
+        $state = 'finished';
+      }
+
+      $this->emitCompletionLogOnce($dir, $meta, $state);
+
+      $runtime = '';
+      $started_at = (int) trim((string) (@file_get_contents($dir . '/started_at.txt') ?: '0'));
+      $finished_at = (int) trim((string) (@file_get_contents($dir . '/finished_at.txt') ?: '0'));
+      if ($started_at > 0 && $finished_at >= $started_at) {
+        $runtime = (string) ($finished_at - $started_at) . 's';
+      }
+      elseif ($started_at > 0 && $state === 'running') {
+        $runtime = (string) max(0, time() - $started_at) . 's';
+      }
+
+      $jobs[] = [
+        'job_id' => $job_id,
+        'status' => $state,
+        'model' => (string) ($meta['model'] ?? ''),
+        'prompt_preview' => mb_substr((string) ($meta['prompt'] ?? ''), 0, 80),
+        'max_length' => (string) ($meta['max_length'] ?? ''),
+        'runtime' => $runtime,
+        'pid' => $pid,
+        'created_at' => !empty($meta['created_at']) ? date('Y-m-d H:i:s', (int) $meta['created_at']) : '',
+      ];
+    }
+
+    return $jobs;
+  }
+
+  private function isProcessRunning(int $pid): bool {
+    if ($pid <= 0) {
+      return FALSE;
+    }
+    if (function_exists('posix_kill')) {
+      return @posix_kill($pid, 0);
+    }
+    return is_dir('/proc/' . $pid);
+  }
+
+  private function emitCompletionLogOnce(string $job_dir, array $meta, string $state): void {
+    if (!in_array($state, ['success', 'failed', 'finished'], TRUE)) {
+      return;
+    }
+
+    $marker = $job_dir . '/completion_logged.txt';
+    if (is_file($marker)) {
+      return;
+    }
+
+    $exit_code_raw = trim((string) (@file_get_contents($job_dir . '/exit_code.txt') ?: ''));
+    $exit_code = $exit_code_raw === '' ? -1 : (int) $exit_code_raw;
+    $stdout = (string) (@file_get_contents($job_dir . '/stdout.log') ?: '');
+    $stderr = (string) (@file_get_contents($job_dir . '/stderr.log') ?: '');
+
+    $started_at = (int) trim((string) (@file_get_contents($job_dir . '/started_at.txt') ?: '0'));
+    $finished_at = (int) trim((string) (@file_get_contents($job_dir . '/finished_at.txt') ?: '0'));
+    $runtime_sec = 0;
+    if ($started_at > 0 && $finished_at >= $started_at) {
+      $runtime_sec = $finished_at - $started_at;
+    }
+
+    $context = [
+      '@job_id' => (string) ($meta['job_id'] ?? basename($job_dir)),
+      '@user' => (string) ($meta['user_id'] ?? ''),
+      '@username' => (string) ($meta['username'] ?? ''),
+      '@model' => (string) ($meta['model'] ?? ''),
+      '@prompt' => (string) ($meta['prompt'] ?? ''),
+      '@max_length' => (string) ($meta['max_length'] ?? ''),
+      '@runtime_sec' => (string) $runtime_sec,
+      '@exit_code' => (string) $exit_code,
+      '@output_preview' => mb_substr($this->extractGeneratedText($stdout) ?: trim($stdout), 0, 2000),
+      '@error_preview' => mb_substr(trim($stderr), 0, 2000),
+    ];
+
+    if ($exit_code === 0 || $state === 'success') {
+      $this->getLogger('copilot_agent_tracker')->notice(
+        'LLM_CALL_SUCCESS job_id=@job_id user_id=@user username=@username model=@model max_length=@max_length prompt=@prompt runtime_sec=@runtime_sec exit_code=@exit_code output_preview=@output_preview',
+        $context
+      );
+    }
+    else {
+      $this->getLogger('copilot_agent_tracker')->error(
+        'LLM_CALL_FAILED job_id=@job_id user_id=@user username=@username model=@model max_length=@max_length prompt=@prompt runtime_sec=@runtime_sec exit_code=@exit_code error=@error_preview',
+        $context
+      );
+    }
+
+    @file_put_contents($marker, (string) time());
   }
 
 }
