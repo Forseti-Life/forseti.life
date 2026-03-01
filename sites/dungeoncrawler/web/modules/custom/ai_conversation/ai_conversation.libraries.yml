@@ -21,3 +21,19 @@ usage-dashboard:
       css/usage-dashboard.css: {}
   dependencies:
     - core/drupal
+
+model-pricing:
+  version: 1.x
+  css:
+    theme:
+      css/ai-model-pricing.css: {}
+  dependencies:
+    - core/drupal
+
+genai-debug:
+  version: 1.x
+  css:
+    theme:
+      css/genai-debug.css: {}
+  dependencies:
+    - core/drupal

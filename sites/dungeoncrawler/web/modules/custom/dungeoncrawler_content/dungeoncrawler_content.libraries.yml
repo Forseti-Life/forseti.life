@@ -54,6 +54,13 @@ ability-boost-selector:
     - core/once
     - core/drupalSettings
 
+ability-widget:
+  css:
+    theme:
+      css/character-ability-widget.css: {}
+  dependencies:
+    - core/drupal
+
 # Individual step libraries - now depend on character-step-base
 character-step-1:
   js:

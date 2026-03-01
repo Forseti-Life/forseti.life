@@ -62,7 +62,7 @@
     <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
       <!-- PixiJS canvas will be inserted here -->
 
-      <div id="turn-hud" class="turn-hud" style="display:none;">
+      <div id="turn-hud" class="turn-hud dc-is-hidden">
         <div class="turn-hud__row">
           <span id="turn-owner" class="pill pill-strong">{{ 'No active combat'|t }}</span>
           <span id="current-round" class="pill pill-round">{{ 'Round 0'|t }}</span>
@@ -85,10 +85,10 @@
 
         <div id="combat-controls" class="turn-hud__controls">
           <button id="start-combat" class="btn btn-success">{{ '⚔️ Start Combat'|t }}</button>
-          <button id="end-combat" class="btn btn-warning" style="display:none;">{{ '🛑 End Combat'|t }}</button>
+          <button id="end-combat" class="btn btn-warning dc-is-hidden">{{ '🛑 End Combat'|t }}</button>
         </div>
 
-        <div id="initiative-tracker" class="initiative-tracker" style="display:none;">
+        <div id="initiative-tracker" class="initiative-tracker dc-is-hidden">
           <div class="tracker-header">
             <h4>{{ 'Initiative Order'|t }}</h4>
           </div>
@@ -110,7 +110,7 @@
             <button id="action-attack" class="btn btn-primary">{{ 'Attack'|t }}</button>
             <button id="action-interact" class="btn btn-ghost">{{ 'Interact'|t }}</button>
             <button id="action-talk" class="btn btn-ghost">{{ 'Talk'|t }}</button>
-            <button id="end-turn" class="btn btn-primary" style="display:none;">{{ 'End Turn'|t }}</button>
+            <button id="end-turn" class="btn btn-primary dc-is-hidden">{{ 'End Turn'|t }}</button>
           </div>
           <p id="action-instruction" class="action-instruction">{{ 'Select a hostile target to attack.'|t }}</p>
         </div>
@@ -233,7 +233,7 @@
         <h4>{{ 'Skills'|t }}</h4>
         <span class="section-toggle">▸</span>
       </div>
-      <div class="section-body" data-section="skills" style="display:none;">
+      <div class="section-body dc-is-hidden" data-section="skills">
         <ul id="char-skills" class="skills-list">
           <li class="skills-empty">{{ 'No skills loaded'|t }}</li>
         </ul>
@@ -257,7 +257,7 @@
         <h4>{{ 'Inventory'|t }}</h4>
         <span class="section-toggle">▸</span>
       </div>
-      <div class="section-body" data-section="inventory" style="display:none;">
+      <div class="section-body dc-is-hidden" data-section="inventory">
         <div id="char-currency" class="currency-display">
           <span class="currency-item"><span class="currency-label">{{ 'GP:'|t }}</span> <span id="char-gp">0</span></span>
           <span class="currency-item"><span class="currency-label">{{ 'SP:'|t }}</span> <span id="char-sp">0</span></span>
@@ -274,7 +274,7 @@
         <h4>{{ 'Features & Feats'|t }}</h4>
         <span class="section-toggle">▸</span>
       </div>
-      <div class="section-body" data-section="features" style="display:none;">
+      <div class="section-body dc-is-hidden" data-section="features">
         <ul id="char-features" class="features-list">
           <li class="features-empty">{{ 'No features loaded'|t }}</li>
         </ul>
@@ -333,7 +333,7 @@
       </div>
     {% endif %}
     
-    <div class="info-panel" id="entity-info-panel" style="display:none;">
+    <div class="info-panel dc-is-hidden" id="entity-info-panel">
       <h3>{{ 'Selected Entity'|t }}</h3>
       <div class="info-content">
         <p><strong>{{ 'Name:'|t }}</strong> <span id="entity-name">-</span></p>
@@ -349,12 +349,12 @@
     <div class="info-panel">
       <h3>{{ 'Legend'|t }}</h3>
       <div class="info-content">
-        <p><span style="display:inline-block;width:18px;height:18px;background:#5b2b2b;border:2px solid #8b3a3a;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">F</span>{{ 'Impassable, fixed obstacle'|t }}</p>
-        <p><span style="display:inline-block;width:18px;height:18px;background:#7a5325;border:2px solid #b7791f;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">M</span>{{ 'Impassable, movable obstacle'|t }}</p>
-        <p><span style="display:inline-block;width:18px;height:18px;background:#2d5170;border:2px solid #4299e1;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">P</span>{{ 'Passable, movable obstacle'|t }}</p>
-        <p><span style="display:inline-block;width:18px;height:18px;background:#2d4b36;border:2px solid #4d7a5b;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">R</span>{{ 'Active room floor'|t }}</p>
-        <p><span style="display:inline-block;width:18px;height:18px;background:#2d3748;border:1px solid #4a5568;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">O</span>{{ 'Outside active room'|t }}</p>
-        <p><span style="display:inline-block;width:18px;height:18px;background:#3b82f6;border:2px solid #60a5fa;margin-right:6px;color:#fff;font-size:10px;line-height:14px;text-align:center;">S</span>{{ 'Selected hex'|t }}</p>
+        <p><span class="legend-swatch legend-swatch--fixed">F</span>{{ 'Impassable, fixed obstacle'|t }}</p>
+        <p><span class="legend-swatch legend-swatch--movable-impassable">M</span>{{ 'Impassable, movable obstacle'|t }}</p>
+        <p><span class="legend-swatch legend-swatch--movable-passable">P</span>{{ 'Passable, movable obstacle'|t }}</p>
+        <p><span class="legend-swatch legend-swatch--room-floor">R</span>{{ 'Active room floor'|t }}</p>
+        <p><span class="legend-swatch legend-swatch--outside">O</span>{{ 'Outside active room'|t }}</p>
+        <p><span class="legend-swatch legend-swatch--selected">S</span>{{ 'Selected hex'|t }}</p>
       </div>
     </div>
 

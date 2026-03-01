@@ -478,11 +478,14 @@ class CharacterCreationStepForm extends FormBase {
         ];
         $form['ancestry']['#attributes']['class'][] = 'dc-visually-hidden';
         $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
+        $heritage_options = $this->getHeritageOptions($selected_ancestry);
+        $has_heritage_choices = count($heritage_options) > 1;
+
         $form['heritage'] = [
           '#type' => 'select',
           '#title' => $this->t('Heritage Path'),
-          '#required' => TRUE,
-          '#options' => $this->getHeritageOptions($form_state->getValue('ancestry') ?: $character_data['ancestry'] ?? ''),
+          '#required' => $has_heritage_choices,
+          '#options' => $heritage_options,
           '#default_value' => $character_data['heritage'] ?? '',
           '#description' => $this->t('Select a heritage to specialize your ancestry with unique talents and abilities that define your legacy.'),
           '#prefix' => '<div id="heritage-wrapper">',
@@ -491,10 +494,20 @@ class CharacterCreationStepForm extends FormBase {
         $form['heritage']['#attributes']['class'][] = 'dc-visually-hidden';
         $this->applySchemaValidationAttributes($form['heritage'], $schema_fields, 'heritage');
 
+        if (!empty($selected_ancestry) && !$has_heritage_choices) {
+          $form['heritage_unavailable_notice'] = [
+            '#type' => 'markup',
+            '#markup' => '<div class="messages messages--warning">'
+              . $this->t('No heritage options are currently configured for this ancestry. You can continue to the next step and set heritage later when available.')
+              . '</div>',
+          ];
+        }
+
         // Ancestry Feat Selection
         $selected_ancestry = $form_state->getValue('ancestry') ?: $character_data['ancestry'] ?? '';
         if (!empty($selected_ancestry)) {
-          $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$selected_ancestry] ?? [];
+          $ancestry_name = $this->resolveAncestryName((string) $selected_ancestry);
+          $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
           
           if (!empty($ancestry_feats)) {
             $form['ancestry_feat_section'] = [
@@ -1182,21 +1195,25 @@ class CharacterCreationStepForm extends FormBase {
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $step = (int) ($form_state->get('step') ?? 1);
 
-    // Validate heritage selection (Step 1): required + ancestry match.
-    if ($step === 1) {
+    // Validate heritage selection (Step 2): required + ancestry match when
+    // heritages are configured for the selected ancestry.
+    if ($step === 2) {
       $ancestry = (string) ($form_state->getValue('ancestry') ?? '');
       $heritage = (string) ($form_state->getValue('heritage') ?? '');
 
-      if ($heritage === '' || $heritage === '- Select -') {
-        $form_state->setErrorByName('heritage', $this->t('Please select a heritage for your character.'));
-      }
-      elseif ($ancestry !== '') {
+      if ($ancestry !== '') {
         // Server-side: heritage must belong to the selected ancestry.
-        $ancestry_name = str_replace('-', ' ', ucwords($ancestry, '-'));
+        $ancestry_name = $this->resolveAncestryName($ancestry);
         $valid_heritages = CharacterManager::HERITAGES[$ancestry_name] ?? [];
         $valid_ids = array_column($valid_heritages, 'id');
-        if (!in_array($heritage, $valid_ids, TRUE)) {
-          $form_state->setErrorByName('heritage', $this->t('Invalid heritage for selected ancestry.'));
+
+        if (!empty($valid_ids)) {
+          if ($heritage === '' || $heritage === '- Select -') {
+            $form_state->setErrorByName('heritage', $this->t('Please select a heritage for your character.'));
+          }
+          elseif (!in_array($heritage, $valid_ids, TRUE)) {
+            $form_state->setErrorByName('heritage', $this->t('Invalid heritage for selected ancestry.'));
+          }
         }
       }
     }
@@ -1411,10 +1428,6 @@ class CharacterCreationStepForm extends FormBase {
    * Gets the next step in the wizard flow.
    */
   private function getNextStep(int $step): int {
-    if ($step === 4 || $step === 5) {
-      return 6;
-    }
-
     return min(8, $step + 1);
   }
 
@@ -1422,10 +1435,6 @@ class CharacterCreationStepForm extends FormBase {
    * Gets the previous step in the wizard flow.
    */
   private function getPreviousStep(int $step): int {
-    if ($step === 6 || $step === 5) {
-      return 4;
-    }
-
     return max(1, $step - 1);
   }
 
@@ -1868,13 +1877,31 @@ class CharacterCreationStepForm extends FormBase {
   private function getHeritageOptions($ancestry) {
     $options = ['' => $this->t('- Select -')];
     if ($ancestry) {
-      $ancestry_name = str_replace('-', ' ', ucwords($ancestry, '-'));
+      $ancestry_name = $this->resolveAncestryName((string) $ancestry);
       $heritages = CharacterManager::HERITAGES[$ancestry_name] ?? [];
       foreach ($heritages as $heritage) {
         $options[$heritage['id']] = $heritage['name'];
       }
     }
     return $options;
+  }
+
+  /**
+   * Resolves ancestry machine id (e.g. "half-elf") to canonical ancestry name.
+   */
+  private function resolveAncestryName(string $ancestry_id): string {
+    if ($ancestry_id === '') {
+      return '';
+    }
+
+    foreach (array_keys(CharacterManager::ANCESTRIES) as $name) {
+      $normalized = strtolower(str_replace(' ', '-', $name));
+      if ($normalized === strtolower($ancestry_id)) {
+        return $name;
+      }
+    }
+
+    return str_replace('-', ' ', ucwords($ancestry_id, '-'));
   }
 
   /**

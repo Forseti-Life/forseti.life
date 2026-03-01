@@ -58,9 +58,6 @@ class CharacterCreationStepController extends ControllerBase {
       if ($character && $character->uid == $this->currentUser()->id()) {
         $data = json_decode($character->character_data, TRUE);
         $step = (int) ($data['step'] ?? 1);
-        if ($step === 5) {
-          $step = 6;
-        }
         $url = Url::fromRoute('dungeoncrawler_content.character_step', [
           'step' => $step,
         ]);
@@ -238,13 +235,9 @@ class CharacterCreationStepController extends ControllerBase {
   }
 
   /**
-   * Gets the next step in the flow, skipping editable step 5.
+   * Gets the next step in the flow.
    */
   private function getNextStep(int $step): int {
-    if ($step === 4 || $step === 5) {
-      return 6;
-    }
-
     return min(8, $step + 1);
   }
 

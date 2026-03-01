@@ -288,6 +288,10 @@
   color: #00d4ff;
 }
 
+.is-hidden {
+  display: none;
+}
+
 .spinner {
   width: 20px;
   height: 20px;
