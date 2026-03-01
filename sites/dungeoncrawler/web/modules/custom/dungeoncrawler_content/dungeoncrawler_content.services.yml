@@ -28,6 +28,7 @@ services:
 
   dungeoncrawler_content.number_generation:
     class: Drupal\dungeoncrawler_content\Service\NumberGenerationService
+    arguments: ['@database', '@current_user']
 
   dungeoncrawler_content.schema_loader:
     class: Drupal\dungeoncrawler_content\Service\SchemaLoader

@@ -3348,3 +3348,69 @@ function dungeoncrawler_content_update_10019() {
   }
   return t('Added version column to dc_campaign_characters for concurrent-edit protection.');
 }
+
+/**
+ * Create dc_roll_log table for immutable dice roll audit trail.
+ */
+function dungeoncrawler_content_update_10020() {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->tableExists('dc_roll_log')) {
+    $schema->createTable('dc_roll_log', [
+      'description' => 'Immutable audit log of dice rolls.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'expression' => [
+          'type' => 'varchar',
+          'length' => 64,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'Dice expression rolled (e.g. 2d6+3).',
+        ],
+        'total' => [
+          'type' => 'int',
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Final roll total.',
+        ],
+        'character_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+          'description' => 'Optional character ID associated with roll.',
+        ],
+        'uid' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Drupal user ID (0 = anonymous).',
+        ],
+        'roll_type' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'general',
+          'description' => 'Roll context: attack, skill, damage, save, initiative, general.',
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+          'description' => 'Unix timestamp when roll was made.',
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'character_id' => ['character_id'],
+        'uid'          => ['uid'],
+        'created'      => ['created'],
+      ],
+    ]);
+  }
+  return t('Created dc_roll_log table for dice roll audit trail.');
+}
