@@ -539,6 +539,12 @@ class CharacterCreationStepForm extends FormBase {
           // load, making the group appear red before the user interacts at all.
           // Validation is enforced in validateForm() case 2 instead.
           '#required' => FALSE,
+          // Skip Drupal's built-in allowed-values check: sanitizeOptionValue
+          // already normalises submitted values to '' or a valid option. Without
+          // '#validated', Drupal's FormValidator rejects '' (empty/unselected)
+          // because '' is not in $feat_options, logging a spurious "submitted
+          // value not allowed" watchdog error on every AJAX request to this step.
+          '#validated' => TRUE,
           '#description' => $this->t('Each feat provides unique mechanical benefits that reflect your ancestry\'s culture and abilities.'),
         ];
         $this->clearStaleOptionInput($form_state, 'ancestry_feat', $feat_options);
