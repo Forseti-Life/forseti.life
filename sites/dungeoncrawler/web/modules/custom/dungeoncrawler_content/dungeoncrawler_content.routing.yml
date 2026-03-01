@@ -1138,3 +1138,25 @@ dungeoncrawler_content.api.ancestry_detail:
     id: '[a-z0-9\-]+'
   options:
     _format: json
+
+# Background API endpoints (dc-cr-background-system)
+dungeoncrawler_content.api.backgrounds_list:
+  path: '/backgrounds'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\BackgroundController::list'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.background_detail:
+  path: '/backgrounds/{id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\BackgroundController::detail'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    id: '[a-z0-9_\-]+'
+  options:
+    _format: json

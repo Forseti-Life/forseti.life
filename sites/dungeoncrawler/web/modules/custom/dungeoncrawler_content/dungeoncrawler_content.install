@@ -3177,3 +3177,78 @@ function dungeoncrawler_content_update_10016() {
   }
   return t($msg);
 }
+
+/**
+ * Seed background content type and 5 core PF2E background nodes (dc-cr-background-system).
+ *
+ * Creates the 'background' node type if it does not exist, then seeds one node
+ * per background from CharacterManager::BACKGROUNDS (5+ core entries).
+ * Data is NOT duplicated — the node body stores JSON serialized from the constant.
+ */
+function dungeoncrawler_content_update_10017() {
+  // Create background content type if it doesn't exist.
+  $type = \Drupal\node\Entity\NodeType::load('background');
+  if (!$type) {
+    $type = \Drupal\node\Entity\NodeType::create([
+      'type' => 'background',
+      'name' => 'Background',
+      'description' => 'PF2E character backgrounds (acolyte, criminal, entertainer, etc.).',
+      'settings' => [
+        'node' => [
+          'options' => ['status' => TRUE, 'promote' => FALSE, 'sticky' => FALSE, 'revision' => FALSE],
+          'preview' => DRUPAL_DISABLED,
+          'submitted' => FALSE,
+        ],
+      ],
+    ]);
+    $type->save();
+    \Drupal::logger('dungeoncrawler_content')->notice('Created background content type.');
+  }
+
+  $all_backgrounds = \Drupal\dungeoncrawler_content\Service\CharacterManager::BACKGROUNDS;
+  $created = [];
+  $skipped = [];
+
+  foreach ($all_backgrounds as $bg_id => $bg_data) {
+    // Check if a node with this title already exists.
+    $existing = \Drupal::entityQuery('node')
+      ->condition('type', 'background')
+      ->condition('title', $bg_data['name'])
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (!empty($existing)) {
+      $skipped[] = $bg_data['name'];
+      continue;
+    }
+
+    $node = \Drupal\node\Entity\Node::create([
+      'type'   => 'background',
+      'title'  => $bg_data['name'],
+      'status' => 1,
+      'uid'    => 1,
+      'body'   => [
+        'value'  => json_encode([
+          'id'             => $bg_id,
+          'description'    => $bg_data['description'],
+          'ability_boosts' => $bg_data['ability_boosts'],
+          'skill_training' => $bg_data['skill'],
+          'lore_skill'     => $bg_data['lore'],
+          'skill_feat'     => $bg_data['feat'],
+        ], JSON_PRETTY_PRINT),
+        'format' => 'plain_text',
+      ],
+    ]);
+    $node->save();
+    $created[] = $bg_data['name'];
+  }
+
+  $msg = 'background content type seeded.';
+  if ($created) {
+    $msg .= ' Created: ' . implode(', ', $created) . '.';
+  }
+  if ($skipped) {
+    $msg .= ' Skipped (already exist): ' . implode(', ', $skipped) . '.';
+  }
+  return t($msg);
+}

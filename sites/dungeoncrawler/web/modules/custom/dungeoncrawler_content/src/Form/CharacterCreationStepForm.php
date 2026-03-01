@@ -1295,6 +1295,17 @@ class CharacterCreationStepForm extends FormBase {
       $character_data['ability_sources'] = $calculation['sources'];
     }
 
+    // Step 3: derive and store background skill training, lore, and feat.
+    // These are display-only in the form (markup) so they must be applied here.
+    if ((int) $step === 3 && !empty($character_data['background'])) {
+      $bg = CharacterManager::BACKGROUNDS[$character_data['background']] ?? NULL;
+      if ($bg) {
+        $character_data['background_skill_training'] = $bg['skill'] ?? '';
+        $character_data['background_lore_skill']     = $bg['lore'] ?? '';
+        $character_data['background_skill_feat']     = $bg['feat'] ?? '';
+      }
+    }
+
     if ((int) $step === 7) {
       $selected_ids = array_filter((array) $form_state->getValue('equipment', []));
       $catalog = $this->getEquipmentCatalog();
