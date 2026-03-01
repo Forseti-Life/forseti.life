@@ -136,43 +136,11 @@
           });
         });
 
-        // Handle form submission with AJAX
+        // Native form submission only.
         once('step6-submit', SELECTORS.FORM, context).forEach((formEl) => {
-          $(formEl).on('submit', function(e) {
-            const actionUrl = $form.attr('action');
-
-            // Use native Drupal form submit unless this is an explicit JSON save endpoint.
-            if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-              return;
-            }
-
-            e.preventDefault();
-
+          $(formEl).on('submit', function() {
             const $errorMsg = $(SELECTORS.ERROR_MSG);
-
             $errorMsg.addClass(CSS_CLASSES.HIDDEN);
-
-            // Prepare form data
-            const formData = $form.serialize();
-
-            // Submit via AJAX
-            $.ajax({
-              url: actionUrl,
-              method: 'POST',
-              data: formData,
-              dataType: 'json',
-              success: function(response) {
-                if (response.success) {
-                  window.location.href = response.redirect;
-                } else {
-                  $errorMsg.text(response.message || 'Error saving step.').removeClass(CSS_CLASSES.HIDDEN);
-                }
-              },
-              error: function(xhr, status, error) {
-                console.error('Character Step 6 save error:', status, error, xhr.responseJSON);
-                $errorMsg.text('Failed to save. Please try again.').removeClass(CSS_CLASSES.HIDDEN);
-              }
-            });
           });
         });
       });

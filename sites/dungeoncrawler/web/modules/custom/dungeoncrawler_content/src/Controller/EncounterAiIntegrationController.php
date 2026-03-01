@@ -65,6 +65,57 @@ class EncounterAiIntegrationController extends ControllerBase {
       'Fallback behavior uses deterministic rules if provider fails or output is rejected.',
     ];
 
+    $hierarchyRows = [
+      [
+        'level' => 'L0',
+        'parent' => 'Architecture Hub',
+        'surface' => '/architecture',
+        'controller' => 'ArchitectureController::index',
+        'relation' => 'Entry point for architecture governance and drill-down links.',
+        'tables' => 'HQ feature files + documentation render variables',
+      ],
+      [
+        'level' => 'L1',
+        'parent' => '/architecture',
+        'surface' => '/architecture/controllers',
+        'controller' => 'ControllerArchitectureController::overview',
+        'relation' => 'Controller/page/API/table hierarchy reference.',
+        'tables' => 'Documentation view (no direct writes)',
+      ],
+      [
+        'level' => 'L2',
+        'parent' => '/architecture/controllers',
+        'surface' => '/architecture/encounter-ai-integration',
+        'controller' => 'EncounterAiIntegrationController::overview',
+        'relation' => 'Encounter AI phase status, safeguards, and operational metrics.',
+        'tables' => 'ai_conversation_api_usage (read for metrics)',
+      ],
+      [
+        'level' => 'L3',
+        'parent' => '/hexmap',
+        'surface' => '/api/combat/start, /api/combat/action, /api/combat/end-turn, /api/combat/end, /api/combat/get',
+        'controller' => 'CombatEncounterApiController::*',
+        'relation' => 'Server-authoritative encounter lifecycle and action execution.',
+        'tables' => 'combat_encounters, combat_participants, combat_conditions, combat_actions, combat_damage_log',
+      ],
+      [
+        'level' => 'L4',
+        'parent' => '/api/combat/action',
+        'surface' => 'AI orchestration call path',
+        'controller' => 'Encounter AI integration layer + EncounterAiPreviewController::preview',
+        'relation' => 'Recommendation generation, validation, and deterministic fallback.',
+        'tables' => 'ai_conversation_api_usage (telemetry and attempts)',
+      ],
+      [
+        'level' => 'L5',
+        'parent' => '/architecture/encounter-ai-integration',
+        'surface' => '/architecture/encounter-ai-integration/metrics.csv',
+        'controller' => 'EncounterAiIntegrationController::exportMetricsCsv',
+        'relation' => 'Operational metrics export for release evidence and audits.',
+        'tables' => 'ai_conversation_api_usage (aggregated read-only export)',
+      ],
+    ];
+
     $build = [
       '#type' => 'container',
       '#attributes' => ['class' => ['encounter-ai-integration-doc']],
@@ -88,6 +139,26 @@ class EncounterAiIntegrationController extends ControllerBase {
       'list' => [
         '#theme' => 'item_list',
         '#items' => $integrationBoundaries,
+      ],
+    ];
+
+    $build['hierarchy'] = [
+      '#type' => 'details',
+      '#open' => TRUE,
+      '#title' => 'Hierarchy map (Architecture → Combat → AI → Metrics)',
+      'table' => [
+        '#type' => 'table',
+        '#header' => ['Level', 'Parent', 'Page/API Surface', 'Controller/Layer', 'Relationship', 'Primary Tables'],
+        '#rows' => array_map(static function (array $row): array {
+          return [
+            $row['level'],
+            $row['parent'],
+            $row['surface'],
+            $row['controller'],
+            $row['relation'],
+            $row['tables'],
+          ];
+        }, $hierarchyRows),
       ],
     ];
 

@@ -182,7 +182,6 @@ class CharacterCreationStepForm extends FormBase {
     // Build step-specific fields
     $this->buildStepFields($form, $form_state, $step, $character_data);
     $this->applyInputStylingClasses($form);
-    $this->removeRequiredConstraints($form);
 
     // Navigation buttons
     $form['actions'] = [
@@ -1215,9 +1214,82 @@ class CharacterCreationStepForm extends FormBase {
    * {@inheritdoc}
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
-    // Non-blocking flow: no required-field validation in the wizard.
-    // All entered values are accepted and persisted as draft progress.
-    return;
+    $step = (int) $form_state->get('step');
+
+    $normalize_list = static function ($value): array {
+      if (is_string($value)) {
+        $decoded = json_decode($value, TRUE);
+        if (is_array($decoded)) {
+          $value = $decoded;
+        }
+        elseif (trim($value) === '') {
+          $value = [];
+        }
+        else {
+          $value = [$value];
+        }
+      }
+
+      if (!is_array($value)) {
+        return [];
+      }
+
+      return array_values(array_filter(array_map(static function ($item) {
+        return is_string($item) ? trim($item) : $item;
+      }, $value), static function ($item) {
+        return $item !== NULL && $item !== '';
+      }));
+    };
+
+    switch ($step) {
+      case 1:
+        if (trim((string) $form_state->getValue('name', '')) === '') {
+          $form_state->setErrorByName('name', $this->t('Character name is required.'));
+        }
+        break;
+
+      case 2:
+        if (trim((string) $form_state->getValue('ancestry', '')) === '') {
+          $form_state->setErrorByName('ancestry', $this->t('Ancestry selection is required.'));
+        }
+        break;
+
+      case 3:
+        if (trim((string) $form_state->getValue('background', '')) === '') {
+          $form_state->setErrorByName('background', $this->t('Background selection is required.'));
+        }
+
+        $background_boosts = $normalize_list($form_state->getValue('background_boosts', []));
+        if (count($background_boosts) !== 2) {
+          $form_state->setErrorByName('background_boosts', $this->t('Select exactly 2 background boosts.'));
+        }
+        elseif (count(array_unique($background_boosts)) !== 2) {
+          $form_state->setErrorByName('background_boosts', $this->t('Background boosts must be unique.'));
+        }
+        break;
+
+      case 4:
+        if (trim((string) $form_state->getValue('class', '')) === '') {
+          $form_state->setErrorByName('class', $this->t('Class selection is required.'));
+        }
+        break;
+
+      case 5:
+        $free_boosts = $normalize_list($form_state->getValue('free_boosts', []));
+        if (count($free_boosts) !== 4) {
+          $form_state->setErrorByName('free_boosts', $this->t('Select exactly 4 free boosts.'));
+        }
+        elseif (count(array_unique($free_boosts)) !== 4) {
+          $form_state->setErrorByName('free_boosts', $this->t('Free boosts must be unique.'));
+        }
+        break;
+
+      case 6:
+        if (trim((string) $form_state->getValue('alignment', '')) === '') {
+          $form_state->setErrorByName('alignment', $this->t('Alignment selection is required.'));
+        }
+        break;
+    }
   }
 
   /**

@@ -136,18 +136,6 @@
   }
 
   /**
-   * Show error message to user.
-   * 
-   * @param {jQuery} $errorElement - The error message element.
-   * @param {string} message - The error message to display.
-   */
-  function showError($errorElement, message) {
-    if ($errorElement && $errorElement.length) {
-      $errorElement.text(message).removeClass(CONFIG.cssClasses.hidden).show();
-    }
-  }
-
-  /**
    * Hide error message from user.
    * 
    * @param {jQuery} $errorElement - The error message element.
@@ -156,22 +144,6 @@
     if ($errorElement && $errorElement.length) {
       $errorElement.addClass(CONFIG.cssClasses.hidden).hide();
     }
-  }
-
-  /**
-   * Handle AJAX error response.
-   * 
-   * @param {jQuery} $nextButton - The submit button element.
-   * @param {jQuery} $errorMessage - The error message element.
-   * @param {Object} xhr - XMLHttpRequest object.
-   */
-  function handleAjaxError($nextButton, $errorMessage, xhr) {
-    let message = CONFIG.messages.saveFailed;
-    if (xhr.responseJSON && xhr.responseJSON.message) {
-      message = xhr.responseJSON.message;
-    }
-    showError($errorMessage, message);
-    updateButtonState($nextButton, false, CONFIG.buttonText.default);
   }
 
   Drupal.behaviors.characterStep3 = {
@@ -231,40 +203,10 @@
           checkFormComplete(state);
         }
 
-        // Form submission
-        $form.on('submit', function(e) {
-          const actionUrl = $(this).attr('action');
-
-          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
-          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-            return;
-          }
-
-          e.preventDefault();
-
-          const formData = $(this).serialize();
-
+        // Native form submission only.
+        $form.on('submit', function() {
           updateButtonState($nextButton, true, CONFIG.buttonText.saving);
           hideError($errorMessage);
-
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response && response.success) {
-                window.location.href = response.redirect;
-              } else {
-                const message = (response && response.message) || CONFIG.messages.genericError;
-                showError($errorMessage, message);
-                updateButtonState($nextButton, false, CONFIG.buttonText.default);
-              }
-            },
-            error: function(xhr) {
-              handleAjaxError($nextButton, $errorMessage, xhr);
-            }
-          });
         });
       });
     }

@@ -89,6 +89,37 @@ class CharacterCreationStepController extends ControllerBase {
 
     $character_id = $request->query->get('character_id');
     $campaign_id = $request->query->get('campaign_id');
+
+    if ($character_id) {
+      $character = $this->characterManager->loadCharacter((int) $character_id);
+      if (!$character || (int) $character->uid !== (int) $this->currentUser()->id()) {
+        $this->messenger()->addError($this->t('Access denied.'));
+        return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.characters')->toString());
+      }
+
+      $character_data = json_decode((string) $character->character_data, TRUE);
+      $saved_step = (int) (($character_data['step'] ?? 1));
+      $saved_step = max(1, min(8, $saved_step));
+
+      if ($step > $saved_step) {
+        $query = ['character_id' => $character_id];
+        if ($campaign_id) {
+          $query['campaign_id'] = $campaign_id;
+        }
+
+        $this->messenger()->addWarning($this->t('Please complete the previous step before continuing.'));
+        return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_step', ['step' => $saved_step])->setOption('query', $query)->toString());
+      }
+    }
+    elseif ($step > 1) {
+      $query = [];
+      if ($campaign_id) {
+        $query['campaign_id'] = $campaign_id;
+      }
+
+      $this->messenger()->addWarning($this->t('Start character creation at step 1.'));
+      return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_step', ['step' => 1])->setOption('query', $query)->toString());
+    }
     
     // Return the form
     return $this->formBuilder()->getForm(
@@ -132,6 +163,15 @@ class CharacterCreationStepController extends ControllerBase {
 
     // Merge with existing data
     $character_data = $character ? json_decode($character->character_data, TRUE) : $this->getDefaultCharacterData();
+
+    $validation_errors = $this->validateStepRequirements($step, $data, $character_data);
+    if (!empty($validation_errors)) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'message' => $this->t('Please complete all required fields for this step.'),
+        'errors' => $validation_errors,
+      ], 422);
+    }
     
     // Update with step data
     $result = $this->updateStepData($character_data, $step, $data);
@@ -324,6 +364,111 @@ class CharacterCreationStepController extends ControllerBase {
     }
 
     return $character_data;
+  }
+
+  /**
+   * Validate required fields for a specific character creation step.
+   */
+  private function validateStepRequirements(int $step, array $submitted, array $existing): array {
+    $merged = $existing;
+
+    foreach ($submitted as $key => $value) {
+      if (in_array($key, ['form_build_id', 'form_token', 'form_id', 'op'], TRUE)) {
+        continue;
+      }
+
+      if (in_array($key, ['background_boosts', 'free_boosts'], TRUE)) {
+        $merged[$key] = $this->normalizeSelectionList($value);
+      }
+      else {
+        $merged[$key] = $value;
+      }
+    }
+
+    $errors = [];
+
+    $requireNonEmpty = static function ($value): bool {
+      return is_string($value) ? trim($value) !== '' : !empty($value);
+    };
+
+    switch ($step) {
+      case 1:
+        if (!$requireNonEmpty($merged['name'] ?? '')) {
+          $errors['name'] = 'Character name is required.';
+        }
+        break;
+
+      case 2:
+        if (!$requireNonEmpty($merged['ancestry'] ?? '')) {
+          $errors['ancestry'] = 'Ancestry selection is required.';
+        }
+        break;
+
+      case 3:
+        if (!$requireNonEmpty($merged['background'] ?? '')) {
+          $errors['background'] = 'Background selection is required.';
+        }
+        $background_boosts = $this->normalizeSelectionList($merged['background_boosts'] ?? []);
+        if (count($background_boosts) !== 2) {
+          $errors['background_boosts'] = 'Select exactly 2 background boosts.';
+        }
+        elseif (count(array_unique($background_boosts)) !== 2) {
+          $errors['background_boosts'] = 'Background boosts must be unique.';
+        }
+        break;
+
+      case 4:
+        if (!$requireNonEmpty($merged['class'] ?? '')) {
+          $errors['class'] = 'Class selection is required.';
+        }
+        break;
+
+      case 5:
+        $free_boosts = $this->normalizeSelectionList($merged['free_boosts'] ?? []);
+        if (count($free_boosts) !== 4) {
+          $errors['free_boosts'] = 'Select exactly 4 free boosts.';
+        }
+        elseif (count(array_unique($free_boosts)) !== 4) {
+          $errors['free_boosts'] = 'Free boosts must be unique.';
+        }
+        break;
+
+      case 6:
+        if (!$requireNonEmpty($merged['alignment'] ?? '')) {
+          $errors['alignment'] = 'Alignment selection is required.';
+        }
+        break;
+    }
+
+    return $errors;
+  }
+
+  /**
+   * Normalize boost selection payloads from array or JSON string values.
+   */
+  private function normalizeSelectionList($value): array {
+    if (is_string($value)) {
+      $decoded = json_decode($value, TRUE);
+      if (is_array($decoded)) {
+        $value = $decoded;
+      }
+      elseif (trim($value) === '') {
+        $value = [];
+      }
+      else {
+        $value = [$value];
+      }
+    }
+
+    if (!is_array($value)) {
+      return [];
+    }
+
+    return array_values(array_filter(array_map(static function ($item) {
+      return is_string($item) ? trim($item) : $item;
+    }, $value), static function ($item) {
+      return $item !== NULL && $item !== '';
+    }));
   }
 
   /**

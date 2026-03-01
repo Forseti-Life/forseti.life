@@ -141,6 +141,15 @@ dungeoncrawler_content.encounter_ai_integration_metrics_csv:
   requirements:
     _permission: 'access content'
 
+dungeoncrawler_content.data_lineage_architecture:
+  path: '/architecture/data-lineage'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DataLineageArchitectureController::overview'
+    _title: 'Data Lineage Architecture'
+  methods: [GET]
+  requirements:
+    _permission: 'access content'
+
 # ==============================================================================
 # DEMO/TESTING ROUTES
 # ==============================================================================

@@ -43,13 +43,6 @@ dungeoncrawler_content.testing_admin:
 # Primary navigation for authenticated and public users.
 # Weight determines display order (lower numbers appear first).
 
-dungeoncrawler_content.menu.play:
-  title: 'Play'
-  description: 'Start your adventure in the living dungeon'
-  route_name: dungeoncrawler_content.home
-  menu_name: main
-  weight: 0
-
 dungeoncrawler_content.menu.characters:
   title: 'Characters'
   description: 'View and manage your characters'
@@ -70,20 +63,6 @@ dungeoncrawler_content.menu.world:
   route_name: dungeoncrawler_content.world
   menu_name: main
   weight: 30
-
-dungeoncrawler_content.menu.how_to_play:
-  title: 'How to Play'
-  description: 'Learn the game mechanics and rules'
-  route_name: dungeoncrawler_content.how_to_play
-  menu_name: main
-  weight: 40
-
-dungeoncrawler_content.menu.about:
-  title: 'About'
-  description: 'About Dungeon Crawler Life'
-  route_name: dungeoncrawler_content.about
-  menu_name: main
-  weight: 50
 
 dungeoncrawler_content.menu.dc_administration:
   title: 'DC Administration'
@@ -148,6 +127,13 @@ dungeoncrawler_content.menu.dc_administration_architecture:
   route_name: dungeoncrawler_content.architecture
   parent: dungeoncrawler_content.menu.dc_administration
   weight: 8
+
+dungeoncrawler_content.menu.dc_administration_data_lineage:
+  title: 'Data Lineage Architecture'
+  description: 'Review hierarchical page/API/controller/table data lineage.'
+  route_name: dungeoncrawler_content.data_lineage_architecture
+  parent: dungeoncrawler_content.menu.dc_administration
+  weight: 9
 
 # ==============================================================================
 # FOOTER MENU LINKS

@@ -246,6 +246,57 @@ final class DashboardController extends ControllerBase {
       ['9', 'publish', 'scripts/publish-forseti-agent-tracker.sh', 'Publish tracker telemetry to Drupal dashboard tables.'],
     ];
 
+    $process_cycle_rows = [
+      ['0', 'Cron / systemd timers', 'scripts/install-cron-hq-automation.sh, scripts/install-cron-orchestrator-loop.sh, systemd unit', 'Bootstraps unattended runtime and periodic convergence checks.'],
+      ['1', 'hq-automation-watchdog', 'scripts/hq-automation-watchdog.sh', 'Runs convergence checks and repairs process drift.'],
+      ['1.1', 'converge', 'scripts/hq-automation.sh converge', 'Ensures required loops are started/stopped per org-control state.'],
+      ['2', 'orchestrator loop', 'scripts/orchestrator-loop.sh (every 60s)', 'Runs one orchestration tick when org is enabled.'],
+      ['2.1', 'engine dispatch', 'ORCHESTRATOR_ENGINE=legacy|langgraph', 'Selects runtime entrypoint (legacy run.py or langgraph runner).'],
+      ['3', 'tick entry', 'orchestrator/run.py --once OR -m orchestrator.langgraph.runner --once', 'Starts one end-to-end scheduling/execution cycle.'],
+      ['3.1', 'consume_replies', 'scripts/consume-forseti-replies.sh', 'Board/Drupal replies are materialized into seat inboxes.'],
+      ['3.2', 'dispatch_commands', 'inbox/commands/*.md routing', 'Commands are routed to PM or CEO queues.'],
+      ['3.3', 'release_cycle (gated)', 'scripts/release-cycle-start.sh + tmp/release-cycle-active/', 'Creates/advances current+next coordinated release tasks.'],
+      ['3.3.1', 'QA preflight trigger', 'sessions/qa-<team>/inbox/<item>', 'Triggers QA release preflight and evidence cycle.'],
+      ['3.3.2', 'PM grooming trigger', 'sessions/pm-<team>/inbox/<item>', 'Triggers next-release grooming in parallel.'],
+      ['3.4', 'coordinated_push', 'PM signoff intersection + gh workflow run deploy.yml', 'Deploy trigger when all required PM signoffs are present.'],
+      ['3.5', 'pick_agents', 'role weight + ROI + inbox presence', 'Chooses agents to execute this tick (CEO-first).'],
+      ['3.6', 'exec_agents', 'scripts/agent-exec-next.sh <agent>', 'Per-agent execution consumes one inbox item and writes outbox/artifacts.'],
+      ['3.6.1', 'runtime provider', 'local LLM (llm/runner.py) or gh copilot fallback', 'Executes agent prompt chain and persists result.'],
+      ['3.7', 'health_check', 'scripts/hq-status.sh + scripts/hq-blockers.sh', 'Detects stalls, triggers auto-remediation and stagnation escalation.'],
+      ['3.8', 'kpi_monitor (gated)', 'scripts/release-kpi-monitor.py --auto-remediate', 'Detects handoff gaps and queues corrective actions.'],
+      ['3.9', 'publish', 'scripts/publish-forseti-agent-tracker.sh', 'Publishes latest state to Drupal tracker tables/views.'],
+      ['4', 'dashboard refresh cycle', '/admin/reports/copilot-agent-tracker/* routes', 'Operators inspect live process, parity, and release state.'],
+    ];
+
+    $process_cycle_expanded_rows = [];
+    $process_cycle_flat_rows = [];
+    foreach ($process_cycle_rows as $entry) {
+      [$level, $label, $implementation, $next_trigger] = $entry;
+      $depth = substr_count((string) $level, '.');
+      $parent = str_contains((string) $level, '.') ? (string) preg_replace('/\.[^.]+$/', '', (string) $level) : 'root';
+      $path = $parent === 'root' ? (string) $level : $parent . ' → ' . (string) $level;
+      $indented_label = str_repeat('↳ ', $depth) . $label;
+
+      $process_cycle_expanded_rows[] = [
+        (string) $level,
+        (string) $depth,
+        $parent,
+        $indented_label,
+        $implementation,
+        $next_trigger,
+      ];
+
+      $process_cycle_flat_rows[] = [
+        (string) $level,
+        (string) $depth,
+        $parent,
+        $path,
+        $label,
+        $implementation,
+        $next_trigger,
+      ];
+    }
+
     $systems_rows = [
       ['Org model', 'org-chart/', 'Roles, seats, ownership, and product-team registry.'],
       ['Queue state', 'sessions/<agent>/inbox|outbox|artifacts', 'Source-of-truth work queue and outputs.'],
@@ -289,6 +340,25 @@ final class DashboardController extends ControllerBase {
         '#type' => 'details',
         '#title' => $this->t('Process Inventory'),
         '#open' => TRUE,
+        'hierarchy_help' => [
+          '#markup' => '<p><strong>Execution-cycle hierarchy (expanded)</strong>: starts from Cron/systemd and flows through convergence, orchestrator ticks, and downstream release/agent/publish cycles. Indentation + depth show level.</p>',
+        ],
+        'hierarchy' => [
+          '#type' => 'table',
+          '#header' => ['Level', 'Depth', 'Parent', 'Trigger / cycle', 'Primary implementation', 'What it triggers next'],
+          '#rows' => $process_cycle_expanded_rows,
+        ],
+        'flattened_help' => [
+          '#markup' => '<p><strong>Execution-cycle map (flattened)</strong>: explicit level path for each row so parent/child relationships are easy to scan during troubleshooting.</p>',
+        ],
+        'flattened' => [
+          '#type' => 'table',
+          '#header' => ['Level', 'Depth', 'Parent', 'Path', 'Trigger / cycle', 'Primary implementation', 'What it triggers next'],
+          '#rows' => $process_cycle_flat_rows,
+        ],
+        'flat_help' => [
+          '#markup' => '<p><strong>Tick step reference</strong>: flat ordered list of the per-tick pipeline.</p>',
+        ],
         'table' => [
           '#type' => 'table',
           '#header' => ['Order', 'Step', 'Primary implementation', 'Purpose'],
@@ -516,6 +586,66 @@ final class DashboardController extends ControllerBase {
       'parity_rows' => $parity_rows,
       'release_rows' => $release_rows,
       'error_rows' => $error_rows,
+    ];
+  }
+
+  /**
+   * Render a reusable LangGraph troubleshooting section.
+   */
+  private function renderLanggraphTroubleshootingSection(string $title = 'Troubleshooting Interfaces'): array {
+    $langgraph = $this->buildLanggraphTroubleshootingPanels();
+    return [
+      '#type' => 'details',
+      '#title' => $this->t($title),
+      '#open' => TRUE,
+      'engine' => [
+        '#type' => 'table',
+        '#header' => ['Interface item', 'Current signal', 'Source'],
+        '#rows' => $langgraph['engine_rows'],
+      ],
+      'tick' => [
+        '#type' => 'table',
+        '#header' => ['Tick health item', 'Current signal', 'Source'],
+        '#rows' => $langgraph['tick_rows'],
+      ],
+      'nodes' => [
+        '#type' => 'table',
+        '#header' => ['Node', 'Last status', 'Details'],
+        '#rows' => $langgraph['node_rows'],
+      ],
+      'parity' => [
+        '#type' => 'table',
+        '#header' => ['Parity item', 'Current signal', 'Source'],
+        '#rows' => $langgraph['parity_rows'],
+      ],
+      'release' => [
+        '#type' => 'table',
+        '#header' => ['Release-cycle item', 'Current signal', 'Source'],
+        '#rows' => $langgraph['release_rows'],
+      ],
+      'errors' => [
+        '#type' => 'table',
+        '#header' => ['Error signal', 'Current signal', 'Source'],
+        '#rows' => $langgraph['error_rows'],
+      ],
+    ];
+  }
+
+  /**
+   * Render navigation links between LangGraph operational pages.
+   */
+  private function renderLanggraphReferenceNav(): array {
+    return [
+      '#type' => 'item_list',
+      '#title' => $this->t('Operational pages (reference-aligned)'),
+      '#items' => [
+        Link::fromTextAndUrl($this->t('Main Copilot Agent Tracker'), Url::fromRoute('copilot_agent_tracker.dashboard'))->toString(),
+        Link::fromTextAndUrl($this->t('LangGraph Session Monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
+        Link::fromTextAndUrl($this->t('LangGraph Feature Progress'), Url::fromRoute('copilot_agent_tracker.langgraph_feature_progress'))->toString(),
+        Link::fromTextAndUrl($this->t('LangGraph Engine / Parity Health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+        Link::fromTextAndUrl($this->t('LangGraph Release-cycle Status'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
+        Link::fromTextAndUrl($this->t('Agentic Architecture'), Url::fromRoute('copilot_agent_tracker.architecture'))->toString(),
+      ],
     ];
   }
 
@@ -3224,6 +3354,10 @@ final class DashboardController extends ControllerBase {
     $build['title'] = [
       '#markup' => '<h2>' . $this->t('LangGraph Session Monitoring') . '</h2>',
     ];
+    $build['reference_note'] = [
+      '#markup' => '<p><strong>Reference:</strong> this page mirrors troubleshooting depth used by the main Copilot Agent Tracker dashboard.</p>',
+    ];
+    $build['nav'] = $this->renderLanggraphReferenceNav();
 
     $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
     if ($content === NULL) {
@@ -3304,6 +3438,8 @@ final class DashboardController extends ControllerBase {
       '#empty' => $this->t('No ticks to display.'),
     ];
 
+    $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('Session Monitoring Troubleshooting');
+
     return $build;
   }
 
@@ -3324,6 +3460,10 @@ final class DashboardController extends ControllerBase {
     $build['title'] = [
       '#markup' => '<h2>' . $this->t('LangGraph Feature Progress') . '</h2>',
     ];
+    $build['reference_note'] = [
+      '#markup' => '<p><strong>Reference:</strong> troubleshooting capabilities are aligned with the main Copilot Agent Tracker dashboard.</p>',
+    ];
+    $build['nav'] = $this->renderLanggraphReferenceNav();
 
     // Parse markdown table from LANGGRAPH_FEATURE_PROGRESS.md.
     $md = $this->readFileSafe(self::LANGGRAPH_FEATURE_PROGRESS_FILE);
@@ -3396,6 +3536,8 @@ final class DashboardController extends ControllerBase {
         . '</ul>',
     ];
 
+    $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('Feature Progress Troubleshooting');
+
     return $build;
   }
 
@@ -3413,6 +3555,10 @@ final class DashboardController extends ControllerBase {
     $build['title'] = [
       '#markup' => '<h2>' . $this->t('LangGraph Engine / Parity Health') . '</h2>',
     ];
+    $build['reference_note'] = [
+      '#markup' => '<p><strong>Reference:</strong> this parity page is anchored to the same troubleshooting model as the main Copilot Agent Tracker dashboard.</p>',
+    ];
+    $build['nav'] = $this->renderLanggraphReferenceNav();
 
     $content = $this->readFileSafe(self::LANGGRAPH_PARITY_FILE);
     if ($content === NULL) {
@@ -3453,6 +3599,8 @@ final class DashboardController extends ControllerBase {
       ],
     ];
 
+    $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('Parity Troubleshooting');
+
     return $build;
   }
 
@@ -3470,6 +3618,10 @@ final class DashboardController extends ControllerBase {
     $build['title'] = [
       '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Status Panel') . '</h2>',
     ];
+    $build['reference_note'] = [
+      '#markup' => '<p><strong>Reference:</strong> release status troubleshooting mirrors the main Copilot Agent Tracker operational diagnostics.</p>',
+    ];
+    $build['nav'] = $this->renderLanggraphReferenceNav();
 
     $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
     if ($content === NULL) {
@@ -3515,6 +3667,8 @@ final class DashboardController extends ControllerBase {
         [$this->t('Ticks with publish_enabled=true (last 24h)'), (string) $publish_enabled_count],
       ],
     ];
+
+    $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('Release-cycle Troubleshooting');
 
     return $build;
   }

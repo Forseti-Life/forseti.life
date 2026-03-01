@@ -55,8 +55,7 @@
     },
     messages: {
       insufficientGold: 'Not enough gold!',
-      emptyEquipment: 'No equipment selected',
-      saveFailed: 'Failed to save. Please try again.'
+      emptyEquipment: 'No equipment selected'
     },
     classes: {
       equipmentItem: 'equipment-item',
@@ -322,54 +321,10 @@
           removeItem(index);
         });
 
-        /**
-         * Handles AJAX error responses.
-         *
-         * @param {Object} xhr - XMLHttpRequest object.
-         * @param {string} status - Status text.
-         * @param {string} error - Error message.
-         */
-        function handleAjaxError(xhr, status, error) {
-          const $errorElement = $(CONFIG.selectors.errorMessage);
-          $errorElement.text(CONFIG.messages.saveFailed).removeClass(CONFIG.classes.hidden);
-          console.error('Save error:', error);
-        }
-
-        // Handle form submission with AJAX
-        $form.on('submit', function(e) {
-          const actionUrl = $form.attr('action');
-
-          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
-          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-            return;
-          }
-
-          e.preventDefault();
-
-          // No validation - equipment is optional
-          
+        // Native form submission only.
+        $form.on('submit', function() {
           // Hide error message
           $(CONFIG.selectors.errorMessage).addClass(CONFIG.classes.hidden);
-
-          // Prepare form data
-          const formData = $form.serialize();
-
-          // Submit via AJAX
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response.success) {
-                window.location.href = response.redirect;
-              } else {
-                const message = response.message || 'Error saving step.';
-                $(CONFIG.selectors.errorMessage).text(message).removeClass(CONFIG.classes.hidden);
-              }
-            },
-            error: handleAjaxError
-          });
         });
       });
     }

@@ -32,10 +32,6 @@
   };
 
   // Error message constants
-  const MESSAGES = {
-    SAVE_ERROR: 'Failed to save. Please try again.',
-  };
-
   // Module-level state
   let selectedClass = null;
 
@@ -132,50 +128,12 @@
 
       resetButtonState($nextButton);
 
-      // Form submission with validation and AJAX
+      // Native form submission only
       once('step4-submit', SELECTORS.FORM, context).forEach((element) => {
-        $(element).on('submit', function(e) {
-          const actionUrl = $(this).attr('action');
-
-          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
-          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-            return;
-          }
-
-          e.preventDefault();
-
-          const formData = $(this).serialize();
-
+        $(element).on('submit', function() {
           // Show loading state
           $nextButton.prop('disabled', true).text(BUTTON_TEXT.SAVING);
           hideError($errorMessage);
-
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response && response.success) {
-                // Successful save - redirect to next step
-                window.location.href = response.redirect;
-              } else {
-                // Server returned error message
-                const message = (response && response.message) || MESSAGES.SAVE_ERROR;
-                showError($errorMessage, message);
-                resetButtonState($nextButton);
-              }
-            },
-            error: function(xhr) {
-              // AJAX request failed or server error
-              let errorMsg = MESSAGES.SAVE_ERROR;
-              if (xhr.responseJSON && xhr.responseJSON.message) {
-                errorMsg = xhr.responseJSON.message;
-              }
-              showError($errorMessage, errorMsg);
-              resetButtonState($nextButton);
-            }
-          });
         });
       });
     }

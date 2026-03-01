@@ -21,45 +21,6 @@
 (function ($, Drupal, once) {
   'use strict';
 
-  // Configuration constants
-  // Note: minNameLength matches character.schema.json requirement
-  const CONFIG = {
-    messages: {
-      saveFailed: 'Failed to save. Please try again.',
-      genericError: 'An error occurred.'
-    },
-    buttonText: {
-      submit: 'Next Step →',
-      saving: 'Saving...'
-    }
-  };
-
-  /**
-   * Updates submit button state and text.
-   * 
-   * @param {jQuery} $button - The submit button element.
-   * @param {boolean} disabled - Whether button should be disabled.
-   * @param {string} text - Button text to display.
-   */
-  function updateSubmitButton($button, disabled, text) {
-    $button.prop('disabled', disabled).text(text);
-  }
-
-  /**
-   * Handles AJAX error response.
-   * 
-   * @param {jQuery} $submitButton - The submit button element.
-   * @param {Object} xhr - XMLHttpRequest object.
-   */
-  function handleAjaxError($submitButton, xhr) {
-    let message = CONFIG.messages.saveFailed;
-    if (xhr.responseJSON && xhr.responseJSON.message) {
-      message = xhr.responseJSON.message;
-    }
-    alert(message);
-    updateSubmitButton($submitButton, false, CONFIG.buttonText.submit);
-  }
-
   Drupal.behaviors.characterStep1 = {
     attach: function (context, settings) {
       once('step1-init', '#step1Form', context).forEach(function(element) {
@@ -73,40 +34,9 @@
           return;
         }
         
-        // Form submission
-        $form.on('submit', function(e) {
-          const actionUrl = $(this).attr('action');
-
-          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
-          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-            return;
-          }
-
-          e.preventDefault();
-
-          const formData = $(this).serialize();
-          
-          // Show loading state
-          updateSubmitButton($submitButton, true, CONFIG.buttonText.saving);
-          
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response && response.success) {
-                window.location.href = response.redirect;
-              } else {
-                const message = (response && response.message) || CONFIG.messages.genericError;
-                alert(message);
-                updateSubmitButton($submitButton, false, CONFIG.buttonText.submit);
-              }
-            },
-            error: function(xhr) {
-              handleAjaxError($submitButton, xhr);
-            }
-          });
+        // Native form submission only.
+        $form.on('submit', function() {
+          $submitButton.prop('disabled', true).text('Saving...');
         });
       });
     }

@@ -40,12 +40,7 @@
   };
 
   const BUTTON_TEXT = {
-    SAVING: 'Saving...',
     DEFAULT: 'Next: Choose Background →',
-  };
-
-  const MESSAGES = {
-    SAVE_ERROR: 'Failed to save. Please try again.',
   };
 
   /**
@@ -239,42 +234,9 @@
 
         updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
 
-        // Handle form submission with AJAX only for explicit JSON save endpoints.
-        // For standard Drupal Form API routes, allow native submit/redirect flow.
-        $form.on('submit', function(e) {
-          const actionUrl = $form.attr('action');
-
-          // If this is not the dedicated JSON save endpoint, do not hijack submit.
-          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-            return;
-          }
-
-          e.preventDefault();
-
-          // Show loading state
-          updateSubmitButton(true, BUTTON_TEXT.SAVING);
-
-          const formData = $form.serialize();
-          
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response.success) {
-                window.location.href = response.redirect;
-              } else {
-                alert(response.message || MESSAGES.SAVE_ERROR);
-                updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
-              }
-            },
-            error: function(xhr) {
-              const message = (xhr.responseJSON && xhr.responseJSON.message) || MESSAGES.SAVE_ERROR;
-              alert(message);
-              updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
-            }
-          });
+        // Native form submission only.
+        $form.on('submit', function() {
+          updateSubmitButton(true, 'Saving...');
         });
       });
     }

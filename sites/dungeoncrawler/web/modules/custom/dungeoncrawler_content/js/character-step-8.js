@@ -30,11 +30,7 @@
 
   // Configuration constants
   const CONFIG = {
-    redirectDelay: 500,
     messages: {
-      createFailed: 'Failed to create character. Please try again.',
-      createError: 'Error creating character.',
-      genericError: 'An error occurred.',
       validationError: 'Please correct the errors below.',
       appearanceTooLong: 'Physical Appearance cannot exceed 1000 characters.',
       personalityTooLong: 'Personality & Mannerisms cannot exceed 1000 characters.',
@@ -42,9 +38,7 @@
       portraitPromptTooLong: 'Portrait prompt cannot exceed 500 characters.'
     },
     buttonText: {
-      submit: '🎉 Create Character',
-      creating: 'Creating Character...',
-      success: '✓ Character Created!'
+      creating: 'Creating Character...'
     },
     validation: {
       appearanceMaxLength: 1000,
@@ -211,21 +205,6 @@
     $(SELECTORS.ERROR_MESSAGE).addClass(CSS_CLASSES.HIDDEN);
   }
 
-  /**
-   * Handles AJAX error response.
-   * 
-   * @param {jQuery} $submitButton - The submit button element.
-   * @param {Object} xhr - XMLHttpRequest object.
-   */
-  function handleAjaxError($submitButton, xhr) {
-    let message = CONFIG.messages.createFailed;
-    if (xhr.responseJSON && xhr.responseJSON.message) {
-      message = xhr.responseJSON.message;
-    }
-    showErrorMessage(message);
-    updateSubmitButton($submitButton, false, CONFIG.buttonText.submit);
-  }
-
   Drupal.behaviors.characterStep8 = {
     attach: function (context, settings) {
       once('step8-submit', SELECTORS.FORM, context).forEach((element) => {
@@ -238,55 +217,18 @@
           return;
         }
 
-        // Handle form submission with AJAX
+        // Native form submission only.
         $form.on('submit', function(e) {
-          const actionUrl = $form.attr('action');
-
-          // Use native Drupal form submit unless this is an explicit JSON save endpoint.
-          if (!actionUrl || actionUrl.indexOf('/save') === -1) {
-            return;
-          }
-
-          e.preventDefault();
-
           // Validate form fields (all fields optional, but must meet constraints if filled)
           const validation = validateForm($form);
           if (!validation.isValid) {
             showErrorMessage(CONFIG.messages.validationError);
+            e.preventDefault();
             return false;
           }
           
           hideErrorMessage();
           updateSubmitButton($submitButton, true, CONFIG.buttonText.creating);
-
-          // Prepare form data
-          const formData = $form.serialize();
-
-          // Submit via AJAX
-          $.ajax({
-            url: actionUrl,
-            method: 'POST',
-            data: formData,
-            dataType: 'json',
-            success: function(response) {
-              if (response && response.success) {
-                updateSubmitButton($submitButton, true, CONFIG.buttonText.success);
-                
-                // Redirect to character sheet or character list
-                setTimeout(function() {
-                  window.location.href = response.redirect;
-                }, CONFIG.redirectDelay);
-              } else {
-                const message = (response && response.message) || CONFIG.messages.createError;
-                showErrorMessage(message);
-                updateSubmitButton($submitButton, false, CONFIG.buttonText.submit);
-              }
-            },
-            error: function(xhr, status, error) {
-              handleAjaxError($submitButton, xhr);
-              console.error('Save error:', error);
-            }
-          });
         });
       });
     }
