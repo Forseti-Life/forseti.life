@@ -3252,3 +3252,82 @@ function dungeoncrawler_content_update_10017() {
   }
   return t($msg);
 }
+
+/**
+ * Seed character_class content type and all 12 core PF2E class nodes (dc-cr-character-class).
+ *
+ * Creates the 'character_class' node type if it does not exist, then seeds
+ * one node per class from CharacterManager::CLASSES. The 12 AC-required
+ * classes are: alchemist, barbarian, bard, champion, cleric, druid, fighter,
+ * monk, ranger, rogue, sorcerer, wizard. Any additional classes in the
+ * constant (e.g. investigator) are also seeded since data is available.
+ */
+function dungeoncrawler_content_update_10018() {
+  // Create character_class content type if it doesn't exist.
+  $type = \Drupal\node\Entity\NodeType::load('character_class');
+  if (!$type) {
+    $type = \Drupal\node\Entity\NodeType::create([
+      'type' => 'character_class',
+      'name' => 'Character Class',
+      'description' => 'PF2E character classes (fighter, wizard, cleric, etc.).',
+      'settings' => [
+        'node' => [
+          'options' => ['status' => TRUE, 'promote' => FALSE, 'sticky' => FALSE, 'revision' => FALSE],
+          'preview' => DRUPAL_DISABLED,
+          'submitted' => FALSE,
+        ],
+      ],
+    ]);
+    $type->save();
+    \Drupal::logger('dungeoncrawler_content')->notice('Created character_class content type.');
+  }
+
+  $all_classes = \Drupal\dungeoncrawler_content\Service\CharacterManager::CLASSES;
+  $created = [];
+  $skipped = [];
+
+  foreach ($all_classes as $class_id => $class_data) {
+    // Check if a node with this title already exists.
+    $existing = \Drupal::entityQuery('node')
+      ->condition('type', 'character_class')
+      ->condition('title', $class_data['name'])
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (!empty($existing)) {
+      $skipped[] = $class_data['name'];
+      continue;
+    }
+
+    $node = \Drupal\node\Entity\Node::create([
+      'type'   => 'character_class',
+      'title'  => $class_data['name'],
+      'status' => 1,
+      'uid'    => 1,
+      'body'   => [
+        'value'  => json_encode([
+          'id'             => $class_id,
+          'description'    => $class_data['description'],
+          'key_ability'    => $class_data['key_ability'],
+          'hp_per_level'   => $class_data['hp'],
+          'proficiencies'  => $class_data['proficiencies'],
+          'trained_skills' => $class_data['trained_skills'],
+          'weapons'        => $class_data['weapons'],
+          'spellcasting'   => $class_data['spellcasting'] ?? null,
+        ], JSON_PRETTY_PRINT),
+        'format' => 'plain_text',
+      ],
+    ]);
+    $node->save();
+    $created[] = $class_data['name'];
+  }
+
+  $msg = 'character_class content type seeded.';
+  if ($created) {
+    $msg .= ' Created: ' . implode(', ', $created) . '.';
+  }
+  if ($skipped) {
+    $msg .= ' Skipped (already exist): ' . implode(', ', $skipped) . '.';
+  }
+  return t($msg);
+}

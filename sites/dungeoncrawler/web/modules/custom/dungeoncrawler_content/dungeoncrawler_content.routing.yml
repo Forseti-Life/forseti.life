@@ -1160,3 +1160,25 @@ dungeoncrawler_content.api.background_detail:
     id: '[a-z0-9_\-]+'
   options:
     _format: json
+
+# Character class API endpoints (dc-cr-character-class)
+dungeoncrawler_content.api.classes_list:
+  path: '/classes'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterClassController::list'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.class_detail:
+  path: '/classes/{id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterClassController::detail'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    id: '[a-z0-9_\-]+'
+  options:
+    _format: json
