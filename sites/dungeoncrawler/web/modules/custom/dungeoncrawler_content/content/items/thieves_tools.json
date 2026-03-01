@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "thieves-tools",
+  "item_id": "thieves_tools",
   "name": "Thieves' Tools",
   "item_type": "adventuring_gear",
   "level": 0,

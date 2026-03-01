@@ -26,15 +26,15 @@ class CharacterCreationStepForm extends FormBase {
    * Constructs a CharacterCreationStepForm object.
    */
   public function __construct(
-    protected readonly CharacterManager $characterManager,
-    protected readonly SchemaLoader $schemaLoader,
-    protected readonly Connection $database,
-    protected readonly UuidInterface $uuid,
-    protected readonly AccountProxyInterface $currentUser,
-    protected readonly DateFormatterInterface $dateFormatter,
-    protected readonly TimeInterface $time,
-    protected readonly CharacterPortraitGenerationService $portraitGenerator,
-    protected readonly AbilityScoreTracker $abilityScoreTracker,
+    protected CharacterManager $characterManager,
+    protected SchemaLoader $schemaLoader,
+    protected Connection $database,
+    protected UuidInterface $uuid,
+    protected AccountProxyInterface $currentUser,
+    protected DateFormatterInterface $dateFormatter,
+    protected TimeInterface $time,
+    protected CharacterPortraitGenerationService $portraitGenerator,
+    protected AbilityScoreTracker $abilityScoreTracker,
   ) {}
 
   /**
@@ -662,156 +662,267 @@ class CharacterCreationStepForm extends FormBase {
       '#options' => $this->getClassOptions(),
       '#default_value' => $character_data['class'] ?? '',
       '#description' => $this->t('Choose how your character will contribute to the party across many campaigns. Consider what role you\'ll enjoy playing across dozens of sessions.'),
+      '#ajax' => [
+        'callback' => '::updateClassOptions',
+        'wrapper' => 'class-dynamic-wrapper',
+        'event' => 'change',
+      ],
     ];
 
-    // Key Ability Selection (if class has multiple options)
-    if (!empty($character_data['class'])) {
-      $class_data = CharacterManager::CLASSES[$character_data['class']] ?? NULL;
-      if ($class_data) {
-        $key_ability_raw = $class_data['key_ability'] ?? '';
-        $key_options = array_map('trim', explode(' or ', strtolower($key_ability_raw)));
+    // Dynamic container: rebuilt via AJAX when class changes.
+    $form['class_dynamic'] = [
+      '#type' => 'container',
+      '#tree' => FALSE,
+      '#attributes' => ['id' => 'class-dynamic-wrapper'],
+    ];
 
-        // If class has choice of key abilities, show selector
-        if (count($key_options) > 1) {
-          $form['class_key_ability_help'] = [
-            '#markup' => '<div class="section-instructions class-key-ability-section">'
-              . '<h3>' . $this->t('Choose Key Ability') . '</h3>'
-              . '<p>' . $this->t('Your class allows a choice of key ability. This determines which ability receives a boost from your class.') . '</p>'
-              . '</div>',
-          ];
+    // Resolve selected class: form_state (AJAX) takes priority over DB data.
+    $selected_class = (string) ($form_state->getValue('class') ?: ($character_data['class'] ?? ''));
+    if ($selected_class === '') {
+      return;
+    }
 
-          $key_ability_options = [];
-          foreach ($key_options as $option) {
-            $normalized = $this->abilityScoreTracker->normalizeAbilityKey($option);
-            if ($normalized) {
-              $key_ability_options[$normalized] = ucfirst($normalized);
-            }
-          }
+    $class_data = CharacterManager::CLASSES[$selected_class] ?? NULL;
+    if (!$class_data) {
+      return;
+    }
 
-          $form['class_key_ability'] = [
-            '#type' => 'radios',
-            '#title' => $this->t('Select Key Ability'),
-            '#options' => $key_ability_options,
-            '#default_value' => $character_data['class_key_ability'] ?? '',
-            '#required' => TRUE,
-            '#description' => $this->t('This ability will receive a +2 boost and is the primary ability for your class features.'),
-          ];
-        }
-        else {
-          // Fixed key ability - show as read-only
-          $key_ability = $this->abilityScoreTracker->normalizeAbilityKey($key_options[0]);
-          $form['class_key_ability_readonly'] = [
-            '#markup' => '<div class="class-info">'
-              . '<p><strong>' . $this->t('Key Ability:') . '</strong> ' . ucfirst($key_ability ?? 'Unknown') . ' ' . $this->t('(automatically applied)') . '</p>'
-              . '</div>',
-          ];
-        }
+    // Key Ability Selection
+    $key_ability_raw = $class_data['key_ability'] ?? '';
+    $key_options = array_map('trim', explode(' or ', strtolower($key_ability_raw)));
 
-        // Class Feat Selection
-        $selected_class = $character_data['class'];
-        $class_feats = CharacterManager::CLASS_FEATS[$selected_class] ?? [];
-        
-        if (!empty($class_feats)) {
-          $form['class_feat_section'] = [
-            '#markup' => '<div class="section-instructions class-feat-section">'
-              . '<h3>' . $this->t('Class Feat') . '</h3>'
-              . '<p>' . $this->t('Choose one 1st-level class feat. This represents specialized training or a unique technique for your class.') . '</p>'
-              . '</div>',
-          ];
+    if (count($key_options) > 1) {
+      $form['class_dynamic']['class_key_ability_help'] = [
+        '#markup' => '<div class="section-instructions class-key-ability-section">'
+          . '<h3>' . $this->t('Choose Key Ability') . '</h3>'
+          . '<p>' . $this->t('Your class allows a choice of key ability. This determines which ability receives a boost from your class.') . '</p>'
+          . '</div>',
+      ];
 
-          $feat_options = [];
-          $feat_descriptions = [];
-          
-          foreach ($class_feats as $feat) {
-            $feat_options[$feat['id']] = $feat['name'];
-            $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
-            $traits_text = !empty($feat['traits']) ? ' [' . implode(', ', $feat['traits']) . ']' : '';
-            $feat_descriptions[$feat['id']] = [
-              '#markup' => '<div class="feat-description">'
-                . '<strong>' . $feat['name'] . '</strong>' . $traits_text . $prereq_text . '<br>'
-                . $feat['benefit']
-                . '</div>',
-            ];
-          }
-
-          $form['class_feat'] = [
-            '#type' => 'radios',
-            '#title' => $this->t('Select Class Feat'),
-            '#options' => $feat_options,
-            '#default_value' => $character_data['class_feat'] ?? '',
-            '#required' => TRUE,
-            '#description' => $this->t('Each feat provides unique tactical options that define your combat style.'),
-          ];
-
-          // Add detailed descriptions for each feat
-          foreach ($feat_descriptions as $feat_id => $description_markup) {
-            $form['class_feat_desc_' . $feat_id] = $description_markup;
-            $form['class_feat_desc_' . $feat_id]['#states'] = [
-              'visible' => [
-                ':input[name="class_feat"]' => ['value' => $feat_id],
-              ],
-            ];
-          }
-        }
-
-        // Spell Selection for Spellcasting Classes
-        if ($selected_class === 'wizard') {
-          $form['spells_section'] = [
-            '#markup' => '<div class="section-instructions spells-section">'
-              . '<h3>' . $this->t('Spells') . '</h3>'
-              . '<p>' . $this->t('As a Wizard, you begin with knowledge of arcane magic. Choose your starting cantrips and spells for your spellbook.') . '</p>'
-              . '</div>',
-          ];
-
-          // Cantrip Selection (5 cantrips for Wizard at level 1)
-          $cantrips = CharacterManager::SPELLS['arcane']['cantrips'] ?? [];
-          $cantrip_options = [];
-          
-          foreach ($cantrips as $cantrip) {
-            $traits_text = !empty($cantrip['traits']) ? ' [' . implode(', ', $cantrip['traits']) . ']' : '';
-            $cantrip_options[$cantrip['id']] = $cantrip['name'] . $traits_text . ' - ' . $cantrip['description'];
-          }
-
-          $form['cantrips_help'] = [
-            '#markup' => '<div class="spell-help"><strong>' . $this->t('Cantrips (Select 5)') . '</strong><br>'
-              . $this->t('Cantrips are spells you can cast at will. They heighten automatically to half your level. You should have a mix of offensive and utility cantrips.') 
-              . '</div>',
-          ];
-
-          $form['cantrips'] = [
-            '#type' => 'checkboxes',
-            '#title' => $this->t('Choose 5 Cantrips'),
-            '#options' => $cantrip_options,
-            '#default_value' => $character_data['cantrips'] ?? [],
-            '#required' => FALSE,
-            '#description' => $this->t('Popular choices: Shield (defense), Electric Arc (damage), Detect Magic (utility), Prestidigitation (flexibility)'),
-          ];
-
-          // 1st Level Spell Selection (10 spells in spellbook for Wizard)
-          $first_level_spells = CharacterManager::SPELLS['arcane']['1st'] ?? [];
-          $spell_options = [];
-          
-          foreach ($first_level_spells as $spell) {
-            $traits_text = !empty($spell['traits']) ? ' [' . implode(', ', $spell['traits']) . ']' : '';
-            $spell_options[$spell['id']] = $spell['name'] . $traits_text . ' - ' . $spell['description'];
-          }
-
-          $form['spells_help'] = [
-            '#markup' => '<div class="spell-help"><strong>' . $this->t('1st Level Spells (Select up to 10)') . '</strong><br>'
-              . $this->t('These spells are added to your spellbook. You can prepare 4 spells per day at level 1 (2 from class, +2 from INT modifier if you have 14+ INT). Choose versatile spells.') 
-              . '</div>',
-          ];
-
-          $form['spells_first'] = [
-            '#type' => 'checkboxes',
-            '#title' => $this->t('Choose up to 10 First Level Spells'),
-            '#options' => $spell_options,
-            '#default_value' => $character_data['spells_first'] ?? [],
-            '#required' => FALSE,
-            '#description' => $this->t('Popular choices: Magic Missile (always hits), Mage Armor (AC), Sleep (crowd control), True Strike (accuracy)'),
-          ];
+      $key_ability_options = [];
+      foreach ($key_options as $option) {
+        $normalized = $this->abilityScoreTracker->normalizeAbilityKey($option);
+        if ($normalized) {
+          $key_ability_options[$normalized] = ucfirst($normalized);
         }
       }
+
+      $form['class_dynamic']['class_key_ability'] = [
+        '#type' => 'radios',
+        '#title' => $this->t('Select Key Ability'),
+        '#options' => $key_ability_options,
+        '#default_value' => $character_data['class_key_ability'] ?? '',
+        '#required' => TRUE,
+        '#description' => $this->t('This ability will receive a +2 boost and is the primary ability for your class features.'),
+      ];
+    }
+    else {
+      $key_ability = $this->abilityScoreTracker->normalizeAbilityKey($key_options[0]);
+      $form['class_dynamic']['class_key_ability_readonly'] = [
+        '#markup' => '<div class="class-info">'
+          . '<p><strong>' . $this->t('Key Ability:') . '</strong> ' . ucfirst($key_ability ?? 'Unknown') . ' ' . $this->t('(automatically applied)') . '</p>'
+          . '</div>',
+      ];
+    }
+
+    // Class Feat Selection
+    $class_feats = CharacterManager::CLASS_FEATS[$selected_class] ?? [];
+
+    if (!empty($class_feats)) {
+      $form['class_dynamic']['class_feat_section'] = [
+        '#markup' => '<div class="section-instructions class-feat-section">'
+          . '<h3>' . $this->t('Class Feat') . '</h3>'
+          . '<p>' . $this->t('Choose one 1st-level class feat. This represents specialized training or a unique technique for your class.') . '</p>'
+          . '</div>',
+      ];
+
+      $feat_options = [];
+      $feat_descriptions = [];
+
+      foreach ($class_feats as $feat) {
+        $feat_options[$feat['id']] = $feat['name'];
+        $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
+        $traits_text = !empty($feat['traits']) ? ' [' . implode(', ', $feat['traits']) . ']' : '';
+        $feat_descriptions[$feat['id']] = [
+          '#markup' => '<div class="feat-description">'
+            . '<strong>' . $feat['name'] . '</strong>' . $traits_text . $prereq_text . '<br>'
+            . $feat['benefit']
+            . '</div>',
+        ];
+      }
+
+      $form['class_dynamic']['class_feat'] = [
+        '#type' => 'radios',
+        '#title' => $this->t('Select Class Feat'),
+        '#options' => $feat_options,
+        '#default_value' => $character_data['class_feat'] ?? '',
+        '#required' => TRUE,
+        '#description' => $this->t('Each feat provides unique tactical options that define your combat style.'),
+      ];
+
+      foreach ($feat_descriptions as $feat_id => $description_markup) {
+        $form['class_dynamic']['class_feat_desc_' . $feat_id] = $description_markup;
+        $form['class_dynamic']['class_feat_desc_' . $feat_id]['#states'] = [
+          'visible' => [
+            ':input[name="class_feat"]' => ['value' => $feat_id],
+          ],
+        ];
+      }
+    }
+
+    // --- Subclass selection for flexible-tradition casters ---
+    if ($selected_class === 'sorcerer') {
+      $form['class_dynamic']['bloodline_section'] = [
+        '#markup' => '<div class="section-instructions bloodline-section">'
+          . '<h3>' . $this->t('Sorcerer Bloodline') . '</h3>'
+          . '<p>' . $this->t('Your bloodline determines your spellcasting tradition. Choose the source of your innate magical power.') . '</p>'
+          . '</div>',
+      ];
+      $bloodline_options = [];
+      foreach (CharacterManager::SORCERER_BLOODLINES as $bl_id => $bl) {
+        $bloodline_options[$bl_id] = $bl['label'] . ' (' . ucfirst($bl['tradition']) . ') — ' . $bl['description'];
+      }
+      $form['class_dynamic']['subclass'] = [
+        '#type' => 'radios',
+        '#title' => $this->t('Select Bloodline'),
+        '#options' => $bloodline_options,
+        '#default_value' => $character_data['subclass'] ?? '',
+        '#required' => TRUE,
+        '#description' => $this->t('Your bloodline determines which spell tradition you cast from.'),
+        '#ajax' => [
+          'callback' => '::updateClassOptions',
+          'wrapper' => 'class-dynamic-wrapper',
+          'event' => 'change',
+        ],
+      ];
+    }
+    elseif ($selected_class === 'witch') {
+      $form['class_dynamic']['patron_section'] = [
+        '#markup' => '<div class="section-instructions patron-section">'
+          . '<h3>' . $this->t('Witch Patron') . '</h3>'
+          . '<p>' . $this->t('Your patron is the mysterious entity that granted you magic and a familiar. Choose your patron theme to determine your spellcasting tradition.') . '</p>'
+          . '</div>',
+      ];
+      $patron_options = [];
+      foreach (CharacterManager::WITCH_PATRONS as $p_id => $p) {
+        $patron_options[$p_id] = $p['label'] . ' (' . ucfirst($p['tradition']) . ') — ' . $p['description'];
+      }
+      $form['class_dynamic']['subclass'] = [
+        '#type' => 'radios',
+        '#title' => $this->t('Select Patron'),
+        '#options' => $patron_options,
+        '#default_value' => $character_data['subclass'] ?? '',
+        '#required' => TRUE,
+        '#description' => $this->t('Your patron determines which spell tradition you cast from.'),
+        '#ajax' => [
+          'callback' => '::updateClassOptions',
+          'wrapper' => 'class-dynamic-wrapper',
+          'event' => 'change',
+        ],
+      ];
+    }
+
+    // --- Spell Selection for ALL spellcasting classes ---
+    // For flexible-tradition casters, resolve subclass from form_state
+    // first, then fall back to character_data saved values.
+    $subclass_value = (string) ($form_state->getValue('subclass') ?: ($character_data['subclass'] ?? ''));
+    $resolve_data = array_merge($character_data, $subclass_value ? ['subclass' => $subclass_value] : []);
+    $tradition = $this->characterManager->resolveClassTradition($selected_class, $resolve_data);
+    $spell_slots = CharacterManager::CASTER_SPELL_SLOTS[$selected_class] ?? NULL;
+
+    if ($tradition && $spell_slots) {
+      $tradition_label = ucfirst($tradition);
+      $class_label = ucfirst($selected_class);
+      $num_cantrips = $spell_slots['cantrips'];
+      $num_first = $spell_slots['first'];
+      $spellbook_size = $spell_slots['spellbook'] ?? NULL;
+
+      if ($selected_class === 'wizard') {
+        $spells_intro = $this->t('As a Wizard, you begin with knowledge of arcane magic. Choose your starting cantrips and spells for your spellbook.');
+        $first_label = $this->t('Choose up to @count First Level Spells (Spellbook)', ['@count' => $spellbook_size ?? $num_first]);
+        $first_help = $this->t('These spells are added to your spellbook. You can prepare @slots spells per day at level 1. Choose versatile spells.', ['@slots' => $num_first]);
+        $max_first = $spellbook_size ?? $num_first;
+      }
+      else {
+        $spells_intro = $this->t('As a @class, you tap into the @tradition spell tradition. Choose your starting cantrips and 1st-level spells.', [
+          '@class' => $class_label,
+          '@tradition' => $tradition_label,
+        ]);
+        $first_label = $this->t('Choose @count First Level Spells', ['@count' => $num_first]);
+        $first_help = $this->t('You can cast @count 1st-level @tradition spells per day at level 1.', [
+          '@count' => $num_first,
+          '@tradition' => $tradition_label,
+        ]);
+        $max_first = $num_first;
+      }
+
+      $form['class_dynamic']['spells_section'] = [
+        '#markup' => '<div class="section-instructions spells-section">'
+          . '<h3>' . $this->t('Spells (@tradition)', ['@tradition' => $tradition_label]) . '</h3>'
+          . '<p>' . $spells_intro . '</p>'
+          . '</div>',
+      ];
+
+      // Store tradition and limits for validation.
+      $form_state->set('spell_tradition', $tradition);
+      $form_state->set('cantrip_limit', $num_cantrips);
+      $form_state->set('first_spell_limit', $max_first);
+
+      // --- Cantrip Selection ---
+      $cantrips = $this->characterManager->getSpellsByTradition($tradition, 0);
+      $cantrip_options = [];
+      foreach ($cantrips as $cantrip) {
+        $school_tag = !empty($cantrip['school']) ? ' [' . ucfirst($cantrip['school']) . ']' : '';
+        $cantrip_options[$cantrip['id']] = $cantrip['name'] . $school_tag . ' — ' . $cantrip['description'];
+      }
+
+      $form['class_dynamic']['cantrips_help'] = [
+        '#markup' => '<div class="spell-help"><strong>' . $this->t('Cantrips (Select @count)', ['@count' => $num_cantrips]) . '</strong><br>'
+          . $this->t('Cantrips are spells you can cast at will. They heighten automatically to half your level.')
+          . '</div>',
+      ];
+
+      $form['class_dynamic']['cantrips'] = [
+        '#type' => 'checkboxes',
+        '#title' => $this->t('Choose @count Cantrips', ['@count' => $num_cantrips]),
+        '#options' => $cantrip_options,
+        '#default_value' => $character_data['cantrips'] ?? [],
+        '#required' => FALSE,
+        '#description' => $this->t('Select exactly @count cantrips from the @tradition spell list.', ['@count' => $num_cantrips, '@tradition' => $tradition_label]),
+      ];
+
+      // --- 1st Level Spell Selection ---
+      $first_level_spells = $this->characterManager->getSpellsByTradition($tradition, 1);
+      $spell_options = [];
+      foreach ($first_level_spells as $spell) {
+        $school_tag = !empty($spell['school']) ? ' [' . ucfirst($spell['school']) . ']' : '';
+        $spell_options[$spell['id']] = $spell['name'] . $school_tag . ' — ' . $spell['description'];
+      }
+
+      $form['class_dynamic']['spells_help'] = [
+        '#markup' => '<div class="spell-help"><strong>' . $first_label . '</strong><br>'
+          . $first_help
+          . '</div>',
+      ];
+
+      $form['class_dynamic']['spells_first'] = [
+        '#type' => 'checkboxes',
+        '#title' => $first_label,
+        '#options' => $spell_options,
+        '#default_value' => $character_data['spells_first'] ?? [],
+        '#required' => FALSE,
+        '#description' => $this->t('Select your starting 1st-level @tradition spells.', ['@tradition' => $tradition_label]),
+      ];
+    }
+    elseif (array_key_exists($selected_class, CharacterManager::CLASS_TRADITIONS) && !$tradition) {
+      // Caster class but tradition not yet resolved (sorcerer/witch without subclass)
+      $form['class_dynamic']['spells_pending'] = [
+        '#markup' => '<div class="section-instructions spells-pending">'
+          . '<p><em>' . $this->t('Select your @thing above to unlock spell selection.', [
+            '@thing' => $selected_class === 'sorcerer' ? 'bloodline' : 'patron',
+          ]) . '</em></p>'
+          . '</div>',
+      ];
     }
   }
 
@@ -936,6 +1047,47 @@ class CharacterCreationStepForm extends FormBase {
       '#description' => $this->t('Optional: A spiritual patron or philosophy that will anchor your character\'s identity and roleplay flavor across all campaigns.'),
     ];
     $this->applySchemaValidationAttributes($form['deity'], $schema_fields, 'deity');
+
+    // --- General Feat Selection ---
+    // Every PF2e character gets one 1st-level general feat at character creation.
+    $form['general_feat_section'] = [
+      '#markup' => '<div class="section-instructions general-feat-section">'
+        . '<h3>' . $this->t('General Feat') . '</h3>'
+        . '<p>' . $this->t('Every character receives one 1st-level general feat. These represent broad talents not tied to your class or ancestry.') . '</p>'
+        . '</div>',
+    ];
+
+    $general_feat_options = [];
+    $general_feat_descriptions = [];
+    foreach (CharacterManager::GENERAL_FEATS as $feat) {
+      $general_feat_options[$feat['id']] = $feat['name'];
+      $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
+      $general_feat_descriptions[$feat['id']] = [
+        '#markup' => '<div class="feat-description">'
+          . '<strong>' . $feat['name'] . '</strong>' . $prereq_text . '<br>'
+          . $feat['benefit']
+          . '</div>',
+      ];
+    }
+
+    $form['general_feat'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Select General Feat'),
+      '#options' => $general_feat_options,
+      '#default_value' => $character_data['general_feat'] ?? '',
+      '#required' => TRUE,
+      '#description' => $this->t('Popular choices: Toughness (more HP), Fleet (faster movement), Incredible Initiative (+2 to initiative), Shield Block (damage reduction).'),
+    ];
+
+    // Add detailed descriptions with show/hide via #states.
+    foreach ($general_feat_descriptions as $feat_id => $description_markup) {
+      $form['general_feat_desc_' . $feat_id] = $description_markup;
+      $form['general_feat_desc_' . $feat_id]['#states'] = [
+        'visible' => [
+          ':input[name="general_feat"]' => ['value' => $feat_id],
+        ],
+      ];
+    }
   }
 
   /**
@@ -1217,6 +1369,49 @@ class CharacterCreationStepForm extends FormBase {
         if (trim((string) $form_state->getValue('class', '')) === '') {
           $form_state->setErrorByName('class', $this->t('Class selection is required.'));
         }
+
+        // Validate subclass (bloodline/patron) for flexible-tradition casters.
+        $class_val = trim((string) $form_state->getValue('class', ''));
+        if (in_array($class_val, ['sorcerer', 'witch'], TRUE)) {
+          if (trim((string) $form_state->getValue('subclass', '')) === '') {
+            $label = $class_val === 'sorcerer' ? 'bloodline' : 'patron';
+            $form_state->setErrorByName('subclass', $this->t('Select a @label for your @class.', [
+              '@label' => $label,
+              '@class' => ucfirst($class_val),
+            ]));
+          }
+        }
+
+        // Validate cantrip and spell counts for caster classes.
+        $cantrip_limit = (int) $form_state->get('cantrip_limit');
+        if ($cantrip_limit > 0) {
+          $raw_cantrips = $form_state->getValue('cantrips', []);
+          $selected_cantrips = is_array($raw_cantrips)
+            ? array_filter($raw_cantrips, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL)
+            : [];
+          $cantrip_count = count($selected_cantrips);
+          if ($cantrip_count !== $cantrip_limit) {
+            $form_state->setErrorByName('cantrips', $this->t('Select exactly @count cantrip(s). You have selected @selected.', [
+              '@count' => $cantrip_limit,
+              '@selected' => $cantrip_count,
+            ]));
+          }
+        }
+
+        $first_spell_limit = (int) $form_state->get('first_spell_limit');
+        if ($first_spell_limit > 0) {
+          $raw_spells = $form_state->getValue('spells_first', []);
+          $selected_spells = is_array($raw_spells)
+            ? array_filter($raw_spells, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL)
+            : [];
+          $spell_count = count($selected_spells);
+          if ($spell_count > $first_spell_limit) {
+            $form_state->setErrorByName('spells_first', $this->t('Select at most @count spell(s). You have selected @selected.', [
+              '@count' => $first_spell_limit,
+              '@selected' => $spell_count,
+            ]));
+          }
+        }
         break;
 
       case 5:
@@ -1232,6 +1427,11 @@ class CharacterCreationStepForm extends FormBase {
       case 6:
         if (trim((string) $form_state->getValue('alignment', '')) === '') {
           $form_state->setErrorByName('alignment', $this->t('Alignment selection is required.'));
+        }
+
+        // Validate general feat selection.
+        if (trim((string) $form_state->getValue('general_feat', '')) === '') {
+          $form_state->setErrorByName('general_feat', $this->t('General feat selection is required.'));
         }
 
         // Enforce exact skill count (class base + INT modifier).
@@ -1307,9 +1507,16 @@ class CharacterCreationStepForm extends FormBase {
     }
     $next_version = $submitted_version + 1;
 
-    // Update character data with form values
+    // Update character data with form values.
+    // Exclude internal Drupal keys AND the step-7 checkbox groups (weapons,
+    // armor, gear) which contain raw Drupal checkbox arrays ({id: id|0}).
+    // Step 7 builds its own cleaned equipment/inventory structures below.
+    $exclude_keys = [
+      'form_build_id', 'form_token', 'form_id', 'op', 'character_version',
+      'weapons', 'armor', 'gear',
+    ];
     foreach ($form_state->getValues() as $key => $value) {
-      if (!in_array($key, ['form_build_id', 'form_token', 'form_id', 'op', 'character_version'])) {
+      if (!in_array($key, $exclude_keys, TRUE)) {
         // Handle JSON-encoded hidden fields
         if (in_array($key, ['background_boosts', 'free_boosts'], TRUE) && is_string($value)) {
           $decoded = json_decode($value, TRUE);
@@ -1343,6 +1550,63 @@ class CharacterCreationStepForm extends FormBase {
         $character_data['background_lore_skill']     = $bg['lore'] ?? '';
         $character_data['background_skill_feat']     = $bg['feat'] ?? '';
       }
+    }
+
+    // Step 4: Build structured spellcasting data for caster classes.
+    if ((int) $step === 4) {
+      $selected_class = $character_data['class'] ?? '';
+      $tradition = $this->characterManager->resolveClassTradition($selected_class, $character_data);
+
+      if ($tradition) {
+        // Clean cantrips checkbox array into a flat list of selected IDs.
+        $raw_cantrips = $form_state->getValue('cantrips', []);
+        $cantrip_ids = is_array($raw_cantrips)
+          ? array_values(array_filter($raw_cantrips, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL))
+          : [];
+
+        // Clean first-level spells checkbox array.
+        $raw_spells = $form_state->getValue('spells_first', []);
+        $spell_ids = is_array($raw_spells)
+          ? array_values(array_filter($raw_spells, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL))
+          : [];
+
+        $spell_slots = CharacterManager::CASTER_SPELL_SLOTS[$selected_class] ?? [];
+
+        // Build the structured spells block for character_data.
+        $character_data['spells'] = [
+          'tradition' => $tradition,
+          'casting_ability' => $this->resolveSpellcastingAbility($selected_class),
+          'cantrips' => $cantrip_ids,
+          'first_level' => $spell_ids,
+          'slots' => [
+            'cantrips' => $spell_slots['cantrips'] ?? 5,
+            'first' => $spell_slots['first'] ?? 2,
+          ],
+        ];
+
+        // Wizard spellbook: track separately if applicable.
+        if ($selected_class === 'wizard') {
+          $character_data['spells']['spellbook_size'] = $spell_slots['spellbook'] ?? 10;
+        }
+
+        // Clean the raw checkbox data from the generic dump.
+        $character_data['cantrips'] = $cantrip_ids;
+        $character_data['spells_first'] = $spell_ids;
+      }
+
+      // Build feats summary array from all sources.
+      $character_data['feats'] = $this->buildFeatsArray($character_data);
+    }
+
+    // Step 6: Clean trained_skills checkbox data and build feats summary.
+    if ((int) $step === 6) {
+      $raw_skills = $form_state->getValue('trained_skills', []);
+      $character_data['trained_skills'] = is_array($raw_skills)
+        ? array_values(array_filter($raw_skills, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL))
+        : [];
+
+      // Rebuild feats array with general feat included.
+      $character_data['feats'] = $this->buildFeatsArray($character_data);
     }
 
     if ((int) $step === 7) {
@@ -1505,26 +1769,26 @@ class CharacterCreationStepForm extends FormBase {
       ],
       'armor' => [
         ['id' => 'leather', 'name' => 'Leather Armor', 'type' => 'armor', 'cost' => 2.0, 'bulk' => 1, 'ac' => '+1', 'traits' => []],
-        ['id' => 'studded-leather', 'name' => 'Studded Leather Armor', 'type' => 'armor', 'cost' => 3.0, 'bulk' => 1, 'ac' => '+2', 'traits' => []],
-        ['id' => 'chain-shirt', 'name' => 'Chain Shirt', 'type' => 'armor', 'cost' => 5.0, 'bulk' => 1, 'ac' => '+2', 'traits' => ['flexible', 'noisy']],
-        ['id' => 'hide-armor', 'name' => 'Hide Armor', 'type' => 'armor', 'cost' => 2.0, 'bulk' => 2, 'ac' => '+3', 'traits' => []],
-        ['id' => 'scale-mail', 'name' => 'Scale Mail', 'type' => 'armor', 'cost' => 4.0, 'bulk' => 2, 'ac' => '+3', 'traits' => []],
-        ['id' => 'chain-mail', 'name' => 'Chain Mail', 'type' => 'armor', 'cost' => 6.0, 'bulk' => 2, 'ac' => '+4', 'traits' => ['flexible', 'noisy']],
+        ['id' => 'studded_leather_armor', 'name' => 'Studded Leather Armor', 'type' => 'armor', 'cost' => 3.0, 'bulk' => 1, 'ac' => '+2', 'traits' => []],
+        ['id' => 'chain_shirt', 'name' => 'Chain Shirt', 'type' => 'armor', 'cost' => 5.0, 'bulk' => 1, 'ac' => '+2', 'traits' => ['flexible', 'noisy']],
+        ['id' => 'hide_armor', 'name' => 'Hide Armor', 'type' => 'armor', 'cost' => 2.0, 'bulk' => 2, 'ac' => '+3', 'traits' => []],
+        ['id' => 'scale_mail', 'name' => 'Scale Mail', 'type' => 'armor', 'cost' => 4.0, 'bulk' => 2, 'ac' => '+3', 'traits' => []],
+        ['id' => 'chain_mail', 'name' => 'Chain Mail', 'type' => 'armor', 'cost' => 6.0, 'bulk' => 2, 'ac' => '+4', 'traits' => ['flexible', 'noisy']],
         ['id' => 'breastplate', 'name' => 'Breastplate', 'type' => 'armor', 'cost' => 8.0, 'bulk' => 2, 'ac' => '+4', 'traits' => []],
-        ['id' => 'shield', 'name' => 'Wooden Shield', 'type' => 'armor', 'cost' => 1.0, 'bulk' => 1, 'ac' => '+2 circumstance', 'traits' => []],
+        ['id' => 'wooden_shield', 'name' => 'Wooden Shield', 'type' => 'armor', 'cost' => 1.0, 'bulk' => 1, 'ac' => '+2 circumstance', 'traits' => []],
       ],
       'gear' => [
         ['id' => 'backpack', 'name' => 'Backpack', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
         ['id' => 'bedroll', 'name' => 'Bedroll', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
         ['id' => 'rope', 'name' => 'Rope (50 ft.)', 'type' => 'adventuring_gear', 'cost' => 0.5, 'bulk' => 'L', 'traits' => []],
-        ['id' => 'torch-5', 'name' => 'Torches (5)', 'type' => 'adventuring_gear', 'cost' => 0.05, 'bulk' => 'L', 'traits' => []],
+        ['id' => 'torches', 'name' => 'Torches (5)', 'type' => 'adventuring_gear', 'cost' => 0.05, 'bulk' => 'L', 'traits' => []],
         ['id' => 'rations', 'name' => 'Rations (1 week)', 'type' => 'adventuring_gear', 'cost' => 0.4, 'bulk' => 'L', 'traits' => []],
         ['id' => 'waterskin', 'name' => 'Waterskin', 'type' => 'adventuring_gear', 'cost' => 0.05, 'bulk' => 'L', 'traits' => []],
-        ['id' => 'healers-kit', 'name' => "Healer's Tools", 'type' => 'adventuring_gear', 'cost' => 5.0, 'bulk' => 1, 'traits' => []],
-        ['id' => 'thieves-tools', 'name' => "Thieves' Tools", 'type' => 'adventuring_gear', 'cost' => 3.0, 'bulk' => 'L', 'traits' => []],
-        ['id' => 'grappling-hook', 'name' => 'Grappling Hook', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
-        ['id' => 'lantern', 'name' => 'Hooded Lantern', 'type' => 'adventuring_gear', 'cost' => 0.7, 'bulk' => 'L', 'traits' => []],
-        ['id' => 'oil-flask', 'name' => 'Oil (1 flask)', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
+        ['id' => 'healers_tools', 'name' => "Healer's Tools", 'type' => 'adventuring_gear', 'cost' => 5.0, 'bulk' => 1, 'traits' => []],
+        ['id' => 'thieves_tools', 'name' => "Thieves' Tools", 'type' => 'adventuring_gear', 'cost' => 3.0, 'bulk' => 'L', 'traits' => []],
+        ['id' => 'grappling_hook', 'name' => 'Grappling Hook', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
+        ['id' => 'hooded_lantern', 'name' => 'Hooded Lantern', 'type' => 'adventuring_gear', 'cost' => 0.7, 'bulk' => 'L', 'traits' => []],
+        ['id' => 'oil_flask', 'name' => 'Oil (1 flask)', 'type' => 'adventuring_gear', 'cost' => 0.1, 'bulk' => 'L', 'traits' => []],
       ],
     ];
   }
@@ -2143,6 +2407,56 @@ class CharacterCreationStepForm extends FormBase {
   }
 
   /**
+   * AJAX callback: Rebuilds class-dependent fields when class or subclass changes.
+   */
+  public function updateClassOptions(array &$form, FormStateInterface $form_state): array {
+    $trigger = $form_state->getTriggeringElement();
+    $trigger_name = $trigger['#name'] ?? '';
+
+    // When the class itself changes, clear class-dependent selections.
+    if ($trigger_name === 'class') {
+      $form_state->setValue('class_feat', '');
+      $form_state->setValue('class_key_ability', '');
+      $form_state->setValue('subclass', '');
+      $form_state->setValue('cantrips', []);
+      $form_state->setValue('spells_first', []);
+
+      $user_input = $form_state->getUserInput();
+      if (is_array($user_input)) {
+        unset(
+          $user_input['class_feat'],
+          $user_input['class_key_ability'],
+          $user_input['subclass'],
+          $user_input['cantrips'],
+          $user_input['spells_first']
+        );
+        $form_state->setUserInput($user_input);
+      }
+    }
+
+    // When subclass changes, clear spell selections.
+    if ($trigger_name === 'subclass') {
+      $form_state->setValue('cantrips', []);
+      $form_state->setValue('spells_first', []);
+
+      $user_input = $form_state->getUserInput();
+      if (is_array($user_input)) {
+        unset($user_input['cantrips'], $user_input['spells_first']);
+        $form_state->setUserInput($user_input);
+      }
+    }
+
+    if (method_exists($form_state, 'clearErrors')) {
+      $form_state->clearErrors();
+    }
+    \Drupal::messenger()->deleteByType('error');
+
+    $form_state->setRebuild(TRUE);
+
+    return $form['class_dynamic'];
+  }
+
+  /**
    * Clears stale user input when a submitted option is no longer allowed.
    *
    * @param \Drupal\Core\Form\FormStateInterface $form_state
@@ -2211,6 +2525,90 @@ class CharacterCreationStepForm extends FormBase {
 
     $candidate = (string) $input;
     return array_key_exists($candidate, $options) ? $candidate : '';
+  }
+
+  /**
+   * Resolves the spellcasting ability for a class.
+   *
+   * @param string $class
+   *   The class ID.
+   *
+   * @return string
+   *   The ability name (e.g. 'intelligence', 'wisdom', 'charisma').
+   */
+  private function resolveSpellcastingAbility(string $class): string {
+    $map = [
+      'wizard'   => 'intelligence',
+      'witch'    => 'intelligence',
+      'cleric'   => 'wisdom',
+      'druid'    => 'wisdom',
+      'bard'     => 'charisma',
+      'sorcerer' => 'charisma',
+      'oracle'   => 'charisma',
+    ];
+    return $map[strtolower($class)] ?? 'charisma';
+  }
+
+  /**
+   * Builds a consolidated feats array from all feat sources.
+   *
+   * Collects ancestry feat, class feat, general feat, and background skill
+   * feat into a single array for the character sheet display.
+   *
+   * @param array $character_data
+   *   Current character data.
+   *
+   * @return array
+   *   Array of feat entries with type, id, and name.
+   */
+  private function buildFeatsArray(array $character_data): array {
+    $feats = [];
+
+    // Ancestry feat.
+    if (!empty($character_data['ancestry_feat'])) {
+      $ancestry_name = $this->resolveAncestryName($character_data['ancestry'] ?? '');
+      $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
+      foreach ($ancestry_feats as $f) {
+        if ($f['id'] === $character_data['ancestry_feat']) {
+          $feats[] = ['type' => 'ancestry', 'id' => $f['id'], 'name' => $f['name'], 'level' => 1];
+          break;
+        }
+      }
+    }
+
+    // Class feat.
+    if (!empty($character_data['class_feat'])) {
+      $class_feats = CharacterManager::CLASS_FEATS[$character_data['class'] ?? ''] ?? [];
+      foreach ($class_feats as $f) {
+        if ($f['id'] === $character_data['class_feat']) {
+          $feats[] = ['type' => 'class', 'id' => $f['id'], 'name' => $f['name'], 'level' => 1];
+          break;
+        }
+      }
+    }
+
+    // General feat.
+    if (!empty($character_data['general_feat'])) {
+      foreach (CharacterManager::GENERAL_FEATS as $f) {
+        if ($f['id'] === $character_data['general_feat']) {
+          $feats[] = ['type' => 'general', 'id' => $f['id'], 'name' => $f['name'], 'level' => 1];
+          break;
+        }
+      }
+    }
+
+    // Background skill feat.
+    if (!empty($character_data['background_skill_feat'])) {
+      $feats[] = [
+        'type' => 'skill',
+        'id' => strtolower(str_replace(' ', '-', $character_data['background_skill_feat'])),
+        'name' => $character_data['background_skill_feat'],
+        'level' => 1,
+        'source' => 'background',
+      ];
+    }
+
+    return $feats;
   }
 
 }

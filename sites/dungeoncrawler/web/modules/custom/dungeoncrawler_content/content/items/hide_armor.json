@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "hide-armor",
+  "item_id": "hide_armor",
   "name": "Hide Armor",
   "item_type": "armor",
   "level": 0,

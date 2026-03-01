@@ -136,6 +136,7 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
     'character_sheet' => [
       'variables' => [
         'character' => [],
+        'char_data' => [],
         'ancestry' => [],
         'background' => [],
         'class_data' => [],
@@ -150,11 +151,15 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
         'melee_attacks' => [],
         'ranged_attacks' => [],
         'equipment' => [],
+        'feats' => [],
+        'spells' => NULL,
+        'conditions' => [],
         'personality' => [],
         'npc_data' => NULL,
         'raw_json' => '',
         'edit_url' => NULL,
         'delete_url' => NULL,
+        'launch_url' => NULL,
         'tavern_url' => NULL,
         'campaign_id' => NULL,
         'back_url' => NULL,

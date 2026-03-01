@@ -53,3 +53,10 @@ copilot_agent_tracker.langgraph_release_status:
   route_name: copilot_agent_tracker.langgraph_release_status
   parent: copilot_agent_tracker.langgraph_dashboard
   weight: 4
+
+copilot_agent_tracker.llm_management:
+  title: 'LLM Management'
+  description: 'Select a locally available model and run a simple prompt test.'
+  route_name: copilot_agent_tracker.llm_management
+  parent: copilot_agent_tracker.langgraph_dashboard
+  weight: 5

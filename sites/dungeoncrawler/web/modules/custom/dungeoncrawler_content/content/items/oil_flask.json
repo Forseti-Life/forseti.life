@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "oil-flask",
+  "item_id": "oil_flask",
   "name": "Oil (1 flask)",
   "item_type": "adventuring_gear",
   "level": 0,

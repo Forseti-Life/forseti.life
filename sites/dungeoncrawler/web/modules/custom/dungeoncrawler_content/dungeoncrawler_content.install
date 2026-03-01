@@ -17,6 +17,7 @@
  * - 10007: Consolidate dc_characters → dc_campaign_characters (unified table)
  * - 10010: Generated image asset/link tables
  * - 10014: Quest system tables (templates, chains, campaign quests, progress tracking)
+ * - 10021: Import/refresh all game content from JSON files into content registry
  *
  * @see dungeoncrawler_content_schema()
  */
@@ -2429,7 +2430,18 @@ function dungeoncrawler_content_schema() {
  * Implements hook_install().
  */
 function dungeoncrawler_content_install() {
-  \Drupal::messenger()->addMessage(t('Dungeon Crawler Content module has been installed. Character management is now available at /characters.'));
+  \Drupal::messenger()->addMessage(t('Dungeon Crawler Content module has been installed.'));
+
+  // Seed all content from JSON files (items, creatures, etc.).
+  try {
+    /** @var \Drupal\dungeoncrawler_content\Service\ContentRegistry $registry */
+    $registry = \Drupal::service('dungeoncrawler_content.content_registry');
+    $count = $registry->importContentFromJson();
+    \Drupal::messenger()->addMessage(t('Imported @count content items from JSON files.', ['@count' => $count]));
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Content import during install failed: @error', ['@error' => $e->getMessage()]);
+  }
 }
 
 /**
@@ -3413,4 +3425,18 @@ function dungeoncrawler_content_update_10020() {
     ]);
   }
   return t('Created dc_roll_log table for dice roll audit trail.');
+}
+
+/**
+ * Import/refresh all game content from JSON files into content registry.
+ *
+ * Seeds the dungeoncrawler_content_registry table with all JSON-defined
+ * content (items, creatures, traps, hazards). Uses MERGE (upsert) so
+ * existing rows are updated and new rows are inserted.
+ */
+function dungeoncrawler_content_update_10021() {
+  /** @var \Drupal\dungeoncrawler_content\Service\ContentRegistry $registry */
+  $registry = \Drupal::service('dungeoncrawler_content.content_registry');
+  $count = $registry->importContentFromJson();
+  return t('Imported/refreshed @count content items from JSON files.', ['@count' => $count]);
 }

@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "healers-kit",
+  "item_id": "healers_tools",
   "name": "Healer's Tools",
   "item_type": "adventuring_gear",
   "level": 0,

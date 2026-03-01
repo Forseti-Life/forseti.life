@@ -106,7 +106,7 @@ class CharacterCreateForm extends FormBase {
     $form['actions']['cancel'] = [
       '#type' => 'link',
       '#title' => $this->t('Cancel'),
-      '#url' => Url::fromRoute('dungeoncrawler_content.characters'),
+      '#url' => Url::fromRoute('dungeoncrawler_content.campaigns'),
       '#attributes' => ['class' => ['dc-btn', 'dc-btn-secondary']],
     ];
 

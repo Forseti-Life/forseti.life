@@ -24,12 +24,15 @@
 
   Drupal.behaviors.jobApplicationUserProfile = {
     attach: function (context) {
-      once('profile-form', '.user-profile-form', context).forEach(function (element) {
+      once('profile-form', '.jh-profile', context).forEach(function (element) {
         const $form = $(element);
 
         initProfileCompletenessTracking($form);
         initSectionToggling($form);
         initFieldValidation($form);
+        initButtonRelocation();
+        initKeywordChips($form);
+        initConfirmDialogs($form);
       });
 
       once('profile-dashboard', '.profile-dashboard-header', context).forEach(function () {
@@ -42,7 +45,7 @@
    * Initialize real-time profile completeness tracking
    */
   function initProfileCompletenessTracking($form) {
-    const $progressText = $form.find('.profile-progress-text');
+    const $progressText = $form.find('.jh-profile__progress-text');
     const serverProgress = $progressText.attr('data-progress');
     
     if (serverProgress !== undefined && serverProgress !== null) {
@@ -93,8 +96,8 @@
     const completeness = Math.round((completedWeight / totalWeight) * 100);
     
     // Update progress bar and text
-    const $progressFill = $form.find('.profile-progress-fill');
-    const $progressText = $form.find('.profile-progress-text');
+    const $progressFill = $form.find('.jh-profile__progress-fill');
+    const $progressText = $form.find('.jh-profile__progress-text');
     
     if ($progressFill.length) {
       $progressFill.animate({ width: completeness + '%' }, 500);
@@ -127,7 +130,7 @@
    * Update form styling based on completeness level
    */
   function updateFormStyling($form, completeness) {
-    const $container = $form.closest('.job-application-profile');
+    const $container = $form.closest('.jh-profile');
     
     // Remove existing completeness classes
     $container.removeClass('completeness-low completeness-medium completeness-high');
@@ -354,6 +357,175 @@
     setTimeout(function() {
       $('.auto-save-status').fadeOut();
     }, 2000);
+  }
+
+  /**
+   * Relocate action buttons into their data-target table cells.
+   *
+   * This replaces the inline <script> that previously handled button
+   * placement inside the resume table. Uses setTimeout to ensure the
+   * Drupal AJAX-rendered DOM is fully ready.
+   */
+  function initButtonRelocation() {
+    function moveButtons() {
+      var selectors = [
+        '.delete-btn-container',
+        '.extract-text-btn-container',
+        '.parse-json-btn-container',
+        '.consolidate-btn-container'
+      ];
+
+      selectors.forEach(function (selector) {
+        document.querySelectorAll(selector).forEach(function (container) {
+          var targetId = container.getAttribute('data-target');
+          var target = document.getElementById(targetId);
+
+          if (target) {
+            while (container.firstChild) {
+              target.appendChild(container.firstChild);
+            }
+            if (container.parentNode) {
+              container.parentNode.removeChild(container);
+            }
+          }
+        });
+      });
+    }
+
+    setTimeout(moveButtons, 100);
+    setTimeout(moveButtons, 500);
+  }
+
+  /**
+   * Handle keyword chip click-to-add via event delegation.
+   *
+   * Replaces inline onclick="addKeywordToTextarea(…)" handlers.
+   * Reads the keyword from data-keyword attribute on .jh-profile__keyword-chip.
+   */
+  function initKeywordChips($form) {
+    $form.on('click', '.jh-profile__keyword-chip', function () {
+      var $chip = $(this);
+      var keyword = $chip.attr('data-keyword');
+      var $textarea = $form.find('textarea[name="field_keywords_interested"]');
+
+      if (!$textarea.length || !keyword) {
+        return;
+      }
+
+      var currentValue = $textarea.val().trim();
+      var lines = currentValue
+        .split('\n')
+        .map(function (line) { return line.trim(); })
+        .filter(function (line) { return line.length > 0; });
+
+      var keywordLower = keyword.toLowerCase();
+      var exists = lines.some(function (line) {
+        return line.toLowerCase() === keywordLower;
+      });
+
+      if (!exists) {
+        lines.push(keyword);
+        $textarea.val(lines.join('\n'));
+
+        // Visual feedback via CSS modifier class
+        $chip.addClass('jh-profile__keyword-chip--added');
+        setTimeout(function () {
+          $chip.removeClass('jh-profile__keyword-chip--added');
+        }, 1000);
+      } else {
+        // eslint-disable-next-line no-alert
+        alert(Drupal.t('Keyword "@keyword" is already in your list.', { '@keyword': keyword }));
+      }
+    });
+  }
+
+  /**
+   * Handle confirm dialogs via data-confirm-message attribute.
+   *
+   * Replaces inline onclick="return confirm(…)" handlers on buttons.
+   */
+  function initConfirmDialogs($form) {
+    $form.on('click', '[data-confirm-message]', function (e) {
+      var message = $(this).attr('data-confirm-message');
+      if (message && !confirm(message)) {
+        e.preventDefault();
+      }
+    });
+  }
+
+  /**
+   * Relocate action buttons from Drupal form containers into the resume card
+   * targets (identified via data-target attributes).
+   */
+  function initButtonRelocation() {
+    var containerClasses = [
+      '.delete-btn-container',
+      '.extract-text-btn-container',
+      '.parse-json-btn-container',
+      '.consolidate-btn-container'
+    ];
+
+    containerClasses.forEach(function (selector) {
+      document.querySelectorAll(selector).forEach(function (container) {
+        var targetId = container.getAttribute('data-target');
+        var target = document.getElementById(targetId);
+
+        if (target) {
+          while (container.firstChild) {
+            target.appendChild(container.firstChild);
+          }
+          if (container.parentNode) {
+            container.parentNode.removeChild(container);
+          }
+        }
+      });
+    });
+  }
+
+  /**
+   * Handle keyword chip clicks via event delegation (replaces inline onclick).
+   */
+  function initKeywordChips($form) {
+    $form.on('click', '.jh-profile__keyword-chip', function () {
+      var $chip = $(this);
+      var keyword = $chip.attr('data-keyword');
+      var $textarea = $form.find('textarea[name="field_keywords_interested"]');
+
+      if (!$textarea.length || !keyword) {
+        return;
+      }
+
+      var currentValue = $textarea.val().trim();
+      var lines = currentValue.split('\n').map(function (l) { return l.trim(); }).filter(Boolean);
+      var keywordLower = keyword.toLowerCase();
+      var exists = lines.some(function (l) { return l.toLowerCase() === keywordLower; });
+
+      if (!exists) {
+        lines.push(keyword);
+        $textarea.val(lines.join('\n'));
+
+        // Visual feedback using CSS class toggle
+        $chip.addClass('jh-profile__keyword-chip--added');
+        setTimeout(function () {
+          $chip.removeClass('jh-profile__keyword-chip--added');
+        }, 1000);
+      } else {
+        // Already in the list - use Drupal message pattern
+        alert(Drupal.t('Keyword "@keyword" is already in your list.', { '@keyword': keyword }));
+      }
+    });
+  }
+
+  /**
+   * Handle confirmation dialogs via data attributes (replaces inline onclick).
+   */
+  function initConfirmDialogs($form) {
+    $form.on('click', '[data-confirm-message]', function (e) {
+      var message = this.getAttribute('data-confirm-message');
+      if (message && !confirm(message)) {
+        e.preventDefault();
+      }
+    });
   }
 
 })(jQuery, Drupal, once);

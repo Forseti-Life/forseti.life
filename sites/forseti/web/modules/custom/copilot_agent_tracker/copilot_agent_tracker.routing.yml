@@ -137,3 +137,11 @@ copilot_agent_tracker.langgraph_release_status:
     _title: 'LangGraph Release-cycle Status'
   requirements:
     _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.llm_management:
+  path: '/admin/reports/copilot-agent-tracker/llm-management'
+  defaults:
+    _form: '\Drupal\copilot_agent_tracker\Form\LlmManagementForm'
+    _title: 'LLM Management'
+  requirements:
+    _permission: 'administer copilot agent tracker'

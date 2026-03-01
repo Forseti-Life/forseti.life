@@ -43,13 +43,6 @@ dungeoncrawler_content.testing_admin:
 # Primary navigation for authenticated and public users.
 # Weight determines display order (lower numbers appear first).
 
-dungeoncrawler_content.menu.characters:
-  title: 'Characters'
-  description: 'View and manage your characters'
-  route_name: dungeoncrawler_content.characters
-  menu_name: main
-  weight: 10
-
 dungeoncrawler_content.menu.campaigns:
   title: 'Campaigns'
   description: 'View and manage your campaigns'

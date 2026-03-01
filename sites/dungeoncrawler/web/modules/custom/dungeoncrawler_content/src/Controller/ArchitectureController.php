@@ -153,9 +153,9 @@ class ArchitectureController extends ControllerBase {
         'description' => $this->t('Current backend controller responsibilities and boundaries (includes Encounter AI integration architecture: phase status, safeguards, and AI orchestration integration).'),
       ],
       [
-        'label' => $this->t('Character roster'),
-        'url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),
-        'description' => $this->t('Entry point for character lifecycle and creation flow.'),
+        'label' => $this->t('Campaign operations (includes character roster)'),
+        'url' => Url::fromRoute('dungeoncrawler_content.campaigns')->toString(),
+        'description' => $this->t('Entry point for campaigns and their character rosters. Characters are now scoped under /campaigns/{id}/characters.'),
       ],
       [
         'label' => $this->t('Campaign operations'),
@@ -174,9 +174,9 @@ class ArchitectureController extends ControllerBase {
         'sequence' => $this->t('/characters/create → /characters/create/step/{step} → draft save/finalize → /characters/{character_id}'),
         'controllers_apis' => $this->t('CharacterCreationStepController (start/step/saveStep), CharacterCreationStepForm (server form flow), CharacterApiController (/api/character/* autosave/load/delete), CharacterViewController (final sheet render).'),
         'guardrails' => $this->t('Server-driven submit path is canonical; draft persistence between steps; CSRF protection on save routes; owner/admin character access checks.'),
-        'drill_label' => $this->t('Character roster'),
-        'drill_url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),
-        'drill_description' => $this->t('Entry point for character lifecycle and creation flow.'),
+        'drill_label' => $this->t('Campaigns (character roster)'),
+        'drill_url' => Url::fromRoute('dungeoncrawler_content.campaigns')->toString(),
+        'drill_description' => $this->t('Character rosters are now scoped per campaign at /campaigns/{id}/characters.'),
       ],
       [
         'domain' => $this->t('Campaign orchestration'),

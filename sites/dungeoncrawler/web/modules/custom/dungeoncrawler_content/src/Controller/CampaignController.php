@@ -158,7 +158,7 @@ class CampaignController extends ControllerBase {
       '#theme' => 'campaign_list',
       '#campaigns' => $campaign_cards,
       '#create_url' => Url::fromRoute('dungeoncrawler_content.campaign_create')->toString(),
-      '#characters_url' => Url::fromRoute('dungeoncrawler_content.characters')->toString(),
+      '#characters_url' => NULL,
       '#attached' => [
         'library' => ['dungeoncrawler_content/character-sheet'],
       ],

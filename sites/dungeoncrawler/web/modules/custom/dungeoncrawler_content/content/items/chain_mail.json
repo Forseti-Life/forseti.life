@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "chain-mail",
+  "item_id": "chain_mail",
   "name": "Chain Mail",
   "item_type": "armor",
   "level": 0,

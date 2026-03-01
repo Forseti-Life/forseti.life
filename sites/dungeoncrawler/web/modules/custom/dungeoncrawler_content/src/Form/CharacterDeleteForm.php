@@ -42,7 +42,11 @@ class CharacterDeleteForm extends ConfirmFormBase {
   }
 
   public function getCancelUrl() {
-    return Url::fromRoute('dungeoncrawler_content.characters');
+    $campaign_id = (int) ($this->character->campaign_id ?? 0);
+    if ($campaign_id > 0) {
+      return Url::fromRoute('dungeoncrawler_content.characters', ['campaign_id' => $campaign_id]);
+    }
+    return Url::fromRoute('dungeoncrawler_content.campaigns');
   }
 
   public function getConfirmText() {

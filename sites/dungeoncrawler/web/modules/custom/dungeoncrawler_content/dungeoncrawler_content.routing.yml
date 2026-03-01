@@ -171,13 +171,14 @@ dungeoncrawler_content.hexmap_demo:
 # to prevent "create" from being interpreted as a character_id parameter.
 
 dungeoncrawler_content.characters:
-  path: '/characters'
+  path: '/campaigns/{campaign_id}/characters'
   defaults:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterListController::listCharacters'
-    _title: 'My Characters'
+    _title: 'Campaign Characters'
   methods: [GET]
   requirements:
     _permission: 'access dungeoncrawler characters'
+    campaign_id: '\d+'
 
 dungeoncrawler_content.campaigns:
   path: '/campaigns'

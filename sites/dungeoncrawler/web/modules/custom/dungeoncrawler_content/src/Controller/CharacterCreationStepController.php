@@ -82,19 +82,19 @@ class CharacterCreationStepController extends ControllerBase {
    * Display a specific character creation step.
    */
   public function step(int $step, Request $request) {
-    if ($step < 1 || $step > 8) {
-      $this->messenger()->addError($this->t('Invalid step number.'));
-      return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.characters')->toString());
-    }
-
     $character_id = $request->query->get('character_id');
     $campaign_id = $request->query->get('campaign_id');
+
+    if ($step < 1 || $step > 8) {
+      $this->messenger()->addError($this->t('Invalid step number.'));
+      return new RedirectResponse($this->buildCharactersUrl($campaign_id));
+    }
 
     if ($character_id) {
       $character = $this->characterManager->loadCharacter((int) $character_id);
       if (!$character || (int) $character->uid !== (int) $this->currentUser()->id()) {
         $this->messenger()->addError($this->t('Access denied.'));
-        return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.characters')->toString());
+        return new RedirectResponse($this->buildCharactersUrl($campaign_id));
       }
 
       $character_data = json_decode((string) $character->character_data, TRUE);
@@ -306,6 +306,18 @@ class CharacterCreationStepController extends ControllerBase {
   }
 
   /**
+   * Builds a redirect URL to the campaign characters list or campaigns page.
+   */
+  private function buildCharactersUrl(int|string|null $campaign_id): string {
+    if ($campaign_id !== NULL && $campaign_id !== '' && (int) $campaign_id > 0) {
+      return Url::fromRoute('dungeoncrawler_content.characters', [
+        'campaign_id' => (int) $campaign_id,
+      ])->toString();
+    }
+    return Url::fromRoute('dungeoncrawler_content.campaigns')->toString();
+  }
+
+  /**
    * Create new draft character.
    */
   private function createDraft(array $character_data, int|string|null $campaign_id = NULL) {
@@ -347,12 +359,12 @@ class CharacterCreationStepController extends ControllerBase {
     // Simple mapping of form fields to character data
     $field_mappings = [
       1 => ['name', 'concept'],
-      2 => ['ancestry', 'heritage'],
+      2 => ['ancestry', 'heritage', 'ancestry_feat'],
       3 => ['background', 'background_boosts'],
-      4 => ['class'],
+      4 => ['class', 'class_key_ability', 'class_feat', 'subclass'],
       5 => ['free_boosts'],
-      6 => ['alignment', 'deity', 'age', 'gender'],
-      7 => ['equipment', 'gold'],
+      6 => ['alignment', 'deity', 'age', 'gender', 'general_feat', 'trained_skills'],
+      // Step 7 handled separately below (equipment needs catalog resolution).
       8 => ['appearance', 'personality', 'backstory', 'portrait_generate', 'portrait_prompt'],
     ];
 
@@ -366,6 +378,145 @@ class CharacterCreationStepController extends ControllerBase {
           $character_data[$field] = $form_data[$field];
         }
       }
+    }
+
+    // Step 4: Build structured spellcasting data for caster classes.
+    if ($step === 4) {
+      $selected_class = $character_data['class'] ?? '';
+      $tradition = $this->characterManager->resolveClassTradition($selected_class, $character_data);
+
+      if ($tradition) {
+        // Clean cantrips: accept array of IDs or checkbox-format.
+        $raw_cantrips = $form_data['cantrips'] ?? [];
+        $cantrip_ids = is_array($raw_cantrips)
+          ? array_values(array_filter($raw_cantrips, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL && $v !== FALSE))
+          : [];
+
+        $raw_spells = $form_data['spells_first'] ?? [];
+        $spell_ids = is_array($raw_spells)
+          ? array_values(array_filter($raw_spells, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL && $v !== FALSE))
+          : [];
+
+        $spell_slots = CharacterManager::CASTER_SPELL_SLOTS[$selected_class] ?? [];
+
+        $ability_map = [
+          'wizard' => 'intelligence', 'witch' => 'intelligence',
+          'cleric' => 'wisdom', 'druid' => 'wisdom',
+          'bard' => 'charisma', 'sorcerer' => 'charisma', 'oracle' => 'charisma',
+        ];
+
+        $character_data['cantrips'] = $cantrip_ids;
+        $character_data['spells_first'] = $spell_ids;
+        $character_data['spells'] = [
+          'tradition' => $tradition,
+          'casting_ability' => $ability_map[strtolower($selected_class)] ?? 'charisma',
+          'cantrips' => $cantrip_ids,
+          'first_level' => $spell_ids,
+          'slots' => [
+            'cantrips' => $spell_slots['cantrips'] ?? 5,
+            'first' => $spell_slots['first'] ?? 2,
+          ],
+        ];
+
+        if ($selected_class === 'wizard') {
+          $character_data['spells']['spellbook_size'] = $spell_slots['spellbook'] ?? 10;
+        }
+      }
+    }
+
+    // Step 6: Clean trained_skills and build feats summary.
+    if ($step === 6) {
+      if (isset($form_data['trained_skills']) && is_array($form_data['trained_skills'])) {
+        $character_data['trained_skills'] = array_values(
+          array_filter($form_data['trained_skills'], static fn($v) => $v !== 0 && $v !== '' && $v !== NULL)
+        );
+      }
+
+      // Build feats array from all sources.
+      $character_data['feats'] = $this->buildFeatsArrayFromData($character_data);
+    }
+
+    // Step 7: resolve selected checkbox IDs into full item objects from the
+    // equipment catalog, matching the logic in CharacterCreationStepForm.
+    if ($step === 7) {
+      $catalog = $this->getEquipmentCatalog();
+      $catalog_by_id = [];
+      foreach ($catalog as $items) {
+        foreach ($items as $item) {
+          $catalog_by_id[$item['id']] = $item;
+        }
+      }
+
+      // Collect selected IDs from the three checkbox groups.
+      $selected_ids = [];
+      foreach (['weapons', 'armor', 'gear'] as $group) {
+        $raw = $form_data[$group] ?? [];
+        if (is_array($raw)) {
+          foreach (array_filter($raw) as $id) {
+            $selected_ids[] = $id;
+          }
+        }
+      }
+
+      // Also accept a flat equipment array (JSON string of IDs from hidden field).
+      if (empty($selected_ids) && !empty($form_data['equipment'])) {
+        $equipment_value = $form_data['equipment'];
+        if (is_string($equipment_value)) {
+          $decoded = json_decode($equipment_value, TRUE);
+          if (is_array($decoded)) {
+            $selected_ids = $decoded;
+          }
+        }
+        elseif (is_array($equipment_value)) {
+          $selected_ids = $equipment_value;
+        }
+      }
+
+      $selected_items = [];
+      $total_cost = 0.0;
+      foreach ($selected_ids as $item_id) {
+        if (isset($catalog_by_id[$item_id])) {
+          $selected_items[] = $catalog_by_id[$item_id];
+          $total_cost += (float) $catalog_by_id[$item_id]['cost'];
+        }
+      }
+
+      $character_data['equipment'] = $selected_items;
+      $remaining_gp = max(0, round(15 - $total_cost, 2));
+      $character_data['gold'] = $remaining_gp;
+
+      // Build proper inventory structure.
+      $carried = [];
+      foreach ($selected_items as $item) {
+        $carried[] = [
+          'id' => $item['id'],
+          'name' => $item['name'],
+          'type' => $item['type'],
+          'bulk' => $item['bulk'] ?? 'L',
+          'quantity' => 1,
+          'traits' => $item['traits'] ?? [],
+        ];
+      }
+
+      $total_bulk = 0;
+      foreach ($carried as $ci) {
+        $bulk_val = $ci['bulk'] ?? 'L';
+        if ($bulk_val === 'L' || $bulk_val === 'light') {
+          $total_bulk += 0.1;
+        }
+        elseif (is_numeric($bulk_val)) {
+          $total_bulk += (float) $bulk_val * ($ci['quantity'] ?? 1);
+        }
+      }
+      $total_bulk = round($total_bulk, 1);
+
+      $character_data['inventory'] = [
+        'worn' => ['weapons' => [], 'armor' => NULL, 'accessories' => []],
+        'carried' => $carried,
+        'currency' => ['cp' => 0, 'sp' => 0, 'gp' => $remaining_gp, 'pp' => 0],
+        'totalBulk' => $total_bulk,
+        'encumbrance' => 'unencumbered',
+      ];
     }
 
     return $character_data;
@@ -599,7 +750,7 @@ class CharacterCreationStepController extends ControllerBase {
       ],
       'armor' => [
         ['id' => 'leather', 'name' => 'Leather Armor', 'cost' => 2, 'ac' => '+1', 'bulk' => 1],
-        ['id' => 'chain-shirt', 'name' => 'Chain Shirt', 'cost' => 5, 'ac' => '+2', 'bulk' => 1],
+        ['id' => 'chain_shirt', 'name' => 'Chain Shirt', 'cost' => 5, 'ac' => '+2', 'bulk' => 1],
       ],
       'gear' => [
         ['id' => 'backpack', 'name' => 'Backpack', 'cost' => 0.1, 'bulk' => 'L'],
@@ -739,6 +890,65 @@ class CharacterCreationStepController extends ControllerBase {
     }
 
     return 'gear';
+  }
+
+  /**
+   * Builds a consolidated feats array from character data.
+   *
+   * @param array $character_data
+   *   Character data with feat selections.
+   *
+   * @return array
+   *   Flat array of feat entries.
+   */
+  private function buildFeatsArrayFromData(array $character_data): array {
+    $feats = [];
+
+    // Ancestry feat.
+    if (!empty($character_data['ancestry_feat'])) {
+      $ancestry_name = ucfirst($character_data['ancestry'] ?? '');
+      $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
+      foreach ($ancestry_feats as $f) {
+        if ($f['id'] === $character_data['ancestry_feat']) {
+          $feats[] = ['type' => 'ancestry', 'id' => $f['id'], 'name' => $f['name'], 'level' => 1];
+          break;
+        }
+      }
+    }
+
+    // Class feat.
+    if (!empty($character_data['class_feat'])) {
+      $class_feats = CharacterManager::CLASS_FEATS[$character_data['class'] ?? ''] ?? [];
+      foreach ($class_feats as $f) {
+        if ($f['id'] === $character_data['class_feat']) {
+          $feats[] = ['type' => 'class', 'id' => $f['id'], 'name' => $f['name'], 'level' => 1];
+          break;
+        }
+      }
+    }
+
+    // General feat.
+    if (!empty($character_data['general_feat'])) {
+      foreach (CharacterManager::GENERAL_FEATS as $f) {
+        if ($f['id'] === $character_data['general_feat']) {
+          $feats[] = ['type' => 'general', 'id' => $f['id'], 'name' => $f['name'], 'level' => 1];
+          break;
+        }
+      }
+    }
+
+    // Background skill feat.
+    if (!empty($character_data['background_skill_feat'])) {
+      $feats[] = [
+        'type' => 'skill',
+        'id' => strtolower(str_replace(' ', '-', $character_data['background_skill_feat'])),
+        'name' => $character_data['background_skill_feat'],
+        'level' => 1,
+        'source' => 'background',
+      ];
+    }
+
+    return $feats;
   }
 
 }

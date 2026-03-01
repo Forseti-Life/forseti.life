@@ -164,9 +164,11 @@ class CharacterViewController extends ControllerBase {
       ])->toString();
     }
 
-    $back_url = Url::fromRoute('dungeoncrawler_content.characters');
     if ($campaign_id > 0) {
-      $back_url->setOption('query', ['campaign_id' => $campaign_id]);
+      $back_url = Url::fromRoute('dungeoncrawler_content.characters', ['campaign_id' => $campaign_id]);
+    }
+    else {
+      $back_url = Url::fromRoute('dungeoncrawler_content.campaigns');
     }
 
     $ancestry_name = is_array($char_data['ancestry'] ?? NULL)
@@ -204,6 +206,14 @@ class CharacterViewController extends ControllerBase {
     $equipment_gold = is_array($char_data['equipment'] ?? NULL)
       ? ((float) ($char_data['equipment']['currency']['gold'] ?? 15))
       : ((float) ($char_data['gold'] ?? 15));
+
+    // Structured inventory (from Step 7) takes priority over legacy equipment.
+    $inventory = $char_data['inventory'] ?? NULL;
+    if (is_array($inventory) && !empty($inventory['carried'])) {
+      $equipment_items = $inventory['carried'];
+      $inv_currency = $inventory['currency'] ?? [];
+      $equipment_gold = (float) ($inv_currency['gp'] ?? $inv_currency['gold'] ?? $equipment_gold);
+    }
 
     // Load portrait from generated images
     $portraits = $this->imageRepository->loadImagesForObject(

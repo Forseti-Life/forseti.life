@@ -266,73 +266,26 @@
   <div class="dc-sheet__section">
     <h2 class="dc-sheet__section-title">Equipment & Wealth</h2>
 
-    {% if char_data.gold is defined %}
-      <div class="dc-sheet__detail"><strong>Gold:</strong> {{ char_data.gold }} gp</div>
-    {% elseif equipment.gold is defined %}
+    {% if equipment.gold is defined and equipment.gold > 0 %}
       <div class="dc-sheet__detail"><strong>Gold:</strong> {{ equipment.gold }} gp</div>
     {% endif %}
 
-    {% if char_data.equipment|length > 0 %}
+    {% if equipment.items|length > 0 %}
       <h3 class="dc-sheet__subsection-title">Items</h3>
       <ul class="dc-sheet__item-list">
-        {% for item in char_data.equipment %}
+        {% for item in equipment.items %}
           <li>
-            {{ item.name ?? item.item_id }}
-            {% if item.quantity > 1 %} (×{{ item.quantity }}){% endif %}
-            {% if item.equipped %}<span class="dc-sheet__tag dc-sheet__tag--equipped">Equipped</span>{% endif %}
-            {% if item.worn %}<span class="dc-sheet__tag dc-sheet__tag--worn">Worn</span>{% endif %}
+            {{ item.name ?? item.item_id ?? item.id }}
+            {% if item.type is defined %}<span class="dc-sheet__tag">{{ item.type }}</span>{% endif %}
+            {% if item.quantity is defined and item.quantity > 1 %} (&times;{{ item.quantity }}){% endif %}
+            {% if item.bulk is defined and item.bulk != '0' %}<span class="dc-sheet__tag">Bulk {{ item.bulk }}</span>{% endif %}
+            {% if item.equipped is defined and item.equipped %}<span class="dc-sheet__tag dc-sheet__tag--equipped">Equipped</span>{% endif %}
+            {% if item.worn is defined and item.worn %}<span class="dc-sheet__tag dc-sheet__tag--worn">Worn</span>{% endif %}
           </li>
         {% endfor %}
       </ul>
     {% else %}
       <p><em>No equipment listed.</em></p>
-    {% endif %}
-
-    {% if equipment.worn.armor %}
-      <div class="dc-sheet__detail">
-        <strong>Armor:</strong> {{ equipment.worn.armor.name }}
-        (AC +{{ equipment.worn.armor.ac_bonus }}, Dex Cap +{{ equipment.worn.armor.dex_cap }})
-      </div>
-    {% endif %}
-
-    {% if equipment.worn.other|length > 0 %}
-      <h3 class="dc-sheet__subsection-title">Worn Items</h3>
-      <ul class="dc-sheet__item-list">
-        {% for item in equipment.worn.other %}
-          <li>{{ item }}</li>
-        {% endfor %}
-      </ul>
-    {% endif %}
-
-    {% if equipment.stowed|length > 0 %}
-      <h3 class="dc-sheet__subsection-title">Stowed</h3>
-      {% for item in equipment.stowed %}
-        <div class="dc-sheet__equipment-item">
-          <strong>{{ item.name }}</strong>
-          {% if item.description %}<br><em>{{ item.description }}</em>{% endif %}
-        </div>
-      {% endfor %}
-    {% endif %}
-
-    {% if equipment.currency %}
-      <h3 class="dc-sheet__subsection-title">Currency</h3>
-      <div class="dc-sheet__currency">
-        {% if equipment.currency.gold is defined and equipment.currency.gold > 0 %}
-          <span class="dc-sheet__coin dc-sheet__coin--gold">{{ equipment.currency.gold }} gp</span>
-        {% endif %}
-        {% if equipment.currency.silver is defined and equipment.currency.silver > 0 %}
-          <span class="dc-sheet__coin dc-sheet__coin--silver">{{ equipment.currency.silver }} sp</span>
-        {% endif %}
-        {% if equipment.currency.copper is defined and equipment.currency.copper > 0 %}
-          <span class="dc-sheet__coin dc-sheet__coin--copper">{{ equipment.currency.copper }} cp</span>
-        {% endif %}
-      </div>
-    {% endif %}
-
-    {% if equipment.bulk %}
-      <div class="dc-sheet__bulk">
-        <strong>Bulk:</strong> {{ equipment.bulk.current }} / {{ equipment.bulk.encumbered }} (Max {{ equipment.bulk.max }})
-      </div>
     {% endif %}
   </div>
 
@@ -404,60 +357,6 @@
           {% if condition.duration %}<span class="dc-sheet__tag">{{ condition.duration }}</span>{% endif %}
         </div>
       {% endfor %}
-    </div>
-  {% endif %}
-
-  {# Concept & Personality #}
-  {% if char_data.concept or personality.appearance or personality.personality or personality.backstory %}
-    <div class="dc-sheet__section">
-      <h2 class="dc-sheet__section-title">Equipment</h2>
-
-      {% if equipment.worn.armor %}
-        <div class="dc-sheet__detail">
-          <strong>Armor:</strong> {{ equipment.worn.armor.name }}
-          (AC +{{ equipment.worn.armor.ac_bonus }}, Dex Cap +{{ equipment.worn.armor.dex_cap }})
-        </div>
-      {% endif %}
-
-      {% if equipment.worn.other|length > 0 %}
-        <h3 class="dc-sheet__subsection-title">Worn Items</h3>
-        <ul class="dc-sheet__item-list">
-          {% for item in equipment.worn.other %}
-            <li>{{ item }}</li>
-          {% endfor %}
-        </ul>
-      {% endif %}
-
-      {% if equipment.stowed|length > 0 %}
-        <h3 class="dc-sheet__subsection-title">Stowed</h3>
-        {% for item in equipment.stowed %}
-          <div class="dc-sheet__equipment-item">
-            <strong>{{ item.name }}</strong>
-            {% if item.description %}<br><em>{{ item.description }}</em>{% endif %}
-          </div>
-        {% endfor %}
-      {% endif %}
-
-      {% if equipment.currency %}
-        <h3 class="dc-sheet__subsection-title">Currency</h3>
-        <div class="dc-sheet__currency">
-          {% if equipment.currency.gold is defined and equipment.currency.gold > 0 %}
-            <span class="dc-sheet__coin dc-sheet__coin--gold">{{ equipment.currency.gold }} gp</span>
-          {% endif %}
-          {% if equipment.currency.silver is defined and equipment.currency.silver > 0 %}
-            <span class="dc-sheet__coin dc-sheet__coin--silver">{{ equipment.currency.silver }} sp</span>
-          {% endif %}
-          {% if equipment.currency.copper is defined and equipment.currency.copper > 0 %}
-            <span class="dc-sheet__coin dc-sheet__coin--copper">{{ equipment.currency.copper }} cp</span>
-          {% endif %}
-        </div>
-      {% endif %}
-
-      {% if equipment.bulk %}
-        <div class="dc-sheet__bulk">
-          <strong>Bulk:</strong> {{ equipment.bulk.current }} / {{ equipment.bulk.encumbered }} (Max {{ equipment.bulk.max }})
-        </div>
-      {% endif %}
     </div>
   {% endif %}
 

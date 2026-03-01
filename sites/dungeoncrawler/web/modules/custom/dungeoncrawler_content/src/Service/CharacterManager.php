@@ -877,6 +877,195 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * Maps caster classes to their spellcasting tradition.
+   * Used to look up spells from the registry by tradition tag.
+   * Non-caster classes are not listed here.
+   */
+  const CLASS_TRADITIONS = [
+    'wizard'   => 'arcane',
+    'cleric'   => 'divine',
+    'bard'     => 'occult',
+    'druid'    => 'primal',
+    'sorcerer' => NULL,   // Sorcerer picks a tradition via bloodline.
+    'oracle'   => 'divine',
+    'witch'    => NULL,   // Witch picks via patron; default occult.
+  ];
+
+  /**
+   * Sorcerer bloodline → tradition mapping.
+   */
+  const SORCERER_BLOODLINES = [
+    'aberrant'    => ['tradition' => 'occult',  'label' => 'Aberrant',    'description' => 'Something extradimensional warped your lineage, granting occult power.'],
+    'angelic'     => ['tradition' => 'divine',  'label' => 'Angelic',     'description' => 'Celestial blood flows through you, granting divine spellcasting.'],
+    'demonic'     => ['tradition' => 'divine',  'label' => 'Demonic',     'description' => 'Fiendish ancestry grants you raw divine power twisted toward destruction.'],
+    'draconic'    => ['tradition' => 'arcane',  'label' => 'Draconic',    'description' => 'The blood of dragons flows through your veins, granting arcane mastery.'],
+    'elemental'   => ['tradition' => 'primal',  'label' => 'Elemental',   'description' => 'Elemental forces surge within you, granting primal spellcasting.'],
+    'fey'         => ['tradition' => 'primal',  'label' => 'Fey',         'description' => 'Fey creatures somewhere in your lineage grant primal power.'],
+    'hag'         => ['tradition' => 'occult',  'label' => 'Hag',         'description' => 'A hag ancestor grants you occult spellcasting.'],
+    'imperial'    => ['tradition' => 'arcane',  'label' => 'Imperial',    'description' => 'Your bloodline carries arcane power from ancient rulers or conquerors.'],
+    'undead'      => ['tradition' => 'divine',  'label' => 'Undead',      'description' => 'Undead taint in your lineage grants you divine necromantic power.'],
+  ];
+
+  /**
+   * Witch patron → tradition mapping.
+   */
+  const WITCH_PATRONS = [
+    'curse'   => ['tradition' => 'occult',  'label' => 'Curse',   'description' => 'Your patron embodies curses and misfortune, granting occult power.'],
+    'fate'    => ['tradition' => 'occult',  'label' => 'Fate',    'description' => 'Your patron sees and manipulates the threads of fate.'],
+    'fervor'  => ['tradition' => 'divine',  'label' => 'Fervor',  'description' => 'Your patron is a divine being of zealous conviction.'],
+    'night'   => ['tradition' => 'occult',  'label' => 'Night',   'description' => 'Darkness and shadow are your patron\'s domain.'],
+    'rune'    => ['tradition' => 'arcane',  'label' => 'Rune',    'description' => 'Your patron commands the power of arcane runes.'],
+    'wild'    => ['tradition' => 'primal',  'label' => 'Wild',    'description' => 'Nature and the wild are your patron\'s domain.'],
+    'winter'  => ['tradition' => 'primal',  'label' => 'Winter',  'description' => 'The cold power of winter flows through your patron.'],
+  ];
+
+  /**
+   * Cantrip and 1st-level spell slot counts at level 1 for each caster class.
+   */
+  const CASTER_SPELL_SLOTS = [
+    'wizard'   => ['cantrips' => 5, 'first' => 2, 'spellbook' => 10],
+    'cleric'   => ['cantrips' => 5, 'first' => 2],
+    'bard'     => ['cantrips' => 5, 'first' => 2],
+    'druid'    => ['cantrips' => 5, 'first' => 2],
+    'sorcerer' => ['cantrips' => 5, 'first' => 3],
+    'oracle'   => ['cantrips' => 5, 'first' => 2],
+    'witch'    => ['cantrips' => 5, 'first' => 1],
+  ];
+
+  /**
+   * PF2e General Feats (Level 1).
+   * Available to all characters at 1st level.
+   */
+  const GENERAL_FEATS = [
+    ['id' => 'adopted-ancestry', 'name' => 'Adopted Ancestry', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You were raised by or have deep ties to an ancestry other than your own. Choose a common ancestry. You can select ancestry feats from that ancestry as if it were your own.'],
+    ['id' => 'armor-proficiency', 'name' => 'Armor Proficiency', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You become trained in light armor. If you were already trained in light armor, you become trained in medium armor. If you were trained in both, you become trained in heavy armor.'],
+    ['id' => 'breath-control', 'name' => 'Breath Control', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You have incredible breath control. You can hold your breath for 25× as long as usual (typically 25 minutes). You gain a +1 circumstance bonus to saving throws against inhaled threats.'],
+    ['id' => 'canny-acumen', 'name' => 'Canny Acumen', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'Your avoidance or observation is beyond the norm. Choose Fortitude saves, Reflex saves, Will saves, or Perception. You become an expert in your choice.'],
+    ['id' => 'diehard', 'name' => 'Diehard', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'It takes more to kill you than most. You die from the dying condition at dying 5, rather than dying 4.'],
+    ['id' => 'fast-recovery', 'name' => 'Fast Recovery', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => 'Constitution 14',
+      'benefit' => 'Your body quickly recovers from maladies. You regain twice as many Hit Points from resting. Each time you succeed at a Fortitude save against an ongoing disease or poison, reduce its stage by 2 instead of 1.'],
+    ['id' => 'feather-step', 'name' => 'Feather Step', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => 'Dexterity 14',
+      'benefit' => 'You step carefully and nimbly. You can Step into difficult terrain.'],
+    ['id' => 'fleet', 'name' => 'Fleet', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You move more quickly on foot. Your Speed increases by 5 feet.'],
+    ['id' => 'incredible-initiative', 'name' => 'Incredible Initiative', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You react more quickly than others can. You gain a +2 circumstance bonus to initiative rolls.'],
+    ['id' => 'ride', 'name' => 'Ride', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'When you Command an Animal mount to move, you automatically succeed instead of making a check. You do not take the -2 circumstance penalty to attacks while mounted.'],
+    ['id' => 'shield-block', 'name' => 'Shield Block', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You snap your shield in place to ward off a blow. Your shield prevents you from taking an amount of damage equal to the shield\'s Hardness. Both you and the shield take any remaining damage.'],
+    ['id' => 'toughness', 'name' => 'Toughness', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You can withstand more punishment than most. Increase your maximum Hit Points by your level. The DC of recovery checks is equal to 9 + your dying condition value.'],
+    ['id' => 'weapon-proficiency', 'name' => 'Weapon Proficiency', 'level' => 1, 'traits' => ['General'],
+      'prerequisites' => '',
+      'benefit' => 'You become trained in all simple weapons. If you were already trained in simple weapons, you become trained in all martial weapons. If you were trained in both, choose one advanced weapon to become trained in.'],
+  ];
+
+  /**
+   * PF2e Skill Feats (Level 1).
+   * Available to characters who have training in the prerequisite skill.
+   * The background grants one skill feat automatically; this list is for
+   * reference and future expansion when users can pick additional skill feats.
+   */
+  const SKILL_FEATS = [
+    ['id' => 'assurance', 'name' => 'Assurance', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Any',
+      'benefit' => 'You can forgo rolling a skill check to instead receive a result of 10 + your proficiency bonus (don\'t apply any other modifiers). Choose a skill you are trained in when you select this feat.'],
+    ['id' => 'bargain-hunter', 'name' => 'Bargain Hunter', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Diplomacy',
+      'benefit' => 'You can use Diplomacy to Earn Income by wheeling and dealing. When in a settlement, you spend 1 extra day of downtime to haggle and get a 10% discount on an item.'],
+    ['id' => 'cat-fall', 'name' => 'Cat Fall', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Acrobatics',
+      'benefit' => 'Your catlike reflexes allow you to treat falls shorter by 10 feet. If you are an expert in Acrobatics, treat them as 25 feet shorter; master, 50 feet shorter.'],
+    ['id' => 'charming-liar', 'name' => 'Charming Liar', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Deception',
+      'benefit' => 'Your charm makes your lies more convincing. When you successfully Lie, the target\'s attitude toward you improves by one step as if you had used Diplomacy to Make an Impression.'],
+    ['id' => 'combat-climber', 'name' => 'Combat Climber', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Athletics',
+      'benefit' => 'Your climbing skills prepare you for combat. You don\'t need a free hand to Climb, and you aren\'t flat-footed while Climbing.'],
+    ['id' => 'courtly-graces', 'name' => 'Courtly Graces', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Society',
+      'benefit' => 'You were raised among the nobility or studied court etiquette. You can use Society to Make an Impression on a noble and to Gather Information in a court setting.'],
+    ['id' => 'experienced-smuggler', 'name' => 'Experienced Smuggler', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Stealth',
+      'benefit' => 'You know just how to hide your contraband. When Concealing an Object, your Stealth DC is increased by 2. When the GM rolls your Stealth check, they use a secret check.'],
+    ['id' => 'experienced-tracker', 'name' => 'Experienced Tracker', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Survival',
+      'benefit' => 'Tracking is second nature to you. You can track while moving at full Speed, and you don\'t need to attempt a new check every hour while tracking.'],
+    ['id' => 'fascinating-performance', 'name' => 'Fascinating Performance', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Performance',
+      'benefit' => 'When you Perform, compare your result to the Will DC of one observer. If you succeed, the target is fascinated for 1 round. This is an emotion and mental effect.'],
+    ['id' => 'forager', 'name' => 'Forager', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Survival',
+      'benefit' => 'You know how to provide for yourself in the wild. You can use Survival to Subsist and find food in the wild, providing for up to 4 more creatures.'],
+    ['id' => 'group-impression', 'name' => 'Group Impression', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Diplomacy',
+      'benefit' => 'When you Make an Impression, you can compare your Diplomacy check result to the Will DCs of up to 4 targets instead of 1. It takes you 1 minute to Make an Impression on this many people.'],
+    ['id' => 'hefty-hauler', 'name' => 'Hefty Hauler', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Athletics',
+      'benefit' => 'You can carry more than most. Increase your maximum and encumbered Bulk limits by 2.'],
+    ['id' => 'hobnobber', 'name' => 'Hobnobber', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Diplomacy',
+      'benefit' => 'You are skilled at learning information through conversation. Gathering Information normally takes about half a day; you can do it in about 2 hours. If you are an expert or better, you can do it even faster.'],
+    ['id' => 'intimidating-glare', 'name' => 'Intimidating Glare', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Intimidation',
+      'benefit' => 'You can Demoralize with a mere glare. When Demoralizing, you can target a creature that doesn\'t share a language with you or that can\'t hear you. You do not take the -4 circumstance penalty for not sharing a language.'],
+    ['id' => 'lengthy-diversion', 'name' => 'Lengthy Diversion', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Deception',
+      'benefit' => 'When you Create a Diversion, you continue to remain hidden after the end of your turn. This lasts for 1 minute or until you do anything except Step or use the Hide or the Sneak action.'],
+    ['id' => 'lie-to-me', 'name' => 'Lie to Me', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Deception',
+      'benefit' => 'You can use Deception instead of Perception to detect someone\'s dishonesty. Your Deception DC is used as the DC for the check.'],
+    ['id' => 'multilingual', 'name' => 'Multilingual', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Society',
+      'benefit' => 'You easily pick up new languages. You learn two new languages of your choice. You must be trained in Society.'],
+    ['id' => 'natural-medicine', 'name' => 'Natural Medicine', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Nature',
+      'benefit' => 'You can apply natural remedies to heal. You can use Nature instead of Medicine to Treat Wounds in wilderness environments. If you are in wilderness and using fresh ingredients, you gain a +2 circumstance bonus.'],
+    ['id' => 'oddity-identification', 'name' => 'Oddity Identification', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Occultism',
+      'benefit' => 'You have a sense for the bizarre. You gain a +2 circumstance bonus to Occultism checks to Identify Magic with the mental, possession, prediction, or scrying traits.'],
+    ['id' => 'pickpocket', 'name' => 'Pickpocket', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Thievery',
+      'benefit' => 'You can Steal or Palm an Object that\'s closely guarded without taking the -5 penalty. You are also more difficult to detect when pickpocketing.'],
+    ['id' => 'quick-identification', 'name' => 'Quick Identification', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Arcana',
+      'benefit' => 'You can Identify Magic swiftly. You can Identify Magic in a single action instead of 10 minutes if the item or effect is common and you are trained in the appropriate tradition\'s skill.'],
+    ['id' => 'quick-jump', 'name' => 'Quick Jump', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Athletics',
+      'benefit' => 'You can use High Jump and Long Jump as a single action instead of 2 actions. If you do, you don\'t perform the initial Stride.'],
+    ['id' => 'rapid-mantel', 'name' => 'Rapid Mantel', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Athletics',
+      'benefit' => 'You easily pull yourself onto ledges. When you Grab an Edge and succeed, you can pull yourself up as a free action instead of a Climb action.'],
+    ['id' => 'read-lips', 'name' => 'Read Lips', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Society',
+      'benefit' => 'You can read lips of someone you can see speaking a language you know. This requires a Society check against a standard DC for the language. In combat, this is harder (secret check by the GM).'],
+    ['id' => 'recognize-spell', 'name' => 'Recognize Spell', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Arcana',
+      'benefit' => 'If you are trained in the appropriate tradition\'s skill, you can use a reaction to attempt to Recognize a Spell when someone casts it. You use Arcana for arcane, Nature for primal, Occultism for occult, or Religion for divine.'],
+    ['id' => 'sign-language', 'name' => 'Sign Language', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Society',
+      'benefit' => 'You know sign language and can communicate silently so long as you and any creatures you communicate with have a free hand. Sign language isn\'t a language itself but lets you use any language you know in signed form.'],
+    ['id' => 'snare-crafting', 'name' => 'Snare Crafting', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Crafting',
+      'benefit' => 'You can use the Craft activity to create snares. When you select this feat, you add the formulas for four common snares to your formula book.'],
+    ['id' => 'specialty-crafting', 'name' => 'Specialty Crafting', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Crafting',
+      'benefit' => 'Choose a specialty from alchemy, artistry, bookmaking, glassmaking, leatherworking, pottery, shipbuilding, stonemasonry, tailoring, and woodworking. You gain a +1 circumstance bonus to Craft checks for items of that type.'],
+    ['id' => 'steady-balance', 'name' => 'Steady Balance', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Acrobatics',
+      'benefit' => 'You can keep your balance easily. Whenever you roll a success on an Acrobatics check to Balance, you get a critical success instead. You\'re not flat-footed while Balancing on narrow surfaces.'],
+    ['id' => 'streetwise', 'name' => 'Streetwise', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Society',
+      'benefit' => 'You know about life on the streets and feel the pulse of your local settlement. You can use Society to Gather Information and to Recall Knowledge about local history, rumors, and organizations in settlements of your size or smaller.'],
+    ['id' => 'student-of-the-canon', 'name' => 'Student of the Canon', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Religion',
+      'benefit' => 'You studied religious texts extensively. When you Recall Knowledge about religions, religious history, divine effects, or related topics using Religion, you get a critical success on a success, and on a critical failure you get a failure instead.'],
+    ['id' => 'subtle-theft', 'name' => 'Subtle Theft', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Thievery',
+      'benefit' => 'When you successfully Steal or Palm an Object, observers take a -2 circumstance penalty to their Perception DC to detect the theft.'],
+    ['id' => 'survey-wildlife', 'name' => 'Survey Wildlife', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Survival',
+      'benefit' => 'You can study an area to find what creatures live there. You can spend 10 minutes in any outdoor area to learn about the creatures living there, gaining a +2 circumstance bonus to Recall Knowledge about local wildlife.'],
+    ['id' => 'terrain-expertise', 'name' => 'Terrain Expertise', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Survival',
+      'benefit' => 'Choose a specific type of terrain (aquatic, arctic, desert, forest, mountain, plains, sky, swamp, or underground). You gain a +1 circumstance bonus to Survival checks in that terrain.'],
+    ['id' => 'titan-wrestler', 'name' => 'Titan Wrestler', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Athletics',
+      'benefit' => 'You can attempt to Disarm, Grapple, Shove, or Trip creatures up to two sizes larger than you, or up to three sizes larger than you if you are a master in Athletics.'],
+    ['id' => 'train-animal', 'name' => 'Train Animal', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Nature',
+      'benefit' => 'You spend time teaching an animal to do certain things. Choose a young or companion animal. You can spend a week of downtime trying to train the animal to perform a trick, using a Nature check against a DC determined by the GM.'],
+    ['id' => 'trick-magic-item', 'name' => 'Trick Magic Item', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Arcana',
+      'benefit' => 'You examine a magic item. You can try to Activate a magic item that normally requires a tradition or belief. If you succeed at a check using the relevant skill, you can use the item as if you could normally use it.'],
+    ['id' => 'underwater-marauder', 'name' => 'Underwater Marauder', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Athletics',
+      'benefit' => 'You\'ve learned to fight underwater. You don\'t take the normal penalties for using bludgeoning or slashing melee weapons underwater or for attacking with ranged weapons underwater.'],
+    ['id' => 'virtuosic-performer', 'name' => 'Virtuosic Performer', 'level' => 1, 'traits' => ['General', 'Skill'], 'skill' => 'Performance',
+      'benefit' => 'You have exceptional talent in one type of performance. Choose a performance type such as dancing, singing, or acting. You gain a +1 circumstance bonus to Performance checks for that type.'],
+  ];
+
+  /**
    * PF2E starting equipment by class.
    * Each class entry lists the standard starting gear at level 1.
    * Items reference IDs from EquipmentCatalogService::CATALOG.
@@ -1003,19 +1192,22 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   }
 
   /**
-   * Get all characters for the current user.
+   * Get all characters for the current user, optionally scoped to a campaign.
    */
-  public function getUserCharacters(?int $uid = NULL): array {
+  public function getUserCharacters(?int $uid = NULL, ?int $campaign_id = NULL): array {
     $uid = $uid ?? (int) $this->currentUser->id();
-    return $this->database->select('dc_campaign_characters', 'c')
+    $query = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c')
       ->condition('c.uid', $uid)
-      ->condition('c.campaign_id', 0)
       // Archived characters are hidden from the roster and selection flows.
       ->condition('c.status', 2, '<>')
-      ->orderBy('c.changed', 'DESC')
-      ->execute()
-      ->fetchAll();
+      ->orderBy('c.changed', 'DESC');
+
+    if ($campaign_id !== NULL) {
+      $query->condition('c.campaign_id', $campaign_id);
+    }
+
+    return $query->execute()->fetchAll();
   }
 
   /**
@@ -1448,6 +1640,86 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
    */
   private function extractHotColumnValues(array $characterData): array {
     return $this->extractHotColumnsFromData($characterData);
+  }
+
+  /**
+   * Fetch spells from the registry for a given tradition and level.
+   *
+   * @param string $tradition
+   *   One of 'arcane', 'divine', 'occult', 'primal'.
+   * @param int $level
+   *   Spell level (0 = cantrips, 1 = 1st-level, etc.).
+   *
+   * @return array
+   *   Array of spell records: ['id' => ..., 'name' => ..., 'description' => ...].
+   */
+  public function getSpellsByTradition(string $tradition, int $level = 0): array {
+    $tradition = strtolower($tradition);
+    $rows = $this->database->select('dungeoncrawler_content_registry', 'r')
+      ->fields('r', ['content_id', 'name', 'level', 'tags', 'schema_data'])
+      ->condition('content_type', 'spell')
+      ->condition('level', $level)
+      ->condition('tags', '%"' . $this->database->escapeLike($tradition) . '"%', 'LIKE')
+      ->orderBy('name')
+      ->execute()
+      ->fetchAll();
+
+    $spells = [];
+    foreach ($rows as $row) {
+      $schema = json_decode($row->schema_data, TRUE) ?: [];
+      $spells[] = [
+        'id' => $row->content_id,
+        'name' => $row->name,
+        'level' => (int) $row->level,
+        'school' => $schema['school'] ?? '',
+        'traditions' => $schema['traditions'] ?? [],
+        'description' => $schema['description_snippet'] ?? $row->name,
+        'rarity' => $schema['rarity'] ?? 'common',
+      ];
+    }
+    return $spells;
+  }
+
+  /**
+   * Resolves the spellcasting tradition for a class + character data.
+   *
+   * Handles fixed-tradition classes (wizard, cleric, bard, druid, oracle)
+   * and flexible-tradition classes (sorcerer via bloodline, witch via patron).
+   *
+   * @param string $class
+   *   The class ID.
+   * @param array $character_data
+   *   Full character data for resolving subclass choices.
+   *
+   * @return string|null
+   *   The tradition string or NULL if not a caster / not yet chosen.
+   */
+  public function resolveClassTradition(string $class, array $character_data = []): ?string {
+    $class = strtolower($class);
+    if (!array_key_exists($class, self::CLASS_TRADITIONS)) {
+      return NULL;
+    }
+
+    $tradition = self::CLASS_TRADITIONS[$class];
+    if ($tradition !== NULL) {
+      return $tradition;
+    }
+
+    // Sorcerer: resolve via bloodline.
+    if ($class === 'sorcerer') {
+      $bloodline = $character_data['subclass'] ?? $character_data['bloodline'] ?? '';
+      $bl_data = self::SORCERER_BLOODLINES[$bloodline] ?? NULL;
+      return $bl_data['tradition'] ?? NULL;
+    }
+
+    // Witch: resolve via patron.
+    if ($class === 'witch') {
+      $patron = $character_data['subclass'] ?? $character_data['patron'] ?? '';
+      $patron_data = self::WITCH_PATRONS[$patron] ?? NULL;
+      return $patron_data['tradition'] ?? 'occult';
+    }
+
+    return NULL;
   }
 
 }

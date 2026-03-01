@@ -35,25 +35,19 @@ class CharacterListController extends ControllerBase {
   /**
    * Renders the character list page.
    */
-  public function listCharacters() {
-    $characters = $this->characterManager->getUserCharacters();
-    $campaign_id = (int) (\Drupal::request()->query->get('campaign_id') ?? 0);
-    $campaign_name = NULL;
+  public function listCharacters(int $campaign_id) {
+    $campaign = $this->database->select('dc_campaigns', 'c')
+      ->fields('c', ['id', 'name', 'uid'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchObject();
 
-    if ($campaign_id > 0) {
-      $campaign = $this->database->select('dc_campaigns', 'c')
-        ->fields('c', ['id', 'name', 'uid'])
-        ->condition('id', $campaign_id)
-        ->execute()
-        ->fetchObject();
-
-      if ($campaign && (int) $campaign->uid === (int) $this->currentUser()->id()) {
-        $campaign_name = $campaign->name;
-      }
-      else {
-        $campaign_id = 0;
-      }
+    if (!$campaign || (int) $campaign->uid !== (int) $this->currentUser()->id()) {
+      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
     }
+
+    $campaign_name = $campaign->name;
+    $characters = $this->characterManager->getUserCharacters(NULL, $campaign_id);
 
     $character_cards = [];
     foreach ($characters as $record) {
@@ -62,9 +56,7 @@ class CharacterListController extends ControllerBase {
       $hot = $this->characterManager->resolveHotColumnsForRecord($record, $data);
 
       $view_url = Url::fromRoute('dungeoncrawler_content.character_view', ['character_id' => $record->id]);
-      if ($campaign_id > 0) {
-        $view_url->setOption('query', ['campaign_id' => $campaign_id]);
-      }
+      $view_url->setOption('query', ['campaign_id' => $campaign_id]);
 
       $select_url = NULL;
       $continue_url = NULL;
@@ -73,7 +65,7 @@ class CharacterListController extends ControllerBase {
       $step = (int) ($char['step'] ?? 8);
 
       // Campaign selection only allows completed characters.
-      if ($campaign_id > 0 && $status === 1 && $step >= 8) {
+      if ($status === 1 && $step >= 8) {
         $select_url = Url::fromRoute('dungeoncrawler_content.campaign_select_character', [
           'campaign_id' => $campaign_id,
           'character_id' => $record->id,
@@ -90,8 +82,8 @@ class CharacterListController extends ControllerBase {
 
       // Non-archived characters can be archived from the roster.
       if ($status !== 2) {
-        $destination = Url::fromRoute('dungeoncrawler_content.characters', [], [
-          'query' => $campaign_id > 0 ? ['campaign_id' => $campaign_id] : [],
+        $destination = Url::fromRoute('dungeoncrawler_content.characters', [
+          'campaign_id' => $campaign_id,
         ])->toString();
         $archive_url = Url::fromRoute('dungeoncrawler_content.character_archive', [
           'character_id' => (int) $record->id,
@@ -141,9 +133,7 @@ class CharacterListController extends ControllerBase {
     }
 
     $create_url = Url::fromRoute('dungeoncrawler_content.character_creation_wizard');
-    if ($campaign_id > 0) {
-      $create_url->setOption('query', ['campaign_id' => $campaign_id]);
-    }
+    $create_url->setOption('query', ['campaign_id' => $campaign_id]);
 
     $build = [
       '#theme' => 'character_list',
@@ -156,7 +146,7 @@ class CharacterListController extends ControllerBase {
         'library' => ['dungeoncrawler_content/character-sheet'],
       ],
       '#cache' => [
-        'contexts' => ['user', 'url.query_args:campaign_id'],
+        'contexts' => ['user', 'url.path'],
         'tags' => ['dc_campaign_characters'],
       ],
     ];

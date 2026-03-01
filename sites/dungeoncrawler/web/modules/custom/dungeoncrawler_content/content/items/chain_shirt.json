@@ -1,6 +1,6 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "chain-shirt",
+  "item_id": "chain_shirt",
   "name": "Chain Shirt",
   "item_type": "armor",
   "level": 0,

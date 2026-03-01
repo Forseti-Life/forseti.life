@@ -5,6 +5,7 @@ Admin module to track Copilot agent status and a sanitized event stream (no raw 
 ## Routes
 - `/admin/reports/copilot-agent-tracker` (admin dashboard)
 - `/admin/reports/copilot-agent-tracker/agent/{agent_id}` (agent detail)
+- `/admin/reports/copilot-agent-tracker/llm-management` (local LLM model selection + prompt test)
 - `POST /api/copilot-agent-tracker/event` (internal telemetry; header token required)
 
 ## Telemetry auth

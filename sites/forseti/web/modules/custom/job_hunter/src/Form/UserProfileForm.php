@@ -157,7 +157,7 @@ class UserProfileForm extends FormBase {
     // Store user entity for submit handler
     $form_state->set('user_entity', $user_entity);
 
-    $form['#prefix'] = '<div class="user-profile-form job-application-profile">';
+    $form['#prefix'] = '<div class="jh-profile">';
     $form['#suffix'] = '</div>';
     $form['#attached']['library'][] = 'job_hunter/user_profile';
 
@@ -172,7 +172,7 @@ class UserProfileForm extends FormBase {
     
     $form['profile_progress'] = [
       '#type' => 'container',
-      '#attributes' => ['class' => ['profile-progress']],
+      '#attributes' => ['class' => ['jh-profile__progress']],
       '#weight' => -200,
     ];
     $form['profile_progress']['progress'] = [
@@ -180,7 +180,7 @@ class UserProfileForm extends FormBase {
       '#tag' => 'div',
       '#value' => $this->t('Profile Completeness: @percent%', ['@percent' => $completeness]),
       '#attributes' => [
-        'class' => ['profile-progress-text'],
+        'class' => ['jh-profile__progress-text'],
         'data-progress' => $completeness,
       ],
     ];
@@ -188,14 +188,14 @@ class UserProfileForm extends FormBase {
       '#type' => 'html_tag',
       '#tag' => 'div',
       '#attributes' => [
-        'class' => ['profile-progress-bar'],
+        'class' => ['jh-profile__progress-bar'],
       ],
     ];
     $form['profile_progress']['bar']['fill'] = [
       '#type' => 'html_tag',
       '#tag' => 'div',
       '#attributes' => [
-        'class' => ['profile-progress-fill'],
+        'class' => ['jh-profile__progress-fill'],
         'style' => "width: {$completeness}%",
       ],
     ];
@@ -215,13 +215,13 @@ class UserProfileForm extends FormBase {
     // Resume Management Section - displayed at top of page (not in accordion)
     $form['resume_workflow'] = [
       '#type' => 'container',
-      '#weight' => -100, // Ensure it appears at the very top
-      '#prefix' => '<div id="resume-workflow-wrapper" class="resume-management-section" style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e9ecef;">',
+      '#weight' => -100,
+      '#prefix' => '<div id="resume-workflow-wrapper" class="jh-profile__resume">',
       '#suffix' => '</div>',
     ];
-    
+
     $form['resume_workflow']['header'] = [
-      '#markup' => '<h3 style="margin: 0 0 10px 0; color: #333;">📁 Resume Management</h3><p style="margin: 0 0 15px 0; color: #666;">Upload your resume files. Files are automatically processed with AI to extract your profile information.</p>',
+      '#markup' => '<h3 class="jh-profile__resume-header">📁 ' . $this->t('Resume Management') . '</h3><p class="jh-profile__resume-desc">' . $this->t('Upload your resume files. Files are automatically processed with AI to extract your profile information.') . '</p>',
     ];
     
     // Upload field - always show empty for new uploads
@@ -253,7 +253,6 @@ class UserProfileForm extends FormBase {
       '#limit_validation_errors' => [['field_resume_file']],
       '#attributes' => [
         'class' => ['button', 'button--primary'],
-        'style' => 'margin-top: 10px;',
       ],
     ];
     
@@ -275,7 +274,7 @@ class UserProfileForm extends FormBase {
       });
       
       if (!empty($files)) {
-        $resume_table = '<div style="margin-top: 15px;">';
+        $resume_table = '<div class="jh-profile__resume-list">';
           
           $index = 0;
           foreach ($files as $filename) {
@@ -359,26 +358,26 @@ class UserProfileForm extends FormBase {
             $size_display = $size_kb < 1024 ? $size_kb . ' KB' : round($size_kb / 1024, 2) . ' MB';
             
             // Build resume card
-            $resume_table .= '<div style="border: 1px solid #ddd; border-radius: 5px; padding: 15px; margin-bottom: 15px; background: #fff;">';
-            $resume_table .= '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">';
+            $resume_table .= '<div class="jh-profile__resume-card">';
+            $resume_table .= '<div class="jh-profile__resume-card-header">';
             $resume_table .= '<div>';
-            $resume_table .= '<strong style="font-size: 16px;">' . htmlspecialchars($filename) . '</strong>';
-            $resume_table .= '<span style="color: #666; margin-left: 10px;">(' . $size_display . ')</span>';
+            $resume_table .= '<strong class="jh-profile__resume-card-name">' . htmlspecialchars($filename) . '</strong>';
+            $resume_table .= '<span class="jh-profile__resume-card-size">(' . $size_display . ')</span>';
             $resume_table .= '</div>';
-            $resume_table .= '<div id="delete-btn-' . $index . '" style="white-space: nowrap;"></div>';
+            $resume_table .= '<div id="delete-btn-' . $index . '"></div>';
             $resume_table .= '</div>';
             
             // Show processing status
-            $resume_table .= '<div style="margin-top: 10px; padding: 10px; background: #f9f9f9; border-radius: 3px;">';
-            $resume_table .= '<strong style="font-size: 14px; color: #333;">📋 Processing Status:</strong>';
-            $resume_table .= '<ul style="margin: 5px 0 0 20px; padding: 0; list-style: none;">';
+            $resume_table .= '<div class="jh-profile__status">';
+            $resume_table .= '<strong class="jh-profile__status-title">📋 ' . $this->t('Processing Status:') . '</strong>';
+            $resume_table .= '<ul class="jh-profile__status-list">';
             
             // Check if text has been extracted
             $has_extracted_text = !empty($extracted_text);
             $text_icon = $has_extracted_text ? '✅' : '⬜';
-            $text_color = $has_extracted_text ? 'green' : '#999';
-            $resume_table .= '<li style="color: ' . $text_color . '; padding: 2px 0;">';
-            $resume_table .= $text_icon . ' <strong>Text Extracted:</strong> ' . ($has_extracted_text ? 'Yes (' . number_format(strlen($extracted_text)) . ' chars)' : 'Pending...');
+            $text_status_class = $has_extracted_text ? 'jh-profile__status-item--done' : 'jh-profile__status-item--pending';
+            $resume_table .= '<li class="jh-profile__status-item ' . $text_status_class . '">';
+            $resume_table .= $text_icon . ' <strong>' . $this->t('Text Extracted:') . '</strong> ' . ($has_extracted_text ? $this->t('Yes (@chars chars)', ['@chars' => number_format(strlen($extracted_text))]) : $this->t('Pending...'));
             $resume_table .= '</li>';
             
             // Check parsing status and JSON existence
@@ -401,30 +400,30 @@ class UserProfileForm extends FormBase {
             // Determine status display
             if ($is_queued) {
               $json_icon = '⏳';
-              $json_color = '#f59e0b';
-              $json_status = 'Queued for AI parsing...';
+              $json_status_class = 'jh-profile__status-item--queued';
+              $json_status = $this->t('Queued for AI parsing...');
             } elseif ($is_processing) {
               $json_icon = '🔄';
-              $json_color = '#3b82f6';
-              $json_status = 'AI parsing in progress...';
+              $json_status_class = 'jh-profile__status-item--processing';
+              $json_status = $this->t('AI parsing in progress...');
             } elseif ($is_error) {
               $json_icon = '❌';
-              $json_color = '#ef4444';
-              $json_status = 'Error: ' . htmlspecialchars(substr($parsing_error ?? 'Unknown error', 0, 50));
+              $json_status_class = 'jh-profile__status-item--error';
+              $json_status = $this->t('Error: @msg', ['@msg' => substr($parsing_error ?? 'Unknown error', 0, 50)]);
             } elseif ($has_json) {
               $json_icon = '✅';
-              $json_color = 'green';
-              $json_status = 'Yes';
+              $json_status_class = 'jh-profile__status-item--done';
+              $json_status = $this->t('Yes');
             } else {
               $json_icon = '⬜';
-              $json_color = '#999';
-              $json_status = 'No';
+              $json_status_class = 'jh-profile__status-item--pending';
+              $json_status = $this->t('No');
             }
-            
-            $resume_table .= '<li style="color: ' . $json_color . '; padding: 2px 0;">';
-            $resume_table .= $json_icon . ' <strong>Individual JSON Stored:</strong> ' . $json_status;
+
+            $resume_table .= '<li class="jh-profile__status-item ' . $json_status_class . '">';
+            $resume_table .= $json_icon . ' <strong>' . $this->t('Individual JSON Stored:') . '</strong> ' . $json_status;
             if ($is_queued || $is_processing) {
-              $resume_table .= ' <span style="font-size: 12px; color: #666;">(Refresh page to check status)</span>';
+              $resume_table .= ' <span class="jh-profile__section-info">(' . $this->t('Refresh page to check status') . ')</span>';
             }
             $resume_table .= '</li>';
             
@@ -441,22 +440,22 @@ class UserProfileForm extends FormBase {
               }
             }
             
+            $consol_status_class = $in_consolidated ? 'jh-profile__status-item--done' : 'jh-profile__status-item--pending';
             $consol_icon = $in_consolidated ? '✅' : '⬜';
-            $consol_color = $in_consolidated ? 'green' : '#999';
-            $resume_table .= '<li style="color: ' . $consol_color . '; padding: 2px 0;">';
-            $resume_table .= $consol_icon . ' <strong>Merged to Consolidated:</strong> ' . ($in_consolidated ? 'Yes' : 'Pending...');
+            $resume_table .= '<li class="jh-profile__status-item ' . $consol_status_class . '">';
+            $resume_table .= $consol_icon . ' <strong>' . $this->t('Merged to Consolidated:') . '</strong> ' . ($in_consolidated ? $this->t('Yes') : $this->t('Pending...'));
             $resume_table .= '</li>';
             
             $resume_table .= '</ul>';
             
             // Show info if processing is queued or in progress
             if ($is_queued || $is_processing) {
-              $resume_table .= '<div style="margin-top: 5px; padding: 8px; background: #e0f2fe; border-radius: 3px; color: #0369a1; font-size: 13px;">';
-              $resume_table .= '🔄 <em>Processing automatically - check back in 2-3 minutes</em>';
+              $resume_table .= '<div class="jh-profile__status-banner jh-profile__status-banner--info">';
+              $resume_table .= '🔄 <em>' . $this->t('Processing automatically - check back in 2-3 minutes') . '</em>';
               $resume_table .= '</div>';
             } elseif ($is_error) {
-              $resume_table .= '<div style="margin-top: 5px; padding: 8px; background: #fee2e2; border-radius: 3px; color: #dc2626; font-size: 13px;">';
-              $resume_table .= '❌ <em>Parsing failed - please try re-uploading the file</em>';
+              $resume_table .= '<div class="jh-profile__status-banner jh-profile__status-banner--error">';
+              $resume_table .= '❌ <em>' . $this->t('Parsing failed - please try re-uploading the file') . '</em>';
               $resume_table .= '</div>';
             }
             
@@ -483,7 +482,7 @@ class UserProfileForm extends FormBase {
     // Display uploaded files status (combined with upload above)
     if (!empty($resume_table)) {
       $form['resume_workflow']['resume_files_display'] = [
-        '#markup' => '<div style="margin-top: 20px; border-top: 1px solid #ddd; padding-top: 15px;"><h4 style="margin: 0 0 10px 0;">📋 Uploaded Files</h4>' . $resume_table . '</div>',
+        '#markup' => '<div class="jh-profile__uploaded-files"><h4 class="jh-profile__uploaded-files-title">' . $this->t('📋 Uploaded Files') . '</h4>' . $resume_table . '</div>',
       ];
       
       // Add action buttons for each file (delete only - other actions are automatic)
@@ -508,9 +507,8 @@ class UserProfileForm extends FormBase {
           '#attributes' => [
             'data-filename' => $file_info['filename'],
             'data-file-id' => (string) ($file_info['file_id'] ?? ''),
-            'class' => ['button', 'button--danger'],
-            'style' => 'font-size: 12px; padding: 4px 10px;',
-            'onclick' => 'return confirm("Are you sure you want to delete this resume file?");',
+            'class' => ['button', 'button--danger', 'jh-profile__delete-btn'],
+            'data-confirm-message' => $this->t('Are you sure you want to delete this resume file?'),
           ],
         ];
         
@@ -542,17 +540,17 @@ class UserProfileForm extends FormBase {
               '#type' => 'details',
               '#title' => $this->t('📄 @name', ['@name' => $file_info['file']->getFilename()]),
               '#open' => FALSE,
-              '#attributes' => ['style' => 'color: #333; background: #f9f9f9; padding: 10px;'],
+              '#attributes' => ['class' => ['jh-profile__json-editor']],
             ];
-            
+
             $form['resume_workflow']['individual_json_editors']['json_' . $json_index]['parsed_data_' . $parsed_record->id] = [
               '#type' => 'textarea',
               '#title' => $this->t('Parsed JSON Data'),
               '#default_value' => $parsed_record->parsed_data,
               '#rows' => 20,
               '#attributes' => [
-                'style' => 'font-family: monospace; font-size: 12px; width: 100%;',
-                'placeholder' => 'JSON data will appear here after parsing...'
+                'class' => ['jh-profile__json-textarea'],
+                'placeholder' => $this->t('JSON data will appear here after parsing...'),
               ],
               '#description' => $this->t('Edit the parsed JSON data for this resume. Must be valid JSON format. Changes save when you submit the form.'),
             ];
@@ -568,101 +566,12 @@ class UserProfileForm extends FormBase {
         ];
       }
       
-      // Add JavaScript to move buttons into table cells
+      // Attach the user-profile library which handles button relocation
       $form['resume_workflow']['#attached']['library'][] = 'core/drupal';
-      $form['resume_workflow']['#attached']['html_head'][] = [
-        [
-          '#tag' => 'script',
-          '#value' => "
-            (function() {
-              function moveButtons() {
-                // Move delete buttons
-                var deleteContainers = document.querySelectorAll('.delete-btn-container');
-                
-                deleteContainers.forEach(function(container) {
-                  var targetId = container.getAttribute('data-target');
-                  var target = document.getElementById(targetId);
-                  
-                  if (target) {
-                    while (container.firstChild) {
-                      target.appendChild(container.firstChild);
-                    }
-                    if (container.parentNode) {
-                      container.parentNode.removeChild(container);
-                    }
-                  }
-                });
-                
-                // Move extract text buttons
-                var extractContainers = document.querySelectorAll('.extract-text-btn-container');
-                
-                extractContainers.forEach(function(container) {
-                  var targetId = container.getAttribute('data-target');
-                  var target = document.getElementById(targetId);
-                  
-                  if (target) {
-                    while (container.firstChild) {
-                      target.appendChild(container.firstChild);
-                    }
-                    if (container.parentNode) {
-                      container.parentNode.removeChild(container);
-                    }
-                  }
-                });
-                
-                // Move parse JSON buttons
-                var parseJsonContainers = document.querySelectorAll('.parse-json-btn-container');
-                
-                parseJsonContainers.forEach(function(container) {
-                  var targetId = container.getAttribute('data-target');
-                  var target = document.getElementById(targetId);
-                  
-                  if (target) {
-                    while (container.firstChild) {
-                      target.appendChild(container.firstChild);
-                    }
-                    if (container.parentNode) {
-                      container.parentNode.removeChild(container);
-                    }
-                  }
-                });
-                
-                // Move consolidate buttons
-                var consolidateContainers = document.querySelectorAll('.consolidate-btn-container');
-                
-                consolidateContainers.forEach(function(container) {
-                  var targetId = container.getAttribute('data-target');
-                  var target = document.getElementById(targetId);
-                  
-                  if (target) {
-                    while (container.firstChild) {
-                      target.appendChild(container.firstChild);
-                    }
-                    if (container.parentNode) {
-                      container.parentNode.removeChild(container);
-                    }
-                  }
-                });
-              }
-              
-              // Try multiple times to ensure DOM is ready
-              if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', function() {
-                  setTimeout(moveButtons, 100);
-                  setTimeout(moveButtons, 500);
-                });
-              } else {
-                setTimeout(moveButtons, 100);
-                setTimeout(moveButtons, 500);
-              }
-            })();
-          ",
-        ],
-        'resume-actions-js',
-      ];
+      $form['resume_workflow']['#attached']['library'][] = 'job_hunter/user_profile';
     } else {
       $form['resume_workflow']['no_files'] = [
-        '#markup' => '<p style="padding: 15px; background: #f9f9f9; border-left: 4px solid #ccc; margin-top: 10px;">No resume files uploaded yet. Use the upload field above to add your resume.</p>',
+        '#markup' => '<p class="jh-profile__no-files">' . $this->t('No resume files uploaded yet. Use the upload field above to add your resume.') . '</p>',
       ];
     }
 
@@ -686,7 +595,7 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('These preferences power your automated job search. Fill them out to improve job matching across all search sources.'),
       '#attributes' => ['class' => ['search-assist-section', 'no-toggle-fieldset']],
       '#open' => TRUE,
-      '#weight' => 0,
+      '#weight' => 10,
     ];
 
     $form['search_assist']['field_work_authorization'] = [
@@ -844,9 +753,9 @@ class UserProfileForm extends FormBase {
         '#attributes' => ['class' => ['suggested-keywords-section']],
       ];
       
-      $keywords_markup = '<div class="suggested-keywords-container" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">';
+      $keywords_markup = '<div class="jh-profile__keywords">';
       foreach ($suggested_keywords as $keyword) {
-        $keywords_markup .= '<span class="suggested-keyword" style="background: #e3f2fd; color: #1976d2; padding: 6px 12px; border-radius: 16px; cursor: pointer; font-size: 13px; border: 1px solid #90caf9;" onclick="addKeywordToTextarea(\'' . addslashes($keyword) . '\')">' . htmlspecialchars($keyword) . '</span>';
+        $keywords_markup .= '<span class="jh-profile__keyword-chip" data-keyword="' . htmlspecialchars(addslashes($keyword), ENT_QUOTES) . '">' . htmlspecialchars($keyword) . '</span>';
       }
       $keywords_markup .= '</div>';
       
@@ -855,44 +764,8 @@ class UserProfileForm extends FormBase {
         '#markup' => $keywords_markup,
       ];
       
-      // Add JavaScript to handle click-to-add functionality
-      $form['search_assist']['suggested_keywords']['#attached']['html_head'][] = [
-        [
-          '#tag' => 'script',
-          '#value' => "
-            function addKeywordToTextarea(keyword) {
-              var textarea = document.querySelector('textarea[name=\"field_keywords_interested\"]');
-              if (textarea) {
-                var currentValue = textarea.value.trim();
-                var lines = currentValue.split('\\n').map(function(line) { return line.trim(); }).filter(function(line) { return line.length > 0; });
-                
-                // Check if keyword already exists (case-insensitive)
-                var keywordLower = keyword.toLowerCase();
-                var exists = lines.some(function(line) { return line.toLowerCase() === keywordLower; });
-                
-                if (!exists) {
-                  lines.push(keyword);
-                  textarea.value = lines.join('\\n');
-                  
-                  // Visual feedback
-                  var addedKeyword = event.target;
-                  addedKeyword.style.background = '#c8e6c9';
-                  addedKeyword.style.borderColor = '#81c784';
-                  addedKeyword.style.color = '#2e7d32';
-                  setTimeout(function() {
-                    addedKeyword.style.background = '#e3f2fd';
-                    addedKeyword.style.borderColor = '#90caf9';
-                    addedKeyword.style.color = '#1976d2';
-                  }, 1000);
-                } else {
-                  alert('Keyword \"' + keyword + '\" is already in your list.');
-                }
-              }
-            }
-          ",
-        ],
-        'suggested-keywords-js',
-      ];
+      // Attach the user-profile library which handles keyword click behavior
+      $form['search_assist']['suggested_keywords']['#attached']['library'][] = 'job_hunter/user_profile';
     }
 
     $form['search_assist']['field_target_job_titles'] = [
@@ -945,7 +818,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('📋 Demographic Information (Optional - For EEO Purposes)'),
       '#description' => $this->t('This information is optional and used for Equal Employment Opportunity (EEO) reporting. Providing this information is voluntary and will not affect your job search.'),
       '#open' => FALSE,
-      '#attributes' => ['style' => 'color: #333; background: #f9f9f9; padding: 10px;'],
+      '#attributes' => ['class' => ['jh-profile__demographic-info']],
     ];
 
     $form['search_assist']['demographic_info']['field_gender'] = [
@@ -1013,7 +886,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('👤 Contact & Professional Summary'),
       '#description' => $this->t('Your contact information and professional overview'),
       '#open' => FALSE,
-      '#weight' => 1,
+      '#weight' => 20,
       '#prefix' => '<div id="job-hunter-core-info">',
       '#suffix' => '</div>',
     ];
@@ -1083,7 +956,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🎓 Experience, Education & Credentials'),
       '#open' => TRUE,
-      '#weight' => 4,
+      '#weight' => 40,
     ];
 
     // Calculate years of experience from education history (graduation date)
@@ -1091,14 +964,14 @@ class UserProfileForm extends FormBase {
     if ($job_seeker_profile && !empty($job_seeker_profile->id)) {
       $calculated_years = $this->calculateYearsOfExperience($job_seeker_profile->id);
     }
-    
+
     // Use calculated value if available, otherwise fall back to stored value
     $experience_years = $calculated_years > 0 ? $calculated_years : $this->getConsolidatedValue($job_seeker_profile, 'field_experience_years');
 
     $form['experience_education']['field_experience_years'] = [
       '#type' => 'number',
       '#title' => $this->t('Years of Professional Experience'),
-      '#description' => $calculated_years > 0 
+      '#description' => $calculated_years > 0
         ? $this->t('Automatically calculated from your earliest graduation date (@years years). This field is read-only.', ['@years' => $calculated_years])
         : $this->t('Will be automatically calculated when you add education history with graduation dates.'),
       '#min' => 0,
@@ -1129,8 +1002,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('📚 Education History'),
       '#open' => TRUE,
       '#attributes' => [
-        'class' => ['education-entries-display'],
-        'style' => 'color: #333; background: #f9f9f9; padding: 10px;'
+        'class' => ['education-entries-display', 'jh-profile__education-entries'],
       ],
     ];
 
@@ -1151,32 +1023,16 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('One item per line. Optional format: Institution | Degree | Year'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'education'),
       '#rows' => 10,
-      '#attributes' => ['style' => 'width: 100%;'],
-    ];
-
-    $form['experience_education']['field_certifications'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Professional Certifications'),
-      '#description' => $this->t('List your professional certifications and licenses (one per line).<br>Format: <em>Certification Name - Issuing Organization (Year)</em><br>Example: <em>AWS Certified Solutions Architect - Amazon Web Services (2023)</em>'),
-      '#rows' => 5,
-      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_certifications'),
+      
     ];
 
     // Professional Experience Section (editable JSON)
     $form['professional_experience'] = [
-      '#type' => 'container',
-      '#weight' => 3,
-    ];
-
-    $form['professional_experience']['section_title'] = [
-      '#type' => 'markup',
-      '#markup' => '<h3>💼 ' . $this->t('Professional Experience') . '</h3>',
-    ];
-
-    // Professional Experience Structured Editor
-    // Stores to consolidated_profile_json.professional_experience on save.
-    $form['professional_experience']['editor_info'] = [
-      '#markup' => '<p class="description"><em>Edit core fields directly. Optional fields are under Advanced details. Save to persist changes.</em></p>',
+      '#type' => 'details',
+      '#title' => $this->t('💼 Professional Experience'),
+      '#description' => $this->t('Edit core fields directly. Optional fields are under Advanced details. Save to persist changes.'),
+      '#open' => TRUE,
+      '#weight' => 30,
     ];
 
     $form['professional_experience']['experience_editor'] = [
@@ -1189,7 +1045,7 @@ class UserProfileForm extends FormBase {
     if ($action_message !== '') {
       $form['professional_experience']['experience_editor']['action_status'] = [
         '#type' => 'markup',
-        '#markup' => '<div class="messages messages--status" style="margin: 8px 0;">' . htmlspecialchars($action_message) . '</div>',
+        '#markup' => '<div class="messages messages--status">' . htmlspecialchars($action_message) . '</div>',
       ];
     }
 
@@ -1364,7 +1220,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🛠️ Technical Expertise'),
       '#open' => FALSE,
-      '#weight' => 5,
+      '#weight' => 50,
     ];
     $form['technical_expertise_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
@@ -1374,7 +1230,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Technical Expertise'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'technical_expertise'),
       '#rows' => 15,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Strategic Differentiators Section (editable text)
@@ -1382,7 +1238,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🎯 Strategic Differentiators'),
       '#open' => FALSE,
-      '#weight' => 6,
+      '#weight' => 60,
     ];
     $form['strategic_differentiators_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
@@ -1392,7 +1248,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Strategic Differentiators'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'strategic_differentiators'),
       '#rows' => 10,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Leadership Philosophy Section (editable text)
@@ -1400,7 +1256,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🧭 Leadership Philosophy'),
       '#open' => FALSE,
-      '#weight' => 7,
+      '#weight' => 70,
     ];
     $form['leadership_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
@@ -1410,7 +1266,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Leadership Philosophy'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'leadership_philosophy'),
       '#rows' => 8,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Demonstration Projects Section (editable text)
@@ -1418,7 +1274,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🚀 Demonstration Projects'),
       '#open' => FALSE,
-      '#weight' => 8,
+      '#weight' => 80,
     ];
     $form['demonstration_projects_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one project per line. Save to apply changes.</em></p>',
@@ -1428,7 +1284,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Demonstration Projects'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'demonstration_projects'),
       '#rows' => 10,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Publications Section (editable text)
@@ -1436,7 +1292,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('📚 Publications & Research'),
       '#open' => FALSE,
-      '#weight' => 8.5,
+      '#weight' => 90,
     ];
     $form['publications_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one publication per line. Save to apply changes.</em></p>',
@@ -1447,7 +1303,7 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('One publication per line.'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'publications'),
       '#rows' => 10,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Certifications Section (editable text)
@@ -1455,18 +1311,35 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🏆 Certifications & Licenses'),
       '#open' => FALSE,
-      '#weight' => 8.7,
+      '#weight' => 100,
     ];
     $form['certifications_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one certification per line. Save to apply changes.</em></p>',
     ];
+
+    $certifications_default = $this->formatSectionForTextarea($consolidated, 'certifications');
+    if ($certifications_default === '' && !empty($consolidated['job_search_preferences']['certifications'])) {
+      $legacy_certs = $consolidated['job_search_preferences']['certifications'];
+      if (is_array($legacy_certs)) {
+        $certifications_default = implode("\n", array_values(array_filter(array_map(function ($cert): string {
+          if (is_array($cert)) {
+            return trim((string) ($cert['name'] ?? ''));
+          }
+          return trim((string) $cert);
+        }, $legacy_certs))));
+      }
+      elseif (is_string($legacy_certs)) {
+        $certifications_default = $legacy_certs;
+      }
+    }
+
     $form['certifications_section']['field_certifications_json'] = [
       '#type' => 'textarea',
       '#title' => $this->t('Certifications'),
       '#description' => $this->t('One certification per line.'),
-      '#default_value' => $this->formatSectionForTextarea($consolidated, 'certifications'),
+      '#default_value' => $certifications_default,
       '#rows' => 8,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Patents Section (editable text)
@@ -1474,7 +1347,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🔬 Patents & Intellectual Property'),
       '#open' => FALSE,
-      '#weight' => 8.9,
+      '#weight' => 110,
     ];
     $form['patents_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one patent per line. Save to apply changes.</em></p>',
@@ -1485,7 +1358,7 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('One patent per line.'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'patents'),
       '#rows' => 8,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Awards & Honors Section (editable text)
@@ -1493,7 +1366,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🏅 Awards & Honors'),
       '#open' => FALSE,
-      '#weight' => 9.1,
+      '#weight' => 130,
     ];
     $form['awards_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one award per line. Save to apply changes.</em></p>',
@@ -1504,7 +1377,7 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('One award per line.'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'awards_and_honors'),
       '#rows' => 8,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Languages Section (editable text)
@@ -1512,7 +1385,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🌍 Languages & Proficiencies'),
       '#open' => FALSE,
-      '#weight' => 9.3,
+      '#weight' => 140,
     ];
     $form['languages_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one language per line. Save to apply changes.</em></p>',
@@ -1523,7 +1396,7 @@ class UserProfileForm extends FormBase {
       '#description' => $this->t('One language per line.'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'languages'),
       '#rows' => 6,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Consulting Practice Section (editable text)
@@ -1531,7 +1404,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('💼 Consulting Practice'),
       '#open' => FALSE,
-      '#weight' => 9,
+      '#weight' => 120,
     ];
     $form['consulting_practice_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one engagement per line. Save to apply changes.</em></p>',
@@ -1541,7 +1414,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Consulting Practice'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'consulting_practice'),
       '#rows' => 10,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Early Career Section (editable text)
@@ -1549,7 +1422,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('📜 Early Career'),
       '#open' => FALSE,
-      '#weight' => 10,
+      '#weight' => 150,
     ];
     $form['early_career_section']['info'] = [
       '#markup' => '<p class="description"><em>Edit one item per line. Save to apply changes.</em></p>',
@@ -1559,7 +1432,7 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('Early Career'),
       '#default_value' => $this->formatSectionForTextarea($consolidated, 'early_career'),
       '#rows' => 6,
-      '#attributes' => ['style' => 'width: 100%;'],
+      
     ];
 
     // Online Presence Section
@@ -1567,7 +1440,7 @@ class UserProfileForm extends FormBase {
       '#type' => 'details',
       '#title' => $this->t('🌐 Online Presence'),
       '#open' => FALSE,
-      '#weight' => 11,
+      '#weight' => 160,
     ];
 
     $form['online_presence']['field_portfolio_url'] = [
@@ -1615,12 +1488,12 @@ class UserProfileForm extends FormBase {
       '#open' => FALSE,
       '#weight' => 1000,
       '#attributes' => [
-        'style' => 'border: 3px solid #d9534f; background: #fff5f5; margin-top: 40px;',
+        'class' => ['jh-profile__danger'],
       ],
     ];
 
     $form['danger_zone']['warning'] = [
-      '#markup' => '<div style="padding: 15px; background: #ffebee; border: 2px solid #d9534f; margin-bottom: 15px; border-radius: 5px;"><strong style="color: #d9534f; font-size: 16px;">⚠️ WARNING: PERMANENT DATA DELETION</strong><p style="margin-top: 10px;">The button below will <strong>permanently delete</strong> all your profile data, uploaded resumes, and parsed information. This action cannot be undone.</p></div>',
+      '#markup' => '<div class="jh-profile__danger-warning"><strong class="jh-profile__danger-title">' . $this->t('⚠️ WARNING: PERMANENT DATA DELETION') . '</strong><p class="jh-profile__danger-text">' . $this->t('The button below will <strong>permanently delete</strong> all your profile data, uploaded resumes, and parsed information. This action cannot be undone.') . '</p></div>',
     ];
 
     $form['danger_zone']['delete_all_resumes'] = [
@@ -1630,9 +1503,8 @@ class UserProfileForm extends FormBase {
       '#limit_validation_errors' => [],
       '#validate' => [],
       '#attributes' => [
-        'class' => ['button', 'button--danger'],
-        'style' => 'background-color: #d9534f; color: white; font-weight: bold; font-size: 14px;',
-        'onclick' => 'return confirm("⚠️ FINAL WARNING ⚠️\n\nAre you ABSOLUTELY SURE you want to delete ALL profile and resume data?\n\nThis will permanently remove:\n• All uploaded resume files\n• All parsed resume data\n• All profile information (work authorization, skills, experience, etc.)\n\nThis action CANNOT be undone and will reset your profile to 0%.\n\nClick OK only if you are certain you want to delete everything.");',
+        'class' => ['button', 'button--danger', 'jh-profile__danger-btn'],
+        'data-confirm-message' => $this->t('⚠️ FINAL WARNING: Are you ABSOLUTELY SURE you want to delete ALL profile and resume data? This will permanently remove all uploaded resume files, all parsed resume data, and all profile information. This action CANNOT be undone.'),
       ],
     ];
 
@@ -3636,36 +3508,6 @@ class UserProfileForm extends FormBase {
           return is_string($val) ? $val : '';
         },
       ],
-      'field_certifications' => [
-        'json_path' => ['certifications'],
-        'db_column' => 'certifications',
-        'transform' => function($val) {
-          // Format certifications array to display one per line with details
-          if (is_array($val)) {
-            $formatted = [];
-            foreach ($val as $cert) {
-              if (is_array($cert)) {
-                // Structured certification data
-                $line = $cert['name'] ?? 'Unknown Certification';
-                if (!empty($cert['issuing_organization'])) {
-                  $line .= ' - ' . $cert['issuing_organization'];
-                }
-                if (!empty($cert['issue_date'])) {
-                  // Extract year from date (format: YYYY-MM or YYYY)
-                  $year = substr($cert['issue_date'], 0, 4);
-                  $line .= ' (' . $year . ')';
-                }
-                $formatted[] = $line;
-              } else {
-                // Simple string certification
-                $formatted[] = $cert;
-              }
-            }
-            return implode("\n", array_unique($formatted));
-          }
-          return is_string($val) ? $val : '';
-        },
-      ],
       'field_linkedin_url' => [
         'json_path' => ['contact_info'],
         'db_column' => 'linkedin_url',
@@ -4094,6 +3936,29 @@ class UserProfileForm extends FormBase {
       else {
         $consolidated[$json_fields[$field_name]] = $this->parsePlainSectionInput($field_name, (string) $value);
       }
+
+      if ($field_name === 'field_certifications_json') {
+        $legacy = [];
+        $certifications = $consolidated['certifications'] ?? [];
+        if (is_array($certifications)) {
+          foreach ($certifications as $cert) {
+            if (is_array($cert)) {
+              $name = trim((string) ($cert['name'] ?? ''));
+              if ($name !== '') {
+                $legacy[] = $name;
+              }
+            }
+            elseif (is_string($cert) && trim($cert) !== '') {
+              $legacy[] = trim($cert);
+            }
+          }
+        }
+        if (!isset($consolidated['job_search_preferences']) || !is_array($consolidated['job_search_preferences'])) {
+          $consolidated['job_search_preferences'] = [];
+        }
+        $consolidated['job_search_preferences']['certifications'] = array_values(array_unique($legacy));
+      }
+
       return;
     }
     
@@ -4154,7 +4019,6 @@ class UserProfileForm extends FormBase {
       'field_requires_sponsorship' => ['job_search_preferences', 'requires_sponsorship'],
       'field_experience_years' => ['job_search_preferences', 'experience_years'],
       'field_education_level' => ['job_search_preferences', 'education_level'],
-      'field_certifications' => ['job_search_preferences', 'certifications'],
       'field_linkedin_url' => ['contact_info', 'linkedin'],
       'field_github_url' => ['contact_info', 'github'],
       'field_portfolio_url' => ['contact_info', 'portfolio'],
@@ -4262,7 +4126,6 @@ class UserProfileForm extends FormBase {
       'field_requires_sponsorship',
       'field_experience_years',
       'field_education_level',
-      'field_certifications',
       'field_linkedin_url',
       'field_github_url',
       'field_portfolio_url',
@@ -6875,7 +6738,7 @@ PROMPT;
       'skills' => 'field_skills_summary',
       'experience_years' => 'field_experience_years',
       'education_level' => 'field_education_level',
-      'certifications' => 'field_certifications',
+      'certifications' => 'field_certifications_json',
       'job_titles' => 'field_target_job_titles',
       'linkedin_url' => 'field_linkedin_url',
       'github_url' => 'field_github_url',
@@ -6933,7 +6796,7 @@ PROMPT;
       $start = $edu['start_date'] ?? '';
       $end = $edu['end_date'] ?? '';
 
-      $html .= '<div class="education-entry" style="margin-bottom: 15px; padding: 12px; background: #f5f5f5; border-left: 4px solid #28a745; border-radius: 4px;">';
+      $html .= '<div class="education-entry jh-profile__education-entry">';
       
       $degree_line = $degree;
       if ($abbreviation) {
@@ -6943,8 +6806,8 @@ PROMPT;
         $degree_line .= ' in ' . $field;
       }
       
-      $html .= '<h4 style="margin: 0 0 5px 0; color: #333;">' . $degree_line . '</h4>';
-      $html .= '<div style="font-weight: bold; color: #28a745;">' . $institution . '</div>';
+      $html .= '<h4 class="jh-profile__education-degree">' . $degree_line . '</h4>';
+      $html .= '<div class="jh-profile__education-institution">' . $institution . '</div>';
       
       $meta = [];
       if ($location) {
@@ -6957,7 +6820,7 @@ PROMPT;
       }
       
       if (!empty($meta)) {
-        $html .= '<div style="color: #666; font-size: 0.9em;">' . implode(' | ', $meta) . '</div>';
+        $html .= '<div class="jh-profile__education-meta">' . implode(' | ', $meta) . '</div>';
       }
 
       $html .= '</div>';
@@ -6987,24 +6850,24 @@ PROMPT;
     }
 
     $contact = $consolidated['contact_info'];
-    $html = '<div class="contact-info-display" style="padding: 15px; background: #f9f9f9; border-radius: 4px;">';
+    $html = '<div class="contact-info-display jh-profile__contact-display">';
     
     // Name and headline
     if (!empty($contact['full_name'])) {
-      $html .= '<h3 style="margin: 0 0 5px 0; color: #333;">' . htmlspecialchars($contact['full_name']);
+      $html .= '<h3 class="jh-profile__contact-name">' . htmlspecialchars($contact['full_name']);
       if (!empty($contact['credentials'])) {
         $creds = is_array($contact['credentials']) ? implode(', ', $contact['credentials']) : $contact['credentials'];
-        $html .= ' <span style="color: #666; font-size: 0.8em;">(' . htmlspecialchars($creds) . ')</span>';
+        $html .= ' <span class="jh-profile__contact-creds">(' . htmlspecialchars($creds) . ')</span>';
       }
       $html .= '</h3>';
     }
     
     if (!empty($contact['headline'])) {
-      $html .= '<div style="color: #0073e6; font-weight: bold; margin-bottom: 10px;">' . htmlspecialchars($contact['headline']) . '</div>';
+      $html .= '<div class="jh-profile__contact-headline">' . htmlspecialchars($contact['headline']) . '</div>';
     }
 
     // Contact details grid
-    $html .= '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;">';
+    $html .= '<div class="jh-profile__contact-grid">';
     
     if (!empty($contact['email'])) {
       $html .= '<div>📧 <a href="mailto:' . htmlspecialchars($contact['email']) . '">' . htmlspecialchars($contact['email']) . '</a></div>';
@@ -7027,8 +6890,8 @@ PROMPT;
 
     // Websites
     if (!empty($contact['websites'])) {
-      $html .= '<div style="margin-top: 15px;"><strong>Web Presence:</strong></div>';
-      $html .= '<ul style="margin: 5px 0 0 20px; padding: 0;">';
+      $html .= '<div class="jh-profile__contact-section-title"><strong>Web Presence:</strong></div>';
+      $html .= '<ul class="jh-profile__contact-list">';
       foreach ($contact['websites'] as $site) {
         $type = ucfirst($site['type'] ?? 'Website');
         $url = $site['url'] ?? '';
@@ -7041,12 +6904,12 @@ PROMPT;
 
     // LinkedIn metadata
     if (!empty($contact['linkedin']['followers'])) {
-      $html .= '<div style="margin-top: 10px; color: #666;"><strong>LinkedIn Followers:</strong> ' . htmlspecialchars($contact['linkedin']['followers']) . '</div>';
+      $html .= '<div class="jh-profile__contact-meta"><strong>LinkedIn Followers:</strong> ' . htmlspecialchars($contact['linkedin']['followers']) . '</div>';
     }
 
     // LinkedIn groups administered
     if (!empty($contact['linkedin']['groups_administered'])) {
-      $html .= '<div style="margin-top: 5px; color: #666;"><strong>Groups Administered:</strong> ';
+      $html .= '<div class="jh-profile__contact-meta"><strong>Groups Administered:</strong> ';
       $html .= htmlspecialchars(implode(', ', $contact['linkedin']['groups_administered']));
       $html .= '</div>';
     }
@@ -7075,16 +6938,16 @@ PROMPT;
     }
 
     $html = '<div class="strategic-differentiators-display">';
-    $html .= '<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px;">';
+    $html .= '<div class="jh-profile__diff-grid">';
     
     foreach ($consolidated['strategic_differentiators'] as $diff) {
       $title = htmlspecialchars($diff['title'] ?? '');
       $description = htmlspecialchars($diff['description'] ?? '');
       
       if ($title) {
-        $html .= '<div style="padding: 15px; background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border-left: 4px solid #6c5ce7; border-radius: 4px;">';
-        $html .= '<h4 style="margin: 0 0 8px 0; color: #6c5ce7;">🎯 ' . $title . '</h4>';
-        $html .= '<p style="margin: 0; color: #555; font-size: 0.95em;">' . $description . '</p>';
+        $html .= '<div class="jh-profile__diff-card">';
+        $html .= '<h4 class="jh-profile__diff-title">🎯 ' . $title . '</h4>';
+        $html .= '<p class="jh-profile__diff-description">' . $description . '</p>';
         $html .= '</div>';
       }
     }
@@ -7117,14 +6980,14 @@ PROMPT;
     foreach ($consolidated['technical_expertise']['categories'] as $category) {
       $name = htmlspecialchars($category['name'] ?? 'Skills');
       
-      $html .= '<div style="margin-bottom: 15px; padding: 12px; background: #f8f9fa; border-radius: 4px;">';
-      $html .= '<h4 style="margin: 0 0 10px 0; color: #2d3436; border-bottom: 2px solid #00b894; padding-bottom: 5px;">🛠️ ' . $name . '</h4>';
+      $html .= '<div class="jh-profile__tech-category">';
+      $html .= '<h4 class="jh-profile__tech-category-title">🛠️ ' . $name . '</h4>';
       
       // Regular skills
       if (!empty($category['skills'])) {
-        $html .= '<div style="display: flex; flex-wrap: wrap; gap: 8px;">';
+        $html .= '<div class="jh-profile__tech-skills">';
         foreach ($category['skills'] as $skill) {
-          $html .= '<span style="background: #00b894; color: white; padding: 4px 12px; border-radius: 15px; font-size: 0.85em;">' . htmlspecialchars($skill) . '</span>';
+          $html .= '<span class="jh-profile__tech-skill-chip">' . htmlspecialchars($skill) . '</span>';
         }
         $html .= '</div>';
       }
@@ -7133,10 +6996,10 @@ PROMPT;
       if (!empty($category['subcategories'])) {
         foreach ($category['subcategories'] as $subcat) {
           $industry = htmlspecialchars($subcat['industry'] ?? 'Specialized');
-          $html .= '<div style="margin-top: 10px; padding-left: 15px; border-left: 3px solid #74b9ff;">';
-          $html .= '<strong style="color: #0984e3;">' . $industry . ':</strong> ';
+          $html .= '<div class="jh-profile__tech-subcategory">';
+          $html .= '<strong class="jh-profile__tech-subcategory-title">' . $industry . ':</strong> ';
           if (!empty($subcat['skills'])) {
-            $html .= '<span style="color: #555;">' . htmlspecialchars(implode(', ', $subcat['skills'])) . '</span>';
+            $html .= '<span class="jh-profile__tech-subcategory-skills">' . htmlspecialchars(implode(', ', $subcat['skills'])) . '</span>';
           }
           $html .= '</div>';
         }
@@ -7144,10 +7007,10 @@ PROMPT;
       
       // Frameworks (regulatory)
       if (!empty($category['frameworks'])) {
-        $html .= '<div style="margin-top: 10px;">';
+        $html .= '<div class="jh-profile__tech-frameworks">';
         $html .= '<strong>Frameworks:</strong> ';
         foreach ($category['frameworks'] as $framework) {
-          $html .= '<span style="background: #fdcb6e; color: #2d3436; padding: 2px 8px; border-radius: 3px; margin-right: 5px; font-size: 0.85em;">' . htmlspecialchars($framework) . '</span>';
+          $html .= '<span class="jh-profile__tech-framework-chip">' . htmlspecialchars($framework) . '</span>';
         }
         $html .= '</div>';
       }
@@ -7180,21 +7043,21 @@ PROMPT;
     // Leadership philosophy
     if (!empty($consolidated['leadership_philosophy'])) {
       $lp = $consolidated['leadership_philosophy'];
-      $html .= '<div style="padding: 15px; background: #fff3cd; border-left: 4px solid #ffc107; border-radius: 4px; margin-bottom: 15px;">';
-      $html .= '<h4 style="margin: 0 0 10px 0; color: #856404;">🧭 Leadership Philosophy</h4>';
+      $html .= '<div class="jh-profile__leadership-card">';
+      $html .= '<h4 class="jh-profile__leadership-title">🧭 Leadership Philosophy</h4>';
       
       if (is_array($lp)) {
         foreach ($lp as $item) {
           if (is_string($item)) {
-            $html .= '<p style="margin: 0 0 10px 0; color: #555;">' . htmlspecialchars($item) . '</p>';
+            $html .= '<p class="jh-profile__leadership-text">' . htmlspecialchars($item) . '</p>';
           } elseif (is_array($item)) {
             // Influences or key themes
-            $html .= '<div style="margin-top: 10px;"><strong>Key Elements:</strong> ';
-            $html .= '<span style="color: #666;">' . htmlspecialchars(implode(', ', $item)) . '</span></div>';
+            $html .= '<div class="jh-profile__leadership-elements"><strong>Key Elements:</strong> ';
+            $html .= '<span class="jh-profile__leadership-elements-list">' . htmlspecialchars(implode(', ', $item)) . '</span></div>';
           }
         }
       } else {
-        $html .= '<p style="margin: 0; color: #555;">' . htmlspecialchars($lp) . '</p>';
+        $html .= '<p class="jh-profile__leadership-text">' . htmlspecialchars($lp) . '</p>';
       }
       $html .= '</div>';
     }
@@ -7202,17 +7065,17 @@ PROMPT;
     // Organizational philosophy
     if (!empty($consolidated['organizational_philosophy'])) {
       $op = $consolidated['organizational_philosophy'];
-      $html .= '<div style="padding: 15px; background: #d4edda; border-left: 4px solid #28a745; border-radius: 4px;">';
-      $html .= '<h4 style="margin: 0 0 10px 0; color: #155724;">🏢 Organizational Philosophy</h4>';
+      $html .= '<div class="jh-profile__org-philosophy-card">';
+      $html .= '<h4 class="jh-profile__org-philosophy-title">🏢 Organizational Philosophy</h4>';
       
       if (is_array($op)) {
         foreach ($op as $item) {
           if (is_string($item)) {
-            $html .= '<p style="margin: 0 0 10px 0; color: #555;">' . htmlspecialchars($item) . '</p>';
+            $html .= '<p class="jh-profile__leadership-text">' . htmlspecialchars($item) . '</p>';
           }
         }
       } else {
-        $html .= '<p style="margin: 0; color: #555;">' . htmlspecialchars($op) . '</p>';
+        $html .= '<p class="jh-profile__leadership-text">' . htmlspecialchars($op) . '</p>';
       }
       $html .= '</div>';
     }
@@ -7247,21 +7110,21 @@ PROMPT;
       $description = htmlspecialchars($project['description'] ?? '');
       $technologies = $project['technologies'] ?? [];
 
-      $html .= '<div style="margin-bottom: 15px; padding: 15px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 8px; color: white;">';
-      $html .= '<h4 style="margin: 0 0 8px 0;">🚀 ' . $name . '</h4>';
+      $html .= '<div class="jh-profile__demo-card">';
+      $html .= '<h4 class="jh-profile__demo-title">🚀 ' . $name . '</h4>';
       
       if ($url) {
-        $html .= '<div style="margin-bottom: 8px;"><a href="' . htmlspecialchars($url) . '" target="_blank" style="color: #fff; text-decoration: underline;">' . htmlspecialchars($url) . '</a></div>';
+        $html .= '<div class="jh-profile__demo-url"><a class="jh-profile__demo-link" href="' . htmlspecialchars($url) . '" target="_blank">' . htmlspecialchars($url) . '</a></div>';
       }
       
       if ($description) {
-        $html .= '<p style="margin: 0 0 10px 0; opacity: 0.9;">' . $description . '</p>';
+        $html .= '<p class="jh-profile__demo-description">' . $description . '</p>';
       }
       
       if (!empty($technologies)) {
-        $html .= '<div style="display: flex; flex-wrap: wrap; gap: 5px;">';
+        $html .= '<div class="jh-profile__demo-tech-list">';
         foreach ($technologies as $tech) {
-          $html .= '<span style="background: rgba(255,255,255,0.2); padding: 3px 10px; border-radius: 12px; font-size: 0.85em;">' . htmlspecialchars($tech) . '</span>';
+          $html .= '<span class="jh-profile__demo-tech-chip">' . htmlspecialchars($tech) . '</span>';
         }
         $html .= '</div>';
       }
@@ -7320,40 +7183,40 @@ PROMPT;
       $description = htmlspecialchars($practice['description'] ?? '');
       $engagements = $practice['notable_engagements'] ?? [];
 
-      $html .= '<div style="padding: 15px; background: #f8f9fa; border-left: 4px solid #e17055; border-radius: 4px; margin-bottom: 15px;">';
+      $html .= '<div class="jh-profile__consult-card">';
       
       if ($title) {
-        $html .= '<h4 style="margin: 0 0 5px 0; color: #333;">' . $title . '</h4>';
+        $html .= '<h4 class="jh-profile__consult-title">' . $title . '</h4>';
       }
       if ($company) {
-        $html .= '<div style="font-weight: bold; color: #e17055;">' . $company . '</div>';
+        $html .= '<div class="jh-profile__consult-company">' . $company . '</div>';
       }
       
       $meta = [];
       if ($location) $meta[] = $location;
       if ($start) $meta[] = $start . ' – ' . $end;
       if (!empty($meta)) {
-        $html .= '<div style="color: #666; font-size: 0.9em;">' . implode(' | ', $meta) . '</div>';
+        $html .= '<div class="jh-profile__consult-meta">' . implode(' | ', $meta) . '</div>';
       }
       
       if ($website) {
-        $html .= '<div style="margin-top: 5px;"><a href="' . htmlspecialchars($website) . '" target="_blank">' . htmlspecialchars($website) . '</a></div>';
+        $html .= '<div class="jh-profile__consult-website"><a href="' . htmlspecialchars($website) . '" target="_blank">' . htmlspecialchars($website) . '</a></div>';
       }
       
       if ($description) {
-        $html .= '<p style="margin: 10px 0; color: #555;">' . $description . '</p>';
+        $html .= '<p class="jh-profile__consult-description">' . $description . '</p>';
       }
       
       if (!empty($engagements)) {
-        $html .= '<div style="margin-top: 10px;"><strong>Notable Engagements:</strong></div>';
-        $html .= '<ul style="margin: 5px 0 0 20px; padding: 0;">';
+        $html .= '<div class="jh-profile__consult-engagement-title"><strong>Notable Engagements:</strong></div>';
+        $html .= '<ul class="jh-profile__consult-engagement-list">';
         foreach ($engagements as $eng) {
           $client = htmlspecialchars($eng['client'] ?? '');
           $role = htmlspecialchars($eng['role'] ?? '');
           $desc = htmlspecialchars($eng['description'] ?? '');
           $html .= '<li><strong>' . $client . '</strong>';
           if ($role) $html .= ' - ' . $role;
-          if ($desc) $html .= '<br><span style="color: #666; font-size: 0.9em;">' . $desc . '</span>';
+          if ($desc) $html .= '<br><span class="jh-profile__consult-engagement-desc">' . $desc . '</span>';
           $html .= '</li>';
         }
         $html .= '</ul>';
@@ -7387,8 +7250,8 @@ PROMPT;
 
     $ec = $consolidated['early_career'];
     
-    $html = '<div class="early-career-display" style="padding: 15px; background: #e9ecef; border-radius: 4px;">';
-    $html .= '<h4 style="margin: 0 0 10px 0; color: #495057;">📜 Early Career</h4>';
+    $html = '<div class="early-career-display jh-profile__early-career">';
+    $html .= '<h4 class="jh-profile__early-title">📜 Early Career</h4>';
     
     // Handle different formats
     if (is_array($ec)) {
@@ -7396,21 +7259,21 @@ PROMPT;
       if (isset($ec['period']) || isset($ec['summary']) || isset($ec['positions'])) {
         // Structured format
         if (!empty($ec['period'])) {
-          $html .= '<div style="font-weight: bold; color: #6c757d; margin-bottom: 10px;">Period: ' . htmlspecialchars($ec['period']) . '</div>';
+          $html .= '<div class="jh-profile__early-period">Period: ' . htmlspecialchars($ec['period']) . '</div>';
         }
         if (!empty($ec['summary'])) {
-          $html .= '<p style="margin: 0 0 15px 0; color: #555;">' . htmlspecialchars($ec['summary']) . '</p>';
+          $html .= '<p class="jh-profile__early-summary">' . htmlspecialchars($ec['summary']) . '</p>';
         }
         if (!empty($ec['positions'])) {
-          $html .= '<div><strong>Positions:</strong></div>';
-          $html .= '<ul style="margin: 5px 0 0 20px; padding: 0;">';
+          $html .= '<div class="jh-profile__early-positions-title"><strong>Positions:</strong></div>';
+          $html .= '<ul class="jh-profile__early-list">';
           foreach ($ec['positions'] as $pos) {
             $company = htmlspecialchars($pos['company'] ?? '');
             $duration = htmlspecialchars($pos['duration'] ?? '');
             $focus = htmlspecialchars($pos['focus'] ?? '');
             $html .= '<li><strong>' . $company . '</strong>';
             if ($duration) $html .= ' (' . $duration . ')';
-            if ($focus) $html .= '<br><span style="color: #666; font-size: 0.9em;">' . $focus . '</span>';
+            if ($focus) $html .= '<br><span class="jh-profile__early-focus">' . $focus . '</span>';
             $html .= '</li>';
           }
           $html .= '</ul>';
@@ -7419,12 +7282,12 @@ PROMPT;
         // Simple array format (e.g., ["2000-2011"])
         foreach ($ec as $item) {
           if (is_string($item)) {
-            $html .= '<div style="color: #555;">' . htmlspecialchars($item) . '</div>';
+            $html .= '<div class="jh-profile__early-item">' . htmlspecialchars($item) . '</div>';
           }
         }
       }
     } else {
-      $html .= '<div style="color: #555;">' . htmlspecialchars($ec) . '</div>';
+      $html .= '<div class="jh-profile__early-item">' . htmlspecialchars($ec) . '</div>';
     }
 
     $html .= '</div>';

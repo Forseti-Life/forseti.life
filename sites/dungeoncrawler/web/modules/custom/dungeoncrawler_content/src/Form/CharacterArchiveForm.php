@@ -78,7 +78,11 @@ class CharacterArchiveForm extends ConfirmFormBase {
     if ($destination) {
       return Url::fromUserInput($destination);
     }
-    return Url::fromRoute('dungeoncrawler_content.characters');
+    $campaign_id = (int) ($this->character->campaign_id ?? 0);
+    if ($campaign_id > 0) {
+      return Url::fromRoute('dungeoncrawler_content.characters', ['campaign_id' => $campaign_id]);
+    }
+    return Url::fromRoute('dungeoncrawler_content.campaigns');
   }
 
   /**
@@ -88,7 +92,6 @@ class CharacterArchiveForm extends ConfirmFormBase {
     $this->character = $this->database->select('dc_campaign_characters', 'c')
       ->fields('c', ['id', 'name', 'uid', 'status', 'character_data'])
       ->condition('id', (int) $character_id)
-      ->condition('campaign_id', 0)
       ->execute()
       ->fetchObject() ?: NULL;
 
