@@ -291,6 +291,16 @@ function job_hunter_theme() {
       ],
       'template' => 'credentials-management',
     ],
+    'user_profile_dashboard' => [
+      'variables' => [
+        'user' => NULL,
+      ],
+      'template' => 'user-profile-dashboard',
+    ],
+    'google_jobs_search' => [
+      'variables' => [],
+      'template' => 'google-jobs-search',
+    ],
   ];
 }
 

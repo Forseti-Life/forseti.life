@@ -87,11 +87,11 @@
     {# Action Buttons - Match the user profile layout #}
     <div class="row mt-5">
       <div class="col-12 text-center">
-        <a href="{{ path('job_application_automation.user_profile_edit', {'user': user.id()}) }}" class="btn btn-primary btn-lg">
+        <a href="{{ path('job_hunter.user_profile_edit', {'user': user.id()}) }}" class="btn btn-primary btn-lg">
           <i class="fas fa-edit"></i>
           Edit Profile
         </a>
-        <a href="{{ path('job_application_automation.dashboard') }}" class="btn btn-outline-primary btn-lg">
+        <a href="{{ path('job_hunter.dashboard') }}" class="btn btn-outline-primary btn-lg">
           <i class="fas fa-briefcase"></i>
           View Job Applications
         </a>

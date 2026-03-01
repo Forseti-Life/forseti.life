@@ -1332,14 +1332,7 @@ class CompanyController extends ControllerBase {
       ],
     ];
     
-    // Wrap with navigation
-    $build = [
-      '#theme' => 'job_application_dashboard_wrapper',
-      '#navigation' => $navigation_block,
-      '#content' => $content,
-    ];
-    
-    return $build;
+    return $this->wrapWithNavigation($content);
   }
 
   /**
