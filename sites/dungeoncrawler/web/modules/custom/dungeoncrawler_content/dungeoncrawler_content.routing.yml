@@ -1079,3 +1079,25 @@ dungeoncrawler_content.api.quest_get_rewards:
     quest_id: '[a-z0-9_-]+'
   options:
     _format: json
+
+# Ancestry API endpoints (dc-cr-ancestry-system)
+dungeoncrawler_content.api.ancestries_list:
+  path: '/ancestries'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\AncestryController::list'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.ancestry_detail:
+  path: '/ancestries/{id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\AncestryController::detail'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    id: '[a-z0-9\-]+'
+  options:
+    _format: json

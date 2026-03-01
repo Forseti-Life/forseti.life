@@ -3094,3 +3094,86 @@ function dungeoncrawler_content_update_10015() {
   }
   return t('reaction_available field already exists on combat_participants; skipped.');
 }
+
+/**
+ * Seed ancestry content type and 6 core PF2E ancestry nodes (dc-cr-ancestry-system).
+ *
+ * Creates the 'ancestry' node type if it does not exist, then seeds one node
+ * for each of the 6 core PF2E ancestries from CharacterManager::ANCESTRIES.
+ * Data is NOT duplicated — this reads directly from the PHP constants.
+ */
+function dungeoncrawler_content_update_10016() {
+  // Create ancestry content type if it doesn't exist.
+  $type = \Drupal\node\Entity\NodeType::load('ancestry');
+  if (!$type) {
+    $type = \Drupal\node\Entity\NodeType::create([
+      'type' => 'ancestry',
+      'name' => 'Ancestry',
+      'description' => 'PF2E ancestry definitions (dwarf, elf, gnome, goblin, halfling, human, etc.).',
+      'settings' => [
+        'node' => [
+          'options' => ['status' => TRUE, 'promote' => FALSE, 'sticky' => FALSE, 'revision' => FALSE],
+          'preview' => DRUPAL_DISABLED,
+          'submitted' => FALSE,
+        ],
+      ],
+    ]);
+    $type->save();
+    \Drupal::logger('dungeoncrawler_content')->notice('Created ancestry content type.');
+  }
+
+  // Seed 6 core ancestries (skip extended ancestries for first slice).
+  $core_ancestries = ['Human', 'Elf', 'Dwarf', 'Gnome', 'Goblin', 'Halfling'];
+  $all_ancestries = \Drupal\dungeoncrawler_content\Service\CharacterManager::ANCESTRIES;
+  $created = [];
+  $skipped = [];
+
+  foreach ($core_ancestries as $ancestry_name) {
+    if (!isset($all_ancestries[$ancestry_name])) {
+      continue;
+    }
+    // Check if a node with this title already exists.
+    $existing = \Drupal::entityQuery('node')
+      ->condition('type', 'ancestry')
+      ->condition('title', $ancestry_name)
+      ->accessCheck(FALSE)
+      ->execute();
+
+    if (!empty($existing)) {
+      $skipped[] = $ancestry_name;
+      continue;
+    }
+
+    $data = $all_ancestries[$ancestry_name];
+    $node = \Drupal\node\Entity\Node::create([
+      'type'   => 'ancestry',
+      'title'  => $ancestry_name,
+      'status' => 1,
+      'uid'    => 1,
+      'body'   => [
+        'value'  => json_encode([
+          'hp'        => $data['hp'],
+          'size'      => $data['size'],
+          'speed'     => $data['speed'],
+          'boosts'    => $data['boosts'],
+          'flaw'      => $data['flaw'] ?? null,
+          'languages' => $data['languages'],
+          'senses'    => $data['vision'],
+          'traits'    => $data['traits'],
+        ], JSON_PRETTY_PRINT),
+        'format' => 'plain_text',
+      ],
+    ]);
+    $node->save();
+    $created[] = $ancestry_name;
+  }
+
+  $msg = 'ancestry content type seeded.';
+  if ($created) {
+    $msg .= ' Created: ' . implode(', ', $created) . '.';
+  }
+  if ($skipped) {
+    $msg .= ' Skipped (already exist): ' . implode(', ', $skipped) . '.';
+  }
+  return t($msg);
+}
