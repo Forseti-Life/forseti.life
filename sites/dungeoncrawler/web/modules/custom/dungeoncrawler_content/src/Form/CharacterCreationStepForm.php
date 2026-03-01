@@ -481,10 +481,10 @@ class CharacterCreationStepForm extends FormBase {
         $form['heritage'] = [
           '#type' => 'select',
           '#title' => $this->t('Heritage Path'),
-          '#required' => FALSE,
+          '#required' => TRUE,
           '#options' => $this->getHeritageOptions($form_state->getValue('ancestry') ?: $character_data['ancestry'] ?? ''),
           '#default_value' => $character_data['heritage'] ?? '',
-          '#description' => $this->t('Optional: Select a heritage to specialize your ancestry with unique talents and abilities that define your legacy.'),
+          '#description' => $this->t('Select a heritage to specialize your ancestry with unique talents and abilities that define your legacy.'),
           '#prefix' => '<div id="heritage-wrapper">',
           '#suffix' => '</div>',
         ];
@@ -1181,6 +1181,25 @@ class CharacterCreationStepForm extends FormBase {
    */
   public function validateForm(array &$form, FormStateInterface $form_state) {
     $step = (int) ($form_state->get('step') ?? 1);
+
+    // Validate heritage selection (Step 1): required + ancestry match.
+    if ($step === 1) {
+      $ancestry = (string) ($form_state->getValue('ancestry') ?? '');
+      $heritage = (string) ($form_state->getValue('heritage') ?? '');
+
+      if ($heritage === '' || $heritage === '- Select -') {
+        $form_state->setErrorByName('heritage', $this->t('Please select a heritage for your character.'));
+      }
+      elseif ($ancestry !== '') {
+        // Server-side: heritage must belong to the selected ancestry.
+        $ancestry_name = str_replace('-', ' ', ucwords($ancestry, '-'));
+        $valid_heritages = CharacterManager::HERITAGES[$ancestry_name] ?? [];
+        $valid_ids = array_column($valid_heritages, 'id');
+        if (!in_array($heritage, $valid_ids, TRUE)) {
+          $form_state->setErrorByName('heritage', $this->t('Invalid heritage for selected ancestry.'));
+        }
+      }
+    }
 
     // Validate background boosts (Step 3)
     if ($step === 3) {
@@ -1919,6 +1938,11 @@ class CharacterCreationStepForm extends FormBase {
    *   The heritage form element to replace.
    */
   public function updateHeritageOptions(array &$form, FormStateInterface $form_state) {
+    // Rebuild heritage options for the new ancestry and reset any prior selection.
+    $ancestry = (string) ($form_state->getValue('ancestry') ?? '');
+    $form['heritage']['#options'] = $this->getHeritageOptions($ancestry);
+    $form['heritage']['#default_value'] = '';
+    $form['heritage']['#value'] = '';
     return $form['heritage'];
   }
 
