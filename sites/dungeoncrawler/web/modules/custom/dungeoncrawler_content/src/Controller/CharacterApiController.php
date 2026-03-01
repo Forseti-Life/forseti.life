@@ -45,7 +45,7 @@ class CharacterApiController extends ControllerBase {
    *   "class": "fighter",
    *   "abilities": {...},
    *   "alignment": "LG",
-   *   "equipment": [...],
+   *   "inventory": {...},
    *   ...
    * }
    * 
@@ -101,7 +101,7 @@ class CharacterApiController extends ControllerBase {
         'appearance' => $data['appearance'] ?? '',
         'personality' => $data['personality'] ?? '',
         'backstory' => $data['backstory'] ?? '',
-        'equipment' => $data['equipment'] ?? [],
+        'inventory' => $data['inventory'] ?? [],
         'gold' => $data['gold'] ?? 15,
         'wizard_complete' => $data['wizard_complete'] ?? FALSE,
       ];

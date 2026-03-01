@@ -458,20 +458,6 @@ class CharacterCreationStepController extends ControllerBase {
         }
       }
 
-      // Also accept a flat equipment array (JSON string of IDs from hidden field).
-      if (empty($selected_ids) && !empty($form_data['equipment'])) {
-        $equipment_value = $form_data['equipment'];
-        if (is_string($equipment_value)) {
-          $decoded = json_decode($equipment_value, TRUE);
-          if (is_array($decoded)) {
-            $selected_ids = $decoded;
-          }
-        }
-        elseif (is_array($equipment_value)) {
-          $selected_ids = $equipment_value;
-        }
-      }
-
       $selected_items = [];
       $total_cost = 0.0;
       foreach ($selected_ids as $item_id) {
@@ -481,7 +467,6 @@ class CharacterCreationStepController extends ControllerBase {
         }
       }
 
-      $character_data['equipment'] = $selected_items;
       $remaining_gp = max(0, round(15 - $total_cost, 2));
       $character_data['gold'] = $remaining_gp;
 
@@ -685,7 +670,7 @@ class CharacterCreationStepController extends ControllerBase {
       'deity' => '',
       'age' => '',
       'gender' => '',
-      'equipment' => [],
+      'inventory' => [],
       'gold' => 15,
       'appearance' => '',
       'personality' => '',

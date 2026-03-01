@@ -1108,9 +1108,9 @@ class CharacterCreationStepForm extends FormBase {
     }
 
     $selected_ids = [];
-    foreach (($character_data['equipment'] ?? []) as $selected_item) {
-      if (!empty($selected_item['id'])) {
-        $selected_ids[] = $selected_item['id'];
+    foreach (($character_data['inventory']['carried'] ?? []) as $carried_item) {
+      if (!empty($carried_item['id'])) {
+        $selected_ids[] = $carried_item['id'];
       }
     }
 
@@ -1214,12 +1214,6 @@ class CharacterCreationStepForm extends FormBase {
       '#options' => $gear_options,
       '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['gear']) && in_array($id, array_column($catalog['gear'], 'id'))),
       '#description' => $this->t('Essential adventuring supplies: rope, torches, rations, and tools.'),
-    ];
-
-    // Keep old equipment field for backwards compatibility
-    $form['equipment'] = [
-      '#type' => 'hidden',
-      '#default_value' => json_encode($selected_ids),
     ];
 
     // Pass catalog costs to JS so it doesn't have to regex-parse label text.
@@ -1638,9 +1632,6 @@ class CharacterCreationStepForm extends FormBase {
           $total_cost += (float) $catalog_by_id[$item_id]['cost'];
         }
       }
-
-      // Keep flat equipment list for backward compatibility.
-      $character_data['equipment'] = $selected_items;
 
       $remaining_gp = max(0, round(15 - $total_cost, 2));
       $character_data['gold'] = $remaining_gp;
@@ -2075,7 +2066,7 @@ class CharacterCreationStepForm extends FormBase {
     $schema_data['experience_points'] = (int) ($schema_data['experience_points'] ?? 0);
     $schema_data['gold'] = (float) ($schema_data['gold'] ?? 15);
     $schema_data['hero_points'] = (int) ($schema_data['hero_points'] ?? 1);
-    $schema_data['equipment'] = $schema_data['equipment'] ?? [];
+    $schema_data['inventory'] = $schema_data['inventory'] ?? [];
     $schema_data['skills'] = $schema_data['skills'] ?? [];
     $schema_data['feats'] = $schema_data['feats'] ?? [];
     $schema_data['conditions'] = $schema_data['conditions'] ?? [];

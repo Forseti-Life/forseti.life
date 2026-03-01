@@ -200,20 +200,11 @@ class CharacterViewController extends ControllerBase {
       ? ((int) ($char_data['class']['hp_per_level'] ?? 8))
       : 8;
 
-    $equipment_items = is_array($char_data['equipment'] ?? NULL)
-      ? ($char_data['equipment']['stowed'] ?? $char_data['equipment'])
-      : [];
-    $equipment_gold = is_array($char_data['equipment'] ?? NULL)
-      ? ((float) ($char_data['equipment']['currency']['gold'] ?? 15))
-      : ((float) ($char_data['gold'] ?? 15));
-
-    // Structured inventory (from Step 7) takes priority over legacy equipment.
-    $inventory = $char_data['inventory'] ?? NULL;
-    if (is_array($inventory) && !empty($inventory['carried'])) {
-      $equipment_items = $inventory['carried'];
-      $inv_currency = $inventory['currency'] ?? [];
-      $equipment_gold = (float) ($inv_currency['gp'] ?? $inv_currency['gold'] ?? $equipment_gold);
-    }
+    // Read inventory data (structured format from Step 7).
+    $inventory = $char_data['inventory'] ?? [];
+    $equipment_items = $inventory['carried'] ?? [];
+    $inv_currency = $inventory['currency'] ?? [];
+    $equipment_gold = (float) ($inv_currency['gp'] ?? ($char_data['gold'] ?? 15));
 
     // Load portrait from generated images
     $portraits = $this->imageRepository->loadImagesForObject(

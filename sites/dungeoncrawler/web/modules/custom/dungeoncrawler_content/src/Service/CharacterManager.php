@@ -1653,28 +1653,76 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
    * @return array
    *   Array of spell records: ['id' => ..., 'name' => ..., 'description' => ...].
    */
-  public function getSpellsByTradition(string $tradition, int $level = 0): array {
+  /**
+   * Valid PF2e spell schools used to filter out non-spell data pollution.
+   */
+  const VALID_SPELL_SCHOOLS = [
+    'abjuration', 'conjuration', 'divination', 'enchantment',
+    'evocation', 'illusion', 'necromancy', 'transmutation',
+  ];
+
+  /**
+   * Retrieves spells from the content registry filtered by tradition and level.
+   *
+   * Applies three data-quality guards:
+   * 1. Excludes entries whose school is not a valid PF2e school (filters out
+   *    cleric doctrines, deadly sins, and other class features that were
+   *    incorrectly tagged as spells during import).
+   * 2. Excludes duplicate "_c" suffix entries (primal-only copies of
+   *    multi-tradition spells created during bulk import).
+   * 3. Filters by rarity — only "common" spells by default, since PF2e
+   *    restricts uncommon/rare spells at character creation without GM
+   *    approval.
+   *
+   * @param string $tradition
+   *   The spell tradition to filter by (arcane, divine, occult, primal).
+   * @param int $level
+   *   The spell level (0 = cantrips).
+   * @param string $rarity
+   *   Rarity filter: 'common' (default), 'uncommon', 'rare', or 'all'.
+   *
+   * @return array
+   *   Array of spell data arrays, each with id, name, level, school,
+   *   traditions, description, and rarity.
+   */
+  public function getSpellsByTradition(string $tradition, int $level = 0, string $rarity = 'common'): array {
     $tradition = strtolower($tradition);
-    $rows = $this->database->select('dungeoncrawler_content_registry', 'r')
+    $query = $this->database->select('dungeoncrawler_content_registry', 'r')
       ->fields('r', ['content_id', 'name', 'level', 'tags', 'schema_data'])
       ->condition('content_type', 'spell')
       ->condition('level', $level)
-      ->condition('tags', '%"' . $this->database->escapeLike($tradition) . '"%', 'LIKE')
-      ->orderBy('name')
-      ->execute()
-      ->fetchAll();
+      ->condition('tags', '%"' . $this->database->escapeLike($tradition) . '"%', 'LIKE');
+
+    // Exclude _c suffix duplicates (primal-only copies from bulk import).
+    $query->condition('r.content_id', '%\_c', 'NOT LIKE');
+
+    $query->orderBy('name');
+    $rows = $query->execute()->fetchAll();
 
     $spells = [];
     foreach ($rows as $row) {
       $schema = json_decode($row->schema_data, TRUE) ?: [];
+
+      // Filter out non-spell entries with invalid school values.
+      $school = strtolower($schema['school'] ?? '');
+      if ($school !== '' && !in_array($school, self::VALID_SPELL_SCHOOLS, TRUE)) {
+        continue;
+      }
+
+      // Rarity gate: skip spells that don't match the requested rarity.
+      $spell_rarity = strtolower($schema['rarity'] ?? 'common');
+      if ($rarity !== 'all' && $spell_rarity !== $rarity) {
+        continue;
+      }
+
       $spells[] = [
         'id' => $row->content_id,
         'name' => $row->name,
         'level' => (int) $row->level,
-        'school' => $schema['school'] ?? '',
+        'school' => $school ?: 'unknown',
         'traditions' => $schema['traditions'] ?? [],
         'description' => $schema['description_snippet'] ?? $row->name,
-        'rarity' => $schema['rarity'] ?? 'common',
+        'rarity' => $spell_rarity,
       ];
     }
     return $spells;

@@ -211,8 +211,10 @@ class HexMapController extends ControllerBase {
     }
 
     // Extract inventory
-    $equipment = $character_data['equipment'] ?? [];
-    $gold = $character_data['gold'] ?? 0;
+    $inventory = $character_data['inventory'] ?? [];
+    $carried = $inventory['carried'] ?? [];
+    $inv_currency = $inventory['currency'] ?? [];
+    $gold = (float) ($inv_currency['gp'] ?? ($character_data['gold'] ?? 0));
 
     // Extract hero points
     $hero_points = $character_data['hero_points'] ?? 1;
@@ -234,12 +236,8 @@ class HexMapController extends ControllerBase {
       'abilities' => $abilities,
       'skills' => $skills,
       'feats' => $feats,
-      'equipment' => $equipment,
-      'currency' => [
-        'gp' => $gold,
-        'sp' => 0,
-        'cp' => 0,
-      ],
+      'inventory' => $carried,
+      'currency' => $inv_currency ?: ['gp' => $gold, 'sp' => 0, 'cp' => 0],
       'hero_points' => $hero_points,
       'conditions' => $conditions,
     ];

@@ -482,7 +482,7 @@
           <tr><td>Speed</td><td>{{ char_data.speed ?? 25 }} ft</td></tr>
           <tr><td>Languages</td><td>{{ char_data.languages ? char_data.languages|join(', ') : 'Not set' }}</td></tr>
           <tr><td>Skills</td><td>{{ char_data.skills ? char_data.skills|length ~ ' skills recorded' : 'Not set' }}</td></tr>
-          <tr><td>Equipment</td><td>{{ char_data.equipment ? char_data.equipment|length ~ ' items' : 'Not set' }}</td></tr>
+          <tr><td>Inventory</td><td>{{ char_data.inventory.carried ? char_data.inventory.carried|length ~ ' items' : 'Not set' }}</td></tr>
           <tr><td>Gold</td><td>{{ char_data.gold ?? 15 }} gp</td></tr>
           <tr><td>Appearance</td><td>{{ char_data.appearance ? 'Set (' ~ char_data.appearance|length ~ ' chars)' : 'Not set' }}</td></tr>
           <tr><td>Personality</td><td>{{ char_data.personality ? 'Set (' ~ char_data.personality|length ~ ' chars)' : 'Not set' }}</td></tr>
