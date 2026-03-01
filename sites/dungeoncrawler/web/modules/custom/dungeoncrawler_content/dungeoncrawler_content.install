@@ -3331,3 +3331,20 @@ function dungeoncrawler_content_update_10018() {
   }
   return t($msg);
 }
+
+/**
+ * Add version column to dc_campaign_characters for concurrent-edit protection.
+ */
+function dungeoncrawler_content_update_10019() {
+  $schema = \Drupal::database()->schema();
+  if (!$schema->fieldExists('dc_campaign_characters', 'version')) {
+    $schema->addField('dc_campaign_characters', 'version', [
+      'type' => 'int',
+      'unsigned' => TRUE,
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Optimistic lock version counter; increments on each save to detect concurrent edits.',
+    ]);
+  }
+  return t('Added version column to dc_campaign_characters for concurrent-edit protection.');
+}

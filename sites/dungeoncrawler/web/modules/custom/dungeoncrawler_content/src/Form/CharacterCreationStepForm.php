@@ -121,7 +121,14 @@ class CharacterCreationStepForm extends FormBase {
    */
   public function buildForm(array $form, FormStateInterface $form_state, $step = 1, $character_id = NULL, $campaign_id = NULL) {
     $character_data = $this->loadCharacterData($character_id);
-    
+
+    // Load character record for concurrent-edit version tracking.
+    $character_record = $character_id ? $this->characterManager->loadCharacter((int) $character_id) : NULL;
+    $form['character_version'] = [
+      '#type' => 'hidden',
+      '#value' => $character_record ? (int) $character_record->version : 0,
+    ];
+
     // Store metadata
     $form_state->set('step', $step);
     $form_state->set('character_id', $character_id);
@@ -1268,9 +1275,25 @@ class CharacterCreationStepForm extends FormBase {
     $campaign_id = $form_state->get('campaign_id');
     $character_data = $this->loadCharacterData($character_id);
 
+    // Concurrent-edit protection: reject if another session saved since form load.
+    $submitted_version = (int) $form_state->getValue('character_version', 0);
+    if ($character_id) {
+      $current_record = $this->characterManager->loadCharacter((int) $character_id);
+      if ($current_record && (int) $current_record->version !== $submitted_version) {
+        $this->messenger()->addError($this->t('This character is being edited in another browser session. Please reload and try again.'));
+        $query = ['character_id' => $character_id];
+        if ($campaign_id) {
+          $query['campaign_id'] = $campaign_id;
+        }
+        $form_state->setRedirect('dungeoncrawler_content.character_step', ['step' => $step], ['query' => $query]);
+        return;
+      }
+    }
+    $next_version = $submitted_version + 1;
+
     // Update character data with form values
     foreach ($form_state->getValues() as $key => $value) {
-      if (!in_array($key, ['form_build_id', 'form_token', 'form_id', 'op'])) {
+      if (!in_array($key, ['form_build_id', 'form_token', 'form_id', 'op', 'character_version'])) {
         // Handle JSON-encoded hidden fields
         if (in_array($key, ['background_boosts', 'free_boosts'], TRUE) && is_string($value)) {
           $decoded = json_decode($value, TRUE);
@@ -1334,7 +1357,7 @@ class CharacterCreationStepForm extends FormBase {
     $character_data['step'] = $next_step;
 
     // Save to database
-    $character_id = $this->saveCharacter($character_id, $character_data);
+    $character_id = $this->saveCharacter($character_id, $character_data, $next_version);
 
     // Redirect to next step or character view
     if ($step >= 8) {
@@ -1665,7 +1688,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return int
    *   The character ID.
    */
-  private function saveCharacter($character_id, $character_data) {
+  private function saveCharacter($character_id, $character_data, int $next_version = 0) {
     $now = $this->time->getRequestTime();
 
     // Restructure data to match schema
@@ -1720,7 +1743,17 @@ class CharacterCreationStepForm extends FormBase {
       'temp' => $schema_data['hit_points']['temp'] ?? 0,
     ];
 
-    $armor_class = 10 + floor(((int) $schema_data['abilities']['dex'] - 10) / 2);
+    $dex_mod = (int) floor(((int) $schema_data['abilities']['dex'] - 10) / 2);
+    $wis_mod = (int) floor(((int) $schema_data['abilities']['wis'] - 10) / 2);
+    $armor_class = 10 + $dex_mod;
+
+    // Compute PF2E derived saves and perception (trained at level 1 = level + 2 + ability mod).
+    $schema_data['saves'] = [
+      'fortitude' => (int) ($level + 2 + $con_mod),
+      'reflex'    => (int) ($level + 2 + $dex_mod),
+      'will'      => (int) ($level + 2 + $wis_mod),
+    ];
+    $schema_data['perception'] = (int) ($level + 2 + $wis_mod);
 
     // Ensure required schema fields exist
     $schema_data['level'] = $level;
@@ -1754,6 +1787,7 @@ class CharacterCreationStepForm extends FormBase {
           'last_room_id' => (string) ($schema_data['position']['room_id'] ?? ''),
           'character_data' => json_encode($schema_data, JSON_PRETTY_PRINT),
           'status' => $schema_data['step'] >= 8 ? 1 : 0,
+          'version' => $next_version,
           'changed' => $now,
         ])
         ->condition('id', $character_id)
