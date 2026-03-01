@@ -233,6 +233,25 @@ function copilot_agent_tracker_schema(): array {
 }
 
 /**
+ * Implements hook_uninstall().
+ */
+function copilot_agent_tracker_uninstall(): void {
+  $db = \Drupal::database();
+  $schema = $db->schema();
+  foreach ([
+    'copilot_agent_tracker_agents',
+    'copilot_agent_tracker_events',
+    'copilot_agent_tracker_replies',
+    'copilot_agent_tracker_inbox_resolutions',
+  ] as $table) {
+    if ($schema->tableExists($table)) {
+      $schema->dropTable($table);
+    }
+  }
+  \Drupal::state()->delete('copilot_agent_tracker.telemetry_token');
+}
+
+/**
  * Implements hook_install().
  */
 function copilot_agent_tracker_install(): void {
