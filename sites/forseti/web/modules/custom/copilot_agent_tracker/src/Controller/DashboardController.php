@@ -33,6 +33,8 @@ final class DashboardController extends ControllerBase {
   const LANGGRAPH_TICKS_FILE = '/home/keithaumiller/copilot-sessions-hq/inbox/responses/langgraph-ticks.jsonl';
   const LANGGRAPH_PARITY_FILE = '/home/keithaumiller/copilot-sessions-hq/inbox/responses/langgraph-parity-latest.json';
   const LANGGRAPH_FEATURE_PROGRESS_FILE = '/home/keithaumiller/copilot-sessions-hq/dashboards/LANGGRAPH_FEATURE_PROGRESS.md';
+  const RELEASE_CYCLE_CONTROL_FILE_DEFAULT = '/var/tmp/copilot-sessions-hq/release-cycle-control.json';
+  const RELEASE_CYCLE_CONTROL_FILE_LEGACY = '/home/keithaumiller/copilot-sessions-hq/tmp/release-cycle-control.json';
 
   public function __construct(
     private readonly Connection $database,
@@ -680,6 +682,24 @@ final class DashboardController extends ControllerBase {
     catch (\Throwable) {
       return [];
     }
+  }
+
+  /**
+   * Read release-cycle control state with fallback compatibility.
+   */
+  private function readReleaseCycleControlState(): array {
+    $state_file = (string) (getenv('RELEASE_CYCLE_CONTROL_FILE') ?: self::RELEASE_CYCLE_CONTROL_FILE_DEFAULT);
+    $state = $this->readJsonFile($state_file);
+    if (empty($state)) {
+      $state = $this->readJsonFile(self::RELEASE_CYCLE_CONTROL_FILE_LEGACY);
+    }
+
+    return [
+      'enabled' => isset($state['enabled']) ? (bool) $state['enabled'] : TRUE,
+      'updated_at' => (string) ($state['updated_at'] ?? ''),
+      'updated_by' => (string) ($state['updated_by'] ?? ''),
+      'reason' => (string) ($state['reason'] ?? ''),
+    ];
   }
 
   /**
@@ -3372,6 +3392,82 @@ final class DashboardController extends ControllerBase {
       '#markup' => '<p>This is the LangGraph operational home. Use this page as the starting point for session health, parity, release-cycle status, and troubleshooting.</p>',
     ];
 
+    $latest_tick = $this->readLastJsonlObject(self::LANGGRAPH_TICKS_FILE);
+    $parity_data = $this->readJsonFile(self::LANGGRAPH_PARITY_FILE);
+    $release_control = $this->readReleaseCycleControlState();
+
+    $tick_present = !empty($latest_tick);
+    $tick_ts = (string) ($latest_tick['ts'] ?? 'unknown');
+    $tick_age = 'unknown';
+    if ($tick_present) {
+      $tick_time = strtotime($tick_ts);
+      if ($tick_time !== FALSE) {
+        $tick_age = max(0, time() - $tick_time) . 's';
+      }
+    }
+
+    $dry_run = !empty($latest_tick['dry_run']);
+    $publish_enabled = !empty($latest_tick['publish_enabled']);
+    $parity_ok = isset($parity_data['parity_ok']) ? (bool) $parity_data['parity_ok'] : NULL;
+    $release_enabled = (bool) ($release_control['enabled'] ?? TRUE);
+
+    $ok_overall = $tick_present
+      && $parity_ok === TRUE
+      && $publish_enabled
+      && $release_enabled;
+
+    $build['health_banner'] = [
+      '#markup' => $ok_overall
+        ? '<div class="messages messages--status"><strong>' . $this->t('LangGraph Health: OK') . '</strong> — ' . $this->t('Ticks, parity, publishing, and release-cycle automation are all healthy.') . '</div>'
+        : '<div class="messages messages--warning"><strong>' . $this->t('LangGraph Health: ATTENTION') . '</strong> — ' . $this->t('One or more critical signals are degraded. Use the quick actions below to investigate.') . '</div>',
+    ];
+
+    $build['status_snapshot'] = [
+      '#type' => 'table',
+      '#header' => [$this->t('Signal'), $this->t('Current state'), $this->t('Details')],
+      '#rows' => [
+        [
+          $this->t('Latest tick'),
+          $tick_present ? $this->t('OK') : $this->t('MISSING'),
+          $tick_present ? ('ts=' . $tick_ts . '; age=' . $tick_age) : $this->t('No tick record found in LangGraph telemetry.'),
+        ],
+        [
+          $this->t('Engine mode'),
+          $dry_run ? $this->t('DRY RUN') : $this->t('LIVE'),
+          $dry_run ? $this->t('dry_run=true in latest tick') : $this->t('dry_run=false in latest tick'),
+        ],
+        [
+          $this->t('Parity'),
+          $parity_ok === NULL ? $this->t('UNKNOWN') : ($parity_ok ? $this->t('PASS') : $this->t('FAIL')),
+          $parity_ok === NULL ? $this->t('No readable parity report yet.') : $this->t('From langgraph-parity-latest.json'),
+        ],
+        [
+          $this->t('Publishing'),
+          $publish_enabled ? $this->t('ENABLED') : $this->t('DISABLED'),
+          $publish_enabled ? $this->t('publish_enabled=true in latest tick') : $this->t('publish_enabled=false in latest tick'),
+        ],
+        [
+          $this->t('Release-cycle automation'),
+          $release_enabled ? $this->t('ENABLED') : $this->t('DISABLED'),
+          $this->t('updated_at=@t by @u', [
+            '@t' => (string) ($release_control['updated_at'] ?? 'unknown'),
+            '@u' => (string) ($release_control['updated_by'] ?? 'unknown'),
+          ]),
+        ],
+      ],
+    ];
+
+    $build['quick_actions'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Quick actions'),
+      '#items' => [
+        Link::fromTextAndUrl($this->t('Review parity health now'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+        Link::fromTextAndUrl($this->t('Review release-cycle status now'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
+        Link::fromTextAndUrl($this->t('Review session monitoring now'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
+        Link::fromTextAndUrl($this->t('Open main Copilot dashboard'), Url::fromRoute('copilot_agent_tracker.dashboard'))->toString(),
+      ],
+    ];
+
     $build['nav'] = $this->renderLanggraphReferenceNav();
 
     $build['ops_control'] = [
@@ -3448,6 +3544,27 @@ final class DashboardController extends ControllerBase {
         $ticks_last_hour++;
       }
     }
+
+    $latest_error_count = count((array) ($latest['errors'] ?? []));
+    foreach ((array) ($latest['step_results'] ?? []) as $step) {
+      if (is_array($step) && (($step['status'] ?? '') === 'error' || !empty($step['errors']))) {
+        $latest_error_count++;
+      }
+    }
+
+    $build['session_health'] = [
+      '#markup' => $latest_error_count > 0
+        ? '<div class="messages messages--warning"><strong>' . $this->t('Session Health: ATTENTION') . '</strong> — ' . $this->t('Latest tick reported @n errors across node execution.', ['@n' => (string) $latest_error_count]) . '</div>'
+        : '<div class="messages messages--status"><strong>' . $this->t('Session Health: OK') . '</strong> — ' . $this->t('Latest tick reported no node execution errors.') . '</div>',
+    ];
+    $build['next_actions'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Next actions'),
+      '#items' => [
+        Link::fromTextAndUrl($this->t('Review parity health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+        Link::fromTextAndUrl($this->t('Review release-cycle status'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
+      ],
+    ];
 
     $dry_run_latest = !empty($latest['dry_run']) ? $this->t('YES (dry run)') : $this->t('no (live)');
     $build['summary'] = [
@@ -3591,6 +3708,22 @@ final class DashboardController extends ControllerBase {
       }
     }
 
+    $is_parity_pass = ((string) $parity_ok) === 'PASS';
+    $has_tick = ((string) $last_tick_ts) !== 'unknown';
+    $build['feature_health'] = [
+      '#markup' => ($is_parity_pass && $has_tick)
+        ? '<div class="messages messages--status"><strong>' . $this->t('Feature Progress Health: OK') . '</strong> — ' . $this->t('Telemetry and parity signals are available for planning decisions.') . '</div>'
+        : '<div class="messages messages--warning"><strong>' . $this->t('Feature Progress Health: ATTENTION') . '</strong> — ' . $this->t('Telemetry or parity is incomplete; verify session and parity pages.') . '</div>',
+    ];
+    $build['next_actions'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Next actions'),
+      '#items' => [
+        Link::fromTextAndUrl($this->t('Review session monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
+        Link::fromTextAndUrl($this->t('Review parity health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+      ],
+    ];
+
     $build['telemetry_summary'] = [
       '#markup' => '<ul>'
         . '<li><strong>' . $this->t('Last tick:') . '</strong> ' . $last_tick_ts . '</li>'
@@ -3643,6 +3776,19 @@ final class DashboardController extends ControllerBase {
         '#markup' => '<div class="messages messages--warning"><strong>' . $this->t('PARITY FAILURE') . '</strong> — ' . $this->t('LangGraph engine does not match legacy expectations. Review errors below.') . '</div>',
       ];
     }
+    else {
+      $build['status'] = [
+        '#markup' => '<div class="messages messages--status"><strong>' . $this->t('PARITY PASS') . '</strong> — ' . $this->t('LangGraph engine currently matches legacy parity checks.') . '</div>',
+      ];
+    }
+    $build['next_actions'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Next actions'),
+      '#items' => [
+        Link::fromTextAndUrl($this->t('Open LangGraph dashboard home'), Url::fromRoute('copilot_agent_tracker.langgraph_dashboard'))->toString(),
+        Link::fromTextAndUrl($this->t('Review session monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
+      ],
+    ];
 
     $status_label = $parity_ok ? $this->t('✔ PASS') : $this->t('✘ FAIL');
     $agents_match = isset($parity['selected_agents']['match']) ? ($parity['selected_agents']['match'] ? $this->t('yes') : $this->t('no')) : $this->t('n/a');
@@ -3702,6 +3848,8 @@ final class DashboardController extends ControllerBase {
     $publish_enabled = !empty($latest['publish_enabled']);
     $dry_run = !empty($latest['dry_run']);
     $agent_cap = (int) ($latest['agent_cap'] ?? 0);
+    $release_control = $this->readReleaseCycleControlState();
+    $release_enabled = (bool) ($release_control['enabled'] ?? TRUE);
 
     // Count ticks in last 24h with publish_enabled == true.
     $cutoff = time() - 86400;
@@ -3719,12 +3867,27 @@ final class DashboardController extends ControllerBase {
       ];
     }
 
+    $build['release_health'] = [
+      '#markup' => ($publish_enabled && $release_enabled)
+        ? '<div class="messages messages--status"><strong>' . $this->t('Release-cycle Health: OK') . '</strong> — ' . $this->t('Publishing and release-cycle automation are enabled.') . '</div>'
+        : '<div class="messages messages--warning"><strong>' . $this->t('Release-cycle Health: ATTENTION') . '</strong> — ' . $this->t('Publishing or release-cycle automation is disabled.') . '</div>',
+    ];
+    $build['next_actions'] = [
+      '#theme' => 'item_list',
+      '#title' => $this->t('Next actions'),
+      '#items' => [
+        Link::fromTextAndUrl($this->t('Adjust release-cycle control'), Url::fromRoute('copilot_agent_tracker.langgraph_dashboard'))->toString(),
+        Link::fromTextAndUrl($this->t('Review parity health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+      ],
+    ];
+
     $build['status_table'] = [
       '#type' => 'table',
       '#header' => [$this->t('Field'), $this->t('Value')],
       '#rows' => [
         [$this->t('Latest tick timestamp'), (string) ($latest['ts'] ?? 'unknown')],
         [$this->t('publish_enabled'), $publish_enabled ? $this->t('yes') : $this->t('no')],
+        [$this->t('release_cycle_enabled'), $release_enabled ? $this->t('yes') : $this->t('no')],
         [$this->t('dry_run'), $dry_run ? $this->t('yes (dry run mode)') : $this->t('no (live)')],
         [$this->t('agent_cap'), (string) $agent_cap],
         [$this->t('Ticks with publish_enabled=true (last 24h)'), (string) $publish_enabled_count],

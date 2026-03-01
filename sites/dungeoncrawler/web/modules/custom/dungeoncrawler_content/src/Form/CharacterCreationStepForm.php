@@ -23,74 +23,19 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 class CharacterCreationStepForm extends FormBase {
 
   /**
-   * The character manager service.
-   */
-  protected CharacterManager $characterManager;
-
-  /**
-   * The schema loader service.
-   */
-  protected SchemaLoader $schemaLoader;
-
-  /**
-   * The database connection.
-   */
-  protected Connection $database;
-
-  /**
-   * The UUID service.
-   */
-  protected UuidInterface $uuid;
-
-  /**
-   * The current user.
-   */
-  protected AccountProxyInterface $currentUser;
-
-  /**
-   * The date formatter service.
-   */
-  protected DateFormatterInterface $dateFormatter;
-
-  /**
-   * The time service.
-   */
-  protected TimeInterface $time;
-
-  /**
-   * Character portrait generator.
-   */
-  protected CharacterPortraitGenerationService $portraitGenerator;
-
-  /**
-   * Ability score tracker service.
-   */
-  protected AbilityScoreTracker $abilityScoreTracker;
-
-  /**
    * Constructs a CharacterCreationStepForm object.
    */
   public function __construct(
-    CharacterManager $character_manager,
-    SchemaLoader $schema_loader,
-    Connection $database,
-    UuidInterface $uuid,
-    AccountProxyInterface $current_user,
-    DateFormatterInterface $date_formatter,
-    TimeInterface $time,
-    CharacterPortraitGenerationService $portrait_generator,
-    AbilityScoreTracker $ability_score_tracker
-  ) {
-    $this->characterManager = $character_manager;
-    $this->schemaLoader = $schema_loader;
-    $this->database = $database;
-    $this->uuid = $uuid;
-    $this->currentUser = $current_user;
-    $this->dateFormatter = $date_formatter;
-    $this->time = $time;
-    $this->portraitGenerator = $portrait_generator;
-    $this->abilityScoreTracker = $ability_score_tracker;
-  }
+    protected readonly CharacterManager $characterManager,
+    protected readonly SchemaLoader $schemaLoader,
+    protected readonly Connection $database,
+    protected readonly UuidInterface $uuid,
+    protected readonly AccountProxyInterface $currentUser,
+    protected readonly DateFormatterInterface $dateFormatter,
+    protected readonly TimeInterface $time,
+    protected readonly CharacterPortraitGenerationService $portraitGenerator,
+    protected readonly AbilityScoreTracker $abilityScoreTracker,
+  ) {}
 
   /**
    * {@inheritdoc}
@@ -112,14 +57,14 @@ class CharacterCreationStepForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function getFormId() {
+  public function getFormId(): string {
     return 'character_creation_step_form';
   }
 
   /**
    * {@inheritdoc}
    */
-  public function buildForm(array $form, FormStateInterface $form_state, $step = 1, $character_id = NULL, $campaign_id = NULL) {
+  public function buildForm(array $form, FormStateInterface $form_state, int $step = 1, int|string|null $character_id = NULL, int|string|null $campaign_id = NULL): array {
     $character_data = $this->loadCharacterData($character_id);
 
     // Load character record for concurrent-edit version tracking.
@@ -151,11 +96,20 @@ class CharacterCreationStepForm extends FormBase {
       ?? '';
 
     $form['#attributes']['class'][] = 'character-creation-form';
-    // Refactor: keep character creation flow server-driven to avoid conflicting
-    // client-side submit handlers across step scripts.
+    // Disable browser-native HTML5 validation entirely: Drupal handles all
+    // validation server-side, and the native :invalid CSS pseudo-class fires
+    // on required-but-empty fields immediately on page load / after AJAX,
+    // causing premature red styling before the user has interacted.
+    $form['#attributes']['novalidate'] = 'novalidate';
     $form['#attached']['library'][] = 'dungeoncrawler_content/character-step-base';
     $form['#attached']['library'][] = 'dungeoncrawler_content/character-creation-style';
     $form['#attached']['library'][] = 'dungeoncrawler_content/ability-widget';
+    $form['#attached']['library'][] = 'dungeoncrawler_content/character-step-' . $step;
+
+    // Steps with interactive ability boost widgets need the selector JS.
+    if (in_array($step, [3, 5], TRUE)) {
+      $form['#attached']['library'][] = 'dungeoncrawler_content/ability-boost-selector';
+    }
     
     $form['#prefix'] = '<div class="character-creation-step"><div class="creation-container"><div class="progress-bar"><div class="progress-indicator progress-step-' . $step . '"></div></div><div class="progress-text">' . $this->t('Step @step of @total', ['@step' => $step, '@total' => 8]) . '</div><div class="step-content">';
     $form['#suffix'] = '</div></div></div>';
@@ -199,7 +153,7 @@ class CharacterCreationStepForm extends FormBase {
         '#type' => 'link',
         '#title' => $this->t('← Back'),
         '#url' => Url::fromRoute('dungeoncrawler_content.character_step', [
-          'step' => $this->getPreviousStep((int) $step),
+          'step' => max(1, (int) $step - 1),
         ])->setOption('query', $back_query),
         '#attributes' => ['class' => ['btn', 'btn-secondary']],
       ];
@@ -273,31 +227,6 @@ class CharacterCreationStepForm extends FormBase {
   }
 
   /**
-   * Removes required constraints from all form elements recursively.
-   */
-  private function removeRequiredConstraints(array &$elements): void {
-    foreach ($elements as &$element) {
-      if (!is_array($element)) {
-        continue;
-      }
-
-      if (isset($element['#required'])) {
-        $element['#required'] = FALSE;
-      }
-
-      if (isset($element['#attributes']['required'])) {
-        unset($element['#attributes']['required']);
-      }
-
-      if (isset($element['#attributes']['aria-required'])) {
-        unset($element['#attributes']['aria-required']);
-      }
-
-      $this->removeRequiredConstraints($element);
-    }
-  }
-
-  /**
    * Apply HTML5 validation attributes from schema definitions.
    *
    * @param array $element
@@ -350,7 +279,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return mixed|null
    *   Constraint value, or NULL when absent.
    */
-  private function getSchemaConstraintValue(?array $constraint) {
+  private function getSchemaConstraintValue(?array $constraint): mixed {
     if (!is_array($constraint)) {
       return NULL;
     }
@@ -370,942 +299,871 @@ class CharacterCreationStepForm extends FormBase {
    * @param array $character_data
    *   The character data for default values.
    */
-  private function buildStepFields(&$form, FormStateInterface $form_state, $step, $character_data) {
-    $schema_fields = $this->schemaLoader->getStepFields((int) $step);
+  private function buildStepFields(array &$form, FormStateInterface $form_state, int $step, array $character_data): void {
+    $schema_fields = $this->schemaLoader->getStepFields($step);
+    $method = 'buildStep' . $step . 'Fields';
+    if (method_exists($this, $method)) {
+      $this->$method($form, $form_state, $character_data, $schema_fields);
+    }
+  }
 
-    switch ($step) {
-      case 1:
-        // Ability preview at top of form
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        $abilities_preview = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_preview[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-          ];
-        }
-        
-        $form['ability_preview'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_preview,
-          '#mode' => 'compact',
-          '#show_sources' => FALSE,
-          '#help_text' => $this->t('Your ability scores (will update as you progress)'),
+  /**
+   * Attaches the ability score preview widget to the form.
+   */
+  private function attachAbilityPreview(array &$form, array $character_data, string $help_text, bool $show_sources = TRUE, string $mode = 'compact'): void {
+    $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
+    $abilities = [];
+    foreach ($calculation['scores'] as $key => $score) {
+      $abilities[$key] = [
+        'score' => $score,
+        'modifier' => $calculation['modifiers'][$key],
+        'sources' => $calculation['sources'][$key] ?? [],
+      ];
+    }
+    $form['ability_preview'] = [
+      '#theme' => 'character_ability_widget',
+      '#abilities' => $abilities,
+      '#mode' => $mode,
+      '#show_sources' => $show_sources,
+      '#help_text' => $this->t($help_text),
+    ];
+  }
+
+  /**
+   * Builds Step 1 fields.
+   */
+  private function buildStep1Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    $this->attachAbilityPreview($form, $character_data, 'Your ability scores (will update as you progress)', FALSE);
+
+    $form['name'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Legacy Character Name'),
+      '#required' => TRUE,
+      '#default_value' => $character_data['name'] ?? '',
+      '#maxlength' => 50,
+      '#placeholder' => $this->t('The name your roster will remember'),
+      '#description' => $this->t('Your character\'s name will appear in all campaign records and legacy logs.'),
+    ];
+    $this->applySchemaValidationAttributes($form['name'], $schema_fields, 'name');
+    $form['concept'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Character Concept'),
+      '#default_value' => $character_data['concept'] ?? '',
+      '#rows' => 4,
+      '#placeholder' => $this->t('e.g., "Fortune-favored rogue seeking redemption", "Dwarf paladin defending the old ways"'),
+      '#description' => $this->t('Optional: Capture your character\'s long-term identity and campaign arc. Think in terms of a character you\'ll want to revisit across many expeditions.'),
+    ];
+    $this->applySchemaValidationAttributes($form['concept'], $schema_fields, 'concept');
+  }
+
+  /**
+   * Builds Step 2 fields.
+   */
+  private function buildStep2Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    // Step 2: Ancestry → Heritage → Ancestry Feat.
+    // AJAX on ancestry select refreshes #heritage-path-wrapper (heritage + feat).
+    // Validation is in validateForm() case 2 (not #required, to avoid :invalid).
+    $this->attachAbilityPreview($form, $character_data, 'Current ability scores (from ancestry)');
+
+    $heritage_payload = [];
+    foreach (CharacterManager::HERITAGES as $ancestry_name => $heritages) {
+      $ancestry_id = self::ancestryMachineId($ancestry_name);
+      $heritage_payload[$ancestry_id] = $heritages;
+    }
+
+    $heritage_json = Html::escape(json_encode(
+      $heritage_payload,
+      JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+    ));
+
+    $user_input = $form_state->getUserInput();
+    $selected_ancestry = (string) (
+      $form_state->getValue('ancestry')
+      ?: (is_array($user_input) ? ($user_input['ancestry'] ?? '') : '')
+      ?: ($character_data['ancestry'] ?? '')
+    );
+    $ancestry_cards_markup = '<div class="ancestry-selection" data-heritages="' . $heritage_json . '">';
+    $ancestry_cards_markup .= '<div class="ancestry-grid">';
+
+    foreach (CharacterManager::ANCESTRIES as $ancestry_name => $ancestry_data) {
+      $ancestry_id = self::ancestryMachineId($ancestry_name);
+      $selected_class = $selected_ancestry === $ancestry_id ? ' selected' : '';
+      $boosts = $ancestry_data['boosts'] ?? [];
+      $boosts_label = $boosts ? implode(', ', $boosts) : 'None';
+      $flaw = $ancestry_data['flaw'] ?? '';
+      $vision = $ancestry_data['vision'] ?? 'normal';
+
+      $ancestry_cards_markup .= '<div class="ancestry-card' . $selected_class . '" data-ancestry="' . Html::escape($ancestry_id) . '">';
+      $ancestry_cards_markup .= '<h3>' . Html::escape($ancestry_name) . '</h3>';
+      $ancestry_cards_markup .= '<div class="ancestry-stats">';
+      $ancestry_cards_markup .= '<span class="stat"><strong>HP:</strong> ' . (int) ($ancestry_data['hp'] ?? 0) . '</span>';
+      $ancestry_cards_markup .= '<span class="stat"><strong>Size:</strong> ' . Html::escape((string) ($ancestry_data['size'] ?? '')) . '</span>';
+      $ancestry_cards_markup .= '<span class="stat"><strong>Speed:</strong> ' . (int) ($ancestry_data['speed'] ?? 0) . 'ft</span>';
+      $ancestry_cards_markup .= '</div>';
+      $ancestry_cards_markup .= '<div class="ancestry-traits">';
+      $ancestry_cards_markup .= '<span><strong>Boosts:</strong> ' . Html::escape($boosts_label) . '</span>';
+      if ($flaw !== '') {
+        $ancestry_cards_markup .= '<span><strong>Flaw:</strong> ' . Html::escape($flaw) . '</span>';
+      }
+      $ancestry_cards_markup .= '<span><strong>Vision:</strong> ' . Html::escape($vision) . '</span>';
+      $ancestry_cards_markup .= '</div>';
+      $ancestry_cards_markup .= '</div>';
+    }
+
+    $ancestry_cards_markup .= '</div>';
+    $ancestry_cards_markup .= '<div id="heritageSelection" class="heritage-section hidden">';
+    $ancestry_cards_markup .= '<h3>' . $this->t('Choose a Heritage') . '</h3>';
+    $ancestry_cards_markup .= '<div id="heritageOptions" class="heritage-grid"></div>';
+    $ancestry_cards_markup .= '</div>';
+    $ancestry_cards_markup .= '</div>';
+
+    $form['ancestry_cards'] = [
+      '#type' => 'markup',
+      '#markup' => $ancestry_cards_markup,
+    ];
+
+    $form['ancestry'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Legacy Ancestry'),
+      '#required' => TRUE,
+      '#options' => $this->getAncestryOptions(),
+      '#default_value' => $selected_ancestry,
+      '#description' => $this->t('Your character\'s ancestral blood will determine size, speed, special senses, and long-term physical identity across all campaigns.'),
+      // Visually hidden: the ancestry card grid is the user-facing selector.
+      // This <select> stays in the DOM for Form API AJAX, validation, and
+      // submission; JS syncs it when a card is clicked.
+      '#wrapper_attributes' => ['class' => ['dc-visually-hidden']],
+      '#ajax' => [
+        'callback' => '::updateHeritageOptions',
+        'wrapper' => 'heritage-path-wrapper',
+        'event' => 'change',
+      ],
+      // Do NOT set #limit_validation_errors here. For AJAX triggered by a
+      // non-button element, Drupal's FormValidator defaults to validating
+      // nothing (returns []) when #limit_validation_errors is absent and the
+      // form is not explicitly submitted. Setting it explicitly would override
+      // that safe default and cause partial validation to run, which surfaces
+      // the ancestry_feat "submitted value not allowed" error.
+    ];
+    $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
+
+    $form['heritage_dynamic'] = [
+      '#type' => 'container',
+      '#attributes' => [
+        'id' => 'heritage-path-wrapper',
+      ],
+    ];
+
+    $heritage_options = $this->getHeritageOptions($selected_ancestry);
+    $has_heritage_choices = count($heritage_options) > 1;
+    $selected_heritage = (string) ($form_state->getValue('heritage') ?: ($character_data['heritage'] ?? ''));
+    if ($selected_heritage !== '' && !array_key_exists($selected_heritage, $heritage_options)) {
+      $selected_heritage = '';
+    }
+
+    $form['heritage_dynamic']['heritage'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Heritage Path'),
+      // Do NOT use #required here: the browser applies :invalid to a required
+      // <select> with empty value immediately on AJAX response, causing red
+      // styling before the user has touched the field.
+      // Validation is enforced in validateForm() case 2 instead.
+      '#required' => FALSE,
+      '#options' => $heritage_options,
+      '#default_value' => $selected_heritage,
+      '#value_callback' => [$this, 'sanitizeOptionValue'],
+      // Visually hidden: JS-rendered heritage cards are the user-facing selector.
+      '#wrapper_attributes' => ['class' => ['dc-visually-hidden']],
+      '#description' => $this->t('Select a heritage to specialize your ancestry with unique talents and abilities that define your legacy.'),
+    ];
+    $this->clearStaleOptionInput($form_state, 'heritage', $heritage_options);
+    $this->applySchemaValidationAttributes($form['heritage_dynamic']['heritage'], $schema_fields, 'heritage');
+
+    if (!empty($selected_ancestry) && !$has_heritage_choices) {
+      $form['heritage_dynamic']['heritage_unavailable_notice'] = [
+        '#type' => 'markup',
+        '#markup' => '<div class="messages messages--warning">'
+          . $this->t('No heritage options are currently configured for this ancestry. You can continue to the next step and set heritage later when available.')
+          . '</div>',
+      ];
+    }
+
+    // Ancestry Feat Selection — nested inside heritage_dynamic so the AJAX
+    // callback (which returns $form['heritage_dynamic']) refreshes both the
+    // heritage select and the ancestry feat radios in a single response.
+    // This eliminates the stale-value "submitted value not allowed" error
+    // that occurred when ancestry changed but ancestry_feat_dynamic was
+    // rendered outside the AJAX wrapper.
+    $form['heritage_dynamic']['ancestry_feat_dynamic'] = [
+      '#type' => 'container',
+    ];
+    if (!empty($selected_ancestry)) {
+      $ancestry_name = $this->resolveAncestryName($selected_ancestry);
+      $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
+
+      if (!empty($ancestry_feats)) {
+        $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_section'] = [
+          '#markup' => '<div class="section-instructions ancestry-feat-section">'
+            . '<h3>' . $this->t('Ancestry Feat') . '</h3>'
+            . '<p>' . $this->t('Choose one 1st-level ancestry feat. This represents a special ability or training unique to your ancestry.') . '</p>'
+            . '</div>',
         ];
 
-        $form['name'] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Legacy Character Name'),
-          '#required' => TRUE,
-          '#default_value' => $character_data['name'] ?? '',
-          '#maxlength' => 50,
-          '#placeholder' => $this->t('The name your roster will remember'),
-          '#description' => $this->t('Your character\'s name will appear in all campaign records and legacy logs.'),
-        ];
-        $this->applySchemaValidationAttributes($form['name'], $schema_fields, 'name');
-        $form['concept'] = [
-          '#type' => 'textarea',
-          '#title' => $this->t('Character Concept'),
-          '#default_value' => $character_data['concept'] ?? '',
-          '#rows' => 4,
-          '#placeholder' => $this->t('e.g., "Fortune-favored rogue seeking redemption", "Dwarf paladin defending the old ways"'),
-          '#description' => $this->t('Optional: Capture your character\'s long-term identity and campaign arc. Think in terms of a character you\'ll want to revisit across many expeditions.'),
-        ];
-        $this->applySchemaValidationAttributes($form['concept'], $schema_fields, 'concept');
-        break;
+        $feat_options = [];
+        $feat_descriptions = [];
 
-      case 2:
-        /*
-         * Step 2 Process Flow Analysis (Ancestry → Heritage → Ancestry Feat)
-         *
-         * Goal:
-         * - Keep all option/validation paths explicit during refactors.
-         * - Distinguish legitimate invalid-value failures from stale UI state.
-         *
-         * Server-side build flow:
-         * 1) Build ancestry cards from CharacterManager::ANCESTRIES.
-         * 2) Build ancestry select (full-submit server processing only).
-         * 3) Build ancestry-dependent fields:
-         *    - heritage select from getHeritageOptions(selected_ancestry)
-         *    - ancestry_feat radios from ANCESTRY_FEATS[resolved ancestry]
-         * 4) Sanitize dependent inputs on every build:
-         *    - #value_callback sanitizeOptionValue for heritage + ancestry_feat
-         *    - clearStaleOptionInput(form_state, key, current_options)
-         *
-         * Client-side coordination (character-step-2.js):
-         * - ancestry card click sets ancestry select and triggers change.
-         * - ancestry change clears heritage + checked ancestry_feat radios.
-         * - submit button only toggles disabled state (no custom transport).
-         *
-         * Legitimate "submitted value ... is not allowed" paths:
-         * - Tampered POST where ancestry_feat/heritage key not in current options.
-         * - Race where ancestry changed but stale dependent value is posted
-         *   before submit/sanitization (mitigated via both JS clearing and
-         *   server-side clearStaleOptionInput + sanitizeOptionValue).
-         *
-         * Non-legitimate path (should not error):
-         * - Normal ancestry switching by user without manual payload tampering.
-         */
-        // Ability preview showing ancestry boosts/flaws
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        $abilities_preview = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_preview[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-          ];
-        }
-        
-        $form['ability_preview'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_preview,
-          '#mode' => 'compact',
-          '#show_sources' => TRUE,
-          '#help_text' => $this->t('Current ability scores (from ancestry)'),
-        ];
-
-        $heritage_payload = [];
-        foreach (CharacterManager::HERITAGES as $ancestry_name => $heritages) {
-          $ancestry_id = strtolower(str_replace(' ', '-', $ancestry_name));
-          $heritage_payload[$ancestry_id] = $heritages;
-        }
-
-        $heritage_json = Html::escape(json_encode(
-          $heritage_payload,
-          JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
-        ));
-
-        $user_input = $form_state->getUserInput();
-        $selected_ancestry = (string) (
-          $form_state->getValue('ancestry')
-          ?: (is_array($user_input) ? ($user_input['ancestry'] ?? '') : '')
-          ?: ($character_data['ancestry'] ?? '')
-        );
-        $ancestry_cards_markup = '<div class="ancestry-selection" data-heritages="' . $heritage_json . '">';
-        $ancestry_cards_markup .= '<div class="ancestry-grid">';
-
-        foreach (CharacterManager::ANCESTRIES as $ancestry_name => $ancestry_data) {
-          $ancestry_id = strtolower(str_replace(' ', '-', $ancestry_name));
-          $selected_class = $selected_ancestry === $ancestry_id ? ' selected' : '';
-          $boosts = $ancestry_data['boosts'] ?? [];
-          $boosts_label = $boosts ? implode(', ', $boosts) : 'None';
-          $flaw = $ancestry_data['flaw'] ?? '';
-          $vision = $ancestry_data['vision'] ?? 'normal';
-
-          $ancestry_cards_markup .= '<div class="ancestry-card' . $selected_class . '" data-ancestry="' . Html::escape($ancestry_id) . '">';
-          $ancestry_cards_markup .= '<h3>' . Html::escape($ancestry_name) . '</h3>';
-          $ancestry_cards_markup .= '<div class="ancestry-stats">';
-          $ancestry_cards_markup .= '<span class="stat"><strong>HP:</strong> ' . (int) ($ancestry_data['hp'] ?? 0) . '</span>';
-          $ancestry_cards_markup .= '<span class="stat"><strong>Size:</strong> ' . Html::escape((string) ($ancestry_data['size'] ?? '')) . '</span>';
-          $ancestry_cards_markup .= '<span class="stat"><strong>Speed:</strong> ' . (int) ($ancestry_data['speed'] ?? 0) . 'ft</span>';
-          $ancestry_cards_markup .= '</div>';
-          $ancestry_cards_markup .= '<div class="ancestry-traits">';
-          $ancestry_cards_markup .= '<span><strong>Boosts:</strong> ' . Html::escape($boosts_label) . '</span>';
-          if ($flaw !== '') {
-            $ancestry_cards_markup .= '<span><strong>Flaw:</strong> ' . Html::escape($flaw) . '</span>';
-          }
-          $ancestry_cards_markup .= '<span><strong>Vision:</strong> ' . Html::escape($vision) . '</span>';
-          $ancestry_cards_markup .= '</div>';
-          $ancestry_cards_markup .= '</div>';
-        }
-
-        $ancestry_cards_markup .= '</div>';
-        $ancestry_cards_markup .= '<div id="heritageSelection" class="heritage-section hidden">';
-        $ancestry_cards_markup .= '<h3>' . $this->t('Choose a Heritage') . '</h3>';
-        $ancestry_cards_markup .= '<div id="heritageOptions" class="heritage-grid"></div>';
-        $ancestry_cards_markup .= '</div>';
-        $ancestry_cards_markup .= '</div>';
-
-        $form['ancestry_cards'] = [
-          '#type' => 'markup',
-          '#markup' => $ancestry_cards_markup,
-        ];
-
-        $form['ancestry'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Legacy Ancestry'),
-          '#required' => TRUE,
-          '#options' => $this->getAncestryOptions(),
-          '#default_value' => $selected_ancestry,
-          '#description' => $this->t('Your character\'s ancestral blood will determine size, speed, special senses, and long-term physical identity across all campaigns.'),
-          '#ajax' => [
-            'callback' => '::updateHeritageOptions',
-            'wrapper' => 'heritage-path-wrapper',
-          ],
-          '#limit_validation_errors' => [['ancestry']],
-        ];
-        $this->applySchemaValidationAttributes($form['ancestry'], $schema_fields, 'ancestry');
-
-        $form['heritage_dynamic'] = [
-          '#type' => 'container',
-          '#attributes' => [
-            'id' => 'heritage-path-wrapper',
-          ],
-        ];
-
-        $heritage_options = $this->getHeritageOptions($selected_ancestry);
-        $has_heritage_choices = count($heritage_options) > 1;
-        $selected_heritage = (string) ($form_state->getValue('heritage') ?: ($character_data['heritage'] ?? ''));
-        if ($selected_heritage !== '' && !array_key_exists($selected_heritage, $heritage_options)) {
-          $selected_heritage = '';
-        }
-
-        $form['heritage_dynamic']['heritage'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Heritage Path'),
-          '#required' => $has_heritage_choices,
-          '#options' => $heritage_options,
-          '#default_value' => $selected_heritage,
-          '#value_callback' => [$this, 'sanitizeOptionValue'],
-          '#description' => $this->t('Select a heritage to specialize your ancestry with unique talents and abilities that define your legacy.'),
-        ];
-        $this->clearStaleOptionInput($form_state, 'heritage', $heritage_options);
-        $this->applySchemaValidationAttributes($form['heritage_dynamic']['heritage'], $schema_fields, 'heritage');
-
-        if (!empty($selected_ancestry) && !$has_heritage_choices) {
-          $form['heritage_dynamic']['heritage_unavailable_notice'] = [
-            '#type' => 'markup',
-            '#markup' => '<div class="messages messages--warning">'
-              . $this->t('No heritage options are currently configured for this ancestry. You can continue to the next step and set heritage later when available.')
+        foreach ($ancestry_feats as $feat) {
+          $feat_options[$feat['id']] = $feat['name'];
+          $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
+          $feat_descriptions[$feat['id']] = [
+            '#markup' => '<div class="feat-description">'
+              . '<strong>' . $feat['name'] . '</strong>' . $prereq_text . '<br>'
+              . $feat['benefit']
               . '</div>',
           ];
         }
 
-        // Ancestry Feat Selection — nested inside heritage_dynamic so the AJAX
-        // callback (which returns $form['heritage_dynamic']) refreshes both the
-        // heritage select and the ancestry feat radios in a single response.
-        // This eliminates the stale-value "submitted value not allowed" error
-        // that occurred when ancestry changed but ancestry_feat_dynamic was
-        // rendered outside the AJAX wrapper.
-        $form['heritage_dynamic']['ancestry_feat_dynamic'] = [
-          '#type' => 'container',
-        ];
-        if (!empty($selected_ancestry)) {
-          $ancestry_name = $this->resolveAncestryName($selected_ancestry);
-          $ancestry_feats = CharacterManager::ANCESTRY_FEATS[$ancestry_name] ?? [];
-
-          if (!empty($ancestry_feats)) {
-            $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_section'] = [
-              '#markup' => '<div class="section-instructions ancestry-feat-section">'
-                . '<h3>' . $this->t('Ancestry Feat') . '</h3>'
-                . '<p>' . $this->t('Choose one 1st-level ancestry feat. This represents a special ability or training unique to your ancestry.') . '</p>'
-                . '</div>',
-            ];
-
-            $feat_options = [];
-            $feat_descriptions = [];
-
-            foreach ($ancestry_feats as $feat) {
-              $feat_options[$feat['id']] = $feat['name'];
-              $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
-              $feat_descriptions[$feat['id']] = [
-                '#markup' => '<div class="feat-description">'
-                  . '<strong>' . $feat['name'] . '</strong>' . $prereq_text . '<br>'
-                  . $feat['benefit']
-                  . '</div>',
-              ];
-            }
-
-            $selected_feat = (string) ($form_state->getValue('ancestry_feat') ?: ($character_data['ancestry_feat'] ?? ''));
-            if ($selected_feat !== '' && !array_key_exists($selected_feat, $feat_options)) {
-              $selected_feat = '';
-            }
-
-            $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat'] = [
-              '#type' => 'radios',
-              '#title' => $this->t('Select Ancestry Feat'),
-              '#options' => $feat_options,
-              '#default_value' => $selected_feat,
-              '#value_callback' => [$this, 'sanitizeOptionValue'],
-              '#required' => TRUE,
-              '#description' => $this->t('Each feat provides unique mechanical benefits that reflect your ancestry\'s culture and abilities.'),
-            ];
-            $this->clearStaleOptionInput($form_state, 'ancestry_feat', $feat_options);
-
-            // Add detailed descriptions for each feat option via #states.
-            foreach ($feat_descriptions as $feat_id => $description_markup) {
-              $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_desc_' . $feat_id] = $description_markup;
-              $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_desc_' . $feat_id]['#states'] = [
-                'visible' => [
-                  ':input[name="ancestry_feat"]' => ['value' => $feat_id],
-                ],
-              ];
-            }
-          }
-          else {
-            $this->clearStaleOptionInput($form_state, 'ancestry_feat', []);
-          }
+        $selected_feat = (string) ($form_state->getValue('ancestry_feat') ?: ($character_data['ancestry_feat'] ?? ''));
+        if ($selected_feat !== '' && !array_key_exists($selected_feat, $feat_options)) {
+          $selected_feat = '';
         }
-        break;
 
-      case 3:
-        $form['background'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Pre-Campaign Background'),
-          '#required' => TRUE,
-          '#options' => $this->getBackgroundOptions(),
-          '#default_value' => $character_data['background'] ?? '',
-          '#description' => $this->t('Your character\'s former life shaped who they are. This choice grants lasting skills and a foundation for long-term roleplay consistency.'),
+        $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat'] = [
+          '#type' => 'radios',
+          '#title' => $this->t('Select Ancestry Feat'),
+          '#options' => $feat_options,
+          '#default_value' => $selected_feat,
+          '#value_callback' => [$this, 'sanitizeOptionValue'],
+          // Do NOT use #required => TRUE on radio groups: the browser immediately
+          // applies :invalid CSS to all unselected required radio inputs on page
+          // load, making the group appear red before the user interacts at all.
+          // Validation is enforced in validateForm() case 2 instead.
+          '#required' => FALSE,
+          '#description' => $this->t('Each feat provides unique mechanical benefits that reflect your ancestry\'s culture and abilities.'),
         ];
+        $this->clearStaleOptionInput($form_state, 'ancestry_feat', $feat_options);
 
-        // Background Ability Boosts (2 free boosts)
-        // Calculate current scores from ancestry only
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        
-        $abilities_data = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_data[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-            'selected' => in_array($ability_key, $character_data['background_boosts'] ?? [], TRUE),
-            'disabled' => FALSE,
+        // Add detailed descriptions for each feat option via #states.
+        foreach ($feat_descriptions as $feat_id => $description_markup) {
+          $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_desc_' . $feat_id] = $description_markup;
+          $form['heritage_dynamic']['ancestry_feat_dynamic']['ancestry_feat_desc_' . $feat_id]['#states'] = [
+            'visible' => [
+              ':input[name="ancestry_feat"]' => ['value' => $feat_id],
+            ],
           ];
         }
-
-        $form['background_boosts_help'] = [
-          '#markup' => '<div class="section-instructions background-boosts-section">'
-            . '<h3>' . $this->t('Background Ability Boosts') . '</h3>'
-            . '<p>' . $this->t('Your background grants 2 free ability boosts. Choose any two different abilities to boost.') . '</p>'
-            . '</div>',
-        ];
-
-        $form['background_boosts_selector'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_data,
-          '#mode' => 'interactive',
-          '#show_sources' => TRUE,
-          '#boosts_remaining' => 2 - count($character_data['background_boosts'] ?? []),
-          '#boosts_total' => 2,
-          '#attributes' => [
-            'data-step' => 'background',
-            'data-max-boosts' => 2,
-            'data-character-data' => json_encode($character_data),
-          ],
-        ];
-
-        $form['background_boosts'] = [
-          '#type' => 'hidden',
-          '#default_value' => json_encode($character_data['background_boosts'] ?? []),
-          '#attributes' => ['id' => 'background-boosts-field'],
-        ];
-
-        // Background Skill Training
-        $selected_background = $form_state->getValue('background') ?: $character_data['background'] ?? '';
-        if (!empty($selected_background)) {
-          $background_data = CharacterManager::BACKGROUNDS[$selected_background] ?? NULL;
-          
-          if ($background_data) {
-            $form['background_skills_section'] = [
-              '#markup' => '<div class="section-instructions background-skills-section">'
-                . '<h3>' . $this->t('Background Skills') . '</h3>'
-                . '<p>' . $this->t('Your background grants training in a specific skill and lore, plus a skill feat.') . '</p>'
-                . '</div>',
-            ];
-
-            $form['background_skill'] = [
-              '#markup' => '<div class="background-benefit">'
-                . '<p><strong>' . $this->t('Skill Training:') . '</strong> ' . ($background_data['skill'] ?? 'Varies') . '</p>'
-                . '<p><strong>' . $this->t('Lore Skill:') . '</strong> ' . ($background_data['lore'] ?? 'Varies') . '</p>'
-                . '<p><strong>' . $this->t('Skill Feat:') . '</strong> ' . ($background_data['feat'] ?? 'Varies') . '</p>'
-                . '<p class="help-text">' . $this->t('These will be automatically applied to your character.') . '</p>'
-                . '</div>',
-            ];
-
-            // For backgrounds with skill choices (like Scholar), add selector
-            if ($selected_background === 'scholar') {
-              $form['scholar_skill_choice'] = [
-                '#type' => 'radios',
-                '#title' => $this->t('Choose Primary Skill'),
-                '#options' => [
-                  'Arcana' => 'Arcana (magic and spells)',
-                  'Nature' => 'Nature (wilderness and animals)',
-                  'Occultism' => 'Occultism (mysteries and spirits)',
-                  'Religion' => 'Religion (gods and divine power)',
-                ],
-                '#default_value' => $character_data['scholar_skill_choice'] ?? 'Arcana',
-                '#required' => FALSE,
-                '#description' => $this->t('Scholars can specialize in one of these knowledge domains.'),
-              ];
-            }
-          }
-        }
-        break;
-
-      case 4:
-        $form['class'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Class Role'),
-          '#required' => TRUE,
-          '#options' => $this->getClassOptions(),
-          '#default_value' => $character_data['class'] ?? '',
-          '#description' => $this->t('Choose how your character will contribute to the party across many campaigns. Consider what role you\'ll enjoy playing across dozens of sessions.'),
-        ];
-
-        // Key Ability Selection (if class has multiple options)
-        if (!empty($character_data['class'])) {
-          $class_data = CharacterManager::CLASSES[$character_data['class']] ?? NULL;
-          if ($class_data) {
-            $key_ability_raw = $class_data['key_ability'] ?? '';
-            $key_options = array_map('trim', explode(' or ', strtolower($key_ability_raw)));
-
-            // If class has choice of key abilities, show selector
-            if (count($key_options) > 1) {
-              $form['class_key_ability_help'] = [
-                '#markup' => '<div class="section-instructions class-key-ability-section">'
-                  . '<h3>' . $this->t('Choose Key Ability') . '</h3>'
-                  . '<p>' . $this->t('Your class allows a choice of key ability. This determines which ability receives a boost from your class.') . '</p>'
-                  . '</div>',
-              ];
-
-              $key_ability_options = [];
-              foreach ($key_options as $option) {
-                $normalized = $this->abilityScoreTracker->normalizeAbilityKey($option);
-                if ($normalized) {
-                  $key_ability_options[$normalized] = ucfirst($normalized);
-                }
-              }
-
-              $form['class_key_ability'] = [
-                '#type' => 'radios',
-                '#title' => $this->t('Select Key Ability'),
-                '#options' => $key_ability_options,
-                '#default_value' => $character_data['class_key_ability'] ?? '',
-                '#required' => TRUE,
-                '#description' => $this->t('This ability will receive a +2 boost and is the primary ability for your class features.'),
-              ];
-            }
-            else {
-              // Fixed key ability - show as read-only
-              $key_ability = $this->abilityScoreTracker->normalizeAbilityKey($key_options[0]);
-              $form['class_key_ability_readonly'] = [
-                '#markup' => '<div class="class-info">'
-                  . '<p><strong>' . $this->t('Key Ability:') . '</strong> ' . ucfirst($key_ability ?? 'Unknown') . ' ' . $this->t('(automatically applied)') . '</p>'
-                  . '</div>',
-              ];
-            }
-
-            // Class Feat Selection
-            $selected_class = $character_data['class'];
-            $class_feats = CharacterManager::CLASS_FEATS[$selected_class] ?? [];
-            
-            if (!empty($class_feats)) {
-              $form['class_feat_section'] = [
-                '#markup' => '<div class="section-instructions class-feat-section">'
-                  . '<h3>' . $this->t('Class Feat') . '</h3>'
-                  . '<p>' . $this->t('Choose one 1st-level class feat. This represents specialized training or a unique technique for your class.') . '</p>'
-                  . '</div>',
-              ];
-
-              $feat_options = [];
-              $feat_descriptions = [];
-              
-              foreach ($class_feats as $feat) {
-                $feat_options[$feat['id']] = $feat['name'];
-                $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
-                $traits_text = !empty($feat['traits']) ? ' [' . implode(', ', $feat['traits']) . ']' : '';
-                $feat_descriptions[$feat['id']] = [
-                  '#markup' => '<div class="feat-description">'
-                    . '<strong>' . $feat['name'] . '</strong>' . $traits_text . $prereq_text . '<br>'
-                    . $feat['benefit']
-                    . '</div>',
-                ];
-              }
-
-              $form['class_feat'] = [
-                '#type' => 'radios',
-                '#title' => $this->t('Select Class Feat'),
-                '#options' => $feat_options,
-                '#default_value' => $character_data['class_feat'] ?? '',
-                '#required' => TRUE,
-                '#description' => $this->t('Each feat provides unique tactical options that define your combat style.'),
-              ];
-
-              // Add detailed descriptions for each feat
-              foreach ($feat_descriptions as $feat_id => $description_markup) {
-                $form['class_feat_desc_' . $feat_id] = $description_markup;
-                $form['class_feat_desc_' . $feat_id]['#states'] = [
-                  'visible' => [
-                    ':input[name="class_feat"]' => ['value' => $feat_id],
-                  ],
-                ];
-              }
-            }
-
-            // Spell Selection for Spellcasting Classes
-            if ($selected_class === 'wizard') {
-              $form['spells_section'] = [
-                '#markup' => '<div class="section-instructions spells-section">'
-                  . '<h3>' . $this->t('Spells') . '</h3>'
-                  . '<p>' . $this->t('As a Wizard, you begin with knowledge of arcane magic. Choose your starting cantrips and spells for your spellbook.') . '</p>'
-                  . '</div>',
-              ];
-
-              // Cantrip Selection (5 cantrips for Wizard at level 1)
-              $cantrips = CharacterManager::SPELLS['arcane']['cantrips'] ?? [];
-              $cantrip_options = [];
-              
-              foreach ($cantrips as $cantrip) {
-                $traits_text = !empty($cantrip['traits']) ? ' [' . implode(', ', $cantrip['traits']) . ']' : '';
-                $cantrip_options[$cantrip['id']] = $cantrip['name'] . $traits_text . ' - ' . $cantrip['description'];
-              }
-
-              $form['cantrips_help'] = [
-                '#markup' => '<div class="spell-help"><strong>' . $this->t('Cantrips (Select 5)') . '</strong><br>'
-                  . $this->t('Cantrips are spells you can cast at will. They heighten automatically to half your level. You should have a mix of offensive and utility cantrips.') 
-                  . '</div>',
-              ];
-
-              $form['cantrips'] = [
-                '#type' => 'checkboxes',
-                '#title' => $this->t('Choose 5 Cantrips'),
-                '#options' => $cantrip_options,
-                '#default_value' => $character_data['cantrips'] ?? [],
-                '#required' => FALSE,
-                '#description' => $this->t('Popular choices: Shield (defense), Electric Arc (damage), Detect Magic (utility), Prestidigitation (flexibility)'),
-              ];
-
-              // 1st Level Spell Selection (10 spells in spellbook for Wizard)
-              $first_level_spells = CharacterManager::SPELLS['arcane']['1st'] ?? [];
-              $spell_options = [];
-              
-              foreach ($first_level_spells as $spell) {
-                $traits_text = !empty($spell['traits']) ? ' [' . implode(', ', $spell['traits']) . ']' : '';
-                $spell_options[$spell['id']] = $spell['name'] . $traits_text . ' - ' . $spell['description'];
-              }
-
-              $form['spells_help'] = [
-                '#markup' => '<div class="spell-help"><strong>' . $this->t('1st Level Spells (Select up to 10)') . '</strong><br>'
-                  . $this->t('These spells are added to your spellbook. You can prepare 4 spells per day at level 1 (2 from class, +2 from INT modifier if you have 14+ INT). Choose versatile spells.') 
-                  . '</div>',
-              ];
-
-              $form['spells_first'] = [
-                '#type' => 'checkboxes',
-                '#title' => $this->t('Choose up to 10 First Level Spells'),
-                '#options' => $spell_options,
-                '#default_value' => $character_data['spells_first'] ?? [],
-                '#required' => FALSE,
-                '#description' => $this->t('Popular choices: Magic Missile (always hits), Mage Armor (AC), Sleep (crowd control), True Strike (accuracy)'),
-              ];
-            }
-          }
-        }
-        break;
-
-      case 5:
-        // Step 5: Free Ability Boosts (Pathbuilder-style interactive selection)
-        // Calculate current scores from ancestry + background + class
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        
-        // Prepare ability data for interactive widget
-        $abilities_data = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_data[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-            'selected' => in_array($ability_key, $character_data['free_boosts'] ?? [], TRUE),
-            'disabled' => FALSE,
-          ];
-        }
-
-        $form['abilities_help'] = [
-          '#markup' => '<div class="section-instructions">'
-            . '<p><strong>' . $this->t('Choose 4 abilities to boost') . '</strong></p>'
-            . '<p>' . $this->t('You have 4 free ability boosts to assign. Each boost adds +2 to an ability score (or +1 if the score is already 18 or higher). You cannot boost the same ability twice in this step.') . '</p>'
-            . '<p class="tip">' . $this->t('💡 Tip: Consider boosting your class\'s key ability and abilities that complement your playstyle. Most characters benefit from having at least one high ability score (16-18).') . '</p>'
-            . '</div>',
-        ];
-
-        // Render interactive ability widget using Twig template
-        $form['ability_selector'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_data,
-          '#mode' => 'interactive',
-          '#show_sources' => TRUE,
-          '#boosts_remaining' => 4 - count($character_data['free_boosts'] ?? []),
-          '#boosts_total' => 4,
-          '#attributes' => [
-            'data-step' => 'free',
-            'data-max-boosts' => 4,
-            'data-character-data' => json_encode($character_data),
-          ],
-        ];
-
-        // Hidden field to store selected boosts
-        $form['free_boosts'] = [
-          '#type' => 'hidden',
-          '#default_value' => json_encode($character_data['free_boosts'] ?? []),
-          '#attributes' => ['id' => 'free-boosts-field'],
-        ];
-        break;
-
-      case 6:
-        // Ability preview showing final scores
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        $abilities_preview = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_preview[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-          ];
-        }
-        
-        $form['ability_preview'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_preview,
-          '#mode' => 'compact',
-          '#show_sources' => TRUE,
-          '#help_text' => $this->t('Final ability scores'),
-        ];
-
-        // Skill Training Selection
-        $selected_class = $character_data['class'] ?? '';
-        if (!empty($selected_class)) {
-          $class_data = CharacterManager::CLASSES[$selected_class] ?? NULL;
-          if ($class_data) {
-            $trained_skills = $class_data['trained_skills'] ?? 3;
-            
-            // Calculate Intelligence modifier for bonus skills
-            $int_modifier = $calculation['modifiers']['intelligence'] ?? 0;
-            $total_skill_picks = max(1, $trained_skills + $int_modifier);
-
-            $form['skills_section'] = [
-              '#markup' => '<div class="section-instructions skills-section">'
-                . '<h3>' . $this->t('Skill Training') . '</h3>'
-                . '<p>' . $this->t('Choose @count skills to be trained in.', ['@count' => $total_skill_picks])
-                . ' <em>' . $this->t('(@base from class + @bonus from Intelligence)', ['@base' => $trained_skills, '@bonus' => $int_modifier]) . '</em></p>'
-                . '<p class="help-text">' . $this->t('Being trained in a skill gives you a +2 proficiency bonus. Choose skills that complement your class and planned activities.') . '</p>'
-                . '</div>',
-            ];
-
-            $all_skills = [
-              'Acrobatics' => 'Acrobatics - Balance, tumble, maneuver while flying',
-              'Arcana' => 'Arcana - Recall knowledge about arcane magic, traditions, creatures',
-              'Athletics' => 'Athletics - Climb, force open, grapple, swim',
-              'Crafting' => 'Crafting - Repair items, identify alchemical objects, craft goods',
-              'Deception' => 'Deception - Create a diversion, feint, lie, impersonate',
-              'Diplomacy' => 'Diplomacy - Gather information, make an impression, request',
-              'Intimidation' => 'Intimidation - Coerce, demoralize',
-              'Medicine' => 'Medicine - Administer first aid, treat disease, treat poison',
-              'Nature' => 'Nature - Command an animal, recall knowledge about natural creatures',
-              'Occultism' => 'Occultism - Recall knowledge about occult topics, creatures',
-              'Performance' => 'Performance - Act, dance, play instrument, give speech',
-              'Religion' => 'Religion - Recall knowledge about divine topics, creatures',
-              'Society' => 'Society - Recall knowledge about society, civilization, history',
-              'Stealth' => 'Stealth - Conceal an object, hide, sneak',
-              'Survival' => 'Survival - Cover tracks, sense direction, subsist, track',
-              'Thievery' => 'Thievery - Palm an object, disable a device, pick a lock',
-            ];
-
-            $form['trained_skills'] = [
-              '#type' => 'checkboxes',
-              '#title' => $this->t('Select Skills'),
-              '#options' => $all_skills,
-              '#default_value' => $character_data['trained_skills'] ?? [],
-              '#description' => $this->t('Select exactly @count skill(s). You can gain additional skills from feats and ancestry features.', ['@count' => $total_skill_picks]),
-              '#required' => FALSE,
-            ];
-          }
-        }
-
-        $form['alignment'] = [
-          '#type' => 'select',
-          '#title' => $this->t('Legacy Alignment'),
-          '#required' => TRUE,
-          '#options' => $this->getAlignmentOptions(),
-          '#default_value' => $character_data['alignment'] ?? '',
-          '#description' => $this->t('This character\'s moral and ethical compass will guide roleplay decisions across the entire span of their campaign life.'),
-        ];
-        $this->applySchemaValidationAttributes($form['alignment'], $schema_fields, 'alignment');
-        $form['deity'] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Deity or Guiding Belief (Optional)'),
-          '#default_value' => $character_data['deity'] ?? '',
-          '#placeholder' => $this->t('e.g., Iomedae, The Old Gods, Ancestor Oath, Unaligned'),
-          '#description' => $this->t('Optional: A spiritual patron or philosophy that will anchor your character\'s identity and roleplay flavor across all campaigns.'),
-        ];
-        $this->applySchemaValidationAttributes($form['deity'], $schema_fields, 'deity');
-        break;
-
-      case 7:
-        // Ability preview for reference during equipment selection
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        $abilities_preview = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_preview[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-          ];
-        }
-        
-        $form['ability_preview'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_preview,
-          '#mode' => 'compact',
-          '#show_sources' => FALSE,
-          '#help_text' => $this->t('Your character\'s abilities'),
-        ];
-
-        $catalog = $this->getEquipmentCatalog();
-        $catalog_by_id = [];
-        $options = [];
-
-        foreach ($catalog as $category => $items) {
-          foreach ($items as $item) {
-            $catalog_by_id[$item['id']] = $item;
-            $options[$item['id']] = $item['name'] . ' (' . (float) $item['cost'] . ' gp)';
-          }
-        }
-
-        $selected_ids = [];
-        foreach (($character_data['equipment'] ?? []) as $selected_item) {
-          if (!empty($selected_item['id'])) {
-            $selected_ids[] = $selected_item['id'];
-          }
-        }
-
-        $selected_cost = 0.0;
-        foreach ($selected_ids as $item_id) {
-          if (isset($catalog_by_id[$item_id])) {
-            $selected_cost += (float) $catalog_by_id[$item_id]['cost'];
-          }
-        }
-
-        $remaining_gold = max(0, 15 - $selected_cost);
-
-        $form['equipment_intro'] = [
-          '#markup' => '<div class="section-instructions equipment-intro">'
-            . '<h3>' . $this->t('Starting Equipment') . '</h3>'
-            . '<p>' . $this->t('Assemble your starting loadout with up to 15 gp. Choose wisely - these items will be your tools for survival in early adventures.') . '</p>'
-            . '</div>',
-        ];
-
-        $form['starting_gold'] = [
-          '#markup' => '<div class="gold-display" style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">'
-            . '<div style="font-size: 24px; font-weight: bold; color: #856404;">'
-            . '<span class="gold-icon" style="font-size: 32px;">🪙</span> '
-            . $this->t('Budget: @gold gp', ['@gold' => 15])
-            . '</div>'
-            . '<div style="font-size: 16px; margin-top: 10px; color: #856404;">'
-            . $this->t('Spent: <strong>@cost gp</strong> • Remaining: <strong style="color: @color;">@remaining gp</strong>', [
-              '@cost' => number_format($selected_cost, 1),
-              '@remaining' => number_format($remaining_gold, 1),
-              '@color' => $remaining_gold > 0 ? '#28a745' : '#dc3545',
-            ])
-            . '</div>'
-            . '</div>',
-        ];
-
-        // Organize equipment by category
-        $form['equipment_weapons'] = [
-          '#type' => 'details',
-          '#title' => $this->t('⚔️ Weapons'),
-          '#open' => TRUE,
-        ];
-
-        $form['equipment_armor'] = [
-          '#type' => 'details',
-          '#title' => $this->t('🛡️ Armor & Shields'),
-          '#open' => TRUE,
-        ];
-
-        $form['equipment_gear'] = [
-          '#type' => 'details',
-          '#title' => $this->t('🎒 Adventuring Gear'),
-          '#open' => TRUE,
-        ];
-
-        // Build categorized options
-        $weapons_options = [];
-        $armor_options = [];
-        $gear_options = [];
-
-        foreach ($catalog as $category => $items) {
-          foreach ($items as $item) {
-            $catalog_by_id[$item['id']] = $item;
-            $item_label = $item['name'] . ' (' . (float) $item['cost'] . ' gp)';
-            
-            // Add extra info for weapons and armor
-            if ($category === 'weapons' && !empty($item['damage'])) {
-              $item_label .= ' - ' . $item['damage'] . ' damage';
-            }
-            elseif ($category === 'armor' && !empty($item['ac'])) {
-              $item_label .= ' - AC ' . $item['ac'];
-            }
-
-            if ($category === 'weapons') {
-              $weapons_options[$item['id']] = $item_label;
-            }
-            elseif ($category === 'armor') {
-              $armor_options[$item['id']] = $item_label;
-            }
-            else {
-              $gear_options[$item['id']] = $item_label;
-            }
-          }
-        }
-
-        $form['equipment_weapons']['weapons'] = [
-          '#type' => 'checkboxes',
-          '#options' => $weapons_options,
-          '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['weapons']) && in_array($id, array_column($catalog['weapons'], 'id'))),
-          '#description' => $this->t('Select weapons for combat. Consider your class proficiencies.'),
-        ];
-
-        $form['equipment_armor']['armor'] = [
-          '#type' => 'checkboxes',
-          '#options' => $armor_options,
-          '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['armor']) && in_array($id, array_column($catalog['armor'], 'id'))),
-          '#description' => $this->t('Choose armor and shields for protection. Heavy armor may slow you down.'),
-        ];
-
-        $form['equipment_gear']['gear'] = [
-          '#type' => 'checkboxes',
-          '#options' => $gear_options,
-          '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['gear']) && in_array($id, array_column($catalog['gear'], 'id'))),
-          '#description' => $this->t('Essential adventuring supplies: rope, torches, rations, and tools.'),
-        ];
-
-        // Keep old equipment field for backwards compatibility
-        $form['equipment'] = [
-          '#type' => 'hidden',
-          '#default_value' => json_encode($selected_ids),
-        ];
-
-        $form['equipment_help'] = [
-          '#markup' => '<div class="equipment-tips" style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0;">'
-            . '<h4 style="margin-top: 0; color: #1976D2;">💡 ' . $this->t('Equipment Tips') . '</h4>'
-            . '<ul style="margin-bottom: 0;">'
-            . '<li>' . $this->t('<strong>Weapons:</strong> Choose at least one weapon your class is proficient with.') . '</li>'
-            . '<li>' . $this->t('<strong>Armor:</strong> Wizards and sorcerers typically wear no armor. Fighters can wear heavy armor.') . '</li>'
-            . '<li>' . $this->t('<strong>Essentials:</strong> Don\'t forget rope, torches, and a backpack!') . '</li>'
-            . '<li>' . $this->t('<strong>Gold:</strong> Unspent gold carries over to your starting funds.') . '</li>'
-            . '</ul>'
-            . '</div>',
-        ];
-        break;
-
-      case 8:
-        // Final ability scores summary
-        $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
-        $abilities_preview = [];
-        foreach ($calculation['scores'] as $ability_key => $score) {
-          $abilities_preview[$ability_key] = [
-            'score' => $score,
-            'modifier' => $calculation['modifiers'][$ability_key],
-            'sources' => $calculation['sources'][$ability_key] ?? [],
-          ];
-        }
-        
-        $form['ability_preview'] = [
-          '#theme' => 'character_ability_widget',
-          '#abilities' => $abilities_preview,
-          '#mode' => 'compact',
-          '#show_sources' => TRUE,
-          '#help_text' => $this->t('Final ability scores - Review your character'),
-        ];
-
-        $form['portrait_generation'] = [
-          '#type' => 'details',
-          '#title' => $this->t('Portrait Generation'),
-          '#open' => TRUE,
-        ];
-        $form['portrait_generation']['portrait_generate'] = [
-          '#type' => 'checkbox',
-          '#title' => $this->t('Generate a character portrait'),
-          '#default_value' => (int) ($character_data['portrait_generate'] ?? 1),
-          '#parents' => ['portrait_generate'],
-          '#description' => $this->t('Creates a portrait using the configured AI image provider after character creation.'),
-        ];
-        $form['portrait_generation']['portrait_prompt'] = [
-          '#type' => 'textarea',
-          '#title' => $this->t('Portrait prompt (optional)'),
-          '#default_value' => $character_data['portrait_prompt'] ?? '',
-          '#rows' => 3,
-          '#maxlength' => 500,
-          '#parents' => ['portrait_prompt'],
-          '#description' => $this->t('Add extra visual direction. Character attributes will be injected automatically.'),
-        ];
-        $form['age'] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Age / Life Stage'),
-          '#default_value' => $character_data['age'] ?? '',
-          '#maxlength' => 10,
-          '#placeholder' => $this->t('e.g., 28, middle-aged, elderly'),
-          '#description' => $this->t('Optional: Your character\'s age or life stage informs their experience and how they might view future growth and eventual retirement.'),
-        ];
-        $form['gender'] = [
-          '#type' => 'textfield',
-          '#title' => $this->t('Gender / Pronouns'),
-          '#default_value' => $character_data['gender'] ?? '',
-          '#maxlength' => 50,
-          '#placeholder' => $this->t('e.g., she/her, he/him, they/them'),
-          '#description' => $this->t('Optional: How you present your character at the table. Respected by all players for long-term roleplay and respect.'),
-        ];
-        $form['appearance'] = [
-          '#type' => 'textarea',
-          '#title' => $this->t('Appearance & Presence'),
-          '#default_value' => $character_data['appearance'] ?? '',
-          '#rows' => 3,
-          '#placeholder' => $this->t('What distinguishing features, scars, or style will make this character memorable?'),
-          '#description' => $this->t('Tell the table what they see: build, distinctive features, clothing style. This is what other players will picture across every campaign session.'),
-        ];
-        $form['personality'] = [
-          '#type' => 'textarea',
-          '#title' => $this->t('Personality & Table Voice'),
-          '#default_value' => $character_data['personality'] ?? '',
-          '#rows' => 3,
-          '#placeholder' => $this->t('How does this character speak and act? What are their quirks, habits, and mannerisms?'),
-          '#description' => $this->t('Define the emotional tone and voice you\'ll bring to roleplay. Think about personality traits you can embody consistently over many sessions.'),
-        ];
-        $form['backstory'] = [
-          '#type' => 'textarea',
-          '#title' => $this->t('Backstory & Legacy Goal'),
-          '#default_value' => $character_data['backstory'] ?? '',
-          '#rows' => 5,
-          '#placeholder' => $this->t('Where did this character come from? What drives them? What is their ultimate goal (which could be a noble end like retirement or legendary status)?'),
-          '#description' => $this->t('Frame your character\'s story with an arc in mind: how they begin, what motivates them, and an end goal they might work toward across years of campaigning. This becomes your character\'s lasting legacy.'),
-        ];
-        break;
+      }
+      else {
+        $this->clearStaleOptionInput($form_state, 'ancestry_feat', []);
+      }
     }
+  }
+
+  /**
+   * Builds Step 3 fields.
+   */
+  private function buildStep3Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    $form['background'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Pre-Campaign Background'),
+      '#required' => TRUE,
+      '#options' => $this->getBackgroundOptions(),
+      '#default_value' => $character_data['background'] ?? '',
+      '#description' => $this->t('Your character\'s former life shaped who they are. This choice grants lasting skills and a foundation for long-term roleplay consistency.'),
+    ];
+
+    // Background Ability Boosts (2 free boosts)
+    $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
+    $abilities_data = $this->buildInteractiveAbilityData($calculation, $character_data['background_boosts'] ?? []);
+
+    $form['background_boosts_help'] = [
+      '#markup' => '<div class="section-instructions background-boosts-section">'
+        . '<h3>' . $this->t('Background Ability Boosts') . '</h3>'
+        . '<p>' . $this->t('Your background grants 2 free ability boosts. Choose any two different abilities to boost.') . '</p>'
+        . '</div>',
+    ];
+
+    $form['background_boosts_selector'] = [
+      '#theme' => 'character_ability_widget',
+      '#abilities' => $abilities_data,
+      '#mode' => 'interactive',
+      '#show_sources' => TRUE,
+      '#boosts_remaining' => 2 - count($character_data['background_boosts'] ?? []),
+      '#boosts_total' => 2,
+      '#attributes' => [
+        'data-step' => 'background',
+        'data-max-boosts' => 2,
+        'data-character-data' => json_encode($character_data),
+      ],
+    ];
+
+    $form['background_boosts'] = [
+      '#type' => 'hidden',
+      '#default_value' => json_encode($character_data['background_boosts'] ?? []),
+      '#attributes' => ['id' => 'background-boosts-field'],
+    ];
+
+    // Background Skill Training
+    $selected_background = $form_state->getValue('background') ?: $character_data['background'] ?? '';
+    if (!empty($selected_background)) {
+      $background_data = CharacterManager::BACKGROUNDS[$selected_background] ?? NULL;
+      
+      if ($background_data) {
+        $form['background_skills_section'] = [
+          '#markup' => '<div class="section-instructions background-skills-section">'
+            . '<h3>' . $this->t('Background Skills') . '</h3>'
+            . '<p>' . $this->t('Your background grants training in a specific skill and lore, plus a skill feat.') . '</p>'
+            . '</div>',
+        ];
+
+        $form['background_skill'] = [
+          '#markup' => '<div class="background-benefit">'
+            . '<p><strong>' . $this->t('Skill Training:') . '</strong> ' . ($background_data['skill'] ?? 'Varies') . '</p>'
+            . '<p><strong>' . $this->t('Lore Skill:') . '</strong> ' . ($background_data['lore'] ?? 'Varies') . '</p>'
+            . '<p><strong>' . $this->t('Skill Feat:') . '</strong> ' . ($background_data['feat'] ?? 'Varies') . '</p>'
+            . '<p class="help-text">' . $this->t('These will be automatically applied to your character.') . '</p>'
+            . '</div>',
+        ];
+
+        // For backgrounds with skill choices (like Scholar), add selector
+        if ($selected_background === 'scholar') {
+          $form['scholar_skill_choice'] = [
+            '#type' => 'radios',
+            '#title' => $this->t('Choose Primary Skill'),
+            '#options' => [
+              'Arcana' => 'Arcana (magic and spells)',
+              'Nature' => 'Nature (wilderness and animals)',
+              'Occultism' => 'Occultism (mysteries and spirits)',
+              'Religion' => 'Religion (gods and divine power)',
+            ],
+            '#default_value' => $character_data['scholar_skill_choice'] ?? 'Arcana',
+            '#required' => FALSE,
+            '#description' => $this->t('Scholars can specialize in one of these knowledge domains.'),
+          ];
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds Step 4 fields.
+   */
+  private function buildStep4Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    $form['class'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Class Role'),
+      '#required' => TRUE,
+      '#options' => $this->getClassOptions(),
+      '#default_value' => $character_data['class'] ?? '',
+      '#description' => $this->t('Choose how your character will contribute to the party across many campaigns. Consider what role you\'ll enjoy playing across dozens of sessions.'),
+    ];
+
+    // Key Ability Selection (if class has multiple options)
+    if (!empty($character_data['class'])) {
+      $class_data = CharacterManager::CLASSES[$character_data['class']] ?? NULL;
+      if ($class_data) {
+        $key_ability_raw = $class_data['key_ability'] ?? '';
+        $key_options = array_map('trim', explode(' or ', strtolower($key_ability_raw)));
+
+        // If class has choice of key abilities, show selector
+        if (count($key_options) > 1) {
+          $form['class_key_ability_help'] = [
+            '#markup' => '<div class="section-instructions class-key-ability-section">'
+              . '<h3>' . $this->t('Choose Key Ability') . '</h3>'
+              . '<p>' . $this->t('Your class allows a choice of key ability. This determines which ability receives a boost from your class.') . '</p>'
+              . '</div>',
+          ];
+
+          $key_ability_options = [];
+          foreach ($key_options as $option) {
+            $normalized = $this->abilityScoreTracker->normalizeAbilityKey($option);
+            if ($normalized) {
+              $key_ability_options[$normalized] = ucfirst($normalized);
+            }
+          }
+
+          $form['class_key_ability'] = [
+            '#type' => 'radios',
+            '#title' => $this->t('Select Key Ability'),
+            '#options' => $key_ability_options,
+            '#default_value' => $character_data['class_key_ability'] ?? '',
+            '#required' => TRUE,
+            '#description' => $this->t('This ability will receive a +2 boost and is the primary ability for your class features.'),
+          ];
+        }
+        else {
+          // Fixed key ability - show as read-only
+          $key_ability = $this->abilityScoreTracker->normalizeAbilityKey($key_options[0]);
+          $form['class_key_ability_readonly'] = [
+            '#markup' => '<div class="class-info">'
+              . '<p><strong>' . $this->t('Key Ability:') . '</strong> ' . ucfirst($key_ability ?? 'Unknown') . ' ' . $this->t('(automatically applied)') . '</p>'
+              . '</div>',
+          ];
+        }
+
+        // Class Feat Selection
+        $selected_class = $character_data['class'];
+        $class_feats = CharacterManager::CLASS_FEATS[$selected_class] ?? [];
+        
+        if (!empty($class_feats)) {
+          $form['class_feat_section'] = [
+            '#markup' => '<div class="section-instructions class-feat-section">'
+              . '<h3>' . $this->t('Class Feat') . '</h3>'
+              . '<p>' . $this->t('Choose one 1st-level class feat. This represents specialized training or a unique technique for your class.') . '</p>'
+              . '</div>',
+          ];
+
+          $feat_options = [];
+          $feat_descriptions = [];
+          
+          foreach ($class_feats as $feat) {
+            $feat_options[$feat['id']] = $feat['name'];
+            $prereq_text = !empty($feat['prerequisites']) ? ' <em>(Requires: ' . $feat['prerequisites'] . ')</em>' : '';
+            $traits_text = !empty($feat['traits']) ? ' [' . implode(', ', $feat['traits']) . ']' : '';
+            $feat_descriptions[$feat['id']] = [
+              '#markup' => '<div class="feat-description">'
+                . '<strong>' . $feat['name'] . '</strong>' . $traits_text . $prereq_text . '<br>'
+                . $feat['benefit']
+                . '</div>',
+            ];
+          }
+
+          $form['class_feat'] = [
+            '#type' => 'radios',
+            '#title' => $this->t('Select Class Feat'),
+            '#options' => $feat_options,
+            '#default_value' => $character_data['class_feat'] ?? '',
+            '#required' => TRUE,
+            '#description' => $this->t('Each feat provides unique tactical options that define your combat style.'),
+          ];
+
+          // Add detailed descriptions for each feat
+          foreach ($feat_descriptions as $feat_id => $description_markup) {
+            $form['class_feat_desc_' . $feat_id] = $description_markup;
+            $form['class_feat_desc_' . $feat_id]['#states'] = [
+              'visible' => [
+                ':input[name="class_feat"]' => ['value' => $feat_id],
+              ],
+            ];
+          }
+        }
+
+        // Spell Selection for Spellcasting Classes
+        if ($selected_class === 'wizard') {
+          $form['spells_section'] = [
+            '#markup' => '<div class="section-instructions spells-section">'
+              . '<h3>' . $this->t('Spells') . '</h3>'
+              . '<p>' . $this->t('As a Wizard, you begin with knowledge of arcane magic. Choose your starting cantrips and spells for your spellbook.') . '</p>'
+              . '</div>',
+          ];
+
+          // Cantrip Selection (5 cantrips for Wizard at level 1)
+          $cantrips = CharacterManager::SPELLS['arcane']['cantrips'] ?? [];
+          $cantrip_options = [];
+          
+          foreach ($cantrips as $cantrip) {
+            $traits_text = !empty($cantrip['traits']) ? ' [' . implode(', ', $cantrip['traits']) . ']' : '';
+            $cantrip_options[$cantrip['id']] = $cantrip['name'] . $traits_text . ' - ' . $cantrip['description'];
+          }
+
+          $form['cantrips_help'] = [
+            '#markup' => '<div class="spell-help"><strong>' . $this->t('Cantrips (Select 5)') . '</strong><br>'
+              . $this->t('Cantrips are spells you can cast at will. They heighten automatically to half your level. You should have a mix of offensive and utility cantrips.') 
+              . '</div>',
+          ];
+
+          $form['cantrips'] = [
+            '#type' => 'checkboxes',
+            '#title' => $this->t('Choose 5 Cantrips'),
+            '#options' => $cantrip_options,
+            '#default_value' => $character_data['cantrips'] ?? [],
+            '#required' => FALSE,
+            '#description' => $this->t('Popular choices: Shield (defense), Electric Arc (damage), Detect Magic (utility), Prestidigitation (flexibility)'),
+          ];
+
+          // 1st Level Spell Selection (10 spells in spellbook for Wizard)
+          $first_level_spells = CharacterManager::SPELLS['arcane']['1st'] ?? [];
+          $spell_options = [];
+          
+          foreach ($first_level_spells as $spell) {
+            $traits_text = !empty($spell['traits']) ? ' [' . implode(', ', $spell['traits']) . ']' : '';
+            $spell_options[$spell['id']] = $spell['name'] . $traits_text . ' - ' . $spell['description'];
+          }
+
+          $form['spells_help'] = [
+            '#markup' => '<div class="spell-help"><strong>' . $this->t('1st Level Spells (Select up to 10)') . '</strong><br>'
+              . $this->t('These spells are added to your spellbook. You can prepare 4 spells per day at level 1 (2 from class, +2 from INT modifier if you have 14+ INT). Choose versatile spells.') 
+              . '</div>',
+          ];
+
+          $form['spells_first'] = [
+            '#type' => 'checkboxes',
+            '#title' => $this->t('Choose up to 10 First Level Spells'),
+            '#options' => $spell_options,
+            '#default_value' => $character_data['spells_first'] ?? [],
+            '#required' => FALSE,
+            '#description' => $this->t('Popular choices: Magic Missile (always hits), Mage Armor (AC), Sleep (crowd control), True Strike (accuracy)'),
+          ];
+        }
+      }
+    }
+  }
+
+  /**
+   * Builds Step 5 fields.
+   */
+  private function buildStep5Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    // Step 5: Free Ability Boosts (Pathbuilder-style interactive selection)
+    // Calculate current scores from ancestry + background + class
+    $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
+    
+    $abilities_data = $this->buildInteractiveAbilityData($calculation, $character_data['free_boosts'] ?? []);
+
+    $form['abilities_help'] = [
+      '#markup' => '<div class="section-instructions">'
+        . '<p><strong>' . $this->t('Choose 4 abilities to boost') . '</strong></p>'
+        . '<p>' . $this->t('You have 4 free ability boosts to assign. Each boost adds +2 to an ability score (or +1 if the score is already 18 or higher). You cannot boost the same ability twice in this step.') . '</p>'
+        . '<p class="tip">' . $this->t('💡 Tip: Consider boosting your class\'s key ability and abilities that complement your playstyle. Most characters benefit from having at least one high ability score (16-18).') . '</p>'
+        . '</div>',
+    ];
+
+    // Render interactive ability widget using Twig template
+    $form['ability_selector'] = [
+      '#theme' => 'character_ability_widget',
+      '#abilities' => $abilities_data,
+      '#mode' => 'interactive',
+      '#show_sources' => TRUE,
+      '#boosts_remaining' => 4 - count($character_data['free_boosts'] ?? []),
+      '#boosts_total' => 4,
+      '#attributes' => [
+        'data-step' => 'free',
+        'data-max-boosts' => 4,
+        'data-character-data' => json_encode($character_data),
+      ],
+    ];
+
+    // Hidden field to store selected boosts
+    $form['free_boosts'] = [
+      '#type' => 'hidden',
+      '#default_value' => json_encode($character_data['free_boosts'] ?? []),
+      '#attributes' => ['id' => 'free-boosts-field'],
+    ];
+  }
+
+  /**
+   * Builds Step 6 fields.
+   */
+  private function buildStep6Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
+    $this->attachAbilityPreview($form, $character_data, 'Final ability scores');
+
+    // Skill Training Selection
+    $selected_class = $character_data['class'] ?? '';
+    if (!empty($selected_class)) {
+      $class_data = CharacterManager::CLASSES[$selected_class] ?? NULL;
+      if ($class_data) {
+        $trained_skills = $class_data['trained_skills'] ?? 3;
+        
+        // Calculate Intelligence modifier for bonus skills
+        $int_modifier = $calculation['modifiers']['intelligence'] ?? 0;
+        $total_skill_picks = max(1, $trained_skills + $int_modifier);
+
+        $form['skills_section'] = [
+          '#markup' => '<div class="section-instructions skills-section">'
+            . '<h3>' . $this->t('Skill Training') . '</h3>'
+            . '<p>' . $this->t('Choose @count skills to be trained in.', ['@count' => $total_skill_picks])
+            . ' <em>' . $this->t('(@base from class + @bonus from Intelligence)', ['@base' => $trained_skills, '@bonus' => $int_modifier]) . '</em></p>'
+            . '<p class="help-text">' . $this->t('Being trained in a skill gives you a +2 proficiency bonus. Choose skills that complement your class and planned activities.') . '</p>'
+            . '</div>',
+        ];
+
+        $all_skills = [
+          'Acrobatics' => 'Acrobatics - Balance, tumble, maneuver while flying',
+          'Arcana' => 'Arcana - Recall knowledge about arcane magic, traditions, creatures',
+          'Athletics' => 'Athletics - Climb, force open, grapple, swim',
+          'Crafting' => 'Crafting - Repair items, identify alchemical objects, craft goods',
+          'Deception' => 'Deception - Create a diversion, feint, lie, impersonate',
+          'Diplomacy' => 'Diplomacy - Gather information, make an impression, request',
+          'Intimidation' => 'Intimidation - Coerce, demoralize',
+          'Medicine' => 'Medicine - Administer first aid, treat disease, treat poison',
+          'Nature' => 'Nature - Command an animal, recall knowledge about natural creatures',
+          'Occultism' => 'Occultism - Recall knowledge about occult topics, creatures',
+          'Performance' => 'Performance - Act, dance, play instrument, give speech',
+          'Religion' => 'Religion - Recall knowledge about divine topics, creatures',
+          'Society' => 'Society - Recall knowledge about society, civilization, history',
+          'Stealth' => 'Stealth - Conceal an object, hide, sneak',
+          'Survival' => 'Survival - Cover tracks, sense direction, subsist, track',
+          'Thievery' => 'Thievery - Palm an object, disable a device, pick a lock',
+        ];
+
+        $form['trained_skills'] = [
+          '#type' => 'checkboxes',
+          '#title' => $this->t('Select Skills'),
+          '#options' => $all_skills,
+          '#default_value' => $character_data['trained_skills'] ?? [],
+          '#description' => $this->t('Select exactly @count skill(s). You can gain additional skills from feats and ancestry features.', ['@count' => $total_skill_picks]),
+          '#required' => FALSE,
+        ];
+
+        // Stash limit for validateForm() and expose to JS.
+        $form_state->set('total_skill_picks', $total_skill_picks);
+        $form['#attached']['drupalSettings']['characterStep6'] = [
+          'requiredSkills' => $total_skill_picks,
+        ];
+      }
+    }
+
+    $form['alignment'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Legacy Alignment'),
+      '#required' => TRUE,
+      '#options' => $this->getAlignmentOptions(),
+      '#default_value' => $character_data['alignment'] ?? '',
+      '#description' => $this->t('This character\'s moral and ethical compass will guide roleplay decisions across the entire span of their campaign life.'),
+    ];
+    $this->applySchemaValidationAttributes($form['alignment'], $schema_fields, 'alignment');
+    $form['deity'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Deity or Guiding Belief (Optional)'),
+      '#default_value' => $character_data['deity'] ?? '',
+      '#placeholder' => $this->t('e.g., Iomedae, The Old Gods, Ancestor Oath, Unaligned'),
+      '#description' => $this->t('Optional: A spiritual patron or philosophy that will anchor your character\'s identity and roleplay flavor across all campaigns.'),
+    ];
+    $this->applySchemaValidationAttributes($form['deity'], $schema_fields, 'deity');
+  }
+
+  /**
+   * Builds Step 7 fields.
+   */
+  private function buildStep7Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    $this->attachAbilityPreview($form, $character_data, "Your character's abilities", FALSE);
+
+    $catalog = $this->getEquipmentCatalog();
+    $catalog_by_id = [];
+    $options = [];
+
+    foreach ($catalog as $category => $items) {
+      foreach ($items as $item) {
+        $catalog_by_id[$item['id']] = $item;
+        $options[$item['id']] = $item['name'] . ' (' . (float) $item['cost'] . ' gp)';
+      }
+    }
+
+    $selected_ids = [];
+    foreach (($character_data['equipment'] ?? []) as $selected_item) {
+      if (!empty($selected_item['id'])) {
+        $selected_ids[] = $selected_item['id'];
+      }
+    }
+
+    $selected_cost = 0.0;
+    foreach ($selected_ids as $item_id) {
+      if (isset($catalog_by_id[$item_id])) {
+        $selected_cost += (float) $catalog_by_id[$item_id]['cost'];
+      }
+    }
+
+    $remaining_gold = max(0, 15 - $selected_cost);
+
+    $form['equipment_intro'] = [
+      '#markup' => '<div class="section-instructions equipment-intro">'
+        . '<h3>' . $this->t('Starting Equipment') . '</h3>'
+        . '<p>' . $this->t('Assemble your starting loadout with up to 15 gp. Choose wisely - these items will be your tools for survival in early adventures.') . '</p>'
+        . '</div>',
+    ];
+
+    $form['starting_gold'] = [
+      '#markup' => '<div class="gold-display" style="background: #fff3cd; border: 2px solid #ffc107; padding: 15px; border-radius: 8px; margin: 20px 0;">'
+        . '<div style="font-size: 24px; font-weight: bold; color: #856404;">'
+        . '<span class="gold-icon" style="font-size: 32px;">🪙</span> '
+        . $this->t('Budget: @gold gp', ['@gold' => 15])
+        . '</div>'
+        . '<div style="font-size: 16px; margin-top: 10px; color: #856404;">'
+        . $this->t('Spent: <strong>@cost gp</strong> • Remaining: <strong style="color: @color;">@remaining gp</strong>', [
+          '@cost' => number_format($selected_cost, 1),
+          '@remaining' => number_format($remaining_gold, 1),
+          '@color' => $remaining_gold > 0 ? '#28a745' : '#dc3545',
+        ])
+        . '</div>'
+        . '</div>',
+    ];
+
+    // Organize equipment by category
+    $form['equipment_weapons'] = [
+      '#type' => 'details',
+      '#title' => $this->t('⚔️ Weapons'),
+      '#open' => TRUE,
+    ];
+
+    $form['equipment_armor'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🛡️ Armor & Shields'),
+      '#open' => TRUE,
+    ];
+
+    $form['equipment_gear'] = [
+      '#type' => 'details',
+      '#title' => $this->t('🎒 Adventuring Gear'),
+      '#open' => TRUE,
+    ];
+
+    // Build categorized options
+    $weapons_options = [];
+    $armor_options = [];
+    $gear_options = [];
+
+    foreach ($catalog as $category => $items) {
+      foreach ($items as $item) {
+        $catalog_by_id[$item['id']] = $item;
+        $item_label = $item['name'] . ' (' . (float) $item['cost'] . ' gp)';
+        
+        // Add extra info for weapons and armor
+        if ($category === 'weapons' && !empty($item['damage'])) {
+          $item_label .= ' - ' . $item['damage'] . ' damage';
+        }
+        elseif ($category === 'armor' && !empty($item['ac'])) {
+          $item_label .= ' - AC ' . $item['ac'];
+        }
+
+        if ($category === 'weapons') {
+          $weapons_options[$item['id']] = $item_label;
+        }
+        elseif ($category === 'armor') {
+          $armor_options[$item['id']] = $item_label;
+        }
+        else {
+          $gear_options[$item['id']] = $item_label;
+        }
+      }
+    }
+
+    $form['equipment_weapons']['weapons'] = [
+      '#type' => 'checkboxes',
+      '#options' => $weapons_options,
+      '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['weapons']) && in_array($id, array_column($catalog['weapons'], 'id'))),
+      '#description' => $this->t('Select weapons for combat. Consider your class proficiencies.'),
+    ];
+
+    $form['equipment_armor']['armor'] = [
+      '#type' => 'checkboxes',
+      '#options' => $armor_options,
+      '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['armor']) && in_array($id, array_column($catalog['armor'], 'id'))),
+      '#description' => $this->t('Choose armor and shields for protection. Heavy armor may slow you down.'),
+    ];
+
+    $form['equipment_gear']['gear'] = [
+      '#type' => 'checkboxes',
+      '#options' => $gear_options,
+      '#default_value' => array_filter($selected_ids, fn($id) => isset($catalog['gear']) && in_array($id, array_column($catalog['gear'], 'id'))),
+      '#description' => $this->t('Essential adventuring supplies: rope, torches, rations, and tools.'),
+    ];
+
+    // Keep old equipment field for backwards compatibility
+    $form['equipment'] = [
+      '#type' => 'hidden',
+      '#default_value' => json_encode($selected_ids),
+    ];
+
+    // Pass catalog costs to JS so it doesn't have to regex-parse label text.
+    $js_catalog = [];
+    foreach ($catalog_by_id as $id => $item) {
+      $js_catalog[$id] = [
+        'cost' => (float) $item['cost'],
+        'name' => $item['name'],
+      ];
+    }
+    $form['#attached']['drupalSettings']['characterStep7'] = [
+      'budget' => 15,
+      'catalog' => $js_catalog,
+    ];
+
+    $form['equipment_help'] = [
+      '#markup' => '<div class="equipment-tips" style="background: #e7f3ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0;">'
+        . '<h4 style="margin-top: 0; color: #1976D2;">💡 ' . $this->t('Equipment Tips') . '</h4>'
+        . '<ul style="margin-bottom: 0;">'
+        . '<li>' . $this->t('<strong>Weapons:</strong> Choose at least one weapon your class is proficient with.') . '</li>'
+        . '<li>' . $this->t('<strong>Armor:</strong> Wizards and sorcerers typically wear no armor. Fighters can wear heavy armor.') . '</li>'
+        . '<li>' . $this->t('<strong>Essentials:</strong> Don\'t forget rope, torches, and a backpack!') . '</li>'
+        . '<li>' . $this->t('<strong>Gold:</strong> Unspent gold carries over to your starting funds.') . '</li>'
+        . '</ul>'
+        . '</div>',
+    ];
+  }
+
+  /**
+   * Builds Step 8 fields.
+   */
+  private function buildStep8Fields(array &$form, FormStateInterface $form_state, array $character_data, array $schema_fields): void {
+    $this->attachAbilityPreview($form, $character_data, 'Final ability scores - Review your character');
+
+    $form['portrait_generation'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Portrait Generation'),
+      '#open' => TRUE,
+    ];
+    $form['portrait_generation']['portrait_generate'] = [
+      '#type' => 'checkbox',
+      '#title' => $this->t('Generate a character portrait'),
+      '#default_value' => (int) ($character_data['portrait_generate'] ?? 1),
+      '#parents' => ['portrait_generate'],
+      '#description' => $this->t('Creates a portrait using the configured AI image provider after character creation.'),
+    ];
+    $form['portrait_generation']['portrait_prompt'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Portrait prompt (optional)'),
+      '#default_value' => $character_data['portrait_prompt'] ?? '',
+      '#rows' => 3,
+      '#maxlength' => 500,
+      '#parents' => ['portrait_prompt'],
+      '#description' => $this->t('Add extra visual direction. Character attributes will be injected automatically.'),
+    ];
+    $form['age'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Age / Life Stage'),
+      '#default_value' => $character_data['age'] ?? '',
+      '#maxlength' => 10,
+      '#placeholder' => $this->t('e.g., 28, middle-aged, elderly'),
+      '#description' => $this->t('Optional: Your character\'s age or life stage informs their experience and how they might view future growth and eventual retirement.'),
+    ];
+    $form['gender'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Gender / Pronouns'),
+      '#default_value' => $character_data['gender'] ?? '',
+      '#maxlength' => 50,
+      '#placeholder' => $this->t('e.g., she/her, he/him, they/them'),
+      '#description' => $this->t('Optional: How you present your character at the table. Respected by all players for long-term roleplay and respect.'),
+    ];
+    $form['appearance'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Appearance & Presence'),
+      '#default_value' => $character_data['appearance'] ?? '',
+      '#rows' => 3,
+      '#placeholder' => $this->t('What distinguishing features, scars, or style will make this character memorable?'),
+      '#description' => $this->t('Tell the table what they see: build, distinctive features, clothing style. This is what other players will picture across every campaign session.'),
+    ];
+    $form['personality'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Personality & Table Voice'),
+      '#default_value' => $character_data['personality'] ?? '',
+      '#rows' => 3,
+      '#placeholder' => $this->t('How does this character speak and act? What are their quirks, habits, and mannerisms?'),
+      '#description' => $this->t('Define the emotional tone and voice you\'ll bring to roleplay. Think about personality traits you can embody consistently over many sessions.'),
+    ];
+    $form['backstory'] = [
+      '#type' => 'textarea',
+      '#title' => $this->t('Backstory & Legacy Goal'),
+      '#default_value' => $character_data['backstory'] ?? '',
+      '#rows' => 5,
+      '#placeholder' => $this->t('Where did this character come from? What drives them? What is their ultimate goal (which could be a noble end like retirement or legendary status)?'),
+      '#description' => $this->t('Frame your character\'s story with an arc in mind: how they begin, what motivates them, and an end goal they might work toward across years of campaigning. This becomes your character\'s lasting legacy.'),
+    ];
   }
 
   /**
    * {@inheritdoc}
    */
-  public function validateForm(array &$form, FormStateInterface $form_state) {
+  public function validateForm(array &$form, FormStateInterface $form_state): void {
     $step = (int) $form_state->get('step');
-
-    $normalize_list = static function ($value): array {
-      if (is_string($value)) {
-        $decoded = json_decode($value, TRUE);
-        if (is_array($decoded)) {
-          $value = $decoded;
-        }
-        elseif (trim($value) === '') {
-          $value = [];
-        }
-        else {
-          $value = [$value];
-        }
-      }
-
-      if (!is_array($value)) {
-        return [];
-      }
-
-      return array_values(array_filter(array_map(static function ($item) {
-        return is_string($item) ? trim($item) : $item;
-      }, $value), static function ($item) {
-        return $item !== NULL && $item !== '';
-      }));
-    };
 
     switch ($step) {
       case 1:
@@ -1318,6 +1176,21 @@ class CharacterCreationStepForm extends FormBase {
         if (trim((string) $form_state->getValue('ancestry', '')) === '') {
           $form_state->setErrorByName('ancestry', $this->t('Ancestry selection is required.'));
         }
+        // Validate heritage if options exist for the selected ancestry.
+        $ancestry_val = trim((string) $form_state->getValue('ancestry', ''));
+        if ($ancestry_val !== '') {
+          $heritage_opts = $this->getHeritageOptions($ancestry_val);
+          if (count($heritage_opts) > 1 && trim((string) $form_state->getValue('heritage', '')) === '') {
+            $form_state->setErrorByName('heritage', $this->t('Heritage selection is required.'));
+          }
+          // Validate ancestry feat (enforced here instead of #required on the
+          // radios element to avoid browser :invalid pre-styling on page load).
+          $ancestry_name_val = $this->resolveAncestryName($ancestry_val);
+          $feats_for_ancestry = CharacterManager::ANCESTRY_FEATS[$ancestry_name_val] ?? [];
+          if (!empty($feats_for_ancestry) && trim((string) $form_state->getValue('ancestry_feat', '')) === '') {
+            $form_state->setErrorByName('ancestry_feat', $this->t('Ancestry feat selection is required.'));
+          }
+        }
         break;
 
       case 3:
@@ -1325,7 +1198,7 @@ class CharacterCreationStepForm extends FormBase {
           $form_state->setErrorByName('background', $this->t('Background selection is required.'));
         }
 
-        $background_boosts = $normalize_list($form_state->getValue('background_boosts', []));
+        $background_boosts = self::normalizeList($form_state->getValue('background_boosts', []));
         if (count($background_boosts) !== 2) {
           $form_state->setErrorByName('background_boosts', $this->t('Select exactly 2 background boosts.'));
         }
@@ -1341,7 +1214,7 @@ class CharacterCreationStepForm extends FormBase {
         break;
 
       case 5:
-        $free_boosts = $normalize_list($form_state->getValue('free_boosts', []));
+        $free_boosts = self::normalizeList($form_state->getValue('free_boosts', []));
         if (count($free_boosts) !== 4) {
           $form_state->setErrorByName('free_boosts', $this->t('Select exactly 4 free boosts.'));
         }
@@ -1354,6 +1227,51 @@ class CharacterCreationStepForm extends FormBase {
         if (trim((string) $form_state->getValue('alignment', '')) === '') {
           $form_state->setErrorByName('alignment', $this->t('Alignment selection is required.'));
         }
+
+        // Enforce exact skill count (class base + INT modifier).
+        $required_skills = (int) $form_state->get('total_skill_picks');
+        if ($required_skills > 0) {
+          $raw_skills = $form_state->getValue('trained_skills', []);
+          $selected_skills = is_array($raw_skills)
+            ? array_filter($raw_skills, static fn($v) => $v !== 0 && $v !== '' && $v !== NULL)
+            : [];
+          $count = count($selected_skills);
+          if ($count !== $required_skills) {
+            $form_state->setErrorByName('trained_skills', $this->t('Select exactly @count skill(s). You have selected @selected.', [
+              '@count' => $required_skills,
+              '@selected' => $count,
+            ]));
+          }
+        }
+        break;
+
+      case 7:
+        // Enforce 15 gp budget.
+        $catalog = $this->getEquipmentCatalog();
+        $catalog_by_id = [];
+        foreach ($catalog as $items) {
+          foreach ($items as $item) {
+            $catalog_by_id[$item['id']] = $item;
+          }
+        }
+
+        $equipment_cost = 0.0;
+        foreach (['weapons', 'armor', 'gear'] as $group) {
+          $raw = $form_state->getValue($group, []);
+          if (is_array($raw)) {
+            foreach (array_filter($raw) as $id) {
+              if (isset($catalog_by_id[$id])) {
+                $equipment_cost += (float) $catalog_by_id[$id]['cost'];
+              }
+            }
+          }
+        }
+
+        if ($equipment_cost > 15) {
+          $form_state->setErrorByName('weapons', $this->t('Total equipment cost (@cost gp) exceeds the 15 gp budget.', [
+            '@cost' => number_format($equipment_cost, 1),
+          ]));
+        }
         break;
     }
   }
@@ -1361,7 +1279,7 @@ class CharacterCreationStepForm extends FormBase {
   /**
    * {@inheritdoc}
    */
-  public function submitForm(array &$form, FormStateInterface $form_state) {
+  public function submitForm(array &$form, FormStateInterface $form_state): void {
     $step = $form_state->get('step');
     $character_id = $form_state->get('character_id');
     $campaign_id = $form_state->get('campaign_id');
@@ -1422,13 +1340,23 @@ class CharacterCreationStepForm extends FormBase {
     }
 
     if ((int) $step === 7) {
-      $selected_ids = array_filter((array) $form_state->getValue('equipment', []));
       $catalog = $this->getEquipmentCatalog();
       $catalog_by_id = [];
-
       foreach ($catalog as $items) {
         foreach ($items as $item) {
           $catalog_by_id[$item['id']] = $item;
+        }
+      }
+
+      // Collect selected IDs from the three checkbox groups (not the broken
+      // hidden JSON field).
+      $selected_ids = [];
+      foreach (['weapons', 'armor', 'gear'] as $group) {
+        $raw = $form_state->getValue($group, []);
+        if (is_array($raw)) {
+          foreach (array_filter($raw) as $id) {
+            $selected_ids[] = $id;
+          }
         }
       }
 
@@ -1441,15 +1369,80 @@ class CharacterCreationStepForm extends FormBase {
         }
       }
 
+      // Keep flat equipment list for backward compatibility.
       $character_data['equipment'] = $selected_items;
-      $character_data['gold'] = max(0, 15 - $total_cost);
+
+      $remaining_gp = max(0, round(15 - $total_cost, 2));
+      $character_data['gold'] = $remaining_gp;
+
+      // Build proper inventory structure matching CharacterStateService format.
+      $carried = [];
+      foreach ($selected_items as $item) {
+        $carried[] = [
+          'id' => $item['id'],
+          'name' => $item['name'],
+          'type' => $item['type'],
+          'bulk' => $item['bulk'] ?? 'L',
+          'quantity' => 1,
+          'traits' => $item['traits'] ?? [],
+        ];
+      }
+
+      // Calculate total bulk.
+      $total_bulk = 0;
+      foreach ($carried as $ci) {
+        $bulk_val = $ci['bulk'] ?? 'L';
+        if ($bulk_val === 'L' || $bulk_val === 'light') {
+          $total_bulk += 0.1;
+        }
+        elseif (is_numeric($bulk_val)) {
+          $total_bulk += (float) $bulk_val * ($ci['quantity'] ?? 1);
+        }
+      }
+      $total_bulk = round($total_bulk, 1);
+
+      // Determine encumbrance (matches CharacterStateService::calculateBulk).
+      $str_score = (int) ($character_data['strength'] ?? 10);
+      $encumbered_at = 5 + $str_score;
+      $overloaded_at = 10 + $str_score;
+      if ($total_bulk >= $overloaded_at) {
+        $encumbrance = 'overloaded';
+      }
+      elseif ($total_bulk >= $encumbered_at) {
+        $encumbrance = 'encumbered';
+      }
+      else {
+        $encumbrance = 'unencumbered';
+      }
+
+      $character_data['inventory'] = [
+        'worn' => [
+          'weapons' => [],
+          'armor' => NULL,
+          'accessories' => [],
+        ],
+        'carried' => $carried,
+        'currency' => [
+          'cp' => 0,
+          'sp' => 0,
+          'gp' => $remaining_gp,
+          'pp' => 0,
+        ],
+        'totalBulk' => $total_bulk,
+        'encumbrance' => $encumbrance,
+      ];
     }
 
-    $next_step = $this->getNextStep((int) $step);
+    $next_step = min(8, (int) $step + 1);
     $character_data['step'] = $next_step;
 
     // Save to database
-    $character_id = $this->saveCharacter($character_id, $character_data, $next_version);
+    $character_id = $this->saveCharacter($character_id, $character_data, $next_version, $campaign_id);
+
+    // Create dc_campaign_item_instances rows when inside a campaign context.
+    if ((int) $step === 7 && $campaign_id && !empty($selected_items)) {
+      $this->createCampaignItemInstances((int) $campaign_id, (int) $character_id, $selected_items);
+    }
 
     // Redirect to next step or character view
     if ($step >= 8) {
@@ -1478,79 +1471,6 @@ class CharacterCreationStepForm extends FormBase {
         'step' => $next_step,
       ], ['query' => $next_query]);
     }
-  }
-
-  /**
-   * Gets the next step in the wizard flow.
-   */
-  private function getNextStep(int $step): int {
-    return min(8, $step + 1);
-  }
-
-  /**
-   * Gets the previous step in the wizard flow.
-   */
-  private function getPreviousStep(int $step): int {
-    return max(1, $step - 1);
-  }
-
-  /**
-   * Calculates step-5 ability scores from prior character choices.
-   */
-  private function calculateAbilitiesFromSelections(array $character_data): array {
-    $abilities = [
-      'strength' => 10,
-      'dexterity' => 10,
-      'constitution' => 10,
-      'intelligence' => 10,
-      'wisdom' => 10,
-      'charisma' => 10,
-    ];
-
-    if (!empty($character_data['ancestry'])) {
-      $ancestry = NULL;
-      $selected_ancestry = strtolower((string) $character_data['ancestry']);
-      foreach (CharacterManager::ANCESTRIES as $ancestry_name => $ancestry_data) {
-        $ancestry_id = strtolower(str_replace(' ', '-', $ancestry_name));
-        if ($ancestry_id === $selected_ancestry) {
-          $ancestry = $ancestry_data;
-          break;
-        }
-      }
-      if ($ancestry) {
-        foreach (($ancestry['boosts'] ?? []) as $boost) {
-          $key = strtolower((string) $boost);
-          if (isset($abilities[$key])) {
-            $abilities[$key] = $this->applyAbilityBoost((int) $abilities[$key]);
-          }
-        }
-
-        $flaw_key = strtolower((string) ($ancestry['flaw'] ?? ''));
-        if (isset($abilities[$flaw_key])) {
-          $abilities[$flaw_key] = max(8, (int) $abilities[$flaw_key] - 2);
-        }
-      }
-    }
-
-    if (!empty($character_data['class'])) {
-      $class = CharacterManager::CLASSES[(string) $character_data['class']] ?? NULL;
-      if ($class && !empty($class['key_ability'])) {
-        $key_ability = strtolower((string) $class['key_ability']);
-        $primary = trim(explode(' or ', $key_ability)[0]);
-        if (isset($abilities[$primary])) {
-          $abilities[$primary] = $this->applyAbilityBoost((int) $abilities[$primary]);
-        }
-      }
-    }
-
-    return $abilities;
-  }
-
-  /**
-   * Applies PF2e ability boost rules.
-   */
-  private function applyAbilityBoost(int $score): int {
-    return $score < 18 ? $score + 2 : $score + 1;
   }
 
   /**
@@ -1613,20 +1533,22 @@ class CharacterCreationStepForm extends FormBase {
       'gear' => [],
     ];
 
-    if (!$this->database->schema()->tableExists('dungeoncrawler_content_item_instances') || !$this->database->schema()->tableExists('dungeoncrawler_content_registry')) {
+    if (!$this->database->schema()->tableExists('dungeoncrawler_content_registry')) {
       return $catalog;
     }
 
-    $query = $this->database->select('dungeoncrawler_content_item_instances', 'ii');
-    $query->fields('ii', ['item_id']);
-    $query->leftJoin('dungeoncrawler_content_registry', 'r', 'r.content_type = :content_type AND r.content_id = ii.item_id', [':content_type' => 'item']);
-    $query->fields('r', ['name', 'tags', 'schema_data']);
-    $query->distinct();
+    // Query curated starting equipment directly from the content registry.
+    // Filter: content_type = 'item', source from our content/items/ directory,
+    // level ≤ 1, and cost ≤ 15 gp (starter budget).
+    $query = $this->database->select('dungeoncrawler_content_registry', 'r');
+    $query->fields('r', ['content_id', 'name', 'tags', 'schema_data']);
+    $query->condition('r.content_type', 'item');
+    $query->condition('r.source_file', 'items/%', 'LIKE');
 
     $result = $query->execute();
 
     foreach ($result as $row) {
-      $item_id = (string) ($row->item_id ?? '');
+      $item_id = (string) ($row->content_id ?? '');
       if ($item_id === '') {
         continue;
       }
@@ -1636,29 +1558,64 @@ class CharacterCreationStepForm extends FormBase {
         $schema_data = [];
       }
 
+      // Calculate cost in gp from the nested price object.
+      $price = $schema_data['price'] ?? [];
+      $cost_gp = (float) ($price['gp'] ?? 0)
+        + (float) ($price['sp'] ?? 0) / 10
+        + (float) ($price['cp'] ?? 0) / 100
+        + (float) ($price['pp'] ?? 0) * 10;
+
+      // Fallback to flat price_gp for legacy scraped data.
+      if ($cost_gp == 0 && isset($schema_data['price_gp'])) {
+        $cost_gp = (float) $schema_data['price_gp'];
+      }
+
+      // Skip items over budget.
+      if ($cost_gp > 15) {
+        continue;
+      }
+
       $tags = $this->normalizeTags((string) ($row->tags ?? ''));
-      $category = $this->mapTemplateItemCategory((string) ($schema_data['item_type'] ?? ''), $tags);
+      $item_type = (string) ($schema_data['item_type'] ?? 'adventuring_gear');
+      $category = $this->mapTemplateItemCategory($item_type, $tags);
 
       $name = (string) ($row->name ?? '');
       if ($name === '') {
-        $name = ucwords(str_replace('_', ' ', $item_id));
+        $name = ucwords(str_replace(['_', '-'], ' ', $item_id));
       }
 
       $item = [
         'id' => $item_id,
         'name' => $name,
-        'type' => (string) ($schema_data['item_type'] ?? 'adventuring_gear'),
-        'cost' => (float) ($schema_data['price_gp'] ?? 0),
+        'type' => $item_type,
+        'cost' => round($cost_gp, 2),
         'bulk' => $schema_data['bulk'] ?? 'L',
-        'traits' => $tags,
+        'traits' => $schema_data['traits'] ?? $tags,
       ];
 
+      // Extract weapon stats from nested weapon_stats object.
       if ($category === 'weapons') {
-        $item['damage'] = (string) ($schema_data['damage'] ?? '');
+        $ws = $schema_data['weapon_stats'] ?? [];
+        $dmg = $ws['damage'] ?? [];
+        $dice = ($dmg['dice_count'] ?? 1) . ($dmg['die_size'] ?? '');
+        $dmg_type = $dmg['damage_type'] ?? '';
+        $dmg_abbrev = $dmg_type ? strtoupper($dmg_type[0]) : '';
+        $item['damage'] = trim($dice . ' ' . $dmg_abbrev);
         $item['hands'] = (int) ($schema_data['hands'] ?? 1);
       }
+      // Extract armor stats from nested armor_stats object.
       elseif ($category === 'armor') {
-        $item['ac'] = (string) ($schema_data['ac'] ?? '');
+        $as = $schema_data['armor_stats'] ?? [];
+        $ac_bonus = $as['ac_bonus'] ?? NULL;
+        if ($ac_bonus !== NULL) {
+          $item['ac'] = '+' . (int) $ac_bonus;
+          if (($as['category'] ?? '') === 'shield') {
+            $item['ac'] .= ' circumstance';
+          }
+        }
+        else {
+          $item['ac'] = (string) ($schema_data['ac'] ?? '');
+        }
       }
 
       $catalog[$category][$item_id] = $item;
@@ -1713,7 +1670,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return array
    *   Character data array with defaults.
    */
-  private function loadCharacterData($character_id) {
+  private function loadCharacterData(int|string|null $character_id): array {
     if ($character_id) {
       $character = $this->characterManager->loadCharacter($character_id);
       if ($character && $character->uid == $this->currentUser->id()) {
@@ -1764,15 +1721,19 @@ class CharacterCreationStepForm extends FormBase {
   /**
    * Saves character data to database.
    *
-   * @param int|null $character_id
+   * @param int|string|null $character_id
    *   The character ID to update, or NULL to create new.
    * @param array $character_data
    *   Character data array to save.
+   * @param int $next_version
+   *   The next version number for optimistic locking.
+   * @param int|string|null $campaign_id
+   *   The campaign ID to associate this character with, or NULL for none.
    *
-   * @return int
+   * @return int|string
    *   The character ID.
    */
-  private function saveCharacter($character_id, $character_data, int $next_version = 0) {
+  private function saveCharacter(int|string|null $character_id, array $character_data, int $next_version = 0, int|string|null $campaign_id = NULL): int|string {
     $now = $this->time->getRequestTime();
 
     // Restructure data to match schema
@@ -1855,9 +1816,13 @@ class CharacterCreationStepForm extends FormBase {
     }
     $schema_data['updated_at'] = date('c', $now);
 
+    // Resolve campaign_id: use passed value, fall back to 0.
+    $resolved_campaign_id = ($campaign_id !== NULL && $campaign_id !== '') ? (int) $campaign_id : 0;
+
     if ($character_id) {
       $this->database->update('dc_campaign_characters')
         ->fields([
+          'campaign_id' => $resolved_campaign_id,
           'name' => $schema_data['name'] ?: 'Unnamed Character',
           'level' => $schema_data['level'],
           'ancestry' => $schema_data['ancestry'] ?? '',
@@ -1883,7 +1848,7 @@ class CharacterCreationStepForm extends FormBase {
       return $this->database->insert('dc_campaign_characters')
         ->fields([
           'uuid' => $instance_id,
-          'campaign_id' => 0,
+          'campaign_id' => $resolved_campaign_id,
           'character_id' => 0,
           'instance_id' => $instance_id,
           'uid' => (int) $this->currentUser->id(),
@@ -1908,15 +1873,75 @@ class CharacterCreationStepForm extends FormBase {
   }
 
   /**
+   * Creates dc_campaign_item_instances rows for a character's starting gear.
+   *
+   * Each selected equipment item gets an instance row so the campaign runtime
+   * can track location, quantity, and state independently of the template.
+   *
+   * @param int $campaign_id
+   *   The campaign ID.
+   * @param int $character_id
+   *   The character row ID (dc_campaign_characters.id).
+   * @param array $selected_items
+   *   Array of catalog item arrays, each with 'id', 'name', 'type', 'cost',
+   *   'bulk', 'traits' keys.
+   */
+  private function createCampaignItemInstances(int $campaign_id, int $character_id, array $selected_items): void {
+    $now = $this->time->getRequestTime();
+
+    // Remove any existing instances for this character in this campaign to
+    // support re-submission (e.g. user goes back to step 7 and re-saves).
+    $this->database->delete('dc_campaign_item_instances')
+      ->condition('campaign_id', $campaign_id)
+      ->condition('location_type', 'character_inventory')
+      ->condition('location_ref', (string) $character_id)
+      ->execute();
+
+    foreach ($selected_items as $item) {
+      $item_id = $item['id'];
+      // Unique instance ID: "{character_id}_{item_id}" — deterministic and
+      // human-readable. If the same item appears twice (shouldn't with
+      // checkboxes) the DB unique constraint will prevent duplicates.
+      $instance_id = $character_id . '_' . $item_id;
+
+      $state_data = [
+        'condition' => 'new',
+        'source' => 'character_creation',
+        'original_cost' => $item['cost'] ?? 0,
+      ];
+
+      $this->database->insert('dc_campaign_item_instances')
+        ->fields([
+          'campaign_id' => $campaign_id,
+          'item_instance_id' => $instance_id,
+          'item_id' => $item_id,
+          'location_type' => 'character_inventory',
+          'location_ref' => (string) $character_id,
+          'quantity' => 1,
+          'state_data' => json_encode($state_data),
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+    }
+
+    $this->getLogger('dungeoncrawler_content')->notice('Created @count campaign item instances for character @cid in campaign @camp.', [
+      '@count' => count($selected_items),
+      '@cid' => $character_id,
+      '@camp' => $campaign_id,
+    ]);
+  }
+
+  /**
    * Gets ancestry dropdown options.
    *
    * @return array
    *   Associative array of ancestry options.
    */
-  private function getAncestryOptions() {
+  private function getAncestryOptions(): array {
     $options = ['' => $this->t('- Select -')];
     foreach (CharacterManager::ANCESTRIES as $name => $data) {
-      $options[strtolower(str_replace(' ', '-', $name))] = $name;
+      $options[self::ancestryMachineId($name)] = $name;
     }
     return $options;
   }
@@ -1930,7 +1955,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return array
    *   Associative array of heritage options.
    */
-  private function getHeritageOptions($ancestry) {
+  private function getHeritageOptions(string $ancestry): array {
     $options = ['' => $this->t('- Select -')];
     if ($ancestry) {
       $ancestry_name = $this->resolveAncestryName((string) $ancestry);
@@ -1943,6 +1968,62 @@ class CharacterCreationStepForm extends FormBase {
   }
 
   /**
+   * Builds ability data array for the interactive boost widget.
+   *
+   * Used by Steps 3 and 5 where users select ability boosts.
+   */
+  private function buildInteractiveAbilityData(array $calculation, array $selected_boosts): array {
+    $abilities_data = [];
+    foreach ($calculation['scores'] as $ability_key => $score) {
+      $abilities_data[$ability_key] = [
+        'score' => $score,
+        'modifier' => $calculation['modifiers'][$ability_key],
+        'sources' => $calculation['sources'][$ability_key] ?? [],
+        'selected' => in_array($ability_key, $selected_boosts, TRUE),
+        'disabled' => FALSE,
+      ];
+    }
+    return $abilities_data;
+  }
+
+  /**
+   * Normalizes a form value that may be JSON-encoded into a flat array.
+   *
+   * Used by validateForm() and submitForm() for boost fields.
+   */
+  private static function normalizeList(mixed $value): array {
+    if (is_string($value)) {
+      $decoded = json_decode($value, TRUE);
+      if (is_array($decoded)) {
+        $value = $decoded;
+      }
+      elseif (trim($value) === '') {
+        $value = [];
+      }
+      else {
+        $value = [$value];
+      }
+    }
+
+    if (!is_array($value)) {
+      return [];
+    }
+
+    return array_values(array_filter(array_map(static function ($item) {
+      return is_string($item) ? trim($item) : $item;
+    }, $value), static function ($item) {
+      return $item !== NULL && $item !== '';
+    }));
+  }
+
+  /**
+   * Converts an ancestry display name to its machine ID.
+   */
+  private static function ancestryMachineId(string $name): string {
+    return strtolower(str_replace(' ', '-', $name));
+  }
+
+  /**
    * Resolves ancestry machine id (e.g. "half-elf") to canonical ancestry name.
    */
   private function resolveAncestryName(string $ancestry_id): string {
@@ -1951,8 +2032,7 @@ class CharacterCreationStepForm extends FormBase {
     }
 
     foreach (array_keys(CharacterManager::ANCESTRIES) as $name) {
-      $normalized = strtolower(str_replace(' ', '-', $name));
-      if ($normalized === strtolower($ancestry_id)) {
+      if (self::ancestryMachineId($name) === strtolower($ancestry_id)) {
         return $name;
       }
     }
@@ -1966,7 +2046,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return array
    *   Associative array of background options.
    */
-  private function getBackgroundOptions() {
+  private function getBackgroundOptions(): array {
     $options = ['' => $this->t('- Select -')];
     foreach (CharacterManager::BACKGROUNDS as $bg) {
       $options[$bg['id']] = $bg['name'];
@@ -1980,7 +2060,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return array
    *   Associative array of class options.
    */
-  private function getClassOptions() {
+  private function getClassOptions(): array {
     $options = ['' => $this->t('- Select -')];
     foreach (CharacterManager::CLASSES as $class) {
       $options[$class['id']] = $class['name'];
@@ -1994,7 +2074,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return array
    *   Associative array of alignment options.
    */
-  private function getAlignmentOptions() {
+  private function getAlignmentOptions(): array {
     return [
       '' => $this->t('- Select -'),
       'LG' => $this->t('Lawful Good'),
@@ -2040,9 +2120,17 @@ class CharacterCreationStepForm extends FormBase {
     }
 
     $form_state->set('previous_ancestry_selection', $current_ancestry);
+
+    // Clear any validation errors and messenger messages that may have
+    // accumulated during form processing. With #limit_validation_errors absent
+    // on the ancestry select, Drupal validates nothing by default for non-button
+    // AJAX, so these should be empty — but we clear defensively to ensure no
+    // stale messages from a prior request appear in the AJAX response.
     if (method_exists($form_state, 'clearErrors')) {
       $form_state->clearErrors();
     }
+    \Drupal::messenger()->deleteByType('error');
+
     $form_state->setRebuild(TRUE);
 
     return $form['heritage_dynamic'];
@@ -2100,7 +2188,7 @@ class CharacterCreationStepForm extends FormBase {
    * @return mixed
    *   A safe value compatible with current options.
    */
-  public function sanitizeOptionValue(array &$element, $input, FormStateInterface $form_state) {
+  public function sanitizeOptionValue(array &$element, mixed $input, FormStateInterface $form_state): mixed {
     if ($input === FALSE) {
       return $element['#default_value'] ?? '';
     }

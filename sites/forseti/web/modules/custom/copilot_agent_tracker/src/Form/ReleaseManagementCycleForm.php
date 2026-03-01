@@ -60,8 +60,8 @@ final class ReleaseManagementCycleForm extends FormBase {
       '#type' => 'item',
       '#title' => $this->t('Current release-cycle automation state'),
       '#markup' => $enabled
-        ? $this->t('<strong>ENABLED</strong>')
-        : $this->t('<strong>DISABLED</strong>'),
+        ? $this->t('<div class="messages messages--status"><strong>ENABLED</strong> — release-cycle automation is active.</div>')
+        : $this->t('<div class="messages messages--warning"><strong>DISABLED</strong> — release-cycle and coordinated push automation are paused.</div>'),
     ];
 
     $form['meta'] = [

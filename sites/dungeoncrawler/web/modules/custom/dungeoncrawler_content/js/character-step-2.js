@@ -1,27 +1,26 @@
 /**
  * @file
- * Character Creation Step 2 - Ancestry & Heritage Selection
- * 
- * Handles ancestry and heritage selection for PF2e character creation.
- * Data conforms to character_options_step2.json schema (v1.0.0).
- * 
- * Schema Conformance:
- * - Ancestry: Hot-column in dc_characters table + JSON (character_data.ancestry.name)
- * - Heritage: JSON-only field (character_data.ancestry.heritage), NOT a hot-column
- * 
+ * Character Creation Step 2 - Ancestry & Heritage Selection.
+ *
+ * Handles client-side ancestry card UI and heritage card rendering.
+ * Server-authoritative: ancestry select triggers AJAX which rebuilds
+ * the heritage select and ancestry feat radios via heritage-path-wrapper.
+ *
  * Data Flow:
- * CharacterManager::HERITAGES → Form data-heritages attribute → JS parsing
- * Heritage structure per schema: {id: string, name: string, benefit: string}
- * 
- * @see character_options_step2.json Schema definition
- * @see CharacterManager::HERITAGES PHP constant for heritage data source
- * @see CharacterManager::buildCharacterJson() For JSON structure
+ *   CharacterManager::HERITAGES → PHP form data-heritages attr → parseHeritageData()
+ *   → showHeritages() → JS-rendered heritage cards → $selectedHeritage hidden select
+ *
+ * Schema: character_options_step2.json v1.0.0
+ *   ancestry:  hot-column in dc_characters + character_data.ancestry.name
+ *   heritage:  JSON-only  (character_data.ancestry.heritage)
+ *
+ * @see CharacterManager::HERITAGES
+ * @see CharacterCreationStepForm::buildStep2Fields()
  */
 
 (function ($, Drupal, once) {
   'use strict';
 
-  // Constants
   const SELECTORS = {
     FORM: 'form.character-creation-form',
     ANCESTRY_CARD: '.ancestry-card',
@@ -34,227 +33,172 @@
     HERITAGE_DATA_HOST: '.ancestry-selection',
   };
 
-  const CSS_CLASSES = {
+  const CSS = {
     SELECTED: 'selected',
     HIDDEN: 'hidden',
     HERITAGE_CARD: 'heritage-card',
   };
 
-  const BUTTON_TEXT = {
-    DEFAULT: 'Next: Choose Background →',
-  };
-
-  /**
-   * Drupal behavior for Character Creation Step 2.
-   * 
-   * Implementation Notes:
-   * - This is a LEGACY implementation using manual HTML rendering and data-attribute parsing
-   * - Schema-driven alternative exists in character-creation-schema.js (preferred for new steps)
-   * - Kept for backward compatibility with existing Step 2 templates
-   * - Data validation aligns with character_options_step2.json schema v1.0.0
-   * 
-   * Future Migration Path:
-   * - Consider migrating to schema-driven approach (character-creation-schema.js)
-   * - Would replace data-attributes with drupalSettings
-   * - Would use schema-driven form generation instead of hardcoded templates
-   */
   Drupal.behaviors.characterStep2 = {
-    attach: function (context, settings) {
-      once('step2-init', SELECTORS.FORM, context).forEach(function(element) {
-        const $form = $(element);
-        const $ancestryCards = $(SELECTORS.ANCESTRY_CARD, context);
+    attach(context) {
+      once('step2-init', SELECTORS.FORM, context).forEach(function (formEl) {
+        const $form           = $(formEl);
+        const $cards          = $(SELECTORS.ANCESTRY_CARD, context);
         const $heritageSection = $(SELECTORS.HERITAGE_SECTION, context);
         const $heritageOptions = $(SELECTORS.HERITAGE_OPTIONS, context);
-        const $submitButton = $(SELECTORS.SUBMIT_BUTTON, context).first();
-        const $selectedAncestry = $(SELECTORS.SELECTED_ANCESTRY, context);
-        const $selectedHeritage = $(SELECTORS.SELECTED_HERITAGE, context);
-        const $heritageHost = $(SELECTORS.HERITAGE_DATA_HOST, context).first();
-        
+        const $submitButton   = $(SELECTORS.SUBMIT_BUTTON, context).first();
+        const $ancestrySelect = $(SELECTORS.SELECTED_ANCESTRY, context);
+
+        // Live lookup — the heritage <select> lives inside #heritage-path-wrapper
+        // which Drupal AJAX replaces on ancestry change, invalidating any cached
+        // reference. Always query the current DOM element.
+        function $heritageSelect() {
+          return $(SELECTORS.SELECTED_HERITAGE);
+        }
+
+        // ── Heritage data ────────────────────────────────────────────────────
+
         /**
-         * Parse and normalize heritage data from form attribute.
-         * 
-         * Parses the data-heritages attribute which contains CharacterManager::HERITAGES
-         * structured as: {ancestryName: [{id, name, benefit}, ...]}
-         * 
-         * Schema Conformance: Validates against character_options_step2.json/$defs/heritageOption
-         * - id: string (unique identifier, e.g., "ancient-blooded", "forge")
-         * - name: string (display name, e.g., "Ancient-Blooded Dwarf")  
-         * - benefit: string (mechanical benefit description)
+         * Parse the data-heritages attribute on the ancestry-selection host.
          *
-         * @return {Object} Normalized heritage data keyed by lowercase ancestry ID
-         *   Example: {"dwarf": [{id: "forge", name: "Forge Dwarf", benefit: "Fire resistance"}]}
+         * Source: CharacterManager::HERITAGES JSON-encoded by the server.
+         * Keys are normalised to lowercase-hyphenated ancestry IDs to match
+         * the values written to $ancestrySelect.
+         *
+         * @return {Object.<string, Array<{id:string, name:string, benefit:string}>>}
          */
         function parseHeritageData() {
           try {
-            const rawData = $heritageHost.attr('data-heritages') || '{}';
-            const parsed = JSON.parse(rawData);
-            
+            const raw = $(SELECTORS.HERITAGE_DATA_HOST, context).first()
+              .attr('data-heritages') || '{}';
+            const parsed = JSON.parse(raw);
+
             if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
               return {};
             }
 
-            // Convert ancestry names to lowercase IDs for matching
-            const normalized = {};
-            Object.keys(parsed).forEach(function(key) {
-              const normalizedKey = key.toLowerCase().replace(/\s+/g, '-');
-              normalized[normalizedKey] = parsed[key];
+            const out = {};
+            Object.keys(parsed).forEach(key => {
+              out[key.toLowerCase().replace(/\s+/g, '-')] = parsed[key];
             });
-            
-            return normalized;
-          } catch (e) {
-            console.error('Failed to parse heritage data:', e);
+            return out;
+          }
+          catch (e) {
+            console.error('[step2] Failed to parse heritage data:', e);
             return {};
           }
         }
 
-        const normalizedHeritages = parseHeritageData();
+        const heritages = parseHeritageData();
 
-        /**
-         * Escape HTML special characters to prevent XSS.
-         *
-         * @param {string} str - String to escape
-         * @return {string} HTML-safe string
-         */
-        function escapeHtml(str) {
-          const div = document.createElement('div');
-          div.textContent = str;
-          return div.innerHTML;
+        // ── Utilities ────────────────────────────────────────────────────────
+
+        /** Safely escape a string for insertion into HTML. */
+        function esc(str) {
+          const d = document.createElement('div');
+          d.textContent = str;
+          return d.innerHTML;
         }
 
         /**
-         * Render HTML for a single heritage card.
-         * 
-         * Generates UI card element conforming to heritageOption schema definition.
-         *
-         * @param {Object} heritage - Heritage data object (matches schema/$defs/heritageOption)
-         * @param {string} heritage.id - Heritage identifier (required by schema)
-         * @param {string} heritage.name - Heritage display name (required by schema)
-         * @param {string} heritage.benefit - Heritage benefit description (required by schema)
-         * @param {boolean} isSelected - Whether this heritage is currently selected
-         * @return {string} HTML string for heritage card
+         * Clear heritage and ancestry feat selections.
+         * Called whenever the selected ancestry changes, before the AJAX
+         * response that rebuilds heritage-path-wrapper arrives.
          */
-        function renderHeritageCard(heritage, isSelected) {
-          const selectedClass = isSelected ? CSS_CLASSES.SELECTED : '';
-          const safeId = escapeHtml(heritage.id);
-          const safeName = escapeHtml(heritage.name);
-          const safeBenefit = escapeHtml(heritage.benefit);
-          
-          return `<div class="${CSS_CLASSES.HERITAGE_CARD} ${selectedClass}" data-heritage="${safeId}">
-            <h4>${safeName}</h4>
-            <p>${safeBenefit}</p>
+        function clearDependentSelections() {
+          $heritageSelect().val('');
+          $(SELECTORS.SELECTED_ANCESTRY_FEAT, context).prop('checked', false);
+        }
+
+        // ── Heritage card rendering ──────────────────────────────────────────
+
+        /**
+         * Render one heritage card.
+         *
+         * @param {{id:string, name:string, benefit:string}} heritage
+         * @param {boolean} selected
+         * @return {string} HTML
+         */
+        function renderCard(heritage, selected) {
+          return `<div class="${CSS.HERITAGE_CARD}${selected ? ' ' + CSS.SELECTED : ''}"
+                       data-heritage="${esc(heritage.id)}">
+            <h4>${esc(heritage.name)}</h4>
+            <p>${esc(heritage.benefit)}</p>
           </div>`;
         }
 
         /**
-         * Display heritages for selected ancestry.
-         * 
-         * Loads and renders heritage options based on selected ancestry.
-         * If no heritages exist for ancestry, submission is allowed without heritage selection.
+         * Render heritage cards for the given ancestry.
+         * The section stays hidden when the ancestry has no heritages.
          *
-         * @param {string} ancestryId - The ancestry identifier (lowercase, normalized)
+         * @param {string} ancestryId  Lowercase hyphenated ancestry identifier.
          */
         function showHeritages(ancestryId) {
-          const heritages = normalizedHeritages[ancestryId];
-          
-          if (!heritages || heritages.length === 0) {
-            $heritageSection.addClass(CSS_CLASSES.HIDDEN);
+          const list = heritages[ancestryId];
+          if (!list || list.length === 0) {
+            $heritageSection.addClass(CSS.HIDDEN);
             return;
           }
 
-          // Build heritage cards HTML
-          const currentHeritageId = $selectedHeritage.val();
-          const html = heritages
-            .map(heritage => renderHeritageCard(heritage, currentHeritageId === heritage.id))
-            .join('');
-          
-          $heritageOptions.html(html);
-          $heritageSection.removeClass(CSS_CLASSES.HIDDEN);
-          
+          const current = $heritageSelect().val();
+          $heritageOptions.html(
+            list.map(h => renderCard(h, current === h.id)).join('')
+          );
+          $heritageSection.removeClass(CSS.HIDDEN);
         }
 
-        /**
-         * Update submit button state and text.
-         *
-         * @param {boolean} disabled - Whether button should be disabled
-         * @param {string} text - Button text to display
-         */
-        function updateSubmitButton(disabled, text) {
-          $submitButton.prop('disabled', disabled).text(text);
-        }
+        // ── Heritage card clicks (delegated — element persists across AJAX) ───
 
-        // Handle ancestry card clicks
-        once('ancestry-click', SELECTORS.ANCESTRY_CARD, context).forEach(function(card) {
-          $(card).on('click', function() {
+        $heritageOptions.on('click', `.${CSS.HERITAGE_CARD}`, function () {
+          $heritageOptions.find(`.${CSS.HERITAGE_CARD}`).removeClass(CSS.SELECTED);
+          $(this).addClass(CSS.SELECTED);
+          $heritageSelect().val($(this).data('heritage'));
+        });
+
+        // ── Ancestry card clicks ─────────────────────────────────────────────
+
+        once('ancestry-click', SELECTORS.ANCESTRY_CARD, context).forEach(function (card) {
+          $(card).on('click', function () {
             const ancestryId = $(this).data('ancestry');
-            
-            // Update UI
-            $ancestryCards.removeClass(CSS_CLASSES.SELECTED);
-            $(this).addClass(CSS_CLASSES.SELECTED);
-            
-            // Update hidden field
-            if ($selectedAncestry.length) {
-              $selectedAncestry.val(ancestryId).trigger('change');
-            }
-            
-            // Clear heritage selection
-            if ($selectedHeritage.length) {
-              $selectedHeritage.val('');
-            }
 
-            // Clear stale ancestry feat choice before submit.
-            $(SELECTORS.SELECTED_ANCESTRY_FEAT, context).prop('checked', false);
-            
-            // Show heritages for this ancestry
+            $cards.removeClass(CSS.SELECTED);
+            $(this).addClass(CSS.SELECTED);
+
+            clearDependentSelections();
             showHeritages(ancestryId);
 
-            if ($submitButton.length) {
-              $submitButton.prop('disabled', false);
-            }
+            // Triggers the Drupal AJAX request that rebuilds heritage-path-wrapper
+            // (server-rendered heritage select + ancestry feat radios).
+            $ancestrySelect.val(ancestryId).trigger('change');
           });
         });
 
-        // Handle heritage card clicks (delegated event)
-        $heritageOptions.on('click', `.${CSS_CLASSES.HERITAGE_CARD}`, function() {
-          const heritageId = $(this).data('heritage');
-          
-          // Update UI
-          $(`.${CSS_CLASSES.HERITAGE_CARD}`).removeClass(CSS_CLASSES.SELECTED);
-          $(this).addClass(CSS_CLASSES.SELECTED);
-          
-          // Update hidden field
-          if ($selectedHeritage.length) {
-            $selectedHeritage.val(heritageId);
-          }
-          
-          // Enable submit button
-          $submitButton.prop('disabled', false);
+        // ── Ancestry select change (keyboard / programmatic) ─────────────────
+        // AJAX handles the server-authoritative heritage select inside
+        // heritage-path-wrapper; we refresh the JS heritage cards here so
+        // keyboard and assistive-tech users see the same card UI as pointer users.
+
+        once('ancestry-change', SELECTORS.SELECTED_ANCESTRY, context).forEach(function (sel) {
+          $(sel).on('change', function () {
+            clearDependentSelections();
+            showHeritages($(this).val());
+          });
         });
 
-        // Initialize if ancestry already selected
-        const currentAncestry = $selectedAncestry.val();
-        if (currentAncestry) {
-          showHeritages(currentAncestry);
+        // ── Initialise from saved/pre-selected ancestry ───────────────────────
+
+        const initial = $ancestrySelect.val();
+        if (initial) {
+          showHeritages(initial);
         }
 
-        // Dropdown ancestry changes (keyboard/manual select) also clear
-        // dependent selections before form submit.
-        once('ancestry-select-change', SELECTORS.SELECTED_ANCESTRY, context).forEach(function(selectElement) {
-          $(selectElement).on('change', function() {
-            if ($selectedHeritage.length) {
-              $selectedHeritage.val('');
-            }
-            $(SELECTORS.SELECTED_ANCESTRY_FEAT, context).prop('checked', false);
-          });
-        });
+        // ── Form submit ───────────────────────────────────────────────────────
 
-        updateSubmitButton(false, BUTTON_TEXT.DEFAULT);
-
-        // Native form submission only.
-        $form.on('submit', function() {
-          updateSubmitButton(true, 'Saving...');
+        $form.on('submit', function () {
+          $submitButton.prop('disabled', true).text('Saving\u2026');
         });
       });
-    }
+    },
   };
 
 })(jQuery, Drupal, once);

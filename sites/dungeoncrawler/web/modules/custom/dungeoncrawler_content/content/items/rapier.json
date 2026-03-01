@@ -1,7 +1,7 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "longsword",
-  "name": "Longsword",
+  "item_id": "rapier",
+  "name": "Rapier",
   "item_type": "weapon",
   "level": 0,
   "rarity": "common",
@@ -9,11 +9,11 @@
     "martial",
     "sword"
   ],
-  "description": "A standard longsword, common among soldiers and adventurers. This versatile blade can be wielded with one or two hands.",
+  "description": "A long, thin blade designed for thrusting attacks. The rapier is a favorite of swashbucklers and duelists who rely on precision over brute force.",
   "price": {
     "cp": 0,
     "sp": 0,
-    "gp": 1,
+    "gp": 2,
     "pp": 0
   },
   "bulk": "1",
@@ -23,16 +23,18 @@
     "group": "sword",
     "damage": {
       "dice_count": 1,
-      "die_size": "d8",
-      "damage_type": "slashing"
+      "die_size": "d6",
+      "damage_type": "piercing"
     },
     "range": null,
     "reload": null,
     "weapon_traits": [
-      "versatile P"
+      "deadly d8",
+      "disarm",
+      "finesse"
     ]
   },
-  "created_at": "2026-02-17T14:37:37Z",
-  "updated_at": "2026-02-17T14:37:37Z",
+  "created_at": "2026-03-01T00:00:00Z",
+  "updated_at": "2026-03-01T00:00:00Z",
   "item_category": "weapon"
 }

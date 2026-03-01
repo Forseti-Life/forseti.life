@@ -1,15 +1,15 @@
 {
   "schema_version": "1.0.0",
-  "item_id": "longsword",
-  "name": "Longsword",
+  "item_id": "battleaxe",
+  "name": "Battleaxe",
   "item_type": "weapon",
   "level": 0,
   "rarity": "common",
   "traits": [
     "martial",
-    "sword"
+    "axe"
   ],
-  "description": "A standard longsword, common among soldiers and adventurers. This versatile blade can be wielded with one or two hands.",
+  "description": "A heavy axe designed for combat, featuring a broad cutting edge. Its sweeping strikes can cleave through multiple foes.",
   "price": {
     "cp": 0,
     "sp": 0,
@@ -20,7 +20,7 @@
   "hands": "1",
   "weapon_stats": {
     "category": "martial",
-    "group": "sword",
+    "group": "axe",
     "damage": {
       "dice_count": 1,
       "die_size": "d8",
@@ -29,10 +29,10 @@
     "range": null,
     "reload": null,
     "weapon_traits": [
-      "versatile P"
+      "sweep"
     ]
   },
-  "created_at": "2026-02-17T14:37:37Z",
-  "updated_at": "2026-02-17T14:37:37Z",
+  "created_at": "2026-03-01T00:00:00Z",
+  "updated_at": "2026-03-01T00:00:00Z",
   "item_category": "weapon"
 }

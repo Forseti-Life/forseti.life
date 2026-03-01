@@ -42,7 +42,10 @@
 
 {{ attach_library('dungeoncrawler_content/ability-widget') }}
 
-<div class="ability-score-widget ability-score-widget--{{ mode }}" data-mode="{{ mode }}">
+<div class="ability-score-widget ability-score-widget--{{ mode }}" data-mode="{{ mode }}"
+     {% if attributes['data-step'] is defined %}data-step="{{ attributes['data-step'] }}"{% endif %}
+     {% if attributes['data-max-boosts'] is defined %}data-max-boosts="{{ attributes['data-max-boosts'] }}"{% endif %}
+     {% if attributes['data-character-data'] is defined %}data-character-data="{{ attributes['data-character-data'] }}"{% endif %}>
   
   {% if mode == 'full' and abilities %}
     <div class="abilities-grid">

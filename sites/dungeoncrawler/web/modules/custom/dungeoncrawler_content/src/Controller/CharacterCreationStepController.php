@@ -189,9 +189,13 @@ class CharacterCreationStepController extends ControllerBase {
     $abilities = is_array($character_data['abilities'] ?? NULL) ? $character_data['abilities'] : [];
     $dex = (int) ($abilities['dex'] ?? 10);
 
+    // Resolve campaign_id for persistence.
+    $resolved_campaign_id = ($campaign_id !== NULL && $campaign_id !== '') ? (int) $campaign_id : 0;
+
     // Save to database
     if ($character) {
       $this->characterManager->updateCharacter($character_id, [
+        'campaign_id' => $resolved_campaign_id,
         'name' => $character_data['name'] ?: 'Unnamed Character',
         'ancestry' => $character_data['ancestry'] ?? '',
         'class' => $character_data['class'] ?? '',
@@ -206,7 +210,7 @@ class CharacterCreationStepController extends ControllerBase {
         'character_data' => json_encode($character_data, JSON_PRETTY_PRINT),
       ]);
     } else {
-      $character_id = $this->createDraft($character_data);
+      $character_id = $this->createDraft($character_data, $campaign_id);
     }
 
     // Return JSON response with redirect URL
@@ -304,15 +308,16 @@ class CharacterCreationStepController extends ControllerBase {
   /**
    * Create new draft character.
    */
-  private function createDraft(array $character_data) {
+  private function createDraft(array $character_data, int|string|null $campaign_id = NULL) {
     $db = \Drupal::database();
     $now = \Drupal::time()->getRequestTime();
     $instance_id = \Drupal::service('uuid')->generate();
-    
+    $resolved_campaign_id = ($campaign_id !== NULL && $campaign_id !== '') ? (int) $campaign_id : 0;
+
     return $db->insert('dc_campaign_characters')
       ->fields([
         'uuid' => $instance_id,
-        'campaign_id' => 0,
+        'campaign_id' => $resolved_campaign_id,
         'character_id' => 0,
         'instance_id' => $instance_id,
         'uid' => (int) $this->currentUser()->id(),
@@ -614,20 +619,20 @@ class CharacterCreationStepController extends ControllerBase {
       'gear' => [],
     ];
 
-    if (!$this->database->schema()->tableExists('dungeoncrawler_content_item_instances') || !$this->database->schema()->tableExists('dungeoncrawler_content_registry')) {
+    if (!$this->database->schema()->tableExists('dungeoncrawler_content_registry')) {
       return $catalog;
     }
 
-    $query = $this->database->select('dungeoncrawler_content_item_instances', 'ii');
-    $query->fields('ii', ['item_id']);
-    $query->leftJoin('dungeoncrawler_content_registry', 'r', 'r.content_type = :content_type AND r.content_id = ii.item_id', [':content_type' => 'item']);
-    $query->fields('r', ['name', 'tags', 'schema_data']);
-    $query->distinct();
+    // Query curated starting equipment directly from the content registry.
+    $query = $this->database->select('dungeoncrawler_content_registry', 'r');
+    $query->fields('r', ['content_id', 'name', 'tags', 'schema_data']);
+    $query->condition('r.content_type', 'item');
+    $query->condition('r.source_file', 'items/%', 'LIKE');
 
     $result = $query->execute();
 
     foreach ($result as $row) {
-      $item_id = (string) ($row->item_id ?? '');
+      $item_id = (string) ($row->content_id ?? '');
       if ($item_id === '') {
         continue;
       }
@@ -637,29 +642,60 @@ class CharacterCreationStepController extends ControllerBase {
         $schema_data = [];
       }
 
+      // Calculate cost in gp from the nested price object.
+      $price = $schema_data['price'] ?? [];
+      $cost_gp = (float) ($price['gp'] ?? 0)
+        + (float) ($price['sp'] ?? 0) / 10
+        + (float) ($price['cp'] ?? 0) / 100
+        + (float) ($price['pp'] ?? 0) * 10;
+
+      if ($cost_gp == 0 && isset($schema_data['price_gp'])) {
+        $cost_gp = (float) $schema_data['price_gp'];
+      }
+
+      if ($cost_gp > 15) {
+        continue;
+      }
+
       $tags = $this->normalizeTags((string) ($row->tags ?? ''));
-      $category = $this->mapTemplateItemCategory((string) ($schema_data['item_type'] ?? ''), $tags);
+      $item_type = (string) ($schema_data['item_type'] ?? 'adventuring_gear');
+      $category = $this->mapTemplateItemCategory($item_type, $tags);
 
       $name = (string) ($row->name ?? '');
       if ($name === '') {
-        $name = ucwords(str_replace('_', ' ', $item_id));
+        $name = ucwords(str_replace(['_', '-'], ' ', $item_id));
       }
 
       $item = [
         'id' => $item_id,
         'name' => $name,
-        'type' => (string) ($schema_data['item_type'] ?? 'adventuring_gear'),
-        'cost' => (float) ($schema_data['price_gp'] ?? 0),
+        'type' => $item_type,
+        'cost' => round($cost_gp, 2),
         'bulk' => $schema_data['bulk'] ?? 'L',
-        'traits' => $tags,
+        'traits' => $schema_data['traits'] ?? $tags,
       ];
 
       if ($category === 'weapons') {
-        $item['damage'] = (string) ($schema_data['damage'] ?? '');
+        $ws = $schema_data['weapon_stats'] ?? [];
+        $dmg = $ws['damage'] ?? [];
+        $dice = ($dmg['dice_count'] ?? 1) . ($dmg['die_size'] ?? '');
+        $dmg_type = $dmg['damage_type'] ?? '';
+        $dmg_abbrev = $dmg_type ? strtoupper($dmg_type[0]) : '';
+        $item['damage'] = trim($dice . ' ' . $dmg_abbrev);
         $item['hands'] = (int) ($schema_data['hands'] ?? 1);
       }
       elseif ($category === 'armor') {
-        $item['ac'] = (string) ($schema_data['ac'] ?? '');
+        $as = $schema_data['armor_stats'] ?? [];
+        $ac_bonus = $as['ac_bonus'] ?? NULL;
+        if ($ac_bonus !== NULL) {
+          $item['ac'] = '+' . (int) $ac_bonus;
+          if (($as['category'] ?? '') === 'shield') {
+            $item['ac'] .= ' circumstance';
+          }
+        }
+        else {
+          $item['ac'] = (string) ($schema_data['ac'] ?? '');
+        }
       }
 
       $catalog[$category][$item_id] = $item;

@@ -1,660 +1,331 @@
 /**
  * @file
- * Pathbuilder-inspired Interactive Ability Score Boost Selector
+ * Interactive Ability Score Boost Selector (Pathbuilder-style)
  *
- * Handles interactive ability boost selection with real-time API-driven
- * calculation and validation, following Pathbuilder 2e's excellent UX patterns.
+ * Handles interactive ability boost selection with debounced API-driven
+ * recalculation. Used on Steps 3 (background boosts) and 5 (free boosts).
  *
- * Features:
- * - Click to select/deselect ability boosts
- * - Real-time score preview as user selects
- * - Validation preventing invalid selections
- * - Visual feedback (animations, color changes)
- * - Debounced API calls for performance
- * - Keyboard accessibility
+ * Each widget instance gets its own scoped state via closure so multiple
+ * widgets on different pages (or even the same page) do not collide.
  *
- * Usage:
- * - Attach to character creation steps 3, 4, 5 (background, class, free boosts)
- * - Requires ability-widget.html.twig with mode="interactive"
- *
- * @see AbilityScoreTracker Service (backend calculations)
+ * @see AbilityScoreTracker  (server-side calculation)
  * @see AbilityScoreApiController (API endpoints)
  */
 
 (function ($, Drupal, once) {
   'use strict';
 
-  /**
-   * Configuration constants
-   */
-  const CONFIG = {
-    API_ENDPOINTS: {
-      CALCULATE: '/api/characters/ability-scores/calculate',
-      VALIDATE_BOOST: '/api/characters/ability-scores/validate-boost',
-      AVAILABLE_BOOSTS: '/api/characters/ability-scores/available-boosts',
-    },
-    DEBOUNCE_DELAY: 300, // milliseconds
-    ANIMATION_DURATION: 300,
+  var API = {
+    CALCULATE: '/api/characters/ability-scores/calculate',
+    VALIDATE_BOOST: '/api/characters/ability-scores/validate-boost',
+    AVAILABLE_BOOSTS: '/api/characters/ability-scores/available-boosts',
   };
 
+  var DEBOUNCE_MS = 300;
+  var ANIM_MS = 300;
+
+  // ── Per-widget initialisation ──────────────────────────────────────────────
+
   /**
-   * Ability Score Boost Selector Behavior
+   * Detect step and config from the widget container's data attributes,
+   * falling back to DOM probing if the template didn't render them.
    */
-  Drupal.behaviors.abilityScoreBoostSelector = {
-    /**
-     * State management
-     */
-    state: {
-      selectedBoosts: [],
-      maxBoosts: 4,
-      characterData: {},
-      currentStep: 'free', // 'background', 'class', or 'free'
-      isCalculating: false,
-    },
+  function detectConfig($container) {
+    var step = $container.data('step');
+    var maxBoosts = parseInt($container.data('max-boosts'), 10);
 
-    /**
-     * Attach behavior to ability score widgets
-     */
-    attach: function (context, settings) {
-      const self = this;
+    // Fallback: determine step by which hidden field exists in the page.
+    if (!step) {
+      step = $('#background-boosts-field').length ? 'background' : 'free';
+    }
+    if (!maxBoosts || isNaN(maxBoosts)) {
+      maxBoosts = step === 'background' ? 2 : 4;
+    }
 
-      // Initialize interactive ability widgets
-      $(once('ability-boost-selector', '.abilities-interactive', context)).each(function () {
-        const $widget = $(this);
-        self.initializeWidget($widget);
-      });
+    var fieldId = step === 'background'
+      ? '#background-boosts-field'
+      : '#free-boosts-field';
 
-      // Initialize ability card click handlers
-      $(once('ability-card-click', '.ability-card--selectable', context)).each(function () {
-        const $card = $(this);
-        self.initializeCard($card);
-      });
+    return { step: step, maxBoosts: maxBoosts, fieldId: fieldId };
+  }
 
-      // Load character data from form or data attributes
-      self.loadCharacterData(context);
+  function initWidget($widget) {
+    var $container = $widget.closest('.ability-score-widget');
+    var cfg = detectConfig($container);
+    var maxBoosts = cfg.maxBoosts;
+    var step = cfg.step;
+    var selectedBoosts = [];
+    var characterData = {};
+    var calculating = false;
+    var debounceTimer = null;
 
-      // Sync available boosts once we have data
-      self.syncAvailableBoosts();
-    },
+    // Hidden field that stores the JSON array of selected abilities.
+    var $hidden = $(cfg.fieldId);
 
-    /**
-     * Initialize the interactive widget
-     */
-    initializeWidget: function ($widget) {
-      const self = this;
+    // ── Load existing selections ────────────────────────────────────────────
 
-      // Get configuration from data attributes
-      const maxBoosts = parseInt($widget.closest('.ability-score-widget').data('max-boosts') || 4);
-      const step = $widget.closest('.ability-score-widget').data('step') || 'free';
-
-      self.state.maxBoosts = maxBoosts;
-      self.state.currentStep = step;
-
-      // Load existing selections from hidden field
-      const fieldId = step === 'background' ? '#background-boosts-field' : '#free-boosts-field';
-      const $hiddenField = $(fieldId);
-      if ($hiddenField.length && $hiddenField.val()) {
-        try {
-          self.state.selectedBoosts = JSON.parse($hiddenField.val());
-          console.log('Loaded existing selections:', self.state.selectedBoosts);
-          
-          // Mark cards as selected
-          self.state.selectedBoosts.forEach(function(ability) {
-            const $card = $('.ability-card[data-ability="' + ability + '"]');
-            if ($card.length) {
-              $card.addClass('ability-card--selected');
-              $card.find('.ability-checkbox').prop('checked', true);
-            }
-          });
-        } catch (e) {
-          console.warn('Failed to parse existing boosts:', e);
-          self.state.selectedBoosts = [];
-        }
-      }
-
-      // Initialize boost counter display
-      self.updateBoostCounter();
-
-      console.log('Ability boost selector initialized', {
-        step: self.state.currentStep,
-        maxBoosts: self.state.maxBoosts,
-      });
-    },
-
-    /**
-     * Initialize individual ability card
-     */
-    initializeCard: function ($card) {
-      const self = this;
-      const ability = $card.data('ability');
-
-      // Click handler
-      $card.on('click', function (e) {
-        e.preventDefault();
-        if (!$card.hasClass('ability-card--disabled')) {
-          self.toggleAbilitySelection($card, ability);
-        }
-      });
-
-      // Keyboard handler (Enter/Space)
-      $card.on('keypress', function (e) {
-        if (e.which === 13 || e.which === 32) { // Enter or Space
-          e.preventDefault();
-          if (!$card.hasClass('ability-card--disabled')) {
-            self.toggleAbilitySelection($card, ability);
-          }
-        }
-      });
-
-      // Hover effect shows preview
-      $card.on('mouseenter', function () {
-        if (!$card.hasClass('ability-card--selected') && !$card.hasClass('ability-card--disabled')) {
-          self.showBoostPreview($card, ability);
-        }
-      });
-
-      $card.on('mouseleave', function () {
-        if (!$card.hasClass('ability-card--selected')) {
-          self.hideBoostPreview($card);
-        }
-      });
-    },
-
-    /**
-     * Toggle ability boost selection
-     */
-    toggleAbilitySelection: function ($card, ability) {
-      const self = this;
-      const isSelected = $card.hasClass('ability-card--selected');
-      const $checkbox = $card.find('.ability-checkbox');
-
-      if (isSelected) {
-        self.deselectAbility($card, ability);
-        self.updateBoostCounter();
-        self.debouncedRecalculate();
-        self.syncAvailableBoosts();
-        return;
-      }
-
-      if (self.state.selectedBoosts.length >= self.state.maxBoosts) {
-        self.showMaxBoostsWarning();
-        return;
-      }
-
-      self.validateBoostSelection(ability)
-        .done(function (response) {
-          if (!response || response.valid === false) {
-            const message = response && response.error
-              ? response.error
-              : 'This boost selection is not valid.';
-            self.showError(message);
-            return;
-          }
-
-          self.selectAbility($card, ability);
-          self.updateBoostCounter();
-          self.debouncedRecalculate();
-          self.syncAvailableBoosts();
-        })
-        .fail(function () {
-          self.showError('Failed to validate boost selection.');
+    if ($hidden.length && $hidden.val()) {
+      try {
+        selectedBoosts = JSON.parse($hidden.val());
+        selectedBoosts.forEach(function (ability) {
+          var $card = $widget.find('.ability-card[data-ability="' + ability + '"]');
+          $card.addClass('ability-card--selected');
+          $card.find('.ability-checkbox').prop('checked', true);
         });
-    },
+      } catch (e) {
+        selectedBoosts = [];
+      }
+    }
 
-    /**
-     * Select an ability for boost
-     */
-    selectAbility: function ($card, ability) {
-      const self = this;
+    // ── Load character data ─────────────────────────────────────────────────
 
-      // Add to selected list
-      self.state.selectedBoosts.push(ability);
+    if ($container.data('character-data')) {
+      characterData = $container.data('character-data');
+    }
+    ['background_boosts', 'free_boosts'].forEach(function (key) {
+      if (typeof characterData[key] === 'string') {
+        try { characterData[key] = JSON.parse(characterData[key]); }
+        catch (_) { characterData[key] = []; }
+      }
+    });
 
-      // Update UI
+    // ── Helpers ─────────────────────────────────────────────────────────────
+
+    function updateHiddenField() {
+      if ($hidden.length) {
+        $hidden.val(JSON.stringify(selectedBoosts));
+      }
+    }
+
+    function updateCounter() {
+      var remaining = maxBoosts - selectedBoosts.length;
+      $widget.find('.boosts-remaining')
+        .text(remaining)
+        .attr('data-remaining', remaining)
+        .toggleClass('at-max', remaining === 0);
+    }
+
+    function buildPayload() {
+      var data = $.extend({}, characterData);
+      if (step === 'background') { data.background_boosts = selectedBoosts; }
+      else if (step === 'class')  { data.class_key_ability = selectedBoosts[0] || null; }
+      else                        { data.free_boosts = selectedBoosts; }
+      return data;
+    }
+
+    function showToast(message, bg) {
+      var $el = $('<div>').text(message).css({
+        position: 'fixed', top: '20px', left: '50%', transform: 'translateX(-50%)',
+        background: bg, color: bg === '#ffc107' ? '#000' : '#fff',
+        padding: '1rem 2rem', borderRadius: '8px', zIndex: 9999,
+        boxShadow: '0 4px 12px rgba(0,0,0,.2)', fontWeight: 'bold',
+      });
+      $('body').append($el);
+      setTimeout(function () { $el.fadeOut(ANIM_MS, function () { $(this).remove(); }); }, 2500);
+    }
+
+    // ── Select / deselect ───────────────────────────────────────────────────
+
+    function selectAbility($card, ability) {
+      selectedBoosts.push(ability);
       $card.addClass('ability-card--selected');
       $card.find('.ability-checkbox').prop('checked', true);
-
-      // Update hidden form field
-      self.updateHiddenField();
-
-      // Animate selection
+      updateHiddenField();
       $card.css('transform', 'scale(1.05)');
-      setTimeout(() => {
-        $card.css('transform', '');
-      }, CONFIG.ANIMATION_DURATION);
+      setTimeout(function () { $card.css('transform', ''); }, ANIM_MS);
+    }
 
-      console.log('Selected boost:', ability, 'Total:', self.state.selectedBoosts.length);
-    },
-
-    /**
-     * Deselect an ability
-     */
-    deselectAbility: function ($card, ability) {
-      const self = this;
-
-      // Remove from selected list
-      const index = self.state.selectedBoosts.indexOf(ability);
-      if (index > -1) {
-        self.state.selectedBoosts.splice(index, 1);
-      }
-
-      // Update UI
+    function deselectAbility($card, ability) {
+      var idx = selectedBoosts.indexOf(ability);
+      if (idx > -1) { selectedBoosts.splice(idx, 1); }
       $card.removeClass('ability-card--selected');
       $card.find('.ability-checkbox').prop('checked', false);
+      updateHiddenField();
+    }
 
-      // Update hidden form field
-      self.updateHiddenField();
+    // ── API helpers ─────────────────────────────────────────────────────────
 
-      console.log('Deselected boost:', ability, 'Total:', self.state.selectedBoosts.length);
-    },
-
-    /**
-     * Update hidden form field with selected boosts
-     */
-    updateHiddenField: function () {
-      const self = this;
-      const fieldId = self.state.currentStep === 'background' 
-        ? '#background-boosts-field' 
-        : '#free-boosts-field';
-      
-      const $hiddenField = $(fieldId);
-      if ($hiddenField.length) {
-        $hiddenField.val(JSON.stringify(self.state.selectedBoosts));
-      }
-    },
-
-    /**
-     * Show preview of boost effect
-     */
-    showBoostPreview: function ($card, ability) {
-      const currentScore = parseInt($card.data('score'));
-      const previewScore = currentScore < 18 ? currentScore + 2 : currentScore + 1;
-
-      // Calculate new modifier
-      const previewModifier = Math.floor((previewScore - 10) / 2);
-
-      // Show preview in card
-      $card.find('.preview-score').text(previewScore).show();
-      $card.find('.arrow-icon').show();
-
-      // Add preview class for styling
-      $card.addClass('ability-card--preview');
-    },
-
-    /**
-     * Hide boost preview
-     */
-    hideBoostPreview: function ($card) {
-      $card.find('.preview-score').hide();
-      $card.find('.arrow-icon').hide();
-      $card.removeClass('ability-card--preview');
-    },
-
-    /**
-     * Update boost counter display
-     */
-    updateBoostCounter: function () {
-      const self = this;
-      const remaining = self.state.maxBoosts - self.state.selectedBoosts.length;
-
-      $('.boosts-remaining').text(remaining).attr('data-remaining', remaining);
-
-      // Visual feedback when at max
-      if (remaining === 0) {
-        $('.boosts-remaining').addClass('at-max');
-      } else {
-        $('.boosts-remaining').removeClass('at-max');
-      }
-    },
-
-    /**
-     * Show warning when max boosts reached
-     */
-    showMaxBoostsWarning: function () {
-      const self = this;
-
-      const $warning = $('<div class="boost-warning">')
-        .text(`Maximum ${self.state.maxBoosts} boosts selected. Deselect one to choose a different ability.`)
-        .css({
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#ffc107',
-          color: '#000',
-          padding: '1rem 2rem',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-          zIndex: 9999,
-          fontWeight: 'bold',
+    function syncAvailable() {
+      $.ajax({
+        url: API.AVAILABLE_BOOSTS + '/' + step,
+        method: 'GET',
+        data: { character_data: JSON.stringify(buildPayload()) },
+        dataType: 'json',
+      }).done(function (res) {
+        if (!res || !res.available) { return; }
+        var avail = res.available || [];
+        var disabled = res.disabled || [];
+        $widget.find('.ability-card--selectable').each(function () {
+          var $c = $(this);
+          var ab = $c.data('ability');
+          var isSelected = selectedBoosts.indexOf(ab) !== -1;
+          var off = disabled.indexOf(ab) !== -1 || (avail.indexOf(ab) === -1 && !isSelected);
+          $c.toggleClass('ability-card--disabled', off);
+          $c.find('.ability-checkbox').prop('disabled', off);
         });
-
-      $('body').append($warning);
-
-      setTimeout(() => {
-        $warning.fadeOut(CONFIG.ANIMATION_DURATION, function () {
-          $(this).remove();
-        });
-      }, 2000);
-    },
-
-    /**
-     * Load character data from form context
-     */
-    loadCharacterData: function (context) {
-      const self = this;
-
-      // Try to get character data from form fields or data attributes
-      const $characterDataInput = $('input[name="character_data"]', context);
-      if ($characterDataInput.length) {
-        try {
-          self.state.characterData = JSON.parse($characterDataInput.val() || '{}');
-        } catch (e) {
-          console.warn('Failed to parse character data:', e);
-        }
-      }
-
-      // Also check for data attribute on widget container
-      const $widget = $('.ability-score-widget', context);
-      if ($widget.length && $widget.data('character-data')) {
-        self.state.characterData = $widget.data('character-data');
-      }
-
-      ['background_boosts', 'free_boosts'].forEach(function (key) {
-        if (typeof self.state.characterData[key] === 'string') {
-          try {
-            self.state.characterData[key] = JSON.parse(self.state.characterData[key]);
-          } catch (e) {
-            self.state.characterData[key] = [];
-          }
-        }
       });
+    }
 
-      console.log('Loaded character data:', self.state.characterData);
-    },
+    function recalculate() {
+      if (calculating) { return; }
+      calculating = true;
+      $.ajax({
+        url: API.CALCULATE,
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify({ character_data: buildPayload() }),
+        dataType: 'json',
+      }).done(function (res) {
+        if (res && res.success) { updateScores(res); }
+      }).always(function () {
+        calculating = false;
+      });
+    }
 
-    /**
-     * Validate a boost selection via API.
-     */
-    validateBoostSelection: function (ability) {
-      const self = this;
+    function debouncedRecalc() {
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(recalculate, DEBOUNCE_MS);
+    }
 
-      return $.ajax({
-        url: CONFIG.API_ENDPOINTS.VALIDATE_BOOST,
+    function updateScores(response) {
+      var scores = response.scores || {};
+      var modifiers = response.modifiers || {};
+      $widget.find('.ability-card').each(function () {
+        var $c = $(this);
+        var ab = $c.data('ability');
+        if (scores[ab] === undefined) { return; }
+        var s = scores[ab];
+        var m = modifiers[ab];
+        var mText = m >= 0 ? '+' + m : '' + m;
+        var $sv = $c.find('.score-value, .current-score');
+        if (parseInt($sv.text(), 10) !== s) {
+          $sv.addClass('score-display--changed');
+          setTimeout(function () { $sv.text(s); $c.data('score', s); }, 100);
+          setTimeout(function () { $sv.removeClass('score-display--changed'); }, 600);
+        }
+        $c.find('.modifier-value, .current-modifier')
+          .text(mText)
+          .removeClass('modifier-positive modifier-negative positive negative')
+          .addClass(m >= 0 ? 'modifier-positive positive' : 'modifier-negative negative');
+      });
+    }
+
+    // ── Card interaction ────────────────────────────────────────────────────
+
+    function handleToggle($card, ability) {
+      if ($card.hasClass('ability-card--selected')) {
+        deselectAbility($card, ability);
+        updateCounter();
+        debouncedRecalc();
+        syncAvailable();
+        return;
+      }
+      if (selectedBoosts.length >= maxBoosts) {
+        showToast('Maximum ' + maxBoosts + ' boosts selected. Deselect one first.', '#ffc107');
+        return;
+      }
+      $.ajax({
+        url: API.VALIDATE_BOOST,
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({
           ability: ability,
-          step: self.state.currentStep,
-          selected_boosts: self.state.selectedBoosts,
-          current_character_data: self.buildCharacterDataForSelection(),
+          step: step,
+          selected_boosts: selectedBoosts,
+          current_character_data: buildPayload(),
         }),
         dataType: 'json',
+      }).done(function (res) {
+        if (!res || res.valid === false) {
+          showToast(res && res.error ? res.error : 'This boost selection is not valid.', '#dc3545');
+          return;
+        }
+        selectAbility($card, ability);
+        updateCounter();
+        debouncedRecalc();
+        syncAvailable();
+      }).fail(function () {
+        showToast('Failed to validate boost selection.', '#dc3545');
       });
-    },
+    }
 
-    /**
-     * Sync available boosts and disabled state.
-     */
-    syncAvailableBoosts: function () {
-      const self = this;
+    // ── Bind events ─────────────────────────────────────────────────────────
 
-      const characterData = self.buildCharacterDataForSelection();
+    $widget.find('.ability-card--selectable').each(function () {
+      var $card = $(this);
+      var ability = $card.data('ability');
 
-      $.ajax({
-        url: `${CONFIG.API_ENDPOINTS.AVAILABLE_BOOSTS}/${self.state.currentStep}`,
-        method: 'GET',
-        data: {
-          character_data: JSON.stringify(characterData),
-        },
-        dataType: 'json',
-      })
-        .done(function (response) {
-          if (!response || !response.available) {
-            return;
-          }
-
-          const available = response.available || [];
-          const disabled = response.disabled || [];
-
-          $('.ability-card--selectable').each(function () {
-            const $card = $(this);
-            const ability = $card.data('ability');
-            const isSelected = self.state.selectedBoosts.includes(ability);
-            const shouldDisable = disabled.includes(ability) || (!available.includes(ability) && !isSelected);
-
-            $card.toggleClass('ability-card--disabled', shouldDisable);
-            $card.find('.ability-checkbox').prop('disabled', shouldDisable);
-          });
-        });
-    },
-
-    /**
-     * Build character data for API payloads.
-     */
-    buildCharacterDataForSelection: function () {
-      const self = this;
-      const characterData = Object.assign({}, self.state.characterData);
-
-      if (self.state.currentStep === 'background') {
-        characterData.background_boosts = self.state.selectedBoosts;
-      } else if (self.state.currentStep === 'class') {
-        characterData.class_key_ability = self.state.selectedBoosts[0] || null;
-      } else if (self.state.currentStep === 'free') {
-        characterData.free_boosts = self.state.selectedBoosts;
-      }
-
-      return characterData;
-    },
-
-    /**
-     * Recalculate ability scores via API
-     */
-    recalculateScores: function () {
-      const self = this;
-
-      if (self.state.isCalculating) {
-        console.log('Calculation already in progress, skipping...');
-        return;
-      }
-
-      self.state.isCalculating = true;
-
-      // Build character data with current selections
-      const characterData = self.buildCharacterDataForSelection();
-
-      // Show loading indicator
-      self.showLoadingIndicator();
-
-      // Make API call
-      $.ajax({
-        url: CONFIG.API_ENDPOINTS.CALCULATE,
-        method: 'POST',
-        contentType: 'application/json',
-        data: JSON.stringify({character_data: characterData}),
-        dataType: 'json',
-      })
-        .done(function (response) {
-          console.log('Calculation response:', response);
-
-          if (response.success) {
-            self.updateScoreDisplay(response);
-          } else {
-            self.showValidationErrors(response.validation || []);
-          }
-        })
-        .fail(function (jqXHR, textStatus, errorThrown) {
-          console.error('Calculation failed:', textStatus, errorThrown);
-          self.showError('Failed to calculate ability scores. Please try again.');
-        })
-        .always(function () {
-          self.state.isCalculating = false;
-          self.hideLoadingIndicator();
-        });
-    },
-
-    /**
-     * Debounced recalculation (prevents API spam)
-     */
-    debouncedRecalculate: (function () {
-      let timer;
-      return function () {
-        const self = Drupal.behaviors.abilityScoreBoostSelector;
-        clearTimeout(timer);
-        timer = setTimeout(() => {
-          self.recalculateScores();
-        }, CONFIG.DEBOUNCE_DELAY);
-      };
-    })(),
-
-    /**
-     * Update score display with API response
-     */
-    updateScoreDisplay: function (response) {
-      const scores = response.scores || {};
-      const modifiers = response.modifiers || {};
-
-      // Update each ability card
-      $('.ability-card').each(function () {
-        const $card = $(this);
-        const ability = $card.data('ability');
-
-        if (scores[ability] !== undefined) {
-          const newScore = scores[ability];
-          const newModifier = modifiers[ability];
-          const modifierText = newModifier >= 0 ? '+' + newModifier : newModifier;
-
-          // Update score value with animation
-          const $scoreValue = $card.find('.score-value, .current-score');
-          const oldScore = parseInt($scoreValue.text());
-
-          if (oldScore !== newScore) {
-            $scoreValue.addClass('score-display--changed');
-            setTimeout(() => {
-              $scoreValue.text(newScore);
-              $card.data('score', newScore);
-            }, 100);
-            setTimeout(() => {
-              $scoreValue.removeClass('score-display--changed');
-            }, 600);
-          }
-
-          // Update modifier
-          $card.find('.modifier-value, .current-modifier').text(modifierText)
-            .removeClass('modifier-positive modifier-negative positive negative')
-            .addClass(newModifier >= 0 ? 'modifier-positive positive' : 'modifier-negative negative');
+      $card.on('click', function (e) {
+        e.preventDefault();
+        if (!$card.hasClass('ability-card--disabled')) {
+          handleToggle($card, ability);
         }
       });
-    },
 
-    /**
-     * Show validation errors to user
-     */
-    showValidationErrors: function (errors) {
-      if (errors.length === 0) return;
-
-      const errorHtml = '<div class="validation-errors">' +
-        '<strong>Validation Errors:</strong>' +
-        '<ul>' + errors.map(e => '<li>' + e + '</li>').join('') + '</ul>' +
-        '</div>';
-
-      const $errors = $(errorHtml).css({
-        background: '#f8d7da',
-        border: '1px solid #f5c2c7',
-        borderRadius: '8px',
-        padding: '1rem',
-        margin: '1rem 0',
-        color: '#842029',
+      $card.on('keypress', function (e) {
+        if (e.which === 13 || e.which === 32) {
+          e.preventDefault();
+          if (!$card.hasClass('ability-card--disabled')) {
+            handleToggle($card, ability);
+          }
+        }
       });
 
-      $('.ability-score-widget').prepend($errors);
+      // Hover preview.
+      $card.on('mouseenter', function () {
+        if (!$card.hasClass('ability-card--selected') && !$card.hasClass('ability-card--disabled')) {
+          var cur = parseInt($card.data('score'), 10);
+          var preview = cur < 18 ? cur + 2 : cur + 1;
+          $card.find('.preview-score').text(preview).show();
+          $card.find('.arrow-icon').show();
+          $card.addClass('ability-card--preview');
+        }
+      });
+      $card.on('mouseleave', function () {
+        if (!$card.hasClass('ability-card--selected')) {
+          $card.find('.preview-score').hide();
+          $card.find('.arrow-icon').hide();
+          $card.removeClass('ability-card--preview');
+        }
+      });
+    });
 
-      setTimeout(() => {
-        $errors.fadeOut(CONFIG.ANIMATION_DURATION, function () {
-          $(this).remove();
-        });
-      }, 5000);
+    updateCounter();
+    syncAvailable();
+  }
+
+  // ── Drupal behavior ────────────────────────────────────────────────────────
+
+  Drupal.behaviors.abilityScoreBoostSelector = {
+    attach: function (context) {
+      $(once('ability-boost-selector', '.abilities-interactive', context)).each(function () {
+        initWidget($(this));
+      });
     },
-
-    /**
-     * Show error message
-     */
-    showError: function (message) {
-      const $error = $('<div class="calculation-error">')
-        .text(message)
-        .css({
-          position: 'fixed',
-          top: '20px',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          background: '#dc3545',
-          color: 'white',
-          padding: '1rem 2rem',
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
-          zIndex: 9999,
-        });
-
-      $('body').append($error);
-
-      setTimeout(() => {
-        $error.fadeOut(CONFIG.ANIMATION_DURATION, function () {
-          $(this).remove();
-        });
-      }, 3000);
-    },
-
-    /**
-     * Show loading indicator
-     */
-    showLoadingIndicator: function () {
-      const $loading = $('<div class="calculation-loading">')
-        .html('<div class="spinner"></div> Calculating...')
-        .css({
-          position: 'fixed',
-          top: '50%',
-          left: '50%',
-          transform: 'translate(-50%, -50%)',
-          background: 'rgba(0, 0, 0, 0.8)',
-          color: 'white',
-          padding: '2rem 3rem',
-          borderRadius: '12px',
-          zIndex: 9999,
-          fontSize: '1.25rem',
-        });
-
-      $('body').append($loading);
-    },
-
-    /**
-     * Hide loading indicator
-     */
-    hideLoadingIndicator: function () {
-      $('.calculation-loading').remove();
-    },
-
   };
 
-  /**
-   * Form validation before submission
-   */
+  // ── Form validation ────────────────────────────────────────────────────────
+
   Drupal.behaviors.abilityBoostFormValidation = {
-    attach: function (context, settings) {
+    attach: function (context) {
       $(once('ability-boost-form-validation', 'form.character-creation-form', context)).each(function () {
-        const $form = $(this);
-
+        var $form = $(this);
         $form.on('submit', function (e) {
-          const selector = Drupal.behaviors.abilityScoreBoostSelector;
-          const selectedCount = selector.state.selectedBoosts.length;
-          const requiredCount = selector.state.maxBoosts;
+          var $widget = $form.find('.ability-score-widget');
+          if (!$widget.length) { return; }
 
-          if (selectedCount < requiredCount) {
-            e.preventDefault();
-            alert(`Please select ${requiredCount} ability boosts before continuing. You have selected ${selectedCount}.`);
-            return false;
+          var cfg = detectConfig($widget);
+          var $hidden = $(cfg.fieldId);
+          var boosts = [];
+          if ($hidden.length && $hidden.val()) {
+            try { boosts = JSON.parse($hidden.val()); } catch (_) {}
           }
 
-          selector.updateHiddenField();
+          if (boosts.length < cfg.maxBoosts) {
+            e.preventDefault();
+            alert('Please select ' + cfg.maxBoosts + ' ability boosts before continuing. You have selected ' + boosts.length + '.');
+            return false;
+          }
         });
       });
     },
