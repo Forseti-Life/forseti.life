@@ -245,4 +245,28 @@ class CharacterApiController extends ControllerBase {
     ]);
   }
 
+  /**
+   * GET /character/{character_id}/skills
+   *
+   * Returns the character's skill list with proficiency rank and current bonus.
+   * Anonymous access allowed (character skill data readable in active game session).
+   */
+  public function getCharacterSkills(Request $request, int $character_id): JsonResponse {
+    $character = $this->characterManager->loadCharacter($character_id);
+    if (!$character) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Character not found'], 404);
+    }
+
+    $skills = $this->characterManager->getCharacterSkills($character_id);
+    if (isset($skills['error'])) {
+      return new JsonResponse(['success' => FALSE, 'error' => $skills['error']], 404);
+    }
+
+    return new JsonResponse([
+      'success'      => TRUE,
+      'character_id' => $character_id,
+      'skills'       => $skills,
+    ]);
+  }
+
 }

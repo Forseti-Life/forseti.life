@@ -225,4 +225,154 @@ class CharacterCalculator {
     ];
   }
 
+  /**
+   * PF2E core skills with their governing ability score.
+   * Key: skill id (lowercase), value: ability score key.
+   */
+  const SKILLS = [
+    'acrobatics'   => 'dexterity',
+    'arcana'       => 'intelligence',
+    'athletics'    => 'strength',
+    'crafting'     => 'intelligence',
+    'deception'    => 'charisma',
+    'diplomacy'    => 'charisma',
+    'intimidation' => 'charisma',
+    'lore'         => 'intelligence',
+    'medicine'     => 'wisdom',
+    'nature'       => 'wisdom',
+    'occultism'    => 'intelligence',
+    'performance'  => 'charisma',
+    'religion'     => 'wisdom',
+    'society'      => 'intelligence',
+    'stealth'      => 'dexterity',
+    'survival'     => 'wisdom',
+    'thievery'     => 'dexterity',
+  ];
+
+  /**
+   * PF2E proficiency rank names (index = rank value 0–4).
+   */
+  const PROFICIENCY_RANKS = ['untrained', 'trained', 'expert', 'master', 'legendary'];
+
+  /**
+   * Calculate a skill check result.
+   *
+   * Formula: d20 + ability_modifier + proficiency_bonus + item_bonus
+   *
+   * @param array $characterData  Character data (abilities[], level, skills[]).
+   * @param string $skillName     Lowercase skill name (e.g. 'athletics').
+   *                              Lore specializations: 'sailing lore', etc.
+   * @param int $dc               Difficulty class.
+   * @param int $itemBonus        Item or circumstance bonus (default 0).
+   * @param object|null $numberGen NumberGenerationService; NULL = PHP rand (tests).
+   *
+   * @return array With keys: roll, ability_modifier, proficiency_bonus, item_bonus,
+   *               total, dc, degree, skill, rank, error.
+   */
+  public function calculateSkillCheck(array $characterData, string $skillName, int $dc, int $itemBonus = 0, $numberGen = NULL): array {
+    $skillKey = strtolower(trim($skillName));
+
+    // Resolve governing ability: Lore specializations use intelligence.
+    $abilityKey = self::SKILLS[$skillKey] ?? NULL;
+    if ($abilityKey === NULL) {
+      if (str_ends_with($skillKey, 'lore') || strpos($skillKey, ' lore') !== FALSE) {
+        $abilityKey = 'intelligence';
+      }
+      else {
+        return ['error' => "Unknown skill: {$skillName}. Valid skills: " . implode(', ', array_keys(self::SKILLS))];
+      }
+    }
+
+    $abilities = $characterData['abilities'] ?? [];
+    // Support both full key ('strength') and short key ('str').
+    $abilityScore = (int) ($abilities[$abilityKey] ?? $abilities[substr($abilityKey, 0, 3)] ?? 10);
+    $abilityMod = $this->calculateAbilityModifier($abilityScore);
+
+    $level = max(0, (int) ($characterData['level'] ?? 1));
+
+    // Resolve proficiency rank from stored skills map.
+    $skills = $characterData['skills'] ?? [];
+    $rank = 'untrained';
+    if (isset($skills[$skillKey])) {
+      $stored = $skills[$skillKey];
+      $rank = is_numeric($stored)
+        ? (self::PROFICIENCY_RANKS[(int) $stored] ?? 'untrained')
+        : (string) $stored;
+    }
+    // Check lore_skills array for specializations.
+    if ($skillKey !== 'lore' && isset($characterData['lore_skills'])) {
+      foreach ($characterData['lore_skills'] as $lore) {
+        $loreName = strtolower($lore['specialization'] ?? $lore['name'] ?? '');
+        if ($loreName === $skillKey || $loreName . ' lore' === $skillKey) {
+          $rank = $lore['rank'] ?? 'trained';
+          break;
+        }
+      }
+    }
+
+    $profBonus = $this->calculateProficiencyBonus($rank, $level);
+    $roll = $numberGen ? $numberGen->rollPathfinderDie(20) : rand(1, 20);
+    $total = $roll + $abilityMod + $profBonus + $itemBonus;
+
+    $baseDegree = $this->skillBaseDegree($total, $dc);
+    if ($roll === 20) {
+      $degree = $this->skillBumpDegreeUp($baseDegree);
+    }
+    elseif ($roll === 1) {
+      $degree = $this->skillBumpDegreeDown($baseDegree);
+    }
+    else {
+      $degree = $baseDegree;
+    }
+
+    return [
+      'roll'              => $roll,
+      'ability_modifier'  => $abilityMod,
+      'proficiency_bonus' => $profBonus,
+      'item_bonus'        => $itemBonus,
+      'total'             => $total,
+      'dc'                => $dc,
+      'degree'            => $degree,
+      'skill'             => $skillKey,
+      'rank'              => $rank,
+      'error'             => NULL,
+    ];
+  }
+
+  /**
+   * Base degree of success from total vs DC (PF2E rules).
+   */
+  protected function skillBaseDegree(int $total, int $dc): string {
+    if ($total >= $dc + 10) {
+      return 'critical_success';
+    }
+    if ($total >= $dc) {
+      return 'success';
+    }
+    if ($total <= $dc - 10) {
+      return 'critical_failure';
+    }
+    return 'failure';
+  }
+
+  /** Bump degree of success up one step (natural 20). */
+  protected function skillBumpDegreeUp(string $degree): string {
+    return match ($degree) {
+      'critical_failure' => 'failure',
+      'failure'          => 'success',
+      'success'          => 'critical_success',
+      default            => 'critical_success',
+    };
+  }
+
+  /** Bump degree of success down one step (natural 1). */
+  protected function skillBumpDegreeDown(string $degree): string {
+    return match ($degree) {
+      'critical_success' => 'success',
+      'success'          => 'failure',
+      'failure'          => 'critical_failure',
+      default            => 'critical_failure',
+    };
+  }
+
 }

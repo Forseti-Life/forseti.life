@@ -1203,3 +1203,14 @@ dungeoncrawler_content.api.class_starting_equipment:
     id: '[a-z0-9_\-]+'
   options:
     _format: json
+
+dungeoncrawler_content.api.character_skills:
+  path: '/character/{character_id}/skills'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterApiController::getCharacterSkills'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json

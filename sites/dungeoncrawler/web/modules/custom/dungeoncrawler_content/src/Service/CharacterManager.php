@@ -1082,6 +1082,76 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   }
 
   /**
+   * Get the skill list for a character with proficiency rank and bonus.
+   *
+   * Returns all 17 core skills plus any Lore specializations stored on the character.
+   *
+   * @param int $characterId Character ID.
+   * @param \Drupal\dungeoncrawler_content\Service\CharacterCalculator $calculator
+   *   Injected or inline-constructed for proficiency math.
+   *
+   * @return array List of skills with keys: name, rank, ability, bonus, is_lore.
+   *   Returns ['error' => '...'] on failure.
+   */
+  public function getCharacterSkills(int $characterId, $calculator = NULL): array {
+    $record = $this->loadCharacter($characterId);
+    if (!$record) {
+      return ['error' => "Character {$characterId} not found."];
+    }
+
+    $data = $this->getCharacterData($record);
+    $level = max(0, (int) ($record->level ?? $data['level'] ?? 1));
+    $storedSkills = $data['skills'] ?? [];
+    $abilities = $data['abilities'] ?? [];
+
+    if ($calculator === NULL) {
+      $calculator = new \Drupal\dungeoncrawler_content\Service\CharacterCalculator();
+    }
+
+    $skills = [];
+    foreach (\Drupal\dungeoncrawler_content\Service\CharacterCalculator::SKILLS as $skillKey => $abilityKey) {
+      $rankRaw = $storedSkills[$skillKey] ?? 'untrained';
+      $rank = is_numeric($rankRaw)
+        ? (\Drupal\dungeoncrawler_content\Service\CharacterCalculator::PROFICIENCY_RANKS[(int) $rankRaw] ?? 'untrained')
+        : $rankRaw;
+
+      $abilityScore = (int) ($abilities[$abilityKey] ?? $abilities[substr($abilityKey, 0, 3)] ?? 10);
+      $abilityMod = $calculator->calculateAbilityModifier($abilityScore);
+      $profBonus = $calculator->calculateProficiencyBonus($rank, $level);
+
+      $skills[] = [
+        'name'    => $skillKey,
+        'rank'    => $rank,
+        'ability' => $abilityKey,
+        'bonus'   => $abilityMod + $profBonus,
+        'is_lore' => FALSE,
+      ];
+    }
+
+    // Add Lore specializations.
+    if (!empty($data['lore_skills'])) {
+      foreach ($data['lore_skills'] as $lore) {
+        $spec   = $lore['specialization'] ?? $lore['name'] ?? 'Unknown Lore';
+        $rank   = $lore['rank'] ?? 'trained';
+        $abilityScore = (int) ($abilities['intelligence'] ?? $abilities['int'] ?? 10);
+        $abilityMod   = $calculator->calculateAbilityModifier($abilityScore);
+        $profBonus    = $calculator->calculateProficiencyBonus($rank, $level);
+
+        $skills[] = [
+          'name'            => strtolower($spec) . ' lore',
+          'specialization'  => $spec,
+          'rank'            => $rank,
+          'ability'         => 'intelligence',
+          'bonus'           => $abilityMod + $profBonus,
+          'is_lore'         => TRUE,
+        ];
+      }
+    }
+
+    return $skills;
+  }
+
+  /**
    * Extract hot-column values from character payload.
    *
    * Maps JSON schema fields to hot relational columns for high-frequency gameplay:
