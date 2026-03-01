@@ -52,6 +52,7 @@ safety_calculator.calculate:
   defaults:
     _controller: '\Drupal\safety_calculator\Controller\SafetyCalculatorController::calculate'
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access content'
   methods: [GET, POST]
   options:

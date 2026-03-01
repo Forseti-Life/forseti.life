@@ -27,6 +27,7 @@ job_hunter.queue_run:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::runQueueAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_run_all:
@@ -35,6 +36,7 @@ job_hunter.queue_run_all:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::runAllQueuesAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_status:
@@ -76,6 +78,7 @@ job_hunter.opportunity_delete_job:
     _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::deleteJobAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.opportunity_delete_search:
@@ -84,6 +87,7 @@ job_hunter.opportunity_delete_search:
     _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::deleteSearchHistoryAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.opportunity_bulk_delete:
@@ -92,6 +96,7 @@ job_hunter.opportunity_bulk_delete:
     _controller: '\Drupal\job_hunter\Controller\OpportunityManagementController::bulkDeleteAjax'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_delete_item:
@@ -100,6 +105,7 @@ job_hunter.queue_delete_item:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::deleteQueueItem'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_suspend_item:
@@ -108,6 +114,7 @@ job_hunter.queue_suspend_item:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::suspendQueueItem'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_delete_file:
@@ -116,6 +123,7 @@ job_hunter.queue_delete_file:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::deleteFile'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_pause:
@@ -124,6 +132,7 @@ job_hunter.queue_pause:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::pauseQueueProcessing'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_resume:
@@ -132,6 +141,7 @@ job_hunter.queue_resume:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::resumeQueueProcessing'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_suspended:
@@ -147,6 +157,7 @@ job_hunter.queue_retry_suspended:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::retrySuspendedItem'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_clear_genai_cache:
@@ -155,6 +166,7 @@ job_hunter.queue_clear_genai_cache:
     _controller: '\Drupal\job_hunter\Controller\JobHunterHomeController::clearGenAiCache'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
 
 # Module Settings
@@ -270,6 +282,7 @@ job_hunter.addposting:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
   requirements:
+    _csrf_token: 'TRUE'
     _user_is_logged_in: 'TRUE'
   methods: [GET, POST]
 
@@ -337,6 +350,7 @@ job_hunter.toggle_job_applied:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::toggleJobApplied'
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
     job_id: '\d+'
   methods: [POST]
@@ -357,6 +371,7 @@ job_hunter.job_apply:
     _controller: '\Drupal\job_hunter\Controller\CompanyController::applyToJob'
     _title: 'Apply to Job'
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
     job_id: '\d+'
   methods: [POST]
@@ -743,6 +758,7 @@ job_hunter.delete_pdf:
     _title: 'Delete Resume PDF'
   methods: [POST, DELETE]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
     pdf_id: \d+
 
@@ -788,6 +804,7 @@ job_hunter.google_jobs_toggle_sync:
     _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::toggleJobSync'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
   options:
     _csrf_request_header_mode: 'true'
@@ -798,6 +815,7 @@ job_hunter.google_jobs_generate_structured_data:
     _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::generateStructuredData'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
   options:
     _csrf_request_header_mode: 'true'
@@ -808,6 +826,7 @@ job_hunter.google_jobs_validate:
     _controller: '\Drupal\job_hunter\Controller\GoogleJobsIntegrationController::validateStructuredData'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer job application automation'
   options:
     _csrf_request_header_mode: 'true'
@@ -853,6 +872,7 @@ job_hunter.google_jobs_import:
     _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::apiImport'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
 
 job_hunter.google_jobs_batch_import:
@@ -861,6 +881,7 @@ job_hunter.google_jobs_batch_import:
     _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::apiBatchImport'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
 
 job_hunter.google_jobs_details:
@@ -918,6 +939,7 @@ job_hunter.credentials_delete:
     _controller: '\Drupal\job_hunter\Controller\CredentialController::deleteCredential'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
     credential_id: '\d+'
 
@@ -927,5 +949,6 @@ job_hunter.credentials_test:
     _controller: '\Drupal\job_hunter\Controller\CredentialController::testCredential'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
     credential_id: '\d+'

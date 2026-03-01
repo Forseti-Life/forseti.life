@@ -28,6 +28,7 @@ jobhunter_tester.run_tests:
     _controller: '\Drupal\jobhunter_tester\Controller\JobHunterTesterController::runTests'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
   options:
     _csrf_request_header_mode: 'true'

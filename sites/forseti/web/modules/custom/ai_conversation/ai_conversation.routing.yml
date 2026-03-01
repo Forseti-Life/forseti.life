@@ -45,6 +45,7 @@ ai_conversation.genai_debug_delete:
     _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::deleteCall'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
     id: \d+
 
@@ -54,6 +55,7 @@ ai_conversation.genai_debug_delete_all:
     _controller: '\Drupal\ai_conversation\Controller\GenAiDebugController::deleteAllFiltered'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'administer site configuration'
 
 ai_conversation.update_prompt:

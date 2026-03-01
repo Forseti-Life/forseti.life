@@ -76,6 +76,7 @@ copilot_agent_tracker.api_event:
     _controller: '\Drupal\copilot_agent_tracker\Controller\ApiController::event'
   methods: [POST]
   requirements:
+    _csrf_request_header_mode: TRUE
     # Token-gated in controller; route must be reachable by non-browser senders.
     _access: 'TRUE'
   options:

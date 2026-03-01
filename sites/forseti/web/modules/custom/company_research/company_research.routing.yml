@@ -21,5 +21,6 @@ company_research.refresh:
     _controller: '\Drupal\company_research\Controller\CompanyResearchController::refresh'
   methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access company research'
     research_id: \d+
