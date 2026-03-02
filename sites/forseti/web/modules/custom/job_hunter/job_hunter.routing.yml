@@ -263,6 +263,7 @@ job_hunter.job_discovery_search_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::jobDiscoverySearch'
   requirements:
     _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
@@ -273,6 +274,7 @@ job_hunter.save_job:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::saveJob'
   requirements:
     _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
@@ -283,6 +285,7 @@ job_hunter.addposting:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
   requirements:
     _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
   methods: [GET, POST]
 
 # Target Companies Management
@@ -535,6 +538,7 @@ job_hunter.tailor_resume_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::tailorResumeAjax'
   requirements:
     _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
@@ -554,6 +558,7 @@ job_hunter.add_skill_to_profile_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::addSkillToProfileAjax'
   requirements:
     _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
@@ -564,6 +569,7 @@ job_hunter.refresh_skills_gap_ajax:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::refreshSkillsGapAjax'
   requirements:
     _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     _csrf_request_header_mode: 'TRUE'
   methods: [POST]
 
