@@ -431,7 +431,7 @@ Generate a TAILORED version of the candidate's resume as a JSON object. The outp
    - `consulting_practice`: Include if relevant to role
    - `early_career`: Include if relevant
    - `education`: Keep unchanged
-   - `technical_expertise`: Reorder categories to prioritize job-relevant skills
+   - `technical_expertise`: Reorder categories to prioritize job-relevant skills. Each category must be an object with "name" (string) and "skills" (array of skill name strings). Preserve all skills from the source profile.
    - `leadership_philosophy`: Tailor if relevant
    - `demonstration_projects`: Include if relevant
    - `publications`: Include if candidate has publications and they're relevant to the role
@@ -684,7 +684,10 @@ Generate ONLY these sections as valid JSON:
   "education": [...keep unchanged or omit if not relevant...],
   "technical_expertise": {
     "categories": [
-      "REORDERED to prioritize job-relevant skills"
+      {
+        "name": "Category Name",
+        "skills": ["Skill 1", "Skill 2", "Skill 3"]
+      }
     ]
   },
   "consulting_practice": {...include if relevant...},
@@ -697,7 +700,9 @@ Generate ONLY these sections as valid JSON:
 **CRITICAL**:
 - Return ONLY valid JSON (start with `{`, end with `}`)
 - NO markdown code blocks
-- Reorder technical_expertise categories to prioritize job-relevant skills
+- technical_expertise.categories MUST be an array of objects, each with "name" (string) and "skills" (array of strings). Do NOT return bare strings.
+- Reorder categories to prioritize job-relevant skills. Consolidate the source data into logical groups.
+- Pull actual skill names from the source Technical Expertise data — do NOT drop them. Every skill from the source should appear under an appropriate category.
 - Include optional sections (consulting, early_career, leadership, demos) ONLY if relevant to this role
 - Keep education unchanged unless specific optimization needed
 - Use proper JSON escaping
