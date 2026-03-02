@@ -28,6 +28,7 @@ job_hunter.queue_run:
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
+    _csrf_request_header_mode: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_run_all:
@@ -37,6 +38,7 @@ job_hunter.queue_run_all:
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
+    _csrf_request_header_mode: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_status:
@@ -133,6 +135,7 @@ job_hunter.queue_pause:
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
+    _csrf_request_header_mode: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_resume:
@@ -142,6 +145,7 @@ job_hunter.queue_resume:
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
+    _csrf_request_header_mode: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_suspended:
@@ -158,6 +162,7 @@ job_hunter.queue_retry_suspended:
   methods: [POST]
   requirements:
     _csrf_token: 'TRUE'
+    _csrf_request_header_mode: 'TRUE'
     _permission: 'administer job application automation'
 
 job_hunter.queue_clear_genai_cache:
@@ -729,6 +734,16 @@ job_hunter.generate_tailored_resume_pdf:
   path: '/jobhunter/jobs/{job_id}/resume/generate'
   defaults:
     _controller: '\Drupal\job_hunter\Controller\ResumeController::generateTailoredPdf'
+    _title: 'Generate Resume PDF'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
+
+# Generate Tailored Resume PDF and redirect back (non-AJAX)
+job_hunter.generate_tailored_resume_pdf_redirect:
+  path: '/jobhunter/jobs/{job_id}/resume/generate/return'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\ResumeController::generateTailoredPdfAndReturn'
     _title: 'Generate Resume PDF'
   requirements:
     _permission: 'access job hunter'

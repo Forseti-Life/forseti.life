@@ -187,7 +187,9 @@
               {% elseif wf == 'tailoring_processing' %}
                 <span class="status-text status-text--muted">{{ 'Processing...'|t }}</span>
               {% elseif wf == 'approval_pending' %}
-                <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small button--primary">
+                <a href="{{ path('job_hunter.generate_tailored_resume_pdf_redirect', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
+                   class="button button--small button--primary"
+                   onclick="return confirm('{{ 'Generate PDF now? Your status will update once generation succeeds.'|t }}')">
                   {{ 'Generate PDF'|t }}
                 </a>
               {% elseif wf == 'application_pending' %}

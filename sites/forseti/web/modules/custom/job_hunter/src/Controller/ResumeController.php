@@ -9,6 +9,7 @@ use Drupal\Core\File\FileSystemInterface;
 use Drupal\job_hunter\Service\ResumePdfService;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -221,6 +222,40 @@ class ResumeController extends ControllerBase {
       'filename' => $filename,
       'generated' => date('Y-m-d H:i:s', $requestTime),
     ]);
+  }
+
+  /**
+   * Generate tailored PDF and redirect back to caller.
+   *
+   * Used for non-AJAX links (e.g., My Jobs action column) so users can click
+   * once, get PDF generation confirmation, and land back on the originating
+   * page with status updated.
+   *
+   * @param int $job_id
+   *   The job ID.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect response back to my-jobs (or provided return_to path).
+   */
+  public function generateTailoredPdfAndReturn(int $job_id): RedirectResponse {
+    $request = \Drupal::request();
+    $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
+    if (strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs';
+    }
+
+    $response = $this->generateTailoredPdf($job_id);
+    $payload = $response->getData(TRUE);
+
+    if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
+      $this->messenger()->addStatus($this->t('Resume PDF generated successfully.'));
+    }
+    else {
+      $message = !empty($payload['message']) ? (string) $payload['message'] : 'Failed to generate resume PDF.';
+      $this->messenger()->addError($this->t($message));
+    }
+
+    return new RedirectResponse($return_to);
   }
 
   /**
