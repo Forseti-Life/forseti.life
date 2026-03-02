@@ -316,11 +316,12 @@ class JobDiscoveryService {
       else {
         $query->condition('j.status', 'archived', '!=');
       }
-      if (!empty($filters['ai_status'])) {
-        $query->condition('j.ai_extraction_status', $filters['ai_status']);
-      }
-      if (!empty($filters['tailoring'])) {
-        $query->condition('tr.tailoring_status', $filters['tailoring']);
+      if (!empty($filters['platform'])) {
+        // Filter by source_platform or via field.
+        $platform_group = $query->orConditionGroup()
+          ->condition('j.source_platform', '%' . $this->database->escapeLike($filters['platform']) . '%', 'LIKE')
+          ->condition('j.via', '%' . $this->database->escapeLike($filters['platform']) . '%', 'LIKE');
+        $query->condition($platform_group);
       }
 
       $query->orderBy('c.' . $company_name_field, 'ASC');
@@ -373,11 +374,11 @@ class JobDiscoveryService {
       else {
         $query->condition('j.status', 'archived', '!=');
       }
-      if (!empty($filters['ai_status'])) {
-        $query->condition('j.ai_extraction_status', $filters['ai_status']);
-      }
-      if (!empty($filters['tailoring'])) {
-        $query->condition('tr.tailoring_status', $filters['tailoring']);
+      if (!empty($filters['platform'])) {
+        $platform_group = $query->orConditionGroup()
+          ->condition('j.source_platform', '%' . $this->database->escapeLike($filters['platform']) . '%', 'LIKE')
+          ->condition('j.via', '%' . $this->database->escapeLike($filters['platform']) . '%', 'LIKE');
+        $query->condition($platform_group);
       }
       $query->addExpression('COUNT(*)', 'total');
       return (int) $query->execute()->fetchField();
@@ -453,6 +454,58 @@ class JobDiscoveryService {
     }
     catch (\Exception $e) {
       $this->getLogger()->error('Error fetching company names: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      return [];
+    }
+  }
+
+  /**
+   * Get distinct source platforms for the filter dropdown.
+   *
+   * Combines source_platform and via fields into a unified list.
+   *
+   * @return array
+   *   Array of platform names.
+   */
+  public function getSourcePlatforms(): array {
+    try {
+      $platforms = [];
+
+      // Collect from via field (user-friendly names).
+      $via_query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $via_query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $via_query->addField('j', 'via');
+      $via_query->condition('sj.uid', $this->currentUser->id());
+      $via_query->condition('j.via', '', '!=');
+      $via_query->isNotNull('j.via');
+      $via_query->distinct();
+      $via_results = $via_query->execute()->fetchCol();
+      foreach ($via_results as $v) {
+        $platforms[trim($v)] = trim($v);
+      }
+
+      // Collect from source_platform field.
+      $sp_query = $this->database->select('jobhunter_saved_jobs', 'sj');
+      $sp_query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
+      $sp_query->addField('j', 'source_platform');
+      $sp_query->condition('sj.uid', $this->currentUser->id());
+      $sp_query->condition('j.source_platform', '', '!=');
+      $sp_query->isNotNull('j.source_platform');
+      $sp_query->distinct();
+      $sp_results = $sp_query->execute()->fetchCol();
+      foreach ($sp_results as $sp) {
+        $key = trim($sp);
+        if (!isset($platforms[$key])) {
+          $platforms[$key] = $key;
+        }
+      }
+
+      asort($platforms);
+      return array_values($platforms);
+    }
+    catch (\Exception $e) {
+      $this->getLogger()->error('Error fetching source platforms: @error', [
         '@error' => $e->getMessage(),
       ]);
       return [];

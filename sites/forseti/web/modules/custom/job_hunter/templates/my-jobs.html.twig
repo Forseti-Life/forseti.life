@@ -4,12 +4,12 @@
  * Template for the My Jobs page - displays user's saved job postings.
  *
  * Available variables:
- * - jobs: Array of saved jobs
+ * - jobs: Array of saved jobs (each job has a workflow_status and display_platform)
  * - companies: Array of company names for filtering
+ * - platforms: Array of source platform names for filtering
  * - filter_company: Current company filter value
- * - filter_status: Current status filter value
- * - filter_ai_status: Current AI status filter value
- * - filter_tailoring: Current tailoring filter value
+ * - filter_status: Current workflow status filter value
+ * - filter_platform: Current platform filter value
  * - return_url: Current page URL to return to after inline actions
  * - current_page: Current page number (0-indexed)
  * - total_pages: Total number of pages
@@ -18,15 +18,46 @@
 #}
 
 <div class="my-jobs-page">
-  <h1>📋 {{ 'My Jobs'|t }}</h1>
-  <p>{{ 'Manage your saved job postings, track AI parsing and resume tailoring status.'|t }}</p>
+  <h1>{{ 'My Jobs'|t }}</h1>
+  <p>{{ 'Track your saved jobs through the application pipeline.'|t }}</p>
+
+  {# Process Flow Legend #}
+  <div class="workflow-legend">
+    <h3>{{ 'Application Process Flow'|t }}</h3>
+    <ol class="workflow-steps">
+      <li class="workflow-step workflow-step--profile-pending">
+        <span class="workflow-step__badge badge badge--warning">1</span>
+        <strong>{{ 'Profile Pending'|t }}</strong> &mdash; {{ 'Complete your job seeker profile'|t }}
+      </li>
+      <li class="workflow-step workflow-step--tailoring-pending">
+        <span class="workflow-step__badge badge badge--info">2</span>
+        <strong>{{ 'Tailoring Pending'|t }}</strong> &mdash; {{ 'Tailor your resume for this job'|t }}
+      </li>
+      <li class="workflow-step workflow-step--tailoring-processing">
+        <span class="workflow-step__badge badge badge--warning">3</span>
+        <strong>{{ 'Tailoring Processing'|t }}</strong> &mdash; {{ 'Resume tailoring is in progress'|t }}
+      </li>
+      <li class="workflow-step workflow-step--application-pending">
+        <span class="workflow-step__badge badge badge--info">4</span>
+        <strong>{{ 'Application Pending'|t }}</strong> &mdash; {{ 'Submit your application'|t }}
+      </li>
+      <li class="workflow-step workflow-step--pending-response">
+        <span class="workflow-step__badge badge badge--success">5</span>
+        <strong>{{ 'Pending Response'|t }}</strong> &mdash; {{ 'Waiting for company response'|t }}
+      </li>
+      <li class="workflow-step workflow-step--closed">
+        <span class="workflow-step__badge badge badge--neutral">6</span>
+        <strong>{{ 'Closed'|t }}</strong> &mdash; {{ 'Application cycle complete'|t }}
+      </li>
+    </ol>
+  </div>
 
   <div class="page-actions">
     <a href="/jobhunter/job/paste" class="button button--primary">
       {{ '+ Add Job Posting'|t }}
     </a>
     <a href="/jobhunter/my-jobs/archive" class="button button--secondary">
-      {{ '🗄 Archived Jobs'|t }}
+      {{ 'Archived Jobs'|t }}
     </a>
   </div>
 
@@ -45,7 +76,7 @@
             {% endfor %}
           </select>
         </div>
-        
+
         <div class="filter-field">
           <label for="status">{{ 'Status'|t }}</label>
           <select name="status" id="status">
@@ -53,53 +84,27 @@
             <option value="active"{{ filter_status == 'active' ? ' selected' : '' }}>
               {{ 'Active'|t }}
             </option>
-            <option value="archived"{{ filter_status == 'archived' ? ' selected' : '' }}>
-              {{ 'Archived'|t }}
-            </option>
             <option value="applied"{{ filter_status == 'applied' ? ' selected' : '' }}>
               {{ 'Applied'|t }}
             </option>
+            <option value="closed"{{ filter_status == 'closed' ? ' selected' : '' }}>
+              {{ 'Closed'|t }}
+            </option>
           </select>
         </div>
-        
+
         <div class="filter-field">
-          <label for="ai_status">{{ 'AI Status'|t }}</label>
-          <select name="ai_status" id="ai_status">
-            <option value="">{{ 'All AI Statuses'|t }}</option>
-            <option value="completed"{{ filter_ai_status == 'completed' ? ' selected' : '' }}>
-              {{ 'Parsed'|t }}
-            </option>
-            <option value="pending"{{ filter_ai_status == 'pending' ? ' selected' : '' }}>
-              {{ 'Needs Parsing'|t }}
-            </option>
-            <option value="processing"{{ filter_ai_status == 'processing' ? ' selected' : '' }}>
-              {{ 'Processing'|t }}
-            </option>
-            <option value="failed"{{ filter_ai_status == 'failed' ? ' selected' : '' }}>
-              {{ 'Failed'|t }}
-            </option>
+          <label for="platform">{{ 'Platform'|t }}</label>
+          <select name="platform" id="platform">
+            <option value="">{{ 'All Platforms'|t }}</option>
+            {% for platform in platforms %}
+              <option value="{{ platform }}"{{ platform == filter_platform ? ' selected' : '' }}>
+                {{ platform }}
+              </option>
+            {% endfor %}
           </select>
         </div>
-        
-        <div class="filter-field">
-          <label for="tailoring">{{ 'Tailoring'|t }}</label>
-          <select name="tailoring" id="tailoring">
-            <option value="">{{ 'All Tailoring Statuses'|t }}</option>
-            <option value="completed"{{ filter_tailoring == 'completed' ? ' selected' : '' }}>
-              {{ 'Tailored'|t }}
-            </option>
-            <option value="pending"{{ filter_tailoring == 'pending' ? ' selected' : '' }}>
-              {{ 'Not Tailored'|t }}
-            </option>
-            <option value="processing"{{ filter_tailoring == 'processing' ? ' selected' : '' }}>
-              {{ 'Processing'|t }}
-            </option>
-            <option value="failed"{{ filter_tailoring == 'failed' ? ' selected' : '' }}>
-              {{ 'Failed'|t }}
-            </option>
-          </select>
-        </div>
-        
+
         <div class="filter-actions">
           <button type="submit" class="button button--primary">{{ 'Filter'|t }}</button>
           <a href="/jobhunter/my-jobs" class="button button--secondary">{{ 'Clear'|t }}</a>
@@ -115,11 +120,9 @@
         <tr>
           <th>{{ 'Job Title'|t }}</th>
           <th>{{ 'Company'|t }}</th>
+          <th>{{ 'Platform'|t }}</th>
           <th>{{ 'Status'|t }}</th>
-          <th>{{ 'Have Applied'|t }}</th>
-          <th>{{ 'AI Parsed'|t }}</th>
-          <th>{{ 'Tailored'|t }}</th>
-          <th>{{ 'Actions'|t }}</th>
+          <th>{{ 'Action'|t }}</th>
         </tr>
       </thead>
       <tbody>
@@ -127,126 +130,73 @@
           {% set extracted = job.extracted_data %}
           {% set job_title = extracted.position.title|default(job.job_title)|default('Job #' ~ job.id) %}
           {% set company_name = extracted.company.name|default(job.company_name)|default('Unknown') %}
-          {% set has_raw_text = job.raw_posting_text is not empty %}
-          {% set has_extracted = job.extracted_json is not empty %}
-          {% set ai_status = job.ai_extraction_status|default('pending') %}
-          {% set tailoring_status = job.tailoring_status|default(null) %}
-          {% set has_tailored_json = job.tailored_resume_json is not empty %}
-          {% set has_pdf = job.pdf_path is not empty %}
-          {% set is_applied = job.status|default('active') == 'applied' %}
-          {% set app_status = job.application_status %}
-          
-          <tr>
+          {% set wf = job.workflow_status|default('profile_pending') %}
+
+          <tr class="job-row job-row--{{ wf }}">
             <td>
               <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}">{{ job_title }}</a>
             </td>
             <td>{{ company_name }}</td>
-            <td>{{ job.status|default('active')|capitalize }}</td>
+            <td>{{ job.display_platform|default('&mdash;')|raw }}</td>
             <td>
-              <form method="post" action="{{ path('job_hunter.toggle_job_applied', {'job_id': job.id}) }}" class="applied-toggle-form">
-                <label>
-                  <input
-                    type="checkbox"
-                    name="have_applied"
-                    value="1"
-                    {{ is_applied ? 'checked' : '' }}
-                    onchange="this.form.querySelector('input[name=applied_on_date]').disabled = !this.checked;"
-                  />
-                  {{ 'Have applied'|t }}
-                </label>
-                <input
-                  type="date"
-                  name="applied_on_date"
-                  value="{{ job.applied_on_date|default('') }}"
-                  {{ is_applied ? '' : 'disabled' }}
-                />
-                <input type="hidden" name="return_to" value="{{ return_url }}" />
-                <button type="submit" class="button button--small">{{ 'Update'|t }}</button>
-              </form>
-            </td>
-            <td>
-              {# AI Status Badge #}
-              {% if has_extracted %}
-                <span class="badge badge--success" title="{{ 'AI parsing complete'|t }}">
-                  ✅ {{ 'Parsed'|t }}
+              {# Workflow Status Badge #}
+              {% if wf == 'profile_pending' %}
+                <span class="badge badge--warning" title="{{ 'Complete your profile to proceed'|t }}">
+                  {{ 'Profile Pending'|t }}
                 </span>
-              {% elseif ai_status in ['processing', 'queued'] %}
-                <span class="badge badge--warning" title="{{ 'AI parsing in progress'|t }}">
-                  ⏳ {{ 'Processing'|t }}
+              {% elseif wf == 'tailoring_pending' %}
+                <span class="badge badge--info" title="{{ 'Tailor your resume for this job'|t }}">
+                  {{ 'Tailoring Pending'|t }}
                 </span>
-              {% elseif ai_status == 'failed' %}
-                <span class="badge badge--error" title="{{ 'AI parsing failed'|t }}">
-                  ❌ {{ 'Failed'|t }}
+              {% elseif wf == 'tailoring_processing' %}
+                <span class="badge badge--warning" title="{{ 'Resume tailoring is in progress'|t }}">
+                  {{ 'Tailoring Processing'|t }}
                 </span>
-              {% elseif has_raw_text %}
-                <span class="badge badge--info" title="{{ 'Has raw text, needs AI parsing'|t }}">
-                  📝 {{ 'Needs Parsing'|t }}
+              {% elseif wf == 'application_pending' %}
+                <span class="badge badge--info" title="{{ 'Submit your application'|t }}">
+                  {{ 'Application Pending'|t }}
                 </span>
-              {% else %}
-                <span class="badge badge--neutral" title="{{ 'No content yet'|t }}">
-                  ⚪ {{ 'No Content'|t }}
+              {% elseif wf == 'pending_response' %}
+                <span class="badge badge--success" title="{{ 'Waiting for company response'|t }}">
+                  {{ 'Pending Response'|t }}
                 </span>
-              {% endif %}
-            </td>
-            <td>
-              {# Tailoring Status Badge #}
-              {% if tailoring_status == 'completed' and has_tailored_json %}
-                {% if has_pdf %}
-                  <span class="badge badge--success" title="{{ 'Tailored with PDF ready'|t }}">
-                    ✅ {{ 'PDF Ready'|t }}
-                  </span>
-                {% else %}
-                  <span class="badge badge--success" title="{{ 'Resume tailored, generate PDF'|t }}">
-                    ✅ {{ 'Tailored'|t }}
-                  </span>
-                {% endif %}
-              {% elseif tailoring_status in ['processing', 'queued'] %}
-                <span class="badge badge--warning" title="{{ 'Tailoring in progress'|t }}">
-                  ⏳ {{ 'Processing'|t }}
-                </span>
-              {% elseif tailoring_status == 'failed' %}
-                <span class="badge badge--error" title="{{ 'Tailoring failed'|t }}">
-                  ❌ {{ 'Failed'|t }}
-                </span>
-              {% else %}
-                <span class="badge badge--neutral" title="{{ 'Not yet tailored'|t }}">
-                  ⚪ {{ 'Not Tailored'|t }}
+              {% elseif wf == 'closed' %}
+                <span class="badge badge--neutral" title="{{ 'This application cycle is complete'|t }}">
+                  {{ 'Closed'|t }}
                 </span>
               {% endif %}
             </td>
             <td class="operations">
-              <div class="dropbutton-wrapper">
-                {% if app_status %}
-                  <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}"
-                     class="button button--small {% if app_status == 'submitted' %}button--success{% elseif app_status == 'failed' %}button--danger{% else %}button--secondary{% endif %}"
-                     title="{{ 'Application status: ' ~ app_status|capitalize }}">
-                    {% if app_status == 'submitted' %}✅ Applied{% elseif app_status == 'manual_required' %}📋 Apply Manually{% elseif app_status == 'failed' %}❌ App Failed{% else %}⏳ App Pending{% endif %}
-                  </a>
-                {% else %}
-                  <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small button--primary">
-                    {{ '📤 Apply'|t }}
-                  </a>
-                {% endif %}
-                <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small">
-                  {{ tailoring_status == 'completed' ? 'View Tailored'|t : 'Tailor Resume'|t }}
+              {% if wf == 'profile_pending' %}
+                <a href="/jobhunter/profile" class="button button--small button--primary">
+                  {{ 'Complete Profile'|t }}
                 </a>
-                <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small">
-                  {{ 'View'|t }}
+              {% elseif wf == 'tailoring_pending' %}
+                <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small button--primary">
+                  {{ 'Tailor Resume'|t }}
                 </a>
-                <a href="{{ path('job_hunter.job_edit', {'job_id': job.id}) }}" class="button button--small">
-                  {{ 'Edit'|t }}
+              {% elseif wf == 'tailoring_processing' %}
+                <span class="status-text status-text--muted">{{ 'Processing...'|t }}</span>
+              {% elseif wf == 'application_pending' %}
+                <a href="/jobhunter/jobs/{{ job.id }}/apply" class="button button--small button--primary">
+                  {{ 'Submit Application'|t }}
                 </a>
-                {% if ai_status == 'failed' and has_raw_text %}
-                  <a href="{{ path('job_hunter.job_retry_parsing', {'job_id': job.id}) }}" class="button button--small button--warning">
-                    {{ 'Retry Parsing'|t }}
-                  </a>
-                {% endif %}
-                <a href="{{ path('job_hunter.job_archive', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}" 
-                   class="button button--small button--warning"
-                   onclick="return confirm('{{ 'Archive this job? You can restore it from Archived Jobs.'|t }}')">
-                  {{ 'Archive'|t }}
-                </a>
-              </div>
+              {% elseif wf == 'pending_response' %}
+                <span class="status-text status-text--muted">{{ 'Awaiting response'|t }}</span>
+              {% elseif wf == 'closed' %}
+                <span class="status-text status-text--muted">&mdash;</span>
+              {% endif %}
+
+              {# Secondary actions always available #}
+              <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small button--secondary" title="{{ 'View job details'|t }}">
+                {{ 'View'|t }}
+              </a>
+              <a href="{{ path('job_hunter.job_archive', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
+                 class="button button--small button--warning"
+                 onclick="return confirm('{{ 'Archive this job? You can restore it from Archived Jobs.'|t }}')"
+                 title="{{ 'Archive this job'|t }}">
+                {{ 'Archive'|t }}
+              </a>
             </td>
           </tr>
         {% endfor %}
@@ -255,10 +205,10 @@
   {% else %}
     <div class="empty-state">
       <p>
-        {{ 'No job postings saved yet.'|t }} 
-        <a href="/jobhunter/job/paste">{{ 'Add your first job'|t }}</a> 
-        {{ 'or'|t }} 
-        <a href="/jobhunter/job-discovery">{{ 'search for jobs'|t }}</a> 
+        {{ 'No job postings saved yet.'|t }}
+        <a href="/jobhunter/job/paste">{{ 'Add your first job'|t }}</a>
+        {{ 'or'|t }}
+        <a href="/jobhunter/job-discovery">{{ 'search for jobs'|t }}</a>
         {{ 'to get started.'|t }}
       </p>
     </div>
@@ -269,8 +219,8 @@
       <ul class="pager__items">
         {% if current_page > 0 %}
           <li class="pager__item pager__item--previous">
-            <a href="?page={{ current_page - 1 }}{% if filter_company %}&company={{ filter_company }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_ai_status %}&ai_status={{ filter_ai_status }}{% endif %}{% if filter_tailoring %}&tailoring={{ filter_tailoring }}{% endif %}" rel="prev">
-              ‹ {{ 'Previous'|t }}
+            <a href="?page={{ current_page - 1 }}{% if filter_company %}&company={{ filter_company }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_platform %}&platform={{ filter_platform }}{% endif %}" rel="prev">
+              &lsaquo; {{ 'Previous'|t }}
             </a>
           </li>
         {% endif %}
@@ -279,8 +229,8 @@
         </li>
         {% if current_page < total_pages - 1 %}
           <li class="pager__item pager__item--next">
-            <a href="?page={{ current_page + 1 }}{% if filter_company %}&company={{ filter_company }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_ai_status %}&ai_status={{ filter_ai_status }}{% endif %}{% if filter_tailoring %}&tailoring={{ filter_tailoring }}{% endif %}" rel="next">
-              {{ 'Next'|t }} ›
+            <a href="?page={{ current_page + 1 }}{% if filter_company %}&company={{ filter_company }}{% endif %}{% if filter_status %}&status={{ filter_status }}{% endif %}{% if filter_platform %}&platform={{ filter_platform }}{% endif %}" rel="next">
+              {{ 'Next'|t }} &rsaquo;
             </a>
           </li>
         {% endif %}

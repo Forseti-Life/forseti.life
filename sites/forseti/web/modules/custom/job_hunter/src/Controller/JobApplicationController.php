@@ -1055,6 +1055,13 @@ class JobApplicationController extends ControllerBase {
     }
     $location = trim((string) ($job_data['address_city'] ?? $job_data['location'] ?? ''));
     $job_url = trim((string) ($job_data['job_url'] ?? $job_data['link'] ?? $job_data['url'] ?? ''));
+    $source_platform = '';
+    if ($job_url !== '') {
+      $parsed_host = parse_url($job_url, PHP_URL_HOST);
+      if (is_string($parsed_host) && $parsed_host !== '') {
+        $source_platform = substr(preg_replace('/^www\./', '', strtolower($parsed_host)), 0, 100);
+      }
+    }
     $now = time();
 
     $fields = [
@@ -1063,7 +1070,7 @@ class JobApplicationController extends ControllerBase {
       'created' => $now,
       'updated' => $now,
       'external_source' => 'Google Jobs (SerpAPI)',
-      'source_platform' => 'serpapi',
+      'source_platform' => $source_platform,
     ];
 
     if ($location !== '') {
@@ -1104,6 +1111,11 @@ class JobApplicationController extends ControllerBase {
   /**
    * My Jobs page - displays user's saved job postings.
    *
+   * Derives a workflow status per job based on profile, tailoring, and
+   * application state:
+   *   profile_pending → tailoring_pending → tailoring_processing →
+   *   application_pending → pending_response → closed
+   *
    * @return array
    *   Renderable array for the my jobs page.
    */
@@ -1112,8 +1124,7 @@ class JobApplicationController extends ControllerBase {
     $filters = [
       'company' => $request->query->get('company', ''),
       'status' => $request->query->get('status', ''),
-      'ai_status' => $request->query->get('ai_status', ''),
-      'tailoring' => $request->query->get('tailoring', ''),
+      'platform' => $request->query->get('platform', ''),
     ];
     $per_page = 50;
     $page = max(0, (int) $request->query->get('page', 0));
@@ -1121,16 +1132,27 @@ class JobApplicationController extends ControllerBase {
     $total = $this->jobDiscoveryService->getSavedJobsFiltered($filters);
     $jobs = $this->jobDiscoveryService->getSavedJobs($filters, $page, $per_page);
     $companies = $this->jobDiscoveryService->getCompanyNames();
+    $platforms = $this->jobDiscoveryService->getSourcePlatforms();
     $total_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
+
+    // Determine whether the user has a completed profile.
+    $has_profile = $this->userHasCompletedProfile();
+
+    // Derive the workflow status for each job.
+    foreach ($jobs as $job) {
+      $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
+      // Resolve display platform: prefer via (friendly name), fall back to source_platform.
+      $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
+    }
 
     $content = [
       '#theme' => 'my_jobs',
       '#jobs' => $jobs,
       '#companies' => $companies,
+      '#platforms' => $platforms,
       '#filter_company' => $filters['company'],
       '#filter_status' => $filters['status'],
-      '#filter_ai_status' => $filters['ai_status'],
-      '#filter_tailoring' => $filters['tailoring'],
+      '#filter_platform' => $filters['platform'],
       '#return_url' => $request->getRequestUri(),
       '#current_page' => $page,
       '#total_pages' => $total_pages,
@@ -1142,6 +1164,84 @@ class JobApplicationController extends ControllerBase {
     ];
 
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Check whether the current user has a completed job-seeker profile.
+   *
+   * A profile is considered complete when a consolidated_profile_json exists.
+   *
+   * @return bool
+   *   TRUE if the user has a profile, FALSE otherwise.
+   */
+  private function userHasCompletedProfile(): bool {
+    try {
+      $profile = $this->database->select('jobhunter_job_seeker', 'js')
+        ->fields('js', ['consolidated_profile_json'])
+        ->condition('uid', (int) $this->currentUser()->id())
+        ->execute()
+        ->fetchField();
+      return !empty($profile);
+    }
+    catch (\Exception $e) {
+      return FALSE;
+    }
+  }
+
+  /**
+   * Derive the user-facing workflow status for a saved job.
+   *
+   * Status priority (first match wins):
+   *   1. closed        – job.status == 'closed'
+   *   2. pending_response – application submitted successfully
+   *   3. application_pending – tailoring complete, no application yet
+   *   4. tailoring_processing – tailoring queued / in progress
+   *   5. tailoring_pending – profile done, no tailoring started
+   *   6. profile_pending – user has no consolidated profile
+   *
+   * @param object $job
+   *   Job row from getSavedJobs().
+   * @param bool $has_profile
+   *   Whether the user has a completed profile.
+   *
+   * @return string
+   *   One of: profile_pending, tailoring_pending, tailoring_processing,
+   *   application_pending, pending_response, closed.
+   */
+  private function deriveWorkflowStatus(object $job, bool $has_profile): string {
+    // Closed takes priority.
+    if (($job->status ?? '') === 'closed') {
+      return 'closed';
+    }
+
+    // If an application was submitted successfully, we're waiting on company.
+    $app_status = $job->application_status ?? '';
+    if (in_array($app_status, ['submitted', 'confirmed', 'manual_completed'], TRUE)) {
+      return 'pending_response';
+    }
+
+    // If tailoring is complete, next step is application.
+    $tailoring = $job->tailoring_status ?? '';
+    if ($tailoring === 'completed') {
+      return 'application_pending';
+    }
+
+    // If tailoring is in progress / queued.
+    if (in_array($tailoring, ['processing', 'queued', 'pending'], TRUE) && $tailoring !== '') {
+      // "pending" in the DB means row exists but not started — treat as processing
+      // only if the row actually exists (tailoring_status is not null from the join).
+      if (in_array($tailoring, ['processing', 'queued'], TRUE)) {
+        return 'tailoring_processing';
+      }
+    }
+
+    // If user has no profile yet.
+    if (!$has_profile) {
+      return 'profile_pending';
+    }
+
+    // Default: profile exists but no tailoring started.
+    return 'tailoring_pending';
   }
 
   /**

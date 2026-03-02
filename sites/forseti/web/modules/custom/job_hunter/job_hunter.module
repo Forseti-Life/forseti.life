@@ -162,10 +162,10 @@ function job_hunter_theme() {
       'variables' => [
         'jobs' => [],
         'companies' => [],
+        'platforms' => [],
         'filter_company' => '',
         'filter_status' => '',
-        'filter_ai_status' => '',
-        'filter_tailoring' => '',
+        'filter_platform' => '',
         'return_url' => '/jobhunter/my-jobs',
         'current_page' => 0,
         'total_pages' => 1,
