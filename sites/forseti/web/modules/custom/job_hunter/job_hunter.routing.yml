@@ -285,7 +285,6 @@ job_hunter.addposting:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
   requirements:
     _user_is_logged_in: 'TRUE'
-    _csrf_token: 'TRUE'
   methods: [GET, POST]
 
 # Target Companies Management
