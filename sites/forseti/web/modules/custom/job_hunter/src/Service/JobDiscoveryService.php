@@ -470,9 +470,11 @@ class JobDiscoveryService {
    */
   public function getSourcePlatforms(): array {
     try {
+      // Keyed by lowercase-normalised slug → display name.
+      // via values (friendly names) take priority over source_platform (domains).
       $platforms = [];
 
-      // Collect from via field (user-friendly names).
+      // Collect from via field first (user-friendly names).
       $via_query = $this->database->select('jobhunter_saved_jobs', 'sj');
       $via_query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
       $via_query->addField('j', 'via');
@@ -482,10 +484,13 @@ class JobDiscoveryService {
       $via_query->distinct();
       $via_results = $via_query->execute()->fetchCol();
       foreach ($via_results as $v) {
-        $platforms[trim($v)] = trim($v);
+        $display = trim($v);
+        $slug = $this->normalizePlatformSlug($display);
+        // Friendly names always win.
+        $platforms[$slug] = $display;
       }
 
-      // Collect from source_platform field.
+      // Collect from source_platform field — only add if no friendly name already.
       $sp_query = $this->database->select('jobhunter_saved_jobs', 'sj');
       $sp_query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
       $sp_query->addField('j', 'source_platform');
@@ -495,14 +500,16 @@ class JobDiscoveryService {
       $sp_query->distinct();
       $sp_results = $sp_query->execute()->fetchCol();
       foreach ($sp_results as $sp) {
-        $key = trim($sp);
-        if (!isset($platforms[$key])) {
-          $platforms[$key] = $key;
+        $display = trim($sp);
+        $slug = $this->normalizePlatformSlug($display);
+        if (!isset($platforms[$slug])) {
+          $platforms[$slug] = $display;
         }
       }
 
-      asort($platforms);
-      return array_values($platforms);
+      $values = array_values($platforms);
+      sort($values, SORT_STRING | SORT_FLAG_CASE);
+      return $values;
     }
     catch (\Exception $e) {
       $this->getLogger()->error('Error fetching source platforms: @error', [
@@ -510,6 +517,30 @@ class JobDiscoveryService {
       ]);
       return [];
     }
+  }
+
+  /**
+   * Normalise a platform name to a lowercase slug for deduplication.
+   *
+   * Strips common TLD suffixes (.com, .org, etc.), leading "www.", and
+   * lowercases so that e.g. "ZipRecruiter" and "ziprecruiter.com" collapse
+   * into the same bucket.
+   *
+   * @param string $name
+   *   Raw platform name (e.g. "ziprecruiter.com", "ZipRecruiter").
+   *
+   * @return string
+   *   Normalised slug (e.g. "ziprecruiter").
+   */
+  private function normalizePlatformSlug(string $name): string {
+    $slug = strtolower(trim($name));
+    // Strip leading www.
+    $slug = preg_replace('/^www\./', '', $slug);
+    // Strip trailing TLD.
+    $slug = preg_replace('/\.(com|org|net|io|co|jobs|app)$/', '', $slug);
+    // Remove any remaining non-alphanumeric chars (hyphens, dots, underscores).
+    $slug = preg_replace('/[^a-z0-9]/', '', $slug);
+    return $slug;
   }
 
   /**
