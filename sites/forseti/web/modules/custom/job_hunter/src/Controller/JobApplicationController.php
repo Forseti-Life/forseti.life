@@ -1226,11 +1226,24 @@ class JobApplicationController extends ControllerBase {
       return 'application_pending';
     }
 
-    // If tailoring is in progress / queued.
-    if (in_array($tailoring, ['processing', 'queued', 'pending'], TRUE) && $tailoring !== '') {
-      // "pending" in the DB means row exists but not started — treat as processing
-      // only if the row actually exists (tailoring_status is not null from the join).
-      if (in_array($tailoring, ['processing', 'queued'], TRUE)) {
+    // If tailoring is actively queued or processing in the DB.
+    if (in_array($tailoring, ['processing', 'queued'], TRUE)) {
+      return 'tailoring_processing';
+    }
+
+    // If DB says "pending" a tailored_resumes row exists but the queue may
+    // have already picked it up.  Check the actual Drupal queue to keep the
+    // status honest (queue stores PHP-serialized data, not JSON).
+    if ($tailoring === 'pending') {
+      $uid = (int) $this->currentUser()->id();
+      $job_id = (int) $job->id;
+      if ($this->isItemInTailoringQueue($uid, $job_id)) {
+        // Sync the DB so subsequent loads are correct without re-scanning.
+        $this->database->update('jobhunter_tailored_resumes')
+          ->fields(['tailoring_status' => 'queued', 'updated' => time()])
+          ->condition('uid', $uid)
+          ->condition('job_id', $job_id)
+          ->execute();
         return 'tailoring_processing';
       }
     }
@@ -1242,6 +1255,39 @@ class JobApplicationController extends ControllerBase {
 
     // Default: profile exists but no tailoring started.
     return 'tailoring_pending';
+  }
+
+  /**
+   * Check whether a tailoring queue item exists for a user + job.
+   *
+   * Drupal's queue table stores data as PHP-serialized blobs, so we
+   * must unserialize and compare fields properly.
+   *
+   * @param int $uid
+   *   The user ID.
+   * @param int $job_id
+   *   The job requirement ID.
+   *
+   * @return bool
+   *   TRUE if a matching item is in the active queue.
+   */
+  private function isItemInTailoringQueue(int $uid, int $job_id): bool {
+    $rows = $this->database->select('queue', 'q')
+      ->fields('q', ['data'])
+      ->condition('name', 'job_hunter_resume_tailoring')
+      ->execute()
+      ->fetchAll();
+
+    foreach ($rows as $row) {
+      $item = @unserialize($row->data, ['allowed_classes' => FALSE]);
+      if (is_array($item)
+          && (int) ($item['uid'] ?? 0) === $uid
+          && (int) ($item['job_id'] ?? 0) === $job_id) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   /**
