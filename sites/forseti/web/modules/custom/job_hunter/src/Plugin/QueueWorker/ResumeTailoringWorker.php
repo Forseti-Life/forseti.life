@@ -231,6 +231,11 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
         ['professional_experience' => $experience_entries],
         $other_result
       );
+
+      // Normalize technical_expertise to renderer-safe structure.
+      // Some model responses still return categories as bare strings. Convert
+      // to objects ({name, skills[]}) and backfill skills from source profile.
+      $tailored_resume = $this->normalizeTechnicalExpertise($tailored_resume, $resume);
       
       $this->logInfo('✅ Successfully combined @count batches into final tailored resume', [
         '@count' => $final_batch_num,
@@ -245,6 +250,198 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       $this->logError('Batched resume generation failed: @error', ['@error' => $e->getMessage()]);
       throw $e;
     }
+  }
+
+  /**
+   * Normalize technical_expertise into expected schema for UI/PDF renderers.
+   *
+   * Expected schema:
+   * {
+   *   "technical_expertise": {
+   *     "categories": [
+   *       {"name": "Category", "skills": ["Skill 1", "Skill 2"]}
+   *     ]
+   *   }
+   * }
+   *
+   * @param array $tailored_resume
+   *   Tailored resume JSON assembled from model batches.
+   * @param array $source_resume
+   *   Source consolidated profile JSON.
+   *
+   * @return array
+   *   Tailored resume with normalized technical_expertise structure.
+   */
+  private function normalizeTechnicalExpertise(array $tailored_resume, array $source_resume): array {
+    if (empty($tailored_resume['technical_expertise'])) {
+      return $tailored_resume;
+    }
+
+    $technical = $tailored_resume['technical_expertise'];
+    if (!is_array($technical)) {
+      return $tailored_resume;
+    }
+
+    $categories = $technical['categories'] ?? NULL;
+    if (!is_array($categories)) {
+      return $tailored_resume;
+    }
+
+    $source_map = $this->buildTechnicalCategoryMap($source_resume['technical_expertise'] ?? []);
+
+    $normalized_categories = [];
+    $category_seen = [];
+    $core_skills = [];
+
+    foreach ($categories as $entry) {
+      // Proper object shape already.
+      if (is_array($entry) && !empty($entry['name']) && isset($entry['skills']) && is_array($entry['skills'])) {
+        $name = trim((string) $entry['name']);
+        $skills = array_values(array_unique(array_filter(array_map('trim', $entry['skills']))));
+
+        if ($skills === []) {
+          $source_key = $this->normalizeLabelKey($name);
+          $skills = $source_map[$source_key]['skills'] ?? [];
+        }
+
+        if ($name !== '' && !isset($category_seen[$this->normalizeLabelKey($name)])) {
+          $normalized_categories[] = [
+            'name' => $name,
+            'skills' => $skills,
+          ];
+          $category_seen[$this->normalizeLabelKey($name)] = TRUE;
+        }
+        continue;
+      }
+
+      // Bare string: could be a category label OR a skill.
+      if (is_string($entry)) {
+        $label = trim($entry);
+        if ($label === '') {
+          continue;
+        }
+
+        $lookup = $this->normalizeLabelKey($label);
+        if (isset($source_map[$lookup])) {
+          if (!isset($category_seen[$lookup])) {
+            $normalized_categories[] = [
+              'name' => $source_map[$lookup]['display'],
+              'skills' => $source_map[$lookup]['skills'],
+            ];
+            $category_seen[$lookup] = TRUE;
+          }
+        }
+        else {
+          $core_skills[] = $label;
+        }
+      }
+    }
+
+    // Any stray skills become a single category to preserve model emphasis.
+    if ($core_skills !== []) {
+      $normalized_categories[] = [
+        'name' => 'Core Technical Skills',
+        'skills' => array_values(array_unique($core_skills)),
+      ];
+    }
+
+    // Hard fallback: if everything collapsed, rebuild from source map.
+    if ($normalized_categories === [] && $source_map !== []) {
+      foreach ($source_map as $mapped) {
+        $normalized_categories[] = [
+          'name' => $mapped['display'],
+          'skills' => $mapped['skills'],
+        ];
+      }
+    }
+
+    $tailored_resume['technical_expertise']['categories'] = $normalized_categories;
+    return $tailored_resume;
+  }
+
+  /**
+   * Build category -> skills map from mixed source technical_expertise shapes.
+   *
+   * @param mixed $source_technical
+   *   Source technical_expertise section.
+   *
+  * @return array
+  *   Map keyed by normalized category label:
+  *   [key => ['display' => string, 'skills' => string[]]].
+   */
+  private function buildTechnicalCategoryMap($source_technical): array {
+    if (!is_array($source_technical)) {
+      return [];
+    }
+
+    $map = [];
+    foreach ($source_technical as $key => $value) {
+      // Skip legacy list of category names if present.
+      if ($key === 'categories' && is_array($value)) {
+        continue;
+      }
+
+      // Numeric entries may use {category, skills:[{name,...}]}
+      if (is_int($key) || ctype_digit((string) $key)) {
+        if (is_array($value) && !empty($value['category'])) {
+          $name = trim((string) $value['category']);
+          $skills = $this->extractSkillNames($value['skills'] ?? []);
+          if ($name !== '' && $skills !== []) {
+            $map[$this->normalizeLabelKey($name)] = [
+              'display' => $name,
+              'skills' => $skills,
+            ];
+          }
+        }
+        continue;
+      }
+
+      // Associative entries map category -> [skills].
+      $name = trim((string) $key);
+      $skills = $this->extractSkillNames($value);
+      if ($name !== '' && $skills !== []) {
+        $map[$this->normalizeLabelKey($name)] = [
+          'display' => $name,
+          'skills' => $skills,
+        ];
+      }
+    }
+
+    return $map;
+  }
+
+  /**
+   * Extract a flat string skill list from mixed skill entry shapes.
+   */
+  private function extractSkillNames($value): array {
+    if (!is_array($value)) {
+      return [];
+    }
+
+    $skills = [];
+    foreach ($value as $item) {
+      if (is_string($item)) {
+        $item = trim($item);
+        if ($item !== '') {
+          $skills[] = $item;
+        }
+      }
+      elseif (is_array($item) && !empty($item['name']) && is_string($item['name'])) {
+        $name = trim($item['name']);
+        if ($name !== '') {
+          $skills[] = $name;
+        }
+      }
+    }
+
+    return array_values(array_unique($skills));
+  }
+
+  /**
+   * Normalize labels for safe map lookups.
+   */
+  private function normalizeLabelKey(string $label): string {
+    return strtolower(trim($label));
   }
 
   /**
