@@ -22,6 +22,26 @@ class UserProfileController extends ControllerBase {
   use JobHunterControllerTrait;
 
   /**
+   * Builds a CSRF-protected URL for a fixed path.
+   *
+   * @param string $path
+   *   Internal path beginning with '/'.
+   *
+   * @return string
+   *   URL including a valid token query argument.
+   */
+  protected function buildCsrfPathUrl(string $path): string {
+    $normalized_path = ltrim($path, '/');
+    $token = \Drupal::service('csrf_token')->get($normalized_path);
+
+    return Url::fromUserInput($path, [
+      'query' => [
+        'token' => $token,
+      ],
+    ])->toString();
+  }
+
+  /**
    * The current user account.
    *
    * @var \Drupal\Core\Session\AccountInterface
@@ -1204,6 +1224,14 @@ class UserProfileController extends ControllerBase {
         'library' => [
           'job_hunter/tailor_resume',
         ],
+        'drupalSettings' => [
+          'jobHunterTailorResume' => [
+            'ajaxUrl' => $this->buildCsrfPathUrl('/jobhunter/tailor-resume/ajax'),
+            'statusUrl' => Url::fromRoute('job_hunter.tailor_resume_status_ajax')->toString(),
+            'refreshSkillsGapUrl' => $this->buildCsrfPathUrl('/jobhunter/tailor-resume/refresh-skills-gap'),
+            'addSkillUrl' => $this->buildCsrfPathUrl('/jobhunter/profile/add-skill'),
+          ],
+        ],
       ],
     ];
 
@@ -1220,6 +1248,7 @@ class UserProfileController extends ControllerBase {
       $force = $request->request->get('force', 0);
       $user_id = $this->currentUser->id();
       $database = \Drupal::database();
+      $cover_letter_table_exists = $database->schema()->tableExists('jobhunter_cover_letters');
       
       // Load job from custom table
       $job_data = $database->select('jobhunter_job_requirements', 'j')
@@ -1286,34 +1315,45 @@ class UserProfileController extends ControllerBase {
         $cover_letter_template = $profile['job_search_preferences']['cover_letter_template'];
       }
 
+      $resume_already_queued = $this->hasQueuedTailoringItem('job_hunter_resume_tailoring', $user_id, (int) $job_id);
+      $cover_already_queued = $cover_letter_table_exists
+        ? $this->hasQueuedTailoringItem('job_hunter_cover_letter_tailoring', $user_id, (int) $job_id)
+        : FALSE;
+
       // Queue the resume tailoring job for background processing
-      $resume_queue = \Drupal::queue('job_hunter_resume_tailoring');
-      $resume_queue->createItem([
-        'uid' => $user_id,
-        'job_id' => $job_id,
-        'profile_json' => $profile,
-        'job_data' => [
-          'extracted_json' => $job_data->extracted_json,
-          'skills_required_json' => $job_data->skills_required_json,
-          'keywords_json' => $job_data->keywords_json,
-          'raw_posting_text' => $job_data->raw_posting_text ?? '',
-        ],
-      ]);
+      if (!$resume_already_queued) {
+        $resume_queue = \Drupal::queue('job_hunter_resume_tailoring');
+        $resume_queue->createItem([
+          'uid' => $user_id,
+          'job_id' => $job_id,
+          'profile_json' => $profile,
+          'job_data' => [
+            'extracted_json' => $job_data->extracted_json,
+            'skills_required_json' => $job_data->skills_required_json,
+            'keywords_json' => $job_data->keywords_json,
+            'raw_posting_text' => $job_data->raw_posting_text ?? '',
+          ],
+        ]);
+      }
       
-      // Queue the cover letter generation job
-      $cover_queue = \Drupal::queue('job_hunter_cover_letter_tailoring');
-      $cover_queue->createItem([
-        'uid' => $user_id,
-        'job_id' => $job_id,
-        'profile_json' => $profile,
-        'cover_letter_template' => $cover_letter_template,
-        'job_data' => [
-          'extracted_json' => $job_data->extracted_json,
-          'skills_required_json' => $job_data->skills_required_json,
-          'keywords_json' => $job_data->keywords_json,
-          'raw_posting_text' => $job_data->raw_posting_text ?? '',
-        ],
-      ]);
+      // Queue the cover letter generation job if table exists.
+      if ($cover_letter_table_exists) {
+        if (!$cover_already_queued) {
+          $cover_queue = \Drupal::queue('job_hunter_cover_letter_tailoring');
+          $cover_queue->createItem([
+            'uid' => $user_id,
+            'job_id' => $job_id,
+            'profile_json' => $profile,
+            'cover_letter_template' => $cover_letter_template,
+            'job_data' => [
+              'extracted_json' => $job_data->extracted_json,
+              'skills_required_json' => $job_data->skills_required_json,
+              'keywords_json' => $job_data->keywords_json,
+              'raw_posting_text' => $job_data->raw_posting_text ?? '',
+            ],
+          ]);
+        }
+      }
 
       // Create/update pending record for resume
       $now = \Drupal::time()->getRequestTime();
@@ -1338,33 +1378,38 @@ class UserProfileController extends ControllerBase {
           ->execute();
       }
       
-      // Create/update pending record for cover letter
-      $existing_cover = $database->select('jobhunter_cover_letters', 'cl')
-        ->fields('cl')
-        ->condition('uid', $user_id)
-        ->condition('job_id', $job_id)
-        ->execute()
-        ->fetchObject();
-        
-      if ($existing_cover) {
-        $database->update('jobhunter_cover_letters')
-          ->fields([
-            'tailoring_status' => 'queued',
-            'updated' => $now,
-          ])
-          ->condition('id', $existing_cover->id)
-          ->execute();
+      // Create/update pending record for cover letter if table exists.
+      if ($cover_letter_table_exists) {
+        $existing_cover = $database->select('jobhunter_cover_letters', 'cl')
+          ->fields('cl')
+          ->condition('uid', $user_id)
+          ->condition('job_id', $job_id)
+          ->execute()
+          ->fetchObject();
+
+        if ($existing_cover) {
+          $database->update('jobhunter_cover_letters')
+            ->fields([
+              'tailoring_status' => 'queued',
+              'updated' => $now,
+            ])
+            ->condition('id', $existing_cover->id)
+            ->execute();
+        }
+        else {
+          $database->insert('jobhunter_cover_letters')
+            ->fields([
+              'uid' => $user_id,
+              'job_id' => $job_id,
+              'tailoring_status' => 'queued',
+              'created' => $now,
+              'updated' => $now,
+            ])
+            ->execute();
+        }
       }
       else {
-        $database->insert('jobhunter_cover_letters')
-          ->fields([
-            'uid' => $user_id,
-            'job_id' => $job_id,
-            'tailoring_status' => 'queued',
-            'created' => $now,
-            'updated' => $now,
-          ])
-          ->execute();
+        \Drupal::logger('job_hunter')->warning('Cover letter queue skipped because jobhunter_cover_letters table is missing.');
       }
 
       $extracted = $job_data->extracted_json ? json_decode($job_data->extracted_json, TRUE) : [];
@@ -1376,10 +1421,14 @@ class UserProfileController extends ControllerBase {
         '@title' => $job_title,
       ]);
 
+      $queued_message = $cover_letter_table_exists
+        ? "Resume and cover letter tailoring queued for {$job_title}. Processing will begin shortly..."
+        : "Resume tailoring queued for {$job_title}. Processing will begin shortly...";
+
       return new \Symfony\Component\HttpFoundation\JsonResponse([
         'success' => TRUE,
         'status' => 'queued',
-        'message' => "Resume and cover letter tailoring queued for {$job_title}. Processing will begin shortly...",
+        'message' => $queued_message,
       ]);
 
     } catch (\Exception $e) {
@@ -1400,6 +1449,7 @@ class UserProfileController extends ControllerBase {
       $job_id = $request->query->get('job_id');
       $user_id = $this->currentUser->id();
       $database = \Drupal::database();
+      $cover_letter_table_exists = $database->schema()->tableExists('jobhunter_cover_letters');
 
       // Get actual queue status by checking all sources
       $queue_status = $this->getActualQueueStatus($user_id, $job_id);
@@ -1427,13 +1477,16 @@ class UserProfileController extends ControllerBase {
         ->execute()
         ->fetchObject();
         
-      // Also check cover letter status
-      $cover_letter = $database->select('jobhunter_cover_letters', 'cl')
-        ->fields('cl')
-        ->condition('uid', $user_id)
-        ->condition('job_id', $job_id)
-        ->execute()
-        ->fetchObject();
+      // Also check cover letter status when table exists.
+      $cover_letter = NULL;
+      if ($cover_letter_table_exists) {
+        $cover_letter = $database->select('jobhunter_cover_letters', 'cl')
+          ->fields('cl')
+          ->condition('uid', $user_id)
+          ->condition('job_id', $job_id)
+          ->execute()
+          ->fetchObject();
+      }
 
       if (!$record) {
         return new \Symfony\Component\HttpFoundation\JsonResponse([
@@ -1468,7 +1521,9 @@ class UserProfileController extends ControllerBase {
         }
       }
       elseif ($actual_status === 'processing') {
-        $response['message'] = 'AI is generating your tailored resume and cover letter...';
+        $response['message'] = $cover_letter_table_exists
+          ? 'AI is generating your tailored resume and cover letter...'
+          : 'AI is generating your tailored resume...';
       }
       elseif ($actual_status === 'queued') {
         $response['message'] = 'Waiting in queue for processing...';
@@ -2184,23 +2239,41 @@ PROMPT;
     $job_id = (int) $job_id;
     $user_id = (int) $user_id;
     
-    // Check if item is in the active queue
-    $in_queue = $database->select('queue', 'q')
-      ->fields('q', ['item_id'])
+    // Check if item is in the active queue.
+    // Drupal stores queue data as PHP-serialized blobs, so we must
+    // unserialize each row and compare uid + job_id properly.
+    $in_queue = FALSE;
+    $queue_rows = $database->select('queue', 'q')
+      ->fields('q', ['item_id', 'data'])
       ->condition('name', $queue_name)
-      ->condition('data', '%' . $database->escapeLike('"job_id":' . $job_id) . '%', 'LIKE')
-      ->condition('data', '%' . $database->escapeLike('"uid":' . $user_id) . '%', 'LIKE')
       ->execute()
-      ->fetchField();
+      ->fetchAll();
+    foreach ($queue_rows as $row) {
+      $item_data = @unserialize($row->data, ['allowed_classes' => FALSE]);
+      if (is_array($item_data)
+          && (int) ($item_data['uid'] ?? 0) === $user_id
+          && (int) ($item_data['job_id'] ?? 0) === $job_id) {
+        $in_queue = TRUE;
+        break;
+      }
+    }
     
-    // Check if item is in suspended queue
-    $suspended = $database->select('jobhunter_queue_suspended', 'qs')
-      ->fields('qs', ['id'])
+    // Check if item is in suspended queue (also PHP-serialized).
+    $suspended = FALSE;
+    $suspended_rows = $database->select('jobhunter_queue_suspended', 'qs')
+      ->fields('qs', ['id', 'item_data'])
       ->condition('queue_name', $queue_name)
-      ->condition('item_data', '%' . $database->escapeLike('"job_id":' . $job_id) . '%', 'LIKE')
-      ->condition('item_data', '%' . $database->escapeLike('"uid":' . $user_id) . '%', 'LIKE')
       ->execute()
-      ->fetchField();
+      ->fetchAll();
+    foreach ($suspended_rows as $row) {
+      $item_data = @unserialize($row->item_data, ['allowed_classes' => FALSE]);
+      if (is_array($item_data)
+          && (int) ($item_data['uid'] ?? 0) === $user_id
+          && (int) ($item_data['job_id'] ?? 0) === $job_id) {
+        $suspended = TRUE;
+        break;
+      }
+    }
     
     // Get current database status
     $db_record = $database->select('jobhunter_tailored_resumes', 'tr')
@@ -2253,6 +2326,45 @@ PROMPT;
       'db_status' => $db_status,
       'has_resume' => $has_tailored_resume,
     ];
+  }
+
+  /**
+   * Checks whether a tailoring queue already has an item for uid + job_id.
+   *
+   * @param string $queue_name
+   *   The queue name.
+   * @param int $user_id
+   *   The user id.
+   * @param int $job_id
+   *   The job id.
+   *
+   * @return bool
+   *   TRUE when a matching queue item exists.
+   */
+  private function hasQueuedTailoringItem(string $queue_name, int $user_id, int $job_id): bool {
+    $database = \Drupal::database();
+
+    $rows = $database->select('queue', 'q')
+      ->fields('q', ['data'])
+      ->condition('name', $queue_name)
+      ->execute()
+      ->fetchAll();
+
+    foreach ($rows as $row) {
+      $item_data = @unserialize($row->data, ['allowed_classes' => FALSE]);
+      if (!is_array($item_data)) {
+        continue;
+      }
+
+      $queued_uid = isset($item_data['uid']) ? (int) $item_data['uid'] : 0;
+      $queued_job_id = isset($item_data['job_id']) ? (int) $item_data['job_id'] : 0;
+
+      if ($queued_uid === $user_id && $queued_job_id === $job_id) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
 }
