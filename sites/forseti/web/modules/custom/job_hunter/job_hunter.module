@@ -182,6 +182,22 @@ function job_hunter_theme() {
       ],
       'template' => 'my-jobs-archive',
     ],
+    'application_submission' => [
+      'variables' => [
+        'summary' => [
+          'total' => 0,
+          'submitted' => 0,
+          'processing' => 0,
+          'manual_required' => 0,
+          'failed' => 0,
+        ],
+        'ready_jobs' => [],
+        'approval_jobs' => [],
+        'recent_applications' => [],
+        'return_url' => '/jobhunter/application-submission',
+      ],
+      'template' => 'application-submission',
+    ],
     'company_research_page' => [
       'variables' => [
         'companies' => [],

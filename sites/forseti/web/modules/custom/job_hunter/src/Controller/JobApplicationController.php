@@ -1598,71 +1598,52 @@ class JobApplicationController extends ControllerBase {
     $uid = (int) $this->currentUser()->id();
     $summary = $this->getApplicationSubmissionSummary($uid);
     $applications = $this->getRecentApplicationSubmissions($uid, 25);
+    $has_profile = $this->userHasCompletedProfile();
+    $saved_jobs = $this->jobDiscoveryService->getSavedJobs([], 0, 200);
 
-    $rows = '';
-    foreach ($applications as $application) {
-      $job_id = (int) ($application['job_id'] ?? 0);
-      $job_title = htmlspecialchars($application['job_title'] ?? ('Job #' . $job_id), ENT_QUOTES, 'UTF-8');
-      $status = htmlspecialchars(ucwords(str_replace('_', ' ', (string) ($application['submission_status'] ?? 'unknown'))), ENT_QUOTES, 'UTF-8');
-      $attempt_count = (int) ($application['attempt_count'] ?? 0);
-      $ats_platform = htmlspecialchars((string) ($application['ats_platform'] ?? ''), ENT_QUOTES, 'UTF-8');
-      $confirmation = htmlspecialchars((string) ($application['confirmation_reference'] ?? $application['confirmation_ref'] ?? ''), ENT_QUOTES, 'UTF-8');
-      $apply_url = (string) ($application['apply_url'] ?? '');
-      $job_url = Url::fromRoute('job_hunter.job_view', ['job_id' => $job_id])->toString();
-      $apply_link = $apply_url !== ''
-        ? '<a href="' . htmlspecialchars($apply_url, ENT_QUOTES, 'UTF-8') . '" target="_blank" rel="noopener">Open Apply URL</a>'
-        : '—';
+    $ready_jobs = [];
+    $approval_jobs = [];
+    foreach ($saved_jobs as $job) {
+      $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
+      $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
+      $job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $job->id);
 
-      $rows .= '<tr>'
-        . '<td><a href="' . htmlspecialchars($job_url, ENT_QUOTES, 'UTF-8') . '">' . $job_title . '</a></td>'
-        . '<td>' . $status . '</td>'
-        . '<td>' . $attempt_count . '</td>'
-        . '<td>' . ($ats_platform !== '' ? $ats_platform : '—') . '</td>'
-        . '<td>' . ($confirmation !== '' ? $confirmation : '—') . '</td>'
-        . '<td>' . $apply_link . '</td>'
-        . '</tr>';
+      if ($job->workflow_status === 'application_pending') {
+        $ready_jobs[] = $job;
+      }
+      elseif ($job->workflow_status === 'approval_pending') {
+        $approval_jobs[] = $job;
+      }
     }
 
-    if ($rows === '') {
-      $rows = '<tr><td colspan="6">No applications submitted yet. Start from <a href="' . Url::fromRoute('job_hunter.my_jobs')->toString() . '">My Jobs</a>.</td></tr>';
+    $recent_applications = [];
+    foreach ($applications as $application) {
+      $job_id = (int) ($application['job_id'] ?? 0);
+      $recent_applications[] = [
+        'job_id' => $job_id,
+        'job_title' => (string) ($application['job_title'] ?? ('Job #' . $job_id)),
+        'status_label' => ucwords(str_replace('_', ' ', (string) ($application['submission_status'] ?? 'unknown'))),
+        'attempt_count' => (int) ($application['attempt_count'] ?? 0),
+        'ats_platform' => (string) ($application['ats_platform'] ?? ''),
+        'confirmation' => (string) ($application['confirmation_reference'] ?? $application['confirmation_ref'] ?? ''),
+        'apply_url' => (string) ($application['apply_url'] ?? ''),
+      ];
     }
 
     $content = [
-      '#type' => 'container',
-      '#attributes' => ['class' => ['application-submission-page']],
-      'header' => [
-        '#type' => 'html_tag',
-        '#tag' => 'h1',
-        '#value' => '🚀 Application Submission',
-      ],
-      'description' => [
-        '#type' => 'html_tag',
-        '#tag' => 'p',
-        '#value' => 'Auto-apply to jobs with tailored resumes and cover letters.',
-      ],
-      'summary' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['job-info-box']],
-        '#value' => '<strong>Total:</strong> ' . (int) $summary['total']
-          . ' &nbsp;|&nbsp; <strong>Submitted:</strong> ' . (int) $summary['submitted']
-          . ' &nbsp;|&nbsp; <strong>Pending/Processing:</strong> ' . (int) $summary['processing']
-          . ' &nbsp;|&nbsp; <strong>Manual Required:</strong> ' . (int) $summary['manual_required']
-          . ' &nbsp;|&nbsp; <strong>Failed:</strong> ' . (int) $summary['failed'],
-      ],
-      'table' => [
-        '#type' => 'html_tag',
-        '#tag' => 'div',
-        '#attributes' => ['class' => ['job-info-box']],
-        '#value' => '<h3>Recent Application Submissions</h3>'
-          . '<table class="queue-status-table"><thead><tr>'
-          . '<th>Job</th><th>Status</th><th>Attempts</th><th>ATS</th><th>Confirmation</th><th>Action</th>'
-          . '</tr></thead><tbody>'
-          . $rows
-          . '</tbody></table>',
+      '#theme' => 'application_submission',
+      '#summary' => $summary,
+      '#ready_jobs' => $ready_jobs,
+      '#approval_jobs' => $approval_jobs,
+      '#recent_applications' => $recent_applications,
+      '#return_url' => '/jobhunter/application-submission',
+      '#cache' => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags' => ['job_hunter:jobs', 'job_hunter:applications'],
+        'max-age' => 0,
       ],
     ];
-    
+
     return $this->wrapWithNavigation($content);
   }
 

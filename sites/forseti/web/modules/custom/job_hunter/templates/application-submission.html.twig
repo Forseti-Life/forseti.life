@@ -1,0 +1,159 @@
+{#
+/**
+ * @file
+ * Template for the Application Submission workflow page.
+ *
+ * Available variables:
+ * - summary: Totals by submission state
+ * - ready_jobs: Jobs in application_pending (ready to submit)
+ * - approval_jobs: Jobs in approval_pending (need PDF generation)
+ * - recent_applications: Recent application records
+ * - return_url: Return path for post actions
+ */
+#}
+
+<div class="application-submission-page">
+  <h1>{{ 'Application Submission'|t }}</h1>
+  <p>{{ 'Run and monitor the application automation process flow.'|t }}</p>
+
+  <div class="workflow-legend">
+    <h3>{{ 'Submission Process Flow'|t }}</h3>
+    <ol class="workflow-steps">
+      <li class="workflow-step workflow-step--approval-pending">
+        <span class="workflow-step__badge badge badge--info">1</span>
+        <strong>{{ 'User Approval Pending'|t }}</strong> &mdash; {{ 'Generate the tailored PDF before applying'|t }}
+      </li>
+      <li class="workflow-step workflow-step--application-pending">
+        <span class="workflow-step__badge badge badge--warning">2</span>
+        <strong>{{ 'Application Pending'|t }}</strong> &mdash; {{ 'Ready to submit through automation'|t }}
+      </li>
+      <li class="workflow-step workflow-step--pending-response">
+        <span class="workflow-step__badge badge badge--success">3</span>
+        <strong>{{ 'Pending Response'|t }}</strong> &mdash; {{ 'Submission complete, awaiting employer response'|t }}
+      </li>
+    </ol>
+  </div>
+
+  <div class="job-info-box">
+    <strong>{{ 'Total'|t }}:</strong> {{ summary.total|default(0) }}
+    &nbsp;|&nbsp; <strong>{{ 'Submitted'|t }}:</strong> {{ summary.submitted|default(0) }}
+    &nbsp;|&nbsp; <strong>{{ 'Pending/Processing'|t }}:</strong> {{ summary.processing|default(0) }}
+    &nbsp;|&nbsp; <strong>{{ 'Manual Required'|t }}:</strong> {{ summary.manual_required|default(0) }}
+    &nbsp;|&nbsp; <strong>{{ 'Failed'|t }}:</strong> {{ summary.failed|default(0) }}
+  </div>
+
+  <div class="job-info-box">
+    <h3>{{ 'Needs PDF Approval'|t }}</h3>
+    {% if approval_jobs|length > 0 %}
+      <table class="queue-status-table">
+        <thead>
+          <tr>
+            <th>{{ 'Job'|t }}</th>
+            <th>{{ 'Company'|t }}</th>
+            <th>{{ 'Platform'|t }}</th>
+            <th>{{ 'Action'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in approval_jobs %}
+            {% set extracted = job.extracted_data %}
+            {% set job_title = extracted.position.title|default(job.job_title)|default('Job #' ~ job.id) %}
+            {% set company_name = extracted.company.name|default(job.company_name)|default('Unknown') %}
+            <tr>
+              <td><a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}">{{ job_title }}</a></td>
+              <td>{{ company_name }}</td>
+              <td>{{ job.display_platform|default('—') }}</td>
+              <td>
+                <a href="{{ path('job_hunter.generate_tailored_resume_pdf_redirect', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
+                   class="button button--small button--primary"
+                   onclick="return confirm('{{ 'Generate PDF now?'|t }}')">{{ 'Generate PDF'|t }}</a>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>{{ 'No jobs currently waiting on PDF approval.'|t }}</p>
+    {% endif %}
+  </div>
+
+  <div class="job-info-box">
+    <h3>{{ 'Ready to Submit'|t }}</h3>
+    {% if ready_jobs|length > 0 %}
+      <table class="queue-status-table">
+        <thead>
+          <tr>
+            <th>{{ 'Job'|t }}</th>
+            <th>{{ 'Company'|t }}</th>
+            <th>{{ 'Platform'|t }}</th>
+            <th>{{ 'Action'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for job in ready_jobs %}
+            {% set extracted = job.extracted_data %}
+            {% set job_title = extracted.position.title|default(job.job_title)|default('Job #' ~ job.id) %}
+            {% set company_name = extracted.company.name|default(job.company_name)|default('Unknown') %}
+            <tr>
+              <td><a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}">{{ job_title }}</a></td>
+              <td>{{ company_name }}</td>
+              <td>{{ job.display_platform|default('—') }}</td>
+              <td>
+                <form method="post"
+                      action="{{ path('job_hunter.job_apply', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
+                      onsubmit="return confirm('{{ 'Submit this application now?'|t }}')">
+                  <input type="hidden" name="csrf_token" value="{{ job.apply_csrf_token }}" />
+                  <button type="submit" class="button button--small button--primary">{{ 'Submit Application'|t }}</button>
+                </form>
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>{{ 'No jobs are currently ready for submission. Use My Jobs to progress tailoring and PDF generation.'|t }}</p>
+    {% endif %}
+  </div>
+
+  <div class="job-info-box">
+    <h3>{{ 'Recent Application Submissions'|t }}</h3>
+    {% if recent_applications|length > 0 %}
+      <table class="queue-status-table">
+        <thead>
+          <tr>
+            <th>{{ 'Job'|t }}</th>
+            <th>{{ 'Status'|t }}</th>
+            <th>{{ 'Attempts'|t }}</th>
+            <th>{{ 'ATS'|t }}</th>
+            <th>{{ 'Confirmation'|t }}</th>
+            <th>{{ 'Action'|t }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for application in recent_applications %}
+            <tr>
+              <td><a href="{{ path('job_hunter.job_view', {'job_id': application.job_id}) }}">{{ application.job_title }}</a></td>
+              <td>{{ application.status_label }}</td>
+              <td>{{ application.attempt_count }}</td>
+              <td>{{ application.ats_platform|default('—') }}</td>
+              <td>{{ application.confirmation|default('—') }}</td>
+              <td>
+                {% if application.apply_url %}
+                  <a href="{{ application.apply_url }}" target="_blank" rel="noopener">{{ 'Open Apply URL'|t }}</a>
+                {% else %}
+                  —
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    {% else %}
+      <p>{{ 'No applications submitted yet.'|t }}</p>
+    {% endif %}
+  </div>
+
+  <div class="page-actions">
+    <a href="/jobhunter/my-jobs" class="button button--secondary">{{ 'Back to My Jobs'|t }}</a>
+  </div>
+</div>
