@@ -1143,6 +1143,7 @@ class JobApplicationController extends ControllerBase {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       // Resolve display platform: prefer via (friendly name), fall back to source_platform.
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
+      $job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $job->id);
     }
 
     $content = [

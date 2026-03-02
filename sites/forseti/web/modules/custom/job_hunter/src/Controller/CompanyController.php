@@ -1362,14 +1362,30 @@ class CompanyController extends ControllerBase {
    */
   public function applyToJob($job_id) {
     $uid = $this->currentUser->id();
+    $request = $this->requestStack->getCurrentRequest();
+    $return_to = (string) $request->query->get('return_to', '');
+    $redirect_mode = $return_to !== '';
+    if ($redirect_mode && strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs';
+    }
+
     if (!$uid) {
+      if ($redirect_mode) {
+        $this->messenger()->addError($this->t('Not authenticated.'));
+        return new RedirectResponse('/user/login');
+      }
       return new JsonResponse(['success' => FALSE, 'error' => 'Not authenticated.'], 403);
     }
 
-    // Validate CSRF token from X-CSRF-Token header.
-    $request = $this->requestStack->getCurrentRequest();
-    $token = $request->headers->get('X-CSRF-Token');
+    // Validate CSRF token from header (AJAX) or form field (My Jobs form).
+    $token = $request->headers->get('X-CSRF-Token')
+      ?: $request->request->get('csrf_token')
+      ?: $request->query->get('csrf_token');
     if (!\Drupal::csrfToken()->validate($token, 'job_apply_' . $job_id)) {
+      if ($redirect_mode) {
+        $this->messenger()->addError($this->t('Invalid security token. Please refresh the page and try again.'));
+        return new RedirectResponse($return_to ?: '/jobhunter/my-jobs');
+      }
       return new JsonResponse(['success' => FALSE, 'error' => 'Invalid security token.'], 403);
     }
 
@@ -1386,6 +1402,10 @@ class CompanyController extends ControllerBase {
       ->fetchAssoc();
 
     if (!$job) {
+      if ($redirect_mode) {
+        $this->messenger()->addError($this->t('Job not found.'));
+        return new RedirectResponse($return_to ?: '/jobhunter/my-jobs');
+      }
       return new JsonResponse(['success' => FALSE, 'error' => 'Job not found.'], 404);
     }
 
@@ -1396,6 +1416,10 @@ class CompanyController extends ControllerBase {
     $result = $submission_service->submitApplication($uid, (int) $job_id, TRUE);
 
     if (!$result['success'] && ($result['status'] ?? '') !== 'queued') {
+      if ($redirect_mode) {
+        $this->messenger()->addError($this->t($result['message'] ?? 'Submission failed.'));
+        return new RedirectResponse($return_to ?: '/jobhunter/my-jobs');
+      }
       return new JsonResponse([
         'success' => FALSE,
         'error'   => $result['message'] ?? 'Submission failed.',
@@ -1429,6 +1453,10 @@ class CompanyController extends ControllerBase {
     $apply_url = $resolved['url'] ?: ($job['job_url'] ?? '');
 
     if (in_array($platform, ['aggregator', 'unknown', ''])) {
+      if ($redirect_mode) {
+        $this->messenger()->addWarning($this->t('Application tracked. This job requires manual submission.'));
+        return new RedirectResponse($return_to ?: '/jobhunter/my-jobs');
+      }
       return new JsonResponse([
         'success'        => TRUE,
         'status'         => 'manual_required',
@@ -1437,6 +1465,11 @@ class CompanyController extends ControllerBase {
         'ats_platform'   => $platform,
         'application_id' => $result['application_id'] ?? NULL,
       ]);
+    }
+
+    if ($redirect_mode) {
+      $this->messenger()->addStatus($this->t($result['message'] ?? 'Application queued for submission.'));
+      return new RedirectResponse($return_to ?: '/jobhunter/my-jobs');
     }
 
     return new JsonResponse([

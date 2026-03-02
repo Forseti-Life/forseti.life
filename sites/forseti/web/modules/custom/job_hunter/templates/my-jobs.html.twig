@@ -193,9 +193,12 @@
                   {{ 'Generate PDF'|t }}
                 </a>
               {% elseif wf == 'application_pending' %}
-                <a href="/jobhunter/jobs/{{ job.id }}/apply" class="button button--small button--primary">
-                  {{ 'Submit Application'|t }}
-                </a>
+                <form method="post"
+                      action="{{ path('job_hunter.job_apply', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
+                      onsubmit="return confirm('{{ 'Submit this application now?'|t }}')">
+                  <input type="hidden" name="csrf_token" value="{{ job.apply_csrf_token }}" />
+                  <button type="submit" class="button button--small button--primary">{{ 'Submit Application'|t }}</button>
+                </form>
               {% elseif wf == 'pending_response' %}
                 <span class="status-text status-text--muted">{{ 'Awaiting response'|t }}</span>
               {% elseif wf == 'closed' %}
