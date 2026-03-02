@@ -1616,23 +1616,35 @@ class JobApplicationController extends ControllerBase {
       }
     }
 
+    $stage_counts = [
+      'approval_pending' => count($approval_jobs),
+      'application_pending' => count($ready_jobs),
+      'processing' => (int) ($summary['processing'] ?? 0),
+      'submitted' => (int) ($summary['submitted'] ?? 0),
+      'manual_required' => (int) ($summary['manual_required'] ?? 0),
+      'failed' => (int) ($summary['failed'] ?? 0),
+    ];
+
     $recent_applications = [];
     foreach ($applications as $application) {
       $job_id = (int) ($application['job_id'] ?? 0);
       $recent_applications[] = [
         'job_id' => $job_id,
         'job_title' => (string) ($application['job_title'] ?? ('Job #' . $job_id)),
+        'submission_status' => (string) ($application['submission_status'] ?? 'unknown'),
         'status_label' => ucwords(str_replace('_', ' ', (string) ($application['submission_status'] ?? 'unknown'))),
         'attempt_count' => (int) ($application['attempt_count'] ?? 0),
         'ats_platform' => (string) ($application['ats_platform'] ?? ''),
         'confirmation' => (string) ($application['confirmation_reference'] ?? $application['confirmation_ref'] ?? ''),
         'apply_url' => (string) ($application['apply_url'] ?? ''),
+        'apply_csrf_token' => \Drupal::csrfToken()->get('job_apply_' . $job_id),
       ];
     }
 
     $content = [
       '#theme' => 'application_submission',
       '#summary' => $summary,
+      '#stage_counts' => $stage_counts,
       '#ready_jobs' => $ready_jobs,
       '#approval_jobs' => $approval_jobs,
       '#recent_applications' => $recent_applications,

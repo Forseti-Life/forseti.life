@@ -16,6 +16,18 @@
   <h1>{{ 'Application Submission'|t }}</h1>
   <p>{{ 'Run and monitor the application automation process flow.'|t }}</p>
 
+  <div class="job-info-box">
+    <h3>{{ 'Application Analysis Playbook'|t }}</h3>
+    <ol class="workflow-steps">
+      <li class="workflow-step"><strong>{{ '1) Resolve redirect chain'|t }}</strong> — {{ 'Capture every hop from source URL to canonical destination site.'|t }}</li>
+      <li class="workflow-step"><strong>{{ '2) Identify authentication path'|t }}</strong> — {{ 'Determine local account vs SSO and required account fields.'|t }}</li>
+      <li class="workflow-step"><strong>{{ '3) Verify account readiness'|t }}</strong> — {{ 'Confirm email verification and usable credentials for the destination site.'|t }}</li>
+      <li class="workflow-step"><strong>{{ '4) Confirm job exists on final site'|t }}</strong> — {{ 'Validate title/requisition on the final employer portal before submitting.'|t }}</li>
+      <li class="workflow-step"><strong>{{ '5) Locate apply control'|t }}</strong> — {{ 'Find the real apply entry point and note fallback/manual path if blocked.'|t }}</li>
+      <li class="workflow-step"><strong>{{ '6) Submit and capture evidence'|t }}</strong> — {{ 'Store confirmation, ATS platform, and retry/manual requirements.'|t }}</li>
+    </ol>
+  </div>
+
   <div class="workflow-legend">
     <h3>{{ 'Submission Process Flow'|t }}</h3>
     <ol class="workflow-steps">
@@ -40,6 +52,27 @@
     &nbsp;|&nbsp; <strong>{{ 'Pending/Processing'|t }}:</strong> {{ summary.processing|default(0) }}
     &nbsp;|&nbsp; <strong>{{ 'Manual Required'|t }}:</strong> {{ summary.manual_required|default(0) }}
     &nbsp;|&nbsp; <strong>{{ 'Failed'|t }}:</strong> {{ summary.failed|default(0) }}
+  </div>
+
+  <div class="job-info-box">
+    <h3>{{ 'Stage Queue'|t }}</h3>
+    <table class="queue-status-table">
+      <thead>
+        <tr>
+          <th>{{ 'Stage'|t }}</th>
+          <th>{{ 'Count'|t }}</th>
+          <th>{{ 'Meaning'|t }}</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge--info">{{ 'User Approval Pending'|t }}</span></td><td>{{ stage_counts.approval_pending|default(0) }}</td><td>{{ 'PDF needs generation/approval before automation.'|t }}</td></tr>
+        <tr><td><span class="badge badge--warning">{{ 'Application Pending'|t }}</span></td><td>{{ stage_counts.application_pending|default(0) }}</td><td>{{ 'Ready to submit through automation endpoint.'|t }}</td></tr>
+        <tr><td><span class="badge badge--warning">{{ 'Queued/Processing'|t }}</span></td><td>{{ stage_counts.processing|default(0) }}</td><td>{{ 'Submission is in queue or actively running.'|t }}</td></tr>
+        <tr><td><span class="badge badge--success">{{ 'Submitted'|t }}</span></td><td>{{ stage_counts.submitted|default(0) }}</td><td>{{ 'Submission appears complete; monitor response.'|t }}</td></tr>
+        <tr><td><span class="badge badge--neutral">{{ 'Manual Required'|t }}</span></td><td>{{ stage_counts.manual_required|default(0) }}</td><td>{{ 'Automation blocked, continue on destination site.'|t }}</td></tr>
+        <tr><td><span class="badge badge--warning">{{ 'Failed'|t }}</span></td><td>{{ stage_counts.failed|default(0) }}</td><td>{{ 'Attempt failed; inspect context and retry.'|t }}</td></tr>
+      </tbody>
+    </table>
   </div>
 
   <div class="job-info-box">
@@ -126,22 +159,59 @@
             <th>{{ 'Attempts'|t }}</th>
             <th>{{ 'ATS'|t }}</th>
             <th>{{ 'Confirmation'|t }}</th>
+            <th>{{ 'Next Step'|t }}</th>
             <th>{{ 'Action'|t }}</th>
           </tr>
         </thead>
         <tbody>
           {% for application in recent_applications %}
+            {% set st = application.submission_status|default('unknown') %}
             <tr>
               <td><a href="{{ path('job_hunter.job_view', {'job_id': application.job_id}) }}">{{ application.job_title }}</a></td>
-              <td>{{ application.status_label }}</td>
+              <td>
+                {% if st in ['submitted','confirmed'] %}
+                  <span class="badge badge--success">{{ application.status_label }}</span>
+                {% elseif st in ['queued','processing','pending'] %}
+                  <span class="badge badge--warning">{{ application.status_label }}</span>
+                {% elseif st == 'manual_required' %}
+                  <span class="badge badge--neutral">{{ application.status_label }}</span>
+                {% elseif st == 'failed' %}
+                  <span class="badge badge--warning">{{ application.status_label }}</span>
+                {% else %}
+                  <span class="badge badge--info">{{ application.status_label }}</span>
+                {% endif %}
+              </td>
               <td>{{ application.attempt_count }}</td>
               <td>{{ application.ats_platform|default('—') }}</td>
               <td>{{ application.confirmation|default('—') }}</td>
               <td>
-                {% if application.apply_url %}
-                  <a href="{{ application.apply_url }}" target="_blank" rel="noopener">{{ 'Open Apply URL'|t }}</a>
+                {% if st in ['submitted','confirmed'] %}
+                  {{ 'Await employer response / interview outreach.'|t }}
+                {% elseif st in ['queued','processing','pending'] %}
+                  {{ 'Wait for queue completion, then refresh status.'|t }}
+                {% elseif st == 'manual_required' %}
+                  {{ 'Open destination apply URL and complete manually.'|t }}
+                {% elseif st == 'failed' %}
+                  {{ 'Review context and retry submission.'|t }}
                 {% else %}
-                  —
+                  {{ 'Review submission details.'|t }}
+                {% endif %}
+              </td>
+              <td>
+                <div class="operation-item">
+                  {% if application.apply_url %}
+                    <a href="{{ application.apply_url }}" target="_blank" rel="noopener">{{ 'Open Apply URL'|t }}</a>
+                  {% else %}
+                    —
+                  {% endif %}
+                </div>
+                {% if st in ['failed','manual_required'] %}
+                  <div class="operation-item">
+                    <form method="post" action="{{ path('job_hunter.job_apply', {'job_id': application.job_id}, {'query': {'return_to': return_url}}) }}" onsubmit="return confirm('{{ 'Retry this application now?'|t }}')">
+                      <input type="hidden" name="csrf_token" value="{{ application.apply_csrf_token }}" />
+                      <button type="submit" class="button button--small button--secondary">{{ 'Retry Automation'|t }}</button>
+                    </form>
+                  </div>
                 {% endif %}
               </td>
             </tr>
