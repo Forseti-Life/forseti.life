@@ -293,6 +293,7 @@ class JobDiscoveryService {
       $query->addField('tr', 'tailoring_status');
       $query->addField('tr', 'tailored_resume_json');
       $query->addField('tr', 'pdf_path');
+      $query->addField('tr', 'pdf_generated');
 
       // Join application records for current user.
       $query->leftJoin('jobhunter_applications', 'app', 'j.id = app.job_id AND app.uid = :app_uid', [

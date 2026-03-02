@@ -37,16 +37,20 @@
         <span class="workflow-step__badge badge badge--warning">3</span>
         <strong>{{ 'Tailoring Processing'|t }}</strong> &mdash; {{ 'Resume tailoring is in progress'|t }}
       </li>
-      <li class="workflow-step workflow-step--application-pending">
+      <li class="workflow-step workflow-step--approval-pending">
         <span class="workflow-step__badge badge badge--info">4</span>
+        <strong>{{ 'User Approval Pending'|t }}</strong> &mdash; {{ 'Review tailoring and generate PDF'|t }}
+      </li>
+      <li class="workflow-step workflow-step--application-pending">
+        <span class="workflow-step__badge badge badge--info">5</span>
         <strong>{{ 'Application Pending'|t }}</strong> &mdash; {{ 'Submit your application'|t }}
       </li>
       <li class="workflow-step workflow-step--pending-response">
-        <span class="workflow-step__badge badge badge--success">5</span>
+        <span class="workflow-step__badge badge badge--success">6</span>
         <strong>{{ 'Pending Response'|t }}</strong> &mdash; {{ 'Waiting for company response'|t }}
       </li>
       <li class="workflow-step workflow-step--closed">
-        <span class="workflow-step__badge badge badge--neutral">6</span>
+        <span class="workflow-step__badge badge badge--neutral">7</span>
         <strong>{{ 'Closed'|t }}</strong> &mdash; {{ 'Application cycle complete'|t }}
       </li>
     </ol>
@@ -152,6 +156,10 @@
                 <span class="badge badge--warning" title="{{ 'Resume tailoring is in progress'|t }}">
                   {{ 'Tailoring Processing'|t }}
                 </span>
+              {% elseif wf == 'approval_pending' %}
+                <span class="badge badge--info" title="{{ 'Review and generate your PDF before applying'|t }}">
+                  {{ 'User Approval Pending'|t }}
+                </span>
               {% elseif wf == 'application_pending' %}
                 <span class="badge badge--info" title="{{ 'Submit your application'|t }}">
                   {{ 'Application Pending'|t }}
@@ -167,6 +175,7 @@
               {% endif %}
             </td>
             <td class="operations">
+              <div class="operation-item">
               {% if wf == 'profile_pending' %}
                 <a href="/jobhunter/profile" class="button button--small button--primary">
                   {{ 'Complete Profile'|t }}
@@ -177,6 +186,10 @@
                 </a>
               {% elseif wf == 'tailoring_processing' %}
                 <span class="status-text status-text--muted">{{ 'Processing...'|t }}</span>
+              {% elseif wf == 'approval_pending' %}
+                <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small button--primary">
+                  {{ 'Generate PDF'|t }}
+                </a>
               {% elseif wf == 'application_pending' %}
                 <a href="/jobhunter/jobs/{{ job.id }}/apply" class="button button--small button--primary">
                   {{ 'Submit Application'|t }}
@@ -186,17 +199,27 @@
               {% elseif wf == 'closed' %}
                 <span class="status-text status-text--muted">&mdash;</span>
               {% endif %}
+              </div>
 
               {# Secondary actions always available #}
-              <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small button--secondary" title="{{ 'View job details'|t }}">
-                {{ 'View'|t }}
-              </a>
-              <a href="{{ path('job_hunter.job_archive', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
-                 class="button button--small button--warning"
-                 onclick="return confirm('{{ 'Archive this job? You can restore it from Archived Jobs.'|t }}')"
-                 title="{{ 'Archive this job'|t }}">
-                {{ 'Archive'|t }}
-              </a>
+              <div class="operation-item">
+                <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small button--secondary" title="{{ 'Open tailoring page'|t }}">
+                  {{ 'Tailoring Page'|t }}
+                </a>
+              </div>
+              <div class="operation-item">
+                <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}" class="button button--small button--secondary" title="{{ 'View job details'|t }}">
+                  {{ 'View'|t }}
+                </a>
+              </div>
+              <div class="operation-item">
+                <a href="{{ path('job_hunter.job_archive', {'job_id': job.id}, {'query': {'return_to': return_url}}) }}"
+                   class="button button--small button--warning"
+                   onclick="return confirm('{{ 'Archive this job? You can restore it from Archived Jobs.'|t }}')"
+                   title="{{ 'Archive this job'|t }}">
+                  {{ 'Archive'|t }}
+                </a>
+              </div>
             </td>
           </tr>
         {% endfor %}

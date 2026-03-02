@@ -1194,10 +1194,11 @@ class JobApplicationController extends ControllerBase {
    * Status priority (first match wins):
    *   1. closed        – job.status == 'closed'
    *   2. pending_response – application submitted successfully
-   *   3. application_pending – tailoring complete, no application yet
-   *   4. tailoring_processing – tailoring queued / in progress
-   *   5. tailoring_pending – profile done, no tailoring started
-   *   6. profile_pending – user has no consolidated profile
+  *   3. approval_pending – tailoring complete, awaiting user PDF generation
+  *   4. application_pending – PDF generated, no application yet
+  *   5. tailoring_processing – tailoring queued / in progress
+  *   6. tailoring_pending – profile done, no tailoring started
+  *   7. profile_pending – user has no consolidated profile
    *
    * @param object $job
    *   Job row from getSavedJobs().
@@ -1206,7 +1207,7 @@ class JobApplicationController extends ControllerBase {
    *
    * @return string
    *   One of: profile_pending, tailoring_pending, tailoring_processing,
-   *   application_pending, pending_response, closed.
+  *   approval_pending, application_pending, pending_response, closed.
    */
   private function deriveWorkflowStatus(object $job, bool $has_profile): string {
     // Closed takes priority.
@@ -1220,10 +1221,15 @@ class JobApplicationController extends ControllerBase {
       return 'pending_response';
     }
 
-    // If tailoring is complete, next step is application.
+    // If tailoring is complete, user must approve/generate PDF before apply.
     $tailoring = $job->tailoring_status ?? '';
     if ($tailoring === 'completed') {
-      return 'application_pending';
+      $pdf_generated = (int) ($job->pdf_generated ?? 0);
+      $pdf_path = (string) ($job->pdf_path ?? '');
+      if ($pdf_generated === 1 || $pdf_path !== '') {
+        return 'application_pending';
+      }
+      return 'approval_pending';
     }
 
     // If tailoring is actively queued or processing in the DB.
