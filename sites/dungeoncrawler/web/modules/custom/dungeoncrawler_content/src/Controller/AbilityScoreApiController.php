@@ -261,13 +261,33 @@ class AbilityScoreApiController extends ControllerBase {
    */
   public function getAvailableBoosts(string $step, Request $request): JsonResponse {
     try {
-      $character_data_json = $request->query->get('character_data', '{}');
-      $character_data = json_decode($character_data_json, TRUE);
+      $character_data = [];
+      $selected_boosts = [];
 
-      if (json_last_error() !== JSON_ERROR_NONE) {
-        return new JsonResponse([
-          'error' => 'Invalid character_data JSON',
-        ], 400);
+      $selected_boosts_json = $request->query->get('selected_boosts', '');
+      if (is_string($selected_boosts_json) && trim($selected_boosts_json) !== '') {
+        $decoded_selected = json_decode($selected_boosts_json, TRUE);
+        if (json_last_error() !== JSON_ERROR_NONE || !is_array($decoded_selected)) {
+          return new JsonResponse([
+            'error' => 'Invalid selected_boosts JSON',
+          ], 400);
+        }
+        $selected_boosts = array_values(array_filter(array_map(static function ($item) {
+          return is_string($item) ? trim($item) : '';
+        }, $decoded_selected), static function ($item) {
+          return $item !== '';
+        }));
+      }
+      else {
+        // Backward compatibility for older clients that send full character_data.
+        $character_data_json = $request->query->get('character_data', '{}');
+        $character_data = json_decode($character_data_json, TRUE);
+
+        if (json_last_error() !== JSON_ERROR_NONE) {
+          return new JsonResponse([
+            'error' => 'Invalid character_data JSON',
+          ], 400);
+        }
       }
 
       $step_config = [
@@ -288,7 +308,17 @@ class AbilityScoreApiController extends ControllerBase {
       }
 
       $config = $step_config[$step];
-      $current_selections = $character_data[$config['field']] ?? [];
+      $current_selections = !empty($selected_boosts)
+        ? $selected_boosts
+        : ($character_data[$config['field']] ?? []);
+      if (!is_array($current_selections)) {
+        $current_selections = [];
+      }
+      $current_selections = array_values(array_filter(array_map(static function ($item) {
+        return is_string($item) ? trim($item) : '';
+      }, $current_selections), static function ($item) {
+        return $item !== '';
+      }));
 
       // All abilities are available, but already-selected ones are disabled
       $all_abilities = AbilityScoreTracker::ABILITIES;

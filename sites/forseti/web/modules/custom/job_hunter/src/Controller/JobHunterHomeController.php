@@ -20,6 +20,26 @@ class JobHunterHomeController extends ControllerBase {
   use JobHunterControllerTrait;
 
   /**
+   * Builds a CSRF-protected URL for a fixed path.
+   *
+   * @param string $path
+   *   Internal path beginning with '/'.
+   *
+   * @return string
+   *   URL including a valid token query argument.
+   */
+  protected function buildCsrfPathUrl(string $path): string {
+    $normalized_path = ltrim($path, '/');
+    $token = \Drupal::service('csrf_token')->get($normalized_path);
+
+    return Url::fromUserInput($path, [
+      'query' => [
+        'token' => $token,
+      ],
+    ])->toString();
+  }
+
+  /**
    * Maximum number of queue items to process per run.
    */
   private const MAX_QUEUE_ITEMS_PER_RUN = 10;
@@ -152,16 +172,25 @@ class JobHunterHomeController extends ControllerBase {
     $libraries = [
       'job_hunter/job-hunter-home',
     ];
+    $drupal_settings = [];
 
     // Add queue controls library for admin users
     if ($current_user->hasPermission('administer job application automation')) {
       $libraries[] = 'job_hunter/queue-controls';
+      $drupal_settings['jobHunterQueueControls'] = [
+        'runUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/run'),
+        'runAllUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/run-all'),
+        'pauseUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/pause'),
+        'resumeUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/resume'),
+        'retrySuspendedUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/retry-suspended'),
+      ];
     }
 
     $build = [
       '#theme' => 'job_hunter_home',
       '#attached' => [
         'library' => $libraries,
+        'drupalSettings' => $drupal_settings,
       ],
       '#navigation' => $navigation_block,
     ];
@@ -695,6 +724,13 @@ class JobHunterHomeController extends ControllerBase {
         ],
         'drupalSettings' => [
           'csrf_token' => \Drupal::csrfToken()->get('rest'),
+          'jobHunterQueueControls' => [
+            'runUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/run'),
+            'runAllUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/run-all'),
+            'pauseUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/pause'),
+            'resumeUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/resume'),
+            'retrySuspendedUrl' => $this->buildCsrfPathUrl('/jobhunter/queue/retry-suspended'),
+          ],
         ],
       ],
     ];

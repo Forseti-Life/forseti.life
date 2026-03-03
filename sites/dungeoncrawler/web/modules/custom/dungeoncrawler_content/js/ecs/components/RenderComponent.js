@@ -29,6 +29,10 @@ export class RenderComponent extends Component {
     this.alpha = 1.0;
     this.visible = true;
     this.zIndex = 0;
+
+    // Object definition hints for placeholder rendering
+    this.objectCategory = null; // e.g. 'bar', 'table', 'door', 'crate', 'stool', 'decor'
+    this.objectColor = null;    // hex color string from object_definitions.visual.color
     
     // PixiJS object references (not serialized)
     this.sprite = null;
@@ -51,7 +55,9 @@ export class RenderComponent extends Component {
       tint: this.tint,
       alpha: this.alpha,
       visible: this.visible,
-      zIndex: this.zIndex
+      zIndex: this.zIndex,
+      objectCategory: this.objectCategory,
+      objectColor: this.objectColor
     };
   }
 
@@ -68,6 +74,8 @@ export class RenderComponent extends Component {
     component.alpha = data.alpha ?? 1.0;
     component.visible = data.visible ?? true;
     component.zIndex = data.zIndex ?? 0;
+    component.objectCategory = data.objectCategory ?? null;
+    component.objectColor = data.objectColor ?? null;
     return component;
   }
 

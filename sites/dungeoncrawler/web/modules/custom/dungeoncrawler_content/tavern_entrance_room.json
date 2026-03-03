@@ -37,7 +37,8 @@
         "content_id": "tavern_keeper",
         "name": "Eldric",
         "type": "npc",
-        "position": {"q": 1, "r": 1},
+        "position": {"q": 2, "r": 1},
+        "orientation": "se",
         "description": "A stout, friendly man with a bushy beard and warm smile",
         "role": "quest_giver",
         "quests": [

@@ -7,6 +7,7 @@ use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -216,11 +217,7 @@ class CharacterViewController extends ControllerBase {
     );
     $portrait_url = NULL;
     if (!empty($portraits)) {
-      $file_uri = $portraits[0]['file_uri'] ?? $portraits[0]['public_url'] ?? NULL;
-      if ($file_uri) {
-        // Convert Drupal stream wrapper to web-accessible URL
-        $portrait_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file_uri);
-      }
+      $portrait_url = $this->imageRepository->resolveClientUrl($portraits[0]);
     }
 
     $alignment = is_array($char_data['personality'] ?? NULL)
@@ -314,6 +311,33 @@ class CharacterViewController extends ControllerBase {
     ];
 
     return $build;
+  }
+
+  /**
+   * Renders character sheet markup only for iframe embedding (no site chrome).
+   */
+  public function viewCharacterEmbed(int $character_id): Response {
+    $build = $this->viewCharacter($character_id);
+    if (is_array($build)) {
+      $build['#embed_mode'] = TRUE;
+      unset($build['#attached']);
+    }
+
+    $sheet_markup = (string) \Drupal::service('renderer')->renderRoot($build);
+    $module_path = '/' . \Drupal::service('extension.list.module')->getPath('dungeoncrawler_content');
+    $css_url = $module_path . '/css/character-sheet.css';
+    $js_url = $module_path . '/js/character-sheet.js';
+
+    $html = '<!doctype html><html lang="en"><head>'
+      . '<meta charset="utf-8">'
+      . '<meta name="viewport" content="width=device-width, initial-scale=1">'
+      . '<link rel="stylesheet" href="' . $css_url . '">'
+      . '<style>html,body{margin:0;padding:0;background:#0f172a;} .dc-character-sheet{margin:0;padding:16px;}</style>'
+      . '</head><body>' . $sheet_markup
+      . '<script src="' . $js_url . '"></script>'
+      . '</body></html>';
+
+    return new Response($html, 200, ['Content-Type' => 'text/html; charset=UTF-8']);
   }
 
   /**

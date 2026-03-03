@@ -6,6 +6,12 @@
 (function ($, Drupal, once) {
   'use strict';
 
+  function getEndpoint(settingKey, fallbackPath) {
+    return (drupalSettings.jobHunterTailorResume && drupalSettings.jobHunterTailorResume[settingKey])
+      ? drupalSettings.jobHunterTailorResume[settingKey]
+      : fallbackPath;
+  }
+
   /**
    * Helper function to add messages.
    */
@@ -98,7 +104,7 @@
   function startStatusPolling(jobId, button) {
     var pollInterval = setInterval(function() {
       $.ajax({
-        url: '/jobhunter/tailor-resume/status',
+        url: getEndpoint('statusUrl', '/jobhunter/tailor-resume/status'),
         type: 'GET',
         data: { job_id: jobId },
         success: function(response) {
@@ -193,7 +199,7 @@
           
           // Queue the tailoring job
           $.ajax({
-            url: '/jobhunter/tailor-resume/ajax',
+            url: getEndpoint('ajaxUrl', '/jobhunter/tailor-resume/ajax'),
             type: 'POST',
             headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             data: {
@@ -258,7 +264,7 @@
           
           // Queue the tailoring job with force flag
           $.ajax({
-            url: '/jobhunter/tailor-resume/ajax',
+            url: getEndpoint('ajaxUrl', '/jobhunter/tailor-resume/ajax'),
             type: 'POST',
             headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             data: {
@@ -613,7 +619,7 @@
           btn.prop('disabled', true).text('Adding...');
           
           $.ajax({
-            url: '/jobhunter/profile/add-skill',
+            url: getEndpoint('addSkillUrl', '/jobhunter/profile/add-skill'),
             type: 'POST',
             headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             dataType: 'json',
@@ -703,7 +709,7 @@
           btn.prop('disabled', true).html('🔄 Refreshing...');
           
           $.ajax({
-            url: '/jobhunter/tailor-resume/refresh-skills-gap',
+            url: getEndpoint('refreshSkillsGapUrl', '/jobhunter/tailor-resume/refresh-skills-gap'),
             type: 'POST',
             headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
             dataType: 'json',
@@ -820,8 +826,9 @@
     const skillItem = btn.closest('.skill-gap-item');
     
     $.ajax({
-      url: '/jobhunter/profile/add-skill',
+      url: getEndpoint('addSkillUrl', '/jobhunter/profile/add-skill'),
       type: 'POST',
+      headers: { 'X-CSRF-Token': drupalSettings.csrf_token || '' },
       dataType: 'json',
       data: {
         skill: skill,

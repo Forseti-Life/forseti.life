@@ -245,7 +245,14 @@ class ResumeController extends ControllerBase {
     }
 
     $response = $this->generateTailoredPdf($job_id);
-    $payload = $response->getData(TRUE);
+    $payload = [];
+    $raw = $response->getContent();
+    if (is_string($raw) && $raw !== '') {
+      $decoded = json_decode($raw, TRUE);
+      if (is_array($decoded)) {
+        $payload = $decoded;
+      }
+    }
 
     if ($response->getStatusCode() >= 200 && $response->getStatusCode() < 300 && !empty($payload['success'])) {
       $this->messenger()->addStatus($this->t('Resume PDF generated successfully.'));

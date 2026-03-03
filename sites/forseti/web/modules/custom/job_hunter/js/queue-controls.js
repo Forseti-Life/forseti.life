@@ -16,6 +16,18 @@
   const REFRESH_SECONDS = 5;
   const MAX_LOG_ENTRIES = 20;
 
+  function getEndpoint(settingKey, fallbackPath) {
+    return (drupalSettings.jobHunterQueueControls && drupalSettings.jobHunterQueueControls[settingKey])
+      ? drupalSettings.jobHunterQueueControls[settingKey]
+      : fallbackPath;
+  }
+
+  function csrfHeaders() {
+    return {
+      'X-CSRF-Token': drupalSettings.csrf_token || ''
+    };
+  }
+
   /**
    * Helper to get button text (works for both button and input elements).
    */
@@ -301,8 +313,9 @@
     addLogEntry('Started processing: ' + queueName, 'processing');
     
     $.ajax({
-      url: '/jobhunter/queue/run',
+      url: getEndpoint('runUrl', '/jobhunter/queue/run'),
       type: 'POST',
+      headers: csrfHeaders(),
       dataType: 'json',
       data: { queue_id: queueId },
       success: function(response) {
@@ -373,8 +386,9 @@
     });
     
     $.ajax({
-      url: '/jobhunter/queue/run-all',
+      url: getEndpoint('runAllUrl', '/jobhunter/queue/run-all'),
       type: 'POST',
+      headers: csrfHeaders(),
       dataType: 'json',
       success: function(response) {
         if (response.success) {
@@ -577,7 +591,9 @@
    */
   function toggleQueueProcessing(btn) {
     const isPaused = btn.data('paused') === 'true' || btn.data('paused') === true;
-    const endpoint = isPaused ? '/jobhunter/queue/resume' : '/jobhunter/queue/pause';
+    const endpoint = isPaused
+      ? getEndpoint('resumeUrl', '/jobhunter/queue/resume')
+      : getEndpoint('pauseUrl', '/jobhunter/queue/pause');
     const action = isPaused ? 'Resuming' : 'Pausing';
     
     btn.prop('disabled', true);
@@ -586,6 +602,7 @@
     $.ajax({
       url: endpoint,
       type: 'POST',
+      headers: csrfHeaders(),
       dataType: 'json',
       success: function(response) {
         if (response.success) {
@@ -699,8 +716,9 @@
     setButtonText(btn, '⏳ Retrying...');
     
     $.ajax({
-      url: '/jobhunter/queue/retry-suspended',
+      url: getEndpoint('retrySuspendedUrl', '/jobhunter/queue/retry-suspended'),
       type: 'POST',
+      headers: csrfHeaders(),
       dataType: 'json',
       data: JSON.stringify({ id: suspendedId }),
       contentType: 'application/json',

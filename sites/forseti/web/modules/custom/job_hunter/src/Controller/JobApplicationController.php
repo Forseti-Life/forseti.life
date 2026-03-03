@@ -1594,25 +1594,53 @@ class JobApplicationController extends ControllerBase {
    * @return array
    *   A renderable array for the application submission page.
    */
-  public function applicationSubmission() {
+  public function applicationSubmission(?int $job_id = NULL) {
     $uid = (int) $this->currentUser()->id();
-    $summary = $this->getApplicationSubmissionSummary($uid);
-    $applications = $this->getRecentApplicationSubmissions($uid, 25);
+    $summary = $this->getApplicationSubmissionSummary($uid, $job_id);
+    $applications = $this->getRecentApplicationSubmissions($uid, 25, $job_id);
     $has_profile = $this->userHasCompletedProfile();
     $saved_jobs = $this->jobDiscoveryService->getSavedJobs([], 0, 200);
 
+    $selected_job = NULL;
+    $selected_workflow_status = '';
     $ready_jobs = [];
     $approval_jobs = [];
     foreach ($saved_jobs as $job) {
+      if ($job_id !== NULL && (int) $job->id !== (int) $job_id) {
+        continue;
+      }
+
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
       $job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $job->id);
+
+      if ($job_id !== NULL && (int) $job->id === (int) $job_id) {
+        $selected_job = $job;
+        $selected_workflow_status = (string) $job->workflow_status;
+      }
 
       if ($job->workflow_status === 'application_pending') {
         $ready_jobs[] = $job;
       }
       elseif ($job->workflow_status === 'approval_pending') {
         $approval_jobs[] = $job;
+      }
+    }
+
+    if ($job_id !== NULL && !$selected_job) {
+      $selected_job = $this->loadSelectedJobContext($uid, $job_id);
+      if ($selected_job) {
+        $selected_job->workflow_status = $this->deriveWorkflowStatus($selected_job, $has_profile);
+        $selected_job->display_platform = !empty($selected_job->via) ? $selected_job->via : (!empty($selected_job->source_platform) ? $selected_job->source_platform : '');
+        $selected_job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $selected_job->id);
+        $selected_workflow_status = (string) $selected_job->workflow_status;
+
+        if ($selected_job->workflow_status === 'application_pending') {
+          $ready_jobs[] = $selected_job;
+        }
+        elseif ($selected_job->workflow_status === 'approval_pending') {
+          $approval_jobs[] = $selected_job;
+        }
       }
     }
 
@@ -1625,30 +1653,1573 @@ class JobApplicationController extends ControllerBase {
       'failed' => (int) ($summary['failed'] ?? 0),
     ];
 
+    $latest_attempts = $this->getLatestAttemptsByApplicationIds(array_map(static fn(array $row): int => (int) ($row['id'] ?? 0), $applications));
+
     $recent_applications = [];
     foreach ($applications as $application) {
-      $job_id = (int) ($application['job_id'] ?? 0);
+      $application_id = (int) ($application['id'] ?? 0);
+      $application_job_id = (int) ($application['job_id'] ?? 0);
+      $metadata = [];
+      if (!empty($application['metadata']) && is_string($application['metadata'])) {
+        $decoded = json_decode($application['metadata'], TRUE);
+        if (is_array($decoded)) {
+          $metadata = $decoded;
+        }
+      }
+
+      $last_attempt = $latest_attempts[$application_id] ?? [];
       $recent_applications[] = [
-        'job_id' => $job_id,
-        'job_title' => (string) ($application['job_title'] ?? ('Job #' . $job_id)),
+        'application_id' => $application_id,
+        'job_id' => $application_job_id,
+        'job_title' => (string) ($application['job_title'] ?? ('Job #' . $application_job_id)),
         'submission_status' => (string) ($application['submission_status'] ?? 'unknown'),
         'status_label' => ucwords(str_replace('_', ' ', (string) ($application['submission_status'] ?? 'unknown'))),
         'attempt_count' => (int) ($application['attempt_count'] ?? 0),
         'ats_platform' => (string) ($application['ats_platform'] ?? ''),
+        'selected_apply_option' => (string) ($application['selected_apply_option'] ?? ''),
+        'resolution_confidence' => (string) ($metadata['confidence'] ?? ''),
+        'resolution_steps_count' => is_array($metadata['resolution_steps'] ?? NULL) ? count($metadata['resolution_steps']) : 0,
+        'verification_passed' => !empty($metadata['verification_passed_at']),
+        'auth_type' => (string) ($metadata['auth_type'] ?? ''),
+        'account_readiness_at' => (string) ($metadata['account_readiness_at'] ?? ''),
         'confirmation' => (string) ($application['confirmation_reference'] ?? $application['confirmation_ref'] ?? ''),
         'apply_url' => (string) ($application['apply_url'] ?? ''),
-        'apply_csrf_token' => \Drupal::csrfToken()->get('job_apply_' . $job_id),
+        'last_attempt_outcome' => (string) ($last_attempt['outcome'] ?? ''),
+        'last_attempt_error' => (string) ($last_attempt['error_message'] ?? ''),
+        'last_attempt_at' => (string) ($last_attempt['attempted_at'] ?? ''),
+        'apply_csrf_token' => \Drupal::csrfToken()->get('job_apply_' . $application_job_id),
+      ];
+    }
+
+    $selected_application = NULL;
+    if ($job_id !== NULL && !empty($recent_applications)) {
+      $selected_application = $recent_applications[0];
+    }
+
+    if ($job_id !== NULL && !$selected_application && $selected_job) {
+      try {
+        $resolved = \Drupal::service('job_hunter.apply_url_resolver')->resolve([
+          'apply_options' => (string) ($selected_job->apply_options ?? ''),
+          'job_url' => (string) ($selected_job->job_url ?? ''),
+        ]);
+
+        $selected_application = [
+          'application_id' => 0,
+          'job_id' => (int) $selected_job->id,
+          'job_title' => (string) ($selected_job->job_title ?? ('Job #' . (int) $selected_job->id)),
+          'submission_status' => 'not_started',
+          'status_label' => 'Not Started',
+          'attempt_count' => 0,
+          'ats_platform' => (string) ($resolved['ats_platform'] ?? ''),
+          'selected_apply_option' => (string) ($resolved['selected_option'] ?? ''),
+          'resolution_confidence' => (string) ($resolved['confidence'] ?? ''),
+          'resolution_steps_count' => is_array($resolved['resolution_steps'] ?? NULL) ? count($resolved['resolution_steps']) : 0,
+          'confirmation' => '',
+          'apply_url' => (string) ($resolved['url'] ?? ''),
+          'last_attempt_outcome' => '',
+          'last_attempt_error' => '',
+          'last_attempt_at' => '',
+          'account_readiness_at' => '',
+          'apply_csrf_token' => \Drupal::csrfToken()->get('job_apply_' . (int) $selected_job->id),
+        ];
+      }
+      catch (\Exception $e) {
+        $this->getLogger('job_hunter')->warning('Unable to resolve redirect chain for job @job_id: @error', [
+          '@job_id' => $job_id,
+          '@error' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    $selected_attempt = NULL;
+    if (!empty($selected_application['application_id'])) {
+      $selected_attempt = $latest_attempts[(int) $selected_application['application_id']] ?? NULL;
+    }
+
+    $journey_steps = $this->buildJobJourneyFlow(
+      $selected_job,
+      $selected_workflow_status,
+      $selected_application,
+      $selected_attempt,
+      $has_profile
+    );
+
+    $return_url = $job_id !== NULL
+      ? '/jobhunter/application-submission/' . (int) $job_id
+      : '/jobhunter/application-submission';
+
+    $is_job_specific = $job_id !== NULL;
+    $job_snapshot = NULL;
+    if ($is_job_specific && $selected_job) {
+      $extracted = is_array($selected_job->extracted_data ?? NULL) ? $selected_job->extracted_data : [];
+      $job_title = (string) ($extracted['position']['title'] ?? $selected_job->job_title ?? ('Job #' . (int) $selected_job->id));
+      $company_name = (string) ($extracted['company']['name'] ?? $selected_job->company_name ?? 'Unknown');
+      $career_url = (string) ($selected_application['apply_url'] ?? $selected_job->job_url ?? '');
+      $original_job_url = (string) ($selected_job->job_url ?? '');
+      $career_host = '';
+      if ($career_url !== '') {
+        $parsed_host = parse_url($career_url, PHP_URL_HOST);
+        $career_host = is_string($parsed_host) ? $parsed_host : '';
+      }
+
+      $pdf_generated = ((int) ($selected_job->pdf_generated ?? 0) > 0) || ((string) ($selected_job->pdf_path ?? '') !== '');
+      $submission_status = (string) ($selected_application['submission_status'] ?? 'not_started');
+      $resolution_steps_count = (int) ($selected_application['resolution_steps_count'] ?? 0);
+      $resolution_confidence = (string) ($selected_application['resolution_confidence'] ?? '');
+      $is_direct_company_link = $resolution_steps_count === 0;
+      $redirect_chain_resolved = $resolution_steps_count > 0 && in_array(strtolower($resolution_confidence), ['high', 'medium'], TRUE);
+      $attempt_count = (int) ($selected_application['attempt_count'] ?? 0);
+      $last_attempt_outcome = (string) ($selected_application['last_attempt_outcome'] ?? '');
+      $last_attempt_error = (string) ($selected_application['last_attempt_error'] ?? '');
+      $career_page_identified = $career_url !== '';
+      $auth_process_vetted = $attempt_count > 0 || in_array($submission_status, ['queued', 'pending', 'processing', 'submitted', 'confirmed', 'manual_required', 'failed', 'manual_completed'], TRUE);
+
+      $job_snapshot = [
+        'job_id' => (int) $selected_job->id,
+        'job_title' => $job_title,
+        'company_name' => $company_name,
+        'workflow_status' => $selected_workflow_status,
+        'pdf_generated' => $pdf_generated,
+        'pdf_path' => (string) ($selected_job->pdf_path ?? ''),
+        'original_job_url' => $original_job_url,
+        'career_url' => $career_url,
+        'career_host' => $career_host,
+        'ats_platform' => (string) ($selected_application['ats_platform'] ?? ''),
+        'submission_status' => $submission_status,
+        'submission_status_label' => ucwords(str_replace('_', ' ', $submission_status)),
+        'attempt_count' => $attempt_count,
+        'last_attempt_outcome' => $last_attempt_outcome,
+        'last_attempt_error' => $last_attempt_error,
+        'resolution_steps_count' => $resolution_steps_count,
+        'resolution_confidence' => $resolution_confidence,
+        'is_direct_company_link' => $is_direct_company_link,
+        'redirect_chain_resolved' => $redirect_chain_resolved,
+        'career_page_identified' => $career_page_identified,
+        'auth_process_vetted' => $auth_process_vetted,
       ];
     }
 
     $content = [
       '#theme' => 'application_submission',
+      '#is_job_specific' => $is_job_specific,
+      '#job_snapshot' => $job_snapshot,
       '#summary' => $summary,
       '#stage_counts' => $stage_counts,
       '#ready_jobs' => $ready_jobs,
       '#approval_jobs' => $approval_jobs,
       '#recent_applications' => $recent_applications,
-      '#return_url' => '/jobhunter/application-submission',
+      '#selected_job' => $selected_job,
+      '#selected_workflow_status' => $selected_workflow_status,
+      '#selected_application' => $selected_application,
+      '#journey_steps' => $journey_steps,
+      '#return_url' => $return_url,
+      '#cache' => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags' => ['job_hunter:jobs', 'job_hunter:applications'],
+        'max-age' => 0,
+      ],
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Dedicated Step 2 page: Resolve redirect chain for one requisition.
+   */
+  public function applicationSubmissionResolveRedirectChain(int $job_id): array {
+    $uid = (int) $this->currentUser()->id();
+    if ($uid <= 0) {
+      return [
+        '#markup' => $this->t('You must be logged in to access this page.'),
+      ];
+    }
+
+    $selected_job = $this->loadSelectedJobContext($uid, $job_id);
+    if (!$selected_job) {
+      $this->messenger()->addError($this->t('Job requisition not found for your account.'));
+      return $this->wrapWithNavigation([
+        '#markup' => '<p>' . $this->t('Unable to load this requisition.') . '</p>',
+      ]);
+    }
+
+    $extracted = is_array($selected_job->extracted_data ?? NULL) ? $selected_job->extracted_data : [];
+    $job_title = (string) ($extracted['position']['title'] ?? $selected_job->job_title ?? ('Job #' . (int) $selected_job->id));
+    $company_name = (string) ($extracted['company']['name'] ?? $selected_job->company_name ?? 'Unknown');
+    $original_job_url = (string) ($selected_job->job_url ?? '');
+
+    $request = $this->requestStack->getCurrentRequest();
+    $run_step2_requested = FALSE;
+    if ($request->isMethod('POST') && (string) $request->request->get('run_step2') === '1') {
+      $token = (string) $request->request->get('csrf_token', '');
+      if ($token !== '' && $this->csrfTokenGenerator->validate($token, 'job_hunter_step2_run_' . (int) $selected_job->id)) {
+        $run_step2_requested = TRUE;
+      }
+      else {
+        $this->messenger()->addError($this->t('Unable to run Step 2 checks because the request token is invalid. Refresh and try again.'));
+      }
+    }
+
+    $existing_application = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', (int) $selected_job->id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $metadata_base = [];
+    if (!empty($existing_application['metadata'])) {
+      $decoded_meta = json_decode((string) $existing_application['metadata'], TRUE);
+      if (is_array($decoded_meta)) {
+        $metadata_base = $decoded_meta;
+      }
+    }
+
+    $step2_cache = is_array($metadata_base['step2_cache'] ?? NULL) ? $metadata_base['step2_cache'] : [];
+    $has_cached_step2 = !empty($step2_cache);
+
+    $resolved_url = (string) ($step2_cache['resolved_url'] ?? $existing_application['apply_url'] ?? '');
+    $ats_platform = (string) ($step2_cache['ats_platform'] ?? $existing_application['ats_platform'] ?? 'unknown');
+    $confidence = (string) ($step2_cache['confidence'] ?? $metadata_base['confidence'] ?? 'none');
+    $resolution_steps = is_array($step2_cache['resolution_steps'] ?? NULL)
+      ? $step2_cache['resolution_steps']
+      : (is_array($metadata_base['resolution_steps'] ?? NULL) ? $metadata_base['resolution_steps'] : []);
+
+    $verification = is_array($step2_cache['verification'] ?? NULL) ? $step2_cache['verification'] : [];
+    if (empty($verification)) {
+      $verification = [
+        'final_pass' => !empty($metadata_base['verification_passed_at']),
+        'decision_mode' => (string) ($metadata_base['verification_mode'] ?? ''),
+        'error' => '',
+        'checks' => [],
+        'genai' => [
+          'used' => FALSE,
+          'available' => FALSE,
+          'success' => FALSE,
+          'confirmed' => FALSE,
+          'confidence' => 'none',
+          'response' => '',
+          'evidence' => '',
+        ],
+      ];
+    }
+
+    if ($run_step2_requested || !$has_cached_step2) {
+      $resolved = [];
+      try {
+        $resolved = \Drupal::service('job_hunter.apply_url_resolver')->resolve([
+          'apply_options' => (string) ($selected_job->apply_options ?? ''),
+          'job_url' => $original_job_url,
+        ]);
+      }
+      catch (\Exception $e) {
+        $this->messenger()->addError($this->t('Failed to resolve redirect chain: @error', ['@error' => $e->getMessage()]));
+        $resolved = [
+          'url' => $original_job_url,
+          'ats_platform' => 'unknown',
+          'resolution_steps' => [],
+          'confidence' => 'none',
+        ];
+      }
+
+      $resolution_steps = is_array($resolved['resolution_steps'] ?? NULL) ? $resolved['resolution_steps'] : [];
+      $resolved_url = (string) ($resolved['url'] ?? '');
+      $confidence = (string) ($resolved['confidence'] ?? 'none');
+      $ats_platform = (string) ($resolved['ats_platform'] ?? 'unknown');
+
+      try {
+        @set_time_limit(120);
+        $verification = \Drupal::service('job_hunter.application_location_verification_service')->verify((int) $selected_job->id, [
+          'genai_fallback' => TRUE,
+          'min_description_overlap' => 0.15,
+          'timeout' => 45,
+        ]);
+      }
+      catch (\Throwable $e) {
+        $verification = [
+          'final_pass' => FALSE,
+          'decision_mode' => 'error',
+          'error' => $e->getMessage(),
+          'checks' => [],
+          'genai' => [
+            'used' => FALSE,
+            'available' => FALSE,
+            'success' => FALSE,
+            'confirmed' => FALSE,
+            'confidence' => 'none',
+            'response' => '',
+            'evidence' => '',
+          ],
+        ];
+      }
+
+      $redirect_hops_runtime = 0;
+      foreach ($resolution_steps as $step) {
+        if (($step['action'] ?? '') === 'following_redirect') {
+          $redirect_hops_runtime++;
+        }
+      }
+      $is_direct_link_runtime = $redirect_hops_runtime === 0;
+      $has_career_page_runtime = $resolved_url !== '';
+      $is_resolved_runtime = $has_career_page_runtime && in_array(strtolower($confidence), ['high', 'medium'], TRUE);
+
+      $now = date('Y-m-d H:i:s');
+      $effective_url = (string) ($verification['effective_url'] ?? $resolved_url);
+      $effective_ats = (string) ($verification['ats_platform'] ?? $ats_platform ?: 'custom');
+
+      $metadata_base['step2_cache'] = [
+        'ran_at' => $now,
+        'resolved_url' => $effective_url !== '' ? $effective_url : $resolved_url,
+        'ats_platform' => $effective_ats,
+        'confidence' => $confidence,
+        'resolution_steps' => $resolution_steps,
+        'is_direct_link' => $is_direct_link_runtime,
+        'has_career_page' => $has_career_page_runtime,
+        'is_resolved' => $is_resolved_runtime,
+        'verification' => $verification,
+      ];
+
+      $metadata_base['confidence'] = !empty($verification['final_pass']) ? 'high' : $confidence;
+      $metadata_base['resolution_steps'] = $resolution_steps;
+
+      if (!empty($verification['final_pass'])) {
+        $metadata_base['verification_passed_at'] = $now;
+        $metadata_base['verification_mode'] = (string) ($verification['decision_mode'] ?? '');
+      }
+
+      if ($existing_application) {
+        $this->database->update('jobhunter_applications')
+          ->fields([
+            'apply_url' => $effective_url !== '' ? $effective_url : $resolved_url,
+            'ats_platform' => $effective_ats,
+            'metadata' => json_encode($metadata_base),
+            'changed' => $now,
+          ])
+          ->condition('id', (int) $existing_application['id'])
+          ->execute();
+      }
+      else {
+        $this->database->insert('jobhunter_applications')
+          ->fields([
+            'uid' => $uid,
+            'job_id' => (int) $selected_job->id,
+            'submission_status' => 'not_started',
+            'submission_method' => 'pending',
+            'apply_url' => $effective_url !== '' ? $effective_url : $resolved_url,
+            'ats_platform' => $effective_ats,
+            'attempt_count' => 0,
+            'metadata' => json_encode($metadata_base),
+            'created' => $now,
+            'changed' => $now,
+          ])
+          ->execute();
+      }
+
+      if ($run_step2_requested) {
+        $this->messenger()->addStatus($this->t('Step 2 checks completed and cached.'));
+      }
+
+      $has_cached_step2 = TRUE;
+    }
+
+    $redirect_hops = 0;
+    foreach ($resolution_steps as $step) {
+      if (($step['action'] ?? '') === 'following_redirect') {
+        $redirect_hops++;
+      }
+    }
+
+    $is_direct_link = !empty($step2_cache['is_direct_link']) || $redirect_hops === 0;
+    $has_career_page = !empty($step2_cache['has_career_page']) || $resolved_url !== '';
+    $is_resolved = !empty($step2_cache['is_resolved']) || ($has_career_page && in_array(strtolower($confidence), ['high', 'medium'], TRUE));
+
+    if (!$run_step2_requested && !$has_cached_step2) {
+      $verification = [
+        'final_pass' => FALSE,
+        'decision_mode' => 'not_run',
+        'error' => 'Step 2 checks have not been run yet. Use the button above to execute and cache results.',
+        'checks' => [],
+        'genai' => [
+          'used' => FALSE,
+          'available' => FALSE,
+          'success' => FALSE,
+          'confirmed' => FALSE,
+          'confidence' => 'none',
+          'response' => '',
+          'evidence' => '',
+        ],
+      ];
+    }
+
+    $content = [
+      '#theme' => 'application_submission_step2',
+      '#job_id' => (int) $selected_job->id,
+      '#job_title' => $job_title,
+      '#company_name' => $company_name,
+      '#original_job_url' => $original_job_url,
+      '#resolved_url' => $resolved_url,
+      '#ats_platform' => $ats_platform,
+      '#confidence' => $confidence,
+      '#resolution_steps' => $resolution_steps,
+      '#is_direct_link' => $is_direct_link,
+      '#has_career_page' => $has_career_page,
+      '#is_resolved' => $is_resolved,
+      '#verification' => $verification,
+      '#step2_cache_exists' => $has_cached_step2,
+      '#step2_last_run_at' => (string) (($metadata_base['step2_cache']['ran_at'] ?? '')),
+      '#step2_ran_this_request' => $run_step2_requested,
+      '#run_step2_csrf_token' => $this->csrfTokenGenerator->get('job_hunter_step2_run_' . (int) $selected_job->id),
+      '#return_url' => '/jobhunter/application-submission/' . (int) $selected_job->id,
+      '#cache' => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags' => ['job_hunter:jobs', 'job_hunter:applications'],
+        'max-age' => 0,
+      ],
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Step 3: Identify authentication path for a job application.
+   *
+   * Uses AuthPathIdentificationService to launch a stealth browser, click the
+   * Apply button, and classify the auth mechanism (email/password, SSO, etc.).
+   * Result is persisted to jobhunter_applications.metadata so the main
+   * dashboard Step 3 gate reflects the outcome.
+   *
+   * @param int $job_id
+   *   The job requisition ID.
+   *
+   * @return array
+   *   A render array.
+   */
+  public function applicationSubmissionIdentifyAuthPath(int $job_id): array {
+    $uid = (int) $this->currentUser()->id();
+    if ($uid <= 0) {
+      return [
+        '#markup' => $this->t('You must be logged in to access this page.'),
+      ];
+    }
+
+    $selected_job = $this->loadSelectedJobContext($uid, $job_id);
+    if (!$selected_job) {
+      $this->messenger()->addError($this->t('Job requisition not found for your account.'));
+      return $this->wrapWithNavigation([
+        '#markup' => '<p>' . $this->t('Unable to load this requisition.') . '</p>',
+      ]);
+    }
+
+    $extracted = is_array($selected_job->extracted_data ?? NULL) ? $selected_job->extracted_data : [];
+    $job_title = (string) ($extracted['position']['title'] ?? $selected_job->job_title ?? ('Job #' . (int) $selected_job->id));
+    $company_name = (string) ($extracted['company']['name'] ?? $selected_job->company_name ?? 'Unknown');
+
+    // ── Check for POST run request ──────────────────────────────────────────
+    $request = $this->requestStack->getCurrentRequest();
+    $run_step3_requested = FALSE;
+    if ($request->isMethod('POST') && (string) $request->request->get('run_step3') === '1') {
+      $token = (string) $request->request->get('csrf_token', '');
+      if ($token !== '' && $this->csrfTokenGenerator->validate($token, 'job_hunter_step3_run_' . (int) $selected_job->id)) {
+        $run_step3_requested = TRUE;
+      }
+      else {
+        $this->messenger()->addError($this->t('Unable to run Step 3 checks because the request token is invalid. Refresh and try again.'));
+      }
+    }
+
+    // ── Load existing application row + metadata ────────────────────────────
+    $existing_application = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', (int) $selected_job->id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $apply_url = (string) ($existing_application['apply_url'] ?? '');
+
+    $metadata_base = [];
+    if (!empty($existing_application['metadata'])) {
+      $decoded_meta = json_decode((string) $existing_application['metadata'], TRUE);
+      if (is_array($decoded_meta)) {
+        $metadata_base = $decoded_meta;
+      }
+    }
+
+    // ── Read cached Step 3 result ───────────────────────────────────────────
+    $step3_cache = is_array($metadata_base['step3_cache'] ?? NULL) ? $metadata_base['step3_cache'] : [];
+    $has_cached_step3 = !empty($step3_cache);
+
+    // Default auth identification from cache (or empty).
+    $auth_identification = $step3_cache ? $step3_cache['auth_identification'] ?? [] : [];
+
+    // ── Run the stealth browser if requested or no cache ────────────────────
+    if ($run_step3_requested) {
+      try {
+        @set_time_limit(120);
+        $auth_identification = \Drupal::service('job_hunter.auth_path_identification_service')->identify(
+          (int) $selected_job->id,
+          ['timeout' => 45]
+        );
+      }
+      catch (\Throwable $e) {
+        $auth_identification = [
+          'job_id'        => (int) $selected_job->id,
+          'ok'            => FALSE,
+          'auth_type'     => 'unknown',
+          'sso_providers' => [],
+          'form_fields'   => [],
+          'auth_url'      => $apply_url,
+          'page_title'    => '',
+          'evidence'      => '',
+          'html_excerpt'  => '',
+          'error'         => $e->getMessage(),
+        ];
+      }
+
+      // Persist the result to jobhunter_applications.metadata.
+      try {
+        $now  = date('Y-m-d H:i:s');
+        $meta = $metadata_base;
+
+        $meta['auth_type']               = (string) ($auth_identification['auth_type'] ?? 'unknown');
+        $meta['auth_url']                = (string) ($auth_identification['auth_url'] ?? $auth_identification['apply_url'] ?? $apply_url);
+        $meta['sso_providers']           = (array)  ($auth_identification['sso_providers'] ?? []);
+        $meta['auth_identification_at']  = $now;
+        $meta['step3_cache'] = [
+          'ran_at' => $now,
+          'auth_identification' => $auth_identification,
+        ];
+
+        // Detect ATS platform from the auth URL discovered by the stealth browser.
+        $detected_ats = $this->detectAtsPlatformFromUrl((string) $meta['auth_url']);
+
+        if ($existing_application) {
+          $this->database->update('jobhunter_applications')
+            ->fields([
+              'ats_platform' => $detected_ats,
+              'metadata' => json_encode($meta),
+              'changed'  => $now,
+            ])
+            ->condition('id', (int) $existing_application['id'])
+            ->execute();
+        }
+        else {
+          $this->database->insert('jobhunter_applications')
+            ->fields([
+              'uid'              => $uid,
+              'job_id'           => (int) $selected_job->id,
+              'submission_status'=> 'not_started',
+              'submission_method'=> 'pending',
+              'apply_url'        => $apply_url,
+              'ats_platform'     => $detected_ats,
+              'attempt_count'    => 0,
+              'metadata'         => json_encode($meta),
+              'created'          => $now,
+              'changed'          => $now,
+            ])
+            ->execute();
+        }
+      }
+      catch (\Throwable $e) {
+        // Non-fatal — continue to render the page even if persist fails.
+      }
+
+      $has_cached_step3 = TRUE;
+      $this->messenger()->addStatus($this->t('Step 3 checks completed and cached.'));
+    }
+
+    $content = [
+      '#theme'                 => 'application_submission_step3',
+      '#job_id'                => (int) $selected_job->id,
+      '#job_title'             => $job_title,
+      '#company_name'          => $company_name,
+      '#apply_url'             => $apply_url,
+      '#auth_identification'   => $auth_identification,
+      '#step3_cache_exists'    => $has_cached_step3,
+      '#step3_last_run_at'     => (string) ($step3_cache['ran_at'] ?? ''),
+      '#step3_ran_this_request'=> $run_step3_requested,
+      '#run_step3_csrf_token'  => $this->csrfTokenGenerator->get('job_hunter_step3_run_' . (int) $selected_job->id),
+      '#return_url'            => '/jobhunter/application-submission/' . (int) $selected_job->id,
+      '#cache'                 => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags'     => ['job_hunter:jobs', 'job_hunter:applications'],
+        'max-age'  => 0,
+      ],
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Step 4: Create account on the ATS platform.
+   *
+   * Loads the user's email / phone from jobhunter_job_seeker, reads
+   * cached Step 3 auth type, and facilitates account creation on the
+   * destination ATS (Workday, Greenhouse, etc.).
+   *
+   * Follows the same cache-first + POST-trigger model as Steps 2 & 3.
+   * On POST (run_step4=1) persists account-readiness results to
+   * metadata.step4_cache so the dashboard gate reflects the outcome.
+   *
+   * @param int $job_id
+   *   The job requisition ID.
+   *
+   * @return array
+   *   A render array.
+   */
+  public function applicationSubmissionCreateAccount(int $job_id): array {
+    $uid = (int) $this->currentUser()->id();
+    if ($uid <= 0) {
+      return [
+        '#markup' => $this->t('You must be logged in to access this page.'),
+      ];
+    }
+
+    $selected_job = $this->loadSelectedJobContext($uid, $job_id);
+    if (!$selected_job) {
+      $this->messenger()->addError($this->t('Job requisition not found for your account.'));
+      return $this->wrapWithNavigation([
+        '#markup' => '<p>' . $this->t('Unable to load this requisition.') . '</p>',
+      ]);
+    }
+
+    $extracted = is_array($selected_job->extracted_data ?? NULL) ? $selected_job->extracted_data : [];
+    $job_title = (string) ($extracted['position']['title'] ?? $selected_job->job_title ?? ('Job #' . (int) $selected_job->id));
+    $company_name = (string) ($extracted['company']['name'] ?? $selected_job->company_name ?? 'Unknown');
+    $company_id = (int) ($selected_job->company_id ?? 0);
+
+    // ── Load user profile (email, phone, name) from jobhunter_job_seeker ──
+    $seeker = $this->database->select('jobhunter_job_seeker', 'js')
+      ->fields('js', ['contact_email', 'contact_phone', 'full_name'])
+      ->condition('js.uid', $uid)
+      ->execute()
+      ->fetchAssoc();
+
+    $user_email = (string) ($seeker['contact_email'] ?? '');
+    $user_phone = (string) ($seeker['contact_phone'] ?? '');
+    $user_name  = (string) ($seeker['full_name'] ?? '');
+
+    // Fall back to Drupal user entity email if seeker record is missing.
+    if ($user_email === '') {
+      $user = \Drupal\user\Entity\User::load($uid);
+      if ($user) {
+        $user_email = (string) $user->getEmail();
+      }
+    }
+
+    // ── Load existing application row + metadata ──────────────────────────
+    $existing_application = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', (int) $selected_job->id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $apply_url = (string) ($existing_application['apply_url'] ?? '');
+    $ats_platform = (string) ($existing_application['ats_platform'] ?? 'unknown');
+
+    $metadata_base = [];
+    if (!empty($existing_application['metadata'])) {
+      $decoded_meta = json_decode((string) $existing_application['metadata'], TRUE);
+      if (is_array($decoded_meta)) {
+        $metadata_base = $decoded_meta;
+      }
+    }
+
+    // Read auth type from Step 3 result.
+    $auth_type = (string) ($metadata_base['auth_type'] ?? 'unknown');
+    $auth_url  = (string) ($metadata_base['auth_url'] ?? $apply_url);
+
+    // Re-detect ATS platform from auth URL if stored value is unhelpful.
+    if (in_array($ats_platform, ['custom', 'unknown', ''], TRUE)) {
+      $detected = $this->detectAtsPlatformFromUrl($auth_url);
+      if ($detected !== 'custom') {
+        $ats_platform = $detected;
+        // Persist the corrected platform to the DB row.
+        if ($existing_application) {
+          $this->database->update('jobhunter_applications')
+            ->fields(['ats_platform' => $ats_platform])
+            ->condition('id', (int) $existing_application['id'])
+            ->execute();
+        }
+      }
+    }
+
+    // ── Check for stored credentials via CredentialManagementService ──────
+    /** @var \Drupal\job_hunter\Service\CredentialManagementService $cred_service */
+    $cred_service = \Drupal::service('job_hunter.credential_management_service');
+
+    $stored_credential = NULL;
+    $has_stored_credential = FALSE;
+    $stored_username = '';
+    if ($company_id > 0) {
+      $stored_credential = $cred_service->retrieveCredential($uid, $company_id, 'basic');
+      if ($stored_credential) {
+        $has_stored_credential = TRUE;
+        $stored_username = (string) ($stored_credential['username'] ?? '');
+      }
+    }
+
+    // ── Read cached Step 4 result ─────────────────────────────────────────
+    $step4_cache = is_array($metadata_base['step4_cache'] ?? NULL) ? $metadata_base['step4_cache'] : [];
+    $has_cached_step4 = !empty($step4_cache);
+
+    $account_status      = (string) ($step4_cache['account_status'] ?? 'unknown');
+    $account_evidence    = (string) ($step4_cache['account_evidence'] ?? '');
+    $email_verified      = (bool)   ($step4_cache['email_verified'] ?? FALSE);
+    $phone_verified      = (bool)   ($step4_cache['phone_verified'] ?? FALSE);
+    $account_created_at  = (string) ($step4_cache['account_created_at'] ?? '');
+    $verification_method = (string) ($step4_cache['verification_method'] ?? '');
+
+    // If credentials are already stored, set status accordingly.
+    if ($has_stored_credential && $account_status === 'unknown') {
+      $account_status = 'verified';
+      $account_evidence = 'Stored credentials found for ' . $company_name . '.';
+    }
+
+    // ── Check for POST actions ────────────────────────────────────────────
+    $request = $this->requestStack->getCurrentRequest();
+    $run_step4_requested = FALSE;
+    $verification_result_data = [];
+    if ($request->isMethod('POST')) {
+      $token = (string) $request->request->get('csrf_token', '');
+      if ($token !== '' && $this->csrfTokenGenerator->validate($token, 'job_hunter_step4_run_' . (int) $selected_job->id)) {
+        $run_step4_requested = TRUE;
+      }
+      else {
+        $this->messenger()->addError($this->t('Invalid request token. Refresh and try again.'));
+      }
+    }
+
+    if ($run_step4_requested) {
+      $now = date('Y-m-d H:i:s');
+      $action = (string) $request->request->get('step4_action', '');
+      $verification_result_data = [];
+
+      // ── ACTION: Store new credentials ─────────────────────────────────
+      if ($action === 'store_credentials') {
+        $input_username = trim((string) $request->request->get('credential_username', ''));
+        $input_password = trim((string) $request->request->get('credential_password', ''));
+
+        if ($input_username === '' || $input_password === '') {
+          $this->messenger()->addError($this->t('Username and password are both required.'));
+        }
+        elseif ($company_id <= 0) {
+          $this->messenger()->addError($this->t('Cannot store credentials — no company linked to this job.'));
+        }
+        else {
+          $result = $cred_service->storeCredential(
+            $uid,
+            $company_id,
+            'basic',
+            ['username' => $input_username, 'password' => $input_password],
+            $auth_url
+          );
+
+          if (!empty($result['success'])) {
+            $has_stored_credential = TRUE;
+            $stored_username = $input_username;
+            $account_status = 'verified';
+            $email_verified = TRUE;
+            $account_created_at = $now;
+            $account_evidence = 'Credentials stored for ' . $company_name . ' (username: ' . $input_username . ') at ' . $now . '.';
+            $this->messenger()->addStatus($this->t('Credentials securely stored. Account marked as ready.'));
+          }
+          else {
+            $this->messenger()->addError($this->t('Failed to store credentials: @error', ['@error' => $result['error'] ?? 'Unknown error']));
+          }
+        }
+      }
+
+      // ── ACTION: Confirm existing account ──────────────────────────────
+      elseif ($action === 'confirm_existing') {
+        $account_status = 'verified';
+        $email_verified = TRUE;
+        $account_created_at = $now;
+        $account_evidence = 'Existing account confirmed by user at ' . $now . '. Stored credentials present.';
+        $this->messenger()->addStatus($this->t('Existing account confirmed and marked as ready.'));
+      }
+
+      // ── ACTION: Verify authentication via Playwright ──────────────────
+      elseif ($action === 'verify_authentication') {
+        /** @var \Drupal\job_hunter\Service\AccountVerificationService $verify_svc */
+        $verify_svc = \Drupal::service('job_hunter.account_verification_service');
+        $verify_result = $verify_svc->verify((int) $selected_job->id, $uid, ['timeout' => 90]);
+
+        if (!empty($verify_result['verified'])) {
+          $account_status = 'verified';
+          $email_verified = TRUE;
+          $account_created_at = $now;
+          $verification_method = 'playwright_browser';
+          $account_evidence = 'Browser verification confirmed: logged in as '
+            . ($verify_result['verified_email'] ?: 'unknown')
+            . ' at ' . ($verify_result['user_home_url'] ?: 'user home')
+            . '. ' . ($verify_result['evidence'] ?: '') . ' [' . $now . ']';
+          $this->messenger()->addStatus($this->t('Authentication verified! Logged in as @email.', [
+            '@email' => $verify_result['verified_email'] ?: 'the expected user',
+          ]));
+        }
+        elseif (!empty($verify_result['ok'])) {
+          // Script ran successfully but couldn't verify identity.
+          $account_status = 'pending_verification';
+          $account_evidence = 'Browser ran but could not confirm identity. '
+            . ($verify_result['error'] ?: $verify_result['evidence'] ?: 'No email match found.')
+            . ' [' . $now . ']';
+          $this->messenger()->addWarning($this->t('Browser connected but could not verify your identity. Check credentials and try again.'));
+        }
+        else {
+          $account_evidence = 'Browser verification failed: '
+            . ($verify_result['error'] ?: 'Unknown error') . ' [' . $now . ']';
+          $this->messenger()->addError($this->t('Verification failed: @error', [
+            '@error' => $verify_result['error'] ?: 'Unknown error',
+          ]));
+        }
+
+        // Store the raw verification result for template display.
+        $verification_result_data = $verify_result;
+      }
+
+      // Determine verification method from auth_type.
+      if ($verification_method === '') {
+        if (in_array($auth_type, ['email_password', 'email_only'], TRUE)) {
+          $verification_method = 'email';
+        }
+        elseif (str_starts_with($auth_type, 'sso_')) {
+          $verification_method = 'sso_provider';
+        }
+        elseif ($auth_type === 'registration_first') {
+          $verification_method = 'email';
+        }
+        elseif ($auth_type === 'direct') {
+          $verification_method = 'none';
+        }
+        else {
+          $verification_method = 'manual';
+        }
+      }
+
+      // Persist to metadata.
+      $meta = $metadata_base;
+      $meta['step4_cache'] = [
+        'ran_at'              => $now,
+        'account_status'      => $account_status,
+        'account_evidence'    => $account_evidence,
+        'email_verified'      => $email_verified,
+        'phone_verified'      => $phone_verified,
+        'account_created_at'  => $account_created_at,
+        'verification_method' => $verification_method,
+        'user_email'          => $user_email,
+        'user_phone'          => $user_phone,
+        'stored_username'     => $stored_username,
+        'verification_result' => $verification_result_data,
+      ];
+      $meta['account_readiness_at'] = in_array($account_status, ['verified', 'not_required'], TRUE) ? $now : '';
+
+      try {
+        if ($existing_application) {
+          $this->database->update('jobhunter_applications')
+            ->fields([
+              'metadata' => json_encode($meta),
+              'changed'  => $now,
+            ])
+            ->condition('id', (int) $existing_application['id'])
+            ->execute();
+        }
+        else {
+          $this->database->insert('jobhunter_applications')
+            ->fields([
+              'uid'              => $uid,
+              'job_id'           => (int) $selected_job->id,
+              'submission_status'=> 'not_started',
+              'submission_method'=> 'pending',
+              'apply_url'        => $apply_url,
+              'ats_platform'     => $ats_platform,
+              'attempt_count'    => 0,
+              'metadata'         => json_encode($meta),
+              'created'          => $now,
+              'changed'          => $now,
+            ])
+            ->execute();
+        }
+        $step4_cache = $meta['step4_cache'];
+      }
+      catch (\Throwable $e) {
+        // Non-fatal.
+      }
+
+      $has_cached_step4 = TRUE;
+    }
+
+    // Prerequisite readiness checks for display.
+    $prerequisites = [];
+    $prerequisites[] = [
+      'label' => 'User email address available',
+      'met' => $user_email !== '',
+      'value' => $user_email !== '' ? $user_email : 'Missing — update your profile.',
+    ];
+    $prerequisites[] = [
+      'label' => 'User phone number available',
+      'met' => $user_phone !== '',
+      'value' => $user_phone !== '' ? $user_phone : 'Missing — update your profile.',
+    ];
+    $prerequisites[] = [
+      'label' => 'Authentication path identified (Step 3)',
+      'met' => !in_array($auth_type, ['unknown', 'captcha_blocked'], TRUE),
+      'value' => $auth_type,
+    ];
+    $prerequisites[] = [
+      'label' => 'ATS destination URL available',
+      'met' => $auth_url !== '',
+      'value' => $auth_url !== '' ? $auth_url : 'Not available — complete Step 2/3.',
+    ];
+
+    $account_ready = in_array($account_status, ['verified', 'not_required'], TRUE);
+
+    // Default credential values for the "create new account" form.
+    $default_username = $user_email !== '' ? $user_email : 'keith.aumiller';
+    $default_password = 'Unsecure01!abc';
+
+    $content = [
+      '#theme'                   => 'application_submission_step4',
+      '#job_id'                  => (int) $selected_job->id,
+      '#job_title'               => $job_title,
+      '#company_name'            => $company_name,
+      '#company_id'              => $company_id,
+      '#apply_url'               => $apply_url,
+      '#auth_url'                => $auth_url,
+      '#auth_type'               => $auth_type,
+      '#ats_platform'            => $ats_platform,
+      '#user_email'              => $user_email,
+      '#user_phone'              => $user_phone,
+      '#user_name'               => $user_name,
+      '#prerequisites'           => $prerequisites,
+      '#account_status'          => $account_status,
+      '#account_evidence'        => $account_evidence,
+      '#account_ready'           => $account_ready,
+      '#email_verified'          => $email_verified,
+      '#phone_verified'          => $phone_verified,
+      '#verification_method'     => $verification_method,
+      '#account_created_at'      => $account_created_at,
+      '#has_stored_credential'   => $has_stored_credential,
+      '#stored_username'         => $stored_username,
+      '#default_username'        => $default_username,
+      '#default_password'        => $default_password,
+      '#step4_cache_exists'      => $has_cached_step4,
+      '#step4_last_run_at'       => (string) ($step4_cache['ran_at'] ?? ''),
+      '#step4_ran_this_request'  => $run_step4_requested,
+      '#run_step4_csrf_token'    => $this->csrfTokenGenerator->get('job_hunter_step4_run_' . (int) $selected_job->id),
+      '#verification_result'     => !empty($verification_result_data) ? $verification_result_data : (is_array($step4_cache['verification_result'] ?? NULL) ? $step4_cache['verification_result'] : []),
+      '#return_url'              => '/jobhunter/application-submission/' . (int) $selected_job->id,
+      '#cache'                   => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags'     => ['job_hunter:jobs', 'job_hunter:applications'],
+        'max-age'  => 0,
+      ],
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Step 5: Submit Application (combined Confirm Job / Locate Apply / Submit).
+   *
+   * Merges former Steps 5-7 into a single page with three sections:
+   *   A. Confirm the job still exists on the destination ATS.
+   *   B. Locate the apply control / entry point.
+   *   C. Submit the application.
+   *
+   * POST actions via step5_action:
+   *   - confirm_job_exists:        Mark that the job is verified on-site.
+   *   - upload_resume_continue:     Upload tailored resume to ATS and click Continue.
+   *   - advance_wd_step:            Mark a Workday wizard step as complete.
+   *   - submit_application:         Trigger ApplicationSubmissionService.
+   *   - mark_manual_submission:     Record a manual submission.
+   *
+   * @param int $job_id
+   *   The job requisition ID.
+   *
+   * @return array
+   *   A render array.
+   */
+  public function applicationSubmissionSubmitApplication(int $job_id): array {
+    $uid = (int) $this->currentUser()->id();
+    if ($uid <= 0) {
+      return ['#markup' => $this->t('You must be logged in to access this page.')];
+    }
+
+    $selected_job = $this->loadSelectedJobContext($uid, $job_id);
+    if (!$selected_job) {
+      $this->messenger()->addError($this->t('Job requisition not found for your account.'));
+      return $this->wrapWithNavigation(['#markup' => '<p>' . $this->t('Unable to load this requisition.') . '</p>']);
+    }
+
+    $extracted = is_array($selected_job->extracted_data ?? NULL) ? $selected_job->extracted_data : [];
+    $job_title = (string) ($extracted['position']['title'] ?? $selected_job->job_title ?? ('Job #' . (int) $selected_job->id));
+    $company_name = (string) ($extracted['company']['name'] ?? $selected_job->company_name ?? 'Unknown');
+    $company_id = (int) ($selected_job->company_id ?? 0);
+
+    // ── Load application row + metadata ───────────────────────────────────
+    $existing_application = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata', 'submission_status', 'confirmation_reference', 'confirmation_ref', 'attempt_count'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', (int) $selected_job->id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $apply_url        = (string) ($existing_application['apply_url'] ?? '');
+    $ats_platform     = (string) ($existing_application['ats_platform'] ?? 'unknown');
+    $submission_status = (string) ($existing_application['submission_status'] ?? 'not_started');
+    $confirmation     = (string) ($existing_application['confirmation_reference'] ?? $existing_application['confirmation_ref'] ?? '');
+    $attempt_count    = (int) ($existing_application['attempt_count'] ?? 0);
+
+    // Derive last attempt details from the attempts table (if it exists).
+    $last_outcome    = '';
+    $last_error      = '';
+    $last_attempt_at = '';
+    if ($existing_application) {
+      try {
+        $last_attempt = $this->database->select('jobhunter_application_attempts', 'att')
+          ->fields('att', ['outcome', 'error_message', 'attempted_at'])
+          ->condition('att.application_id', (int) $existing_application['id'])
+          ->orderBy('attempted_at', 'DESC')
+          ->range(0, 1)
+          ->execute()
+          ->fetchAssoc();
+        if ($last_attempt) {
+          $last_outcome    = (string) ($last_attempt['outcome'] ?? '');
+          $last_error      = (string) ($last_attempt['error_message'] ?? '');
+          $last_attempt_at = (string) ($last_attempt['attempted_at'] ?? '');
+        }
+      }
+      catch (\Throwable $e) {
+        // Attempts table may not exist yet — non-fatal.
+      }
+    }
+
+    $metadata_base = [];
+    if (!empty($existing_application['metadata'])) {
+      $decoded = json_decode((string) $existing_application['metadata'], TRUE);
+      if (is_array($decoded)) {
+        $metadata_base = $decoded;
+      }
+    }
+
+    $auth_url  = (string) ($metadata_base['auth_url'] ?? $apply_url);
+    $auth_type = (string) ($metadata_base['auth_type'] ?? 'unknown');
+
+    // Re-detect ATS platform from auth URL if stored value is unhelpful.
+    if (in_array($ats_platform, ['custom', 'unknown', ''], TRUE)) {
+      $detected = $this->detectAtsPlatformFromUrl($auth_url);
+      if ($detected !== 'custom') {
+        $ats_platform = $detected;
+        if ($existing_application) {
+          $this->database->update('jobhunter_applications')
+            ->fields(['ats_platform' => $ats_platform])
+            ->condition('id', (int) $existing_application['id'])
+            ->execute();
+        }
+      }
+    }
+
+    // ── Read cached Step 5 result ─────────────────────────────────────────
+    $step5_cache = is_array($metadata_base['step5_cache'] ?? NULL) ? $metadata_base['step5_cache'] : [];
+    $has_cached_step5 = !empty($step5_cache);
+
+    $job_confirmed_on_site  = (bool) ($step5_cache['job_confirmed_on_site'] ?? FALSE);
+    $apply_control_located  = (bool) ($step5_cache['apply_control_located'] ?? FALSE);
+    $submission_attempted   = (bool) ($step5_cache['submission_attempted'] ?? FALSE);
+    $submission_result_data = (array) ($step5_cache['submission_result'] ?? []);
+
+    // Derive from application row data too.
+    $submission_started   = in_array($submission_status, ['queued', 'pending', 'processing', 'submitted', 'confirmed', 'manual_required', 'failed', 'manual_completed', 'resume_uploaded'], TRUE);
+    $submission_completed = in_array($submission_status, ['submitted', 'confirmed', 'manual_completed'], TRUE);
+
+    // Job exists if we have title + company.
+    if (!$job_confirmed_on_site && $job_title !== '' && $company_name !== '' && $company_name !== 'Unknown') {
+      $job_confirmed_on_site = TRUE;
+    }
+
+    // Apply control located if we have a resolved URL + auth path.
+    $auth_path_identified = !in_array($auth_type, ['unknown', 'captcha_blocked'], TRUE);
+    if (!$apply_control_located && $apply_url !== '' && $auth_path_identified) {
+      $apply_control_located = TRUE;
+    }
+    if (!$apply_control_located && ($submission_started || $attempt_count > 0)) {
+      $apply_control_located = TRUE;
+    }
+
+    // ── Check for stored credentials ──────────────────────────────────────
+    /** @var \Drupal\job_hunter\Service\CredentialManagementService $cred_service */
+    $cred_service = \Drupal::service('job_hunter.credential_management_service');
+    $has_stored_credential = FALSE;
+    if ($company_id > 0) {
+      $stored_credential = $cred_service->retrieveCredential($uid, $company_id, 'basic');
+      $has_stored_credential = !empty($stored_credential);
+    }
+
+    // ── Upstream gate checks ──────────────────────────────────────────────
+    $step4_cache = is_array($metadata_base['step4_cache'] ?? NULL) ? $metadata_base['step4_cache'] : [];
+    $account_readiness_at = (string) ($metadata_base['account_readiness_at'] ?? '');
+    $account_ready = $account_readiness_at !== '' || $has_stored_credential;
+
+    $verification_result = is_array($step4_cache['verification_result'] ?? NULL) ? $step4_cache['verification_result'] : [];
+    $browser_verified = !empty($verification_result['verified']);
+
+    $prerequisites_met = $apply_url !== '' && $auth_path_identified && $account_ready;
+
+    // ── POST Actions ──────────────────────────────────────────────────────
+    $request = $this->requestStack->getCurrentRequest();
+    $run_step5_requested = FALSE;
+    if ($request->isMethod('POST')) {
+      $token = (string) $request->request->get('csrf_token', '');
+      if ($token !== '' && $this->csrfTokenGenerator->validate($token, 'job_hunter_step5_run_' . (int) $selected_job->id)) {
+        $run_step5_requested = TRUE;
+      }
+      else {
+        $this->messenger()->addError($this->t('Invalid request token. Refresh and try again.'));
+      }
+    }
+
+    if ($run_step5_requested) {
+      $now = date('Y-m-d H:i:s');
+      $action = (string) $request->request->get('step5_action', '');
+
+      // ── ACTION: Confirm job exists ──────────────────────────────────────
+      if ($action === 'confirm_job_exists') {
+        $job_confirmed_on_site = TRUE;
+        $this->messenger()->addStatus($this->t('Job confirmed as existing on the destination site.'));
+      }
+
+      // ── ACTION: Submit application ──────────────────────────────────────
+      elseif ($action === 'submit_application') {
+        if (!$prerequisites_met) {
+          $this->messenger()->addError($this->t('Prerequisites not met. Complete Steps 2-4 first.'));
+        }
+        else {
+          /** @var \Drupal\job_hunter\Service\ApplicationSubmissionService $submission_svc */
+          $submission_svc = \Drupal::service('job_hunter.application_submission_service');
+          $submit_result = $submission_svc->submitApplication($uid, (int) $selected_job->id, TRUE);
+
+          $submission_attempted = TRUE;
+          $submission_result_data = $submit_result;
+
+          if (!empty($submit_result['success'])) {
+            $submission_started = TRUE;
+            $apply_control_located = TRUE;
+            $submission_status = (string) ($submit_result['status'] ?? 'queued');
+            $this->messenger()->addStatus($this->t('Application submitted successfully. Status: @status', [
+              '@status' => $submit_result['status'] ?? 'queued',
+            ]));
+          }
+          else {
+            $this->messenger()->addError($this->t('Submission failed: @error', [
+              '@error' => $submit_result['message'] ?? 'Unknown error',
+            ]));
+          }
+        }
+      }
+
+      // ── ACTION: Mark manual submission ──────────────────────────────────
+      elseif ($action === 'mark_manual_submission') {
+        $manual_confirmation = trim((string) $request->request->get('manual_confirmation', ''));
+        $submission_attempted = TRUE;
+        $submission_started = TRUE;
+        $submission_completed = TRUE;
+        $submission_result_data = [
+          'success' => TRUE,
+          'status' => 'manual_completed',
+          'message' => 'Manually marked as submitted.',
+          'manual_confirmation' => $manual_confirmation,
+        ];
+
+        // Update the application row directly.
+        if ($existing_application) {
+          $this->database->update('jobhunter_applications')
+            ->fields([
+              'submission_status' => 'manual_completed',
+              'confirmation_ref' => $manual_confirmation !== '' ? $manual_confirmation : 'Manual submission at ' . $now,
+              'changed' => $now,
+            ])
+            ->condition('id', (int) $existing_application['id'])
+            ->execute();
+        }
+
+        $this->messenger()->addStatus($this->t('Application marked as manually submitted.'));
+      }
+
+      // ── ACTION: Upload resume and click Continue ─────────────────────
+      elseif ($action === 'upload_resume_continue') {
+        if (!$prerequisites_met) {
+          $this->messenger()->addError($this->t('Prerequisites not met. Complete Steps 2-4 first.'));
+        }
+        else {
+          /** @var \Drupal\job_hunter\Service\ResumeUploadService $resume_upload_svc */
+          $resume_upload_svc = \Drupal::service('job_hunter.resume_upload_service');
+          $upload_result = $resume_upload_svc->uploadResume((int) $selected_job->id, $uid);
+
+          $submission_result_data = $upload_result;
+          $job_confirmed_on_site = TRUE;
+          $apply_control_located = TRUE;
+
+          if (!empty($upload_result['ok'])) {
+            $submission_attempted = TRUE;
+            $submission_started = TRUE;
+            $this->messenger()->addStatus($this->t('Resume uploaded and Continue clicked successfully. Auth verified: @email. File: @file', [
+              '@email' => $upload_result['verified_email'] ?? 'unknown',
+              '@file' => $upload_result['upload_filename'] ?? 'unknown',
+            ]));
+
+            // Update application row.
+            if ($existing_application) {
+              $this->database->update('jobhunter_applications')
+                ->fields([
+                  'submission_status' => 'resume_uploaded',
+                  'changed' => $now,
+                ])
+                ->condition('id', (int) $existing_application['id'])
+                ->execute();
+              $submission_status = 'resume_uploaded';
+            }
+          }
+          else {
+            $this->messenger()->addError($this->t('Resume upload failed: @error', [
+              '@error' => $upload_result['error'] ?? 'Unknown error',
+            ]));
+          }
+        }
+      }
+
+      // ── ACTION: Advance a Workday wizard step ───────────────────────
+      elseif ($action === 'advance_wd_step') {
+        $wd_step_key = (string) $request->request->get('wd_step_key', '');
+        $wd_step_labels = [
+          'my_information'        => 'My Information',
+          'my_experience'         => 'My Experience',
+          'application_questions' => 'Application Questions',
+          'voluntary_disclosures' => 'Voluntary Disclosures',
+          'self_identify'         => 'Self-Identify',
+          'review_submit'         => 'Review & Submit',
+        ];
+        if (isset($wd_step_labels[$wd_step_key])) {
+          $this->messenger()->addStatus($this->t('Workday step "@step" marked as complete.', [
+            '@step' => $wd_step_labels[$wd_step_key],
+          ]));
+          // If this is review_submit, mark the application as submitted.
+          if ($wd_step_key === 'review_submit') {
+            $submission_attempted = TRUE;
+            $submission_started = TRUE;
+            $submission_completed = TRUE;
+            $submission_result_data = [
+              'success' => TRUE,
+              'status' => 'submitted',
+              'message' => 'Application submitted via Workday wizard flow.',
+            ];
+            if ($existing_application) {
+              $this->database->update('jobhunter_applications')
+                ->fields([
+                  'submission_status' => 'submitted',
+                  'changed' => $now,
+                ])
+                ->condition('id', (int) $existing_application['id'])
+                ->execute();
+              $submission_status = 'submitted';
+            }
+          }
+        }
+        else {
+          $this->messenger()->addError($this->t('Unknown Workday step key.'));
+        }
+      }
+
+      // Persist Step 5 cache.
+      $meta = $metadata_base;
+      // Update Workday flow step statuses based on action.
+      $wd_steps_update = is_array($step5_cache['wd_flow_steps'] ?? NULL) ? $step5_cache['wd_flow_steps'] : [];
+      if ($action === 'upload_resume_continue' && !empty($submission_result_data['ok'])) {
+        $wd_steps_update['autofill_resume'] = [
+          'status' => 'pass',
+          'completed_at' => $now,
+          'result' => $submission_result_data,
+        ];
+      }
+      elseif ($action === 'advance_wd_step') {
+        $wd_step_key = (string) $request->request->get('wd_step_key', '');
+        if ($wd_step_key !== '' && in_array($wd_step_key, ['my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'], TRUE)) {
+          $wd_steps_update[$wd_step_key] = [
+            'status' => 'pass',
+            'completed_at' => $now,
+          ];
+        }
+      }
+      elseif ($action === 'mark_manual_submission') {
+        // Mark all WD steps as pass when manually submitted.
+        foreach (['autofill_resume', 'my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'] as $k) {
+          if (empty($wd_steps_update[$k])) {
+            $wd_steps_update[$k] = ['status' => 'pass', 'completed_at' => $now];
+          }
+        }
+      }
+
+      $meta['step5_cache'] = [
+        'ran_at'                => $now,
+        'job_confirmed_on_site' => $job_confirmed_on_site,
+        'apply_control_located' => $apply_control_located,
+        'submission_attempted'  => $submission_attempted,
+        'submission_result'     => $submission_result_data,
+        'resume_upload_result'  => ($action === 'upload_resume_continue') ? $submission_result_data : ($step5_cache['resume_upload_result'] ?? []),
+        'wd_flow_steps'         => $wd_steps_update,
+      ];
+
+      try {
+        if ($existing_application) {
+          $this->database->update('jobhunter_applications')
+            ->fields([
+              'metadata' => json_encode($meta),
+              'changed'  => $now,
+            ])
+            ->condition('id', (int) $existing_application['id'])
+            ->execute();
+        }
+        $step5_cache = $meta['step5_cache'];
+      }
+      catch (\Throwable $e) {
+        // Non-fatal.
+      }
+
+      $has_cached_step5 = TRUE;
+    }
+
+    // ── Section readiness ─────────────────────────────────────────────────
+    $section_a_status = $job_confirmed_on_site ? 'pass' : 'incomplete';
+    $section_b_status = $apply_control_located ? 'pass' : 'incomplete';
+    $section_c_status = $submission_completed ? 'pass' : ($submission_started ? 'in_progress' : 'incomplete');
+
+    $all_pass = $section_a_status === 'pass' && $section_b_status === 'pass' && $section_c_status === 'pass';
+
+    // ── Resolve resume availability ───────────────────────────────────────
+    $has_tailored_resume = FALSE;
+    $resume_pdf_basename = '';
+    try {
+      $resume_uri = $this->database->select('jobhunter_tailored_resumes', 't')
+        ->fields('t', ['pdf_path'])
+        ->condition('uid', $uid)
+        ->condition('job_id', (int) $selected_job->id)
+        ->isNotNull('pdf_path')
+        ->orderBy('created', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+      if ($resume_uri) {
+        $real_path = \Drupal::service('file_system')->realpath($resume_uri);
+        if ($real_path && file_exists($real_path)) {
+          $has_tailored_resume = TRUE;
+          $resume_pdf_basename = basename($real_path);
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      // Non-fatal.
+    }
+
+    // Resume upload result (from cache or this request).
+    $resume_upload_result = (array) ($step5_cache['resume_upload_result'] ?? []);
+    $resume_uploaded = !empty($resume_upload_result['ok']);
+
+    // ── Build Workday flow steps tracker ───────────────────────────────────
+    $wd_steps_cached = is_array($step5_cache['wd_flow_steps'] ?? NULL) ? $step5_cache['wd_flow_steps'] : [];
+    $wd_flow_definition = [
+      ['key' => 'autofill_resume',       'label' => 'Autofill with Resume',    'number' => 1],
+      ['key' => 'my_information',        'label' => 'My Information',          'number' => 2],
+      ['key' => 'my_experience',         'label' => 'My Experience',           'number' => 3],
+      ['key' => 'application_questions', 'label' => 'Application Questions',   'number' => 4],
+      ['key' => 'voluntary_disclosures', 'label' => 'Voluntary Disclosures',   'number' => 5],
+      ['key' => 'self_identify',         'label' => 'Self-Identify',           'number' => 6],
+      ['key' => 'review_submit',         'label' => 'Review & Submit',         'number' => 7],
+    ];
+
+    $wd_flow_steps = [];
+    $wd_current_step = 1;
+    $wd_all_complete = TRUE;
+    foreach ($wd_flow_definition as $step_def) {
+      $step_data = $wd_steps_cached[$step_def['key']] ?? [];
+      $step_status = (string) ($step_data['status'] ?? 'not_started');
+      if ($step_status !== 'pass') {
+        $wd_all_complete = FALSE;
+      }
+      $wd_flow_steps[] = [
+        'key'          => $step_def['key'],
+        'label'        => $step_def['label'],
+        'number'       => $step_def['number'],
+        'status'       => $step_status,
+        'completed_at' => (string) ($step_data['completed_at'] ?? ''),
+      ];
+    }
+    // Determine current active step (first non-pass).
+    foreach ($wd_flow_steps as $s) {
+      if ($s['status'] !== 'pass') {
+        $wd_current_step = $s['number'];
+        break;
+      }
+    }
+    if ($wd_all_complete) {
+      $wd_current_step = 8; // All done.
+    }
+
+    // Refine section C status based on WD flow step progress.
+    $wd_completed_count = 0;
+    foreach ($wd_flow_steps as $s) {
+      if ($s['status'] === 'pass') {
+        $wd_completed_count++;
+      }
+    }
+    if ($wd_all_complete && !$submission_completed) {
+      // All WD steps done but DB not yet updated (edge case) — mark pass.
+      $section_c_status = 'pass';
+    }
+    elseif ($wd_completed_count > 0 && $section_c_status === 'incomplete') {
+      $section_c_status = 'in_progress';
+    }
+    // Re-derive all_pass after potential section C upgrade.
+    $all_pass = $section_a_status === 'pass' && $section_b_status === 'pass' && $section_c_status === 'pass';
+
+    $content = [
+      '#theme'                   => 'application_submission_step5',
+      '#job_id'                  => (int) $selected_job->id,
+      '#job_title'               => $job_title,
+      '#company_name'            => $company_name,
+      '#company_id'              => $company_id,
+      '#apply_url'               => $apply_url,
+      '#auth_url'                => $auth_url,
+      '#auth_type'               => $auth_type,
+      '#ats_platform'            => $ats_platform,
+      '#account_ready'           => $account_ready,
+      '#browser_verified'        => $browser_verified,
+      '#has_stored_credential'   => $has_stored_credential,
+      '#prerequisites_met'       => $prerequisites_met,
+      '#job_confirmed_on_site'   => $job_confirmed_on_site,
+      '#apply_control_located'   => $apply_control_located,
+      '#submission_attempted'    => $submission_attempted,
+      '#submission_started'      => $submission_started,
+      '#submission_completed'    => $submission_completed,
+      '#submission_status'       => $submission_status,
+      '#submission_result'       => $submission_result_data,
+      '#confirmation'            => $confirmation,
+      '#attempt_count'           => $attempt_count,
+      '#last_outcome'            => $last_outcome,
+      '#last_error'              => $last_error,
+      '#last_attempt_at'         => $last_attempt_at,
+      '#section_a_status'        => $section_a_status,
+      '#section_b_status'        => $section_b_status,
+      '#section_c_status'        => $section_c_status,
+      '#all_pass'                => $all_pass,
+      '#step5_cache_exists'      => $has_cached_step5,
+      '#step5_last_run_at'       => (string) ($step5_cache['ran_at'] ?? ''),
+      '#step5_ran_this_request'  => $run_step5_requested,
+      '#run_step5_csrf_token'    => $this->csrfTokenGenerator->get('job_hunter_step5_run_' . (int) $selected_job->id),
+      '#return_url'              => '/jobhunter/application-submission/' . (int) $selected_job->id,
+      '#has_tailored_resume'     => $has_tailored_resume,
+      '#resume_pdf_basename'     => $resume_pdf_basename,
+      '#resume_upload_result'    => $resume_upload_result,
+      '#resume_uploaded'         => $resume_uploaded,
+      '#wd_flow_steps'           => $wd_flow_steps,
+      '#wd_current_step'         => $wd_current_step,
+      '#wd_all_complete'         => $wd_all_complete,
+      '#cache'                   => [
+        'contexts' => ['user', 'url.query_args'],
+        'tags'     => ['job_hunter:jobs', 'job_hunter:applications'],
+        'max-age'  => 0,
+      ],
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Generic stub page for application submission steps.
+   */
+  public function applicationSubmissionStepStub(int $job_id, int $step): array|RedirectResponse {
+    $uid = (int) $this->currentUser()->id();
+    if ($uid <= 0) {
+      return [
+        '#markup' => $this->t('You must be logged in to access this page.'),
+      ];
+    }
+
+    if ($step === 2) {
+      return new RedirectResponse(Url::fromRoute('job_hunter.application_submission_step2', ['job_id' => $job_id])->toString());
+    }
+
+    if ($step === 3) {
+      return new RedirectResponse(Url::fromRoute('job_hunter.application_submission_step3', ['job_id' => $job_id])->toString());
+    }
+
+    if ($step === 4) {
+      return new RedirectResponse(Url::fromRoute('job_hunter.application_submission_step4', ['job_id' => $job_id])->toString());
+    }
+
+    // Steps 5, 6, 7 are now combined into the single "Submit Application" page.
+    if (in_array($step, [5, 6, 7], TRUE)) {
+      return new RedirectResponse(Url::fromRoute('job_hunter.application_submission_step5', ['job_id' => $job_id])->toString());
+    }
+
+    $step_map = [
+      1 => [
+        'title' => 'Step 1: Pre-requirements',
+        'description' => 'Validate tailored resume + PDF readiness and profile prerequisites for this requisition.',
+      ],
+      3 => [
+        'title' => 'Step 3: Identify Authentication Path',
+        'description' => 'Capture and verify the expected login/authentication path for the destination site.',
+      ],
+      4 => [
+        'title' => 'Step 4: Verify Account Readiness',
+        'description' => 'Confirm this user can authenticate and has required credentials/readiness for this company flow.',
+      ],
+      5 => [
+        'title' => 'Step 5: Submit Application',
+        'description' => 'Confirm the job exists, locate the apply control, and submit the application.',
+      ],
+      6 => [
+        'title' => 'Step 6: Capture Confirmation & Evidence',
+        'description' => 'Persist confirmation references and attempt evidence for auditability.',
+      ],
+    ];
+
+    if (!isset($step_map[$step])) {
+      $this->messenger()->addError($this->t('Unknown process step.'));
+      return $this->wrapWithNavigation([
+        '#markup' => '<p>' . $this->t('Step not found.') . '</p>',
+      ]);
+    }
+
+    $selected_job = $this->loadSelectedJobContext($uid, $job_id);
+    if (!$selected_job) {
+      $this->messenger()->addError($this->t('Job requisition not found for your account.'));
+      return $this->wrapWithNavigation([
+        '#markup' => '<p>' . $this->t('Unable to load this requisition.') . '</p>',
+      ]);
+    }
+
+    $extracted = is_array($selected_job->extracted_data ?? NULL) ? $selected_job->extracted_data : [];
+    $job_title = (string) ($extracted['position']['title'] ?? $selected_job->job_title ?? ('Job #' . (int) $selected_job->id));
+    $company_name = (string) ($extracted['company']['name'] ?? $selected_job->company_name ?? 'Unknown');
+
+    $content = [
+      '#theme' => 'application_submission_step_stub',
+      '#job_id' => (int) $selected_job->id,
+      '#job_title' => $job_title,
+      '#company_name' => $company_name,
+      '#step' => $step,
+      '#step_title' => $step_map[$step]['title'],
+      '#step_description' => $step_map[$step]['description'],
+      '#return_url' => '/jobhunter/application-submission/' . (int) $selected_job->id,
       '#cache' => [
         'contexts' => ['user', 'url.query_args'],
         'tags' => ['job_hunter:jobs', 'job_hunter:applications'],
@@ -1662,13 +3233,16 @@ class JobApplicationController extends ControllerBase {
   /**
    * Gets summary counts for a user's application submissions.
    */
-  private function getApplicationSubmissionSummary(int $uid): array {
+  private function getApplicationSubmissionSummary(int $uid, ?int $job_id = NULL): array {
     if (!$this->database->schema()->tableExists('jobhunter_applications')) {
       return ['total' => 0, 'submitted' => 0, 'processing' => 0, 'manual_required' => 0, 'failed' => 0];
     }
 
     $base = $this->database->select('jobhunter_applications', 'a')
       ->condition('a.uid', $uid);
+    if ($job_id !== NULL) {
+      $base->condition('a.job_id', $job_id);
+    }
 
     $total = (int) (clone $base)->countQuery()->execute()->fetchField();
     $submitted = (int) (clone $base)->condition('a.submission_status', 'submitted')->countQuery()->execute()->fetchField();
@@ -1688,7 +3262,7 @@ class JobApplicationController extends ControllerBase {
   /**
    * Gets recent applications with optional fields when available.
    */
-  private function getRecentApplicationSubmissions(int $uid, int $limit = 25): array {
+  private function getRecentApplicationSubmissions(int $uid, int $limit = 25, ?int $job_id = NULL): array {
     $schema = $this->database->schema();
     if (!$schema->tableExists('jobhunter_applications')) {
       return [];
@@ -1697,9 +3271,12 @@ class JobApplicationController extends ControllerBase {
       ->condition('a.uid', $uid)
       ->orderBy('a.created', 'DESC')
       ->range(0, $limit);
+    if ($job_id !== NULL) {
+      $query->condition('a.job_id', $job_id);
+    }
 
     $fields = ['id', 'job_id', 'submission_status'];
-    foreach (['attempt_count', 'ats_platform', 'apply_url', 'confirmation_reference', 'confirmation_ref'] as $optional_field) {
+    foreach (['attempt_count', 'ats_platform', 'apply_url', 'selected_apply_option', 'metadata', 'confirmation_reference', 'confirmation_ref'] as $optional_field) {
       if ($schema->fieldExists('jobhunter_applications', $optional_field)) {
         $fields[] = $optional_field;
       }
@@ -1712,6 +3289,503 @@ class JobApplicationController extends ControllerBase {
     }
 
     return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+  }
+
+  /**
+   * Get latest attempt rows keyed by application_id.
+   */
+  private function getLatestAttemptsByApplicationIds(array $application_ids): array {
+    $application_ids = array_values(array_filter(array_map('intval', $application_ids)));
+    if (empty($application_ids) || !$this->database->schema()->tableExists('jobhunter_application_attempts')) {
+      return [];
+    }
+
+    $rows = $this->database->select('jobhunter_application_attempts', 'at')
+      ->fields('at', ['id', 'application_id', 'attempted_at', 'outcome', 'error_message'])
+      ->condition('at.application_id', $application_ids, 'IN')
+      ->orderBy('at.application_id', 'ASC')
+      ->orderBy('at.id', 'DESC')
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    $latest = [];
+    foreach ($rows as $row) {
+      $application_id = (int) ($row['application_id'] ?? 0);
+      if ($application_id > 0 && !isset($latest[$application_id])) {
+        $latest[$application_id] = $row;
+      }
+    }
+
+    return $latest;
+  }
+
+  /**
+   * Build a full end-to-end process flow view for a selected job.
+   */
+  private function buildJobJourneyFlow(?object $selected_job, string $workflow_status, ?array $selected_application, ?array $selected_attempt, bool $has_profile): array {
+    if (!$selected_job) {
+      return [
+        [
+          'index' => 1,
+          'label' => 'Step Pre-requirements',
+          'status' => 'current',
+          'gate_met' => FALSE,
+          'detail' => 'Job context not loaded yet; pre-requirements cannot be verified.',
+          'requirements' => [
+            [
+              'label' => 'Tailored resume PDF is generated and ready for submission',
+              'met' => FALSE,
+              'evidence' => 'No selected job context available for verification.',
+            ],
+          ],
+        ],
+        [
+          'index' => 2,
+          'label' => 'Resolve redirect chain',
+          'status' => 'blocked',
+          'gate_met' => FALSE,
+          'detail' => 'Cannot evaluate redirect chain until selected job context is available.',
+          'requirements' => [
+            [
+              'label' => 'Redirect chain is fully resolved',
+              'met' => FALSE,
+              'evidence' => 'No selected job context available for verification.',
+            ],
+          ],
+        ],
+        [
+          'index' => 3,
+          'label' => 'Identify authentication path',
+          'status' => 'blocked',
+          'gate_met' => FALSE,
+          'detail' => 'Cannot evaluate authentication path until selected job context is available.',
+          'requirements' => [
+            [
+              'label' => 'Authentication path is identified',
+              'met' => FALSE,
+              'evidence' => 'No selected job context available for verification.',
+            ],
+          ],
+        ],
+        [
+          'index' => 4,
+          'label' => 'Verify account readiness',
+          'status' => 'blocked',
+          'gate_met' => FALSE,
+          'detail' => 'Cannot evaluate account readiness until selected job context is available.',
+          'requirements' => [
+            [
+              'label' => 'User can authenticate and account readiness is confirmed',
+              'met' => FALSE,
+              'evidence' => 'No selected job context available for verification.',
+            ],
+          ],
+        ],
+        [
+          'index' => 5,
+          'label' => 'Submit application',
+          'status' => 'blocked',
+          'gate_met' => FALSE,
+          'detail' => 'Cannot evaluate submission until selected job context is available.',
+          'requirements' => [
+            [
+              'label' => 'Job confirmed, apply control located, and submission completed',
+              'met' => FALSE,
+              'evidence' => 'No selected job context available for verification.',
+            ],
+          ],
+        ],
+        [
+          'index' => 6,
+          'label' => 'Capture confirmation and evidence',
+          'status' => 'blocked',
+          'gate_met' => FALSE,
+          'detail' => 'Cannot evaluate evidence stage until selected job context is available.',
+          'requirements' => [
+            [
+              'label' => 'Confirmation and attempt evidence are captured',
+              'met' => FALSE,
+              'evidence' => 'No selected job context available for verification.',
+            ],
+          ],
+        ],
+      ];
+    }
+
+    $submission_status = (string) ($selected_application['submission_status'] ?? '');
+    $ats_platform = (string) ($selected_application['ats_platform'] ?? '');
+    $apply_url = (string) ($selected_application['apply_url'] ?? '');
+    $career_url = $apply_url !== '' ? $apply_url : (string) ($selected_job->job_url ?? '');
+    $career_page_identified = $career_url !== '';
+    $resolution_steps_count = (int) ($selected_application['resolution_steps_count'] ?? 0);
+    $resolution_confidence = (string) ($selected_application['resolution_confidence'] ?? '');
+    $confirmation = (string) ($selected_application['confirmation'] ?? '');
+    $attempt_count = (int) ($selected_application['attempt_count'] ?? 0);
+    $last_attempt_outcome = (string) ($selected_application['last_attempt_outcome'] ?? '');
+    $last_attempt_error = (string) ($selected_application['last_attempt_error'] ?? '');
+    $last_attempt_at = (string) ($selected_application['last_attempt_at'] ?? '');
+
+    $tailoring_completed = in_array($workflow_status, ['approval_pending', 'application_pending', 'pending_response', 'closed'], TRUE);
+    $pdf_ready = (int) ($selected_job->pdf_generated ?? 0) > 0 || (string) ($selected_job->pdf_path ?? '') !== '';
+    $has_resolved_url = $apply_url !== '';
+    $has_ats_detection = $ats_platform !== '';
+    $has_resolution_trace = $resolution_steps_count > 0;
+    $submission_started = in_array($submission_status, ['queued', 'pending', 'processing', 'submitted', 'confirmed', 'manual_required', 'failed', 'manual_completed'], TRUE);
+    $auth_process_vetted = $attempt_count > 0 || $submission_started;
+    $submission_completed = in_array($submission_status, ['submitted', 'confirmed', 'manual_completed'], TRUE);
+    $has_attempt_evidence = $attempt_count > 0 || $last_attempt_outcome !== '';
+    $has_confirmation = $confirmation !== '';
+    $resolved_confidence = in_array(strtolower($resolution_confidence), ['high', 'medium'], TRUE);
+    $verification_passed = !empty($selected_application['verification_passed']);
+    $redirect_chain_fully_resolved = $verification_passed || ($has_resolved_url && $has_resolution_trace && $resolved_confidence);
+    // Step 3 passes when either:
+    //   (a) the auth_type has been explicitly classified by Step 3 service, OR
+    //   (b) legacy: ATS platform is known and not 'unknown'/'aggregator'.
+    $stored_auth_type = strtolower((string) ($selected_application['auth_type'] ?? ''));
+    $auth_type_classified = $stored_auth_type !== '' && !in_array($stored_auth_type, ['unknown', 'captcha_blocked'], TRUE);
+    $auth_path_identified = $auth_type_classified || ($has_ats_detection && !in_array(strtolower($ats_platform), ['unknown', 'aggregator', ''], TRUE));
+    $last_outcome_lc = strtolower($last_attempt_outcome);
+    $auth_blocked = in_array($last_outcome_lc, ['auth_required', 'auth_failed', 'credential_missing', 'login_required'], TRUE)
+      || str_contains(strtolower($last_attempt_error), 'auth')
+      || str_contains(strtolower($last_attempt_error), 'login')
+      || str_contains(strtolower($last_attempt_error), 'credential');
+    // Step 4 passes when:
+    //   (a) user confirmed account readiness via Step 4 page, OR
+    //   (b) legacy: submission started and auth is not blocked.
+    $account_readiness_at = (string) ($selected_application['account_readiness_at'] ?? '');
+    $account_readiness_confirmed = $account_readiness_at !== '' || ($submission_started && !$auth_blocked);
+    $job_title = (string) ($selected_job->job_title ?? '');
+    $company_name = (string) ($selected_job->company_name ?? '');
+    $job_exists_on_destination = $job_title !== '' && $company_name !== '';
+    $apply_control_located = $submission_started || $has_attempt_evidence || ($has_resolved_url && $auth_path_identified);
+
+    $step_1_detail = $pdf_ready
+      ? 'Tailored PDF is generated and ready for submission.'
+      : 'Tailored PDF not generated yet for this role.';
+    $step_2_detail = $redirect_chain_fully_resolved
+      ? ($verification_passed
+        ? 'Redirect chain resolved and verified by Step 2 checks.'
+        : 'Redirect chain resolved to a canonical apply destination.')
+      : 'Redirect chain is not fully resolved yet.';
+    $step_3_detail = $auth_path_identified
+      ? ('Authentication path identified' . ($stored_auth_type !== '' ? ': ' . $stored_auth_type : ' (ATS: ' . $ats_platform . ')') . '.')
+      : 'Authentication path not fully identified yet. Run Step 3 to classify.';
+    $step_4_detail = $account_readiness_confirmed
+      ? ('Account readiness confirmed' . ($account_readiness_at !== '' ? ' at ' . $account_readiness_at : '') . '.')
+      : 'Account readiness is not confirmed yet. Run Step 4 to create account and verify.';
+    // Step 5 combines: confirm job exists + locate apply control + submit.
+    $step_5_gate = $job_exists_on_destination && $apply_control_located && $submission_completed;
+    $step_5_detail = $submission_completed
+      ? 'Application submitted successfully.'
+      : ($submission_started
+        ? ('Submission in progress (status: ' . $submission_status . ').')
+        : ($job_exists_on_destination && $apply_control_located
+          ? 'Ready to submit — job confirmed and apply path located.'
+          : ($job_exists_on_destination
+            ? 'Job confirmed on destination. Apply control not yet located.'
+            : 'Job destination/requisition context is incomplete.')));
+    $step_6_detail = $has_confirmation
+      ? ('Confirmation captured: ' . $confirmation)
+      : ($has_attempt_evidence ? 'Attempt evidence exists, but confirmation is not captured yet.' : 'No evidence/confirmation captured yet.');
+
+    $step_1_requirements = [
+      [
+        'label' => 'Tailored resume content is complete for this role',
+        'met' => $tailoring_completed,
+        'evidence' => 'Workflow status: ' . ($workflow_status !== '' ? $workflow_status : 'unknown'),
+      ],
+      [
+        'label' => 'Tailored resume PDF is generated and ready for submission',
+        'met' => $pdf_ready,
+        'evidence' => $pdf_ready ? 'PDF is generated.' : 'PDF is not generated yet.',
+      ],
+      [
+        'label' => 'Profile prerequisite is satisfied for automation',
+        'met' => $has_profile,
+        'evidence' => $has_profile ? 'Profile prerequisite passed.' : 'Profile prerequisite not satisfied.',
+      ],
+    ];
+
+    $step_2_requirements = [
+      [
+        'label' => 'Resolved destination apply URL is captured',
+        'met' => $has_resolved_url,
+        'evidence' => $has_resolved_url ? $apply_url : 'Apply URL not captured yet.',
+      ],
+      [
+        'label' => 'Company careers page or direct application page is identified',
+        'met' => $career_page_identified,
+        'evidence' => $career_page_identified ? ('Career page identified: ' . $career_url) : 'Career/apply page not yet identified.',
+      ],
+      [
+        'label' => 'Redirect chain trace is stored',
+        'met' => $verification_passed || $has_resolution_trace,
+        'evidence' => ($verification_passed || $has_resolution_trace)
+          ? ($verification_passed ? 'Step 2 verification passed.' : ('Resolution steps: ' . $resolution_steps_count))
+          : 'Redirect chain evidence not stored yet.',
+      ],
+      [
+        'label' => 'Redirect resolution confidence is sufficient',
+        'met' => $verification_passed || $resolved_confidence,
+        'evidence' => ($verification_passed || $resolution_confidence !== '')
+          ? ($verification_passed ? 'Step 2 verification passed.' : ('Confidence: ' . $resolution_confidence))
+          : 'Resolution confidence not available.',
+      ],
+    ];
+
+    $step_3_requirements = [
+      [
+        'label' => 'Authentication path (ATS/login flow) is identified',
+        'met' => $auth_path_identified,
+        'evidence' => $auth_path_identified ? ($stored_auth_type !== '' ? ('auth_type: ' . $stored_auth_type) : ('ATS: ' . $ats_platform)) : 'Authentication path not identified. Run Step 3 to classify.',
+      ],
+    ];
+
+    $step_4_requirements = [
+      [
+        'label' => 'User can authenticate (account readiness confirmed)',
+        'met' => $account_readiness_confirmed,
+        'evidence' => $account_readiness_confirmed
+          ? ($account_readiness_at !== '' ? 'Account verified at ' . $account_readiness_at . '.' : 'Submission/attempts indicate authentication is working.')
+          : ($auth_blocked ? 'Authentication appears blocked by credential/login errors.' : 'Account readiness not confirmed yet. Run Step 4 to create account.'),
+      ],
+    ];
+
+    $step_5_requirements = [
+      [
+        'label' => 'Job requisition appears available on destination',
+        'met' => $job_exists_on_destination,
+        'evidence' => $job_exists_on_destination ? ('Job: ' . $job_title . ' | Company: ' . $company_name) : 'Job/company destination context is incomplete.',
+      ],
+      [
+        'label' => 'Apply control entry point is located',
+        'met' => $apply_control_located,
+        'evidence' => $apply_control_located
+          ? 'Apply URL and/or attempts indicate actionable apply control path.'
+          : 'Apply control path not confirmed from current evidence.',
+      ],
+      [
+        'label' => 'Submission request has started for this job',
+        'met' => $submission_started,
+        'evidence' => $submission_status !== '' ? ('Submission status: ' . $submission_status) : 'No submission record yet.',
+      ],
+      [
+        'label' => 'Submission reached a successful completion state',
+        'met' => $submission_completed,
+        'evidence' => $submission_completed ? 'Submission completed.' : 'Submission not complete yet.',
+      ],
+    ];
+
+    $steps = [
+      [
+        'index' => 1,
+        'label' => 'Step Pre-requirements',
+        'status' => 'pending',
+        'detail' => $step_1_detail,
+        'requirements' => $step_1_requirements,
+      ],
+      [
+        'index' => 2,
+        'label' => 'Resolve redirect chain',
+        'status' => 'pending',
+        'detail' => $step_2_detail,
+        'requirements' => $step_2_requirements,
+      ],
+      [
+        'index' => 3,
+        'label' => 'Identify authentication path',
+        'status' => 'pending',
+        'detail' => $step_3_detail,
+        'requirements' => $step_3_requirements,
+      ],
+      [
+        'index' => 4,
+        'label' => 'Verify account readiness',
+        'status' => 'pending',
+        'detail' => $step_4_detail,
+        'requirements' => $step_4_requirements,
+      ],
+      [
+        'index' => 5,
+        'label' => 'Submit application',
+        'status' => 'pending',
+        'detail' => $step_5_detail,
+        'requirements' => $step_5_requirements,
+      ],
+      [
+        'index' => 6,
+        'label' => 'Capture confirmation and evidence',
+        'status' => 'pending',
+        'detail' => $step_6_detail,
+        'requirements' => [
+          [
+            'label' => 'At least one attempt/evidence record exists',
+            'met' => $has_attempt_evidence,
+            'evidence' => $has_attempt_evidence ? ('Attempts: ' . $attempt_count) : 'No attempt evidence found.',
+          ],
+          [
+            'label' => 'Confirmation reference is captured',
+            'met' => $has_confirmation,
+            'evidence' => $has_confirmation ? $confirmation : 'Confirmation reference missing.',
+          ],
+        ],
+      ],
+    ];
+
+    $previous_unmet = FALSE;
+    foreach ($steps as &$step) {
+      $requirements = $step['requirements'] ?? [];
+      $gate_met = !empty($requirements);
+      foreach ($requirements as $requirement) {
+        if (empty($requirement['met'])) {
+          $gate_met = FALSE;
+          break;
+        }
+      }
+
+      $step['gate_met'] = $gate_met;
+      if ($gate_met) {
+        $step['status'] = 'completed';
+      }
+      elseif ($previous_unmet) {
+        $step['status'] = 'blocked';
+      }
+      else {
+        $step['status'] = 'current';
+        $previous_unmet = TRUE;
+      }
+    }
+    unset($step);
+
+    return $steps;
+  }
+
+  /**
+   * Load selected job context for a specific user/job journey page.
+   */
+  /**
+   * Detect ATS platform from a URL based on known hostname patterns.
+   *
+   * @param string $url
+   *   The URL to inspect.
+   *
+   * @return string
+   *   Detected ATS platform slug, or 'custom' if unrecognized.
+   */
+  private function detectAtsPlatformFromUrl(string $url): string {
+    if ($url === '') {
+      return 'custom';
+    }
+    $host = strtolower((string) parse_url($url, PHP_URL_HOST));
+    if ($host === '' || $host === FALSE) {
+      return 'custom';
+    }
+    $patterns = [
+      'myworkdayjobs'  => ['myworkdayjobs.com', 'wd5.myworkdayjobs', 'wd3.myworkdayjobs', 'wd1.myworkdayjobs'],
+      'greenhouse'     => ['greenhouse.io', 'boards.greenhouse.io'],
+      'lever'          => ['lever.co', 'jobs.lever.co'],
+      'icims'          => ['icims.com'],
+      'taleo'          => ['taleo.net'],
+      'smartrecruiters' => ['smartrecruiters.com'],
+      'ashbyhq'        => ['ashbyhq.com'],
+      'bamboohr'       => ['bamboohr.com'],
+      'jobvite'        => ['jobvite.com'],
+      'ultipro'        => ['ultipro.com'],
+      'successfactors'  => ['successfactors.com', 'successfactors.eu'],
+      'brassring'      => ['brassring.com'],
+    ];
+    foreach ($patterns as $platform => $domains) {
+      foreach ($domains as $domain) {
+        if (str_contains($host, $domain)) {
+          return $platform;
+        }
+      }
+    }
+    return 'custom';
+  }
+
+  private function loadSelectedJobContext(int $uid, int $job_id): ?object {
+    $has_saved = (bool) $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['id'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.job_id', $job_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    $has_application = (bool) $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['id'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', $job_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if (!$has_saved && !$has_application) {
+      return NULL;
+    }
+
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j')
+      ->condition('j.id', $job_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job) {
+      return NULL;
+    }
+
+    $tailored = $this->database->select('jobhunter_tailored_resumes', 't')
+      ->fields('t', ['tailoring_status', 'pdf_generated', 'pdf_path'])
+      ->condition('t.uid', $uid)
+      ->condition('t.job_id', $job_id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc() ?: [];
+
+    $application_status = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['submission_status'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', $job_id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    $job->tailoring_status = (string) ($tailored['tailoring_status'] ?? '');
+    $job->pdf_generated = (int) ($tailored['pdf_generated'] ?? 0);
+    $job->pdf_path = (string) ($tailored['pdf_path'] ?? '');
+    $job->application_status = (string) ($application_status ?: '');
+
+    if (!empty($job->extracted_json) && is_string($job->extracted_json)) {
+      $decoded = json_decode($job->extracted_json, TRUE);
+      if (is_array($decoded)) {
+        $job->extracted_data = $decoded;
+      }
+    }
+
+    if (empty($job->job_title) && !empty($job->extracted_data['position']['title'])) {
+      $job->job_title = (string) $job->extracted_data['position']['title'];
+    }
+    if (empty($job->company_name) && !empty($job->extracted_data['company']['name'])) {
+      $job->company_name = (string) $job->extracted_data['company']['name'];
+    }
+
+    // If company_name is still empty, look it up from jobhunter_companies via company_id.
+    if (empty($job->company_name) && !empty($job->company_id)) {
+      $company_name_lookup = $this->database->select('jobhunter_companies', 'c')
+        ->fields('c', ['name'])
+        ->condition('c.id', (int) $job->company_id)
+        ->execute()
+        ->fetchField();
+      if ($company_name_lookup) {
+        $job->company_name = (string) $company_name_lookup;
+      }
+    }
+
+    return $job;
   }
 
   /**

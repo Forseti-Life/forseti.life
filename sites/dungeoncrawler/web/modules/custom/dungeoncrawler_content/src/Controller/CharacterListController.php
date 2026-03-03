@@ -102,11 +102,7 @@ class CharacterListController extends ControllerBase {
       );
       $portrait_url = NULL;
       if (!empty($portraits)) {
-        $file_uri = $portraits[0]['file_uri'] ?? $portraits[0]['public_url'] ?? NULL;
-        if ($file_uri) {
-          // Convert Drupal stream wrapper to web-accessible URL
-          $portrait_url = \Drupal::service('file_url_generator')->generateAbsoluteString($file_uri);
-        }
+        $portrait_url = $this->imageRepository->resolveClientUrl($portraits[0]);
       }
 
       $character_cards[] = [

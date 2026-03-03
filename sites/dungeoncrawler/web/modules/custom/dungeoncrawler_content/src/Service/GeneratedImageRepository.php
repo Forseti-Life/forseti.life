@@ -375,6 +375,13 @@ class GeneratedImageRepository {
       return $file_uri;
     }
 
+    // Avoid exposing temporary stream URLs directly to browsers. They often
+    // resolve to /system/temporary routes that can 403 depending on session
+    // and access context, causing noisy broken image requests in the UI.
+    if (str_starts_with($file_uri, 'temporary://')) {
+      return NULL;
+    }
+
     try {
       return $this->fileUrlGenerator->generateAbsoluteString($file_uri);
     }

@@ -11,7 +11,23 @@
         "height": 6
       },
       "contents_data": {
-        "obstacles": ["bar_counter", "round_table"],
+        "obstacles": [
+          "tavern_bar_counter_a",
+          "tavern_bar_counter_b",
+          "tavern_bar_counter_c",
+          "tavern_table_round_a",
+          "tavern_table_long_a",
+          "tavern_table_long_center",
+          "tavern_table_long_b"
+        ],
+        "npcs": [
+          {
+            "content_id": "tavern_keeper",
+            "name": "Eldric",
+            "role": "barkeep",
+            "orientation": "se"
+          }
+        ],
         "creatures": []
       }
     },

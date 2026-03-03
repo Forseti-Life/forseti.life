@@ -99,24 +99,6 @@
       </div>
     </div>
 
-    <div id="action-footer" class="action-footer">
-      <div class="action-footer__toggle" id="action-footer-toggle">{{ 'Actions ▾'|t }}</div>
-
-      <div class="action-section" data-section="controls">
-        <div class="action-section__header"><span>{{ 'Actions'|t }}</span><span class="action-section__chevron">▾</span></div>
-        <div class="action-section__body">
-          <div class="action-buttons" id="action-menu">
-            <button id="action-move" class="btn btn-ghost">{{ 'Move'|t }}</button>
-            <button id="action-attack" class="btn btn-primary">{{ 'Attack'|t }}</button>
-            <button id="action-interact" class="btn btn-ghost">{{ 'Interact'|t }}</button>
-            <button id="action-talk" class="btn btn-ghost">{{ 'Talk'|t }}</button>
-            <button id="end-turn" class="btn btn-primary dc-is-hidden">{{ 'End Turn'|t }}</button>
-          </div>
-          <p id="action-instruction" class="action-instruction">{{ 'Select a hostile target to attack.'|t }}</p>
-        </div>
-      </div>
-    </div>
-
     <div class="hexmap-chat" id="hexmap-chat">
       <div class="hexmap-chat__header">
         <h3>{{ 'Room Dialogue'|t }}</h3>
@@ -132,18 +114,40 @@
     </div>
   </div>
 
+  <div class="hexmap-quest-journal" id="quest-journal">
+    <div class="hexmap-quest-journal__header">
+      <h3>{{ 'Quest Journal'|t }}</h3>
+      <span class="chip chip-strong" id="quest-count">0</span>
+    </div>
+    <ul class="hexmap-quest-journal__list" id="quest-list">
+      <li class="quest-empty">{{ 'No active quests'|t }}</li>
+    </ul>
+  </div>
+
   <div class="character-sheet">
     <div class="character-sheet__header">
       <div>
-        <p class="eyebrow">{{ 'Character Sheet'|t }}</p>
+        <p class="eyebrow">{{ 'Character Sheet'|t }} <a id="char-full-sheet-link" href="#" class="full-sheet-link" style="display:none;" target="_blank">{{ 'View Full Sheet ↗'|t }}</a></p>
         <h2 id="char-name">{{ 'Select a character'|t }}</h2>
         <p id="char-type" class="muted">{{ 'Type —'|t }}</p>
+        <p id="char-subtitle" class="muted small" style="display:none;"></p>
       </div>
       <div class="character-badges">
         <span id="char-ancestry" class="pill pill-muted">{{ 'Ancestry —'|t }}</span>
         <span id="char-level" class="pill pill-strong">{{ 'Lvl —'|t }}</span>
       </div>
     </div>
+
+    <div id="char-sheet-embed-wrap" class="character-sheet__embed-wrap" style="display:none;">
+      <iframe
+        id="char-sheet-embed"
+        class="character-sheet__embed"
+        title="{{ 'Full Character Sheet'|t }}"
+        loading="lazy"
+        referrerpolicy="same-origin"></iframe>
+    </div>
+
+    <div id="char-sheet-legacy">
 
     <div class="character-sheet__core-stats">
       <div class="stat-card">
@@ -159,6 +163,17 @@
         <p id="char-hero" class="stat-value">-</p>
       </div>
       <div class="stat-card">
+        <p class="label">{{ 'Speed'|t }}</p>
+        <p id="char-speed" class="stat-value">-</p>
+      </div>
+    </div>
+
+    <div class="character-sheet__core-stats character-sheet__core-stats--secondary">
+      <div class="stat-card stat-card--small">
+        <p class="label">{{ 'Perception'|t }}</p>
+        <p id="char-perception" class="stat-value">+0</p>
+      </div>
+      <div class="stat-card stat-card--small">
         <p class="label">{{ 'XP'|t }}</p>
         <p id="char-xp" class="stat-value">-</p>
       </div>
@@ -279,6 +294,48 @@
           <li class="features-empty">{{ 'No features loaded'|t }}</li>
         </ul>
       </div>
+    </div>
+
+    <div class="character-sheet__section collapsed" id="char-spells-section" style="display:none;">
+      <div class="section-header" data-section="spells">
+        <h4>{{ 'Spellcasting'|t }}</h4>
+        <span class="section-toggle">▸</span>
+      </div>
+      <div class="section-body dc-is-hidden" data-section="spells">
+        <div id="char-spell-meta" class="spell-meta"></div>
+        <ul id="char-spells" class="spells-list">
+          <li class="spells-empty">{{ 'No spells'|t }}</li>
+        </ul>
+      </div>
+    </div>
+    </div>
+  </div>
+
+  <div class="dungeon-state" id="dungeon-state">
+    <div class="dungeon-state__header">
+      <h3>{{ 'Dungeon Objects & JSON State'|t }}</h3>
+      <p id="dungeon-state-summary" class="muted">{{ 'Loading dungeon state…'|t }}</p>
+    </div>
+
+    <div class="dungeon-state__objects">
+      <h4>{{ 'Object Definitions'|t }}</h4>
+      <div id="dungeon-objects-grid" class="dungeon-objects-grid">
+        <div class="dungeon-objects-empty">{{ 'No object definitions available.'|t }}</div>
+      </div>
+    </div>
+
+    <div class="dungeon-state__entities">
+      <h4>{{ 'Entities (Server State)'|t }}</h4>
+      <p id="dungeon-entities-summary" class="muted">{{ 'No entities loaded.'|t }}</p>
+      <p id="dungeon-entities-analysis" class="muted">{{ 'Entity analysis pending…'|t }}</p>
+      <div id="dungeon-entities-grid" class="dungeon-entities-grid">
+        <div class="dungeon-objects-empty">{{ 'No entities available.'|t }}</div>
+      </div>
+    </div>
+
+    <div class="dungeon-state__json">
+      <h4>{{ 'Dungeon State JSON'|t }}</h4>
+      <pre id="dungeon-state-json" class="dungeon-json-pre">{}</pre>
     </div>
   </div>
 

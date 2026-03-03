@@ -174,7 +174,40 @@ class CampaignInitializationService {
     string $theme,
     int $now
   ): string|FALSE {
-    // Dungeon metadata
+    // Try to load the full tavern-entrance-dungeon.json seed payload first.
+    $seed_payload = $this->loadTavernDungeonSeed();
+
+    if ($seed_payload !== NULL) {
+      $dungeon_id = (string) ($seed_payload['hex_map']['map_id'] ?? 'tavern-' . $campaign_id);
+      $dungeon_name = (string) ($seed_payload['name'] ?? 'Tavern Entrance');
+      $dungeon_description = (string) ($seed_payload['flavor_text'] ?? 'The adventure begins at the tavern entrance.');
+      $dungeon_theme = (string) ($seed_payload['custom_theme'] ?? $seed_payload['theme'] ?? $theme);
+
+      // Merge obstacle objects into the payload so hexmap JS has them.
+      $obstacle_path = $this->getModulePath() . '/config/examples/tavern-obstacle-objects.json';
+      $obstacle_catalog = $this->readJsonFile($obstacle_path);
+      if (is_array($obstacle_catalog) && !empty($obstacle_catalog['objects'])) {
+        $seed_payload['object_definitions'] = $obstacle_catalog['objects'];
+      }
+
+      $this->database->insert('dc_campaign_dungeons')
+        ->fields([
+          'campaign_id' => $campaign_id,
+          'dungeon_id' => $dungeon_id,
+          'name' => $dungeon_name,
+          'description' => $dungeon_description,
+          'theme' => $dungeon_theme,
+          'dungeon_data' => json_encode($seed_payload, JSON_UNESCAPED_UNICODE),
+          'source_dungeon_id' => 'tavern-entrance-default',
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+
+      return $dungeon_id;
+    }
+
+    // Fallback: themed stub when seed file is missing.
     $dungeon_id = 'starter_dungeon_' . $campaign_id;
     $dungeon_names = [
       'classic_dungeon' => 'The Forsaken Crypt',
@@ -190,7 +223,6 @@ class CampaignInitializationService {
     ];
     $dungeon_description = $dungeon_descriptions[$theme] ?? 'An ancient mystery waiting to be explored.';
 
-    // Dungeon graph structure (simplified: just Tavern Entrance for now)
     $dungeon_data = [
       'schema_version' => '1.0.0',
       'depth' => 1,
@@ -219,6 +251,49 @@ class CampaignInitializationService {
       ->execute();
 
     return $dungeon_id;
+  }
+
+  /**
+   * Load the tavern-entrance-dungeon.json seed file.
+   *
+   * @return array|null
+   *   Decoded dungeon payload, or NULL if unavailable.
+   */
+  private function loadTavernDungeonSeed(): ?array {
+    $path = $this->getModulePath() . '/config/examples/tavern-entrance-dungeon.json';
+    return $this->readJsonFile($path);
+  }
+
+  /**
+   * Read and decode a JSON file.
+   *
+   * @param string $path
+   *   Absolute file path.
+   *
+   * @return array|null
+   *   Decoded array, or NULL on failure.
+   */
+  private function readJsonFile(string $path): ?array {
+    if (!is_file($path)) {
+      return NULL;
+    }
+    $contents = file_get_contents($path);
+    if ($contents === FALSE) {
+      return NULL;
+    }
+    $decoded = json_decode($contents, TRUE);
+    return is_array($decoded) ? $decoded : NULL;
+  }
+
+  /**
+   * Resolve the module's absolute filesystem path.
+   *
+   * @return string
+   *   Absolute path to the dungeoncrawler_content module directory.
+   */
+  private function getModulePath(): string {
+    // dirname(__DIR__, 2) navigates from src/Service/ up to the module root.
+    return dirname(__DIR__, 2);
   }
 
   /**
@@ -567,22 +642,5 @@ class CampaignInitializationService {
         ->fields($record)
         ->execute();
     }
-  }
-
-  /**
-   * Read and decode a JSON file into an associative array.
-   */
-  private function readJsonFile(string $path): ?array {
-    if (!is_file($path)) {
-      return NULL;
-    }
-
-    $contents = file_get_contents($path);
-    if ($contents === FALSE) {
-      return NULL;
-    }
-
-    $decoded = json_decode($contents, TRUE);
-    return is_array($decoded) ? $decoded : NULL;
   }
 }

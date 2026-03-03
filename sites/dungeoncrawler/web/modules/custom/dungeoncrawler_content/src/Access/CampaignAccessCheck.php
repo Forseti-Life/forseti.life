@@ -61,6 +61,11 @@ class CampaignAccessCheck implements AccessInterface {
    *   The access result.
    */
   public function access(AccountInterface $account, $campaign_id = NULL) {
+    // Anonymous users are never allowed to access campaign pages.
+    if ($account->isAnonymous()) {
+      return AccessResult::forbidden()->cachePerPermissions();
+    }
+
     // Admin can access any campaign.
     if ($account->hasPermission('administer dungeoncrawler content')) {
       return AccessResult::allowed()->cachePerPermissions();

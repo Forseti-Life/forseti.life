@@ -5,6 +5,8 @@ namespace Drupal\dungeoncrawler_content\Service;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\ai_conversation\Service\AIApiService;
+use Drupal\ai_conversation\Service\PromptManager;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -21,6 +23,9 @@ class RoomChatService {
   protected DungeonStateService $dungeonStateService;
   protected LoggerInterface $logger;
   protected AccountProxyInterface $currentUser;
+  protected AIApiService $aiApiService;
+  protected PromptManager $promptManager;
+  protected GameplayActionProcessor $actionProcessor;
 
   /**
    * Constructor.
@@ -29,12 +34,18 @@ class RoomChatService {
     Connection $database,
     DungeonStateService $dungeon_state_service,
     LoggerChannelFactoryInterface $logger_factory,
-    AccountProxyInterface $current_user
+    AccountProxyInterface $current_user,
+    AIApiService $ai_api_service,
+    PromptManager $prompt_manager,
+    GameplayActionProcessor $action_processor
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
     $this->logger = $logger_factory->get('dungeoncrawler_chat');
     $this->currentUser = $current_user;
+    $this->aiApiService = $ai_api_service;
+    $this->promptManager = $prompt_manager;
+    $this->actionProcessor = $action_processor;
   }
 
   /**
@@ -70,7 +81,8 @@ class RoomChatService {
     }
 
     $rooms = $dungeon_data['rooms'] ?? [];
-    $chat = $rooms[$room_id]['chat'] ?? [];
+    $room_entry = $this->findRoomByRoomId($rooms, $room_id);
+    $chat = $room_entry['chat'] ?? [];
 
     // Ensure messages are properly structured
     return array_map(function($msg) {
@@ -141,11 +153,16 @@ class RoomChatService {
     if (!isset($dungeon_data['rooms'])) {
       $dungeon_data['rooms'] = [];
     }
-    if (!isset($dungeon_data['rooms'][$room_id])) {
-      $dungeon_data['rooms'][$room_id] = [];
+
+    // Find the room index — rooms may be keyed by room_id or numerically indexed.
+    $room_index = $this->findRoomIndex($dungeon_data['rooms'], $room_id);
+    if ($room_index === NULL) {
+      // Room doesn't exist yet; append a new entry.
+      $dungeon_data['rooms'][] = ['room_id' => $room_id, 'chat' => []];
+      $room_index = array_key_last($dungeon_data['rooms']);
     }
-    if (!isset($dungeon_data['rooms'][$room_id]['chat'])) {
-      $dungeon_data['rooms'][$room_id]['chat'] = [];
+    if (!isset($dungeon_data['rooms'][$room_index]['chat'])) {
+      $dungeon_data['rooms'][$room_index]['chat'] = [];
     }
 
     // Create new message
@@ -159,13 +176,13 @@ class RoomChatService {
     ];
 
     // Append message
-    $dungeon_data['rooms'][$room_id]['chat'][] = $new_message;
+    $dungeon_data['rooms'][$room_index]['chat'][] = $new_message;
 
     // Enforce message limit
-    $chat_count = count($dungeon_data['rooms'][$room_id]['chat']);
+    $chat_count = count($dungeon_data['rooms'][$room_index]['chat']);
     if ($chat_count > self::MAX_MESSAGES_PER_ROOM) {
-      $dungeon_data['rooms'][$room_id]['chat'] = array_slice(
-        $dungeon_data['rooms'][$room_id]['chat'],
+      $dungeon_data['rooms'][$room_index]['chat'] = array_slice(
+        $dungeon_data['rooms'][$room_index]['chat'],
         $chat_count - self::MAX_MESSAGES_PER_ROOM
       );
     }
@@ -188,9 +205,211 @@ class RoomChatService {
       '@message' => substr($message, 0, 100),
     ]);
 
-    return [
+    // Generate a GM AI response for player messages.
+    $gm_response = NULL;
+    $state_diff = NULL;
+    if ($type === 'player') {
+      $gm_result = $this->generateGmReply($campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $character_id);
+      if ($gm_result !== NULL) {
+        $gm_response = $gm_result['message'];
+        $state_diff = $gm_result['state_diff'] ?? NULL;
+      }
+    }
+
+    $result = [
       'message' => $new_message,
-      'totalMessages' => count($dungeon_data['rooms'][$room_id]['chat']),
+      'totalMessages' => count($dungeon_data['rooms'][$room_index]['chat']),
+    ];
+    if ($gm_response !== NULL) {
+      $result['gm_response'] = $gm_response;
+    }
+    if ($state_diff !== NULL) {
+      $result['state_diff'] = $state_diff;
+    }
+    return $result;
+  }
+
+  /**
+   * Generate a GM reply via the AI and persist it, processing mechanical actions.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param int|string $room_index
+   *   Array index of the room in dungeon_data['rooms'].
+   * @param int $dungeon_id
+   *   Dungeon record ID (for DB update).
+   * @param array $dungeon_data
+   *   Current dungeon_data payload (already contains the player message).
+   * @param int|null $character_id
+   *   The acting character's ID (for mechanical state updates).
+   *
+   * @return array|null
+   *   ['message' => array, 'state_diff' => array|null], or NULL on failure.
+   */
+  protected function generateGmReply(int $campaign_id, string $room_id, int|string $room_index, int|string $dungeon_id, array &$dungeon_data, ?int $character_id = NULL): ?array {
+    $chat = $dungeon_data['rooms'][$room_index]['chat'] ?? [];
+
+    // Build scene context from the room definition.
+    $room_meta = $dungeon_data['rooms'][$room_index] ?? [];
+    $scene_parts = [];
+    if (!empty($room_meta['name'])) {
+      $scene_parts[] = 'Current room: ' . $room_meta['name'];
+    }
+    if (!empty($room_meta['description'])) {
+      $scene_parts[] = 'Room description: ' . $room_meta['description'];
+    }
+
+    // Build the user prompt from recent chat history (last 10 messages).
+    $recent = array_slice($chat, -10);
+    $history_lines = [];
+    foreach ($recent as $msg) {
+      $speaker = $msg['speaker'] ?? 'Unknown';
+      $text = $msg['message'] ?? '';
+      $history_lines[] = "{$speaker}: {$text}";
+    }
+
+    $prompt = '';
+    if (!empty($scene_parts)) {
+      $prompt .= implode("\n", $scene_parts) . "\n\n";
+    }
+    $prompt .= "Recent conversation:\n" . implode("\n", $history_lines);
+    $prompt .= "\n\nRespond in character as the Game Master. Keep your reply concise (2-4 sentences). If the player is performing a mechanical action (casting a spell, using a skill, using a feat, attacking, exploring), include the JSON action block as instructed in your system prompt.";
+
+    // Build enhanced system prompt with character abilities if character_id is available.
+    $base_system_prompt = $this->promptManager->getBaseSystemPrompt();
+    $system_prompt = $base_system_prompt;
+
+    $char_data = NULL;
+    if ($character_id) {
+      $char_data = $this->actionProcessor->loadCharacterData($character_id);
+      if ($char_data) {
+        $system_prompt = $this->actionProcessor->buildEnhancedSystemPrompt(
+          $base_system_prompt,
+          $char_data,
+          $room_meta
+        );
+      }
+    }
+
+    $context_data = [
+      'campaign_id' => $campaign_id,
+      'room_id' => $room_id,
+    ];
+
+    try {
+      $result = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'dungeoncrawler_content',
+        'room_chat_gm_reply',
+        $context_data,
+        [
+          'system_prompt' => $system_prompt,
+          'max_tokens' => 800,
+          'skip_cache' => TRUE,
+        ]
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->error('AI API error generating GM reply: @msg', ['@msg' => $e->getMessage()]);
+      return NULL;
+    }
+
+    if (empty($result['success']) || empty($result['response'])) {
+      $this->logger->warning('AI API returned unsuccessful or empty response for GM reply in room @room', [
+        '@room' => $room_id,
+      ]);
+      return NULL;
+    }
+
+    $response_text = $result['response'];
+
+    // Parse the response for mechanical actions.
+    $parsed = $this->actionProcessor->parseResponse($response_text);
+    $narrative = $parsed['narrative'];
+    $actions = $parsed['actions'] ?? [];
+    $dice_rolls = $parsed['dice_rolls'] ?? [];
+
+    // Apply state mutations if there are mechanical actions.
+    $char_diff = [];
+    $room_diff = [];
+    $state_diff = NULL;
+
+    if (!empty($actions)) {
+      // Apply character state changes.
+      if ($character_id) {
+        $char_diff = $this->actionProcessor->applyCharacterStateChanges($character_id, $actions);
+      }
+
+      // Apply room/dungeon state changes.
+      $room_diff = $this->actionProcessor->applyRoomStateChanges(
+        $dungeon_id, $campaign_id, $room_index, $dungeon_data, $actions
+      );
+
+      // Build the state diff summary for the client.
+      $state_diff = $this->actionProcessor->buildStateDiffSummary(
+        $char_diff, $room_diff, $dice_rolls, $actions
+      );
+
+      $this->logger->info('Mechanical actions processed: @count actions, @rolls dice rolls', [
+        '@count' => count($actions),
+        '@rolls' => count($dice_rolls),
+      ]);
+    }
+
+    $gm_message = [
+      'speaker' => 'Game Master',
+      'message' => $narrative,
+      'type' => 'npc',
+      'timestamp' => date('c'),
+      'character_id' => NULL,
+      'user_id' => 0,
+    ];
+
+    // If there were mechanical actions, attach a summary to the message.
+    if (!empty($actions)) {
+      $gm_message['mechanical_actions'] = array_map(function($a) {
+        return [
+          'type' => $a['type'] ?? 'unknown',
+          'name' => $a['name'] ?? 'Unknown',
+        ];
+      }, $actions);
+      if (!empty($dice_rolls)) {
+        $gm_message['dice_rolls'] = $dice_rolls;
+      }
+    }
+
+    // Persist the GM reply (and any dungeon_data state changes from actions).
+    $dungeon_data['rooms'][$room_index]['chat'][] = $gm_message;
+
+    // Enforce message limit again.
+    $chat_count = count($dungeon_data['rooms'][$room_index]['chat']);
+    if ($chat_count > self::MAX_MESSAGES_PER_ROOM) {
+      $dungeon_data['rooms'][$room_index]['chat'] = array_slice(
+        $dungeon_data['rooms'][$room_index]['chat'],
+        $chat_count - self::MAX_MESSAGES_PER_ROOM
+      );
+    }
+
+    $this->database->update('dc_campaign_dungeons')
+      ->fields([
+        'dungeon_data' => json_encode($dungeon_data),
+        'updated' => time(),
+      ])
+      ->condition('dungeon_id', $dungeon_id)
+      ->condition('campaign_id', $campaign_id)
+      ->execute();
+
+    $this->logger->info('GM reply persisted in room @room (@chars chars, @actions_count mechanical actions)', [
+      '@room' => $room_id,
+      '@chars' => strlen($narrative),
+      '@actions_count' => count($actions),
+    ]);
+
+    return [
+      'message' => $gm_message,
+      'state_diff' => $state_diff,
     ];
   }
 
@@ -299,6 +518,60 @@ class RoomChatService {
       ->fetchField();
     
     return $user_in_campaign > 0;
+  }
+
+  /**
+   * Find a room entry by room_id in a rooms array (may be keyed or indexed).
+   *
+   * @param array $rooms
+   *   The rooms array from dungeon_data.
+   * @param string $room_id
+   *   The room UUID to find.
+   *
+   * @return array
+   *   The room entry, or empty array if not found.
+   */
+  protected function findRoomByRoomId(array $rooms, string $room_id): array {
+    // Direct key match (rooms keyed by room_id).
+    if (isset($rooms[$room_id]) && is_array($rooms[$room_id])) {
+      return $rooms[$room_id];
+    }
+
+    // Numeric/sequential array — search by room_id field.
+    foreach ($rooms as $room) {
+      if (is_array($room) && ($room['room_id'] ?? '') === $room_id) {
+        return $room;
+      }
+    }
+
+    return [];
+  }
+
+  /**
+   * Find the array index for a room by room_id.
+   *
+   * @param array $rooms
+   *   The rooms array from dungeon_data.
+   * @param string $room_id
+   *   The room UUID to find.
+   *
+   * @return int|string|null
+   *   The array key, or NULL if not found.
+   */
+  protected function findRoomIndex(array $rooms, string $room_id): int|string|null {
+    // Direct key match.
+    if (isset($rooms[$room_id]) && is_array($rooms[$room_id])) {
+      return $room_id;
+    }
+
+    // Numeric/sequential array — search by room_id field.
+    foreach ($rooms as $key => $room) {
+      if (is_array($room) && ($room['room_id'] ?? '') === $room_id) {
+        return $key;
+      }
+    }
+
+    return NULL;
   }
 
 }

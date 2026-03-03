@@ -499,7 +499,7 @@ class CredentialManagementService {
       $json_data = json_encode($credential_data);
 
       // Get encryption key from Drupal's private key
-      $key = hash_hkdf('sha256', \Drupal::service('private_key')->get(), '', 32);
+      $key = hash_hkdf('sha256', \Drupal::service('private_key')->get(), 32, '', '');
 
       // Generate a random IV
       $iv = openssl_random_pseudo_bytes(16);
@@ -540,7 +540,7 @@ class CredentialManagementService {
       $encrypted = substr($combined, 16);
 
       // Get encryption key (same derivation as encrypt)
-      $key = hash_hkdf('sha256', \Drupal::service('private_key')->get(), '', 32);
+      $key = hash_hkdf('sha256', \Drupal::service('private_key')->get(), 32, '', '');
 
       // Decrypt using AES-256-CBC
       $json_data = openssl_decrypt($encrypted, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv);

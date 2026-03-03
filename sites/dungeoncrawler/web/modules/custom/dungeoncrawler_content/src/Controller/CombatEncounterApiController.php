@@ -102,6 +102,66 @@ class CombatEncounterApiController extends ControllerBase {
   }
 
   /**
+   * Return the current combat/encounter state for a campaign + room.
+   *
+   * Called periodically by the JS client for server-state sync.
+   * Returns the latest active encounter if one exists, otherwise a
+   * minimal "no active encounter" payload so the client can proceed.
+   */
+  public function currentState(Request $request): JsonResponse {
+    $campaign_id = (int) $request->query->get('campaignId', 0);
+    $room_id = (string) $request->query->get('roomId', '');
+
+    if ($campaign_id <= 0) {
+      return new JsonResponse([
+        'success' => TRUE,
+        'data' => ['encounter_id' => NULL, 'status' => 'idle'],
+      ]);
+    }
+
+    // Look up the latest active encounter for this campaign + room.
+    try {
+      $encounter_id = $this->database->select('dc_combat_encounters', 'e')
+        ->fields('e', ['id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('status', 'active')
+        ->orderBy('updated', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+    }
+    catch (\Exception $e) {
+      // Table may not exist yet if no encounters have been created.
+      $encounter_id = FALSE;
+    }
+
+    if (!$encounter_id) {
+      return new JsonResponse([
+        'success' => TRUE,
+        'data' => [
+          'encounter_id' => NULL,
+          'status' => 'idle',
+          'campaign_id' => $campaign_id,
+          'room_id' => $room_id,
+        ],
+      ]);
+    }
+
+    $encounter = $this->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse([
+        'success' => TRUE,
+        'data' => ['encounter_id' => NULL, 'status' => 'idle'],
+      ]);
+    }
+
+    return new JsonResponse([
+      'success' => TRUE,
+      'data' => $this->buildEncounterResponse($encounter),
+    ]);
+  }
+
+  /**
    * Start a new encounter.
    */
   public function start(Request $request): JsonResponse {

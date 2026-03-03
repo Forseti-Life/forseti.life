@@ -193,7 +193,7 @@
                   {{ 'Generate PDF'|t }}
                 </a>
               {% elseif wf == 'application_pending' %}
-                <a href="{{ path('job_hunter.application_submission') }}" class="button button--small button--primary">
+                <a href="{{ path('job_hunter.application_submission_job', {'job_id': job.id}) }}" class="button button--small button--primary">
                   {{ 'Go to Application Submission'|t }}
                 </a>
               {% elseif wf == 'pending_response' %}

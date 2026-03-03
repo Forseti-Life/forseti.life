@@ -54,6 +54,7 @@ function job_hunter_install() {
     _job_hunter_create_resume_parsed_data_table();
     _job_hunter_create_job_seeker_resumes_table();
     _job_hunter_create_tailored_resumes_table();
+    _job_hunter_create_cover_letters_table();
     _job_hunter_create_pdf_history_table();
     _job_hunter_create_queue_suspended_table();
     _job_hunter_create_google_jobs_sync_table();
@@ -813,6 +814,71 @@ function job_hunter_update_9036() {
   return empty($added)
     ? t('No update needed: SerpAPI metadata schema already present.')
     : t('Added missing SerpAPI metadata schema: @items', ['@items' => implode(', ', $added)]);
+}
+
+/**
+ * Ensure cover letter table exists for resume tailoring endpoints.
+ *
+ * Recovery hook for environments where install ran without creating
+ * jobhunter_cover_letters.
+ */
+function job_hunter_update_9037() {
+  _job_hunter_create_cover_letters_table();
+  return t('Ensured jobhunter_cover_letters table exists for cover letter tailoring workflow.');
+}
+
+/**
+ * Backfill source_platform with job URL host for imported jobs.
+ *
+ * Derives a normalized secondary source domain (e.g. roberthalf.com) from
+ * job_url where source_platform is empty.
+ */
+function job_hunter_update_9038() {
+  $database = \Drupal::database();
+  $schema = $database->schema();
+
+  if (!$schema->tableExists('jobhunter_job_requirements')) {
+    return t('No update needed: table jobhunter_job_requirements does not exist.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_job_requirements', 'source_platform')) {
+    return t('No update needed: field source_platform does not exist.');
+  }
+
+  $or = $database->condition('OR')
+    ->isNull('source_platform')
+    ->condition('source_platform', '');
+
+  $rows = $database->select('jobhunter_job_requirements', 'j')
+    ->fields('j', ['id', 'job_url'])
+    ->condition($or)
+    ->condition('job_url', '', '<>')
+    ->execute()
+    ->fetchAll();
+
+  $updated = 0;
+  foreach ($rows as $row) {
+    $host = parse_url((string) $row->job_url, PHP_URL_HOST);
+    if (!is_string($host) || $host === '') {
+      continue;
+    }
+
+    $normalized = preg_replace('/^www\./', '', strtolower($host));
+    if (!is_string($normalized) || $normalized === '') {
+      continue;
+    }
+
+    $database->update('jobhunter_job_requirements')
+      ->fields([
+        'source_platform' => substr($normalized, 0, 100),
+        'updated' => time(),
+      ])
+      ->condition('id', $row->id)
+      ->execute();
+    $updated++;
+  }
+
+  return t('Backfilled source_platform from job_url host for @count jobs.', ['@count' => $updated]);
 }
 
 /**

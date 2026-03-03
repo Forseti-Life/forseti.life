@@ -58,6 +58,9 @@ export class RenderSystem extends System {
     if (!render.visible) {
       if (render.sprite) {
         render.sprite.visible = false;
+        if (render.sprite.__categoryMask) {
+          render.sprite.__categoryMask.visible = false;
+        }
       }
       if (render.healthBar) {
         render.healthBar.visible = false;
@@ -77,9 +80,26 @@ export class RenderSystem extends System {
     const pixelPos = this.hexToPixel(position.q, position.r);
     render.sprite.x = pixelPos.x;
     render.sprite.y = pixelPos.y;
+    if (render.sprite.__categoryMask) {
+      render.sprite.__categoryMask.x = pixelPos.x;
+      render.sprite.__categoryMask.y = pixelPos.y;
+      render.sprite.__categoryMask.visible = render.visible;
+    }
 
     // Update appearance
-    render.sprite.scale.set(render.scale);
+    // For fixed-size sprites (generated/object textures), apply scale by
+    // resizing from the intended base dimensions instead of overriding width/
+    // height via scale.set(), which would revert to native texture size.
+    if (render.sprite.__fixedHexSize) {
+      const baseWidth = render.sprite.__baseWidth || (this.hexSize * 1.5);
+      const baseHeight = render.sprite.__baseHeight || (this.hexSize * 1.5);
+      const multiplier = Number.isFinite(render.scale) ? render.scale : 1;
+      render.sprite.width = baseWidth * multiplier;
+      render.sprite.height = baseHeight * multiplier;
+    }
+    else {
+      render.sprite.scale.set(render.scale);
+    }
     render.sprite.rotation = render.rotation;
     render.sprite.tint = render.tint;
     render.sprite.alpha = render.alpha;
@@ -210,11 +230,17 @@ export class RenderSystem extends System {
     if (render.spriteKey && PIXI.utils.TextureCache[render.spriteKey]) {
       sprite = new PIXI.Sprite(PIXI.utils.TextureCache[render.spriteKey]);
       sprite.anchor.set(0.5);
-      sprite.width = this.hexSize * 1.5;
-      sprite.height = this.hexSize * 1.5;
+      const baseDims = this.getSpriteBaseDimensions(render.objectCategory);
+      sprite.__fixedHexSize = true;
+      sprite.__baseWidth = baseDims.width;
+      sprite.__baseHeight = baseDims.height;
+      sprite.width = baseDims.width;
+      sprite.height = baseDims.height;
+      this.applyCategoryMask(sprite, render.objectCategory);
     } else {
-      // Create placeholder graphics
-      sprite = this.createPlaceholderSprite(identity ? identity.entityType : 'default');
+      // Create placeholder graphics using category hints when available
+      const entityType = identity ? identity.entityType : 'default';
+      sprite = this.createPlaceholderSprite(entityType, render.objectCategory, render.objectColor);
     }
 
     render.sprite = sprite;
@@ -225,46 +251,190 @@ export class RenderSystem extends System {
   }
 
   /**
-   * Create placeholder sprite based on entity type.
+   * Replace an entity's sprite with a loaded texture from a URL.
+   * Used when a generated sprite image becomes available after initial placeholder render.
+   * @param {Entity} entity - Entity to update
+   * @param {PIXI.Texture} texture - Loaded texture
+   */
+  replaceEntitySprite(entity, texture) {
+    const render = entity.getComponent('RenderComponent');
+    if (!render || !render.sprite) {
+      return;
+    }
+
+    const oldSprite = render.sprite;
+    const x = oldSprite.x;
+    const y = oldSprite.y;
+    const zIndex = oldSprite.zIndex;
+    const entityId = oldSprite.entityId;
+
+    // Remove old placeholder sprite
+    if (oldSprite.parent) {
+      oldSprite.parent.removeChild(oldSprite);
+    }
+    if (oldSprite.__categoryMask && oldSprite.__categoryMask.parent) {
+      oldSprite.__categoryMask.parent.removeChild(oldSprite.__categoryMask);
+      oldSprite.__categoryMask.destroy();
+    }
+    oldSprite.destroy({ texture: false, children: true });
+
+    // Create new sprite from texture
+    const newSprite = new PIXI.Sprite(texture);
+    newSprite.anchor.set(0.5);
+    const baseDims = this.getSpriteBaseDimensions(render.objectCategory);
+    newSprite.__fixedHexSize = true;
+    newSprite.__baseWidth = baseDims.width;
+    newSprite.__baseHeight = baseDims.height;
+    newSprite.width = baseDims.width;
+    newSprite.height = baseDims.height;
+    this.applyCategoryMask(newSprite, render.objectCategory);
+    newSprite.x = x;
+    newSprite.y = y;
+    newSprite.zIndex = zIndex;
+    newSprite.entityId = entityId;
+    const multiplier = Number.isFinite(render.scale) ? render.scale : 1;
+    newSprite.width = baseDims.width * multiplier;
+    newSprite.height = baseDims.height * multiplier;
+    newSprite.rotation = render.rotation;
+    newSprite.tint = render.tint;
+    newSprite.alpha = render.alpha;
+    newSprite.visible = render.visible;
+
+    render.sprite = newSprite;
+    this.objectContainer.addChild(newSprite);
+  }
+
+  /**
+   * Apply visual mask based on object category.
+   * @param {PIXI.Sprite} sprite - Sprite to mask
+   * @param {string|null} category - Object category hint
+   */
+  applyCategoryMask(sprite, category = null) {
+    const normalized = typeof category === 'string' ? category.toLowerCase() : '';
+
+    if (normalized !== 'door') {
+      return;
+    }
+
+    const mask = this.createHexMaskGraphic(this.hexSize * 0.98);
+    mask.x = sprite.x;
+    mask.y = sprite.y;
+    this.objectContainer.addChild(mask);
+    sprite.mask = mask;
+    sprite.__categoryMask = mask;
+  }
+
+  /**
+   * Create a pointy-top hex graphics mask centered at (0, 0).
+   * @param {number} radius - Hex corner radius
+   * @returns {PIXI.Graphics}
+   */
+  createHexMaskGraphic(radius) {
+    const graphic = new PIXI.Graphics();
+    const points = [];
+    for (let i = 0; i < 6; i++) {
+      // Match hexmap.js drawHex orientation exactly.
+      const angle = (Math.PI / 3) * i;
+      points.push({
+        x: radius * Math.cos(angle),
+        y: radius * Math.sin(angle),
+      });
+    }
+
+    graphic.beginFill(0xffffff, 1);
+    graphic.moveTo(points[0].x, points[0].y);
+    for (let i = 1; i < points.length; i++) {
+      graphic.lineTo(points[i].x, points[i].y);
+    }
+    graphic.closePath();
+    graphic.endFill();
+
+    return graphic;
+  }
+
+  /**
+   * Resolve fixed sprite base dimensions for object categories.
+   * @param {string|null} category - Object category hint
+   * @returns {{width: number, height: number}}
+   */
+  getSpriteBaseDimensions(category = null) {
+    const normalized = typeof category === 'string' ? category.toLowerCase() : '';
+
+    // Doors should visually occupy a full hex footprint.
+    if (normalized === 'door') {
+      return {
+        width: this.hexSize * 1.75,
+        height: this.hexSize * 2.0,
+      };
+    }
+
+    return {
+      width: this.hexSize * 1.5,
+      height: this.hexSize * 1.5,
+    };
+  }
+
+  /**
+   * Parse a CSS hex color string to an integer.
+   * @param {string} colorStr - e.g. '#8B4513'
+   * @returns {number} Integer color value
+   */
+  parseColor(colorStr) {
+    if (typeof colorStr === 'number') return colorStr;
+    if (typeof colorStr !== 'string') return 0x888888;
+    const hex = colorStr.replace('#', '');
+    return parseInt(hex, 16) || 0x888888;
+  }
+
+  /**
+   * Create placeholder sprite based on entity type and optional object category.
    * @param {string} entityType - Entity type
+   * @param {string|null} category - Object definition category (bar, table, door, etc.)
+   * @param {string|null} color - Object definition color hex string
    * @returns {PIXI.Sprite} Placeholder sprite
    */
-  createPlaceholderSprite(entityType) {
+  createPlaceholderSprite(entityType, category = null, color = null) {
     const graphics = new PIXI.Graphics();
     const size = this.hexSize * 0.8;
 
     switch (entityType) {
       case 'creature':
       case 'npc':
-        graphics.beginFill(0xe74c3c); // Red circle
+        // Red circle with white inner ring
+        graphics.beginFill(0xe74c3c);
         graphics.drawCircle(0, 0, size / 2);
+        graphics.endFill();
+        graphics.lineStyle(2, 0xffffff, 0.6);
+        graphics.drawCircle(0, 0, size / 3);
         break;
       case 'player_character':
-        graphics.beginFill(0x3498db); // Blue circle
+        // Blue circle with star-like inner marker
+        graphics.beginFill(0x3498db);
         graphics.drawCircle(0, 0, size / 2);
+        graphics.endFill();
+        graphics.beginFill(0xffffff, 0.7);
+        graphics.drawCircle(0, 0, size / 5);
+        graphics.endFill();
         break;
       case 'item':
-        graphics.beginFill(0xf39c12); // Orange square
+        graphics.beginFill(0xf39c12);
         graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
-        break;
-      case 'obstacle':
-        graphics.beginFill(0x95a5a6); // Gray triangle
-        graphics.drawPolygon([
-          -size / 2, size / 2,
-          0, -size / 2,
-          size / 2, size / 2
-        ]);
+        graphics.endFill();
         break;
       case 'treasure':
-        graphics.beginFill(0xf1c40f); // Gold outlined square
+        graphics.beginFill(0xf1c40f);
         graphics.lineStyle(3, 0xe67e22);
         graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
+        graphics.endFill();
+        break;
+      case 'obstacle':
+        this.drawObstacleByCategory(graphics, size, category, color);
         break;
       default:
-        graphics.beginFill(0x7f8c8d); // Gray circle
+        graphics.beginFill(0x7f8c8d);
         graphics.drawCircle(0, 0, size / 2);
+        graphics.endFill();
     }
-    graphics.endFill();
 
     // Convert to sprite
     const texture = this.pixiApp.renderer.generateTexture(graphics);
@@ -272,6 +442,96 @@ export class RenderSystem extends System {
     sprite.anchor.set(0.5);
     
     return sprite;
+  }
+
+  /**
+   * Draw obstacle shape based on object_definition category.
+   * Categories: bar, table, door, stool, crate, decor
+   * @param {PIXI.Graphics} graphics
+   * @param {number} size - Base size
+   * @param {string|null} category
+   * @param {string|null} colorStr - Hex color from object definition
+   */
+  drawObstacleByCategory(graphics, size, category, colorStr) {
+    const fill = colorStr ? this.parseColor(colorStr) : 0x95a5a6;
+
+    switch (category) {
+      case 'bar':
+        // Wide rectangle — bar counter
+        graphics.beginFill(fill);
+        graphics.drawRoundedRect(-size / 2, -size / 5, size, size / 2.5, 3);
+        graphics.endFill();
+        // Top surface highlight
+        graphics.beginFill(0xffffff, 0.15);
+        graphics.drawRoundedRect(-size / 2 + 2, -size / 5 + 1, size - 4, size / 6, 2);
+        graphics.endFill();
+        break;
+
+      case 'table':
+        // Circle — round or long table
+        graphics.beginFill(fill);
+        graphics.drawEllipse(0, 0, size / 2.2, size / 3);
+        graphics.endFill();
+        // Surface highlight
+        graphics.beginFill(0xffffff, 0.12);
+        graphics.drawEllipse(0, -2, size / 3, size / 5);
+        graphics.endFill();
+        break;
+
+      case 'door':
+        // Arch shape
+        graphics.beginFill(fill);
+        graphics.drawRoundedRect(-size / 4, -size / 2.5, size / 2, size / 1.5, 6);
+        graphics.endFill();
+        // Doorknob
+        graphics.beginFill(0xffd700);
+        graphics.drawCircle(size / 8, 0, 2);
+        graphics.endFill();
+        break;
+
+      case 'stool':
+        // Small circle — passable seating
+        graphics.beginFill(fill);
+        graphics.drawCircle(0, 0, size / 4);
+        graphics.endFill();
+        graphics.lineStyle(1, 0x000000, 0.3);
+        graphics.drawCircle(0, 0, size / 4);
+        break;
+
+      case 'crate':
+        // Square with cross-braces
+        graphics.beginFill(fill);
+        graphics.drawRect(-size / 3, -size / 3, size / 1.5, size / 1.5);
+        graphics.endFill();
+        graphics.lineStyle(1, 0x000000, 0.25);
+        graphics.moveTo(-size / 3, -size / 3);
+        graphics.lineTo(size / 3, size / 3);
+        graphics.moveTo(size / 3, -size / 3);
+        graphics.lineTo(-size / 3, size / 3);
+        break;
+
+      case 'decor':
+        // Diamond shape
+        graphics.beginFill(fill);
+        graphics.drawPolygon([
+          0, -size / 3,
+          size / 3, 0,
+          0, size / 3,
+          -size / 3, 0
+        ]);
+        graphics.endFill();
+        break;
+
+      default:
+        // Generic obstacle — gray triangle (legacy fallback)
+        graphics.beginFill(fill);
+        graphics.drawPolygon([
+          -size / 2, size / 2,
+          0, -size / 2,
+          size / 2, size / 2
+        ]);
+        graphics.endFill();
+    }
   }
 
   /**

@@ -21,9 +21,9 @@ import combatApi from './hexmap-api.js';
     constructor(stateManager = null) {
       this.stateManager = stateManager;
       this.elements = {};
+      this.embeddedCharacterSheetUrl = null;
       this.lastServerMessageAt = 0;
       this.serverMessageCooldownMs = 3000;
-      this.ensureActionFooter();
       this.setupActionFooterToggle();
       this.setupFullscreenToggle();
       this.cacheElements();
@@ -34,32 +34,7 @@ import combatApi from './hexmap-api.js';
      * Ensure the action footer exists in the DOM even if the template is missing it.
      */
     ensureActionFooter() {
-      if (document.getElementById('action-footer')) {
         return;
-      }
-
-      const host = document.getElementById('hexmap-canvas-container') || document.body;
-      const footer = document.createElement('div');
-      footer.id = 'action-footer';
-      footer.className = 'action-footer';
-
-      footer.innerHTML = `
-        <div class="action-footer__toggle" id="action-footer-toggle">Actions ▾</div>
-        <div class="action-section" data-section="controls">
-          <div class="action-section__header"><span>Actions</span><span class="action-section__chevron">▾</span></div>
-          <div class="action-section__body">
-            <div class="action-buttons" id="action-menu">
-              <button id="action-move" class="btn btn-ghost">Move</button>
-              <button id="action-attack" class="btn btn-primary">Attack</button>
-              <button id="action-interact" class="btn btn-ghost">Interact</button>
-              <button id="action-talk" class="btn btn-ghost">Talk</button>
-              <button id="end-turn" class="btn btn-primary" style="display:none;">End Turn</button>
-            </div>
-            <p id="action-instruction" class="action-instruction">Select a hostile target to attack.</p>
-          </div>
-        </div>`;
-
-      host.appendChild(footer);
     }
 
     setupActionFooterToggle() {
@@ -207,13 +182,20 @@ import combatApi from './hexmap-api.js';
         endTurnBtn: document.getElementById('end-turn'),
 
         // Character sheet panel
+        characterSheetEmbedWrap: document.getElementById('char-sheet-embed-wrap'),
+        characterSheetEmbed: document.getElementById('char-sheet-embed'),
+        characterSheetLegacy: document.getElementById('char-sheet-legacy'),
         characterName: document.getElementById('char-name'),
         characterType: document.getElementById('char-type'),
+        characterSubtitle: document.getElementById('char-subtitle'),
+        characterFullSheetLink: document.getElementById('char-full-sheet-link'),
         characterAncestry: document.getElementById('char-ancestry'),
         characterLevel: document.getElementById('char-level'),
         characterHp: document.getElementById('char-hp'),
         characterAc: document.getElementById('char-ac'),
         characterHero: document.getElementById('char-hero'),
+        characterSpeed: document.getElementById('char-speed'),
+        characterPerception: document.getElementById('char-perception'),
         characterXp: document.getElementById('char-xp'),
         characterStr: document.getElementById('char-str'),
         characterStrMod: document.getElementById('char-str-mod'),
@@ -237,12 +219,20 @@ import combatApi from './hexmap-api.js';
         characterCp: document.getElementById('char-cp'),
         characterInventory: document.getElementById('char-inventory'),
         characterFeatures: document.getElementById('char-features'),
+        characterSpellsSection: document.getElementById('char-spells-section'),
+        characterSpellMeta: document.getElementById('char-spell-meta'),
+        characterSpells: document.getElementById('char-spells'),
 
         // Dialog log & chat
         chatLog: document.getElementById('chat-log'),
         chatForm: document.getElementById('chat-form'),
         chatInput: document.getElementById('chat-input'),
-        chatSend: document.getElementById('chat-send')
+        chatSend: document.getElementById('chat-send'),
+
+        // Quest journal panel
+        questJournal: document.getElementById('quest-journal'),
+        questList: document.getElementById('quest-list'),
+        questCount: document.getElementById('quest-count')
       };
 
       this.setupCharacterSheetSections();
@@ -408,7 +398,7 @@ import combatApi from './hexmap-api.js';
         } else if (mode === 'move') {
           actionInstruction.textContent = moveLeft > 0 ? `Click a blue hex to move (${moveLeft} ft left).` : 'No movement left; switch to attack or end turn.';
         } else if (mode === 'interact') {
-          actionInstruction.textContent = canInteract ? 'Click an adjacent door, obstacle, or connection to interact.' : 'No interaction actions remaining; attack, move, or end turn.';
+          actionInstruction.textContent = canInteract ? 'Click an adjacent item, NPC, door, or obstacle to interact.' : 'No interaction actions remaining; attack, move, or end turn.';
         } else {
           actionInstruction.textContent = canAct ? 'Select a hostile target to attack.' : 'No actions remaining; move or end turn.';
         }
@@ -552,38 +542,9 @@ import combatApi from './hexmap-api.js';
         this.elements.entityActions.textContent = actions ? actions.getActionDisplay?.() || `${actions.actionsRemaining}/${actions.maxActions ?? actions.actionsRemaining} actions` : '-';
       }
 
-      if (this.elements.characterName) {
-        this.elements.characterName.textContent = identity?.name || 'Select a character';
-      }
-
-      if (this.elements.characterType) {
-          this.elements.characterType.textContent = identity?.entityType || '-';
-        }
-        if (this.elements.characterTeam) {
-          this.elements.characterTeam.textContent = combat?.team || '-';
-        }
-        if (this.elements.characterLevel) {
-          const level = stats?.level || stats?.lvl;
-          this.elements.characterLevel.textContent = level ? `Lvl ${level}` : 'Lvl —';
-        }
-        if (this.elements.characterHp) {
-          this.elements.characterHp.textContent = stats ? `${stats.currentHp}/${stats.maxHp}` : '-';
-        }
-        if (this.elements.characterAc) {
-          this.elements.characterAc.textContent = stats?.ac || '-';
-        }
-        if (this.elements.characterSpeed) {
-          this.elements.characterSpeed.textContent = movement ? `${movement.movementSpeed} ft` : '-';
-        }
-        if (this.elements.characterActions) {
-          this.elements.characterActions.textContent = actions
-            ? (actions.getActionDisplay?.() || `${actions.actionsRemaining}/${actions.maxActions ?? actions.actionsRemaining} actions`)
-            : '-';
-        }
-        if (this.elements.characterInventory) {
-          // Placeholder until inventory wiring is implemented; keep the list readable.
-          this.elements.characterInventory.innerHTML = '<li class="inventory-empty">Inventory not loaded in this demo</li>';
-        }
+      // NOTE: Character sheet (character* elements) is only populated by
+      // showLaunchCharacter() with the PC's full data.  Do NOT overwrite it
+      // here — this method fires for every selected entity including NPCs.
     }
 
     /**
@@ -608,6 +569,8 @@ import combatApi from './hexmap-api.js';
       const feats = state.feats || []; // Direct feats array from legacy format
       const equipment = state.equipment || [];
       const inventory = state.inventory || resources.inventory || {};
+      const spells = state.spells || {};
+      const saves = state.saves || defenses.savingThrows || {};
       
       // Normalize ability scores (support both short 'str' and long 'strength' keys)
       const normalizeAbilities = (abs) => ({
@@ -623,8 +586,12 @@ import combatApi from './hexmap-api.js';
       // Basic info
       const name = basicInfo.name || state.name || launchCharacter.name || 'Selected character';
       const ancestry = basicInfo.ancestry || state.ancestry || launchCharacter.ancestry || '';
+      const heritage = state.heritage || launchCharacter.heritage || '';
       const characterClass = basicInfo.class || state.class || launchCharacter.class || '';
+      const background = state.background || launchCharacter.background || '';
       const level = Number(basicInfo.level || state.level || launchCharacter.level || 0);
+      const speed = Number(state.speed || launchCharacter.speed || 25);
+      const characterId = state.id || launchCharacter.id || null;
       
       // Resources
       const hpCurrent = Number(resources.hitPoints?.current ?? state.hp_current ?? launchCharacter.hp_current ?? 0);
@@ -633,6 +600,9 @@ import combatApi from './hexmap-api.js';
       const heroMax = Number(resources.heroPoints?.max ?? 3);
       const armorClass = Number(defenses.armorClass ?? state.armor_class ?? launchCharacter.armor_class ?? 0);
       const xp = Number(basicInfo.experiencePoints ?? state.experience_points ?? 0);
+      
+      // Perception
+      const perception = Number(state.perception ?? launchCharacter.perception ?? 0);
       
       // Currency (support both API format and legacy format)
       const currency = inventory.currency || state.currency || { 
@@ -646,6 +616,7 @@ import combatApi from './hexmap-api.js';
         const mod = Math.floor((score - 10) / 2);
         return mod >= 0 ? `+${mod}` : `${mod}`;
       };
+      const formatMod = (val) => val >= 0 ? `+${val}` : `${val}`;
 
       // Update basic info
       if (this.elements.characterName) this.elements.characterName.textContent = name;
@@ -653,6 +624,22 @@ import combatApi from './hexmap-api.js';
         const subtitleParts = [ancestry, characterClass].filter(Boolean);
         this.elements.characterType.textContent = subtitleParts.length ? subtitleParts.join(' ') : 'Type —';
       }
+      // Subtitle line: heritage, background
+      if (this.elements.characterSubtitle) {
+        const subtitleDetails = [];
+        if (heritage) subtitleDetails.push(heritage.charAt(0).toUpperCase() + heritage.slice(1));
+        if (background) subtitleDetails.push(`Background: ${background}`);
+        if (subtitleDetails.length) {
+          this.elements.characterSubtitle.textContent = subtitleDetails.join(' · ');
+          this.elements.characterSubtitle.style.display = '';
+        }
+      }
+      // "View Full Sheet" link
+      if (this.elements.characterFullSheetLink && characterId) {
+        this.elements.characterFullSheetLink.href = `/characters/${characterId}`;
+        this.elements.characterFullSheetLink.style.display = '';
+      }
+      this.showEmbeddedCharacterSheet(characterId);
       if (this.elements.characterAncestry) this.elements.characterAncestry.textContent = ancestry || '—';
       if (this.elements.characterLevel) this.elements.characterLevel.textContent = level > 0 ? `Lvl ${level}` : 'Lvl —';
 
@@ -665,6 +652,15 @@ import combatApi from './hexmap-api.js';
       }
       if (this.elements.characterHero) {
         this.elements.characterHero.textContent = `${heroCurrent}/${heroMax}`;
+      }
+      if (this.elements.characterSpeed) {
+        this.elements.characterSpeed.textContent = `${speed} ft`;
+      }
+      if (this.elements.characterPerception) {
+        this.elements.characterPerception.textContent = formatMod(perception);
+      }
+      if (this.elements.characterXp) {
+        this.elements.characterXp.textContent = xp;
       }
 
       // Update ability scores
@@ -684,19 +680,18 @@ import combatApi from './hexmap-api.js';
         if (modEl) modEl.textContent = calcMod(score);
       });
 
-      // Update saving throws
-      const saves = defenses.savingThrows || {};
+      // Update saving throws (prefer pre-computed saves from server)
       if (this.elements.characterFort) {
-        const fort = saves.fortitude || defenses.fortitude || 0;
-        this.elements.characterFort.textContent = fort >= 0 ? `+${fort}` : `${fort}`;
+        const fort = saves.fortitude ?? defenses.fortitude ?? 0;
+        this.elements.characterFort.textContent = formatMod(fort);
       }
       if (this.elements.characterRef) {
-        const ref = saves.reflex || defenses.reflex || 0;
-        this.elements.characterRef.textContent = ref >= 0 ? `+${ref}` : `${ref}`;
+        const ref = saves.reflex ?? defenses.reflex ?? 0;
+        this.elements.characterRef.textContent = formatMod(ref);
       }
       if (this.elements.characterWill) {
-        const will = saves.will || defenses.will || 0;
-        this.elements.characterWill.textContent = will >= 0 ? `+${will}` : `${will}`;
+        const will = saves.will ?? defenses.will ?? 0;
+        this.elements.characterWill.textContent = formatMod(will);
       }
 
       // Update skills
@@ -706,7 +701,8 @@ import combatApi from './hexmap-api.js';
             .map(skill => {
               const name = skill.name || skill;
               const bonus = skill.modifier !== undefined ? (skill.modifier >= 0 ? `+${skill.modifier}` : skill.modifier) : '';
-              return `<li><span>${name}</span><span>${bonus}</span></li>`;
+              const prof = skill.proficiency ? `<span class="skill-prof">${skill.proficiency}</span>` : '';
+              return `<li><span>${name}</span>${prof}<span>${bonus}</span></li>`;
             })
             .join('');
         } else {
@@ -740,27 +736,107 @@ import combatApi from './hexmap-api.js';
         
         if (allItems.length > 0) {
           this.elements.characterInventory.innerHTML = allItems
-            .map(item => `<li>${item.name || item}</li>`)
+            .map(item => {
+              const itemName = item.name || item;
+              const qty = item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : '';
+              const equipped = item.equipped ? ' <span class="item-tag equipped">E</span>' : '';
+              return `<li>${itemName}${qty}${equipped}</li>`;
+            })
             .join('');
         } else {
           this.elements.characterInventory.innerHTML = '<li class="inventory-empty">No items</li>';
         }
       }
 
-      // Update features
+      // Update features & feats (with type badges)
       if (this.elements.characterFeatures) {
         const ancestryFeatures = features.ancestryFeatures || [];
         const classFeatures = features.classFeatures || [];
-        const feats = features.feats || [];
-        const allFeatures = [...ancestryFeatures, ...classFeatures, ...feats];
+        // Use nested features.feats if available, fall back to the top-level
+        // feats array from the legacy PHP payload.
+        const featList = features.feats || feats || [];
+        const allFeatures = [...ancestryFeatures, ...classFeatures, ...featList];
         
         if (allFeatures.length > 0) {
           this.elements.characterFeatures.innerHTML = allFeatures
-            .map(feat => `<li>${feat.name || feat}</li>`)
+            .map(feat => {
+              const featName = feat.name || feat;
+              const featType = feat.type ? `<span class="feat-type feat-type--${feat.type}">${feat.type}</span>` : '';
+              const featLevel = feat.level ? `<span class="feat-level">Lv ${feat.level}</span>` : '';
+              return `<li>${featType}${featName}${featLevel}</li>`;
+            })
             .join('');
         } else {
           this.elements.characterFeatures.innerHTML = '<li class="features-empty">No features</li>';
         }
+      }
+
+      // Update spellcasting section
+      if (this.elements.characterSpellsSection && this.elements.characterSpells) {
+        if (spells && spells.tradition) {
+          this.elements.characterSpellsSection.style.display = '';
+          // Spell meta info
+          if (this.elements.characterSpellMeta) {
+            const metaParts = [`Tradition: ${spells.tradition}`];
+            if (spells.casting_ability) metaParts.push(`Ability: ${spells.casting_ability.toUpperCase()}`);
+            if (spells.slots) {
+              const slotParts = Object.entries(spells.slots).map(([k, v]) => `${k}: ${v}`);
+              metaParts.push(`Slots: ${slotParts.join(', ')}`);
+            }
+            this.elements.characterSpellMeta.innerHTML = metaParts.map(p => `<span class="spell-meta-item">${p}</span>`).join('');
+          }
+          // Spell list
+          const spellEntries = [];
+          const cantrips = spells.cantrips || [];
+          if (cantrips.length > 0) {
+            spellEntries.push(`<li class="spell-rank-header">Cantrips</li>`);
+            cantrips.forEach(s => {
+              const spellName = typeof s === 'string' ? s.replace(/_/g, ' ') : (s.name || s);
+              spellEntries.push(`<li class="spell-entry">${spellName}</li>`);
+            });
+          }
+          const firstLevel = spells.first_level || [];
+          if (firstLevel.length > 0) {
+            spellEntries.push(`<li class="spell-rank-header">1st Level</li>`);
+            firstLevel.forEach(s => {
+              const spellName = typeof s === 'string' ? s.replace(/_/g, ' ') : (s.name || s);
+              spellEntries.push(`<li class="spell-entry">${spellName}</li>`);
+            });
+          }
+          this.elements.characterSpells.innerHTML = spellEntries.length > 0
+            ? spellEntries.join('')
+            : '<li class="spells-empty">No spells</li>';
+        } else {
+          this.elements.characterSpellsSection.style.display = 'none';
+        }
+      }
+    }
+
+    /**
+     * Display the canonical /characters/{id} sheet inline in the hexmap panel.
+     */
+    showEmbeddedCharacterSheet(characterId) {
+      if (!characterId || !this.elements.characterSheetEmbed) {
+        return;
+      }
+
+      const query = new URLSearchParams(window.location.search);
+      const campaignId = Number(query.get('campaign_id') || 0);
+      let sheetUrl = `/characters/${characterId}/embed`;
+      if (campaignId > 0) {
+        sheetUrl += `?campaign_id=${campaignId}`;
+      }
+
+      if (this.embeddedCharacterSheetUrl !== sheetUrl) {
+        this.elements.characterSheetEmbed.src = sheetUrl;
+        this.embeddedCharacterSheetUrl = sheetUrl;
+      }
+
+      if (this.elements.characterSheetEmbedWrap) {
+        this.elements.characterSheetEmbedWrap.style.display = '';
+      }
+      if (this.elements.characterSheetLegacy) {
+        this.elements.characterSheetLegacy.style.display = 'none';
       }
     }
 
@@ -975,6 +1051,7 @@ import combatApi from './hexmap-api.js';
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
         },
         body: JSON.stringify({
           speaker,
@@ -994,8 +1071,17 @@ import combatApi from './hexmap-api.js';
         throw new Error(result.error || 'Unknown error');
       }
 
-      // Reload chat history to show confirmed message
-      await this.loadChatHistory();
+      // Show the player message immediately
+      this.appendChatLine(speaker, message, 'player');
+
+      // If the server returned a GM response, append it directly
+      if (result.data?.gm_response) {
+        const gm = result.data.gm_response;
+        this.appendChatLine(gm.speaker || 'Game Master', gm.message, gm.type || 'npc');
+      } else {
+        // Fallback: reload full chat history
+        await this.loadChatHistory();
+      }
 
       return result;
     }
@@ -1037,6 +1123,76 @@ import combatApi from './hexmap-api.js';
       }
 
       this.appendChatLine('System', message, 'system');
+    }
+
+    /**
+     * Render the quest journal panel with active quest objectives.
+     * @param {Array} activeQuests - Array of active quest objects.
+     */
+    renderQuestJournal(activeQuests) {
+      const list = this.elements.questList;
+      const count = this.elements.questCount;
+      if (!list) return;
+
+      if (!Array.isArray(activeQuests) || activeQuests.length === 0) {
+        list.innerHTML = '<li class="quest-empty">No active quests</li>';
+        if (count) count.textContent = '0';
+        return;
+      }
+
+      if (count) count.textContent = String(activeQuests.length);
+
+      list.innerHTML = activeQuests.map(quest => {
+        const title = quest.title || quest.quest_key || 'Unknown Quest';
+        const phases = quest.generated_objectives || [];
+        const objectiveStates = quest.objective_states || [];
+
+        // Build objective list HTML for the first incomplete phase.
+        let objectiveHtml = '';
+        for (const phase of phases) {
+          const objectives = phase.objectives || [];
+          objectiveHtml = objectives.map(obj => {
+            // Merge progress from objective_states.
+            let current = obj.current || 0;
+            for (const os of objectiveStates) {
+              if (os.objective_id === obj.objective_id) {
+                current = Math.max(current, os.current || 0);
+                break;
+              }
+            }
+            const target = obj.target_count || 1;
+            const completed = obj.completed || current >= target;
+            const icon = completed ? '✅' : '⬜';
+            const desc = obj.description || obj.objective_id;
+            const progress = obj.type === 'collect' ? ` (${current}/${target})` : '';
+            return `<li class="quest-objective ${completed ? 'quest-objective--done' : ''}">${icon} ${desc}${progress}</li>`;
+          }).join('');
+
+          // Show only the first phase that has incomplete objectives.
+          const allDone = objectives.every(o => {
+            let cur = o.current || 0;
+            for (const os of objectiveStates) {
+              if (os.objective_id === o.objective_id) { cur = Math.max(cur, os.current || 0); break; }
+            }
+            return o.completed || cur >= (o.target_count || 1);
+          });
+          if (!allDone) break;
+        }
+
+        return `<li class="quest-entry">
+          <strong class="quest-title">📜 ${title}</strong>
+          <ul class="quest-objectives">${objectiveHtml}</ul>
+        </li>`;
+      }).join('');
+    }
+
+    /**
+     * Show a toast notification for quest events.
+     * @param {string} message
+     * @param {string} type - 'success' | 'info' | 'warning'
+     */
+    showQuestToast(message, type = 'info') {
+      this.appendChatLine('Quest', message, 'system');
     }
   }
 
@@ -1158,6 +1314,8 @@ import combatApi from './hexmap-api.js';
     gridContainer: null,
     objectContainer: null,
     uiContainer: null,
+    hudContainer: null,
+    _roomBanner: null,
     
     // Managers
     uiManager: null,
@@ -1182,6 +1340,10 @@ import combatApi from './hexmap-api.js';
     // Dungeon payload for room-aware rendering and transitions.
     dungeonData: {},
     activeRoomId: null,
+
+    // Cache of sprite_id => URL from server-side generated images.
+    _spriteUrlCache: {},
+    _spriteResolveInFlight: false,
 
     // Procedural tile textures for terrain rendering.
     tileTextures: null,
@@ -1215,6 +1377,7 @@ import combatApi from './hexmap-api.js';
       this.launchContext = settings?.dungeoncrawlerContent?.hexmapLaunchContext || {};
       this.dungeonData = settings?.dungeoncrawlerContent?.hexmapDungeonData || {};
       this.launchCharacter = settings?.dungeoncrawlerContent?.hexmapLaunchCharacter || {};
+      this.characterData = this.launchCharacter;
 
       console.log('HexMap Init - Launch Context:', this.launchContext);
       console.log('HexMap Init - Launch Character:', this.launchCharacter);
@@ -1229,6 +1392,7 @@ import combatApi from './hexmap-api.js';
       this.setupInteraction();
       this.applyDungeonData();
       this.applyLaunchContext();
+      this.initQuestData();
       this.startServerStateSync();
 
       try {
@@ -1672,7 +1836,121 @@ import combatApi from './hexmap-api.js';
       this.app.stage.interactive = true;
       this.app.stage.hitArea = this.app.screen;
 
+      // Fixed HUD layer (screen-space, not affected by pan/zoom)
+      this.hudContainer = new PIXI.Container();
+      this.hudContainer.zIndex = 50;
+      this.app.stage.addChild(this.hudContainer);
+      this.drawCompassRose();
+
       console.log('PixiJS initialized');
+    },
+
+    /**
+     * Draw compass rose in the bottom-right corner of the canvas (screen-space).
+     */
+    drawCompassRose: function () {
+      if (!this.hudContainer || !this.app) return;
+
+      const g = new PIXI.Graphics();
+      const cx = this.app.screen.width - 50;
+      const cy = this.app.screen.height - 55;
+      const r = 22;
+
+      // Background disc
+      g.beginFill(0x1a202c, 0.7);
+      g.drawCircle(cx, cy, r + 6);
+      g.endFill();
+      g.lineStyle(1, 0x4a5568, 0.8);
+      g.drawCircle(cx, cy, r + 6);
+
+      // North arrow (up)
+      g.beginFill(0xe53e3e);
+      g.drawPolygon([cx, cy - r, cx - 5, cy - 4, cx + 5, cy - 4]);
+      g.endFill();
+
+      // South arrow (down)
+      g.beginFill(0xa0aec0);
+      g.drawPolygon([cx, cy + r, cx - 5, cy + 4, cx + 5, cy + 4]);
+      g.endFill();
+
+      // East arrow (right)
+      g.beginFill(0xa0aec0);
+      g.drawPolygon([cx + r, cy, cx + 4, cy - 5, cx + 4, cy + 5]);
+      g.endFill();
+
+      // West arrow (left)
+      g.beginFill(0xa0aec0);
+      g.drawPolygon([cx - r, cy, cx - 4, cy - 5, cx - 4, cy + 5]);
+      g.endFill();
+
+      this.hudContainer.addChild(g);
+
+      // Cardinal labels
+      const labelStyle = { fontFamily: 'Arial', fontSize: 11, fill: 0xe2e8f0, fontWeight: 'bold' };
+      const labels = [
+        { text: 'N', x: cx, y: cy - r - 10 },
+        { text: 'S', x: cx, y: cy + r + 2 },
+        { text: 'E', x: cx + r + 8, y: cy - 6 },
+        { text: 'W', x: cx - r - 14, y: cy - 6 },
+      ];
+      labels.forEach(({ text, x, y }) => {
+        const label = new PIXI.Text(text, labelStyle);
+        label.x = x;
+        label.y = y;
+        this.hudContainer.addChild(label);
+      });
+    },
+
+    /**
+     * Show room name banner as a fixed HUD overlay at the top of the canvas.
+     * @param {string} roomName - Room name
+     * @param {string} [subtitle] - Optional subtitle (terrain, lighting, etc.)
+     */
+    showRoomBanner: function (roomName, subtitle) {
+      if (!this.hudContainer || !this.app) return;
+
+      // Remove previous banner if any
+      if (this._roomBanner) {
+        this.hudContainer.removeChild(this._roomBanner);
+        this._roomBanner.destroy({ children: true });
+        this._roomBanner = null;
+      }
+
+      const container = new PIXI.Container();
+      const screenW = this.app.screen.width;
+
+      // Background bar
+      const bg = new PIXI.Graphics();
+      bg.beginFill(0x1a202c, 0.85);
+      bg.drawRoundedRect(10, 8, screenW - 20, subtitle ? 46 : 32, 6);
+      bg.endFill();
+      container.addChild(bg);
+
+      // Room name
+      const title = new PIXI.Text(roomName, {
+        fontFamily: 'Arial',
+        fontSize: 16,
+        fontWeight: 'bold',
+        fill: 0xf7fafc,
+      });
+      title.x = 20;
+      title.y = 12;
+      container.addChild(title);
+
+      // Subtitle (terrain / lighting)
+      if (subtitle) {
+        const sub = new PIXI.Text(subtitle, {
+          fontFamily: 'Arial',
+          fontSize: 11,
+          fill: 0xa0aec0,
+        });
+        sub.x = 20;
+        sub.y = 32;
+        container.addChild(sub);
+      }
+
+      this.hudContainer.addChild(container);
+      this._roomBanner = container;
     },
 
     /**
@@ -2045,7 +2323,14 @@ import combatApi from './hexmap-api.js';
       //Add core components
       entity.addComponent('PositionComponent', new PositionComponent(q, r));
       entity.addComponent('IdentityComponent', new IdentityComponent(name, entityType));
-      entity.addComponent('RenderComponent', new RenderComponent(spriteKey));
+      const renderComp = new RenderComponent(spriteKey);
+      if (options.objectCategory) {
+        renderComp.objectCategory = options.objectCategory;
+      }
+      if (options.objectColor) {
+        renderComp.objectColor = options.objectColor;
+      }
+      entity.addComponent('RenderComponent', renderComp);
       
       // Add components based on entity type
       if (entityType === EntityType.CREATURE || entityType === EntityType.PLAYER_CHARACTER || entityType === EntityType.NPC) {
@@ -2135,12 +2420,11 @@ import combatApi from './hexmap-api.js';
       // Check if entity can move
       const movement = entity.getComponent('MovementComponent');
       if (!movement) {
-        console.warn('Entity has no MovementComponent');
-        return;
+        console.warn('Entity has no MovementComponent — selection continues without movement range');
+      } else {
+        // Calculate and show movement range
+        this.showMovementRange(entity);
       }
-      
-      // Calculate and show movement range
-      this.showMovementRange(entity);
       
       // Update UI
       const identity = entity.getComponent('IdentityComponent');
@@ -2758,13 +3042,14 @@ import combatApi from './hexmap-api.js';
     },
 
     /**
-     * Perform interact action at an adjacent hex (doors, movable obstacles, blocked connections).
+     * Perform interact action at an adjacent hex (doors, movable obstacles, blocked connections, quest items, NPCs).
      * @param {Entity} actor
      * @param {number} targetQ
      * @param {number} targetR
+     * @param {Entity} [targetEntity] - Optional ECS entity at target hex.
      * @returns {boolean}
      */
-    performInteractAtHex: function (actor, targetQ, targetR) {
+    performInteractAtHex: function (actor, targetQ, targetR, targetEntity) {
       const actorPos = actor?.getComponent?.('PositionComponent');
       const actorActions = actor?.getComponent?.('ActionsComponent');
       if (!actorPos || !actorActions) {
@@ -2781,6 +3066,35 @@ import combatApi from './hexmap-api.js';
         : Math.max(Math.abs(actorPos.q - targetQ), Math.abs(actorPos.r - targetR), Math.abs((actorPos.q + actorPos.r) - (targetQ + targetR)));
       if (distance > 1) {
         return false;
+      }
+
+      // --- Quest item collection ---
+      if (targetEntity) {
+        const targetState = targetEntity.dcStatePayload || {};
+        const metadata = targetState.metadata || {};
+        const identity = targetEntity.getComponent?.('IdentityComponent');
+        const entityType = identity?.entityType;
+
+        // Collect quest items.
+        if (metadata.collectible && metadata.quest_id && metadata.objective_id) {
+          this.collectQuestItem(actor, targetEntity, metadata);
+          return true;
+        }
+
+        // Interact with NPC for quest turn-in.
+        if (entityType === EntityType.NPC || entityType === 'npc') {
+          const npcRef = targetEntity.dcEntityRef;
+          if (npcRef && this.questData) {
+            const turnInResult = this.tryQuestTurnIn(actor, npcRef, targetEntity);
+            if (turnInResult) {
+              return true;
+            }
+          }
+          // Even if no quest turn-in, still allow NPC interaction (talk prompt).
+          const npcName = identity?.name || 'NPC';
+          this.uiManager.appendChatLine(npcName, 'Greetings, adventurer! What can I do for you?', 'npc');
+          return true;
+        }
       }
 
       const connection = this.findConnectionAtHex(targetQ, targetR);
@@ -3723,7 +4037,7 @@ import combatApi from './hexmap-api.js';
 
     /**
      * Return a cached procedural texture for a terrain key.
-     * @param {string} key - 'floor' | 'wall'
+     * @param {string} key - 'floor' | 'wall' | 'wooden_floor' | 'stone_floor'
      * @returns {PIXI.Texture|null}
      */
     getTileTexture: function (key) {
@@ -3816,6 +4130,65 @@ import combatApi from './hexmap-api.js';
         return canvas;
       }
 
+      if (key === 'wooden_floor') {
+        // Warm tavern wood planks.
+        fill(0x5c3d1e, 1);
+        ctx.fillRect(0, 0, size, size);
+
+        // Wood grain planks.
+        fill(0x7a5325, 0.35);
+        for (let x = 0; x < size; x += 10) {
+          ctx.fillRect(x, 0, 1, size);
+        }
+
+        // Grain streaks.
+        fill(0x8b6914, 0.18);
+        for (let i = 0; i < 80; i++) {
+          const x = Math.floor(rand() * size);
+          const y = Math.floor(rand() * size);
+          ctx.fillRect(x, y, Math.floor(rand() * 6) + 2, 1);
+        }
+
+        // Knots.
+        fill(0x3e2007, 0.4);
+        for (let i = 0; i < 4; i++) {
+          const cx = Math.floor(rand() * size);
+          const cy = Math.floor(rand() * size);
+          ctx.beginPath();
+          ctx.arc(cx, cy, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
+        return canvas;
+      }
+
+      if (key === 'stone_floor') {
+        // Dungeon stone tile.
+        fill(0x3a3a3a, 1);
+        ctx.fillRect(0, 0, size, size);
+
+        // Stone tile grid.
+        fill(0x555555, 0.4);
+        const tileSize = 16;
+        for (let y = 0; y < size; y += tileSize) {
+          for (let x = 0; x < size; x += tileSize) {
+            const w = tileSize - 2 - Math.floor(rand() * 2);
+            const h = tileSize - 2 - Math.floor(rand() * 2);
+            ctx.fillRect(x + 1, y + 1, w, h);
+          }
+        }
+
+        // Cracks.
+        fill(0x2a2a2a, 0.3);
+        for (let i = 0; i < 6; i++) {
+          const x = Math.floor(rand() * size);
+          const y = Math.floor(rand() * size);
+          ctx.fillRect(x, y, 1, Math.floor(rand() * 8) + 2);
+        }
+
+        return canvas;
+      }
+
       if (key === 'wall') {
         // Base: outside/neutral palette already used.
         fill(0x2d3748, 1);
@@ -3848,16 +4221,29 @@ import combatApi from './hexmap-api.js';
     },
 
     /**
-     * Resolve a simple terrain key for visuals / UI labels.
+     * Resolve a terrain texture key for visuals / UI labels.
+     * Uses room-level terrain data when available for scene-appropriate tiles.
      * @param {{movable: boolean, passable: boolean}|null} obstacleProfile
      * @param {boolean} inActiveRoom
-     * @returns {'floor'|'wall'|'outside'}
+     * @returns {'floor'|'wooden_floor'|'stone_floor'|'wall'|'outside'}
      */
     resolveTerrainKey: function (obstacleProfile, inActiveRoom) {
       if (obstacleProfile && !obstacleProfile.passable && !obstacleProfile.movable) {
         return 'wall';
       }
-      return inActiveRoom ? 'floor' : 'outside';
+      if (!inActiveRoom) {
+        return 'outside';
+      }
+      // Use room terrain type to pick a scene-appropriate floor texture.
+      const room = this.getActiveRoomData();
+      const terrainType = room?.terrain?.type || '';
+      if (terrainType.includes('wood') || terrainType.includes('tavern') || terrainType.includes('plank')) {
+        return 'wooden_floor';
+      }
+      if (terrainType.includes('stone') || terrainType.includes('dungeon') || terrainType.includes('cave')) {
+        return 'stone_floor';
+      }
+      return 'floor';
     },
 
     /**
@@ -3908,7 +4294,19 @@ import combatApi from './hexmap-api.js';
       }
 
       if (this.isHexInActiveRoom(q, r)) {
-        this.drawHexTexture(hex, this.getTileTexture('floor'), 2, 0x4d7a5b, 1);
+        const terrainKey = this.resolveTerrainKey(null, true);
+        const terrainTexture = this.getTileTexture(terrainKey);
+        const borderColors = {
+          'wooden_floor': { fill: 0x5c3d1e, line: 0x7a5325 },
+          'stone_floor': { fill: 0x3a3a3a, line: 0x555555 },
+          'floor': { fill: 0x2d4b36, line: 0x4d7a5b },
+        };
+        const colors = borderColors[terrainKey] || borderColors['floor'];
+        if (terrainTexture) {
+          this.drawHexTexture(hex, terrainTexture, 2, colors.line, 1);
+        } else {
+          this.drawHexStyle(hex, colors.fill, 2, colors.line, 1);
+        }
       } else {
         this.drawHexStyle(hex, 0x2d3748, 1, 0x4a5568, 1);
       }
@@ -3999,7 +4397,9 @@ import combatApi from './hexmap-api.js';
           stats: metadata.stats || {},
           movementSpeed: metadata.movement_speed,
           actionsPerTurn: metadata.actions_per_turn,
-          initiativeBonus: metadata.initiative_bonus
+          initiativeBonus: metadata.initiative_bonus,
+          objectCategory: objectDefinition?.category || null,
+          objectColor: objectDefinition?.visual?.color || null
         };
 
         const created = this.createEntityObject(q, r, entityType, entityName, null, options);
@@ -4020,6 +4420,9 @@ import combatApi from './hexmap-api.js';
       if (shouldAutoStart) {
         this.startCombat({ force: true });
       }
+
+      // Resolve generated sprite images for all object definitions in view.
+      this.resolveAndApplySprites();
     },
 
     /**
@@ -4038,6 +4441,181 @@ import combatApi from './hexmap-api.js';
       }
 
       return definitions[contentId] || null;
+    },
+
+    /**
+     * Resolve generated sprite images for all object definitions in the active room.
+     * Calls POST /api/sprites/resolve with object_definitions, then swaps placeholder sprites.
+     */
+    resolveAndApplySprites: async function () {
+      if (this._spriteResolveInFlight) {
+        return;
+      }
+
+      const definitions = this.dungeonData?.object_definitions;
+      if (!definitions || typeof definitions !== 'object') {
+        return;
+      }
+
+      // Collect object_definitions that are used by entities in this room and not already cached.
+      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+      const neededDefs = {};
+      entities.forEach((entity) => {
+        const placement = entity?.placement;
+        if (!placement || placement.room_id !== this.activeRoomId) {
+          return;
+        }
+        const contentId = entity?.entity_ref?.content_id;
+        if (!contentId || !definitions[contentId]) {
+          return;
+        }
+        const spriteId = definitions[contentId]?.visual?.sprite_id;
+        if (!spriteId || this._spriteUrlCache[spriteId]) {
+          return;
+        }
+        neededDefs[contentId] = definitions[contentId];
+      });
+
+      if (Object.keys(neededDefs).length === 0) {
+        // All sprites already cached — apply from cache.
+        this._applySpritesFromCache();
+        return;
+      }
+
+      this._spriteResolveInFlight = true;
+      const campaignId = this.resolveCampaignId();
+
+      try {
+        const response = await fetch('/api/sprites/resolve', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'same-origin',
+          body: JSON.stringify({
+            campaign_id: campaignId || null,
+            object_definitions: neededDefs,
+            generate: true
+          })
+        });
+
+        if (!response.ok) {
+          console.warn('Sprite resolve API returned', response.status);
+          return;
+        }
+
+        const data = await response.json();
+        if (!data.success || !data.sprites) {
+          return;
+        }
+
+        // Merge resolved sprites into cache.
+        const sprites = data.sprites;
+        for (const [spriteId, info] of Object.entries(sprites)) {
+          if (info.url) {
+            this._spriteUrlCache[spriteId] = info.url;
+          }
+        }
+
+        console.log(`Sprites resolved: ${data.count} (generated: ${Object.values(sprites).filter(s => s.generated).length}, cached: ${Object.values(sprites).filter(s => s.cached).length})`);
+
+        // Apply textures now that URLs are cached.
+        this._applySpritesFromCache();
+      } catch (err) {
+        console.warn('Sprite resolution failed:', err);
+      } finally {
+        this._spriteResolveInFlight = false;
+      }
+    },
+
+    /**
+     * Apply cached sprite URLs to active entities by loading textures and swapping placeholders.
+     */
+    _applySpritesFromCache: function () {
+      if (!this.entityManager || !this.renderSystem) {
+        return;
+      }
+
+      const allEntities = this.entityManager.getEntitiesWith('RenderComponent');
+      const definitions = this.dungeonData?.object_definitions;
+      if (!definitions) {
+        return;
+      }
+
+      allEntities.forEach((entity) => {
+        // Match entity back to its object_definition sprite_id.
+        const dcRef = entity.dcEntityRef;
+        if (!dcRef) {
+          return;
+        }
+
+        // Find the dungeon entity to get content_id.
+        const dungeonEntities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
+        const match = dungeonEntities.find(e =>
+          (e?.instance_id === dcRef || e?.entity_ref?.content_id === dcRef)
+        );
+        if (!match) {
+          return;
+        }
+
+        const contentId = match?.entity_ref?.content_id;
+        const spriteId = definitions[contentId]?.visual?.sprite_id;
+        if (!spriteId || !this._spriteUrlCache[spriteId]) {
+          return;
+        }
+
+        const render = entity.getComponent('RenderComponent');
+        if (!render || render._generatedSpriteApplied) {
+          return;
+        }
+
+        const url = this._spriteUrlCache[spriteId];
+        this._loadAndApplyTexture(entity, url, spriteId);
+      });
+    },
+
+    /**
+     * Load a texture from URL and replace the entity's placeholder sprite.
+     * @param {Entity} entity - ECS entity
+     * @param {string} url - Image URL
+     * @param {string} spriteId - For logging
+     */
+    _loadAndApplyTexture: function (entity, url, spriteId) {
+      const render = entity.getComponent('RenderComponent');
+      if (!render) {
+        return;
+      }
+
+      // Check PixiJS texture cache first.
+      const cacheKey = 'gen_' + spriteId;
+      if (PIXI.utils.TextureCache[cacheKey]) {
+        this.renderSystem.replaceEntitySprite(entity, PIXI.utils.TextureCache[cacheKey]);
+        render._generatedSpriteApplied = true;
+        return;
+      }
+
+      // Load image async.
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const baseTexture = new PIXI.BaseTexture(img);
+          const texture = new PIXI.Texture(baseTexture);
+          PIXI.utils.TextureCache[cacheKey] = texture;
+
+          // Verify entity still exists and hasn't been cleared.
+          const currentRender = entity.getComponent('RenderComponent');
+          if (currentRender && currentRender.sprite && !currentRender._generatedSpriteApplied) {
+            this.renderSystem.replaceEntitySprite(entity, texture);
+            currentRender._generatedSpriteApplied = true;
+            console.log(`Applied generated sprite for ${spriteId}`);
+          }
+        } catch (err) {
+          console.warn(`Failed to create texture for ${spriteId}:`, err);
+        }
+      };
+      img.onerror = () => {
+        console.warn(`Failed to load sprite image for ${spriteId}: ${url}`);
+      };
+      img.src = url;
     },
 
     /**
@@ -4337,7 +4915,348 @@ import combatApi from './hexmap-api.js';
       if (this.uiManager && this.uiManager.loadChatHistory) {
         this.uiManager.loadChatHistory();
       }
+
+      // Display room banner with scene description.
+      const room = this.dungeonData.rooms[roomId];
+      if (room) {
+        const terrainLabel = room.terrain?.type
+          ? room.terrain.type.replace(/_/g, ' ')
+          : '';
+        const lightingLabel = room.lighting && room.lighting !== 'normal'
+          ? ` | Lighting: ${room.lighting}`
+          : '';
+        const sizeLabel = room.size_category && room.size_category !== 'medium'
+          ? ` | ${room.size_category}`
+          : '';
+        const subtitle = [terrainLabel, lightingLabel, sizeLabel].filter(Boolean).join('').replace(/^\s*\|\s*/, '');
+
+        // Canvas HUD banner
+        if (room.name) {
+          this.showRoomBanner(room.name, subtitle || null);
+        }
+
+        // Chat log messages
+        const meta = subtitle ? ` (${subtitle})` : '';
+        if (room.name) {
+          this.uiManager.appendChatLine('System', `📍 ${room.name}${meta}`, 'system');
+        }
+        if (room.description) {
+          this.uiManager.appendChatLine('System', room.description, 'system');
+        }
+
+        // Show active gameplay effects if any.
+        const effects = room.gameplay_state?.active_effects || [];
+        if (effects.length > 0) {
+          const effectNames = effects.map(e => e.name?.replace(/_/g, ' ') || 'unknown').join(', ');
+          this.uiManager.appendChatLine('System', `✨ Active effects: ${effectNames}`, 'system');
+        }
+      }
+
+      this.renderDungeonStateInspector();
+
       console.log('Active room set:', roomId);
+    },
+
+    /**
+     * Initialize quest data from drupalSettings and render the quest journal.
+     */
+    initQuestData: function () {
+      const settings = drupalSettings || {};
+      this.questData = settings?.dungeoncrawlerContent?.hexmapQuestSummary || {};
+      const activeQuests = this.questData.active || [];
+      if (this.uiManager) {
+        this.uiManager.renderQuestJournal(activeQuests);
+      }
+      console.log('Quest data initialized:', { active: activeQuests.length, available: (this.questData.available || []).length });
+    },
+
+    /**
+     * Collect a quest item entity — update progress via API, remove from grid, refresh journal.
+     * @param {Entity} actor - The player entity performing the collection.
+     * @param {Entity} itemEntity - The quest item ECS entity.
+     * @param {Object} metadata - Item entity metadata (quest_id, objective_id, item_name).
+     */
+    collectQuestItem: async function (actor, itemEntity, metadata) {
+      const campaignId = this.resolveCampaignId();
+      if (!campaignId) {
+        return;
+      }
+
+      const questId = metadata.quest_id;
+      const objectiveId = metadata.objective_id;
+      const itemName = metadata.item_name || 'quest item';
+
+      // Show pickup feedback immediately.
+      this.uiManager.appendChatLine('System', `You picked up: ${itemName}`, 'system');
+
+      // Remove item entity from ECS and dungeon data.
+      if (itemEntity.id != null && this.entityManager) {
+        this.entityManager.removeEntity(itemEntity.id);
+      }
+      // Also remove from dungeonData.entities so it doesn't reappear on re-render.
+      const instanceId = itemEntity.dcEntityRef || metadata.instance_id;
+      if (instanceId && Array.isArray(this.dungeonData?.entities)) {
+        this.dungeonData.entities = this.dungeonData.entities.filter(
+          e => (e.instance_id || e.entity_instance_id) !== instanceId
+        );
+        this.renderDungeonStateInspector();
+      }
+
+      // Call quest progress API.
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/quests/${questId}/progress`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            objective_id: objectiveId,
+            action: 'collect',
+            entity_id: instanceId || objectiveId,
+            character_id: this.launchContext?.character_id || null,
+          }),
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            console.info('Quest progress updated:', result);
+
+            // Update local quest data to reflect progress.
+            this.updateLocalQuestProgress(questId, objectiveId, 1);
+
+            // Check if this objective is now complete.
+            const objState = this.getObjectiveState(questId, objectiveId);
+            if (objState && objState.current >= objState.target) {
+              this.uiManager.showQuestToast(`Objective complete: ${objState.description || objectiveId}`, 'success');
+
+              // Check if all objectives in the quest are complete.
+              if (this.isQuestComplete(questId)) {
+                this.uiManager.showQuestToast(`Quest ready for turn-in: ${this.getQuestTitle(questId)}`, 'success');
+              }
+            }
+          }
+        } else {
+          console.warn('Quest progress API error:', response.status);
+        }
+      } catch (error) {
+        console.error('Quest progress update failed:', error);
+      }
+
+      // Refresh quest journal UI.
+      if (this.uiManager && this.questData?.active) {
+        this.uiManager.renderQuestJournal(this.questData.active);
+      }
+    },
+
+    /**
+     * Attempt to turn in a quest to an NPC.
+     * @param {Entity} actor - Player entity.
+     * @param {string} npcRef - NPC instance_id or entity_ref.
+     * @param {Entity} npcEntity - The NPC ECS entity.
+     * @returns {boolean} Whether a quest was turned in.
+     */
+    tryQuestTurnIn: async function (actor, npcRef, npcEntity) {
+      const campaignId = this.resolveCampaignId();
+      if (!campaignId) return false;
+
+      const activeQuests = this.questData?.active || [];
+      const npcIdentity = npcEntity?.getComponent?.('IdentityComponent');
+      const npcName = npcIdentity?.name || 'NPC';
+
+      // Find a quest that has all collect objectives complete and an interact
+      // objective targeting this NPC type.
+      for (const quest of activeQuests) {
+        const phases = quest.generated_objectives || [];
+        const objectiveStates = quest.objective_states || [];
+        const questId = quest.quest_id || quest.id;
+        const questData = quest.quest_data || {};
+        const giverNpcId = questData.variables?.giver_npc_id;
+
+        for (const phase of phases) {
+          for (const obj of (phase.objectives || [])) {
+            if (obj.type !== 'interact') continue;
+
+            // Check if the NPC matches the quest target.
+            const target = (obj.target || '').toLowerCase();
+            const npcNameLower = npcName.toLowerCase();
+            const npcRefLower = (npcRef || '').toLowerCase();
+            const matchesTarget = npcNameLower.includes(target) || npcRefLower.includes(target) ||
+              (giverNpcId && npcEntity.dcCharacterId === giverNpcId);
+
+            if (!matchesTarget) continue;
+
+            // Check if all collect objectives in earlier phases are complete.
+            const allCollectsDone = phases.every(p => {
+              return (p.objectives || []).filter(o => o.type === 'collect').every(o => {
+                let cur = o.current || 0;
+                for (const os of objectiveStates) {
+                  if (os.objective_id === o.objective_id) { cur = Math.max(cur, os.current || 0); break; }
+                }
+                return cur >= (o.target_count || 1);
+              });
+            });
+
+            if (!allCollectsDone) {
+              this.uiManager.appendChatLine(npcName, `You haven't gathered everything yet. Keep looking!`, 'npc');
+              return true;
+            }
+
+            // Complete the quest via API.
+            this.uiManager.appendChatLine(npcName, `Excellent work! Here is your reward.`, 'npc');
+
+            try {
+              const completeRes = await fetch(`/api/campaign/${campaignId}/quests/${questId}/complete`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                body: JSON.stringify({ entity_id: npcRef, outcome: 'success' }),
+              });
+
+              if (completeRes.ok) {
+                const completeResult = await completeRes.json();
+                console.info('Quest completed:', completeResult);
+
+                // Claim rewards.
+                const rewardRes = await fetch(`/api/campaign/${campaignId}/quests/${questId}/rewards/claim`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                  body: JSON.stringify({ character_id: this.launchContext?.character_id }),
+                });
+
+                if (rewardRes.ok) {
+                  const rewardResult = await rewardRes.json();
+                  const rewards = quest.generated_rewards || {};
+                  const xp = rewards.xp || 0;
+                  const gold = rewards.gold || 0;
+                  const rewardParts = [];
+                  if (xp > 0) rewardParts.push(`${xp} XP`);
+                  if (gold > 0) rewardParts.push(`${gold} gold`);
+                  this.uiManager.showQuestToast(
+                    `Quest complete: ${quest.title || questId}! Rewards: ${rewardParts.join(', ') || 'none'}`,
+                    'success'
+                  );
+
+                  // Grant XP to character.
+                  if (xp > 0 && this.launchContext?.character_id) {
+                    await fetch(`/api/character/${this.launchContext.character_id}/experience`, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+                      body: JSON.stringify({ xp_amount: xp, source: `quest:${questId}` }),
+                    }).catch(err => console.warn('XP grant failed:', err));
+                  }
+                }
+
+                // Remove completed quest from local active list.
+                this.questData.active = (this.questData.active || []).filter(q => (q.quest_id || q.id) !== questId);
+                this.uiManager.renderQuestJournal(this.questData.active);
+              }
+            } catch (error) {
+              console.error('Quest completion failed:', error);
+            }
+
+            return true;
+          }
+        }
+      }
+
+      return false;
+    },
+
+    /**
+     * Update local quest objective progress.
+     * @param {string|number} questId
+     * @param {string} objectiveId
+     * @param {number} increment
+     */
+    updateLocalQuestProgress: function (questId, objectiveId, increment) {
+      const activeQuests = this.questData?.active || [];
+      for (const quest of activeQuests) {
+        if ((quest.quest_id || quest.id) != questId) continue;
+
+        const phases = quest.generated_objectives || [];
+        for (const phase of phases) {
+          for (const obj of (phase.objectives || [])) {
+            if (obj.objective_id === objectiveId) {
+              obj.current = (obj.current || 0) + increment;
+            }
+          }
+        }
+
+        // Also update objective_states.
+        if (!quest.objective_states) quest.objective_states = [];
+        let found = false;
+        for (const os of quest.objective_states) {
+          if (os.objective_id === objectiveId) {
+            os.current = (os.current || 0) + increment;
+            found = true;
+            break;
+          }
+        }
+        if (!found) {
+          quest.objective_states.push({ objective_id: objectiveId, current: increment });
+        }
+        break;
+      }
+    },
+
+    /**
+     * Get the current state of a specific objective.
+     * @returns {{current: number, target: number, description: string}|null}
+     */
+    getObjectiveState: function (questId, objectiveId) {
+      const activeQuests = this.questData?.active || [];
+      for (const quest of activeQuests) {
+        if ((quest.quest_id || quest.id) != questId) continue;
+        const phases = quest.generated_objectives || [];
+        for (const phase of phases) {
+          for (const obj of (phase.objectives || [])) {
+            if (obj.objective_id === objectiveId) {
+              let current = obj.current || 0;
+              for (const os of (quest.objective_states || [])) {
+                if (os.objective_id === objectiveId) { current = Math.max(current, os.current || 0); break; }
+              }
+              return { current, target: obj.target_count || 1, description: obj.description || '' };
+            }
+          }
+        }
+      }
+      return null;
+    },
+
+    /**
+     * Check if all objectives in a quest are complete.
+     * @param {string|number} questId
+     * @returns {boolean}
+     */
+    isQuestComplete: function (questId) {
+      const activeQuests = this.questData?.active || [];
+      for (const quest of activeQuests) {
+        if ((quest.quest_id || quest.id) != questId) continue;
+        const phases = quest.generated_objectives || [];
+        for (const phase of phases) {
+          for (const obj of (phase.objectives || [])) {
+            if (obj.type === 'interact') continue; // Turn-in objectives checked separately.
+            const state = this.getObjectiveState(questId, obj.objective_id);
+            if (!state || state.current < state.target) return false;
+          }
+        }
+        return true;
+      }
+      return false;
+    },
+
+    /**
+     * Get quest title by ID.
+     * @param {string|number} questId
+     * @returns {string}
+     */
+    getQuestTitle: function (questId) {
+      const activeQuests = this.questData?.active || [];
+      for (const quest of activeQuests) {
+        if ((quest.quest_id || quest.id) == questId) return quest.title || quest.quest_key || 'Quest';
+      }
+      return 'Quest';
     },
 
     /**
@@ -4362,6 +5281,224 @@ import combatApi from './hexmap-api.js';
       }
 
       this.setActiveRoom(this.activeRoomId);
+      this.renderDungeonStateInspector();
+    },
+
+    /**
+     * Render object definitions and full dungeon JSON state.
+     */
+    renderDungeonStateInspector: function () {
+      const summaryEl = document.getElementById('dungeon-state-summary');
+      const gridEl = document.getElementById('dungeon-objects-grid');
+      const entitiesSummaryEl = document.getElementById('dungeon-entities-summary');
+      const entitiesAnalysisEl = document.getElementById('dungeon-entities-analysis');
+      const entitiesGridEl = document.getElementById('dungeon-entities-grid');
+      const jsonEl = document.getElementById('dungeon-state-json');
+
+      if (!summaryEl || !gridEl || !entitiesSummaryEl || !entitiesAnalysisEl || !entitiesGridEl || !jsonEl) {
+        return;
+      }
+
+      const dungeon = this.dungeonData || {};
+      const rooms = dungeon.rooms && typeof dungeon.rooms === 'object' ? dungeon.rooms : {};
+      const entities = Array.isArray(dungeon.entities) ? dungeon.entities : [];
+      const defs = dungeon.object_definitions && typeof dungeon.object_definitions === 'object'
+        ? dungeon.object_definitions
+        : {};
+
+      const roomCount = Object.keys(rooms).length;
+      const objectCount = Object.keys(defs).length;
+      const entityCount = entities.length;
+      summaryEl.textContent = `Active room: ${this.activeRoomId || 'n/a'} · Rooms: ${roomCount} · Objects: ${objectCount} · Entities: ${entityCount}`;
+
+      const usageCounts = {};
+      const requiresObjectDefinition = (entityType) => {
+        const t = String(entityType || '').toLowerCase();
+        return t === 'obstacle' || t === 'item';
+      };
+
+      entities.forEach((entity) => {
+        if (!requiresObjectDefinition(entity?.entity_type)) {
+          return;
+        }
+        const contentId = entity?.entity_ref?.content_id;
+        if (!contentId) {
+          return;
+        }
+        usageCounts[contentId] = (usageCounts[contentId] || 0) + 1;
+      });
+
+      const usedObjectIds = Object.keys(usageCounts);
+      const missingDefinitionIds = usedObjectIds.filter((objectId) => !defs[objectId]);
+      const usedDefinitionIds = usedObjectIds.filter((objectId) => !!defs[objectId]);
+      const unusedDefinitionIds = Object.keys(defs).filter((objectId) => !usageCounts[objectId]);
+
+      const escapeHtml = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+      const entries = usedDefinitionIds
+        .map((objectId) => [objectId, defs[objectId]])
+        .sort(([, a], [, b]) => {
+          const aLabel = String(a?.label || a?.object_id || '');
+          const bLabel = String(b?.label || b?.object_id || '');
+        return aLabel.localeCompare(bLabel);
+      });
+
+      summaryEl.textContent = `Active room: ${this.activeRoomId || 'n/a'} · Rooms: ${roomCount} · Objects Used: ${usedDefinitionIds.length}/${objectCount} · Entities: ${entityCount}`;
+
+      if (!entries.length && !missingDefinitionIds.length) {
+        gridEl.innerHTML = '<div class="dungeon-objects-empty">No object definitions available.</div>';
+      } else {
+        const cards = entries.map(([objectId, definition]) => {
+          const label = definition?.label || objectId;
+          const category = definition?.category || 'unknown';
+          const spriteId = definition?.visual?.sprite_id || 'n/a';
+          const color = definition?.visual?.color || '';
+          const size = definition?.visual?.size || 'n/a';
+          const used = usageCounts[objectId] || 0;
+          const colorSwatch = color
+            ? `<span class="dungeon-object-color" style="background:${escapeHtml(color)}"></span>`
+            : '';
+
+          const spriteLine = spriteId && spriteId !== 'n/a'
+            ? `<li><strong>Sprite:</strong> ${escapeHtml(spriteId)}</li>`
+            : '';
+          const sizeLine = size && size !== 'n/a'
+            ? `<li><strong>Size:</strong> ${escapeHtml(size)}</li>`
+            : '';
+          const colorLine = color
+            ? `<li><strong>Color:</strong> ${escapeHtml(color)} ${colorSwatch}</li>`
+            : '';
+
+          return `
+            <div class="dungeon-object-card">
+              <div class="dungeon-object-card__title">
+                <span>${escapeHtml(label)}</span>
+                <span class="pill pill-muted">${escapeHtml(category)}</span>
+              </div>
+              <ul class="dungeon-object-card__meta">
+                <li><strong>ID:</strong> ${escapeHtml(objectId)}</li>
+                ${spriteLine}
+                ${sizeLine}
+                ${colorLine}
+                <li><strong>Used:</strong> ${used} placed</li>
+              </ul>
+            </div>`;
+        });
+
+        const missingCards = missingDefinitionIds.map((objectId) => `
+          <div class="dungeon-object-card">
+            <div class="dungeon-object-card__title">
+              <span>${escapeHtml(objectId)}</span>
+              <span class="pill pill-warning">missing definition</span>
+            </div>
+            <ul class="dungeon-object-card__meta">
+              <li><strong>ID:</strong> ${escapeHtml(objectId)}</li>
+              <li><strong>Used:</strong> ${usageCounts[objectId] || 0} placed</li>
+            </ul>
+          </div>
+        `);
+
+        const footer = `
+          <div class="dungeon-objects-empty">
+            ${unusedDefinitionIds.length} unused definitions hidden from this view.
+          </div>
+        `;
+
+        gridEl.innerHTML = [...cards, ...missingCards, footer].join('');
+      }
+
+      const activeRoomEntities = entities.filter((entity) => entity?.placement?.room_id === this.activeRoomId);
+      entitiesSummaryEl.textContent = `Active room entities: ${activeRoomEntities.length} · Total entities: ${entities.length}`;
+
+      let missingPlacement = 0;
+      let missingHex = 0;
+      let missingInstance = 0;
+      let missingContent = 0;
+      let missingTeam = 0;
+      let otherRoom = 0;
+
+      entities.forEach((entity) => {
+        const roomId = String(entity?.placement?.room_id || '');
+        const q = Number(entity?.placement?.hex?.q);
+        const r = Number(entity?.placement?.hex?.r);
+        const hasHex = Number.isFinite(q) && Number.isFinite(r);
+        const instanceId = String(entity?.instance_id || entity?.entity_instance_id || '');
+        const contentId = String(entity?.entity_ref?.content_id || '');
+        const team = entity?.state?.metadata?.team;
+
+        if (!roomId) {
+          missingPlacement++;
+        } else if (roomId !== this.activeRoomId) {
+          otherRoom++;
+        }
+        if (!hasHex) {
+          missingHex++;
+        }
+        if (!instanceId) {
+          missingInstance++;
+        }
+        if (!contentId) {
+          missingContent++;
+        }
+        if (!team) {
+          missingTeam++;
+        }
+      });
+
+      entitiesAnalysisEl.textContent = `Not in active room: ${otherRoom} · Missing placement: ${missingPlacement} · Missing hex: ${missingHex} · Team N/A: ${missingTeam} · Content ID N/A: ${missingContent} · Instance N/A: ${missingInstance}`;
+
+      const sortedEntities = [...entities].sort((a, b) => {
+        const roomA = String(a?.placement?.room_id || '');
+        const roomB = String(b?.placement?.room_id || '');
+        if (roomA !== roomB) return roomA.localeCompare(roomB);
+        const typeA = String(a?.entity_type || '');
+        const typeB = String(b?.entity_type || '');
+        if (typeA !== typeB) return typeA.localeCompare(typeB);
+        const nameA = String(a?.state?.metadata?.display_name || a?.entity_ref?.content_id || a?.instance_id || '');
+        const nameB = String(b?.state?.metadata?.display_name || b?.entity_ref?.content_id || b?.instance_id || '');
+        return nameA.localeCompare(nameB);
+      });
+
+      if (!sortedEntities.length) {
+        entitiesGridEl.innerHTML = '<div class="dungeon-objects-empty">No entities available.</div>';
+      } else {
+        entitiesGridEl.innerHTML = sortedEntities.map((entity) => {
+          const roomId = String(entity?.placement?.room_id || 'n/a');
+          const q = Number(entity?.placement?.hex?.q);
+          const r = Number(entity?.placement?.hex?.r);
+          const hasHex = Number.isFinite(q) && Number.isFinite(r);
+          const entityType = String(entity?.entity_type || 'unknown');
+          const contentId = String(entity?.entity_ref?.content_id || 'n/a');
+          const instanceId = String(entity?.instance_id || entity?.entity_instance_id || 'n/a');
+          const displayName = entity?.state?.metadata?.display_name || contentId;
+          const team = entity?.state?.metadata?.team || (entityType === 'obstacle' || entityType === 'item' ? 'n/a (non-combat)' : 'n/a');
+          const settingState = entity?.state?.metadata?.setting_state === true ? 'yes' : 'no';
+          const isActiveRoom = roomId === this.activeRoomId;
+
+          return `
+            <div class="dungeon-entity-card ${isActiveRoom ? 'dungeon-entity-card--active-room' : ''}">
+              <div class="dungeon-entity-card__title">
+                <span>${escapeHtml(displayName)}</span>
+                <span class="pill pill-muted">${escapeHtml(entityType)}</span>
+              </div>
+              <ul class="dungeon-entity-card__meta">
+                <li><strong>Instance:</strong> ${escapeHtml(instanceId)}</li>
+                <li><strong>Content ID:</strong> ${escapeHtml(contentId)}</li>
+                <li><strong>Room:</strong> ${escapeHtml(roomId)}</li>
+                <li><strong>Hex:</strong> ${hasHex ? `(${q}, ${r})` : 'n/a'}</li>
+                <li><strong>Team:</strong> ${escapeHtml(team)}</li>
+                <li><strong>Setting State:</strong> ${escapeHtml(settingState)}</li>
+              </ul>
+            </div>`;
+        }).join('');
+      }
+
+      jsonEl.textContent = JSON.stringify(dungeon, null, 2);
     },
 
     /**
@@ -4406,6 +5543,60 @@ import combatApi from './hexmap-api.js';
         nextHex = match.from_hex;
       }
 
+      // Move the selected player entity's dungeon placement to the destination room/hex
+      // so it persists across the room transition and re-renders in the new room.
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      if (selectedEntity && Array.isArray(this.dungeonData?.entities)) {
+        const identity = selectedEntity.getComponent?.('IdentityComponent');
+        const combat = selectedEntity.getComponent?.('CombatComponent');
+        const isPlayer = combat?.isPlayerTeam ? combat.isPlayerTeam() : (combat?.team === Team.PLAYER || combat?.team === 'player');
+
+        if (isPlayer) {
+          const entityRef = selectedEntity.dcEntityRef;
+          // Update the dungeon payload entity placement to the new room.
+          for (const de of this.dungeonData.entities) {
+            const deRef = de.instance_id || de.entity_instance_id;
+            if (deRef === entityRef || (selectedEntity.dcCharacterId && de?.state?.metadata?.character_id == selectedEntity.dcCharacterId)) {
+              de.placement = {
+                room_id: nextRoomId,
+                hex: { q: Number(nextHex?.q || 0), r: Number(nextHex?.r || 0) },
+              };
+              break;
+            }
+          }
+
+          // Also move ally NPCs to the new room (adjacent hexes).
+          const npcEntities = this.dungeonData.entities.filter(e =>
+            e.entity_type === 'npc' && e?.state?.metadata?.team === 'ally'
+          );
+          const destQ = Number(nextHex?.q || 0);
+          const destR = Number(nextHex?.r || 0);
+          const offsets = [{ q: 1, r: 0 }, { q: -1, r: 0 }, { q: 0, r: 1 }, { q: 0, r: -1 }, { q: 1, r: -1 }, { q: -1, r: 1 }];
+          npcEntities.forEach((npc, i) => {
+            const offset = offsets[i % offsets.length];
+            npc.placement = {
+              room_id: nextRoomId,
+              hex: { q: destQ + offset.q, r: destR + offset.r },
+            };
+          });
+
+          // Persist entity position to server.
+          const campaignId = this.resolveCampaignId();
+          if (campaignId && entityRef) {
+            fetch(`/api/campaign/${campaignId}/entity/${entityRef}/move`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+              body: JSON.stringify({ room_id: nextRoomId, q: Number(nextHex?.q || 0), r: Number(nextHex?.r || 0) }),
+            }).catch(err => console.warn('Entity move persist failed:', err));
+          }
+        }
+      }
+
+      // Deselect current entity before switching rooms (will be re-selected after render).
+      if (selectedEntity) {
+        this.deselectEntity();
+      }
+
       this.setActiveRoom(nextRoomId);
 
       const destinationHex = this.findHexByCoords(Number(nextHex?.q), Number(nextHex?.r));
@@ -4415,6 +5606,15 @@ import combatApi from './hexmap-api.js';
           this.onHexOut(previousSelectedHex);
         }
         this.setSelectedHex(destinationHex);
+      }
+
+      // Re-select the player entity in the new room after re-render.
+      const newPlayerEntity = this.findLaunchPlayerEntity();
+      if (newPlayerEntity) {
+        this.selectEntity(newPlayerEntity);
+        if (this.uiManager && this.launchCharacter) {
+          this.uiManager.showLaunchCharacter(this.launchCharacter);
+        }
       }
 
       console.log('Transitioned room:', this.activeRoomId, 'via connection', match.connection_id);
@@ -4516,6 +5716,19 @@ import combatApi from './hexmap-api.js';
       }
 
       this.selectEntity(entity);
+
+      // selectEntity → showEntityInfo only sets basic ECS stats (HP, AC, speed).
+      // Also populate the full character sheet (abilities, skills, feats,
+      // inventory, currency, etc.) from the launch character payload and the
+      // character state API so the sidebar is complete.
+      if (this.uiManager && this.launchCharacter) {
+        this.uiManager.showLaunchCharacter(this.launchCharacter);
+      }
+      const characterId = Number(this.launchContext?.character_id || 0);
+      if (characterId > 0) {
+        this.loadCharacterFromApi(characterId);
+      }
+
       return true;
     }
 

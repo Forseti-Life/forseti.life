@@ -64,6 +64,32 @@ class TerrainImageGenerationService {
    *   Generation summary, including raw provider result and storage info.
    */
   public function generateTerrainImage(array $attributes, array $options = []): array {
+    // Repository-first: check if a matching terrain image already exists.
+    $linkContext = $this->resolveLinkContext($attributes, $options);
+    if (!empty($linkContext['table_name']) && !empty($linkContext['object_id'])) {
+      $existing = $this->generatedImageRepository->loadImagesForObject(
+        $linkContext['table_name'],
+        $linkContext['object_id'],
+        $linkContext['campaign_id'] ?? NULL,
+        $linkContext['slot'] ?? NULL,
+        $linkContext['variant'] ?? NULL
+      );
+      if (!empty($existing)) {
+        $url = $this->generatedImageRepository->resolveClientUrl($existing[0]);
+        $this->logger->info('Terrain image already exists for @table/@id (slot=@slot), skipping generation.', [
+          '@table' => $linkContext['table_name'],
+          '@id' => $linkContext['object_id'],
+          '@slot' => $linkContext['slot'] ?? 'floortile',
+        ]);
+        return [
+          'attempted' => FALSE,
+          'reason' => 'already_exists',
+          'existing' => $existing[0],
+          'url' => $url,
+        ];
+      }
+    }
+
     $provider = $this->stringValue($options['provider'] ?? ($attributes['provider'] ?? 'vertex'));
     $payload = $this->buildPayload($attributes, $options);
 
@@ -73,7 +99,7 @@ class TerrainImageGenerationService {
       $storage = [];
       $persist = $this->normalizeBoolean($options['persist'] ?? ($attributes['persist'] ?? TRUE));
       if ($persist !== FALSE) {
-        $storage = $this->generatedImageRepository->persistGeneratedImage($result, $this->resolveLinkContext($attributes, $options));
+        $storage = $this->generatedImageRepository->persistGeneratedImage($result, $linkContext);
       }
 
       return [

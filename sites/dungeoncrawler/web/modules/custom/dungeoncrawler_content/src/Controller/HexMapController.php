@@ -7,11 +7,14 @@ use Drupal\Core\Database\Connection;
 use Drupal\dungeoncrawler_content\Service\QuestTrackerService;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Controller for hex map rendering and interaction.
  */
 class HexMapController extends ControllerBase {
+
+  protected const DEFAULT_OBJECT_ORIENTATION = 'se';
 
   protected RequestStack $requestStack;
 
@@ -41,6 +44,8 @@ class HexMapController extends ControllerBase {
    *   Render array for the hex map demo.
    */
   public function demo() {
+    $account = $this->currentUser();
+
     $query = $this->requestStack->getCurrentRequest()->query;
 
     $launch_context = [
@@ -52,11 +57,37 @@ class HexMapController extends ControllerBase {
       'next_room_id' => (string) ($query->get('next_room_id') ?? ''),
       'start_q' => (int) ($query->get('start_q') ?? 0),
       'start_r' => (int) ($query->get('start_r') ?? 0),
+      'persist_template' => (string) ($query->get('persist_template') ?? ''),
     ];
 
+    // Verify the current user owns the campaign before exposing data.
+    if ($launch_context['campaign_id'] > 0) {
+      $campaign_uid = $this->database->select('dc_campaigns', 'c')
+        ->fields('c', ['uid'])
+        ->condition('id', $launch_context['campaign_id'])
+        ->execute()
+        ->fetchField();
+      if ($campaign_uid === FALSE || (int) $campaign_uid !== (int) $account->id()) {
+        throw new AccessDeniedHttpException('You do not own this campaign.');
+      }
+    }
+
     $dungeon_payload = $this->loadDungeonPayload($launch_context);
+    $dungeon_payload = $this->adjustBarCounterPlacements($dungeon_payload);
+    $dungeon_payload = $this->composeLongTableSegments($dungeon_payload);
+    $dungeon_payload = $this->adjustLongTableSegmentPlacements($dungeon_payload);
+    $dungeon_payload = $this->injectRoomTemplateItemEntities($dungeon_payload, $launch_context);
+    $dungeon_payload = $this->injectRoomBarkeepEntity($dungeon_payload, $launch_context);
+    $dungeon_payload = $this->ensurePayloadObjectOrientations($dungeon_payload);
+    if ($this->shouldPersistTemplateChanges($launch_context)) {
+      $this->persistDungeonTemplatePayload($dungeon_payload, $launch_context);
+    }
+
+    $dungeon_payload = $this->injectCampaignCharacterEntities($dungeon_payload, $launch_context);
     $launch_character = $this->loadLaunchCharacterSummary($launch_context);
     $quest_summary = $this->loadQuestSummary($launch_context);
+    $dungeon_payload = $this->injectQuestItemEntities($dungeon_payload, $quest_summary);
+    $dungeon_payload = $this->ensurePayloadObjectOrientations($dungeon_payload);
 
     return [
       '#theme' => 'hexmap_demo',
@@ -222,11 +253,48 @@ class HexMapController extends ControllerBase {
     // Extract conditions
     $conditions = $character_data['conditions'] ?? [];
 
+    // Extract saving throws (pre-computed in character_data or derive from abilities)
+    $saves = $character_data['saves'] ?? [];
+    if (empty($saves) && !empty($abilities)) {
+      $prof_bonus = $level + 2;
+      $con_score = $abilities['con'] ?? $abilities['constitution'] ?? 10;
+      $dex_score = $abilities['dex'] ?? $abilities['dexterity'] ?? 10;
+      $wis_score = $abilities['wis'] ?? $abilities['wisdom'] ?? 10;
+      $saves = [
+        'fortitude' => (int) floor(($con_score - 10) / 2) + $prof_bonus,
+        'reflex' => (int) floor(($dex_score - 10) / 2) + $prof_bonus,
+        'will' => (int) floor(($wis_score - 10) / 2) + $prof_bonus,
+      ];
+    }
+
+    // Extract perception
+    $perception = $character_data['perception'] ?? NULL;
+    if ($perception === NULL && !empty($abilities)) {
+      $wis_score = $abilities['wis'] ?? $abilities['wisdom'] ?? 10;
+      $perception = (int) floor(($wis_score - 10) / 2) + ($level + 2);
+    }
+
+    // Extract spells data
+    $spells = $character_data['spells'] ?? [];
+
+    // Extract heritage, background, speed, alignment, deity
+    $heritage = is_array($character_data['ancestry'] ?? NULL)
+      ? ($character_data['ancestry']['heritage'] ?? NULL)
+      : ($character_data['heritage'] ?? NULL);
+    $background = $character_data['background'] ?? '';
+    $speed = is_array($character_data['ancestry'] ?? NULL)
+      ? ($character_data['ancestry']['speed'] ?? 25)
+      : ($character_data['speed'] ?? 25);
+
     return [
+      'id' => (int) $record['id'],
       'name' => $name,
       'level' => $level,
       'ancestry' => $ancestry,
+      'heritage' => $heritage,
       'class' => $class,
+      'background' => $background,
+      'speed' => $speed,
       'hp_current' => $hp_current,
       'hp_max' => $hp_max,
       'armor_class' => $armor_class,
@@ -234,8 +302,11 @@ class HexMapController extends ControllerBase {
       'entity_type' => 'player_character',
       // Enhanced character sheet data
       'abilities' => $abilities,
+      'saves' => $saves,
+      'perception' => $perception,
       'skills' => $skills,
       'feats' => $feats,
+      'spells' => $spells,
       'inventory' => $carried,
       'currency' => $inv_currency ?: ['gp' => $gold, 'sp' => 0, 'cp' => 0],
       'hero_points' => $hero_points,
@@ -335,15 +406,959 @@ class HexMapController extends ControllerBase {
   }
 
   /**
+   * Inject player character and NPC entities into the dungeon payload.
+   *
+   * The dungeon seed only contains obstacle entities (furniture, doors, etc.).
+   * Campaign characters (player + NPCs) live in dc_campaign_characters and must
+   * be injected so the JS ECS can create tokens for them on the hex grid.
+   *
+   * @param array $dungeon_payload
+   *   Already-normalized dungeon payload from normalizeDungeonPayload().
+   * @param array $launch_context
+   *   Current launch context query values.
+   *
+   * @return array
+   *   Dungeon payload with character entities appended to the entities list.
+   */
+  protected function injectCampaignCharacterEntities(array $dungeon_payload, array $launch_context): array {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    if ($campaign_id <= 0) {
+      return $dungeon_payload;
+    }
+
+    $room_id = (string) ($dungeon_payload['active_room_id'] ?? '');
+    if ($room_id === '') {
+      return $dungeon_payload;
+    }
+
+    $launch_character_id = (int) ($launch_context['character_id'] ?? 0);
+    if ($launch_character_id <= 0) {
+      return $dungeon_payload;
+    }
+
+    // Load only the selected player character for this campaign.
+    $query = $this->database->select('dc_campaign_characters', 'cc')
+      ->fields('cc', ['id', 'character_id', 'instance_id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'type', 'character_data'])
+      ->condition('campaign_id', $campaign_id);
+
+    $character_match = $query->orConditionGroup()
+      ->condition('character_id', $launch_character_id)
+      ->condition('id', $launch_character_id)
+      ->condition('instance_id', sprintf('pc-%d-%d', $campaign_id, $launch_character_id));
+
+    $record = $query
+      ->condition($character_match)
+      ->orderBy('updated', 'DESC')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchObject();
+
+    if (!$record) {
+      return $dungeon_payload;
+    }
+
+    // Strip only existing player_character entities from payload so template
+    // NPC/creature entities remain untouched.
+    $dungeon_payload['entities'] = array_values(array_filter(
+      $dungeon_payload['entities'] ?? [],
+      static function (array $entity): bool {
+        $type = strtolower((string) ($entity['entity_type'] ?? ''));
+        return $type !== 'player_character';
+      }
+    ));
+
+    $start_q = (int) ($launch_context['start_q'] ?? 0);
+    $start_r = (int) ($launch_context['start_r'] ?? 0);
+
+    // Collect hex coordinates already occupied by existing entities in this room.
+    $occupied = [];
+    foreach (($dungeon_payload['entities'] ?? []) as $entity) {
+      $p = $entity['placement'] ?? [];
+      if (($p['room_id'] ?? '') === $room_id && isset($p['hex'])) {
+        $key = ((int) $p['hex']['q']) . ',' . ((int) $p['hex']['r']);
+        $occupied[$key] = TRUE;
+      }
+    }
+
+
+    $char_data = json_decode((string) ($record->character_data ?? '{}'), TRUE);
+    if (!is_array($char_data)) {
+      $char_data = [];
+    }
+
+    $name = (string) ($record->name ?: ($char_data['name'] ?? sprintf('Character %d', $record->id)));
+
+    $hex_q = $start_q;
+    $hex_r = $start_r;
+    $preferred_key = $hex_q . ',' . $hex_r;
+    if (isset($occupied[$preferred_key])) {
+      // Find first available room hex when start hex is occupied.
+      foreach (($dungeon_payload['rooms'][$room_id]['hexes'] ?? []) as $hex) {
+        $candidate_q = (int) ($hex['q'] ?? 0);
+        $candidate_r = (int) ($hex['r'] ?? 0);
+        $candidate_key = $candidate_q . ',' . $candidate_r;
+        if (!isset($occupied[$candidate_key])) {
+          $hex_q = $candidate_q;
+          $hex_r = $candidate_r;
+          break;
+        }
+      }
+    }
+
+    $occupied[$hex_q . ',' . $hex_r] = TRUE;
+
+    $hp_max = (int) ($record->hp_max ?: ($char_data['hp']['max'] ?? $char_data['calculated_stats']['max_hp'] ?? 20));
+    $hp_current = (int) ($record->hp_current ?: ($char_data['hp']['current'] ?? $hp_max));
+    $armor_class = (int) ($record->armor_class ?: ($char_data['ac'] ?? $char_data['calculated_stats']['ac'] ?? 10));
+
+    $dungeon_payload['entities'][] = [
+      'entity_type' => 'player_character',
+      'instance_id' => $record->instance_id ?: sprintf('pc-%d-%d', $campaign_id, $record->id),
+      'entity_ref' => [
+        'content_id' => $record->instance_id ?: sprintf('char-%d', $record->id),
+      ],
+      'placement' => [
+        'room_id' => $room_id,
+        'hex' => [
+          'q' => $hex_q,
+          'r' => $hex_r,
+        ],
+      ],
+      'state' => [
+        'metadata' => [
+          'display_name' => $name,
+          'name' => $name,
+          'team' => 'player',
+          'character_id' => (int) $record->id,
+          'stats' => [
+            'maxHp' => $hp_max,
+            'currentHp' => $hp_current,
+            'ac' => $armor_class,
+            'speed' => 25,
+          ],
+          'movement_speed' => 25,
+          'actions_per_turn' => 3,
+          'initiative_bonus' => 0,
+        ],
+      ],
+    ];
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Determine whether template changes should be persisted for this request.
+   *
+   * Persistence is opt-in to avoid automatic writes on every page load.
+   */
+  protected function shouldPersistTemplateChanges(array $launch_context): bool {
+    $flag = strtolower(trim((string) ($launch_context['persist_template'] ?? '')));
+    return in_array($flag, ['1', 'true', 'yes', 'on'], TRUE);
+  }
+
+  /**
+   * Inject fixed room item entities from room template contents_data.
+   *
+   * These are deterministic setting-state entities at authored coordinates and
+   * should exist independently of dynamic quest spawning.
+   */
+  protected function injectRoomTemplateItemEntities(array $dungeon_payload, array $launch_context): array {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    $room_id = (string) ($dungeon_payload['active_room_id'] ?? '');
+
+    if ($campaign_id <= 0 || $room_id === '') {
+      return $dungeon_payload;
+    }
+
+    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['contents_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('room_id', $room_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    // Fallback: active_room_id may be canonical UUID while room templates are
+    // keyed by logical room slug from launch context (e.g. tavern_entrance).
+    if (($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') && !empty($launch_context['room_id'])) {
+      $fallback_room_id = (string) $launch_context['room_id'];
+      if ($fallback_room_id !== '' && $fallback_room_id !== $room_id) {
+        $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
+          ->fields('r', ['contents_data'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('room_id', $fallback_room_id)
+          ->range(0, 1)
+          ->execute()
+          ->fetchField();
+      }
+    }
+
+    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
+      return $dungeon_payload;
+    }
+
+    $contents_data = json_decode((string) $raw_contents, TRUE);
+    if (!is_array($contents_data)) {
+      return $dungeon_payload;
+    }
+
+    $items = $contents_data['items'] ?? [];
+    if (!is_array($items) || empty($items)) {
+      return $dungeon_payload;
+    }
+
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      $dungeon_payload['entities'] = [];
+    }
+    if (!isset($dungeon_payload['object_definitions']) || !is_array($dungeon_payload['object_definitions'])) {
+      $dungeon_payload['object_definitions'] = [];
+    }
+
+    $existing_index = [];
+    foreach ($dungeon_payload['entities'] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $entity_room = (string) ($entity['placement']['room_id'] ?? '');
+      $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
+      if ($entity_room !== '' && $content_id !== '') {
+        $existing_index[$entity_room . ':' . $content_id] = TRUE;
+      }
+    }
+
+    foreach ($items as $item) {
+      if (!is_array($item)) {
+        continue;
+      }
+
+      $content_id = (string) ($item['content_id'] ?? '');
+      if ($content_id === '') {
+        continue;
+      }
+
+      $position = is_array($item['position'] ?? NULL) ? $item['position'] : [];
+      $q = isset($position['q']) ? (int) $position['q'] : NULL;
+      $r = isset($position['r']) ? (int) $position['r'] : NULL;
+      if ($q === NULL || $r === NULL) {
+        continue;
+      }
+
+      // Ensure permanence in object definitions.
+      if (!isset($dungeon_payload['object_definitions'][$content_id])) {
+        $is_quest_item = !empty($item['quest_association']);
+        $dungeon_payload['object_definitions'][$content_id] = [
+          'object_id' => $content_id,
+          'label' => (string) ($item['name'] ?? ucwords(str_replace(['_', '-'], ' ', $content_id))),
+          'category' => $is_quest_item ? 'quest_item' : 'item',
+          'description' => (string) ($item['description'] ?? ''),
+          'movable' => FALSE,
+          'stackable' => FALSE,
+          'movement' => [
+            'passable' => TRUE,
+          ],
+          'visual' => [
+            'sprite_id' => $content_id,
+            'size' => 'small',
+          ],
+        ];
+      }
+
+      $entity_key = $room_id . ':' . $content_id;
+      if (isset($existing_index[$entity_key])) {
+        continue;
+      }
+
+      $safe_content = preg_replace('/[^a-zA-Z0-9_\-]+/', '-', $content_id) ?: 'item';
+      $instance_id = sprintf('template-item-%s-%s', $room_id, $safe_content);
+
+      $dungeon_payload['entities'][] = [
+        'entity_type' => 'item',
+        'instance_id' => $instance_id,
+        'entity_ref' => [
+          'content_type' => 'item',
+          'content_id' => $content_id,
+        ],
+        'placement' => [
+          'room_id' => $room_id,
+          'hex' => [
+            'q' => $q,
+            'r' => $r,
+          ],
+        ],
+        'state' => [
+          'active' => TRUE,
+          'metadata' => [
+            'display_name' => (string) ($item['name'] ?? $content_id),
+            'collectible' => TRUE,
+            'passable' => TRUE,
+            'movable' => FALSE,
+            'stackable' => FALSE,
+            'setting_state' => TRUE,
+            'spawn_policy' => 'fixed_template',
+            'quest_association' => (string) ($item['quest_association'] ?? ''),
+          ],
+        ],
+      ];
+
+      $existing_index[$entity_key] = TRUE;
+    }
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Shift bar counter obstacle placements south by one hex.
+   *
+   * This opens a full hex lane behind the counter for barkeep placement.
+   */
+  protected function adjustBarCounterPlacements(array $dungeon_payload): array {
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      return $dungeon_payload;
+    }
+
+    foreach ($dungeon_payload['entities'] as &$entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      $entity_type = strtolower((string) ($entity['entity_type'] ?? ''));
+      if ($entity_type !== 'obstacle') {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($entity['entity_ref']['content_id'] ?? ''));
+      $fixture = strtolower((string) ($entity['state']['metadata']['fixture'] ?? ''));
+      $is_bar_counter = str_contains($content_id, 'bar_counter') || str_contains($fixture, 'bar_counter');
+
+      if (!$is_bar_counter || !isset($entity['placement']['hex']['r'])) {
+        continue;
+      }
+
+      $entity['placement']['hex']['r'] = (int) $entity['placement']['hex']['r'] + 1;
+    }
+    unset($entity);
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Compose long tables as A + center + B segments on a southeast axis.
+   *
+   * For each obstacle entity with content_id matching *_long_a, this ensures
+   * a paired center segment at (+1, +1) and B segment at (+2, +2).
+   */
+  protected function composeLongTableSegments(array $dungeon_payload): array {
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      return $dungeon_payload;
+    }
+    if (!isset($dungeon_payload['object_definitions']) || !is_array($dungeon_payload['object_definitions'])) {
+      $dungeon_payload['object_definitions'] = [];
+    }
+
+    $occupied = [];
+    foreach ($dungeon_payload['entities'] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $room_id = (string) ($entity['placement']['room_id'] ?? '');
+      $hex = is_array($entity['placement']['hex'] ?? NULL) ? $entity['placement']['hex'] : [];
+      if ($room_id === '' || !isset($hex['q'], $hex['r'])) {
+        continue;
+      }
+      $occupied[$room_id . ':' . (int) $hex['q'] . ':' . (int) $hex['r']] = TRUE;
+    }
+
+    $existing_ref = [];
+    foreach ($dungeon_payload['entities'] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $room_id = (string) ($entity['placement']['room_id'] ?? '');
+      $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
+      $hex = is_array($entity['placement']['hex'] ?? NULL) ? $entity['placement']['hex'] : [];
+      if ($room_id !== '' && $content_id !== '' && isset($hex['q'], $hex['r'])) {
+        $existing_ref[$room_id . ':' . (int) $hex['q'] . ':' . (int) $hex['r'] . ':' . $content_id] = TRUE;
+      }
+    }
+
+    $new_entities = [];
+
+    foreach ($dungeon_payload['entities'] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      if (strtolower((string) ($entity['entity_type'] ?? '')) !== 'obstacle') {
+        continue;
+      }
+
+      $content_id_a = (string) ($entity['entity_ref']['content_id'] ?? '');
+      if ($content_id_a === '' || !preg_match('/_long_a$/', $content_id_a)) {
+        continue;
+      }
+
+      $room_id = (string) ($entity['placement']['room_id'] ?? '');
+      $hex = is_array($entity['placement']['hex'] ?? NULL) ? $entity['placement']['hex'] : [];
+      if ($room_id === '' || !isset($hex['q'], $hex['r'])) {
+        continue;
+      }
+
+      $base_q = (int) $hex['q'];
+      $base_r = (int) $hex['r'];
+
+      $content_id_center = preg_replace('/_long_a$/', '_long_center', $content_id_a) ?: ($content_id_a . '_center');
+      $content_id_b = preg_replace('/_long_a$/', '_long_b', $content_id_a) ?: ($content_id_a . '_b');
+
+      $def_a = $dungeon_payload['object_definitions'][$content_id_a] ?? [];
+      $center_def = $def_a;
+      if (!isset($center_def['object_id']) || $center_def['object_id'] === '') {
+        $center_def['object_id'] = $content_id_center;
+      }
+      $center_def['object_id'] = $content_id_center;
+      $center_def['label'] = (string) ($center_def['label'] ?? ucwords(str_replace(['_', '-'], ' ', $content_id_a))) . ' Center';
+      $center_def['visual'] = is_array($center_def['visual'] ?? NULL) ? $center_def['visual'] : [];
+      $center_def['visual']['sprite_id'] = (string) ($def_a['visual']['sprite_id'] ?? $content_id_a);
+      $center_def['visual']['orientation'] = 'se';
+
+      $b_def = $def_a;
+      if (!isset($b_def['object_id']) || $b_def['object_id'] === '') {
+        $b_def['object_id'] = $content_id_b;
+      }
+      $b_def['object_id'] = $content_id_b;
+      $b_def['label'] = (string) ($b_def['label'] ?? ucwords(str_replace(['_', '-'], ' ', $content_id_a))) . ' B';
+      $b_def['visual'] = is_array($b_def['visual'] ?? NULL) ? $b_def['visual'] : [];
+      $b_def['visual']['sprite_id'] = (string) ($def_a['visual']['sprite_id'] ?? $content_id_a);
+      $b_def['visual']['orientation'] = 'se';
+
+      if (!isset($dungeon_payload['object_definitions'][$content_id_center])) {
+        $dungeon_payload['object_definitions'][$content_id_center] = $center_def;
+      }
+      if (!isset($dungeon_payload['object_definitions'][$content_id_b])) {
+        $dungeon_payload['object_definitions'][$content_id_b] = $b_def;
+      }
+
+      $center_q = $base_q + 1;
+      $center_r = $base_r + 1;
+      $center_hex_key = $room_id . ':' . $center_q . ':' . $center_r;
+      $center_ref_key = $room_id . ':' . $center_q . ':' . $center_r . ':' . $content_id_center;
+
+      if (!isset($existing_ref[$center_ref_key]) && !isset($occupied[$center_hex_key])) {
+        $new_entities[] = [
+          'entity_type' => 'obstacle',
+          'instance_id' => sprintf('setting-%s-%s-%d-%d', $room_id, $content_id_center, $center_q, $center_r),
+          'entity_ref' => [
+            'content_id' => $content_id_center,
+          ],
+          'placement' => [
+            'room_id' => $room_id,
+            'hex' => [
+              'q' => $center_q,
+              'r' => $center_r,
+            ],
+          ],
+          'state' => [
+            'active' => TRUE,
+            'metadata' => [
+              'display_name' => (string) ($center_def['label'] ?? 'Long Table Center'),
+              'setting_state' => TRUE,
+              'passable' => FALSE,
+              'movable' => FALSE,
+              'stackable' => FALSE,
+              'fixture' => 'long_table',
+              'segment' => 'center',
+            ],
+          ],
+        ];
+        $occupied[$center_hex_key] = TRUE;
+        $existing_ref[$center_ref_key] = TRUE;
+      }
+
+      $b_q = $base_q + 2;
+      $b_r = $base_r + 2;
+      $b_hex_key = $room_id . ':' . $b_q . ':' . $b_r;
+      $b_ref_key = $room_id . ':' . $b_q . ':' . $b_r . ':' . $content_id_b;
+
+      if (!isset($existing_ref[$b_ref_key]) && !isset($occupied[$b_hex_key])) {
+        $new_entities[] = [
+          'entity_type' => 'obstacle',
+          'instance_id' => sprintf('setting-%s-%s-%d-%d', $room_id, $content_id_b, $b_q, $b_r),
+          'entity_ref' => [
+            'content_id' => $content_id_b,
+          ],
+          'placement' => [
+            'room_id' => $room_id,
+            'hex' => [
+              'q' => $b_q,
+              'r' => $b_r,
+            ],
+          ],
+          'state' => [
+            'active' => TRUE,
+            'metadata' => [
+              'display_name' => (string) ($b_def['label'] ?? 'Long Table B'),
+              'setting_state' => TRUE,
+              'passable' => FALSE,
+              'movable' => FALSE,
+              'stackable' => FALSE,
+              'fixture' => 'long_table',
+              'segment' => 'b',
+            ],
+          ],
+        ];
+        $occupied[$b_hex_key] = TRUE;
+        $existing_ref[$b_ref_key] = TRUE;
+      }
+    }
+
+    if (!empty($new_entities)) {
+      $dungeon_payload['entities'] = array_merge($dungeon_payload['entities'], $new_entities);
+    }
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Apply user-authored vertical offsets for long table segments.
+   *
+   * - Long table center: move north by 1 hex.
+   * - Long table A/B ends: move north by 2 hexes.
+   */
+  protected function adjustLongTableSegmentPlacements(array $dungeon_payload): array {
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      return $dungeon_payload;
+    }
+
+    foreach ($dungeon_payload['entities'] as &$entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      if (strtolower((string) ($entity['entity_type'] ?? '')) !== 'obstacle') {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($entity['entity_ref']['content_id'] ?? ''));
+      if ($content_id === '' || !isset($entity['placement']['hex']['r'])) {
+        continue;
+      }
+
+      if (str_contains($content_id, '_table_long_center')) {
+        $entity['placement']['hex']['r'] = (int) $entity['placement']['hex']['r'] - 1;
+        continue;
+      }
+
+      if (str_contains($content_id, '_table_long_b')) {
+        $entity['placement']['hex']['r'] = (int) $entity['placement']['hex']['r'] - 2;
+      }
+    }
+    unset($entity);
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Inject a fixed barkeep NPC entity from room template contents_data.
+   */
+  protected function injectRoomBarkeepEntity(array $dungeon_payload, array $launch_context): array {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    $room_id = (string) ($dungeon_payload['active_room_id'] ?? '');
+
+    if ($campaign_id <= 0 || $room_id === '') {
+      return $dungeon_payload;
+    }
+
+    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['contents_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('room_id', $room_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
+      return $dungeon_payload;
+    }
+
+    $contents_data = json_decode((string) $raw_contents, TRUE);
+    if (!is_array($contents_data)) {
+      return $dungeon_payload;
+    }
+
+    $npcs = $contents_data['npcs'] ?? [];
+    if (!is_array($npcs) || empty($npcs)) {
+      return $dungeon_payload;
+    }
+
+    $barkeep = NULL;
+    foreach ($npcs as $npc) {
+      if (!is_array($npc)) {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($npc['content_id'] ?? ''));
+      $name = strtolower((string) ($npc['name'] ?? ''));
+      $role = strtolower((string) ($npc['role'] ?? ''));
+
+      if (str_contains($content_id, 'tavern_keeper') || str_contains($content_id, 'barkeep') || str_contains($name, 'barkeep') || str_contains($role, 'barkeep')) {
+        $barkeep = $npc;
+        break;
+      }
+    }
+
+    if (!is_array($barkeep)) {
+      return $dungeon_payload;
+    }
+
+    $content_id = (string) ($barkeep['content_id'] ?? 'tavern_barkeep');
+    $instance_id = 'npc-' . (preg_replace('/[^a-zA-Z0-9_\-]+/', '-', $content_id) ?: 'tavern_barkeep');
+
+    $placement_room_id = $this->resolveBarkeepTargetRoomId($dungeon_payload, $room_id);
+
+    $position = is_array($barkeep['position'] ?? NULL) ? $barkeep['position'] : [];
+    $fallback_q = isset($position['q']) ? (int) $position['q'] : 0;
+    $fallback_r = isset($position['r']) ? (int) $position['r'] : 0;
+    [$q, $r] = $this->resolveBarkeepPlacementBehindBar($dungeon_payload, $placement_room_id, $fallback_q, $fallback_r);
+    $name = (string) ($barkeep['name'] ?? 'Barkeep');
+
+    foreach ($dungeon_payload['entities'] as &$entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      if ((string) ($entity['instance_id'] ?? '') !== $instance_id && (string) ($entity['entity_ref']['content_id'] ?? '') !== $content_id) {
+        continue;
+      }
+
+      $entity['placement'] = is_array($entity['placement'] ?? NULL) ? $entity['placement'] : [];
+      $entity['placement']['room_id'] = $placement_room_id;
+      $entity['placement']['hex'] = [
+        'q' => $q,
+        'r' => $r,
+      ];
+
+      $entity['state'] = is_array($entity['state'] ?? NULL) ? $entity['state'] : [];
+      $entity['state']['active'] = TRUE;
+      $entity['state']['metadata'] = is_array($entity['state']['metadata'] ?? NULL) ? $entity['state']['metadata'] : [];
+      $entity['state']['metadata']['display_name'] = $name;
+      $entity['state']['metadata']['name'] = $name;
+      $entity['state']['metadata']['role'] = (string) ($barkeep['role'] ?? 'barkeep');
+      $entity['state']['metadata']['description'] = (string) ($barkeep['description'] ?? '');
+      $entity['state']['metadata']['team'] = (string) ($entity['state']['metadata']['team'] ?? 'neutral');
+      $entity['state']['metadata']['setting_state'] = TRUE;
+      $entity['state']['metadata']['spawn_policy'] = 'fixed_template';
+      $entity['state']['metadata']['quests'] = is_array($barkeep['quests'] ?? NULL) ? array_values($barkeep['quests']) : [];
+
+      unset($entity);
+      return $dungeon_payload;
+    }
+    unset($entity);
+
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      $dungeon_payload['entities'] = [];
+    }
+
+    $dungeon_payload['entities'][] = [
+      'entity_type' => 'npc',
+      'instance_id' => $instance_id,
+      'entity_ref' => [
+        'content_type' => 'npc',
+        'content_id' => $content_id,
+      ],
+      'placement' => [
+        'room_id' => $placement_room_id,
+        'hex' => [
+          'q' => $q,
+          'r' => $r,
+        ],
+      ],
+      'state' => [
+        'active' => TRUE,
+        'metadata' => [
+          'display_name' => $name,
+          'name' => $name,
+          'role' => (string) ($barkeep['role'] ?? 'barkeep'),
+          'description' => (string) ($barkeep['description'] ?? ''),
+          'team' => 'neutral',
+          'setting_state' => TRUE,
+          'spawn_policy' => 'fixed_template',
+          'quests' => is_array($barkeep['quests'] ?? NULL) ? array_values($barkeep['quests']) : [],
+        ],
+      ],
+    ];
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Resolve the room identifier where bar counters are currently placed.
+   */
+  protected function resolveBarkeepTargetRoomId(array $dungeon_payload, string $fallback_room_id): string {
+    foreach (($dungeon_payload['entities'] ?? []) as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      if (strtolower((string) ($entity['entity_type'] ?? '')) !== 'obstacle') {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($entity['entity_ref']['content_id'] ?? ''));
+      $fixture = strtolower((string) ($entity['state']['metadata']['fixture'] ?? ''));
+      if (!str_contains($content_id, 'bar_counter') && !str_contains($fixture, 'bar_counter')) {
+        continue;
+      }
+
+      $bar_room_id = (string) ($entity['placement']['room_id'] ?? '');
+      if ($bar_room_id !== '') {
+        return $bar_room_id;
+      }
+    }
+
+    return $fallback_room_id;
+  }
+
+  /**
+   * Resolve barkeep placement directly behind the bar counters.
+   *
+   * Prefers a hex one row north of the center bar counter. Falls back to
+   * authored NPC position when no bar counters are present.
+   */
+  protected function resolveBarkeepPlacementBehindBar(array $dungeon_payload, string $room_id, int $fallback_q, int $fallback_r): array {
+    $bar_hexes = [];
+    $occupied = [];
+
+    foreach (($dungeon_payload['entities'] ?? []) as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      $entity_room_id = (string) ($entity['placement']['room_id'] ?? '');
+      $hex = is_array($entity['placement']['hex'] ?? NULL) ? $entity['placement']['hex'] : [];
+      if ($entity_room_id !== $room_id || !isset($hex['q'], $hex['r'])) {
+        continue;
+      }
+
+      $q = (int) $hex['q'];
+      $r = (int) $hex['r'];
+      $occupied[$q . ':' . $r] = TRUE;
+
+      if (strtolower((string) ($entity['entity_type'] ?? '')) !== 'obstacle') {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($entity['entity_ref']['content_id'] ?? ''));
+      $fixture = strtolower((string) ($entity['state']['metadata']['fixture'] ?? ''));
+      if (str_contains($content_id, 'bar_counter') || str_contains($fixture, 'bar_counter')) {
+        $bar_hexes[] = ['q' => $q, 'r' => $r];
+      }
+    }
+
+    if (empty($bar_hexes)) {
+      return [$fallback_q, $fallback_r];
+    }
+
+    usort($bar_hexes, static function (array $a, array $b): int {
+      if ($a['q'] === $b['q']) {
+        return $a['r'] <=> $b['r'];
+      }
+      return $a['q'] <=> $b['q'];
+    });
+
+    $middle = $bar_hexes[(int) floor(count($bar_hexes) / 2)];
+    $target_r = (int) $middle['r'] - 1;
+    $candidate_qs = [(int) $middle['q']];
+
+    foreach ($bar_hexes as $bar_hex) {
+      $candidate_qs[] = (int) $bar_hex['q'];
+    }
+
+    $candidate_qs = array_values(array_unique($candidate_qs));
+    usort($candidate_qs, static function (int $a, int $b) use ($middle): int {
+      $target_q = (int) $middle['q'];
+      $distance_a = abs($a - $target_q);
+      $distance_b = abs($b - $target_q);
+      if ($distance_a === $distance_b) {
+        return $a <=> $b;
+      }
+      return $distance_a <=> $distance_b;
+    });
+
+    foreach ($candidate_qs as $candidate_q) {
+      $key = $candidate_q . ':' . $target_r;
+      if (!isset($occupied[$key])) {
+        return [$candidate_q, $target_r];
+      }
+    }
+
+    // Secondary fallback: original authored position, then center bar hex.
+    if (!isset($occupied[$fallback_q . ':' . $fallback_r])) {
+      return [$fallback_q, $fallback_r];
+    }
+
+    return [(int) $middle['q'], (int) $middle['r']];
+  }
+
+  /**
+   * Inject collectible quest item entities into the dungeon payload.
+   *
+   * Active quests with "collect" objectives need visible item entities on the
+   * hex grid so the player can interact with them. This method reads the active
+   * quest objectives, determines how many items are still needed, and places
+   * that many item entities on unoccupied hexes in the active room.
+   *
+   * @param array $dungeon_payload
+   *   Normalized dungeon payload.
+   * @param array $quest_summary
+   *   Quest summary from loadQuestSummary().
+   *
+   * @return array
+   *   Dungeon payload with quest item entities appended.
+   */
+  protected function injectQuestItemEntities(array $dungeon_payload, array $quest_summary): array {
+    $active_quests = $quest_summary['active'] ?? [];
+    if (empty($active_quests)) {
+      return $dungeon_payload;
+    }
+
+    $active_room_id = $dungeon_payload['active_room_id'] ?? '';
+    if ($active_room_id === '' || empty($dungeon_payload['rooms'][$active_room_id])) {
+      return $dungeon_payload;
+    }
+
+    // Collect all hexes in the active room.
+    $room_hexes = $dungeon_payload['rooms'][$active_room_id]['hexes'] ?? [];
+    if (empty($room_hexes)) {
+      return $dungeon_payload;
+    }
+
+    // Build occupancy set of already-occupied hexes.
+    $occupied = [];
+    foreach (($dungeon_payload['entities'] ?? []) as $entity) {
+      $placement = $entity['placement'] ?? [];
+      if (($placement['room_id'] ?? '') === $active_room_id && isset($placement['hex'])) {
+        $key = ((int) $placement['hex']['q']) . ',' . ((int) $placement['hex']['r']);
+        $occupied[$key] = TRUE;
+      }
+    }
+
+    // Collect available (unoccupied) hexes.
+    $available_hexes = [];
+    foreach ($room_hexes as $hex) {
+      $q = (int) ($hex['q'] ?? 0);
+      $r = (int) ($hex['r'] ?? 0);
+      $key = $q . ',' . $r;
+      if (!isset($occupied[$key])) {
+        $available_hexes[] = ['q' => $q, 'r' => $r];
+      }
+    }
+
+    if (empty($available_hexes)) {
+      return $dungeon_payload;
+    }
+
+    // Shuffle for natural scatter placement.
+    shuffle($available_hexes);
+    $hex_index = 0;
+
+    foreach ($active_quests as $quest) {
+      $phases = $quest['generated_objectives'] ?? [];
+      $objective_states = $quest['objective_states'] ?? [];
+      $quest_id = $quest['quest_id'] ?? $quest['id'] ?? 'unknown';
+      $quest_key = $quest['quest_key'] ?? $quest_id;
+
+      foreach ($phases as $phase) {
+        $objectives = $phase['objectives'] ?? [];
+        foreach ($objectives as $objective) {
+          if (($objective['type'] ?? '') !== 'collect') {
+            continue;
+          }
+
+          // Dynamic quest item spawning is opt-in only.
+          // Default behavior: fixed template item entities are used instead.
+          $spawn_mode = strtolower((string) ($objective['spawn_mode'] ?? 'fixed'));
+          if ($spawn_mode !== 'dynamic') {
+            continue;
+          }
+
+          $objective_id = $objective['objective_id'] ?? '';
+          $target_count = (int) ($objective['target_count'] ?? 1);
+          $current = (int) ($objective['current'] ?? 0);
+
+          // Check objective_states for existing progress.
+          foreach ($objective_states as $os) {
+            if (($os['objective_id'] ?? '') === $objective_id) {
+              $current = max($current, (int) ($os['current'] ?? 0));
+              break;
+            }
+          }
+
+          $remaining = max(0, $target_count - $current);
+          if ($remaining <= 0) {
+            continue;
+          }
+
+          $item_name = $objective['item'] ?? 'quest item';
+
+          // Place remaining items on available hexes.
+          for ($i = 0; $i < $remaining && $hex_index < count($available_hexes); $i++) {
+            $hex = $available_hexes[$hex_index++];
+            $instance_id = sprintf('quest-item-%s-%s-%d', $quest_key, $objective_id, $i);
+
+            $dungeon_payload['entities'][] = [
+              'entity_instance_id' => $instance_id,
+              'entity_type' => 'item',
+              'entity_ref' => [
+                'content_type' => 'quest_collectible',
+                'content_id' => $objective_id,
+              ],
+              'placement' => [
+                'room_id' => $active_room_id,
+                'hex' => $hex,
+              ],
+              'state' => [
+                'active' => TRUE,
+                'metadata' => [
+                  'display_name' => ucfirst($item_name),
+                  'quest_id' => $quest_id,
+                  'quest_key' => $quest_key,
+                  'objective_id' => $objective_id,
+                  'item_name' => $item_name,
+                  'collectible' => TRUE,
+                  'passable' => TRUE,
+                  'movable' => FALSE,
+                ],
+              ],
+              'instance_id' => $instance_id,
+            ];
+          }
+        }
+      }
+    }
+
+    return $dungeon_payload;
+  }
+
+  /**
    * Normalize a dungeon payload to the hexmap-ready shape.
    */
   protected function normalizeDungeonPayload(array $decoded, array $launch_context): array {
     $object_definitions = [];
-    foreach (($decoded['object_definitions'] ?? []) as $object_definition) {
-      if (!is_array($object_definition) || empty($object_definition['object_id'])) {
+    foreach (($decoded['object_definitions'] ?? []) as $definition_key => $object_definition) {
+      if (!is_array($object_definition)) {
         continue;
       }
-      $object_definitions[(string) $object_definition['object_id']] = $object_definition;
+
+      $object_id = (string) ($object_definition['object_id'] ?? $object_definition['id'] ?? (is_string($definition_key) ? $definition_key : ''));
+      if ($object_id === '') {
+        continue;
+      }
+
+      $object_definition['object_id'] = $object_id;
+      if (empty($object_definition['label'])) {
+        $object_definition['label'] = ucwords(str_replace(['_', '-'], ' ', $object_id));
+      }
+
+      $object_definitions[$object_id] = $object_definition;
     }
 
     $rooms = [];
@@ -351,11 +1366,68 @@ class HexMapController extends ControllerBase {
       if (!is_array($room) || empty($room['room_id'])) {
         continue;
       }
+
+      $normalized_hexes = [];
+      foreach ((is_array($room['hexes'] ?? NULL) ? $room['hexes'] : []) as $hex) {
+        if (!is_array($hex)) {
+          continue;
+        }
+
+        $hex['q'] = (int) ($hex['q'] ?? 0);
+        $hex['r'] = (int) ($hex['r'] ?? 0);
+        $hex_objects = is_array($hex['objects'] ?? NULL) ? $hex['objects'] : [];
+
+        foreach ($hex_objects as $object) {
+          if (!is_array($object)) {
+            continue;
+          }
+
+          $object_id = (string) ($object['object_id'] ?? $object['id'] ?? $object['content_id'] ?? '');
+          if ($object_id === '' || isset($object_definitions[$object_id])) {
+            continue;
+          }
+
+          $label = (string) ($object['label'] ?? $object['name'] ?? ucwords(str_replace(['_', '-'], ' ', $object_id)));
+          $category = (string) ($object['category'] ?? $object['type'] ?? 'decor');
+          $sprite_id = (string) ($object['visual']['sprite_id'] ?? $object_id);
+          $color = $object['visual']['color'] ?? NULL;
+          $size = (string) ($object['visual']['size'] ?? 'medium');
+
+          $passable = isset($object['passable'])
+            ? (bool) $object['passable']
+            : (!empty($object['impassable']) ? FALSE : FALSE);
+
+          $object_definitions[$object_id] = [
+            'object_id' => $object_id,
+            'label' => $label,
+            'category' => $category,
+            'description' => (string) ($object['description'] ?? ''),
+            'movable' => isset($object['movable']) ? (bool) $object['movable'] : FALSE,
+            'stackable' => isset($object['stackable']) ? (bool) $object['stackable'] : FALSE,
+            'movement' => [
+              'passable' => $passable,
+            ],
+            'visual' => array_filter([
+              'sprite_id' => $sprite_id,
+              'size' => $size,
+              'color' => is_string($color) ? $color : NULL,
+            ], static fn($value) => $value !== NULL && $value !== ''),
+          ];
+        }
+
+        $normalized_hexes[] = $hex;
+      }
+
       $rooms[$room['room_id']] = [
         'room_id' => (string) $room['room_id'],
         'name' => (string) ($room['name'] ?? ''),
         'description' => (string) ($room['description'] ?? ''),
-        'hexes' => is_array($room['hexes'] ?? NULL) ? $room['hexes'] : [],
+        'hexes' => $normalized_hexes,
+        'terrain' => is_array($room['terrain'] ?? NULL) ? $room['terrain'] : [],
+        'lighting' => is_string($room['lighting'] ?? NULL) ? $room['lighting'] : 'normal',
+        'room_type' => (string) ($room['room_type'] ?? 'unknown'),
+        'size_category' => (string) ($room['size_category'] ?? 'medium'),
+        'gameplay_state' => is_array($room['gameplay_state'] ?? NULL) ? $room['gameplay_state'] : [],
       ];
     }
 
@@ -364,16 +1436,283 @@ class HexMapController extends ControllerBase {
       $active_room_id = (string) array_key_first($rooms);
     }
 
-    return [
+    // Ensure room-anchored setting objects are represented as stable entities.
+    $entities = is_array($decoded['entities'] ?? NULL) ? $decoded['entities'] : [];
+
+    // Drop malformed legacy gameplay entities that do not follow canonical
+    // placement/entity_ref schema.
+    $entities = array_values(array_filter($entities, static function ($entity): bool {
+      if (!is_array($entity)) {
+        return FALSE;
+      }
+
+      $placement = is_array($entity['placement'] ?? NULL) ? $entity['placement'] : NULL;
+      $hex = is_array($placement['hex'] ?? NULL) ? $placement['hex'] : NULL;
+      $entity_ref = is_array($entity['entity_ref'] ?? NULL) ? $entity['entity_ref'] : NULL;
+      $instance_id = (string) ($entity['instance_id'] ?? $entity['entity_instance_id'] ?? '');
+
+      if ($instance_id === '') {
+        return FALSE;
+      }
+
+      if (!$entity_ref || empty($entity_ref['content_id'])) {
+        return FALSE;
+      }
+
+      if (!$placement || empty($placement['room_id'])) {
+        return FALSE;
+      }
+
+      if (!$hex || !isset($hex['q'], $hex['r'])) {
+        return FALSE;
+      }
+
+      return TRUE;
+    }));
+    $entity_index = [];
+
+    foreach ($entities as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $placement = $entity['placement'] ?? [];
+      $hex = $placement['hex'] ?? [];
+      $room_id = (string) ($placement['room_id'] ?? '');
+      $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
+      if ($room_id === '' || $content_id === '' || !isset($hex['q'], $hex['r'])) {
+        continue;
+      }
+      $entity_index[$room_id . ':' . (int) $hex['q'] . ':' . (int) $hex['r'] . ':' . $content_id] = TRUE;
+    }
+
+    foreach ($rooms as $room_id => $room_data) {
+      foreach (($room_data['hexes'] ?? []) as $hex) {
+        $hex_q = (int) ($hex['q'] ?? 0);
+        $hex_r = (int) ($hex['r'] ?? 0);
+        foreach ((is_array($hex['objects'] ?? NULL) ? $hex['objects'] : []) as $object) {
+          if (!is_array($object)) {
+            continue;
+          }
+
+          $object_id = (string) ($object['object_id'] ?? $object['id'] ?? $object['content_id'] ?? '');
+          if ($object_id === '') {
+            continue;
+          }
+
+          $index_key = $room_id . ':' . $hex_q . ':' . $hex_r . ':' . $object_id;
+          if (isset($entity_index[$index_key])) {
+            continue;
+          }
+
+          $definition = $object_definitions[$object_id] ?? [];
+          $label = (string) ($object['label'] ?? $object['name'] ?? ($definition['label'] ?? ucwords(str_replace(['_', '-'], ' ', $object_id))));
+          $passable = isset($object['passable'])
+            ? (bool) $object['passable']
+            : (isset($definition['movement']['passable']) ? (bool) $definition['movement']['passable'] : (!empty($object['impassable']) ? FALSE : FALSE));
+          $movable = isset($object['movable'])
+            ? (bool) $object['movable']
+            : (isset($definition['movable']) ? (bool) $definition['movable'] : FALSE);
+          $stackable = isset($object['stackable'])
+            ? (bool) $object['stackable']
+            : (isset($definition['stackable']) ? (bool) $definition['stackable'] : FALSE);
+
+          $entities[] = [
+            'entity_type' => 'obstacle',
+            'instance_id' => sprintf('setting-%s-%s-%d-%d', $room_id, $object_id, $hex_q, $hex_r),
+            'entity_ref' => [
+              'content_id' => $object_id,
+            ],
+            'placement' => [
+              'room_id' => $room_id,
+              'hex' => [
+                'q' => $hex_q,
+                'r' => $hex_r,
+              ],
+            ],
+            'state' => [
+              'active' => TRUE,
+              'metadata' => [
+                'display_name' => $label,
+                'setting_state' => TRUE,
+                'passable' => $passable,
+                'movable' => $movable,
+                'stackable' => $stackable,
+              ],
+            ],
+          ];
+
+          $entity_index[$index_key] = TRUE;
+        }
+      }
+    }
+
+    $normalized_payload = [
       'schema_version' => (string) ($decoded['schema_version'] ?? '1.0.0'),
       'level_id' => (string) ($decoded['level_id'] ?? ''),
       'map_id' => (string) ($decoded['hex_map']['map_id'] ?? ''),
       'active_room_id' => $active_room_id,
       'rooms' => $rooms,
       'connections' => is_array($decoded['hex_map']['connections'] ?? NULL) ? $decoded['hex_map']['connections'] : [],
-      'entities' => is_array($decoded['entities'] ?? NULL) ? $decoded['entities'] : [],
+      'entities' => array_values($entities),
       'object_definitions' => $object_definitions,
     ];
+
+    return $this->ensurePayloadObjectOrientations($normalized_payload);
+  }
+
+  /**
+   * Ensure all positioned objects/entities carry explicit orientation.
+   *
+   * Orientation is used as a canonical "front" direction for object-facing
+   * across definitions, room-authored objects, and placed entities.
+   */
+  protected function ensurePayloadObjectOrientations(array $dungeon_payload): array {
+    $default_orientation = self::DEFAULT_OBJECT_ORIENTATION;
+
+    if (!isset($dungeon_payload['object_definitions']) || !is_array($dungeon_payload['object_definitions'])) {
+      $dungeon_payload['object_definitions'] = [];
+    }
+
+    foreach ($dungeon_payload['object_definitions'] as &$definition) {
+      if (!is_array($definition)) {
+        continue;
+      }
+
+      $definition_orientation = (string) ($definition['orientation'] ?? $definition['visual']['orientation'] ?? $default_orientation);
+      if ($definition_orientation === '') {
+        $definition_orientation = $default_orientation;
+      }
+
+      $definition['orientation'] = $definition_orientation;
+      $definition['visual'] = is_array($definition['visual'] ?? NULL) ? $definition['visual'] : [];
+      $definition['visual']['orientation'] = $definition_orientation;
+    }
+    unset($definition);
+
+    if (isset($dungeon_payload['rooms']) && is_array($dungeon_payload['rooms'])) {
+      foreach ($dungeon_payload['rooms'] as &$room) {
+        if (!is_array($room) || !isset($room['hexes']) || !is_array($room['hexes'])) {
+          continue;
+        }
+
+        foreach ($room['hexes'] as &$hex) {
+          if (!is_array($hex) || !isset($hex['objects']) || !is_array($hex['objects'])) {
+            continue;
+          }
+
+          foreach ($hex['objects'] as &$object) {
+            if (!is_array($object)) {
+              continue;
+            }
+
+            $object_id = (string) ($object['object_id'] ?? $object['id'] ?? $object['content_id'] ?? '');
+            $definition_orientation = (string) ($dungeon_payload['object_definitions'][$object_id]['visual']['orientation'] ?? $default_orientation);
+            if ($definition_orientation === '') {
+              $definition_orientation = $default_orientation;
+            }
+
+            $object_orientation = (string) ($object['orientation'] ?? $object['visual']['orientation'] ?? $definition_orientation);
+            if ($object_orientation === '') {
+              $object_orientation = $definition_orientation;
+            }
+
+            $object['orientation'] = $object_orientation;
+            $object['visual'] = is_array($object['visual'] ?? NULL) ? $object['visual'] : [];
+            $object['visual']['orientation'] = $object_orientation;
+          }
+          unset($object);
+        }
+        unset($hex);
+      }
+      unset($room);
+    }
+
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      return $dungeon_payload;
+    }
+
+    foreach ($dungeon_payload['entities'] as &$entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
+      $definition_orientation = (string) ($dungeon_payload['object_definitions'][$content_id]['visual']['orientation'] ?? $default_orientation);
+      if ($definition_orientation === '') {
+        $definition_orientation = $default_orientation;
+      }
+
+      $placement = is_array($entity['placement'] ?? NULL) ? $entity['placement'] : [];
+      $entity_orientation = (string) ($placement['orientation'] ?? $entity['state']['metadata']['orientation'] ?? $definition_orientation);
+      if ($entity_orientation === '') {
+        $entity_orientation = $definition_orientation;
+      }
+
+      $placement['orientation'] = $entity_orientation;
+      $entity['placement'] = $placement;
+
+      $entity['state'] = is_array($entity['state'] ?? NULL) ? $entity['state'] : [];
+      $entity['state']['metadata'] = is_array($entity['state']['metadata'] ?? NULL) ? $entity['state']['metadata'] : [];
+      $entity['state']['metadata']['orientation'] = $entity_orientation;
+    }
+    unset($entity);
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Persist template-level payload mutations back into campaign dungeon data.
+   *
+   * This writes deterministic room/template changes (fixtures, fixed NPCs/items,
+   * orientation metadata) to dc_campaign_dungeons.dungeon_data. Runtime-only
+   * session state (selected PC / dynamic quest spawns) should be injected after
+   * this method is called.
+   */
+  protected function persistDungeonTemplatePayload(array $template_payload, array $launch_context): void {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    if ($campaign_id <= 0) {
+      return;
+    }
+
+    $query = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['id', 'dungeon_data'])
+      ->condition('campaign_id', $campaign_id);
+
+    if (!empty($launch_context['map_id'])) {
+      $query->condition('dungeon_id', (string) $launch_context['map_id']);
+    }
+
+    $record = $query
+      ->orderBy('updated', 'DESC')
+      ->orderBy('id', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$record || empty($record['id'])) {
+      return;
+    }
+
+    $encoded_next = json_encode($template_payload, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE);
+    if (!is_string($encoded_next) || $encoded_next === '') {
+      return;
+    }
+
+    $decoded_current = json_decode((string) ($record['dungeon_data'] ?? ''), TRUE);
+    $encoded_current = is_array($decoded_current)
+      ? json_encode($decoded_current, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+      : '';
+
+    if ($encoded_current === $encoded_next) {
+      return;
+    }
+
+    $this->database->update('dc_campaign_dungeons')
+      ->fields([
+        'dungeon_data' => $encoded_next,
+      ])
+      ->condition('id', (int) $record['id'])
+      ->execute();
   }
 
   /**

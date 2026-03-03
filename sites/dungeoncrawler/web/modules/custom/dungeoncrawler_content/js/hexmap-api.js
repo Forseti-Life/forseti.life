@@ -4,6 +4,7 @@
 const jsonHeaders = {
   'Content-Type': 'application/json',
   'Accept': 'application/json',
+  'X-Requested-With': 'XMLHttpRequest',
 };
 
 async function getJson(url) {

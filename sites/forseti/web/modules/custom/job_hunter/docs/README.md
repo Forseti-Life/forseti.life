@@ -88,6 +88,17 @@ Comprehensive setup guide for all external API integrations:
 
 **When to read:** When setting up the module for the first time, configuring API integrations, or troubleshooting API issues.
 
+#### [GenAI Fallback Service Standard](GENAI_FALLBACK_SERVICE.md) 🧠
+**Audience:** Developers, Architects, QA Engineers
+
+Canonical standard for reusable GenAI fallback decisions in process flows:
+- Unified service and response contract (`used/available/success/confirmed/confidence/evidence`)
+- Deterministic-first gating pattern before fallback invocation
+- Prompt/context conventions and metadata (`use_case`, `stage`, `decision_key`)
+- Reuse examples and anti-patterns to avoid per-flow reinvention
+
+**When to read:** Before adding GenAI fallback logic to any new workflow step.
+
 #### [Resume JSON Schema](RESUME_JSON_SCHEMA.md) 📄
 **Audience:** Developers, Data Engineers
 

@@ -73,6 +73,13 @@ services:
     tags:
       - { name: drush.command }
 
+  job_hunter.application_location_verification_commands:
+    class: Drupal\job_hunter\Commands\ApplicationLocationVerificationCommands
+    arguments:
+      - '@job_hunter.application_location_verification_service'
+    tags:
+      - { name: drush.command }
+
   job_hunter.error_queue_service:
     class: Drupal\job_hunter\Service\ErrorQueueService
     arguments: ['@entity_type.manager', '@logger.factory']
@@ -101,6 +108,35 @@ services:
     class: Drupal\job_hunter\Service\ApplyUrlResolverService
     arguments:
       - '@logger.factory'
+
+  job_hunter.application_location_verification_service:
+    class: Drupal\job_hunter\Service\ApplicationLocationVerificationService
+    arguments:
+      - '@database'
+      - '@job_hunter.apply_url_resolver'
+      - '@http_client'
+      - '@job_hunter.genai_fallback_service'
+
+  job_hunter.genai_fallback_service:
+    class: Drupal\job_hunter\Service\GenAiFallbackService
+    arguments:
+      - '@service_container'
+
+  job_hunter.auth_path_identification_service:
+    class: Drupal\job_hunter\Service\AuthPathIdentificationService
+    arguments:
+      - '@database'
+
+  job_hunter.account_verification_service:
+    class: Drupal\job_hunter\Service\AccountVerificationService
+    arguments:
+      - '@database'
+
+  job_hunter.resume_upload_service:
+    class: Drupal\job_hunter\Service\ResumeUploadService
+    arguments:
+      - '@database'
+      - '@file_system'
 
   job_hunter.application_form_mapper:
     class: Drupal\job_hunter\Service\ApplicationFormMapper

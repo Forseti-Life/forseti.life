@@ -370,6 +370,130 @@ job_hunter.application_submission:
   requirements:
     _permission: 'access job hunter'
 
+job_hunter.application_submission_job:
+  path: '/jobhunter/application-submission/{job_id}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmission'
+    _title: 'Application Submission'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_short:
+  path: '/application-submission'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmission'
+    _title: 'Application Submission'
+  requirements:
+    _permission: 'access job hunter'
+
+job_hunter.application_submission_job_short:
+  path: '/application-submission/{job_id}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmission'
+    _title: 'Application Submission'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step2:
+  path: '/jobhunter/application-submission/{job_id}/resolve-redirect-chain'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionResolveRedirectChain'
+    _title: 'Resolve Redirect Chain'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step2_short:
+  path: '/application-submission/{job_id}/resolve-redirect-chain'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionResolveRedirectChain'
+    _title: 'Resolve Redirect Chain'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step3:
+  path: '/jobhunter/application-submission/{job_id}/identify-auth-path'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionIdentifyAuthPath'
+    _title: 'Identify Authentication Path'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step3_short:
+  path: '/application-submission/{job_id}/identify-auth-path'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionIdentifyAuthPath'
+    _title: 'Identify Authentication Path'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step4:
+  path: '/jobhunter/application-submission/{job_id}/create-account'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionCreateAccount'
+    _title: 'Create Account'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step4_short:
+  path: '/application-submission/{job_id}/create-account'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionCreateAccount'
+    _title: 'Create Account'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step5:
+  path: '/jobhunter/application-submission/{job_id}/submit-application'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionSubmitApplication'
+    _title: 'Submit Application'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step5_short:
+  path: '/application-submission/{job_id}/submit-application'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionSubmitApplication'
+    _title: 'Submit Application'
+  methods: [GET, POST]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step_stub:
+  path: '/jobhunter/application-submission/{job_id}/step/{step}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionStepStub'
+    _title: 'Application Submission Step'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+    step: '\d+'
+
+job_hunter.application_submission_step_stub_short:
+  path: '/application-submission/{job_id}/step/{step}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionStepStub'
+    _title: 'Application Submission Step'
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+    step: '\d+'
+
 # Application automation: initiate apply for a job (POST)
 job_hunter.job_apply:
   path: '/jobhunter/jobs/{job_id}/apply'

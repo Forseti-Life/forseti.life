@@ -6,6 +6,7 @@ use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Session\AccountInterface;
 use Drupal\dungeoncrawler_content\Access\CampaignAccessCheck;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
+use Drupal\dungeoncrawler_content\Service\SpriteGenerationService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -31,12 +32,18 @@ class GeneratedImageApiController extends ControllerBase {
   protected AccountInterface $currentAccount;
 
   /**
+   * Sprite generation service.
+   */
+  protected SpriteGenerationService $spriteGenerator;
+
+  /**
    * Constructs the controller.
    */
-  public function __construct(GeneratedImageRepository $image_repository, CampaignAccessCheck $campaign_access_check, AccountInterface $current_account) {
+  public function __construct(GeneratedImageRepository $image_repository, CampaignAccessCheck $campaign_access_check, AccountInterface $current_account, SpriteGenerationService $sprite_generator) {
     $this->imageRepository = $image_repository;
     $this->campaignAccessCheck = $campaign_access_check;
     $this->currentAccount = $current_account;
+    $this->spriteGenerator = $sprite_generator;
   }
 
   /**
@@ -47,6 +54,7 @@ class GeneratedImageApiController extends ControllerBase {
       $container->get('dungeoncrawler_content.generated_image_repository'),
       $container->get('dungeoncrawler_content.campaign_access_check'),
       $container->get('current_user'),
+      $container->get('dungeoncrawler_content.sprite_generator'),
     );
   }
 
@@ -251,6 +259,111 @@ class GeneratedImageApiController extends ControllerBase {
       'url' => $this->imageRepository->resolveClientUrl($row),
       'created' => isset($row['image_created']) ? (int) $row['image_created'] : NULL,
     ];
+  }
+
+  /**
+   * POST /api/sprites/resolve
+   *
+   * Resolves sprite URLs for a batch of object definitions.
+   * Returns cached URLs for existing sprites and generates missing ones.
+   *
+   * Request body:
+   * {
+   *   "campaign_id": 17,
+   *   "object_definitions": {
+   *     "wooden_tavern_door": { "label": "Tavern Door", "category": "door", ... },
+   *     ...
+   *   },
+   *   "generate": true
+   * }
+   */
+  public function resolveSprites(Request $request): JsonResponse {
+    $body = json_decode((string) $request->getContent(), TRUE);
+    if (!is_array($body)) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Invalid JSON body'], 400);
+    }
+
+    $campaign_id = isset($body['campaign_id']) && is_numeric($body['campaign_id']) ? (int) $body['campaign_id'] : NULL;
+    $object_definitions = is_array($body['object_definitions'] ?? NULL) ? $body['object_definitions'] : [];
+    $should_generate = !isset($body['generate']) || !empty($body['generate']);
+
+    if (empty($object_definitions)) {
+      return new JsonResponse(['success' => TRUE, 'sprites' => (object) [], 'count' => 0]);
+    }
+
+    if ($campaign_id !== NULL && !$this->campaignAccessCheck->access($this->currentAccount, $campaign_id)->isAllowed()) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Access denied to campaign'], 403);
+    }
+
+    $owner_uid = (int) $this->currentAccount->id();
+    $sprites = [];
+
+    foreach ($object_definitions as $object_id => $def) {
+      $sprite_id = trim((string) ($def['visual']['sprite_id'] ?? ''));
+      if ($sprite_id === '') {
+        continue;
+      }
+
+      if (isset($sprites[$sprite_id])) {
+        // Already resolved this sprite_id.
+        continue;
+      }
+
+      if ($should_generate) {
+        $result = $this->spriteGenerator->resolveSprite($sprite_id, $def, $campaign_id, $owner_uid);
+      }
+      else {
+        // Lookup only — no generation.
+        $existing = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, $campaign_id, 'sprite', 'original');
+        if (empty($existing)) {
+          $existing = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, NULL, 'sprite', 'original');
+        }
+        $url = !empty($existing) ? $this->imageRepository->resolveClientUrl($existing[0]) : NULL;
+        $result = ['url' => $url, 'generated' => FALSE, 'cached' => $url !== NULL, 'error' => NULL];
+      }
+
+      $sprites[$sprite_id] = [
+        'url' => $result['url'],
+        'generated' => $result['generated'] ?? FALSE,
+        'cached' => $result['cached'] ?? FALSE,
+      ];
+    }
+
+    return new JsonResponse([
+      'success' => TRUE,
+      'sprites' => (object) $sprites,
+      'count' => count($sprites),
+    ]);
+  }
+
+  /**
+   * GET /api/sprite/{sprite_id}
+   *
+   * Returns an existing sprite URL or 404 if none exists.
+   */
+  public function getSprite(string $sprite_id, Request $request): JsonResponse {
+    $campaign_id = $request->query->get('campaign_id');
+    $campaign_id = is_numeric($campaign_id) ? (int) $campaign_id : NULL;
+
+    $images = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, $campaign_id, 'sprite', 'original');
+    if (empty($images)) {
+      $images = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, NULL, 'sprite', 'original');
+    }
+
+    if (empty($images)) {
+      return new JsonResponse(['success' => FALSE, 'error' => 'Sprite not found', 'sprite_id' => $sprite_id], 404);
+    }
+
+    $url = $this->imageRepository->resolveClientUrl($images[0]);
+
+    return new JsonResponse([
+      'success' => TRUE,
+      'sprite_id' => $sprite_id,
+      'url' => $url,
+      'mime_type' => $images[0]['mime_type'] ?? NULL,
+      'width' => isset($images[0]['width']) ? (int) $images[0]['width'] : NULL,
+      'height' => isset($images[0]['height']) ? (int) $images[0]['height'] : NULL,
+    ]);
   }
 
 }

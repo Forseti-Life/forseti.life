@@ -26,6 +26,13 @@ services:
     class: Drupal\dungeoncrawler_content\Service\CharacterManager
     arguments: ['@database', '@current_user', '@uuid']
 
+  dungeoncrawler_content.character_state:
+    class: Drupal\dungeoncrawler_content\Service\CharacterStateService
+    arguments: ['@database', '@current_user']
+
+  dungeoncrawler_content.character_state_service:
+    alias: dungeoncrawler_content.character_state
+
   dungeoncrawler_content.number_generation:
     class: Drupal\dungeoncrawler_content\Service\NumberGenerationService
     arguments: ['@database', '@current_user']
@@ -88,6 +95,13 @@ services:
       - '@dungeoncrawler_content.image_generation_integration'
       - '@dungeoncrawler_content.generated_image_repository'
       - '@dungeoncrawler_content.character_image_prompt_builder'
+      - '@logger.factory'
+
+  dungeoncrawler_content.sprite_generator:
+    class: Drupal\dungeoncrawler_content\Service\SpriteGenerationService
+    arguments:
+      - '@dungeoncrawler_content.image_generation_integration'
+      - '@dungeoncrawler_content.generated_image_repository'
       - '@logger.factory'
 
   dungeoncrawler_content.campaign_content:
@@ -177,9 +191,13 @@ services:
     class: Drupal\dungeoncrawler_content\Service\CampaignStateService
     arguments: ['@database', '@logger.factory']
 
+  dungeoncrawler_content.gameplay_action_processor:
+    class: Drupal\dungeoncrawler_content\Service\GameplayActionProcessor
+    arguments: ['@database', '@logger.factory']
+
   dungeoncrawler_content.room_chat_service:
     class: Drupal\dungeoncrawler_content\Service\RoomChatService
-    arguments: ['@database', '@dungeoncrawler_content.dungeon_state_service', '@logger.factory', '@current_user']
+    arguments: ['@database', '@dungeoncrawler_content.dungeon_state_service', '@logger.factory', '@current_user', '@ai_conversation.ai_api_service', '@ai_conversation.prompt_manager', '@dungeoncrawler_content.gameplay_action_processor']
 
   dungeoncrawler_content.campaign_initialization:
     class: Drupal\dungeoncrawler_content\Service\CampaignInitializationService

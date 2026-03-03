@@ -104,6 +104,11 @@
                   {% endif %}
                 {% endif %}
               </div>
+              {% if char.url %}
+                <a href="{{ char.url }}" class="dc-character-card__view-link dc-btn dc-btn-secondary dc-btn-sm" onclick="event.stopPropagation();">
+                  📋 View Full Sheet
+                </a>
+              {% endif %}
             </div>
 
             <div class="dc-character-card__arrow">›</div>

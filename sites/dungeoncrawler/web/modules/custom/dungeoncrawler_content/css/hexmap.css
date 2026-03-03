@@ -370,7 +370,7 @@
 
 /* Canvas Container */
 .hexmap-canvas-wrapper {
-  width: calc(100% - clamp(140px, 12%, 240px));
+  width: 100%;
   height: 600px;
   background: var(--canvas-bg);
   border: 3px solid var(--gray-600);
@@ -378,7 +378,7 @@
   overflow: hidden;
   position: relative;
   box-shadow: var(--shadow-lg);
-  margin-left: clamp(140px, 12%, 240px);
+  margin-left: 0;
 }
 
 .hexmap-canvas-wrapper canvas {
@@ -438,132 +438,6 @@
   margin-top: var(--space-2);
 }
 
-/* ==========================================================================
-   Action Footer (Side Rail)
-   ========================================================================== */
-
-.action-footer {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: clamp(140px, 12%, 240px);
-  padding: 1px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  background: linear-gradient(90deg, var(--overlay-panel-95) 0%, var(--overlay-panel-98) 100%);
-  border-right: 1px solid var(--overlay-white-08);
-  box-shadow: 6px 0 20px var(--overlay-black-35);
-  z-index: var(--z-action-footer);
-  pointer-events: auto;
-  max-height: none;
-  height: 100%;
-  overflow-y: auto;
-  box-sizing: border-box;
-  font-size: var(--text-xs);
-}
-
-/* Action Footer Toggle & Collapsed State */
-
-.action-footer__toggle {
-  width: 100%;
-  text-align: center;
-  font-weight: 700;
-  color: var(--text);
-  padding: 1px;
-  cursor: pointer;
-  background: var(--overlay-white-04);
-  border: 1px solid var(--overlay-white-08);
-  border-radius: 6px;
-  font-size: 0.8em;
-}
-
-.action-footer.collapsed {
-  padding: 6px 10px;
-}
-
-.action-footer.collapsed .action-block {
-  display: none;
-}
-
-.action-footer.collapsed .action-section__body {
-  display: none;
-}
-
-/* Collapsible Rail Sections */
-
-.action-footer .action-section {
-  flex: 1 1 auto;
-  background: var(--overlay-white-04);
-  border: 1px solid var(--overlay-white-08);
-  border-radius: 8px;
-  width: 100%;
-  overflow: hidden;
-}
-
-.action-section__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 8px 10px;
-  cursor: pointer;
-  font-weight: 700;
-  color: var(--text);
-  background: var(--overlay-white-04);
-  border-bottom: 1px solid var(--overlay-white-06);
-}
-
-.action-section__header span {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.action-section__chevron {
-  transition: transform var(--transition-fast) var(--ease-smooth);
-}
-
-.action-section__body {
-  padding: 8px 10px;
-}
-
-.action-section.collapsed .action-section__body {
-  display: none;
-}
-
-.action-section.collapsed .action-section__chevron {
-  transform: rotate(-90deg);
-}
-
-.action-footer .action-buttons {
-  display: flex;
-  gap: 4px;
-  flex-wrap: wrap;
-  align-items: stretch;
-  margin-bottom: 3px;
-}
-
-.action-footer .action-buttons .btn {
-  padding: 6px 8px;
-  min-height: 32px;
-  flex: 1 1 calc(50% - 4px);
-  font-size: 0.78em;
-  line-height: 1.2;
-}
-
-.action-footer .action-buttons #end-turn {
-  flex: 1 1 100%;
-}
-
-.action-footer .action-buttons .btn.btn-disabled,
-.action-footer .action-buttons .btn:disabled {
-  opacity: 0.6;
-  pointer-events: none;
-  cursor: not-allowed;
-}
-
 .turn-action-buttons {
   display: flex;
   flex-direction: column;
@@ -583,8 +457,8 @@
 
 .hexmap-chat {
   margin-top: var(--space-4);
-  margin-left: clamp(140px, 12%, 240px);
-  width: calc(100% - clamp(140px, 12%, 240px));
+  margin-left: 0;
+  width: 100%;
   background: var(--overlay-panel-98);
   border: 1px solid var(--overlay-white-08);
   border-radius: var(--radius-3xl);
@@ -678,21 +552,6 @@
   .hexmap-chat {
     width: 100%;
     margin-left: 0;
-  }
-
-  .action-footer {
-    width: 100%;
-    left: 0;
-    right: 0;
-    top: auto;
-    bottom: 0;
-    height: auto;
-    max-height: min(260px, 45vh);
-    padding: 10px calc(10px + env(safe-area-inset-left, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) calc(10px + env(safe-area-inset-right, 0px));
-    background: linear-gradient(180deg, var(--overlay-panel-95) 0%, var(--overlay-panel-98) 100%);
-    border-right: none;
-    border-top: 1px solid var(--overlay-white-08);
-    box-shadow: 0 -6px 20px var(--overlay-black-35);
   }
 }
 
@@ -934,6 +793,75 @@
 }
 
 /* ==========================================================================
+   Quest Journal
+   ========================================================================== */
+
+.hexmap-quest-journal {
+  margin-top: 20px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-3xl);
+  padding: 16px 20px;
+}
+
+.hexmap-quest-journal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.hexmap-quest-journal__header h3 {
+  margin: 0;
+  font-size: 1rem;
+  color: var(--text-heading, #e2e8f0);
+}
+
+.hexmap-quest-journal__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hexmap-quest-journal__list .quest-entry {
+  margin-bottom: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+
+.hexmap-quest-journal__list .quest-title {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--primary, #60a5fa);
+  font-size: 0.9rem;
+}
+
+.hexmap-quest-journal__list .quest-objectives {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.hexmap-quest-journal__list .quest-objective {
+  font-size: 0.82rem;
+  padding: 2px 0;
+  color: var(--text-muted, #94a3b8);
+}
+
+.hexmap-quest-journal__list .quest-objective--done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+.hexmap-quest-journal__list .quest-empty {
+  color: var(--text-muted, #94a3b8);
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
+/* ==========================================================================
    Character Sheet & Stats
    ========================================================================== */
 
@@ -954,6 +882,161 @@
   align-items: flex-start;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.character-sheet__embed-wrap {
+  margin-top: var(--space-3);
+}
+
+.character-sheet__embed {
+  width: 100%;
+  min-height: 980px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+}
+
+.dungeon-state {
+  margin-top: 20px;
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-3xl);
+  padding: 18px;
+  box-shadow: var(--shadow-xl);
+}
+
+.dungeon-state__header h3 {
+  margin: 0 0 6px 0;
+}
+
+.dungeon-state__header p {
+  margin: 0;
+}
+
+#dungeon-entities-analysis {
+  margin-top: 4px;
+}
+
+.dungeon-state__objects,
+.dungeon-state__entities,
+.dungeon-state__json {
+  margin-top: 16px;
+}
+
+.dungeon-state__objects h4,
+.dungeon-state__entities h4,
+.dungeon-state__json h4 {
+  margin: 0 0 10px 0;
+  font-size: var(--text-lg);
+  color: var(--text-bright);
+}
+
+.dungeon-objects-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.dungeon-entities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 10px;
+}
+
+.dungeon-object-card {
+  background: var(--gray-800);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+}
+
+.dungeon-entity-card {
+  background: var(--gray-800);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xl);
+  padding: 10px;
+}
+
+.dungeon-entity-card--active-room {
+  border-color: var(--accent, #3b82f6);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent, #3b82f6) 45%, transparent);
+}
+
+.dungeon-object-card__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 8px;
+}
+
+.dungeon-entity-card__title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-weight: 700;
+  color: var(--text-bright);
+  margin-bottom: 8px;
+}
+
+.dungeon-object-card__meta {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.dungeon-entity-card__meta {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 4px;
+  font-size: var(--text-sm);
+  color: var(--muted);
+}
+
+.dungeon-object-card__meta strong {
+  color: var(--text);
+}
+
+.dungeon-entity-card__meta strong {
+  color: var(--text);
+}
+
+.dungeon-object-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 1px solid var(--panel-border);
+  display: inline-block;
+  vertical-align: middle;
+  margin-left: 4px;
+}
+
+.dungeon-objects-empty {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.dungeon-json-pre {
+  margin: 0;
+  max-height: 420px;
+  overflow: auto;
+  background: #0b1220;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xl);
+  padding: 12px;
+  color: #dbeafe;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: pre;
 }
 
 .eyebrow {
@@ -1246,6 +1329,128 @@
 .inventory-empty {
   color: var(--muted);
   font-style: italic;
+}
+
+/* ==========================================================================
+   Character Sheet — Enhanced Sections
+   ========================================================================== */
+
+/* "View Full Sheet" link in header */
+.full-sheet-link {
+  font-size: var(--text-sm, 0.75rem);
+  color: var(--primary, #6c9bff);
+  text-decoration: none;
+  margin-left: var(--space-2, 8px);
+  font-weight: 600;
+  opacity: 0.8;
+  transition: opacity var(--transition-fast, 0.15s);
+}
+.full-sheet-link:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+/* Subtitle line (heritage/background) */
+.character-sheet__header .small {
+  font-size: var(--text-sm, 0.75rem);
+  color: var(--muted, #888);
+  margin-top: 2px;
+}
+
+/* Secondary core stats row (perception, XP) */
+.character-sheet__core-stats--secondary {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-2, 8px);
+  margin-top: var(--space-1, 4px);
+}
+.stat-card--small {
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+}
+.stat-card--small .stat-value {
+  font-size: var(--text-xl, 1.25rem);
+}
+
+/* Feat type badges */
+.feat-type {
+  display: inline-block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 5px;
+  border-radius: var(--radius-sm, 4px);
+  margin-right: 4px;
+  vertical-align: middle;
+}
+.feat-type--ancestry { background: var(--overlay-accent-18, rgba(255,215,0,0.18)); color: var(--accent, #ffd700); }
+.feat-type--class    { background: var(--overlay-primary-20, rgba(108,155,255,0.2)); color: var(--primary, #6c9bff); }
+.feat-type--general  { background: var(--overlay-white-08, rgba(255,255,255,0.08)); color: var(--text, #ddd); }
+.feat-type--skill    { background: var(--overlay-success-18, rgba(72,199,142,0.18)); color: var(--success, #48c78e); }
+
+.feat-level {
+  font-size: 0.65rem;
+  color: var(--muted, #888);
+  margin-left: 4px;
+}
+
+/* Spellcasting section */
+.spell-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2, 8px);
+  margin-bottom: var(--space-2, 8px);
+}
+.spell-meta-item {
+  font-size: var(--text-sm, 0.75rem);
+  color: var(--text, #ddd);
+  background: var(--overlay-white-04, rgba(255,255,255,0.04));
+  padding: 2px 8px;
+  border-radius: var(--radius-sm, 4px);
+}
+.spells-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.spell-rank-header {
+  font-weight: 700;
+  font-size: var(--text-sm, 0.75rem);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent, #ffd700);
+  margin-top: var(--space-2, 8px);
+  margin-bottom: var(--space-1, 4px);
+  padding-bottom: 2px;
+  border-bottom: 1px solid var(--overlay-white-08, rgba(255,255,255,0.08));
+}
+.spell-entry {
+  font-size: var(--text-base, 0.875rem);
+  color: var(--text, #ddd);
+  padding: 2px 0 2px 8px;
+  text-transform: capitalize;
+}
+
+/* Item tags */
+.item-tag {
+  font-size: 0.6rem;
+  font-weight: 700;
+  padding: 1px 4px;
+  border-radius: var(--radius-sm, 4px);
+  vertical-align: middle;
+  margin-left: 4px;
+}
+.item-tag.equipped {
+  background: var(--overlay-success-18, rgba(72,199,142,0.18));
+  color: var(--success, #48c78e);
+}
+
+/* Skill proficiency badges */
+.skill-prof {
+  font-size: 0.6rem;
+  color: var(--muted, #888);
+  margin-left: 4px;
+  margin-right: auto;
 }
 
 /* ==========================================================================

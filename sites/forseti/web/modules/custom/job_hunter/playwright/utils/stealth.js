@@ -40,7 +40,7 @@ async function launchBrowser(options = {}) {
   const headless = options.headless !== false;
   const userAgent = USER_AGENTS[Math.floor(Math.random() * USER_AGENTS.length)];
 
-  const browser = await chromium.launch({
+  const launchOptions = {
     headless,
     args: [
       '--no-sandbox',
@@ -48,7 +48,18 @@ async function launchBrowser(options = {}) {
       '--disable-dev-shm-usage',
       '--disable-gpu',
     ],
-  });
+  };
+
+  // Allow caller (or env) to override the browser executable — required when
+  // the Playwright-managed browser is not accessible to the running user (e.g.
+  // www-data in a web request cannot reach /home/user/.cache/ms-playwright/).
+  if (options.executablePath) {
+    launchOptions.executablePath = options.executablePath;
+  } else if (process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH) {
+    launchOptions.executablePath = process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH;
+  }
+
+  const browser = await chromium.launch(launchOptions);
 
   const context = await browser.newContext({
     userAgent,

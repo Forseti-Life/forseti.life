@@ -204,14 +204,15 @@ class QuestTrackerController extends ControllerBase {
       $quest_tracker = \Drupal::service('dungeoncrawler_content.quest_tracker');
 
       $entity_type = $payload['entity_type'] ?? 'party';
-      $amount = $payload['amount'] ?? 1;
+      $amount = (int) ($payload['amount'] ?? 1);
+      $character_id = !empty($payload['character_id']) ? (int) $payload['character_id'] : NULL;
 
       $result = $quest_tracker->updateObjectiveProgress(
         $campaign_id,
         $quest_id,
         $payload['objective_id'],
-        $payload['entity_id'],
-        $amount
+        $amount,
+        $character_id
       );
 
       if (empty($result)) {

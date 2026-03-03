@@ -57,7 +57,12 @@
     var selectedBoosts = [];
     var characterData = {};
     var calculating = false;
+    var recalcQueued = false;
     var debounceTimer = null;
+    var pendingSyncRequest = null;
+    var pendingRecalcRequest = null;
+    var latestSyncSeq = 0;
+    var latestRecalcSeq = 0;
 
     // Hidden field that stores the JSON array of selected abilities.
     var $hidden = $(cfg.fieldId);
@@ -146,12 +151,20 @@
     // ── API helpers ─────────────────────────────────────────────────────────
 
     function syncAvailable() {
-      $.ajax({
+      latestSyncSeq += 1;
+      var requestSeq = latestSyncSeq;
+
+      if (pendingSyncRequest && pendingSyncRequest.readyState !== 4) {
+        pendingSyncRequest.abort();
+      }
+
+      pendingSyncRequest = $.ajax({
         url: API.AVAILABLE_BOOSTS + '/' + step,
         method: 'GET',
-        data: { character_data: JSON.stringify(buildPayload()) },
+        data: { selected_boosts: JSON.stringify(selectedBoosts) },
         dataType: 'json',
       }).done(function (res) {
+        if (requestSeq !== latestSyncSeq) { return; }
         if (!res || !res.available) { return; }
         var avail = res.available || [];
         var disabled = res.disabled || [];
@@ -167,18 +180,34 @@
     }
 
     function recalculate() {
-      if (calculating) { return; }
+      if (calculating) {
+        recalcQueued = true;
+        return;
+      }
+
+      latestRecalcSeq += 1;
+      var requestSeq = latestRecalcSeq;
       calculating = true;
-      $.ajax({
+
+      if (pendingRecalcRequest && pendingRecalcRequest.readyState !== 4) {
+        pendingRecalcRequest.abort();
+      }
+
+      pendingRecalcRequest = $.ajax({
         url: API.CALCULATE,
         method: 'POST',
         contentType: 'application/json',
         data: JSON.stringify({ character_data: buildPayload() }),
         dataType: 'json',
       }).done(function (res) {
+        if (requestSeq !== latestRecalcSeq) { return; }
         if (res && res.success) { updateScores(res); }
       }).always(function () {
         calculating = false;
+        if (recalcQueued) {
+          recalcQueued = false;
+          recalculate();
+        }
       });
     }
 

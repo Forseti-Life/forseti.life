@@ -200,6 +200,21 @@ class UserProfileForm extends FormBase {
       ],
     ];
 
+    // Top quick actions for long profile forms.
+    $form['quick_actions_top'] = [
+      '#type' => 'actions',
+      '#weight' => -150,
+      '#attributes' => [
+        'class' => ['jh-profile__actions-top'],
+      ],
+    ];
+
+    $form['quick_actions_top']['submit'] = [
+      '#type' => 'submit',
+      '#value' => $this->t('Save Profile'),
+      '#button_type' => 'primary',
+    ];
+
     $form['#prefix'] = '<div id="profile-form-wrapper">' . $form['#prefix'];
     $form['#suffix'] .= '</div>';
 
@@ -1464,6 +1479,7 @@ class UserProfileForm extends FormBase {
     // Actions
     $form['actions'] = [
       '#type' => 'actions',
+      '#weight' => 170,
     ];
 
     $form['actions']['submit'] = [

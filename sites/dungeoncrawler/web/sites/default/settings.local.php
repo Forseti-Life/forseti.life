@@ -1,11 +1,11 @@
 <?php
 /**
- * Dungeon Crawler - Local development settings
+ * Dungeon Crawler - Local development settings.
  *
- * Shares user/session tables with the main Forseti site (forseti_dev database)
- * for unified authentication across both Drupal sites.
- *
- * MySQL VIEWs in dungeoncrawler_dev point to forseti_dev user tables.
+ * NOTE: The user/session tables here are local BASE TABLEs (not VIEWs).
+ * The forseti and dungeoncrawler sites have SEPARATE sessions tables.
+ * Session cookie isolation is handled via name_suffix in
+ * sites/default/services.yml so the two localhost sites never collide.
  */
 $dc_local_db_password = getenv('DB_PASSWORD') ?: ($databases['default']['default']['password'] ?? '');
 
@@ -37,9 +37,10 @@ $databases['forseti']['default'] = [
 $settings['hash_salt'] = 'lsV6IOGvHJOJ04VsQ_cy9aMNbRtyhVdBlP9b-KX9Xj43rhdN3x8sf8zCyJFaPmkFgAU0ZdTCpw';
 
 /**
- * Shared cookie domain for SSO.
+ * Cookie domain: $settings['cookie_domain'] is NOT read by Drupal 11 core.
+ * Session cookie names are controlled via session.storage.options in
+ * sites/default/services.yml (name_suffix: '_dc').
  */
-$settings['cookie_domain'] = '.forseti.life';
 
 $settings['container_yamls'][] = DRUPAL_ROOT . '/sites/development.services.yml';
 $settings['skip_permissions_hardening'] = TRUE;

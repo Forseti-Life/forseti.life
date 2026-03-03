@@ -163,6 +163,7 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
         'tavern_url' => NULL,
         'campaign_id' => NULL,
         'back_url' => NULL,
+        'embed_mode' => FALSE,
       ],
       'template' => 'character-sheet',
       'path' => $path . '/templates',

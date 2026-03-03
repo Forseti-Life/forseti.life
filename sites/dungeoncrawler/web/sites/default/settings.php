@@ -941,16 +941,21 @@ $databases['forseti']['default'] = array (
 );
 
 /**
- * Shared cookie domain for cross-site SSO.
+ * Session cookie isolation.
  *
- * Setting the cookie domain to '.forseti.life' allows the session cookie to be
- * shared between forseti.life and dungeoncrawler.forseti.life, enabling
- * seamless single sign-on across both sites.
+ * $settings['cookie_domain'] is NOT read by Drupal 11 core — the correct
+ * mechanism is session.storage.options.cookie_domain in services.yml.
+ * For local dev the dungeoncrawler site uses a name_suffix ('_dc') set in
+ * sites/default/services.yml to produce a unique session cookie name so it
+ * does not collide with the forseti site on localhost.
+ *
+ * For production SSO across subdomains (forseti.life / dungeoncrawler.forseti.life),
+ * set cookie_domain in services.yml AND ensure a shared sessions table (views or
+ * replicated).
  */
-$settings['cookie_domain'] = '.forseti.life';
 
 /**
- * Hash salt - must match the main Forseti site for shared session compatibility.
+ * Hash salt.
  */
 $settings['hash_salt'] = 'lsV6IOGvHJOJ04VsQ_cy9aMNbRtyhVdBlP9b-KX9Xj43rhdN3x8sf8zCyJFaPmkFgAU0ZdTCpw';
 

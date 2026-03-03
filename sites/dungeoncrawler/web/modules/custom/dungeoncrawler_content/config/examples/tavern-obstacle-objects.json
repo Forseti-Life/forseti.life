@@ -2,7 +2,7 @@
   "$schema": "../schemas/obstacle_object_catalog.schema.json",
   "schema_version": "1.0.0",
   "created_at": "2026-02-17T00:00:00Z",
-  "updated_at": "2026-02-17T23:03:00Z",
+  "updated_at": "2026-03-03T00:00:00Z",
   "metadata": {
     "description": "Reusable tavern furniture and fixture obstacle definitions for dungeon entrance areas",
     "theme": "tavern-furnishings",
@@ -53,8 +53,10 @@
       "size": "large",
       "visual": {
         "sprite_id": "bar_counter_wood_left",
-        "color": "#654321"
-      }
+        "color": "#654321",
+        "orientation": "se"
+      },
+      "orientation": "se"
     },
     {
       "object_id": "tavern_bar_counter_b",
@@ -72,8 +74,10 @@
       "size": "large",
       "visual": {
         "sprite_id": "bar_counter_wood_middle",
-        "color": "#654321"
-      }
+        "color": "#654321",
+        "orientation": "se"
+      },
+      "orientation": "se"
     },
     {
       "object_id": "tavern_bar_counter_c",
@@ -91,8 +95,10 @@
       "size": "large",
       "visual": {
         "sprite_id": "bar_counter_wood_right",
-        "color": "#654321"
-      }
+        "color": "#654321",
+        "orientation": "se"
+      },
+      "orientation": "se"
     },
     {
       "object_id": "tavern_table_round_a",
@@ -143,8 +149,66 @@
       },
       "visual": {
         "sprite_id": "table_long_wood",
-        "color": "#8B4513"
-      }
+        "color": "#8B4513",
+        "orientation": "se"
+      },
+      "orientation": "se"
+    },
+    {
+      "object_id": "tavern_table_long_center",
+      "label": "Long Table Center",
+      "category": "table",
+      "description": "Center extension segment for a composed long wooden table.",
+      "movable": true,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 2
+      },
+      "tags": ["table", "furniture", "cover"],
+      "size": "large",
+      "weight": "10",
+      "interaction": {
+        "can_open": false,
+        "can_close": false,
+        "requires_key": false,
+        "athletics_dc": 15
+      },
+      "visual": {
+        "sprite_id": "table_long_wood",
+        "color": "#8B4513",
+        "orientation": "se"
+      },
+      "orientation": "se"
+    },
+    {
+      "object_id": "tavern_table_long_b",
+      "label": "Long Table B",
+      "category": "table",
+      "description": "Second end-cap segment for a composed long wooden table.",
+      "movable": true,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 2
+      },
+      "tags": ["table", "furniture", "cover"],
+      "size": "large",
+      "weight": "10",
+      "interaction": {
+        "can_open": false,
+        "can_close": false,
+        "requires_key": false,
+        "athletics_dc": 15
+      },
+      "visual": {
+        "sprite_id": "table_long_wood",
+        "color": "#8B4513",
+        "orientation": "se"
+      },
+      "orientation": "se"
     },
     {
       "object_id": "tavern_stool_stack_a",

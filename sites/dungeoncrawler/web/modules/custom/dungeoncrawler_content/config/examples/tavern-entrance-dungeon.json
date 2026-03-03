@@ -484,8 +484,9 @@
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -4,
-          "r": -2
-        }
+          "r": -1
+        },
+        "orientation": "se"
       },
       "state": {
         "active": true,
@@ -494,7 +495,8 @@
           "passable": false,
           "stackable": false,
           "blocks_path_until_opened": true,
-          "fixture": "bar_counter"
+          "fixture": "bar_counter",
+          "orientation": "se"
         }
       }
     },
@@ -509,8 +511,9 @@
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -3,
-          "r": -2
-        }
+          "r": -1
+        },
+        "orientation": "se"
       },
       "state": {
         "active": true,
@@ -519,7 +522,8 @@
           "passable": false,
           "stackable": false,
           "blocks_path_until_opened": true,
-          "fixture": "bar_counter"
+          "fixture": "bar_counter",
+          "orientation": "se"
         }
       }
     },
@@ -534,8 +538,9 @@
         "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
         "hex": {
           "q": -2,
-          "r": -2
-        }
+          "r": -1
+        },
+        "orientation": "se"
       },
       "state": {
         "active": true,
@@ -544,7 +549,8 @@
           "passable": false,
           "stackable": false,
           "blocks_path_until_opened": true,
-          "fixture": "bar_counter"
+          "fixture": "bar_counter",
+          "orientation": "se"
         }
       }
     },
@@ -584,7 +590,8 @@
         "hex": {
           "q": 2,
           "r": -1
-        }
+        },
+        "orientation": "se"
       },
       "state": {
         "active": true,
@@ -592,7 +599,62 @@
           "movable": true,
           "passable": false,
           "stackable": false,
-          "fixture": "table_long"
+          "fixture": "table_long",
+          "orientation": "se"
+        }
+      }
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000011",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_table_long_center"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 3,
+          "r": -1
+        },
+        "orientation": "se"
+      },
+      "state": {
+        "active": true,
+        "metadata": {
+          "movable": true,
+          "passable": false,
+          "stackable": false,
+          "fixture": "table_long",
+          "segment": "center",
+          "orientation": "se"
+        }
+      }
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000012",
+      "entity_type": "obstacle",
+      "entity_ref": {
+        "content_type": "obstacle",
+        "content_id": "tavern_table_long_b"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": 4,
+          "r": -1
+        },
+        "orientation": "se"
+      },
+      "state": {
+        "active": true,
+        "metadata": {
+          "movable": true,
+          "passable": false,
+          "stackable": false,
+          "fixture": "table_long",
+          "segment": "b",
+          "orientation": "se"
         }
       }
     },
@@ -703,6 +765,34 @@
             "perception": 5,
             "initiative_bonus": 5
           }
+        }
+      }
+    },
+    {
+      "entity_instance_id": "f0f1f2f3-a001-4e4e-8d8d-000000000013",
+      "entity_type": "npc",
+      "entity_ref": {
+        "content_type": "npc",
+        "content_id": "tavern_keeper"
+      },
+      "placement": {
+        "room_id": "7f2f1051-5f88-45a2-a66a-0f7063900001",
+        "hex": {
+          "q": -3,
+          "r": -2
+        },
+        "spawn_type": "npc",
+        "orientation": "se"
+      },
+      "state": {
+        "active": true,
+        "metadata": {
+          "display_name": "Eldric",
+          "team": "neutral",
+          "role": "barkeep",
+          "setting_state": true,
+          "spawn_policy": "fixed_template",
+          "orientation": "se"
         }
       }
     }

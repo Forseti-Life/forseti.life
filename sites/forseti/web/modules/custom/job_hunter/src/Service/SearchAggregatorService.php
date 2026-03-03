@@ -952,6 +952,33 @@ class SearchAggregatorService {
   }
 
   /**
+   * Extract a normalized registrable domain from a URL.
+   *
+   * Example: https://www.roberthalf.com/... => roberthalf.com
+   *
+   * @param string $url
+   *   The source URL.
+   *
+   * @return string|null
+   *   Normalized domain or NULL when unavailable.
+   */
+  protected function extractSecondarySourceDomain(string $url): ?string {
+    if ($url === '') {
+      return NULL;
+    }
+
+    $host = parse_url($url, PHP_URL_HOST);
+    if (!is_string($host) || $host === '') {
+      return NULL;
+    }
+
+    $host = strtolower($host);
+    $host = preg_replace('/^www\./', '', $host);
+
+    return $host !== '' ? substr($host, 0, 100) : NULL;
+  }
+
+  /**
    * Import recent unimported external job results immediately.
    * 
    * This makes external API results immediately searchable in Forseti DB
@@ -973,6 +1000,8 @@ class SearchAggregatorService {
 
       $imported = 0;
       $skipped = 0;
+      $queued = 0;
+      $parsing_queue = \Drupal::queue('job_hunter_job_posting_parsing');
 
       foreach ($results as $result) {
         $job_data = json_decode($result->job_data_json, TRUE);
@@ -993,6 +1022,7 @@ class SearchAggregatorService {
 
         $external_job_id = substr((string) ($result->external_job_id ?? ''), 0, 512);
         $job_url = substr((string) ($job_data['url'] ?? ''), 0, 512);
+        $secondary_source = $this->extractSecondarySourceDomain($job_url);
 
         // Check for duplicates using stable identifiers.
         $job_hash = $job_data['job_hash'] ?? NULL;
@@ -1045,6 +1075,7 @@ class SearchAggregatorService {
             'created' => time(),
             'updated' => time(),
             'external_source' => $external_source,
+            'source_platform' => $secondary_source,
             'external_job_id' => $external_job_id,
             'job_hash' => $job_hash,
             'ai_extraction_status' => 'pending',
@@ -1070,12 +1101,41 @@ class SearchAggregatorService {
           ->condition('id', $result->id)
           ->execute();
 
+        // Immediately queue imported jobs for AI parsing.
+        $posting_text = (string) ($job_data['description'] ?? '');
+        if ($posting_text !== '') {
+          try {
+            $parsing_queue->createItem([
+              'job_id' => $new_job_id,
+              'raw_posting_text' => $posting_text,
+            ]);
+
+            $this->database->update('jobhunter_job_requirements')
+              ->fields([
+                'ai_extraction_status' => 'queued',
+                'updated' => time(),
+              ])
+              ->condition('id', $new_job_id)
+              ->execute();
+
+            $queued++;
+          }
+          catch (\Exception $e) {
+            // Keep job as pending if queue insertion fails.
+            $this->logger->warning('⚠️ Imported job @id but failed to queue parsing: @error', [
+              '@id' => $new_job_id,
+              '@error' => $e->getMessage(),
+            ]);
+          }
+        }
+
         $imported++;
       }
 
       if ($imported > 0) {
-        $this->logger->info('⚡ Immediately imported @count external job results into Forseti DB', [
+        $this->logger->info('⚡ Immediately imported @count external job results into Forseti DB (@queued queued for parsing)', [
           '@count' => $imported,
+          '@queued' => $queued,
         ]);
       }
     }

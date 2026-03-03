@@ -307,6 +307,20 @@
   margin-top: 0.5rem;
 }
 
+.dc-character-card__view-link {
+  display: inline-block;
+  margin-top: 0.4rem;
+  font-size: 0.8rem;
+  text-decoration: none;
+  position: relative;
+  z-index: 2;
+}
+
+.dc-btn-sm {
+  padding: 0.25rem 0.75rem;
+  font-size: 0.8rem;
+}
+
 /* Empty State */
 .dc-character-list__empty {
   text-align: center;
