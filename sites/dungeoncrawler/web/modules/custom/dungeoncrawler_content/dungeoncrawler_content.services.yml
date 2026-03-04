@@ -317,3 +317,52 @@ services:
       - '@logger.factory'
     tags:
       - {name: event_subscriber}
+
+  # Game Coordinator Engine Services
+  dungeoncrawler_content.game_event_logger:
+    class: Drupal\dungeoncrawler_content\Service\GameEventLogger
+    arguments:
+      - '@logger.factory'
+
+  dungeoncrawler_content.exploration_phase_handler:
+    class: Drupal\dungeoncrawler_content\Service\ExplorationPhaseHandler
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.room_chat_service'
+      - '@dungeoncrawler_content.dungeon_state_service'
+      - '@dungeoncrawler_content.character_state'
+      - '@dungeoncrawler_content.number_generation'
+
+  dungeoncrawler_content.encounter_phase_handler:
+    class: Drupal\dungeoncrawler_content\Service\EncounterPhaseHandler
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.combat_engine'
+      - '@dungeoncrawler_content.action_processor'
+      - '@dungeoncrawler_content.combat_encounter_store'
+      - '@dungeoncrawler_content.hp_manager'
+      - '@dungeoncrawler_content.condition_manager'
+      - '@dungeoncrawler_content.combat_calculator'
+      - '@dungeoncrawler_content.number_generation'
+      - '@dungeoncrawler_content.encounter_ai_integration'
+      - '@dungeoncrawler_content.rules_engine'
+      - '@event_dispatcher'
+
+  dungeoncrawler_content.downtime_phase_handler:
+    class: Drupal\dungeoncrawler_content\Service\DowntimePhaseHandler
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.character_state'
+
+  dungeoncrawler_content.game_coordinator:
+    class: Drupal\dungeoncrawler_content\Service\GameCoordinatorService
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.game_event_logger'
+      - '@dungeoncrawler_content.exploration_phase_handler'
+      - '@dungeoncrawler_content.encounter_phase_handler'
+      - '@dungeoncrawler_content.downtime_phase_handler'
