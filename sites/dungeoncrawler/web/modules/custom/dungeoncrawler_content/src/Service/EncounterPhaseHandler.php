@@ -315,7 +315,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           $round_narration = $this->aiGmService->narrateRoundStart(
             (int) $result['new_round'],
             $game_state,
-            $dungeon_data
+            $dungeon_data,
+            $campaign_id
           );
 
           $events[] = GameEventLogger::buildEvent('round_start', 'encounter', NULL, [
@@ -446,7 +447,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'participants' => $participants,
           'room_name' => $room_id,
           'reason' => $context['reason'] ?? 'Hostile creatures detected',
-        ], $dungeon_data);
+        ], $dungeon_data, $campaign_id);
         if ($gm_narration) {
           $events[] = GameEventLogger::buildEvent('gm_narration', 'encounter', NULL, [
             'trigger' => 'encounter_start',
@@ -493,7 +494,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         'encounter_id' => $encounter_id,
         'final_round' => $game_state['round'] ?? NULL,
         'victory' => TRUE,
-      ], $dungeon_data);
+      ], $dungeon_data, $campaign_id);
       if ($gm_narration) {
         $events[] = GameEventLogger::buildEvent('gm_narration', 'encounter', NULL, [
           'trigger' => 'encounter_end',
@@ -853,7 +854,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           ], $narration, $target);
 
           // Check for entity defeat after strike.
-          $this->checkEntityDefeated($target, $entity_id, $game_state, $events, $dungeon_data);
+          $this->checkEntityDefeated($target, $entity_id, $game_state, $events, $dungeon_data, $campaign_id);
         }
         break;
 
@@ -889,6 +890,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
             'damage' => $strike_result['damage'] ?? NULL,
             'fallback' => TRUE,
           ], NULL, $target);
+
+          // Check for entity defeat after fallback strike.
+          $this->checkEntityDefeated($target, $entity_id, $game_state, $events, $dungeon_data, $campaign_id);
         }
         break;
     }
@@ -994,7 +998,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    * @param array $dungeon_data
    *   Dungeon data for AI narration context.
    */
-  protected function checkEntityDefeated(string $entity_id, string $attacker_id, array &$game_state, array &$events, array $dungeon_data): void {
+  protected function checkEntityDefeated(string $entity_id, string $attacker_id, array &$game_state, array &$events, array $dungeon_data, int $campaign_id = 0): void {
     foreach ($game_state['initiative_order'] as &$combatant) {
       if (($combatant['entity_id'] ?? '') !== $entity_id) {
         continue;
@@ -1010,7 +1014,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $attacker = $this->findCombatant($attacker_id, $game_state);
         $killer_name = $attacker['name'] ?? $attacker_id;
 
-        $narration = $this->aiGmService->narrateEntityDefeated($name, $killer_name, $dungeon_data);
+        $narration = $this->aiGmService->narrateEntityDefeated($name, $killer_name, $dungeon_data, $campaign_id);
         $events[] = GameEventLogger::buildEvent('entity_defeated', 'encounter', $entity_id, [
           'name' => $name,
           'team' => $team,

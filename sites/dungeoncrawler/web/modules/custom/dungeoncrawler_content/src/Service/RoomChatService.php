@@ -26,6 +26,7 @@ class RoomChatService {
   protected AIApiService $aiApiService;
   protected PromptManager $promptManager;
   protected GameplayActionProcessor $actionProcessor;
+  protected AiSessionManager $sessionManager;
 
   /**
    * Constructor.
@@ -37,7 +38,8 @@ class RoomChatService {
     AccountProxyInterface $current_user,
     AIApiService $ai_api_service,
     PromptManager $prompt_manager,
-    GameplayActionProcessor $action_processor
+    GameplayActionProcessor $action_processor,
+    AiSessionManager $session_manager
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
@@ -46,6 +48,7 @@ class RoomChatService {
     $this->aiApiService = $ai_api_service;
     $this->promptManager = $prompt_manager;
     $this->actionProcessor = $action_processor;
+    $this->sessionManager = $session_manager;
   }
 
   /**
@@ -270,7 +273,16 @@ class RoomChatService {
       $history_lines[] = "{$speaker}: {$text}";
     }
 
+    // Build session context for campaign-scoped conversation continuity.
+    // This ensures the GM remembers prior interactions within this campaign
+    // but starts fresh for a new campaign.
+    $session_key = $this->sessionManager->roomChatSessionKey($campaign_id);
+    $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 6);
+
     $prompt = '';
+    if ($session_context !== '') {
+      $prompt .= $session_context . "\n\n---\n";
+    }
     if (!empty($scene_parts)) {
       $prompt .= implode("\n", $scene_parts) . "\n\n";
     }
@@ -296,6 +308,7 @@ class RoomChatService {
     $context_data = [
       'campaign_id' => $campaign_id,
       'room_id' => $room_id,
+      'session_key' => $session_key,
     ];
 
     try {
@@ -400,6 +413,11 @@ class RoomChatService {
       ->condition('dungeon_id', $dungeon_id)
       ->condition('campaign_id', $campaign_id)
       ->execute();
+
+    // Record this exchange in the campaign room chat session for future context.
+    $player_msg_text = end($chat)['message'] ?? '';
+    $this->sessionManager->appendMessage($session_key, $campaign_id, 'user', $player_msg_text);
+    $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $narrative);
 
     $this->logger->info('GM reply persisted in room @room (@chars chars, @actions_count mechanical actions)', [
       '@room' => $room_id,

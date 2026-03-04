@@ -32,21 +32,43 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
   protected StubEncounterAiProvider $fallbackProvider;
 
   /**
+   * AI session manager for per-campaign encounter isolation.
+   */
+  protected AiSessionManager $sessionManager;
+
+  /**
    * Constructs provider.
    */
-  public function __construct(?AIApiService $ai_api_service, LoggerChannelFactoryInterface $logger_factory, ConfigFactoryInterface $config_factory, StubEncounterAiProvider $fallback_provider) {
+  public function __construct(?AIApiService $ai_api_service, LoggerChannelFactoryInterface $logger_factory, ConfigFactoryInterface $config_factory, StubEncounterAiProvider $fallback_provider, AiSessionManager $session_manager) {
     $this->aiApiService = $ai_api_service;
     $this->loggerFactory = $logger_factory;
     $this->configFactory = $config_factory;
     $this->fallbackProvider = $fallback_provider;
+    $this->sessionManager = $session_manager;
   }
 
   /**
    * {@inheritdoc}
    */
   public function recommendNpcAction(array $context): array {
+    $campaign_id = (int) ($context['campaign_id'] ?? 0);
+    $current_actor = is_array($context['current_actor'] ?? NULL) ? $context['current_actor'] : [];
+    $entity_ref = (string) ($current_actor['entity_ref'] ?? '');
+
+    // Build NPC-scoped session context so each NPC keeps its own perspective.
+    $npc_session_context = '';
+    if ($campaign_id > 0 && $entity_ref !== '') {
+      $npc_key = $this->sessionManager->npcSessionKey($campaign_id, $entity_ref);
+      $npc_session_context = $this->sessionManager->buildSessionContext($npc_key, $campaign_id, 6);
+    }
+
+    $prompt = $this->buildRecommendationPrompt($context);
+    if ($npc_session_context !== '') {
+      $prompt = $npc_session_context . "\n\n---\nCURRENT TACTICAL REQUEST:\n" . $prompt;
+    }
+
     $response = $this->invokeWithRetry(
-      $this->buildRecommendationPrompt($context),
+      $prompt,
       'encounter_npc_recommendation',
       $this->buildContextData($context),
       [
@@ -87,6 +109,17 @@ class AiConversationEncounterAiProvider implements EncounterAiProviderInterface 
 
     $normalized['request_attempts'] = (int) ($response['request_attempts'] ?? 1);
     $normalized['request_id'] = (string) ($response['request_id'] ?? '');
+
+    // Record the NPC's decision in its session for conversation continuity.
+    if ($campaign_id > 0 && $entity_ref !== '') {
+      $npc_key = $this->sessionManager->npcSessionKey($campaign_id, $entity_ref);
+      $action_summary = ($normalized['recommended_action']['type'] ?? 'unknown')
+        . ' → ' . ($normalized['recommended_action']['target_instance_id'] ?? 'none');
+      $this->sessionManager->appendMessage($npc_key, $campaign_id, 'assistant', $action_summary, [
+        'action_type' => $normalized['recommended_action']['type'] ?? '',
+        'confidence' => $normalized['confidence'] ?? 0.5,
+      ]);
+    }
 
     return $normalized;
   }

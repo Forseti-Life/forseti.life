@@ -49,18 +49,25 @@ class AiGmService {
   protected GameEventLogger $eventLogger;
 
   /**
+   * AI session manager for per-campaign/NPC conversation isolation.
+   */
+  protected AiSessionManager $sessionManager;
+
+  /**
    * Constructs the AiGmService.
    */
   public function __construct(
     ?AIApiService $ai_api_service,
     ConfigFactoryInterface $config_factory,
     LoggerChannelFactoryInterface $logger_factory,
-    GameEventLogger $event_logger
+    GameEventLogger $event_logger,
+    AiSessionManager $session_manager
   ) {
     $this->aiApiService = $ai_api_service;
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->eventLogger = $event_logger;
+    $this->sessionManager = $session_manager;
   }
 
   // =========================================================================
@@ -80,7 +87,7 @@ class AiGmService {
    * @return string|null
    *   Narration text, or NULL if disabled / AI unavailable.
    */
-  public function narrateRoomEntry(array $room, array $dungeon_data, bool $first_visit = TRUE): ?string {
+  public function narrateRoomEntry(array $room, array $dungeon_data, bool $first_visit = TRUE, int $campaign_id = 0): ?string {
     if (!$this->isEnabled('room_entry')) {
       return NULL;
     }
@@ -102,7 +109,7 @@ class AiGmService {
     $system = $this->buildSystemPrompt('room_entry');
     $prompt = $this->buildPrompt($context);
 
-    return $this->invokeNarration($system, $prompt, 'room_entry', $context);
+    return $this->invokeNarration($system, $prompt, 'room_entry', $context, $campaign_id);
   }
 
   /**
@@ -116,7 +123,7 @@ class AiGmService {
    * @return string|null
    *   Dramatic narration for encounter start.
    */
-  public function narrateEncounterStart(array $encounter_context, array $dungeon_data): ?string {
+  public function narrateEncounterStart(array $encounter_context, array $dungeon_data, int $campaign_id = 0): ?string {
     if (!$this->isEnabled('encounter_start')) {
       return NULL;
     }
@@ -133,7 +140,8 @@ class AiGmService {
       $this->buildSystemPrompt('encounter_start'),
       $this->buildPrompt($context),
       'encounter_start',
-      $context
+      $context,
+      $campaign_id
     );
   }
 
@@ -148,7 +156,7 @@ class AiGmService {
    * @return string|null
    *   Narration wrapping up the encounter.
    */
-  public function narrateEncounterEnd(array $encounter_result, array $dungeon_data): ?string {
+  public function narrateEncounterEnd(array $encounter_result, array $dungeon_data, int $campaign_id = 0): ?string {
     if (!$this->isEnabled('encounter_end')) {
       return NULL;
     }
@@ -165,7 +173,8 @@ class AiGmService {
       $this->buildSystemPrompt('encounter_end'),
       $this->buildPrompt($context),
       'encounter_end',
-      $context
+      $context,
+      $campaign_id
     );
   }
 
@@ -182,7 +191,7 @@ class AiGmService {
    * @return string|null
    *   Short tactical narration for the round.
    */
-  public function narrateRoundStart(int $round_number, array $game_state, array $dungeon_data): ?string {
+  public function narrateRoundStart(int $round_number, array $game_state, array $dungeon_data, int $campaign_id = 0): ?string {
     if (!$this->isEnabled('round_start')) {
       return NULL;
     }
@@ -198,7 +207,8 @@ class AiGmService {
       $this->buildSystemPrompt('round_start'),
       $this->buildPrompt($context),
       'round_start',
-      $context
+      $context,
+      $campaign_id
     );
   }
 
@@ -215,7 +225,7 @@ class AiGmService {
    * @return string|null
    *   Dramatic defeat narration.
    */
-  public function narrateEntityDefeated(string $entity_name, string $killer_name, array $dungeon_data): ?string {
+  public function narrateEntityDefeated(string $entity_name, string $killer_name, array $dungeon_data, int $campaign_id = 0): ?string {
     if (!$this->isEnabled('entity_defeated')) {
       return NULL;
     }
@@ -231,7 +241,8 @@ class AiGmService {
       $this->buildSystemPrompt('entity_defeated'),
       $this->buildPrompt($context),
       'entity_defeated',
-      $context
+      $context,
+      $campaign_id
     );
   }
 
@@ -250,7 +261,7 @@ class AiGmService {
    * @return string|null
    *   Narration bridging the phase change.
    */
-  public function narratePhaseTransition(string $from_phase, string $to_phase, string $reason, array $dungeon_data): ?string {
+  public function narratePhaseTransition(string $from_phase, string $to_phase, string $reason, array $dungeon_data, int $campaign_id = 0): ?string {
     if (!$this->isEnabled('phase_transition')) {
       return NULL;
     }
@@ -267,7 +278,8 @@ class AiGmService {
       $this->buildSystemPrompt('phase_transition'),
       $this->buildPrompt($context),
       'phase_transition',
-      $context
+      $context,
+      $campaign_id
     );
   }
 
@@ -278,6 +290,10 @@ class AiGmService {
   /**
    * Invoke the LLM for narration and return plain text.
    *
+   * Threads session context (prior conversation history + rolling summary)
+   * into the prompt when a campaign_id is provided, ensuring continuity
+   * within a campaign and isolation across campaigns.
+   *
    * @param string $system_prompt
    *   System prompt establishing GM persona.
    * @param string $prompt
@@ -286,16 +302,27 @@ class AiGmService {
    *   Operation name for usage tracking.
    * @param array $context
    *   Context metadata for tracking.
+   * @param int $campaign_id
+   *   Campaign ID for session scoping (0 = no session).
    *
    * @return string|null
    *   Narration text, or NULL on failure.
    */
-  protected function invokeNarration(string $system_prompt, string $prompt, string $operation, array $context): ?string {
+  protected function invokeNarration(string $system_prompt, string $prompt, string $operation, array $context, int $campaign_id = 0): ?string {
     if ($this->aiApiService === NULL) {
       $this->logger->info('[AiGmService] AI API service not available, using fallback for @op', [
         '@op' => $operation,
       ]);
       return $this->fallbackForTrigger($context['trigger'] ?? $operation, $context);
+    }
+
+    // Thread session context into the prompt for campaign continuity.
+    if ($campaign_id > 0) {
+      $session_key = $this->sessionManager->gmSessionKey($campaign_id);
+      $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 8);
+      if ($session_context !== '') {
+        $prompt = $session_context . "\n\n---\nCURRENT REQUEST:\n" . $prompt;
+      }
     }
 
     $max_tokens = $this->getMaxTokens();
@@ -308,6 +335,7 @@ class AiGmService {
         [
           'trigger' => $operation,
           'campaign_context' => 'ai_gm_narration',
+          'campaign_id' => $campaign_id,
         ],
         [
           'max_tokens' => $max_tokens,
@@ -321,6 +349,12 @@ class AiGmService {
         // Strip markdown fences if the model wraps output.
         $text = $this->stripMarkdownFences($text);
         if ($text !== '') {
+          // Record this exchange in the session for future context.
+          if ($campaign_id > 0) {
+            $session_key = $this->sessionManager->gmSessionKey($campaign_id);
+            $this->sessionManager->appendMessage($session_key, $campaign_id, 'user', $prompt, ['trigger' => $operation]);
+            $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $text, ['trigger' => $operation]);
+          }
           return $text;
         }
       }

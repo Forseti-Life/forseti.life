@@ -386,7 +386,8 @@ class GameCoordinatorService {
       $from_phase,
       $to_phase,
       $context['reason'] ?? '',
-      $dungeon_data
+      $dungeon_data,
+      $campaign_id
     );
     $transition_event = GameEventLogger::buildEvent('phase_transition', $from_phase, NULL, [
       'from' => $from_phase,

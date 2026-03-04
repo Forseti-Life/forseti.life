@@ -354,6 +354,59 @@ async function checkRequiredAgreementCheckboxes(page, fieldPrefix = 'agreement_c
   return filled;
 }
 
+async function completeSelfIdentifyRequiredControls(page, profile) {
+  const filled = [];
+  const fullName = String(profile.full_name || '').trim();
+  const today = new Date();
+  const mm = String(today.getMonth() + 1).padStart(2, '0');
+  const dd = String(today.getDate()).padStart(2, '0');
+  const yyyy = String(today.getFullYear());
+  const dateText = `${mm}/${dd}/${yyyy}`;
+
+  try {
+    const chosen = await page.evaluate(() => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const s = window.getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+      };
+      const candidates = Array.from(document.querySelectorAll('label, [role="radio"], [data-automation-id="radioBtn"], button'))
+        .filter(isVisible);
+      const find = (needles) => candidates.find((el) => {
+        const t = (el.textContent || '').toLowerCase().replace(/\s+/g, ' ').trim();
+        return needles.some((n) => t.includes(n));
+      });
+      const target = find(['i don\'t wish to answer', 'prefer not to answer', 'do not wish to answer', 'decline to answer'])
+        || find(['no'])
+        || null;
+      if (target) {
+        target.click();
+        return true;
+      }
+      return false;
+    }).catch(() => false);
+    if (chosen) filled.push('self_identify_radio_fallback');
+  } catch (_) {}
+
+  const maybeFillByNeedle = async (needle, value, field) => {
+    if (!value) return;
+    const r = await answerQuestionSmart(page, needle, value, field, 'text');
+    if (r && !filled.includes(field)) filled.push(field);
+  };
+
+  await maybeFillByNeedle('name', fullName, 'self_identify_name');
+  await maybeFillByNeedle('signature', fullName, 'self_identify_signature');
+  await maybeFillByNeedle('date', dateText, 'self_identify_date');
+
+  const agreements = await checkRequiredAgreementCheckboxes(page, 'self_identify_agreement');
+  for (const a of agreements) {
+    if (!filled.includes(a)) filled.push(a);
+  }
+
+  return filled;
+}
+
 async function answerRadioInQuestion(page, questionText, answerText, fieldName) {
   if (!questionText || !answerText) return null;
   try {
@@ -1350,6 +1403,13 @@ async function handleSelfIdentify(page, profile, result) {
     if (r) filled.push(r);
   }
 
+  const completed = await completeSelfIdentifyRequiredControls(page, profile);
+  for (const f of completed) {
+    if (!filled.includes(f)) {
+      filled.push(f);
+    }
+  }
+
   result.fields_filled = filled;
   result.fields_skipped = skipped;
 }
@@ -1731,9 +1791,26 @@ async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, 
   const resolved = [];
   try {
     const appAnswers = deriveApplicationQuestionAnswers(profile || {});
-    const errorTexts = await page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i]')
+    let errorTexts = await page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i]')
       .allTextContents();
-    const combined = (errorTexts || []).join(' ').toLowerCase();
+    let combined = (errorTexts || []).join(' ').toLowerCase();
+
+    if (combined.includes('answer all required questions to submit this application') || combined.includes('page error')) {
+      const opened = await openErrorsFoundSummary(page, evidenceParts);
+      if (opened) {
+        errorTexts = await page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i], [data-automation-id="errorHeading"] button, button.css-tgkpvs')
+          .allTextContents()
+          .catch(() => errorTexts);
+        combined = (errorTexts || []).join(' ').toLowerCase();
+
+        const headingResolved = await resolveErrorHeadingsFromProfile(page, profile, evidenceParts);
+        for (const field of headingResolved) {
+          if (!resolved.includes(field)) {
+            resolved.push(field);
+          }
+        }
+      }
+    }
     const hasExperienceErrors = combined.includes('error-job title')
       || combined.includes('error-company')
       || combined.includes('error-from')
@@ -1908,6 +1985,13 @@ async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, 
         }
       }
 
+      const selfIdentifyFilled = await completeSelfIdentifyRequiredControls(page, profile);
+      for (const field of selfIdentifyFilled) {
+        if (!resolved.includes(field)) {
+          resolved.push(field);
+        }
+      }
+
       const agreements = await checkRequiredAgreementCheckboxes(page, 'required_agreement');
       for (const field of agreements) {
         if (!resolved.includes(field)) {
@@ -2070,6 +2154,73 @@ async function clickErrorLinkAndAnswer(page, errorTextNeedle, answerValue, mode 
     }
   } catch (_) {}
   return false;
+}
+
+async function openErrorsFoundSummary(page, evidenceParts = null) {
+  const selectors = [
+    'button:has-text("Errors Found")',
+    '[role="button"]:has-text("Errors Found")',
+    '[data-automation-id="errorHeading"] button',
+    'button.css-tgkpvs',
+  ];
+
+  for (const sel of selectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 1000 });
+      await btn.click({ timeout: 1500, force: true });
+      await humanDelay(350, 900);
+      if (Array.isArray(evidenceParts)) {
+        evidenceParts.push(`Opened errors summary via ${sel}`);
+      }
+      return true;
+    } catch (_) {}
+  }
+  return false;
+}
+
+async function resolveErrorHeadingsFromProfile(page, profile, evidenceParts = null) {
+  const answers = deriveApplicationQuestionAnswers(profile || {});
+  const mappings = [
+    { key: 'base salary expectation', field: 'salary_expectation', value: answers.salary_expectation, mode: 'text' },
+    { key: 'require sponsorship', field: 'requires_sponsorship', value: answers.requires_sponsorship, mode: 'radio' },
+    { key: 'restrict your ability to perform', field: 'restrictive_agreement', value: answers.restrictive_agreement, mode: 'radio' },
+    { key: 'proficiency of the english language', field: 'english_proficiency', value: answers.english_proficiency, mode: 'dropdown' },
+    { key: 'willing to relocate', field: 'willing_to_relocate', value: answers.willing_to_relocate, mode: 'radio' },
+    { key: 'legally authorized to work', field: 'work_authorized_us', value: answers.work_authorized_us, mode: 'radio' },
+    { key: 'years of experience', field: 'years_experience', value: answers.years_experience, mode: 'text' },
+    { key: 'i certify that i have read', field: 'required_agreement', value: 'Yes', mode: 'radio' },
+  ];
+
+  const resolved = [];
+  try {
+    const buttons = page.locator('[data-automation-id="errorHeading"] button, button.css-tgkpvs');
+    const count = await buttons.count().catch(() => 0);
+    for (let i = 0; i < count; i++) {
+      const btn = buttons.nth(i);
+      const raw = await btn.textContent().catch(() => '');
+      const text = String(raw || '').toLowerCase().replace(/\s+/g, ' ').trim();
+      const hit = mappings.find((m) => text.includes(m.key) && m.value);
+      if (!hit) continue;
+
+      await btn.click({ timeout: 1400, force: true }).catch(() => {});
+      await humanDelay(180, 380);
+
+      let ok = await answerFocusedField(page, hit.value, hit.mode);
+      if (!ok) {
+        ok = !!(await answerQuestionSmart(page, hit.key, hit.value, hit.field, hit.mode));
+      }
+
+      if (ok && !resolved.includes(hit.field)) {
+        resolved.push(hit.field);
+      }
+    }
+  } catch (_) {}
+
+  if (resolved.length > 0 && Array.isArray(evidenceParts)) {
+    evidenceParts.push(`Resolved error headings: [${resolved.join(', ')}]`);
+  }
+  return resolved;
 }
 
 async function uploadRequiredFileIfPresent(page, filePath, evidenceParts) {
@@ -3477,6 +3628,19 @@ async function writeReviewDebugDump(page, screenshotDir, applicationId, evidence
         .filter((x) => x.text)
         .slice(0, 60);
 
+      const allErrorElements = Array.from(document.querySelectorAll('[data-automation-id*="error" i], button, a, [role="button"], [role="link"]'))
+        .map((el) => ({
+          tag: (el.tagName || '').toLowerCase(),
+          id: el.id || '',
+          aid: el.getAttribute('data-automation-id') || '',
+          role: el.getAttribute('role') || '',
+          visible: visible(el),
+          text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
+          aria: el.getAttribute('aria-label') || '',
+        }))
+        .filter((x) => x.text || x.aid)
+        .slice(0, 220);
+
       const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]')).map((el) => ({
         id: el.id || '',
         name: el.getAttribute('name') || '',
@@ -3502,6 +3666,7 @@ async function writeReviewDebugDump(page, screenshotDir, applicationId, evidence
         title: document.title,
         errors,
         actions,
+        allErrorElements,
         checkboxes,
         textInputs,
       };

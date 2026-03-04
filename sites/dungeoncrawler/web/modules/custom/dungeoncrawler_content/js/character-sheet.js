@@ -22,6 +22,11 @@
 (function (Drupal, once) {
   'use strict';
 
+  // Guard: this file may be loaded outside Drupal (e.g. iframe embed).
+  if (typeof Drupal === 'undefined' || typeof Drupal.behaviors === 'undefined') {
+    return;
+  }
+
   /**
    * Gets CSS custom property value from the document root.
    *
@@ -146,4 +151,4 @@
     }
   };
 
-})(Drupal, once);
+})(typeof Drupal !== 'undefined' ? Drupal : undefined, typeof once !== 'undefined' ? once : undefined);

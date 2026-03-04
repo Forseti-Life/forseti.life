@@ -3440,3 +3440,85 @@ function dungeoncrawler_content_update_10021() {
   $count = $registry->importContentFromJson();
   return t('Imported/refreshed @count content items from JSON files.', ['@count' => $count]);
 }
+
+/**
+ * Create dc_ai_sessions table for per-campaign/NPC AI session isolation.
+ */
+function dungeoncrawler_content_update_10022() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('dc_ai_sessions')) {
+    return t('Table dc_ai_sessions already exists.');
+  }
+
+  $schema->createTable('dc_ai_sessions', [
+    'description' => 'AI conversation sessions scoped per campaign / NPC / encounter.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'session_key' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Dot-separated session key (e.g. campaign.42.npc.goblin_1).',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Campaign ID for indexed lookup.',
+      ],
+      'messages' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of recent message objects [{role, content, timestamp, extra}].',
+      ],
+      'summary' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'Rolling summary of older messages.',
+      ],
+      'metadata' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'JSON metadata for the session (NPC name, persona, etc.).',
+      ],
+      'message_count' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Total messages ever appended (including summarized).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'session_key' => ['session_key'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'updated' => ['updated'],
+    ],
+  ]);
+
+  return t('Created dc_ai_sessions table for per-campaign/NPC AI session isolation.');
+}

@@ -207,7 +207,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $room_data = $this->findRoomInDungeon($target_room_id, $dungeon_data);
         if ($room_data) {
           $first_visit = $this->isFirstVisit($target_room_id, $dungeon_data);
-          $gm_narration = $this->aiGmService->narrateRoomEntry($room_data, $dungeon_data, $first_visit);
+          $gm_narration = $this->aiGmService->narrateRoomEntry($room_data, $dungeon_data, $first_visit, $campaign_id);
           if ($gm_narration) {
             $narration = $gm_narration;
           }
