@@ -372,6 +372,11 @@ class WorkdayWizardService {
       'experience_company'    => '',
       'experience_from'       => '',
       'experience_to'         => '',
+      'salary_expectation'    => '',
+      'years_experience'      => '',
+      'willing_to_relocate'   => '',
+      'english_proficiency'   => '',
+      'restrictive_agreement' => '',
     ];
 
     try {
@@ -474,6 +479,47 @@ class WorkdayWizardService {
           $data['phone_device_type'] = (string) $prefs['phone_device_type'];
         }
 
+        if ($data['salary_expectation'] === '') {
+          foreach (['salary_expectation', 'salary_change_minimum', 'salary_min', 'expected_salary', 'desired_salary'] as $k) {
+            if (!empty($prefs[$k])) {
+              $data['salary_expectation'] = (string) $prefs[$k];
+              break;
+            }
+          }
+        }
+
+        if ($data['years_experience'] === '') {
+          foreach (['years_experience', 'experience_years', 'relevant_years_experience'] as $k) {
+            if (!empty($prefs[$k])) {
+              $data['years_experience'] = (string) $prefs[$k];
+              break;
+            }
+          }
+        }
+
+        if ($data['willing_to_relocate'] === '' && array_key_exists('relocation_willing', $prefs)) {
+          $v = $prefs['relocation_willing'];
+          $data['willing_to_relocate'] = is_bool($v) ? ($v ? 'Yes' : 'No') : (string) $v;
+        }
+
+        if ($data['english_proficiency'] === '') {
+          foreach (['english_proficiency', 'language_proficiency_english', 'english_level'] as $k) {
+            if (!empty($prefs[$k])) {
+              $data['english_proficiency'] = (string) $prefs[$k];
+              break;
+            }
+          }
+        }
+
+        if ($data['restrictive_agreement'] === '') {
+          foreach (['restrictive_agreement', 'non_compete_agreement', 'agreement_restriction'] as $k) {
+            if (!empty($prefs[$k])) {
+              $data['restrictive_agreement'] = (string) $prefs[$k];
+              break;
+            }
+          }
+        }
+
         if (!empty($experience) && is_array($experience[0] ?? NULL)) {
           $exp0 = $experience[0];
           if (empty($data['experience_job_title']) && !empty($exp0['title'])) {
@@ -523,6 +569,8 @@ class WorkdayWizardService {
         $data['requires_sponsorship'] = $this->normalizeYesNo($data['requires_sponsorship']);
         $data['age_18_or_older'] = $this->normalizeYesNo($data['age_18_or_older']);
         $data['prior_company_employment'] = $this->normalizeYesNo($data['prior_company_employment']);
+        $data['willing_to_relocate'] = $this->normalizeYesNo($data['willing_to_relocate']);
+        $data['restrictive_agreement'] = $this->normalizeYesNo($data['restrictive_agreement']);
         $data['phone_device_type'] = $this->normalizePhoneDeviceType($data['phone_device_type']);
         $data['eeo_gender'] = $this->normalizeGender($data['eeo_gender']);
         $data['eeo_ethnicity'] = $this->normalizeEthnicity($data['eeo_ethnicity']);

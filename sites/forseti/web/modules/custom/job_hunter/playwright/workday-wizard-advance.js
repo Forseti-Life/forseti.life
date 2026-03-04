@@ -78,6 +78,28 @@ const PAYLOAD_FILE = args['payload-file'] || '';
 const OUTPUT_FILE  = args['output-file'] || '';
 const TIMEOUT      = parseInt(args['timeout'] || '120', 10) * 1000;
 const EXEC_PATH    = args['executable-path'] || '';
+const HEADED_ARG   = args['headed'] === true || String(args['headed'] || '').toLowerCase() === 'true' || String(args['headed'] || '') === '1';
+const HEADLESS_ARG = args['headless'] === true || String(args['headless'] || '').toLowerCase() === 'true' || String(args['headless'] || '') === '1';
+const HEADLESS_ENV = process.env.JOB_HUNTER_HEADLESS;
+
+function resolveHeadlessMode() {
+  if (HEADED_ARG) {
+    return false;
+  }
+  if (HEADLESS_ARG) {
+    return true;
+  }
+  if (HEADLESS_ENV !== undefined) {
+    const v = String(HEADLESS_ENV).trim().toLowerCase();
+    if (v === '0' || v === 'false' || v === 'no') {
+      return false;
+    }
+    if (v === '1' || v === 'true' || v === 'yes') {
+      return true;
+    }
+  }
+  return true;
+}
 
 // ── Step metadata ──────────────────────────────────────────────────────────────
 
@@ -307,6 +329,31 @@ async function checkCheckboxByLabel(page, labelText, fieldName) {
   return null;
 }
 
+async function checkRequiredAgreementCheckboxes(page, fieldPrefix = 'agreement_checkbox') {
+  const filled = [];
+  try {
+    const agreementCheckboxes = page.locator('[data-automation-id="agreementCheckbox"] input[type="checkbox"], [data-automation-id*="agreement" i] input[type="checkbox"], label:has-text("I certify") input[type="checkbox"], label:has-text("I agree") input[type="checkbox"], label:has-text("Terms") input[type="checkbox"], label:has-text("Consent") input[type="checkbox"], input[type="checkbox"][required]');
+    const count = await agreementCheckboxes.count();
+    for (let i = 0; i < count; i++) {
+      try {
+        const box = agreementCheckboxes.nth(i);
+        await box.scrollIntoViewIfNeeded({ timeout: 1800 }).catch(() => {});
+        const isChecked = await box.isChecked({ timeout: 1200 }).catch(() => false);
+        if (!isChecked) {
+          await box.check({ timeout: 2200 }).catch(async () => {
+            await box.click({ timeout: 2200, force: true });
+          });
+        }
+        const after = await box.isChecked({ timeout: 1200 }).catch(() => false);
+        if (after) {
+          filled.push(`${fieldPrefix}_${i + 1}`);
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+  return filled;
+}
+
 async function answerRadioInQuestion(page, questionText, answerText, fieldName) {
   if (!questionText || !answerText) return null;
   try {
@@ -473,11 +520,16 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
   if (!questionNeedle || !answerValue) return null;
   const needle = String(questionNeedle).toLowerCase();
   const value = String(answerValue).trim();
-  const xpath = `xpath=(//*[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "${needle}")]/ancestor::*[.//input or .//*[@role='combobox'] or .//select][1])[1]`;
+  const constrainedXpath = `xpath=(//*[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "${needle}")]/ancestor::*[@data-automation-id='formField' or @data-automation-id='questionField'][1])[1]`;
+  const fallbackXpath = `xpath=(//*[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "${needle}")]/ancestor::*[.//input or .//*[@role='combobox'] or .//select][1])[1]`;
 
   try {
-    const container = page.locator(xpath).first();
-    await container.waitFor({ state: 'visible', timeout: 1800 });
+    let container = page.locator(constrainedXpath).first();
+    let ok = await container.isVisible({ timeout: 1000 }).catch(() => false);
+    if (!ok) {
+      container = page.locator(fallbackXpath).first();
+      await container.waitFor({ state: 'visible', timeout: 1800 });
+    }
 
     if (mode === 'radio') {
       const radioCandidates = [
@@ -581,9 +633,179 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
   }
 }
 
+function deriveApplicationQuestionAnswers(profile) {
+  const read = (...keys) => {
+    for (const key of keys) {
+      const value = profile?.[key];
+      if (value !== undefined && value !== null && String(value).trim() !== '') {
+        return String(value).trim();
+      }
+    }
+    return '';
+  };
+
+  const yesNo = (value) => {
+    const v = String(value || '').trim().toLowerCase();
+    if (!v) return '';
+    if (['yes', 'y', 'true', '1', 'us_citizen', 'authorized'].includes(v)) return 'Yes';
+    if (['no', 'n', 'false', '0'].includes(v)) return 'No';
+    return String(value).trim();
+  };
+
+  const workAuth = yesNo(read('work_authorized_us', 'us_work_authorized', 'work_authorization'));
+  const sponsorship = yesNo(read('requires_sponsorship'));
+  const relocate = yesNo(read('willing_to_relocate', 'relocation_willing'));
+  const restrictive = yesNo(read('restrictive_agreement', 'non_compete_agreement', 'agreement_restriction')) || 'No';
+  const salary = read('salary_expectation', 'salary_change_minimum', 'salary_min', 'expected_salary', 'desired_salary');
+  const years = read('years_experience', 'experience_years', 'relevant_years_experience');
+  const english = read('english_proficiency', 'language_proficiency_english', 'english_level') || 'Fluent';
+
+  return {
+    work_authorized_us: workAuth,
+    requires_sponsorship: sponsorship,
+    willing_to_relocate: relocate,
+    restrictive_agreement: restrictive,
+    salary_expectation: salary,
+    years_experience: years,
+    english_proficiency: english,
+  };
+}
+
+async function answerQuestionSmart(page, questionNeedle, answerValue, fieldName, mode = 'text') {
+  if (!questionNeedle || !answerValue) return null;
+
+  const orderedModes = [mode, 'radio', 'dropdown', 'text'].filter((v, i, a) => a.indexOf(v) === i);
+
+  for (const m of orderedModes) {
+    await clickErrorLinkAndAnswer(page, questionNeedle, answerValue, m);
+
+    if (m === 'radio') {
+      const r = await answerRadioInQuestion(page, questionNeedle, answerValue, fieldName)
+        || await answerQuestionByXPathContainer(page, questionNeedle, answerValue, fieldName, 'radio')
+        || await answerQuestionByDomFallback(page, questionNeedle, answerValue, fieldName);
+      if (r) return r;
+      continue;
+    }
+
+    if (m === 'dropdown') {
+      const r = await answerDropdownInQuestion(page, questionNeedle, answerValue, fieldName)
+        || await answerQuestionByXPathContainer(page, questionNeedle, answerValue, fieldName, 'dropdown')
+        || await answerTextInQuestion(page, questionNeedle, answerValue, fieldName)
+        || await answerQuestionByDomFallback(page, questionNeedle, answerValue, fieldName);
+      if (r) return r;
+      continue;
+    }
+
+    const r = await answerTextInQuestion(page, questionNeedle, answerValue, fieldName)
+      || await answerQuestionByXPathContainer(page, questionNeedle, answerValue, fieldName, 'text')
+      || await answerQuestionByDomFallback(page, questionNeedle, answerValue, fieldName);
+    if (r) return r;
+  }
+
+  return null;
+}
+
+async function captureApplicationQuestionSnapshot(page) {
+  try {
+    return await page.evaluate(() => {
+      const visible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const s = window.getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+      };
+
+      const fields = Array.from(document.querySelectorAll('[data-automation-id="formField"], [data-automation-id="questionField"]')).filter(visible);
+      return fields.slice(0, 20).map((field) => {
+        const text = (field.innerText || '').replace(/\s+/g, ' ').trim();
+        const radios = Array.from(field.querySelectorAll('label, [role="radio"], [data-automation-id="radioBtn"]'))
+          .filter(visible)
+          .map((el) => (el.innerText || '').replace(/\s+/g, ' ').trim())
+          .filter(Boolean)
+          .slice(0, 10);
+        const selects = Array.from(field.querySelectorAll('select')).map((s) => {
+          const opts = Array.from(s.options || []).map((o) => (o.text || '').trim()).filter(Boolean).slice(0, 12);
+          return { value: (s.value || '').trim(), options: opts };
+        });
+        const inputs = Array.from(field.querySelectorAll('input, textarea'))
+          .filter(visible)
+          .map((el) => ({
+            name: el.getAttribute('name') || '',
+            id: el.id || '',
+            type: el.getAttribute('type') || '',
+            role: el.getAttribute('role') || '',
+            value: ('value' in el) ? String(el.value || '') : '',
+            aria: el.getAttribute('aria-valuetext') || '',
+          }))
+          .slice(0, 12);
+
+        return { text: text.slice(0, 360), radios, selects, inputs };
+      });
+    });
+  } catch (_) {
+    return [];
+  }
+}
+
+async function fillPrimaryQuestionnaireCompositeInputs(page, profile) {
+  const appAnswers = deriveApplicationQuestionAnswers(profile || {});
+  const ordered = [
+    { field: 'salary_expectation', value: appAnswers.salary_expectation },
+    { field: 'requires_sponsorship', value: appAnswers.requires_sponsorship },
+    { field: 'restrictive_agreement', value: appAnswers.restrictive_agreement },
+    { field: 'english_proficiency', value: appAnswers.english_proficiency },
+    { field: 'willing_to_relocate', value: appAnswers.willing_to_relocate },
+    { field: 'work_authorized_us', value: appAnswers.work_authorized_us },
+    { field: 'years_experience', value: appAnswers.years_experience },
+  ];
+
+  try {
+    const filled = await page.evaluate(({ ordered }) => {
+      const root = document.querySelector('[data-automation-id="applyFlowPrimaryQuestionsPage"]');
+      if (!root) return [];
+
+      const inputs = Array.from(root.querySelectorAll('input[type="text"], input:not([type])'));
+      if (inputs.length < 2) return [];
+
+      const out = [];
+      const write = (el, value) => {
+        if (!el) return false;
+        const proto = Object.getPrototypeOf(el);
+        const desc = Object.getOwnPropertyDescriptor(proto, 'value')
+          || Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
+        if (desc && typeof desc.set === 'function') {
+          desc.set.call(el, String(value));
+        } else {
+          el.value = String(value);
+        }
+        el.dispatchEvent(new Event('input', { bubbles: true }));
+        el.dispatchEvent(new Event('change', { bubbles: true }));
+        return true;
+      };
+
+      const count = Math.min(ordered.length, inputs.length);
+      for (let i = 0; i < count; i++) {
+        const q = ordered[i];
+        if (!q || q.value === undefined || q.value === null || String(q.value).trim() === '') {
+          continue;
+        }
+        if (write(inputs[i], q.value)) {
+          out.push(q.field);
+        }
+      }
+      return out;
+    }, { ordered });
+
+    return Array.isArray(filled) ? filled : [];
+  } catch (_) {
+    return [];
+  }
+}
+
 async function answerRequiredQuestionsGlobalFallback(page, profile) {
   try {
-    const result = await page.evaluate((profile) => {
+    const appAnswers = deriveApplicationQuestionAnswers(profile || {});
+    const result = await page.evaluate(({ profile, appAnswers }) => {
       const filled = [];
 
       const isVisible = (el) => {
@@ -683,8 +905,57 @@ async function answerRequiredQuestionsGlobalFallback(page, profile) {
         }
       }
 
+      const salary = findContainer('base salary expectation');
+      if (salary && appAnswers.salary_expectation) {
+        if (setInput(salary, appAnswers.salary_expectation)) {
+          filled.push('salary_expectation');
+        }
+      }
+
+      const sponsor = findContainer('require sponsorship');
+      if (sponsor && appAnswers.requires_sponsorship) {
+        if (setRadioByText(sponsor, appAnswers.requires_sponsorship)) {
+          filled.push('requires_sponsorship');
+        }
+      }
+
+      const auth = findContainer('legally authorized to work');
+      if (auth && appAnswers.work_authorized_us) {
+        if (setRadioByText(auth, appAnswers.work_authorized_us)) {
+          filled.push('work_authorized_us');
+        }
+      }
+
+      const relocate = findContainer('willing to relocate');
+      if (relocate && appAnswers.willing_to_relocate) {
+        if (setRadioByText(relocate, appAnswers.willing_to_relocate)) {
+          filled.push('willing_to_relocate');
+        }
+      }
+
+      const restrictive = findContainer('restrict your ability to perform');
+      if (restrictive && appAnswers.restrictive_agreement) {
+        if (setRadioByText(restrictive, appAnswers.restrictive_agreement)) {
+          filled.push('restrictive_agreement');
+        }
+      }
+
+      const english = findContainer('proficiency of the english language');
+      if (english && appAnswers.english_proficiency) {
+        if (setSelectLike(english, appAnswers.english_proficiency) || setInput(english, appAnswers.english_proficiency)) {
+          filled.push('english_proficiency');
+        }
+      }
+
+      const years = findContainer('years of experience');
+      if (years && appAnswers.years_experience) {
+        if (setInput(years, appAnswers.years_experience)) {
+          filled.push('years_experience');
+        }
+      }
+
       return filled;
-    }, profile);
+    }, { profile, appAnswers });
 
     return Array.isArray(result) ? result : [];
   } catch (_) {
@@ -910,6 +1181,7 @@ async function handleApplicationQuestions(page, profile, result) {
   result.needs_manual_review = false;
   result.fields_filled = [];
   result.fields_skipped = [];
+  const appAnswers = deriveApplicationQuestionAnswers(profile || {});
 
   // Count how many questions are displayed.
   let questionCount = 0;
@@ -925,30 +1197,31 @@ async function handleApplicationQuestions(page, profile, result) {
     result.fields_skipped.push('application_questions_require_manual_review');
   }
 
-  // Try to answer common yes/no questions, using profile-provided answers only.
-  const commonAnswers = [
-    { text: 'legally authorized to work', answer: profile.work_authorized_us || '', field: 'work_authorization' },
-    { text: 'authorized to work in the united states', answer: profile.work_authorized_us || '', field: 'work_authorization_alt' },
-    { text: 'require sponsorship', answer: profile.requires_sponsorship || '', field: 'sponsorship' },
-    { text: 'future require sponsorship', answer: profile.requires_sponsorship || '', field: 'sponsorship_alt' },
-    { text: '18 years of age', answer: profile.age_18_or_older || '', field: 'age_18' },
-    { text: 'at least 18', answer: profile.age_18_or_older || '', field: 'age_18_alt' },
-  ].filter(qa => qa.answer && qa.answer.trim().length > 0);
+  const requiredMappings = [
+    { needle: 'base salary expectation', answer: appAnswers.salary_expectation, field: 'salary_expectation', mode: 'text' },
+    { needle: 'require sponsorship', answer: appAnswers.requires_sponsorship, field: 'requires_sponsorship', mode: 'radio' },
+    { needle: 'restrict your ability to perform', answer: appAnswers.restrictive_agreement, field: 'restrictive_agreement', mode: 'radio' },
+    { needle: 'proficiency of the english language', answer: appAnswers.english_proficiency, field: 'english_proficiency', mode: 'dropdown' },
+    { needle: 'willing to relocate', answer: appAnswers.willing_to_relocate, field: 'willing_to_relocate', mode: 'radio' },
+    { needle: 'legally authorized to work', answer: appAnswers.work_authorized_us, field: 'work_authorized_us', mode: 'radio' },
+    { needle: 'years of experience', answer: appAnswers.years_experience, field: 'years_experience', mode: 'text' },
+    { needle: 'authorized to work in the united states', answer: appAnswers.work_authorized_us, field: 'work_authorization_alt', mode: 'radio' },
+    { needle: 'future require sponsorship', answer: appAnswers.requires_sponsorship, field: 'sponsorship_alt', mode: 'radio' },
+    { needle: '18 years of age', answer: profile.age_18_or_older || '', field: 'age_18', mode: 'radio' },
+    { needle: 'at least 18', answer: profile.age_18_or_older || '', field: 'age_18_alt', mode: 'radio' },
+  ].filter((qa) => qa.answer && String(qa.answer).trim().length > 0);
 
-  for (const qa of commonAnswers) {
-    try {
-      // Find the question container that has the text.
-      const questionContainer = page.locator(`[data-automation-id="formField"]:has-text("${qa.text}")`).first();
-      const isVisible = await questionContainer.isVisible({ timeout: 2000 });
-      if (!isVisible) continue;
-
-      // Try to find and select the answer within this container.
-      const radioLabel = questionContainer.locator(`label:has-text("${qa.answer}"), [data-automation-id="radioBtn"]:has-text("${qa.answer}")`).first();
-      await radioLabel.click({ timeout: 3000 });
-      process.stderr.write(`INFO: Answered "${qa.field}": ${qa.answer}\n`);
+  for (const qa of requiredMappings) {
+    const answered = await answerQuestionSmart(page, qa.needle, qa.answer, qa.field, qa.mode);
+    if (answered && !result.fields_filled.includes(qa.field)) {
       result.fields_filled.push(qa.field);
-    } catch (_) {
-      // Question not found or couldn't answer — that's OK.
+    }
+  }
+
+  const compositeFilled = await fillPrimaryQuestionnaireCompositeInputs(page, profile);
+  for (const field of compositeFilled) {
+    if (!result.fields_filled.includes(field)) {
+      result.fields_filled.push(field);
     }
   }
 
@@ -986,6 +1259,13 @@ async function handleApplicationQuestions(page, profile, result) {
 async function handleVoluntaryDisclosures(page, profile, result) {
   const filled = [];
   const skipped = [];
+
+  const agreementChecks = await checkRequiredAgreementCheckboxes(page, 'voluntary_agreement');
+  for (const field of agreementChecks) {
+    if (!filled.includes(field)) {
+      filled.push(field);
+    }
+  }
 
   // Gender.
   if (profile.eeo_gender) {
@@ -1081,27 +1361,27 @@ async function handleReviewSubmit(page, profile, result) {
   result.fields_filled = [];
   result.fields_skipped = [];
 
-  // Look for any required agreement checkboxes.
-  try {
-    const agreementCheckboxes = page.locator('[data-automation-id="agreementCheckbox"] input[type="checkbox"], [data-automation-id*="agreement"] input[type="checkbox"], label:has-text("I certify") input[type="checkbox"], label:has-text("I agree") input[type="checkbox"], label:has-text("Terms") input[type="checkbox"], label:has-text("Consent") input[type="checkbox"], input[type="checkbox"][required]');
-    const count = await agreementCheckboxes.count();
-    for (let i = 0; i < count; i++) {
-      try {
-        const box = agreementCheckboxes.nth(i);
-        await box.scrollIntoViewIfNeeded({ timeout: 2000 });
-        const isChecked = await box.isChecked({ timeout: 2000 });
-        if (!isChecked) {
-          try {
-            await box.check({ timeout: 3000 });
-          } catch (_) {
-            await box.click({ timeout: 3000, force: true });
-          }
-          result.fields_filled.push(`agreement_checkbox_${i + 1}`);
-          process.stderr.write(`INFO: Checked agreement checkbox ${i + 1}\n`);
-        }
-      } catch (_) {}
+  const compositeFilled = await fillPrimaryQuestionnaireCompositeInputs(page, profile);
+  for (const field of compositeFilled) {
+    if (!result.fields_filled.includes(field)) {
+      result.fields_filled.push(field);
     }
-  } catch (_) {}
+  }
+
+  const globalResolved = await answerRequiredQuestionsGlobalFallback(page, profile);
+  for (const field of globalResolved) {
+    if (!result.fields_filled.includes(field)) {
+      result.fields_filled.push(field);
+    }
+  }
+
+  // Look for any required agreement checkboxes.
+  const agreements = await checkRequiredAgreementCheckboxes(page, 'agreement_checkbox');
+  for (const field of agreements) {
+    if (!result.fields_filled.includes(field)) {
+      result.fields_filled.push(field);
+    }
+  }
 }
 
 // ── Main flow ──────────────────────────────────────────────────────────────────
@@ -1147,6 +1427,57 @@ async function detectPageHeading(page) {
     detectedPage = await page.title();
   }
   return detectedPage;
+}
+
+async function isLikelyStillOnStep(page, stepKey) {
+  try {
+    const stillThere = await page.evaluate((stepKey) => {
+      const visible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const s = window.getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+      };
+
+      if (stepKey === 'my_experience') {
+        const titleInputs = Array.from(document.querySelectorAll('input[name="jobTitle"][id*="workExperience-"]')).filter(visible);
+        if (titleInputs.length > 0) {
+          return true;
+        }
+
+        const expRoot = document.querySelector('[data-automation-id="applyFlowMyExpPage"]');
+        if (expRoot && visible(expRoot)) {
+          return true;
+        }
+
+        const pageText = (document.body?.innerText || '').toLowerCase();
+        return pageText.includes('work experience') && pageText.includes('education');
+      }
+
+      if (stepKey === 'application_questions') {
+        const qRoot = document.querySelector('[data-automation-id="applyFlowPrimaryQuestionsPage"]');
+        if (qRoot && visible(qRoot)) {
+          return true;
+        }
+
+        const qFields = Array.from(document.querySelectorAll('[data-automation-id="formField"], [data-automation-id="questionField"]')).filter(visible);
+        if (qFields.length > 0) {
+          return true;
+        }
+
+        const pageText = (document.body?.innerText || '').toLowerCase();
+        if (pageText.includes('base salary expectation') || pageText.includes('how many years of experience')) {
+          return true;
+        }
+        return false;
+      }
+
+      return true;
+    }, stepKey);
+    return !!stillThere;
+  } catch (_) {
+    return true;
+  }
 }
 
 async function clickContinueButton(page, evidenceParts) {
@@ -1208,6 +1539,93 @@ async function clickContinueButton(page, evidenceParts) {
   } catch (_) {}
 
   return false;
+}
+
+async function acceptCookiesIfPresent(page, evidenceParts = []) {
+  const selectors = [
+    'button[data-automation-id="legalNoticeAcceptButton"]',
+    'button:has-text("Accept Cookies")',
+    'button:has-text("Accept All")',
+    'button:has-text("Accept")',
+  ];
+
+  for (const sel of selectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 1200 });
+      await btn.click({ timeout: 1500, force: true });
+      await humanDelay(250, 500);
+      evidenceParts.push(`Accepted cookies via ${sel}`);
+      return true;
+    } catch (_) {}
+  }
+  return false;
+}
+
+async function probeWorkExperienceDateControls(page) {
+  try {
+    return await page.evaluate(() => {
+      const out = [];
+
+      const firstTitle = document.querySelector('input[name="jobTitle"][id*="workExperience-"]');
+      if (!firstTitle) {
+        return out;
+      }
+      const m = String(firstTitle.id || '').match(/workExperience-(\d+)--/i);
+      if (!m) {
+        return out;
+      }
+      const key = m[1];
+
+      const get = (id) => document.getElementById(id);
+      const startMonthWrap = get(`workExperience-${key}--startDate-dateSectionMonth`);
+      const startYearWrap = get(`workExperience-${key}--startDate-dateSectionYear`);
+      const startMonthDisplay = get(`workExperience-${key}--startDate-dateSectionMonth-display`);
+      const startYearDisplay = get(`workExperience-${key}--startDate-dateSectionYear-display`);
+      const startMonthInput = get(`workExperience-${key}--startDate-dateSectionMonth-input`);
+      const startYearInput = get(`workExperience-${key}--startDate-dateSectionYear-input`);
+
+      const describe = (label, el) => {
+        if (!el) {
+          return { label, missing: true };
+        }
+        return {
+          label,
+          missing: false,
+          tag: (el.tagName || '').toLowerCase(),
+          id: el.id || '',
+          role: el.getAttribute('role') || '',
+          tabindex: el.getAttribute('tabindex'),
+          aid: el.getAttribute('data-automation-id') || '',
+          ariaLabel: el.getAttribute('aria-label') || '',
+          ariaValueText: el.getAttribute('aria-valuetext') || '',
+          ariaValueNow: el.getAttribute('aria-valuenow') || '',
+          value: ('value' in el) ? String(el.value || '') : '',
+          text: (el.textContent || '').trim(),
+        };
+      };
+
+      out.push(describe('startMonthWrap', startMonthWrap));
+      out.push(describe('startYearWrap', startYearWrap));
+      out.push(describe('startMonthDisplay', startMonthDisplay));
+      out.push(describe('startYearDisplay', startYearDisplay));
+      out.push(describe('startMonthInput', startMonthInput));
+      out.push(describe('startYearInput', startYearInput));
+
+      const active = document.activeElement;
+      out.push({
+        label: 'activeElement',
+        tag: active ? (active.tagName || '').toLowerCase() : '',
+        id: active?.id || '',
+        role: active?.getAttribute?.('role') || '',
+        tabindex: active?.getAttribute?.('tabindex') || null,
+      });
+
+      return out;
+    });
+  } catch (_) {
+    return [];
+  }
 }
 
 async function clickSubmitButton(page, evidenceParts) {
@@ -1312,6 +1730,7 @@ async function getVisibleActionLabels(page) {
 async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, resumePdfPath = '') {
   const resolved = [];
   try {
+    const appAnswers = deriveApplicationQuestionAnswers(profile || {});
     const errorTexts = await page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i]')
       .allTextContents();
     const combined = (errorTexts || []).join(' ').toLowerCase();
@@ -1395,6 +1814,41 @@ async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, 
       }
     }
 
+    const requiredAppMappings = [
+      { trigger: 'base salary expectation', needle: 'base salary expectation', answer: appAnswers.salary_expectation, field: 'salary_expectation', mode: 'text' },
+      { trigger: 'require sponsorship', needle: 'require sponsorship', answer: appAnswers.requires_sponsorship, field: 'requires_sponsorship', mode: 'radio' },
+      { trigger: 'restrict your ability to perform', needle: 'restrict your ability to perform', answer: appAnswers.restrictive_agreement, field: 'restrictive_agreement', mode: 'radio' },
+      { trigger: 'proficiency of the english language', needle: 'proficiency of the english language', answer: appAnswers.english_proficiency, field: 'english_proficiency', mode: 'dropdown' },
+      { trigger: 'willing to relocate', needle: 'willing to relocate', answer: appAnswers.willing_to_relocate, field: 'willing_to_relocate', mode: 'radio' },
+      { trigger: 'legally authorized to work', needle: 'legally authorized to work', answer: appAnswers.work_authorized_us, field: 'work_authorized_us', mode: 'radio' },
+      { trigger: 'years of experience', needle: 'years of experience', answer: appAnswers.years_experience, field: 'years_experience', mode: 'text' },
+    ];
+
+    for (const qa of requiredAppMappings) {
+      if (!qa.answer || !combined.includes(qa.trigger)) {
+        continue;
+      }
+      const r = await answerQuestionSmart(page, qa.needle, qa.answer, qa.field, qa.mode);
+      if (r && !resolved.includes(r)) {
+        resolved.push(r);
+      }
+    }
+
+    if (combined.includes('base salary expectation')
+      || combined.includes('require sponsorship')
+      || combined.includes('restrict your ability to perform')
+      || combined.includes('proficiency of the english language')
+      || combined.includes('willing to relocate')
+      || combined.includes('legally authorized to work')
+      || combined.includes('years of experience')) {
+      const compositeFilled = await fillPrimaryQuestionnaireCompositeInputs(page, profile);
+      for (const field of compositeFilled) {
+        if (!resolved.includes(field)) {
+          resolved.push(field);
+        }
+      }
+    }
+
     if (!hasExperienceErrors && combined.includes('error-job title') && profile.experience_job_title) {
       const r = await clickErrorLinkAndAnswer(page, 'Job Title', profile.experience_job_title, 'text')
         ? 'experience_job_title'
@@ -1427,6 +1881,38 @@ async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, 
       const uploaded = await uploadRequiredFileIfPresent(page, resumePdfPath, evidenceParts);
       if (uploaded) {
         resolved.push('required_file_upload');
+      }
+    }
+
+    if (combined.includes('i certify that i have read') || combined.includes('terms of the foregoing statement')) {
+      const agreements = await checkRequiredAgreementCheckboxes(page, 'required_agreement');
+      for (const field of agreements) {
+        if (!resolved.includes(field)) {
+          resolved.push(field);
+        }
+      }
+    }
+
+    if (combined.includes('answer all required questions to submit this application') || combined.includes('page error')) {
+      const compositeFilled = await fillPrimaryQuestionnaireCompositeInputs(page, profile);
+      for (const field of compositeFilled) {
+        if (!resolved.includes(field)) {
+          resolved.push(field);
+        }
+      }
+
+      const globalFilled = await answerRequiredQuestionsGlobalFallback(page, profile);
+      for (const field of globalFilled) {
+        if (!resolved.includes(field)) {
+          resolved.push(field);
+        }
+      }
+
+      const agreements = await checkRequiredAgreementCheckboxes(page, 'required_agreement');
+      for (const field of agreements) {
+        if (!resolved.includes(field)) {
+          resolved.push(field);
+        }
       }
     }
 
@@ -2099,7 +2585,17 @@ async function fillWorkExperienceByFieldNames(page, profile) {
       if (await label.isVisible({ timeout: 300 }).catch(() => false)) {
         await label.click({ timeout: 900, force: true });
       } else {
-        await checkbox.click({ timeout: 900, force: true });
+        await checkbox.click({ timeout: 900, force: true }).catch(async () => {
+          await page.evaluate((id) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const container = el.closest('div, section, fieldset, li, form') || el.parentElement;
+            const candidate = container?.querySelector('label, [role="checkbox"], div[role="checkbox"], span, button');
+            if (candidate) {
+              candidate.click();
+            }
+          }, id);
+        });
       }
       await humanDelay(80, 180);
 
@@ -2132,15 +2628,164 @@ async function fillWorkExperienceByFieldNames(page, profile) {
       await humanDelay(80, 170);
 
       let after = await readById(id);
+      if (!valueMatches(after, value) && /dateSection(Month|Year)-input$/i.test(id)) {
+        const input = page.locator(`[id="${id}"]`).first();
+        await input.click({ timeout: 800, force: true }).catch(() => {});
+        await page.keyboard.press('ArrowUp').catch(() => {});
+        await humanDelay(70, 140);
+        after = await readById(id);
+      }
       if (!valueMatches(after, value)) {
         await setByNativeSetter(id, value);
         await humanDelay(70, 140);
         after = await readById(id);
       }
-      return valueMatches(after, value);
+
+      // Final fallback for stubborn spinbutton controls: keep nudging until non-empty.
+      if (!valueMatches(after, value) && /dateSection(Month|Year)-input$/i.test(id)) {
+        const input = page.locator(`[id="${id}"]`).first();
+        for (let i = 0; i < 3; i++) {
+          await input.click({ timeout: 700, force: true }).catch(() => {});
+          await page.keyboard.press('ArrowUp').catch(() => {});
+          await humanDelay(60, 120);
+          after = await readById(id);
+          if (String(after || '').trim() !== '') {
+            break;
+          }
+        }
+      }
+
+      if (valueMatches(after, value)) {
+        return true;
+      }
+      if (/dateSection(Month|Year)-input$/i.test(id) && String(after || '').trim() !== '') {
+        return true;
+      }
+      return false;
     } catch (_) {
       return false;
     }
+  };
+
+  const monthAliases = (value) => {
+    const v = String(value || '').trim().toLowerCase();
+    const map = {
+      '01': ['1', '01', 'jan', 'january'],
+      '02': ['2', '02', 'feb', 'february'],
+      '03': ['3', '03', 'mar', 'march'],
+      '04': ['4', '04', 'apr', 'april'],
+      '05': ['5', '05', 'may'],
+      '06': ['6', '06', 'jun', 'june'],
+      '07': ['7', '07', 'jul', 'july'],
+      '08': ['8', '08', 'aug', 'august'],
+      '09': ['9', '09', 'sep', 'sept', 'september'],
+      '10': ['10', 'oct', 'october'],
+      '11': ['11', 'nov', 'november'],
+      '12': ['12', 'dec', 'december'],
+    };
+    if (map[v]) return map[v];
+    if (/^\d{1,2}$/.test(v)) {
+      const k = String(parseInt(v, 10)).padStart(2, '0');
+      if (map[k]) return map[k];
+    }
+    return [v];
+  };
+
+  const readDateSegmentState = async (baseId, part) => {
+    const wrapId = `${baseId}-dateSection${part}`;
+    const inputId = `${wrapId}-input`;
+    const displayId = `${wrapId}-display`;
+    try {
+      return await page.evaluate(({ inputId, displayId, wrapId }) => {
+        const input = document.getElementById(inputId);
+        const display = document.getElementById(displayId);
+        const wrap = document.getElementById(wrapId);
+        return {
+          value: String(input?.value || '').trim(),
+          ariaValueText: String(input?.getAttribute('aria-valuetext') || '').trim(),
+          ariaValueNow: String(input?.getAttribute('aria-valuenow') || '').trim(),
+          displayText: String(display?.textContent || '').trim(),
+          wrapText: String(wrap?.textContent || '').trim(),
+        };
+      }, { inputId, displayId, wrapId });
+    } catch (_) {
+      return { value: '', ariaValueText: '', ariaValueNow: '', displayText: '', wrapText: '' };
+    }
+  };
+
+  const dateSegmentMatches = (state, expected, part) => {
+    const e = String(expected || '').trim().toLowerCase();
+    const vals = [
+      String(state?.value || '').trim().toLowerCase(),
+      String(state?.ariaValueText || '').trim().toLowerCase(),
+      String(state?.ariaValueNow || '').trim().toLowerCase(),
+      String(state?.displayText || '').trim().toLowerCase(),
+      String(state?.wrapText || '').trim().toLowerCase(),
+    ].filter(Boolean);
+    if (!e || !vals.length) return false;
+
+    if (part === 'Month') {
+      const aliases = monthAliases(e);
+      return vals.some((v) => aliases.some((a) => v === a || v.includes(a)));
+    }
+
+    return vals.some((v) => v === e || v.includes(e));
+  };
+
+  const setDateSegment = async (baseId, part, value) => {
+    const wrapId = `${baseId}-dateSection${part}`;
+    const inputId = `${wrapId}-input`;
+
+    const wrap = page.locator(`[id="${wrapId}"]`).first();
+    const input = page.locator(`[id="${inputId}"]`).first();
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        await wrap.waitFor({ state: 'visible', timeout: 900 });
+        await wrap.scrollIntoViewIfNeeded({ timeout: 700 }).catch(() => {});
+        await wrap.click({ timeout: 900, force: true }).catch(() => {});
+      } catch (_) {}
+
+      try {
+        await input.waitFor({ state: 'visible', timeout: 900 });
+        await input.click({ timeout: 900, force: true }).catch(() => {});
+      } catch (_) {}
+
+      await page.keyboard.press('Control+A').catch(() => {});
+      await page.keyboard.press('Backspace').catch(() => {});
+      const typed = part === 'Month'
+        ? String(parseInt(String(value || '').trim(), 10) || String(value || '').trim())
+        : String(value || '').trim();
+      if (typed) {
+        await page.keyboard.type(typed, { delay: 25 }).catch(() => {});
+      }
+      await input.dispatchEvent('input').catch(() => {});
+      await input.dispatchEvent('change').catch(() => {});
+      await page.keyboard.press('Tab').catch(() => {});
+      await humanDelay(90, 180);
+
+      const after = await readDateSegmentState(baseId, part);
+      if (dateSegmentMatches(after, value, part)) {
+        return true;
+      }
+
+      await setByNativeSetter(inputId, typed);
+      await humanDelay(80, 160);
+      const afterNative = await readDateSegmentState(baseId, part);
+      if (dateSegmentMatches(afterNative, value, part)) {
+        return true;
+      }
+    }
+
+    return false;
+  };
+
+  const setDateByPrefix = async (key, prefix, parts) => {
+    if (!parts || !parts.month || !parts.year) return false;
+    const baseId = `workExperience-${key}--${prefix}`;
+    const monthOk = await setDateSegment(baseId, 'Month', parts.month);
+    const yearOk = await setDateSegment(baseId, 'Year', parts.year);
+    return !!(monthOk && yearOk);
   };
 
   try {
@@ -2178,9 +2823,10 @@ async function fillWorkExperienceByFieldNames(page, profile) {
         if (ok) filled.push('experience_company');
       }
       if (fromParts && fromParts.month && fromParts.year) {
-        const a = await typeById(`workExperience-${key}--startDate-dateSectionMonth-input`, fromParts.month);
-        const b = await typeById(`workExperience-${key}--startDate-dateSectionYear-input`, fromParts.year);
-        perRow.from = !!(a && b);
+        const dateOk = await setDateByPrefix(key, 'startDate', fromParts);
+        const a = dateOk || await typeById(`workExperience-${key}--startDate-dateSectionMonth-input`, fromParts.month);
+        const b = dateOk || await typeById(`workExperience-${key}--startDate-dateSectionYear-input`, fromParts.year);
+        perRow.from = !!(dateOk || (a && b));
         if (perRow.from) filled.push('experience_from');
       }
 
@@ -2193,9 +2839,10 @@ async function fillWorkExperienceByFieldNames(page, profile) {
       }
 
       if (!present && toParts && toParts.month && toParts.year) {
-        const a = await typeById(`workExperience-${key}--endDate-dateSectionMonth-input`, toParts.month);
-        const b = await typeById(`workExperience-${key}--endDate-dateSectionYear-input`, toParts.year);
-        perRow.to = !!(a && b);
+        const dateOk = await setDateByPrefix(key, 'endDate', toParts);
+        const a = dateOk || await typeById(`workExperience-${key}--endDate-dateSectionMonth-input`, toParts.month);
+        const b = dateOk || await typeById(`workExperience-${key}--endDate-dateSectionYear-input`, toParts.year);
+        perRow.to = !!(dateOk || (a && b));
         if (perRow.to) filled.push('experience_to');
       }
 
@@ -2378,6 +3025,11 @@ async function validateStepWithPlaywright(page, stepKey) {
     return { ok: true, issues: [] };
   }
 
+  const stillOnStep = await isLikelyStillOnStep(page, stepKey);
+  if (!stillOnStep) {
+    return { ok: true, issues: [], rows: [] };
+  }
+
   try {
     const details = await page.evaluate(() => {
       const out = { issues: [], rows: [] };
@@ -2401,24 +3053,49 @@ async function validateStepWithPlaywright(page, stepKey) {
       }
 
       if (!keys.length) {
+        const allWorkIds = Array.from(document.querySelectorAll('[id*="workExperience-"]'));
+        for (const el of allWorkIds) {
+          const key = extractKey(el.id || '');
+          if (key && !keys.includes(key)) {
+            keys.push(key);
+          }
+        }
+      }
+
+      if (!keys.length) {
         out.issues.push('no_work_experience_rows_detected');
       }
+
+      const readTextOrValue = (el) => {
+        if (!el) return '';
+        const byValue = ('value' in el) ? String(el.value || '').trim() : '';
+        if (byValue) return byValue;
+        const ariaValText = String(el.getAttribute?.('aria-valuetext') || '').trim();
+        if (ariaValText) return ariaValText;
+        const ariaValNow = String(el.getAttribute?.('aria-valuenow') || '').trim();
+        if (ariaValNow) return ariaValNow;
+        return String(el.textContent || '').trim();
+      };
 
       for (const key of keys) {
         const job = document.getElementById(`workExperience-${key}--jobTitle`);
         const company = document.getElementById(`workExperience-${key}--companyName`);
         const startM = document.getElementById(`workExperience-${key}--startDate-dateSectionMonth-input`);
         const startY = document.getElementById(`workExperience-${key}--startDate-dateSectionYear-input`);
+        const startMDisplay = document.getElementById(`workExperience-${key}--startDate-dateSectionMonth-display`);
+        const startYDisplay = document.getElementById(`workExperience-${key}--startDate-dateSectionYear-display`);
         const endM = document.getElementById(`workExperience-${key}--endDate-dateSectionMonth-input`);
         const endY = document.getElementById(`workExperience-${key}--endDate-dateSectionYear-input`);
+        const endMDisplay = document.getElementById(`workExperience-${key}--endDate-dateSectionMonth-display`);
+        const endYDisplay = document.getElementById(`workExperience-${key}--endDate-dateSectionYear-display`);
         const current = document.getElementById(`workExperience-${key}--currentlyWorkHere`);
 
-        const jobVal = String(job?.value || '').trim();
-        const companyVal = String(company?.value || '').trim();
-        const startMonthVal = String(startM?.value || '').trim();
-        const startYearVal = String(startY?.value || '').trim();
-        const endMonthVal = String(endM?.value || '').trim();
-        const endYearVal = String(endY?.value || '').trim();
+        const jobVal = readTextOrValue(job);
+        const companyVal = readTextOrValue(company);
+        const startMonthVal = readTextOrValue(startM) || readTextOrValue(startMDisplay);
+        const startYearVal = readTextOrValue(startY) || readTextOrValue(startYDisplay);
+        const endMonthVal = readTextOrValue(endM) || readTextOrValue(endMDisplay);
+        const endYearVal = readTextOrValue(endY) || readTextOrValue(endYDisplay);
         const currentChecked = !!current?.checked;
 
         out.rows.push({ key, jobVal, companyVal, startMonthVal, startYearVal, endMonthVal, endYearVal, currentChecked });
@@ -2682,6 +3359,173 @@ async function writeExperienceDebugDump(page, screenshotDir, applicationId, evid
   }
 }
 
+async function writeApplicationDebugDump(page, screenshotDir, applicationId, evidenceParts) {
+  try {
+    const dump = await page.evaluate(() => {
+      const visible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const errorButtons = Array.from(document.querySelectorAll('[data-automation-id="errorHeading"] button, button.css-tgkpvs, [data-automation-id*="error" i] button'))
+        .filter(visible)
+        .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .slice(0, 20);
+
+      const promptOptions = Array.from(document.querySelectorAll('[data-automation-id="promptOption"], li[role="option"], div[role="option"]'))
+        .filter(visible)
+        .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .slice(0, 30);
+
+      const questionRoots = Array.from(document.querySelectorAll('[data-automation-id="formField"], [data-automation-id="questionField"], [data-automation-id*="question" i], [id*="questionnaire" i]'))
+        .slice(0, 60)
+        .map((root) => {
+          const text = (root.innerText || '').replace(/\s+/g, ' ').trim();
+          const inputs = Array.from(root.querySelectorAll('input, textarea, select, [role="combobox"], [role="radio"], [role="button"]'))
+            .slice(0, 30)
+            .map((el) => ({
+              tag: (el.tagName || '').toLowerCase(),
+              id: el.id || '',
+              name: el.getAttribute('name') || '',
+              type: el.getAttribute('type') || '',
+              role: el.getAttribute('role') || '',
+              aid: el.getAttribute('data-automation-id') || '',
+              ariaLabel: el.getAttribute('aria-label') || '',
+              ariaChecked: el.getAttribute('aria-checked') || '',
+              visible: visible(el),
+              checked: !!el.checked,
+              value: ('value' in el) ? String(el.value || '') : '',
+              text: (el.textContent || '').replace(/\s+/g, ' ').trim(),
+            }));
+
+          const radios = Array.from(root.querySelectorAll('label, [role="radio"], [data-automation-id="radioBtn"]'))
+            .filter(visible)
+            .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+            .filter(Boolean)
+            .slice(0, 20);
+
+          const selects = Array.from(root.querySelectorAll('select')).map((s) => ({
+            value: String(s.value || ''),
+            options: Array.from(s.options || []).map((o) => (o.text || '').trim()).filter(Boolean).slice(0, 30),
+          }));
+
+          return {
+            visible: visible(root),
+            text,
+            aid: root.getAttribute('data-automation-id') || '',
+            radios,
+            selects,
+            inputs,
+          };
+        });
+
+      return {
+        url: window.location.href,
+        title: document.title,
+        errorButtons,
+        promptOptions,
+        questionRoots,
+      };
+    });
+
+    const stamp = Date.now();
+    const fileName = `wd_app_debug_${applicationId || 'na'}_${stamp}.json`;
+    const targetDir = (screenshotDir && fs.existsSync(screenshotDir) && fs.statSync(screenshotDir).isDirectory())
+      ? screenshotDir
+      : '/tmp';
+    const filePath = path.join(targetDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(dump, null, 2), 'utf8');
+    evidenceParts.push(`Application debug dump: ${filePath}`);
+    return filePath;
+  } catch (e) {
+    try {
+      const fallbackPath = path.join('/tmp', `wd_app_debug_${applicationId || 'na'}_${Date.now()}_fallback_error.txt`);
+      fs.writeFileSync(fallbackPath, String(e && e.message ? e.message : e), 'utf8');
+      evidenceParts.push(`Application debug dump failed: ${fallbackPath}`);
+    } catch (_) {}
+    return '';
+  }
+}
+
+async function writeReviewDebugDump(page, screenshotDir, applicationId, evidenceParts) {
+  try {
+    const dump = await page.evaluate(() => {
+      const visible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const errors = Array.from(document.querySelectorAll('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], [data-automation-id*="error" i], .error-message-text, [role="alert"]'))
+        .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .slice(0, 40);
+
+      const actions = Array.from(document.querySelectorAll('button, a, [role="button"], input[type="submit"], input[type="button"]'))
+        .filter(visible)
+        .map((el) => ({
+          tag: (el.tagName || '').toLowerCase(),
+          aid: el.getAttribute('data-automation-id') || '',
+          aria: el.getAttribute('aria-label') || '',
+          text: ((el.textContent || '') + ' ' + (el.getAttribute('value') || '')).replace(/\s+/g, ' ').trim(),
+        }))
+        .filter((x) => x.text)
+        .slice(0, 60);
+
+      const checkboxes = Array.from(document.querySelectorAll('input[type="checkbox"]')).map((el) => ({
+        id: el.id || '',
+        name: el.getAttribute('name') || '',
+        aid: el.getAttribute('data-automation-id') || '',
+        checked: !!el.checked,
+        required: !!el.required,
+        visible: visible(el),
+        text: (el.closest('label, div, section, li, fieldset')?.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 220),
+      })).slice(0, 80);
+
+      const textInputs = Array.from(document.querySelectorAll('input[type="text"], input:not([type]), textarea, select')).map((el) => ({
+        tag: (el.tagName || '').toLowerCase(),
+        id: el.id || '',
+        name: el.getAttribute('name') || '',
+        aid: el.getAttribute('data-automation-id') || '',
+        value: ('value' in el) ? String(el.value || '') : '',
+        visible: visible(el),
+        text: (el.closest('div, section, li, fieldset')?.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 220),
+      })).slice(0, 120);
+
+      return {
+        url: window.location.href,
+        title: document.title,
+        errors,
+        actions,
+        checkboxes,
+        textInputs,
+      };
+    });
+
+    const stamp = Date.now();
+    const fileName = `wd_review_debug_${applicationId || 'na'}_${stamp}.json`;
+    const targetDir = (screenshotDir && fs.existsSync(screenshotDir) && fs.statSync(screenshotDir).isDirectory())
+      ? screenshotDir
+      : '/tmp';
+    const filePath = path.join(targetDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(dump, null, 2), 'utf8');
+    evidenceParts.push(`Review debug dump: ${filePath}`);
+    return filePath;
+  } catch (e) {
+    try {
+      const fallbackPath = path.join('/tmp', `wd_review_debug_${applicationId || 'na'}_${Date.now()}_fallback_error.txt`);
+      fs.writeFileSync(fallbackPath, String(e && e.message ? e.message : e), 'utf8');
+      evidenceParts.push(`Review debug dump failed: ${fallbackPath}`);
+    } catch (_) {}
+    return '';
+  }
+}
+
 async function run() {
   const result = {
     ok: false,
@@ -2701,7 +3545,7 @@ async function run() {
 
   let browser;
   try {
-    const launchOpts = { headless: true };
+    const launchOpts = { headless: resolveHeadlessMode() };
     if (EXEC_PATH) {
       launchOpts.executablePath = EXEC_PATH;
     }
@@ -2788,6 +3632,7 @@ async function run() {
     process.stderr.write(`INFO: [${target_step}] Navigating to apply URL: ${apply_url}\n`);
     await page.goto(apply_url, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
     await humanDelay(3000, 5000);
+    await acceptCookiesIfPresent(page, evidenceParts);
 
     if (target_step === 'wizard_auto' || target_step === 'wizard_validate') {
       const strictValidation = target_step === 'wizard_validate';
@@ -2811,6 +3656,13 @@ async function run() {
 
         process.stderr.write(`INFO: [wizard_auto] Running ${stepKey}...\n`);
         await humanDelay(500, 1100);
+
+        if (stepKey === 'my_experience') {
+          const probe = await probeWorkExperienceDateControls(page);
+          if (probe.length > 0) {
+            evidenceParts.push('Date control probe before my_experience: ' + JSON.stringify(probe));
+          }
+        }
 
         try {
           const detectedPage = await detectPageHeading(page);
@@ -2878,7 +3730,9 @@ async function run() {
         try {
           const validationErrors = page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i]');
           const errorCount = await validationErrors.count();
-          const noAdvanceYet = stepResult.post_continue_url === preClickUrl;
+          const sameUrl = stepResult.post_continue_url === preClickUrl;
+          const stillOnStep = sameUrl ? await isLikelyStillOnStep(page, stepKey) : false;
+          const noAdvanceYet = sameUrl && stillOnStep;
           if (errorCount > 0 && noAdvanceYet) {
             const firstError = await validationErrors.first().textContent({ timeout: 1000 }).catch(() => '');
             if (stepKey === 'my_experience') {
@@ -2887,6 +3741,14 @@ async function run() {
                 evidenceParts.push('Experience actions snapshot: ' + JSON.stringify(actions));
               }
               await writeExperienceDebugDump(page, screenshot_dir, application_id, evidenceParts);
+            } else if (stepKey === 'application_questions') {
+              const appSnap = await captureApplicationQuestionSnapshot(page);
+              if (appSnap.length > 0) {
+                evidenceParts.push('Application questions snapshot: ' + JSON.stringify(appSnap));
+              }
+              await writeApplicationDebugDump(page, screenshot_dir, application_id, evidenceParts);
+            } else if (stepKey === 'review_submit') {
+              await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
             }
 
             const resolvedFields = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
@@ -2903,6 +3765,14 @@ async function run() {
                   evidenceParts.push('Experience snapshot after resolver: ' + JSON.stringify(expSnap));
                 }
                   await writeExperienceDebugDump(page, screenshot_dir, application_id, evidenceParts);
+              } else if (stepKey === 'application_questions') {
+                const appSnapAfter = await captureApplicationQuestionSnapshot(page);
+                if (appSnapAfter.length > 0) {
+                  evidenceParts.push('Application questions snapshot after resolver: ' + JSON.stringify(appSnapAfter));
+                }
+                await writeApplicationDebugDump(page, screenshot_dir, application_id, evidenceParts);
+              } else if (stepKey === 'review_submit') {
+                await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
               }
 
               const retryPreUrl = page.url();
@@ -2920,7 +3790,9 @@ async function run() {
                 lastUrl = stepResult.post_continue_url;
               }
 
-              clicked = !!retryClicked && stepResult.post_continue_url !== retryPreUrl;
+              const retrySameUrl = stepResult.post_continue_url === retryPreUrl;
+              const retryStillOnStep = retrySameUrl ? await isLikelyStillOnStep(page, stepKey) : false;
+              clicked = !!retryClicked && (!retrySameUrl || !retryStillOnStep);
               if (!clicked) {
                 stepResult.error = 'Validation blocked step progression after resolver: ' + String(firstError || '').trim();
               }
@@ -2930,6 +3802,17 @@ async function run() {
             }
           }
         } catch (_) {}
+
+        if (!clicked) {
+          if (stepKey === 'self_identify') {
+            const actions = await getVisibleActionLabels(page);
+            const hasSubmit = actions.some((a) => /submit/i.test(String(a || '')));
+            if (hasSubmit) {
+              clicked = true;
+              evidenceParts.push('self_identify: no Continue control; Submit action visible, proceeding to review_submit');
+            }
+          }
+        }
 
         if (!clicked) {
           const visibleActions = await getVisibleActionLabels(page);
