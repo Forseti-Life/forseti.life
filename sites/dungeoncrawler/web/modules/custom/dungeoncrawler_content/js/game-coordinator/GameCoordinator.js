@@ -350,7 +350,7 @@ export class GameCoordinator {
 
       if (event.type === 'gm_narration' && event.narration) {
         text = event.narration;
-        style = event.trigger || 'default';
+        style = event.data?.trigger || 'default';
       } else if (event.narration) {
         text = event.narration;
       }

@@ -82,7 +82,7 @@ class AiGmService {
    */
   public function narrateRoomEntry(array $room, array $dungeon_data, bool $first_visit = TRUE): ?string {
     if (!$this->isEnabled('room_entry')) {
-      return $this->fallbackRoomEntry($room, $first_visit);
+      return NULL;
     }
 
     $context = [
@@ -118,7 +118,7 @@ class AiGmService {
    */
   public function narrateEncounterStart(array $encounter_context, array $dungeon_data): ?string {
     if (!$this->isEnabled('encounter_start')) {
-      return $this->fallbackEncounterStart($encounter_context);
+      return NULL;
     }
 
     $context = [
@@ -150,7 +150,7 @@ class AiGmService {
    */
   public function narrateEncounterEnd(array $encounter_result, array $dungeon_data): ?string {
     if (!$this->isEnabled('encounter_end')) {
-      return $this->fallbackEncounterEnd($encounter_result);
+      return NULL;
     }
 
     $context = [
@@ -184,7 +184,7 @@ class AiGmService {
    */
   public function narrateRoundStart(int $round_number, array $game_state, array $dungeon_data): ?string {
     if (!$this->isEnabled('round_start')) {
-      return $this->fallbackRoundStart($round_number, $game_state);
+      return NULL;
     }
 
     $context = [
@@ -217,7 +217,7 @@ class AiGmService {
    */
   public function narrateEntityDefeated(string $entity_name, string $killer_name, array $dungeon_data): ?string {
     if (!$this->isEnabled('entity_defeated')) {
-      return $this->fallbackEntityDefeated($entity_name, $killer_name);
+      return NULL;
     }
 
     $context = [
@@ -252,7 +252,7 @@ class AiGmService {
    */
   public function narratePhaseTransition(string $from_phase, string $to_phase, string $reason, array $dungeon_data): ?string {
     if (!$this->isEnabled('phase_transition')) {
-      return $this->fallbackPhaseTransition($from_phase, $to_phase, $reason);
+      return NULL;
     }
 
     $context = [

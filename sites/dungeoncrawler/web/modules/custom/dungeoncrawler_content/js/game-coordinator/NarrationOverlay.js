@@ -55,6 +55,9 @@ export class NarrationOverlay {
     /** @type {boolean} */
     this._destroyed = false;
 
+    /** @type {string} */
+    this._currentFullText = '';
+
     // Bind skip handler.
     this._onSkipClick = this._onSkipClick.bind(this);
     if (this.overlayEl) {
@@ -131,6 +134,7 @@ export class NarrationOverlay {
     this._isPlaying = true;
     const { text, style } = this._queue.shift();
 
+    this._currentFullText = text;
     this._showOverlay(style);
     this._typewrite(text, () => {
       // After typewriter finishes, start auto-dismiss timer.
@@ -175,30 +179,48 @@ export class NarrationOverlay {
   }
 
   /**
-   * Skip the typewriter effect — reveal full text immediately.
+   * Skip the typewriter effect — reveal full text immediately,
+   * then wait for auto-dismiss or another click.
    * @private
    */
   _skipTypewriter() {
     if (this._typewriterTimer !== null) {
       clearTimeout(this._typewriterTimer);
       this._typewriterTimer = null;
-
-      // Show full text of the current queue item (already shifted).
-      // The textEl may already have partial text — find the full text from context.
-      // We handle this by just advancing to next.
     }
 
-    this._clearTimers();
-    this._playNext();
+    // Reveal the full text immediately.
+    if (this.textEl && this._currentFullText) {
+      this.textEl.textContent = this._currentFullText;
+    }
+
+    // Clear any pending dismiss timer, then set a fresh one.
+    if (this._dismissTimer !== null) {
+      clearTimeout(this._dismissTimer);
+      this._dismissTimer = null;
+    }
+
+    if (this.autoDismissMs > 0) {
+      this._dismissTimer = setTimeout(() => {
+        this._playNext();
+      }, this.autoDismissMs);
+    }
   }
 
   /**
-   * Handle click on the overlay to skip.
+   * Handle click on the overlay to skip or advance.
    * @private
    */
   _onSkipClick() {
-    if (this._isPlaying) {
+    if (!this._isPlaying) return;
+
+    // If typewriter is still running, reveal full text.
+    if (this._typewriterTimer !== null) {
       this._skipTypewriter();
+    } else {
+      // Text already fully shown — advance to next narration.
+      this._clearTimers();
+      this._playNext();
     }
   }
 
@@ -255,5 +277,3 @@ export class NarrationOverlay {
   }
 
 }
-
-export default NarrationOverlay;

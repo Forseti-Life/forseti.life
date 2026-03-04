@@ -351,6 +351,7 @@ services:
       - '@dungeoncrawler_content.rules_engine'
       - '@event_dispatcher'
       - '@dungeoncrawler_content.ai_gm'
+      - '@config.factory'
 
   dungeoncrawler_content.downtime_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\DowntimePhaseHandler

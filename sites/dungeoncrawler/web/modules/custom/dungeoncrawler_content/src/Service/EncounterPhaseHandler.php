@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Config\ConfigFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
@@ -84,6 +85,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   protected AiGmService $aiGmService;
 
   /**
+   * @var \Drupal\Core\Config\ConfigFactoryInterface
+   */
+  protected ConfigFactoryInterface $configFactory;
+
+  /**
    * Constructs an EncounterPhaseHandler.
    */
   public function __construct(
@@ -99,7 +105,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     EncounterAiIntegrationService $encounter_ai_service,
     RulesEngine $rules_engine,
     EventDispatcherInterface $event_dispatcher,
-    AiGmService $ai_gm_service
+    AiGmService $ai_gm_service,
+    ConfigFactoryInterface $config_factory
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -114,6 +121,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->rulesEngine = $rules_engine;
     $this->eventDispatcher = $event_dispatcher;
     $this->aiGmService = $ai_gm_service;
+    $this->configFactory = $config_factory;
   }
 
   /**
@@ -791,7 +799,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $context = $this->buildNpcContext($entity_id, $game_state, $dungeon_data);
 
     // Check config flag — if AI autoplay disabled, always use fallback.
-    $ai_enabled = (bool) \Drupal::config('dungeoncrawler_content.settings')
+    $ai_enabled = (bool) $this->configFactory->get('dungeoncrawler_content.settings')
       ->get('encounter_ai_npc_autoplay_enabled');
 
     $action_type = NULL;
@@ -845,7 +853,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           ], $narration, $target);
 
           // Check for entity defeat after strike.
-          $this->checkEntityDefeated($target, $game_state, $events, $dungeon_data);
+          $this->checkEntityDefeated($target, $entity_id, $game_state, $events, $dungeon_data);
         }
         break;
 
@@ -974,8 +982,19 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
   /**
    * Check if an entity was defeated after damage and generate narration.
+   *
+   * @param string $entity_id
+   *   The entity to check for defeat.
+   * @param string $attacker_id
+   *   The entity that dealt the killing blow.
+   * @param array &$game_state
+   *   Current game state (modified if entity defeated).
+   * @param array &$events
+   *   Events array to append defeat event to.
+   * @param array $dungeon_data
+   *   Dungeon data for AI narration context.
    */
-  protected function checkEntityDefeated(string $entity_id, array &$game_state, array &$events, array $dungeon_data): void {
+  protected function checkEntityDefeated(string $entity_id, string $attacker_id, array &$game_state, array &$events, array $dungeon_data): void {
     foreach ($game_state['initiative_order'] as &$combatant) {
       if (($combatant['entity_id'] ?? '') !== $entity_id) {
         continue;
@@ -987,10 +1006,15 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $name = $combatant['name'] ?? $entity_id;
         $team = $combatant['team'] ?? 'unknown';
 
-        $narration = $this->aiGmService->narrateEntityDefeated($name, $team, $dungeon_data);
+        // Resolve attacker name for narration.
+        $attacker = $this->findCombatant($attacker_id, $game_state);
+        $killer_name = $attacker['name'] ?? $attacker_id;
+
+        $narration = $this->aiGmService->narrateEntityDefeated($name, $killer_name, $dungeon_data);
         $events[] = GameEventLogger::buildEvent('entity_defeated', 'encounter', $entity_id, [
           'name' => $name,
           'team' => $team,
+          'killed_by' => $killer_name,
         ], $narration);
       }
       break;
