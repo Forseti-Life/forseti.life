@@ -496,6 +496,46 @@ dungeoncrawler_content.api.room_chat_post:
   options:
     _format: json
 
+# Chat Channel API - List, open, and close channels per room
+dungeoncrawler_content.api.room_channels_get:
+  path: '/api/campaign/{campaign_id}/room/{room_id}/channels'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomChatController::getChannels'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.room_channels_open:
+  path: '/api/campaign/{campaign_id}/room/{room_id}/channels'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomChatController::openChannel'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    room_id: '[A-Za-z0-9_-]+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.room_channels_close:
+  path: '/api/campaign/{campaign_id}/room/{room_id}/channels/{channel_key}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoomChatController::closeChannel'
+  methods: [DELETE]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    room_id: '[A-Za-z0-9_-]+'
+    channel_key: '[A-Za-z0-9_:\-]+'
+  options:
+    _format: json
+
 dungeoncrawler_content.api.character_summary:
   path: '/api/character/{character_id}/summary'
   defaults:

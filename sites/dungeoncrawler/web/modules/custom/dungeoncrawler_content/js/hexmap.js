@@ -25,10 +25,14 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
       this.embeddedCharacterSheetUrl = null;
       this.lastServerMessageAt = 0;
       this.serverMessageCooldownMs = 3000;
+      // Channel state
+      this.activeChannel = 'room';
+      this.channels = { room: { key: 'room', label: 'Room', type: 'room', active: true } };
       this.setupActionFooterToggle();
       this.setupFullscreenToggle();
       this.cacheElements();
       this.setupChatLog();
+      this.setupChannelTabs();
     }
 
     /**
@@ -229,6 +233,7 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
         chatForm: document.getElementById('chat-form'),
         chatInput: document.getElementById('chat-input'),
         chatSend: document.getElementById('chat-send'),
+        chatChannelTabs: document.getElementById('chat-channel-tabs'),
 
         // Quest journal panel
         questJournal: document.getElementById('quest-journal'),
@@ -1002,16 +1007,209 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
       // (via state subscription or explicit call from room change handler)
     }
 
+    // ===================================================================
+    // Channel management
+    // ===================================================================
+
+    /**
+     * Set up channel tab click handlers.
+     */
+    setupChannelTabs() {
+      const tabContainer = this.elements.chatChannelTabs;
+      if (!tabContainer) return;
+
+      tabContainer.addEventListener('click', (e) => {
+        const tab = e.target.closest('.chat-channel-tab');
+        if (!tab) return;
+
+        const channelKey = tab.dataset.channel;
+        if (!channelKey || channelKey === this.activeChannel) return;
+
+        this.switchChannel(channelKey);
+      });
+    }
+
+    /**
+     * Switch to a different chat channel and reload messages.
+     */
+    switchChannel(channelKey) {
+      this.activeChannel = channelKey;
+
+      // Update tab active state.
+      const tabContainer = this.elements.chatChannelTabs;
+      if (tabContainer) {
+        tabContainer.querySelectorAll('.chat-channel-tab').forEach(tab => {
+          tab.classList.toggle('chat-channel-tab--active', tab.dataset.channel === channelKey);
+        });
+      }
+
+      // Update input placeholder.
+      const channel = this.channels[channelKey];
+      const input = this.elements.chatInput;
+      if (input && channel) {
+        if (channelKey === 'room') {
+          input.placeholder = 'Say something to the room...';
+        } else {
+          const targetName = channel.target_name || channel.label || 'NPC';
+          input.placeholder = `${channel.source_ability || 'Whisper'} to ${targetName}...`;
+        }
+      }
+
+      // Reload chat history for this channel.
+      this.loadChatHistory();
+    }
+
+    /**
+     * Load channels for the current room and render tabs.
+     */
+    async loadChannels() {
+      const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
+      const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+      const characterData = this.stateManager.hexmap?.characterData || {};
+      const characterId = characterData.id || null;
+
+      if (!campaignId || !roomId) return;
+
+      try {
+        const url = `/api/campaign/${campaignId}/room/${roomId}/channels${characterId ? '?character_id=' + characterId : ''}`;
+        const response = await fetch(url);
+        if (!response.ok) return;
+
+        const result = await response.json();
+        if (!result.success || !result.data) return;
+
+        this.channels = result.data.channels || { room: { key: 'room', label: 'Room', type: 'room', active: true } };
+        this.renderChannelTabs();
+      } catch (err) {
+        console.error('Failed to load channels:', err);
+      }
+    }
+
+    /**
+     * Render channel tabs from the current channels state.
+     */
+    renderChannelTabs() {
+      const container = this.elements.chatChannelTabs;
+      if (!container) return;
+
+      container.innerHTML = '';
+
+      for (const [key, ch] of Object.entries(this.channels)) {
+        if (!(ch.active ?? true)) continue;
+
+        const tab = document.createElement('button');
+        tab.className = 'chat-channel-tab';
+        if (key === this.activeChannel) {
+          tab.classList.add('chat-channel-tab--active');
+        }
+        tab.dataset.channel = key;
+        tab.title = ch.description || ch.label || key;
+        tab.textContent = ch.label || key;
+
+        // Add close button for non-room channels.
+        if (key !== 'room') {
+          const close = document.createElement('span');
+          close.className = 'chat-channel-tab__close';
+          close.textContent = '\u00D7';
+          close.title = 'Close channel';
+          close.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.closeChannel(key);
+          });
+          tab.appendChild(close);
+        }
+
+        container.appendChild(tab);
+      }
+    }
+
+    /**
+     * Open a new channel (e.g. from clicking "Talk" on an NPC entity).
+     */
+    async openChannel(targetEntity, targetName, sourceAbility = 'whisper') {
+      const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
+      const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+      const characterData = this.stateManager.hexmap?.characterData || {};
+      const characterId = characterData.id || null;
+
+      if (!campaignId || !roomId) return;
+
+      const channelKey = sourceAbility === 'whisper'
+        ? `whisper:${targetEntity}`
+        : `spell:${sourceAbility}:${targetEntity}`;
+
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/room/${roomId}/channels`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+          body: JSON.stringify({
+            channel_key: channelKey,
+            opened_by: String(characterId),
+            target_entity: targetEntity,
+            target_name: targetName,
+            source_ability: sourceAbility,
+          }),
+        });
+
+        const result = await response.json();
+        if (result.success && result.data?.channel) {
+          // Add to local channels and render.
+          this.channels[channelKey] = result.data.channel;
+          this.renderChannelTabs();
+          // Switch to the new channel.
+          this.switchChannel(channelKey);
+        } else {
+          this.appendChatLine('System', result.data?.error || result.error || 'Unable to open channel.', 'system');
+        }
+      } catch (err) {
+        console.error('Failed to open channel:', err);
+        this.appendChatLine('System', 'Failed to open channel.', 'system');
+      }
+    }
+
+    /**
+     * Close a channel.
+     */
+    async closeChannel(channelKey) {
+      if (channelKey === 'room') return;
+
+      const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
+      const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+      if (!campaignId || !roomId) return;
+
+      try {
+        await fetch(`/api/campaign/${campaignId}/room/${roomId}/channels/${encodeURIComponent(channelKey)}`, {
+          method: 'DELETE',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        // Remove from local state and switch to room if we were on it.
+        delete this.channels[channelKey];
+        this.renderChannelTabs();
+        if (this.activeChannel === channelKey) {
+          this.switchChannel('room');
+        }
+      } catch (err) {
+        console.error('Failed to close channel:', err);
+      }
+    }
+
     async loadChatHistory() {
       const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
       const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+      const characterData = this.stateManager.hexmap?.characterData || {};
+      const characterId = characterData.id || null;
 
       if (!campaignId || !roomId) {
         return;
       }
 
       try {
-        const response = await fetch(`/api/campaign/${campaignId}/room/${roomId}/chat`);
+        let url = `/api/campaign/${campaignId}/room/${roomId}/chat?channel=${encodeURIComponent(this.activeChannel)}`;
+        if (characterId) {
+          url += `&character_id=${characterId}`;
+        }
+        const response = await fetch(url);
         
         // Handle 403 (permission denied) gracefully  
         if (response.status === 403) {
@@ -1059,6 +1257,7 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
           message,
           type: 'player',
           character_id: characterId,
+          channel: this.activeChannel,
         }),
       });
 
@@ -3204,7 +3403,13 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
           }
           // Even if no quest turn-in, still allow NPC interaction (talk prompt).
           const npcName = identity?.name || 'NPC';
-          this.uiManager.appendChatLine(npcName, 'Greetings, adventurer! What can I do for you?', 'npc');
+          const npcEntityRef = npcRef || npcName.toLowerCase().replace(/\s+/g, '_');
+          // Open a whisper channel to this NPC.
+          if (this.uiManager && this.uiManager.openChannel) {
+            this.uiManager.openChannel(npcEntityRef, npcName, 'whisper');
+          } else {
+            this.uiManager.appendChatLine(npcName, 'Greetings, adventurer! What can I do for you?', 'npc');
+          }
           return true;
         }
       }
@@ -5108,9 +5313,16 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
       this.renderActiveRoomEntities();
       this.renderOrientationReferenceHex();
       this.refreshFogOfWar();
-      // Load chat history for the newly active room
-      if (this.uiManager && this.uiManager.loadChatHistory) {
-        this.uiManager.loadChatHistory();
+      // Load channels and chat history for the newly active room
+      if (this.uiManager) {
+        // Reset to room channel on room transition.
+        this.uiManager.activeChannel = 'room';
+        if (this.uiManager.loadChannels) {
+          this.uiManager.loadChannels();
+        }
+        if (this.uiManager.loadChatHistory) {
+          this.uiManager.loadChatHistory();
+        }
       }
 
       // Display room banner with scene description.

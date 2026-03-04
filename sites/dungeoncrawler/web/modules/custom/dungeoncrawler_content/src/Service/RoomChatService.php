@@ -27,6 +27,7 @@ class RoomChatService {
   protected PromptManager $promptManager;
   protected GameplayActionProcessor $actionProcessor;
   protected AiSessionManager $sessionManager;
+  protected ChatChannelManager $channelManager;
 
   /**
    * Constructor.
@@ -39,7 +40,8 @@ class RoomChatService {
     AIApiService $ai_api_service,
     PromptManager $prompt_manager,
     GameplayActionProcessor $action_processor,
-    AiSessionManager $session_manager
+    AiSessionManager $session_manager,
+    ChatChannelManager $channel_manager
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
@@ -49,6 +51,7 @@ class RoomChatService {
     $this->promptManager = $prompt_manager;
     $this->actionProcessor = $action_processor;
     $this->sessionManager = $session_manager;
+    $this->channelManager = $channel_manager;
   }
 
   /**
@@ -65,7 +68,7 @@ class RoomChatService {
    * @throws \InvalidArgumentException
    *   If dungeon not found.
    */
-  public function getChatHistory(int $campaign_id, string $room_id): array {
+  public function getChatHistory(int $campaign_id, string $room_id, string $channel = 'room', ?int $character_id = NULL): array {
     $record = $this->database->select('dc_campaign_dungeons', 'd')
       ->fields('d', ['dungeon_data'])
       ->condition('campaign_id', $campaign_id)
@@ -87,12 +90,30 @@ class RoomChatService {
     $room_entry = $this->findRoomByRoomId($rooms, $room_id);
     $chat = $room_entry['chat'] ?? [];
 
+    // Filter by channel.
+    $chat = $this->channelManager->filterMessagesByChannel($chat, $channel);
+
+    // For non-room channels, verify the character has access.
+    if ($channel !== 'room' && $character_id !== NULL) {
+      $room_index = $this->findRoomIndex($rooms, $room_id);
+      if ($room_index !== NULL) {
+        $channels = $this->channelManager->getChannels($dungeon_data, $room_index);
+        if (isset($channels[$channel])) {
+          $access = $this->channelManager->validateChannelAccess($channels[$channel], $character_id);
+          if (!$access['valid']) {
+            return [];
+          }
+        }
+      }
+    }
+
     // Ensure messages are properly structured
     return array_map(function($msg) {
       return [
         'speaker' => $msg['speaker'] ?? 'Unknown',
         'message' => $msg['message'] ?? '',
         'type' => $msg['type'] ?? 'npc',
+        'channel' => $msg['channel'] ?? 'room',
         'timestamp' => $msg['timestamp'] ?? date('c'),
         'character_id' => $msg['character_id'] ?? null,
         'user_id' => $msg['user_id'] ?? null,
@@ -128,7 +149,8 @@ class RoomChatService {
     string $speaker,
     string $message,
     string $type = 'player',
-    ?int $character_id = null
+    ?int $character_id = null,
+    string $channel = 'room'
   ): array {
     // Validate inputs
     $this->validateMessage($message, $type);
@@ -168,11 +190,26 @@ class RoomChatService {
       $dungeon_data['rooms'][$room_index]['chat'] = [];
     }
 
+    // Validate channel access for non-room channels.
+    if ($channel !== 'room') {
+      $channels = $this->channelManager->getChannels($dungeon_data, $room_index);
+      if (!isset($channels[$channel])) {
+        throw new \InvalidArgumentException('Channel not found: ' . $channel);
+      }
+      if ($character_id !== null) {
+        $access = $this->channelManager->validateChannelAccess($channels[$channel], $character_id, $message);
+        if (!$access['valid']) {
+          throw new \InvalidArgumentException($access['error']);
+        }
+      }
+    }
+
     // Create new message
     $new_message = [
       'speaker' => $this->sanitizeSpeakerName($speaker),
       'message' => $this->sanitizeMessage($message),
       'type' => $type,
+      'channel' => $channel,
       'timestamp' => date('c'),
       'character_id' => $character_id,
       'user_id' => $this->currentUser->id(),
@@ -208,11 +245,18 @@ class RoomChatService {
       '@message' => substr($message, 0, 100),
     ]);
 
-    // Generate a GM AI response for player messages.
+    // Generate AI response (GM for room channel, NPC for private channels).
     $gm_response = NULL;
     $state_diff = NULL;
     if ($type === 'player') {
-      $gm_result = $this->generateGmReply($campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $character_id);
+      if ($channel === 'room') {
+        // Room channel: GM responds.
+        $gm_result = $this->generateGmReply($campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $character_id);
+      } else {
+        // Private channel: target NPC responds.
+        $channel_def = $dungeon_data['rooms'][$room_index]['channels'][$channel] ?? [];
+        $gm_result = $this->generateChannelNpcReply($campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $character_id, $channel, $channel_def);
+      }
       if ($gm_result !== NULL) {
         $gm_response = $gm_result['message'];
         $state_diff = $gm_result['state_diff'] ?? NULL;
@@ -375,6 +419,7 @@ class RoomChatService {
       'speaker' => 'Game Master',
       'message' => $narrative,
       'type' => 'npc',
+      'channel' => 'room',
       'timestamp' => date('c'),
       'character_id' => NULL,
       'user_id' => 0,
@@ -429,6 +474,366 @@ class RoomChatService {
       'message' => $gm_message,
       'state_diff' => $state_diff,
     ];
+  }
+
+  /**
+   * Generate an NPC reply for a private channel (whisper/spell).
+   *
+   * The AI responds as the target NPC rather than the GM. Uses the
+   * per-NPC AI session from AiSessionManager for conversation memory.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param int|string $room_index
+   *   Room index.
+   * @param int|string $dungeon_id
+   *   Dungeon record ID.
+   * @param array &$dungeon_data
+   *   Dungeon data (modified in place).
+   * @param int|null $character_id
+   *   Acting character ID.
+   * @param string $channel_key
+   *   Channel key (e.g. "whisper:goblin_1").
+   * @param array $channel_def
+   *   Channel definition from dungeon_data.
+   *
+   * @return array|null
+   *   ['message' => array, 'state_diff' => array|null], or NULL.
+   */
+  protected function generateChannelNpcReply(
+    int $campaign_id,
+    string $room_id,
+    int|string $room_index,
+    int|string $dungeon_id,
+    array &$dungeon_data,
+    ?int $character_id,
+    string $channel_key,
+    array $channel_def
+  ): ?array {
+    // Only respond if the channel allows NPC responses.
+    if (empty($channel_def['npc_responds'])) {
+      return NULL;
+    }
+
+    $target_name = $channel_def['target_name'] ?? 'Unknown NPC';
+    $target_entity = $channel_def['target_entity'] ?? '';
+    $source_ability = $channel_def['source_ability'] ?? 'whisper';
+
+    // Gather channel-specific chat history (only messages on this channel).
+    $all_chat = $dungeon_data['rooms'][$room_index]['chat'] ?? [];
+    $channel_chat = $this->channelManager->filterMessagesByChannel($all_chat, $channel_key);
+    $recent = array_slice($channel_chat, -10);
+
+    $history_lines = [];
+    foreach ($recent as $msg) {
+      $speaker = $msg['speaker'] ?? 'Unknown';
+      $text = $msg['message'] ?? '';
+      $history_lines[] = "{$speaker}: {$text}";
+    }
+
+    // Build NPC-scoped session context from AiSessionManager.
+    $ai_session_key = $this->channelManager->getAiSessionKeyForChannel($campaign_id, $channel_key);
+    $session_context = $this->sessionManager->buildSessionContext($ai_session_key, $campaign_id, 6);
+
+    // Build room context.
+    $room_meta = $dungeon_data['rooms'][$room_index] ?? [];
+    $scene_parts = [];
+    if (!empty($room_meta['name'])) {
+      $scene_parts[] = 'Current room: ' . $room_meta['name'];
+    }
+
+    // Find NPC data from room entities for personality.
+    $npc_description = '';
+    $entities = $room_meta['entities'] ?? [];
+    foreach ($entities as $ent) {
+      if (($ent['entity_ref'] ?? '') === $target_entity || ($ent['name'] ?? '') === $target_name) {
+        $npc_description = $ent['description'] ?? '';
+        break;
+      }
+    }
+
+    // Build the prompt: instruct AI to respond as the NPC, not as the GM.
+    $prompt = '';
+    if ($session_context !== '') {
+      $prompt .= $session_context . "\n\n---\n";
+    }
+    if (!empty($scene_parts)) {
+      $prompt .= implode("\n", $scene_parts) . "\n\n";
+    }
+    $prompt .= "You are {$target_name}, an NPC in a Pathfinder 2e dungeon crawl.\n";
+    if ($npc_description) {
+      $prompt .= "Your description: {$npc_description}\n";
+    }
+    $prompt .= "The player character is communicating with you via {$source_ability}.\n";
+    $prompt .= "Stay in character as {$target_name}. Do NOT respond as the Game Master.\n\n";
+    $prompt .= "Conversation so far:\n" . implode("\n", $history_lines);
+    $prompt .= "\n\nRespond in character as {$target_name}. Keep your reply concise (1-3 sentences).";
+
+    $context_data = [
+      'campaign_id' => $campaign_id,
+      'room_id' => $room_id,
+      'channel' => $channel_key,
+      'npc_entity' => $target_entity,
+      'session_key' => $ai_session_key,
+    ];
+
+    try {
+      $result = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'dungeoncrawler_content',
+        'channel_npc_reply',
+        $context_data,
+        [
+          'system_prompt' => "You are {$target_name}, a character in a tabletop RPG. Respond naturally in character. Do not break the fourth wall. Do not mention that you are an AI.",
+          'max_tokens' => 400,
+          'skip_cache' => TRUE,
+        ]
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->error('AI API error generating NPC reply on channel @channel: @msg', [
+        '@channel' => $channel_key,
+        '@msg' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+
+    if (empty($result['success']) || empty($result['response'])) {
+      return NULL;
+    }
+
+    $response_text = trim($result['response']);
+
+    $npc_message = [
+      'speaker' => $target_name,
+      'message' => $response_text,
+      'type' => 'npc',
+      'channel' => $channel_key,
+      'timestamp' => date('c'),
+      'character_id' => NULL,
+      'user_id' => 0,
+    ];
+
+    // Persist the NPC reply.
+    $dungeon_data['rooms'][$room_index]['chat'][] = $npc_message;
+
+    // Enforce message limit.
+    $chat_count = count($dungeon_data['rooms'][$room_index]['chat']);
+    if ($chat_count > self::MAX_MESSAGES_PER_ROOM) {
+      $dungeon_data['rooms'][$room_index]['chat'] = array_slice(
+        $dungeon_data['rooms'][$room_index]['chat'],
+        $chat_count - self::MAX_MESSAGES_PER_ROOM
+      );
+    }
+
+    $this->database->update('dc_campaign_dungeons')
+      ->fields([
+        'dungeon_data' => json_encode($dungeon_data),
+        'updated' => time(),
+      ])
+      ->condition('dungeon_id', $dungeon_id)
+      ->condition('campaign_id', $campaign_id)
+      ->execute();
+
+    // Record in NPC-specific AI session.
+    $player_msg = end($channel_chat)['message'] ?? '';
+    $this->sessionManager->appendMessage($ai_session_key, $campaign_id, 'user', $player_msg);
+    $this->sessionManager->appendMessage($ai_session_key, $campaign_id, 'assistant', $response_text);
+
+    $this->logger->info('NPC @npc reply on channel @channel (@chars chars)', [
+      '@npc' => $target_name,
+      '@channel' => $channel_key,
+      '@chars' => strlen($response_text),
+    ]);
+
+    return [
+      'message' => $npc_message,
+      'state_diff' => NULL,
+    ];
+  }
+
+  /**
+   * Get available channels for a room (for the channel selector UI).
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param int|null $character_id
+   *   Character ID to filter visibility.
+   *
+   * @return array
+   *   ['channels' => array, 'active_channel' => string]
+   */
+  public function getChannelsForRoom(int $campaign_id, string $room_id, ?int $character_id = NULL): array {
+    $record = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['dungeon_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->orderBy('updated', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$record) {
+      return ['channels' => [], 'active_channel' => 'room'];
+    }
+
+    $dungeon_data = json_decode($record['dungeon_data'] ?? '{}', TRUE) ?: [];
+    $rooms = $dungeon_data['rooms'] ?? [];
+    $room_index = $this->findRoomIndex($rooms, $room_id);
+
+    if ($room_index === NULL) {
+      return ['channels' => ['room' => ['key' => 'room', 'label' => 'Room', 'type' => 'room', 'active' => TRUE]], 'active_channel' => 'room'];
+    }
+
+    $channels = $this->channelManager->getChannels($dungeon_data, $room_index);
+    $visible = $this->channelManager->getVisibleChannels($channels, $character_id);
+
+    // Only return active channels.
+    $active_channels = array_filter($visible, fn($ch) => $ch['active'] ?? TRUE);
+
+    return [
+      'channels' => $active_channels,
+      'active_channel' => 'room',
+    ];
+  }
+
+  /**
+   * Open a channel in a room (delegates to ChatChannelManager).
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param string $channel_key
+   *   Channel key to open.
+   * @param string $opened_by
+   *   Character ID that opened it.
+   * @param string $target_entity_ref
+   *   Target entity ref.
+   * @param string $target_name
+   *   Target display name.
+   * @param string $source_ability
+   *   Spell/ability that opens the channel.
+   *
+   * @return array
+   *   ['success' => bool, 'channel' => array|null, 'error' => string|null]
+   */
+  public function openChannel(
+    int $campaign_id,
+    string $room_id,
+    string $channel_key,
+    string $opened_by,
+    string $target_entity_ref,
+    string $target_name,
+    string $source_ability = 'whisper'
+  ): array {
+    $record = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['dungeon_id', 'dungeon_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->orderBy('updated', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$record) {
+      return ['success' => FALSE, 'channel' => NULL, 'error' => 'Dungeon not found'];
+    }
+
+    $dungeon_id = $record['dungeon_id'];
+    $dungeon_data = json_decode($record['dungeon_data'] ?? '{}', TRUE) ?: [];
+    if (!isset($dungeon_data['rooms'])) {
+      $dungeon_data['rooms'] = [];
+    }
+
+    $room_index = $this->findRoomIndex($dungeon_data['rooms'], $room_id);
+    if ($room_index === NULL) {
+      return ['success' => FALSE, 'channel' => NULL, 'error' => 'Room not found'];
+    }
+
+    $result = $this->channelManager->openChannel(
+      $dungeon_data,
+      $room_index,
+      $channel_key,
+      $opened_by,
+      $target_entity_ref,
+      $target_name,
+      $source_ability
+    );
+
+    if ($result['success']) {
+      // Persist the updated dungeon_data.
+      $this->database->update('dc_campaign_dungeons')
+        ->fields([
+          'dungeon_data' => json_encode($dungeon_data),
+          'updated' => time(),
+        ])
+        ->condition('dungeon_id', $dungeon_id)
+        ->condition('campaign_id', $campaign_id)
+        ->execute();
+
+      // Post a system message on the channel.
+      $channel_def = $result['channel'];
+      $system_msg = [
+        'speaker' => 'System',
+        'message' => sprintf('%s channel opened with %s.', $channel_def['label'] ?? 'Private', $target_name),
+        'type' => 'system',
+        'channel' => $channel_key,
+        'timestamp' => date('c'),
+        'character_id' => NULL,
+        'user_id' => 0,
+      ];
+      $dungeon_data['rooms'][$room_index]['chat'][] = $system_msg;
+
+      $this->database->update('dc_campaign_dungeons')
+        ->fields(['dungeon_data' => json_encode($dungeon_data)])
+        ->condition('dungeon_id', $dungeon_id)
+        ->condition('campaign_id', $campaign_id)
+        ->execute();
+    }
+
+    return $result;
+  }
+
+  /**
+   * Close a channel in a room.
+   */
+  public function closeChannel(int $campaign_id, string $room_id, string $channel_key): bool {
+    $record = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['dungeon_id', 'dungeon_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->orderBy('updated', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$record) {
+      return FALSE;
+    }
+
+    $dungeon_id = $record['dungeon_id'];
+    $dungeon_data = json_decode($record['dungeon_data'] ?? '{}', TRUE) ?: [];
+    $room_index = $this->findRoomIndex($dungeon_data['rooms'] ?? [], $room_id);
+    if ($room_index === NULL) {
+      return FALSE;
+    }
+
+    $closed = $this->channelManager->closeChannel($dungeon_data, $room_index, $channel_key);
+
+    if ($closed) {
+      $this->database->update('dc_campaign_dungeons')
+        ->fields([
+          'dungeon_data' => json_encode($dungeon_data),
+          'updated' => time(),
+        ])
+        ->condition('dungeon_id', $dungeon_id)
+        ->condition('campaign_id', $campaign_id)
+        ->execute();
+    }
+
+    return $closed;
   }
 
   /**

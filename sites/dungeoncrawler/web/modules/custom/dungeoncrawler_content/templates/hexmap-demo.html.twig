@@ -135,6 +135,9 @@
         <h3>{{ 'Room Dialogue'|t }}</h3>
         <span class="chip chip-live" id="chat-status">{{ 'Open'|t }}</span>
       </div>
+      <div class="hexmap-chat__channels" id="chat-channel-tabs">
+        <button class="chat-channel-tab chat-channel-tab--active" data-channel="room" title="Main room channel">{{ 'Room'|t }}</button>
+      </div>
       <div class="hexmap-chat__log" id="chat-log" aria-live="polite">
         <div class="chat-line chat-line--system">{{ 'You are in a quiet room. Try saying hello.'|t }}</div>
       </div>
