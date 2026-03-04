@@ -6,6 +6,7 @@
 // Import ECS modules
 import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState, CombatSystem, AttackResult } from './ecs/index.js';
 import combatApi from './hexmap-api.js';
+import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -1396,6 +1397,18 @@ import combatApi from './hexmap-api.js';
       this.initQuestData();
       this.startServerStateSync();
 
+      // Initialize Game Coordinator (Phase 2: server-authoritative game loop).
+      const campaignId = this.resolveCampaignId?.() || Number(this.launchContext?.campaign_id || 0);
+      if (campaignId > 0 && this.canUseServerCombatApi?.()) {
+        this.gameCoordinator = new GameCoordinator(campaignId, this);
+        this.gameCoordinator.init().catch(err => {
+          console.warn('GameCoordinator init failed; falling back to legacy mode:', err.message);
+          this.gameCoordinator = null;
+        });
+      } else {
+        this.gameCoordinator = null;
+      }
+
       try {
         const launchEntitySelected = this.applyLaunchCharacterSelection();
         if (!launchEntitySelected) {
@@ -1449,6 +1462,12 @@ import combatApi from './hexmap-api.js';
       this.stateSubscriptions = [];
 
       this.stopServerStateSync();
+
+      // Cleanup Game Coordinator.
+      if (this.gameCoordinator) {
+        this.gameCoordinator.destroy();
+        this.gameCoordinator = null;
+      }
       
       // Cleanup ECS systems
       if (this.entityManager) {
@@ -2247,6 +2266,12 @@ import combatApi from './hexmap-api.js';
      */
     onHexClick: function (hex) {
       const { q, r } = hex.hexData;
+
+      // Game Coordinator intercept — routes clicks to the active phase handler.
+      // Falls through to legacy logic if the coordinator doesn't consume the click.
+      if (this.gameCoordinator?.isActive() && this.gameCoordinator.handleHexClick(q, r)) {
+        return;
+      }
       
       // Mode 1: Object placement mode
       const selectedObjectType = this.stateManager.get('selectedObjectType');

@@ -1783,6 +1783,266 @@
 }
 
 /* ==========================================================================
+   Game Coordinator — Phase Indicator
+   ========================================================================== */
+
+.phase-indicator {
+  position: absolute;
+  top: var(--space-4);
+  left: var(--space-4);
+  z-index: 20;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 6px var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--text-md);
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  pointer-events: none;
+  transition: background var(--transition-base) var(--ease-smooth),
+              color var(--transition-base) var(--ease-smooth),
+              border-color var(--transition-base) var(--ease-smooth);
+}
+
+.phase-indicator::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: var(--radius-full);
+  animation: pulse 2s var(--ease-in-out) infinite;
+}
+
+.phase-exploration {
+  background: var(--overlay-success-16);
+  color: var(--success);
+  border: 1px solid var(--overlay-success-50);
+}
+
+.phase-exploration::before {
+  background: var(--success);
+}
+
+.phase-encounter {
+  background: linear-gradient(135deg, var(--overlay-accent-18), rgba(220, 38, 38, 0.18));
+  color: var(--accent);
+  border: 1px solid var(--overlay-accent-40);
+}
+
+.phase-encounter::before {
+  background: var(--accent);
+}
+
+.phase-downtime {
+  background: var(--overlay-white-08);
+  color: var(--muted);
+  border: 1px solid var(--overlay-white-12);
+}
+
+.phase-downtime::before {
+  background: var(--muted);
+}
+
+/* ==========================================================================
+   Game Coordinator — Exploration Actions Panel
+   ========================================================================== */
+
+.exploration-actions {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  background: var(--overlay-panel-92);
+  border: 1px solid var(--overlay-white-08);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-3) var(--space-4);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-xl);
+  pointer-events: auto;
+}
+
+.exploration-actions__header {
+  display: flex;
+  align-items: center;
+  margin-bottom: var(--space-2);
+}
+
+.exploration-actions__header h4 {
+  margin: 0;
+  font-size: var(--text-md);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.exploration-actions__buttons {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: var(--space-2) var(--space-3);
+  border-radius: var(--radius-xl);
+  background: var(--overlay-white-06);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--text-md);
+  border: 1px solid var(--overlay-white-08);
+  cursor: pointer;
+  transition: all var(--transition-fast) var(--ease-smooth);
+}
+
+.btn-action:hover {
+  background: var(--overlay-white-12);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-action:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-action--attack {
+  background: var(--overlay-accent-14);
+  border-color: var(--overlay-accent-40);
+}
+
+.btn-action--attack:hover {
+  background: var(--overlay-accent-18);
+}
+
+.btn-action--end {
+  background: var(--gradient-alert);
+  color: var(--gray-900);
+  border: none;
+}
+
+/* ==========================================================================
+   Game Coordinator — Encounter Actions
+   ========================================================================== */
+
+.encounter-actions {
+  position: absolute;
+  bottom: var(--space-4);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+  display: flex;
+  gap: var(--space-2);
+  background: var(--overlay-panel-92);
+  border: 1px solid var(--overlay-white-08);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-3) var(--space-4);
+  backdrop-filter: blur(10px);
+  box-shadow: var(--shadow-xl);
+  pointer-events: auto;
+}
+
+/* ==========================================================================
+   Game Coordinator — Timeline Panel
+   ========================================================================== */
+
+.game-timeline {
+  margin-top: var(--space-4);
+  width: 100%;
+  background: var(--overlay-panel-98);
+  border: 1px solid var(--overlay-white-08);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-4);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+}
+
+.game-timeline__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.game-timeline__header h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--text-bright);
+}
+
+.game-timeline__log {
+  background: var(--overlay-white-04);
+  border: 1px solid var(--overlay-white-08);
+  border-radius: var(--radius-xl);
+  padding: var(--space-3);
+  min-height: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.timeline-entry {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  padding: 3px 0;
+  font-size: var(--text-md);
+  color: var(--text);
+  border-bottom: 1px solid var(--overlay-white-04);
+}
+
+.timeline-entry:last-child {
+  border-bottom: none;
+}
+
+.timeline-entry--system {
+  color: var(--muted);
+  font-style: italic;
+}
+
+.timeline-entry--combat {
+  color: var(--accent);
+}
+
+.timeline-entry--move {
+  color: var(--primary);
+}
+
+.timeline-entry--phase {
+  font-weight: 700;
+  color: var(--text-bright);
+  padding: var(--space-1) 0;
+}
+
+.timeline-entry__time {
+  flex-shrink: 0;
+  font-size: 0.75em;
+  color: var(--muted);
+  min-width: 40px;
+}
+
+.timeline-entry__icon {
+  flex-shrink: 0;
+  width: 16px;
+  text-align: center;
+}
+
+.timeline-entry__text {
+  flex: 1;
+}
+
+/* ==========================================================================
    Animations & Keyframes
    ========================================================================== */
 

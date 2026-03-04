@@ -62,6 +62,31 @@
     <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
       <!-- PixiJS canvas will be inserted here -->
 
+      {# Game Coordinator — Phase Indicator Badge #}
+      <div id="game-phase-indicator" class="phase-indicator phase-exploration" style="display:none;">
+        {{ 'Exploration'|t }}
+      </div>
+
+      {# Game Coordinator — Exploration Actions Panel #}
+      <div id="exploration-actions" class="exploration-actions" style="display:none;">
+        <div class="exploration-actions__header">
+          <h4>{{ 'Actions'|t }}</h4>
+        </div>
+        <div class="exploration-actions__buttons">
+          <button id="action-move" class="btn btn-action" data-action="move">{{ '🚶 Move'|t }}</button>
+          <button id="action-interact" class="btn btn-action" data-action="interact">{{ '🤝 Interact'|t }}</button>
+          <button id="action-talk" class="btn btn-action" data-action="talk">{{ '💬 Talk'|t }}</button>
+          <button id="action-search" class="btn btn-action" data-action="search">{{ '🔍 Search'|t }}</button>
+          <button id="action-rest" class="btn btn-action" data-action="rest">{{ '🛌 Rest'|t }}</button>
+        </div>
+      </div>
+
+      {# Encounter-mode action buttons (managed by GameCoordinator) #}
+      <div id="encounter-actions" class="encounter-actions" style="display:none;">
+        <button id="action-attack" class="btn btn-action btn-action--attack" data-action="attack">{{ '⚔️ Strike'|t }}</button>
+        <button id="end-turn" class="btn btn-action btn-action--end" data-action="end_turn">{{ '⏭️ End Turn'|t }}</button>
+      </div>
+
       <div id="turn-hud" class="turn-hud dc-is-hidden">
         <div class="turn-hud__row">
           <span id="turn-owner" class="pill pill-strong">{{ 'No active combat'|t }}</span>
@@ -111,6 +136,17 @@
         <input id="chat-input" type="text" placeholder="{{ 'Say something to the room...'|t }}" autocomplete="off" />
         <button id="chat-send" class="btn btn-primary" type="submit">{{ 'Send'|t }}</button>
       </form>
+    </div>
+
+    {# Game Coordinator — Timeline Panel #}
+    <div class="game-timeline" id="game-timeline" style="display:none;">
+      <div class="game-timeline__header">
+        <h3>{{ 'Game Timeline'|t }}</h3>
+        <span class="chip chip-live" id="timeline-event-count">0</span>
+      </div>
+      <div class="game-timeline__log" id="timeline-log" aria-live="polite">
+        <div class="timeline-entry timeline-entry--system">{{ 'Adventure begins…'|t }}</div>
+      </div>
     </div>
   </div>
 
