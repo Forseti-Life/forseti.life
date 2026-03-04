@@ -138,7 +138,11 @@
       <div class="hexmap-chat__channels" id="chat-channel-tabs">
         <button class="chat-channel-tab chat-channel-tab--active" data-channel="room" title="Main room channel">{{ 'Room'|t }}</button>
       </div>
-      <div class="hexmap-chat__log" id="chat-log" aria-live="polite">
+      <div class="hexmap-chat__channel-indicator" id="chat-channel-indicator" data-channel-type="room">
+        <span class="channel-indicator__icon">&#x1F4E2;</span>
+        <span class="channel-indicator__label" id="chat-channel-label">{{ 'Room — Everyone can hear'|t }}</span>
+      </div>
+      <div class="hexmap-chat__log" id="chat-log" aria-live="polite" data-channel-type="room">
         <div class="chat-line chat-line--system">{{ 'You are in a quiet room. Try saying hello.'|t }}</div>
       </div>
       <form class="hexmap-chat__input" id="chat-form">

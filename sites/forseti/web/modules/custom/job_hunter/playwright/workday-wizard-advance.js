@@ -1601,6 +1601,36 @@ async function clickContinueButton(page, evidenceParts) {
   return false;
 }
 
+async function clickBackButton(page, evidenceParts) {
+  const backSelectors = [
+    'button[data-automation-id="pageFooterBackButton"]',
+    '[data-automation-id="bottom-navigation"] button:has-text("Back")',
+    'button:has-text("Back")',
+    '[role="button"]:has-text("Back")',
+  ];
+
+  for (const sel of backSelectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 700 });
+      await btn.scrollIntoViewIfNeeded({ timeout: 1000 });
+      const disabled = await btn.evaluate((el) => {
+        const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+        return !!(el.disabled || aria === 'true');
+      });
+      if (disabled) {
+        continue;
+      }
+      await humanDelay(120, 260);
+      await btn.click({ timeout: 1800, force: true });
+      evidenceParts.push(`Clicked Back via ${sel}`);
+      return true;
+    } catch (_) {}
+  }
+
+  return false;
+}
+
 async function acceptCookiesIfPresent(page, evidenceParts = []) {
   const selectors = [
     'button[data-automation-id="legalNoticeAcceptButton"]',
@@ -1765,6 +1795,55 @@ async function clickSubmitButton(page, evidenceParts) {
   }
 
   return await clickSubmitNow();
+}
+
+async function isSubmissionConfirmed(page) {
+  try {
+    const url = (page.url() || '').toLowerCase();
+    if (url.includes('/candidate-home') || url.includes('/userhome') || url.includes('/applications') || url.includes('/status')) {
+      return true;
+    }
+
+    const state = await page.evaluate(() => {
+      const text = (document.body?.innerText || '').toLowerCase();
+      const hasSubmittedText = text.includes('application submitted')
+        || text.includes('thank you for applying')
+        || text.includes('thank you for your application')
+        || text.includes('your application has been submitted')
+        || text.includes('submission complete');
+
+      const visible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const s = window.getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+      };
+
+      const submitVisible = Array.from(document.querySelectorAll('button, [role="button"], input[type="submit"]'))
+        .filter(visible)
+        .some((el) => {
+          const t = ((el.textContent || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+          return /submit/.test(t);
+        });
+
+      const pageError = text.includes('answer all required questions to submit this application') || text.includes('page error');
+      return { hasSubmittedText, submitVisible, pageError };
+    });
+
+    if (state.pageError) {
+      return false;
+    }
+    if (state.hasSubmittedText) {
+      return true;
+    }
+    if (state.submitVisible && url.includes('/apply')) {
+      return false;
+    }
+
+    return !url.includes('/apply');
+  } catch (_) {
+    return false;
+  }
 }
 
 async function getVisibleActionLabels(page) {
@@ -3691,6 +3770,68 @@ async function writeReviewDebugDump(page, screenshotDir, applicationId, evidence
   }
 }
 
+async function writeGenericStepDebugDump(page, screenshotDir, applicationId, evidenceParts, label = 'step') {
+  try {
+    const dump = await page.evaluate((label) => {
+      const visible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const controls = Array.from(document.querySelectorAll('input, textarea, select, button, [role="radio"], [role="combobox"], [role="checkbox"], [data-automation-id]'))
+        .slice(0, 600)
+        .map((el) => ({
+          tag: (el.tagName || '').toLowerCase(),
+          id: el.id || '',
+          name: el.getAttribute('name') || '',
+          type: el.getAttribute('type') || '',
+          role: el.getAttribute('role') || '',
+          aid: el.getAttribute('data-automation-id') || '',
+          visible: visible(el),
+          checked: !!el.checked,
+          required: !!el.required,
+          value: ('value' in el) ? String(el.value || '') : '',
+          aria: (el.getAttribute('aria-label') || '') + ' ' + (el.getAttribute('aria-valuetext') || '') + ' ' + (el.getAttribute('aria-checked') || ''),
+          text: (el.textContent || '').replace(/\s+/g, ' ').trim().slice(0, 140),
+        }));
+
+      const errors = Array.from(document.querySelectorAll('[data-automation-id*="error" i], .error-message-text, [role="alert"]'))
+        .map((el) => (el.textContent || '').replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .slice(0, 50);
+
+      return {
+        label,
+        url: window.location.href,
+        title: document.title,
+        heading: (document.querySelector('[data-automation-id="pageHeaderTitle"], [data-automation-id="stepTitle"], h1, h2')?.textContent || '').trim(),
+        errors,
+        controls,
+      };
+    }, label);
+
+    const stamp = Date.now();
+    const safeLabel = String(label || 'step').replace(/[^a-z0-9_-]/gi, '_');
+    const fileName = `wd_${safeLabel}_debug_${applicationId || 'na'}_${stamp}.json`;
+    const targetDir = (screenshotDir && fs.existsSync(screenshotDir) && fs.statSync(screenshotDir).isDirectory())
+      ? screenshotDir
+      : '/tmp';
+    const filePath = path.join(targetDir, fileName);
+    fs.writeFileSync(filePath, JSON.stringify(dump, null, 2), 'utf8');
+    evidenceParts.push(`Generic step debug dump (${label}): ${filePath}`);
+    return filePath;
+  } catch (e) {
+    try {
+      const fallbackPath = path.join('/tmp', `wd_generic_debug_${applicationId || 'na'}_${Date.now()}_fallback_error.txt`);
+      fs.writeFileSync(fallbackPath, String(e && e.message ? e.message : e), 'utf8');
+      evidenceParts.push(`Generic step debug dump failed (${label}): ${fallbackPath}`);
+    } catch (_) {}
+    return '';
+  }
+}
+
 async function run() {
   const result = {
     ok: false,
@@ -3900,24 +4041,102 @@ async function run() {
           const noAdvanceYet = sameUrl && stillOnStep;
           if (errorCount > 0 && noAdvanceYet) {
             const firstError = await validationErrors.first().textContent({ timeout: 1000 }).catch(() => '');
-            if (stepKey === 'my_experience') {
+            const firstErrorLower = String(firstError || '').toLowerCase();
+
+            if (stepKey === 'review_submit' && (firstErrorLower.includes('answer all required questions') || firstErrorLower.includes('page error'))) {
+              const backed = await clickBackButton(page, evidenceParts);
+              if (backed) {
+                await humanDelay(900, 1800);
+                try {
+                  const backHeading = await detectPageHeading(page);
+                  evidenceParts.push(`review_backflow: landed on "${backHeading}" after Back`);
+                } catch (_) {}
+                await writeGenericStepDebugDump(page, screenshot_dir, application_id, evidenceParts, 'post_backflow');
+
+                try {
+                  const localVol = { fields_filled: [], fields_skipped: [], needs_manual_review: false };
+                  await handleVoluntaryDisclosures(page, profile_data, localVol);
+                  for (const fieldName of (localVol.fields_filled || [])) {
+                    if (!stepResult.fields_filled.includes(fieldName)) {
+                      stepResult.fields_filled.push(fieldName);
+                    }
+                  }
+                } catch (_) {}
+
+                const forwardAfterVoluntary = await clickContinueButton(page, evidenceParts);
+                if (forwardAfterVoluntary) {
+                  await humanDelay(900, 1800);
+                }
+
+                try {
+                  const localSelf = { fields_filled: [], fields_skipped: [], needs_manual_review: false };
+                  await handleSelfIdentify(page, profile_data, localSelf);
+                  for (const fieldName of (localSelf.fields_filled || [])) {
+                    if (!stepResult.fields_filled.includes(fieldName)) {
+                      stepResult.fields_filled.push(fieldName);
+                    }
+                  }
+                } catch (_) {}
+
+                const forwardAfterSelf = await clickContinueButton(page, evidenceParts);
+                if (forwardAfterSelf) {
+                  await humanDelay(900, 1800);
+                }
+
+                const resolvedAfterBack = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
+                for (const fieldName of resolvedAfterBack) {
+                  if (!stepResult.fields_filled.includes(fieldName)) {
+                    stepResult.fields_filled.push(fieldName);
+                  }
+                }
+
+                const forward = await clickContinueButton(page, evidenceParts);
+                if (forward) {
+                  await humanDelay(1000, 2000);
+                  const retryPreUrl = page.url();
+                  const retrySubmit = await clickSubmitButton(page, evidenceParts);
+                  await humanDelay(1200, 2200);
+
+                  stepResult.post_continue_url = page.url();
+                  stepResult.page_title = await page.title();
+                  if (stepResult.post_continue_url) {
+                    lastUrl = stepResult.post_continue_url;
+                  }
+
+                  const retryErrors = await page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i]').allTextContents().catch(() => []);
+                  const retryCombined = (retryErrors || []).join(' ').toLowerCase();
+                  const stillBlocked = retryCombined.includes('answer all required questions') || retryCombined.includes('page error');
+
+                  const retrySameUrl = stepResult.post_continue_url === retryPreUrl;
+                  const retryStillOnStep = retrySameUrl ? await isLikelyStillOnStep(page, stepKey) : false;
+                  clicked = !!retrySubmit && !stillBlocked && (!retrySameUrl || !retryStillOnStep);
+
+                  if (!clicked) {
+                    stepResult.error = 'Validation blocked step progression after review backflow: ' + String(firstError || '').trim();
+                  }
+                }
+              }
+            }
+
+            if (!clicked && stepKey === 'my_experience') {
               const actions = await captureExperienceActionSnapshot(page);
               if (actions.length > 0) {
                 evidenceParts.push('Experience actions snapshot: ' + JSON.stringify(actions));
               }
               await writeExperienceDebugDump(page, screenshot_dir, application_id, evidenceParts);
-            } else if (stepKey === 'application_questions') {
+            } else if (!clicked && stepKey === 'application_questions') {
               const appSnap = await captureApplicationQuestionSnapshot(page);
               if (appSnap.length > 0) {
                 evidenceParts.push('Application questions snapshot: ' + JSON.stringify(appSnap));
               }
               await writeApplicationDebugDump(page, screenshot_dir, application_id, evidenceParts);
-            } else if (stepKey === 'review_submit') {
+            } else if (!clicked && stepKey === 'review_submit') {
               await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
             }
 
-            const resolvedFields = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
-            if (resolvedFields.length > 0) {
+            if (!clicked) {
+              const resolvedFields = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
+              if (resolvedFields.length > 0) {
               for (const fieldName of resolvedFields) {
                 if (!stepResult.fields_filled.includes(fieldName)) {
                   stepResult.fields_filled.push(fieldName);
@@ -3940,30 +4159,31 @@ async function run() {
                 await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
               }
 
-              const retryPreUrl = page.url();
-              let retryClicked = false;
-              if (stepKey === 'review_submit') {
-                retryClicked = await clickSubmitButton(page, evidenceParts);
+                const retryPreUrl = page.url();
+                let retryClicked = false;
+                if (stepKey === 'review_submit') {
+                  retryClicked = await clickSubmitButton(page, evidenceParts);
+                } else {
+                  retryClicked = await clickContinueButton(page, evidenceParts);
+                }
+
+                await humanDelay(1200, 2200);
+                stepResult.post_continue_url = page.url();
+                stepResult.page_title = await page.title();
+                if (stepResult.post_continue_url) {
+                  lastUrl = stepResult.post_continue_url;
+                }
+
+                const retrySameUrl = stepResult.post_continue_url === retryPreUrl;
+                const retryStillOnStep = retrySameUrl ? await isLikelyStillOnStep(page, stepKey) : false;
+                clicked = !!retryClicked && (!retrySameUrl || !retryStillOnStep);
+                if (!clicked) {
+                  stepResult.error = 'Validation blocked step progression after resolver: ' + String(firstError || '').trim();
+                }
               } else {
-                retryClicked = await clickContinueButton(page, evidenceParts);
+                clicked = false;
+                stepResult.error = 'Validation blocked step progression: ' + String(firstError || '').trim();
               }
-
-              await humanDelay(1200, 2200);
-              stepResult.post_continue_url = page.url();
-              stepResult.page_title = await page.title();
-              if (stepResult.post_continue_url) {
-                lastUrl = stepResult.post_continue_url;
-              }
-
-              const retrySameUrl = stepResult.post_continue_url === retryPreUrl;
-              const retryStillOnStep = retrySameUrl ? await isLikelyStillOnStep(page, stepKey) : false;
-              clicked = !!retryClicked && (!retrySameUrl || !retryStillOnStep);
-              if (!clicked) {
-                stepResult.error = 'Validation blocked step progression after resolver: ' + String(firstError || '').trim();
-              }
-            } else {
-              clicked = false;
-              stepResult.error = 'Validation blocked step progression: ' + String(firstError || '').trim();
             }
           }
         } catch (_) {}
@@ -3976,6 +4196,17 @@ async function run() {
               clicked = true;
               evidenceParts.push('self_identify: no Continue control; Submit action visible, proceeding to review_submit');
             }
+          }
+        }
+
+        if (clicked && stepKey === 'review_submit') {
+          const confirmed = await isSubmissionConfirmed(page);
+          if (!confirmed) {
+            clicked = false;
+            if (!stepResult.error) {
+              stepResult.error = 'Submit click did not reach a confirmed submitted state.';
+            }
+            await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
           }
         }
 

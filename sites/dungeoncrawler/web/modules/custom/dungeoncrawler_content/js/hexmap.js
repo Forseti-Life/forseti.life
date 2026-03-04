@@ -234,6 +234,8 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
         chatInput: document.getElementById('chat-input'),
         chatSend: document.getElementById('chat-send'),
         chatChannelTabs: document.getElementById('chat-channel-tabs'),
+        chatChannelIndicator: document.getElementById('chat-channel-indicator'),
+        chatChannelLabel: document.getElementById('chat-channel-label'),
 
         // Quest journal panel
         questJournal: document.getElementById('quest-journal'),
@@ -1043,15 +1045,48 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
         });
       }
 
-      // Update input placeholder.
+      // Determine channel type and label for indicators.
       const channel = this.channels[channelKey];
+      let channelType = 'room';
+      let indicatorIcon = '\u{1F4E2}';
+      let indicatorText = 'Room \u2014 Everyone can hear';
+
+      if (channel && channelKey !== 'room') {
+        const targetName = channel.target_name || channel.label || 'NPC';
+        const ability = channel.source_ability || 'whisper';
+        if (channelKey.startsWith('spell:')) {
+          channelType = 'spell';
+          indicatorIcon = '\u2728';
+          indicatorText = `${channel.label || ability} \u2014 Magical link with ${targetName}`;
+        } else {
+          channelType = 'whisper';
+          indicatorIcon = '\u{1F5E3}';
+          indicatorText = `Whisper \u2014 Private with ${targetName}`;
+        }
+      }
+
+      // Update channel indicator banner.
+      const indicator = this.elements.chatChannelIndicator;
+      if (indicator) {
+        indicator.dataset.channelType = channelType;
+        const iconEl = indicator.querySelector('.channel-indicator__icon');
+        if (iconEl) iconEl.textContent = indicatorIcon;
+      }
+      const label = this.elements.chatChannelLabel;
+      if (label) label.textContent = indicatorText;
+
+      // Color-code the chat log border.
+      const log = this.elements.chatLog;
+      if (log) log.dataset.channelType = channelType;
+
+      // Update input placeholder.
       const input = this.elements.chatInput;
-      if (input && channel) {
+      if (input) {
         if (channelKey === 'room') {
           input.placeholder = 'Say something to the room...';
         } else {
-          const targetName = channel.target_name || channel.label || 'NPC';
-          input.placeholder = `${channel.source_ability || 'Whisper'} to ${targetName}...`;
+          const targetName = channel?.target_name || channel?.label || 'NPC';
+          input.placeholder = `${channel?.source_ability || 'Whisper'} to ${targetName}...`;
         }
       }
 
