@@ -222,6 +222,11 @@ class SpriteGenerationService {
    * Builds a generation prompt from sprite_id and object data.
    */
   protected function buildSpritePrompt(string $sprite_id, array $object_definition): string {
+    $custom_prompt = trim((string) ($object_definition['visual']['prompt'] ?? $object_definition['prompt'] ?? ''));
+    if ($custom_prompt !== '') {
+      return $custom_prompt;
+    }
+
     $lines = [
       'Create a top-down sprite token for a hexmap tactical RPG.',
       'The image should be a single game object viewed from above, suitable for placement on a hex grid.',
@@ -276,6 +281,7 @@ class SpriteGenerationService {
    */
   protected function getCategoryGuidance(string $category): string {
     return match (strtolower($category)) {
+      'wall' => 'Show as a wall segment from above aligned for hex-grid placement, with clear material texture and edge readability.',
       'door' => 'Show as a door viewed from above: a rectangular wooden or metal panel with a visible handle/knob. Clear directional orientation.',
       'bar' => 'Show as a bar counter section from above: a long rectangular wooden counter surface. Polished wood grain visible.',
       'table' => 'Show as a table from above: a round or rectangular wooden surface, possibly with items on it. Woodgrain or cloth texture.',

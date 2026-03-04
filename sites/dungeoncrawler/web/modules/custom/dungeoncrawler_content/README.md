@@ -106,7 +106,7 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
 - **Operator setup aid**: Dashboard includes copy-ready Linux/Apache env export snippet for both providers plus reload/cache steps.
 - **Storage design reference**: See `GENERATED_IMAGE_STORAGE_DESIGN.md` for object-table review and proposed generated-image persistence model.
 - **Phase 1 storage tables**: `dc_generated_images` (asset metadata) and `dc_generated_image_links` (object-slot links) via update hook `10010`.
-- **Storage write behavior**: Base64 image output is written to `public://generated-images/YYYY/MM` when available; environments without writable public files fallback to `temporary://generated-images/YYYY/MM` so persistence still succeeds.
+- **Storage write behavior**: Base64 image output is written to `public://generated-images/YYYY/MM` only. If public storage is unavailable or not writable, persistence fails with a logged error rather than falling back to temporary storage.
 - **Phase 1 read APIs**:
    - `GET /api/image/{image_uuid}`
    - `GET /api/images/object/{table_name}/{object_id}?campaign_id=&slot=&variant=`

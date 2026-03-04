@@ -52,7 +52,7 @@
       "tags": ["bar", "fixture", "cover"],
       "size": "large",
       "visual": {
-        "sprite_id": "bar_counter_wood_left",
+        "sprite_id": "table_long_wood_end",
         "color": "#654321",
         "orientation": "se"
       },
@@ -73,7 +73,7 @@
       "tags": ["bar", "fixture", "cover"],
       "size": "large",
       "visual": {
-        "sprite_id": "bar_counter_wood_middle",
+        "sprite_id": "table_long_wood_end",
         "color": "#654321",
         "orientation": "se"
       },
@@ -94,7 +94,7 @@
       "tags": ["bar", "fixture", "cover"],
       "size": "large",
       "visual": {
-        "sprite_id": "bar_counter_wood_right",
+        "sprite_id": "table_long_wood_end",
         "color": "#654321",
         "orientation": "se"
       },
@@ -148,11 +148,11 @@
         "athletics_dc": 15
       },
       "visual": {
-        "sprite_id": "table_long_wood",
+        "sprite_id": "table_long_wood_end",
         "color": "#8B4513",
-        "orientation": "se"
+        "orientation": "n"
       },
-      "orientation": "se"
+      "orientation": "n"
     },
     {
       "object_id": "tavern_table_long_center",
@@ -176,11 +176,11 @@
         "athletics_dc": 15
       },
       "visual": {
-        "sprite_id": "table_long_wood",
+        "sprite_id": "table_long_wood_end",
         "color": "#8B4513",
-        "orientation": "se"
+        "orientation": "n"
       },
-      "orientation": "se"
+      "orientation": "n"
     },
     {
       "object_id": "tavern_table_long_b",
@@ -204,11 +204,11 @@
         "athletics_dc": 15
       },
       "visual": {
-        "sprite_id": "table_long_wood",
+        "sprite_id": "table_long_wood_end",
         "color": "#8B4513",
-        "orientation": "se"
+        "orientation": "n"
       },
-      "orientation": "se"
+      "orientation": "n"
     },
     {
       "object_id": "tavern_stool_stack_a",
@@ -260,6 +260,183 @@
       "visual": {
         "sprite_id": "crate_stack_wood",
         "color": "#8B7355"
+      }
+    },
+    {
+      "object_id": "tavern_wall_segment",
+      "label": "Tavern Wall Segment",
+      "category": "wall",
+      "description": "Fixed perimeter wall segment used to delineate room boundaries in the tavern staging area.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "fixture", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_stone_flat",
+        "color": "#696969"
+      }
+    },
+    {
+      "object_id": "wall_log_flat",
+      "label": "Log Wall Flat",
+      "category": "wall",
+      "description": "Flat-orientation wooden palisade wall tile for hex-grid perimeter boundaries.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "wood", "palisade", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_log_flat",
+        "color": "#6B4F2A",
+        "prompt": "A top-down orthographic 2D map tile of a thick wooden log wall cutting through the center of a hexagonal frame. The wall is made of vertical sharpened timber poles lashed together with rope. The ground is a neutral dirt texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
+      }
+    },
+    {
+      "object_id": "wall_log_corner_acute",
+      "label": "Log Wall Corner Acute",
+      "category": "wall",
+      "description": "Acute-corner wooden palisade wall tile for hex-grid perimeter turns.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "wood", "palisade", "corner", "acute", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_log_corner_acute",
+        "color": "#6B4F2A",
+        "prompt": "A top-down orthographic 2D map tile of a thick wooden log wall turning through an acute corner inside a hexagonal frame. The wall is made of vertical sharpened timber poles lashed together with rope. The ground is a neutral dirt texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
+      }
+    },
+    {
+      "object_id": "wall_log_corner_obtuse",
+      "label": "Log Wall Corner Obtuse",
+      "category": "wall",
+      "description": "Obtuse-corner wooden palisade wall tile for hex-grid perimeter turns.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "wood", "palisade", "corner", "obtuse", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_log_corner_obtuse",
+        "color": "#6B4F2A",
+        "prompt": "A top-down orthographic 2D map tile of a thick wooden log wall turning through an obtuse corner inside a hexagonal frame. The wall is made of vertical sharpened timber poles lashed together with rope. The ground is a neutral dirt texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
+      }
+    },
+    {
+      "object_id": "wall_stone_flat",
+      "label": "Stone Wall Flat",
+      "category": "wall",
+      "description": "Flat-orientation stone fortress wall tile for hex-grid perimeter boundaries.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "stone", "fortress", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_stone_flat",
+        "color": "#696969",
+        "prompt": "A top-down orthographic 2D map tile of a sturdy grey stone fortress wall cutting through the center of a hexagonal frame. The wall is made of heavy weathered masonry blocks with visible mortar and crenellations. The ground is a neutral stone floor texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
+      }
+    },
+    {
+      "object_id": "wall_stone_flat_ew",
+      "label": "Stone Wall Flat EW",
+      "category": "wall",
+      "description": "East-west oriented straight stone wall segment for hex-grid perimeter boundaries.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "stone", "fortress", "boundary", "cover", "flat", "east_west"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_stone_flat_ew",
+        "color": "#696969"
+      }
+    },
+    {
+      "object_id": "wall_stone_flat_ns",
+      "label": "Stone Wall Flat NS",
+      "category": "wall",
+      "description": "North-south oriented straight stone wall segment for hex-grid perimeter boundaries.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "stone", "fortress", "boundary", "cover", "flat", "north_south"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_stone_flat_ns",
+        "color": "#696969"
+      }
+    },
+    {
+      "object_id": "wall_stone_corner_acute",
+      "label": "Stone Wall Corner Acute",
+      "category": "wall",
+      "description": "Acute-corner stone fortress wall tile for hex-grid perimeter turns.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "stone", "fortress", "corner", "acute", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_stone_corner_acute",
+        "color": "#696969",
+        "prompt": "A top-down orthographic 2D map tile of a sturdy grey stone fortress wall turning through an acute corner inside a hexagonal frame. The wall is made of heavy weathered masonry blocks with visible mortar and crenellations. The ground is a neutral stone floor texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
+      }
+    },
+    {
+      "object_id": "wall_stone_corner_obtuse",
+      "label": "Stone Wall Corner Obtuse",
+      "category": "wall",
+      "description": "Obtuse-corner stone fortress wall tile for hex-grid perimeter turns.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": false,
+        "blocks_movement": true,
+        "cost_multiplier": 999
+      },
+      "tags": ["wall", "stone", "fortress", "corner", "obtuse", "boundary", "cover"],
+      "size": "large",
+      "visual": {
+        "sprite_id": "wall_stone_corner_obtuse",
+        "color": "#696969",
+        "prompt": "A top-down orthographic 2D map tile of a sturdy grey stone fortress wall turning through an obtuse corner inside a hexagonal frame. The wall is made of heavy weathered masonry blocks with visible mortar and crenellations. The ground is a neutral stone floor texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
       }
     },
     {

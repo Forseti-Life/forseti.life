@@ -474,6 +474,28 @@ job_hunter.application_submission_step5_short:
     _permission: 'access job hunter'
     job_id: '\d+'
 
+job_hunter.application_submission_step5_screenshot:
+  path: '/jobhunter/application-submission/{job_id}/screenshot/{filename}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionScreenshot'
+    _title: 'Screenshot Preview'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+    filename: '[A-Za-z0-9._-]+'
+
+job_hunter.application_submission_step5_screenshot_short:
+  path: '/application-submission/{job_id}/screenshot/{filename}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionScreenshot'
+    _title: 'Screenshot Preview'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: '\d+'
+    filename: '[A-Za-z0-9._-]+'
+
 job_hunter.application_submission_step_stub:
   path: '/jobhunter/application-submission/{job_id}/step/{step}'
   defaults:

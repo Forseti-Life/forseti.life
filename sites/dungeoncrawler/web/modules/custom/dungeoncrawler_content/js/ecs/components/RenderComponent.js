@@ -29,6 +29,7 @@ export class RenderComponent extends Component {
     this.alpha = 1.0;
     this.visible = true;
     this.zIndex = 0;
+    this.orientation = 'n';
 
     // Object definition hints for placeholder rendering
     this.objectCategory = null; // e.g. 'bar', 'table', 'door', 'crate', 'stool', 'decor'
@@ -40,6 +41,7 @@ export class RenderComponent extends Component {
     this.healthBar = null;
     this.nameLabel = null;
     this.statusIcons = null;
+    this.directionIndicator = null;
   }
 
   /**
@@ -56,6 +58,7 @@ export class RenderComponent extends Component {
       alpha: this.alpha,
       visible: this.visible,
       zIndex: this.zIndex,
+      orientation: this.orientation,
       objectCategory: this.objectCategory,
       objectColor: this.objectColor
     };
@@ -74,6 +77,7 @@ export class RenderComponent extends Component {
     component.alpha = data.alpha ?? 1.0;
     component.visible = data.visible ?? true;
     component.zIndex = data.zIndex ?? 0;
+    component.orientation = data.orientation ?? 'n';
     component.objectCategory = data.objectCategory ?? null;
     component.objectColor = data.objectColor ?? null;
     return component;
@@ -98,6 +102,10 @@ export class RenderComponent extends Component {
     if (this.nameLabel) {
       this.nameLabel.destroy();
       this.nameLabel = null;
+    }
+    if (this.directionIndicator) {
+      this.directionIndicator.destroy();
+      this.directionIndicator = null;
     }
     this.statusIcons = null;
   }

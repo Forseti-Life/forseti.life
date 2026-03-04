@@ -19,6 +19,11 @@ export class RenderSystem extends System {
     this.objectContainer = containers.object;
     this.uiContainer = containers.ui;
     this.hexSize = 30;
+
+    // Ensure hover/click interaction is handled by the hex layer instead of
+    // rendered sprites/labels that visually sit above it.
+    this.disablePointerCapture(this.objectContainer);
+    this.disablePointerCapture(this.uiContainer);
     
     this.priority = 100; // Render last
   }
@@ -28,6 +33,24 @@ export class RenderSystem extends System {
    */
   init() {
     console.log('RenderSystem initialized');
+  }
+
+  /**
+   * Disable pointer hit capture on a display object/container.
+   * @param {PIXI.DisplayObject|PIXI.Container|null|undefined} displayObject
+   */
+  disablePointerCapture(displayObject) {
+    if (!displayObject) {
+      return;
+    }
+
+    displayObject.interactive = false;
+    if (Object.prototype.hasOwnProperty.call(displayObject, 'interactiveChildren')) {
+      displayObject.interactiveChildren = false;
+    }
+    if ('eventMode' in displayObject) {
+      displayObject.eventMode = 'none';
+    }
   }
 
   /**
@@ -68,6 +91,9 @@ export class RenderSystem extends System {
       if (render.nameLabel) {
         render.nameLabel.visible = false;
       }
+      if (render.directionIndicator) {
+        render.directionIndicator.visible = false;
+      }
       return;
     }
 
@@ -100,7 +126,14 @@ export class RenderSystem extends System {
     else {
       render.sprite.scale.set(render.scale);
     }
-    render.sprite.rotation = render.rotation;
+    const baseRotation = Number.isFinite(render.rotation) ? render.rotation : 0;
+    const orientationRotation = this.shouldApplyOrientationSpriteRotation(identity, render)
+      ? this.getOrientationAngle(render.orientation)
+      : 0;
+    const spriteOrientationOffset = this.shouldApplyOrientationSpriteRotation(identity, render)
+      ? this.getOrientationSpriteOffset()
+      : 0;
+    render.sprite.rotation = baseRotation + orientationRotation + spriteOrientationOffset;
     render.sprite.tint = render.tint;
     render.sprite.alpha = render.alpha;
     render.sprite.visible = render.visible;
@@ -120,6 +153,117 @@ export class RenderSystem extends System {
     if (identity && identity.name) {
       this.updateNameLabel(entity, render, identity, pixelPos);
     }
+
+    if (this.shouldShowDirectionIndicator(identity)) {
+      this.updateDirectionIndicator(entity, render, pixelPos);
+    }
+    else if (render.directionIndicator) {
+      render.directionIndicator.visible = false;
+    }
+  }
+
+  /**
+   * Determine whether an entity type should show directional facing.
+   * @param {IdentityComponent|null|undefined} identity
+   * @returns {boolean}
+   */
+  shouldShowDirectionIndicator(identity) {
+    const type = String(identity?.entityType || '').toLowerCase();
+    return type === 'creature'
+      || type === 'player_character'
+      || type === 'npc'
+      || type === 'item'
+      || type === 'obstacle';
+  }
+
+  /**
+   * Determine whether orientation should rotate sprite artwork.
+   * @param {IdentityComponent|null|undefined} identity
+   * @param {RenderComponent|null|undefined} render
+   * @returns {boolean}
+   */
+  shouldApplyOrientationSpriteRotation(identity, render) {
+    const type = String(identity?.entityType || '').toLowerCase();
+    return type === 'creature'
+      || type === 'player_character'
+      || type === 'npc'
+      || type === 'item'
+      || type === 'obstacle';
+  }
+
+  /**
+   * Update or create directional indicator for an entity.
+   * @param {Entity} entity - Entity
+   * @param {RenderComponent} render - Render component
+   * @param {Object} pixelPos - Pixel position {x, y}
+   */
+  updateDirectionIndicator(entity, render, pixelPos) {
+    if (!render.directionIndicator) {
+      const indicator = new PIXI.Graphics();
+      this.disablePointerCapture(indicator);
+      this.uiContainer.addChild(indicator);
+      render.directionIndicator = indicator;
+    }
+
+    const indicator = render.directionIndicator;
+    const orientation = this.getOrientationAngle(render.orientation);
+    const radius = this.hexSize * 0.88;
+    const halfWidth = this.hexSize * 0.14;
+
+    indicator.clear();
+    indicator.beginFill(0xfbbf24, 0.95);
+    indicator.lineStyle(2, 0x111827, 0.9);
+    indicator.moveTo(0, -radius);
+    indicator.lineTo(halfWidth, -radius + (this.hexSize * 0.22));
+    indicator.lineTo(-halfWidth, -radius + (this.hexSize * 0.22));
+    indicator.closePath();
+    indicator.endFill();
+
+    indicator.x = pixelPos.x;
+    indicator.y = pixelPos.y;
+    indicator.rotation = orientation;
+    indicator.visible = render.visible;
+    indicator.zIndex = (render.zIndex || 0) + 1;
+  }
+
+  /**
+   * Convert orientation token to rotation angle in radians.
+   * @param {string|null|undefined} orientation
+   * @returns {number}
+   */
+  getOrientationAngle(orientation) {
+    const token = String(orientation || 'n').toLowerCase();
+    const deg = (value) => (value * Math.PI) / 180;
+    const map = {
+      n: deg(0),
+      ne: deg(45),
+      e: deg(90),
+      se: deg(135),
+      s: deg(180),
+      sw: deg(225),
+      w: deg(270),
+      nw: deg(315),
+      north: deg(0),
+      northeast: deg(45),
+      east: deg(90),
+      southeast: deg(135),
+      south: deg(180),
+      southwest: deg(225),
+      west: deg(270),
+      northwest: deg(315),
+    };
+
+    return Object.prototype.hasOwnProperty.call(map, token) ? map[token] : map.n;
+  }
+
+  /**
+   * Sprite calibration offset for compass-convention orientation tokens.
+   * Object sprites are authored facing north, matching the n=0° convention,
+   * so no additional offset is needed.
+   * @returns {number}
+   */
+  getOrientationSpriteOffset() {
+    return 0;
   }
   
   /**
@@ -153,6 +297,7 @@ export class RenderSystem extends System {
       
       render.healthBar = container;
       render.healthBar.bar = bar;
+      this.disablePointerCapture(render.healthBar);
       this.uiContainer.addChild(container);
     }
     
@@ -202,13 +347,14 @@ export class RenderSystem extends System {
       text.anchor.set(0.5, 1);
       
       render.nameLabel = text;
+      this.disablePointerCapture(render.nameLabel);
       this.uiContainer.addChild(text);
     }
     
     // Update name label position (below sprite)
     render.nameLabel.x = pixelPos.x;
     render.nameLabel.y = pixelPos.y + this.hexSize * 0.7;
-    render.nameLabel.visible = render.visible;
+    render.nameLabel.visible = render.visible && Boolean(render._hoverLabelVisible);
     
     // Update text if name changed
     if (render.nameLabel.text !== identity.name) {
@@ -230,7 +376,7 @@ export class RenderSystem extends System {
     if (render.spriteKey && PIXI.utils.TextureCache[render.spriteKey]) {
       sprite = new PIXI.Sprite(PIXI.utils.TextureCache[render.spriteKey]);
       sprite.anchor.set(0.5);
-      const baseDims = this.getSpriteBaseDimensions(render.objectCategory);
+      const baseDims = this.getSpriteBaseDimensions(render.objectCategory, render.spriteKey);
       sprite.__fixedHexSize = true;
       sprite.__baseWidth = baseDims.width;
       sprite.__baseHeight = baseDims.height;
@@ -244,6 +390,7 @@ export class RenderSystem extends System {
     }
 
     render.sprite = sprite;
+    this.disablePointerCapture(render.sprite);
     this.objectContainer.addChild(sprite);
 
     console.log(`Created sprite for entity ${entity.id}`);
@@ -281,7 +428,7 @@ export class RenderSystem extends System {
     // Create new sprite from texture
     const newSprite = new PIXI.Sprite(texture);
     newSprite.anchor.set(0.5);
-    const baseDims = this.getSpriteBaseDimensions(render.objectCategory);
+    const baseDims = this.getSpriteBaseDimensions(render.objectCategory, render.spriteKey);
     newSprite.__fixedHexSize = true;
     newSprite.__baseWidth = baseDims.width;
     newSprite.__baseHeight = baseDims.height;
@@ -357,14 +504,45 @@ export class RenderSystem extends System {
    * @param {string|null} category - Object category hint
    * @returns {{width: number, height: number}}
    */
-  getSpriteBaseDimensions(category = null) {
+  getSpriteBaseDimensions(category = null, spriteKey = null) {
     const normalized = typeof category === 'string' ? category.toLowerCase() : '';
+    const normalizedSpriteKey = typeof spriteKey === 'string' ? spriteKey.toLowerCase() : '';
 
     // Doors should visually occupy a full hex footprint.
     if (normalized === 'door') {
       return {
         width: this.hexSize * 1.75,
         height: this.hexSize * 2.0,
+      };
+    }
+
+    // Wall segments use orientation-aware footprints so adjacent tiles connect
+    // without visible seams between hexes.
+    if (normalized === 'wall') {
+      if (normalizedSpriteKey.includes('_ns')) {
+        return {
+          width: this.hexSize * 1.0,
+          height: this.hexSize * 2.0,
+        };
+      }
+
+      if (normalizedSpriteKey.includes('_ew')) {
+        return {
+          width: this.hexSize * 2.0,
+          height: this.hexSize * 1.0,
+        };
+      }
+
+      if (normalizedSpriteKey.includes('corner')) {
+        return {
+          width: this.hexSize * 2.0,
+          height: this.hexSize * 2.0,
+        };
+      }
+
+      return {
+        width: this.hexSize * 1.8,
+        height: this.hexSize * 1.8,
       };
     }
 
@@ -560,6 +738,12 @@ export class RenderSystem extends System {
         this.uiContainer.removeChild(render.nameLabel);
         render.nameLabel.destroy();
         render.nameLabel = null;
+      }
+
+      if (render.directionIndicator) {
+        this.uiContainer.removeChild(render.directionIndicator);
+        render.directionIndicator.destroy();
+        render.directionIndicator = null;
       }
       
       console.log(`Removed sprite and UI for entity ${entity.id}`);

@@ -207,7 +207,7 @@
               <th>{{ 'Step'|t }}</th>
               <th style="width: 140px;">{{ 'Status'|t }}</th>
               <th style="width: 160px;">{{ 'Completed'|t }}</th>
-              <th style="width: 100px;">{{ 'Action'|t }}</th>
+              <th style="width: 140px;">{{ 'Automation'|t }}</th>
             </tr>
           </thead>
           <tbody>
@@ -251,16 +251,9 @@
                       <small style="color: #dc3545;">{{ 'No PDF'|t }}</small>
                     {% endif %}
 
-                  {# Steps 2-7: Manual advance buttons #}
+                  {# Steps 2-7: status only, auto-progress handled centrally #}
                   {% elseif wd_step.key != 'autofill_resume' and wd_step.status != 'pass' and is_current %}
-                    <form method="post" action="{{ path('job_hunter.application_submission_step5', {'job_id': job_id}) }}" style="display: inline;">
-                      <input type="hidden" name="csrf_token" value="{{ run_step5_csrf_token }}" />
-                      <input type="hidden" name="step5_action" value="advance_wd_step" />
-                      <input type="hidden" name="wd_step_key" value="{{ wd_step.key }}" />
-                      <button type="submit" class="button button--primary button--small" style="font-size: 0.8em; padding: 2px 8px;">
-                        ✓ {{ 'Done'|t }}
-                      </button>
-                    </form>
+                    <small style="color: #0c5460;">{{ 'Auto'|t }}</small>
                   {% elseif wd_step.status == 'pass' %}
                     <small style="color: #28a745;">✓</small>
                   {% endif %}
@@ -289,8 +282,20 @@
         {% elseif wd_current_step >= 2 and wd_current_step <= 6 %}
           <div style="border-top: 1px solid #dee2e6; padding-top: 12px; margin-top: 8px;">
             <p style="font-size: 0.9em; color: #6c757d;">
-              {{ 'Complete this step manually in the Workday wizard, then click "Done" above to advance.'|t }}
+              🤖 <strong>{{ 'Auto Progression'|t }}</strong> — {{ 'After Autofill completes, the system should continue through Workday steps automatically.'|t }}
             </p>
+            <form method="post" action="{{ path('job_hunter.application_submission_step5', {'job_id': job_id}) }}" style="margin: 8px 0 12px 0;">
+              <input type="hidden" name="csrf_token" value="{{ run_step5_csrf_token }}" />
+              <input type="hidden" name="step5_action" value="run_wd_wizard_auto" />
+              <button type="submit" class="button button--primary">
+                ▶ {{ 'Continue Wizard (Auto)'|t }}
+              </button>
+            </form>
+            {% if wd_current_step == 4 %}
+              <p style="font-size: 0.85em; color: #856404; background: #fff3cd; padding: 6px 10px; border-radius: 4px;">
+                ⚠️ {{ 'Application Questions vary per job. Automation will attempt common questions (work authorization, sponsorship, age) but may flag this step for manual review.'|t }}
+              </p>
+            {% endif %}
             {% if resume_upload_result.post_continue_url is defined and resume_upload_result.post_continue_url %}
               <p>
                 <a href="{{ resume_upload_result.post_continue_url }}" target="_blank" rel="noopener" class="button button--secondary" style="font-size: 0.9em;">
@@ -308,7 +313,7 @@
         {% elseif wd_current_step == 7 %}
           <div style="border-top: 1px solid #dee2e6; padding-top: 12px; margin-top: 8px;">
             <p style="color: #28a745; font-weight: bold;">
-              🎯 {{ 'Final step! Review your application in Workday and click Submit, then mark as Done above.'|t }}
+              🎯 {{ 'Final step! Click "Continue Wizard (Auto)" above to run Review & Submit.'|t }}
             </p>
           </div>
         {% elseif wd_all_complete %}
@@ -479,12 +484,100 @@
           {% if resume_upload_result.screenshots is not empty %}
             <tr>
               <td>{{ 'Screenshots'|t }}</td>
-              <td>{{ resume_upload_result.screenshots|join(', ') }}</td>
+              <td>
+                <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start;">
+                  {% for screenshot_path in resume_upload_result.screenshots %}
+                    {% set screenshot_name = screenshot_path|split('/')|last %}
+                    {% set screenshot_url = path('job_hunter.application_submission_step5_screenshot', {'job_id': job_id, 'filename': screenshot_name}) %}
+                    <a href="{{ screenshot_url }}"
+                       class="jh-screenshot-thumb"
+                       data-full-src="{{ screenshot_url }}"
+                       data-full-name="{{ screenshot_name }}"
+                       title="{{ 'Click to expand'|t }}"
+                       style="text-decoration: none; display: inline-block;">
+                      <img src="{{ screenshot_url }}"
+                           alt="{{ screenshot_name }}"
+                           loading="lazy"
+                           style="width: 180px; height: 110px; object-fit: cover; border: 1px solid #ced4da; border-radius: 4px; display: block;" />
+                      <small style="display: block; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 4px; color: #6c757d;">{{ screenshot_name }}</small>
+                    </a>
+                  {% endfor %}
+                </div>
+              </td>
             </tr>
           {% endif %}
         </tbody>
       </table>
     </div>
+  {% endif %}
+
+  {% if resume_upload_result is not empty and resume_upload_result.screenshots is not empty %}
+    <div id="jh-screenshot-modal"
+         style="display:none; position:fixed; inset:0; z-index:9999; background:rgba(0,0,0,0.82); align-items:center; justify-content:center; padding:20px;"
+         role="dialog"
+         aria-modal="true"
+         aria-label="{{ 'Screenshot Preview'|t }}">
+      <div style="position:relative; max-width:95vw; max-height:95vh;">
+        <button type="button"
+                id="jh-screenshot-modal-close"
+                aria-label="{{ 'Close'|t }}"
+                style="position:absolute; right:0; top:-44px; border:0; background:#ffffff; color:#212529; border-radius:4px; padding:6px 10px; cursor:pointer; font-size:16px; font-weight:600;">
+          × {{ 'Close'|t }}
+        </button>
+        <img id="jh-screenshot-modal-image"
+             src=""
+             alt=""
+             style="display:block; max-width:95vw; max-height:88vh; border-radius:6px; box-shadow:0 0 0 2px rgba(255,255,255,0.2); background:#111;" />
+        <div id="jh-screenshot-modal-caption" style="margin-top:8px; color:#f1f3f5; font-size:0.9em; text-align:center;"></div>
+      </div>
+    </div>
+
+    <script>
+      (function () {
+        var modal = document.getElementById('jh-screenshot-modal');
+        var modalImg = document.getElementById('jh-screenshot-modal-image');
+        var modalCaption = document.getElementById('jh-screenshot-modal-caption');
+        var closeBtn = document.getElementById('jh-screenshot-modal-close');
+        if (!modal || !modalImg || !closeBtn) {
+          return;
+        }
+
+        function closeModal() {
+          modal.style.display = 'none';
+          modalImg.setAttribute('src', '');
+          modalImg.setAttribute('alt', '');
+          if (modalCaption) {
+            modalCaption.textContent = '';
+          }
+        }
+
+        document.querySelectorAll('.jh-screenshot-thumb').forEach(function (link) {
+          link.addEventListener('click', function (event) {
+            event.preventDefault();
+            var src = link.getAttribute('data-full-src') || link.getAttribute('href') || '';
+            var name = link.getAttribute('data-full-name') || '';
+            modalImg.setAttribute('src', src);
+            modalImg.setAttribute('alt', name);
+            if (modalCaption) {
+              modalCaption.textContent = name;
+            }
+            modal.style.display = 'flex';
+          });
+        });
+
+        closeBtn.addEventListener('click', closeModal);
+        modal.addEventListener('click', function (event) {
+          if (event.target === modal) {
+            closeModal();
+          }
+        });
+        document.addEventListener('keydown', function (event) {
+          if (event.key === 'Escape' && modal.style.display !== 'none') {
+            closeModal();
+          }
+        });
+      })();
+    </script>
   {% endif %}
 
   {# ── Attempt History ─────────────────────────────────────────────────────── #}

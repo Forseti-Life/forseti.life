@@ -138,6 +138,12 @@ services:
       - '@database'
       - '@file_system'
 
+  job_hunter.workday_wizard_service:
+    class: Drupal\job_hunter\Service\WorkdayWizardService
+    arguments:
+      - '@database'
+      - '@file_system'
+
   job_hunter.application_form_mapper:
     class: Drupal\job_hunter\Service\ApplicationFormMapper
 

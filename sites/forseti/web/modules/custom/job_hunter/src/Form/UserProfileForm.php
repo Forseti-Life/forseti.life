@@ -652,6 +652,64 @@ class UserProfileForm extends FormBase {
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_requires_sponsorship') ?: NULL,
     ];
 
+    $form['search_assist']['field_age_18_or_older'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Are you at least 18 years old?'),
+      '#required' => FALSE,
+      '#options' => [
+        'yes' => $this->t('Yes'),
+        'no' => $this->t('No'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_age_18_or_older') ?: NULL,
+    ];
+
+    $form['search_assist']['field_hear_about_us'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('How Did You Hear About Us?'),
+      '#description' => $this->t('Used for ATS application questions (examples: LinkedIn, company careers site, referral).'),
+      '#required' => FALSE,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_hear_about_us'),
+    ];
+
+    $form['search_assist']['field_prior_company_employment'] = [
+      '#type' => 'radios',
+      '#title' => $this->t('Have you ever been employed with this company before?'),
+      '#required' => FALSE,
+      '#options' => [
+        'yes' => $this->t('Yes'),
+        'no' => $this->t('No'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_prior_company_employment') ?: NULL,
+    ];
+
+    $form['search_assist']['field_prior_company_wwid'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Prior Company WWID (if applicable)'),
+      '#required' => FALSE,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_prior_company_wwid'),
+    ];
+
+    $form['search_assist']['field_prior_company_email'] = [
+      '#type' => 'email',
+      '#title' => $this->t('Prior Company Email (if applicable)'),
+      '#required' => FALSE,
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_prior_company_email'),
+    ];
+
+    $form['search_assist']['field_phone_device_type'] = [
+      '#type' => 'select',
+      '#title' => $this->t('Phone Device Type'),
+      '#required' => FALSE,
+      '#options' => [
+        '' => $this->t('- Select -'),
+        'mobile' => $this->t('Mobile'),
+        'home' => $this->t('Home'),
+        'work' => $this->t('Work'),
+        'other' => $this->t('Other'),
+      ],
+      '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_phone_device_type'),
+    ];
+
     $form['search_assist']['salary_range'] = [
       '#type' => 'container',
       '#title' => $this->t('Salary Expectations'),
@@ -948,6 +1006,12 @@ class UserProfileForm extends FormBase {
       '#title' => $this->t('State'),
       '#default_value' => $contact_info['location']['state'] ?? '',
       '#size' => 10,
+    ];
+    $form['core_info']['location_container']['field_country'] = [
+      '#type' => 'textfield',
+      '#title' => $this->t('Country'),
+      '#default_value' => $contact_info['location']['country'] ?? '',
+      '#size' => 16,
     ];
 
     $form['core_info']['field_professional_summary'] = [
@@ -3482,6 +3546,30 @@ class UserProfileForm extends FormBase {
         'json_path' => ['job_search_preferences', 'requires_sponsorship'],
         'db_column' => 'requires_sponsorship',
       ],
+      'field_age_18_or_older' => [
+        'json_path' => ['job_search_preferences', 'age_18_or_older'],
+        'db_column' => 'age_18_or_older',
+      ],
+      'field_hear_about_us' => [
+        'json_path' => ['job_search_preferences', 'hear_about_us'],
+        'db_column' => '',
+      ],
+      'field_prior_company_employment' => [
+        'json_path' => ['job_search_preferences', 'prior_company_employment'],
+        'db_column' => '',
+      ],
+      'field_prior_company_wwid' => [
+        'json_path' => ['job_search_preferences', 'prior_company_wwid'],
+        'db_column' => '',
+      ],
+      'field_prior_company_email' => [
+        'json_path' => ['job_search_preferences', 'prior_company_email'],
+        'db_column' => '',
+      ],
+      'field_phone_device_type' => [
+        'json_path' => ['job_search_preferences', 'phone_device_type'],
+        'db_column' => '',
+      ],
       'field_experience_years' => [
         'json_path' => ['job_search_preferences', 'experience_years'],
         'db_column' => 'experience_years',
@@ -4025,6 +4113,17 @@ class UserProfileForm extends FormBase {
       $consolidated['contact_info']['location']['state'] = $value;
       return;
     }
+
+    if ($field_name === 'field_country') {
+      if (!isset($consolidated['contact_info'])) {
+        $consolidated['contact_info'] = [];
+      }
+      if (!isset($consolidated['contact_info']['location'])) {
+        $consolidated['contact_info']['location'] = [];
+      }
+      $consolidated['contact_info']['location']['country'] = $value;
+      return;
+    }
     
     // Define reverse mapping from form fields to JSON paths
     $field_map = [
@@ -4033,6 +4132,12 @@ class UserProfileForm extends FormBase {
       'field_work_authorization' => ['job_search_preferences', 'work_authorization'],
       'field_us_work_authorized' => ['job_search_preferences', 'us_work_authorized'],
       'field_requires_sponsorship' => ['job_search_preferences', 'requires_sponsorship'],
+      'field_age_18_or_older' => ['job_search_preferences', 'age_18_or_older'],
+      'field_hear_about_us' => ['job_search_preferences', 'hear_about_us'],
+      'field_prior_company_employment' => ['job_search_preferences', 'prior_company_employment'],
+      'field_prior_company_wwid' => ['job_search_preferences', 'prior_company_wwid'],
+      'field_prior_company_email' => ['job_search_preferences', 'prior_company_email'],
+      'field_phone_device_type' => ['job_search_preferences', 'phone_device_type'],
       'field_experience_years' => ['job_search_preferences', 'experience_years'],
       'field_education_level' => ['job_search_preferences', 'education_level'],
       'field_linkedin_url' => ['contact_info', 'linkedin'],
@@ -4140,6 +4245,12 @@ class UserProfileForm extends FormBase {
       'field_work_authorization',
       'field_us_work_authorized',
       'field_requires_sponsorship',
+      'field_age_18_or_older',
+      'field_hear_about_us',
+      'field_prior_company_employment',
+      'field_prior_company_wwid',
+      'field_prior_company_email',
+      'field_phone_device_type',
       'field_experience_years',
       'field_education_level',
       'field_linkedin_url',
@@ -4167,6 +4278,7 @@ class UserProfileForm extends FormBase {
       'field_email',
       'field_city',
       'field_state',
+      'field_country',
       // JSON editor fields
       'field_technical_expertise_json',
       'field_strategic_differentiators_json',

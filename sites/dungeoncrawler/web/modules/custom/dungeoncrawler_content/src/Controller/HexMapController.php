@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Drupal\dungeoncrawler_content\Service\QuestTrackerService;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -14,16 +15,18 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 class HexMapController extends ControllerBase {
 
-  protected const DEFAULT_OBJECT_ORIENTATION = 'se';
+  protected const DEFAULT_OBJECT_ORIENTATION = 'n';
 
   protected RequestStack $requestStack;
 
   protected Connection $database;
   protected QuestTrackerService $questTracker;
-  public function __construct(RequestStack $request_stack, Connection $database, QuestTrackerService $quest_tracker) {
+  protected GeneratedImageRepository $imageRepository;
+  public function __construct(RequestStack $request_stack, Connection $database, QuestTrackerService $quest_tracker, GeneratedImageRepository $image_repository) {
     $this->requestStack = $request_stack;
     $this->database = $database;
     $this->questTracker = $quest_tracker;
+    $this->imageRepository = $image_repository;
   }
 
   /**
@@ -34,6 +37,7 @@ class HexMapController extends ControllerBase {
       $container->get('request_stack'),
       $container->get('database'),
       $container->get('dungeoncrawler_content.quest_tracker'),
+      $container->get('dungeoncrawler_content.generated_image_repository'),
     );
   }
 
@@ -76,6 +80,7 @@ class HexMapController extends ControllerBase {
     $dungeon_payload = $this->adjustBarCounterPlacements($dungeon_payload);
     $dungeon_payload = $this->composeLongTableSegments($dungeon_payload);
     $dungeon_payload = $this->adjustLongTableSegmentPlacements($dungeon_payload);
+    $dungeon_payload = $this->removeNorthernLongTableDuplicates($dungeon_payload);
     $dungeon_payload = $this->injectRoomTemplateItemEntities($dungeon_payload, $launch_context);
     $dungeon_payload = $this->injectRoomBarkeepEntity($dungeon_payload, $launch_context);
     $dungeon_payload = $this->ensurePayloadObjectOrientations($dungeon_payload);
@@ -87,6 +92,7 @@ class HexMapController extends ControllerBase {
     $launch_character = $this->loadLaunchCharacterSummary($launch_context);
     $quest_summary = $this->loadQuestSummary($launch_context);
     $dungeon_payload = $this->injectQuestItemEntities($dungeon_payload, $quest_summary);
+    $dungeon_payload = $this->attachEntityPortraitUrls($dungeon_payload, $launch_context);
     $dungeon_payload = $this->ensurePayloadObjectOrientations($dungeon_payload);
 
     return [
@@ -548,6 +554,105 @@ class HexMapController extends ControllerBase {
   }
 
   /**
+   * Attach portrait URLs to player and NPC entities for map token rendering.
+   */
+  protected function attachEntityPortraitUrls(array $dungeon_payload, array $launch_context): array {
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      return $dungeon_payload;
+    }
+
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+
+    foreach ($dungeon_payload['entities'] as &$entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+
+      $entity_type = strtolower((string) ($entity['entity_type'] ?? ''));
+      if (!in_array($entity_type, ['player_character', 'npc'], TRUE)) {
+        continue;
+      }
+
+      $portrait_url = $this->resolveEntityPortraitUrl($entity, $campaign_id);
+      if ($portrait_url === NULL || $portrait_url === '') {
+        continue;
+      }
+
+      $entity['state'] = is_array($entity['state'] ?? NULL) ? $entity['state'] : [];
+      $entity['state']['metadata'] = is_array($entity['state']['metadata'] ?? NULL) ? $entity['state']['metadata'] : [];
+      $entity['state']['metadata']['portrait_url'] = $portrait_url;
+      $entity['state']['metadata']['portrait'] = $portrait_url;
+    }
+    unset($entity);
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Resolve best portrait URL for a single player or NPC entity.
+   */
+  protected function resolveEntityPortraitUrl(array $entity, int $campaign_id): ?string {
+    $metadata = is_array($entity['state']['metadata'] ?? NULL) ? $entity['state']['metadata'] : [];
+    $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
+    $character_id = (int) ($metadata['character_id'] ?? 0);
+
+    if ($character_id > 0) {
+      $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $character_id, $campaign_id > 0 ? $campaign_id : NULL, 'portrait', 'original');
+      if (!empty($rows)) {
+        return $this->normalizePortraitUrl($this->imageRepository->resolveClientUrl($rows[0]));
+      }
+    }
+
+    if ($content_id !== '') {
+      $rows = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $content_id, $campaign_id > 0 ? $campaign_id : NULL, 'portrait', 'original');
+      if (empty($rows)) {
+        $rows = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $content_id, NULL, 'portrait', 'original');
+      }
+      if (!empty($rows)) {
+        return $this->normalizePortraitUrl($this->imageRepository->resolveClientUrl($rows[0]));
+      }
+    }
+
+    $name = trim((string) ($metadata['display_name'] ?? $metadata['name'] ?? ''));
+    if ($name !== '' && $campaign_id > 0) {
+      $campaign_character_id = $this->database->select('dc_campaign_characters', 'cc')
+        ->fields('cc', ['id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('name', $name)
+        ->orderBy('updated', 'DESC')
+        ->orderBy('id', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($campaign_character_id !== FALSE) {
+        $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) ((int) $campaign_character_id), $campaign_id, 'portrait', 'original');
+        if (!empty($rows)) {
+          return $this->normalizePortraitUrl($this->imageRepository->resolveClientUrl($rows[0]));
+        }
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Normalize portrait URLs for browser use in local environments.
+   */
+  protected function normalizePortraitUrl(?string $url): ?string {
+    if (!is_string($url) || $url === '') {
+      return NULL;
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    if ($request && preg_match('#^https?://default(?=/|$)#i', $url) === 1) {
+      return preg_replace('#^https?://default(?=/|$)#i', $request->getSchemeAndHttpHost(), $url) ?: $url;
+    }
+
+    return $url;
+  }
+
+  /**
    * Determine whether template changes should be persisted for this request.
    *
    * Persistence is opt-in to avoid automatic writes on every page load.
@@ -708,9 +813,7 @@ class HexMapController extends ControllerBase {
   }
 
   /**
-   * Shift bar counter obstacle placements south by one hex.
-   *
-   * This opens a full hex lane behind the counter for barkeep placement.
+   * Shift bar counter obstacle placements north by one hex.
    */
   protected function adjustBarCounterPlacements(array $dungeon_payload): array {
     if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
@@ -735,7 +838,22 @@ class HexMapController extends ControllerBase {
         continue;
       }
 
-      $entity['placement']['hex']['r'] = (int) $entity['placement']['hex']['r'] + 1;
+      // Pin default tavern bar counters to explicit authored coordinates.
+      if (str_contains($content_id, 'bar_counter_a')) {
+        $entity['placement']['hex']['q'] = -4;
+        $entity['placement']['hex']['r'] = -1;
+        continue;
+      }
+      if (str_contains($content_id, 'bar_counter_b')) {
+        $entity['placement']['hex']['q'] = -3;
+        $entity['placement']['hex']['r'] = -1;
+        continue;
+      }
+      if (str_contains($content_id, 'bar_counter_c')) {
+        $entity['placement']['hex']['q'] = -2;
+        $entity['placement']['hex']['r'] = -1;
+        continue;
+      }
     }
     unset($entity);
 
@@ -743,10 +861,11 @@ class HexMapController extends ControllerBase {
   }
 
   /**
-   * Compose long tables as A + center + B segments on a southeast axis.
+   * Compose long tables as A + center + B segments.
    *
    * For each obstacle entity with content_id matching *_long_a, this ensures
    * a paired center segment at (+1, +1) and B segment at (+2, +2).
+   * Orientation is inherited from the A segment entity.
    */
   protected function composeLongTableSegments(array $dungeon_payload): array {
     if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
@@ -805,6 +924,7 @@ class HexMapController extends ControllerBase {
 
       $base_q = (int) $hex['q'];
       $base_r = (int) $hex['r'];
+      $a_orientation = (string) ($entity['placement']['orientation'] ?? $entity['state']['metadata']['orientation'] ?? self::DEFAULT_OBJECT_ORIENTATION);
 
       $content_id_center = preg_replace('/_long_a$/', '_long_center', $content_id_a) ?: ($content_id_a . '_center');
       $content_id_b = preg_replace('/_long_a$/', '_long_b', $content_id_a) ?: ($content_id_a . '_b');
@@ -818,7 +938,7 @@ class HexMapController extends ControllerBase {
       $center_def['label'] = (string) ($center_def['label'] ?? ucwords(str_replace(['_', '-'], ' ', $content_id_a))) . ' Center';
       $center_def['visual'] = is_array($center_def['visual'] ?? NULL) ? $center_def['visual'] : [];
       $center_def['visual']['sprite_id'] = (string) ($def_a['visual']['sprite_id'] ?? $content_id_a);
-      $center_def['visual']['orientation'] = 'se';
+      $center_def['visual']['orientation'] = $a_orientation;
 
       $b_def = $def_a;
       if (!isset($b_def['object_id']) || $b_def['object_id'] === '') {
@@ -828,7 +948,7 @@ class HexMapController extends ControllerBase {
       $b_def['label'] = (string) ($b_def['label'] ?? ucwords(str_replace(['_', '-'], ' ', $content_id_a))) . ' B';
       $b_def['visual'] = is_array($b_def['visual'] ?? NULL) ? $b_def['visual'] : [];
       $b_def['visual']['sprite_id'] = (string) ($def_a['visual']['sprite_id'] ?? $content_id_a);
-      $b_def['visual']['orientation'] = 'se';
+      $b_def['visual']['orientation'] = $a_orientation;
 
       if (!isset($dungeon_payload['object_definitions'][$content_id_center])) {
         $dungeon_payload['object_definitions'][$content_id_center] = $center_def;
@@ -841,7 +961,6 @@ class HexMapController extends ControllerBase {
       $center_r = $base_r + 1;
       $center_hex_key = $room_id . ':' . $center_q . ':' . $center_r;
       $center_ref_key = $room_id . ':' . $center_q . ':' . $center_r . ':' . $content_id_center;
-
       if (!isset($existing_ref[$center_ref_key]) && !isset($occupied[$center_hex_key])) {
         $new_entities[] = [
           'entity_type' => 'obstacle',
@@ -855,6 +974,7 @@ class HexMapController extends ControllerBase {
               'q' => $center_q,
               'r' => $center_r,
             ],
+            'orientation' => $a_orientation,
           ],
           'state' => [
             'active' => TRUE,
@@ -866,6 +986,7 @@ class HexMapController extends ControllerBase {
               'stackable' => FALSE,
               'fixture' => 'long_table',
               'segment' => 'center',
+              'orientation' => $a_orientation,
             ],
           ],
         ];
@@ -877,7 +998,6 @@ class HexMapController extends ControllerBase {
       $b_r = $base_r + 2;
       $b_hex_key = $room_id . ':' . $b_q . ':' . $b_r;
       $b_ref_key = $room_id . ':' . $b_q . ':' . $b_r . ':' . $content_id_b;
-
       if (!isset($existing_ref[$b_ref_key]) && !isset($occupied[$b_hex_key])) {
         $new_entities[] = [
           'entity_type' => 'obstacle',
@@ -891,6 +1011,7 @@ class HexMapController extends ControllerBase {
               'q' => $b_q,
               'r' => $b_r,
             ],
+            'orientation' => $a_orientation,
           ],
           'state' => [
             'active' => TRUE,
@@ -902,6 +1023,7 @@ class HexMapController extends ControllerBase {
               'stackable' => FALSE,
               'fixture' => 'long_table',
               'segment' => 'b',
+              'orientation' => $a_orientation,
             ],
           ],
         ];
@@ -953,6 +1075,79 @@ class HexMapController extends ControllerBase {
     }
     unset($entity);
 
+    return $dungeon_payload;
+  }
+
+  /**
+   * Remove duplicate northern long-table center/B instances per room.
+   *
+   * Keeps the southern-most entity (largest r) for each content_id and room,
+   * and removes additional northward duplicates.
+   */
+  protected function removeNorthernLongTableDuplicates(array $dungeon_payload): array {
+    if (!isset($dungeon_payload['entities']) || !is_array($dungeon_payload['entities'])) {
+      return $dungeon_payload;
+    }
+
+    $target_ids = [
+      'tavern_table_long_center',
+      'tavern_table_long_b',
+    ];
+
+    $groups = [];
+    foreach ($dungeon_payload['entities'] as $index => $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      if (strtolower((string) ($entity['entity_type'] ?? '')) !== 'obstacle') {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($entity['entity_ref']['content_id'] ?? ''));
+      if (!in_array($content_id, $target_ids, TRUE)) {
+        continue;
+      }
+
+      $room_id = (string) ($entity['placement']['room_id'] ?? '');
+      $hex = is_array($entity['placement']['hex'] ?? NULL) ? $entity['placement']['hex'] : [];
+      if ($room_id === '' || !isset($hex['r'])) {
+        continue;
+      }
+
+      $group_key = $room_id . ':' . $content_id;
+      $groups[$group_key][] = [
+        'index' => $index,
+        'r' => (int) $hex['r'],
+      ];
+    }
+
+    $remove = [];
+    foreach ($groups as $entries) {
+      if (count($entries) <= 1) {
+        continue;
+      }
+
+      usort($entries, static function (array $a, array $b): int {
+        return $b['r'] <=> $a['r'];
+      });
+
+      for ($i = 1; $i < count($entries); $i++) {
+        $remove[$entries[$i]['index']] = TRUE;
+      }
+    }
+
+    if (empty($remove)) {
+      return $dungeon_payload;
+    }
+
+    $filtered = [];
+    foreach ($dungeon_payload['entities'] as $index => $entity) {
+      if (!isset($remove[$index])) {
+        $filtered[] = $entity;
+      }
+    }
+
+    $dungeon_payload['entities'] = $filtered;
     return $dungeon_payload;
   }
 

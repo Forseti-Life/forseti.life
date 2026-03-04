@@ -44,6 +44,7 @@ class TemplateImportService {
       'table_rows_inserted' => 0,
       'table_rows_updated' => 0,
       'table_rows_skipped' => 0,
+      'library_portrait_links_added' => 0,
       'tables_processed' => [],
       'errors' => [],
       'missing_template_pairs' => [],
@@ -73,8 +74,168 @@ class TemplateImportService {
     }
 
     $summary['missing_template_pairs'] = $this->getMissingTemplatePairs();
+    $summary['library_portrait_links_added'] = $this->syncLibraryNpcPortraitLinks();
 
     return $summary;
+  }
+
+  /**
+   * Auto-links portraits for NPC template library characters when available.
+   *
+   * @return int
+   *   Number of new portrait links inserted.
+   */
+  protected function syncLibraryNpcPortraitLinks(): int {
+    if (!$this->database->schema()->tableExists('dungeoncrawler_content_characters')
+      || !$this->database->schema()->tableExists('dc_generated_image_links')
+      || !$this->database->schema()->tableExists('dc_generated_images')
+      || !$this->database->schema()->tableExists('dc_campaign_characters')) {
+      return 0;
+    }
+
+    $rows = $this->database->select('dungeoncrawler_content_characters', 'c')
+      ->fields('c', ['id', 'type', 'state_data'])
+      ->condition('type', 'npc')
+      ->execute()
+      ->fetchAllAssoc('id');
+
+    if (empty($rows)) {
+      return 0;
+    }
+
+    $now = time();
+    $linked = 0;
+
+    foreach ($rows as $row) {
+      $library_object_id = (string) ((int) ($row->id ?? 0));
+      if ($library_object_id === '0') {
+        continue;
+      }
+
+      $already_linked = (bool) $this->database->select('dc_generated_image_links', 'l')
+        ->fields('l', ['id'])
+        ->condition('table_name', 'dungeoncrawler_content_characters')
+        ->condition('object_id', $library_object_id)
+        ->isNull('campaign_id')
+        ->condition('slot', 'portrait')
+        ->condition('variant', 'original')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($already_linked) {
+        continue;
+      }
+
+      $state_data = json_decode((string) ($row->state_data ?? '{}'), TRUE);
+      if (!is_array($state_data)) {
+        continue;
+      }
+
+      $name = trim((string) ($state_data['name'] ?? ''));
+      if ($name === '') {
+        continue;
+      }
+
+      $image_id = $this->resolvePortraitImageIdForName($name);
+      if ($image_id === NULL) {
+        continue;
+      }
+
+      $this->database->insert('dc_generated_image_links')
+        ->fields([
+          'image_id' => $image_id,
+          'scope_type' => 'global',
+          'campaign_id' => NULL,
+          'table_name' => 'dungeoncrawler_content_characters',
+          'object_id' => $library_object_id,
+          'slot' => 'portrait',
+          'variant' => 'original',
+          'is_primary' => 1,
+          'sort_weight' => 0,
+          'visibility' => 'public',
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+
+      $linked++;
+    }
+
+    return $linked;
+  }
+
+  /**
+   * Resolves an image_id to use as a global library portrait by NPC name.
+   */
+  protected function resolvePortraitImageIdForName(string $name): ?int {
+    $campaign_image_id = $this->database->query(
+      'SELECT l.image_id
+       FROM dc_campaign_characters cc
+       INNER JOIN dc_generated_image_links l
+         ON l.table_name = :table_name
+        AND l.object_id = CAST(cc.id AS CHAR)
+        AND l.slot = :slot
+        AND l.variant = :variant
+       INNER JOIN dc_generated_images i ON i.id = l.image_id
+       WHERE cc.name = :name
+         AND i.deleted = 0
+         AND i.status = :status
+       ORDER BY l.is_primary DESC, l.created DESC
+       LIMIT 1',
+      [
+        ':table_name' => 'dc_campaign_characters',
+        ':slot' => 'portrait',
+        ':variant' => 'original',
+        ':name' => $name,
+        ':status' => 'ready',
+      ],
+    )->fetchField();
+
+    if ($campaign_image_id) {
+      return (int) $campaign_image_id;
+    }
+
+    $sprite_object_id = $this->normalizeNameToSpriteObjectId($name);
+    if ($sprite_object_id === '') {
+      return NULL;
+    }
+
+    $sprite_image_id = $this->database->query(
+      'SELECT l.image_id
+       FROM dc_generated_image_links l
+       INNER JOIN dc_generated_images i ON i.id = l.image_id
+       WHERE l.table_name = :table_name
+         AND l.object_id = :object_id
+         AND l.slot = :slot
+         AND l.variant = :variant
+         AND i.deleted = 0
+         AND i.status = :status
+       ORDER BY l.is_primary DESC, l.created DESC
+       LIMIT 1',
+      [
+        ':table_name' => 'dc_dungeon_sprites',
+        ':object_id' => $sprite_object_id,
+        ':slot' => 'portrait',
+        ':variant' => 'original',
+        ':status' => 'ready',
+      ],
+    )->fetchField();
+
+    return $sprite_image_id ? (int) $sprite_image_id : NULL;
+  }
+
+  /**
+   * Normalizes character names to sprite object IDs (snake_case).
+   */
+  protected function normalizeNameToSpriteObjectId(string $name): string {
+    $normalized = strtolower(trim($name));
+    if ($normalized === '') {
+      return '';
+    }
+
+    $normalized = preg_replace('/[^a-z0-9]+/', '_', $normalized) ?? '';
+    return trim($normalized, '_');
   }
 
   /**

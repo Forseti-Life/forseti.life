@@ -129,6 +129,38 @@
       "location_ref": "alchemy_lab_spillover"
     },
     {
+      "character_id": 2005,
+      "instance_id": "tpl_char_npc_tavern_keeper_001",
+      "type": "npc",
+      "uid": 1,
+      "role": "npc",
+      "state_data": {
+        "name": "Eldric",
+        "class": "tavern_keeper",
+        "level": 2,
+        "hp_current": 24,
+        "conditions": []
+      },
+      "location_type": "global",
+      "location_ref": ""
+    },
+    {
+      "character_id": 2006,
+      "instance_id": "tpl_char_npc_gribbles_001",
+      "type": "npc",
+      "uid": 1,
+      "role": "enemy",
+      "state_data": {
+        "name": "Gribbles Rindsworth",
+        "class": "creature",
+        "level": 3,
+        "hp_current": 32,
+        "conditions": []
+      },
+      "location_type": "global",
+      "location_ref": ""
+    },
+    {
       "character_id": 3001,
       "instance_id": "tpl_char_hazard_trap_001",
       "type": "trap",

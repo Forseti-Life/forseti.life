@@ -15,9 +15,12 @@ use Drupal\job_hunter\Service\SearchAggregatorService;
 use Drupal\job_hunter\Service\UserProfileService;
 use Drupal\user\Entity\User;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpFoundation\ResponseHeaderBag;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Provides route responses for the Job Application Automation module.
@@ -2636,7 +2639,9 @@ class JobApplicationController extends ControllerBase {
    * POST actions via step5_action:
    *   - confirm_job_exists:        Mark that the job is verified on-site.
    *   - upload_resume_continue:     Upload tailored resume to ATS and click Continue.
-   *   - advance_wd_step:            Mark a Workday wizard step as complete.
+  *   - run_wd_wizard_auto:         Auto-progress remaining Workday steps (2-7).
+   *   - run_wd_step:                Run Playwright automation for a Workday wizard step (2-7).
+   *   - advance_wd_step:            Manually mark a Workday wizard step as complete.
    *   - submit_application:         Trigger ApplicationSubmissionService.
    *   - mark_manual_submission:     Record a manual submission.
    *
@@ -2790,6 +2795,8 @@ class JobApplicationController extends ControllerBase {
     if ($run_step5_requested) {
       $now = date('Y-m-d H:i:s');
       $action = (string) $request->request->get('step5_action', '');
+      $wizard_auto_completed_steps = [];
+      $wizard_auto_last_url = '';
 
       // ── ACTION: Confirm job exists ──────────────────────────────────────
       if ($action === 'confirm_job_exists') {
@@ -2887,6 +2894,69 @@ class JobApplicationController extends ControllerBase {
                 ->execute();
               $submission_status = 'resume_uploaded';
             }
+
+            // After Step 1 succeeds, auto-progress Workday steps 2-7.
+            /** @var \Drupal\job_hunter\Service\WorkdayWizardService $wz_service */
+            $wz_service = \Drupal::service('job_hunter.workday_wizard_service');
+            $current_wizard_url = (string) ($upload_result['post_continue_url'] ?? '');
+            $wizard_session_result = $wz_service->advanceWizardAutoSingleSession((int) $selected_job->id, $uid, 'my_information', [
+              'apply_url' => $current_wizard_url,
+              'timeout' => 320,
+            ]);
+
+            $submission_result_data = $wizard_session_result;
+            $step_results = (array) ($wizard_session_result['step_results'] ?? []);
+            $ordered_wd_steps = ['my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'];
+            $auto_success_count = 0;
+            foreach ($ordered_wd_steps as $auto_step_key) {
+              $step_result = (array) ($step_results[$auto_step_key] ?? []);
+              if ((string) ($step_result['status'] ?? '') === 'pass') {
+                $wizard_auto_completed_steps[$auto_step_key] = [
+                  'status' => 'pass',
+                  'completed_at' => $now,
+                  'result' => $step_result,
+                ];
+                $auto_success_count++;
+              }
+              elseif (!empty($step_result)) {
+                $wizard_auto_completed_steps[$auto_step_key] = [
+                  'status' => 'failed',
+                  'completed_at' => $now,
+                  'result' => $step_result,
+                ];
+                break;
+              }
+            }
+
+            $next_url = trim((string) ($wizard_session_result['post_continue_url'] ?? ''));
+            if ($next_url !== '') {
+              $wizard_auto_last_url = $next_url;
+            }
+
+            $review_status = (string) (($step_results['review_submit']['status'] ?? ''));
+            if ($review_status === 'pass') {
+              $submission_attempted = TRUE;
+              $submission_started = TRUE;
+              $submission_completed = TRUE;
+              if ($existing_application) {
+                $this->database->update('jobhunter_applications')
+                  ->fields(['submission_status' => 'submitted', 'changed' => $now])
+                  ->condition('id', (int) $existing_application['id'])
+                  ->execute();
+                $submission_status = 'submitted';
+              }
+            }
+            elseif ($auto_success_count > 0 || !empty($wizard_session_result['error'])) {
+              $this->messenger()->addError($this->t('Wizard auto-progress failed in single-session mode: @error', [
+                '@error' => (string) ($wizard_session_result['error'] ?? 'Unknown error'),
+              ]));
+            }
+
+            if ($auto_success_count > 0) {
+              $this->messenger()->addStatus($this->t('Wizard auto-progress completed @count step(s) after Autofill (single session).', [
+                '@count' => $auto_success_count,
+              ]));
+            }
           }
           else {
             $this->messenger()->addError($this->t('Resume upload failed: @error', [
@@ -2896,7 +2966,165 @@ class JobApplicationController extends ControllerBase {
         }
       }
 
-      // ── ACTION: Advance a Workday wizard step ───────────────────────
+      // ── ACTION: Auto-progress remaining Workday wizard steps ──────────
+      elseif ($action === 'run_wd_wizard_auto') {
+        if (!$prerequisites_met) {
+          $this->messenger()->addError($this->t('Prerequisites not met. Complete Steps 2-4 first.'));
+        }
+        else {
+          $wd_steps_cached = is_array($step5_cache['wd_flow_steps'] ?? NULL) ? $step5_cache['wd_flow_steps'] : [];
+          $ordered_steps = ['autofill_resume', 'my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'];
+
+          // Determine first incomplete step.
+          $first_incomplete_index = -1;
+          foreach ($ordered_steps as $idx => $k) {
+            $status = (string) (($wd_steps_cached[$k]['status'] ?? 'not_started'));
+            if ($status !== 'pass') {
+              $first_incomplete_index = $idx;
+              break;
+            }
+          }
+
+          if ($first_incomplete_index === -1) {
+            $this->messenger()->addStatus($this->t('All Workday wizard steps are already complete.'));
+          }
+          elseif ($first_incomplete_index === 0) {
+            $this->messenger()->addError($this->t('Run Step 1 (Autofill with Resume) first.'));
+          }
+          else {
+            /** @var \Drupal\job_hunter\Service\WorkdayWizardService $wz_service */
+            $wz_service = \Drupal::service('job_hunter.workday_wizard_service');
+            $current_wizard_url = (string) ($step5_cache['wd_last_url'] ?? $step5_cache['resume_upload_result']['post_continue_url'] ?? '');
+            // Even if cache says later steps passed, Workday can reopen earlier
+            // pages in a new session. Start from My Information to keep flow stable.
+            $start_step_key = 'my_information';
+
+            $wizard_session_result = $wz_service->advanceWizardAutoSingleSession((int) $selected_job->id, $uid, $start_step_key, [
+              'apply_url' => $current_wizard_url,
+              'timeout' => 320,
+            ]);
+
+            $submission_result_data = $wizard_session_result;
+            $step_results = (array) ($wizard_session_result['step_results'] ?? []);
+            $ordered_wd_steps = ['my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'];
+            $auto_success_count = 0;
+            foreach ($ordered_wd_steps as $step_key) {
+              $step_result = (array) ($step_results[$step_key] ?? []);
+              if ((string) ($step_result['status'] ?? '') === 'pass') {
+                $wizard_auto_completed_steps[$step_key] = [
+                  'status' => 'pass',
+                  'completed_at' => $now,
+                  'result' => $step_result,
+                ];
+                $submission_started = TRUE;
+                $auto_success_count++;
+              }
+              elseif (!empty($step_result)) {
+                $wizard_auto_completed_steps[$step_key] = [
+                  'status' => 'failed',
+                  'completed_at' => $now,
+                  'result' => $step_result,
+                ];
+                break;
+              }
+            }
+
+            $next_url = trim((string) ($wizard_session_result['post_continue_url'] ?? ''));
+            if ($next_url !== '') {
+              $wizard_auto_last_url = $next_url;
+            }
+
+            if ((string) (($step_results['review_submit']['status'] ?? '')) === 'pass') {
+              $submission_attempted = TRUE;
+              $submission_completed = TRUE;
+              if ($existing_application) {
+                $this->database->update('jobhunter_applications')
+                  ->fields(['submission_status' => 'submitted', 'changed' => $now])
+                  ->condition('id', (int) $existing_application['id'])
+                  ->execute();
+                $submission_status = 'submitted';
+              }
+            }
+            else {
+              $this->messenger()->addError($this->t('Wizard auto-progress failed in single-session mode: @error', [
+                '@error' => (string) ($wizard_session_result['error'] ?? 'Unknown error'),
+              ]));
+            }
+
+            if ($auto_success_count > 0) {
+              $this->messenger()->addStatus($this->t('Wizard auto-progress completed @count step(s) in single session.', [
+                '@count' => $auto_success_count,
+              ]));
+            }
+          }
+        }
+      }
+
+      // ── ACTION: Run Workday wizard step automation ──────────────────
+      elseif ($action === 'run_wd_step') {
+        $wd_step_key = (string) $request->request->get('wd_step_key', '');
+        $wd_automatable_steps = ['my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'];
+
+        if (!in_array($wd_step_key, $wd_automatable_steps, TRUE)) {
+          $this->messenger()->addError($this->t('Invalid step key for automation.'));
+        }
+        elseif (!$prerequisites_met) {
+          $this->messenger()->addError($this->t('Prerequisites not met. Complete Steps 2-4 first.'));
+        }
+        else {
+          /** @var \Drupal\job_hunter\Service\WorkdayWizardService $wz_service */
+          $wz_service = \Drupal::service('job_hunter.workday_wizard_service');
+          $wz_result = $wz_service->advanceStep((int) $selected_job->id, $uid, $wd_step_key, [
+            'timeout' => ($wd_step_key === 'review_submit') ? 220 : 120,
+          ]);
+
+          $submission_result_data = $wz_result;
+          $job_confirmed_on_site = TRUE;
+          $apply_control_located = TRUE;
+
+          if (!empty($wz_result['ok'])) {
+            $submission_started = TRUE;
+            $next_url = trim((string) ($wz_result['post_continue_url'] ?? ''));
+            if ($next_url !== '') {
+              $wizard_auto_last_url = $next_url;
+            }
+            $this->messenger()->addStatus($this->t('Workday step "@step" automated successfully. Page: @page', [
+              '@step' => $wd_step_key,
+              '@page' => $wz_result['detected_page'] ?? 'unknown',
+            ]));
+
+            // If review_submit completed, mark the application as submitted.
+            if ($wd_step_key === 'review_submit') {
+              $submission_attempted = TRUE;
+              $submission_completed = TRUE;
+              if ($existing_application) {
+                $this->database->update('jobhunter_applications')
+                  ->fields(['submission_status' => 'submitted', 'changed' => $now])
+                  ->condition('id', (int) $existing_application['id'])
+                  ->execute();
+                $submission_status = 'submitted';
+              }
+            }
+          }
+          else {
+            $needs_manual = !empty($wz_result['needs_manual_review']);
+            if ($needs_manual) {
+              $this->messenger()->addWarning($this->t('Workday step "@step" needs manual review. Fields skipped: @fields', [
+                '@step' => $wd_step_key,
+                '@fields' => implode(', ', $wz_result['fields_skipped'] ?? []),
+              ]));
+            }
+            else {
+              $this->messenger()->addError($this->t('Workday step "@step" automation failed: @error', [
+                '@step' => $wd_step_key,
+                '@error' => $wz_result['error'] ?? 'Unknown error',
+              ]));
+            }
+          }
+        }
+      }
+
+      // ── ACTION: Manually advance a Workday wizard step ──────────────
       elseif ($action === 'advance_wd_step') {
         $wd_step_key = (string) $request->request->get('wd_step_key', '');
         $wd_step_labels = [
@@ -2949,6 +3177,16 @@ class JobApplicationController extends ControllerBase {
           'result' => $submission_result_data,
         ];
       }
+      elseif ($action === 'run_wd_step' && !empty($submission_result_data['ok'])) {
+        $wd_step_key = (string) $request->request->get('wd_step_key', '');
+        if ($wd_step_key !== '') {
+          $wd_steps_update[$wd_step_key] = [
+            'status' => 'pass',
+            'completed_at' => $now,
+            'result' => $submission_result_data,
+          ];
+        }
+      }
       elseif ($action === 'advance_wd_step') {
         $wd_step_key = (string) $request->request->get('wd_step_key', '');
         if ($wd_step_key !== '' && in_array($wd_step_key, ['my_information', 'my_experience', 'application_questions', 'voluntary_disclosures', 'self_identify', 'review_submit'], TRUE)) {
@@ -2967,6 +3205,12 @@ class JobApplicationController extends ControllerBase {
         }
       }
 
+      if (!empty($wizard_auto_completed_steps)) {
+        foreach ($wizard_auto_completed_steps as $k => $v) {
+          $wd_steps_update[$k] = $v;
+        }
+      }
+
       $meta['step5_cache'] = [
         'ran_at'                => $now,
         'job_confirmed_on_site' => $job_confirmed_on_site,
@@ -2974,6 +3218,17 @@ class JobApplicationController extends ControllerBase {
         'submission_attempted'  => $submission_attempted,
         'submission_result'     => $submission_result_data,
         'resume_upload_result'  => ($action === 'upload_resume_continue') ? $submission_result_data : ($step5_cache['resume_upload_result'] ?? []),
+        'wd_last_url'           => $wizard_auto_last_url !== ''
+          ? $wizard_auto_last_url
+          : (
+            trim((string) ($submission_result_data['post_continue_url'] ?? '')) !== ''
+            ? trim((string) ($submission_result_data['post_continue_url'] ?? ''))
+            : (
+              trim((string) ($step5_cache['wd_last_url'] ?? '')) !== ''
+              ? trim((string) ($step5_cache['wd_last_url'] ?? ''))
+              : trim((string) ($step5_cache['resume_upload_result']['post_continue_url'] ?? ''))
+            )
+          ),
         'wd_flow_steps'         => $wd_steps_update,
       ];
 
@@ -3139,6 +3394,75 @@ class JobApplicationController extends ControllerBase {
     ];
 
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Securely streams Step 5 screenshot files for the authenticated owner.
+   */
+  public function applicationSubmissionScreenshot(int $job_id, string $filename): BinaryFileResponse {
+    $uid = (int) $this->currentUser()->id();
+    if ($uid <= 0) {
+      throw new AccessDeniedHttpException('Authentication required.');
+    }
+
+    $application = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', ['metadata'])
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', $job_id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$application) {
+      throw new AccessDeniedHttpException('Application record not found.');
+    }
+
+    $metadata = [];
+    if (!empty($application['metadata'])) {
+      $decoded = json_decode((string) $application['metadata'], TRUE);
+      if (is_array($decoded)) {
+        $metadata = $decoded;
+      }
+    }
+
+    $screenshots = (array) ($metadata['step5_cache']['resume_upload_result']['screenshots'] ?? []);
+    $allowed_basenames = [];
+    foreach ($screenshots as $path) {
+      $base = basename((string) $path);
+      if ($base !== '') {
+        $allowed_basenames[$base] = TRUE;
+      }
+    }
+
+    if (empty($allowed_basenames[$filename])) {
+      throw new AccessDeniedHttpException('Screenshot not authorized for this job.');
+    }
+
+    $screenshots_dir = \Drupal::service('file_system')->realpath('private://job_hunter/screenshots');
+    if (!$screenshots_dir || !is_dir($screenshots_dir)) {
+      throw new AccessDeniedHttpException('Screenshot directory unavailable.');
+    }
+
+    $full_path = realpath($screenshots_dir . DIRECTORY_SEPARATOR . $filename);
+    $dir_real = realpath($screenshots_dir);
+    if (!$full_path || !$dir_real || !is_file($full_path) || strpos($full_path, $dir_real . DIRECTORY_SEPARATOR) !== 0) {
+      throw new AccessDeniedHttpException('Screenshot file not found.');
+    }
+
+    $mime = 'application/octet-stream';
+    if (function_exists('mime_content_type')) {
+      $detected = @mime_content_type($full_path);
+      if (is_string($detected) && $detected !== '') {
+        $mime = $detected;
+      }
+    }
+
+    $response = new BinaryFileResponse($full_path);
+    $response->headers->set('Content-Type', $mime);
+    $response->setContentDisposition(ResponseHeaderBag::DISPOSITION_INLINE, basename($full_path));
+    $response->headers->set('Cache-Control', 'private, no-cache, no-store, must-revalidate');
+    return $response;
   }
 
   /**

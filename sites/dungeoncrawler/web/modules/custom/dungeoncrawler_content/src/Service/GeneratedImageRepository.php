@@ -412,46 +412,42 @@ class GeneratedImageRepository {
       $extension = $this->extensionFromMime($mime_type);
       $dimensions = @getimagesizefromstring($binary) ?: [NULL, NULL];
 
-      $storage_candidates = [
-        'public' => 'public://generated-images',
-        'temporary' => 'temporary://generated-images',
-      ];
-
-      foreach ($storage_candidates as $scheme => $base_directory) {
-        if (!$this->fileSystem->prepareDirectory($base_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
-          continue;
-        }
-
-        $year_directory = $base_directory . '/' . date('Y', $this->time->getCurrentTime());
-        if (!$this->fileSystem->prepareDirectory($year_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
-          continue;
-        }
-
-        $directory = $year_directory . '/' . date('m', $this->time->getCurrentTime());
-        if (!$this->fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
-          continue;
-        }
-
-        $destination = $directory . '/' . $image_uuid . '.' . $extension;
-        $saved_uri = $this->fileSystem->saveData($binary, $destination, FileSystemInterface::EXISTS_REPLACE);
-        if (!is_string($saved_uri) || $saved_uri === '') {
-          continue;
-        }
-
-        return [
-          'ok' => TRUE,
-          'storage_scheme' => $scheme,
-          'file_uri' => $saved_uri,
-          'public_url' => NULL,
-          'mime_type' => $mime_type,
-          'bytes' => strlen($binary),
-          'width' => isset($dimensions[0]) ? (int) $dimensions[0] : NULL,
-          'height' => isset($dimensions[1]) ? (int) $dimensions[1] : NULL,
-          'sha256' => hash('sha256', $binary),
-        ];
+      $base_directory = 'public://generated-images';
+      if (!$this->fileSystem->prepareDirectory($base_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+        $this->logger->error('Generated image persistence failed: public generated-images directory unavailable.');
+        return ['ok' => FALSE, 'reason' => 'public_directory_unavailable'];
       }
 
-      return ['ok' => FALSE, 'reason' => 'directory_unavailable'];
+      $year_directory = $base_directory . '/' . date('Y', $this->time->getCurrentTime());
+      if (!$this->fileSystem->prepareDirectory($year_directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+        $this->logger->error('Generated image persistence failed: year directory unavailable (@dir).', ['@dir' => $year_directory]);
+        return ['ok' => FALSE, 'reason' => 'public_directory_unavailable'];
+      }
+
+      $directory = $year_directory . '/' . date('m', $this->time->getCurrentTime());
+      if (!$this->fileSystem->prepareDirectory($directory, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS)) {
+        $this->logger->error('Generated image persistence failed: month directory unavailable (@dir).', ['@dir' => $directory]);
+        return ['ok' => FALSE, 'reason' => 'public_directory_unavailable'];
+      }
+
+      $destination = $directory . '/' . $image_uuid . '.' . $extension;
+      $saved_uri = $this->fileSystem->saveData($binary, $destination, FileSystemInterface::EXISTS_REPLACE);
+      if (!is_string($saved_uri) || $saved_uri === '') {
+        $this->logger->error('Generated image persistence failed: unable to save image data to destination (@dest).', ['@dest' => $destination]);
+        return ['ok' => FALSE, 'reason' => 'public_save_failed'];
+      }
+
+      return [
+        'ok' => TRUE,
+        'storage_scheme' => 'public',
+        'file_uri' => $saved_uri,
+        'public_url' => NULL,
+        'mime_type' => $mime_type,
+        'bytes' => strlen($binary),
+        'width' => isset($dimensions[0]) ? (int) $dimensions[0] : NULL,
+        'height' => isset($dimensions[1]) ? (int) $dimensions[1] : NULL,
+        'sha256' => hash('sha256', $binary),
+      ];
     }
 
     if ($image_url !== '') {

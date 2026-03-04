@@ -1316,6 +1316,7 @@ import combatApi from './hexmap-api.js';
     uiContainer: null,
     hudContainer: null,
     _roomBanner: null,
+    _orientationReferenceOverlay: null,
     
     // Managers
     uiManager: null,
@@ -1840,7 +1841,6 @@ import combatApi from './hexmap-api.js';
       this.hudContainer = new PIXI.Container();
       this.hudContainer.zIndex = 50;
       this.app.stage.addChild(this.hudContainer);
-      this.drawCompassRose();
 
       console.log('PixiJS initialized');
     },
@@ -1855,6 +1855,15 @@ import combatApi from './hexmap-api.js';
       const cx = this.app.screen.width - 50;
       const cy = this.app.screen.height - 55;
       const r = 22;
+      const flatEdgeOffset = Math.sin(Math.PI / 3) * r;
+      const edgeDirections = [
+        { key: 'N', angle: -Math.PI / 2, color: 0xe53e3e },
+        { key: 'NE', angle: -Math.PI / 6, color: 0xa0aec0 },
+        { key: 'SE', angle: Math.PI / 6, color: 0xa0aec0 },
+        { key: 'S', angle: Math.PI / 2, color: 0xa0aec0 },
+        { key: 'SW', angle: (5 * Math.PI) / 6, color: 0xa0aec0 },
+        { key: 'NW', angle: -(5 * Math.PI) / 6, color: 0xa0aec0 },
+      ];
 
       // Background disc
       g.beginFill(0x1a202c, 0.7);
@@ -1863,36 +1872,47 @@ import combatApi from './hexmap-api.js';
       g.lineStyle(1, 0x4a5568, 0.8);
       g.drawCircle(cx, cy, r + 6);
 
-      // North arrow (up)
-      g.beginFill(0xe53e3e);
-      g.drawPolygon([cx, cy - r, cx - 5, cy - 4, cx + 5, cy - 4]);
-      g.endFill();
+      // Hex orientation guide (matches map hex orientation: flat-top)
+      g.lineStyle(1, 0x64748b, 0.45);
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const x = cx + r * Math.cos(angle);
+        const y = cy + r * Math.sin(angle);
+        if (i === 0) {
+          g.moveTo(x, y);
+        } else {
+          g.lineTo(x, y);
+        }
+      }
+      g.closePath();
 
-      // South arrow (down)
-      g.beginFill(0xa0aec0);
-      g.drawPolygon([cx, cy + r, cx - 5, cy + 4, cx + 5, cy + 4]);
-      g.endFill();
+      // Direction arrows for edge-centered orientation vectors.
+      edgeDirections.forEach(({ angle, color }) => {
+        const tipX = cx + Math.cos(angle) * (r + 2);
+        const tipY = cy + Math.sin(angle) * (r + 2);
+        const baseCx = cx + Math.cos(angle) * (r - 6);
+        const baseCy = cy + Math.sin(angle) * (r - 6);
+        const perpX = -Math.sin(angle) * 4;
+        const perpY = Math.cos(angle) * 4;
 
-      // East arrow (right)
-      g.beginFill(0xa0aec0);
-      g.drawPolygon([cx + r, cy, cx + 4, cy - 5, cx + 4, cy + 5]);
-      g.endFill();
-
-      // West arrow (left)
-      g.beginFill(0xa0aec0);
-      g.drawPolygon([cx - r, cy, cx - 4, cy - 5, cx - 4, cy + 5]);
-      g.endFill();
+        g.beginFill(color);
+        g.drawPolygon([
+          tipX, tipY,
+          baseCx + perpX, baseCy + perpY,
+          baseCx - perpX, baseCy - perpY,
+        ]);
+        g.endFill();
+      });
 
       this.hudContainer.addChild(g);
 
       // Cardinal labels
       const labelStyle = { fontFamily: 'Arial', fontSize: 11, fill: 0xe2e8f0, fontWeight: 'bold' };
-      const labels = [
-        { text: 'N', x: cx, y: cy - r - 10 },
-        { text: 'S', x: cx, y: cy + r + 2 },
-        { text: 'E', x: cx + r + 8, y: cy - 6 },
-        { text: 'W', x: cx - r - 14, y: cy - 6 },
-      ];
+      const labels = edgeDirections.map(({ key, angle }) => ({
+        text: key,
+        x: cx + Math.cos(angle) * (r + 11),
+        y: cy + Math.sin(angle) * (r + 11) - 6,
+      }));
       labels.forEach(({ text, x, y }) => {
         const label = new PIXI.Text(text, labelStyle);
         label.x = x;
@@ -1996,6 +2016,7 @@ import combatApi from './hexmap-api.js';
       }
 
       this.refreshFogOfWar();
+      this.renderOrientationReferenceHex();
 
       console.log(`Generated ${width}x${height} hex grid`);
     },
@@ -2064,8 +2085,53 @@ import combatApi from './hexmap-api.js';
       text.anchor.set(0.5);
       text.x = pos.x;
       text.y = pos.y;
+      text.visible = Boolean(this.stateManager.get('showCoordinates'));
       
       this.gridContainer.addChild(text);
+      hex.hexCoordText = text;
+    },
+
+    /**
+     * Show or hide entity labels for entities located at a specific hex.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @param {boolean} visible - Visibility toggle
+     */
+    setEntityLabelsForHex: function (q, r, visible) {
+      if (!this.entityManager) {
+        return;
+      }
+
+      const entities = this.entityManager.getEntitiesWith('PositionComponent', 'RenderComponent');
+      entities.forEach((entity) => {
+        const position = entity.getComponent('PositionComponent');
+        const render = entity.getComponent('RenderComponent');
+        if (!position || !render) {
+          return;
+        }
+
+        if (position.q === q && position.r === r) {
+          render._hoverLabelVisible = Boolean(visible);
+        }
+      });
+    },
+
+    /**
+     * Hide all entity labels until hover reveals specific hex labels.
+     */
+    hideAllEntityLabels: function () {
+      if (!this.entityManager) {
+        return;
+      }
+
+      const entities = this.entityManager.getEntitiesWith('RenderComponent');
+      entities.forEach((entity) => {
+        const render = entity.getComponent('RenderComponent');
+        if (!render) {
+          return;
+        }
+        render._hoverLabelVisible = false;
+      });
     },
 
     /**
@@ -2113,6 +2179,14 @@ import combatApi from './hexmap-api.js';
      * Hex hover event.
      */
     onHexHover: function (hex) {
+      const previousHover = this.stateManager.get('hoveredHex');
+      if (previousHover?.hexCoordText) {
+        previousHover.hexCoordText.visible = false;
+      }
+      if (previousHover?.hexData) {
+        this.setEntityLabelsForHex(previousHover.hexData.q, previousHover.hexData.r, false);
+      }
+
       // Highlight hex
       hex.clear();
       hex.beginFill(0x4a5568);
@@ -2133,9 +2207,13 @@ import combatApi from './hexmap-api.js';
       hex.endFill();
 
       this.stateManager.set('hoveredHex', hex);
+      if (hex.hexCoordText) {
+        hex.hexCoordText.visible = true;
+      }
       
       // Update UI
       const { q, r } = hex.hexData;
+      this.setEntityLabelsForHex(q, r, true);
       this.uiManager.updateHoveredHex(q, r);
       this.uiManager.updateHoveredObject(this.getObjectLabelAtHex(q, r));
       this.uiManager.updateHexDetails(this.getHexDetail(q, r));
@@ -2148,6 +2226,14 @@ import combatApi from './hexmap-api.js';
       // Reset hex appearance (unless it's selected)
       if (this.stateManager.get('selectedHex') !== hex) {
         this.resetHexAppearance(hex);
+      }
+
+      if (hex?.hexCoordText) {
+        const showCoordinates = Boolean(this.stateManager.get('showCoordinates'));
+        hex.hexCoordText.visible = showCoordinates;
+      }
+      if (hex?.hexData) {
+        this.setEntityLabelsForHex(hex.hexData.q, hex.hexData.r, false);
       }
 
       this.stateManager.set('hoveredHex', null);
@@ -2324,6 +2410,7 @@ import combatApi from './hexmap-api.js';
       entity.addComponent('PositionComponent', new PositionComponent(q, r));
       entity.addComponent('IdentityComponent', new IdentityComponent(name, entityType));
       const renderComp = new RenderComponent(spriteKey);
+      renderComp.orientation = String(options.orientation || 'n').toLowerCase();
       if (options.objectCategory) {
         renderComp.objectCategory = options.objectCategory;
       }
@@ -4223,12 +4310,12 @@ import combatApi from './hexmap-api.js';
     /**
      * Resolve a terrain texture key for visuals / UI labels.
      * Uses room-level terrain data when available for scene-appropriate tiles.
-     * @param {{movable: boolean, passable: boolean}|null} obstacleProfile
+     * @param {{movable: boolean, passable: boolean, isWall?: boolean}|null} obstacleProfile
      * @param {boolean} inActiveRoom
      * @returns {'floor'|'wooden_floor'|'stone_floor'|'wall'|'outside'}
      */
     resolveTerrainKey: function (obstacleProfile, inActiveRoom) {
-      if (obstacleProfile && !obstacleProfile.passable && !obstacleProfile.movable) {
+      if (obstacleProfile?.isWall && !obstacleProfile.passable && !obstacleProfile.movable) {
         return 'wall';
       }
       if (!inActiveRoom) {
@@ -4273,14 +4360,21 @@ import combatApi from './hexmap-api.js';
       const obstacleProfile = this.getObstacleMobilityAtHex(q, r);
 
       if (obstacleProfile) {
-        if (!obstacleProfile.passable && !obstacleProfile.movable) {
+        if (obstacleProfile.isWall && !obstacleProfile.passable && !obstacleProfile.movable) {
           // Fixed impassable obstacle: treat as a wall tile.
           this.drawHexTexture(hex, this.getTileTexture('wall'), 2, 0x8b3a3a, 0.95);
           return;
         }
 
         if (!obstacleProfile.passable && obstacleProfile.movable) {
-          this.drawHexStyle(hex, 0x7a5325, 2, 0xb7791f, 0.95);
+          const inActiveRoom = this.isHexInActiveRoom(q, r);
+          const terrainKey = this.resolveTerrainKey(obstacleProfile, inActiveRoom);
+          const terrainTexture = this.getTileTexture(terrainKey);
+          if (terrainTexture) {
+            this.drawHexTexture(hex, terrainTexture, 2, 0xb7791f, 1);
+          } else {
+            this.drawHexStyle(hex, 0x7a5325, 2, 0xb7791f, 0.95);
+          }
           return;
         }
 
@@ -4289,7 +4383,22 @@ import combatApi from './hexmap-api.js';
           return;
         }
 
-        this.drawHexStyle(hex, 0x2d4b36, 2, 0x4d7a5b, 1);
+        const inActiveRoom = this.isHexInActiveRoom(q, r);
+        const terrainKey = this.resolveTerrainKey(obstacleProfile, inActiveRoom);
+        const terrainTexture = this.getTileTexture(terrainKey);
+        const borderColors = {
+          'wooden_floor': { fill: 0x5c3d1e, line: 0x7a5325 },
+          'stone_floor': { fill: 0x3a3a3a, line: 0x555555 },
+          'floor': { fill: 0x2d4b36, line: 0x4d7a5b },
+          'outside': { fill: 0x2d3748, line: 0x4a5568 },
+          'wall': { fill: 0x6b2f2f, line: 0x8b3a3a },
+        };
+        const colors = borderColors[terrainKey] || borderColors['floor'];
+        if (terrainTexture) {
+          this.drawHexTexture(hex, terrainTexture, 2, colors.line, 1);
+        } else {
+          this.drawHexStyle(hex, colors.fill, 2, colors.line, 1);
+        }
         return;
       }
 
@@ -4389,6 +4498,9 @@ import combatApi from './hexmap-api.js';
         const metadata = entity?.state?.metadata || {};
         const contentId = entity?.entity_ref?.content_id;
         const objectDefinition = this.getObjectDefinition(contentId);
+        const portraitUrl = metadata.portrait_url || metadata.portrait || null;
+        const launchCharacterId = Number(this.launchContext?.character_id || 0);
+        const entityCharacterId = Number(metadata.character_id || entity?.character_id || 0);
         const entityName = metadata.display_name || metadata.name || entity?.display_name ||
           objectDefinition?.label || (contentId ? String(contentId).replace(/[_-]+/g, ' ') : String(entity.entity_type || 'entity'));
 
@@ -4398,9 +4510,47 @@ import combatApi from './hexmap-api.js';
           movementSpeed: metadata.movement_speed,
           actionsPerTurn: metadata.actions_per_turn,
           initiativeBonus: metadata.initiative_bonus,
+          orientation: placement.orientation || metadata.orientation || 'n',
           objectCategory: objectDefinition?.category || null,
           objectColor: objectDefinition?.visual?.color || null
         };
+
+        if (entityType === EntityType.PLAYER_CHARACTER && launchCharacterId > 0 && entityCharacterId === launchCharacterId) {
+          options.orientation = 'n';
+          if (entity?.placement && typeof entity.placement === 'object') {
+            entity.placement.orientation = 'n';
+          }
+          if (entity?.state && typeof entity.state === 'object') {
+            entity.state.metadata = entity.state.metadata || {};
+            entity.state.metadata.orientation = 'n';
+          }
+        }
+
+        // Standardize portrait layering via object_definitions + sprite cache,
+        // matching the same pipeline used by tavern door/object sprites.
+        if (portraitUrl && contentId) {
+          if (!this.dungeonData.object_definitions || typeof this.dungeonData.object_definitions !== 'object') {
+            this.dungeonData.object_definitions = {};
+          }
+
+          const portraitSpriteId = `portrait_${String(contentId)}`;
+          const existingDef = this.dungeonData.object_definitions[contentId] || {};
+          const existingVisual = existingDef.visual && typeof existingDef.visual === 'object' ? existingDef.visual : {};
+
+          this.dungeonData.object_definitions[contentId] = {
+            ...existingDef,
+            object_id: existingDef.object_id || contentId,
+            label: existingDef.label || entityName,
+            category: existingDef.category || 'creature',
+            visual: {
+              ...existingVisual,
+              sprite_id: portraitSpriteId
+            }
+          };
+
+          this._spriteUrlCache[portraitSpriteId] = portraitUrl;
+          options.objectCategory = options.objectCategory || 'creature';
+        }
 
         const created = this.createEntityObject(q, r, entityType, entityName, null, options);
         if (created) {
@@ -4622,7 +4772,7 @@ import combatApi from './hexmap-api.js';
      * Get obstacle mobility profile at hex in active room.
      * @param {number} q - Axial q coordinate
      * @param {number} r - Axial r coordinate
-     * @returns {{movable: boolean, passable: boolean, stackable: boolean}|null}
+     * @returns {{movable: boolean, passable: boolean, stackable: boolean, isWall: boolean}|null}
      */
     getObstacleMobilityAtHex: function (q, r) {
       const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
@@ -4650,12 +4800,33 @@ import combatApi from './hexmap-api.js';
       const objectDefinition = this.getObjectDefinition(obstacle?.entity_ref?.content_id);
       const metadata = obstacle?.state?.metadata || {};
       const definitionMovement = objectDefinition?.movement || {};
+      const contentId = String(obstacle?.entity_ref?.content_id || '').toLowerCase();
 
       const movable = (typeof metadata.movable === 'boolean') ? metadata.movable : Boolean(objectDefinition?.movable);
       const passable = (typeof metadata.passable === 'boolean') ? metadata.passable : Boolean(definitionMovement.passable);
       const stackable = (typeof metadata.stackable === 'boolean') ? metadata.stackable : Boolean(objectDefinition?.stackable);
+      const indicatorValues = [
+        metadata.fixture_type,
+        metadata.obstacle_type,
+        objectDefinition?.category,
+        objectDefinition?.type,
+        objectDefinition?.object_type,
+        contentId,
+      ]
+        .filter((value) => typeof value === 'string' && value.length)
+        .map((value) => value.toLowerCase());
+      const tagValues = [
+        ...(Array.isArray(objectDefinition?.tags) ? objectDefinition.tags : []),
+        ...(Array.isArray(objectDefinition?.traits) ? objectDefinition.traits : []),
+      ]
+        .filter((value) => typeof value === 'string' && value.length)
+        .map((value) => value.toLowerCase());
+      const isWall =
+        metadata.is_wall === true ||
+        indicatorValues.some((value) => value.includes('wall')) ||
+        tagValues.some((value) => value === 'wall' || value.includes('boundary_wall') || value.includes('perimeter_wall'));
 
-      return { movable, passable, stackable };
+      return { movable, passable, stackable, isWall };
     },
 
     /**
@@ -4910,6 +5081,7 @@ import combatApi from './hexmap-api.js';
       this.stateManager.set('activeRoomId', roomId);
       this.paintActiveRoom();
       this.renderActiveRoomEntities();
+      this.renderOrientationReferenceHex();
       this.refreshFogOfWar();
       // Load chat history for the newly active room
       if (this.uiManager && this.uiManager.loadChatHistory) {
@@ -5652,6 +5824,106 @@ import combatApi from './hexmap-api.js';
       } else {
         console.warn('Launch context start hex not found in current grid:', startQ, startR, context);
       }
+    }
+
+    ,
+
+    /**
+     * Render an in-map orientation reference on hex 7,2 using side labels.
+     * Labels are aligned to flat-top hex edge centers: N, NE, SE, S, SW, NW.
+     */
+    renderOrientationReferenceHex: function () {
+      if (!this.uiContainer) {
+        return;
+      }
+
+      if (this._orientationReferenceOverlay) {
+        this.uiContainer.removeChild(this._orientationReferenceOverlay);
+        this._orientationReferenceOverlay.destroy({ children: true });
+        this._orientationReferenceOverlay = null;
+      }
+
+      const referenceQ = 7;
+      const referenceR = 2;
+      const referenceHex = this.findHexByCoords(referenceQ, referenceR);
+      if (!referenceHex || !this.isHexInActiveRoom(referenceQ, referenceR)) {
+        return;
+      }
+
+      const overlay = new PIXI.Container();
+      overlay.zIndex = 9050;
+      overlay.interactive = false;
+      overlay.eventMode = 'none';
+
+      const center = this.axialToPixel(referenceQ, referenceR, this.config.hexSize);
+      const radius = this.config.hexSize;
+
+      const ring = new PIXI.Graphics();
+      ring.lineStyle(2, 0x22c55e, 0.95);
+      ring.beginFill(0x22c55e, 0.08);
+      for (let i = 0; i < 6; i++) {
+        const angle = (Math.PI / 3) * i;
+        const x = center.x + radius * Math.cos(angle);
+        const y = center.y + radius * Math.sin(angle);
+        if (i === 0) {
+          ring.moveTo(x, y);
+        } else {
+          ring.lineTo(x, y);
+        }
+      }
+      ring.closePath();
+      ring.endFill();
+      overlay.addChild(ring);
+
+      const labels = [
+        { text: 'N', angle: -Math.PI / 2, color: 0xe53e3e },
+        { text: 'NE', angle: -Math.PI / 6, color: 0xe2e8f0 },
+        { text: 'SE', angle: Math.PI / 6, color: 0xe2e8f0 },
+        { text: 'S', angle: Math.PI / 2, color: 0xe2e8f0 },
+        { text: 'SW', angle: (5 * Math.PI) / 6, color: 0xe2e8f0 },
+        { text: 'NW', angle: -(5 * Math.PI) / 6, color: 0xe2e8f0 },
+      ];
+
+      labels.forEach(({ text, angle, color }) => {
+        const edgeX = center.x + Math.cos(angle) * (radius * 0.88);
+        const edgeY = center.y + Math.sin(angle) * (radius * 0.88);
+
+        const tick = new PIXI.Graphics();
+        tick.lineStyle(2, color, 0.95);
+        tick.moveTo(center.x + Math.cos(angle) * (radius * 0.65), center.y + Math.sin(angle) * (radius * 0.65));
+        tick.lineTo(edgeX, edgeY);
+        overlay.addChild(tick);
+
+        const label = new PIXI.Text(text, {
+          fontFamily: 'Arial',
+          fontSize: 10,
+          fill: color,
+          fontWeight: 'bold',
+          stroke: 0x0f172a,
+          strokeThickness: 3,
+          align: 'center',
+        });
+        label.anchor.set(0.5);
+        label.x = center.x + Math.cos(angle) * (radius * 1.22);
+        label.y = center.y + Math.sin(angle) * (radius * 1.22);
+        overlay.addChild(label);
+      });
+
+      const title = new PIXI.Text('Orientation Ref', {
+        fontFamily: 'Arial',
+        fontSize: 9,
+        fill: 0x86efac,
+        fontWeight: 'bold',
+        stroke: 0x0f172a,
+        strokeThickness: 2,
+      });
+      title.anchor.set(0.5);
+      title.x = center.x;
+      title.y = center.y;
+      overlay.addChild(title);
+
+      this.uiContainer.addChild(overlay);
+      this._orientationReferenceOverlay = overlay;
     }
 
     ,
