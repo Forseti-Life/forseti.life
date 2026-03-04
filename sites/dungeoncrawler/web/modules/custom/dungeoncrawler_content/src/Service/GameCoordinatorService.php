@@ -81,6 +81,13 @@ class GameCoordinatorService {
   protected array $phaseHandlers = [];
 
   /**
+   * AI GM narration service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\AiGmService
+   */
+  protected AiGmService $aiGmService;
+
+  /**
    * Constructs a GameCoordinatorService.
    */
   public function __construct(
@@ -89,11 +96,13 @@ class GameCoordinatorService {
     GameEventLogger $event_logger,
     ExplorationPhaseHandler $exploration_handler,
     EncounterPhaseHandler $encounter_handler,
-    DowntimePhaseHandler $downtime_handler
+    DowntimePhaseHandler $downtime_handler,
+    AiGmService $ai_gm_service
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->eventLogger = $event_logger;
+    $this->aiGmService = $ai_gm_service;
 
     // Register phase handlers by their phase name.
     $this->phaseHandlers['exploration'] = $exploration_handler;
@@ -372,12 +381,18 @@ class GameCoordinatorService {
       $all_events = array_merge($all_events, $exit_events);
     }
 
-    // 2. Log the transition event.
+    // 2. Log the transition event with AI GM narration.
+    $transition_narration = $this->aiGmService->narratePhaseTransition(
+      $from_phase,
+      $to_phase,
+      $context['reason'] ?? '',
+      $dungeon_data
+    );
     $transition_event = GameEventLogger::buildEvent('phase_transition', $from_phase, NULL, [
       'from' => $from_phase,
       'to' => $to_phase,
       'reason' => $context['reason'] ?? NULL,
-    ]);
+    ], $transition_narration);
     $all_events[] = $transition_event;
 
     // 3. Enter the new phase.

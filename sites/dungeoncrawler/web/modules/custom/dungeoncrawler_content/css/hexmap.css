@@ -1847,6 +1847,94 @@
 }
 
 /* ==========================================================================
+   Game Coordinator — AI GM Narration Overlay
+   ========================================================================== */
+
+.narration-overlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-end;
+  padding: var(--space-5) var(--space-6);
+  pointer-events: none;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.4s var(--ease-smooth),
+              transform 0.4s var(--ease-smooth);
+}
+
+.narration-overlay--visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.narration-overlay__text {
+  max-width: 640px;
+  width: 100%;
+  background: linear-gradient(135deg, rgba(10, 10, 15, 0.92), rgba(20, 15, 30, 0.92));
+  border: 1px solid var(--overlay-white-12);
+  border-radius: var(--radius-2xl);
+  padding: var(--space-4) var(--space-5);
+  color: var(--text-bright);
+  font-size: var(--text-lg);
+  line-height: 1.6;
+  font-style: italic;
+  letter-spacing: 0.01em;
+  backdrop-filter: blur(12px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5),
+              inset 0 1px 0 var(--overlay-white-06);
+  min-height: 60px;
+}
+
+.narration-overlay__skip {
+  margin-top: var(--space-2);
+  font-size: var(--text-sm);
+  color: var(--muted);
+  opacity: 0.7;
+  cursor: pointer;
+  transition: opacity var(--transition-fast) var(--ease-smooth);
+}
+
+.narration-overlay__skip:hover {
+  opacity: 1;
+}
+
+/* Narration style variants */
+.narration-overlay--encounter_start .narration-overlay__text {
+  border-color: var(--overlay-accent-40);
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.2),
+              inset 0 1px 0 var(--overlay-accent-12);
+}
+
+.narration-overlay--encounter_end .narration-overlay__text {
+  border-color: var(--overlay-success-50);
+  box-shadow: 0 8px 32px rgba(34, 197, 94, 0.15),
+              inset 0 1px 0 var(--overlay-success-16);
+}
+
+.narration-overlay--round_start .narration-overlay__text {
+  font-size: var(--text-md);
+  padding: var(--space-3) var(--space-4);
+  min-height: auto;
+}
+
+.narration-overlay--entity_defeated .narration-overlay__text {
+  border-color: var(--overlay-accent-40);
+}
+
+.narration-overlay--phase_transition .narration-overlay__text {
+  border-color: var(--overlay-white-20);
+  font-size: var(--text-xl);
+  text-align: center;
+}
+
+/* ==========================================================================
    Game Coordinator — Exploration Actions Panel
    ========================================================================== */
 

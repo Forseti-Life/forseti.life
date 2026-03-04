@@ -18,6 +18,14 @@ encounter_ai_narration_enabled: false
 encounter_ai_retry_attempts: 2
 encounter_ai_recommendation_max_tokens: 800
 encounter_ai_narration_max_tokens: 500
+ai_gm_narration_enabled: false
+ai_gm_narration_max_tokens: 300
+ai_gm_trigger_room_entry: true
+ai_gm_trigger_encounter_start: true
+ai_gm_trigger_encounter_end: true
+ai_gm_trigger_round_start: true
+ai_gm_trigger_entity_defeated: true
+ai_gm_trigger_phase_transition: true
 items_per_page: 12
 show_game_stats: true
 generated_image_provider: gemini

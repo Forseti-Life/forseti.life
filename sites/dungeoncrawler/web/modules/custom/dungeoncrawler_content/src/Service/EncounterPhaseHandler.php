@@ -79,6 +79,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   protected EventDispatcherInterface $eventDispatcher;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\AiGmService
+   */
+  protected AiGmService $aiGmService;
+
+  /**
    * Constructs an EncounterPhaseHandler.
    */
   public function __construct(
@@ -93,7 +98,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     NumberGenerationService $number_generation_service,
     EncounterAiIntegrationService $encounter_ai_service,
     RulesEngine $rules_engine,
-    EventDispatcherInterface $event_dispatcher
+    EventDispatcherInterface $event_dispatcher,
+    AiGmService $ai_gm_service
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -107,6 +113,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->encounterAiService = $encounter_ai_service;
     $this->rulesEngine = $rules_engine;
     $this->eventDispatcher = $event_dispatcher;
+    $this->aiGmService = $ai_gm_service;
   }
 
   /**
@@ -296,9 +303,16 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
         // If round changed, add round event.
         if (!empty($result['new_round'])) {
+          // AI GM narration for new round.
+          $round_narration = $this->aiGmService->narrateRoundStart(
+            (int) $result['new_round'],
+            $game_state,
+            $dungeon_data
+          );
+
           $events[] = GameEventLogger::buildEvent('round_start', 'encounter', NULL, [
             'round' => $result['new_round'],
-          ]);
+          ], $round_narration);
         }
 
         $phase_transition = $this->checkEncounterEnd($encounter_id, $game_state);
@@ -419,6 +433,18 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'initiative_order' => $initiative_order,
         ]);
 
+        // AI GM narration for encounter start.
+        $gm_narration = $this->aiGmService->narrateEncounterStart([
+          'participants' => $participants,
+          'room_name' => $room_id,
+          'reason' => $context['reason'] ?? 'Hostile creatures detected',
+        ], $dungeon_data);
+        if ($gm_narration) {
+          $events[] = GameEventLogger::buildEvent('gm_narration', 'encounter', NULL, [
+            'trigger' => 'encounter_start',
+          ], $gm_narration);
+        }
+
         // Mark the room's encounter as triggered.
         $this->markRoomEncounterTriggered($dungeon_data, $room_id);
       }
@@ -453,6 +479,18 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         'encounter_id' => $encounter_id,
         'final_round' => $game_state['round'] ?? NULL,
       ]);
+
+      // AI GM narration for encounter end.
+      $gm_narration = $this->aiGmService->narrateEncounterEnd([
+        'encounter_id' => $encounter_id,
+        'final_round' => $game_state['round'] ?? NULL,
+        'victory' => TRUE,
+      ], $dungeon_data);
+      if ($gm_narration) {
+        $events[] = GameEventLogger::buildEvent('gm_narration', 'encounter', NULL, [
+          'trigger' => 'encounter_end',
+        ], $gm_narration);
+      }
     }
 
     // Clean up encounter state from game_state, but preserve it for history.
@@ -750,52 +788,214 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    */
   protected function autoPlayNpcTurn(int $encounter_id, string $entity_id, array &$game_state, array &$dungeon_data, int $campaign_id): array {
     $events = [];
+    $context = $this->buildNpcContext($entity_id, $game_state, $dungeon_data);
 
-    try {
-      // Try AI recommendation first.
-      $recommendation = $this->encounterAiService->requestNpcActionRecommendation(
-        $encounter_id,
-        $entity_id,
-        $this->buildNpcContext($entity_id, $game_state, $dungeon_data)
-      );
+    // Check config flag — if AI autoplay disabled, always use fallback.
+    $ai_enabled = (bool) \Drupal::config('dungeoncrawler_content.settings')
+      ->get('encounter_ai_npc_autoplay_enabled');
 
-      $action_type = $recommendation['action'] ?? 'strike';
-      $target = $recommendation['target'] ?? NULL;
-      $narration = $recommendation['narration'] ?? NULL;
+    $action_type = NULL;
+    $target = NULL;
+    $narration = NULL;
 
-      if ($action_type === 'strike' && $target) {
-        $strike_result = $this->processStrike($encounter_id, $entity_id, $target, [], $game_state);
-        $events[] = GameEventLogger::buildEvent('npc_strike', 'encounter', $entity_id, [
-          'target' => $target,
-          'roll' => $strike_result['roll'] ?? NULL,
-          'degree' => $strike_result['degree'] ?? NULL,
-          'damage' => $strike_result['damage'] ?? NULL,
-        ], $narration, $target);
+    if ($ai_enabled) {
+      try {
+        $result = $this->encounterAiService->requestNpcActionRecommendation($context);
+
+        if (!empty($result['success']) && !empty($result['recommendation'])) {
+          $rec = $result['recommendation'];
+          $action = $rec['recommended_action'] ?? [];
+          $valid = $result['validation']['valid'] ?? FALSE;
+
+          if ($valid) {
+            $action_type = $action['type'] ?? NULL;
+            $target = $action['target_instance_id'] ?? ($action['target'] ?? NULL);
+            $narration = $rec['narration'] ?? NULL;
+          }
+          else {
+            $this->logger->info('NPC AI recommendation invalid, using fallback. Errors: @errors', [
+              '@errors' => implode('; ', $result['validation']['errors'] ?? []),
+            ]);
+          }
+        }
       }
-      elseif ($action_type === 'talk') {
-        $events[] = GameEventLogger::buildEvent('npc_talk', 'encounter', $entity_id, [
-          'message' => $recommendation['message'] ?? '',
-        ], $narration);
+      catch (\Exception $e) {
+        $this->logger->warning('NPC AI failed, using fallback: @error', ['@error' => $e->getMessage()]);
       }
     }
-    catch (\Exception $e) {
-      // Fallback: simple strike against first alive player.
-      $this->logger->warning('NPC AI failed, using fallback: @error', ['@error' => $e->getMessage()]);
-      $target = $this->findFirstAlivePlayer($game_state);
 
-      if ($target) {
-        $strike_result = $this->processStrike($encounter_id, $entity_id, $target, [], $game_state);
-        $events[] = GameEventLogger::buildEvent('npc_strike', 'encounter', $entity_id, [
-          'target' => $target,
-          'roll' => $strike_result['roll'] ?? NULL,
-          'degree' => $strike_result['degree'] ?? NULL,
-          'damage' => $strike_result['damage'] ?? NULL,
-          'fallback' => TRUE,
-        ], NULL, $target);
-      }
+    // Fallback: choose a sensible action without AI.
+    if ($action_type === NULL) {
+      $action_type = $this->chooseFallbackAction($entity_id, $game_state);
+      $target = ($action_type === 'strike')
+        ? $this->findNearestAlivePlayer($entity_id, $game_state)
+        : NULL;
+    }
+
+    // Execute the chosen action.
+    switch ($action_type) {
+      case 'strike':
+        if ($target) {
+          $strike_result = $this->processStrike($encounter_id, $entity_id, $target, [], $game_state);
+          $events[] = GameEventLogger::buildEvent('npc_strike', 'encounter', $entity_id, [
+            'target' => $target,
+            'roll' => $strike_result['roll'] ?? NULL,
+            'degree' => $strike_result['degree'] ?? NULL,
+            'damage' => $strike_result['damage'] ?? NULL,
+          ], $narration, $target);
+
+          // Check for entity defeat after strike.
+          $this->checkEntityDefeated($target, $game_state, $events, $dungeon_data);
+        }
+        break;
+
+      case 'stride':
+        // Move toward the nearest player.
+        $nearest = $this->findNearestAlivePlayer($entity_id, $game_state);
+        $events[] = GameEventLogger::buildEvent('npc_stride', 'encounter', $entity_id, [
+          'toward' => $nearest,
+        ], $narration);
+        break;
+
+      case 'interact':
+        $events[] = GameEventLogger::buildEvent('npc_interact', 'encounter', $entity_id, [
+          'interaction' => 'raise_shield',
+        ], $narration);
+        break;
+
+      case 'talk':
+        $events[] = GameEventLogger::buildEvent('npc_talk', 'encounter', $entity_id, [
+          'message' => $narration ?? 'The creature snarls at you.',
+        ], $narration);
+        break;
+
+      default:
+        // Unknown action — default to strike.
+        $target = $target ?? $this->findFirstAlivePlayer($game_state);
+        if ($target) {
+          $strike_result = $this->processStrike($encounter_id, $entity_id, $target, [], $game_state);
+          $events[] = GameEventLogger::buildEvent('npc_strike', 'encounter', $entity_id, [
+            'target' => $target,
+            'roll' => $strike_result['roll'] ?? NULL,
+            'degree' => $strike_result['degree'] ?? NULL,
+            'damage' => $strike_result['damage'] ?? NULL,
+            'fallback' => TRUE,
+          ], NULL, $target);
+        }
+        break;
     }
 
     return ['events' => $events];
+  }
+
+  /**
+   * Choose a fallback action for NPC without AI.
+   *
+   * Basic tactical heuristic: if adjacent to player → strike; otherwise → stride.
+   */
+  protected function chooseFallbackAction(string $entity_id, array $game_state): string {
+    $npc = $this->findCombatant($entity_id, $game_state);
+    if (!$npc) {
+      return 'strike';
+    }
+
+    $npc_q = (int) ($npc['position_q'] ?? 0);
+    $npc_r = (int) ($npc['position_r'] ?? 0);
+
+    // Check if any alive player is adjacent (distance = 1 hex).
+    foreach (($game_state['initiative_order'] ?? []) as $combatant) {
+      if (($combatant['team'] ?? '') !== 'player' || !empty($combatant['is_defeated'])) {
+        continue;
+      }
+      $pq = (int) ($combatant['position_q'] ?? 0);
+      $pr = (int) ($combatant['position_r'] ?? 0);
+      $dist = $this->hexDistance($npc_q, $npc_r, $pq, $pr);
+
+      if ($dist <= 1) {
+        return 'strike';
+      }
+    }
+
+    return 'stride';
+  }
+
+  /**
+   * Find the nearest alive player to an NPC.
+   */
+  protected function findNearestAlivePlayer(string $entity_id, array $game_state): ?string {
+    $npc = $this->findCombatant($entity_id, $game_state);
+    if (!$npc) {
+      return $this->findFirstAlivePlayer($game_state);
+    }
+
+    $npc_q = (int) ($npc['position_q'] ?? 0);
+    $npc_r = (int) ($npc['position_r'] ?? 0);
+    $closest = NULL;
+    $closest_dist = PHP_INT_MAX;
+
+    foreach (($game_state['initiative_order'] ?? []) as $combatant) {
+      if (($combatant['team'] ?? '') !== 'player' || !empty($combatant['is_defeated'])) {
+        continue;
+      }
+      $pq = (int) ($combatant['position_q'] ?? 0);
+      $pr = (int) ($combatant['position_r'] ?? 0);
+      $dist = $this->hexDistance($npc_q, $npc_r, $pq, $pr);
+
+      if ($dist < $closest_dist) {
+        $closest_dist = $dist;
+        $closest = $combatant['entity_id'] ?? NULL;
+      }
+    }
+
+    return $closest;
+  }
+
+  /**
+   * Find a combatant in the initiative order by entity ID.
+   */
+  protected function findCombatant(string $entity_id, array $game_state): ?array {
+    foreach (($game_state['initiative_order'] ?? []) as $combatant) {
+      if (($combatant['entity_id'] ?? '') === $entity_id) {
+        return $combatant;
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * Calculate hex distance (cube coordinates).
+   */
+  protected function hexDistance(int $q1, int $r1, int $q2, int $r2): int {
+    $dq = abs($q1 - $q2);
+    $dr = abs($r1 - $r2);
+    $ds = abs((-$q1 - $r1) - (-$q2 - $r2));
+    return (int) max($dq, $dr, $ds);
+  }
+
+  /**
+   * Check if an entity was defeated after damage and generate narration.
+   */
+  protected function checkEntityDefeated(string $entity_id, array &$game_state, array &$events, array $dungeon_data): void {
+    foreach ($game_state['initiative_order'] as &$combatant) {
+      if (($combatant['entity_id'] ?? '') !== $entity_id) {
+        continue;
+      }
+
+      $hp = (int) ($combatant['hp'] ?? 0);
+      if ($hp <= 0 && empty($combatant['is_defeated'])) {
+        $combatant['is_defeated'] = TRUE;
+        $name = $combatant['name'] ?? $entity_id;
+        $team = $combatant['team'] ?? 'unknown';
+
+        $narration = $this->aiGmService->narrateEntityDefeated($name, $team, $dungeon_data);
+        $events[] = GameEventLogger::buildEvent('entity_defeated', 'encounter', $entity_id, [
+          'name' => $name,
+          'team' => $team,
+        ], $narration);
+      }
+      break;
+    }
+    unset($combatant);
   }
 
   // =========================================================================
@@ -942,12 +1142,77 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    * Builds context object for NPC AI decision-making.
    */
   protected function buildNpcContext(string $entity_id, array $game_state, array $dungeon_data): array {
+    $initiative_order = $game_state['initiative_order'] ?? [];
+    $npc = NULL;
+    $allies = [];
+    $enemies = [];
+
+    foreach ($initiative_order as $combatant) {
+      $cid = $combatant['entity_id'] ?? '';
+      if ($cid === $entity_id) {
+        $npc = $combatant;
+        continue;
+      }
+      if (!empty($combatant['is_defeated'])) {
+        continue;
+      }
+      $team = $combatant['team'] ?? 'enemy';
+      if ($team === 'player') {
+        $enemies[] = [
+          'entity_id' => $cid,
+          'name' => $combatant['name'] ?? $cid,
+          'hp_ratio' => $this->hpRatio($combatant),
+          'position_q' => (int) ($combatant['position_q'] ?? 0),
+          'position_r' => (int) ($combatant['position_r'] ?? 0),
+          'ac' => (int) ($combatant['ac'] ?? 10),
+        ];
+      }
+      else {
+        $allies[] = [
+          'entity_id' => $cid,
+          'name' => $combatant['name'] ?? $cid,
+          'hp_ratio' => $this->hpRatio($combatant),
+        ];
+      }
+    }
+
     return [
       'encounter_id' => $game_state['encounter_id'] ?? NULL,
+      'campaign_id' => $game_state['campaign_id'] ?? NULL,
       'round' => $game_state['round'] ?? NULL,
-      'initiative_order' => $game_state['initiative_order'] ?? [],
       'entity_id' => $entity_id,
+      'current_actor' => $npc ? [
+        'entity_id' => $entity_id,
+        'entity_ref' => $entity_id,
+        'name' => $npc['name'] ?? $entity_id,
+        'team' => $npc['team'] ?? 'enemy',
+        'hp' => (int) ($npc['hp'] ?? 0),
+        'max_hp' => (int) ($npc['max_hp'] ?? 0),
+        'hp_ratio' => $this->hpRatio($npc ?? []),
+        'ac' => (int) ($npc['ac'] ?? 12),
+        'position_q' => (int) ($npc['position_q'] ?? 0),
+        'position_r' => (int) ($npc['position_r'] ?? 0),
+        'actions_remaining' => (int) ($game_state['turn']['actions_remaining'] ?? 3),
+      ] : ['entity_id' => $entity_id, 'entity_ref' => $entity_id],
+      'participants' => $initiative_order,
+      'allies' => $allies,
+      'threats' => $enemies,
+      'allowed_actions' => [
+        'strike', 'stride', 'interact', 'talk', 'end_turn',
+      ],
     ];
+  }
+
+  /**
+   * Calculate HP ratio for tactical context.
+   */
+  protected function hpRatio(array $combatant): float {
+    $max = (int) ($combatant['max_hp'] ?? 0);
+    if ($max <= 0) {
+      return 1.0;
+    }
+    $current = (int) ($combatant['hp'] ?? 0);
+    return round($current / $max, 2);
   }
 
   /**

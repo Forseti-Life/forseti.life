@@ -62,6 +62,12 @@
     <div id="hexmap-canvas-container" class="hexmap-canvas-wrapper">
       <!-- PixiJS canvas will be inserted here -->
 
+      {# Game Coordinator — AI GM Narration Overlay #}
+      <div id="narration-overlay" class="narration-overlay">
+        <div class="narration-overlay__text" id="narration-text"></div>
+        <div class="narration-overlay__skip" id="narration-skip">{{ 'Click to continue'|t }}</div>
+      </div>
+
       {# Game Coordinator — Phase Indicator Badge #}
       <div id="game-phase-indicator" class="phase-indicator phase-exploration" style="display:none;">
         {{ 'Exploration'|t }}

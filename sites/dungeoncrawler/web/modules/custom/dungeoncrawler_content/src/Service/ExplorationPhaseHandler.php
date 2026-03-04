@@ -50,6 +50,11 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
   protected NumberGenerationService $numberGenerationService;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\AiGmService
+   */
+  protected AiGmService $aiGmService;
+
+  /**
    * Constructs an ExplorationPhaseHandler.
    */
   public function __construct(
@@ -58,7 +63,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     RoomChatService $room_chat_service,
     DungeonStateService $dungeon_state_service,
     CharacterStateService $character_state_service,
-    NumberGenerationService $number_generation_service
+    NumberGenerationService $number_generation_service,
+    AiGmService $ai_gm_service
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -66,6 +72,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $this->dungeonStateService = $dungeon_state_service;
     $this->characterStateService = $character_state_service;
     $this->numberGenerationService = $number_generation_service;
+    $this->aiGmService = $ai_gm_service;
   }
 
   /**
@@ -194,9 +201,21 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $narration = $result['narration'] ?? NULL;
         // Room transition advances time.
         $this->advanceExplorationTime($game_state, 10);
+
+        // AI GM narration for room entry.
+        $target_room_id = $params['target_room_id'] ?? NULL;
+        $room_data = $this->findRoomInDungeon($target_room_id, $dungeon_data);
+        if ($room_data) {
+          $first_visit = $this->isFirstVisit($target_room_id, $dungeon_data);
+          $gm_narration = $this->aiGmService->narrateRoomEntry($room_data, $dungeon_data, $first_visit);
+          if ($gm_narration) {
+            $narration = $gm_narration;
+          }
+        }
+
         $events[] = GameEventLogger::buildEvent('room_entered', 'exploration', $actor_id, [
           'from_room' => $game_state['exploration']['previous_room'] ?? NULL,
-          'to_room' => $params['target_room_id'] ?? NULL,
+          'to_room' => $target_room_id,
         ], $narration);
 
         // Check for encounter trigger on room entry.
@@ -753,6 +772,54 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     catch (\Exception $e) {
       $this->logger->error('Failed to persist dungeon data: @error', ['@error' => $e->getMessage()]);
     }
+  }
+
+  /**
+   * Finds a room's data in the dungeon_data payload.
+   *
+   * @param string|null $room_id
+   *   The room ID to find.
+   * @param array $dungeon_data
+   *   The dungeon data payload.
+   *
+   * @return array|null
+   *   Room data array, or NULL if not found.
+   */
+  protected function findRoomInDungeon(?string $room_id, array $dungeon_data): ?array {
+    if ($room_id === NULL) {
+      return NULL;
+    }
+
+    foreach ($dungeon_data['rooms'] ?? [] as $room) {
+      if (($room['room_id'] ?? NULL) === $room_id) {
+        return $room;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Checks if this is the first time the player has entered a given room.
+   *
+   * @param string $room_id
+   *   The room ID.
+   * @param array $dungeon_data
+   *   The dungeon data payload.
+   *
+   * @return bool
+   *   TRUE if no prior room_entered event exists for this room.
+   */
+  protected function isFirstVisit(string $room_id, array $dungeon_data): bool {
+    foreach ($dungeon_data['event_log'] ?? [] as $event) {
+      if (($event['type'] ?? '') === 'room_entered') {
+        $to_room = $event['data']['to_room'] ?? NULL;
+        if ($to_room === $room_id) {
+          return FALSE;
+        }
+      }
+    }
+    return TRUE;
   }
 
 }

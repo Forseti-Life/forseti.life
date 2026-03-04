@@ -20,6 +20,7 @@
 
 import { GameCoordinatorApi } from './GameCoordinatorApi.js';
 import { PhaseManager } from './PhaseManager.js';
+import { NarrationOverlay } from './NarrationOverlay.js';
 import { ExplorationPhaseHandler } from './phases/ExplorationPhaseHandler.js';
 import { EncounterPhaseHandler } from './phases/EncounterPhaseHandler.js';
 import { DowntimePhaseHandler } from './phases/DowntimePhaseHandler.js';
@@ -59,6 +60,9 @@ export class GameCoordinator {
     /** @type {boolean} */
     this._initialized = false;
 
+    /** @type {NarrationOverlay|null} */
+    this.narrationOverlay = null;
+
     // State subscriptions for cleanup.
     /** @type {Function[]} */
     this._unsubscribers = [];
@@ -90,6 +94,9 @@ export class GameCoordinator {
     this.phaseHandlers.exploration = new ExplorationPhaseHandler(deps);
     this.phaseHandlers.encounter = new EncounterPhaseHandler(deps);
     this.phaseHandlers.downtime = new DowntimePhaseHandler(deps);
+
+    // Create narration overlay for AI GM narration.
+    this.narrationOverlay = new NarrationOverlay();
 
     // Wire phase manager events.
     this._wirePhaseEvents();
@@ -130,6 +137,10 @@ export class GameCoordinator {
    */
   destroy() {
     this._stopEventPolling();
+    if (this.narrationOverlay) {
+      this.narrationOverlay.destroy();
+      this.narrationOverlay = null;
+    }
     for (const unsub of this._unsubscribers) {
       unsub();
     }
@@ -309,6 +320,9 @@ export class GameCoordinator {
       this.eventLog = this.eventLog.slice(-200);
     }
 
+    // Show narration overlay for GM narration events.
+    this._showNarrations(events);
+
     // Render into timeline panel.
     this._renderTimelineEntries(events);
 
@@ -316,6 +330,35 @@ export class GameCoordinator {
     window.dispatchEvent(new CustomEvent('dungeoncrawler:game-events', {
       detail: { events, total: this.eventLog.length },
     }));
+  }
+
+  /**
+   * Extract and display narration from new events.
+   * Handles two patterns:
+   *   1. Dedicated gm_narration events (from encounter start/end)
+   *   2. Events with a narration field (room_entered, round_start, phase_transition)
+   *
+   * @param {Array} events
+   * @private
+   */
+  _showNarrations(events) {
+    if (!this.narrationOverlay) return;
+
+    for (const event of events) {
+      let text = null;
+      let style = event.type || 'default';
+
+      if (event.type === 'gm_narration' && event.narration) {
+        text = event.narration;
+        style = event.trigger || 'default';
+      } else if (event.narration) {
+        text = event.narration;
+      }
+
+      if (text) {
+        this.narrationOverlay.show(text, { style });
+      }
+    }
   }
 
   /**
@@ -370,6 +413,9 @@ export class GameCoordinator {
       'encounter_end': 'timeline-entry--phase',
       'turn_start': 'timeline-entry--combat',
       'round_start': 'timeline-entry--phase',
+      'gm_narration': 'timeline-entry--narration',
+      'room_entered': 'timeline-entry--phase',
+      'phase_transition': 'timeline-entry--phase',
     };
     return map[type] || 'timeline-entry--system';
   }
@@ -393,6 +439,9 @@ export class GameCoordinator {
       'encounter_end': '🏳️',
       'turn_start': '▶️',
       'round_start': '🔄',
+      'gm_narration': '📜',
+      'room_entered': '🚪',
+      'phase_transition': '🔀',
     };
     return map[type] || '•';
   }

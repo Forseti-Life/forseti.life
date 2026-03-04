@@ -80,3 +80,27 @@ dungeoncrawler_content.settings:
     vertex_image_api_key:
       type: string
       label: 'Vertex API key'
+    ai_gm_narration_enabled:
+      type: boolean
+      label: 'Enable AI Game Master narration across all trigger types'
+    ai_gm_narration_max_tokens:
+      type: integer
+      label: 'AI GM narration max tokens per request'
+    ai_gm_trigger_room_entry:
+      type: boolean
+      label: 'Enable AI narration on room entry'
+    ai_gm_trigger_encounter_start:
+      type: boolean
+      label: 'Enable AI narration on encounter start'
+    ai_gm_trigger_encounter_end:
+      type: boolean
+      label: 'Enable AI narration on encounter end'
+    ai_gm_trigger_round_start:
+      type: boolean
+      label: 'Enable AI narration on combat round start'
+    ai_gm_trigger_entity_defeated:
+      type: boolean
+      label: 'Enable AI narration when entity is defeated'
+    ai_gm_trigger_phase_transition:
+      type: boolean
+      label: 'Enable AI narration on phase transitions'
