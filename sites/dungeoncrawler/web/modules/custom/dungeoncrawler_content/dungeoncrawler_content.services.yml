@@ -372,6 +372,7 @@ services:
       - '@dungeoncrawler_content.character_state'
       - '@dungeoncrawler_content.number_generation'
       - '@dungeoncrawler_content.ai_gm'
+      - '@dungeoncrawler_content.narration_engine'
 
   dungeoncrawler_content.encounter_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\EncounterPhaseHandler
@@ -391,6 +392,7 @@ services:
       - '@dungeoncrawler_content.ai_gm'
       - '@config.factory'
       - '@dungeoncrawler_content.npc_psychology_service'
+      - '@dungeoncrawler_content.narration_engine'
 
   dungeoncrawler_content.downtime_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\DowntimePhaseHandler
@@ -409,6 +411,7 @@ services:
       - '@dungeoncrawler_content.encounter_phase_handler'
       - '@dungeoncrawler_content.downtime_phase_handler'
       - '@dungeoncrawler_content.ai_gm'
+      - '@dungeoncrawler_content.narration_engine'
 
   dungeoncrawler_content.ai_session_manager:
     class: Drupal\dungeoncrawler_content\Service\AiSessionManager

@@ -95,6 +95,13 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   protected NpcPsychologyService $psychologyService;
 
   /**
+   * Narration engine for per-character perception-filtered narration.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NarrationEngine|null
+   */
+  protected ?NarrationEngine $narrationEngine;
+
+  /**
    * Constructs an EncounterPhaseHandler.
    */
   public function __construct(
@@ -112,7 +119,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     EventDispatcherInterface $event_dispatcher,
     AiGmService $ai_gm_service,
     ConfigFactoryInterface $config_factory,
-    NpcPsychologyService $psychology_service = NULL
+    NpcPsychologyService $psychology_service = NULL,
+    ?NarrationEngine $narration_engine = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -129,6 +137,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->aiGmService = $ai_gm_service;
     $this->configFactory = $config_factory;
     $this->psychologyService = $psychology_service ?? new NpcPsychologyService($database, $logger_factory);
+    $this->narrationEngine = $narration_engine;
   }
 
   /**
@@ -242,6 +251,51 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'round' => $game_state['round'] ?? NULL,
         ], $narration, $target_id);
 
+        // Queue strike for perception-filtered narration.
+        $attacker_name = $this->resolveEntityName($actor_id, $game_state, $dungeon_data);
+        $target_name = $this->resolveEntityName($target_id, $game_state, $dungeon_data);
+        $degree_text = $result['degree'] ?? 'unknown';
+        $damage_val = $result['damage'] ?? 0;
+        $strike_desc = match ($degree_text) {
+          'critical_success' => sprintf('%s critically strikes %s for %d damage!', $attacker_name, $target_name, $damage_val),
+          'success' => sprintf('%s strikes %s for %d damage.', $attacker_name, $target_name, $damage_val),
+          'failure' => sprintf('%s swings at %s but misses.', $attacker_name, $target_name),
+          'critical_failure' => sprintf('%s fumbles an attack at %s!', $attacker_name, $target_name),
+          default => sprintf('%s attacks %s.', $attacker_name, $target_name),
+        };
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'action',
+          'speaker' => $attacker_name,
+          'speaker_type' => 'player',
+          'speaker_ref' => $actor_id,
+          'content' => $strike_desc,
+          'visibility' => 'public',
+          'mechanical_data' => [
+            'attack_roll' => $result['roll'] ?? NULL,
+            'total' => $result['total'] ?? NULL,
+            'ac' => $result['ac'] ?? NULL,
+            'degree' => $degree_text,
+            'damage' => $damage_val,
+            'weapon' => $params['weapon'] ?? NULL,
+          ],
+        ]);
+        // Also queue mechanical damage event if hit.
+        if ($damage_val > 0) {
+          $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+            'type' => 'damage_applied',
+            'speaker' => 'System',
+            'speaker_type' => 'system',
+            'speaker_ref' => '',
+            'content' => sprintf('%s takes %d damage.', $target_name, $damage_val),
+            'mechanical_data' => [
+              'target' => $target_id,
+              'damage' => $damage_val,
+              'damage_type' => $result['damage_type'] ?? 'physical',
+            ],
+            'visibility' => 'public',
+          ]);
+        }
+
         // Check for encounter end (all enemies defeated).
         $phase_transition = $this->checkEncounterEnd($encounter_id, $game_state);
         break;
@@ -273,6 +327,27 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'round' => $game_state['round'] ?? NULL,
         ], $result['narration'] ?? NULL, $target_id);
 
+        // Queue spell cast for narration.
+        $caster_name = $this->resolveEntityName($actor_id, $game_state, $dungeon_data);
+        $spell_target_name = $target_id ? $this->resolveEntityName($target_id, $game_state, $dungeon_data) : NULL;
+        $spell_desc = $spell_target_name
+          ? sprintf('%s casts %s targeting %s.', $caster_name, $spell_name, $spell_target_name)
+          : sprintf('%s casts %s.', $caster_name, $spell_name);
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'action',
+          'speaker' => $caster_name,
+          'speaker_type' => 'player',
+          'speaker_ref' => $actor_id,
+          'content' => $spell_desc,
+          'visibility' => 'public',
+          'mechanical_data' => [
+            'spell_name' => $spell_name,
+            'spell_level' => $params['spell_level'] ?? NULL,
+            'action_cost' => $action_cost,
+            'target' => $target_id,
+          ],
+        ]);
+
         $phase_transition = $this->checkEncounterEnd($encounter_id, $game_state);
         break;
 
@@ -291,14 +366,28 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
       case 'talk':
         // Talk is a free action in encounter mode.
+        $message = $params['message'] ?? '';
         $result = [
           'talked' => TRUE,
-          'message' => $params['message'] ?? '',
+          'message' => $message,
         ];
         $events[] = GameEventLogger::buildEvent('talk', 'encounter', $actor_id, [
-          'message' => $params['message'] ?? '',
+          'message' => $message,
           'round' => $game_state['round'] ?? NULL,
         ], NULL, $target_id);
+
+        // Queue talk as speech event for immediate narration.
+        $talker_name = $this->resolveEntityName($actor_id, $game_state, $dungeon_data);
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'speech',
+          'speaker' => $talker_name,
+          'speaker_type' => 'player',
+          'speaker_ref' => $actor_id,
+          'content' => $message,
+          'language' => $params['language'] ?? 'Common',
+          'volume' => $params['volume'] ?? 'normal',
+          'visibility' => 'public',
+        ]);
         break;
 
       case 'end_turn':
@@ -329,6 +418,17 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           $events[] = GameEventLogger::buildEvent('round_start', 'encounter', NULL, [
             'round' => $result['new_round'],
           ], $round_narration);
+
+          // Queue round start for perception-filtered narration.
+          $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+            'type' => 'action',
+            'speaker' => 'GM',
+            'speaker_type' => 'gm',
+            'speaker_ref' => '',
+            'content' => sprintf('Round %d begins.', (int) $result['new_round']),
+            'visibility' => 'public',
+            'mechanical_data' => ['round' => (int) $result['new_round']],
+          ]);
         }
 
         $phase_transition = $this->checkEncounterEnd($encounter_id, $game_state);
@@ -461,6 +561,21 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           ], $gm_narration);
         }
 
+        // Queue encounter start for perception-filtered narration.
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'action',
+          'speaker' => 'GM',
+          'speaker_type' => 'gm',
+          'speaker_ref' => '',
+          'content' => sprintf('Combat begins! %s', $context['reason'] ?? 'Hostile creatures detected!'),
+          'visibility' => 'public',
+          'mechanical_data' => [
+            'encounter_id' => $encounter_id,
+            'participant_count' => count($participants),
+            'round' => 1,
+          ],
+        ], $room_id);
+
         // Mark the room's encounter as triggered.
         $this->markRoomEncounterTriggered($dungeon_data, $room_id);
       }
@@ -507,6 +622,20 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'trigger' => 'encounter_end',
         ], $gm_narration);
       }
+
+      // Queue encounter end for perception-filtered narration.
+      $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+        'type' => 'action',
+        'speaker' => 'GM',
+        'speaker_type' => 'gm',
+        'speaker_ref' => '',
+        'content' => sprintf('The encounter ends after %d rounds.', $game_state['round'] ?? 0),
+        'visibility' => 'public',
+        'mechanical_data' => [
+          'encounter_id' => $encounter_id,
+          'final_round' => $game_state['round'] ?? NULL,
+        ],
+      ]);
     }
 
     // Clean up encounter state from game_state, but preserve it for history.
@@ -1365,6 +1494,75 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     return NULL;
+  }
+
+  // =========================================================================
+  // NarrationEngine bridge.
+  // =========================================================================
+
+  /**
+   * Queue a game event through the NarrationEngine for perception filtering.
+   *
+   * Silently skips if NarrationEngine is not available.
+   *
+   * @param int $campaign_id
+   * @param array $dungeon_data
+   * @param array $event
+   *   Event array matching NarrationEngine::queueRoomEvent() format.
+   * @param string|null $room_id
+   *   Override room ID. NULL uses active_room_id.
+   *
+   * @return array
+   *   NarrationEngine result, or empty array if engine unavailable.
+   */
+  protected function queueNarrationEvent(int $campaign_id, array $dungeon_data, array $event, ?string $room_id = NULL): array {
+    if (!$this->narrationEngine) {
+      return [];
+    }
+
+    $dungeon_id = $dungeon_data['dungeon_id'] ?? $dungeon_data['id'] ?? 0;
+    $room_id = $room_id ?? ($dungeon_data['active_room_id'] ?? '');
+    $present_characters = NarrationEngine::buildPresentCharacters($dungeon_data, $room_id);
+
+    try {
+      return $this->narrationEngine->queueRoomEvent(
+        $campaign_id,
+        $dungeon_id,
+        $room_id,
+        $event,
+        $present_characters
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('NarrationEngine queue failed: @err', ['@err' => $e->getMessage()]);
+      return [];
+    }
+  }
+
+  /**
+   * Resolve a display name for an entity from initiative order or dungeon data.
+   */
+  protected function resolveEntityName(?string $entity_id, array $game_state, array $dungeon_data = []): string {
+    if (!$entity_id) {
+      return 'Unknown';
+    }
+
+    // Check initiative order first (encounter context).
+    foreach ($game_state['initiative_order'] ?? [] as $combatant) {
+      if (($combatant['entity_id'] ?? '') === $entity_id) {
+        return $combatant['name'] ?? $combatant['display_name'] ?? $entity_id;
+      }
+    }
+
+    // Check dungeon_data entities.
+    foreach ($dungeon_data['entities'] ?? [] as $ent) {
+      $ent_id = $ent['entity_instance_id'] ?? ($ent['entity_ref']['content_id'] ?? '');
+      if ($ent_id === $entity_id) {
+        return $ent['state']['metadata']['display_name'] ?? $ent['name'] ?? $entity_id;
+      }
+    }
+
+    return $entity_id;
   }
 
 }

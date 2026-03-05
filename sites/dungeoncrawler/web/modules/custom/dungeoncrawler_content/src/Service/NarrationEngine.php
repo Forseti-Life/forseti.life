@@ -95,6 +95,112 @@ class NarrationEngine {
   }
 
   // =========================================================================
+  // Helpers for callers.
+  // =========================================================================
+
+  /**
+   * Build a present_characters array from dungeon_data for a given room.
+   *
+   * This is the canonical way to extract the perception-filtering data
+   * that queueRoomEvent() expects in its $present_characters parameter.
+   *
+   * @param array $dungeon_data
+   *   Full dungeon data structure.
+   * @param string|null $room_id
+   *   Room ID to extract characters from. NULL = active room.
+   *
+   * @return array
+   *   Array of character descriptors suitable for queueRoomEvent().
+   */
+  public static function buildPresentCharacters(array $dungeon_data, ?string $room_id = NULL): array {
+    $room_id = $room_id ?? ($dungeon_data['active_room_id'] ?? NULL);
+    if (!$room_id) {
+      return [];
+    }
+
+    $characters = [];
+
+    // Find the room by ID.
+    $room = NULL;
+    foreach ($dungeon_data['rooms'] ?? [] as $r) {
+      $rid = $r['room_id'] ?? $r['id'] ?? '';
+      if ($rid === $room_id) {
+        $room = $r;
+        break;
+      }
+    }
+    if (!$room) {
+      return [];
+    }
+
+    // PC characters in the room.
+    foreach ($room['characters'] ?? [] as $pc) {
+      $char_id = $pc['character_id'] ?? $pc['id'] ?? NULL;
+      if ($char_id === NULL) {
+        continue;
+      }
+      $characters[] = [
+        'character_id' => $char_id,
+        'name' => $pc['name'] ?? $pc['display_name'] ?? 'Unknown',
+        'perception' => $pc['perception'] ?? ($pc['stats']['perception'] ?? 0),
+        'languages' => $pc['languages'] ?? ['Common'],
+        'senses' => $pc['senses'] ?? [],
+        'conditions' => $pc['conditions'] ?? [],
+        'position' => $pc['position'] ?? NULL,
+      ];
+    }
+
+    // Also check top-level entities placed in this room.
+    foreach ($dungeon_data['entities'] ?? [] as $ent) {
+      $ent_room = $ent['placement']['room_id'] ?? '';
+      if ($ent_room !== $room_id) {
+        continue;
+      }
+      $meta = $ent['state']['metadata'] ?? [];
+      $stats = $meta['stats'] ?? [];
+      $characters[] = [
+        'character_id' => $ent['entity_instance_id'] ?? ($ent['entity_ref']['content_id'] ?? ''),
+        'name' => $meta['display_name'] ?? $ent['name'] ?? 'Unknown Entity',
+        'perception' => $stats['perception'] ?? 0,
+        'languages' => $ent['languages'] ?? ['Common'],
+        'senses' => $ent['senses'] ?? [],
+        'conditions' => $ent['conditions'] ?? ($meta['conditions'] ?? []),
+        'position' => $ent['position'] ?? NULL,
+      ];
+    }
+
+    // Room-level entities (different schema variant).
+    foreach ($room['entities'] ?? [] as $ent) {
+      $ent_ref = $ent['entity_ref']['content_id'] ?? ($ent['entity_ref'] ?? '');
+      $ent_id = $ent['entity_instance_id'] ?? $ent_ref;
+      // Skip if already added from top-level entities.
+      $already = FALSE;
+      foreach ($characters as $c) {
+        if ($c['character_id'] === $ent_id) {
+          $already = TRUE;
+          break;
+        }
+      }
+      if ($already) {
+        continue;
+      }
+      $meta = $ent['state']['metadata'] ?? [];
+      $stats = $meta['stats'] ?? [];
+      $characters[] = [
+        'character_id' => $ent_id,
+        'name' => $meta['display_name'] ?? $ent['name'] ?? 'Unknown Entity',
+        'perception' => $stats['perception'] ?? 0,
+        'languages' => $ent['languages'] ?? ['Common'],
+        'senses' => $ent['senses'] ?? [],
+        'conditions' => $ent['conditions'] ?? ($meta['conditions'] ?? []),
+        'position' => $ent['position'] ?? NULL,
+      ];
+    }
+
+    return $characters;
+  }
+
+  // =========================================================================
   // Event queueing.
   // =========================================================================
 

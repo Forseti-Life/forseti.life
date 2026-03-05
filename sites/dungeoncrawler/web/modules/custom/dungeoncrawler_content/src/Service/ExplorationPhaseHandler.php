@@ -55,6 +55,13 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
   protected AiGmService $aiGmService;
 
   /**
+   * Narration engine for per-character perception-filtered narration.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NarrationEngine|null
+   */
+  protected ?NarrationEngine $narrationEngine;
+
+  /**
    * Constructs an ExplorationPhaseHandler.
    */
   public function __construct(
@@ -64,7 +71,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     DungeonStateService $dungeon_state_service,
     CharacterStateService $character_state_service,
     NumberGenerationService $number_generation_service,
-    AiGmService $ai_gm_service
+    AiGmService $ai_gm_service,
+    ?NarrationEngine $narration_engine = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -73,6 +81,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $this->characterStateService = $character_state_service;
     $this->numberGenerationService = $number_generation_service;
     $this->aiGmService = $ai_gm_service;
+    $this->narrationEngine = $narration_engine;
   }
 
   /**
@@ -169,6 +178,17 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           'target' => $target_id,
           'interaction' => $params['interaction_type'] ?? 'generic',
         ], NULL, $target_id);
+
+        // Queue interaction for narration.
+        $actor_entity = $this->findEntityInDungeon($actor_id, $dungeon_data);
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'action',
+          'speaker' => $actor_entity['name'] ?? $actor_id,
+          'speaker_type' => 'player',
+          'speaker_ref' => $actor_id,
+          'content' => sprintf('%s interacts with %s (%s).', $actor_entity['name'] ?? $actor_id, $target_id, $params['interaction_type'] ?? 'generic'),
+          'visibility' => 'public',
+        ]);
         break;
 
       case 'talk':
@@ -193,6 +213,35 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           'degree' => $result['degree'] ?? NULL,
           'discoveries' => $result['discoveries'] ?? [],
         ], $narration);
+
+        // Queue search roll as mechanical event + search action for narration.
+        $actor_entity = $this->findEntityInDungeon($actor_id, $dungeon_data);
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'skill_check_result',
+          'speaker' => 'System',
+          'speaker_type' => 'system',
+          'speaker_ref' => '',
+          'content' => sprintf('%s searches the area (Perception %d vs DC %d: %s).', $actor_entity['name'] ?? $actor_id, $result['total'] ?? 0, $result['dc'] ?? 15, $result['degree'] ?? 'unknown'),
+          'mechanical_data' => [
+            'skill' => 'perception',
+            'roll' => $result['roll'] ?? NULL,
+            'total' => $result['total'] ?? NULL,
+            'dc' => $result['dc'] ?? NULL,
+            'degree' => $result['degree'] ?? NULL,
+          ],
+          'visibility' => 'public',
+        ]);
+        // If discoveries were made, queue a narration event for them.
+        if (!empty($result['discoveries'])) {
+          $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+            'type' => 'action',
+            'speaker' => $actor_entity['name'] ?? $actor_id,
+            'speaker_type' => 'player',
+            'speaker_ref' => $actor_id,
+            'content' => sprintf('%s discovers: %s', $actor_entity['name'] ?? $actor_id, implode(', ', array_map(fn($d) => $d['name'] ?? $d['id'] ?? 'something', $result['discoveries']))),
+            'visibility' => 'public',
+          ]);
+        }
         break;
 
       case 'transition':
@@ -218,6 +267,21 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           'to_room' => $target_room_id,
         ], $narration);
 
+        // Queue room entry for perception-filtered narration.
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'action',
+          'speaker' => 'GM',
+          'speaker_type' => 'gm',
+          'speaker_ref' => '',
+          'content' => sprintf('The party enters %s.', $room_data['name'] ?? $target_room_id),
+          'visibility' => 'public',
+          'mechanical_data' => [
+            'from_room' => $game_state['exploration']['previous_room'] ?? NULL,
+            'to_room' => $target_room_id,
+            'first_visit' => $first_visit ?? TRUE,
+          ],
+        ], $target_room_id);
+
         // Check for encounter trigger on room entry.
         $encounter_check = $this->checkEncounterTrigger($params['target_room_id'] ?? '', $dungeon_data);
         if ($encounter_check['should_trigger']) {
@@ -231,6 +295,16 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
             'room_id' => $params['target_room_id'],
             'reason' => $encounter_check['reason'],
           ]);
+
+          // Queue encounter trigger event.
+          $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+            'type' => 'action',
+            'speaker' => 'GM',
+            'speaker_type' => 'gm',
+            'speaker_ref' => '',
+            'content' => $encounter_check['reason'] ?? 'Hostile creatures detected!',
+            'visibility' => 'public',
+          ], $target_room_id);
         }
         break;
 
@@ -280,6 +354,21 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $events[] = GameEventLogger::buildEvent('cast_spell', 'exploration', $actor_id, [
           'spell' => $params['spell_name'] ?? 'unknown',
         ], $narration);
+
+        // Queue spell cast for narration.
+        $actor_entity = $this->findEntityInDungeon($actor_id, $dungeon_data);
+        $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+          'type' => 'action',
+          'speaker' => $actor_entity['name'] ?? $actor_id,
+          'speaker_type' => 'player',
+          'speaker_ref' => $actor_id,
+          'content' => sprintf('%s casts %s.', $actor_entity['name'] ?? $actor_id, $params['spell_name'] ?? 'a spell'),
+          'visibility' => 'public',
+          'mechanical_data' => [
+            'spell_name' => $params['spell_name'] ?? 'unknown',
+            'spell_level' => $params['spell_level'] ?? NULL,
+          ],
+        ]);
         break;
 
       default:
@@ -321,9 +410,25 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       ];
     }
 
+    // Queue phase entry for perception-filtered narration.
+    $from_phase = $context['from_phase'] ?? 'none';
+    if ($from_phase !== 'none') {
+      $this->queueNarrationEvent($campaign_id, $dungeon_data, [
+        'type' => 'action',
+        'speaker' => 'GM',
+        'speaker_type' => 'gm',
+        'speaker_ref' => '',
+        'content' => $from_phase === 'encounter'
+          ? 'The encounter ends. The party returns to exploration.'
+          : 'Exploration begins.',
+        'visibility' => 'public',
+        'mechanical_data' => ['from_phase' => $from_phase],
+      ]);
+    }
+
     return [
       GameEventLogger::buildEvent('phase_entered', 'exploration', NULL, [
-        'from_phase' => $context['from_phase'] ?? 'none',
+        'from_phase' => $from_phase,
       ]),
     ];
   }
@@ -846,6 +951,49 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       }
     }
     return TRUE;
+  }
+
+  // =========================================================================
+  // NarrationEngine bridge.
+  // =========================================================================
+
+  /**
+   * Queue a game event through the NarrationEngine for perception filtering.
+   *
+   * Silently skips if NarrationEngine is not available.
+   *
+   * @param int $campaign_id
+   * @param array $dungeon_data
+   * @param array $event
+   *   Event array matching NarrationEngine::queueRoomEvent() format.
+   * @param string|null $room_id
+   *   Override room ID. NULL uses active_room_id.
+   *
+   * @return array
+   *   NarrationEngine result, or empty array if engine unavailable.
+   */
+  protected function queueNarrationEvent(int $campaign_id, array $dungeon_data, array $event, ?string $room_id = NULL): array {
+    if (!$this->narrationEngine) {
+      return [];
+    }
+
+    $dungeon_id = $dungeon_data['dungeon_id'] ?? $dungeon_data['id'] ?? 0;
+    $room_id = $room_id ?? ($dungeon_data['active_room_id'] ?? '');
+    $present_characters = NarrationEngine::buildPresentCharacters($dungeon_data, $room_id);
+
+    try {
+      return $this->narrationEngine->queueRoomEvent(
+        $campaign_id,
+        $dungeon_id,
+        $room_id,
+        $event,
+        $present_characters
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('NarrationEngine queue failed: @err', ['@err' => $e->getMessage()]);
+      return [];
+    }
   }
 
 }

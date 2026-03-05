@@ -88,6 +88,13 @@ class GameCoordinatorService {
   protected AiGmService $aiGmService;
 
   /**
+   * Narration engine for per-character perception-filtered narration.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NarrationEngine|null
+   */
+  protected ?NarrationEngine $narrationEngine;
+
+  /**
    * Constructs a GameCoordinatorService.
    */
   public function __construct(
@@ -97,12 +104,14 @@ class GameCoordinatorService {
     ExplorationPhaseHandler $exploration_handler,
     EncounterPhaseHandler $encounter_handler,
     DowntimePhaseHandler $downtime_handler,
-    AiGmService $ai_gm_service
+    AiGmService $ai_gm_service,
+    ?NarrationEngine $narration_engine = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->eventLogger = $event_logger;
     $this->aiGmService = $ai_gm_service;
+    $this->narrationEngine = $narration_engine;
 
     // Register phase handlers by their phase name.
     $this->phaseHandlers['exploration'] = $exploration_handler;
@@ -212,6 +221,28 @@ class GameCoordinatorService {
     $current_handler = $this->getPhaseHandler($current_phase);
     $actor_id = $intent['actor'] ?? NULL;
 
+    // Collect any pending scene beats from NarrationEngine.
+    $session_narration = NULL;
+    if ($this->narrationEngine) {
+      $dungeon_id = $dungeon_data['dungeon_id'] ?? $dungeon_data['id'] ?? 0;
+      $room_id = $dungeon_data['active_room_id'] ?? '';
+      try {
+        $present = NarrationEngine::buildPresentCharacters($dungeon_data, $room_id);
+        $flush_result = $this->narrationEngine->flushNarration(
+          $campaign_id,
+          $dungeon_id,
+          $room_id,
+          $present
+        );
+        if (!empty($flush_result)) {
+          $session_narration = $flush_result;
+        }
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('NarrationEngine flush failed: @err', ['@err' => $e->getMessage()]);
+      }
+    }
+
     return [
       'success' => $action_result['success'] ?? TRUE,
       'game_state' => $this->buildClientGameState($game_state),
@@ -220,6 +251,7 @@ class GameCoordinatorService {
       'events' => $logged_events,
       'phase_transition' => $phase_transition,
       'narration' => $action_result['narration'] ?? NULL,
+      'session_narration' => $session_narration,
       'available_actions' => $current_handler
         ? $current_handler->getAvailableActions($game_state, $dungeon_data, $actor_id)
         : [],
@@ -395,6 +427,36 @@ class GameCoordinatorService {
       'reason' => $context['reason'] ?? NULL,
     ], $transition_narration);
     $all_events[] = $transition_event;
+
+    // Queue phase transition for perception-filtered narration.
+    if ($this->narrationEngine) {
+      $dungeon_id = $dungeon_data['dungeon_id'] ?? $dungeon_data['id'] ?? 0;
+      $room_id = $dungeon_data['active_room_id'] ?? '';
+      $present = NarrationEngine::buildPresentCharacters($dungeon_data, $room_id);
+      try {
+        $this->narrationEngine->queueRoomEvent(
+          $campaign_id,
+          $dungeon_id,
+          $room_id,
+          [
+            'type' => 'action',
+            'speaker' => 'GM',
+            'speaker_type' => 'gm',
+            'speaker_ref' => '',
+            'content' => sprintf('Phase transitions from %s to %s. %s', $from_phase, $to_phase, $context['reason'] ?? ''),
+            'visibility' => 'public',
+            'mechanical_data' => [
+              'from_phase' => $from_phase,
+              'to_phase' => $to_phase,
+            ],
+          ],
+          $present
+        );
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('NarrationEngine queue failed during phase transition: @err', ['@err' => $e->getMessage()]);
+      }
+    }
 
     // 3. Enter the new phase.
     $to_handler = $this->getPhaseHandler($to_phase);
