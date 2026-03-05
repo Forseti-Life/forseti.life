@@ -9,6 +9,9 @@ use Drupal\ai_conversation\Service\AIApiService;
 use Drupal\ai_conversation\Service\PromptManager;
 use Psr\Log\LoggerInterface;
 
+// Hierarchical chat session integration.
+// These bridge legacy dungeon_data JSON chat into the normalized session tables.
+
 /**
  * Manages room chat messages with proper state management.
  * 
@@ -29,6 +32,8 @@ class RoomChatService {
   protected AiSessionManager $sessionManager;
   protected ChatChannelManager $channelManager;
   protected NpcPsychologyService $psychologyService;
+  protected ?NarrationEngine $narrationEngine;
+  protected ?ChatSessionManager $chatSessionManager;
 
   /**
    * Constructor.
@@ -43,7 +48,9 @@ class RoomChatService {
     GameplayActionProcessor $action_processor,
     AiSessionManager $session_manager,
     ChatChannelManager $channel_manager,
-    NpcPsychologyService $psychology_service
+    NpcPsychologyService $psychology_service,
+    ?NarrationEngine $narration_engine = NULL,
+    ?ChatSessionManager $chat_session_manager = NULL
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
@@ -55,6 +62,8 @@ class RoomChatService {
     $this->sessionManager = $session_manager;
     $this->channelManager = $channel_manager;
     $this->psychologyService = $psychology_service;
+    $this->narrationEngine = $narration_engine;
+    $this->chatSessionManager = $chat_session_manager;
   }
 
   /**
@@ -247,6 +256,13 @@ class RoomChatService {
       '@uid' => $this->currentUser->id(),
       '@message' => substr($message, 0, 100),
     ]);
+
+    // Bridge into the hierarchical chat session system.
+    // This dual-writes to the normalized dc_chat_messages table via NarrationEngine.
+    $this->bridgeToSessionSystem(
+      $campaign_id, $dungeon_id, $room_id, $dungeon_data, $room_index,
+      $speaker, $message, $type, $character_id, $channel
+    );
 
     // Generate AI response (GM for room channel, NPC for private channels).
     $gm_response = NULL;
@@ -466,6 +482,11 @@ class RoomChatService {
     $player_msg_text = end($chat)['message'] ?? '';
     $this->sessionManager->appendMessage($session_key, $campaign_id, 'user', $player_msg_text);
     $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $narrative);
+
+    // Bridge GM reply into hierarchical session system.
+    $this->bridgeGmReplyToSessionSystem(
+      $campaign_id, $dungeon_id, $room_id, $narrative, $actions, $dice_rolls
+    );
 
     $this->logger->info('GM reply persisted in room @room (@chars chars, @actions_count mechanical actions)', [
       '@room' => $room_id,
@@ -691,6 +712,11 @@ class RoomChatService {
     $player_msg = end($channel_chat)['message'] ?? '';
     $this->sessionManager->appendMessage($ai_session_key, $campaign_id, 'user', $player_msg);
     $this->sessionManager->appendMessage($ai_session_key, $campaign_id, 'assistant', $response_text);
+
+    // Bridge NPC channel reply into hierarchical session system.
+    $this->bridgeChannelReplyToSessionSystem(
+      $campaign_id, $room_id, $channel_key, $target_name, $target_entity, $response_text
+    );
 
     // Record inner monologue: NPC reacts privately to what the player said.
     if ($npc_ref) {
@@ -937,6 +963,355 @@ class RoomChatService {
 
     return $closed;
   }
+
+  // =========================================================================
+  // Session system bridge methods.
+  //
+  // These methods dual-write from the legacy dungeon_data JSON chat storage
+  // into the new normalized dc_chat_sessions / dc_chat_messages hierarchy.
+  // The NarrationEngine handles event routing, perception filtering, and
+  // per-character narrative generation via the ChatSessionManager.
+  //
+  // This is a transitional bridge — eventually the legacy JSON path will be
+  // removed and all chat flows through the session system directly.
+  // =========================================================================
+
+  /**
+   * Bridge a player message from the legacy path into the session system.
+   *
+   * Routes the message as a room event through NarrationEngine::queueRoomEvent().
+   * For player speech (room channel), this triggers immediate per-character
+   * narration via GenAI. For other channels, it records the message in the
+   * appropriate session.
+   *
+   * @param int $campaign_id
+   * @param int|string $dungeon_id
+   * @param string $room_id
+   * @param array $dungeon_data
+   *   Current dungeon_data payload.
+   * @param int|string $room_index
+   *   Room index in dungeon_data['rooms'].
+   * @param string $speaker
+   * @param string $message
+   * @param string $type
+   * @param int|null $character_id
+   * @param string $channel
+   */
+  protected function bridgeToSessionSystem(
+    int $campaign_id,
+    int|string $dungeon_id,
+    string $room_id,
+    array $dungeon_data,
+    int|string $room_index,
+    string $speaker,
+    string $message,
+    string $type,
+    ?int $character_id,
+    string $channel
+  ): void {
+    if ($this->narrationEngine === NULL) {
+      return;
+    }
+
+    try {
+      if ($channel === 'room') {
+        // Room channel: route through NarrationEngine for perception-filtered narration.
+        $event = [
+          'type' => ($type === 'player') ? 'dialogue' : 'npc_speech',
+          'speaker' => $speaker,
+          'speaker_type' => $type,
+          'speaker_ref' => $character_id ? (string) $character_id : '',
+          'content' => $message,
+          'language' => 'Common',
+          'volume' => 'normal',
+          'perception_dc' => NULL,
+          'mechanical_data' => [],
+          'visibility' => 'public',
+        ];
+
+        // Build present_characters from room entities and PC.
+        $present_characters = $this->buildPresentCharactersFromDungeonData(
+          $dungeon_data, $room_index, $campaign_id
+        );
+
+        $this->narrationEngine->queueRoomEvent(
+          $campaign_id, $dungeon_id, $room_id, $event, $present_characters
+        );
+      }
+      else {
+        // Private channel (whisper/spell): record in dedicated session.
+        $this->bridgeChannelMessageToSession(
+          $campaign_id, $room_id, $channel, $speaker, $type, $character_id, $message
+        );
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Session bridge error: @msg', ['@msg' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Bridge a GM reply into the session system as a narrative event.
+   */
+  protected function bridgeGmReplyToSessionSystem(
+    int $campaign_id,
+    int|string $dungeon_id,
+    string $room_id,
+    string $narrative,
+    array $actions = [],
+    array $dice_rolls = []
+  ): void {
+    if ($this->chatSessionManager === NULL) {
+      return;
+    }
+
+    try {
+      $room_session = $this->chatSessionManager->ensureRoomSession($campaign_id, $dungeon_id, $room_id);
+
+      // Post the GM narrative to the room session.
+      $this->chatSessionManager->postMessage(
+        (int) $room_session['id'],
+        $campaign_id,
+        'Game Master',
+        'gm',
+        '',
+        $narrative,
+        'narrative',
+        'public',
+        [
+          'actions' => array_map(fn($a) => ['type' => $a['type'] ?? '', 'name' => $a['name'] ?? ''], $actions),
+          'dice_rolls' => $dice_rolls,
+        ],
+        TRUE // feed up to dungeon + campaign
+      );
+
+      // If there were mechanical actions, also log to system log.
+      if (!empty($actions) || !empty($dice_rolls)) {
+        $sys_key = $this->chatSessionManager->systemLogSessionKey($campaign_id);
+        $sys_session = $this->chatSessionManager->loadSession($sys_key);
+        if ($sys_session) {
+          $mechanical_summary = [];
+          foreach ($actions as $a) {
+            $mechanical_summary[] = ($a['name'] ?? 'Unknown') . ' (' . ($a['type'] ?? '') . ')';
+          }
+          foreach ($dice_rolls as $roll) {
+            $label = $roll['label'] ?? 'Roll';
+            $total = $roll['total'] ?? '?';
+            $mechanical_summary[] = "{$label}: {$total}";
+          }
+          $this->chatSessionManager->postMessage(
+            (int) $sys_session['id'],
+            $campaign_id,
+            'System',
+            'system',
+            '',
+            implode('; ', $mechanical_summary),
+            'mechanical',
+            'public',
+            ['actions' => $actions, 'dice_rolls' => $dice_rolls],
+            FALSE
+          );
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Session bridge GM reply error: @msg', ['@msg' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Bridge a channel NPC reply into the session system.
+   */
+  protected function bridgeChannelReplyToSessionSystem(
+    int $campaign_id,
+    string $room_id,
+    string $channel_key,
+    string $npc_name,
+    string $npc_entity_ref,
+    string $response_text
+  ): void {
+    if ($this->chatSessionManager === NULL) {
+      return;
+    }
+
+    try {
+      // Parse channel type from key (whisper:entity → whisper session, spell:spell_key:target → spell session).
+      $parts = explode(':', $channel_key);
+      $channel_type = $parts[0] ?? 'whisper';
+
+      $session = NULL;
+      if ($channel_type === 'whisper') {
+        $entity_ref = $parts[1] ?? $npc_entity_ref;
+        $key = $this->chatSessionManager->whisperSessionKey($campaign_id, $entity_ref);
+        $session = $this->chatSessionManager->loadSession($key);
+        if (!$session) {
+          $root = $this->chatSessionManager->loadSession(
+            $this->chatSessionManager->campaignSessionKey($campaign_id)
+          );
+          $session = $this->chatSessionManager->getOrCreateSession(
+            $campaign_id,
+            'whisper',
+            $key,
+            "Whisper: {$npc_name}",
+            $entity_ref,
+            $root ? (int) $root['id'] : NULL,
+            ['target_entity' => $npc_entity_ref, 'target_name' => $npc_name]
+          );
+        }
+      }
+      elseif ($channel_type === 'spell') {
+        $spell_key = $parts[1] ?? 'generic';
+        $target_ref = $parts[2] ?? $npc_entity_ref;
+        $key = $this->chatSessionManager->spellSessionKey($campaign_id, $spell_key, $target_ref);
+        $session = $this->chatSessionManager->loadSession($key);
+        if (!$session) {
+          $root = $this->chatSessionManager->loadSession(
+            $this->chatSessionManager->campaignSessionKey($campaign_id)
+          );
+          $session = $this->chatSessionManager->getOrCreateSession(
+            $campaign_id,
+            'spell',
+            $key,
+            "Spell: {$spell_key} → {$npc_name}",
+            $target_ref,
+            $root ? (int) $root['id'] : NULL,
+            ['spell_key' => $spell_key, 'target_entity' => $npc_entity_ref]
+          );
+        }
+      }
+
+      if ($session) {
+        $this->chatSessionManager->postMessage(
+          (int) $session['id'],
+          $campaign_id,
+          $npc_name,
+          'npc',
+          $npc_entity_ref,
+          $response_text,
+          'dialogue',
+          'private',
+          [],
+          TRUE // feed up to campaign root
+        );
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Session bridge channel reply error: @msg', ['@msg' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Bridge a private channel message (player side) into the session system.
+   */
+  protected function bridgeChannelMessageToSession(
+    int $campaign_id,
+    string $room_id,
+    string $channel_key,
+    string $speaker,
+    string $type,
+    ?int $character_id,
+    string $message
+  ): void {
+    if ($this->chatSessionManager === NULL) {
+      return;
+    }
+
+    try {
+      $parts = explode(':', $channel_key);
+      $channel_type = $parts[0] ?? 'whisper';
+
+      $session = NULL;
+      if ($channel_type === 'whisper') {
+        $entity_ref = $parts[1] ?? '';
+        $key = $this->chatSessionManager->whisperSessionKey($campaign_id, $entity_ref);
+        $session = $this->chatSessionManager->loadSession($key);
+      }
+      elseif ($channel_type === 'spell') {
+        $spell_key = $parts[1] ?? 'generic';
+        $target_ref = $parts[2] ?? '';
+        $key = $this->chatSessionManager->spellSessionKey($campaign_id, $spell_key, $target_ref);
+        $session = $this->chatSessionManager->loadSession($key);
+      }
+
+      if ($session) {
+        $this->chatSessionManager->postMessage(
+          (int) $session['id'],
+          $campaign_id,
+          $speaker,
+          $type,
+          $character_id ? (string) $character_id : '',
+          $message,
+          'dialogue',
+          'private',
+          [],
+          TRUE
+        );
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Session bridge channel message error: @msg', ['@msg' => $e->getMessage()]);
+    }
+  }
+
+  /**
+   * Build the present_characters array from dungeon_data for NarrationEngine.
+   *
+   * Extracts PC + NPC entities in the current room and formats them into
+   * the shape expected by NarrationEngine::queueRoomEvent().
+   *
+   * @return array
+   *   Array of character descriptors for perception filtering.
+   */
+  protected function buildPresentCharactersFromDungeonData(
+    array $dungeon_data,
+    int|string $room_index,
+    int $campaign_id
+  ): array {
+    $characters = [];
+    $room = $dungeon_data['rooms'][$room_index] ?? [];
+
+    // PC characters in the room.
+    $pc_characters = $room['characters'] ?? [];
+    foreach ($pc_characters as $pc) {
+      $char_id = $pc['character_id'] ?? $pc['id'] ?? NULL;
+      if ($char_id === NULL) {
+        continue;
+      }
+      $characters[] = [
+        'character_id' => $char_id,
+        'name' => $pc['name'] ?? $pc['display_name'] ?? 'Unknown',
+        'perception' => $pc['perception'] ?? ($pc['stats']['perception'] ?? 0),
+        'languages' => $pc['languages'] ?? ['Common'],
+        'senses' => $pc['senses'] ?? [],
+        'conditions' => $pc['conditions'] ?? [],
+        'position' => $pc['position'] ?? NULL,
+      ];
+    }
+
+    // NPC entities in the room.
+    $entities = $room['entities'] ?? [];
+    foreach ($entities as $ent) {
+      $ent_ref = $ent['entity_ref']['content_id'] ?? $ent['entity_ref'] ?? '';
+      $meta = $ent['state']['metadata'] ?? [];
+      $stats = $meta['stats'] ?? [];
+
+      $characters[] = [
+        'character_id' => $ent['entity_instance_id'] ?? $ent_ref,
+        'name' => $meta['display_name'] ?? $ent['name'] ?? 'Unknown Entity',
+        'perception' => $stats['perception'] ?? 0,
+        'languages' => $ent['languages'] ?? ['Common'],
+        'senses' => $ent['senses'] ?? [],
+        'conditions' => $ent['conditions'] ?? ($meta['conditions'] ?? []),
+        'position' => $ent['position'] ?? NULL,
+      ];
+    }
+
+    return $characters;
+  }
+
+  // =========================================================================
+  // Validation and sanitization.
+  // =========================================================================
 
   /**
    * Validate message content.

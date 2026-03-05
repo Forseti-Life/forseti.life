@@ -536,6 +536,129 @@ dungeoncrawler_content.api.room_channels_close:
   options:
     _format: json
 
+# ---------------------------------------------------------------------------
+# Chat Session API — Hierarchical session system (dc_chat_sessions / messages)
+# ---------------------------------------------------------------------------
+
+dungeoncrawler_content.api.sessions_list:
+  path: '/api/campaign/{campaign_id}/sessions'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::listSessions'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.session_messages_get:
+  path: '/api/campaign/{campaign_id}/sessions/{session_id}/messages'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::getSessionMessages'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.session_messages_post:
+  path: '/api/campaign/{campaign_id}/sessions/{session_id}/messages'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::postSessionMessage'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    session_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_narrative:
+  path: '/api/campaign/{campaign_id}/narrative/{character_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::getCharacterNarrative'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.party_chat_get:
+  path: '/api/campaign/{campaign_id}/party-chat'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::getPartyChat'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.party_chat_post:
+  path: '/api/campaign/{campaign_id}/party-chat'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::postPartyChat'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm_private_get:
+  path: '/api/campaign/{campaign_id}/gm-private/{character_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::getGmPrivate'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.gm_private_post:
+  path: '/api/campaign/{campaign_id}/gm-private/{character_id}'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::postGmPrivate'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.system_log:
+  path: '/api/campaign/{campaign_id}/system-log'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::getSystemLog'
+  methods: [GET]
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.narration_flush:
+  path: '/api/campaign/{campaign_id}/narration/flush'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\ChatSessionController::flushNarration'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+  options:
+    _format: json
+
 dungeoncrawler_content.api.character_summary:
   path: '/api/character/{character_id}/summary'
   defaults:

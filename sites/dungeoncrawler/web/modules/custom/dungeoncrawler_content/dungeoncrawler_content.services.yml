@@ -222,7 +222,19 @@ services:
 
   dungeoncrawler_content.room_chat_service:
     class: Drupal\dungeoncrawler_content\Service\RoomChatService
-    arguments: ['@database', '@dungeoncrawler_content.dungeon_state_service', '@logger.factory', '@current_user', '@ai_conversation.ai_api_service', '@ai_conversation.prompt_manager', '@dungeoncrawler_content.gameplay_action_processor', '@dungeoncrawler_content.ai_session_manager', '@dungeoncrawler_content.chat_channel_manager', '@dungeoncrawler_content.npc_psychology_service']
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.dungeon_state_service'
+      - '@logger.factory'
+      - '@current_user'
+      - '@ai_conversation.ai_api_service'
+      - '@ai_conversation.prompt_manager'
+      - '@dungeoncrawler_content.gameplay_action_processor'
+      - '@dungeoncrawler_content.ai_session_manager'
+      - '@dungeoncrawler_content.chat_channel_manager'
+      - '@dungeoncrawler_content.npc_psychology_service'
+      - '@dungeoncrawler_content.narration_engine'
+      - '@dungeoncrawler_content.chat_session_manager'
 
   dungeoncrawler_content.campaign_initialization:
     class: Drupal\dungeoncrawler_content\Service\CampaignInitializationService
