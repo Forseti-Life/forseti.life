@@ -928,12 +928,44 @@ INSTRUCTIONS;
       'active_effects' => [],
     ];
 
+    // Resolve the DB room_id slug. The caller may pass a dungeon_data UUID
+    // (e.g. "7f2f1051-...") while dc_campaign_rooms stores a slug
+    // (e.g. "tavern_entrance"). Try the exact value first, then fall back to
+    // matching by campaign + room name.
+    $db_room_id = $room_id;
+    try {
+      $exists = $this->database->select('dc_campaign_rooms', 'r')
+        ->fields('r', ['room_id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('room_id', $room_id)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($exists === FALSE && !empty($room_meta['name'])) {
+        // UUID didn't match — try by room name.
+        $slug = $this->database->select('dc_campaign_rooms', 'r')
+          ->fields('r', ['room_id'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('name', $room_meta['name'])
+          ->range(0, 1)
+          ->execute()
+          ->fetchField();
+        if ($slug !== FALSE) {
+          $db_room_id = $slug;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Proceed with original room_id.
+    }
+
     // 1. Environment tags from static room definition.
     try {
       $room_row = $this->database->select('dc_campaign_rooms', 'r')
         ->fields('r', ['environment_tags', 'contents_data'])
         ->condition('campaign_id', $campaign_id)
-        ->condition('room_id', $room_id)
+        ->condition('room_id', $db_room_id)
         ->range(0, 1)
         ->execute()
         ->fetchAssoc();
@@ -946,16 +978,19 @@ INSTRUCTIONS;
 
         // Static contents_data (placed objects from room JSON).
         $static_contents = json_decode($room_row['contents_data'] ?? '', TRUE);
+        $static_npc_names = [];
         if (is_array($static_contents)) {
           // Static NPCs.
           foreach ($static_contents['npcs'] ?? [] as $npc) {
+            $npc_name = $npc['name'] ?? 'Unknown NPC';
             $inventory['npcs'][] = [
-              'name' => $npc['name'] ?? 'Unknown NPC',
+              'name' => $npc_name,
               'type' => $npc['type'] ?? '',
               'role' => $npc['role'] ?? 'neutral',
               'description' => $npc['description'] ?? '',
               'hp_status' => '',
             ];
+            $static_npc_names[] = $npc_name;
           }
           // Static items (placed in the room definition).
           foreach ($static_contents['items'] ?? [] as $item) {
@@ -982,7 +1017,8 @@ INSTRUCTIONS;
 
     // 2. Runtime entities from dungeon_data (live state - overrides/enriches static data).
     $entities = $room_meta['entities'] ?? [];
-    $seen_names = [];
+    $runtime_entity_names = [];
+    $all_known_names = $static_npc_names ?? [];
 
     foreach ($entities as $entity) {
       $name = $entity['state']['metadata']['display_name']
@@ -1038,7 +1074,8 @@ INSTRUCTIONS;
             $npc_entry['conditions'] = $cond_str;
           }
           $inventory['npcs'][] = $npc_entry;
-          $seen_names[] = $name;
+          $runtime_entity_names[] = $name;
+          $all_known_names[] = $name;
           break;
 
         case 'obstacle':
@@ -1047,7 +1084,8 @@ INSTRUCTIONS;
             'description' => $description,
             'impassable' => !empty($entity['impassable']),
           ];
-          $seen_names[] = $name;
+          $runtime_entity_names[] = $name;
+          $all_known_names[] = $name;
           break;
 
         case 'hazard':
@@ -1056,7 +1094,8 @@ INSTRUCTIONS;
             'description' => $description,
             'detected' => $is_detected,
           ];
-          $seen_names[] = $name;
+          $runtime_entity_names[] = $name;
+          $all_known_names[] = $name;
           break;
 
         case 'trap':
@@ -1066,23 +1105,21 @@ INSTRUCTIONS;
               'name' => $name,
               'description' => $description,
             ];
-            $seen_names[] = $name;
+            $runtime_entity_names[] = $name;
+            $all_known_names[] = $name;
           }
           break;
       }
     }
 
-    // Deduplicate: remove static NPCs/obstacles that are also in the runtime entities.
-    if (!empty($seen_names)) {
-      $inventory['npcs'] = array_values(array_filter($inventory['npcs'], function ($npc) use ($seen_names) {
-        // Keep runtime entries; remove static duplicates.
-        static $idx = 0;
-        $idx++;
-        // Static entries were added first, so if we've seen this name in runtime, skip the static copy.
-        return !in_array($npc['name'], $seen_names, TRUE) || !empty($npc['hp_status']) || !empty($npc['conditions']);
+    // Deduplicate: remove static NPCs/obstacles that are also in the runtime dungeon_data entities.
+    if (!empty($runtime_entity_names)) {
+      $inventory['npcs'] = array_values(array_filter($inventory['npcs'], function ($npc) use ($runtime_entity_names) {
+        // Keep runtime entries; remove static duplicates only when dungeon_data has a replacement.
+        return !in_array($npc['name'], $runtime_entity_names, TRUE) || !empty($npc['hp_status']) || !empty($npc['conditions']);
       }));
-      $inventory['obstacles'] = array_values(array_filter($inventory['obstacles'], function ($obj) use ($seen_names) {
-        return !in_array($obj['name'], $seen_names, TRUE);
+      $inventory['obstacles'] = array_values(array_filter($inventory['obstacles'], function ($obj) use ($runtime_entity_names) {
+        return !in_array($obj['name'], $runtime_entity_names, TRUE);
       }));
     }
 
@@ -1092,15 +1129,15 @@ INSTRUCTIONS;
         ->fields('e', ['name', 'type', 'state_data', 'character_data'])
         ->condition('campaign_id', $campaign_id)
         ->condition('location_type', 'room')
-        ->condition('location_ref', $room_id)
+        ->condition('location_ref', $db_room_id)
         ->execute()
         ->fetchAll();
 
       foreach ($entity_rows as $row) {
         $ename = $row->name ?? 'Unknown';
         $etype = $row->type ?? 'npc';
-        // Skip if we already have this entity from dungeon_data.
-        if (in_array($ename, $seen_names, TRUE)) {
+        // Skip if we already have this entity from contents_data or dungeon_data.
+        if (in_array($ename, $all_known_names, TRUE)) {
           continue;
         }
 
@@ -1161,7 +1198,7 @@ INSTRUCTIONS;
         ->fields('i', ['item_id', 'item_instance_id', 'quantity', 'state_data'])
         ->condition('campaign_id', $campaign_id)
         ->condition('location_type', 'room')
-        ->condition('location_ref', $room_id)
+        ->condition('location_ref', $db_room_id)
         ->execute()
         ->fetchAll();
 
