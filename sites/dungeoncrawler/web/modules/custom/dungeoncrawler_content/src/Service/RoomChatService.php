@@ -327,6 +327,22 @@ class RoomChatService {
       $scene_parts[] = 'Room description: ' . $room_meta['description'];
     }
 
+    // Add brief room inventory summary to user prompt context.
+    $entities = $room_meta['entities'] ?? [];
+    $entity_names = [];
+    foreach (array_slice($entities, 0, 10) as $ent) {
+      $ename = $ent['state']['metadata']['display_name']
+        ?? $ent['name']
+        ?? NULL;
+      if ($ename) {
+        $etype = $ent['type'] ?? 'npc';
+        $entity_names[] = "{$ename} ({$etype})";
+      }
+    }
+    if (!empty($entity_names)) {
+      $scene_parts[] = 'Beings/objects present: ' . implode(', ', $entity_names);
+    }
+
     // Build the user prompt from recent chat history (last 10 messages).
     $recent = array_slice($chat, -10);
     $history_lines = [];
@@ -356,6 +372,11 @@ class RoomChatService {
     $base_system_prompt = $this->promptManager->getBaseSystemPrompt();
     $system_prompt = $base_system_prompt;
 
+    // Build full room inventory for GM awareness.
+    $room_inventory = $this->actionProcessor->buildRoomInventory(
+      $campaign_id, $room_id, $room_meta, $dungeon_data
+    );
+
     $char_data = NULL;
     if ($character_id) {
       $char_data = $this->actionProcessor->loadCharacterData($character_id);
@@ -363,7 +384,8 @@ class RoomChatService {
         $system_prompt = $this->actionProcessor->buildEnhancedSystemPrompt(
           $base_system_prompt,
           $char_data,
-          $room_meta
+          $room_meta,
+          $room_inventory
         );
       }
     }

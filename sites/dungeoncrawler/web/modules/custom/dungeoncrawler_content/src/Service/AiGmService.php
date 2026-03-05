@@ -101,6 +101,9 @@ class AiGmService {
         'terrain' => $room['terrain'] ?? 'stone',
         'entity_count' => count($room['entities'] ?? []),
         'entity_names' => $this->extractEntityNames($room['entities'] ?? []),
+        'entity_details' => $this->extractEntityDetails($room['entities'] ?? []),
+        'environment_tags' => $room['environment_tags'] ?? [],
+        'active_effects' => $room['gameplay_state']['active_effects'] ?? [],
       ],
       'first_visit' => $first_visit,
       'recent_events' => $this->getRecentEventSummary($dungeon_data, 5),
@@ -628,6 +631,70 @@ class AiGmService {
       }
     }
     return array_slice($names, 0, 10); // Cap at 10 for prompt size.
+  }
+
+  /**
+   * Extract detailed entity information for richer narration context.
+   *
+   * Returns type, role, description snippet, and condition for each visible
+   * entity so the GM can weave them into atmospheric descriptions.
+   */
+  protected function extractEntityDetails(array $entities): array {
+    $details = [];
+    foreach (array_slice($entities, 0, 15) as $entity) {
+      $name = $entity['state']['metadata']['display_name']
+        ?? $entity['name']
+        ?? $entity['label']
+        ?? 'Unknown';
+      $type = $entity['type'] ?? ($entity['entity_ref']['type'] ?? 'npc');
+      $description = $entity['description']
+        ?? $entity['state']['metadata']['description']
+        ?? '';
+      $role = $entity['role'] ?? ($entity['state']['metadata']['role'] ?? '');
+
+      // Skip hidden/undetected.
+      $is_hidden = !empty($entity['hidden']) || !empty($entity['state']['hidden']);
+      $is_detected = !empty($entity['detected']) || !empty($entity['state']['detected']);
+      if ($is_hidden && !$is_detected) {
+        continue;
+      }
+      // Traps only shown if detected.
+      if ($type === 'trap' && !$is_detected) {
+        continue;
+      }
+
+      $detail = [
+        'name' => $name,
+        'type' => $type,
+      ];
+      if ($role) {
+        $detail['role'] = $role;
+      }
+      if ($description) {
+        $detail['description'] = substr($description, 0, 120);
+      }
+
+      // HP hint for creatures.
+      $stats = $entity['state']['metadata']['stats'] ?? $entity['stats'] ?? [];
+      if (!empty($stats['hp_current']) && !empty($stats['hp_max'])) {
+        $pct = round(($stats['hp_current'] / $stats['hp_max']) * 100);
+        if ($pct >= 75) {
+          $detail['condition'] = 'healthy';
+        }
+        elseif ($pct >= 50) {
+          $detail['condition'] = 'hurt';
+        }
+        elseif ($pct >= 25) {
+          $detail['condition'] = 'bloodied';
+        }
+        else {
+          $detail['condition'] = 'near death';
+        }
+      }
+
+      $details[] = $detail;
+    }
+    return $details;
   }
 
   /**

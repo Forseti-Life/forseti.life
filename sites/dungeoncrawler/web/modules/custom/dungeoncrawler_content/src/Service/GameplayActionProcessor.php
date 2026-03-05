@@ -46,7 +46,7 @@ class GameplayActionProcessor {
    * @return string
    *   Enhanced system prompt with mechanical instructions.
    */
-  public function buildEnhancedSystemPrompt(string $base_system_prompt, array $character_data, array $room_meta): string {
+  public function buildEnhancedSystemPrompt(string $base_system_prompt, array $character_data, array $room_meta, array $room_inventory = []): string {
     $char_name = $character_data['name'] ?? 'the character';
     $char_class = $character_data['class'] ?? 'unknown';
     $char_level = $character_data['level'] ?? 1;
@@ -159,9 +159,8 @@ class GameplayActionProcessor {
       $room_terrain = $room_terrain['type'] ?? 'normal';
     }
 
-    // Entities in the room
-    $entities_in_room = [];
-    // We'll receive entities matching this room from the caller
+    // Room inventory from caller (entities, items, environment, effects).
+    $room_inventory_data = $room_inventory;
 
     $enhanced = $base_system_prompt . "\n\n";
     $enhanced .= "=== ACTIVE CHARACTER ===\n";
@@ -192,6 +191,110 @@ class GameplayActionProcessor {
       $enhanced .= "Description: {$room_desc}\n";
     }
     $enhanced .= "Lighting: {$room_lighting} | Terrain: {$room_terrain}\n";
+
+    // Environment tags.
+    $env_tags = $room_inventory_data['environment_tags'] ?? [];
+    if (!empty($env_tags)) {
+      $enhanced .= "Environment: " . implode(', ', $env_tags) . "\n";
+    }
+
+    // NPCs present.
+    $npcs = $room_inventory_data['npcs'] ?? [];
+    if (!empty($npcs)) {
+      $enhanced .= "\nNPCs present:\n";
+      foreach ($npcs as $npc) {
+        $npc_line = "  - {$npc['name']}";
+        if (!empty($npc['type'])) {
+          $npc_line .= " ({$npc['type']})";
+        }
+        if (!empty($npc['role'])) {
+          $npc_line .= " [" . $npc['role'] . "]";
+        }
+        if (!empty($npc['hp_status'])) {
+          $npc_line .= " - HP: " . $npc['hp_status'];
+        }
+        if (!empty($npc['description'])) {
+          $npc_line .= " — " . substr($npc['description'], 0, 120);
+        }
+        $enhanced .= $npc_line . "\n";
+      }
+    }
+
+    // Obstacles / furniture / environmental objects.
+    $obstacles = $room_inventory_data['obstacles'] ?? [];
+    if (!empty($obstacles)) {
+      $enhanced .= "\nObstacles/objects:\n";
+      foreach ($obstacles as $obj) {
+        $obj_line = "  - {$obj['name']}";
+        if (!empty($obj['description'])) {
+          $obj_line .= " — " . substr($obj['description'], 0, 100);
+        }
+        if (!empty($obj['impassable'])) {
+          $obj_line .= " [impassable]";
+        }
+        $enhanced .= $obj_line . "\n";
+      }
+    }
+
+    // Hazards.
+    $hazards = $room_inventory_data['hazards'] ?? [];
+    if (!empty($hazards)) {
+      $enhanced .= "\nHazards:\n";
+      foreach ($hazards as $hazard) {
+        $h_line = "  - {$hazard['name']}";
+        if (!empty($hazard['description'])) {
+          $h_line .= " — " . substr($hazard['description'], 0, 100);
+        }
+        if (!empty($hazard['detected'])) {
+          $h_line .= " [detected]";
+        }
+        $enhanced .= $h_line . "\n";
+      }
+    }
+
+    // Detected traps.
+    $traps = $room_inventory_data['traps'] ?? [];
+    if (!empty($traps)) {
+      $enhanced .= "\nDetected traps:\n";
+      foreach ($traps as $trap) {
+        $t_line = "  - {$trap['name']}";
+        if (!empty($trap['description'])) {
+          $t_line .= " — " . substr($trap['description'], 0, 100);
+        }
+        $enhanced .= $t_line . "\n";
+      }
+    }
+
+    // Items on the ground / loot.
+    $ground_items = $room_inventory_data['items'] ?? [];
+    if (!empty($ground_items)) {
+      $enhanced .= "\nItems in room:\n";
+      foreach ($ground_items as $item) {
+        $i_line = "  - {$item['name']}";
+        if (!empty($item['quantity']) && $item['quantity'] > 1) {
+          $i_line .= " (x{$item['quantity']})";
+        }
+        if (!empty($item['description'])) {
+          $i_line .= " — " . substr($item['description'], 0, 80);
+        }
+        $enhanced .= $i_line . "\n";
+      }
+    }
+
+    // Active room effects (spells, environmental hazards, etc.).
+    $active_effects = $room_inventory_data['active_effects'] ?? [];
+    if (!empty($active_effects)) {
+      $enhanced .= "\nActive effects:\n";
+      foreach ($active_effects as $effect) {
+        $eff_name = is_array($effect) ? ($effect['name'] ?? 'Unknown') : $effect;
+        $eff_desc = is_array($effect) ? ($effect['description'] ?? '') : '';
+        $eff_line = "  - {$eff_name}";
+        if ($eff_desc) {
+          $eff_line .= " — " . substr($eff_desc, 0, 80);
+        }
+        $enhanced .= $eff_line . "\n";
+      }
+    }
 
     $enhanced .= <<<'INSTRUCTIONS'
 
@@ -773,6 +876,326 @@ INSTRUCTIONS;
     }
 
     return $summary;
+  }
+
+  /**
+   * Build full room inventory context for the GM system prompt.
+   *
+   * Collects NPCs, obstacles, hazards, traps, items on the ground,
+   * environment tags, and active effects from dungeon_data and DB.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room ID within the dungeon.
+   * @param array $room_meta
+   *   Room metadata from dungeon_data['rooms'][$index].
+   * @param array $dungeon_data
+   *   Full dungeon_data payload.
+   *
+   * @return array
+   *   Structured room inventory:
+   *   - environment_tags: string[]
+   *   - npcs: array[]
+   *   - obstacles: array[]
+   *   - hazards: array[]
+   *   - traps: array[] (only detected ones)
+   *   - items: array[]
+   *   - active_effects: array[]
+   */
+  public function buildRoomInventory(int $campaign_id, string $room_id, array $room_meta, array $dungeon_data): array {
+    $inventory = [
+      'environment_tags' => [],
+      'npcs' => [],
+      'obstacles' => [],
+      'hazards' => [],
+      'traps' => [],
+      'items' => [],
+      'active_effects' => [],
+    ];
+
+    // 1. Environment tags from static room definition.
+    try {
+      $room_row = $this->database->select('dc_campaign_rooms', 'r')
+        ->fields('r', ['environment_tags', 'contents_data'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('room_id', $room_id)
+        ->range(0, 1)
+        ->execute()
+        ->fetchAssoc();
+
+      if ($room_row) {
+        $env_tags = json_decode($room_row['environment_tags'] ?? '', TRUE);
+        if (is_array($env_tags)) {
+          $inventory['environment_tags'] = $env_tags;
+        }
+
+        // Static contents_data (placed objects from room JSON).
+        $static_contents = json_decode($room_row['contents_data'] ?? '', TRUE);
+        if (is_array($static_contents)) {
+          // Static NPCs.
+          foreach ($static_contents['npcs'] ?? [] as $npc) {
+            $inventory['npcs'][] = [
+              'name' => $npc['name'] ?? 'Unknown NPC',
+              'type' => $npc['type'] ?? '',
+              'role' => $npc['role'] ?? 'neutral',
+              'description' => $npc['description'] ?? '',
+              'hp_status' => '',
+            ];
+          }
+          // Static items (placed in the room definition).
+          foreach ($static_contents['items'] ?? [] as $item) {
+            $inventory['items'][] = [
+              'name' => $item['name'] ?? 'Unknown Item',
+              'description' => $item['description'] ?? '',
+              'quantity' => 1,
+            ];
+          }
+          // Static obstacles.
+          foreach ($static_contents['obstacles'] ?? [] as $obs) {
+            $inventory['obstacles'][] = [
+              'name' => $obs['name'] ?? 'Unknown Object',
+              'description' => $obs['description'] ?? '',
+              'impassable' => !empty($obs['impassable']),
+            ];
+          }
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to load static room data for inventory: @error', ['@error' => $e->getMessage()]);
+    }
+
+    // 2. Runtime entities from dungeon_data (live state - overrides/enriches static data).
+    $entities = $room_meta['entities'] ?? [];
+    $seen_names = [];
+
+    foreach ($entities as $entity) {
+      $name = $entity['state']['metadata']['display_name']
+        ?? $entity['name']
+        ?? 'Unknown';
+      $type = $entity['type'] ?? ($entity['entity_ref']['type'] ?? 'npc');
+      $description = $entity['description']
+        ?? $entity['state']['metadata']['description']
+        ?? '';
+      $role = $entity['role'] ?? ($entity['state']['metadata']['role'] ?? '');
+      $is_hidden = !empty($entity['hidden']) || !empty($entity['state']['hidden']);
+      $is_detected = !empty($entity['detected']) || !empty($entity['state']['detected']);
+
+      // Skip completely hidden entities the party hasn't detected.
+      if ($is_hidden && !$is_detected) {
+        continue;
+      }
+
+      // HP status for encountered creatures.
+      $hp_status = '';
+      $stats = $entity['state']['metadata']['stats'] ?? $entity['stats'] ?? [];
+      if (!empty($stats['hp_current']) && !empty($stats['hp_max'])) {
+        $pct = round(($stats['hp_current'] / $stats['hp_max']) * 100);
+        if ($pct >= 75) {
+          $hp_status = 'healthy';
+        }
+        elseif ($pct >= 50) {
+          $hp_status = 'hurt';
+        }
+        elseif ($pct >= 25) {
+          $hp_status = 'bloodied';
+        }
+        else {
+          $hp_status = 'near death';
+        }
+      }
+
+      // Conditions on this entity.
+      $conditions = $entity['state']['conditions'] ?? [];
+      $cond_str = !empty($conditions) ? implode(', ', $conditions) : '';
+
+      switch ($type) {
+        case 'npc':
+        case 'creature':
+          $npc_entry = [
+            'name' => $name,
+            'type' => $entity['entity_ref']['content_id'] ?? $type,
+            'role' => $role,
+            'description' => $description,
+            'hp_status' => $hp_status,
+          ];
+          if ($cond_str) {
+            $npc_entry['conditions'] = $cond_str;
+          }
+          $inventory['npcs'][] = $npc_entry;
+          $seen_names[] = $name;
+          break;
+
+        case 'obstacle':
+          $inventory['obstacles'][] = [
+            'name' => $name,
+            'description' => $description,
+            'impassable' => !empty($entity['impassable']),
+          ];
+          $seen_names[] = $name;
+          break;
+
+        case 'hazard':
+          $inventory['hazards'][] = [
+            'name' => $name,
+            'description' => $description,
+            'detected' => $is_detected,
+          ];
+          $seen_names[] = $name;
+          break;
+
+        case 'trap':
+          // Only include detected traps.
+          if ($is_detected) {
+            $inventory['traps'][] = [
+              'name' => $name,
+              'description' => $description,
+            ];
+            $seen_names[] = $name;
+          }
+          break;
+      }
+    }
+
+    // Deduplicate: remove static NPCs/obstacles that are also in the runtime entities.
+    if (!empty($seen_names)) {
+      $inventory['npcs'] = array_values(array_filter($inventory['npcs'], function ($npc) use ($seen_names) {
+        // Keep runtime entries; remove static duplicates.
+        static $idx = 0;
+        $idx++;
+        // Static entries were added first, so if we've seen this name in runtime, skip the static copy.
+        return !in_array($npc['name'], $seen_names, TRUE) || !empty($npc['hp_status']) || !empty($npc['conditions']);
+      }));
+      $inventory['obstacles'] = array_values(array_filter($inventory['obstacles'], function ($obj) use ($seen_names) {
+        return !in_array($obj['name'], $seen_names, TRUE);
+      }));
+    }
+
+    // 3. Runtime entity instances from dc_campaign_characters (NPC/hazard/trap records).
+    try {
+      $entity_rows = $this->database->select('dc_campaign_characters', 'e')
+        ->fields('e', ['name', 'type', 'state_data', 'character_data'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('location_type', 'room')
+        ->condition('location_ref', $room_id)
+        ->execute()
+        ->fetchAll();
+
+      foreach ($entity_rows as $row) {
+        $ename = $row->name ?? 'Unknown';
+        $etype = $row->type ?? 'npc';
+        // Skip if we already have this entity from dungeon_data.
+        if (in_array($ename, $seen_names, TRUE)) {
+          continue;
+        }
+
+        $estate = json_decode($row->state_data ?? '{}', TRUE) ?: [];
+        $echar = json_decode($row->character_data ?? '{}', TRUE) ?: [];
+        $is_hidden = !empty($estate['hidden']);
+        $is_detected = !empty($estate['detected']);
+
+        if ($is_hidden && !$is_detected) {
+          continue;
+        }
+
+        $edesc = $echar['description'] ?? ($estate['description'] ?? '');
+
+        switch ($etype) {
+          case 'npc':
+          case 'creature':
+            $inventory['npcs'][] = [
+              'name' => $ename,
+              'type' => $etype,
+              'role' => $echar['role'] ?? 'neutral',
+              'description' => $edesc,
+              'hp_status' => '',
+            ];
+            break;
+          case 'hazard':
+            $inventory['hazards'][] = [
+              'name' => $ename,
+              'description' => $edesc,
+              'detected' => $is_detected,
+            ];
+            break;
+          case 'trap':
+            if ($is_detected) {
+              $inventory['traps'][] = [
+                'name' => $ename,
+                'description' => $edesc,
+              ];
+            }
+            break;
+          case 'obstacle':
+            $inventory['obstacles'][] = [
+              'name' => $ename,
+              'description' => $edesc,
+              'impassable' => !empty($estate['impassable']),
+            ];
+            break;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to load entity instances for room inventory: @error', ['@error' => $e->getMessage()]);
+    }
+
+    // 4. Items on the ground from dc_campaign_item_instances.
+    try {
+      $item_rows = $this->database->select('dc_campaign_item_instances', 'i')
+        ->fields('i', ['item_id', 'item_instance_id', 'quantity', 'state_data'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('location_type', 'room')
+        ->condition('location_ref', $room_id)
+        ->execute()
+        ->fetchAll();
+
+      foreach ($item_rows as $irow) {
+        $istate = json_decode($irow->state_data ?? '{}', TRUE) ?: [];
+        $iname = $istate['name'] ?? $irow->item_id;
+        $idesc = $istate['description'] ?? '';
+
+        // Try to resolve the display name from the content registry if not in state_data.
+        if ($iname === $irow->item_id) {
+          try {
+            $registry = $this->database->select('dc_campaign_content_registry', 'cr')
+              ->fields('cr', ['schema_data'])
+              ->condition('content_id', $irow->item_id)
+              ->condition('content_type', 'item')
+              ->range(0, 1)
+              ->execute()
+              ->fetchField();
+
+            if ($registry) {
+              $schema = json_decode($registry, TRUE) ?: [];
+              $iname = $schema['name'] ?? $irow->item_id;
+              if (!$idesc) {
+                $idesc = $schema['description'] ?? '';
+              }
+            }
+          }
+          catch (\Exception $e) {
+            // Swallow — name will remain item_id.
+          }
+        }
+
+        $inventory['items'][] = [
+          'name' => $iname,
+          'description' => $idesc,
+          'quantity' => (int) ($irow->quantity ?? 1),
+        ];
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to load item instances for room inventory: @error', ['@error' => $e->getMessage()]);
+    }
+
+    // 5. Active effects from gameplay_state.
+    $gameplay_state = $room_meta['gameplay_state'] ?? [];
+    $inventory['active_effects'] = $gameplay_state['active_effects'] ?? [];
+
+    return $inventory;
   }
 
 }

@@ -3738,17 +3738,27 @@ async function getInlineEducationRowKeys(page) {
         return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
       };
 
-      const candidates = Array.from(document.querySelectorAll('input[id*="education-"]')).filter((el) => {
+      const extractToken = (id) => {
+        const s = String(id || '');
+        if (!s || !s.includes('--')) return '';
+        const token = s.split('--')[0] || '';
+        if (!/education|school|institution|degree|graduation/i.test(s)) {
+          return '';
+        }
+        return token;
+      };
+
+      const candidates = Array.from(document.querySelectorAll('input, select, textarea')).filter((el) => {
         if (!isVisible(el)) return false;
         const id = String(el.id || '').toLowerCase();
-        return id.includes('school') || id.includes('institution') || id.includes('degree');
+        return id.includes('education') || id.includes('school') || id.includes('institution') || id.includes('degree') || id.includes('graduation');
       });
 
       const rows = [];
       for (const el of candidates) {
-        const m = String(el.id || '').match(/education-(\d+)--/i);
-        if (m) {
-          rows.push({ key: m[1], y: el.getBoundingClientRect().y });
+        const token = extractToken(el.id);
+        if (token) {
+          rows.push({ key: token, y: el.getBoundingClientRect().y });
         }
       }
 
@@ -3762,6 +3772,54 @@ async function getInlineEducationRowKeys(page) {
 }
 
 async function clickAddEducationRow(page) {
+  try {
+    const sectionScopedClicked = await page.evaluate(() => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const sections = Array.from(document.querySelectorAll('section, div, fieldset')).filter((el) => {
+        const txt = (el.innerText || '').toLowerCase();
+        return txt.includes('education');
+      });
+
+      for (const section of sections) {
+        const buttons = Array.from(section.querySelectorAll('button, [role="button"]')).filter(isVisible);
+        const add = buttons.find((el) => {
+          const t = ((el.textContent || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+          const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
+          return !disabled && t.includes('add');
+        });
+        if (add) {
+          add.click();
+          return true;
+        }
+      }
+      return false;
+    });
+    if (sectionScopedClicked) {
+      await humanDelay(180, 340);
+      const menuSelectors = [
+        'li[role="menuitem"]:has-text("Education")',
+        '[role="option"]:has-text("Education")',
+        '[data-automation-id="promptOption"]:has-text("Education")',
+      ];
+      for (const menuSel of menuSelectors) {
+        try {
+          const opt = page.locator(menuSel).first();
+          await opt.waitFor({ state: 'visible', timeout: 500 });
+          await opt.click({ timeout: 1000, force: true });
+          await humanDelay(220, 420);
+          break;
+        } catch (_) {}
+      }
+      return true;
+    }
+  } catch (_) {}
+
   const selectors = [
     '[data-automation-id*="education" i] button:has-text("Add")',
     'section:has-text("Education") button:has-text("Add")',
@@ -3861,6 +3919,24 @@ async function fillEducationByFieldNames(page, educationEntries) {
       const setInput = (el, val) => {
         if (!el || !isVisible(el)) return false;
         const text = String(val || '');
+        const tag = String(el.tagName || '').toLowerCase();
+
+        if (tag === 'select') {
+          try {
+            const options = Array.from(el.options || []);
+            const exact = options.find((o) => String(o.value || '').toLowerCase() === text.toLowerCase() || String(o.textContent || '').toLowerCase() === text.toLowerCase());
+            const partial = options.find((o) => String(o.textContent || '').toLowerCase().includes(text.toLowerCase()));
+            const picked = exact || partial;
+            if (picked) {
+              el.value = picked.value;
+              el.dispatchEvent(new Event('input', { bubbles: true }));
+              el.dispatchEvent(new Event('change', { bubbles: true }));
+              el.dispatchEvent(new Event('blur', { bubbles: true }));
+              return true;
+            }
+          } catch (_) {}
+        }
+
         el.focus();
         try {
           const proto = Object.getPrototypeOf(el);
@@ -3891,51 +3967,58 @@ async function fillEducationByFieldNames(page, educationEntries) {
         }
       };
 
-      const tryByIds = (ids, value) => {
-        for (const id of ids) {
-          const el = document.getElementById(id);
-          if (setInput(el, value)) {
-            return true;
-          }
+      const controlMeta = (el) => {
+        const id = String(el.id || '').toLowerCase();
+        const name = String(el.getAttribute('name') || '').toLowerCase();
+        const aria = String(el.getAttribute('aria-label') || '').toLowerCase();
+        const ph = String(el.getAttribute('placeholder') || '').toLowerCase();
+        return `${id} ${name} ${aria} ${ph}`;
+      };
+
+      const pickControl = (controls, regexes) => {
+        for (const re of regexes) {
+          const hit = controls.find((el) => re.test(controlMeta(el)));
+          if (hit) return hit;
         }
-        return false;
+        return null;
       };
 
       for (let idx = 0; idx < rowKeys.length && idx < entries.length; idx++) {
-        const key = rowKeys[idx];
+        const rowToken = rowKeys[idx];
         const e = entries[idx] || {};
+        const prefix = `${rowToken}--`;
+        const controls = Array.from(document.querySelectorAll(`input[id^="${prefix}"], select[id^="${prefix}"], textarea[id^="${prefix}"]`)).filter(isVisible);
+
+        const schoolControl = pickControl(controls, [/schoolname/i, /institutionname/i, /institution/i, /school/i]);
+        const degreeControl = pickControl(controls, [/degree/i, /fieldofstudy/i, /major/i]);
+        const endMonthControl = pickControl(controls, [/enddate.*month/i, /graduation.*month/i]);
+        const endYearControl = pickControl(controls, [/enddate.*year/i, /graduation.*year/i]);
+        const endDateSingle = pickControl(controls, [/enddate/i, /graduation/i]);
 
         if (e.school) {
-          const ok = tryByIds([
-            `education-${key}--schoolName`,
-            `education-${key}--institution`,
-            `education-${key}--institutionName`,
-          ], e.school);
+          const ok = setInput(schoolControl, e.school);
           if (ok) {
             filled.push(idx === 0 ? 'education_school' : `education_${idx + 1}_school`);
           }
         }
 
         if (e.degree) {
-          const ok = tryByIds([
-            `education-${key}--degree`,
-            `education-${key}--degreeName`,
-            `education-${key}--degreeType`,
-          ], e.degree);
+          const ok = setInput(degreeControl, e.degree);
           if (ok) {
             filled.push(idx === 0 ? 'education_degree' : `education_${idx + 1}_degree`);
           }
         }
 
         if (e.endMonth && e.endYear) {
-          const mOk = tryByIds([
-            `education-${key}--endDate-dateSectionMonth-input`,
-            `education-${key}--endDateMonth`,
-          ], e.endMonth);
-          const yOk = tryByIds([
-            `education-${key}--endDate-dateSectionYear-input`,
-            `education-${key}--endDateYear`,
-          ], e.endYear);
+          let mOk = false;
+          let yOk = false;
+          if (endMonthControl && endYearControl) {
+            mOk = setInput(endMonthControl, e.endMonth);
+            yOk = setInput(endYearControl, e.endYear);
+          } else if (endDateSingle) {
+            mOk = setInput(endDateSingle, `${e.endMonth}/${e.endYear}`);
+            yOk = mOk;
+          }
           if (mOk && yOk) {
             filled.push(idx === 0 ? 'education_end_date' : `education_${idx + 1}_end_date`);
           }
@@ -3944,6 +4027,147 @@ async function fillEducationByFieldNames(page, educationEntries) {
 
       return filled;
     }, { rowKeys, entries: enriched });
+  } catch (_) {
+    return [];
+  }
+}
+
+async function fillEducationEntryByVisibleControls(page, entry, index = 0) {
+  if (!entry || typeof entry !== 'object') {
+    return [];
+  }
+
+  const school = String(entry.school || '').trim();
+  const degree = String(entry.degree || '').trim();
+  const parsedEnd = normalizeMonthYear(entry.end_date || '');
+  const endMonth = parsedEnd?.month || '';
+  const endYear = parsedEnd?.year || (String(entry.end_date || '').match(/(\d{4})/)?.[1] || '');
+
+  try {
+    return await page.evaluate(({ school, degree, endMonth, endYear, index }) => {
+      const filled = [];
+      const tagPrefix = index <= 0 ? 'education' : `education_${index + 1}`;
+
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const controlMeta = (el) => {
+        const id = String(el.id || '').toLowerCase();
+        const name = String(el.getAttribute('name') || '').toLowerCase();
+        const aria = String(el.getAttribute('aria-label') || '').toLowerCase();
+        const ph = String(el.getAttribute('placeholder') || '').toLowerCase();
+        const label = (() => {
+          if (id) {
+            const l = document.querySelector(`label[for="${id}"]`);
+            if (l) return String(l.textContent || '').toLowerCase();
+          }
+          const parentLabel = el.closest('label');
+          if (parentLabel) return String(parentLabel.textContent || '').toLowerCase();
+          const c = el.closest('div, section, li, fieldset');
+          return String(c?.innerText || '').toLowerCase();
+        })();
+        return `${id} ${name} ${aria} ${ph} ${label}`;
+      };
+
+      const setValue = (el, val) => {
+        if (!el || !isVisible(el)) return false;
+        const text = String(val || '').trim();
+        if (!text) return false;
+        const tag = String(el.tagName || '').toLowerCase();
+
+        if (tag === 'select') {
+          try {
+            const options = Array.from(el.options || []);
+            const exact = options.find((o) => String(o.value || '').toLowerCase() === text.toLowerCase() || String(o.textContent || '').toLowerCase() === text.toLowerCase());
+            const partial = options.find((o) => String(o.textContent || '').toLowerCase().includes(text.toLowerCase()));
+            const picked = exact || partial;
+            if (!picked) return false;
+            el.value = picked.value;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            return true;
+          } catch (_) {
+            return false;
+          }
+        }
+
+        try {
+          el.focus();
+          const proto = Object.getPrototypeOf(el);
+          const desc = Object.getOwnPropertyDescriptor(proto, 'value')
+            || Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+            || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+          if (desc && typeof desc.set === 'function') {
+            desc.set.call(el, '');
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            desc.set.call(el, text);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            return true;
+          }
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.value = text;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+          return true;
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const allControls = Array.from(document.querySelectorAll('input, select, textarea')).filter(isVisible);
+      const eduControls = allControls.filter((el) => /education|school|institution|degree|major|field of study|graduation|end date/.test(controlMeta(el)));
+
+      const pickTarget = (regexes) => {
+        const matches = eduControls.filter((el) => regexes.some((rx) => rx.test(controlMeta(el))));
+        if (!matches.length) return null;
+        const empties = matches.filter((el) => String(el.value || '').trim() === '');
+        if (empties.length) {
+          return empties[Math.min(index, empties.length - 1)] || empties[empties.length - 1];
+        }
+        return matches[Math.min(index, matches.length - 1)] || matches[matches.length - 1];
+      };
+
+      if (school) {
+        const el = pickTarget([/schoolname/i, /institutionname/i, /institution/i, /school/i]);
+        if (setValue(el, school)) {
+          filled.push(`${tagPrefix}_school`);
+        }
+      }
+
+      if (degree) {
+        const el = pickTarget([/degree/i, /major/i, /fieldofstudy/i, /field of study/i]);
+        if (setValue(el, degree)) {
+          filled.push(`${tagPrefix}_degree`);
+        }
+      }
+
+      if (endMonth && endYear) {
+        const monthEl = pickTarget([/graduation.*month/i, /enddate.*month/i, /end date.*month/i]);
+        const yearEl = pickTarget([/graduation.*year/i, /enddate.*year/i, /end date.*year/i]);
+        let ok = false;
+        if (monthEl && yearEl) {
+          ok = setValue(monthEl, endMonth) && setValue(yearEl, endYear);
+        }
+        if (!ok) {
+          const single = pickTarget([/graduation/i, /enddate/i, /end date/i]);
+          ok = setValue(single, `${endMonth}/${endYear}`);
+        }
+        if (ok) {
+          filled.push(`${tagPrefix}_end_date`);
+        }
+      }
+
+      return filled;
+    }, { school, degree, endMonth, endYear, index });
   } catch (_) {
     return [];
   }
@@ -4619,14 +4843,14 @@ async function forceFillEducationFields(page, profile) {
     return { filled, skipped };
   }
 
-  let inlineEducationRowCount = await page.locator('input[id*="education-"]').count().catch(() => 0);
+  let inlineEducationRowCount = (await getInlineEducationRowKeys(page)).length;
   const wantedRows = Math.max(1, Math.min(3, educationEntries.length));
   if (inlineEducationRowCount === 0) {
     const opened = await clickAddEducationRow(page);
     if (opened) {
       await humanDelay(280, 520);
       filled.push('education_editor_opened');
-      inlineEducationRowCount = await page.locator('input[id*="education-"]').count().catch(() => 0);
+      inlineEducationRowCount = (await getInlineEducationRowKeys(page)).length;
     }
   }
 
@@ -4646,41 +4870,73 @@ async function forceFillEducationFields(page, profile) {
     }
   }
 
-  if (rowFilled.length === 0) {
-    const e0 = educationEntries[0] || {};
-    const e1 = educationEntries[1] || null;
-
-    const fillEduOne = async (entry, prefix = 'education') => {
-      if (!entry) return;
-      const school = String(entry.school || '').trim();
-      const degree = String(entry.degree || '').trim();
-      const endDate = String(entry.end_date || '').trim();
-
-      if (school) {
-        const ok = await answerQuestionByXPathContainer(page, 'school', school, `${prefix}_school`, 'text')
-          || await answerQuestionByXPathContainer(page, 'institution', school, `${prefix}_school`, 'text')
-          || await answerQuestionByDomFallback(page, 'School', school, `${prefix}_school`);
-        if (ok && !filled.includes(`${prefix}_school`)) filled.push(`${prefix}_school`);
+  for (let idx = 0; idx < educationEntries.length; idx++) {
+    if (idx > 0) {
+      await clickAddEducationRow(page);
+      await humanDelay(200, 420);
+    }
+    const controlFilled = await fillEducationEntryByVisibleControls(page, educationEntries[idx], idx);
+    for (const f of controlFilled) {
+      if (!filled.includes(f)) {
+        filled.push(f);
       }
-      if (degree) {
-        const ok = await answerQuestionByXPathContainer(page, 'degree', degree, `${prefix}_degree`, 'text')
-          || await answerQuestionByXPathContainer(page, 'field of study', degree, `${prefix}_degree`, 'text')
-          || await answerQuestionByDomFallback(page, 'Degree', degree, `${prefix}_degree`);
-        if (ok && !filled.includes(`${prefix}_degree`)) filled.push(`${prefix}_degree`);
-      }
-      if (endDate) {
-        const ok = await answerQuestionByXPathContainer(page, 'end date', endDate, `${prefix}_end_date`, 'text')
-          || await answerQuestionByXPathContainer(page, 'graduation', endDate, `${prefix}_end_date`, 'text')
-          || await answerQuestionByDomFallback(page, 'End Date', endDate, `${prefix}_end_date`);
-        if (ok && !filled.includes(`${prefix}_end_date`)) filled.push(`${prefix}_end_date`);
-      }
-    };
-
-    await fillEduOne(e0, 'education');
-    if (e1) {
-      await fillEduOne(e1, 'education_2');
     }
   }
+
+  const fillEduOne = async (entry, prefix = 'education') => {
+    if (!entry) return;
+    const school = String(entry.school || '').trim();
+    const degree = String(entry.degree || '').trim();
+    const endDate = String(entry.end_date || '').trim();
+
+    if (school && !filled.includes(`${prefix}_school`)) {
+      const ok = await answerQuestionByXPathContainer(page, 'school', school, `${prefix}_school`, 'text')
+        || await answerQuestionByXPathContainer(page, 'institution', school, `${prefix}_school`, 'text')
+        || await answerQuestionByDomFallback(page, 'School', school, `${prefix}_school`);
+      if (ok && !filled.includes(`${prefix}_school`)) filled.push(`${prefix}_school`);
+    }
+
+    if (degree && !filled.includes(`${prefix}_degree`)) {
+      const ok = await answerQuestionSmart(page, 'degree', degree, `${prefix}_degree`, 'dropdown')
+        || await answerQuestionSmart(page, 'field of study', degree, `${prefix}_degree`, 'dropdown')
+        || await answerQuestionSmart(page, 'major', degree, `${prefix}_degree`, 'dropdown')
+        || await answerQuestionByXPathContainer(page, 'degree', degree, `${prefix}_degree`, 'dropdown')
+        || await answerQuestionByXPathContainer(page, 'field of study', degree, `${prefix}_degree`, 'dropdown')
+        || await answerQuestionByXPathContainer(page, 'degree', degree, `${prefix}_degree`, 'text')
+        || await answerQuestionByXPathContainer(page, 'field of study', degree, `${prefix}_degree`, 'text')
+        || await answerQuestionByDomFallback(page, 'Degree', degree, `${prefix}_degree`);
+      if (ok && !filled.includes(`${prefix}_degree`)) filled.push(`${prefix}_degree`);
+    }
+
+    if (endDate && !filled.includes(`${prefix}_end_date`)) {
+      const parsed = normalizeMonthYear(endDate);
+      let ok = false;
+      if (parsed && parsed.month && parsed.year) {
+        const monthOk = await answerQuestionSmart(page, 'graduation month', parsed.month, `${prefix}_end_month`, 'text')
+          || await answerQuestionSmart(page, 'end month', parsed.month, `${prefix}_end_month`, 'text')
+          || await answerQuestionByXPathContainer(page, 'graduation month', parsed.month, `${prefix}_end_month`, 'text')
+          || await answerQuestionByXPathContainer(page, 'end month', parsed.month, `${prefix}_end_month`, 'text');
+        const yearOk = await answerQuestionSmart(page, 'graduation year', parsed.year, `${prefix}_end_year`, 'text')
+          || await answerQuestionSmart(page, 'end year', parsed.year, `${prefix}_end_year`, 'text')
+          || await answerQuestionByXPathContainer(page, 'graduation year', parsed.year, `${prefix}_end_year`, 'text')
+          || await answerQuestionByXPathContainer(page, 'end year', parsed.year, `${prefix}_end_year`, 'text');
+        ok = !!(monthOk && yearOk);
+      }
+
+      if (!ok) {
+        ok = await answerQuestionSmart(page, 'end date', endDate, `${prefix}_end_date`, 'text')
+        || await answerQuestionSmart(page, 'graduation date', endDate, `${prefix}_end_date`, 'text')
+        || await answerQuestionByXPathContainer(page, 'end date', endDate, `${prefix}_end_date`, 'text')
+        || await answerQuestionByXPathContainer(page, 'graduation', endDate, `${prefix}_end_date`, 'text')
+        || await answerQuestionByDomFallback(page, 'End Date', endDate, `${prefix}_end_date`);
+      }
+      if (ok && !filled.includes(`${prefix}_end_date`)) filled.push(`${prefix}_end_date`);
+    }
+  };
+
+  await fillEduOne(educationEntries[0] || null, 'education');
+  await fillEduOne(educationEntries[1] || null, 'education_2');
+  await fillEduOne(educationEntries[2] || null, 'education_3');
 
   if (!filled.some((x) => String(x).startsWith('education_') || x === 'education_school' || x === 'education_degree' || x === 'education_end_date')) {
     skipped.push('education_fields_not_filled');

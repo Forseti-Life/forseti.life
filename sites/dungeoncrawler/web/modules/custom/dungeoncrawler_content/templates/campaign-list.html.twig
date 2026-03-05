@@ -7,6 +7,9 @@
     <h1 class="dc-character-list__title">🏰 My Legacy Campaigns</h1>
     <div class="dc-sheet__nav-actions">
       <a href="{{ characters_url }}" class="dc-btn dc-btn-secondary">⚔️ My Characters</a>
+      {% if archived_url %}
+        <a href="{{ archived_url }}" class="dc-btn dc-btn-secondary">🗄️ Archived Campaigns</a>
+      {% endif %}
       <a href="{{ create_url }}" class="dc-btn dc-btn-primary">
         <span class="dc-btn__icon">+</span> Create New Legacy Campaign
       </a>

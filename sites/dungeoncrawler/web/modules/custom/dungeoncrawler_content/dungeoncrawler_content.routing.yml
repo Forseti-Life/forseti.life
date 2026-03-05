@@ -198,6 +198,24 @@ dungeoncrawler_content.campaign_create:
   requirements:
     _permission: 'access dungeoncrawler characters'
 
+dungeoncrawler_content.campaigns_archived:
+  path: '/campaigns/archived'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::listArchivedCampaigns'
+    _title: 'Archived Campaigns'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+
+dungeoncrawler_content.campaign_delete:
+  path: '/campaigns/{campaign_id}/delete'
+  defaults:
+    _form: '\Drupal\dungeoncrawler_content\Form\CampaignDeleteForm'
+    _title: 'Delete Campaign'
+  requirements:
+    _campaign_access: 'TRUE'
+    campaign_id: '\d+'
+
 dungeoncrawler_content.campaign_archive:
   path: '/campaigns/{campaign_id}/archive'
   defaults:

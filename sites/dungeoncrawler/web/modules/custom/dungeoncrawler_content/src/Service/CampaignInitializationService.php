@@ -101,7 +101,9 @@ class CampaignInitializationService {
       $this->seedStarterQuests($campaign_id, $difficulty, $now);
 
       // 5. Bootstrap hierarchical chat sessions for the campaign.
-      $this->bootstrapChatSessions($campaign_id, $name);
+      //    Include the starter dungeon and tavern room so they get
+      //    dedicated sessions from the very start.
+      $this->bootstrapChatSessions($campaign_id, $name, $dungeon_id, 'tavern_entrance', 'Tavern Entrance');
 
       $this->logger->info('Campaign {campaign_id} initialized with starter dungeon {dungeon_id}', [
         'campaign_id' => $campaign_id,
@@ -654,15 +656,28 @@ class CampaignInitializationService {
   /**
    * Bootstrap hierarchical chat sessions for a new campaign.
    *
-   * Creates the campaign root (GM master feed), system log, and party chat
-   * sessions. Dungeon and room sessions are created lazily when needed.
+   * Creates the campaign root (GM master feed), system log, party chat,
+   * and the starter dungeon / room sessions so every tab in the chat
+   * panel has a dedicated, campaign-specific instance from the start.
    *
    * @param int $campaign_id
    *   Campaign ID.
    * @param string $campaign_name
    *   Campaign name for labeling.
+   * @param string $dungeon_id
+   *   Starter dungeon ID (from createStarterDungeon).
+   * @param string $room_id
+   *   Starter room ID (e.g. 'tavern_entrance').
+   * @param string $room_name
+   *   Human-readable room name.
    */
-  private function bootstrapChatSessions(int $campaign_id, string $campaign_name): void {
+  private function bootstrapChatSessions(
+    int $campaign_id,
+    string $campaign_name,
+    string $dungeon_id = '',
+    string $room_id = '',
+    string $room_name = ''
+  ): void {
     if (!$this->chatSessionManager) {
       $this->logger->notice('ChatSessionManager not available; skipping chat session bootstrap for campaign {id}', [
         'id' => $campaign_id,
@@ -671,9 +686,10 @@ class CampaignInitializationService {
     }
 
     try {
+      // 1. Campaign root + system_log + party.
       $root = $this->chatSessionManager->ensureCampaignSessions($campaign_id, $campaign_name);
 
-      // Post the initial GM system message.
+      // 2. Post the initial GM system message.
       $this->chatSessionManager->postMessage(
         (int) $root['id'],
         $campaign_id,
@@ -686,6 +702,61 @@ class CampaignInitializationService {
         ['event' => 'campaign_init'],
         FALSE
       );
+
+      // 3. Eagerly create dungeon + room sessions for the starter content
+      //    so the chat panel has campaign-specific instances immediately.
+      if ($dungeon_id !== '') {
+        $dungeon_session = $this->chatSessionManager->ensureDungeonSession(
+          $campaign_id,
+          $dungeon_id,
+          'Starter Dungeon'
+        );
+
+        if ($room_id !== '') {
+          $room_session = $this->chatSessionManager->ensureRoomSession(
+            $campaign_id,
+            $dungeon_id,
+            $room_id,
+            $room_name ?: $room_id,
+          );
+
+          // Post a welcome message into the room session so the room
+          // tab has something to show besides an empty state.
+          $this->chatSessionManager->postMessage(
+            (int) $room_session['id'],
+            $campaign_id,
+            'Game Master',
+            'gm',
+            '',
+            $room_name
+              ? "You arrive at {$room_name}. The adventure begins..."
+              : 'You enter the room. The adventure begins...',
+            'narrative',
+            'all',
+            ['event' => 'room_enter', 'room_id' => $room_id],
+            TRUE
+          );
+        }
+      }
+
+      // 4. Seed the system-log session with a mechanical entry so the
+      //    Dice Log tab shows campaign context immediately.
+      $sys_log_key = $this->chatSessionManager->systemLogSessionKey($campaign_id);
+      $sys_log = $this->chatSessionManager->loadSession($sys_log_key);
+      if ($sys_log) {
+        $this->chatSessionManager->postMessage(
+          (int) $sys_log['id'],
+          $campaign_id,
+          'System',
+          'system',
+          '',
+          "Campaign \"{$campaign_name}\" created. Dice log ready.",
+          'mechanical',
+          'all',
+          ['event' => 'campaign_init'],
+          FALSE
+        );
+      }
 
       $this->logger->info('Chat sessions bootstrapped for campaign {id} (root session: {root_id})', [
         'id' => $campaign_id,

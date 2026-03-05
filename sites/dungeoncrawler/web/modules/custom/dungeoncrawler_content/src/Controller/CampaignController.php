@@ -159,12 +159,73 @@ class CampaignController extends ControllerBase {
       '#campaigns' => $campaign_cards,
       '#create_url' => Url::fromRoute('dungeoncrawler_content.campaign_create')->toString(),
       '#characters_url' => NULL,
+      '#archived_url' => Url::fromRoute('dungeoncrawler_content.campaigns_archived')->toString(),
       '#attached' => [
         'library' => ['dungeoncrawler_content/character-sheet'],
       ],
       '#cache' => [
         'contexts' => ['user'],
         'tags' => ['dc_campaigns', 'dc_campaign_characters'],
+      ],
+    ];
+  }
+
+  /**
+   * List archived campaigns with unarchive and delete actions.
+   */
+  public function listArchivedCampaigns() {
+    $uid = (int) $this->currentUser()->id();
+
+    $campaigns = $this->database->select('dc_campaigns', 'c')
+      ->fields('c')
+      ->condition('uid', $uid)
+      ->condition('status', 'archived')
+      ->orderBy('changed', 'DESC')
+      ->execute()
+      ->fetchAll();
+
+    $archived_destination = Url::fromRoute('dungeoncrawler_content.campaigns_archived')->toString();
+    $campaign_cards = [];
+
+    foreach ($campaigns as $campaign) {
+      $campaign_id = (int) $campaign->id;
+      $campaign_data = json_decode((string) ($campaign->campaign_data ?? '{}'), TRUE);
+      $archived_at = '';
+      if (!empty($campaign_data['_archive_meta']['archived_at'])) {
+        $archived_at = date('M j, Y', (int) $campaign_data['_archive_meta']['archived_at']);
+      }
+
+      $campaign_cards[] = [
+        'id' => $campaign_id,
+        'name' => $campaign->name,
+        'theme' => ucfirst(str_replace('_', ' ', (string) $campaign->theme)),
+        'difficulty' => ucfirst((string) $campaign->difficulty),
+        'created' => date('M j, Y', (int) $campaign->created),
+        'archived_at' => $archived_at ?: date('M j, Y', (int) $campaign->changed),
+        'unarchive_url' => Url::fromRoute('dungeoncrawler_content.campaign_unarchive', [
+          'campaign_id' => $campaign_id,
+        ], [
+          'query' => ['destination' => $archived_destination],
+        ])->toString(),
+        'delete_url' => Url::fromRoute('dungeoncrawler_content.campaign_delete', [
+          'campaign_id' => $campaign_id,
+        ], [
+          'query' => ['destination' => $archived_destination],
+        ])->toString(),
+      ];
+    }
+
+    return [
+      '#theme' => 'campaign_archived_list',
+      '#campaigns' => $campaign_cards,
+      '#back_url' => Url::fromRoute('dungeoncrawler_content.campaigns')->toString(),
+      '#attached' => [
+        'library' => ['dungeoncrawler_content/character-sheet'],
+      ],
+      '#cache' => [
+        'contexts' => ['user'],
+        'tags' => ['dc_campaigns'],
+        'max-age' => 0,
       ],
     ];
   }

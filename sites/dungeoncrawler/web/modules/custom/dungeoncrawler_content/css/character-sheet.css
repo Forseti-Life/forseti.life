@@ -1033,3 +1033,41 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ====================================================================
+   Archived campaign / delete utilities
+   ==================================================================== */
+
+.dc-btn--sm {
+  font-size: 0.8rem;
+  padding: 0.3rem 0.7rem;
+}
+
+.dc-character-card__actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.dc-character-card__main-link--no-hover {
+  cursor: default;
+  display: flex;
+  padding: 1rem;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.dc-character-card__portrait-placeholder--archived {
+  opacity: 0.5;
+  filter: grayscale(0.7);
+}
+
+.dc-character-card--archived {
+  border-left: 3px solid var(--dc-text-muted, #888);
+  opacity: 0.85;
+}
+
+.dc-character-card--archived:hover {
+  opacity: 1;
+}
