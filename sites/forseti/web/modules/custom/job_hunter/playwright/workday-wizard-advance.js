@@ -1543,6 +1543,7 @@ async function handleMyInformation(page, profile, result) {
 async function handleMyExperience(page, profile, result) {
   const filled = [];
   const skipped = [];
+  const desiredEducationCount = Math.max(0, Math.min(3, extractEducationEntries(profile || {}).length));
 
   // Check if work experience section has entries.
   try {
@@ -1578,6 +1579,32 @@ async function handleMyExperience(page, profile, result) {
     const committed = await commitMyExperienceEditor(page);
     if (committed) {
       filled.push('experience_editor_saved');
+    }
+  }
+
+  if (desiredEducationCount > 0) {
+    let savedEducationCount = await countVisibleEducationEntries(page);
+    if (savedEducationCount < desiredEducationCount) {
+      const refillEducation = await forceFillEducationFields(page, profile);
+      filled.push(...refillEducation.filled.filter((x) => !filled.includes(x)));
+      for (const s of refillEducation.skipped) {
+        if (!skipped.includes(s)) {
+          skipped.push(s);
+        }
+      }
+      if (refillEducation.filled.length > 0) {
+        const committed = await commitMyExperienceEditor(page);
+        if (committed && !filled.includes('experience_editor_saved')) {
+          filled.push('experience_editor_saved');
+        }
+      }
+      savedEducationCount = await countVisibleEducationEntries(page);
+    }
+
+    if (savedEducationCount >= desiredEducationCount) {
+      filled.push('education_saved_verified');
+    } else {
+      skipped.push(`education_not_saved_visible_${savedEducationCount}_of_${desiredEducationCount}`);
     }
   }
 
@@ -1625,8 +1652,7 @@ async function handleMyExperience(page, profile, result) {
 
   // Check if education section has entries.
   try {
-    const eduEntries = page.locator('[data-automation-id="educationSection"], [data-automation-id="educationItem"]');
-    const count = await eduEntries.count();
+    const count = await countVisibleEducationEntries(page);
     process.stderr.write(`INFO: Education entries found: ${count}\n`);
     if (count > 0) {
       filled.push('education_present');
@@ -4836,6 +4862,8 @@ async function forceFillExperienceFields(page, profile) {
 async function forceFillEducationFields(page, profile) {
   const filled = [];
   const skipped = [];
+  const startedAt = Date.now();
+  const budgetMs = 35000;
 
   const educationEntries = extractEducationEntries(profile || {});
   if (!educationEntries.length) {
@@ -4871,10 +4899,21 @@ async function forceFillEducationFields(page, profile) {
   }
 
   for (let idx = 0; idx < educationEntries.length; idx++) {
-    if (idx > 0) {
-      await clickAddEducationRow(page);
-      await humanDelay(200, 420);
+    if (Date.now() - startedAt > budgetMs) {
+      skipped.push('education_fill_budget_exceeded');
+      break;
     }
+
+    if (idx > 0) {
+      const currentRows = (await getInlineEducationRowKeys(page)).length;
+      if (currentRows < idx + 1) {
+        const added = await clickAddEducationRow(page);
+        if (added) {
+          await humanDelay(200, 420);
+        }
+      }
+    }
+
     const controlFilled = await fillEducationEntryByVisibleControls(page, educationEntries[idx], idx);
     for (const f of controlFilled) {
       if (!filled.includes(f)) {
@@ -4943,6 +4982,49 @@ async function forceFillEducationFields(page, profile) {
   }
 
   return { filled, skipped };
+}
+
+async function countVisibleEducationEntries(page) {
+  try {
+    const locatorCount = await page.locator('[data-automation-id="educationSection"], [data-automation-id="educationItem"], [data-automation-id*="education" i]').count().catch(() => 0);
+    const rowKeyCount = (await getInlineEducationRowKeys(page)).length;
+    const sectionCount = await page.evaluate(() => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const sections = Array.from(document.querySelectorAll('section, div, fieldset')).filter((el) => {
+        if (!isVisible(el)) return false;
+        const txt = (el.innerText || '').toLowerCase();
+        return txt.includes('education');
+      });
+
+      let maxRows = 0;
+      for (const section of sections) {
+        const rows = Array.from(section.querySelectorAll('input, select, textarea')).filter((el) => {
+          if (!isVisible(el)) return false;
+          const id = String(el.id || '').toLowerCase();
+          return id.includes('education') || id.includes('school') || id.includes('institution') || id.includes('degree') || id.includes('graduation');
+        });
+        if (rows.length > maxRows) {
+          maxRows = rows.length;
+        }
+      }
+
+      if (maxRows === 0) {
+        return 0;
+      }
+
+      return Math.max(1, Math.floor(maxRows / 3));
+    }).catch(() => 0);
+
+    return Math.max(locatorCount, rowKeyCount, sectionCount);
+  } catch (_) {
+    return 0;
+  }
 }
 
 async function validateStepWithPlaywright(page, stepKey) {
