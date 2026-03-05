@@ -1295,8 +1295,22 @@ import { ChatSessionApi } from './ChatSessionApi.js';
             this.appendChatLine(msg.speaker, msg.message, msg.type);
           });
 
+          // When no chat history exists, show the room description as the opening narration.
           if (result.data.messages.length === 0) {
-            this.appendChatLine('System', 'Welcome to the room. Start a conversation!', 'system');
+            const roomData = this.stateManager.hexmap?.getActiveRoomData?.() || null;
+            if (roomData?.name) {
+              const terrain = roomData.terrain?.type ? roomData.terrain.type.replace(/_/g, ' ') : '';
+              const lighting = roomData.lighting && roomData.lighting !== 'normal' ? ` | Lighting: ${roomData.lighting}` : '';
+              const size = roomData.size_category && roomData.size_category !== 'medium' ? ` | ${roomData.size_category}` : '';
+              const subtitle = [terrain, lighting, size].filter(Boolean).join('').replace(/^\s*\|\s*/, '');
+              const meta = subtitle ? ` (${subtitle})` : '';
+              this.appendChatLine('System', `📍 ${roomData.name}${meta}`, 'system');
+            }
+            if (roomData?.description) {
+              this.appendChatLine('System', roomData.description, 'system');
+            } else {
+              this.appendChatLine('System', 'Welcome to the room. Start a conversation!', 'system');
+            }
           }
         }
       } catch (error) {
