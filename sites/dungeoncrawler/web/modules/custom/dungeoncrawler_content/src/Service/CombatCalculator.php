@@ -37,8 +37,6 @@ class CombatCalculator {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   multiple_attack_penalty section
-   *
-   * TODO: Implement MAP calculation
    */
   public function calculateMultipleAttackPenalty(int $attackNumber, bool $isAgile = FALSE): int {
     if ($attackNumber <= 1) {
@@ -74,8 +72,6 @@ class CombatCalculator {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   degrees_of_success section
-   *
-   * TODO: Implement degree of success logic
    */
   public function calculateDegreeOfSuccess(int $result, int $dc, ?int $naturalRoll = NULL): string {
     $difference = $result - $dc;
@@ -118,8 +114,6 @@ class CombatCalculator {
    *
    * @see docs/dungeoncrawler/testing/fixtures/pf2e_reference/core_mechanics.json
    *   attack_bonus_calculation section
-   *
-   * TODO: Implement attack bonus calculation
    */
   public function calculateAttackBonus(array $attackData): int {
     $ability = (int) ($attackData['ability_modifier'] ?? 0);
@@ -141,8 +135,6 @@ class CombatCalculator {
    *
    * @return int
    *   Spell save DC.
-   *
-   * TODO: Implement spell DC calculation
    */
   public function calculateSpellSaveDC(array $casterData): int {
     $ability = (int) ($casterData['ability_modifier'] ?? 0);

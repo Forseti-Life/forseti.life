@@ -13,6 +13,7 @@ use Drupal\Core\Database\Connection;
 class ConditionManager {
 
   protected $database;
+  protected $numberGeneration;
 
   /**
    * Full PF2E condition catalog.
@@ -67,8 +68,9 @@ class ConditionManager {
     'wounded'      => ['is_valued' => TRUE,  'max_value' => 3, 'end_trigger' => 'persistent',  'effects' => []],
   ];
 
-  public function __construct(Connection $database) {
+  public function __construct(Connection $database, NumberGenerationService $number_generation = NULL) {
     $this->database = $database;
+    $this->numberGeneration = $number_generation;
   }
 
   /**
@@ -424,8 +426,109 @@ class ConditionManager {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#processpersistentdamage
    */
   public function processPersistentDamage($participant_id, $encounter_id) {
-    // TODO: Apply damage, roll flat check DC 15
-    return [];
+    // Query active persistent damage conditions.
+    $conditions = $this->database->select('combat_conditions', 'c')
+      ->fields('c')
+      ->condition('participant_id', (int) $participant_id)
+      ->condition('encounter_id', (int) $encounter_id)
+      ->condition('removed_at_round', NULL, 'IS')
+      ->condition('condition_type', 'persistent_damage%', 'LIKE')
+      ->execute()
+      ->fetchAllAssoc('id', \PDO::FETCH_ASSOC);
+
+    if (empty($conditions)) {
+      return [];
+    }
+
+    // Load current participant HP.
+    $participant = $this->database->select('combat_participants', 'p')
+      ->fields('p', ['id', 'hp', 'max_hp'])
+      ->condition('id', (int) $participant_id)
+      ->condition('encounter_id', (int) $encounter_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$participant) {
+      return [];
+    }
+
+    $current_round = $this->getCurrentRound((int) $encounter_id);
+    $results = [];
+
+    foreach ($conditions as $cond_id => $condition) {
+      $damage_value = (int) ($condition['value'] ?? 0);
+      $damage_expression = $condition['source'] ?? NULL;
+
+      // Roll damage if source contains a dice expression, otherwise use value.
+      if ($damage_expression && $this->numberGeneration && preg_match('/\d+d\d+/', $damage_expression)) {
+        // Extract dice expression from source like "fire:2d6" or "2d6 fire".
+        preg_match('/(\d+d\d+(?:\+\d+)?)/', $damage_expression, $dice_match);
+        if (!empty($dice_match[1])) {
+          $roll = $this->numberGeneration->rollExpression($dice_match[1]);
+          $damage_value = (int) ($roll['total'] ?? $damage_value);
+        }
+      }
+
+      // Apply damage directly via DB (HPManager creates circular dependency).
+      $new_hp = max(0, ((int) $participant['hp']) - $damage_value);
+      $this->database->update('combat_participants')
+        ->fields(['hp' => $new_hp])
+        ->condition('id', (int) $participant_id)
+        ->execute();
+
+      // Log the damage.
+      try {
+        $this->database->insert('combat_actions')
+          ->fields([
+            'encounter_id' => (int) $encounter_id,
+            'participant_id' => (int) $participant_id,
+            'action_type' => 'persistent_damage',
+            'target_id' => NULL,
+            'payload' => json_encode([
+              'condition_id' => (int) $cond_id,
+              'condition_type' => $condition['condition_type'],
+            ]),
+            'result' => json_encode([
+              'damage' => $damage_value,
+              'hp_before' => (int) $participant['hp'],
+              'hp_after' => $new_hp,
+            ]),
+            'created' => time(),
+          ])
+          ->execute();
+      }
+      catch (\Throwable $e) {
+        // Non-critical: log failure doesn't block processing.
+      }
+
+      // Roll flat check DC 15 to end the persistent damage.
+      $flat_check_roll = $this->numberGeneration
+        ? $this->numberGeneration->rollPathfinderDie(20)
+        : mt_rand(1, 20);
+      $ended = $flat_check_roll >= 15;
+
+      if ($ended) {
+        $this->database->update('combat_conditions')
+          ->fields(['removed_at_round' => $current_round])
+          ->condition('id', (int) $cond_id)
+          ->execute();
+      }
+
+      $results[] = [
+        'condition_id' => (int) $cond_id,
+        'condition_type' => $condition['condition_type'],
+        'damage' => $damage_value,
+        'hp_before' => (int) $participant['hp'],
+        'hp_after' => $new_hp,
+        'flat_check_roll' => $flat_check_roll,
+        'ended' => $ended,
+      ];
+
+      // Update running HP for subsequent iterations.
+      $participant['hp'] = $new_hp;
+    }
+
+    return $results;
   }
 
   /**

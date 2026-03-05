@@ -49,6 +49,9 @@ class ActionProcessor {
       case 'strike':
         return $this->executeStrike($participant_id, $action_data['target_id'] ?? NULL, $action_data, $encounter_id);
 
+      case 'cast_spell':
+        return $this->executeCastSpell($participant_id, $action_data['spell_id'] ?? $action_data['spell_name'] ?? '', $action_data['spell_level'] ?? 1, $action_data['targets'] ?? [], $encounter_id);
+
       default:
         return ['status' => 'error', 'message' => 'Unsupported action type'];
     }
@@ -193,8 +196,174 @@ class ActionProcessor {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#executecastspell
    */
   public function executeCastSpell($caster_id, $spell_id, $spell_level, array $targets, $encounter_id) {
-    // TODO: Implement spell casting with slot management
-    return [];
+    $state = $this->loadEncounterState($encounter_id);
+    if ($state['status'] === 'error') {
+      return $state;
+    }
+
+    [$encounter, $participants] = $state['data'];
+    $caster = $this->findParticipant($participants, $caster_id);
+    if (!$caster) {
+      return ['status' => 'error', 'message' => 'Caster not found'];
+    }
+
+    if (!$this->isCurrentTurn($encounter, $participants, $caster_id)) {
+      return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
+    }
+
+    // Spell data: cost defaults to 2 actions (PF2e standard).
+    $spell = is_array($spell_id) ? $spell_id : ['name' => $spell_id];
+    $spell_name = $spell['name'] ?? (is_string($spell_id) ? $spell_id : 'unknown');
+    $spell_cost = (int) ($spell['cost'] ?? 2);
+    $spell_level = (int) $spell_level;
+    $delivery = $spell['delivery'] ?? 'save'; // 'attack', 'save', 'automatic'
+    $damage_dice = $spell['damage'] ?? NULL;
+    $damage_type = $spell['damage_type'] ?? 'untyped';
+    $healing_dice = $spell['healing'] ?? NULL;
+    $condition_to_apply = $spell['condition'] ?? NULL;
+    $save_type = $spell['save_type'] ?? 'reflex'; // 'reflex', 'fortitude', 'will'
+
+    // Action economy check.
+    $economy = $this->rulesEngine->validateActionEconomy($caster, $spell_cost);
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
+    }
+
+    // Resolve targets.
+    $resolved_targets = [];
+    foreach ($targets as $tid) {
+      $t = is_array($tid) ? $this->findParticipant($participants, (int) ($tid['id'] ?? $tid['target_id'] ?? 0)) : $this->findParticipant($participants, (int) $tid);
+      if ($t) {
+        $resolved_targets[] = $t;
+      }
+    }
+
+    // Spell cast validation via RulesEngine.
+    $cast_check = $this->rulesEngine->validateSpellCast($caster, $spell_name, $spell_level, $resolved_targets, (int) $encounter_id);
+    if (!$cast_check['is_valid']) {
+      return ['status' => 'error', 'message' => $cast_check['reason']];
+    }
+
+    // Process each target.
+    $target_results = [];
+    $spell_attack_mod = (int) ($caster['spell_attack_bonus'] ?? $caster['level'] ?? 0);
+    $spell_dc = (int) ($caster['spell_dc'] ?? (10 + ($caster['level'] ?? 0)));
+    $caster_attack_mod = $this->conditionManager->getConditionModifiers($caster_id, 'attack', $encounter_id);
+
+    foreach ($resolved_targets as $target) {
+      $target_id = (int) $target['id'];
+      $degree = 'success'; // default for automatic delivery
+      $roll_natural = NULL;
+
+      if ($delivery === 'attack') {
+        // Spell attack roll vs target AC.
+        $roll_natural = $this->numberGeneration->rollPathfinderDie(20);
+        $attack_total = $roll_natural + $spell_attack_mod + $caster_attack_mod;
+        $target_ac_mod = $this->conditionManager->getConditionModifiers($target_id, 'ac', $encounter_id);
+        $target_ac = (int) ($target['ac'] ?? 10) + $target_ac_mod;
+        $degree = $this->calculator->calculateDegreeOfSuccess($attack_total, $target_ac, $roll_natural);
+      }
+      elseif ($delivery === 'save') {
+        // Target makes saving throw vs spell DC.
+        $roll_natural = $this->numberGeneration->rollPathfinderDie(20);
+        $save_bonus = (int) ($target[$save_type . '_save'] ?? $target['save_bonus'] ?? 0);
+        $save_mod = $this->conditionManager->getConditionModifiers($target_id, $save_type, $encounter_id);
+        $save_total = $roll_natural + $save_bonus + $save_mod;
+        // For saves, the target is rolling against spell DC. Invert the degree
+        // so "success" means the spell hits (target failed save).
+        $save_degree = $this->calculator->calculateDegreeOfSuccess($save_total, $spell_dc, $roll_natural);
+        $degree_map = [
+          'critical_success' => 'critical_failure',
+          'success' => 'failure',
+          'failure' => 'success',
+          'critical_failure' => 'critical_success',
+        ];
+        $degree = $degree_map[$save_degree] ?? 'failure';
+      }
+
+      // Apply effects based on degree.
+      $damage = 0;
+      $healing = 0;
+      $damage_result = NULL;
+      $healing_result = NULL;
+      $condition_result = NULL;
+
+      if ($damage_dice && in_array($degree, ['success', 'critical_success'])) {
+        $roll = $this->numberGeneration->rollExpression($damage_dice);
+        $base_damage = (int) ($roll['total'] ?? 0);
+        $damage = $degree === 'critical_success' ? $base_damage * 2 : $base_damage;
+        if ($damage > 0) {
+          $damage_result = $this->hpManager->applyDamage($target_id, $damage, $damage_type, [
+            'action' => 'cast_spell',
+            'caster' => $caster_id,
+            'spell' => $spell_name,
+          ], $encounter_id);
+        }
+      }
+
+      if ($healing_dice && in_array($degree, ['success', 'critical_success'])) {
+        $roll = $this->numberGeneration->rollExpression($healing_dice);
+        $base_healing = (int) ($roll['total'] ?? 0);
+        $healing = $degree === 'critical_success' ? $base_healing * 2 : $base_healing;
+        if ($healing > 0) {
+          $healing_result = $this->hpManager->applyHealing($target_id, $healing, [
+            'action' => 'cast_spell',
+            'caster' => $caster_id,
+            'spell' => $spell_name,
+          ], $encounter_id);
+        }
+      }
+
+      if ($condition_to_apply && in_array($degree, ['success', 'critical_success'])) {
+        $cond_name = is_array($condition_to_apply) ? ($condition_to_apply['name'] ?? '') : $condition_to_apply;
+        $cond_value = is_array($condition_to_apply) ? (int) ($condition_to_apply['value'] ?? 1) : 1;
+        if ($degree === 'critical_success') {
+          $cond_value = min($cond_value + 1, 4);
+        }
+        if ($cond_name) {
+          $condition_result = $this->conditionManager->applyCondition(
+            $target_id, $cond_name, $cond_value,
+            NULL, 'spell:' . $spell_name, $encounter_id
+          );
+        }
+      }
+
+      $target_results[] = [
+        'target_id' => $target_id,
+        'degree' => $degree,
+        'natural_roll' => $roll_natural,
+        'damage' => $damage,
+        'damage_result' => $damage_result,
+        'healing' => $healing,
+        'healing_result' => $healing_result,
+        'condition_result' => $condition_result,
+      ];
+    }
+
+    // Consume actions.
+    $actions_left = max(0, ((int) $caster['actions_remaining']) - $spell_cost);
+    $this->store->updateParticipant($caster_id, [
+      'actions_remaining' => $actions_left,
+    ]);
+
+    $this->logAction($encounter_id, $caster_id, 'cast_spell', $resolved_targets[0]['id'] ?? NULL, [
+      'spell_name' => $spell_name,
+      'spell_level' => $spell_level,
+      'delivery' => $delivery,
+      'cost' => $spell_cost,
+      'targets' => array_column($resolved_targets, 'id'),
+    ], [
+      'target_results' => $target_results,
+      'actions_remaining' => $actions_left,
+    ]);
+
+    return [
+      'status' => 'ok',
+      'spell_name' => $spell_name,
+      'spell_level' => $spell_level,
+      'target_results' => $target_results,
+      'actions_remaining' => $actions_left,
+    ];
   }
 
   protected function loadEncounterState(int $encounter_id): array {

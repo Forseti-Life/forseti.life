@@ -66,6 +66,7 @@ class WorkdayProfileDataMapper {
         $prefs = is_array($json['job_search_preferences'] ?? NULL) ? $json['job_search_preferences'] : [];
         $demographics = is_array($json['demographics'] ?? NULL) ? $json['demographics'] : [];
         $experience = is_array($json['professional_experience'] ?? NULL) ? $json['professional_experience'] : [];
+        $education = is_array($json['education'] ?? NULL) ? $json['education'] : [];
 
         if ($data['full_name'] === '' && !empty($contact['full_name'])) {
           $data['full_name'] = (string) $contact['full_name'];
@@ -153,6 +154,7 @@ class WorkdayProfileDataMapper {
         }
 
         $this->applyPrimaryExperienceData($data, $experience);
+        $this->applyEducationData($data, $education);
         $this->finalizeProfileData($data, $demographics, $contact, $row);
       }
     }
@@ -191,6 +193,27 @@ class WorkdayProfileDataMapper {
       'experience_from'       => '',
       'experience_to'         => '',
       'experience_role_description' => '',
+      'experience2_job_title' => '',
+      'experience2_company'   => '',
+      'experience2_from'      => '',
+      'experience2_to'        => '',
+      'experience2_role_description' => '',
+      'experience3_job_title' => '',
+      'experience3_company'   => '',
+      'experience3_from'      => '',
+      'experience3_to'        => '',
+      'experience3_role_description' => '',
+      'work_experience_entries' => [],
+      'education_school'      => '',
+      'education_degree'      => '',
+      'education_end_date'    => '',
+      'education2_school'     => '',
+      'education2_degree'     => '',
+      'education2_end_date'   => '',
+      'education3_school'     => '',
+      'education3_degree'     => '',
+      'education3_end_date'   => '',
+      'education_entries'     => [],
       'salary_expectation'    => '',
       'years_experience'      => '',
       'willing_to_relocate'   => '',
@@ -216,31 +239,137 @@ class WorkdayProfileDataMapper {
   }
 
   private function applyPrimaryExperienceData(array &$data, array $experience): void {
-    if (empty($experience) || !is_array($experience[0] ?? NULL)) {
+    if (empty($experience)) {
       return;
     }
 
-    $exp0 = $experience[0];
-    if (empty($data['experience_job_title']) && !empty($exp0['title'])) {
-      $data['experience_job_title'] = (string) $exp0['title'];
-    }
-    if (empty($data['experience_company']) && !empty($exp0['company'])) {
-      $data['experience_company'] = (string) $exp0['company'];
-    }
-    if (empty($data['experience_from']) && !empty($exp0['start_date'])) {
-      $data['experience_from'] = (string) $exp0['start_date'];
-    }
-    if (empty($data['experience_to']) && !empty($exp0['end_date'])) {
-      $data['experience_to'] = (string) $exp0['end_date'];
-    }
-    if (empty($data['experience_role_description'])) {
-      foreach (['role_description', 'description', 'summary', 'responsibilities', 'highlights'] as $k) {
-        if (!empty($exp0[$k])) {
-          $data['experience_role_description'] = (string) $exp0[$k];
-          break;
-        }
+    $normalized = [];
+    foreach ($experience as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $entry = $this->normalizeExperienceEntry($row);
+      if (implode('', $entry) === '') {
+        continue;
+      }
+      $normalized[] = $entry;
+      if (count($normalized) >= 3) {
+        break;
       }
     }
+
+    if (empty($normalized)) {
+      return;
+    }
+
+    $data['work_experience_entries'] = $normalized;
+
+    $exp0 = $normalized[0];
+    if (empty($data['experience_job_title']) && $exp0['job_title'] !== '') {
+      $data['experience_job_title'] = $exp0['job_title'];
+    }
+    if (empty($data['experience_company']) && $exp0['company'] !== '') {
+      $data['experience_company'] = $exp0['company'];
+    }
+    if (empty($data['experience_from']) && $exp0['from'] !== '') {
+      $data['experience_from'] = $exp0['from'];
+    }
+    if (empty($data['experience_to']) && $exp0['to'] !== '') {
+      $data['experience_to'] = $exp0['to'];
+    }
+    if (empty($data['experience_role_description']) && $exp0['role_description'] !== '') {
+      $data['experience_role_description'] = $exp0['role_description'];
+    }
+
+    if (!empty($normalized[1])) {
+      $exp1 = $normalized[1];
+      $data['experience2_job_title'] = $exp1['job_title'];
+      $data['experience2_company'] = $exp1['company'];
+      $data['experience2_from'] = $exp1['from'];
+      $data['experience2_to'] = $exp1['to'];
+      $data['experience2_role_description'] = $exp1['role_description'];
+    }
+
+    if (!empty($normalized[2])) {
+      $exp2 = $normalized[2];
+      $data['experience3_job_title'] = $exp2['job_title'];
+      $data['experience3_company'] = $exp2['company'];
+      $data['experience3_from'] = $exp2['from'];
+      $data['experience3_to'] = $exp2['to'];
+      $data['experience3_role_description'] = $exp2['role_description'];
+    }
+  }
+
+  private function normalizeExperienceEntry(array $row): array {
+    $description = '';
+    foreach (['role_description', 'description', 'summary', 'responsibilities', 'highlights'] as $k) {
+      if (!empty($row[$k])) {
+        $description = (string) $row[$k];
+        break;
+      }
+    }
+
+    return [
+      'job_title' => (string) ($row['title'] ?? ''),
+      'company' => (string) ($row['company'] ?? ''),
+      'from' => (string) ($row['start_date'] ?? ''),
+      'to' => (string) ($row['end_date'] ?? ''),
+      'role_description' => $description,
+    ];
+  }
+
+  private function applyEducationData(array &$data, array $education): void {
+    if (empty($education)) {
+      return;
+    }
+
+    $normalized = [];
+    foreach ($education as $row) {
+      if (!is_array($row)) {
+        continue;
+      }
+      $entry = $this->normalizeEducationEntry($row);
+      if (implode('', $entry) === '') {
+        continue;
+      }
+      $normalized[] = $entry;
+      if (count($normalized) >= 3) {
+        break;
+      }
+    }
+
+    if (empty($normalized)) {
+      return;
+    }
+
+    $data['education_entries'] = $normalized;
+
+    $ed0 = $normalized[0];
+    $data['education_school'] = $ed0['school'];
+    $data['education_degree'] = $ed0['degree'];
+    $data['education_end_date'] = $ed0['end_date'];
+
+    if (!empty($normalized[1])) {
+      $ed1 = $normalized[1];
+      $data['education2_school'] = $ed1['school'];
+      $data['education2_degree'] = $ed1['degree'];
+      $data['education2_end_date'] = $ed1['end_date'];
+    }
+
+    if (!empty($normalized[2])) {
+      $ed2 = $normalized[2];
+      $data['education3_school'] = $ed2['school'];
+      $data['education3_degree'] = $ed2['degree'];
+      $data['education3_end_date'] = $ed2['end_date'];
+    }
+  }
+
+  private function normalizeEducationEntry(array $row): array {
+    return [
+      'school' => (string) ($row['institution'] ?? $row['school'] ?? ''),
+      'degree' => (string) ($row['degree'] ?? ''),
+      'end_date' => (string) ($row['end_date'] ?? $row['graduation_date'] ?? ''),
+    ];
   }
 
   private function finalizeProfileData(array &$data, array $demographics, array $contact, array $row): void {

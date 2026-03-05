@@ -25,7 +25,84 @@ class RulesEngine {
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md
    */
   public function validateAction($participant_id, $action, $encounter_id) {
-    // TODO: Implement 6-layer validation pipeline
+    $action = is_array($action) ? $action : ['type' => $action];
+    $action_type = strtolower($action['type'] ?? '');
+    $action_cost = $action['cost'] ?? 1;
+
+    // Load participant state from DB.
+    $participant = $this->database->select('combat_participants', 'p')
+      ->fields('p')
+      ->condition('p.id', (int) $participant_id)
+      ->condition('p.encounter_id', (int) $encounter_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$participant) {
+      return ['is_valid' => FALSE, 'reason' => 'Participant not found in encounter.'];
+    }
+
+    // Layer 1: State — participant must be alive and active.
+    if (!empty($participant['is_defeated'])) {
+      return ['is_valid' => FALSE, 'reason' => 'Participant is defeated.'];
+    }
+
+    // Layer 2: Action economy — enough actions/reaction available.
+    $economy = $this->validateActionEconomy($participant, $action_cost);
+    if (!$economy['is_valid']) {
+      return ['is_valid' => FALSE, 'reason' => $economy['reason']];
+    }
+
+    // Layer 3: Condition restrictions — paralyzed, unconscious, grabbed, etc.
+    $participant['encounter_id'] = (int) $encounter_id;
+    $cond_check = $this->checkConditionRestrictions($participant, $action_type);
+    if (!$cond_check['can_act']) {
+      return ['is_valid' => FALSE, 'reason' => $cond_check['restriction']];
+    }
+
+    // Layer 4: Prerequisites — weapon/spell slots/shield required checks.
+    $target = NULL;
+    if (!empty($action['target_id'])) {
+      $target = $this->database->select('combat_participants', 'p')
+        ->fields('p')
+        ->condition('p.id', (int) $action['target_id'])
+        ->condition('p.encounter_id', (int) $encounter_id)
+        ->execute()
+        ->fetchAssoc();
+    }
+    $prereq = $this->validateActionPrerequisites($participant, $action, $target);
+    if (!$prereq['is_valid']) {
+      return ['is_valid' => FALSE, 'reason' => $prereq['reason']];
+    }
+
+    // Layer 5: Type-specific validation (attack range, spell cast, etc.).
+    if ($action_type === 'strike' && $target) {
+      $weapon = (array) ($action['weapon'] ?? []);
+      $attack_check = $this->validateAttack($participant, $target, $weapon, (int) $encounter_id);
+      if (!$attack_check['is_valid']) {
+        return ['is_valid' => FALSE, 'reason' => $attack_check['reason']];
+      }
+    }
+    elseif ($action_type === 'cast_spell') {
+      $spell = $action['spell'] ?? $action['spell_name'] ?? '';
+      $spell_level = (int) ($action['spell_level'] ?? 1);
+      $targets = [];
+      if ($target) {
+        $targets[] = $target;
+      }
+      $spell_check = $this->validateSpellCast($participant, $spell, $spell_level, $targets, (int) $encounter_id);
+      if (!$spell_check['is_valid']) {
+        return ['is_valid' => FALSE, 'reason' => $spell_check['reason']];
+      }
+    }
+
+    // Layer 6: Immunities — check if target is immune to the effect.
+    if ($target && !empty($action['effect_type'])) {
+      $immunity = $this->checkImmunities($target, $action['effect_type'], $action_type);
+      if ($immunity['is_immune']) {
+        return ['is_valid' => FALSE, 'reason' => "Target is immune ({$immunity['immunity_type']})."];
+      }
+    }
+
     return ['is_valid' => TRUE, 'reason' => ''];
   }
 

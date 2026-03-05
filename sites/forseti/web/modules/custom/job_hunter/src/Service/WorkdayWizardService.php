@@ -24,11 +24,13 @@ class WorkdayWizardService {
   protected Connection $database;
   protected FileSystemInterface $fileSystem;
   protected WorkdayProfileDataMapper $profileDataMapper;
+  protected WorkdayPlaywrightRunner $playwrightRunner;
 
-  public function __construct(Connection $database, FileSystemInterface $file_system, WorkdayProfileDataMapper $profile_data_mapper) {
+  public function __construct(Connection $database, FileSystemInterface $file_system, WorkdayProfileDataMapper $profile_data_mapper, WorkdayPlaywrightRunner $playwright_runner) {
     $this->database = $database;
     $this->fileSystem = $file_system;
     $this->profileDataMapper = $profile_data_mapper;
+    $this->playwrightRunner = $playwright_runner;
   }
 
   // ── Valid step keys ─────────────────────────────────────────────────────────
@@ -76,6 +78,11 @@ class WorkdayWizardService {
   public function advanceStep(int $job_id, int $uid, string $step_key, array $options = []): array {
     $timeout = (int) ($options['timeout'] ?? 120);
     $apply_url_override = trim((string) ($options['apply_url'] ?? ''));
+      $prevent_submit = !empty($options['prevent_submit']);
+      $review_submit_mode = trim((string) ($options['review_submit_mode'] ?? ''));
+      if ($review_submit_mode === '' && !empty($options['save_and_continue_later'])) {
+        $review_submit_mode = 'save_and_continue_later';
+      }
 
     $blank = [
       'ok'                  => FALSE,
@@ -91,6 +98,8 @@ class WorkdayWizardService {
       'evidence'            => '',
       'screenshots'         => [],
       'visual_confirmation' => [],
+      'submit_blocked'      => FALSE,
+      'review_submit_mode'  => '',
       'error'               => '',
     ];
 
@@ -114,6 +123,8 @@ class WorkdayWizardService {
       'resume_pdf_path'=> (string) $context['resume_pdf_path'],
       'screenshot_dir' => (string) $context['screenshot_dir'],
       'application_id' => (int) $application['id'],
+      'prevent_submit' => $prevent_submit,
+      'review_submit_mode' => $review_submit_mode,
     ];
 
     $payload_file = $this->createPayloadFile($payload);
@@ -122,7 +133,7 @@ class WorkdayWizardService {
     }
 
     // ── Run the Node script ───────────────────────────────────────────────
-    $result = $this->runNode($payload_file, $timeout, $step_key);
+    $result = $this->playwrightRunner->runWizardPayload($payload_file, $timeout, $step_key);
 
     // Clean up payload file if script didn't delete it.
     if (file_exists($payload_file)) {
@@ -147,6 +158,8 @@ class WorkdayWizardService {
       'evidence'            => (string) ($result['evidence'] ?? ''),
       'screenshots'         => (array) ($result['screenshots'] ?? []),
       'visual_confirmation' => (array) ($result['visual_confirmation'] ?? []),
+      'submit_blocked'      => !empty($result['submit_blocked']),
+      'review_submit_mode'  => (string) ($result['review_submit_mode'] ?? ''),
       'error'               => (string) ($result['error'] ?? ''),
     ]);
   }
@@ -170,6 +183,11 @@ class WorkdayWizardService {
   public function advanceWizardAutoSingleSession(int $job_id, int $uid, string $start_step = 'my_information', array $options = []): array {
     $timeout = (int) ($options['timeout'] ?? 220);
     $apply_url_override = trim((string) ($options['apply_url'] ?? ''));
+      $prevent_submit = !empty($options['prevent_submit']);
+      $review_submit_mode = trim((string) ($options['review_submit_mode'] ?? ''));
+      if ($review_submit_mode === '' && !empty($options['save_and_continue_later'])) {
+        $review_submit_mode = 'save_and_continue_later';
+      }
 
     $blank = [
       'ok' => FALSE,
@@ -178,6 +196,8 @@ class WorkdayWizardService {
       'step_results' => [],
       'post_continue_url' => '',
       'visual_confirmation' => [],
+      'submit_blocked' => FALSE,
+      'review_submit_mode' => '',
       'error' => '',
     ];
 
@@ -202,6 +222,8 @@ class WorkdayWizardService {
       'resume_pdf_path'=> (string) $context['resume_pdf_path'],
       'screenshot_dir' => (string) $context['screenshot_dir'],
       'application_id' => (int) $application['id'],
+      'prevent_submit' => $prevent_submit,
+      'review_submit_mode' => $review_submit_mode,
     ];
 
     $payload_file = $this->createPayloadFile($payload);
@@ -209,7 +231,7 @@ class WorkdayWizardService {
       return array_merge($blank, ['error' => 'Failed to create payload file for wizard script.']);
     }
 
-    $result = $this->runNode($payload_file, $timeout, 'wizard_auto');
+    $result = $this->playwrightRunner->runWizardPayload($payload_file, $timeout, 'wizard_auto');
 
     if (file_exists($payload_file)) {
       @unlink($payload_file);
@@ -229,6 +251,8 @@ class WorkdayWizardService {
       'evidence' => (string) ($result['evidence'] ?? ''),
       'screenshots' => (array) ($result['screenshots'] ?? []),
       'visual_confirmation' => (array) ($result['visual_confirmation'] ?? []),
+      'submit_blocked' => !empty($result['submit_blocked']),
+      'review_submit_mode' => (string) ($result['review_submit_mode'] ?? ''),
     ]);
   }
 
@@ -431,118 +455,6 @@ class WorkdayWizardService {
 
     $real_path = $this->fileSystem->realpath($uri);
     return ($real_path && file_exists($real_path)) ? $real_path : NULL;
-  }
-
-  /**
-   * Spawn the Node subprocess for the wizard advance script.
-   */
-  private function runNode(string $payload_file, int $timeout, string $step_key): ?array {
-    $playwright_dir = DRUPAL_ROOT . '/../web/modules/custom/job_hunter/playwright';
-    if (!is_dir($playwright_dir)) {
-      $playwright_dir = DRUPAL_ROOT . '/modules/custom/job_hunter/playwright';
-    }
-    $script = $playwright_dir . '/workday-wizard-advance.js';
-    if (!file_exists($script)) {
-      return NULL;
-    }
-
-    $browser_timeout = max(120, $timeout + 20);
-    $output_file = tempnam(sys_get_temp_dir(), 'jh_wz_out_');
-    @unlink($output_file);
-
-    // Prefer system-installed Chrome/Chromium.
-    $system_chrome = '';
-    foreach (['/usr/bin/google-chrome', '/usr/bin/chromium-browser', '/usr/bin/chromium'] as $candidate) {
-      if (is_executable($candidate)) {
-        $system_chrome = $candidate;
-        break;
-      }
-    }
-
-    $node_bin = is_executable('/usr/bin/node') ? '/usr/bin/node' : 'node';
-
-    $cmd = $node_bin . ' ' . escapeshellarg($script)
-      . ' --payload-file=' . escapeshellarg($payload_file)
-      . ' --output-file=' . escapeshellarg($output_file)
-      . ' --timeout=' . (int) $browser_timeout
-      . ($system_chrome !== '' ? ' --executable-path=' . escapeshellarg($system_chrome) : '');
-
-    $descriptors = [
-      0 => ['pipe', 'r'],
-      1 => ['pipe', 'w'],
-      2 => ['pipe', 'w'],
-    ];
-
-    $process = proc_open($cmd, $descriptors, $pipes, $playwright_dir);
-    if (!is_resource($process)) {
-      @unlink($output_file);
-      return NULL;
-    }
-
-    fclose($pipes[0]);
-
-    $hard_cap = $browser_timeout + 15;
-    $start    = time();
-    $stderr   = '';
-    stream_set_blocking($pipes[2], FALSE);
-
-    while (TRUE) {
-      $chunk = fread($pipes[2], 8192);
-      if ($chunk !== FALSE && $chunk !== '') {
-        $stderr .= $chunk;
-      }
-
-      $status = proc_get_status($process);
-      if (!$status['running']) {
-        break;
-      }
-
-      if ((time() - $start) >= $hard_cap) {
-        proc_terminate($process, 9);
-        fclose($pipes[1]);
-        fclose($pipes[2]);
-        proc_close($process);
-        @unlink($output_file);
-        return [
-          'ok'    => FALSE,
-          'error' => 'Browser subprocess timed out after ' . $hard_cap . 's.',
-        ];
-      }
-
-      usleep(500000);
-    }
-
-    fclose($pipes[1]);
-    fclose($pipes[2]);
-    proc_close($process);
-
-    // Log stderr for diagnostics.
-    if ($stderr !== '') {
-      \Drupal::logger('job_hunter')->notice('WD wizard @step stderr: @stderr', [
-        '@step'   => $step_key,
-        '@stderr' => substr($stderr, 0, 2000),
-      ]);
-    }
-
-    $raw = file_exists($output_file) ? file_get_contents($output_file) : '';
-    @unlink($output_file);
-
-    if ($raw === '' || $raw === FALSE) {
-      return [
-        'ok'    => FALSE,
-        'error' => 'Output file empty. stderr: ' . substr($stderr, 0, 400),
-      ];
-    }
-
-    $decoded = json_decode(trim($raw), TRUE);
-    if (!is_array($decoded)) {
-      return [
-        'ok'    => FALSE,
-        'error' => 'Invalid JSON from Node. stderr: ' . substr($stderr, 0, 400),
-      ];
-    }
-
-    return $decoded;
   }
 
 }

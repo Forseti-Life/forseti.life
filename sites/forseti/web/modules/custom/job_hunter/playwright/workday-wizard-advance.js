@@ -43,6 +43,8 @@
  *     },
  *     "screenshot_dir": "/var/private/forseti/job_hunter/screenshots",
  *     "application_id": 1
+ *     "prevent_submit": false
+ *     "review_submit_mode": "submit" // submit | save_and_continue_later | skip
  *   }
  *
  * The payload file is deleted immediately after reading.
@@ -333,7 +335,15 @@ const {
   resume_pdf_path = '',
   screenshot_dir = '',
   application_id = 0,
+  prevent_submit = false,
+  review_submit_mode = '',
 } = payload;
+
+const PREVENT_SUBMIT = prevent_submit === true || String(prevent_submit || '').toLowerCase() === 'true' || String(prevent_submit || '') === '1';
+const REVIEW_SUBMIT_MODE_RAW = String(review_submit_mode || '').trim().toLowerCase();
+const REVIEW_SUBMIT_MODE = REVIEW_SUBMIT_MODE_RAW === 'save_and_continue_later' || REVIEW_SUBMIT_MODE_RAW === 'skip' || REVIEW_SUBMIT_MODE_RAW === 'submit'
+  ? REVIEW_SUBMIT_MODE_RAW
+  : (PREVENT_SUBMIT ? 'skip' : 'submit');
 
 if (!username || !password || !apply_url) {
   fail('Payload must include username, password, and apply_url.');
@@ -384,8 +394,15 @@ async function fillFieldIfEmpty(page, automationId, value, fieldName) {
     if (tagName === 'input' || tagName === 'textarea') {
       const currentVal = await el.inputValue({ timeout: 2000 });
       if (currentVal && currentVal.trim().length > 0) {
-        process.stderr.write(`INFO: Field "${fieldName}" already has value: "${currentVal.substring(0, 30)}..." — skipping.\n`);
-        return null; // Already filled.
+        const isMatch = visualMatch(currentVal, value);
+        if (isMatch) {
+          pushFieldAudit(fieldName, value, currentVal, true, 'prepopulated-match');
+          process.stderr.write(`INFO: Field "${fieldName}" already matches expected value — skipping.\n`);
+          return null;
+        }
+
+        pushFieldAudit(fieldName, value, currentVal, false, 'prepopulated-mismatch-correcting');
+        process.stderr.write(`WARN: Field "${fieldName}" has mismatched prefilled value "${currentVal.substring(0, 30)}..." — correcting.\n`);
       }
       await el.click({ timeout: 2000 });
       await humanDelay(200, 400);
@@ -399,9 +416,177 @@ async function fillFieldIfEmpty(page, automationId, value, fieldName) {
       process.stderr.write(`WARN: Field "${fieldName}" write did not visually confirm.\n`);
       return null;
     }
+    pushFieldAudit(fieldName, value, '', false, 'unsupported-field-tag');
+    process.stderr.write(`WARN: Field "${fieldName}" is not an input/textarea; visual verification unavailable.\n`);
   } catch (e) {
+    pushFieldAudit(fieldName, value, '', false, `field-access-error:${automationId}`);
     process.stderr.write(`WARN: Could not fill field "${fieldName}" (${automationId}): ${e.message}\n`);
   }
+  return null;
+}
+
+async function ensureFieldMatchesExpected(page, automationId, expectedValue, fieldName) {
+  if (!expectedValue) return null;
+  try {
+    const selector = `[data-automation-id="${automationId}"]`;
+    const el = page.locator(selector).first();
+    await el.waitFor({ state: 'attached', timeout: 3000 });
+
+    const tagName = await el.evaluate((node) => node.tagName.toLowerCase());
+    if (tagName !== 'input' && tagName !== 'textarea') {
+      return await fillFieldIfEmpty(page, automationId, expectedValue, fieldName);
+    }
+
+    const currentVal = await el.inputValue({ timeout: 2000 }).catch(() => '');
+    if (currentVal && currentVal.trim().length > 0) {
+      const matches = visualMatch(currentVal, expectedValue);
+      if (matches) {
+        pushFieldAudit(fieldName, expectedValue, currentVal, true, 'prepopulated-match');
+        process.stderr.write(`INFO: Field "${fieldName}" already matches expected value.\n`);
+        return null;
+      }
+
+      const likelyInvalid = /\d/.test(String(currentVal || '').trim()) || String(currentVal || '').trim().length < 2;
+      if (!likelyInvalid) {
+        pushFieldAudit(fieldName, expectedValue, currentVal, false, 'prepopulated-mismatch');
+      }
+
+      await el.click({ timeout: 2000 });
+      await humanDelay(120, 260);
+      await el.fill('');
+      await humanType(page, selector, expectedValue);
+      const corrected = await confirmLocatorValue(page, el, expectedValue, fieldName, 'text');
+      if (corrected) {
+        process.stderr.write(`INFO: Corrected prefilled field "${fieldName}" from "${String(currentVal).substring(0, 30)}" to expected value (verified).\n`);
+        return fieldName;
+      }
+      process.stderr.write(`WARN: Failed to correct mismatched prefilled field "${fieldName}".\n`);
+      return null;
+    }
+
+    return await fillFieldIfEmpty(page, automationId, expectedValue, fieldName);
+  } catch (e) {
+    pushFieldAudit(fieldName, expectedValue, '', false, `ensure-match-error:${automationId}`);
+    process.stderr.write(`WARN: Could not validate/correct field "${fieldName}" (${automationId}): ${e.message}\n`);
+    return null;
+  }
+}
+
+async function ensureLocatorMatchesExpected(page, locator, expectedValue, fieldName) {
+  if (!locator || !expectedValue) return null;
+  try {
+    await locator.waitFor({ state: 'visible', timeout: 2500 });
+    const tagName = await locator.evaluate((node) => node.tagName.toLowerCase());
+    if (tagName !== 'input' && tagName !== 'textarea') {
+      pushFieldAudit(fieldName, expectedValue, '', false, 'unsupported-locator-tag');
+      return null;
+    }
+
+    const currentVal = await locator.inputValue({ timeout: 1800 }).catch(() => '');
+    if ((currentVal || '').trim().length > 0 && visualMatch(currentVal, expectedValue)) {
+      pushFieldAudit(fieldName, expectedValue, currentVal, true, 'prepopulated-match');
+      return null;
+    }
+
+    if ((currentVal || '').trim().length > 0) {
+      pushFieldAudit(fieldName, expectedValue, currentVal, true, 'prepopulated-mismatch-detected-correcting');
+    }
+
+    await locator.click({ timeout: 1500 });
+    await humanDelay(120, 260);
+    await locator.fill('');
+    await page.keyboard.type(String(expectedValue), { delay: 14 });
+    const corrected = await confirmLocatorValue(page, locator, expectedValue, fieldName, 'text');
+    if (corrected) {
+      process.stderr.write(`INFO: Corrected legal name field "${fieldName}" (verified).\n`);
+      return fieldName;
+    }
+
+    return null;
+  } catch (e) {
+    pushFieldAudit(fieldName, expectedValue, '', false, `ensure-locator-error:${e.message}`);
+    return null;
+  }
+}
+
+async function hasLegalNameFieldsVisible(page) {
+  const probes = [
+    '[data-automation-id="legalNameSection_firstName"]',
+    '[data-automation-id="legalNameSection_lastName"]',
+    'input[id*="firstName" i]',
+    'input[id*="lastName" i]',
+    'input[name*="first" i]',
+    'input[name*="last" i]',
+    'input[autocomplete="given-name"]',
+    'input[autocomplete="family-name"]',
+  ];
+  for (const sel of probes) {
+    try {
+      if (await page.locator(sel).first().isVisible({ timeout: 350 })) {
+        return true;
+      }
+    } catch (_) {}
+  }
+  return false;
+}
+
+async function attemptReachMyInformationForLegalName(page) {
+  if (await hasLegalNameFieldsVisible(page)) {
+    return true;
+  }
+
+  const evidenceSink = [];
+  for (let i = 0; i < 4; i++) {
+    const backed = await clickBackButton(page, evidenceSink);
+    if (!backed) {
+      break;
+    }
+    await humanDelay(700, 1300);
+    if (await hasLegalNameFieldsVisible(page)) {
+      process.stderr.write(`INFO: Reached legal name context after ${i + 1} Back action(s).\n`);
+      return true;
+    }
+  }
+
+  return false;
+}
+
+async function ensureLegalNameField(page, expectedValue, fieldName) {
+  if (!expectedValue) return null;
+
+  const selectors = fieldName === 'first_name'
+    ? [
+      '[data-automation-id="legalNameSection_firstName"]',
+      'input[id*="firstName" i]',
+      'input[name*="first" i]',
+      'input[autocomplete="given-name"]',
+      'input[aria-label*="first" i]',
+    ]
+    : [
+      '[data-automation-id="legalNameSection_lastName"]',
+      'input[id*="lastName" i]',
+      'input[name*="last" i]',
+      'input[autocomplete="family-name"]',
+      'input[aria-label*="last" i]',
+    ];
+
+  for (const sel of selectors) {
+    try {
+      const locator = page.locator(sel).first();
+      await locator.waitFor({ state: 'visible', timeout: 700 });
+      return await ensureLocatorMatchesExpected(page, locator, expectedValue, fieldName);
+    } catch (_) {}
+  }
+
+  const labelNeedle = fieldName === 'first_name' ? 'first name' : 'last name';
+  try {
+    const xpath = `xpath=(//label[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), "${labelNeedle}")]/following::input[1])[1]`;
+    const locator = page.locator(xpath).first();
+    await locator.waitFor({ state: 'visible', timeout: 900 });
+    return await ensureLocatorMatchesExpected(page, locator, expectedValue, fieldName);
+  } catch (_) {}
+
+  pushFieldAudit(fieldName, expectedValue, '', false, 'legal-name-field-not-found');
   return null;
 }
 
@@ -418,6 +603,7 @@ async function selectDropdownOption(page, automationId, optionText, fieldName) {
     // Check if already has the correct value.
     const currentText = await el.textContent({ timeout: 2000 });
     if (currentText && currentText.includes(optionText)) {
+      pushFieldAudit(fieldName, optionText, currentText, true, 'prepopulated-match-dropdown');
       process.stderr.write(`INFO: Dropdown "${fieldName}" already set to "${optionText}" — skipping.\n`);
       return null;
     }
@@ -439,6 +625,7 @@ async function selectDropdownOption(page, automationId, optionText, fieldName) {
     process.stderr.write(`WARN: Dropdown "${fieldName}" selection did not visually confirm.\n`);
     return null;
   } catch (e) {
+    pushFieldAudit(fieldName, optionText, '', false, `dropdown-access-error:${automationId}`);
     process.stderr.write(`WARN: Could not select dropdown "${fieldName}" (${automationId}): ${e.message}\n`);
     return null;
   }
@@ -476,6 +663,7 @@ async function selectRadioOption(page, labelText, fieldName) {
   } catch (e) {
     process.stderr.write(`WARN: Could not select radio "${fieldName}": ${e.message}\n`);
   }
+  pushFieldAudit(fieldName, labelText, '', false, 'radio-not-confirmed');
   return null;
 }
 
@@ -497,7 +685,9 @@ async function checkCheckboxByLabel(page, labelText, fieldName) {
       return null;
     }
     process.stderr.write(`INFO: Checkbox "${fieldName}" already checked — skipping.\n`);
+    pushFieldAudit(fieldName, 'checked', 'checked', true, 'prepopulated-match-checkbox');
   } catch (e) {
+    pushFieldAudit(fieldName, 'checked', '', false, 'checkbox-not-confirmed');
     process.stderr.write(`WARN: Could not check "${fieldName}": ${e.message}\n`);
   }
   return null;
@@ -1233,6 +1423,8 @@ async function handleMyInformation(page, profile, result) {
   const filled = [];
   const skipped = [];
 
+  await attemptReachMyInformationForLegalName(page);
+
   // Split full_name into first/last if not explicitly provided.
   let firstName = profile.first_name || '';
   let lastName  = profile.last_name || '';
@@ -1242,10 +1434,19 @@ async function handleMyInformation(page, profile, result) {
     lastName  = parts.slice(1).join(' ') || '';
   }
 
+  const legalNameFields = [
+    { value: firstName, name: 'first_name' },
+    { value: lastName, name: 'last_name' },
+  ];
+
+  for (const f of legalNameFields) {
+    const r = await ensureLegalNameField(page, f.value, f.name);
+    if (r) filled.push(r);
+    else skipped.push(f.name);
+  }
+
   // Common Workday My Information fields (data-automation-id).
   const fieldMap = [
-    { automationId: 'legalNameSection_firstName',  value: firstName,        name: 'first_name' },
-    { automationId: 'legalNameSection_lastName',   value: lastName,         name: 'last_name' },
     { automationId: 'addressSection_addressLine1', value: profile.address || '', name: 'address_line1' },
     { automationId: 'addressSection_city',         value: profile.city || '',    name: 'city' },
     { automationId: 'addressSection_postalCode',   value: profile.zip || '',     name: 'postal_code' },
@@ -1360,13 +1561,20 @@ async function handleMyExperience(page, profile, result) {
   // Validation/correction subflow: ensure required core experience fields are
   // present and align to profile data when fields are available.
   const correctedPrimary = await forceFillExperienceFields(page, profile);
+  const correctedEducation = await forceFillEducationFields(page, profile);
   filled.push(...correctedPrimary.filled.filter((x) => !filled.includes(x)));
+  filled.push(...correctedEducation.filled.filter((x) => !filled.includes(x)));
   for (const s of correctedPrimary.skipped) {
     if (!skipped.includes(s)) {
       skipped.push(s);
     }
   }
-  if (correctedPrimary.filled.length > 0) {
+  for (const s of correctedEducation.skipped) {
+    if (!skipped.includes(s)) {
+      skipped.push(s);
+    }
+  }
+  if (correctedPrimary.filled.length > 0 || correctedEducation.filled.length > 0) {
     const committed = await commitMyExperienceEditor(page);
     if (committed) {
       filled.push('experience_editor_saved');
@@ -1379,13 +1587,20 @@ async function handleMyExperience(page, profile, result) {
     if (opened) {
       filled.push('opened_experience_editor');
       const correctedAfterOpen = await forceFillExperienceFields(page, profile);
+      const correctedEducationAfterOpen = await forceFillEducationFields(page, profile);
       filled.push(...correctedAfterOpen.filled.filter((x) => !filled.includes(x)));
+      filled.push(...correctedEducationAfterOpen.filled.filter((x) => !filled.includes(x)));
       for (const s of correctedAfterOpen.skipped) {
         if (!skipped.includes(s)) {
           skipped.push(s);
         }
       }
-      if (correctedAfterOpen.filled.length > 0) {
+      for (const s of correctedEducationAfterOpen.skipped) {
+        if (!skipped.includes(s)) {
+          skipped.push(s);
+        }
+      }
+      if (correctedAfterOpen.filled.length > 0 || correctedEducationAfterOpen.filled.length > 0) {
         const committed = await commitMyExperienceEditor(page);
         if (committed) {
           filled.push('experience_editor_saved');
@@ -1821,6 +2036,100 @@ async function isLikelyStillOnStep(page, stepKey) {
   }
 }
 
+async function alignToTargetStepIfPossible(page, targetStep, evidenceParts = []) {
+  if (!AUTO_STEP_ORDER.includes(targetStep)) {
+    return false;
+  }
+
+  await enterApplyFlowIfNeeded(page, evidenceParts);
+
+  for (let i = 0; i < 8; i++) {
+    const inferred = await inferCurrentWizardStep(page);
+    if (inferred === targetStep) {
+      if (i > 0) {
+        evidenceParts.push(`Single-step realignment reached ${targetStep} in ${i} hop(s)`);
+      }
+      return true;
+    }
+
+    if (!AUTO_STEP_ORDER.includes(inferred)) {
+      return false;
+    }
+
+    const currentIdx = AUTO_STEP_ORDER.indexOf(inferred);
+    const targetIdx = AUTO_STEP_ORDER.indexOf(targetStep);
+
+    let moved = false;
+    if (currentIdx < targetIdx) {
+      moved = await clickContinueButton(page, evidenceParts);
+    } else if (currentIdx > targetIdx) {
+      moved = await clickBackButton(page, evidenceParts);
+    }
+
+    if (!moved) {
+      return false;
+    }
+
+    await humanDelay(1000, 1800);
+  }
+
+  return (await inferCurrentWizardStep(page)) === targetStep;
+}
+
+async function bootstrapMyExperienceFromMyInformation(page, profile, evidenceParts = []) {
+  try {
+    const inferred = await inferCurrentWizardStep(page);
+    if (inferred !== 'my_information') {
+      return false;
+    }
+
+    const local = {
+      fields_filled: [],
+      fields_skipped: [],
+      needs_manual_review: false,
+    };
+
+    await handleMyInformation(page, profile || {}, local);
+    evidenceParts.push(`Bootstrap my_information fields filled: [${(local.fields_filled || []).join(', ')}]`);
+
+    const moved = await clickContinueButton(page, evidenceParts);
+    if (!moved) {
+      return false;
+    }
+
+    await humanDelay(1200, 2200);
+    const after = await inferCurrentWizardStep(page);
+    if (after === 'my_experience') {
+      evidenceParts.push('Bootstrapped my_information -> my_experience');
+      return true;
+    }
+  } catch (_) {}
+
+  return false;
+}
+
+async function isMyInformationFormVisible(page) {
+  const probes = [
+    '[data-automation-id="legalNameSection_firstName"]',
+    '[data-automation-id="legalNameSection_lastName"]',
+    '[data-automation-id="addressSection_city"]',
+    '[data-automation-id="phone-number"]',
+    '[data-automation-id="email"]',
+    'input[autocomplete="given-name"]',
+    'input[autocomplete="family-name"]',
+  ];
+
+  for (const sel of probes) {
+    try {
+      if (await page.locator(sel).first().isVisible({ timeout: 350 })) {
+        return true;
+      }
+    } catch (_) {}
+  }
+
+  return false;
+}
+
 async function clickContinueButton(page, evidenceParts) {
   const continueSelectors = [
     'button[data-automation-id="bottom-navigation-next-button"]',
@@ -1933,6 +2242,75 @@ async function acceptCookiesIfPresent(page, evidenceParts = []) {
   return false;
 }
 
+async function enterApplyFlowIfNeeded(page, evidenceParts = []) {
+  try {
+    const url = (page.url() || '').toLowerCase();
+    if (url.includes('/apply/')) {
+      return true;
+    }
+
+    const clickFirstEnabled = async (selectors, label) => {
+      for (const sel of selectors) {
+        try {
+          const btn = page.locator(sel).first();
+          await btn.waitFor({ state: 'visible', timeout: 1200 });
+          await btn.scrollIntoViewIfNeeded({ timeout: 1000 }).catch(() => {});
+          const disabled = await btn.evaluate((el) => {
+            const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+            return !!(el.disabled || aria === 'true');
+          });
+          if (disabled) {
+            continue;
+          }
+          await humanDelay(120, 280);
+          await btn.click({ timeout: 2200, force: true });
+          evidenceParts.push(`Entered apply flow via ${label}:${sel}`);
+          await humanDelay(1200, 2200);
+          return true;
+        } catch (_) {}
+      }
+      return false;
+    };
+
+    const applySelectors = [
+      'a:has-text("Continue Application")',
+      'button:has-text("Continue Application")',
+      'a[href*="/apply/"]',
+      'a[href*="autofillWithResume"]',
+      'a[href*="/apply"]:has-text("Apply")',
+      'a:has-text("Apply Now")',
+      'button:has-text("Apply")',
+      'a:has-text("Apply")',
+      'button[data-automation-id*="apply" i]',
+      'a[data-automation-id*="apply" i]',
+      'button[data-automation-id="applyButton"]',
+      'a[data-automation-id="applyButton"]',
+    ];
+
+    const entered = await clickFirstEnabled(applySelectors, 'apply-entry');
+    if (entered) {
+      const postUrl = (page.url() || '').toLowerCase();
+      if (postUrl.includes('/apply/')) {
+        return true;
+      }
+      const hasWizardSignal = await page.evaluate(() => {
+        const txt = (document.body?.innerText || '').toLowerCase();
+        return txt.includes('my information')
+          || txt.includes('my experience')
+          || txt.includes('application questions')
+          || txt.includes('voluntary disclosures')
+          || txt.includes('self-identify')
+          || txt.includes('review')
+          || !!document.querySelector('[data-automation-id="bottom-navigation"]')
+          || !!document.querySelector('[data-automation-id="applyFlowMyExpPage"]');
+      }).catch(() => false);
+      return !!hasWizardSignal;
+    }
+  } catch (_) {}
+
+  return false;
+}
+
 async function probeWorkExperienceDateControls(page) {
   try {
     return await page.evaluate(() => {
@@ -2033,6 +2411,160 @@ async function clickSubmitButton(page, evidenceParts) {
   };
 
   return await clickSubmitNow();
+}
+
+async function clickSaveAndContinueLaterButton(page, evidenceParts) {
+  const saveSelectors = [
+    'button[data-automation-id="saveAndContinueLaterButton"]',
+    'button[data-automation-id="bottom-navigation-save-button"]',
+    '[data-automation-id="bottom-navigation"] button:has-text("Save and Continue Later")',
+    'button:has-text("Save and Continue Later")',
+    '[role="button"]:has-text("Save and Continue Later")',
+    'a:has-text("Save and Continue Later")',
+  ];
+
+  for (const sel of saveSelectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 700 });
+      await btn.scrollIntoViewIfNeeded({ timeout: 1000 });
+      const disabled = await btn.evaluate((el) => {
+        const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+        return !!(el.disabled || aria === 'true');
+      });
+      if (disabled) {
+        continue;
+      }
+      await humanDelay(150, 350);
+      await btn.click({ timeout: 1800, force: true });
+      evidenceParts.push(`Clicked Save and Continue Later via ${sel}`);
+      return true;
+    } catch (_) {}
+  }
+
+  const exitSelectors = [
+    'button[aria-label*="close" i]',
+    'button[aria-label*="exit" i]',
+    '[role="button"][aria-label*="close" i]',
+    'a:has-text("Back to Job Posting")',
+    'button:has-text("Back to Job Posting")',
+    'button:has-text("Cancel")',
+    'button:has-text("Back")',
+    '[role="button"]:has-text("X")',
+    'button:has-text("X")',
+  ];
+
+  for (const sel of exitSelectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 500 });
+      await btn.scrollIntoViewIfNeeded({ timeout: 1000 }).catch(() => {});
+      const disabled = await btn.evaluate((el) => {
+        const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+        return !!(el.disabled || aria === 'true');
+      });
+      if (disabled) {
+        continue;
+      }
+      await btn.click({ timeout: 1500, force: true });
+      await humanDelay(300, 700);
+      evidenceParts.push(`Opened exit/back flow via ${sel}`);
+
+      for (const saveSel of saveSelectors) {
+        try {
+          const saveBtn = page.locator(saveSel).first();
+          await saveBtn.waitFor({ state: 'visible', timeout: 900 });
+          await saveBtn.scrollIntoViewIfNeeded({ timeout: 1000 }).catch(() => {});
+          const saveDisabled = await saveBtn.evaluate((el) => {
+            const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+            return !!(el.disabled || aria === 'true');
+          });
+          if (saveDisabled) {
+            continue;
+          }
+          await humanDelay(120, 260);
+          await saveBtn.click({ timeout: 1600, force: true });
+          evidenceParts.push(`Clicked Save and Continue Later via exit modal ${saveSel}`);
+          return true;
+        } catch (_) {}
+      }
+
+      const inferredSaved = await isSaveAndContinueLaterConfirmed(page);
+      if (inferredSaved) {
+        evidenceParts.push('Inferred Save and Continue Later state after exit/back flow');
+        return true;
+      }
+    } catch (_) {}
+  }
+
+  try {
+    const clicked = await page.evaluate(() => {
+      const candidates = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], input[type="submit"]'));
+      const match = candidates.find((el) => {
+        const txt = ((el.textContent || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+        const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
+        return !disabled && /save and continue later/.test(txt);
+      });
+      if (match) {
+        match.scrollIntoView({ behavior: 'instant', block: 'center' });
+        match.click();
+        return true;
+      }
+      return false;
+    });
+    if (clicked) {
+      evidenceParts.push('Clicked Save and Continue Later via DOM fallback');
+      return true;
+    }
+  } catch (_) {}
+
+  return false;
+}
+
+async function isSaveAndContinueLaterConfirmed(page) {
+  try {
+    const url = (page.url() || '').toLowerCase();
+    if (url.includes('/candidate-home') || url.includes('/userhome') || url.includes('/applications') || url.includes('/job-search') || url.includes('/dashboard')) {
+      return true;
+    }
+
+    const state = await page.evaluate(() => {
+      const text = (document.body?.innerText || '').toLowerCase();
+      const hasSavedText = text.includes('saved')
+        || text.includes('continue later')
+        || text.includes('application has been saved')
+        || text.includes('you can continue later');
+      const hasContinueApplication = text.includes('continue application');
+
+      const visible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const s = window.getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+      };
+
+      const stillHasSaveLater = Array.from(document.querySelectorAll('button, [role="button"], a'))
+        .filter(visible)
+        .some((el) => {
+          const t = ((el.textContent || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+          return /save and continue later/.test(t);
+        });
+
+      return { hasSavedText, stillHasSaveLater, hasContinueApplication };
+    });
+
+    if (state.hasSavedText) {
+      return true;
+    }
+
+    if (state.hasContinueApplication && !url.includes('/apply')) {
+      return true;
+    }
+
+    return !url.includes('/apply') && !state.stillHasSaveLater;
+  } catch (_) {
+    return false;
+  }
 }
 
 async function isSubmissionConfirmed(page) {
@@ -2995,19 +3527,437 @@ async function fillExperienceDialogNative(page, profile) {
   }
 }
 
-async function fillWorkExperienceByFieldNames(page, profile) {
-  const parsedFrom = normalizeMonthYear(profile.experience_from || '');
-  const parsedTo = normalizeMonthYear(profile.experience_to || '');
+function extractExperienceEntries(profile) {
+  const out = [];
+  const normalizedFromArray = Array.isArray(profile?.work_experience_entries)
+    ? profile.work_experience_entries
+      .filter((x) => x && typeof x === 'object')
+      .map((x) => ({
+        job_title: String(x.job_title || x.title || '').trim(),
+        company: String(x.company || '').trim(),
+        from: String(x.from || x.start_date || '').trim(),
+        to: String(x.to || x.end_date || '').trim(),
+        role_description: String(x.role_description || x.description || '').trim(),
+      }))
+      .filter((x) => x.job_title || x.company || x.from || x.to || x.role_description)
+    : [];
+
+  out.push(...normalizedFromArray.slice(0, 3));
+
+  const firstLegacy = {
+    job_title: String(profile?.experience_job_title || '').trim(),
+    company: String(profile?.experience_company || '').trim(),
+    from: String(profile?.experience_from || '').trim(),
+    to: String(profile?.experience_to || '').trim(),
+    role_description: String(profile?.experience_role_description || '').trim(),
+  };
+  if ((firstLegacy.job_title || firstLegacy.company || firstLegacy.from || firstLegacy.to || firstLegacy.role_description)
+    && !out.some((x) => x.job_title === firstLegacy.job_title && x.company === firstLegacy.company && x.from === firstLegacy.from && x.to === firstLegacy.to && x.role_description === firstLegacy.role_description)) {
+    out.unshift(firstLegacy);
+  }
+
+  const secondLegacy = {
+    job_title: String(profile?.experience2_job_title || '').trim(),
+    company: String(profile?.experience2_company || '').trim(),
+    from: String(profile?.experience2_from || '').trim(),
+    to: String(profile?.experience2_to || '').trim(),
+    role_description: String(profile?.experience2_role_description || '').trim(),
+  };
+  if (secondLegacy.job_title || secondLegacy.company || secondLegacy.from || secondLegacy.to || secondLegacy.role_description) {
+    out.push(secondLegacy);
+  }
+
+  const thirdLegacy = {
+    job_title: String(profile?.experience3_job_title || '').trim(),
+    company: String(profile?.experience3_company || '').trim(),
+    from: String(profile?.experience3_from || '').trim(),
+    to: String(profile?.experience3_to || '').trim(),
+    role_description: String(profile?.experience3_role_description || '').trim(),
+  };
+  if (thirdLegacy.job_title || thirdLegacy.company || thirdLegacy.from || thirdLegacy.to || thirdLegacy.role_description) {
+    out.push(thirdLegacy);
+  }
+
+  return out.slice(0, 3);
+}
+
+async function getInlineExperienceRowKeys(page) {
+  try {
+    const keys = await page.evaluate(() => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const inputs = Array.from(document.querySelectorAll('input[name="jobTitle"][id*="workExperience-"]')).filter(isVisible);
+      const rows = [];
+      for (const el of inputs) {
+        const m = String(el.id || '').match(/workExperience-(\d+)--/i);
+        if (m) {
+          rows.push({ key: m[1], y: el.getBoundingClientRect().y });
+        }
+      }
+
+      rows.sort((a, b) => a.y - b.y);
+      return rows.map((r) => r.key).filter((v, i, a) => a.indexOf(v) === i);
+    });
+
+    return Array.isArray(keys) ? keys : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function clickAddWorkExperienceRow(page) {
+  const selectors = [
+    '[data-automation-id*="workExperience" i] button:has-text("Add")',
+    'section:has-text("Work Experience") button:has-text("Add")',
+    'button:has-text("Add Work Experience")',
+    'button[aria-label*="Add Work Experience" i]',
+    '[data-automation-id="add-button"]',
+  ];
+
+  for (const sel of selectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 900 });
+      const disabled = await btn.evaluate((el) => {
+        const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+        return !!(el.disabled || aria === 'true');
+      });
+      if (disabled) {
+        continue;
+      }
+      await btn.scrollIntoViewIfNeeded({ timeout: 700 }).catch(() => {});
+      await btn.click({ timeout: 1300, force: true });
+      await humanDelay(180, 340);
+
+      const menuSelectors = [
+        'li[role="menuitem"]:has-text("Work Experience")',
+        '[role="option"]:has-text("Work Experience")',
+        '[data-automation-id="promptOption"]:has-text("Work Experience")',
+      ];
+      for (const menuSel of menuSelectors) {
+        try {
+          const opt = page.locator(menuSel).first();
+          await opt.waitFor({ state: 'visible', timeout: 500 });
+          await opt.click({ timeout: 1000, force: true });
+          await humanDelay(220, 420);
+          break;
+        } catch (_) {}
+      }
+
+      return true;
+    } catch (_) {}
+  }
+
+  return false;
+}
+
+async function ensureInlineExperienceRowCount(page, desiredCount) {
+  if (!desiredCount || desiredCount <= 1) {
+    return true;
+  }
+
+  for (let attempt = 0; attempt < desiredCount + 2; attempt++) {
+    const keys = await getInlineExperienceRowKeys(page);
+    if (keys.length >= desiredCount) {
+      return true;
+    }
+
+    const added = await clickAddWorkExperienceRow(page);
+    if (!added) {
+      return false;
+    }
+    await humanDelay(300, 620);
+  }
+
+  const keys = await getInlineExperienceRowKeys(page);
+  return keys.length >= desiredCount;
+}
+
+function extractEducationEntries(profile) {
+  const out = [];
+  const fromArray = Array.isArray(profile?.education_entries)
+    ? profile.education_entries
+      .filter((x) => x && typeof x === 'object')
+      .map((x) => ({
+        school: String(x.school || x.institution || '').trim(),
+        degree: String(x.degree || '').trim(),
+        end_date: String(x.end_date || x.graduation_date || '').trim(),
+      }))
+      .filter((x) => x.school || x.degree || x.end_date)
+    : [];
+  out.push(...fromArray.slice(0, 3));
+
+  const legacy1 = {
+    school: String(profile?.education_school || '').trim(),
+    degree: String(profile?.education_degree || '').trim(),
+    end_date: String(profile?.education_end_date || '').trim(),
+  };
+  if (legacy1.school || legacy1.degree || legacy1.end_date) {
+    out.unshift(legacy1);
+  }
+
+  const legacy2 = {
+    school: String(profile?.education2_school || '').trim(),
+    degree: String(profile?.education2_degree || '').trim(),
+    end_date: String(profile?.education2_end_date || '').trim(),
+  };
+  if (legacy2.school || legacy2.degree || legacy2.end_date) {
+    out.push(legacy2);
+  }
+
+  const legacy3 = {
+    school: String(profile?.education3_school || '').trim(),
+    degree: String(profile?.education3_degree || '').trim(),
+    end_date: String(profile?.education3_end_date || '').trim(),
+  };
+  if (legacy3.school || legacy3.degree || legacy3.end_date) {
+    out.push(legacy3);
+  }
+
+  const unique = [];
+  for (const e of out) {
+    if (!e) continue;
+    const dup = unique.some((x) => x.school === e.school && x.degree === e.degree && x.end_date === e.end_date);
+    if (!dup) unique.push(e);
+  }
+  return unique.slice(0, 3);
+}
+
+async function getInlineEducationRowKeys(page) {
+  try {
+    const keys = await page.evaluate(() => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const candidates = Array.from(document.querySelectorAll('input[id*="education-"]')).filter((el) => {
+        if (!isVisible(el)) return false;
+        const id = String(el.id || '').toLowerCase();
+        return id.includes('school') || id.includes('institution') || id.includes('degree');
+      });
+
+      const rows = [];
+      for (const el of candidates) {
+        const m = String(el.id || '').match(/education-(\d+)--/i);
+        if (m) {
+          rows.push({ key: m[1], y: el.getBoundingClientRect().y });
+        }
+      }
+
+      rows.sort((a, b) => a.y - b.y);
+      return rows.map((r) => r.key).filter((v, i, a) => a.indexOf(v) === i);
+    });
+    return Array.isArray(keys) ? keys : [];
+  } catch (_) {
+    return [];
+  }
+}
+
+async function clickAddEducationRow(page) {
+  const selectors = [
+    '[data-automation-id*="education" i] button:has-text("Add")',
+    'section:has-text("Education") button:has-text("Add")',
+    'button:has-text("Add Education")',
+    'button[aria-label*="Add Education" i]',
+    '[data-automation-id="add-button"]',
+  ];
+
+  for (const sel of selectors) {
+    try {
+      const btn = page.locator(sel).first();
+      await btn.waitFor({ state: 'visible', timeout: 900 });
+      const disabled = await btn.evaluate((el) => {
+        const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
+        return !!(el.disabled || aria === 'true');
+      });
+      if (disabled) continue;
+      await btn.scrollIntoViewIfNeeded({ timeout: 700 }).catch(() => {});
+      await btn.click({ timeout: 1300, force: true });
+      await humanDelay(180, 340);
+
+      const menuSelectors = [
+        'li[role="menuitem"]:has-text("Education")',
+        '[role="option"]:has-text("Education")',
+        '[data-automation-id="promptOption"]:has-text("Education")',
+      ];
+      for (const menuSel of menuSelectors) {
+        try {
+          const opt = page.locator(menuSel).first();
+          await opt.waitFor({ state: 'visible', timeout: 500 });
+          await opt.click({ timeout: 1000, force: true });
+          await humanDelay(220, 420);
+          break;
+        } catch (_) {}
+      }
+      return true;
+    } catch (_) {}
+  }
+
+  return false;
+}
+
+async function ensureInlineEducationRowCount(page, desiredCount) {
+  if (!desiredCount || desiredCount <= 1) {
+    return true;
+  }
+
+  for (let attempt = 0; attempt < desiredCount + 2; attempt++) {
+    const keys = await getInlineEducationRowKeys(page);
+    if (keys.length >= desiredCount) {
+      return true;
+    }
+
+    const added = await clickAddEducationRow(page);
+    if (!added) {
+      return false;
+    }
+    await humanDelay(300, 620);
+  }
+
+  const keys = await getInlineEducationRowKeys(page);
+  return keys.length >= desiredCount;
+}
+
+async function fillEducationByFieldNames(page, educationEntries) {
+  const entryList = Array.isArray(educationEntries) ? educationEntries.filter(Boolean).slice(0, 3) : [];
+  if (!entryList.length) {
+    return [];
+  }
+
+  try {
+    const rowKeys = await getInlineEducationRowKeys(page);
+    if (!rowKeys.length) {
+      return [];
+    }
+
+    const enriched = entryList.map((e) => {
+      const parts = normalizeMonthYear(e.end_date || '');
+      return {
+        school: String(e.school || '').trim(),
+        degree: String(e.degree || '').trim(),
+        endMonth: parts?.month || '',
+        endYear: parts?.year || (String(e.end_date || '').match(/(\d{4})/)?.[1] || ''),
+      };
+    });
+
+    return await page.evaluate(({ rowKeys, entries }) => {
+      const filled = [];
+
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const setInput = (el, val) => {
+        if (!el || !isVisible(el)) return false;
+        const text = String(val || '');
+        el.focus();
+        try {
+          const proto = Object.getPrototypeOf(el);
+          const desc = Object.getOwnPropertyDescriptor(proto, 'value')
+            || Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+            || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+          if (desc && typeof desc.set === 'function') {
+            desc.set.call(el, '');
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            desc.set.call(el, text);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            return true;
+          }
+        } catch (_) {}
+
+        try {
+          el.value = '';
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.value = text;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+          return true;
+        } catch (_) {
+          return false;
+        }
+      };
+
+      const tryByIds = (ids, value) => {
+        for (const id of ids) {
+          const el = document.getElementById(id);
+          if (setInput(el, value)) {
+            return true;
+          }
+        }
+        return false;
+      };
+
+      for (let idx = 0; idx < rowKeys.length && idx < entries.length; idx++) {
+        const key = rowKeys[idx];
+        const e = entries[idx] || {};
+
+        if (e.school) {
+          const ok = tryByIds([
+            `education-${key}--schoolName`,
+            `education-${key}--institution`,
+            `education-${key}--institutionName`,
+          ], e.school);
+          if (ok) {
+            filled.push(idx === 0 ? 'education_school' : `education_${idx + 1}_school`);
+          }
+        }
+
+        if (e.degree) {
+          const ok = tryByIds([
+            `education-${key}--degree`,
+            `education-${key}--degreeName`,
+            `education-${key}--degreeType`,
+          ], e.degree);
+          if (ok) {
+            filled.push(idx === 0 ? 'education_degree' : `education_${idx + 1}_degree`);
+          }
+        }
+
+        if (e.endMonth && e.endYear) {
+          const mOk = tryByIds([
+            `education-${key}--endDate-dateSectionMonth-input`,
+            `education-${key}--endDateMonth`,
+          ], e.endMonth);
+          const yOk = tryByIds([
+            `education-${key}--endDate-dateSectionYear-input`,
+            `education-${key}--endDateYear`,
+          ], e.endYear);
+          if (mOk && yOk) {
+            filled.push(idx === 0 ? 'education_end_date' : `education_${idx + 1}_end_date`);
+          }
+        }
+      }
+
+      return filled;
+    }, { rowKeys, entries: enriched });
+  } catch (_) {
+    return [];
+  }
+}
+
+async function fillWorkExperienceByFieldNames(page, experienceEntries) {
+  const entryList = Array.isArray(experienceEntries) ? experienceEntries.filter(Boolean) : [];
+  if (!entryList.length) {
+    return [];
+  }
+
   const now = new Date();
   const fallbackFrom = { month: '01', year: String(now.getFullYear() - 1) };
   const fallbackTo = { month: String(now.getMonth() + 1).padStart(2, '0'), year: String(now.getFullYear()) };
-  const fromParts = parsedFrom || fallbackFrom;
-  const toParts = parsedTo || fallbackTo;
-  const toRaw = String(profile.experience_to || '').trim();
-  const present = /present|current/i.test(toRaw) || (!parsedTo && toRaw === '');
-  const jobTitle = String(profile.experience_job_title || '').trim();
-  const company = String(profile.experience_company || '').trim();
-  const roleDescription = String(profile.experience_role_description || '').trim();
   const filled = [];
 
   const valueMatches = (actual, expected) => {
@@ -3383,56 +4333,55 @@ async function fillWorkExperienceByFieldNames(page, profile) {
   };
 
   try {
-    const rowKeys = await page.evaluate(() => {
-      const isVisible = (el) => {
-        if (!el) return false;
-        const rect = el.getBoundingClientRect();
-        const style = window.getComputedStyle(el);
-        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
-      };
-      const inputs = Array.from(document.querySelectorAll('input[name="jobTitle"][id*="workExperience-"]')).filter(isVisible);
-      const rows = [];
-      for (const el of inputs) {
-        const m = String(el.id || '').match(/workExperience-(\d+)--/i);
-        if (m) {
-          rows.push({ key: m[1], y: el.getBoundingClientRect().y });
-        }
-      }
-      rows.sort((a, b) => a.y - b.y);
-      return rows.map((r) => r.key).filter((v, i, a) => a.indexOf(v) === i);
-    });
+    const rowKeys = await getInlineExperienceRowKeys(page);
 
     process.stderr.write(`INFO: Inline workExperience row keys: ${JSON.stringify(rowKeys)}\n`);
 
-    for (const key of rowKeys) {
+    for (let rowIndex = 0; rowIndex < rowKeys.length; rowIndex++) {
+      if (rowIndex >= entryList.length) {
+        continue;
+      }
+
+      const key = rowKeys[rowIndex];
+      const entry = entryList[rowIndex] || {};
+      const parsedFrom = normalizeMonthYear(entry.from || '');
+      const parsedTo = normalizeMonthYear(entry.to || '');
+      const fromParts = parsedFrom || fallbackFrom;
+      const toParts = parsedTo || fallbackTo;
+      const toRaw = String(entry.to || '').trim();
+      const present = /present|current/i.test(toRaw) || (!parsedTo && toRaw === '');
+      const jobTitle = String(entry.job_title || '').trim();
+      const company = String(entry.company || '').trim();
+      const roleDescription = String(entry.role_description || '').trim();
+
       const perRow = { key, title: false, company: false, description: false, from: false, to: false, current: false };
       if (jobTitle) {
         const ok = await typeById(`workExperience-${key}--jobTitle`, jobTitle);
         perRow.title = ok;
-        if (ok) filled.push('experience_job_title');
+        if (ok) filled.push(rowIndex === 0 ? 'experience_job_title' : `experience_${rowIndex + 1}_job_title`);
       }
       if (company) {
         const ok = await typeById(`workExperience-${key}--companyName`, company);
         perRow.company = ok;
-        if (ok) filled.push('experience_company');
+        if (ok) filled.push(rowIndex === 0 ? 'experience_company' : `experience_${rowIndex + 1}_company`);
       }
       if (roleDescription) {
         const ok = await setRoleDescriptionForRow(key, roleDescription);
         perRow.description = ok;
-        if (ok) filled.push('experience_role_description');
+        if (ok) filled.push(rowIndex === 0 ? 'experience_role_description' : `experience_${rowIndex + 1}_role_description`);
       }
       if (fromParts && fromParts.month && fromParts.year) {
         const dateOk = await setDateByPrefix(key, 'startDate', fromParts);
         const a = dateOk || await typeById(`workExperience-${key}--startDate-dateSectionMonth-input`, fromParts.month);
         const b = dateOk || await typeById(`workExperience-${key}--startDate-dateSectionYear-input`, fromParts.year);
         perRow.from = !!(dateOk || (a && b));
-        if (perRow.from) filled.push('experience_from');
+        if (perRow.from) filled.push(rowIndex === 0 ? 'experience_from' : `experience_${rowIndex + 1}_from`);
       }
 
       if (present) {
         const ok = await setCurrentHere(key, true);
         perRow.current = ok;
-        if (ok) filled.push('experience_to_current');
+        if (ok) filled.push(rowIndex === 0 ? 'experience_to_current' : `experience_${rowIndex + 1}_to_current`);
       } else {
         await setCurrentHere(key, false);
       }
@@ -3442,7 +4391,7 @@ async function fillWorkExperienceByFieldNames(page, profile) {
         const a = dateOk || await typeById(`workExperience-${key}--endDate-dateSectionMonth-input`, toParts.month);
         const b = dateOk || await typeById(`workExperience-${key}--endDate-dateSectionYear-input`, toParts.year);
         perRow.to = !!(dateOk || (a && b));
-        if (perRow.to) filled.push('experience_to');
+        if (perRow.to) filled.push(rowIndex === 0 ? 'experience_to' : `experience_${rowIndex + 1}_to`);
       }
 
       process.stderr.write(`INFO: Inline row fill result: ${JSON.stringify(perRow)}\n`);
@@ -3529,8 +4478,16 @@ async function cleanupEmptyWorkExperienceRows(page) {
 async function forceFillExperienceFields(page, profile) {
   const filled = [];
   const skipped = [];
+  const experienceEntries = extractExperienceEntries(profile || {});
+  const primaryExperience = experienceEntries[0] || {
+    job_title: String(profile.experience_job_title || '').trim(),
+    company: String(profile.experience_company || '').trim(),
+    from: String(profile.experience_from || '').trim(),
+    to: String(profile.experience_to || '').trim(),
+    role_description: String(profile.experience_role_description || '').trim(),
+  };
 
-  const inlineRowCount = await page.locator('input[name="jobTitle"][id*="workExperience-"]').count().catch(() => 0);
+  const initialInlineRowCount = await page.locator('input[name="jobTitle"][id*="workExperience-"]').count().catch(() => 0);
 
   const deletedRows = await cleanupEmptyWorkExperienceRows(page);
   for (const d of deletedRows) {
@@ -3539,7 +4496,19 @@ async function forceFillExperienceFields(page, profile) {
     }
   }
 
-  const namedFilled = await fillWorkExperienceByFieldNames(page, profile);
+  const wantedRows = Math.max(1, Math.min(3, experienceEntries.length || 1));
+  if (initialInlineRowCount > 0 && wantedRows > 1) {
+    const rowReady = await ensureInlineExperienceRowCount(page, wantedRows);
+    if (rowReady) {
+      filled.push(`experience_rows_ready_${wantedRows}`);
+    } else {
+      skipped.push(`experience_rows_not_added_${wantedRows}`);
+    }
+  }
+
+  const inlineRowCount = await page.locator('input[name="jobTitle"][id*="workExperience-"]').count().catch(() => 0);
+
+  const namedFilled = await fillWorkExperienceByFieldNames(page, experienceEntries.length ? experienceEntries : [primaryExperience]);
   for (const f of namedFilled) {
     if (!filled.includes(f)) {
       filled.push(f);
@@ -3547,7 +4516,14 @@ async function forceFillExperienceFields(page, profile) {
   }
 
   if (inlineRowCount === 0) {
-    const nativeFilled = await fillExperienceDialogNative(page, profile);
+    const nativeFilled = await fillExperienceDialogNative(page, {
+      ...profile,
+      experience_job_title: primaryExperience.job_title,
+      experience_company: primaryExperience.company,
+      experience_from: primaryExperience.from,
+      experience_to: primaryExperience.to,
+      experience_role_description: primaryExperience.role_description,
+    });
     for (const f of nativeFilled) {
       if (!filled.includes(f)) {
         filled.push(f);
@@ -3555,7 +4531,7 @@ async function forceFillExperienceFields(page, profile) {
     }
   }
 
-  let jobTitle = (profile.experience_job_title || '').toString().trim();
+  let jobTitle = String(primaryExperience.job_title || '').trim();
   if (!jobTitle) {
     try {
       const heading = await detectPageHeading(page);
@@ -3575,7 +4551,7 @@ async function forceFillExperienceFields(page, profile) {
     skipped.push('experience_job_title');
   }
 
-  const company = (profile.experience_company || '').toString().trim();
+  const company = String(primaryExperience.company || '').trim();
   if (inlineRowCount === 0 && company && !filled.includes('experience_company')) {
     const solved = await answerQuestionByXPathContainer(page, 'company', company, 'experience_company', 'text')
       || await answerQuestionByDomFallback(page, 'Company', company, 'experience_company')
@@ -3586,7 +4562,7 @@ async function forceFillExperienceFields(page, profile) {
     skipped.push('experience_company');
   }
 
-  const fromVal = (profile.experience_from || '').toString().trim();
+  const fromVal = String(primaryExperience.from || '').trim();
   if (inlineRowCount === 0 && fromVal && !filled.includes('experience_from')) {
     const solved = await fillExperienceDateField(page, 'from', fromVal, 'experience_from');
     if (solved) filled.push('experience_from');
@@ -3595,7 +4571,7 @@ async function forceFillExperienceFields(page, profile) {
     skipped.push('experience_from');
   }
 
-  const toVal = (profile.experience_to || '').toString().trim();
+  const toVal = String(primaryExperience.to || '').trim();
   if (inlineRowCount === 0 && toVal && !filled.includes('experience_to') && !filled.includes('experience_to_current')) {
     const isPresent = /present|current/i.test(toVal);
     let solved = false;
@@ -3616,7 +4592,7 @@ async function forceFillExperienceFields(page, profile) {
     skipped.push('experience_to');
   }
 
-  const roleDescription = (profile.experience_role_description || '').toString().trim();
+  const roleDescription = String(primaryExperience.role_description || '').trim();
   if (inlineRowCount === 0 && roleDescription && !filled.includes('experience_role_description')) {
     const solved = await answerQuestionByXPathContainer(page, 'role description', roleDescription, 'experience_role_description', 'text')
       || await answerQuestionByXPathContainer(page, 'job description', roleDescription, 'experience_role_description', 'text')
@@ -3628,6 +4604,86 @@ async function forceFillExperienceFields(page, profile) {
     else skipped.push('experience_role_description');
   } else {
     skipped.push('experience_role_description');
+  }
+
+  return { filled, skipped };
+}
+
+async function forceFillEducationFields(page, profile) {
+  const filled = [];
+  const skipped = [];
+
+  const educationEntries = extractEducationEntries(profile || {});
+  if (!educationEntries.length) {
+    skipped.push('education_entries_missing');
+    return { filled, skipped };
+  }
+
+  let inlineEducationRowCount = await page.locator('input[id*="education-"]').count().catch(() => 0);
+  const wantedRows = Math.max(1, Math.min(3, educationEntries.length));
+  if (inlineEducationRowCount === 0) {
+    const opened = await clickAddEducationRow(page);
+    if (opened) {
+      await humanDelay(280, 520);
+      filled.push('education_editor_opened');
+      inlineEducationRowCount = await page.locator('input[id*="education-"]').count().catch(() => 0);
+    }
+  }
+
+  if (inlineEducationRowCount > 0 && wantedRows > 1) {
+    const rowReady = await ensureInlineEducationRowCount(page, wantedRows);
+    if (rowReady) {
+      filled.push(`education_rows_ready_${wantedRows}`);
+    } else {
+      skipped.push(`education_rows_not_added_${wantedRows}`);
+    }
+  }
+
+  const rowFilled = await fillEducationByFieldNames(page, educationEntries);
+  for (const f of rowFilled) {
+    if (!filled.includes(f)) {
+      filled.push(f);
+    }
+  }
+
+  if (rowFilled.length === 0) {
+    const e0 = educationEntries[0] || {};
+    const e1 = educationEntries[1] || null;
+
+    const fillEduOne = async (entry, prefix = 'education') => {
+      if (!entry) return;
+      const school = String(entry.school || '').trim();
+      const degree = String(entry.degree || '').trim();
+      const endDate = String(entry.end_date || '').trim();
+
+      if (school) {
+        const ok = await answerQuestionByXPathContainer(page, 'school', school, `${prefix}_school`, 'text')
+          || await answerQuestionByXPathContainer(page, 'institution', school, `${prefix}_school`, 'text')
+          || await answerQuestionByDomFallback(page, 'School', school, `${prefix}_school`);
+        if (ok && !filled.includes(`${prefix}_school`)) filled.push(`${prefix}_school`);
+      }
+      if (degree) {
+        const ok = await answerQuestionByXPathContainer(page, 'degree', degree, `${prefix}_degree`, 'text')
+          || await answerQuestionByXPathContainer(page, 'field of study', degree, `${prefix}_degree`, 'text')
+          || await answerQuestionByDomFallback(page, 'Degree', degree, `${prefix}_degree`);
+        if (ok && !filled.includes(`${prefix}_degree`)) filled.push(`${prefix}_degree`);
+      }
+      if (endDate) {
+        const ok = await answerQuestionByXPathContainer(page, 'end date', endDate, `${prefix}_end_date`, 'text')
+          || await answerQuestionByXPathContainer(page, 'graduation', endDate, `${prefix}_end_date`, 'text')
+          || await answerQuestionByDomFallback(page, 'End Date', endDate, `${prefix}_end_date`);
+        if (ok && !filled.includes(`${prefix}_end_date`)) filled.push(`${prefix}_end_date`);
+      }
+    };
+
+    await fillEduOne(e0, 'education');
+    if (e1) {
+      await fillEduOne(e1, 'education_2');
+    }
+  }
+
+  if (!filled.some((x) => String(x).startsWith('education_') || x === 'education_school' || x === 'education_degree' || x === 'education_end_date')) {
+    skipped.push('education_fields_not_filled');
   }
 
   return { filled, skipped };
@@ -4324,6 +5380,7 @@ async function run() {
     await page.goto(apply_url, { waitUntil: 'domcontentloaded', timeout: TIMEOUT });
     await humanDelay(3000, 5000);
     await acceptCookiesIfPresent(page, evidenceParts);
+    await enterApplyFlowIfNeeded(page, evidenceParts);
 
     if (target_step === 'wizard_auto' || target_step === 'wizard_validate') {
       const strictValidation = target_step === 'wizard_validate';
@@ -4416,7 +5473,14 @@ async function run() {
         const preClickUrl = page.url();
         let clicked = false;
         if (stepKey === 'review_submit') {
-          clicked = await clickSubmitButton(page, evidenceParts);
+          if (REVIEW_SUBMIT_MODE === 'skip') {
+            clicked = true;
+            evidenceParts.push('review_submit: review_submit_mode=skip; skipped review action click');
+          } else if (REVIEW_SUBMIT_MODE === 'save_and_continue_later') {
+            clicked = await clickSaveAndContinueLaterButton(page, evidenceParts);
+          } else {
+            clicked = await clickSubmitButton(page, evidenceParts);
+          }
         } else {
           clicked = await clickContinueButton(page, evidenceParts);
         }
@@ -4489,7 +5553,9 @@ async function run() {
                 if (forward) {
                   await humanDelay(1000, 2000);
                   const retryPreUrl = page.url();
-                  const retrySubmit = await clickSubmitButton(page, evidenceParts);
+                  const retrySubmit = REVIEW_SUBMIT_MODE === 'save_and_continue_later'
+                    ? await clickSaveAndContinueLaterButton(page, evidenceParts)
+                    : await clickSubmitButton(page, evidenceParts);
                   await humanDelay(1200, 2200);
 
                   stepResult.post_continue_url = page.url();
@@ -4500,7 +5566,9 @@ async function run() {
 
                   const retryErrors = await page.locator('[data-automation-id="errorMessage"], [data-automation-id="inlineError"], .error-message-text, [data-automation-id*="error" i]').allTextContents().catch(() => []);
                   const retryCombined = (retryErrors || []).join(' ').toLowerCase();
-                  const stillBlocked = retryCombined.includes('answer all required questions') || retryCombined.includes('page error');
+                  const stillBlocked = REVIEW_SUBMIT_MODE === 'save_and_continue_later'
+                    ? false
+                    : (retryCombined.includes('answer all required questions') || retryCombined.includes('page error'));
 
                   const retrySameUrl = stepResult.post_continue_url === retryPreUrl;
                   const retryStillOnStep = retrySameUrl ? await isLikelyStillOnStep(page, stepKey) : false;
@@ -4557,7 +5625,14 @@ async function run() {
                 const retryPreUrl = page.url();
                 let retryClicked = false;
                 if (stepKey === 'review_submit') {
-                  retryClicked = await clickSubmitButton(page, evidenceParts);
+                  if (REVIEW_SUBMIT_MODE === 'skip') {
+                    retryClicked = true;
+                    evidenceParts.push('review_submit: review_submit_mode=skip during retry; skipped review action click');
+                  } else if (REVIEW_SUBMIT_MODE === 'save_and_continue_later') {
+                    retryClicked = await clickSaveAndContinueLaterButton(page, evidenceParts);
+                  } else {
+                    retryClicked = await clickSubmitButton(page, evidenceParts);
+                  }
                 } else {
                   retryClicked = await clickContinueButton(page, evidenceParts);
                 }
@@ -4595,13 +5670,24 @@ async function run() {
         }
 
         if (clicked && stepKey === 'review_submit') {
-          const confirmed = await isSubmissionConfirmed(page);
-          if (!confirmed) {
-            clicked = false;
-            if (!stepResult.error) {
-              stepResult.error = 'Submit click did not reach a confirmed submitted state.';
+          if (REVIEW_SUBMIT_MODE === 'submit') {
+            const confirmed = await isSubmissionConfirmed(page);
+            if (!confirmed) {
+              clicked = false;
+              if (!stepResult.error) {
+                stepResult.error = 'Submit click did not reach a confirmed submitted state.';
+              }
+              await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
             }
-            await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
+          } else if (REVIEW_SUBMIT_MODE === 'save_and_continue_later') {
+            const confirmedSave = await isSaveAndContinueLaterConfirmed(page);
+            if (!confirmedSave) {
+              clicked = false;
+              if (!stepResult.error) {
+                stepResult.error = 'Save and Continue Later click did not reach a confirmed saved/later state.';
+              }
+              await writeReviewDebugDump(page, screenshot_dir, application_id, evidenceParts);
+            }
           }
         }
 
@@ -4610,11 +5696,13 @@ async function run() {
           stepResult.status = 'failed';
           if (!stepResult.error) {
             stepResult.error = stepKey === 'review_submit'
-              ? 'Could not locate Submit control in single-session flow. Visible actions: ' + (visibleActions.join(' | ') || 'none')
+              ? (REVIEW_SUBMIT_MODE === 'save_and_continue_later'
+                ? 'Could not locate Save and Continue Later control in single-session flow. Visible actions: '
+                : 'Could not locate Submit control in single-session flow. Visible actions: ') + (visibleActions.join(' | ') || 'none')
               : 'Could not locate Continue/Next control in single-session flow. Visible actions: ' + (visibleActions.join(' | ') || 'none');
           }
           stepResults[stepKey] = stepResult;
-          pushClickAudit(stepKey, stepKey === 'review_submit' ? 'submit' : 'continue', false, stepResult.error, {
+          pushClickAudit(stepKey, stepKey === 'review_submit' ? (REVIEW_SUBMIT_MODE === 'save_and_continue_later' ? 'save_and_continue_later' : (REVIEW_SUBMIT_MODE === 'skip' ? 'review_action_skipped' : 'submit')) : 'continue', false, stepResult.error, {
             pre_url: preClickUrl,
             post_url: stepResult.post_continue_url,
           });
@@ -4624,7 +5712,7 @@ async function run() {
 
         stepResult.status = 'pass';
         stepResults[stepKey] = stepResult;
-        pushClickAudit(stepKey, stepKey === 'review_submit' ? 'submit' : 'continue', true, 'post-click confirmation passed', {
+        pushClickAudit(stepKey, stepKey === 'review_submit' ? (REVIEW_SUBMIT_MODE === 'save_and_continue_later' ? 'save_and_continue_later' : (REVIEW_SUBMIT_MODE === 'skip' ? 'review_action_skipped' : 'submit')) : 'continue', true, stepKey === 'review_submit' && REVIEW_SUBMIT_MODE === 'skip' ? 'review action intentionally skipped' : 'post-click confirmation passed', {
           pre_url: preClickUrl,
           post_url: stepResult.post_continue_url,
         });
@@ -4640,6 +5728,8 @@ async function run() {
       result.fields_filled = [];
       result.fields_skipped = [];
       result.continue_clicked = completedSteps.length > 0;
+      result.submit_blocked = REVIEW_SUBMIT_MODE === 'skip' || REVIEW_SUBMIT_MODE === 'save_and_continue_later';
+      result.review_submit_mode = REVIEW_SUBMIT_MODE;
       result.post_continue_url = lastUrl;
       result.page_title = await page.title();
       result.detected_page = await detectPageHeading(page);
@@ -4650,6 +5740,16 @@ async function run() {
       result.error = failedStep ? ((stepResults[failedStep] && stepResults[failedStep].error) || `Failed at ${failedStep}`) : '';
       evidenceParts.push(`wizard_auto completed: [${completedSteps.join(', ')}]`);
       attachVisualAuditToResult(result, evidenceParts);
+      const visualSummaryAuto = (((result || {}).visual_confirmation || {}).summary || {});
+      const visualFieldFailsAuto = Number(visualSummaryAuto.field_checks_failed || 0);
+      const visualClickFailsAuto = Number(visualSummaryAuto.click_checks_failed || 0);
+      if (visualFieldFailsAuto > 0 || visualClickFailsAuto > 0) {
+        result.ok = false;
+        if (!result.error) {
+          result.error = `Visual verification failed (fields=${visualFieldFailsAuto}, clicks=${visualClickFailsAuto}).`;
+        }
+        evidenceParts.push(`Strict visual verification failed: fields=${visualFieldFailsAuto}, clicks=${visualClickFailsAuto}`);
+      }
       result.evidence = evidenceParts.join(' | ');
 
       payload.username = '';
@@ -4717,6 +5817,44 @@ async function run() {
     } else {
       process.stderr.write(`WARN: Page "${detectedPage}" may not match target "${target_step}". Attempting anyway.\n`);
       evidenceParts.push(`Page may not match target — detected "${detectedPage}", expected one of: ${expectedHeadings.join(', ')}`);
+
+      const aligned = await alignToTargetStepIfPossible(page, target_step, evidenceParts);
+      if (aligned) {
+        const afterAlign = await inferCurrentWizardStep(page);
+        result.detected_page = afterAlign || result.detected_page;
+        result.page_matched = afterAlign === target_step;
+        process.stderr.write(`INFO: Realigned to target step "${target_step}" before handler.\n`);
+      } else if (target_step === 'my_experience') {
+        let reached = false;
+        for (let hop = 0; hop < 3; hop++) {
+          const onExperience = await isLikelyStillOnStep(page, 'my_experience');
+          if (onExperience) {
+            reached = true;
+            evidenceParts.push(`Forced pre-step progression reached my_experience in ${hop} hop(s)`);
+            break;
+          }
+
+          if (await isMyInformationFormVisible(page)) {
+            const bootstrapped = await bootstrapMyExperienceFromMyInformation(page, profile_data, evidenceParts);
+            if (bootstrapped) {
+              reached = true;
+              break;
+            }
+          }
+
+          const moved = await clickContinueButton(page, evidenceParts);
+          if (!moved) {
+            break;
+          }
+          await humanDelay(900, 1600);
+        }
+
+        if (reached || await isLikelyStillOnStep(page, 'my_experience')) {
+          result.detected_page = 'my_experience';
+          result.page_matched = true;
+          process.stderr.write('INFO: Forced progression reached my_experience context before handler.\n');
+        }
+      }
     }
 
     const ssPage = await takeScreenshot(page, screenshot_dir, application_id, `wd_${target_step}_page`);
@@ -4741,6 +5879,11 @@ async function run() {
     const preActionUrl = page.url();
 
     if (target_step === 'review_submit') {
+      if (REVIEW_SUBMIT_MODE === 'skip') {
+        result.continue_clicked = true;
+        result.error = '';
+        evidenceParts.push('review_submit_mode=skip: reached review step and skipped review action click');
+      } else {
       // On/near review page, click Submit; if not yet on review, advance through Continue.
       process.stderr.write('INFO: Looking for Submit button on review page...\n');
       const submitSelectors = [
@@ -4808,46 +5951,7 @@ async function run() {
         return u.includes('submitted') || u.includes('confirmation');
       };
 
-      const currentUrlLower = page.url().toLowerCase();
-      if (currentUrlLower.includes('/job/') && !currentUrlLower.includes('/apply/')) {
-        process.stderr.write('INFO: Detected job detail page; attempting to enter apply flow...\n');
-        const applyEntrySelectors = [
-          'a[href*="/apply/"]',
-          'a[href*="autofillWithResume"]',
-          'a[href*="/apply"]:has-text("Apply")',
-          'a:has-text("Apply Now")',
-          'button:has-text("Apply")',
-          'a:has-text("Apply")',
-          'button[data-automation-id*="apply" i]',
-          'a[data-automation-id*="apply" i]',
-          'button[data-automation-id="applyButton"]',
-          'a[data-automation-id="applyButton"]',
-        ];
-        const enteredApplyFlow = await clickFirstEnabled(applyEntrySelectors, 'Apply Entry');
-        if (!enteredApplyFlow) {
-          try {
-            const clicked = await page.evaluate(() => {
-              const candidates = Array.from(document.querySelectorAll('a, button, [role="button"]'));
-              const match = candidates.find((el) => {
-                const txt = ((el.textContent || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
-                const href = (el.getAttribute('href') || '').toLowerCase();
-                const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
-                return !disabled && (href.includes('/apply') || href.includes('autofillwithresume') || /apply now|apply/.test(txt));
-              });
-              if (match) {
-                match.scrollIntoView({ behavior: 'instant', block: 'center' });
-                match.click();
-                return true;
-              }
-              return false;
-            });
-            if (clicked) {
-              process.stderr.write('INFO: Entered apply flow via DOM fallback.\n');
-            }
-          } catch (_) {}
-        }
-        await humanDelay(1200, 2200);
-      }
+      await enterApplyFlowIfNeeded(page, evidenceParts);
 
       for (let attempt = 0; attempt < 10 && !result.continue_clicked; attempt++) {
         try {
@@ -4857,17 +5961,25 @@ async function run() {
 
         await handleReviewSubmit(page, profile_data, result);
 
-        if (await clickFirstEnabled(submitSelectors, 'Submit')) {
+        const actionClicked = REVIEW_SUBMIT_MODE === 'save_and_continue_later'
+          ? await clickSaveAndContinueLaterButton(page, evidenceParts)
+          : await clickFirstEnabled(submitSelectors, 'Submit');
+
+        if (actionClicked) {
           result.continue_clicked = true;
-          evidenceParts.push('Clicked Submit');
+          evidenceParts.push(REVIEW_SUBMIT_MODE === 'save_and_continue_later' ? 'Clicked Save and Continue Later' : 'Clicked Submit');
           await humanDelay(3000, 5000);
-          if (await hasSubmittedConfirmation()) {
+          if (REVIEW_SUBMIT_MODE === 'save_and_continue_later') {
+            if (await isSaveAndContinueLaterConfirmed(page)) {
+              evidenceParts.push('Save and Continue Later confirmation detected');
+            }
+          } else if (await hasSubmittedConfirmation()) {
             evidenceParts.push('Submission confirmation detected');
           }
           break;
         }
 
-        if (await hasSubmittedConfirmation()) {
+        if (REVIEW_SUBMIT_MODE === 'submit' && await hasSubmittedConfirmation()) {
           result.continue_clicked = true;
           evidenceParts.push('Submission confirmation detected without explicit click');
           break;
@@ -4899,28 +6011,33 @@ async function run() {
               .slice(0, 20);
           });
         } catch (_) {}
-        result.error = 'Could not locate a Workday Submit action from the current application flow state. Available actions: ' + (availableActions.join(' | ') || 'none');
-        try {
-          const clicked = await page.evaluate(() => {
-            const candidates = Array.from(document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"], a'));
-            const match = candidates.find((el) => {
-              const txt = ((el.textContent || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
-              const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
-              return !disabled && /submit application|review and submit|submit/.test(txt);
+        result.error = REVIEW_SUBMIT_MODE === 'save_and_continue_later'
+          ? 'Could not locate a Workday Save and Continue Later action from the current application flow state. Available actions: ' + (availableActions.join(' | ') || 'none')
+          : 'Could not locate a Workday Submit action from the current application flow state. Available actions: ' + (availableActions.join(' | ') || 'none');
+        if (REVIEW_SUBMIT_MODE === 'submit') {
+          try {
+            const clicked = await page.evaluate(() => {
+              const candidates = Array.from(document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"], a'));
+              const match = candidates.find((el) => {
+                const txt = ((el.textContent || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+                const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
+                return !disabled && /submit application|review and submit|submit/.test(txt);
+              });
+              if (match) {
+                match.scrollIntoView({ behavior: 'instant', block: 'center' });
+                match.click();
+                return true;
+              }
+              return false;
             });
-            if (match) {
-              match.scrollIntoView({ behavior: 'instant', block: 'center' });
-              match.click();
-              return true;
+            if (clicked) {
+              result.continue_clicked = true;
+              process.stderr.write('INFO: Clicked Submit via DOM evaluate fallback.\n');
+              evidenceParts.push('Clicked Submit (DOM fallback)');
             }
-            return false;
-          });
-          if (clicked) {
-            result.continue_clicked = true;
-            process.stderr.write('INFO: Clicked Submit via DOM evaluate fallback.\n');
-            evidenceParts.push('Clicked Submit (DOM fallback)');
-          }
-        } catch (_) {}
+          } catch (_) {}
+        }
+      }
       }
     } else {
       // Standard Continue/Next button.
@@ -4987,14 +6104,24 @@ async function run() {
     } catch (_) {}
 
     if (result.continue_clicked && target_step === 'review_submit') {
-      const confirmedSubmit = await isSubmissionConfirmed(page);
-      if (!confirmedSubmit) {
-        result.continue_clicked = false;
-        const msg = 'Submit click did not reach a confirmed submitted state.';
-        result.error = result.error || msg;
-        evidenceParts.push(msg);
+      if (REVIEW_SUBMIT_MODE === 'submit') {
+        const confirmedSubmit = await isSubmissionConfirmed(page);
+        if (!confirmedSubmit) {
+          result.continue_clicked = false;
+          const msg = 'Submit click did not reach a confirmed submitted state.';
+          result.error = result.error || msg;
+          evidenceParts.push(msg);
+        }
+      } else if (REVIEW_SUBMIT_MODE === 'save_and_continue_later') {
+        const confirmedSave = await isSaveAndContinueLaterConfirmed(page);
+        if (!confirmedSave) {
+          result.continue_clicked = false;
+          const msg = 'Save and Continue Later click did not reach a confirmed saved/later state.';
+          result.error = result.error || msg;
+          evidenceParts.push(msg);
+        }
       }
-      pushClickAudit(target_step, 'submit', !!result.continue_clicked, result.error || 'single-step submit confirmed', {
+      pushClickAudit(target_step, REVIEW_SUBMIT_MODE === 'save_and_continue_later' ? 'save_and_continue_later' : (REVIEW_SUBMIT_MODE === 'skip' ? 'review_action_skipped' : 'submit'), !!result.continue_clicked, result.error || (REVIEW_SUBMIT_MODE === 'save_and_continue_later' ? 'single-step save-and-later confirmed' : 'single-step submit confirmed'), {
         pre_url: preActionUrl,
         post_url: postUrl,
       });
@@ -5017,7 +6144,19 @@ async function run() {
 
     // ── Final result ───────────────────────────────────────────────────────
     result.ok = result.continue_clicked;
+    result.submit_blocked = REVIEW_SUBMIT_MODE === 'skip' || REVIEW_SUBMIT_MODE === 'save_and_continue_later';
+    result.review_submit_mode = REVIEW_SUBMIT_MODE;
     attachVisualAuditToResult(result, evidenceParts);
+    const visualSummarySingle = (((result || {}).visual_confirmation || {}).summary || {});
+    const visualFieldFailsSingle = Number(visualSummarySingle.field_checks_failed || 0);
+    const visualClickFailsSingle = Number(visualSummarySingle.click_checks_failed || 0);
+    if (visualFieldFailsSingle > 0 || visualClickFailsSingle > 0) {
+      result.ok = false;
+      if (!result.error) {
+        result.error = `Visual verification failed (fields=${visualFieldFailsSingle}, clicks=${visualClickFailsSingle}).`;
+      }
+      evidenceParts.push(`Strict visual verification failed: fields=${visualFieldFailsSingle}, clicks=${visualClickFailsSingle}`);
+    }
     result.evidence = evidenceParts.join(' | ');
 
     // Zero credentials.

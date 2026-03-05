@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -33,11 +34,35 @@ class CombatApiController extends ControllerBase {
   protected $conditionManager;
 
   /**
+   * The combat encounter store.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\CombatEncounterStore
+   */
+  protected $encounterStore;
+
+  /**
+   * The number generation service.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\NumberGenerationService
+   */
+  protected $numberGenerator;
+
+  /**
+   * Database connection.
+   *
+   * @var \Drupal\Core\Database\Connection
+   */
+  protected $database;
+
+  /**
    * Constructor.
    */
-  public function __construct($hp_manager, $condition_manager) {
+  public function __construct($hp_manager, $condition_manager, $encounter_store, $number_generator, Connection $database) {
     $this->hpManager = $hp_manager;
     $this->conditionManager = $condition_manager;
+    $this->encounterStore = $encounter_store;
+    $this->numberGenerator = $number_generator;
+    $this->database = $database;
   }
 
   /**
@@ -46,7 +71,10 @@ class CombatApiController extends ControllerBase {
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.hp_manager'),
-      $container->get('dungeoncrawler_content.condition_manager')
+      $container->get('dungeoncrawler_content.condition_manager'),
+      $container->get('dungeoncrawler_content.combat_encounter_store'),
+      $container->get('dungeoncrawler_content.number_generation'),
+      $container->get('database')
     );
   }
 
@@ -69,30 +97,44 @@ class CombatApiController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-api-endpoints.md#update-hp
    */
   public function updateHP($encounter_id, $participant_id, Request $request) {
-    // TODO: Implement HP update
-    // 1. Parse request: change_type (damage/healing), amount, damage_type, source
-    // 2. If damage:
-    //    a. Apply to temp HP first
-    //    b. Apply resistances/weaknesses
-    //    c. Reduce current_hp
-    //    d. Check for death/dying:
-    //       - HP = 0: unconscious
-    //       - HP < 0: dying 1 (or wounded value)
-    //       - HP <= -max_hp: instant death
-    //    e. Log to combat_damage_log
-    // 3. If healing:
-    //    a. Increase current_hp (cap at max_hp)
-    //    b. If was dying: remove dying, add wounded
-    //    c. Log healing
-    // 4. Return updated HP and new conditions
-    
+    $data = json_decode($request->getContent(), TRUE);
+    if (!$data) {
+      return new JsonResponse(['error' => 'Invalid JSON body'], 400);
+    }
+
+    $change_type = $data['change_type'] ?? 'damage';
+    $amount = (int) ($data['amount'] ?? 0);
+    $damage_type = $data['damage_type'] ?? 'untyped';
+    $source = $data['source'] ?? 'unknown';
+
+    if ($amount <= 0) {
+      return new JsonResponse(['error' => 'Amount must be positive'], 400);
+    }
+
+    if ($change_type === 'healing') {
+      $result = $this->hpManager->applyHealing($participant_id, $amount, $source, $encounter_id);
+      return new JsonResponse([
+        'participant_id' => (int) $participant_id,
+        'healing_applied' => $result['healing_applied'],
+        'hp_after' => $result['new_hp'],
+        'temp_hp_used' => 0,
+        'conditions_applied' => [],
+        'message' => "Healed {$result['healing_applied']} HP",
+      ]);
+    }
+
+    // Default: damage.
+    $result = $this->hpManager->applyDamage($participant_id, $amount, $damage_type, $source, $encounter_id);
+    $temp_note = $result['temp_hp_used'] > 0 ? " ({$result['temp_hp_used']} absorbed by temp HP)" : '';
+
     return new JsonResponse([
-      'participant_id' => $participant_id,
-      'hp_before' => 0,
-      'hp_after' => 0,
-      'temp_hp_used' => 0,
+      'participant_id' => (int) $participant_id,
+      'hp_before' => $result['new_hp'] + $result['hp_damage'],
+      'hp_after' => $result['new_hp'],
+      'temp_hp_used' => $result['temp_hp_used'],
+      'new_status' => $result['new_status'],
       'conditions_applied' => [],
-      'message' => '',
+      'message' => "Took {$result['final_damage']} damage{$temp_note}",
     ]);
   }
 
@@ -112,17 +154,27 @@ class CombatApiController extends ControllerBase {
    *   Updated temp HP.
    */
   public function applyTempHP($encounter_id, $participant_id, Request $request) {
-    // TODO: Implement temp HP application
-    // 1. Get temp HP amount from request
-    // 2. Temp HP doesn't stack (take higher value)
-    // 3. Update temp_hp field
-    // 4. Return new temp HP value
-    
+    $data = json_decode($request->getContent(), TRUE);
+    if (!$data) {
+      return new JsonResponse(['error' => 'Invalid JSON body'], 400);
+    }
+
+    $amount = (int) ($data['amount'] ?? 0);
+    $source = $data['source'] ?? 'unknown';
+
+    if ($amount <= 0) {
+      return new JsonResponse(['error' => 'Amount must be positive'], 400);
+    }
+
+    $result = $this->hpManager->applyTemporaryHP($participant_id, $amount, $source, $encounter_id);
+
     return new JsonResponse([
-      'participant_id' => $participant_id,
-      'temp_hp_before' => 0,
-      'temp_hp_after' => 0,
-      'message' => 'Gained temporary HP',
+      'participant_id' => (int) $participant_id,
+      'temp_hp_before' => $result['temp_hp_before'],
+      'temp_hp_after' => $result['temp_hp_after'],
+      'message' => $result['applied']
+        ? "Gained {$result['temp_hp_after']} temporary HP"
+        : "Kept existing {$result['temp_hp_after']} temp HP (new value not higher)",
     ]);
   }
 
@@ -145,29 +197,50 @@ class CombatApiController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-database-schema.md (combat_conditions)
    */
   public function applyCondition($encounter_id, $participant_id, Request $request) {
-    // TODO: Implement condition application
-    // 1. Parse condition_type, value, duration_type, duration_remaining, source
-    // 2. Check for immunities
-    // 3. Check stacking rules (same type conditions)
-    // 4. Insert into combat_conditions table
-    // 5. Apply immediate stat effects:
-    //    - Blinded: flat-footed, -4 Perception
-    //    - Frightened X: -X to all checks and DCs
-    //    - Flat-footed: -2 AC
-    //    - Grabbed: can't move, flat-footed
-    //    - Prone: -2 AC vs melee, +2 vs ranged
-    //    - Slowed X: reduce actions by X
-    //    - Stunned X: lose X actions
-    //    - etc. (see combat-engine-service.md for full list)
-    // 6. Log condition application
-    // 7. Return condition ID and effects
-    
+    $data = json_decode($request->getContent(), TRUE);
+    if (!$data) {
+      return new JsonResponse(['error' => 'Invalid JSON body'], 400);
+    }
+
+    $condition_type = $data['condition_type'] ?? '';
+    $value = isset($data['value']) ? (int) $data['value'] : 1;
+    $source = $data['source'] ?? 'unknown';
+    $duration_type = $data['duration_type'] ?? 'encounter';
+    $duration_remaining = isset($data['duration_remaining']) ? (int) $data['duration_remaining'] : NULL;
+
+    if (empty($condition_type)) {
+      return new JsonResponse(['error' => 'condition_type is required'], 400);
+    }
+
+    $duration = [
+      'type' => $duration_type,
+      'remaining' => $duration_remaining,
+    ];
+
+    try {
+      $result = $this->conditionManager->applyCondition(
+        (int) $participant_id,
+        $condition_type,
+        $value,
+        $duration,
+        $source,
+        (int) $encounter_id
+      );
+    }
+    catch (\InvalidArgumentException $e) {
+      return new JsonResponse(['error' => $e->getMessage()], 400);
+    }
+
+    // applyCondition returns int (condition row ID) or FALSE (no-op).
+    $condition_id = is_int($result) ? $result : 0;
+
     return new JsonResponse([
-      'condition_id' => 0,
-      'condition_type' => '',
-      'value' => NULL,
+      'condition_id' => $condition_id,
+      'condition_type' => $condition_type,
+      'value' => $value,
       'applied_at_round' => 0,
       'effects' => [],
+      'message' => "Applied {$condition_type}" . ($value > 1 ? " {$value}" : ''),
     ], 201);
   }
 
@@ -187,18 +260,22 @@ class CombatApiController extends ControllerBase {
    *   Removal confirmation.
    */
   public function removeCondition($encounter_id, $participant_id, $condition_id) {
-    // TODO: Implement condition removal
-    // 1. Load condition
-    // 2. Remove condition effects from participant stats
-    // 3. Mark removed_at timestamp
-    // 4. Restore affected stats
-    // 5. Log condition removal
-    // 6. Return success
-    
+    try {
+      $removed = $this->conditionManager->removeCondition(
+        (int) $participant_id,
+        (int) $condition_id,
+        (int) $encounter_id
+      );
+    }
+    catch (\Exception $e) {
+      return new JsonResponse(['error' => $e->getMessage()], 400);
+    }
+
+    // removeCondition returns bool.
     return new JsonResponse([
-      'condition_id' => $condition_id,
-      'removed' => TRUE,
-      'message' => 'Condition removed',
+      'condition_id' => (int) $condition_id,
+      'removed' => (bool) $removed,
+      'message' => $removed ? 'Condition removed' : 'Condition not found or already removed',
     ]);
   }
 
@@ -216,15 +293,29 @@ class CombatApiController extends ControllerBase {
    *   List of active conditions.
    */
   public function listConditions($encounter_id, $participant_id) {
-    // TODO: Implement condition listing
-    // 1. Query combat_conditions WHERE participant_id AND removed_at IS NULL
-    // 2. Load condition details (type, value, duration, source)
-    // 3. Calculate remaining duration
-    // 4. Return condition list with effects
-    
+    $conditions = $this->conditionManager->getActiveConditions(
+      (int) $participant_id,
+      (int) $encounter_id
+    );
+
+    // Normalize to sequential array for JSON output.
+    $list = [];
+    foreach ($conditions as $cid => $cond) {
+      $list[] = [
+        'condition_id' => (int) $cid,
+        'condition_type' => $cond['condition_type'],
+        'value' => $cond['value'] !== NULL ? (int) $cond['value'] : NULL,
+        'duration_type' => $cond['duration_type'],
+        'duration_remaining' => $cond['duration_remaining'] !== NULL ? (int) $cond['duration_remaining'] : NULL,
+        'source' => $cond['source'],
+        'applied_at_round' => (int) ($cond['applied_at_round'] ?? 0),
+      ];
+    }
+
     return new JsonResponse([
-      'participant_id' => $participant_id,
-      'conditions' => [],
+      'participant_id' => (int) $participant_id,
+      'encounter_id' => (int) $encounter_id,
+      'conditions' => $list,
     ]);
   }
 
@@ -242,17 +333,46 @@ class CombatApiController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-api-endpoints.md#get-initiative-order
    */
   public function getInitiative($encounter_id) {
-    // TODO: Implement initiative order retrieval
-    // 1. Query combat_participants
-    // 2. Filter by is_active = TRUE
-    // 3. Sort by initiative_total DESC, initiative_tiebreaker DESC
-    // 4. Include HP, conditions, and current turn indicator
-    // 5. Return sorted list
-    
+    $encounter = $this->encounterStore->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    $order = [];
+    foreach ($encounter['participants'] as $p) {
+      $conditions = $this->conditionManager->getActiveConditions(
+        (int) $p['id'],
+        (int) $encounter_id
+      );
+      $order[] = [
+        'participant_id' => (int) $p['id'],
+        'name' => $p['name'],
+        'team' => $p['team'],
+        'initiative' => (int) $p['initiative'],
+        'hp' => (int) $p['hp'],
+        'max_hp' => (int) $p['max_hp'],
+        'is_defeated' => (bool) $p['is_defeated'],
+        'is_current_turn' => FALSE,
+        'conditions' => array_values(array_map(function ($c) {
+          return [
+            'condition_type' => $c['condition_type'],
+            'value' => $c['value'] !== NULL ? (int) $c['value'] : NULL,
+          ];
+        }, $conditions)),
+      ];
+    }
+
+    // Mark current turn participant.
+    $turnIndex = (int) ($encounter['turn_index'] ?? 0);
+    if (isset($order[$turnIndex])) {
+      $order[$turnIndex]['is_current_turn'] = TRUE;
+    }
+
     return new JsonResponse([
-      'encounter_id' => $encounter_id,
-      'current_round' => 0,
-      'initiative_order' => [],
+      'encounter_id' => (int) $encounter_id,
+      'current_round' => (int) ($encounter['current_round'] ?? 0),
+      'turn_index' => $turnIndex,
+      'initiative_order' => $order,
     ]);
   }
 
@@ -270,18 +390,59 @@ class CombatApiController extends ControllerBase {
    *   New initiative values.
    */
   public function rerollInitiative($encounter_id, Request $request) {
-    // TODO: Implement initiative reroll
-    // 1. Get participant_ids[] from request
-    // 2. For each participant:
-    //    a. Roll d20 + perception modifier
-    //    b. Generate new tiebreaker (0-99)
-    //    c. Update initiative_total
-    // 3. Re-sort initiative order
-    // 4. Return new initiative values and order
-    
+    $data = json_decode($request->getContent(), TRUE);
+    $participant_ids = $data['participant_ids'] ?? [];
+
+    if (empty($participant_ids)) {
+      return new JsonResponse(['error' => 'participant_ids[] is required'], 400);
+    }
+
+    $encounter = $this->encounterStore->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    $rerolled = [];
+    $participants = $encounter['participants'];
+
+    foreach ($participants as &$p) {
+      if (in_array((int) $p['id'], array_map('intval', $participant_ids))) {
+        // Roll d20 for new initiative.
+        $roll = $this->numberGenerator->rollExpression('1d20');
+        $newInit = $roll['total'];
+        $p['initiative'] = $newInit;
+
+        $this->encounterStore->updateParticipant((int) $p['id'], [
+          'initiative' => $newInit,
+          'initiative_roll' => $newInit,
+        ]);
+
+        $rerolled[] = [
+          'participant_id' => (int) $p['id'],
+          'name' => $p['name'],
+          'old_initiative' => (int) ($encounter['participants'][array_search($p['id'], array_column($encounter['participants'], 'id'))]['initiative'] ?? 0),
+          'new_initiative' => $newInit,
+          'roll' => $roll,
+        ];
+      }
+    }
+    unset($p);
+
+    // Re-sort by initiative DESC.
+    usort($participants, function ($a, $b) {
+      return (int) $b['initiative'] - (int) $a['initiative'];
+    });
+
     return new JsonResponse([
-      'rerolled' => [],
-      'new_initiative_order' => [],
+      'encounter_id' => (int) $encounter_id,
+      'rerolled' => $rerolled,
+      'new_initiative_order' => array_map(function ($p) {
+        return [
+          'participant_id' => (int) $p['id'],
+          'name' => $p['name'],
+          'initiative' => (int) $p['initiative'],
+        ];
+      }, $participants),
     ]);
   }
 
@@ -299,20 +460,70 @@ class CombatApiController extends ControllerBase {
    *   New participant info.
    */
   public function addParticipant($encounter_id, Request $request) {
-    // TODO: Implement participant addition
-    // 1. Parse type (character/monster), monster_id or character_id
-    // 2. Load participant stats
-    // 3. Roll initiative if roll_initiative = true
-    // 4. Insert into combat_participants
-    // 5. Insert into initiative order
-    // 6. Return participant_id and initiative
-    
+    $data = json_decode($request->getContent(), TRUE);
+    if (!$data) {
+      return new JsonResponse(['error' => 'Invalid JSON body'], 400);
+    }
+
+    $encounter = $this->encounterStore->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    $name = $data['name'] ?? '';
+    if (empty($name)) {
+      return new JsonResponse(['error' => 'name is required'], 400);
+    }
+
+    // Roll initiative if requested.
+    $initiative = (int) ($data['initiative'] ?? 0);
+    $initiativeRoll = NULL;
+    if (!empty($data['roll_initiative'])) {
+      $roll = $this->numberGenerator->rollExpression('1d20');
+      $initiative = $roll['total'];
+      $initiativeRoll = $roll['total'];
+    }
+
+    $now = \Drupal::time()->getRequestTime();
+    $participant_id = $this->database->insert('combat_participants')
+      ->fields([
+        'encounter_id' => (int) $encounter_id,
+        'entity_id' => (int) ($data['entity_id'] ?? 0),
+        'entity_ref' => $data['entity_ref'] ?? NULL,
+        'name' => $name,
+        'team' => $data['team'] ?? 'enemy',
+        'initiative' => $initiative,
+        'initiative_roll' => $initiativeRoll,
+        'ac' => isset($data['ac']) ? (int) $data['ac'] : NULL,
+        'hp' => isset($data['hp']) ? (int) $data['hp'] : NULL,
+        'max_hp' => isset($data['max_hp']) ? (int) $data['max_hp'] : NULL,
+        'actions_remaining' => 3,
+        'attacks_this_turn' => 0,
+        'reaction_available' => 1,
+        'position_q' => isset($data['position_q']) ? (int) $data['position_q'] : NULL,
+        'position_r' => isset($data['position_r']) ? (int) $data['position_r'] : NULL,
+        'is_defeated' => 0,
+        'created' => $now,
+        'updated' => $now,
+      ])
+      ->execute();
+
+    // Log the addition.
+    $this->encounterStore->logAction([
+      'encounter_id' => (int) $encounter_id,
+      'participant_id' => (int) $participant_id,
+      'action_type' => 'join',
+      'payload' => json_encode(['name' => $name, 'team' => $data['team'] ?? 'enemy']),
+      'result' => json_encode(['initiative' => $initiative]),
+    ]);
+
     return new JsonResponse([
-      'participant_id' => 0,
-      'name' => '',
-      'initiative' => 0,
-      'added_at_round' => 0,
-      'message' => 'Participant added',
+      'participant_id' => (int) $participant_id,
+      'name' => $name,
+      'team' => $data['team'] ?? 'enemy',
+      'initiative' => $initiative,
+      'added_at_round' => (int) ($encounter['current_round'] ?? 0),
+      'message' => "Participant '{$name}' added to encounter",
     ], 201);
   }
 
@@ -332,18 +543,46 @@ class CombatApiController extends ControllerBase {
    *   Removal confirmation.
    */
   public function removeParticipant($encounter_id, $participant_id, Request $request) {
-    // TODO: Implement participant removal
-    // 1. Mark is_defeated = TRUE
-    // 2. Set defeat_reason (fled, surrendered, removed)
-    // 3. Remove from initiative order
-    // 4. Log removal
-    // 5. Return success
-    
+    $data = json_decode($request->getContent(), TRUE);
+    $reason = $data['reason'] ?? 'removed';
+
+    $encounter = $this->encounterStore->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    // Verify participant belongs to this encounter.
+    $found = FALSE;
+    foreach ($encounter['participants'] as $p) {
+      if ((int) $p['id'] === (int) $participant_id) {
+        $found = TRUE;
+        break;
+      }
+    }
+
+    if (!$found) {
+      return new JsonResponse(['error' => 'Participant not found in encounter'], 404);
+    }
+
+    // Mark defeated.
+    $this->encounterStore->updateParticipant((int) $participant_id, [
+      'is_defeated' => 1,
+    ]);
+
+    // Log removal.
+    $this->encounterStore->logAction([
+      'encounter_id' => (int) $encounter_id,
+      'participant_id' => (int) $participant_id,
+      'action_type' => 'removed',
+      'payload' => json_encode(['reason' => $reason]),
+      'result' => json_encode(['is_defeated' => TRUE]),
+    ]);
+
     return new JsonResponse([
-      'participant_id' => $participant_id,
+      'participant_id' => (int) $participant_id,
       'removed' => TRUE,
-      'reason' => '',
-      'message' => 'Participant removed',
+      'reason' => $reason,
+      'message' => 'Participant removed from encounter',
     ]);
   }
 
@@ -363,15 +602,52 @@ class CombatApiController extends ControllerBase {
    *   Update confirmation.
    */
   public function updateParticipant($encounter_id, $participant_id, Request $request) {
-    // TODO: Implement participant update
-    // 1. Parse updated fields (position, max_hp, etc.)
-    // 2. Validate GM permission
-    // 3. Update combat_participants table
-    // 4. Return success
-    
+    $data = json_decode($request->getContent(), TRUE);
+    if (!$data) {
+      return new JsonResponse(['error' => 'Invalid JSON body'], 400);
+    }
+
+    $encounter = $this->encounterStore->loadEncounter((int) $encounter_id);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    // Verify participant belongs to this encounter.
+    $found = FALSE;
+    foreach ($encounter['participants'] as $p) {
+      if ((int) $p['id'] === (int) $participant_id) {
+        $found = TRUE;
+        break;
+      }
+    }
+
+    if (!$found) {
+      return new JsonResponse(['error' => 'Participant not found in encounter'], 404);
+    }
+
+    // Whitelist of updatable fields.
+    $allowed = [
+      'name', 'team', 'ac', 'hp', 'max_hp',
+      'position_q', 'position_r', 'initiative',
+      'actions_remaining', 'attacks_this_turn', 'reaction_available',
+    ];
+
+    $fields = [];
+    foreach ($allowed as $key) {
+      if (array_key_exists($key, $data)) {
+        $fields[$key] = $data[$key];
+      }
+    }
+
+    if (empty($fields)) {
+      return new JsonResponse(['error' => 'No valid fields to update'], 400);
+    }
+
+    $this->encounterStore->updateParticipant((int) $participant_id, $fields);
+
     return new JsonResponse([
-      'participant_id' => $participant_id,
-      'updated_fields' => [],
+      'participant_id' => (int) $participant_id,
+      'updated_fields' => array_keys($fields),
       'message' => 'Participant updated',
     ]);
   }
@@ -392,20 +668,57 @@ class CombatApiController extends ControllerBase {
    * @see /docs/dungeoncrawler/issues/combat-database-schema.md (combat_actions)
    */
   public function getLog($encounter_id, Request $request) {
-    // TODO: Implement combat log retrieval
-    // 1. Get filters: round, participant_id, action_type
-    // 2. Get pagination: page, per_page (default 50, max 200)
-    // 3. Query combat_actions table with filters
-    // 4. Include action details, results, timestamps
-    // 5. Return paginated log entries
-    
+    $page = max(1, (int) $request->query->get('page', 1));
+    $perPage = min(200, max(1, (int) $request->query->get('per_page', 50)));
+    $offset = ($page - 1) * $perPage;
+
+    // Build base query.
+    $query = $this->database->select('combat_actions', 'ca')
+      ->fields('ca')
+      ->condition('ca.encounter_id', (int) $encounter_id)
+      ->orderBy('ca.created', 'ASC')
+      ->orderBy('ca.id', 'ASC');
+
+    // Optional filters.
+    $participantFilter = $request->query->get('participant_id');
+    if ($participantFilter !== NULL) {
+      $query->condition('ca.participant_id', (int) $participantFilter);
+    }
+
+    $actionTypeFilter = $request->query->get('action_type');
+    if ($actionTypeFilter !== NULL) {
+      $query->condition('ca.action_type', $actionTypeFilter);
+    }
+
+    // Count total before pagination.
+    $countQuery = clone $query;
+    $total = (int) $countQuery->countQuery()->execute()->fetchField();
+
+    // Apply pagination.
+    $query->range($offset, $perPage);
+    $rows = $query->execute()->fetchAll();
+
+    $entries = [];
+    foreach ($rows as $row) {
+      $entries[] = [
+        'action_id' => (int) $row->id,
+        'participant_id' => (int) $row->participant_id,
+        'action_type' => $row->action_type,
+        'target_id' => $row->target_id !== NULL ? (int) $row->target_id : NULL,
+        'payload' => $row->payload ? json_decode($row->payload, TRUE) : NULL,
+        'result' => $row->result ? json_decode($row->result, TRUE) : NULL,
+        'created' => (int) $row->created,
+      ];
+    }
+
     return new JsonResponse([
-      'encounter_id' => $encounter_id,
-      'log_entries' => [],
+      'encounter_id' => (int) $encounter_id,
+      'log_entries' => $entries,
       'meta' => [
-        'page' => 1,
-        'per_page' => 50,
-        'total' => 0,
+        'page' => $page,
+        'per_page' => $perPage,
+        'total' => $total,
+        'total_pages' => $total > 0 ? (int) ceil($total / $perPage) : 0,
       ],
     ]);
   }
@@ -422,22 +735,95 @@ class CombatApiController extends ControllerBase {
    *   Aggregate statistics.
    */
   public function getStatistics($encounter_id) {
-    // TODO: Implement statistics calculation
-    // 1. Count total actions by type
-    // 2. Sum total damage by type
-    // 3. Sum total healing
-    // 4. Find top damage dealer
-    // 5. Find top healer
-    // 6. Calculate average damage per round
-    // 7. Return statistics object
-    
+    $eid = (int) $encounter_id;
+
+    $encounter = $this->encounterStore->loadEncounter($eid);
+    if (!$encounter) {
+      return new JsonResponse(['error' => 'Encounter not found'], 404);
+    }
+
+    // Total actions by type.
+    $actionRows = $this->database->select('combat_actions', 'ca')
+      ->fields('ca', ['action_type'])
+      ->condition('ca.encounter_id', $eid)
+      ->execute()
+      ->fetchAll();
+
+    $totalActions = count($actionRows);
+    $actionsByType = [];
+    foreach ($actionRows as $row) {
+      $type = $row->action_type;
+      $actionsByType[$type] = ($actionsByType[$type] ?? 0) + 1;
+    }
+
+    // Damage statistics from damage log.
+    $damageRows = $this->database->select('combat_damage_log', 'dl')
+      ->fields('dl', ['participant_id', 'amount', 'damage_type', 'source'])
+      ->condition('dl.encounter_id', $eid)
+      ->execute()
+      ->fetchAll();
+
+    $totalDamage = 0;
+    $damageByType = [];
+    $damageByParticipant = [];
+    foreach ($damageRows as $row) {
+      $amt = (int) $row->amount;
+      $totalDamage += $amt;
+
+      $dtype = $row->damage_type ?? 'untyped';
+      $damageByType[$dtype] = ($damageByType[$dtype] ?? 0) + $amt;
+
+      $pid = (int) $row->participant_id;
+      $damageByParticipant[$pid] = ($damageByParticipant[$pid] ?? 0) + $amt;
+    }
+
+    // Top damage dealer (participant who dealt most — sourced from actions, not the target in damage_log).
+    // damage_log records damage *received*. We derive top dealer from action log payload.
+    $topDamageDealer = NULL;
+    $dealerDamage = [];
+    foreach ($actionRows as $row) {
+      if ($row->action_type === 'attack' || $row->action_type === 'cast_spell') {
+        // We count actions, not damage, as a proxy for dealer ranking.
+        $pid = (int) ($row->participant_id ?? 0);
+        $dealerDamage[$pid] = ($dealerDamage[$pid] ?? 0) + 1;
+      }
+    }
+    if (!empty($dealerDamage)) {
+      arsort($dealerDamage);
+      $topDamageDealer = array_key_first($dealerDamage);
+    }
+
+    // Healing statistics (actions of type 'heal').
+    $totalHealing = 0;
+    $healingByParticipant = [];
+    foreach ($actionRows as $row) {
+      if ($row->action_type === 'heal') {
+        $pid = (int) ($row->participant_id ?? 0);
+        $healingByParticipant[$pid] = ($healingByParticipant[$pid] ?? 0) + 1;
+        $totalHealing++;
+      }
+    }
+
+    $roundsElapsed = (int) ($encounter['current_round'] ?? 0);
+
     return new JsonResponse([
-      'encounter_id' => $encounter_id,
-      'rounds_elapsed' => 0,
-      'total_actions' => 0,
-      'actions_by_type' => [],
-      'damage_statistics' => [],
-      'healing_statistics' => [],
+      'encounter_id' => $eid,
+      'rounds_elapsed' => $roundsElapsed,
+      'total_actions' => $totalActions,
+      'actions_by_type' => $actionsByType,
+      'damage_statistics' => [
+        'total_damage' => $totalDamage,
+        'damage_by_type' => $damageByType,
+        'damage_received_by_participant' => $damageByParticipant,
+        'top_attack_actions_participant' => $topDamageDealer,
+      ],
+      'healing_statistics' => [
+        'total_healing_actions' => $totalHealing,
+        'healing_by_participant' => $healingByParticipant,
+      ],
+      'avg_actions_per_round' => $roundsElapsed > 0
+        ? round($totalActions / $roundsElapsed, 1)
+        : 0,
     ]);
   }
 

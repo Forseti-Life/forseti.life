@@ -121,7 +121,7 @@ class CombatEncounterApiController extends ControllerBase {
 
     // Look up the latest active encounter for this campaign + room.
     try {
-      $encounter_id = $this->database->select('dc_combat_encounters', 'e')
+      $encounter_id = $this->database->select('combat_encounters', 'e')
         ->fields('e', ['id'])
         ->condition('campaign_id', $campaign_id)
         ->condition('status', 'active')

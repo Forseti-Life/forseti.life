@@ -168,49 +168,131 @@ Provides Pathfinder-compatible dice and number generation:
 
 Calculates PF2e ability boosts, sources, and validation across the character creation flow.
 
+#### Game Coordinator (Central Orchestrator)
+**Service ID**: `dungeoncrawler_content.game_coordinator`  
+**Class**: `Drupal\dungeoncrawler_content\Service\GameCoordinatorService`
+
+The single entry point for all game actions. Manages the game phase state machine (exploration → encounter → downtime), validates and routes actions to active phase handlers, handles phase transitions with lifecycle hooks, event logging, dungeon data persistence, and optimistic concurrency.
+
+- **Routes**: `POST /api/game/{campaign_id}/action`, `GET /api/game/{campaign_id}/state`, `POST /api/game/{campaign_id}/transition`, `GET /api/game/{campaign_id}/events`
+- **Response includes**: `narration` (AiGmService one-shot) + `session_narration` (NarrationEngine per-character scene beats)
+
+#### Chat Session Manager
+**Service ID**: `dungeoncrawler_content.chat_session_manager`  
+**Class**: `Drupal\dungeoncrawler_content\Service\ChatSessionManager`
+
+Manages a hierarchical tree of chat sessions per campaign (campaign → dungeon → room → character_narrative). Supports 10 session types including party, whisper, spell, gm_private, encounter, and system_log. Uses deterministic composite session keys for idempotent session creation and feed-up rules for message propagation.
+
+#### Narration Engine
+**Service ID**: `dungeoncrawler_content.narration_engine`  
+**Class**: `Drupal\dungeoncrawler_content\Service\NarrationEngine`
+
+Batch narration engine implementing "Strategy C": room events buffer up to 8, then flush as per-character scene beats filtered by perception, language, senses, and conditions. Speech events (dialogue, shout, npc_speech) bypass the buffer for immediate GenAI narration. Mechanical events (dice rolls, damage, conditions) route to the system log only.
+
+- **Entry point**: `queueRoomEvent(campaign_id, dungeon_id, room_id, event, present_characters)`
+- **Helper**: `NarrationEngine::buildPresentCharacters(dungeon_data, room_id)` — static method to extract character arrays for perception filtering
+
+#### Chat Channel Manager
+**Service ID**: `dungeoncrawler_content.chat_channel_manager`  
+**Class**: `Drupal\dungeoncrawler_content\Service\ChatChannelManager`
+
+Manages active channel set per player: room (always active), party, whisper, spell, gm_private, and system_log. Max 4 non-room channels. Includes PF2e spell-to-channel mapping (Message → whisper, Sending → cross-distance, Telepathy → mental link).
+
+#### AI GM Service
+**Service ID**: `dungeoncrawler_content.ai_gm_service`  
+**Class**: `Drupal\dungeoncrawler_content\Service\AiGmService`
+
+Trigger-based one-shot narration at specific game events: room entry, encounter start/end, entity defeated, round start, phase transitions. Uses GenAI with template fallbacks. Config toggles per trigger type.
+
+#### Room Chat Service
+**Service ID**: `dungeoncrawler_content.room_chat_service`  
+**Class**: `Drupal\dungeoncrawler_content\Service\RoomChatService`
+
+AI GM conversation service — processes player chat messages, builds AI prompts with room/character/NPC context, parses GM responses, extracts gameplay actions and state mutations. Bridge methods connect to NarrationEngine for session-backed message recording.
+
+#### NPC Psychology Service
+**Service ID**: `dungeoncrawler_content.npc_psychology`  
+**Class**: `Drupal\dungeoncrawler_content\Service\NpcPsychologyService`
+
+Manages NPC personality profiles with 5 psychological axes, attitude tracking, inner monologue generation, and relationship evolution based on player interactions.
+
+#### Phase Handlers
+
+| Service ID | Class | Phase | Actions |
+|---|---|---|---|
+| `dungeoncrawler_content.exploration_phase_handler` | `ExplorationPhaseHandler` | Exploration | move, interact, talk, search, transition, set_activity, rest, cast_spell, open_door, open_passage |
+| `dungeoncrawler_content.encounter_phase_handler` | `EncounterPhaseHandler` | Encounter | strike, stride, cast_spell, interact, talk, end_turn, delay, ready, reaction |
+| `dungeoncrawler_content.downtime_phase_handler` | `DowntimePhaseHandler` | Downtime | long_rest (other activities stub) |
+
 ## File Structure
 
 ```
 dungeoncrawler_content/
 ├── config/
-│   ├── examples/          # Configuration examples
-│   └── schemas/           # Configuration schemas
-├── css/
-│   ├── character-sheet.css
-│   ├── dungeoncrawler-content.css
-│   ├── game-cards.css
-│   └── hexmap.css         # Hex map display styles (refactored with design tokens)
+│   ├── examples/          # Template import data
+│   └── schemas/           # Character creation step schemas
+├── css/                   # Module stylesheets (character-sheet, hexmap, game-cards, etc.)
 ├── js/
 │   ├── character-sheet.js
-│   └── game-cards.js
+│   ├── game-cards.js
+│   ├── character-step-*.js  # Character creation steps 1-8
+│   └── game-coordinator/    # Frontend game coordinator client
+│       ├── game-coordinator.js
+│       ├── action-panel.js
+│       ├── chat-panel.js    # Multi-tab chat UI (room, party, whisper, system)
+│       └── state-manager.js
 ├── src/
-│   ├── Controller/
-│   │   ├── AboutController.php
+│   ├── Access/              # Route access checkers
+│   │   ├── CharacterAccessCheck.php
+│   │   └── CampaignAccessCheck.php
+│   ├── Controller/          # 15+ route controllers
+│   │   ├── GameCoordinatorController.php   # /api/game/* endpoints
+│   │   ├── ChatSessionController.php       # /api/chat-session/* endpoints
+│   │   ├── CombatEncounterApiController.php
 │   │   ├── CampaignController.php
-│   │   ├── CharacterListController.php
-│   │   ├── CharacterViewController.php
-│   │   ├── DashboardController.php
-│   │   ├── GameObjectsController.php
-│   │   ├── HowToPlayController.php
-│   │   └── WorldController.php
-│   ├── Form/
-│   │   ├── CampaignCreateForm.php
-│   │   ├── CharacterCreateForm.php
-│   │   ├── CharacterDeleteForm.php
-│   │   ├── DungeonCrawlerSettingsForm.php
-│   │   └── GeminiImageGenerationStubForm.php
-│   └── Service/
+│   │   ├── CharacterApiController.php
+│   │   └── ... (About, Home, World, HowToPlay, Credits, Dashboard, etc.)
+│   ├── Form/                # Drupal forms (campaign, character, settings, image gen)
+│   └── Service/             # 75+ services — key subsystems:
+│       ├── GameCoordinatorService.php       # Central game loop orchestrator
+│       ├── ExplorationPhaseHandler.php      # Exploration phase actions
+│       ├── EncounterPhaseHandler.php        # Combat encounter actions
+│       ├── DowntimePhaseHandler.php         # Downtime phase actions
+│       ├── ChatSessionManager.php           # Hierarchical chat session tree
+│       ├── NarrationEngine.php              # Batch perception-filtered narration
+│       ├── ChatChannelManager.php           # Channel switching / spell mapping
+│       ├── AiGmService.php                  # Trigger-based one-shot narration
+│       ├── RoomChatService.php              # AI GM conversation + NarrationEngine bridge
+│       ├── NpcPsychologyService.php         # NPC personality + attitude tracking
+│       ├── HPManager.php                    # HP/temp HP CRUD
+│       ├── CombatEngine.php                 # PF2e combat logic
+│       ├── ActionProcessor.php              # Action economy (3-action system)
+│       ├── ConditionManager.php             # PF2e conditions
+│       ├── CombatCalculator.php             # Attack/damage calculations
+│       ├── CombatEncounterStore.php         # Encounter persistence
+│       ├── GameEventLogger.php              # Event-sourced game log
 │       ├── CharacterManager.php
 │       ├── GameContentManager.php
-│       └── GeminiImageGenerationService.php
-├── templates/
-│   ├── character-class-card.html.twig
-│   ├── character-list.html.twig
-│   ├── character-sheet.html.twig
-│   ├── dungeon-card.html.twig
-│   └── item-card.html.twig
+│       ├── NumberGenerationService.php
+│       └── ... (60+ additional services)
+├── templates/               # Twig templates (character sheets, cards, pages)
+├── tests/
+│   ├── src/Unit/            # PHPUnit unit tests
+│   ├── src/Functional/      # PHPUnit functional tests (routes, controllers)
+│   ├── combat_engine_test.php     # 136 tests — CombatEngine/ActionProcessor/HP/Conditions
+│   ├── hp_manager_test.php        # 86 tests — HPManager damage/healing/temp HP/death
+│   ├── combat_api_controller_test.php # 112 tests — CombatApiController all 12 endpoints
+│   ├── chat_session_test.php      # 54 tests — ChatSessionManager hierarchy
+│   ├── chat_integration_test.php  # 46 tests — Chat REST + bridge endpoints
+│   ├── npc_psychology_test.php    # 67 tests — NpcPsychologyService
+│   └── narration_pipeline_test.php # 66 tests — NarrationEngine + GC pipeline
+│   # Total drush script tests: 567
+├── CHAT_AND_NARRATION_ARCHITECTURE.md    # Chat/narration subsystem reference
+├── COMBAT_ENGINE_ARCHITECTURE.md          # Combat engine status + gaps reference
+├── HEXMAP_ARCHITECTURE.md
+├── AI_ENCOUNTER_INTEGRATION.md
 ├── dungeoncrawler_content.info.yml
-├── dungeoncrawler_content.install
+├── dungeoncrawler_content.install       # Schema + update hooks (10001–10025)
 ├── dungeoncrawler_content.libraries.yml
 ├── dungeoncrawler_content.links.menu.yml
 ├── dungeoncrawler_content.module
@@ -296,6 +378,43 @@ This enables promoting a campaign character into reusable forms:
 - To a durable character record (`dc_campaign_characters` where `campaign_id = 0`) for future campaigns.
 - To template-layer mappings (`dungeoncrawler_content_characters`) for template workflows.
 
+### Chat Session Tables (update hook 10024)
+
+#### `dc_chat_sessions`
+Hierarchical session tree for chat, narration, and system log channels.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | serial | Primary key |
+| `campaign_id` | int | Campaign FK |
+| `session_type` | varchar(64) | campaign, dungeon, room, character_narrative, encounter, party, whisper, spell, gm_private, system_log |
+| `session_key` | varchar(255) | Deterministic composite key (unique) |
+| `parent_session_id` | int | FK to parent session (NULL for campaign root) |
+| `context_data` | text | JSON context payload |
+| `status` | varchar(32) | active, archived, closed |
+| `created` | int | Unix timestamp |
+| `changed` | int | Unix timestamp |
+
+Indexes: `campaign_type` (campaign_id, session_type), `session_key` (unique), `parent_session`.
+
+#### `dc_chat_messages`
+All messages across all session types.
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | serial | Primary key |
+| `session_id` | int | FK to dc_chat_sessions |
+| `message_type` | varchar(64) | player, gm, system, narration, dice_roll, npc_speech |
+| `sender_type` | varchar(32) | player, gm, system, npc |
+| `sender_id` | varchar(128) | Player uid, NPC ID, or 'system' |
+| `content` | text | Message body |
+| `metadata` | text | JSON (dice results, perception tags, etc.) |
+| `created` | int | Unix timestamp |
+
+Indexes: `session_type` (session_id, message_type), `sender` (sender_type, sender_id), `created` (created).
+
+> **Full architecture reference:** See `CHAT_AND_NARRATION_ARCHITECTURE.md` for session hierarchy, feed-up rules, channel manager, NarrationEngine pipeline, and service dependency graph.
+
 ### Character Table: `dc_campaign_characters` (Unified)
 - `id` (int, primary key) - Character ID
 - `uuid` (varchar) - Unique character UUID (canonical/library rows)
@@ -348,6 +467,17 @@ This enables promoting a campaign character into reusable forms:
 ### Admin Routes
 - `/admin/config/content/dungeoncrawler` - Module settings
 - `/admin/content/dungeoncrawler` - Game content dashboard
+
+### Game Coordinator API Routes
+- `POST /api/game/{campaign_id}/action` - Submit game action (routed to active phase handler)
+- `GET /api/game/{campaign_id}/state` - Get current game state (phase, dungeon, encounters)
+- `POST /api/game/{campaign_id}/transition` - Request phase transition (exploration ↔ encounter ↔ downtime)
+- `GET /api/game/{campaign_id}/events` - Get event log for campaign
+
+### Chat Session API Routes
+- `GET /api/chat-session/{campaign_id}/sessions` - List chat sessions for campaign
+- `GET /api/chat-session/{campaign_id}/messages/{session_id}` - Get messages in session
+- `POST /api/chat-session/{campaign_id}/send` - Send a player message
 
 ### Management Routes
 - `/dungeoncrawler/objects` - Game object manager (object/attribute review)
@@ -529,6 +659,8 @@ The review maintains 100% functional compatibility while improving:
 
 ### Architecture and Design Docs
 
+- `CHAT_AND_NARRATION_ARCHITECTURE.md` - **Chat session hierarchy, dual narration pipeline, NarrationEngine event flow, ChatChannelManager, database tables, service dependency graph** (authoritative reference for chat/session/narration subsystems)
+- `COMBAT_ENGINE_ARCHITECTURE.md` - **Combat/encounter engine status: all services, controllers, API endpoints, database tables, test coverage, known bugs, prioritized gaps, and completion matrix** (authoritative reference for combat subsystem)
 - `HEXMAP_ARCHITECTURE.md` - Hexmap and schema architecture reference
 - `ENHANCED_CHARACTER_SHEET_STUBS.md` - Character sheet implementation status and gaps
 - `AI_ENCOUNTER_INTEGRATION.md` - Encounter AI integration blueprint and phased implementation plan
@@ -837,15 +969,38 @@ public function testFeatureOwnershipDenied(): void {
 }
 ```
 
+### Drush Script Test Suites
+
+In addition to PHPUnit, the module maintains `drush php:script` integration test suites that exercise services with real Drupal bootstrap and database context:
+
+```bash
+cd /home/keithaumiller/forseti.life/sites/dungeoncrawler
+./vendor/bin/drush php:script web/modules/custom/dungeoncrawler_content/tests/scripts/test-combat-engine.php
+./vendor/bin/drush php:script web/modules/custom/dungeoncrawler_content/tests/scripts/test-chat-session.php
+./vendor/bin/drush php:script web/modules/custom/dungeoncrawler_content/tests/scripts/test-chat-integration.php
+./vendor/bin/drush php:script web/modules/custom/dungeoncrawler_content/tests/scripts/test-npc-psychology.php
+./vendor/bin/drush php:script web/modules/custom/dungeoncrawler_content/tests/scripts/test-narration-pipeline.php
+```
+
+| Test Script | Tests | Coverage |
+|-------------|-------|----------|
+| `test-combat-engine.php` | 136 | CombatEngine, ActionProcessor, HPManager, ConditionManager, CombatCalculator |
+| `test-chat-session.php` | 54 | ChatSessionManager session hierarchy, deterministic keys, feed-up rules |
+| `test-chat-integration.php` | 46 | Chat REST endpoints, bridge methods, ChatChannelManager |
+| `test-npc-psychology.php` | 67 | NpcPsychologyService personality axes, attitude, inner monologue |
+| `test-narration-pipeline.php` | 66 | NarrationEngine → GameCoordinator pipeline, perception filtering, phase wiring |
+| **Total** | **369** | **All game subsystems with Drupal bootstrap** |
+
 ### Coverage Metrics
 
 | Test Type | Count | Coverage Area |
 |-----------|-------|---------------|
-| **Route Tests** | 62 | HTTP routing, permissions, method validation |
-| **Controller Tests** | 40+ | Business logic, access control, data flow |
-| **Advanced Tests** | 20+ | Workflows, state management, integration |
-| **Unit Tests** | 15+ | Calculations, services, utilities |
-| **Total Tests** | 137+ | Comprehensive module coverage |
+| **PHPUnit Route Tests** | 62 | HTTP routing, permissions, method validation |
+| **PHPUnit Controller Tests** | 40+ | Business logic, access control, data flow |
+| **PHPUnit Advanced Tests** | 20+ | Workflows, state management, integration |
+| **PHPUnit Unit Tests** | 15+ | Calculations, services, utilities |
+| **Drush Script Tests** | 455 | Game subsystems: combat, HP, chat, narration, NPC, pipeline |
+| **Total Tests** | 590+ | Comprehensive module coverage |
 
 ### Test Groups
 
@@ -878,13 +1033,32 @@ Test results are visible in the GitHub Actions tab of each PR.
 
 ## Future Enhancements
 
+### Implemented (moved from prior roadmap)
+- [x] AI-powered NPC dialogue system — `RoomChatService` + `NpcPsychologyService`
+- [x] Real-time combat mechanics — `CombatEngine` + `EncounterPhaseHandler`
+- [x] Quest tracking (starter quests) — `dc_campaign_quests` + tavern quest auto-start
+- [x] HPManager temp HP — PF2e take-higher-value stacking, damage absorption, DB persistence (update hook 10025)
+- [x] CombatCalculator formulas — MAP (-5/-10, agile -4), attack bonus, spell save DC all implemented
+- [x] CombatApiController — all 12/12 endpoints implemented (HP, conditions, initiative, participants, log, statistics) + 112 tests
+- [x] Table name bug fix — `CombatEncounterApiController::currentState()` now uses `combat_encounters`
+
+### Pending
+- [ ] CombatApiController routing — 12 endpoints implemented but **no routes in routing.yml** yet
+- [ ] CombatController + CombatActionController — fully stubbed, zero routes registered
+- [ ] EncounterBalancer — creature selection, XP budgets, party size adjustment almost entirely stubbed
+- [ ] ActionProcessor spell casting — `executeCastSpell` is a stub
+- [ ] RulesEngine `validateAction` — main entry point is a stub (6-layer validation pipeline TODO)
+- [ ] Action economy 2/3-action activities — only 1-action enforcement exists
+- [ ] Damage type resistances/weaknesses
+- [ ] Persistent damage flat checks (ConditionManager `processPersistentDamage` stub)
+- [ ] XP award computation on encounter end
 - [ ] Procedural dungeon generation integration
-- [ ] AI-powered NPC dialogue system
-- [ ] Real-time combat mechanics
-- [ ] Multiplayer party system
-- [ ] Achievement and quest tracking
-- [ ] Inventory management system
-- [ ] Spell and ability customization
+- [ ] Multiplayer party synchronization (WebSocket real-time updates)
+- [ ] Inventory management system (equipment equip/unequip, encumbrance)
+- [ ] Spell and ability customization (focus spells, innate spells, signature spells)
+- [ ] Per-character narrative UI tab in chat panel
+- [ ] Full downtime activity system (crafting, earning income, retraining)
+- [ ] Achievement system
 
 ## Support
 

@@ -124,7 +124,7 @@ services:
 
   dungeoncrawler_content.condition_manager:
     class: Drupal\dungeoncrawler_content\Service\ConditionManager
-    arguments: ['@database']
+    arguments: ['@database', '@dungeoncrawler_content.number_generation']
 
   dungeoncrawler_content.state_manager:
     class: Drupal\dungeoncrawler_content\Service\StateManager

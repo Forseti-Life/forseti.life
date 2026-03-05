@@ -3872,3 +3872,24 @@ function dungeoncrawler_content_update_10024() {
 
   return t('Created dc_chat_sessions and dc_chat_messages tables for hierarchical chat architecture.');
 }
+
+/**
+ * Add temp_hp column to combat_participants table.
+ *
+ * PF2e temporary HP: tracked separately, damage absorbs temp HP first,
+ * doesn't stack (take higher value), can't be restored by healing.
+ */
+function dungeoncrawler_content_update_10025() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('combat_participants') && !$schema->fieldExists('combat_participants', 'temp_hp')) {
+    $schema->addField('combat_participants', 'temp_hp', [
+      'type' => 'int',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Current temporary hit points (PF2e: absorbs damage first, does not stack).',
+    ]);
+  }
+
+  return t('Added temp_hp column to combat_participants for PF2e temporary hit points.');
+}

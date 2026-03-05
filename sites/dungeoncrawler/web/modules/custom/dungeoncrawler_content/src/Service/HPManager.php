@@ -22,6 +22,10 @@ class HPManager {
   /**
    * Apply damage.
    *
+   * PF2e: Temp HP absorbs damage first. Remaining damage reduces current HP.
+   * If HP drops to 0 or below, dying condition is applied.
+   * If HP drops to negative of max HP, instant death (massive damage).
+   *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applydamage
    */
   public function applyDamage($participant_id, $damage, $damage_type, $source, $encounter_id) {
@@ -33,8 +37,22 @@ class HPManager {
     $now = time();
     $base_hp = (int) ($participant['hp'] ?? 0);
     $max_hp = (int) ($participant['max_hp'] ?? 0);
+    $temp_hp = (int) ($participant['temp_hp'] ?? 0);
     $damage = max(0, (int) $damage);
-    $new_hp = $base_hp - $damage;
+
+    // PF2e: Temp HP absorbs damage first.
+    $temp_absorbed = 0;
+    if ($temp_hp > 0 && $damage > 0) {
+      $temp_absorbed = min($temp_hp, $damage);
+      $remaining_damage = $damage - $temp_absorbed;
+      $new_temp_hp = $temp_hp - $temp_absorbed;
+    }
+    else {
+      $remaining_damage = $damage;
+      $new_temp_hp = $temp_hp;
+    }
+
+    $new_hp = $base_hp - $remaining_damage;
     $is_defeated = $new_hp <= 0 ? 1 : (int) ($participant['is_defeated'] ?? 0);
 
     $txn = $this->database->startTransaction();
@@ -42,6 +60,7 @@ class HPManager {
     $this->database->update('combat_participants')
       ->fields([
         'hp' => $new_hp,
+        'temp_hp' => $new_temp_hp,
         'is_defeated' => $is_defeated,
         'updated' => $now,
       ])
@@ -69,7 +88,10 @@ class HPManager {
 
     return [
       'final_damage' => $damage,
+      'hp_damage' => $remaining_damage,
+      'temp_hp_used' => $temp_absorbed,
       'new_hp' => $new_hp,
+      'new_temp_hp' => $new_temp_hp,
       'new_status' => $death_state['is_dead'] ? 'dead' : ($is_defeated ? 'defeated' : 'active'),
       'death_reason' => $death_state['death_reason'],
     ];
@@ -110,11 +132,55 @@ class HPManager {
   /**
    * Apply temporary HP.
    *
+   * PF2e: Temp HP does not stack. If the participant already has temp HP,
+   * keep whichever value is higher (new or existing). Temp HP cannot be
+   * restored by healing.
+   *
+   * @param int $participant_id
+   *   The combat participant ID.
+   * @param int $temp_hp
+   *   The temp HP amount to grant.
+   * @param string|array $source
+   *   Source of temp HP (e.g. "False Life spell").
+   * @param int $encounter_id
+   *   The encounter ID.
+   *
+   * @return array
+   *   Keys: temp_hp_before, temp_hp_after, applied (bool).
+   *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applytemporaryhp
    */
   public function applyTemporaryHP($participant_id, $temp_hp, $source, $encounter_id) {
-    // TODO: Take higher value (doesn't stack)
-    return 0;
+    $participant = $this->loadParticipant($participant_id);
+    if (!$participant) {
+      return ['temp_hp_before' => 0, 'temp_hp_after' => 0, 'applied' => FALSE];
+    }
+
+    $current_temp = (int) ($participant['temp_hp'] ?? 0);
+    $new_temp = max(0, (int) $temp_hp);
+
+    // PF2e: Temp HP doesn't stack — take the higher value.
+    if ($new_temp <= $current_temp) {
+      return [
+        'temp_hp_before' => $current_temp,
+        'temp_hp_after' => $current_temp,
+        'applied' => FALSE,
+      ];
+    }
+
+    $this->database->update('combat_participants')
+      ->fields([
+        'temp_hp' => $new_temp,
+        'updated' => time(),
+      ])
+      ->condition('id', $participant_id)
+      ->execute();
+
+    return [
+      'temp_hp_before' => $current_temp,
+      'temp_hp_after' => $new_temp,
+      'applied' => TRUE,
+    ];
   }
 
   /**
@@ -151,9 +217,9 @@ class HPManager {
 
     $effective_dying = $dying_value + $wounded_value;
 
-    $this->conditionManager->applyCondition($participant_id, 'dying', $encounter_id, $effective_dying);
-    $this->conditionManager->applyCondition($participant_id, 'unconscious', $encounter_id);
-    $this->conditionManager->applyCondition($participant_id, 'prone', $encounter_id);
+    $this->conditionManager->applyCondition($participant_id, 'dying', $effective_dying, ['type' => 'encounter', 'remaining' => NULL], 'dying_condition', $encounter_id);
+    $this->conditionManager->applyCondition($participant_id, 'unconscious', 0, ['type' => 'encounter', 'remaining' => NULL], 'dying_condition', $encounter_id);
+    $this->conditionManager->applyCondition($participant_id, 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'dying_condition', $encounter_id);
 
     return TRUE;
   }
@@ -176,7 +242,7 @@ class HPManager {
 
     $wounded_stacks = max(0, $dying_value - 1);
     if ($wounded_stacks > 0) {
-      $this->conditionManager->applyCondition($participant_id, 'wounded', $encounter_id, $wounded_stacks);
+      $this->conditionManager->applyCondition($participant_id, 'wounded', $wounded_stacks, ['type' => 'persistent', 'remaining' => NULL], 'stabilize', $encounter_id);
     }
 
     $this->database->update('combat_participants')
