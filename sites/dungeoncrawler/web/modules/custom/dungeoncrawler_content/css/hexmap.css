@@ -455,6 +455,121 @@
    Dialog Log & Chat
    ========================================================================== */
 
+/* Session view tabs — top-level navigation */
+.hexmap-chat__session-tabs {
+  display: flex;
+  gap: var(--space-1);
+  margin-bottom: var(--space-2);
+  padding-bottom: var(--space-2);
+  border-bottom: 2px solid var(--overlay-white-12);
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
+.session-view-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 12px;
+  border: 1px solid var(--overlay-white-12);
+  border-radius: var(--radius-lg);
+  background: var(--overlay-white-04);
+  color: var(--muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.session-view-tab:hover {
+  background: var(--overlay-white-08);
+  color: var(--text);
+}
+
+.session-view-tab--active {
+  background: var(--accent-strong);
+  color: var(--bg);
+  border-color: var(--accent-strong);
+  font-weight: 700;
+}
+
+.session-view-tab__icon {
+  font-size: var(--text-sm);
+  line-height: 1;
+}
+
+/* Session-specific color accents for active tabs */
+.session-view-tab--active[data-view="narrative"] {
+  background: #805ad5;
+  border-color: #805ad5;
+}
+
+.session-view-tab--active[data-view="party"] {
+  background: #38a169;
+  border-color: #38a169;
+}
+
+.session-view-tab--active[data-view="gm-private"] {
+  background: #d69e2e;
+  border-color: #d69e2e;
+}
+
+.session-view-tab--active[data-view="system-log"] {
+  background: #718096;
+  border-color: #718096;
+}
+
+/* View-specific log border colors */
+.hexmap-chat__log[data-view-type="narrative"] {
+  border-left: 3px solid #805ad5;
+}
+
+.hexmap-chat__log[data-view-type="party"] {
+  border-left: 3px solid #38a169;
+}
+
+.hexmap-chat__log[data-view-type="gm-private"] {
+  border-left: 3px solid #d69e2e;
+}
+
+.hexmap-chat__log[data-view-type="system-log"] {
+  border-left: 3px solid #718096;
+}
+
+/* Additional chat line types for session messages */
+.chat-line--narrative .chat-line__speaker {
+  color: #d6bcfa;
+}
+
+.chat-line--gm {
+  color: #fbd38d;
+}
+
+.chat-line--gm .chat-line__speaker {
+  color: #f6ad55;
+  font-weight: 700;
+}
+
+.chat-line--mechanical {
+  color: #a0aec0;
+  font-family: 'Fira Code', 'Consolas', monospace;
+  font-size: 0.85em;
+}
+
+.chat-line--mechanical .chat-line__speaker {
+  color: #718096;
+}
+
+.chat-line--secret {
+  color: #fbd38d;
+  font-style: italic;
+}
+
+.chat-line--secret .chat-line__speaker {
+  color: #d69e2e;
+}
+
 .hexmap-chat {
   margin-top: var(--space-4);
   margin-left: 0;

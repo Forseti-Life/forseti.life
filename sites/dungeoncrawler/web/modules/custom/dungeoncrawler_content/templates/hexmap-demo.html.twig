@@ -132,9 +132,28 @@
 
     <div class="hexmap-chat" id="hexmap-chat">
       <div class="hexmap-chat__header">
-        <h3>{{ 'Room Dialogue'|t }}</h3>
+        <h3 id="chat-panel-title">{{ 'Room Dialogue'|t }}</h3>
         <span class="chip chip-live" id="chat-status">{{ 'Open'|t }}</span>
       </div>
+      {# Session view tabs — top-level navigation between chat views #}
+      <div class="hexmap-chat__session-tabs" id="chat-session-tabs">
+        <button class="session-view-tab session-view-tab--active" data-view="room" title="Room dialogue &amp; NPC channels">
+          <span class="session-view-tab__icon">&#x1F4E2;</span>{{ 'Room'|t }}
+        </button>
+        <button class="session-view-tab" data-view="narrative" title="Your character's perception-filtered story">
+          <span class="session-view-tab__icon">&#x1F4D6;</span>{{ 'My Story'|t }}
+        </button>
+        <button class="session-view-tab" data-view="party" title="Party-only huddle chat">
+          <span class="session-view-tab__icon">&#x1F6E1;</span>{{ 'Party'|t }}
+        </button>
+        <button class="session-view-tab" data-view="gm-private" title="Secret actions only the GM sees">
+          <span class="session-view-tab__icon">&#x1F575;</span>{{ 'GM Secret'|t }}
+        </button>
+        <button class="session-view-tab" data-view="system-log" title="Dice rolls, checks &amp; mechanical results">
+          <span class="session-view-tab__icon">&#x1F3B2;</span>{{ 'Dice Log'|t }}
+        </button>
+      </div>
+      {# Channel sub-tabs — visible only in Room view #}
       <div class="hexmap-chat__channels" id="chat-channel-tabs">
         <button class="chat-channel-tab chat-channel-tab--active" data-channel="room" title="Main room channel">{{ 'Room'|t }}</button>
       </div>

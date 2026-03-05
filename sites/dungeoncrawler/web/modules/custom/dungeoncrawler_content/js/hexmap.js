@@ -7,6 +7,7 @@
 import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, EntityType, RenderSystem, MovementComponent, StatsComponent, MovementSystem, MovementMode, ActionsComponent, ActionType, ActionCost, CombatComponent, Team, TurnManagementSystem, CombatState, CombatSystem, AttackResult } from './ecs/index.js';
 import combatApi from './hexmap-api.js';
 import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
+import { ChatSessionApi } from './ChatSessionApi.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -28,11 +29,16 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
       // Channel state
       this.activeChannel = 'room';
       this.channels = { room: { key: 'room', label: 'Room', type: 'room', active: true } };
+      // Session view state
+      this.activeSessionView = 'room'; // room | narrative | party | gm-private | system-log
+      /** @type {ChatSessionApi|null} */
+      this.chatSessionApi = null;
       this.setupActionFooterToggle();
       this.setupFullscreenToggle();
       this.cacheElements();
       this.setupChatLog();
       this.setupChannelTabs();
+      this.setupSessionViewTabs();
     }
 
     /**
@@ -236,6 +242,8 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
         chatChannelTabs: document.getElementById('chat-channel-tabs'),
         chatChannelIndicator: document.getElementById('chat-channel-indicator'),
         chatChannelLabel: document.getElementById('chat-channel-label'),
+        chatSessionTabs: document.getElementById('chat-session-tabs'),
+        chatPanelTitle: document.getElementById('chat-panel-title'),
 
         // Quest journal panel
         questJournal: document.getElementById('quest-journal'),
@@ -980,7 +988,25 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
         // Clear input immediately for better UX
         input.value = '';
 
-        // Send to server
+        // Route to the correct handler based on active session view.
+        if (this.activeSessionView !== 'room') {
+          try {
+            await this.postSessionViewMessage(characterName, message, characterId);
+          } catch (error) {
+            console.error('Failed to send session message:', error);
+            this.appendChatLine('System', `Failed to send: ${error.message}`, 'system');
+            input.value = message;
+          } finally {
+            isSubmitting = false;
+            if (sendButton) {
+              sendButton.disabled = false;
+              sendButton.textContent = originalText || 'Send';
+            }
+          }
+          return;
+        }
+
+        // Send to legacy room chat server
         try {
           await this.postChatMessage(campaignId, roomId, characterName, message, characterId);
           // Message will appear when server confirms (or from loadChatHistory)
@@ -1358,6 +1384,249 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
       }
 
       this.appendChatLine('System', message, 'system');
+    }
+
+    // ===================================================================
+    // Session view management (multi-tab chat system)
+    // ===================================================================
+
+    /**
+     * Lazily initialize the ChatSessionApi when campaign is known.
+     * @returns {ChatSessionApi|null}
+     */
+    ensureChatSessionApi() {
+      const campaignId = this.stateManager.hexmap?.resolveCampaignId?.() || null;
+      if (!campaignId) return null;
+
+      if (!this.chatSessionApi || this.chatSessionApi.campaignId !== campaignId) {
+        this.chatSessionApi = new ChatSessionApi(campaignId);
+      }
+      return this.chatSessionApi;
+    }
+
+    /**
+     * Set up click handlers for session view tabs.
+     */
+    setupSessionViewTabs() {
+      const container = this.elements.chatSessionTabs;
+      if (!container) return;
+
+      container.addEventListener('click', (e) => {
+        const tab = e.target.closest('.session-view-tab');
+        if (!tab) return;
+
+        const view = tab.dataset.view;
+        if (!view || view === this.activeSessionView) return;
+
+        this.switchSessionView(view);
+      });
+    }
+
+    /**
+     * Switch to a different session view.
+     * @param {string} view — room | narrative | party | gm-private | system-log
+     */
+    switchSessionView(view) {
+      this.activeSessionView = view;
+
+      // Update tab active states.
+      const container = this.elements.chatSessionTabs;
+      if (container) {
+        container.querySelectorAll('.session-view-tab').forEach(tab => {
+          tab.classList.toggle('session-view-tab--active', tab.dataset.view === view);
+        });
+      }
+
+      // Show/hide channel sub-tabs and indicator (only for room view).
+      const channelTabs = this.elements.chatChannelTabs;
+      const channelIndicator = this.elements.chatChannelIndicator;
+      if (channelTabs) channelTabs.style.display = view === 'room' ? '' : 'none';
+      if (channelIndicator) channelIndicator.style.display = view === 'room' ? '' : 'none';
+
+      // Update panel title.
+      const titles = {
+        'room': 'Room Dialogue',
+        'narrative': 'My Story',
+        'party': 'Party Chat',
+        'gm-private': 'GM Secret',
+        'system-log': 'Dice Log',
+      };
+      if (this.elements.chatPanelTitle) {
+        this.elements.chatPanelTitle.textContent = titles[view] || 'Chat';
+      }
+
+      // Update log border color.
+      const log = this.elements.chatLog;
+      if (log) {
+        // Clear channel-type data attr for non-room views.
+        if (view === 'room') {
+          const channel = this.channels[this.activeChannel];
+          const channelType = this.activeChannel === 'room' ? 'room'
+            : this.activeChannel.startsWith('spell:') ? 'spell' : 'whisper';
+          log.dataset.channelType = channelType;
+          delete log.dataset.viewType;
+        } else {
+          delete log.dataset.channelType;
+          log.dataset.viewType = view;
+        }
+      }
+
+      // Update input placeholder and read-only state.
+      const input = this.elements.chatInput;
+      const sendBtn = this.elements.chatSend;
+      const isReadOnly = view === 'system-log';
+
+      if (input) {
+        input.disabled = isReadOnly;
+        const placeholders = {
+          'room': 'Say something to the room...',
+          'narrative': 'Your story unfolds here (read-only)...',
+          'party': 'Whisper to your party...',
+          'gm-private': 'Send a secret action to the GM...',
+          'system-log': 'Dice rolls appear here automatically...',
+        };
+        input.placeholder = placeholders[view] || '';
+      }
+      if (sendBtn) sendBtn.disabled = isReadOnly;
+
+      // Load messages for the selected view.
+      this.loadSessionViewMessages(view);
+    }
+
+    /**
+     * Load messages for the given session view.
+     * @param {string} view
+     */
+    async loadSessionViewMessages(view) {
+      // Room view uses existing legacy loading.
+      if (view === 'room') {
+        this.loadChatHistory();
+        return;
+      }
+
+      const api = this.ensureChatSessionApi();
+      if (!api) return;
+
+      const characterData = this.stateManager.hexmap?.characterData || {};
+      const characterId = characterData.id || null;
+
+      const log = this.elements.chatLog;
+      if (log) log.innerHTML = '';
+
+      try {
+        let data = null;
+
+        switch (view) {
+          case 'narrative': {
+            if (!characterId) {
+              this.appendChatLine('System', 'No character selected.', 'system');
+              return;
+            }
+            const dungeonId = this.stateManager.hexmap?.dungeonData?.id || null;
+            const roomId = this.stateManager.hexmap?.resolveActiveRoomId?.() || null;
+            data = await api.getCharacterNarrative(characterId, {
+              dungeonId: dungeonId || undefined,
+              roomId: roomId || undefined,
+              limit: 50,
+            });
+            break;
+          }
+
+          case 'party':
+            data = await api.getPartyChat({ limit: 50 });
+            break;
+
+          case 'gm-private': {
+            if (!characterId) {
+              this.appendChatLine('System', 'No character selected.', 'system');
+              return;
+            }
+            data = await api.getGmPrivate(characterId, { limit: 50 });
+            break;
+          }
+
+          case 'system-log':
+            data = await api.getSystemLog({ limit: 100 });
+            break;
+        }
+
+        if (data && data.messages && data.messages.length > 0) {
+          data.messages.forEach(msg => {
+            const lineType = this.resolveSessionLineType(msg, view);
+            this.appendChatLine(msg.speaker, msg.message, lineType);
+          });
+        } else {
+          const emptyMessages = {
+            'narrative': 'Your story in this room has not yet begun...',
+            'party': 'No party chatter yet. Say something!',
+            'gm-private': 'No secret actions. Type to send one to the GM.',
+            'system-log': 'No dice rolls yet.',
+          };
+          this.appendChatLine('System', emptyMessages[view] || 'No messages.', 'system');
+        }
+      } catch (err) {
+        console.error(`Failed to load ${view} messages:`, err);
+      }
+    }
+
+    /**
+     * Determine the CSS line type for a session message.
+     * @param {object} msg — formatted message from API
+     * @param {string} view — active session view
+     * @returns {string} — CSS class suffix
+     */
+    resolveSessionLineType(msg, view) {
+      if (msg.speaker_type === 'system') return 'system';
+      if (msg.speaker_type === 'gm') return 'gm';
+      if (msg.message_type === 'mechanical' || msg.message_type === 'dice_roll') return 'mechanical';
+      if (view === 'gm-private') return msg.speaker_type === 'player' ? 'secret' : 'gm';
+      if (view === 'narrative') return msg.speaker_type === 'player' ? 'player' : 'narrative';
+      if (msg.speaker_type === 'player') return 'player';
+      return 'npc';
+    }
+
+    /**
+     * Post a message from the active session view (non-room views).
+     * Called from setupChatLog form handler when activeSessionView !== 'room'.
+     *
+     * @param {string} speaker
+     * @param {string} message
+     * @param {string|null} characterId
+     */
+    async postSessionViewMessage(speaker, message, characterId) {
+      const api = this.ensureChatSessionApi();
+      if (!api) return;
+
+      try {
+        switch (this.activeSessionView) {
+          case 'party':
+            this.appendChatLine(speaker, message, 'player');
+            await api.postPartyChat(speaker, message, String(characterId || ''));
+            break;
+
+          case 'gm-private':
+            if (!characterId) {
+              this.appendChatLine('System', 'No character selected.', 'system');
+              return;
+            }
+            this.appendChatLine(speaker, message, 'secret');
+            await api.postGmPrivate(characterId, speaker, message);
+            break;
+
+          case 'narrative':
+            // Narrative is read-only from the player's perspective.
+            // The backend generates perception-filtered narration automatically.
+            this.appendChatLine('System', 'Your story is narrated by the GM.', 'system');
+            return;
+
+          case 'system-log':
+            // System log is read-only.
+            return;
+        }
+      } catch (err) {
+        console.error(`Failed to post to ${this.activeSessionView}:`, err);
+        this.appendChatLine('System', `Failed to send: ${err.message}`, 'system');
+      }
     }
 
     /**
@@ -5355,8 +5624,14 @@ import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
         if (this.uiManager.loadChannels) {
           this.uiManager.loadChannels();
         }
-        if (this.uiManager.loadChatHistory) {
-          this.uiManager.loadChatHistory();
+        // Reload the currently active session view.
+        if (this.uiManager.activeSessionView === 'room') {
+          if (this.uiManager.loadChatHistory) {
+            this.uiManager.loadChatHistory();
+          }
+        } else {
+          // Refresh session view (narrative changes per-room).
+          this.uiManager.loadSessionViewMessages(this.uiManager.activeSessionView);
         }
       }
 
