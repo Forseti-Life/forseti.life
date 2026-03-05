@@ -12,11 +12,19 @@ use Psr\Log\LoggerInterface;
  *
  * Channel types:
  *   - room:    The main channel. GM + all characters present. Always open.
+ *              Objective reality — GM "God view". All audible events recorded.
  *   - whisper: Private 1:1 with an NPC or character. Requires proximity
  *              or a spell/ability. GM is *aware* but does not auto-respond.
+ *              Perception-checkable by nearby characters.
  *   - spell:   Opened by a spell (Message, Telepathy, Sending, etc.).
  *              The spell defines range, word limit, and whether the GM
  *              overhears. AI responds as the target NPC.
+ *   - party:   Party huddle. NPCs excluded. Proximity-gated (same room).
+ *              GM is aware the party is conferring but doesn't see content.
+ *   - gm_private: Secret player actions. Only the acting player + GM see
+ *              these (pickpocket attempts, stealth declarations, etc.).
+ *   - system_log: Dice rolls, skill checks, damage numbers. Structured
+ *              mechanical data, not narrative.
  *
  * Channel lifecycle:
  *   1. "room" channel is always present — never created or destroyed.
@@ -40,6 +48,29 @@ class ChatChannelManager {
    * Maximum number of non-room channels a character can have open.
    */
   const MAX_OPEN_CHANNELS = 4;
+
+  /**
+   * All valid channel types in the hierarchy.
+   */
+  const CHANNEL_TYPES = [
+    'room',
+    'whisper',
+    'spell',
+    'party',
+    'gm_private',
+    'system_log',
+  ];
+
+  /**
+   * Channel types visible to the player in the UI.
+   */
+  const PLAYER_VISIBLE_TYPES = [
+    'room',
+    'whisper',
+    'spell',
+    'party',
+    'gm_private',
+  ];
 
   /**
    * Built-in channel definitions that may be opened by spells/abilities.
@@ -157,12 +188,25 @@ class ChatChannelManager {
    * Parse a channel key into its components.
    *
    * @return array
-   *   ['type' => 'room'|'whisper'|'spell', 'target' => string|null,
-   *    'spell_key' => string|null]
+   *   ['type' => 'room'|'whisper'|'spell'|'party'|'gm_private'|'system_log',
+   *    'target' => string|null, 'spell_key' => string|null]
    */
   public function parseChannelKey(string $channel_key): array {
     if ($channel_key === 'room') {
       return ['type' => 'room', 'target' => NULL, 'spell_key' => NULL];
+    }
+    if ($channel_key === 'party') {
+      return ['type' => 'party', 'target' => NULL, 'spell_key' => NULL];
+    }
+    if ($channel_key === 'system_log') {
+      return ['type' => 'system_log', 'target' => NULL, 'spell_key' => NULL];
+    }
+    if (str_starts_with($channel_key, 'gm_private:')) {
+      return [
+        'type' => 'gm_private',
+        'target' => substr($channel_key, 11),
+        'spell_key' => NULL,
+      ];
     }
     if (str_starts_with($channel_key, 'whisper:')) {
       return [
@@ -180,6 +224,24 @@ class ChatChannelManager {
       ];
     }
     return ['type' => 'unknown', 'target' => NULL, 'spell_key' => NULL];
+  }
+
+  /**
+   * Build a party channel key.
+   */
+  public function partyChannelKey(): string {
+    return 'party';
+  }
+
+  /**
+   * Build a GM private channel key for a character.
+   *
+   * @param string|int $character_id
+   *   Character ID for the private channel.
+   */
+  public function gmPrivateChannelKey(string|int $character_id): string {
+    $safe = preg_replace('/[^a-zA-Z0-9_\-]/', '_', (string) $character_id);
+    return "gm_private:{$safe}";
   }
 
   // =========================================================================
@@ -473,6 +535,16 @@ class ChatChannelManager {
         $target = $parsed['target'] ?? 'unknown';
         $safe_target = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $target);
         return "campaign.{$campaign_id}.npc.{$safe_target}";
+
+      case 'party':
+        return "campaign.{$campaign_id}.party";
+
+      case 'gm_private':
+        $target = $parsed['target'] ?? 'unknown';
+        return "campaign.{$campaign_id}.gm_private.{$target}";
+
+      case 'system_log':
+        return "campaign.{$campaign_id}.system_log";
 
       default:
         return "campaign.{$campaign_id}.room_chat";

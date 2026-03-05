@@ -121,6 +121,163 @@ const AUTO_STEP_ORDER = [
   'review_submit',
 ];
 
+const TACTIC_REGISTRY = Object.freeze({
+  field_visual_readback: 'Every write requires visible read-back match',
+  click_post_action_confirmation: 'Every click requires post-action confirmation',
+});
+
+let ACTIVE_VISUAL_AUDIT = null;
+
+function createVisualAudit() {
+  return {
+    started_at: new Date().toISOString(),
+    tactics: { ...TACTIC_REGISTRY },
+    field_checks: [],
+    click_checks: [],
+  };
+}
+
+function pushFieldAudit(field, expected, observed, ok, detail = '') {
+  if (!ACTIVE_VISUAL_AUDIT) return;
+  ACTIVE_VISUAL_AUDIT.field_checks.push({
+    ts: Date.now(),
+    field: String(field || ''),
+    expected: String(expected || ''),
+    observed: String(observed || ''),
+    ok: !!ok,
+    detail: String(detail || ''),
+  });
+}
+
+function pushClickAudit(step, action, ok, detail = '', meta = {}) {
+  if (!ACTIVE_VISUAL_AUDIT) return;
+  ACTIVE_VISUAL_AUDIT.click_checks.push({
+    ts: Date.now(),
+    step: String(step || ''),
+    action: String(action || ''),
+    ok: !!ok,
+    detail: String(detail || ''),
+    ...meta,
+  });
+}
+
+function attachVisualAuditToResult(result, evidenceParts = []) {
+  if (!ACTIVE_VISUAL_AUDIT || !result || typeof result !== 'object') return;
+  const fields = ACTIVE_VISUAL_AUDIT.field_checks;
+  const clicks = ACTIVE_VISUAL_AUDIT.click_checks;
+  const failedFields = fields.filter((x) => !x.ok);
+  const failedClicks = clicks.filter((x) => !x.ok);
+
+  result.visual_confirmation = {
+    started_at: ACTIVE_VISUAL_AUDIT.started_at,
+    summary: {
+      field_checks_total: fields.length,
+      field_checks_passed: fields.length - failedFields.length,
+      field_checks_failed: failedFields.length,
+      click_checks_total: clicks.length,
+      click_checks_passed: clicks.length - failedClicks.length,
+      click_checks_failed: failedClicks.length,
+    },
+    failed_field_checks: failedFields.slice(-50),
+    failed_click_checks: failedClicks.slice(-50),
+    tactics: ACTIVE_VISUAL_AUDIT.tactics,
+  };
+
+  evidenceParts.push(`Visual confirmation summary: fields=${fields.length - failedFields.length}/${fields.length}, clicks=${clicks.length - failedClicks.length}/${clicks.length}`);
+}
+
+function normalizeComparable(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function visualMatch(actual, expected) {
+  const a = normalizeComparable(actual);
+  const e = normalizeComparable(expected);
+  if (!e) return false;
+  if (a === e) return true;
+  if (a.includes(e)) return true;
+  if (e.includes(a) && a.length >= 2) return true;
+  return false;
+}
+
+async function confirmLocatorValue(page, locator, expectedValue, fieldName, mode = 'text') {
+  if (!locator) {
+    pushFieldAudit(fieldName, expectedValue, '', false, 'missing-locator');
+    return false;
+  }
+
+  try {
+    const observed = await locator.evaluate((el) => {
+      const value = ('value' in el) ? String(el.value || '') : '';
+      const text = String(el.textContent || '').trim();
+      const aria = String(el.getAttribute('aria-valuetext') || el.getAttribute('aria-label') || '').trim();
+      const role = String(el.getAttribute('role') || '').toLowerCase();
+      const checked = !!el.checked || String(el.getAttribute('aria-checked') || '').toLowerCase() === 'true';
+      return { value, text, aria, role, checked };
+    });
+
+    let actual = observed.value || observed.aria || observed.text;
+    let ok = false;
+
+    if (mode === 'radio' || mode === 'checkbox') {
+      const yesLike = /^(yes|true|1|checked)$/i.test(String(expectedValue || '').trim());
+      const noLike = /^(no|false|0|unchecked)$/i.test(String(expectedValue || '').trim());
+      if (yesLike) {
+        ok = !!observed.checked;
+      } else if (noLike) {
+        ok = !observed.checked;
+      } else {
+        ok = !!observed.checked || visualMatch(actual, expectedValue);
+      }
+    } else {
+      ok = visualMatch(actual, expectedValue);
+    }
+
+    pushFieldAudit(fieldName, expectedValue, actual, ok, mode);
+    return ok;
+  } catch (_) {
+    pushFieldAudit(fieldName, expectedValue, '', false, 'readback-exception');
+    return false;
+  }
+}
+
+async function confirmQuestionContainerAnswer(page, questionNeedle, expectedValue, fieldName) {
+  try {
+    const ok = await page.evaluate(({ questionNeedle, expectedValue }) => {
+      const q = String(questionNeedle || '').toLowerCase();
+      const e = String(expectedValue || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const blocks = Array.from(document.querySelectorAll('[data-automation-id="formField"], [data-automation-id="questionField"], div, section, fieldset, li'));
+      const target = blocks.find((el) => (el.innerText || '').toLowerCase().includes(q));
+      if (!target) return false;
+
+      const checked = Array.from(target.querySelectorAll('input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"]')).some((el) => {
+        const on = !!el.checked || String(el.getAttribute('aria-checked') || '').toLowerCase() === 'true';
+        if (!on) return false;
+        const txt = ((el.closest('label, div, section, li')?.innerText || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).replace(/\s+/g, ' ').trim().toLowerCase();
+        return txt.includes(e);
+      });
+      if (checked) return true;
+
+      const values = Array.from(target.querySelectorAll('input, textarea, select, [role="combobox"], [contenteditable="true"]'))
+        .map((el) => {
+          const v = ('value' in el) ? String(el.value || '') : '';
+          const t = String(el.textContent || '').trim();
+          const a = String(el.getAttribute('aria-valuetext') || el.getAttribute('aria-label') || '').trim();
+          return `${v} ${t} ${a}`.replace(/\s+/g, ' ').trim().toLowerCase();
+        })
+        .filter(Boolean);
+
+      return values.some((v) => v.includes(e));
+    }, { questionNeedle, expectedValue });
+
+    pushFieldAudit(fieldName, expectedValue, ok ? 'container-confirmed' : 'container-not-confirmed', ok, 'question-container');
+    return ok;
+  } catch (_) {
+    pushFieldAudit(fieldName, expectedValue, '', false, 'container-readback-exception');
+    return false;
+  }
+}
+
 // ── Helpers ────────────────────────────────────────────────────────────────────
 
 function writeResult(result) {
@@ -234,8 +391,13 @@ async function fillFieldIfEmpty(page, automationId, value, fieldName) {
       await humanDelay(200, 400);
       await el.fill('');
       await humanType(page, selector, value);
-      process.stderr.write(`INFO: Filled field "${fieldName}" with "${value.substring(0, 30)}..."\n`);
-      return fieldName;
+      const confirmed = await confirmLocatorValue(page, el, value, fieldName, 'text');
+      if (confirmed) {
+        process.stderr.write(`INFO: Filled field "${fieldName}" with "${value.substring(0, 30)}..." (verified)\n`);
+        return fieldName;
+      }
+      process.stderr.write(`WARN: Field "${fieldName}" write did not visually confirm.\n`);
+      return null;
     }
   } catch (e) {
     process.stderr.write(`WARN: Could not fill field "${fieldName}" (${automationId}): ${e.message}\n`);
@@ -268,9 +430,14 @@ async function selectDropdownOption(page, automationId, optionText, fieldName) {
     const option = page.locator(`[data-automation-id="promptOption"]:has-text("${optionText}")`).first();
     await option.waitFor({ state: 'visible', timeout: 5000 });
     await option.click({ timeout: 3000 });
-    process.stderr.write(`INFO: Selected dropdown "${fieldName}" → "${optionText}"\n`);
     await humanDelay(300, 600);
-    return fieldName;
+    const confirmed = await confirmLocatorValue(page, el, optionText, fieldName, 'dropdown');
+    if (confirmed) {
+      process.stderr.write(`INFO: Selected dropdown "${fieldName}" → "${optionText}" (verified)\n`);
+      return fieldName;
+    }
+    process.stderr.write(`WARN: Dropdown "${fieldName}" selection did not visually confirm.\n`);
+    return null;
   } catch (e) {
     process.stderr.write(`WARN: Could not select dropdown "${fieldName}" (${automationId}): ${e.message}\n`);
     return null;
@@ -296,9 +463,12 @@ async function selectRadioOption(page, labelText, fieldName) {
         const el = page.locator(sel).first();
         await el.waitFor({ state: 'visible', timeout: 3000 });
         await el.click({ timeout: 2000 });
-        process.stderr.write(`INFO: Selected radio "${fieldName}" → "${labelText}" via ${sel}\n`);
         await humanDelay(300, 500);
-        return fieldName;
+        const confirmed = await confirmLocatorValue(page, el, labelText, fieldName, 'radio');
+        if (confirmed) {
+          process.stderr.write(`INFO: Selected radio "${fieldName}" → "${labelText}" via ${sel} (verified)\n`);
+          return fieldName;
+        }
       } catch (_) {
         continue;
       }
@@ -319,8 +489,12 @@ async function checkCheckboxByLabel(page, labelText, fieldName) {
     const isChecked = await checkbox.isChecked({ timeout: 3000 });
     if (!isChecked) {
       await checkbox.check({ timeout: 3000 });
-      process.stderr.write(`INFO: Checked checkbox "${fieldName}"\n`);
-      return fieldName;
+      const confirmed = await confirmLocatorValue(page, checkbox, 'checked', fieldName, 'checkbox');
+      if (confirmed) {
+        process.stderr.write(`INFO: Checked checkbox "${fieldName}" (verified)\n`);
+        return fieldName;
+      }
+      return null;
     }
     process.stderr.write(`INFO: Checkbox "${fieldName}" already checked — skipping.\n`);
   } catch (e) {
@@ -422,8 +596,11 @@ async function answerRadioInQuestion(page, questionText, answerText, fieldName) 
         const el = container.locator(sel).first();
         await el.waitFor({ state: 'visible', timeout: 1200 });
         await el.click({ timeout: 1800, force: true });
-        process.stderr.write(`INFO: Answered question "${fieldName}" with "${answerText}"\n`);
-        return fieldName;
+        const confirmed = await confirmQuestionContainerAnswer(page, questionText, answerText, fieldName);
+        if (confirmed) {
+          process.stderr.write(`INFO: Answered question "${fieldName}" with "${answerText}" (verified)\n`);
+          return fieldName;
+        }
       } catch (_) {}
     }
   } catch (_) {}
@@ -441,8 +618,9 @@ async function answerTextInQuestion(page, questionText, value, fieldName) {
       const tag = await field.evaluate((el) => el.tagName.toLowerCase());
       if (tag === 'input' || tag === 'textarea') {
         const currentVal = await field.inputValue({ timeout: 1000 }).catch(() => '');
-        if ((currentVal || '').trim().length > 0) {
-          return null;
+        if ((currentVal || '').trim().length > 0 && visualMatch(currentVal, value)) {
+          pushFieldAudit(fieldName, value, currentVal, true, 'prepopulated-match');
+          return fieldName;
         }
         await field.fill('');
         await humanType(page, 'input:focus, textarea:focus', String(value));
@@ -454,8 +632,12 @@ async function answerTextInQuestion(page, questionText, value, fieldName) {
       await field.click({ timeout: 1200 });
       await page.keyboard.type(String(value), { delay: 15 });
     }
-    process.stderr.write(`INFO: Filled question "${fieldName}"\n`);
-    return fieldName;
+    const confirmed = await confirmLocatorValue(page, field, value, fieldName, 'text');
+    if (confirmed) {
+      process.stderr.write(`INFO: Filled question "${fieldName}" (verified)\n`);
+      return fieldName;
+    }
+    return null;
   } catch (_) {}
   return null;
 }
@@ -491,8 +673,11 @@ async function answerDropdownInQuestion(page, questionText, optionText, fieldNam
         const opt = page.locator(sel).first();
         await opt.waitFor({ state: 'visible', timeout: 1800 });
         await opt.click({ timeout: 1800, force: true });
-        process.stderr.write(`INFO: Selected question dropdown "${fieldName}" → "${optionText}"\n`);
-        return fieldName;
+        const confirmed = await confirmQuestionContainerAnswer(page, questionText, optionText, fieldName);
+        if (confirmed) {
+          process.stderr.write(`INFO: Selected question dropdown "${fieldName}" → "${optionText}" (verified)\n`);
+          return fieldName;
+        }
       } catch (_) {}
     }
 
@@ -502,8 +687,11 @@ async function answerDropdownInQuestion(page, questionText, optionText, fieldNam
       await input.fill('');
       await input.type(String(optionText), { delay: 12 });
       await page.keyboard.press('Enter');
-      process.stderr.write(`INFO: Typed question dropdown "${fieldName}" → "${optionText}"\n`);
-      return fieldName;
+      const confirmed = await confirmQuestionContainerAnswer(page, questionText, optionText, fieldName);
+      if (confirmed) {
+        process.stderr.write(`INFO: Typed question dropdown "${fieldName}" → "${optionText}" (verified)\n`);
+        return fieldName;
+      }
     } catch (_) {}
   } catch (_) {}
   return null;
@@ -562,8 +750,11 @@ async function answerQuestionByDomFallback(page, questionNeedle, answerValue, fi
     }, { questionNeedle, answerValue });
 
     if (ok) {
-      process.stderr.write(`INFO: Answered question via DOM fallback: ${fieldName}\n`);
-      return fieldName;
+      const confirmed = await confirmQuestionContainerAnswer(page, questionNeedle, answerValue, fieldName);
+      if (confirmed) {
+        process.stderr.write(`INFO: Answered question via DOM fallback: ${fieldName} (verified)\n`);
+        return fieldName;
+      }
     }
   } catch (_) {}
   return null;
@@ -596,8 +787,11 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
           const el = container.locator(sel).first();
           await el.waitFor({ state: 'visible', timeout: 1000 });
           await el.click({ timeout: 1500, force: true });
-          process.stderr.write(`INFO: XPath-resolved radio answer for ${fieldName}\n`);
-          return fieldName;
+          const confirmed = await confirmQuestionContainerAnswer(page, questionNeedle, value, fieldName);
+          if (confirmed) {
+            process.stderr.write(`INFO: XPath-resolved radio answer for ${fieldName} (verified)\n`);
+            return fieldName;
+          }
         } catch (_) {}
       }
       return null;
@@ -629,8 +823,11 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
               return true;
             }, value);
             if (chosen) {
-              process.stderr.write(`INFO: XPath-resolved select answer for ${fieldName}\n`);
-              return fieldName;
+              const confirmed = await confirmQuestionContainerAnswer(page, questionNeedle, value, fieldName);
+              if (confirmed) {
+                process.stderr.write(`INFO: XPath-resolved select answer for ${fieldName} (verified)\n`);
+                return fieldName;
+              }
             }
             continue;
           }
@@ -648,8 +845,11 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
               const opt = page.locator(optSel).first();
               await opt.waitFor({ state: 'visible', timeout: 1000 });
               await opt.click({ timeout: 1500, force: true });
-              process.stderr.write(`INFO: XPath-resolved dropdown answer for ${fieldName}\n`);
-              return fieldName;
+              const confirmed = await confirmQuestionContainerAnswer(page, questionNeedle, value, fieldName);
+              if (confirmed) {
+                process.stderr.write(`INFO: XPath-resolved dropdown answer for ${fieldName} (verified)\n`);
+                return fieldName;
+              }
             } catch (_) {}
           }
 
@@ -661,8 +861,11 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
             await input.fill('');
             await input.type(value, { delay: 15 });
             await page.keyboard.press('Enter');
-            process.stderr.write(`INFO: XPath-typed dropdown answer for ${fieldName}\n`);
-            return fieldName;
+            const confirmed = await confirmQuestionContainerAnswer(page, questionNeedle, value, fieldName);
+            if (confirmed) {
+              process.stderr.write(`INFO: XPath-typed dropdown answer for ${fieldName} (verified)\n`);
+              return fieldName;
+            }
           } catch (_) {}
         } catch (_) {}
       }
@@ -673,14 +876,18 @@ async function answerQuestionByXPathContainer(page, questionNeedle, answerValue,
     const input = container.locator('input[type="text"], input[type="email"], textarea, input:not([type])').first();
     await input.waitFor({ state: 'visible', timeout: 1000 });
     const currentVal = await input.inputValue({ timeout: 800 }).catch(() => '');
-    if ((currentVal || '').trim().length === 0) {
+    if ((currentVal || '').trim().length === 0 || !visualMatch(currentVal, value)) {
       await input.click({ timeout: 1000 });
       await input.fill('');
       await input.type(value, { delay: 15 });
       await input.dispatchEvent('change');
     }
-    process.stderr.write(`INFO: XPath-resolved text answer for ${fieldName}\n`);
-    return fieldName;
+    const confirmed = await confirmLocatorValue(page, input, value, fieldName, 'text');
+    if (confirmed) {
+      process.stderr.write(`INFO: XPath-resolved text answer for ${fieldName} (verified)\n`);
+      return fieldName;
+    }
+    return null;
   } catch (_) {
     return null;
   }
@@ -1489,6 +1696,80 @@ async function detectPageHeading(page) {
   return detectedPage;
 }
 
+async function inferCurrentWizardStep(page) {
+  try {
+    const inferred = await page.evaluate(() => {
+      const visible = (el) => {
+        if (!el) return false;
+        const r = el.getBoundingClientRect();
+        const s = window.getComputedStyle(el);
+        return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+      };
+
+      const has = (selector) => {
+        const el = document.querySelector(selector);
+        return !!(el && visible(el));
+      };
+
+      const hasAnyVisibleAction = (regex) => {
+        const controls = Array.from(document.querySelectorAll('button, [role="button"], input[type="submit"], input[type="button"], a'))
+          .filter(visible);
+        return controls.some((el) => {
+          const t = ((el.textContent || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
+          return regex.test(t);
+        });
+      };
+
+      if (has('[data-automation-id="applyFlowMyExpPage"]') || document.querySelector('input[name="jobTitle"][id*="workExperience-"]')) {
+        return 'my_experience';
+      }
+
+      if (has('[data-automation-id="applyFlowPrimaryQuestionsPage"]') || document.querySelector('[id*="primaryQuestionnaire" i]')) {
+        return 'application_questions';
+      }
+
+      if (has('[data-automation-id="applyFlowVoluntaryDisclosuresPage"]') || has('[data-automation-id="formField-acceptTermsAndAgreements"]')) {
+        return 'voluntary_disclosures';
+      }
+
+      const pageText = (document.body?.innerText || '').toLowerCase();
+      if (pageText.includes('self-identify') || pageText.includes('disability')) {
+        return 'self_identify';
+      }
+
+      const hasSubmit = hasAnyVisibleAction(/submit/);
+      const hasContinue = hasAnyVisibleAction(/save and continue|continue|next/);
+
+      if (hasContinue && !hasSubmit) {
+        if (pageText.includes('phone device type')
+          || (pageText.includes('country') && pageText.includes('state'))
+          || pageText.includes('how did you hear about us')
+          || pageText.includes('have you ever been employed')) {
+          return 'my_information';
+        }
+      }
+
+      if (hasSubmit && !hasContinue) {
+        return 'review_submit';
+      }
+
+      if (has('[data-automation-id="legalNameSection_firstName"]') || has('[data-automation-id="addressSection_city"]') || has('[data-automation-id="phone-number"]')) {
+        return 'my_information';
+      }
+
+      if (hasContinue && !hasSubmit) {
+        return 'my_information';
+      }
+
+      return '';
+    });
+
+    return String(inferred || '').trim();
+  } catch (_) {
+    return '';
+  }
+}
+
 async function isLikelyStillOnStep(page, stepKey) {
   try {
     const stillThere = await page.evaluate((stepKey) => {
@@ -1750,49 +2031,6 @@ async function clickSubmitButton(page, evidenceParts) {
     }
     return false;
   };
-
-  const enterApplyFlow = async () => {
-    const applyEntrySelectors = [
-      'a[href*="/apply/"]',
-      'a[href*="autofillWithResume"]',
-      'a:has-text("Apply")',
-      'button:has-text("Apply")',
-      'button[data-automation-id*="apply" i]',
-      'a[data-automation-id*="apply" i]',
-    ];
-    for (const sel of applyEntrySelectors) {
-      try {
-        const btn = page.locator(sel).first();
-        await btn.waitFor({ state: 'visible', timeout: 700 });
-        await btn.scrollIntoViewIfNeeded({ timeout: 1000 });
-        await btn.click({ timeout: 1800, force: true });
-        evidenceParts.push(`Entered apply flow via ${sel}`);
-        return true;
-      } catch (_) {}
-    }
-    return false;
-  };
-
-  for (let attempt = 0; attempt < 6; attempt++) {
-    if (await clickSubmitNow()) {
-      return true;
-    }
-
-    const url = page.url().toLowerCase();
-    if (url.includes('/job/') && !url.includes('/apply/')) {
-      const entered = await enterApplyFlow();
-      if (entered) {
-        await humanDelay(500, 900);
-        continue;
-      }
-    }
-
-    const advanced = await clickContinueButton(page, evidenceParts);
-    if (!advanced) {
-      break;
-    }
-    await humanDelay(500, 900);
-  }
 
   return await clickSubmitNow();
 }
@@ -2621,10 +2859,11 @@ async function fillExperienceDialogNative(page, profile) {
   const fromParts = normalizeMonthYear(profile.experience_from || '');
   const jobTitle = String(profile.experience_job_title || '').trim();
   const company = String(profile.experience_company || '').trim();
+  const roleDescription = String(profile.experience_role_description || '').trim();
   const toRaw = String(profile.experience_to || '').trim();
 
   try {
-    return await page.evaluate(({ jobTitle, company, fromParts, toParts, toRaw }) => {
+    return await page.evaluate(({ jobTitle, company, roleDescription, fromParts, toParts, toRaw }) => {
       const out = [];
 
       const isVisible = (el) => {
@@ -2671,6 +2910,27 @@ async function fillExperienceDialogNative(page, profile) {
         if (c) {
           const input = c.querySelector('input[type="text"], input:not([type]), textarea');
           if (setInput(input, company)) out.push('experience_company');
+        }
+      }
+
+      if (roleDescription) {
+        const needles = ['role description', 'job description', 'responsibilities', 'describe your role', 'description'];
+        let hit = false;
+        for (const needle of needles) {
+          const c = findFieldContainer(root, needle);
+          if (!c) continue;
+          const input = c.querySelector('textarea, [contenteditable="true"], input[type="text"], input:not([type])');
+          if (setInput(input, roleDescription)) {
+            out.push('experience_role_description');
+            hit = true;
+            break;
+          }
+        }
+        if (!hit) {
+          const explicit = root.querySelector('[id*="roleDescription" i], [id*="jobDescription" i], textarea[id*="description" i], textarea[name*="description" i], textarea[aria-label*="description" i], textarea[placeholder*="description" i]');
+          if (setInput(explicit, roleDescription)) {
+            out.push('experience_role_description');
+          }
         }
       }
 
@@ -2729,7 +2989,7 @@ async function fillExperienceDialogNative(page, profile) {
       }
 
       return out;
-    }, { jobTitle, company, fromParts, toParts, toRaw });
+    }, { jobTitle, company, roleDescription, fromParts, toParts, toRaw });
   } catch (_) {
     return [];
   }
@@ -2747,6 +3007,7 @@ async function fillWorkExperienceByFieldNames(page, profile) {
   const present = /present|current/i.test(toRaw) || (!parsedTo && toRaw === '');
   const jobTitle = String(profile.experience_job_title || '').trim();
   const company = String(profile.experience_company || '').trim();
+  const roleDescription = String(profile.experience_role_description || '').trim();
   const filled = [];
 
   const valueMatches = (actual, expected) => {
@@ -2834,6 +3095,109 @@ async function fillWorkExperienceByFieldNames(page, profile) {
         return !!(el && el.checked);
       }, id).catch(() => false);
       return after === desired;
+    } catch (_) {
+      return false;
+    }
+  };
+
+  const setRoleDescriptionForRow = async (key, value) => {
+    if (!key || !value) return false;
+    try {
+      return await page.evaluate(({ key, value }) => {
+        const isVisible = (el) => {
+          if (!el) return false;
+          const rect = el.getBoundingClientRect();
+          const style = window.getComputedStyle(el);
+          return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+        };
+
+        const setInput = (el, val) => {
+          if (!el || !isVisible(el)) return false;
+          const text = String(val || '');
+          el.focus();
+
+          if (el.isContentEditable) {
+            el.textContent = '';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.textContent = text;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            return true;
+          }
+
+          const proto = Object.getPrototypeOf(el);
+          const desc = Object.getOwnPropertyDescriptor(proto, 'value')
+            || Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')
+            || Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, 'value');
+
+          if (desc && typeof desc.set === 'function') {
+            desc.set.call(el, '');
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            desc.set.call(el, text);
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            return true;
+          }
+
+          try {
+            el.value = '';
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.value = text;
+            el.dispatchEvent(new Event('input', { bubbles: true }));
+            el.dispatchEvent(new Event('change', { bubbles: true }));
+            el.dispatchEvent(new Event('blur', { bubbles: true }));
+            return true;
+          } catch (_) {
+            return false;
+          }
+        };
+
+        const explicitIds = [
+          `workExperience-${key}--roleDescription`,
+          `workExperience-${key}--jobDescription`,
+          `workExperience-${key}--description`,
+          `workExperience-${key}--responsibilities`,
+          `workExperience-${key}--summary`,
+        ];
+
+        for (const id of explicitIds) {
+          const el = document.getElementById(id);
+          if (setInput(el, value)) return true;
+        }
+
+        const title = document.getElementById(`workExperience-${key}--jobTitle`);
+        const rowRoot = title?.closest('div, section, li, fieldset, form') || document;
+        const prefix = `workExperience-${key}--`;
+
+        const candidates = Array.from(rowRoot.querySelectorAll(`textarea[id^="${prefix}"], input[id^="${prefix}"], [contenteditable="true"][id^="${prefix}"]`));
+        const direct = candidates.find((el) => {
+          if (!isVisible(el)) return false;
+          const id = String(el.id || '').toLowerCase();
+          const name = String(el.getAttribute('name') || '').toLowerCase();
+          const aria = String(el.getAttribute('aria-label') || '').toLowerCase();
+          const ph = String(el.getAttribute('placeholder') || '').toLowerCase();
+          const joined = `${id} ${name} ${aria} ${ph}`;
+          return /(role\s*description|job\s*description|responsibil|duties|summary|achievement)/i.test(joined);
+        });
+        if (setInput(direct, value)) return true;
+
+        const fieldContainers = Array.from(rowRoot.querySelectorAll('div, section, li, fieldset')).filter((el) => {
+          if (!isVisible(el)) return false;
+          const txt = String(el.innerText || '').toLowerCase();
+          if (!/(role description|job description|responsibilities|describe your role|description)/i.test(txt)) {
+            return false;
+          }
+          return !!el.querySelector('textarea, input[type="text"], input:not([type]), [contenteditable="true"]');
+        });
+        for (const container of fieldContainers) {
+          const input = container.querySelector('textarea, [contenteditable="true"], input[type="text"], input:not([type])');
+          if (setInput(input, value)) return true;
+        }
+
+        return false;
+      }, { key, value: String(value) });
     } catch (_) {
       return false;
     }
@@ -3041,7 +3405,7 @@ async function fillWorkExperienceByFieldNames(page, profile) {
     process.stderr.write(`INFO: Inline workExperience row keys: ${JSON.stringify(rowKeys)}\n`);
 
     for (const key of rowKeys) {
-      const perRow = { key, title: false, company: false, from: false, to: false, current: false };
+      const perRow = { key, title: false, company: false, description: false, from: false, to: false, current: false };
       if (jobTitle) {
         const ok = await typeById(`workExperience-${key}--jobTitle`, jobTitle);
         perRow.title = ok;
@@ -3051,6 +3415,11 @@ async function fillWorkExperienceByFieldNames(page, profile) {
         const ok = await typeById(`workExperience-${key}--companyName`, company);
         perRow.company = ok;
         if (ok) filled.push('experience_company');
+      }
+      if (roleDescription) {
+        const ok = await setRoleDescriptionForRow(key, roleDescription);
+        perRow.description = ok;
+        if (ok) filled.push('experience_role_description');
       }
       if (fromParts && fromParts.month && fromParts.year) {
         const dateOk = await setDateByPrefix(key, 'startDate', fromParts);
@@ -3245,6 +3614,20 @@ async function forceFillExperienceFields(page, profile) {
     }
   } else {
     skipped.push('experience_to');
+  }
+
+  const roleDescription = (profile.experience_role_description || '').toString().trim();
+  if (inlineRowCount === 0 && roleDescription && !filled.includes('experience_role_description')) {
+    const solved = await answerQuestionByXPathContainer(page, 'role description', roleDescription, 'experience_role_description', 'text')
+      || await answerQuestionByXPathContainer(page, 'job description', roleDescription, 'experience_role_description', 'text')
+      || await answerQuestionByXPathContainer(page, 'responsibilities', roleDescription, 'experience_role_description', 'text')
+      || await answerQuestionByDomFallback(page, 'Role Description', roleDescription, 'experience_role_description')
+      || await answerQuestionByDomFallback(page, 'Job Description', roleDescription, 'experience_role_description')
+      || await clickErrorLinkAndAnswer(page, 'Role Description', roleDescription, 'text');
+    if (solved) filled.push('experience_role_description');
+    else skipped.push('experience_role_description');
+  } else {
+    skipped.push('experience_role_description');
   }
 
   return { filled, skipped };
@@ -3833,6 +4216,8 @@ async function writeGenericStepDebugDump(page, screenshotDir, applicationId, evi
 }
 
 async function run() {
+  ACTIVE_VISUAL_AUDIT = createVisualAudit();
+
   const result = {
     ok: false,
     target_step: target_step,
@@ -3942,11 +4327,21 @@ async function run() {
 
     if (target_step === 'wizard_auto' || target_step === 'wizard_validate') {
       const strictValidation = target_step === 'wizard_validate';
-      const startIndex = AUTO_STEP_ORDER.indexOf(start_step);
-      const stepsToRun = AUTO_STEP_ORDER.slice(startIndex >= 0 ? startIndex : 0);
+      let startIndex = AUTO_STEP_ORDER.indexOf(start_step);
+      let stepsToRun = AUTO_STEP_ORDER.slice(startIndex >= 0 ? startIndex : 0);
       const stepResults = {};
       let lastUrl = page.url();
       let failedStep = '';
+
+      const inferredStartStep = await inferCurrentWizardStep(page);
+      if (inferredStartStep && AUTO_STEP_ORDER.includes(inferredStartStep)) {
+        const inferredIndex = AUTO_STEP_ORDER.indexOf(inferredStartStep);
+        if (inferredIndex >= 0 && inferredIndex !== startIndex) {
+          startIndex = inferredIndex;
+          stepsToRun = AUTO_STEP_ORDER.slice(startIndex);
+          evidenceParts.push(`Runtime step realignment: requested=${start_step}, inferred=${inferredStartStep}`);
+        }
+      }
 
       for (const stepKey of stepsToRun) {
         const stepResult = {
@@ -4219,12 +4614,20 @@ async function run() {
               : 'Could not locate Continue/Next control in single-session flow. Visible actions: ' + (visibleActions.join(' | ') || 'none');
           }
           stepResults[stepKey] = stepResult;
+          pushClickAudit(stepKey, stepKey === 'review_submit' ? 'submit' : 'continue', false, stepResult.error, {
+            pre_url: preClickUrl,
+            post_url: stepResult.post_continue_url,
+          });
           failedStep = stepKey;
           break;
         }
 
         stepResult.status = 'pass';
         stepResults[stepKey] = stepResult;
+        pushClickAudit(stepKey, stepKey === 'review_submit' ? 'submit' : 'continue', true, 'post-click confirmation passed', {
+          pre_url: preClickUrl,
+          post_url: stepResult.post_continue_url,
+        });
 
         const ssStep = await takeScreenshot(page, screenshot_dir, application_id, `wd_wizard_auto_${stepKey}`);
         if (ssStep) result.screenshots.push(ssStep);
@@ -4246,6 +4649,7 @@ async function run() {
       result.completed_steps = completedSteps;
       result.error = failedStep ? ((stepResults[failedStep] && stepResults[failedStep].error) || `Failed at ${failedStep}`) : '';
       evidenceParts.push(`wizard_auto completed: [${completedSteps.join(', ')}]`);
+      attachVisualAuditToResult(result, evidenceParts);
       result.evidence = evidenceParts.join(' | ');
 
       payload.username = '';
@@ -4334,6 +4738,8 @@ async function run() {
     // ── Step E: Click Continue / Submit ─────────────────────────────────────
     // For application_questions with needs_manual_review, still try to continue
     // but the step may need manual intervention.
+    const preActionUrl = page.url();
+
     if (target_step === 'review_submit') {
       // On/near review page, click Submit; if not yet on review, advance through Continue.
       process.stderr.write('INFO: Looking for Submit button on review page...\n');
@@ -4580,8 +4986,38 @@ async function run() {
       }
     } catch (_) {}
 
+    if (result.continue_clicked && target_step === 'review_submit') {
+      const confirmedSubmit = await isSubmissionConfirmed(page);
+      if (!confirmedSubmit) {
+        result.continue_clicked = false;
+        const msg = 'Submit click did not reach a confirmed submitted state.';
+        result.error = result.error || msg;
+        evidenceParts.push(msg);
+      }
+      pushClickAudit(target_step, 'submit', !!result.continue_clicked, result.error || 'single-step submit confirmed', {
+        pre_url: preActionUrl,
+        post_url: postUrl,
+      });
+    }
+
+    if (result.continue_clicked && target_step !== 'review_submit') {
+      const sameUrl = preActionUrl === postUrl;
+      const stillOnStep = sameUrl ? await isLikelyStillOnStep(page, target_step) : false;
+      if (sameUrl && stillOnStep) {
+        result.continue_clicked = false;
+        const msg = `Click did not visibly advance from ${target_step}.`;
+        result.error = result.error || msg;
+        evidenceParts.push(msg);
+      }
+      pushClickAudit(target_step, 'continue', !!result.continue_clicked, result.error || 'single-step continue confirmed', {
+        pre_url: preActionUrl,
+        post_url: postUrl,
+      });
+    }
+
     // ── Final result ───────────────────────────────────────────────────────
     result.ok = result.continue_clicked;
+    attachVisualAuditToResult(result, evidenceParts);
     result.evidence = evidenceParts.join(' | ');
 
     // Zero credentials.
@@ -4590,7 +5026,7 @@ async function run() {
 
     writeResult(result);
   } catch (e) {
-    writeResult({
+    const failedResult = {
       ok: false,
       target_step: target_step,
       detected_page: '',
@@ -4604,7 +5040,9 @@ async function run() {
       evidence: '',
       screenshots: [],
       error: 'Unhandled error: ' + e.message,
-    });
+    };
+    attachVisualAuditToResult(failedResult, []);
+    writeResult(failedResult);
   } finally {
     if (browser) {
       try { await browser.close(); } catch (_) {}

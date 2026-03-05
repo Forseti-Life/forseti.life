@@ -23,10 +23,12 @@ class WorkdayWizardService {
 
   protected Connection $database;
   protected FileSystemInterface $fileSystem;
+  protected WorkdayProfileDataMapper $profileDataMapper;
 
-  public function __construct(Connection $database, FileSystemInterface $file_system) {
+  public function __construct(Connection $database, FileSystemInterface $file_system, WorkdayProfileDataMapper $profile_data_mapper) {
     $this->database = $database;
     $this->fileSystem = $file_system;
+    $this->profileDataMapper = $profile_data_mapper;
   }
 
   // ── Valid step keys ─────────────────────────────────────────────────────────
@@ -88,6 +90,7 @@ class WorkdayWizardService {
       'needs_manual_review' => FALSE,
       'evidence'            => '',
       'screenshots'         => [],
+      'visual_confirmation' => [],
       'error'               => '',
     ];
 
@@ -95,88 +98,28 @@ class WorkdayWizardService {
       return array_merge($blank, ['error' => "Invalid step key: $step_key"]);
     }
 
-    // ── Load application record ───────────────────────────────────────────
-    $application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', $job_id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-
-    if (!$application) {
-      return array_merge($blank, ['error' => 'No application record found for job ' . $job_id . '.']);
+    $context = $this->buildRunContext($job_id, $uid, $apply_url_override, ['id', 'apply_url', 'ats_platform', 'metadata']);
+    if (empty($context['ok'])) {
+      return array_merge($blank, ['error' => (string) ($context['error'] ?? 'Failed to prepare execution context.')]);
     }
 
-    $metadata = [];
-    if (!empty($application['metadata'])) {
-      $decoded = json_decode((string) $application['metadata'], TRUE);
-      if (is_array($decoded)) {
-        $metadata = $decoded;
-      }
-    }
-
-    $resume_post_continue_url = (string) ($metadata['step5_cache']['resume_upload_result']['post_continue_url'] ?? '');
-    $wd_last_url = (string) ($metadata['step5_cache']['wd_last_url'] ?? '');
-    $apply_url    = $apply_url_override !== ''
-      ? $apply_url_override
-      : ($wd_last_url !== ''
-      ? $wd_last_url
-      : ($resume_post_continue_url !== ''
-      ? $resume_post_continue_url
-      : (string) ($metadata['auth_url'] ?? $application['apply_url'] ?? '')));
-    $ats_platform = (string) ($application['ats_platform'] ?? 'custom');
-
-    if ($apply_url === '') {
-      return array_merge($blank, ['error' => 'No apply URL found.']);
-    }
-
-    // ── Load stored credentials ───────────────────────────────────────────
-    $company_id = $this->getCompanyIdForJob($job_id);
-    if ($company_id <= 0) {
-      return array_merge($blank, ['error' => 'No company linked to this job.']);
-    }
-
-    /** @var \Drupal\job_hunter\Service\CredentialManagementService $cred_service */
-    $cred_service = \Drupal::service('job_hunter.credential_management_service');
-    $credential = $cred_service->retrieveCredential($uid, $company_id, 'basic');
-
-    if (!$credential || empty($credential['username']) || empty($credential['password'])) {
-      return array_merge($blank, ['error' => 'No stored credentials found.']);
-    }
-
-    // ── Build profile data for form filling ───────────────────────────────
-    $profile_data = $this->buildProfileData($uid);
-
-    // ── Screenshot directory ──────────────────────────────────────────────
-    $screenshot_dir = '';
-    $private_path = $this->fileSystem->realpath('private://job_hunter/screenshots');
-    if ($private_path) {
-      if (!is_dir($private_path)) {
-        @mkdir($private_path, 0755, TRUE);
-      }
-      if (is_dir($private_path) && is_writable($private_path)) {
-        $screenshot_dir = $private_path;
-      }
-    }
-
-    // ── Build payload file ────────────────────────────────────────────────
-    $resume_pdf_path = $this->getResumePdfPath($uid, $job_id) ?? '';
+    $application = (array) $context['application'];
+    $credential = (array) $context['credential'];
     $payload = [
       'username'       => (string) $credential['username'],
       'password'       => (string) $credential['password'],
-      'apply_url'      => $apply_url,
+      'apply_url'      => (string) $context['apply_url'],
       'target_step'    => $step_key,
-      'profile_data'   => $profile_data,
-      'resume_pdf_path'=> $resume_pdf_path,
-      'screenshot_dir' => $screenshot_dir,
+      'profile_data'   => (array) $context['profile_data'],
+      'resume_pdf_path'=> (string) $context['resume_pdf_path'],
+      'screenshot_dir' => (string) $context['screenshot_dir'],
       'application_id' => (int) $application['id'],
     ];
 
-    $payload_file = tempnam(sys_get_temp_dir(), 'jh_wz_');
-    file_put_contents($payload_file, json_encode($payload), LOCK_EX);
-    chmod($payload_file, 0600);
+    $payload_file = $this->createPayloadFile($payload);
+    if ($payload_file === NULL) {
+      return array_merge($blank, ['error' => 'Failed to create payload file for wizard script.']);
+    }
 
     // ── Run the Node script ───────────────────────────────────────────────
     $result = $this->runNode($payload_file, $timeout, $step_key);
@@ -203,6 +146,7 @@ class WorkdayWizardService {
       'needs_manual_review' => !empty($result['needs_manual_review']),
       'evidence'            => (string) ($result['evidence'] ?? ''),
       'screenshots'         => (array) ($result['screenshots'] ?? []),
+      'visual_confirmation' => (array) ($result['visual_confirmation'] ?? []),
       'error'               => (string) ($result['error'] ?? ''),
     ]);
   }
@@ -233,6 +177,7 @@ class WorkdayWizardService {
       'completed_steps' => [],
       'step_results' => [],
       'post_continue_url' => '',
+      'visual_confirmation' => [],
       'error' => '',
     ];
 
@@ -240,83 +185,29 @@ class WorkdayWizardService {
       return array_merge($blank, ['error' => "Invalid start step: $start_step"]);
     }
 
-    $application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'apply_url', 'metadata'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', $job_id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-
-    if (!$application) {
-      return array_merge($blank, ['error' => 'No application record found for job ' . $job_id . '.']);
+    $context = $this->buildRunContext($job_id, $uid, $apply_url_override, ['id', 'apply_url', 'metadata']);
+    if (empty($context['ok'])) {
+      return array_merge($blank, ['error' => (string) ($context['error'] ?? 'Failed to prepare execution context.')]);
     }
 
-    $metadata = [];
-    if (!empty($application['metadata'])) {
-      $decoded = json_decode((string) $application['metadata'], TRUE);
-      if (is_array($decoded)) {
-        $metadata = $decoded;
-      }
-    }
-
-    $resume_post_continue_url = (string) ($metadata['step5_cache']['resume_upload_result']['post_continue_url'] ?? '');
-    $wd_last_url = (string) ($metadata['step5_cache']['wd_last_url'] ?? '');
-    $apply_url = $apply_url_override !== ''
-      ? $apply_url_override
-      : ($wd_last_url !== ''
-      ? $wd_last_url
-      : ($resume_post_continue_url !== ''
-      ? $resume_post_continue_url
-      : (string) ($metadata['auth_url'] ?? $application['apply_url'] ?? '')));
-
-    if ($apply_url === '') {
-      return array_merge($blank, ['error' => 'No apply URL found.']);
-    }
-
-    $company_id = $this->getCompanyIdForJob($job_id);
-    if ($company_id <= 0) {
-      return array_merge($blank, ['error' => 'No company linked to this job.']);
-    }
-
-    /** @var \Drupal\job_hunter\Service\CredentialManagementService $cred_service */
-    $cred_service = \Drupal::service('job_hunter.credential_management_service');
-    $credential = $cred_service->retrieveCredential($uid, $company_id, 'basic');
-
-    if (!$credential || empty($credential['username']) || empty($credential['password'])) {
-      return array_merge($blank, ['error' => 'No stored credentials found.']);
-    }
-
-    $profile_data = $this->buildProfileData($uid);
-
-    $screenshot_dir = '';
-    $private_path = $this->fileSystem->realpath('private://job_hunter/screenshots');
-    if ($private_path) {
-      if (!is_dir($private_path)) {
-        @mkdir($private_path, 0755, TRUE);
-      }
-      if (is_dir($private_path) && is_writable($private_path)) {
-        $screenshot_dir = $private_path;
-      }
-    }
-
-    $resume_pdf_path = $this->getResumePdfPath($uid, $job_id) ?? '';
+    $application = (array) $context['application'];
+    $credential = (array) $context['credential'];
     $payload = [
       'username'       => (string) $credential['username'],
       'password'       => (string) $credential['password'],
-      'apply_url'      => $apply_url,
+      'apply_url'      => (string) $context['apply_url'],
       'target_step'    => 'wizard_validate',
       'start_step'     => $start_step,
-      'profile_data'   => $profile_data,
-      'resume_pdf_path'=> $resume_pdf_path,
-      'screenshot_dir' => $screenshot_dir,
+      'profile_data'   => (array) $context['profile_data'],
+      'resume_pdf_path'=> (string) $context['resume_pdf_path'],
+      'screenshot_dir' => (string) $context['screenshot_dir'],
       'application_id' => (int) $application['id'],
     ];
 
-    $payload_file = tempnam(sys_get_temp_dir(), 'jh_wz_');
-    file_put_contents($payload_file, json_encode($payload), LOCK_EX);
-    chmod($payload_file, 0600);
+    $payload_file = $this->createPayloadFile($payload);
+    if ($payload_file === NULL) {
+      return array_merge($blank, ['error' => 'Failed to create payload file for wizard script.']);
+    }
 
     $result = $this->runNode($payload_file, $timeout, 'wizard_auto');
 
@@ -337,323 +228,170 @@ class WorkdayWizardService {
       'error' => (string) ($result['error'] ?? ''),
       'evidence' => (string) ($result['evidence'] ?? ''),
       'screenshots' => (array) ($result['screenshots'] ?? []),
+      'visual_confirmation' => (array) ($result['visual_confirmation'] ?? []),
     ]);
   }
 
   // ── Private helpers ─────────────────────────────────────────────────────────
 
   /**
-   * Assemble profile data from the job_seeker table for form filling.
+   * Build shared execution context used by both single-step and auto-session runs.
+   *
+   * @param int $job_id
+   * @param int $uid
+   * @param string $apply_url_override
+   * @param array $application_fields
+   *
+   * @return array{
+   *   ok: bool,
+   *   error: string,
+   *   application: array,
+   *   apply_url: string,
+   *   credential: array,
+   *   profile_data: array,
+   *   resume_pdf_path: string,
+   *   screenshot_dir: string,
+   * }
    */
-  private function buildProfileData(int $uid): array {
-    $data = [
-      'full_name'         => '',
-      'first_name'        => '',
-      'last_name'         => '',
-      'email'             => '',
-      'phone'             => '',
-      'city'              => '',
-      'state'             => '',
-      'country'           => '',
-      'linkedin'          => '',
-      'eeo_gender'        => '',
-      'eeo_ethnicity'     => '',
-      'eeo_veteran'       => '',
-      'disability_status' => '',
-      'work_authorized_us'    => '',
-      'requires_sponsorship'  => '',
-      'age_18_or_older'       => '',
-      'hear_about_us'         => '',
-      'prior_company_employment' => '',
-      'prior_company_wwid'    => '',
-      'prior_company_email'   => '',
-      'phone_device_type'     => '',
-      'experience_job_title'  => '',
-      'experience_company'    => '',
-      'experience_from'       => '',
-      'experience_to'         => '',
-      'salary_expectation'    => '',
-      'years_experience'      => '',
-      'willing_to_relocate'   => '',
-      'english_proficiency'   => '',
-      'restrictive_agreement' => '',
+  private function buildRunContext(int $job_id, int $uid, string $apply_url_override = '', array $application_fields = ['id', 'apply_url', 'metadata']): array {
+    $application = $this->loadLatestApplicationRecord($job_id, $uid, $application_fields);
+    if (!$application) {
+      return ['ok' => FALSE, 'error' => 'No application record found for job ' . $job_id . '.'];
+    }
+
+    $metadata = $this->decodeMetadata((string) ($application['metadata'] ?? ''));
+    $apply_url = $this->resolveApplyUrl($application, $metadata, $apply_url_override);
+    if ($apply_url === '') {
+      return ['ok' => FALSE, 'error' => 'No apply URL found.'];
+    }
+
+    $credential_context = $this->resolveBasicCredential($uid, $job_id);
+    if (empty($credential_context['ok'])) {
+      return ['ok' => FALSE, 'error' => (string) ($credential_context['error'] ?? 'No stored credentials found.')];
+    }
+
+    return [
+      'ok' => TRUE,
+      'error' => '',
+      'application' => $application,
+      'apply_url' => $apply_url,
+      'credential' => (array) $credential_context['credential'],
+      'profile_data' => $this->buildProfileData($uid),
+      'resume_pdf_path' => $this->getResumePdfPath($uid, $job_id) ?? '',
+      'screenshot_dir' => $this->resolveScreenshotDirectory(),
     ];
-
-    try {
-      $row = $this->database->select('jobhunter_job_seeker', 'j')
-        ->fields('j', [
-          'full_name', 'contact_email', 'contact_phone',
-          'location_city', 'location_state', 'country', 'linkedin_url',
-          'eeo_gender', 'eeo_ethnicity', 'eeo_veteran', 'eeo_disability',
-          'work_authorized_us', 'requires_sponsorship', 'age_18_or_older',
-          'consolidated_profile_json',
-        ])
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchAssoc();
-
-      if ($row) {
-        $data['full_name'] = (string) ($row['full_name'] ?? '');
-        $data['email']     = (string) ($row['contact_email'] ?? '');
-        $data['phone']     = (string) ($row['contact_phone'] ?? '');
-        $data['city']      = (string) ($row['location_city'] ?? '');
-        $data['state']     = (string) ($row['location_state'] ?? '');
-        $data['country']   = (string) ($row['country'] ?? '');
-        if (!empty($row['eeo_gender'])) {
-          $data['eeo_gender'] = (string) $row['eeo_gender'];
-        }
-        if (!empty($row['eeo_ethnicity'])) {
-          $data['eeo_ethnicity'] = (string) $row['eeo_ethnicity'];
-        }
-        if (!empty($row['eeo_veteran'])) {
-          $data['eeo_veteran'] = (string) $row['eeo_veteran'];
-        }
-        if (!empty($row['eeo_disability'])) {
-          $data['disability_status'] = (string) $row['eeo_disability'];
-        }
-        if (!empty($row['work_authorized_us'])) {
-          $data['work_authorized_us'] = (string) $row['work_authorized_us'];
-        }
-        if (!empty($row['requires_sponsorship'])) {
-          $data['requires_sponsorship'] = (string) $row['requires_sponsorship'];
-        }
-        if (!empty($row['age_18_or_older'])) {
-          $data['age_18_or_older'] = (string) $row['age_18_or_older'];
-        }
-
-        $json = [];
-        if (!empty($row['consolidated_profile_json'])) {
-          $decoded = json_decode((string) $row['consolidated_profile_json'], TRUE);
-          if (is_array($decoded)) {
-            $json = $decoded;
-          }
-        }
-
-        $contact = is_array($json['contact_info'] ?? NULL) ? $json['contact_info'] : [];
-        $location = is_array($contact['location'] ?? NULL) ? $contact['location'] : [];
-        $prefs = is_array($json['job_search_preferences'] ?? NULL) ? $json['job_search_preferences'] : [];
-        $demographics = is_array($json['demographics'] ?? NULL) ? $json['demographics'] : [];
-        $experience = is_array($json['professional_experience'] ?? NULL) ? $json['professional_experience'] : [];
-
-        if ($data['full_name'] === '' && !empty($contact['full_name'])) {
-          $data['full_name'] = (string) $contact['full_name'];
-        }
-        if ($data['email'] === '' && !empty($contact['email'])) {
-          $data['email'] = (string) $contact['email'];
-        }
-        if ($data['phone'] === '' && !empty($contact['phone'])) {
-          $data['phone'] = (string) $contact['phone'];
-        }
-        if ($data['city'] === '' && !empty($location['city'])) {
-          $data['city'] = (string) $location['city'];
-        }
-        if ($data['state'] === '' && !empty($location['state'])) {
-          $data['state'] = (string) $location['state'];
-        }
-        if ($data['country'] === '' && !empty($location['country'])) {
-          $data['country'] = (string) $location['country'];
-        }
-
-        if ($data['work_authorized_us'] === '' && isset($prefs['us_work_authorized'])) {
-          $data['work_authorized_us'] = (string) $prefs['us_work_authorized'];
-        }
-        if ($data['requires_sponsorship'] === '' && isset($prefs['requires_sponsorship'])) {
-          $data['requires_sponsorship'] = (string) $prefs['requires_sponsorship'];
-        }
-        if ($data['age_18_or_older'] === '' && isset($prefs['age_18_or_older'])) {
-          $data['age_18_or_older'] = (string) $prefs['age_18_or_older'];
-        }
-        if ($data['hear_about_us'] === '' && isset($prefs['hear_about_us'])) {
-          $data['hear_about_us'] = (string) $prefs['hear_about_us'];
-        }
-        if ($data['prior_company_employment'] === '' && isset($prefs['prior_company_employment'])) {
-          $data['prior_company_employment'] = (string) $prefs['prior_company_employment'];
-        }
-        if ($data['prior_company_wwid'] === '' && isset($prefs['prior_company_wwid'])) {
-          $data['prior_company_wwid'] = (string) $prefs['prior_company_wwid'];
-        }
-        if ($data['prior_company_email'] === '' && isset($prefs['prior_company_email'])) {
-          $data['prior_company_email'] = (string) $prefs['prior_company_email'];
-        }
-        if ($data['phone_device_type'] === '' && isset($prefs['phone_device_type'])) {
-          $data['phone_device_type'] = (string) $prefs['phone_device_type'];
-        }
-
-        if ($data['salary_expectation'] === '') {
-          foreach (['salary_expectation', 'salary_change_minimum', 'salary_min', 'expected_salary', 'desired_salary'] as $k) {
-            if (!empty($prefs[$k])) {
-              $data['salary_expectation'] = (string) $prefs[$k];
-              break;
-            }
-          }
-        }
-
-        if ($data['years_experience'] === '') {
-          foreach (['years_experience', 'experience_years', 'relevant_years_experience'] as $k) {
-            if (!empty($prefs[$k])) {
-              $data['years_experience'] = (string) $prefs[$k];
-              break;
-            }
-          }
-        }
-
-        if ($data['willing_to_relocate'] === '' && array_key_exists('relocation_willing', $prefs)) {
-          $v = $prefs['relocation_willing'];
-          $data['willing_to_relocate'] = is_bool($v) ? ($v ? 'Yes' : 'No') : (string) $v;
-        }
-
-        if ($data['english_proficiency'] === '') {
-          foreach (['english_proficiency', 'language_proficiency_english', 'english_level'] as $k) {
-            if (!empty($prefs[$k])) {
-              $data['english_proficiency'] = (string) $prefs[$k];
-              break;
-            }
-          }
-        }
-
-        if ($data['restrictive_agreement'] === '') {
-          foreach (['restrictive_agreement', 'non_compete_agreement', 'agreement_restriction'] as $k) {
-            if (!empty($prefs[$k])) {
-              $data['restrictive_agreement'] = (string) $prefs[$k];
-              break;
-            }
-          }
-        }
-
-        if (!empty($experience) && is_array($experience[0] ?? NULL)) {
-          $exp0 = $experience[0];
-          if (empty($data['experience_job_title']) && !empty($exp0['title'])) {
-            $data['experience_job_title'] = (string) $exp0['title'];
-          }
-          if (empty($data['experience_company']) && !empty($exp0['company'])) {
-            $data['experience_company'] = (string) $exp0['company'];
-          }
-          if (empty($data['experience_from']) && !empty($exp0['start_date'])) {
-            $data['experience_from'] = (string) $exp0['start_date'];
-          }
-          if (empty($data['experience_to']) && !empty($exp0['end_date'])) {
-            $data['experience_to'] = (string) $exp0['end_date'];
-          }
-        }
-
-        if ($data['eeo_gender'] === '' && isset($demographics['gender'])) {
-          $data['eeo_gender'] = (string) $demographics['gender'];
-        }
-        if ($data['eeo_ethnicity'] === '' && isset($demographics['race_ethnicity'])) {
-          $data['eeo_ethnicity'] = (string) $demographics['race_ethnicity'];
-        }
-        if ($data['eeo_veteran'] === '' && isset($demographics['veteran_status'])) {
-          $data['eeo_veteran'] = (string) $demographics['veteran_status'];
-        }
-        if ($data['disability_status'] === '' && isset($demographics['disability_status'])) {
-          $data['disability_status'] = (string) $demographics['disability_status'];
-        }
-
-        // Split name.
-        if ($data['full_name']) {
-          $parts = preg_split('/\s+/', trim($data['full_name']));
-          $data['first_name'] = $parts[0] ?? '';
-          $data['last_name']  = implode(' ', array_slice($parts, 1));
-        }
-
-        // LinkedIn from column or consolidated JSON.
-        if (!empty($row['linkedin_url'])) {
-          $data['linkedin'] = (string) $row['linkedin_url'];
-        }
-        elseif (!empty($contact['linkedin'])) {
-          $data['linkedin'] = (string) $contact['linkedin'];
-        }
-
-        // Normalize profile-coded values into Workday-facing text.
-        $data['work_authorized_us'] = $this->normalizeYesNo($data['work_authorized_us']);
-        $data['requires_sponsorship'] = $this->normalizeYesNo($data['requires_sponsorship']);
-        $data['age_18_or_older'] = $this->normalizeYesNo($data['age_18_or_older']);
-        $data['prior_company_employment'] = $this->normalizeYesNo($data['prior_company_employment']);
-        $data['willing_to_relocate'] = $this->normalizeYesNo($data['willing_to_relocate']);
-        $data['restrictive_agreement'] = $this->normalizeYesNo($data['restrictive_agreement']);
-        $data['phone_device_type'] = $this->normalizePhoneDeviceType($data['phone_device_type']);
-        $data['eeo_gender'] = $this->normalizeGender($data['eeo_gender']);
-        $data['eeo_ethnicity'] = $this->normalizeEthnicity($data['eeo_ethnicity']);
-        $data['eeo_veteran'] = $this->normalizeVeteran($data['eeo_veteran']);
-        $data['disability_status'] = $this->normalizeDisability($data['disability_status']);
-      }
-    }
-    catch (\Throwable $e) {
-      // Non-fatal — continue with defaults.
-    }
-
-    return $data;
   }
 
   /**
-   * Normalize yes/no style values from profile into Workday labels.
+   * Load the most recent application record for a user/job pair.
    */
-  private function normalizeYesNo(string $value): string {
-    $v = strtolower(trim($value));
-    if (in_array($v, ['yes', 'y', 'true', '1'], TRUE)) {
-      return 'Yes';
+  private function loadLatestApplicationRecord(int $job_id, int $uid, array $fields): ?array {
+    $record = $this->database->select('jobhunter_applications', 'a')
+      ->fields('a', $fields)
+      ->condition('a.uid', $uid)
+      ->condition('a.job_id', $job_id)
+      ->orderBy('created', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    return $record ?: NULL;
+  }
+
+  /**
+   * Decode application metadata safely.
+   */
+  private function decodeMetadata(string $metadata_json): array {
+    if ($metadata_json === '') {
+      return [];
     }
-    if (in_array($v, ['no', 'n', 'false', '0'], TRUE)) {
-      return 'No';
+    $decoded = json_decode($metadata_json, TRUE);
+    return is_array($decoded) ? $decoded : [];
+  }
+
+  /**
+   * Resolve best-available apply URL from override + metadata + application row.
+   */
+  private function resolveApplyUrl(array $application, array $metadata, string $apply_url_override = ''): string {
+    $override = trim($apply_url_override);
+    if ($override !== '') {
+      return $override;
     }
-    return trim($value);
+
+    $resume_post_continue_url = (string) ($metadata['step5_cache']['resume_upload_result']['post_continue_url'] ?? '');
+    $wd_last_url = (string) ($metadata['step5_cache']['wd_last_url'] ?? '');
+
+    if ($wd_last_url !== '') {
+      return $wd_last_url;
+    }
+    if ($resume_post_continue_url !== '') {
+      return $resume_post_continue_url;
+    }
+
+    return (string) ($metadata['auth_url'] ?? $application['apply_url'] ?? '');
   }
 
-  private function normalizeGender(string $value): string {
-    $v = strtolower(trim($value));
-    return match ($v) {
-      'male' => 'Male',
-      'female' => 'Female',
-      'non_binary', 'non-binary' => 'Non-binary',
-      'prefer_not_to_say' => 'Prefer not to say',
-      default => trim($value),
-    };
+  /**
+   * Resolve basic credential context for this job/user pair.
+   */
+  private function resolveBasicCredential(int $uid, int $job_id): array {
+    $company_id = $this->getCompanyIdForJob($job_id);
+    if ($company_id <= 0) {
+      return ['ok' => FALSE, 'error' => 'No company linked to this job.', 'credential' => []];
+    }
+
+    /** @var \Drupal\job_hunter\Service\CredentialManagementService $cred_service */
+    $cred_service = \Drupal::service('job_hunter.credential_management_service');
+    $credential = $cred_service->retrieveCredential($uid, $company_id, 'basic');
+
+    if (!$credential || empty($credential['username']) || empty($credential['password'])) {
+      return ['ok' => FALSE, 'error' => 'No stored credentials found.', 'credential' => []];
+    }
+
+    return ['ok' => TRUE, 'error' => '', 'credential' => $credential];
   }
 
-  private function normalizeEthnicity(string $value): string {
-    $v = strtolower(trim($value));
-    return match ($v) {
-      'american_indian' => 'American Indian or Alaska Native',
-      'asian' => 'Asian',
-      'black' => 'Black or African American',
-      'hispanic' => 'Hispanic or Latino',
-      'native_hawaiian' => 'Native Hawaiian or Other Pacific Islander',
-      'white' => 'White',
-      'two_or_more' => 'Two or More Races',
-      'prefer_not_to_say' => 'Prefer not to say',
-      default => trim($value),
-    };
+  /**
+   * Resolve writable screenshot directory for Playwright artifacts.
+   */
+  private function resolveScreenshotDirectory(): string {
+    $screenshot_dir = '';
+    $private_path = $this->fileSystem->realpath('private://job_hunter/screenshots');
+    if ($private_path) {
+      if (!is_dir($private_path)) {
+        @mkdir($private_path, 0755, TRUE);
+      }
+      if (is_dir($private_path) && is_writable($private_path)) {
+        $screenshot_dir = $private_path;
+      }
+    }
+    return $screenshot_dir;
   }
 
-  private function normalizeVeteran(string $value): string {
-    $v = strtolower(trim($value));
-    return match ($v) {
-      'not_veteran' => 'I am not a protected veteran',
-      'veteran' => 'I identify as one or more of the classifications of protected veteran',
-      'prefer_not_to_say' => 'Prefer not to say',
-      default => trim($value),
-    };
+  /**
+   * Create secure temp payload file for Node runner.
+   */
+  private function createPayloadFile(array $payload): ?string {
+    $payload_file = tempnam(sys_get_temp_dir(), 'jh_wz_');
+    if ($payload_file === FALSE || $payload_file === '') {
+      return NULL;
+    }
+
+    $written = file_put_contents($payload_file, json_encode($payload), LOCK_EX);
+    if ($written === FALSE) {
+      @unlink($payload_file);
+      return NULL;
+    }
+
+    @chmod($payload_file, 0600);
+    return $payload_file;
   }
 
-  private function normalizeDisability(string $value): string {
-    $v = strtolower(trim($value));
-    return match ($v) {
-      'no_disability' => 'No, I do not have a disability',
-      'yes_disability' => 'Yes, I have a disability (or previously had a disability)',
-      'prefer_not_to_say' => 'Prefer not to say',
-      default => trim($value),
-    };
-  }
-
-  private function normalizePhoneDeviceType(string $value): string {
-    $v = strtolower(trim($value));
-    return match ($v) {
-      'mobile', 'cell', 'cell phone' => 'Mobile',
-      'home', 'home phone' => 'Home',
-      'work', 'office', 'work phone' => 'Work',
-      'other' => 'Other',
-      default => trim($value),
-    };
+  /**
+   * Assemble profile data from the job_seeker table for form filling.
+   */
+  private function buildProfileData(int $uid): array {
+    return $this->profileDataMapper->buildProfileData($uid);
   }
 
   /**

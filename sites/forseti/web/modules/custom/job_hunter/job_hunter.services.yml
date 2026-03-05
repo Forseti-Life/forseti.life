@@ -143,6 +143,12 @@ services:
     arguments:
       - '@database'
       - '@file_system'
+      - '@job_hunter.workday_profile_data_mapper'
+
+  job_hunter.workday_profile_data_mapper:
+    class: Drupal\job_hunter\Service\WorkdayProfileDataMapper
+    arguments:
+      - '@database'
 
   job_hunter.application_form_mapper:
     class: Drupal\job_hunter\Service\ApplicationFormMapper

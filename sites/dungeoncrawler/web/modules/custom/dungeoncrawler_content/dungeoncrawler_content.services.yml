@@ -233,6 +233,7 @@ services:
       - '@logger.factory'
       - '@extension.list.module'
       - '@dungeoncrawler_content.quest_generator'
+      - '@dungeoncrawler_content.chat_session_manager'
 
   dungeoncrawler_content.room_state_service:
     class: Drupal\dungeoncrawler_content\Service\RoomStateService
@@ -402,6 +403,22 @@ services:
     arguments:
       - '@database'
       - '@logger.factory'
+
+  dungeoncrawler_content.chat_session_manager:
+    class: Drupal\dungeoncrawler_content\Service\ChatSessionManager
+    arguments:
+      - '@database'
+      - '@logger.factory'
+
+  dungeoncrawler_content.narration_engine:
+    class: Drupal\dungeoncrawler_content\Service\NarrationEngine
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@dungeoncrawler_content.chat_session_manager'
+      - '@ai_conversation.ai_api_service'
+      - '@ai_conversation.prompt_manager'
+      - '@dungeoncrawler_content.gameplay_action_processor'
 
   dungeoncrawler_content.ai_gm:
     class: Drupal\dungeoncrawler_content\Service\AiGmService

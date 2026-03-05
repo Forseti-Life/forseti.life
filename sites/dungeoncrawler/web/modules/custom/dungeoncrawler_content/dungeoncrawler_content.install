@@ -3644,3 +3644,231 @@ function dungeoncrawler_content_update_10023() {
 
   return t('Created dc_npc_psychology table for NPC personality matrices and inner monologues.');
 }
+
+/**
+ * Create dc_chat_sessions and dc_chat_messages tables for hierarchical chat.
+ *
+ * Chat session hierarchy:
+ *   campaign  → GM-only master feed (everything feeds here)
+ *   dungeon   → per-dungeon aggregate (stored copy, GM + participants)
+ *   room      → objective reality log per room (GM "God view")
+ *   character_narrative → per-character GM narration (what they perceived)
+ *   party     → party huddle (proximity-gated, GM aware)
+ *   whisper   → mundane adjacent whisper (Perception-checkable)
+ *   spell     → spell-opened private channel (message/telepathy/sending)
+ *   gm_private → secret player actions (pickpocket, stealth intent)
+ *   system_log → dice, checks, mechanical results
+ *   encounter → combat initiative / turn-based narration
+ */
+function dungeoncrawler_content_update_10024() {
+  $schema = \Drupal::database()->schema();
+
+  // ── dc_chat_sessions ────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_chat_sessions')) {
+    $schema->createTable('dc_chat_sessions', [
+      'description' => 'Hierarchical chat session tree. Each row is a scope node.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'campaign_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Owning campaign.',
+        ],
+        'parent_session_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+          'default' => NULL,
+          'description' => 'Parent session in hierarchy. NULL for campaign root.',
+        ],
+        'session_type' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'description' => 'campaign|dungeon|room|character_narrative|party|whisper|spell|gm_private|system_log|encounter',
+        ],
+        'session_key' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'description' => 'Deterministic lookup key (e.g. campaign.5.dungeon.12.room.abc).',
+        ],
+        'scope_ref' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'Scope-specific reference (dungeon_id, room_id, character_id, entity_ref).',
+        ],
+        'label' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'Human-readable label for UI.',
+        ],
+        'metadata' => [
+          'type' => 'text',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'JSON: type-specific metadata (spell_def, perception_dc, narration_buffer, etc.).',
+        ],
+        'status' => [
+          'type' => 'varchar',
+          'length' => 16,
+          'not null' => TRUE,
+          'default' => 'active',
+          'description' => 'active|archived|closed',
+        ],
+        'message_count' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'summary' => [
+          'type' => 'text',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Compressed summary of older messages for AI context.',
+        ],
+        'last_message_at' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+        'updated' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'unique keys' => [
+        'session_key' => ['session_key'],
+      ],
+      'indexes' => [
+        'campaign_id' => ['campaign_id'],
+        'parent_session_id' => ['parent_session_id'],
+        'session_type' => ['session_type'],
+        'campaign_type' => ['campaign_id', 'session_type'],
+        'status' => ['status'],
+      ],
+    ]);
+  }
+
+  // ── dc_chat_messages ────────────────────────────────────────────────
+  if (!$schema->tableExists('dc_chat_messages')) {
+    $schema->createTable('dc_chat_messages', [
+      'description' => 'Normalized chat messages linked to session hierarchy.',
+      'fields' => [
+        'id' => [
+          'type' => 'serial',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+        ],
+        'session_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Primary session this message belongs to.',
+        ],
+        'campaign_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'description' => 'Denormalized campaign ID for efficient queries.',
+        ],
+        'speaker' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'description' => 'Display name: Game Master, character name, NPC name, System.',
+        ],
+        'speaker_type' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'system',
+          'description' => 'gm|player|npc|system',
+        ],
+        'speaker_ref' => [
+          'type' => 'varchar',
+          'length' => 255,
+          'not null' => TRUE,
+          'default' => '',
+          'description' => 'Character ID, entity_ref, or empty for system/GM.',
+        ],
+        'message' => [
+          'type' => 'text',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'Message content.',
+        ],
+        'message_type' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'narrative',
+          'description' => 'narrative|dialogue|action|mechanical|system|inner_monologue|scene_beat',
+        ],
+        'visibility' => [
+          'type' => 'varchar',
+          'length' => 32,
+          'not null' => TRUE,
+          'default' => 'public',
+          'description' => 'public|private|gm_only',
+        ],
+        'metadata' => [
+          'type' => 'text',
+          'size' => 'big',
+          'not null' => TRUE,
+          'description' => 'JSON: dice_rolls, mechanical_actions, perception data, etc.',
+        ],
+        'feed_targets' => [
+          'type' => 'text',
+          'size' => 'normal',
+          'not null' => TRUE,
+          'description' => 'JSON: array of session_ids this message was also pushed to.',
+        ],
+        'source_message_id' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => FALSE,
+          'default' => NULL,
+          'description' => 'If this is a feed-copy, the original message id.',
+        ],
+        'created' => [
+          'type' => 'int',
+          'unsigned' => TRUE,
+          'not null' => TRUE,
+          'default' => 0,
+        ],
+      ],
+      'primary key' => ['id'],
+      'indexes' => [
+        'session_id' => ['session_id'],
+        'campaign_id' => ['campaign_id'],
+        'session_created' => ['session_id', 'created'],
+        'speaker_type' => ['speaker_type'],
+        'message_type' => ['message_type'],
+        'source_message_id' => ['source_message_id'],
+      ],
+    ]);
+  }
+
+  return t('Created dc_chat_sessions and dc_chat_messages tables for hierarchical chat architecture.');
+}

@@ -9,6 +9,7 @@ use Drupal\Core\Extension\ModuleExtensionList;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
 use Drupal\dungeoncrawler_content\Service\QuestGeneratorService;
+use Drupal\dungeoncrawler_content\Service\ChatSessionManager;
 
 /**
  * Orchestrates complete campaign initialization with default dungeon and rooms.
@@ -30,6 +31,7 @@ class CampaignInitializationService {
   protected LoggerInterface $logger;
   protected ModuleExtensionList $moduleList;
   protected QuestGeneratorService $questGenerator;
+  protected ?ChatSessionManager $chatSessionManager;
 
   public function __construct(
     Connection $database,
@@ -37,7 +39,8 @@ class CampaignInitializationService {
     TimeInterface $time,
     LoggerChannelFactoryInterface $logger_factory,
     ModuleExtensionList $module_list,
-    QuestGeneratorService $quest_generator
+    QuestGeneratorService $quest_generator,
+    ?ChatSessionManager $chat_session_manager = NULL
   ) {
     $this->database = $database;
     $this->uuid = $uuid;
@@ -45,6 +48,7 @@ class CampaignInitializationService {
     $this->logger = $logger_factory->get('dungeoncrawler_content');
     $this->moduleList = $module_list;
     $this->questGenerator = $quest_generator;
+    $this->chatSessionManager = $chat_session_manager;
   }
 
   /**
@@ -95,6 +99,9 @@ class CampaignInitializationService {
       }
 
       $this->seedStarterQuests($campaign_id, $difficulty, $now);
+
+      // 5. Bootstrap hierarchical chat sessions for the campaign.
+      $this->bootstrapChatSessions($campaign_id, $name);
 
       $this->logger->info('Campaign {campaign_id} initialized with starter dungeon {dungeon_id}', [
         'campaign_id' => $campaign_id,
@@ -643,4 +650,54 @@ class CampaignInitializationService {
         ->execute();
     }
   }
+
+  /**
+   * Bootstrap hierarchical chat sessions for a new campaign.
+   *
+   * Creates the campaign root (GM master feed), system log, and party chat
+   * sessions. Dungeon and room sessions are created lazily when needed.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $campaign_name
+   *   Campaign name for labeling.
+   */
+  private function bootstrapChatSessions(int $campaign_id, string $campaign_name): void {
+    if (!$this->chatSessionManager) {
+      $this->logger->notice('ChatSessionManager not available; skipping chat session bootstrap for campaign {id}', [
+        'id' => $campaign_id,
+      ]);
+      return;
+    }
+
+    try {
+      $root = $this->chatSessionManager->ensureCampaignSessions($campaign_id, $campaign_name);
+
+      // Post the initial GM system message.
+      $this->chatSessionManager->postMessage(
+        (int) $root['id'],
+        $campaign_id,
+        'System',
+        'system',
+        '',
+        "Campaign \"{$campaign_name}\" initialized. GM master feed active.",
+        'system',
+        'gm_only',
+        ['event' => 'campaign_init'],
+        FALSE
+      );
+
+      $this->logger->info('Chat sessions bootstrapped for campaign {id} (root session: {root_id})', [
+        'id' => $campaign_id,
+        'root_id' => $root['id'],
+      ]);
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Failed to bootstrap chat sessions for campaign {id}: {error}', [
+        'id' => $campaign_id,
+        'error' => $e->getMessage(),
+      ]);
+    }
+  }
+
 }
