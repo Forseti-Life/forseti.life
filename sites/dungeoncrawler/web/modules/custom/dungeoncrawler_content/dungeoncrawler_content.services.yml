@@ -200,9 +200,13 @@ services:
     class: Drupal\dungeoncrawler_content\Service\ChatChannelManager
     arguments: ['@database', '@logger.factory', '@current_user']
 
+  dungeoncrawler_content.npc_psychology_service:
+    class: Drupal\dungeoncrawler_content\Service\NpcPsychologyService
+    arguments: ['@database', '@logger.factory', '@ai_conversation.ai_api_service', '@dungeoncrawler_content.ai_session_manager']
+
   dungeoncrawler_content.room_chat_service:
     class: Drupal\dungeoncrawler_content\Service\RoomChatService
-    arguments: ['@database', '@dungeoncrawler_content.dungeon_state_service', '@logger.factory', '@current_user', '@ai_conversation.ai_api_service', '@ai_conversation.prompt_manager', '@dungeoncrawler_content.gameplay_action_processor', '@dungeoncrawler_content.ai_session_manager', '@dungeoncrawler_content.chat_channel_manager']
+    arguments: ['@database', '@dungeoncrawler_content.dungeon_state_service', '@logger.factory', '@current_user', '@ai_conversation.ai_api_service', '@ai_conversation.prompt_manager', '@dungeoncrawler_content.gameplay_action_processor', '@dungeoncrawler_content.ai_session_manager', '@dungeoncrawler_content.chat_channel_manager', '@dungeoncrawler_content.npc_psychology_service']
 
   dungeoncrawler_content.campaign_initialization:
     class: Drupal\dungeoncrawler_content\Service\CampaignInitializationService
@@ -357,6 +361,7 @@ services:
       - '@event_dispatcher'
       - '@dungeoncrawler_content.ai_gm'
       - '@config.factory'
+      - '@dungeoncrawler_content.npc_psychology_service'
 
   dungeoncrawler_content.downtime_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\DowntimePhaseHandler

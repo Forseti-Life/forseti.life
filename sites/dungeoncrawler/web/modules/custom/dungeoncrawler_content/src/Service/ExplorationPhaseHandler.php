@@ -517,6 +517,32 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     // Persist.
     $this->persistDungeonData($campaign_id, $dungeon_data);
 
+    // Auto-create psychology profiles for NPCs in the new room.
+    $room_entities = [];
+    foreach ($dungeon_data['entities'] ?? [] as $ent) {
+      $ent_room = $ent['placement']['room_id'] ?? '';
+      if ($ent_room === $target_room_id) {
+        $room_entities[] = $ent;
+      }
+    }
+    // Also check room-level entities if stored differently.
+    foreach ($dungeon_data['rooms'] ?? [] as $room) {
+      if (($room['room_id'] ?? $room['id'] ?? '') === $target_room_id) {
+        foreach ($room['entities'] ?? [] as $ent) {
+          $room_entities[] = $ent;
+        }
+        break;
+      }
+    }
+    if ($room_entities) {
+      try {
+        $this->roomChatService->ensureNpcProfiles($campaign_id, $room_entities);
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Auto-profile creation failed on room entry: @err', ['@err' => $e->getMessage()]);
+      }
+    }
+
     return [
       'transitioned' => TRUE,
       'from_room' => $game_state['exploration']['previous_room'],

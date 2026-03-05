@@ -90,6 +90,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   protected ConfigFactoryInterface $configFactory;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\NpcPsychologyService
+   */
+  protected NpcPsychologyService $psychologyService;
+
+  /**
    * Constructs an EncounterPhaseHandler.
    */
   public function __construct(
@@ -106,7 +111,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     RulesEngine $rules_engine,
     EventDispatcherInterface $event_dispatcher,
     AiGmService $ai_gm_service,
-    ConfigFactoryInterface $config_factory
+    ConfigFactoryInterface $config_factory,
+    NpcPsychologyService $psychology_service = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -122,6 +128,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->eventDispatcher = $event_dispatcher;
     $this->aiGmService = $ai_gm_service;
     $this->configFactory = $config_factory;
+    $this->psychologyService = $psychology_service ?? new NpcPsychologyService($database, $logger_factory);
   }
 
   /**
@@ -1228,7 +1235,109 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'allowed_actions' => [
         'strike', 'stride', 'interact', 'talk', 'end_turn',
       ],
+      // NPC personality/psychology context for AI decision-making.
+      'npc_psychology' => $this->buildNpcPsychologyContext($entity_id, $game_state),
     ];
+  }
+
+  /**
+   * Build psychology context string for an NPC in combat.
+   *
+   * Provides personality-driven combat behavior hints to the AI:
+   * - Cowardly NPCs may flee when badly hurt
+   * - Disciplined NPCs focus fire and protect allies
+   * - Cunning NPCs target weak PCs
+   * - NPC attitude affects willingness to parley / surrender
+   *
+   * @param string $entity_id
+   *   Entity ID.
+   * @param array $game_state
+   *   Current game state.
+   *
+   * @return string
+   *   Formatted psychology context or empty string.
+   */
+  protected function buildNpcPsychologyContext(string $entity_id, array $game_state): string {
+    $campaign_id = $game_state['campaign_id'] ?? 0;
+    if (!$campaign_id) {
+      return '';
+    }
+
+    // entity_id might be "entity_creature_2_1", entity_ref is the content_id like "goblin_warrior_1"
+    // Try to find the entity's content_id from the initiative_order or use entity_id directly.
+    $entity_ref = $entity_id;
+    foreach ($game_state['initiative_order'] ?? [] as $combatant) {
+      if (($combatant['entity_id'] ?? '') === $entity_id) {
+        $entity_ref = $combatant['entity_ref'] ?? $combatant['entity_id'] ?? $entity_id;
+        break;
+      }
+    }
+
+    $profile = $this->psychologyService->loadProfile($campaign_id, $entity_ref);
+    if (!$profile && $entity_ref !== $entity_id) {
+      // Fall back to entity_id as ref.
+      $profile = $this->psychologyService->loadProfile($campaign_id, $entity_id);
+    }
+
+    if (!$profile) {
+      return '';
+    }
+
+    $parts = [];
+    $parts[] = "=== NPC COMBAT PERSONALITY ===";
+    $parts[] = "Name: {$profile['display_name']}";
+    $parts[] = "Attitude toward party: {$profile['attitude']}";
+
+    if (!empty($profile['personality_traits'])) {
+      $parts[] = "Personality: {$profile['personality_traits']}";
+    }
+    if (!empty($profile['motivations'])) {
+      $parts[] = "Fighting motivation: {$profile['motivations']}";
+    }
+
+    // Translate personality axes into combat behavioral hints.
+    $axes = $profile['personality_axes'] ?? [];
+    $hints = [];
+    $boldness = $axes['boldness'] ?? 5;
+    if ($boldness <= 3) {
+      $hints[] = 'Will try to flee or surrender if below 25% HP';
+    }
+    elseif ($boldness >= 8) {
+      $hints[] = 'Fights recklessly to the death, never retreats';
+    }
+
+    $discipline = $axes['discipline'] ?? 5;
+    if ($discipline >= 7) {
+      $hints[] = 'Coordinates with allies, focuses fire on wounded targets';
+    }
+    elseif ($discipline <= 3) {
+      $hints[] = 'Fights chaotically, may switch targets randomly';
+    }
+
+    $cunning = $axes['cunning'] ?? 5;
+    if ($cunning >= 7) {
+      $hints[] = 'Targets the weakest or most dangerous PC strategically';
+    }
+
+    $empathy = $axes['empathy'] ?? 5;
+    if ($empathy >= 7 && in_array($profile['attitude'], ['friendly', 'helpful'])) {
+      $hints[] = 'May refuse to fight, or try to end combat through diplomacy';
+    }
+
+    if ($hints) {
+      $parts[] = "Combat behavior: " . implode('; ', $hints);
+    }
+
+    // Recent relevant thoughts.
+    $monologue = $profile['inner_monologue'] ?? [];
+    if ($monologue) {
+      $last = end($monologue);
+      if ($last && !empty($last['thought'])) {
+        $parts[] = "Current mindset: \"{$last['thought']}\" (feeling {$last['emotion']})";
+      }
+    }
+
+    return implode("\n", $parts);
   }
 
   /**

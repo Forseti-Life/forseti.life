@@ -28,6 +28,7 @@ class RoomChatService {
   protected GameplayActionProcessor $actionProcessor;
   protected AiSessionManager $sessionManager;
   protected ChatChannelManager $channelManager;
+  protected NpcPsychologyService $psychologyService;
 
   /**
    * Constructor.
@@ -41,7 +42,8 @@ class RoomChatService {
     PromptManager $prompt_manager,
     GameplayActionProcessor $action_processor,
     AiSessionManager $session_manager,
-    ChatChannelManager $channel_manager
+    ChatChannelManager $channel_manager,
+    NpcPsychologyService $psychology_service
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
@@ -52,6 +54,7 @@ class RoomChatService {
     $this->actionProcessor = $action_processor;
     $this->sessionManager = $session_manager;
     $this->channelManager = $channel_manager;
+    $this->psychologyService = $psychology_service;
   }
 
   /**
@@ -544,17 +547,57 @@ class RoomChatService {
       $scene_parts[] = 'Current room: ' . $room_meta['name'];
     }
 
-    // Find NPC data from room entities for personality.
-    $npc_description = '';
+    // Find the live entity instance for real-time stats.
+    $live_entity = [];
     $entities = $room_meta['entities'] ?? [];
     foreach ($entities as $ent) {
-      if (($ent['entity_ref'] ?? '') === $target_entity || ($ent['name'] ?? '') === $target_name) {
-        $npc_description = $ent['description'] ?? '';
+      $ent_ref = $ent['entity_ref']['content_id'] ?? $ent['entity_ref'] ?? '';
+      $ent_name = $ent['state']['metadata']['display_name'] ?? $ent['name'] ?? '';
+      if ($ent_ref === $target_entity || $ent_name === $target_name) {
+        $live_entity = $ent;
         break;
       }
     }
 
-    // Build the prompt: instruct AI to respond as the NPC, not as the GM.
+    // Ensure this NPC has a psychology profile (auto-create if needed).
+    $npc_ref = $target_entity;
+    if ($live_entity && !$npc_ref) {
+      $npc_ref = $live_entity['entity_ref']['content_id']
+        ?? $live_entity['entity_instance_id']
+        ?? $target_entity;
+    }
+    if ($npc_ref) {
+      $seed_data = [];
+      if ($live_entity) {
+        $meta = $live_entity['state']['metadata'] ?? [];
+        $seed_data = [
+          'display_name' => $meta['display_name'] ?? $target_name,
+          'creature_type' => $live_entity['entity_ref']['content_id'] ?? $npc_ref,
+          'level' => $live_entity['level'] ?? ($meta['stats']['level'] ?? 1),
+          'description' => $live_entity['description'] ?? ($meta['description'] ?? ''),
+          'stats' => $meta['stats'] ?? [],
+          'role' => $live_entity['role'] ?? 'neutral',
+          'initial_attitude' => $live_entity['attitude'] ?? 'indifferent',
+        ];
+      }
+      $this->psychologyService->getOrCreateProfile($campaign_id, $npc_ref, $seed_data);
+    }
+
+    // Build full character sheet + psychology context for the AI.
+    $npc_context = '';
+    if ($npc_ref) {
+      $npc_context = $this->psychologyService->buildNpcContextForPrompt(
+        $campaign_id,
+        $npc_ref,
+        $live_entity
+      );
+    }
+    // Fallback: use description from entity if no psychology profile.
+    if (empty($npc_context) && $live_entity) {
+      $npc_context = $live_entity['description'] ?? '';
+    }
+
+    // Build the prompt with full NPC context.
     $prompt = '';
     if ($session_context !== '') {
       $prompt .= $session_context . "\n\n---\n";
@@ -562,12 +605,13 @@ class RoomChatService {
     if (!empty($scene_parts)) {
       $prompt .= implode("\n", $scene_parts) . "\n\n";
     }
-    $prompt .= "You are {$target_name}, an NPC in a Pathfinder 2e dungeon crawl.\n";
-    if ($npc_description) {
-      $prompt .= "Your description: {$npc_description}\n";
+    if ($npc_context) {
+      $prompt .= $npc_context . "\n\n";
     }
+    $prompt .= "You are {$target_name}, an NPC in a Pathfinder 2e dungeon crawl.\n";
     $prompt .= "The player character is communicating with you via {$source_ability}.\n";
-    $prompt .= "Stay in character as {$target_name}. Do NOT respond as the Game Master.\n\n";
+    $prompt .= "Stay in character as {$target_name}. Do NOT respond as the Game Master.\n";
+    $prompt .= "Your responses should reflect your personality traits, current attitude, and motivations as described above.\n\n";
     $prompt .= "Conversation so far:\n" . implode("\n", $history_lines);
     $prompt .= "\n\nRespond in character as {$target_name}. Keep your reply concise (1-3 sentences).";
 
@@ -579,6 +623,12 @@ class RoomChatService {
       'session_key' => $ai_session_key,
     ];
 
+    // Get NPC's current attitude for system prompt.
+    $npc_attitude = 'indifferent';
+    if ($npc_ref) {
+      $npc_attitude = $this->psychologyService->getAttitude($campaign_id, $npc_ref);
+    }
+
     try {
       $result = $this->aiApiService->invokeModelDirect(
         $prompt,
@@ -586,7 +636,7 @@ class RoomChatService {
         'channel_npc_reply',
         $context_data,
         [
-          'system_prompt' => "You are {$target_name}, a character in a tabletop RPG. Respond naturally in character. Do not break the fourth wall. Do not mention that you are an AI.",
+          'system_prompt' => "You are {$target_name}, a character in a tabletop RPG. Your current attitude toward the party is: {$npc_attitude}. Use the character sheet and psychology profile provided in the user prompt to stay in character. Reflect your personality traits, motivations, and recent inner thoughts in your tone and word choice. Do not break the fourth wall. Do not mention that you are an AI.",
           'max_tokens' => 400,
           'skip_cache' => TRUE,
         ]
@@ -642,6 +692,21 @@ class RoomChatService {
     $this->sessionManager->appendMessage($ai_session_key, $campaign_id, 'user', $player_msg);
     $this->sessionManager->appendMessage($ai_session_key, $campaign_id, 'assistant', $response_text);
 
+    // Record inner monologue: NPC reacts privately to what the player said.
+    if ($npc_ref) {
+      $player_speaker = end($channel_chat)['speaker'] ?? 'the player';
+      $this->psychologyService->recordInnerMonologue(
+        $campaign_id,
+        $npc_ref,
+        'pc_action',
+        "{$player_speaker} said via {$source_ability}: \"{$player_msg}\"",
+        [
+          'actor' => $player_speaker,
+          'severity' => 'minor',
+        ]
+      );
+    }
+
     $this->logger->info('NPC @npc reply on channel @channel (@chars chars)', [
       '@npc' => $target_name,
       '@channel' => $channel_key,
@@ -652,6 +717,43 @@ class RoomChatService {
       'message' => $npc_message,
       'state_diff' => NULL,
     ];
+  }
+
+  /**
+   * Ensure all NPCs in a room have psychology profiles.
+   *
+   * Call this on room entry to auto-create personality matrices for NPCs
+   * that don't already have one. This enables full character-sheet-aware
+   * inner monologues and AI portrayal from the first interaction.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $room_entities
+   *   Entities array from dungeon_data room.
+   *
+   * @return int
+   *   Number of new profiles created.
+   */
+  public function ensureNpcProfiles(int $campaign_id, array $room_entities): int {
+    return $this->psychologyService->ensureRoomNpcProfiles($campaign_id, $room_entities);
+  }
+
+  /**
+   * Broadcast an event to all NPCs in a room for inner monologue processing.
+   *
+   * Use this when a significant event occurs (combat, diplomacy, death, etc.)
+   * and nearby NPCs should react internally.
+   *
+   * @param int $campaign_id
+   * @param array $npc_entity_refs
+   * @param string $event_type
+   * @param string $event_description
+   * @param array $context
+   *
+   * @return array
+   */
+  public function broadcastNpcEvent(int $campaign_id, array $npc_entity_refs, string $event_type, string $event_description, array $context = []): array {
+    return $this->psychologyService->broadcastEventToNpcs($campaign_id, $npc_entity_refs, $event_type, $event_description, $context);
   }
 
   /**

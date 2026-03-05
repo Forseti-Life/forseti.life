@@ -3522,3 +3522,125 @@ function dungeoncrawler_content_update_10022() {
 
   return t('Created dc_ai_sessions table for per-campaign/NPC AI session isolation.');
 }
+
+/**
+ * Create dc_npc_psychology table for NPC personality matrices and inner monologues.
+ */
+function dungeoncrawler_content_update_10023() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('dc_npc_psychology')) {
+    return t('Table dc_npc_psychology already exists.');
+  }
+
+  $schema->createTable('dc_npc_psychology', [
+    'description' => 'NPC personality matrix, inner monologue, and attitude tracking per campaign.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Campaign ID.',
+      ],
+      'entity_ref' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Entity reference key (e.g. goblin_guard_1).',
+      ],
+      'display_name' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'NPC display name.',
+      ],
+      'character_sheet' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON: full character sheet (stats, abilities, equipment, languages, senses, description).',
+      ],
+      'attitude' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'indifferent',
+        'description' => 'PF2e attitude: helpful, friendly, indifferent, unfriendly, hostile.',
+      ],
+      'personality_axes' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'JSON: {boldness, honesty, empathy, discipline, cunning} 0-10 scale.',
+      ],
+      'personality_traits' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Comma-separated trait keywords.',
+      ],
+      'motivations' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Current motivations text.',
+      ],
+      'fears' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Primary fears.',
+      ],
+      'bonds' => [
+        'type' => 'varchar',
+        'length' => 512,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Relationships and bonds.',
+      ],
+      'inner_monologue' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON array of inner monologue entries [{timestamp, event_type, event, thought, emotion, attitude_shift}].',
+      ],
+      'attitude_history' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'JSON array of attitude changes [{attitude, reason, timestamp}].',
+      ],
+      'created' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+      'updated' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'campaign_entity' => ['campaign_id', 'entity_ref'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'attitude' => ['attitude'],
+    ],
+  ]);
+
+  return t('Created dc_npc_psychology table for NPC personality matrices and inner monologues.');
+}
