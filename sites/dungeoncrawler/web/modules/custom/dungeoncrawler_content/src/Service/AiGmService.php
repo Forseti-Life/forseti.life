@@ -399,6 +399,8 @@ class AiGmService {
       'Do not include dice rolls, mechanical numbers, or JSON.',
       'Do not break the fourth wall.',
       'Maintain dark fantasy tone with moments of wonder.',
+      '',
+      'ENTITY GROUNDING: ONLY reference NPCs, creatures, items, and objects provided in the context data. Do NOT invent new characters or objects. Use exact names from the data. If an entity is not listed, it does not exist in the scene.',
     ]);
 
     // Trigger-specific guidance.

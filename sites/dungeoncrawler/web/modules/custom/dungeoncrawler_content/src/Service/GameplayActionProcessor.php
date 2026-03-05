@@ -296,6 +296,20 @@ class GameplayActionProcessor {
       }
     }
 
+    $enhanced .= <<<'GROUNDING'
+
+=== ENTITY GROUNDING RULES ===
+You must ONLY reference NPCs, creatures, items, obstacles, hazards, and traps
+that are listed in the CURRENT ROOM section above. Do NOT invent new characters,
+creatures, or objects that are not listed. Use their exact names as given.
+If the room inventory lists "Eldric (tavern_keeper)" refer to him as Eldric —
+do NOT substitute a generic "dwarf barkeep" or any other made-up NPC.
+If no NPCs are listed, the room is empty of characters — narrate accordingly.
+If the player asks about someone not in the room, inform them that person is
+not present. You may describe atmospheric details (sounds, smells, lighting,
+mood) freely, but every named entity must match the provided inventory exactly.
+GROUNDING;
+
     $enhanced .= <<<'INSTRUCTIONS'
 
 === MECHANICAL ACTION INSTRUCTIONS ===

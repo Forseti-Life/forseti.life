@@ -489,7 +489,7 @@ class NarrationEngine {
           'event_type' => 'speech',
         ],
         [
-          'system_prompt' => 'You are a concise Game Master narrator for a Pathfinder 2e dungeon crawl. Narrate in second person ("You hear..."). Keep narration under 2 sentences. Do not add actions the character did not take.',
+          'system_prompt' => 'You are a concise Game Master narrator for a Pathfinder 2e dungeon crawl. Narrate in second person ("You hear..."). Keep narration under 2 sentences. Do not add actions the character did not take. ONLY reference NPCs, creatures, items, and objects provided in the context. Do NOT invent new characters or objects — use exact names from the room data.',
           'max_tokens' => 200,
           'skip_cache' => TRUE,
         ]
@@ -649,7 +649,7 @@ class NarrationEngine {
           'character_id' => $character_id,
         ],
         [
-          'system_prompt' => 'You are a concise Game Master narrator for a Pathfinder 2e dungeon crawl. Combine multiple events into a single narrative beat. Use second person. Do not add events that were not listed.',
+          'system_prompt' => 'You are a concise Game Master narrator for a Pathfinder 2e dungeon crawl. Combine multiple events into a single narrative beat. Use second person. Do not add events that were not listed. ONLY reference NPCs, creatures, items, and objects provided in the context. Do NOT invent new characters or objects — use exact names from the room data.',
           'max_tokens' => 400,
           'skip_cache' => TRUE,
         ]
