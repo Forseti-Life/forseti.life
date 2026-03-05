@@ -133,6 +133,22 @@ services:
   dungeoncrawler_content.combat_calculator:
     class: Drupal\dungeoncrawler_content\Service\CombatCalculator
 
+  dungeoncrawler_content.calculator:
+    class: Drupal\dungeoncrawler_content\Service\Calculator
+    arguments:
+      - '@dungeoncrawler_content.number_generation'
+      - '@dungeoncrawler_content.combat_calculator'
+
+  dungeoncrawler_content.reaction_handler:
+    class: Drupal\dungeoncrawler_content\Service\ReactionHandler
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.combat_calculator'
+      - '@dungeoncrawler_content.hp_manager'
+      - '@dungeoncrawler_content.combat_encounter_store'
+      - '@dungeoncrawler_content.number_generation'
+      - '@dungeoncrawler_content.condition_manager'
+
   dungeoncrawler_content.equipment_catalog:
     class: Drupal\dungeoncrawler_content\Service\EquipmentCatalogService
 

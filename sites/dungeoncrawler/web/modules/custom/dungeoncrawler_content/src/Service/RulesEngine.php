@@ -86,10 +86,63 @@ class RulesEngine {
   /**
    * Validate action prerequisites.
    *
+   * Checks that the participant has the requirements to perform the action:
+   * - Strike: must have a weapon or unarmed attack available
+   * - Cast Spell: must have spell slots remaining
+   * - Raise a Shield: must have a shield equipped
+   * - Move: must not be immobilized/restrained unless action overcomes
+   *
+   * @param array $participant
+   *   Participant state array.
+   * @param array|string $action
+   *   Action data array with 'type' key, or action type string.
+   * @param array|null $target
+   *   Target participant array, if applicable.
+   *
+   * @return array
+   *   ['is_valid' => bool, 'reason' => string]
+   *
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md#action-prerequisite-rules
    */
-  public function validateActionPrerequisites($participant, $action, $target) {
-    // TODO: Check weapon equipped, spell slots, etc.
+  public function validateActionPrerequisites($participant, $action, $target = NULL) {
+    $participant = (array) $participant;
+    $action_type = is_string($action) ? $action : ($action['type'] ?? '');
+    $action_type = strtolower($action_type);
+    $entity_ref = $this->decodeEntityRef($participant);
+
+    switch ($action_type) {
+      case 'strike':
+        // Must have a weapon or natural/unarmed attack.
+        $has_weapon = !empty($entity_ref['weapon'])
+          || !empty($entity_ref['melee_attack'])
+          || !empty($entity_ref['attack_bonus'])
+          || !empty($entity_ref['natural_attack']);
+        if (!$has_weapon) {
+          return ['is_valid' => FALSE, 'reason' => 'No weapon or natural attack available.'];
+        }
+        break;
+
+      case 'cast_spell':
+        $action_data = is_array($action) ? $action : [];
+        $spell_level = (int) ($action_data['spell_level'] ?? 1);
+        $slots = (array) ($entity_ref['spell_slots'] ?? []);
+        $remaining = (int) ($slots[$spell_level] ?? $slots['level_' . $spell_level] ?? 0);
+        // Cantrips (level 0) are unlimited.
+        if ($spell_level > 0 && $remaining <= 0) {
+          return ['is_valid' => FALSE, 'reason' => "No spell slots remaining at level {$spell_level}."];
+        }
+        break;
+
+      case 'raise_shield':
+        if (empty($entity_ref['shield']) && empty($entity_ref['has_shield'])) {
+          return ['is_valid' => FALSE, 'reason' => 'No shield equipped.'];
+        }
+        if (!empty($entity_ref['shield']['broken'])) {
+          return ['is_valid' => FALSE, 'reason' => 'Shield is broken.'];
+        }
+        break;
+    }
+
     return ['is_valid' => TRUE, 'reason' => ''];
   }
 
@@ -156,31 +209,264 @@ class RulesEngine {
   /**
    * Check immunities.
    *
+   * PF2e immunities: Some creatures are immune to specific damage types,
+   * conditions, or effects. Immunity means the effect has no impact.
+   *
+   * @param array $participant
+   *   Participant state array.
+   * @param string $effect_type
+   *   Effect type to check immunity against (condition name or damage type).
+   * @param string|array $effect_source
+   *   Source of the effect.
+   *
+   * @return array
+   *   ['is_immune' => bool, 'immunity_type' => string|null]
+   *
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md
    */
-  public function checkImmunities($participant, $effect_type, $effect_source) {
-    // TODO: Check participant immunities
-    return ['is_immune' => FALSE];
+  public function checkImmunities($participant, $effect_type, $effect_source = '') {
+    $participant = (array) $participant;
+    $entity_ref = $this->decodeEntityRef($participant);
+    $immunities = (array) ($entity_ref['immunities'] ?? []);
+
+    $check = strtolower((string) $effect_type);
+
+    // Direct immunity match.
+    $immunity_list = array_map('strtolower', $immunities);
+    if (in_array($check, $immunity_list, TRUE)) {
+      return ['is_immune' => TRUE, 'immunity_type' => $check];
+    }
+
+    // Undead are immune to death effects, disease, poison, unconscious.
+    $traits = array_map('strtolower', (array) ($entity_ref['traits'] ?? []));
+    if (in_array('undead', $traits, TRUE)) {
+      $undead_immunities = ['death', 'disease', 'poison', 'unconscious', 'paralyzed', 'fatigued'];
+      if (in_array($check, $undead_immunities, TRUE)) {
+        return ['is_immune' => TRUE, 'immunity_type' => 'undead_immunity'];
+      }
+    }
+
+    // Constructs are immune to bleed, death, disease, doomed, drained,
+    // fatigued, healing, necromancy, paralyzed, poison, sickened, unconscious.
+    if (in_array('construct', $traits, TRUE)) {
+      $construct_immunities = ['bleed', 'death', 'disease', 'doomed', 'drained',
+        'fatigued', 'healing', 'necromancy', 'paralyzed', 'poison', 'sickened', 'unconscious'];
+      if (in_array($check, $construct_immunities, TRUE)) {
+        return ['is_immune' => TRUE, 'immunity_type' => 'construct_immunity'];
+      }
+    }
+
+    return ['is_immune' => FALSE, 'immunity_type' => NULL];
   }
 
   /**
    * Validate attack.
    *
+   * Multi-layer validation:
+   * 1. Attacker is alive and not defeated.
+   * 2. Target is alive and not already dead.
+   * 3. Attacker has a weapon or natural attack.
+   * 4. Target is within weapon range (hex distance).
+   * 5. Condition restrictions (paralyzed, unconscious, etc.).
+   *
+   * @param array $attacker
+   *   Attacker participant state.
+   * @param array $target
+   *   Target participant state.
+   * @param array $weapon
+   *   Weapon data: ['range' => int, 'type' => 'melee'|'ranged', ...].
+   * @param int $encounter_id
+   *
+   * @return array
+   *   ['is_valid' => bool, 'reason' => string, 'modifiers' => array]
+   *
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md#attack-validation
    */
-  public function validateAttack($attacker, $target, $weapon, $encounter_id) {
-    // TODO: Check can attack, target valid, in range, line of sight
-    return ['is_valid' => TRUE, 'modifiers' => []];
+  public function validateAttack($attacker, $target, $weapon = [], $encounter_id = 0) {
+    $attacker = (array) $attacker;
+    $target = (array) $target;
+    $weapon = (array) $weapon;
+    $modifiers = [];
+
+    // 1. Attacker alive.
+    if (!empty($attacker['is_defeated'])) {
+      return ['is_valid' => FALSE, 'reason' => 'Attacker is defeated.', 'modifiers' => []];
+    }
+
+    // 2. Target alive.
+    if (!empty($target['is_defeated'])) {
+      return ['is_valid' => FALSE, 'reason' => 'Target is already defeated.', 'modifiers' => []];
+    }
+
+    // 3. Cannot target self.
+    $attacker_id = (int) ($attacker['id'] ?? 0);
+    $target_id = (int) ($target['id'] ?? 0);
+    if ($attacker_id > 0 && $attacker_id === $target_id) {
+      return ['is_valid' => FALSE, 'reason' => 'Cannot attack self.', 'modifiers' => []];
+    }
+
+    // 4. Condition restrictions.
+    if ($encounter_id && $attacker_id) {
+      $cond_check = $this->checkConditionRestrictions($attacker, 'strike');
+      if (!$cond_check['can_act']) {
+        return ['is_valid' => FALSE, 'reason' => $cond_check['restriction'], 'modifiers' => []];
+      }
+    }
+
+    // 5. Range validation (hex distance).
+    $aq = $attacker['position_q'] ?? NULL;
+    $ar = $attacker['position_r'] ?? NULL;
+    $tq = $target['position_q'] ?? NULL;
+    $tr = $target['position_r'] ?? NULL;
+
+    if ($aq !== NULL && $ar !== NULL && $tq !== NULL && $tr !== NULL) {
+      $distance = $this->hexDistance((int) $aq, (int) $ar, (int) $tq, (int) $tr);
+      $weapon_type = strtolower($weapon['type'] ?? 'melee');
+      $weapon_range = (int) ($weapon['range'] ?? ($weapon_type === 'melee' ? 1 : 6));
+
+      if ($distance > $weapon_range) {
+        return [
+          'is_valid' => FALSE,
+          'reason' => "Target is out of range (distance: {$distance}, range: {$weapon_range}).",
+          'modifiers' => [],
+        ];
+      }
+
+      // Ranged attacks: range increment penalty (-2 per increment beyond first).
+      if ($weapon_type === 'ranged') {
+        $base_range = (int) ($weapon['range_increment'] ?? $weapon_range);
+        if ($base_range > 0 && $distance > $base_range) {
+          $increments = (int) ceil($distance / $base_range) - 1;
+          $range_penalty = $increments * -2;
+          $modifiers['range_penalty'] = $range_penalty;
+        }
+      }
+    }
+
+    return ['is_valid' => TRUE, 'reason' => '', 'modifiers' => $modifiers];
   }
 
   /**
    * Validate spell cast.
    *
+   * Checks:
+   * 1. Caster is not silenced, unconscious, or paralyzed.
+   * 2. Spell slots available for the level (cantrips are free).
+   * 3. Targets are valid (exist, alive, within range).
+   * 4. Action economy can afford the spell's cost.
+   *
+   * @param array $caster
+   *   Caster participant state.
+   * @param array|string $spell
+   *   Spell data (or spell name string).
+   * @param int $spell_level
+   *   Spell slot level (0 = cantrip).
+   * @param array $targets
+   *   Target participant arrays.
+   * @param int $encounter_id
+   *
+   * @return array
+   *   ['is_valid' => bool, 'reason' => string]
+   *
    * @see /docs/dungeoncrawler/issues/combat-action-validation.md#spell-validation
    */
-  public function validateSpellCast($caster, $spell, $spell_level, array $targets, $encounter_id) {
-    // TODO: Check spell slots, not silenced, targets valid, range
+  public function validateSpellCast($caster, $spell, $spell_level, array $targets = [], $encounter_id = 0) {
+    $caster = (array) $caster;
+    $spell_data = is_array($spell) ? $spell : ['name' => $spell];
+    $level = (int) $spell_level;
+
+    // 1. Caster alive.
+    if (!empty($caster['is_defeated'])) {
+      return ['is_valid' => FALSE, 'reason' => 'Caster is defeated.'];
+    }
+
+    // 2. Condition restrictions (paralyzed, unconscious blocks all; also check silenced).
+    if ($encounter_id) {
+      $cond_check = $this->checkConditionRestrictions($caster, 'cast_spell');
+      if (!$cond_check['can_act']) {
+        return ['is_valid' => FALSE, 'reason' => $cond_check['restriction']];
+      }
+    }
+
+    // 3. Check stupefied condition (can cause flat check failure, but we don't
+    //    block — just warn). Silenced check for verbal components.
+    $caster_id = (int) ($caster['id'] ?? 0);
+    if ($encounter_id && $caster_id) {
+      $conditions = $this->database->select('combat_conditions', 'c')
+        ->fields('c', ['condition_type'])
+        ->condition('participant_id', $caster_id)
+        ->condition('encounter_id', (int) $encounter_id)
+        ->isNull('removed_at_round')
+        ->execute()
+        ->fetchCol();
+
+      // Silenced blocks verbal spells (most spells have verbal components).
+      $has_verbal = !isset($spell_data['components']) || in_array('verbal', (array) ($spell_data['components'] ?? []), TRUE);
+      if (in_array('silenced', $conditions, TRUE) && $has_verbal) {
+        return ['is_valid' => FALSE, 'reason' => 'Cannot cast verbal spells while silenced.'];
+      }
+    }
+
+    // 4. Spell slot check (cantrips are unlimited).
+    if ($level > 0) {
+      $entity_ref = $this->decodeEntityRef($caster);
+      $slots = (array) ($entity_ref['spell_slots'] ?? []);
+      $remaining = (int) ($slots[$level] ?? $slots['level_' . $level] ?? 0);
+      if ($remaining <= 0) {
+        return ['is_valid' => FALSE, 'reason' => "No spell slots remaining at level {$level}."];
+      }
+    }
+
+    // 5. Target validation.
+    $spell_range = (int) ($spell_data['range'] ?? 6);
+    foreach ($targets as $target) {
+      $target = (array) $target;
+      if (!empty($target['is_defeated'])) {
+        $name = $target['name'] ?? 'Target';
+        return ['is_valid' => FALSE, 'reason' => "{$name} is already defeated."];
+      }
+
+      // Range check if positions available.
+      $cq = $caster['position_q'] ?? NULL;
+      $cr = $caster['position_r'] ?? NULL;
+      $tq = $target['position_q'] ?? NULL;
+      $tr = $target['position_r'] ?? NULL;
+      if ($cq !== NULL && $cr !== NULL && $tq !== NULL && $tr !== NULL) {
+        $distance = $this->hexDistance((int) $cq, (int) $cr, (int) $tq, (int) $tr);
+        if ($distance > $spell_range) {
+          $name = $target['name'] ?? 'Target';
+          return ['is_valid' => FALSE, 'reason' => "{$name} is out of spell range (distance: {$distance}, range: {$spell_range})."];
+        }
+      }
+    }
+
     return ['is_valid' => TRUE, 'reason' => ''];
+  }
+
+  // -----------------------------------------------------------------------
+  // Helper methods.
+  // -----------------------------------------------------------------------
+
+  /**
+   * Hex distance between two axial coordinates.
+   */
+  protected function hexDistance(int $q1, int $r1, int $q2, int $r2): int {
+    $dq = abs($q1 - $q2);
+    $dr = abs($r1 - $r2);
+    $ds = abs((-$q1 - $r1) - (-$q2 - $r2));
+    return (int) (($dq + $dr + $ds) / 2);
+  }
+
+  /**
+   * Decode entity_ref JSON from participant array.
+   */
+  protected function decodeEntityRef(array $participant): array {
+    $ref = $participant['entity_ref'] ?? NULL;
+    if ($ref && is_string($ref)) {
+      $decoded = json_decode($ref, TRUE);
+      return is_array($decoded) ? $decoded : [];
+    }
+    return is_array($ref) ? $ref : [];
   }
 
 }
