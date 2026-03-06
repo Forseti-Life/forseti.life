@@ -754,9 +754,14 @@ import { ChatSessionApi } from './ChatSessionApi.js';
           this.elements.characterInventory.innerHTML = allItems
             .map(item => {
               const itemName = item.name || item;
-              const qty = item.quantity && item.quantity > 1 ? ` ×${item.quantity}` : '';
+              const itemId = item.item_id || item.id || '';
+              const qty = item.quantity || 1;
+              const qtyLabel = qty > 1 ? ` ×${qty}` : '';
               const equipped = item.equipped ? ' <span class="item-tag equipped">E</span>' : '';
-              return `<li>${itemName}${qty}${equipped}</li>`;
+              const type = item.type || item.category || '';
+              const bulk = item.bulk != null ? item.bulk : '';
+              const desc = item.description || '';
+              return `<li data-item-id="${itemId}" data-type="${type}" data-qty="${qty}" data-bulk="${bulk}" data-desc="${desc.replace(/"/g, '&quot;')}">${itemName}${qtyLabel}${equipped}</li>`;
             })
             .join('');
         } else {

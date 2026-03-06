@@ -651,6 +651,105 @@
       activate(saved);
     }
 
+    /* ---- PF2e Item Knowledge Base ---- */
+    var ITEM_DB = {
+      'leather-armor':     { type:'armor',      bulk:1, ac:'+1', desc:'A suit of leather armor sewn from tanned hides.', traits:'Comfort' },
+      'shortsword':        { type:'weapon',     bulk:'L', damage:'1d6 P', desc:'A short blade favored by rogues for its finesse.', traits:'Agile, Finesse, Versatile S' },
+      'dagger':            { type:'weapon',     bulk:'L', damage:'1d4 P', desc:'A small blade easily concealed. Can be thrown.', traits:'Agile, Finesse, Thrown 10 ft, Versatile S' },
+      'shortbow':          { type:'weapon',     bulk:1, damage:'1d6 P', desc:'A compact bow with deadly range.', traits:'Deadly d10, Range 60 ft' },
+      'thieves-tools':     { type:'gear',       bulk:'L', desc:'Picks, wrenches, and files used to disable locks and traps.' },
+      'adventurers-pack':  { type:'gear',       bulk:1, desc:'Bedroll, chalk, flint & steel, rope, rations (2 weeks), torch (5), waterskin.' },
+      'healers-tools':     { type:'gear',       bulk:1, desc:'Bandages, salves, and splints for treating wounds. Required for Treat Wounds.' },
+      'longsword':         { type:'weapon',     bulk:1, damage:'1d8 S', desc:'A versatile blade, the backbone of many warriors.', traits:'Versatile P' },
+      'rapier':            { type:'weapon',     bulk:1, damage:'1d6 P', desc:'An elegant thrusting sword used in precise strikes.', traits:'Deadly d8, Disarm, Finesse' },
+      'chain-mail':        { type:'armor',      bulk:2, ac:'+4', desc:'Interlocking metal rings providing solid protection.', traits:'Flexible, Noisy' },
+      'scale-mail':        { type:'armor',      bulk:2, ac:'+3', desc:'Overlapping metal scales riveted to leather backing.', traits:'' },
+      'shield':            { type:'armor',      bulk:1, ac:'+2', desc:'A wooden or steel shield. Raise it for +2 AC bonus.', traits:'Hardness 5, HP 20/10' },
+      'healing-potion-minor': { type:'consumable', bulk:'L', desc:'Restores 1d8 HP when consumed.', traits:'Healing, Magical, Necromancy' },
+      'healing-potion-lesser': { type:'consumable', bulk:'L', desc:'Restores 2d8+5 HP when consumed.', traits:'Healing, Magical, Necromancy' },
+      'alchemists-fire-lesser': { type:'consumable', bulk:'L', damage:'1d8+1 fire', desc:'A flask that ignites on impact. Persistent fire damage.', traits:'Alchemical, Bomb, Consumable, Fire, Splash' },
+      'torch':             { type:'gear',       bulk:'L', desc:'Provides bright light in a 20-foot radius for 1 hour.' },
+      'rope':              { type:'gear',       bulk:'L', desc:'50 feet of hemp rope. Useful for climbing and binding.' },
+      'rations':           { type:'consumable', bulk:'L', desc:'One day of food and water for survival.' },
+      'wolf-hide':         { type:'misc',       bulk:1, desc:'Thick pelt from a wild wolf. Valuable to tanners and crafters.' },
+      'iron-ore':          { type:'misc',       bulk:1, desc:'Raw iron suitable for smelting into weapons or armor.' },
+      'herbs':             { type:'misc',       bulk:'L', desc:'Gathered herbs useful for alchemical concoctions and poultices.' },
+      'gemstone':          { type:'misc',       bulk:'—', desc:'A rough-cut gemstone. Worth 10-50 GP depending on quality.' }
+    };
+
+    function getItemInfo(itemId, name) {
+      var info = ITEM_DB[itemId];
+      if (info) return info;
+      // Fuzzy match by name
+      var slug = (name || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/-+$/, '');
+      if (ITEM_DB[slug]) return ITEM_DB[slug];
+      return null;
+    }
+
+    /* ---- Tooltip System ---- */
+    var tooltip = document.createElement('div');
+    tooltip.className = 'inv-tooltip';
+    tooltip.style.display = 'none';
+    document.body.appendChild(tooltip);
+
+    function showTooltip(el) {
+      var itemId = el.dataset.itemId || '';
+      var name = el.querySelector('.inv-item__name');
+      var itemName = name ? name.textContent : el.textContent.trim();
+      var info = getItemInfo(itemId, itemName);
+      var dataDesc = el.dataset.desc || '';
+      var dataBulk = el.dataset.bulk || '';
+      var dataDamage = el.dataset.damage || '';
+      var dataTraits = el.dataset.traits || '';
+      var dataType = el.dataset.type || '';
+
+      // Merge DB info with data attributes (data attrs take priority)
+      var desc   = dataDesc || (info && info.desc) || '';
+      var bulk   = dataBulk || (info && info.bulk != null ? info.bulk : '');
+      var damage = dataDamage || (info && info.damage) || '';
+      var traits = dataTraits || (info && info.traits) || '';
+      var ac     = (info && info.ac) || '';
+      var type   = dataType || (info && info.type) || '';
+
+      var html = '<div class="inv-tooltip__name">' + itemName + '</div>';
+      if (type) html += '<div class="inv-tooltip__type">' + type + '</div>';
+      if (desc) html += '<div class="inv-tooltip__desc">' + desc + '</div>';
+
+      var stats = [];
+      if (damage) stats.push('<span class="inv-tooltip__stat"><b>Damage:</b> ' + damage + '</span>');
+      if (ac)     stats.push('<span class="inv-tooltip__stat"><b>AC:</b> ' + ac + '</span>');
+      if (bulk !== '')  stats.push('<span class="inv-tooltip__stat"><b>Bulk:</b> ' + bulk + '</span>');
+      if (stats.length) html += '<div class="inv-tooltip__stats">' + stats.join('') + '</div>';
+
+      if (traits) html += '<div class="inv-tooltip__traits">' + traits + '</div>';
+
+      tooltip.innerHTML = html;
+      tooltip.style.display = 'block';
+
+      // Position
+      var rect = el.getBoundingClientRect();
+      var tipW = tooltip.offsetWidth;
+      var tipH = tooltip.offsetHeight;
+      var left = rect.left - tipW - 8;
+      if (left < 8) left = rect.right + 8;
+      var top = rect.top + (rect.height / 2) - (tipH / 2);
+      if (top < 8) top = 8;
+      if (top + tipH > window.innerHeight - 8) top = window.innerHeight - tipH - 8;
+      tooltip.style.left = left + 'px';
+      tooltip.style.top = top + 'px';
+    }
+
+    function hideTooltip() {
+      tooltip.style.display = 'none';
+    }
+
+    function attachTooltips(container) {
+      container.querySelectorAll('.inv-item').forEach(function (el) {
+        el.addEventListener('mouseenter', function () { showTooltip(this); });
+        el.addEventListener('mouseleave', hideTooltip);
+      });
+    }
+
     /* ---- Inventory Sync (mirrors char-sheet data) ---- */
     function syncInventory() {
       // Currency — copy from character sheet
@@ -675,21 +774,32 @@
       dstList.innerHTML = '';
       items.forEach(function (li) {
         var text = li.textContent.trim();
-        var type = li.dataset.type || 'gear';
+        var itemId = li.dataset.itemId || '';
+        var info = getItemInfo(itemId, text);
+        var type = li.dataset.type || (info && info.type) || 'gear';
         var qty  = li.dataset.qty || '';
+        var bulk = li.dataset.bulk || (info && info.bulk != null ? String(info.bulk) : '');
+        var desc = li.dataset.desc || (info && info.desc) || '';
         var icon = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', gear: '🎒', misc: '🦴' }[type] || '📦';
         var el = document.createElement('li');
         el.className = 'inv-item';
         el.dataset.type = type;
+        el.dataset.itemId = itemId;
+        el.dataset.desc = desc;
+        el.dataset.bulk = bulk;
+        if (info && info.damage) el.dataset.damage = info.damage;
+        if (info && info.traits) el.dataset.traits = info.traits;
         el.innerHTML =
           '<span class="inv-item__icon">' + icon + '</span>' +
           '<div class="inv-item__info">' +
             '<div class="inv-item__name">' + text + '</div>' +
-            (type ? '<div class="inv-item__meta">' + type + '</div>' : '') +
+            '<div class="inv-item__meta">' + type + (bulk ? ' · Bulk ' + bulk : '') + '</div>' +
           '</div>' +
-          (qty ? '<span class="inv-item__qty">×' + qty + '</span>' : '');
+          (qty && parseInt(qty) > 1 ? '<span class="inv-item__qty">×' + qty + '</span>' : '');
         dstList.appendChild(el);
       });
+
+      attachTooltips(dstList);
     }
 
     /* ---- Inventory Filter ---- */

@@ -1420,6 +1420,73 @@
   text-align: center;
 }
 
+/* --- Inventory Item Tooltip --- */
+.inv-tooltip {
+  position: fixed;
+  z-index: 10000;
+  max-width: 280px;
+  min-width: 180px;
+  background: var(--gray-900, #0f172a);
+  border: 1px solid var(--accent, #60a5fa);
+  border-radius: var(--radius-xl, 12px);
+  padding: var(--space-3, 12px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+  pointer-events: none;
+  font-family: "Montserrat", "Segoe UI", sans-serif;
+  color: var(--text, #e2e8f0);
+}
+
+.inv-tooltip__name {
+  font-weight: 700;
+  font-size: var(--text-base, 1rem);
+  color: var(--text-bright, #f8fafc);
+  margin-bottom: 2px;
+}
+
+.inv-tooltip__type {
+  display: inline-block;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent, #60a5fa);
+  margin-bottom: var(--space-1, 4px);
+}
+
+.inv-tooltip__desc {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-muted, #94a3b8);
+  line-height: 1.45;
+  margin-bottom: var(--space-2, 8px);
+}
+
+.inv-tooltip__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1, 4px) var(--space-3, 12px);
+  margin-bottom: var(--space-2, 8px);
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  background: var(--overlay-white-5, rgba(255,255,255,0.05));
+  border-radius: var(--radius-lg, 10px);
+}
+
+.inv-tooltip__stat {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--text, #e2e8f0);
+  white-space: nowrap;
+}
+
+.inv-tooltip__stat b {
+  color: var(--text-bright, #f8fafc);
+}
+
+.inv-tooltip__traits {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--accent, #60a5fa);
+  font-style: italic;
+  line-height: 1.4;
+}
+
 /* ==========================================================================
    Character Sheet & Stats
    ========================================================================== */
