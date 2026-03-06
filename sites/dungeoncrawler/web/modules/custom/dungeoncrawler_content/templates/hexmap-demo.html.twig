@@ -209,6 +209,19 @@
 
   </div>{# /.game-layout__main #}
   <div class="game-layout__sidebar">
+
+  {# Sidebar Tab Bar #}
+  <div class="sidebar-tabs" id="sidebar-tabs">
+    <button class="sidebar-tab sidebar-tab--active" data-panel="character">
+      <span class="sidebar-tab__icon">&#x1F4DC;</span>{{ 'Character'|t }}
+    </button>
+    <button class="sidebar-tab" data-panel="inventory">
+      <span class="sidebar-tab__icon">&#x1F392;</span>{{ 'Inventory'|t }}
+    </button>
+  </div>
+
+  {# === Character Tab Panel === #}
+  <div class="sidebar-panel sidebar-panel--active" id="sidebar-panel-character">
   <div class="character-sheet">
     <div class="character-sheet__header">
       <div>
@@ -395,6 +408,53 @@
     </div>
     </div>
   </div>
+  </div>{# /.sidebar-panel-character #}
+
+  {# === Inventory Tab Panel === #}
+  <div class="sidebar-panel" id="sidebar-panel-inventory" style="display:none;">
+    <div class="inventory-panel">
+      <div class="inventory-panel__header">
+        <h3>{{ 'Inventory'|t }}</h3>
+        <div class="inventory-panel__weight">
+          <span class="label">{{ 'Bulk:'|t }}</span>
+          <span id="inv-bulk-current" class="inventory-bulk-value">0</span>
+          <span class="muted">/</span>
+          <span id="inv-bulk-max" class="inventory-bulk-value">5</span>
+        </div>
+      </div>
+
+      <div class="inventory-panel__currency">
+        <div class="currency-coin currency-coin--gp">
+          <span class="currency-coin__icon">&#x1FA99;</span>
+          <span id="inv-gp" class="currency-coin__amount">0</span>
+          <span class="currency-coin__label">{{ 'GP'|t }}</span>
+        </div>
+        <div class="currency-coin currency-coin--sp">
+          <span class="currency-coin__icon">&#x26AA;</span>
+          <span id="inv-sp" class="currency-coin__amount">0</span>
+          <span class="currency-coin__label">{{ 'SP'|t }}</span>
+        </div>
+        <div class="currency-coin currency-coin--cp">
+          <span class="currency-coin__icon">&#x1F7E4;</span>
+          <span id="inv-cp" class="currency-coin__amount">0</span>
+          <span class="currency-coin__label">{{ 'CP'|t }}</span>
+        </div>
+      </div>
+
+      <div class="inventory-panel__filters">
+        <button class="inv-filter inv-filter--active" data-filter="all">{{ 'All'|t }}</button>
+        <button class="inv-filter" data-filter="weapon">{{ '⚔️ Weapons'|t }}</button>
+        <button class="inv-filter" data-filter="armor">{{ '🛡️ Armor'|t }}</button>
+        <button class="inv-filter" data-filter="consumable">{{ '🧪 Consumables'|t }}</button>
+        <button class="inv-filter" data-filter="gear">{{ '🎒 Gear'|t }}</button>
+      </div>
+
+      <ul class="inventory-panel__list" id="inv-item-list">
+        <li class="inventory-panel__empty">{{ 'No items in inventory'|t }}</li>
+      </ul>
+    </div>
+  </div>{# /.sidebar-panel-inventory #}
+
   </div>{# /.game-layout__sidebar #}
   </div>{# /.game-layout #}
 
@@ -549,6 +609,111 @@
     slider.addEventListener('change', function () {
       localStorage.setItem(STORAGE_KEY, this.value);
     });
+  })();
+
+  /* ---- Sidebar Tab Switching ---- */
+  (function () {
+    const tabBar = document.getElementById('sidebar-tabs');
+    if (!tabBar) return;
+    const tabs = tabBar.querySelectorAll('.sidebar-tab');
+    const TAB_KEY = 'dc_sidebar_tab';
+
+    function activate(panelId) {
+      tabs.forEach(function (t) {
+        t.classList.toggle('sidebar-tab--active', t.dataset.panel === panelId);
+      });
+      document.querySelectorAll('.sidebar-panel').forEach(function (p) {
+        var id = p.id.replace('sidebar-panel-', '');
+        if (id === panelId) {
+          p.style.display = '';
+          p.classList.add('sidebar-panel--active');
+        } else {
+          p.style.display = 'none';
+          p.classList.remove('sidebar-panel--active');
+        }
+      });
+    }
+
+    tabs.forEach(function (tab) {
+      tab.addEventListener('click', function () {
+        var panel = this.dataset.panel;
+        activate(panel);
+        localStorage.setItem(TAB_KEY, panel);
+        // Sync inventory when switching to it
+        if (panel === 'inventory') syncInventory();
+      });
+    });
+
+    // Restore saved tab
+    var saved = localStorage.getItem(TAB_KEY);
+    if (saved && document.getElementById('sidebar-panel-' + saved)) {
+      activate(saved);
+    }
+
+    /* ---- Inventory Sync (mirrors char-sheet data) ---- */
+    function syncInventory() {
+      // Currency — copy from character sheet
+      var gp = document.getElementById('char-gp');
+      var sp = document.getElementById('char-sp');
+      var cp = document.getElementById('char-cp');
+      if (gp) document.getElementById('inv-gp').textContent = gp.textContent;
+      if (sp) document.getElementById('inv-sp').textContent = sp.textContent;
+      if (cp) document.getElementById('inv-cp').textContent = cp.textContent;
+
+      // Items — clone from character sheet inventory list
+      var srcList = document.getElementById('char-inventory');
+      var dstList = document.getElementById('inv-item-list');
+      if (!srcList || !dstList) return;
+
+      var items = srcList.querySelectorAll('li:not(.inventory-empty)');
+      if (items.length === 0) {
+        dstList.innerHTML = '<li class="inventory-panel__empty">No items in inventory</li>';
+        return;
+      }
+
+      dstList.innerHTML = '';
+      items.forEach(function (li) {
+        var text = li.textContent.trim();
+        var type = li.dataset.type || 'gear';
+        var qty  = li.dataset.qty || '';
+        var icon = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', gear: '🎒' }[type] || '📦';
+        var el = document.createElement('li');
+        el.className = 'inv-item';
+        el.dataset.type = type;
+        el.innerHTML =
+          '<span class="inv-item__icon">' + icon + '</span>' +
+          '<div class="inv-item__info">' +
+            '<div class="inv-item__name">' + text + '</div>' +
+            (type ? '<div class="inv-item__meta">' + type + '</div>' : '') +
+          '</div>' +
+          (qty ? '<span class="inv-item__qty">×' + qty + '</span>' : '');
+        dstList.appendChild(el);
+      });
+    }
+
+    /* ---- Inventory Filter ---- */
+    var filterBtns = document.querySelectorAll('.inv-filter');
+    filterBtns.forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        filterBtns.forEach(function (b) { b.classList.remove('inv-filter--active'); });
+        this.classList.add('inv-filter--active');
+        var filter = this.dataset.filter;
+        var items = document.querySelectorAll('#inv-item-list .inv-item');
+        items.forEach(function (item) {
+          if (filter === 'all' || item.dataset.type === filter) {
+            item.style.display = '';
+          } else {
+            item.style.display = 'none';
+          }
+        });
+      });
+    });
+
+    // Sync on initial load if inventory tab was remembered
+    if (saved === 'inventory') syncInventory();
+
+    // Expose syncInventory globally so hexmap.js can call it after data loads
+    window.dcSyncInventory = syncInventory;
   })();
   </script>
 </div>

@@ -1194,6 +1194,233 @@
 }
 
 /* ==========================================================================
+   Sidebar Tabs
+   ========================================================================== */
+
+.sidebar-tabs {
+  display: flex;
+  gap: 2px;
+  margin-bottom: var(--space-2);
+  background: var(--gray-800, #1e293b);
+  border-radius: var(--radius-xl, 12px);
+  padding: 3px;
+}
+
+.sidebar-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  padding: var(--space-1, 4px) var(--space-2, 8px);
+  border: none;
+  border-radius: var(--radius-lg, 10px);
+  background: transparent;
+  color: var(--text-muted, #94a3b8);
+  font-size: var(--text-sm, 0.875rem);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.sidebar-tab:hover {
+  color: var(--text, #e2e8f0);
+  background: var(--overlay-white-5, rgba(255,255,255,0.05));
+}
+
+.sidebar-tab--active {
+  background: var(--panel, #1e293b);
+  color: var(--text-bright, #f8fafc);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+.sidebar-tab__icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.sidebar-panel {
+  display: none;
+}
+
+.sidebar-panel--active {
+  display: block;
+}
+
+/* ==========================================================================
+   Inventory Panel
+   ========================================================================== */
+
+.inventory-panel {
+  background: var(--panel);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-3xl);
+  padding: var(--space-3);
+  box-shadow: var(--shadow-xl);
+  color: var(--text);
+}
+
+.inventory-panel__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-3);
+}
+
+.inventory-panel__header h3 {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--text-bright);
+}
+
+.inventory-panel__weight {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--text-sm);
+}
+
+.inventory-bulk-value {
+  font-weight: 700;
+  color: var(--text-bright);
+}
+
+.inventory-panel__currency {
+  display: flex;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+  padding: var(--space-2);
+  background: var(--gray-800, #1e293b);
+  border-radius: var(--radius-xl);
+}
+
+.currency-coin {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.currency-coin__icon {
+  font-size: 1.2rem;
+  line-height: 1;
+}
+
+.currency-coin__amount {
+  font-weight: 700;
+  font-size: var(--text-lg);
+  color: var(--text-bright);
+}
+
+.currency-coin__label {
+  font-size: var(--text-xs);
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+}
+
+.inventory-panel__filters {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-3);
+}
+
+.inv-filter {
+  padding: 3px 8px;
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-lg);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.inv-filter:hover {
+  color: var(--text);
+  border-color: var(--accent, #60a5fa);
+}
+
+.inv-filter--active {
+  background: var(--accent, #60a5fa);
+  color: var(--gray-900, #0f172a);
+  border-color: var(--accent, #60a5fa);
+  font-weight: 600;
+}
+
+.inventory-panel__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.inventory-panel__empty {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: var(--text-sm);
+  text-align: center;
+  padding: var(--space-4) 0;
+}
+
+.inv-item {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-2);
+  background: var(--gray-800, #1e293b);
+  border: 1px solid var(--panel-border);
+  border-radius: var(--radius-xl);
+  transition: border-color 0.15s ease;
+}
+
+.inv-item:hover {
+  border-color: var(--accent, #60a5fa);
+}
+
+.inv-item__icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.inv-item__info {
+  flex: 1;
+  min-width: 0;
+}
+
+.inv-item__name {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-bright);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inv-item__meta {
+  font-size: var(--text-xs);
+  color: var(--muted);
+}
+
+.inv-item__qty {
+  font-weight: 700;
+  font-size: var(--text-sm);
+  color: var(--text);
+  flex-shrink: 0;
+  min-width: 20px;
+  text-align: center;
+}
+
+/* ==========================================================================
    Character Sheet & Stats
    ========================================================================== */
 
