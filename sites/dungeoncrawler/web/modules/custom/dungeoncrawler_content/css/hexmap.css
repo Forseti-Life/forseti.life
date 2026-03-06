@@ -257,6 +257,10 @@
   display: none;
 }
 
+.hexmap-container.fullscreen .game-layout-controls {
+  display: none;
+}
+
 .hexmap-header {
   margin-bottom: var(--space-5);
 }
@@ -1115,10 +1119,55 @@
    ========================================================================== */
 
 .game-layout {
+  --sidebar-pct: 20;
   display: grid;
-  grid-template-columns: 1fr 340px;
+  grid-template-columns: calc(100% - var(--sidebar-pct) * 1% - 16px) calc(var(--sidebar-pct) * 1%);
   gap: var(--space-4);
   align-items: start;
+}
+
+/* --- Layout ratio slider --- */
+.game-layout-controls {
+  margin-bottom: var(--space-2);
+  display: flex;
+  justify-content: flex-end;
+}
+
+.layout-ratio-label {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-muted, #94a3b8);
+  font-size: var(--text-sm, 0.875rem);
+  cursor: default;
+}
+
+.layout-ratio-label__text {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--muted, #64748b);
+}
+
+.layout-ratio-label__icons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.layout-ratio-label__value {
+  font-variant-numeric: tabular-nums;
+  min-width: 52px;
+  text-align: center;
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--muted, #64748b);
+}
+
+#layout-ratio-slider {
+  width: 120px;
+  accent-color: var(--accent, #60a5fa);
+  cursor: pointer;
 }
 
 .game-layout__main {

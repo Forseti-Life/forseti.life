@@ -58,7 +58,19 @@
     
   </div>
 
-  <div class="game-layout">
+  <div class="game-layout-controls">
+    <label class="layout-ratio-label" for="layout-ratio-slider">
+      <span class="layout-ratio-label__text">{{ 'Layout'|t }}</span>
+      <span class="layout-ratio-label__icons">
+        <span title="{{ 'Board'|t }}">&#x1F5FA;</span>
+        <input type="range" id="layout-ratio-slider" min="15" max="50" value="20" step="1" />
+        <span title="{{ 'Sheet'|t }}">&#x1F4DC;</span>
+      </span>
+      <span id="layout-ratio-value" class="layout-ratio-label__value">80 / 20</span>
+    </label>
+  </div>
+
+  <div class="game-layout" id="game-layout">
   <div class="game-layout__main">
 
   <div class="hexmap-stage">
@@ -505,4 +517,38 @@
       </ul>
     </div>
   </div>
+
+  <script>
+  (function () {
+    const STORAGE_KEY = 'dc_layout_ratio';
+    const slider = document.getElementById('layout-ratio-slider');
+    const label  = document.getElementById('layout-ratio-value');
+    const layout = document.getElementById('game-layout');
+    if (!slider || !layout) return;
+
+    function apply(pct) {
+      layout.style.setProperty('--sidebar-pct', pct);
+      label.textContent = (100 - pct) + ' / ' + pct;
+    }
+
+    // Restore saved preference
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) {
+      const v = parseInt(saved, 10);
+      if (v >= 15 && v <= 50) {
+        slider.value = v;
+        apply(v);
+      }
+    }
+
+    slider.addEventListener('input', function () {
+      const v = parseInt(this.value, 10);
+      apply(v);
+    });
+
+    slider.addEventListener('change', function () {
+      localStorage.setItem(STORAGE_KEY, this.value);
+    });
+  })();
+  </script>
 </div>
