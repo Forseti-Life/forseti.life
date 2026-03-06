@@ -96,6 +96,9 @@ class HexMapController extends ControllerBase {
     $dungeon_payload = $this->attachEntityPortraitUrls($dungeon_payload, $launch_context);
     $dungeon_payload = $this->ensurePayloadObjectOrientations($dungeon_payload);
 
+    // Bootstrap NPC psychology profiles for all NPCs in the active room.
+    $this->ensureRoomNpcPsychologyProfiles($dungeon_payload, $launch_context);
+
     return [
       '#theme' => 'hexmap_demo',
       '#launch_context' => $launch_context,
@@ -1397,6 +1400,56 @@ class HexMapController extends ControllerBase {
     }
 
     return $dungeon_payload;
+  }
+
+  /**
+   * Ensure NPC psychology profiles exist for all NPCs in the active room.
+   *
+   * Called during initial page load so that the interjection system has
+   * profiles to evaluate from the first chat message. Uses the RoomChatService
+   * bridge to NpcPsychologyService::ensureRoomNpcProfiles().
+   *
+   * @param array $dungeon_payload
+   *   Full dungeon payload (with entities already injected).
+   * @param array $launch_context
+   *   Launch context with campaign_id and room_id.
+   */
+  protected function ensureRoomNpcPsychologyProfiles(array $dungeon_payload, array $launch_context): void {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    $room_id = $launch_context['room_id'] ?? '';
+    if (!$campaign_id || !$room_id) {
+      return;
+    }
+
+    // Gather room entities for profile bootstrapping.
+    $room_entities = [];
+    foreach ($dungeon_payload['entities'] ?? [] as $entity) {
+      $ent_room = $entity['placement']['room_id'] ?? '';
+      if ($ent_room === $room_id) {
+        $room_entities[] = $entity;
+      }
+    }
+
+    if (empty($room_entities)) {
+      return;
+    }
+
+    try {
+      $chat_service = \Drupal::service('dungeoncrawler_content.room_chat_service');
+      $created = $chat_service->ensureNpcProfiles($campaign_id, $room_entities);
+      if ($created > 0) {
+        \Drupal::logger('dungeoncrawler_hexmap')->info(
+          'Auto-created @count NPC psychology profiles on room load for campaign @cid',
+          ['@count' => $created, '@cid' => $campaign_id]
+        );
+      }
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('dungeoncrawler_hexmap')->warning(
+        'NPC psychology bootstrap failed: @err',
+        ['@err' => $e->getMessage()]
+      );
+    }
   }
 
   /**

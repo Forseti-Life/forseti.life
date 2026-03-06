@@ -267,6 +267,7 @@ class RoomChatService {
     // Generate AI response (GM for room channel, NPC for private channels).
     $gm_response = NULL;
     $state_diff = NULL;
+    $npc_interjections = [];
     if ($type === 'player') {
       if ($channel === 'room') {
         // Room channel: GM responds.
@@ -280,6 +281,14 @@ class RoomChatService {
         $gm_response = $gm_result['message'];
         $state_diff = $gm_result['state_diff'] ?? NULL;
       }
+
+      // After GM replies on the room channel, evaluate NPC interjections.
+      // Room NPCs monitor the conversation and may chime in if motivated.
+      if ($channel === 'room' && $gm_response !== NULL) {
+        $npc_interjections = $this->evaluateNpcInterjections(
+          $campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $message, $gm_response['message'] ?? ''
+        );
+      }
     }
 
     $result = [
@@ -291,6 +300,9 @@ class RoomChatService {
     }
     if ($state_diff !== NULL) {
       $result['state_diff'] = $state_diff;
+    }
+    if (!empty($npc_interjections)) {
+      $result['npc_interjections'] = $npc_interjections;
     }
     return $result;
   }
@@ -1467,6 +1479,505 @@ class RoomChatService {
     }
 
     return [];
+  }
+
+  // =========================================================================
+  // NPC interjection: NPCs monitor room chat and participate when motivated.
+  // =========================================================================
+
+  /**
+   * Evaluate whether any NPC in the room wants to interject after a GM reply.
+   *
+   * Each NPC in the room has a psychology profile with personality, attitude,
+   * and motivations. After each player→GM exchange, we ask the AI whether any
+   * NPC is motivated to speak. This uses a single AI call that evaluates all
+   * NPCs at once, returning zero or more interjections.
+   *
+   * NPC interjections are persisted to both dungeon_data chat and per-NPC
+   * AI sessions, so NPCs maintain their own conversation memory.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param int|string $room_index
+   *   Room index in dungeon_data.
+   * @param int|string $dungeon_id
+   *   Dungeon record ID.
+   * @param array &$dungeon_data
+   *   Dungeon data (modified in place if NPCs speak).
+   * @param string $player_message
+   *   The player's original message text.
+   * @param string $gm_narrative
+   *   The GM's reply narrative text.
+   *
+   * @return array
+   *   Array of NPC interjection message arrays, each with:
+   *   - speaker: NPC name
+   *   - message: What the NPC says
+   *   - type: 'npc'
+   *   - channel: 'room'
+   */
+  protected function evaluateNpcInterjections(
+    int $campaign_id,
+    string $room_id,
+    int|string $room_index,
+    int|string $dungeon_id,
+    array &$dungeon_data,
+    string $player_message,
+    string $gm_narrative
+  ): array {
+    // Gather room NPCs with psychology profiles.
+    $room_npcs = $this->gatherRoomNpcsWithProfiles($campaign_id, $room_id, $dungeon_data);
+
+    if (empty($room_npcs)) {
+      return [];
+    }
+
+    // Build the interjection evaluation prompt.
+    $npc_descriptions = [];
+    foreach ($room_npcs as $npc) {
+      $profile = $npc['profile'];
+      $desc = "{$profile['display_name']}";
+      $desc .= " — Attitude: {$profile['attitude']}";
+      if (!empty($profile['personality_traits'])) {
+        $desc .= ", Personality: {$profile['personality_traits']}";
+      }
+      if (!empty($profile['motivations'])) {
+        $desc .= ", Motivations: {$profile['motivations']}";
+      }
+      // Include recent inner monologue if any.
+      $monologue = $profile['inner_monologue'] ?? [];
+      if (!empty($monologue)) {
+        $recent_thought = end($monologue);
+        $thought_text = $recent_thought['thought'] ?? $recent_thought['text'] ?? '';
+        if ($thought_text) {
+          $desc .= ", Recent thought: \"{$thought_text}\"";
+        }
+      }
+      // Include NPC session context (conversation memory).
+      $session_key = $this->sessionManager->npcSessionKey($campaign_id, $npc['entity_ref']);
+      $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 3);
+      if ($session_context) {
+        $desc .= "\n  Prior conversations: {$session_context}";
+      }
+      $npc_descriptions[] = $desc;
+    }
+
+    // Get recent chat for broader context (last 6 messages).
+    $chat = $dungeon_data['rooms'][$room_index]['chat'] ?? [];
+    $recent = array_slice($chat, -6);
+    $history_lines = [];
+    foreach ($recent as $msg) {
+      $speaker = $msg['speaker'] ?? 'Unknown';
+      $text = $msg['message'] ?? '';
+      $history_lines[] = "{$speaker}: {$text}";
+    }
+
+    $system_prompt = <<<PROMPT
+You are the NPC interjection evaluator for a tabletop RPG. Your job is to decide which NPCs present in the room, if any, are motivated to speak up after the latest exchange.
+
+Rules:
+- NPCs should NOT interject on every message. Most of the time, output NONE.
+- An NPC should only speak if the conversation directly involves them, mentions them, touches on their motivations, or if their personality would compel them to react.
+- Hostile or unfriendly NPCs may interject with threats, complaints, or provocations.
+- Friendly or helpful NPCs may offer information, greetings, or advice if the topic is relevant.
+- Indifferent NPCs rarely speak unless directly addressed or their interests are at stake.
+- Maximum 1 NPC interjection per exchange (keep the pace natural).
+- Keep interjections brief: 1-2 sentences max.
+
+Output format — respond with EXACTLY one of:
+1. The word NONE (if no NPC wants to speak)
+2. A JSON object: {"speaker": "NPC Name", "message": "What they say"}
+PROMPT;
+
+    $user_prompt = "NPCs present in the room:\n" . implode("\n", $npc_descriptions);
+    $user_prompt .= "\n\nRecent conversation:\n" . implode("\n", $history_lines);
+    $user_prompt .= "\n\nLatest exchange:";
+    $user_prompt .= "\nPlayer: {$player_message}";
+    $user_prompt .= "\nGame Master: {$gm_narrative}";
+    $user_prompt .= "\n\nShould any NPC interject? Respond with NONE or a JSON object.";
+
+    try {
+      $result = $this->aiApiService->invokeModelDirect(
+        $user_prompt,
+        'dungeoncrawler_content',
+        'npc_interjection_eval',
+        ['campaign_id' => $campaign_id, 'room_id' => $room_id],
+        [
+          'system_prompt' => $system_prompt,
+          'max_tokens' => 200,
+          'skip_cache' => TRUE,
+        ]
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('NPC interjection eval failed: @err', ['@err' => $e->getMessage()]);
+      return [];
+    }
+
+    if (empty($result['success']) || empty($result['response'])) {
+      return [];
+    }
+
+    $response_text = trim($result['response']);
+
+    // Parse response.
+    if (strtoupper($response_text) === 'NONE' || stripos($response_text, 'none') === 0) {
+      // Feed the conversation to NPC sessions even when they don't speak.
+      $this->feedRoomChatToNpcSessions($campaign_id, $room_npcs, $player_message, $gm_narrative);
+      return [];
+    }
+
+    // Try to parse JSON from the response (may have extra text around it).
+    $json_match = [];
+    if (preg_match('/\{[^}]+\}/', $response_text, $json_match)) {
+      $parsed = json_decode($json_match[0], TRUE);
+    }
+    else {
+      $parsed = json_decode($response_text, TRUE);
+    }
+
+    if (!is_array($parsed) || empty($parsed['speaker']) || empty($parsed['message'])) {
+      $this->feedRoomChatToNpcSessions($campaign_id, $room_npcs, $player_message, $gm_narrative);
+      return [];
+    }
+
+    // Validate that the speaker is actually an NPC in the room.
+    $valid_speaker = FALSE;
+    $speaker_ref = '';
+    foreach ($room_npcs as $npc) {
+      if (strcasecmp($npc['profile']['display_name'], $parsed['speaker']) === 0) {
+        $valid_speaker = TRUE;
+        $speaker_ref = $npc['entity_ref'];
+        break;
+      }
+    }
+
+    if (!$valid_speaker) {
+      $this->logger->warning('NPC interjection referenced unknown speaker: @speaker', [
+        '@speaker' => $parsed['speaker'],
+      ]);
+      $this->feedRoomChatToNpcSessions($campaign_id, $room_npcs, $player_message, $gm_narrative);
+      return [];
+    }
+
+    // Build the NPC chat message.
+    $npc_message = [
+      'speaker' => $parsed['speaker'],
+      'message' => $parsed['message'],
+      'type' => 'npc',
+      'channel' => 'room',
+      'timestamp' => date('c'),
+      'character_id' => NULL,
+      'user_id' => 0,
+      'interjection' => TRUE,
+    ];
+
+    // Persist the NPC interjection to dungeon_data chat.
+    $dungeon_data['rooms'][$room_index]['chat'][] = $npc_message;
+
+    // Enforce message limit.
+    $chat_count = count($dungeon_data['rooms'][$room_index]['chat']);
+    if ($chat_count > self::MAX_MESSAGES_PER_ROOM) {
+      $dungeon_data['rooms'][$room_index]['chat'] = array_slice(
+        $dungeon_data['rooms'][$room_index]['chat'],
+        $chat_count - self::MAX_MESSAGES_PER_ROOM
+      );
+    }
+
+    $this->database->update('dc_campaign_dungeons')
+      ->fields([
+        'dungeon_data' => json_encode($dungeon_data),
+        'updated' => time(),
+      ])
+      ->condition('dungeon_id', $dungeon_id)
+      ->condition('campaign_id', $campaign_id)
+      ->execute();
+
+    // Record the interjection in the NPC's own AI session.
+    $session_key = $this->sessionManager->npcSessionKey($campaign_id, $speaker_ref);
+    $context_for_npc = "Room conversation — Player: {$player_message} | GM: {$gm_narrative}";
+    $this->sessionManager->appendMessage($session_key, $campaign_id, 'user', $context_for_npc);
+    $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $parsed['message']);
+
+    // Record inner monologue for the speaking NPC.
+    $this->psychologyService->recordInnerMonologue(
+      $campaign_id,
+      $speaker_ref,
+      'conversation',
+      "I spoke up in the room chat: \"{$parsed['message']}\"",
+      ['trigger' => 'room_interjection', 'player_said' => substr($player_message, 0, 200)]
+    );
+
+    // Feed the conversation to ALL NPC sessions (including non-speakers).
+    $this->feedRoomChatToNpcSessions($campaign_id, $room_npcs, $player_message, $gm_narrative, $speaker_ref);
+
+    // Bridge into hierarchical session system.
+    $this->bridgeNpcInterjectionToSessionSystem(
+      $campaign_id, $dungeon_id, $room_id, $parsed['speaker'], $parsed['message'], $speaker_ref
+    );
+
+    $this->logger->info('NPC interjection by @npc in room @room: @msg', [
+      '@npc' => $parsed['speaker'],
+      '@room' => $room_id,
+      '@msg' => substr($parsed['message'], 0, 100),
+    ]);
+
+    return [$npc_message];
+  }
+
+  /**
+   * Gather all NPCs in the current room that have psychology profiles.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param array $dungeon_data
+   *   Full dungeon data.
+   *
+   * @return array
+   *   Array of ['entity_ref' => string, 'entity' => array, 'profile' => array].
+   */
+  protected function gatherRoomNpcsWithProfiles(int $campaign_id, string $room_id, array $dungeon_data): array {
+    $result = [];
+    $seen_refs = [];
+
+    // Gather NPCs from top-level entities.
+    foreach ($dungeon_data['entities'] ?? [] as $entity) {
+      $ent_room = $entity['placement']['room_id'] ?? '';
+      $ent_type = $entity['entity_type'] ?? '';
+      if ($ent_room !== $room_id || $ent_type !== 'npc') {
+        continue;
+      }
+
+      $ref = $entity['entity_ref']['content_id'] ?? '';
+      if (!$ref || isset($seen_refs[$ref])) {
+        continue;
+      }
+
+      $profile = $this->psychologyService->loadProfile($campaign_id, $ref);
+      if (!$profile) {
+        continue;
+      }
+
+      $result[] = [
+        'entity_ref' => $ref,
+        'entity' => $entity,
+        'profile' => $profile,
+      ];
+      $seen_refs[$ref] = TRUE;
+    }
+
+    // Also check dc_campaign_characters for NPCs in this room.
+    try {
+      // Resolve room slug for DB query.
+      $room_slug = $this->resolveRoomSlugForQuery($campaign_id, $room_id, $dungeon_data);
+      if ($room_slug) {
+        $char_rows = $this->database->select('dc_campaign_characters', 'c')
+          ->fields('c', ['name', 'role', 'instance_id'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('type', 'npc')
+          ->condition('location_ref', $room_slug)
+          ->execute()
+          ->fetchAll();
+
+        foreach ($char_rows as $row) {
+          // Try instance_id first, then name-derived ref. Some NPCs have
+          // mismatched instance_ids vs psychology entity_refs.
+          $candidates = array_filter([
+            $row->instance_id ?: NULL,
+            strtolower(str_replace(' ', '_', $row->name)),
+          ]);
+
+          $ref = NULL;
+          $profile = NULL;
+          foreach ($candidates as $candidate) {
+            if (isset($seen_refs[$candidate])) {
+              $ref = $candidate;
+              break;
+            }
+            $profile = $this->psychologyService->loadProfile($campaign_id, $candidate);
+            if ($profile) {
+              $ref = $candidate;
+              break;
+            }
+          }
+
+          if (!$ref || !$profile || isset($seen_refs[$ref])) {
+            continue;
+          }
+
+          $result[] = [
+            'entity_ref' => $ref,
+            'entity' => [],
+            'profile' => $profile,
+          ];
+          $seen_refs[$ref] = TRUE;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      // Non-critical; continue with entities already found.
+    }
+
+    return $result;
+  }
+
+  /**
+   * Feed room chat activity to all NPC AI sessions for passive awareness.
+   *
+   * Even when NPCs don't interject, they observe what's happening. This
+   * records the conversation in their AI session so they can reference it
+   * in future interactions.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $room_npcs
+   *   Array from gatherRoomNpcsWithProfiles().
+   * @param string $player_message
+   *   Player's message.
+   * @param string $gm_narrative
+   *   GM's reply.
+   * @param string|null $skip_ref
+   *   Entity ref to skip (already recorded as speaker).
+   */
+  protected function feedRoomChatToNpcSessions(
+    int $campaign_id,
+    array $room_npcs,
+    string $player_message,
+    string $gm_narrative,
+    ?string $skip_ref = NULL
+  ): void {
+    $observation = "Overheard in the room — Player: {$player_message} | GM reply: {$gm_narrative}";
+
+    foreach ($room_npcs as $npc) {
+      if ($skip_ref && $npc['entity_ref'] === $skip_ref) {
+        continue;
+      }
+
+      $session_key = $this->sessionManager->npcSessionKey($campaign_id, $npc['entity_ref']);
+      // Record as a system/observation message — the NPC "overhears" the exchange.
+      $this->sessionManager->appendMessage(
+        $session_key,
+        $campaign_id,
+        'user',
+        "[Room observation] {$observation}"
+      );
+    }
+  }
+
+  /**
+   * Resolve room UUID to a DB-friendly slug for dc_campaign_characters queries.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID from dungeon_data.
+   * @param array $dungeon_data
+   *   Full dungeon data for name lookups.
+   *
+   * @return string|null
+   *   Room slug or NULL if not resolvable.
+   */
+  protected function resolveRoomSlugForQuery(int $campaign_id, string $room_id, array $dungeon_data): ?string {
+    // Try exact match first.
+    $exists = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['room_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('room_id', $room_id)
+      ->execute()
+      ->fetchField();
+
+    if ($exists) {
+      return $room_id;
+    }
+
+    // Look up room name from dungeon_data and match by name.
+    foreach ($dungeon_data['rooms'] ?? [] as $room) {
+      if (($room['room_id'] ?? '') === $room_id && !empty($room['name'])) {
+        $slug = $this->database->select('dc_campaign_rooms', 'r')
+          ->fields('r', ['room_id'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('name', $room['name'])
+          ->execute()
+          ->fetchField();
+        if ($slug) {
+          return $slug;
+        }
+      }
+    }
+
+    // Last resort: first room for campaign.
+    return $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['room_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField() ?: NULL;
+  }
+
+  /**
+   * Bridge an NPC interjection message into the hierarchical session system.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param int|string $dungeon_id
+   *   Dungeon record ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param string $speaker
+   *   NPC display name.
+   * @param string $message
+   *   The interjection text.
+   * @param string $speaker_ref
+   *   NPC entity reference.
+   */
+  protected function bridgeNpcInterjectionToSessionSystem(
+    int $campaign_id,
+    int|string $dungeon_id,
+    string $room_id,
+    string $speaker,
+    string $message,
+    string $speaker_ref
+  ): void {
+    if (!$this->chatSessionManager) {
+      return;
+    }
+
+    try {
+      // Find the room session to post into.
+      $room_session = $this->database->select('dc_chat_sessions', 's')
+        ->fields('s', ['id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('session_type', 'room')
+        ->condition('status', 'active')
+        ->orderBy('id', 'DESC')
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if (!$room_session) {
+        return;
+      }
+
+      $this->chatSessionManager->postMessage(
+        (int) $room_session,
+        $campaign_id,
+        $speaker,
+        'npc',
+        $speaker_ref,
+        $message,
+        'dialogue',
+        'public'
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to bridge NPC interjection to session system: @err', [
+        '@err' => $e->getMessage(),
+      ]);
+    }
   }
 
   /**

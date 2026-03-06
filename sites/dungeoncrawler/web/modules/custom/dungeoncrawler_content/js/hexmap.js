@@ -1358,6 +1358,13 @@ import { ChatSessionApi } from './ChatSessionApi.js';
         await this.loadChatHistory();
       }
 
+      // If any NPCs interjected, render their messages after the GM response.
+      if (result.data?.npc_interjections?.length) {
+        for (const npcMsg of result.data.npc_interjections) {
+          this.appendChatLine(npcMsg.speaker, npcMsg.message, 'npc');
+        }
+      }
+
       return result;
     }
 
