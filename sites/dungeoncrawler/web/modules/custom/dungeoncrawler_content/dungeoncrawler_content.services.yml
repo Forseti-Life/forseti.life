@@ -235,6 +235,7 @@ services:
       - '@dungeoncrawler_content.npc_psychology_service'
       - '@dungeoncrawler_content.narration_engine'
       - '@dungeoncrawler_content.chat_session_manager'
+      - '@dungeoncrawler_content.map_generator'
 
   dungeoncrawler_content.campaign_initialization:
     class: Drupal\dungeoncrawler_content\Service\CampaignInitializationService
@@ -286,6 +287,14 @@ services:
       - '@dungeoncrawler_content.room_generator'
       - '@dungeoncrawler_content.room_connection'
       - '@dungeoncrawler_content.encounter_balancer'
+
+  dungeoncrawler_content.map_generator:
+    class: Drupal\dungeoncrawler_content\Service\MapGeneratorService
+    arguments:
+      - '@database'
+      - '@logger.factory'
+      - '@ai_conversation.ai_api_service'
+      - '@dungeoncrawler_content.npc_psychology_service'
 
   dungeoncrawler_content.entity_placer:
     class: Drupal\dungeoncrawler_content\Service\EntityPlacerService

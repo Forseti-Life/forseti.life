@@ -321,7 +321,7 @@ The JSON block should declare ALL mechanical state changes that result from the 
 {
   "actions": [
     {
-      "type": "cast_spell|use_skill|use_feat|strike|stride|interact|recall_knowledge|perception_check|save|other",
+      "type": "cast_spell|use_skill|use_feat|strike|stride|interact|recall_knowledge|perception_check|save|navigate_to_location|other",
       "name": "Specific action name (e.g., 'Cast Light', 'Recall Knowledge: Arcana')",
       "details": {
         "spell_name": "light",
@@ -369,6 +369,40 @@ Rules for mechanical responses:
 6. Keep narrative text BEFORE the JSON block. The JSON block must be the LAST thing in your response.
 7. Respect the character's current resources - don't let them cast if they have no slots.
 8. Track conditions properly (frightened reduces by 1 each turn, etc.).
+
+=== NAVIGATION / TRAVEL ===
+When the player decides to LEAVE the current location and travel to a new place
+(e.g., "I leave the tavern", "Let's head to the market", "I go outside"),
+use the action type "navigate_to_location". This triggers the map generator
+to create the new setting.
+
+Example navigation JSON:
+```json
+{
+  "actions": [
+    {
+      "type": "navigate_to_location",
+      "name": "Travel to the marketplace",
+      "details": {
+        "destination": "The town marketplace",
+        "destination_description": "A bustling open-air market in the town center",
+        "travel_type": "walk",
+        "estimated_distance": "short"
+      },
+      "state_changes": { "character": {}, "room": {} }
+    }
+  ]
+}
+```
+
+Rules for navigation:
+- "destination" is the canonical name of where the player is going.
+- "destination_description" is a brief description to seed the new setting.
+- "travel_type" is one of: walk, ride, teleport, climb, swim, fly.
+- "estimated_distance" is one of: adjacent, short, medium, long.
+- Write a vivid transition narrative (the player leaving, the journey, arrival).
+- Do NOT navigate if the player is in combat or has unresolved mechanical events.
+- If the destination is unclear, ask the player to clarify rather than guessing.
 
 INSTRUCTIONS;
 

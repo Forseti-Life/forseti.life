@@ -34,6 +34,7 @@ class RoomChatService {
   protected NpcPsychologyService $psychologyService;
   protected ?NarrationEngine $narrationEngine;
   protected ?ChatSessionManager $chatSessionManager;
+  protected ?MapGeneratorService $mapGenerator;
 
   /**
    * Constructor.
@@ -50,7 +51,8 @@ class RoomChatService {
     ChatChannelManager $channel_manager,
     NpcPsychologyService $psychology_service,
     ?NarrationEngine $narration_engine = NULL,
-    ?ChatSessionManager $chat_session_manager = NULL
+    ?ChatSessionManager $chat_session_manager = NULL,
+    ?MapGeneratorService $map_generator = NULL
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
@@ -64,6 +66,7 @@ class RoomChatService {
     $this->psychologyService = $psychology_service;
     $this->narrationEngine = $narration_engine;
     $this->chatSessionManager = $chat_session_manager;
+    $this->mapGenerator = $map_generator;
   }
 
   /**
@@ -469,6 +472,14 @@ class RoomChatService {
       ]);
     }
 
+    // Detect navigate_to_location actions and trigger map generation.
+    $navigation_result = NULL;
+    if (!empty($actions)) {
+      $navigation_result = $this->handleNavigationActions(
+        $actions, $campaign_id, $room_id, $dungeon_data, $narrative
+      );
+    }
+
     $gm_message = [
       'speaker' => 'Game Master',
       'message' => $narrative,
@@ -532,7 +543,117 @@ class RoomChatService {
     return [
       'message' => $gm_message,
       'state_diff' => $state_diff,
+      'navigation' => $navigation_result,
     ];
+  }
+
+  /**
+   * Detect and handle navigate_to_location actions from GM response.
+   *
+   * When the GM emits a navigate_to_location action, this triggers the
+   * MapGeneratorService to create a new room/setting for the destination.
+   *
+   * @param array $actions
+   *   Parsed actions from the GM response.
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $origin_room_id
+   *   Current room UUID.
+   * @param array $dungeon_data
+   *   Current dungeon data.
+   * @param string $gm_narrative
+   *   The GM's transition narrative.
+   *
+   * @return array|null
+   *   Navigation result with new room data, or NULL if no navigation.
+   */
+  protected function handleNavigationActions(
+    array $actions,
+    int $campaign_id,
+    string $origin_room_id,
+    array $dungeon_data,
+    string $gm_narrative
+  ): ?array {
+    // Find navigate_to_location action(s).
+    $nav_actions = array_filter($actions, fn($a) => ($a['type'] ?? '') === 'navigate_to_location');
+
+    if (empty($nav_actions)) {
+      return NULL;
+    }
+
+    if (!$this->mapGenerator) {
+      $this->logger->warning('Navigation action detected but MapGeneratorService is not available');
+      return NULL;
+    }
+
+    // Use the first navigation action (shouldn't be multiple).
+    $nav = reset($nav_actions);
+    $details = $nav['details'] ?? [];
+    $destination = $details['destination'] ?? $details['destination_description'] ?? $nav['name'] ?? 'Unknown destination';
+    $destination_desc = $details['destination_description'] ?? $destination;
+
+    // Gather narrative context.
+    $narrative_context = [
+      'gm_narrative' => $gm_narrative,
+      'campaign_theme' => $dungeon_data['theme'] ?? 'high fantasy',
+      'party_level' => $dungeon_data['generation_rules']['party_level_target'] ?? 1,
+      'time_of_day' => $this->inferTimeOfDay($dungeon_data),
+      'travel_type' => $details['travel_type'] ?? 'walk',
+      'estimated_distance' => $details['estimated_distance'] ?? 'short',
+    ];
+
+    try {
+      $result = $this->mapGenerator->generateSetting(
+        $campaign_id,
+        $destination_desc,
+        $origin_room_id,
+        $narrative_context
+      );
+
+      $this->logger->info('Navigation triggered: @dest → room @name (index @idx, @hexes hexes)', [
+        '@dest' => $destination,
+        '@name' => $result['room']['name'] ?? 'Unknown',
+        '@idx' => $result['room_index'] ?? '?',
+        '@hexes' => count($result['room']['hexes'] ?? []),
+      ]);
+
+      return [
+        'type' => 'navigate_to_location',
+        'destination' => $destination,
+        'new_room' => $result['room'],
+        'new_room_index' => $result['room_index'],
+        'entities_added' => count($result['entities'] ?? []),
+      ];
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Failed to generate new setting for navigation to @dest: @err', [
+        '@dest' => $destination,
+        '@err' => $e->getMessage(),
+      ]);
+      return [
+        'type' => 'navigate_to_location',
+        'destination' => $destination,
+        'error' => 'Failed to generate the new location. Try again.',
+      ];
+    }
+  }
+
+  /**
+   * Infer time of day from dungeon state or gameplay context.
+   */
+  protected function inferTimeOfDay(array $dungeon_data): string {
+    // Check room gameplay_state for time hints.
+    foreach ($dungeon_data['rooms'] ?? [] as $room) {
+      $changes = $room['gameplay_state']['environmental_changes'] ?? [];
+      foreach (array_reverse($changes) as $change) {
+        $details = $change['details'] ?? [];
+        if (!empty($details['time_of_day'])) {
+          return $details['time_of_day'];
+        }
+      }
+    }
+    // Default to day.
+    return 'day';
   }
 
   /**
