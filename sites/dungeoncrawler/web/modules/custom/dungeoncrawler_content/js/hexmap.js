@@ -5202,31 +5202,28 @@ import { ChatSessionApi } from './ChatSessionApi.js';
           })
         });
 
-        if (!response.ok) {
-          console.warn('Sprite resolve API returned', response.status);
-          return;
-        }
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && data.sprites) {
+            // Merge resolved sprites into cache.
+            const sprites = data.sprites;
+            for (const [spriteId, info] of Object.entries(sprites)) {
+              if (info.url) {
+                this._spriteUrlCache[spriteId] = info.url;
+              }
+            }
 
-        const data = await response.json();
-        if (!data.success || !data.sprites) {
-          return;
-        }
-
-        // Merge resolved sprites into cache.
-        const sprites = data.sprites;
-        for (const [spriteId, info] of Object.entries(sprites)) {
-          if (info.url) {
-            this._spriteUrlCache[spriteId] = info.url;
+            console.log(`Sprites resolved: ${data.count} (generated: ${Object.values(sprites).filter(s => s.generated).length}, cached: ${Object.values(sprites).filter(s => s.cached).length})`);
           }
+        } else {
+          console.warn('Sprite resolve API returned', response.status);
         }
-
-        console.log(`Sprites resolved: ${data.count} (generated: ${Object.values(sprites).filter(s => s.generated).length}, cached: ${Object.values(sprites).filter(s => s.cached).length})`);
-
-        // Apply textures now that URLs are cached.
-        this._applySpritesFromCache();
       } catch (err) {
         console.warn('Sprite resolution failed:', err);
       } finally {
+        // Always apply cached sprites (including pre-cached portrait URLs)
+        // regardless of whether furniture sprite resolution succeeded.
+        this._applySpritesFromCache();
         this._spriteResolveInFlight = false;
       }
     },
