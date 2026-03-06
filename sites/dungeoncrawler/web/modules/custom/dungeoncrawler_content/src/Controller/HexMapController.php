@@ -83,6 +83,7 @@ class HexMapController extends ControllerBase {
     $dungeon_payload = $this->removeNorthernLongTableDuplicates($dungeon_payload);
     $dungeon_payload = $this->injectRoomTemplateItemEntities($dungeon_payload, $launch_context);
     $dungeon_payload = $this->injectRoomBarkeepEntity($dungeon_payload, $launch_context);
+    $dungeon_payload = $this->injectRoomNpcEntities($dungeon_payload, $launch_context);
     $dungeon_payload = $this->ensurePayloadObjectOrientations($dungeon_payload);
     if ($this->shouldPersistTemplateChanges($launch_context)) {
       $this->persistDungeonTemplatePayload($dungeon_payload, $launch_context);
@@ -1162,10 +1163,15 @@ class HexMapController extends ControllerBase {
       return $dungeon_payload;
     }
 
+    $db_room_id = $this->resolveDbRoomSlug($campaign_id, $room_id, $dungeon_payload);
+    if ($db_room_id === NULL) {
+      return $dungeon_payload;
+    }
+
     $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
       ->fields('r', ['contents_data'])
       ->condition('campaign_id', $campaign_id)
-      ->condition('room_id', $room_id)
+      ->condition('room_id', $db_room_id)
       ->range(0, 1)
       ->execute()
       ->fetchField();
@@ -1280,6 +1286,115 @@ class HexMapController extends ControllerBase {
         ],
       ],
     ];
+
+    return $dungeon_payload;
+  }
+
+  /**
+   * Inject all non-barkeep NPCs from room contents_data into the entity list.
+   *
+   * The barkeep is handled separately by injectRoomBarkeepEntity(); this method
+   * covers remaining NPCs (e.g. Marta the Scholar) so they appear on the map.
+   */
+  protected function injectRoomNpcEntities(array $dungeon_payload, array $launch_context): array {
+    $campaign_id = (int) ($launch_context['campaign_id'] ?? 0);
+    $room_id = (string) ($dungeon_payload['active_room_id'] ?? '');
+
+    if ($campaign_id <= 0 || $room_id === '') {
+      return $dungeon_payload;
+    }
+
+    $db_room_id = $this->resolveDbRoomSlug($campaign_id, $room_id, $dungeon_payload);
+    if ($db_room_id === NULL) {
+      return $dungeon_payload;
+    }
+
+    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['contents_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('room_id', $db_room_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
+      return $dungeon_payload;
+    }
+
+    $contents_data = json_decode((string) $raw_contents, TRUE);
+    if (!is_array($contents_data)) {
+      return $dungeon_payload;
+    }
+
+    $npcs = $contents_data['npcs'] ?? [];
+    if (!is_array($npcs) || empty($npcs)) {
+      return $dungeon_payload;
+    }
+
+    // Collect content_ids already present in the entity list so we don't duplicate.
+    $existing_content_ids = [];
+    foreach ($dungeon_payload['entities'] ?? [] as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $ecid = strtolower((string) ($entity['entity_ref']['content_id'] ?? ''));
+      if ($ecid !== '') {
+        $existing_content_ids[$ecid] = TRUE;
+      }
+    }
+
+    // The active_room_id (UUID) is the correct value for entity placement.
+    $placement_room_id = $room_id;
+
+    foreach ($npcs as $npc) {
+      if (!is_array($npc)) {
+        continue;
+      }
+
+      $content_id = strtolower((string) ($npc['content_id'] ?? ''));
+
+      // Skip if already present (barkeep was already injected).
+      if ($content_id !== '' && isset($existing_content_ids[$content_id])) {
+        continue;
+      }
+
+      $name = (string) ($npc['name'] ?? 'Unknown NPC');
+      $instance_id = 'npc-' . (preg_replace('/[^a-zA-Z0-9_\-]+/', '-', $content_id ?: strtolower($name)) ?: 'npc');
+
+      // Use authored position or random offset.
+      $position = is_array($npc['position'] ?? NULL) ? $npc['position'] : [];
+      $q = isset($position['q']) ? (int) $position['q'] : rand(-2, 2);
+      $r = isset($position['r']) ? (int) $position['r'] : rand(-2, 2);
+
+      $dungeon_payload['entities'][] = [
+        'entity_type' => 'npc',
+        'instance_id' => $instance_id,
+        'entity_ref' => [
+          'content_type' => 'npc',
+          'content_id' => $content_id ?: 'generic_npc',
+        ],
+        'placement' => [
+          'room_id' => $placement_room_id,
+          'hex' => [
+            'q' => $q,
+            'r' => $r,
+          ],
+          'spawn_type' => 'npc',
+        ],
+        'state' => [
+          'active' => TRUE,
+          'metadata' => [
+            'display_name' => $name,
+            'name' => $name,
+            'role' => (string) ($npc['role'] ?? 'neutral'),
+            'description' => (string) ($npc['description'] ?? ''),
+            'team' => 'neutral',
+            'setting_state' => TRUE,
+            'spawn_policy' => 'fixed_template',
+          ],
+        ],
+      ];
+    }
 
     return $dungeon_payload;
   }
@@ -1931,6 +2046,67 @@ class HexMapController extends ControllerBase {
 
     $decoded = json_decode($contents, TRUE);
     return is_array($decoded) ? $decoded : NULL;
+  }
+
+  /**
+   * Resolve a dungeon_data room UUID to the dc_campaign_rooms slug.
+   *
+   * The dungeon payload uses UUIDs (e.g. "7f2f1051-...") while
+   * dc_campaign_rooms stores slugs (e.g. "tavern_entrance").
+   *
+   * @return string|null
+   *   The DB room_id (slug) or NULL if not found.
+   */
+  protected function resolveDbRoomSlug(int $campaign_id, string $room_id, array $dungeon_payload = []): ?string {
+    if ($campaign_id <= 0 || $room_id === '') {
+      return NULL;
+    }
+
+    // Try exact match first (might be a slug already).
+    $exists = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['room_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('room_id', $room_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    if ($exists !== FALSE) {
+      return (string) $exists;
+    }
+
+    // Try room name from the dungeon payload.
+    $room_name = '';
+    foreach ($dungeon_payload['rooms'] ?? [] as $rid => $rdata) {
+      if ((string) $rid === $room_id && is_array($rdata)) {
+        $room_name = (string) ($rdata['name'] ?? '');
+        break;
+      }
+    }
+
+    if ($room_name !== '') {
+      $by_name = $this->database->select('dc_campaign_rooms', 'r')
+        ->fields('r', ['room_id'])
+        ->condition('campaign_id', $campaign_id)
+        ->condition('name', $room_name)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($by_name !== FALSE) {
+        return (string) $by_name;
+      }
+    }
+
+    // Last resort: grab the first room for this campaign.
+    $first = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['room_id'])
+      ->condition('campaign_id', $campaign_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    return $first !== FALSE ? (string) $first : NULL;
   }
 
 }

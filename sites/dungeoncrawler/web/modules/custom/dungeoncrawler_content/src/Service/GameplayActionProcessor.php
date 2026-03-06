@@ -931,7 +931,7 @@ INSTRUCTIONS;
     // Resolve the DB room_id slug. The caller may pass a dungeon_data UUID
     // (e.g. "7f2f1051-...") while dc_campaign_rooms stores a slug
     // (e.g. "tavern_entrance"). Try the exact value first, then fall back to
-    // matching by campaign + room name.
+    // matching by campaign + room name, and finally first room for the campaign.
     $db_room_id = $room_id;
     try {
       $exists = $this->database->select('dc_campaign_rooms', 'r')
@@ -953,6 +953,19 @@ INSTRUCTIONS;
           ->fetchField();
         if ($slug !== FALSE) {
           $db_room_id = $slug;
+        }
+      }
+
+      // Last resort: first room for this campaign.
+      if ($db_room_id === $room_id && $exists === FALSE) {
+        $first = $this->database->select('dc_campaign_rooms', 'r')
+          ->fields('r', ['room_id'])
+          ->condition('campaign_id', $campaign_id)
+          ->range(0, 1)
+          ->execute()
+          ->fetchField();
+        if ($first !== FALSE) {
+          $db_room_id = $first;
         }
       }
     }
@@ -989,6 +1002,7 @@ INSTRUCTIONS;
               'role' => $npc['role'] ?? 'neutral',
               'description' => $npc['description'] ?? '',
               'hp_status' => '',
+              '_static' => TRUE,
             ];
             $static_npc_names[] = $npc_name;
           }
@@ -1015,8 +1029,21 @@ INSTRUCTIONS;
       $this->logger->warning('Failed to load static room data for inventory: @error', ['@error' => $e->getMessage()]);
     }
 
-    // 2. Runtime entities from dungeon_data (live state - overrides/enriches static data).
-    $entities = $room_meta['entities'] ?? [];
+    // 2. Runtime entities from dungeon_data (live state).
+    // The authoritative entity list lives in the top-level dungeon_data['entities']
+    // array, with each entity's placement.room_id indicating its room.
+    // rooms[].entities is historically empty; merge both just in case.
+    $room_entities = $room_meta['entities'] ?? [];
+    $top_level_entities = $dungeon_data['entities'] ?? [];
+    $entities_from_payload = [];
+    foreach ($top_level_entities as $tle) {
+      $tle_room = $tle['placement']['room_id'] ?? '';
+      if ($tle_room === $room_id) {
+        $entities_from_payload[] = $tle;
+      }
+    }
+    // Merge room-level (legacy) and top-level entities, top-level first.
+    $entities = array_merge($entities_from_payload, $room_entities);
     $runtime_entity_names = [];
     $all_known_names = $static_npc_names ?? [];
 
@@ -1024,13 +1051,21 @@ INSTRUCTIONS;
       $name = $entity['state']['metadata']['display_name']
         ?? $entity['name']
         ?? 'Unknown';
-      $type = $entity['type'] ?? ($entity['entity_ref']['type'] ?? 'npc');
+      $type = $entity['type']
+        ?? $entity['entity_type']
+        ?? ($entity['entity_ref']['type'] ?? ($entity['entity_ref']['content_type'] ?? 'npc'));
       $description = $entity['description']
         ?? $entity['state']['metadata']['description']
         ?? '';
       $role = $entity['role'] ?? ($entity['state']['metadata']['role'] ?? '');
+      $team = $entity['state']['metadata']['team'] ?? '';
       $is_hidden = !empty($entity['hidden']) || !empty($entity['state']['hidden']);
       $is_detected = !empty($entity['detected']) || !empty($entity['state']['detected']);
+
+      // Skip non-interactive entity types the GM doesn't need to narrate.
+      if (in_array($type, ['obstacle', 'player_character'], TRUE)) {
+        continue;
+      }
 
       // Skip completely hidden entities the party hasn't detected.
       if ($is_hidden && !$is_detected) {
@@ -1067,6 +1102,7 @@ INSTRUCTIONS;
             'name' => $name,
             'type' => $entity['entity_ref']['content_id'] ?? $type,
             'role' => $role,
+            'team' => $team,
             'description' => $description,
             'hp_status' => $hp_status,
           ];
@@ -1112,16 +1148,29 @@ INSTRUCTIONS;
       }
     }
 
-    // Deduplicate: remove static NPCs/obstacles that are also in the runtime dungeon_data entities.
+    // Deduplicate: remove static NPCs/obstacles that are also in the runtime
+    // dungeon_data entities. Static entries from contents_data (source 1) are
+    // superseded by richer runtime entries (source 2) that carry hp_status etc.
+    // We track which indices are "static" (added before the entity loop).
     if (!empty($runtime_entity_names)) {
       $inventory['npcs'] = array_values(array_filter($inventory['npcs'], function ($npc) use ($runtime_entity_names) {
-        // Keep runtime entries; remove static duplicates only when dungeon_data has a replacement.
-        return !in_array($npc['name'], $runtime_entity_names, TRUE) || !empty($npc['hp_status']) || !empty($npc['conditions']);
+        // Remove static entries (from contents_data) whose name appears in
+        // runtime entities. Static entries are identified by the '_source' marker.
+        $is_static = !empty($npc['_static']);
+        if ($is_static && in_array($npc['name'], $runtime_entity_names, TRUE)) {
+          return FALSE;
+        }
+        return TRUE;
       }));
       $inventory['obstacles'] = array_values(array_filter($inventory['obstacles'], function ($obj) use ($runtime_entity_names) {
         return !in_array($obj['name'], $runtime_entity_names, TRUE);
       }));
     }
+    // Strip internal _static markers before returning.
+    $inventory['npcs'] = array_map(function ($npc) {
+      unset($npc['_static']);
+      return $npc;
+    }, $inventory['npcs']);
 
     // 3. Runtime entity instances from dc_campaign_characters (NPC/hazard/trap records).
     try {
