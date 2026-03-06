@@ -1002,6 +1002,7 @@ INSTRUCTIONS;
               'role' => $npc['role'] ?? 'neutral',
               'description' => $npc['description'] ?? '',
               'hp_status' => '',
+              'team' => $npc['team'] ?? 'neutral',
               '_static' => TRUE,
             ];
             $static_npc_names[] = $npc_name;
