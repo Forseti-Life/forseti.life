@@ -1487,6 +1487,59 @@
   line-height: 1.4;
 }
 
+.inv-tooltip__mods {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: var(--space-2, 8px);
+  padding-top: var(--space-2, 8px);
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+.inv-tooltip__mods-label {
+  width: 100%;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 2px;
+}
+
+.inv-tooltip__mod {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: var(--text-xs, 0.75rem);
+  padding: 2px 6px;
+  border-radius: var(--radius-md, 6px);
+  background: rgba(255,255,255,0.06);
+  color: var(--text, #e2e8f0);
+  white-space: nowrap;
+}
+
+.inv-tooltip__mod b {
+  color: var(--text-bright, #f8fafc);
+}
+
+.inv-tooltip__mod--pos {
+  background: rgba(74, 222, 128, 0.12);
+  color: #4ade80;
+}
+
+.inv-tooltip__mod--pos b {
+  color: #86efac;
+}
+
+.inv-tooltip__mod--neg {
+  background: rgba(248, 113, 113, 0.12);
+  color: #f87171;
+}
+
+.inv-tooltip__mod--neg b {
+  color: #fca5a5;
+}
+
 /* ==========================================================================
    Character Sheet & Stats
    ========================================================================== */
