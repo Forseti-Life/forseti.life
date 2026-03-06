@@ -1221,4 +1221,141 @@ PROMPT;
     return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
   }
 
+  /**
+   * Backfill per-room connections[] from hex_map connections and regions.
+   *
+   * Older rooms created before the connection system may have empty
+   * connections[] arrays even though hex_map.connections[] and regions
+   * describe the topology. This resolves and populates them.
+   *
+   * @param array &$dungeon_data
+   *   Dungeon data (modified in place).
+   *
+   * @return int
+   *   Number of connections backfilled.
+   */
+  public function backfillRoomConnections(array &$dungeon_data): int {
+    $rooms = &$dungeon_data['rooms'];
+    $hex_connections = $dungeon_data['hex_map']['connections'] ?? [];
+    $regions = $dungeon_data['hex_map']['regions'] ?? [];
+    $count = 0;
+
+    // Build room_id lookup.
+    $room_by_id = [];
+    foreach ($rooms as $idx => &$room) {
+      $rid = $room['room_id'] ?? '';
+      if ($rid) {
+        $room_by_id[$rid] = &$rooms[$idx];
+      }
+    }
+    unset($room);
+
+    // Build hex→room_id index from room hexes.
+    $hex_to_room = [];
+    foreach ($rooms as $room) {
+      $rid = $room['room_id'] ?? '';
+      foreach ($room['hexes'] ?? [] as $hex) {
+        $q = $hex['q'] ?? NULL;
+        $r = $hex['r'] ?? NULL;
+        if ($q !== NULL && $r !== NULL) {
+          $hex_to_room["{$q},{$r}"] = $rid;
+        }
+      }
+    }
+
+    // Process each hex_map connection.
+    foreach ($hex_connections as &$conn) {
+      $from_room = $conn['from_room'] ?? NULL;
+      $to_room = $conn['to_room'] ?? NULL;
+
+      // If connection uses new format (from_room/to_room), use directly.
+      if (!$from_room || !$to_room) {
+        // Old format: resolve from hex coordinates.
+        $from_key = ($conn['from']['q'] ?? '?') . ',' . ($conn['from']['r'] ?? '?');
+        $to_key = ($conn['to']['q'] ?? '?') . ',' . ($conn['to']['r'] ?? '?');
+        $from_room = $hex_to_room[$from_key] ?? NULL;
+        $to_room = $hex_to_room[$to_key] ?? NULL;
+
+        // If hex resolution failed, try region-based matching.
+        if (!$from_room || !$to_room) {
+          $region_rooms = [];
+          foreach ($regions as $region) {
+            foreach ($region['room_ids'] ?? [] as $rid) {
+              $region_rooms[] = $rid;
+            }
+          }
+          // If exactly 2 regions with 1 room each, and 1 connection, it's obvious.
+          if (count($region_rooms) >= 2 && (!$from_room || !$to_room)) {
+            $from_room = $from_room ?? $region_rooms[0];
+            $to_room = $to_room ?? $region_rooms[1];
+          }
+        }
+
+        // Upgrade the connection to new format for future lookups.
+        if ($from_room && $to_room) {
+          $conn['from_room'] = $from_room;
+          $conn['to_room'] = $to_room;
+        }
+      }
+
+      if (!$from_room || !$to_room || $from_room === $to_room) {
+        continue;
+      }
+
+      $conn_type = $conn['type'] ?? 'passage';
+
+      // Add to from_room → to_room if not already present.
+      if (isset($room_by_id[$from_room])) {
+        if (!isset($room_by_id[$from_room]['connections'])) {
+          $room_by_id[$from_room]['connections'] = [];
+        }
+        $already_exists = FALSE;
+        foreach ($room_by_id[$from_room]['connections'] as $existing) {
+          if (($existing['target_room_id'] ?? '') === $to_room) {
+            $already_exists = TRUE;
+            break;
+          }
+        }
+        if (!$already_exists) {
+          $room_by_id[$from_room]['connections'][] = [
+            'target_room_id' => $to_room,
+            'type' => $conn_type,
+          ];
+          $count++;
+        }
+      }
+
+      // Add reverse: to_room → from_room (bidirectional).
+      $bidirectional = $conn['bidirectional'] ?? $conn['is_known'] ?? TRUE;
+      if ($bidirectional && isset($room_by_id[$to_room])) {
+        if (!isset($room_by_id[$to_room]['connections'])) {
+          $room_by_id[$to_room]['connections'] = [];
+        }
+        $already_exists = FALSE;
+        foreach ($room_by_id[$to_room]['connections'] as $existing) {
+          if (($existing['target_room_id'] ?? '') === $from_room) {
+            $already_exists = TRUE;
+            break;
+          }
+        }
+        if (!$already_exists) {
+          $room_by_id[$to_room]['connections'][] = [
+            'target_room_id' => $from_room,
+            'type' => $conn_type,
+          ];
+          $count++;
+        }
+      }
+    }
+    unset($conn);
+
+    if ($count > 0) {
+      $this->logger->info('Backfilled @count room connections from hex_map data', [
+        '@count' => $count,
+      ]);
+    }
+
+    return $count;
+  }
+
 }

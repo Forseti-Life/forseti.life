@@ -388,6 +388,11 @@ class RoomChatService {
     $base_system_prompt = $this->promptManager->getBaseSystemPrompt();
     $system_prompt = $base_system_prompt;
 
+    // Ensure room connections are backfilled from hex_map for older campaigns.
+    if ($this->mapGenerator) {
+      $this->mapGenerator->backfillRoomConnections($dungeon_data);
+    }
+
     // Build full room inventory for GM awareness.
     $room_inventory = $this->actionProcessor->buildRoomInventory(
       $campaign_id, $room_id, $room_meta, $dungeon_data
@@ -401,7 +406,9 @@ class RoomChatService {
           $base_system_prompt,
           $char_data,
           $room_meta,
-          $room_inventory
+          $room_inventory,
+          $dungeon_data,
+          $room_index
         );
       }
     }
@@ -478,6 +485,11 @@ class RoomChatService {
       $navigation_result = $this->handleNavigationActions(
         $actions, $campaign_id, $room_id, $dungeon_data, $narrative
       );
+
+      // Record location transition in dungeon_data for GM context.
+      if ($navigation_result && empty($navigation_result['error'])) {
+        $this->recordLocationTransition($dungeon_data, $room_meta, $navigation_result);
+      }
     }
 
     $gm_message = [
@@ -635,6 +647,73 @@ class RoomChatService {
         'destination' => $destination,
         'error' => 'Failed to generate the new location. Try again.',
       ];
+    }
+  }
+
+  /**
+   * Record a location transition in dungeon_data.
+   *
+   * Updates location_history and last_navigation so the GM has arrival
+   * context and can reference where the party has been.
+   *
+   * @param array &$dungeon_data
+   *   Dungeon data (modified in place).
+   * @param array $origin_room_meta
+   *   Room metadata for the origin room.
+   * @param array $navigation_result
+   *   Navigation result from handleNavigationActions().
+   */
+  protected function recordLocationTransition(array &$dungeon_data, array $origin_room_meta, array $navigation_result): void {
+    $origin_name = $origin_room_meta['name'] ?? 'Unknown';
+    $origin_id = $origin_room_meta['room_id'] ?? '';
+    $dest_name = $navigation_result['new_room']['name'] ?? $navigation_result['destination'] ?? 'Unknown';
+    $dest_id = $navigation_result['new_room']['room_id'] ?? '';
+    $timestamp = date('c');
+
+    // Initialize location_history if not present.
+    if (!isset($dungeon_data['location_history'])) {
+      $dungeon_data['location_history'] = [];
+    }
+
+    // If this is the first navigation, also record the starting room.
+    if (empty($dungeon_data['location_history'])) {
+      $dungeon_data['location_history'][] = [
+        'room_id' => $origin_id,
+        'room_name' => $origin_name,
+        'action' => 'started at',
+        'timestamp' => $timestamp,
+      ];
+    }
+
+    // Record the departure from origin.
+    $dungeon_data['location_history'][] = [
+      'room_id' => $origin_id,
+      'room_name' => $origin_name,
+      'action' => 'departed',
+      'timestamp' => $timestamp,
+    ];
+
+    // Record the arrival at destination.
+    $dungeon_data['location_history'][] = [
+      'room_id' => $dest_id,
+      'room_name' => $dest_name,
+      'action' => 'arrived at',
+      'timestamp' => $timestamp,
+    ];
+
+    // Set last_navigation context for the next GM prompt.
+    $dungeon_data['last_navigation'] = [
+      'from_room_id' => $origin_id,
+      'from_room_name' => $origin_name,
+      'to_room_id' => $dest_id,
+      'to_room_name' => $dest_name,
+      'travel_type' => $navigation_result['travel_type'] ?? 'traveled',
+      'timestamp' => $timestamp,
+    ];
+
+    // Cap location_history to 50 entries.
+    if (count($dungeon_data['location_history']) > 50) {
+      $dungeon_data['location_history'] = array_slice($dungeon_data['location_history'], -50);
     }
   }
 

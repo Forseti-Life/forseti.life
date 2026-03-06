@@ -42,11 +42,17 @@ class GameplayActionProcessor {
    *   Full character_data JSON from dc_campaign_characters.
    * @param array $room_meta
    *   Room metadata (name, description, entities, state).
+   * @param array $room_inventory
+   *   Room inventory (NPCs, items, obstacles, etc.).
+   * @param array $dungeon_data
+   *   Full dungeon_data payload (for location awareness context).
+   * @param int|string|null $room_index
+   *   Current room index in dungeon_data['rooms'].
    *
    * @return string
    *   Enhanced system prompt with mechanical instructions.
    */
-  public function buildEnhancedSystemPrompt(string $base_system_prompt, array $character_data, array $room_meta, array $room_inventory = []): string {
+  public function buildEnhancedSystemPrompt(string $base_system_prompt, array $character_data, array $room_meta, array $room_inventory = [], array $dungeon_data = [], $room_index = NULL): string {
     $char_name = $character_data['name'] ?? 'the character';
     $char_class = $character_data['class'] ?? 'unknown';
     $char_level = $character_data['level'] ?? 1;
@@ -296,6 +302,11 @@ class GameplayActionProcessor {
       }
     }
 
+    // Location awareness context (exits, world map, history).
+    if (!empty($dungeon_data)) {
+      $enhanced .= $this->buildLocationContext($dungeon_data, $room_meta, $room_index);
+    }
+
     $enhanced .= <<<'GROUNDING'
 
 === ENTITY GROUNDING RULES ===
@@ -407,6 +418,278 @@ Rules for navigation:
 INSTRUCTIONS;
 
     return $enhanced;
+  }
+
+  /**
+   * Build location awareness context for the GM system prompt.
+   *
+   * Provides the GM with knowledge of:
+   * - Connected rooms / exits from the current location
+   * - All known locations in the campaign world (with visit status)
+   * - Location history (where the party has been, in order)
+   * - Arrival context (where the player just came from, if applicable)
+   *
+   * @param array $dungeon_data
+   *   Full dungeon_data payload with rooms, hex_map, location_history.
+   * @param array $room_meta
+   *   Current room metadata.
+   * @param int|string|null $room_index
+   *   Current room index in dungeon_data['rooms'].
+   *
+   * @return string
+   *   Formatted location context block for the system prompt.
+   */
+  protected function buildLocationContext(array $dungeon_data, array $room_meta, $room_index = NULL): string {
+    $current_room_id = $room_meta['room_id'] ?? '';
+    $rooms = $dungeon_data['rooms'] ?? [];
+
+    $ctx = "\n=== LOCATION & WORLD AWARENESS ===\n";
+
+    // --- Connected Rooms / Exits ---
+    $exits = $this->resolveRoomExits($dungeon_data, $current_room_id);
+    if (!empty($exits)) {
+      $ctx .= "\nExits from this location:\n";
+      foreach ($exits as $exit) {
+        $exit_line = "  - {$exit['name']}";
+        if (!empty($exit['connection_type'])) {
+          $exit_line .= " (via {$exit['connection_type']})";
+        }
+        if (!empty($exit['room_type'])) {
+          $exit_line .= " [{$exit['room_type']}]";
+        }
+        if (!empty($exit['explored'])) {
+          $exit_line .= " — visited";
+        }
+        else {
+          $exit_line .= " — unexplored";
+        }
+        $ctx .= $exit_line . "\n";
+      }
+    }
+    else {
+      $ctx .= "\nExits: None known. The party may need to discover exits or navigate to a new location.\n";
+    }
+
+    // --- Known Locations (World Map) ---
+    if (count($rooms) > 1) {
+      $ctx .= "\nKnown locations in this world:\n";
+      foreach ($rooms as $idx => $room) {
+        $is_current = ($room['room_id'] ?? '') === $current_room_id || (string) $idx === (string) $room_index;
+        $name = $room['name'] ?? "Room {$idx}";
+        $type = $room['room_type'] ?? 'unknown';
+        $explored = !empty($room['state']['explored']);
+        $marker = $is_current ? ' ← YOU ARE HERE' : '';
+        $status = $explored ? 'explored' : 'unexplored';
+
+        $ctx .= "  {$idx}. {$name} ({$type}) [{$status}]{$marker}\n";
+      }
+    }
+
+    // --- Location History ---
+    $history = $dungeon_data['location_history'] ?? [];
+    if (!empty($history)) {
+      $ctx .= "\nTravel history (most recent first):\n";
+      // Show last 8 entries, most-recent first.
+      $recent_history = array_slice(array_reverse($history), 0, 8);
+      foreach ($recent_history as $entry) {
+        $h_name = $entry['room_name'] ?? 'Unknown';
+        $h_action = $entry['action'] ?? 'visited';
+        $ctx .= "  - {$h_action}: {$h_name}";
+        if (!empty($entry['timestamp'])) {
+          $ctx .= " ({$entry['timestamp']})";
+        }
+        $ctx .= "\n";
+      }
+    }
+
+    // --- Arrival Context ---
+    if (!empty($dungeon_data['last_navigation'])) {
+      $nav = $dungeon_data['last_navigation'];
+      $from_name = $nav['from_room_name'] ?? 'Unknown';
+      $travel_type = $nav['travel_type'] ?? 'walked';
+      $ctx .= "\nArrival context: The party just {$travel_type} here from {$from_name}.\n";
+    }
+
+    $ctx .= <<<'LOCATION_RULES'
+
+LOCATION RULES:
+- When the player asks about nearby locations or exits, reference the exits listed above.
+- You can describe what the player sees/hears in the direction of connected rooms.
+- Do NOT invent exits or locations that are not listed above.
+- When the player wants to travel, use the navigate_to_location action type.
+- Reference the travel history to maintain continuity (e.g., "you came from the tavern").
+LOCATION_RULES;
+
+    return $ctx . "\n";
+  }
+
+  /**
+   * Resolve all exits from the current room.
+   *
+   * Combines data from:
+   * 1. Per-room connections[] array (from MapGeneratorService)
+   * 2. hex_map.connections[] (from initial dungeon creation)
+   *
+   * @param array $dungeon_data
+   *   Full dungeon data.
+   * @param string $current_room_id
+   *   Current room UUID.
+   *
+   * @return array
+   *   Array of exit info: [name, room_id, connection_type, room_type, explored].
+   */
+  protected function resolveRoomExits(array $dungeon_data, string $current_room_id): array {
+    $rooms = $dungeon_data['rooms'] ?? [];
+    $exits = [];
+    $seen_room_ids = [];
+
+    // Build room lookup by room_id.
+    $room_lookup = [];
+    foreach ($rooms as $idx => $room) {
+      $rid = $room['room_id'] ?? '';
+      if ($rid) {
+        $room_lookup[$rid] = $room;
+      }
+    }
+
+    // Source 1: Per-room connections[].
+    $current_room = $room_lookup[$current_room_id] ?? [];
+    $room_connections = $current_room['connections'] ?? [];
+    foreach ($room_connections as $conn) {
+      $target_id = $conn['target_room_id'] ?? '';
+      if ($target_id && !isset($seen_room_ids[$target_id])) {
+        $target_room = $room_lookup[$target_id] ?? [];
+        $exits[] = [
+          'name' => $target_room['name'] ?? 'Unknown passage',
+          'room_id' => $target_id,
+          'connection_type' => $conn['type'] ?? 'passage',
+          'room_type' => $target_room['room_type'] ?? 'unknown',
+          'explored' => !empty($target_room['state']['explored']),
+        ];
+        $seen_room_ids[$target_id] = TRUE;
+      }
+    }
+
+    // Source 2: hex_map.connections[] (bidirectional).
+    $hex_connections = $dungeon_data['hex_map']['connections'] ?? [];
+    foreach ($hex_connections as $conn) {
+      // New-format connections from MapGeneratorService have from_room/to_room.
+      $from_room = $conn['from_room'] ?? NULL;
+      $to_room = $conn['to_room'] ?? NULL;
+
+      $target_id = NULL;
+      if ($from_room === $current_room_id) {
+        $target_id = $to_room;
+      }
+      elseif ($to_room === $current_room_id) {
+        $target_id = $from_room;
+      }
+      else {
+        // Old-format connections: match by hex coordinates via regions.
+        $target_id = $this->resolveHexConnectionToRoom($conn, $current_room_id, $dungeon_data);
+      }
+
+      if ($target_id && !isset($seen_room_ids[$target_id])) {
+        $target_room = $room_lookup[$target_id] ?? [];
+        $exits[] = [
+          'name' => $target_room['name'] ?? ($conn['description'] ?? 'Unknown passage'),
+          'room_id' => $target_id,
+          'connection_type' => $conn['type'] ?? 'passage',
+          'room_type' => $target_room['room_type'] ?? 'unknown',
+          'explored' => !empty($target_room['state']['explored']),
+        ];
+        $seen_room_ids[$target_id] = TRUE;
+      }
+    }
+
+    return $exits;
+  }
+
+  /**
+   * Resolve a hex-coordinate connection to a room_id.
+   *
+   * For old-format hex_map connections that use {from: {q,r}, to: {q,r}},
+   * we need to map hex coordinates to rooms via regions.
+   *
+   * @param array $conn
+   *   Hex connection with 'from' and 'to' as {q, r} coordinates.
+   * @param string $current_room_id
+   *   Current room UUID.
+   * @param array $dungeon_data
+   *   Full dungeon data.
+   *
+   * @return string|null
+   *   Target room_id, or NULL if unresolvable.
+   */
+  protected function resolveHexConnectionToRoom(array $conn, string $current_room_id, array $dungeon_data): ?string {
+    $regions = $dungeon_data['hex_map']['regions'] ?? [];
+    $rooms = $dungeon_data['rooms'] ?? [];
+
+    // Build a hex→room_id index from regions and room hexes.
+    $hex_to_room = [];
+    foreach ($rooms as $room) {
+      $rid = $room['room_id'] ?? '';
+      foreach ($room['hexes'] ?? [] as $hex) {
+        $q = $hex['q'] ?? NULL;
+        $r = $hex['r'] ?? NULL;
+        if ($q !== NULL && $r !== NULL) {
+          $hex_to_room["{$q},{$r}"] = $rid;
+        }
+      }
+    }
+
+    // Alternatively, use regions → room_ids mapping.
+    if (empty($hex_to_room)) {
+      foreach ($regions as $region) {
+        $region_room_ids = $region['room_ids'] ?? [];
+        // Assign all region hexes to the first room_id in the region.
+        if (!empty($region_room_ids)) {
+          $region_rid = $region_room_ids[0];
+          // We don't have hex ranges in regions, so use a simple approach:
+          // map region index to its room.
+        }
+      }
+    }
+
+    $from_key = ($conn['from']['q'] ?? '?') . ',' . ($conn['from']['r'] ?? '?');
+    $to_key = ($conn['to']['q'] ?? '?') . ',' . ($conn['to']['r'] ?? '?');
+
+    $from_room = $hex_to_room[$from_key] ?? NULL;
+    $to_room = $hex_to_room[$to_key] ?? NULL;
+
+    if ($from_room === $current_room_id && $to_room && $to_room !== $current_room_id) {
+      return $to_room;
+    }
+    if ($to_room === $current_room_id && $from_room && $from_room !== $current_room_id) {
+      return $from_room;
+    }
+
+    // Fallback: use regions to find the "other" room.
+    // If the connection crosses a region boundary, find which region
+    // contains the current room and return the other region's room.
+    $current_region_ids = [];
+    $all_region_rooms = [];
+    foreach ($regions as $region) {
+      $rids = $region['room_ids'] ?? [];
+      foreach ($rids as $rid) {
+        $all_region_rooms[$rid] = TRUE;
+        if ($rid === $current_room_id) {
+          $current_region_ids = $rids;
+        }
+      }
+    }
+
+    // Find any room NOT in the current region but in a connected region.
+    foreach ($regions as $region) {
+      $rids = $region['room_ids'] ?? [];
+      foreach ($rids as $rid) {
+        if ($rid !== $current_room_id && !in_array($rid, $current_region_ids)) {
+          return $rid;
+        }
+      }
+    }
+
+    return NULL;
   }
 
   /**
