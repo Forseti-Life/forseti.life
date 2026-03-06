@@ -447,6 +447,7 @@
         <button class="inv-filter" data-filter="armor">{{ '🛡️ Armor'|t }}</button>
         <button class="inv-filter" data-filter="consumable">{{ '🧪 Consumables'|t }}</button>
         <button class="inv-filter" data-filter="gear">{{ '🎒 Gear'|t }}</button>
+        <button class="inv-filter" data-filter="misc">{{ '🦴 Misc'|t }}</button>
       </div>
 
       <ul class="inventory-panel__list" id="inv-item-list">
@@ -676,7 +677,7 @@
         var text = li.textContent.trim();
         var type = li.dataset.type || 'gear';
         var qty  = li.dataset.qty || '';
-        var icon = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', gear: '🎒' }[type] || '📦';
+        var icon = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', gear: '🎒', misc: '🦴' }[type] || '📦';
         var el = document.createElement('li');
         el.className = 'inv-item';
         el.dataset.type = type;
