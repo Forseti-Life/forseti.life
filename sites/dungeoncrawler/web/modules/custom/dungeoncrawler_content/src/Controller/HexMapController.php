@@ -600,13 +600,32 @@ class HexMapController extends ControllerBase {
     $content_id = (string) ($entity['entity_ref']['content_id'] ?? '');
     $character_id = (int) ($metadata['character_id'] ?? 0);
 
+    // Path 1: Look up by character_id in dc_campaign_characters.
     if ($character_id > 0) {
       $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $character_id, $campaign_id > 0 ? $campaign_id : NULL, 'portrait', 'original');
+      // Cross-campaign fallback: portrait may exist under a different campaign's character record.
+      if (empty($rows) && $campaign_id > 0) {
+        $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $character_id, NULL, 'portrait', 'original');
+      }
+      // Dereference the character_id FK: if this cc.id has a character_id column
+      // pointing to another record (the original/shared character), check that too.
+      if (empty($rows)) {
+        $original_char_id = $this->database->select('dc_campaign_characters', 'cc')
+          ->fields('cc', ['character_id'])
+          ->condition('id', $character_id)
+          ->range(0, 1)
+          ->execute()
+          ->fetchField();
+        if ($original_char_id !== FALSE && (int) $original_char_id > 0 && (int) $original_char_id !== $character_id) {
+          $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) ((int) $original_char_id), NULL, 'portrait', 'original');
+        }
+      }
       if (!empty($rows)) {
         return $this->normalizePortraitUrl($this->imageRepository->resolveClientUrl($rows[0]));
       }
     }
 
+    // Path 2: Look up by content_id in dc_dungeon_sprites.
     if ($content_id !== '') {
       $rows = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $content_id, $campaign_id > 0 ? $campaign_id : NULL, 'portrait', 'original');
       if (empty($rows)) {
@@ -617,6 +636,7 @@ class HexMapController extends ControllerBase {
       }
     }
 
+    // Path 3: Look up by display_name matched to dc_campaign_characters.
     $name = trim((string) ($metadata['display_name'] ?? $metadata['name'] ?? ''));
     if ($name !== '' && $campaign_id > 0) {
       $campaign_character_id = $this->database->select('dc_campaign_characters', 'cc')
@@ -631,6 +651,27 @@ class HexMapController extends ControllerBase {
 
       if ($campaign_character_id !== FALSE) {
         $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) ((int) $campaign_character_id), $campaign_id, 'portrait', 'original');
+        // Cross-campaign fallback: check if portrait exists under any campaign for this cc.id.
+        if (empty($rows)) {
+          $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) ((int) $campaign_character_id), NULL, 'portrait', 'original');
+        }
+        if (!empty($rows)) {
+          return $this->normalizePortraitUrl($this->imageRepository->resolveClientUrl($rows[0]));
+        }
+      }
+
+      // Cross-campaign name scan: search all campaigns for a character with the same name that has a portrait.
+      $other_character_ids = $this->database->select('dc_campaign_characters', 'cc')
+        ->fields('cc', ['id'])
+        ->condition('name', $name)
+        ->condition('campaign_id', $campaign_id, '<>')
+        ->orderBy('updated', 'DESC')
+        ->orderBy('id', 'DESC')
+        ->execute()
+        ->fetchCol();
+
+      foreach ($other_character_ids as $other_cc_id) {
+        $rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) ((int) $other_cc_id), NULL, 'portrait', 'original');
         if (!empty($rows)) {
           return $this->normalizePortraitUrl($this->imageRepository->resolveClientUrl($rows[0]));
         }
