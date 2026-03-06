@@ -446,7 +446,7 @@
         <button class="inv-filter" data-filter="weapon">{{ '⚔️ Weapons'|t }}</button>
         <button class="inv-filter" data-filter="armor">{{ '🛡️ Armor'|t }}</button>
         <button class="inv-filter" data-filter="consumable">{{ '🧪 Consumables'|t }}</button>
-        <button class="inv-filter" data-filter="gear">{{ '🎒 Gear'|t }}</button>
+        <button class="inv-filter" data-filter="utility">{{ '🧰 Utility'|t }}</button>
         <button class="inv-filter" data-filter="misc">{{ '🦴 Misc'|t }}</button>
       </div>
 
@@ -709,32 +709,32 @@
       'caltrops':          { type:'consumable', bulk:'L', desc:'Metal spikes scattered to slow pursuers. Covers a 5-foot square. Creatures take 1d4 piercing on entry.', mods:[{stat:'Damage',val:'1d4 P'},{stat:'Area',val:'5 ft sq.'},{stat:'DC',val:'14 Acrobatics'}] },
 
       /* === ADVENTURING GEAR === */
-      'backpack':          { type:'gear', bulk:'L', desc:'A sturdy leather pack with multiple compartments for storing supplies.', mods:[{stat:'Capacity',val:'4 Bulk'},{stat:'Worn',val:'Back'}] },
-      'bedroll':           { type:'gear', bulk:'L', desc:'A simple roll of padded fabric for sleeping on the ground during travel.', mods:[{stat:'Rest',val:'Comfortable'},{stat:'Survival',val:'Camp'}] },
-      'chalk':             { type:'gear', bulk:0, desc:'Ten sticks of chalk for marking walls, drawing maps, or leaving trails in dungeons.', mods:[{stat:'Uses',val:'10 sticks'},{stat:'Mark',val:'Walls/floors'}] },
-      'climbing-kit':      { type:'gear', bulk:1, desc:'Carabiners, pitons, rope, and harness. Grants +1 item bonus to Athletics checks to Climb.', mods:[{stat:'Athletics',val:'+1 item'},{stat:'Climb',val:'Aided'}] },
-      'compass':           { type:'gear', bulk:0, desc:'A magnetized needle that always points north. Useful for surface navigation, less reliable underground.', mods:[{stat:'Survival',val:'+1 circumstance'},{stat:'Navigation',val:'Surface'}] },
-      'crowbar':           { type:'gear', bulk:'L', desc:'An iron bar with a flattened end for prying. Grants +1 item bonus to Athletics checks to Force Open.', mods:[{stat:'Athletics',val:'+1 item'},{stat:'Force Open',val:'Aided'}] },
-      'fishing-tackle':    { type:'gear', bulk:1, desc:'Hooks, lines, sinkers, and a collapsible rod. Useful for Survival checks to Subsist near water.', mods:[{stat:'Survival',val:'+1 item'},{stat:'Subsist',val:'Near water'}] },
-      'flint-steel':       { type:'gear', bulk:0, desc:'A piece of flint and a steel striker for starting fires. Essential for lighting torches and campfires.', mods:[{stat:'Fire',val:'Start (1 action)'}] },
-      'grappling-hook':    { type:'gear', bulk:'L', desc:'A multi-pronged metal hook on rope for climbing walls or crossing chasms.', mods:[{stat:'Climb',val:'Anchor point'},{stat:'Range',val:'≤50 ft'}] },
-      'healers-tools':     { type:'gear', bulk:1, desc:'Bandages, salves, and splints for treating wounds. Required for Treat Wounds activity.', mods:[{stat:'Medicine',val:'+1 item'},{stat:'Treat Wounds',val:'Required'}] },
-      'hooded-lantern':    { type:'gear', bulk:'L', desc:'A lantern with a hood to dim or extinguish the light without putting out the flame. Burns oil.', mods:[{stat:'Light',val:'30 ft bright'},{stat:'Duration',val:'6 hr (oil)'},{stat:'Hood',val:'Dim/off'}] },
-      'lantern':           { type:'gear', bulk:'L', desc:'A lantern with a hood to dim or extinguish the light. Burns oil for 6 hours.', mods:[{stat:'Light',val:'30 ft bright'},{stat:'Duration',val:'6 hr (oil)'}] },
-      'manacles':          { type:'gear', bulk:0, desc:'Iron wrist restraints connected by a short chain. Escaping requires DC 22 Thievery or DC 27 Athletics.', mods:[{stat:'Escape DC',val:'22 Thievery'},{stat:'Break DC',val:'27 Athletics'}] },
-      'mirror':            { type:'gear', bulk:0, desc:'A small polished silver mirror. Useful for seeing around corners, signaling, or detecting certain creatures.', mods:[{stat:'Utility',val:'See around corners'},{stat:'Signal',val:'Reflect light'}] },
-      'musical-instrument-handheld': { type:'gear', bulk:1, desc:'A portable handheld instrument such as a flute, lute, or drum. Required for some Performance checks.', mods:[{stat:'Performance',val:'Required'},{stat:'Hands',val:'2'}] },
-      'pitons':            { type:'gear', bulk:'L', desc:'Ten iron spikes that can be driven into rock or wood to serve as anchors for ropes during climbing.', mods:[{stat:'Uses',val:'10 pitons'},{stat:'Climb',val:'Anchor'}] },
-      'rope':              { type:'gear', bulk:'L', desc:'50 feet of hemp rope. Can hold up to 3,000 pounds. Useful for climbing and binding.', mods:[{stat:'Length',val:'50 ft'},{stat:'Capacity',val:'3,000 lb'}] },
-      'signal-whistle':    { type:'gear', bulk:0, desc:'A small whistle producing a shrill tone audible at great distances for signaling allies.', mods:[{stat:'Signal',val:'Long range'},{stat:'Hands',val:'1'}] },
-      'soap':              { type:'gear', bulk:0, desc:'A bar of soap for personal hygiene. Useful for cleaning with occasional creative applications.', mods:[{stat:'Hygiene',val:'Clean'}] },
-      'tent-pup':          { type:'gear', bulk:'L', desc:'A small, lightweight tent providing basic shelter for one person. Protects against weather during rest.', mods:[{stat:'Shelter',val:'1 person'},{stat:'Rest',val:'Protected'}] },
-      'thieves-tools':     { type:'gear', bulk:'L', desc:'Lockpicks, tension wrench, and tools for bypassing locks and disabling traps.', mods:[{stat:'Thievery',val:'+1 item'},{stat:'Pick Lock',val:'Required'},{stat:'Disable Device',val:'Required'}] },
-      'torches':           { type:'gear', bulk:'L', desc:'5 wooden torches soaked in tallow. Each sheds bright light in a 20-ft radius for 1 hour.', mods:[{stat:'Light',val:'20 ft bright'},{stat:'Duration',val:'1 hr each'},{stat:'Count',val:'5'}] },
-      'torch':             { type:'gear', bulk:'L', desc:'A wooden torch that sheds bright light in a 20-foot radius for 1 hour.', mods:[{stat:'Light',val:'20 ft bright'},{stat:'Duration',val:'1 hour'}] },
-      'waterskin':         { type:'gear', bulk:'L', desc:'A leather pouch for carrying water. Holds enough for one day of travel when full.', mods:[{stat:'Water',val:'1 day'},{stat:'Worn',val:'Belt'}] },
-      'writing-set':       { type:'gear', bulk:'L', desc:'Ink, quills, sealing wax, and paper. Useful for journals, letters, or mapping.', mods:[{stat:'Craft',val:'Write/map'},{stat:'Hands',val:'2'}] },
-      'adventurers-pack':  { type:'gear', bulk:1, desc:'Bedroll, chalk, flint & steel, rope, rations (2 weeks), torch (5), waterskin.' },
+      'backpack':          { type:'utility', bulk:'L', desc:'A sturdy leather pack with multiple compartments for storing supplies.', mods:[{stat:'Capacity',val:'4 Bulk'},{stat:'Worn',val:'Back'}] },
+      'bedroll':           { type:'utility', bulk:'L', desc:'A simple roll of padded fabric for sleeping on the ground during travel.', mods:[{stat:'Rest',val:'Comfortable'},{stat:'Survival',val:'Camp'}] },
+      'chalk':             { type:'utility', bulk:0, desc:'Ten sticks of chalk for marking walls, drawing maps, or leaving trails in dungeons.', mods:[{stat:'Uses',val:'10 sticks'},{stat:'Mark',val:'Walls/floors'}] },
+      'climbing-kit':      { type:'utility', bulk:1, desc:'Carabiners, pitons, rope, and harness. Grants +1 item bonus to Athletics checks to Climb.', mods:[{stat:'Athletics',val:'+1 item'},{stat:'Climb',val:'Aided'}] },
+      'compass':           { type:'utility', bulk:0, desc:'A magnetized needle that always points north. Useful for surface navigation, less reliable underground.', mods:[{stat:'Survival',val:'+1 circumstance'},{stat:'Navigation',val:'Surface'}] },
+      'crowbar':           { type:'utility', bulk:'L', desc:'An iron bar with a flattened end for prying. Grants +1 item bonus to Athletics checks to Force Open.', mods:[{stat:'Athletics',val:'+1 item'},{stat:'Force Open',val:'Aided'}] },
+      'fishing-tackle':    { type:'utility', bulk:1, desc:'Hooks, lines, sinkers, and a collapsible rod. Useful for Survival checks to Subsist near water.', mods:[{stat:'Survival',val:'+1 item'},{stat:'Subsist',val:'Near water'}] },
+      'flint-steel':       { type:'utility', bulk:0, desc:'A piece of flint and a steel striker for starting fires. Essential for lighting torches and campfires.', mods:[{stat:'Fire',val:'Start (1 action)'}] },
+      'grappling-hook':    { type:'utility', bulk:'L', desc:'A multi-pronged metal hook on rope for climbing walls or crossing chasms.', mods:[{stat:'Climb',val:'Anchor point'},{stat:'Range',val:'≤50 ft'}] },
+      'healers-tools':     { type:'utility', bulk:1, desc:'Bandages, salves, and splints for treating wounds. Required for Treat Wounds activity.', mods:[{stat:'Medicine',val:'+1 item'},{stat:'Treat Wounds',val:'Required'}] },
+      'hooded-lantern':    { type:'utility', bulk:'L', desc:'A lantern with a hood to dim or extinguish the light without putting out the flame. Burns oil.', mods:[{stat:'Light',val:'30 ft bright'},{stat:'Duration',val:'6 hr (oil)'},{stat:'Hood',val:'Dim/off'}] },
+      'lantern':           { type:'utility', bulk:'L', desc:'A lantern with a hood to dim or extinguish the light. Burns oil for 6 hours.', mods:[{stat:'Light',val:'30 ft bright'},{stat:'Duration',val:'6 hr (oil)'}] },
+      'manacles':          { type:'utility', bulk:0, desc:'Iron wrist restraints connected by a short chain. Escaping requires DC 22 Thievery or DC 27 Athletics.', mods:[{stat:'Escape DC',val:'22 Thievery'},{stat:'Break DC',val:'27 Athletics'}] },
+      'mirror':            { type:'utility', bulk:0, desc:'A small polished silver mirror. Useful for seeing around corners, signaling, or detecting certain creatures.', mods:[{stat:'Utility',val:'See around corners'},{stat:'Signal',val:'Reflect light'}] },
+      'musical-instrument-handheld': { type:'utility', bulk:1, desc:'A portable handheld instrument such as a flute, lute, or drum. Required for some Performance checks.', mods:[{stat:'Performance',val:'Required'},{stat:'Hands',val:'2'}] },
+      'pitons':            { type:'utility', bulk:'L', desc:'Ten iron spikes that can be driven into rock or wood to serve as anchors for ropes during climbing.', mods:[{stat:'Uses',val:'10 pitons'},{stat:'Climb',val:'Anchor'}] },
+      'rope':              { type:'utility', bulk:'L', desc:'50 feet of hemp rope. Can hold up to 3,000 pounds. Useful for climbing and binding.', mods:[{stat:'Length',val:'50 ft'},{stat:'Capacity',val:'3,000 lb'}] },
+      'signal-whistle':    { type:'utility', bulk:0, desc:'A small whistle producing a shrill tone audible at great distances for signaling allies.', mods:[{stat:'Signal',val:'Long range'},{stat:'Hands',val:'1'}] },
+      'soap':              { type:'utility', bulk:0, desc:'A bar of soap for personal hygiene. Useful for cleaning with occasional creative applications.', mods:[{stat:'Hygiene',val:'Clean'}] },
+      'tent-pup':          { type:'utility', bulk:'L', desc:'A small, lightweight tent providing basic shelter for one person. Protects against weather during rest.', mods:[{stat:'Shelter',val:'1 person'},{stat:'Rest',val:'Protected'}] },
+      'thieves-tools':     { type:'utility', bulk:'L', desc:'Lockpicks, tension wrench, and tools for bypassing locks and disabling traps.', mods:[{stat:'Thievery',val:'+1 item'},{stat:'Pick Lock',val:'Required'},{stat:'Disable Device',val:'Required'}] },
+      'torches':           { type:'utility', bulk:'L', desc:'5 wooden torches soaked in tallow. Each sheds bright light in a 20-ft radius for 1 hour.', mods:[{stat:'Light',val:'20 ft bright'},{stat:'Duration',val:'1 hr each'},{stat:'Count',val:'5'}] },
+      'torch':             { type:'utility', bulk:'L', desc:'A wooden torch that sheds bright light in a 20-foot radius for 1 hour.', mods:[{stat:'Light',val:'20 ft bright'},{stat:'Duration',val:'1 hour'}] },
+      'waterskin':         { type:'utility', bulk:'L', desc:'A leather pouch for carrying water. Holds enough for one day of travel when full.', mods:[{stat:'Water',val:'1 day'},{stat:'Worn',val:'Belt'}] },
+      'writing-set':       { type:'utility', bulk:'L', desc:'Ink, quills, sealing wax, and paper. Useful for journals, letters, or mapping.', mods:[{stat:'Craft',val:'Write/map'},{stat:'Hands',val:'2'}] },
+      'adventurers-pack':  { type:'utility', bulk:1, desc:'Bedroll, chalk, flint & steel, rope, rations (2 weeks), torch (5), waterskin.' },
 
       /* === MISC / LOOT === */
       'wolf-hide':         { type:'misc', bulk:1, desc:'Thick pelt from a wild wolf. Valuable to tanners and crafters.', mods:[{stat:'Sell Value',val:'~2 GP'},{stat:'Crafting',val:'Leather items'}] },
@@ -872,11 +872,14 @@
         var text = li.textContent.trim();
         var itemId = li.dataset.itemId || '';
         var info = getItemInfo(itemId, text);
-        var type = li.dataset.type || (info && info.type) || 'gear';
+        var rawType = li.dataset.type || (info && info.type) || 'utility';
+        // Normalize legacy type names → current categories
+        var typeMap = { adventuring_gear:'utility', gear:'utility', potion:'consumable', alchemical:'consumable' };
+        var type = typeMap[rawType] || rawType;
         var qty  = li.dataset.qty || '';
         var bulk = li.dataset.bulk || (info && info.bulk != null ? String(info.bulk) : '');
         var desc = li.dataset.desc || (info && info.desc) || '';
-        var icon = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', gear: '🎒', misc: '🦴' }[type] || '📦';
+        var icon = { weapon: '⚔️', armor: '🛡️', consumable: '🧪', utility: '🧰', misc: '🦴' }[type] || '📦';
         var el = document.createElement('li');
         el.className = 'inv-item';
         el.dataset.type = type;
