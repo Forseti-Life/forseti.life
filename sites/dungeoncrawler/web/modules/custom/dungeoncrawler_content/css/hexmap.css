@@ -2030,7 +2030,7 @@
 .phase-indicator {
   position: absolute;
   top: var(--space-4);
-  left: var(--space-8);
+  right: var(--space-4);
   z-index: 20;
   display: inline-flex;
   align-items: center;
