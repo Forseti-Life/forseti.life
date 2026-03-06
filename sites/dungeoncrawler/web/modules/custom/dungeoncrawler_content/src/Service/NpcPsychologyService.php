@@ -158,8 +158,12 @@ class NpcPsychologyService {
     $character_sheet = [
       'display_name' => $display_name,
       'creature_type' => $creature_type,
+      'ancestry' => $seed_data['ancestry'] ?? '',
+      'class' => $seed_data['class'] ?? '',
+      'occupation' => $seed_data['occupation'] ?? '',
       'level' => $level,
       'description' => $seed_data['description'] ?? '',
+      'backstory' => $seed_data['backstory'] ?? '',
       'role' => $role,
       'stats' => $stats,
       'abilities' => $seed_data['abilities'] ?? [],
@@ -612,6 +616,15 @@ class NpcPsychologyService {
     // Identity.
     $parts[] = "=== {$name} — NPC CHARACTER SHEET ===";
 
+    if (!empty($sheet['ancestry'])) {
+      $parts[] = "Ancestry/Race: {$sheet['ancestry']}";
+    }
+    if (!empty($sheet['class'])) {
+      $parts[] = "Class: {$sheet['class']}";
+    }
+    if (!empty($sheet['occupation'])) {
+      $parts[] = "Occupation: {$sheet['occupation']}";
+    }
     if (!empty($sheet['creature_type'])) {
       $parts[] = "Creature Type: {$sheet['creature_type']}";
     }
@@ -623,6 +636,9 @@ class NpcPsychologyService {
     }
     if (!empty($sheet['description'])) {
       $parts[] = "Description: {$sheet['description']}";
+    }
+    if (!empty($sheet['backstory'])) {
+      $parts[] = "Backstory: {$sheet['backstory']}";
     }
 
     // Stats — prefer live data, fall back to sheet snapshot.
@@ -883,13 +899,21 @@ class NpcPsychologyService {
       $seed = [
         'display_name' => $metadata['display_name'] ?? $ref,
         'creature_type' => $entity['entity_ref']['content_id'] ?? $ref,
+        'ancestry' => $metadata['ancestry'] ?? $entity['ancestry'] ?? '',
+        'class' => $metadata['class'] ?? $entity['class'] ?? '',
+        'occupation' => $metadata['occupation'] ?? $entity['occupation'] ?? '',
         'level' => $entity['level'] ?? $stats['level'] ?? 1,
         'description' => $entity['description'] ?? $metadata['description'] ?? '',
+        'backstory' => $metadata['backstory'] ?? $entity['backstory'] ?? '',
         'stats' => array_merge($stats, [
           'currentHp' => $hp['current'] ?? $stats['currentHp'] ?? 10,
           'maxHp' => $hp['max'] ?? $stats['maxHp'] ?? 10,
         ]),
-        'role' => $entity['role'] ?? ($type === 'npc' ? 'neutral' : 'hostile'),
+        'abilities' => $metadata['abilities'] ?? $entity['abilities'] ?? [],
+        'equipment' => $metadata['equipment'] ?? $entity['equipment'] ?? [],
+        'languages' => $metadata['languages'] ?? $entity['languages'] ?? ['Common'],
+        'senses' => $metadata['senses'] ?? $entity['senses'] ?? [],
+        'role' => $metadata['role'] ?? $entity['role'] ?? ($type === 'npc' ? 'neutral' : 'hostile'),
         'initial_attitude' => $entity['attitude'] ?? ($type === 'npc' ? 'indifferent' : 'hostile'),
       ];
 

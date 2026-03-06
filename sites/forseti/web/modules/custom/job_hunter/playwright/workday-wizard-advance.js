@@ -344,6 +344,7 @@ const REVIEW_SUBMIT_MODE_RAW = String(review_submit_mode || '').trim().toLowerCa
 const REVIEW_SUBMIT_MODE = REVIEW_SUBMIT_MODE_RAW === 'save_and_continue_later' || REVIEW_SUBMIT_MODE_RAW === 'skip' || REVIEW_SUBMIT_MODE_RAW === 'submit'
   ? REVIEW_SUBMIT_MODE_RAW
   : (PREVENT_SUBMIT ? 'skip' : 'submit');
+const STRICT_VISUAL_FORM_FILL = true;
 
 if (!username || !password || !apply_url) {
   fail('Payload must include username, password, and apply_url.');
@@ -1543,7 +1544,19 @@ async function handleMyInformation(page, profile, result) {
 async function handleMyExperience(page, profile, result) {
   const filled = [];
   const skipped = [];
-  const desiredEducationCount = Math.max(0, Math.min(3, extractEducationEntries(profile || {}).length));
+  const educationEntries = extractEducationEntries(profile || {});
+  const desiredEducationCount = Math.max(0, Math.min(3, educationEntries.length));
+  const hasExperienceFillTag = () => filled.some((x) => {
+    const s = String(x || '');
+    return s === 'experience_job_title'
+      || s === 'experience_company'
+      || s === 'experience_from'
+      || s === 'experience_to'
+      || s.startsWith('experience_2_')
+      || s.startsWith('experience_3_')
+      || s === 'experience_rows_ready_3'
+      || s === 'experience_rows_ready_2';
+  });
 
   // Check if work experience section has entries.
   try {
@@ -1584,6 +1597,7 @@ async function handleMyExperience(page, profile, result) {
 
   if (desiredEducationCount > 0) {
     let savedEducationCount = await countVisibleEducationEntries(page);
+    let matchedEducationCount = await countMatchedEducationEntries(page, educationEntries);
     if (savedEducationCount < desiredEducationCount) {
       const refillEducation = await forceFillEducationFields(page, profile);
       filled.push(...refillEducation.filled.filter((x) => !filled.includes(x)));
@@ -1599,17 +1613,19 @@ async function handleMyExperience(page, profile, result) {
         }
       }
       savedEducationCount = await countVisibleEducationEntries(page);
+      matchedEducationCount = await countMatchedEducationEntries(page, educationEntries);
     }
 
-    if (savedEducationCount >= desiredEducationCount) {
+    if (savedEducationCount >= desiredEducationCount && matchedEducationCount >= Math.max(1, Math.min(desiredEducationCount, educationEntries.length))) {
       filled.push('education_saved_verified');
     } else {
       skipped.push(`education_not_saved_visible_${savedEducationCount}_of_${desiredEducationCount}`);
+      skipped.push(`education_not_saved_matched_${matchedEducationCount}_of_${desiredEducationCount}`);
     }
   }
 
   // If no entry is detected, try opening the editor and applying corrections again.
-  if (!filled.includes('work_experience_present')) {
+  if (!filled.includes('work_experience_present') && !hasExperienceFillTag()) {
     const opened = await openMyExperienceEditor(page);
     if (opened) {
       filled.push('opened_experience_editor');
@@ -2690,8 +2706,12 @@ async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, 
       || combined.includes('error-company')
       || combined.includes('error-from')
       || combined.includes('error-to');
+    const hasEducationErrors = combined.includes('error-school or university')
+      || combined.includes('error-degree')
+      || combined.includes('error-end date')
+      || combined.includes('error-graduation');
 
-    if (hasExperienceErrors) {
+    if (hasExperienceErrors || hasEducationErrors) {
       let opened = await openExperienceEditorFromErrorLinks(page);
       if (!opened) {
         opened = await openMyExperienceEditor(page);
@@ -2702,18 +2722,102 @@ async function resolveValidationErrorsFromProfile(page, profile, evidenceParts, 
 
       const editorVisible = await isExperienceEditorVisible(page);
       const inlineRowsPresent = await page.locator('input[name="jobTitle"][id*="workExperience-"]').count().catch(() => 0);
-      if (editorVisible || inlineRowsPresent > 0) {
+      if (editorVisible || inlineRowsPresent > 0 || hasEducationErrors) {
+        let changed = false;
+
+        const experienceEntries = extractExperienceEntries(profile || {});
+        const firstExperience = (Array.isArray(experienceEntries) && experienceEntries.length > 0) ? experienceEntries[0] : null;
+        if (hasExperienceErrors && firstExperience) {
+          const expResolved =
+            (await resolveRepeatedErrorLinks(page, 'Job Title', [firstExperience.job_title || profile?.experience_job_title || ''], 'text', 3)) +
+            (await resolveRepeatedErrorLinks(page, 'Company', [firstExperience.company || profile?.experience_company || ''], 'text', 3)) +
+            (await resolveRepeatedErrorLinks(page, 'From', [firstExperience.from || profile?.experience_from || ''], 'date', 3)) +
+            (await resolveRepeatedErrorLinks(page, 'To', [firstExperience.to || profile?.experience_to || ''], 'date', 3));
+          if (expResolved > 0) {
+            changed = true;
+            if (!resolved.includes('experience_error_links_resolved')) {
+              resolved.push('experience_error_links_resolved');
+            }
+          }
+        }
+
+        const educationEntries = extractEducationEntries(profile || {});
+        if (hasEducationErrors && educationEntries.length > 0) {
+          const schools = educationEntries.map((e) => e?.school || '').filter(Boolean);
+          const degrees = educationEntries.map((e) => e?.degree || '').filter(Boolean);
+          const eduResolved =
+            (await resolveRepeatedErrorLinks(page, 'School or University', schools, 'text', 6)) +
+            (await resolveRepeatedErrorLinks(page, 'Degree', degrees, 'text', 6));
+          if (eduResolved > 0) {
+            changed = true;
+            if (!resolved.includes('education_error_links_resolved')) {
+              resolved.push('education_error_links_resolved');
+            }
+          }
+        }
+
         const corrected = await forceFillExperienceFields(page, profile);
         for (const f of corrected.filled) {
           if (!resolved.includes(f)) {
             resolved.push(f);
           }
         }
-
         if (corrected.filled.length > 0) {
+          changed = true;
+        }
+
+        const correctedEducation = await forceFillEducationFields(page, profile);
+        for (const f of correctedEducation.filled) {
+          if (!resolved.includes(f)) {
+            resolved.push(f);
+          }
+        }
+        if (correctedEducation.filled.length > 0) {
+          changed = true;
+        }
+
+        if (changed) {
           const committed = await commitMyExperienceEditor(page);
           if (committed) {
             resolved.push('experience_editor_saved');
+          }
+        } else if (hasExperienceErrors || hasEducationErrors) {
+          // Fallback: return to My Experience step explicitly, refill, and save.
+          let reachedMyExperience = await isLikelyStillOnStep(page, 'my_experience');
+          for (let hop = 0; hop < 4 && !reachedMyExperience; hop++) {
+            const backed = await clickBackButton(page, evidenceParts);
+            if (!backed) {
+              break;
+            }
+            await humanDelay(900, 1700);
+            reachedMyExperience = await isLikelyStillOnStep(page, 'my_experience');
+          }
+
+          if (reachedMyExperience) {
+            const local = { fields_filled: [], fields_skipped: [], needs_manual_review: false };
+            await handleMyExperience(page, profile, local);
+            for (const f of (local.fields_filled || [])) {
+              if (!resolved.includes(f)) {
+                resolved.push(f);
+              }
+            }
+
+            const committed = await commitMyExperienceEditor(page);
+            if (committed && !resolved.includes('experience_editor_saved')) {
+              resolved.push('experience_editor_saved');
+            }
+
+            for (let forward = 0; forward < 5; forward++) {
+              const atReview = await isLikelyStillOnStep(page, 'review_submit');
+              if (atReview) {
+                break;
+              }
+              const moved = await clickContinueButton(page, evidenceParts);
+              if (!moved) {
+                break;
+              }
+              await humanDelay(900, 1700);
+            }
           }
         }
       }
@@ -2913,6 +3017,13 @@ async function answerFocusedField(page, answerValue, mode = 'text') {
     }).catch(() => false);
 
     if (activeReady) {
+      const before = await page.evaluate(() => {
+        const el = document.activeElement;
+        if (!el) return '';
+        el.setAttribute('data-jh-focused-target', '1');
+        return String(el.value || el.getAttribute('value') || el.textContent || '').trim();
+      }).catch(() => '');
+
       if (isDateMode && normalized) {
         await page.keyboard.press('Control+A').catch(() => {});
         await page.keyboard.press('Backspace').catch(() => {});
@@ -2932,7 +3043,20 @@ async function answerFocusedField(page, answerValue, mode = 'text') {
       }
       await page.keyboard.press('Tab').catch(() => {});
       await humanDelay(120, 260);
-      return true;
+
+      const after = await page.evaluate(() => {
+        const tagged = document.querySelector('[data-jh-focused-target="1"]');
+        const read = (el) => String(el?.value || el?.getAttribute?.('value') || el?.textContent || '').trim();
+        const value = read(tagged || document.activeElement);
+        if (tagged) tagged.removeAttribute('data-jh-focused-target');
+        return value;
+      }).catch(() => '');
+
+      if (isDateMode && normalized) {
+        const ok = visualMatch(String(after || ''), String(normalized.year)) || visualMatch(String(after || ''), String(normalized.month)) || String(after || '').length > 0;
+        return !!ok;
+      }
+      return visualMatch(String(after || ''), String(answerValue || '')) || (!!after && !visualMatch(String(before || ''), String(after || '')));
     }
 
     return await page.evaluate(({ answerValue, mode }) => {
@@ -3029,6 +3153,360 @@ async function clickErrorLinkAndAnswer(page, errorTextNeedle, answerValue, mode 
     }
   } catch (_) {}
   return false;
+}
+
+async function resolveReviewRequiredFieldsByErrorLinks(page, profile) {
+  const resolved = [];
+  const experienceEntries = extractExperienceEntries(profile || {});
+  const firstExperience = (experienceEntries && experienceEntries.length > 0) ? experienceEntries[0] : null;
+  const educationEntries = extractEducationEntries(profile || {});
+
+  if (firstExperience) {
+    if (String(firstExperience.job_title || '').trim()) {
+      const n = await resolveRepeatedErrorLinks(page, 'Job Title', [firstExperience.job_title], 'text', 4);
+      if (n > 0) resolved.push('experience_job_title_errorlink_visual');
+    }
+    if (String(firstExperience.company || '').trim()) {
+      const n = await resolveRepeatedErrorLinks(page, 'Company', [firstExperience.company], 'text', 4);
+      if (n > 0) resolved.push('experience_company_errorlink_visual');
+    }
+    if (String(firstExperience.from || '').trim()) {
+      const n = await resolveRepeatedErrorLinks(page, 'From', [firstExperience.from], 'date', 4);
+      if (n > 0) resolved.push('experience_from_errorlink_visual');
+    }
+    if (String(firstExperience.to || '').trim()) {
+      const n = await resolveRepeatedErrorLinks(page, 'To', [firstExperience.to], 'date', 4);
+      if (n > 0) resolved.push('experience_to_errorlink_visual');
+    }
+  }
+
+  if (educationEntries.length > 0) {
+    const schools = educationEntries.map((e) => String(e?.school || '').trim()).filter(Boolean);
+    const degrees = educationEntries.map((e) => String(e?.degree || '').trim()).filter(Boolean);
+    if (schools.length > 0) {
+      const n = await resolveRepeatedErrorLinks(page, 'School or University', schools, 'text', 8);
+      if (n > 0) resolved.push('education_school_errorlink_visual');
+    }
+    if (degrees.length > 0) {
+      const n = await resolveRepeatedErrorLinks(page, 'Degree', degrees, 'dropdown', 8);
+      if (n > 0) resolved.push('education_degree_errorlink_visual');
+    }
+  }
+
+  return resolved;
+}
+
+async function resolveRepeatedErrorLinks(page, errorTextNeedle, values, mode = 'text', maxAttempts = 6) {
+  const queue = Array.isArray(values)
+    ? values.map((v) => String(v || '').trim()).filter(Boolean)
+    : [String(values || '').trim()].filter(Boolean);
+  if (!errorTextNeedle || !queue.length) {
+    return 0;
+  }
+
+  let resolved = 0;
+  for (let attempt = 0; attempt < maxAttempts && queue.length > 0; attempt++) {
+    const needle = String(errorTextNeedle || '').replace(/"/g, '\\"');
+    const pending = await page.locator(`[data-automation-id="errorHeading"] button:has-text("${needle}"), button.css-tgkpvs:has-text("${needle}"), button:has-text("Error"):has-text("${needle}"), a:has-text("${needle}"), [role="link"]:has-text("${needle}")`).count().catch(() => 0);
+    if (pending <= 0) {
+      break;
+    }
+
+    const answerValue = queue.shift();
+    const ok = await clickErrorLinkAndAnswer(page, errorTextNeedle, answerValue, mode);
+    if (!ok) {
+      queue.unshift(answerValue);
+      break;
+    }
+    resolved += 1;
+    await humanDelay(180, 360);
+  }
+
+  return resolved;
+}
+
+async function fillByVisibleLabelWithVerification(page, {
+  label,
+  value,
+  occurrence = 0,
+  mode = 'text',
+  fieldTag = '',
+}) {
+  const desiredValue = String(value || '').trim();
+  if (!label || !desiredValue) {
+    return { ok: false, reason: 'missing_label_or_value' };
+  }
+
+  const token = `jh-vis-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const setup = await page.evaluate(({ label, occurrence, mode, token }) => {
+    const normalize = (v) => String(v || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const needle = normalize(label);
+
+    const isVisible = (el) => {
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+
+    const readValue = (el) => {
+      if (!el) return '';
+      const tag = String(el.tagName || '').toLowerCase();
+      if (tag === 'select') {
+        const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+        return String(opt?.textContent || el.value || '').trim();
+      }
+      return String(el.value || el.getAttribute('value') || el.textContent || el.getAttribute('aria-label') || '').trim();
+    };
+
+    const nodes = Array.from(document.querySelectorAll('label, legend, span, div, p, strong, h3, h4, h5'))
+      .filter(isVisible)
+      .filter((el) => {
+        const text = normalize(el.innerText || el.textContent || '');
+        if (!text || text.length > 120) return false;
+        if (text.startsWith('error-') || text.includes('the field') || text.includes('required and must have a value')) return false;
+        return text.includes(needle);
+      });
+
+    const anchors = [];
+    for (const node of nodes) {
+      let current = node;
+      let depth = 0;
+      while (current && depth < 7) {
+        const controls = Array.from(current.querySelectorAll('input, textarea, select, button, [role="combobox"], [role="button"]')).filter(isVisible);
+        const text = normalize(current.innerText || current.textContent || '');
+        if (controls.length > 0 && text.includes(needle) && text.length < 260) {
+          if (!anchors.includes(current)) {
+            anchors.push(current);
+          }
+          break;
+        }
+        current = current.parentElement;
+        depth += 1;
+      }
+    }
+
+    if (!anchors.length) {
+      return { ok: false, reason: 'container_not_found' };
+    }
+
+    anchors.sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y);
+    const container = anchors[Math.min(Math.max(0, Number(occurrence) || 0), anchors.length - 1)];
+
+    const controls = Array.from(container.querySelectorAll('input, textarea, select, button, [role="combobox"], [role="button"]')).filter(isVisible);
+    if (!controls.length) {
+      return { ok: false, reason: 'controls_not_found' };
+    }
+
+    for (const el of document.querySelectorAll('[data-jh-visual-target]')) {
+      el.removeAttribute('data-jh-visual-target');
+      el.removeAttribute('data-jh-visual-part');
+    }
+
+    const meta = (el) => normalize(`${el.id || ''} ${el.getAttribute('name') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('placeholder') || ''}`);
+    const fieldMatchers = {
+      'job title': [/jobtitle/i, /job title/i, /title/i],
+      'company': [/company/i],
+      'role description': [/roledescription/i, /role description/i, /description/i],
+      'school or university': [/school/i, /university/i, /institution/i],
+      'degree': [/degree/i, /fieldofstudy/i, /major/i],
+      'from': [/startdate/i, /from/i],
+      'to': [/enddate/i, /to/i],
+    };
+    const matchers = fieldMatchers[needle] || [];
+    const textLike = controls.filter((el) => {
+      const tag = String(el.tagName || '').toLowerCase();
+      if (tag === 'textarea' || tag === 'select') return true;
+      if (tag === 'button') return false;
+      const type = String(el.getAttribute('type') || '').toLowerCase();
+      return !['hidden', 'checkbox', 'radio', 'file'].includes(type);
+    });
+
+    const payload = { ok: true, before: '', beforeMonth: '', beforeYear: '', controlType: mode, reason: '' };
+
+    if (mode === 'date') {
+      const dateScoped = controls.filter((el) => matchers.some((rx) => rx.test(meta(el))));
+      const dateControls = dateScoped.length ? dateScoped : controls;
+      const monthControl = dateControls.find((el) => /month/.test(meta(el))) || textLike[0] || null;
+      const yearControl = dateControls.find((el) => /year/.test(meta(el))) || textLike[1] || null;
+      if (!monthControl || !yearControl) {
+        return { ok: false, reason: 'date_controls_not_found' };
+      }
+      monthControl.setAttribute('data-jh-visual-target', token);
+      monthControl.setAttribute('data-jh-visual-part', 'month');
+      yearControl.setAttribute('data-jh-visual-target', token);
+      yearControl.setAttribute('data-jh-visual-part', 'year');
+      payload.beforeMonth = readValue(monthControl);
+      payload.beforeYear = readValue(yearControl);
+      return payload;
+    }
+
+    if (mode === 'dropdown') {
+      const preferred = controls.find((el) => {
+        const tag = String(el.tagName || '').toLowerCase();
+        const m = meta(el);
+        return (matchers.length === 0 || matchers.some((rx) => rx.test(m)))
+          && (tag === 'select'
+          || tag === 'button'
+          || /select one|degree|dropdown|combobox|option/.test(m)
+          || el.getAttribute('role') === 'combobox');
+      }) || controls[0];
+      preferred.setAttribute('data-jh-visual-target', token);
+      preferred.setAttribute('data-jh-visual-part', 'single');
+      payload.before = readValue(preferred);
+      return payload;
+    }
+
+    const preferredText = textLike.find((el) => matchers.some((rx) => rx.test(meta(el))));
+    const input = preferredText || textLike[0] || controls[0];
+    input.setAttribute('data-jh-visual-target', token);
+    input.setAttribute('data-jh-visual-part', 'single');
+    payload.before = readValue(input);
+    return payload;
+  }, { label, occurrence, mode, token });
+
+  if (!setup?.ok) {
+    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, '', false, `visual-target-missing:${setup?.reason || 'unknown'}`);
+    return { ok: false, reason: setup?.reason || 'setup_failed' };
+  }
+
+  let writeOk = false;
+  if (mode === 'date') {
+    const parsed = normalizeMonthYear(desiredValue);
+    if (parsed && parsed.month && parsed.year) {
+      const monthLocator = page.locator(`[data-jh-visual-target="${token}"][data-jh-visual-part="month"]`).first();
+      const yearLocator = page.locator(`[data-jh-visual-target="${token}"][data-jh-visual-part="year"]`).first();
+      try {
+        await monthLocator.click({ timeout: 1200, force: true });
+        await page.keyboard.press('Control+A').catch(() => {});
+        await page.keyboard.press('Backspace').catch(() => {});
+        await page.keyboard.type(String(parsed.month), { delay: 10 }).catch(() => {});
+        await yearLocator.click({ timeout: 1200, force: true });
+        await page.keyboard.press('Control+A').catch(() => {});
+        await page.keyboard.press('Backspace').catch(() => {});
+        await page.keyboard.type(String(parsed.year), { delay: 10 }).catch(() => {});
+        await page.keyboard.press('Tab').catch(() => {});
+        writeOk = true;
+      } catch (_) {}
+    }
+  } else if (mode === 'dropdown') {
+    const target = page.locator(`[data-jh-visual-target="${token}"]`).first();
+    try {
+      const tag = await target.evaluate((el) => String(el.tagName || '').toLowerCase()).catch(() => '');
+      if (tag === 'select') {
+        const selected = await target.evaluate((el, desiredValue) => {
+          const options = Array.from(el.options || []);
+          const normalize = (v) => String(v || '').trim().toLowerCase();
+          const desired = normalize(desiredValue);
+          const exact = options.find((o) => normalize(o.textContent || o.value) === desired || normalize(o.value) === desired);
+          const partial = options.find((o) => normalize(o.textContent || o.value).includes(desired));
+          const picked = exact || partial;
+          if (!picked) return false;
+          el.value = picked.value;
+          el.dispatchEvent(new Event('input', { bubbles: true }));
+          el.dispatchEvent(new Event('change', { bubbles: true }));
+          el.dispatchEvent(new Event('blur', { bubbles: true }));
+          return true;
+        }, desiredValue).catch(() => false);
+        writeOk = !!selected;
+      } else {
+        await target.click({ timeout: 1200, force: true });
+        await humanDelay(120, 260);
+        const optionsToTry = [
+          desiredValue,
+          desiredValue.split(/[\-,:]/)[0].trim(),
+          desiredValue.split(/\s+/).slice(0, 2).join(' ').trim(),
+        ].filter(Boolean);
+
+        for (const optLabel of optionsToTry) {
+          const selectors = [
+            `[role="option"]:has-text("${optLabel}")`,
+            `li[role="option"]:has-text("${optLabel}")`,
+            `li[role="menuitem"]:has-text("${optLabel}")`,
+            `[data-automation-id="promptOption"]:has-text("${optLabel}")`,
+            `div[role="option"]:has-text("${optLabel}")`,
+          ];
+          for (const selector of selectors) {
+            try {
+              const option = page.locator(selector).first();
+              await option.waitFor({ state: 'visible', timeout: 700 });
+              await option.click({ timeout: 900, force: true });
+              writeOk = true;
+              break;
+            } catch (_) {}
+          }
+          if (writeOk) break;
+        }
+      }
+      await page.keyboard.press('Tab').catch(() => {});
+    } catch (_) {}
+  } else {
+    const target = page.locator(`[data-jh-visual-target="${token}"]`).first();
+    try {
+      await target.click({ timeout: 1200, force: true });
+      await page.keyboard.press('Control+A').catch(() => {});
+      await page.keyboard.press('Backspace').catch(() => {});
+      await page.keyboard.type(desiredValue, { delay: 10 }).catch(() => {});
+      await page.keyboard.press('Tab').catch(() => {});
+      writeOk = true;
+    } catch (_) {}
+  }
+
+  await humanDelay(140, 300);
+
+  const after = await page.evaluate(({ token, mode }) => {
+    const readValue = (el) => {
+      if (!el) return '';
+      const tag = String(el.tagName || '').toLowerCase();
+      if (tag === 'select') {
+        const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+        return String(opt?.textContent || el.value || '').trim();
+      }
+      return String(el.value || el.getAttribute('value') || el.textContent || el.getAttribute('aria-label') || '').trim();
+    };
+
+    if (mode === 'date') {
+      const month = document.querySelector(`[data-jh-visual-target="${token}"][data-jh-visual-part="month"]`);
+      const year = document.querySelector(`[data-jh-visual-target="${token}"][data-jh-visual-part="year"]`);
+      return {
+        month: readValue(month),
+        year: readValue(year),
+      };
+    }
+
+    const el = document.querySelector(`[data-jh-visual-target="${token}"]`);
+    return { value: readValue(el) };
+  }, { token, mode }).catch(() => ({}));
+
+  const clearTempTargets = async () => {
+    await page.evaluate(() => {
+      for (const el of document.querySelectorAll('[data-jh-visual-target]')) {
+        el.removeAttribute('data-jh-visual-target');
+        el.removeAttribute('data-jh-visual-part');
+      }
+    }).catch(() => {});
+  };
+
+  let confirmed = false;
+  if (mode === 'date') {
+    const parsed = normalizeMonthYear(desiredValue);
+    if (parsed && parsed.month && parsed.year) {
+      confirmed = visualMatch(String(after.month || ''), String(parsed.month)) && visualMatch(String(after.year || ''), String(parsed.year));
+    }
+    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, `${after.month || ''}/${after.year || ''}`, writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+  } else if (mode === 'dropdown') {
+    const afterValue = String(after.value || '');
+    confirmed = !!afterValue && !/select one|0 items selected/i.test(afterValue) && (visualMatch(afterValue, desiredValue) || afterValue.length > 0);
+    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, afterValue, writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+  } else {
+    const afterValue = String(after.value || '');
+    confirmed = visualMatch(afterValue, desiredValue);
+    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, afterValue, writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+  }
+
+  await clearTempTargets();
+
+  return { ok: writeOk && confirmed, before: setup, after };
 }
 
 async function openErrorsFoundSummary(page, evidenceParts = null) {
@@ -3169,6 +3647,13 @@ async function openExperienceEditorFromErrorLinks(page) {
 }
 
 async function openMyExperienceEditor(page) {
+  try {
+    const inlineRows = await page.locator('input[name="jobTitle"][id*="workExperience-"]').count().catch(() => 0);
+    if (inlineRows > 0) {
+      return true;
+    }
+  } catch (_) {}
+
   if (await isExperienceEditorVisible(page)) {
     return true;
   }
@@ -3809,7 +4294,7 @@ async function clickAddEducationRow(page) {
 
       const sections = Array.from(document.querySelectorAll('section, div, fieldset')).filter((el) => {
         const txt = (el.innerText || '').toLowerCase();
-        return txt.includes('education');
+        return txt.includes('education') && !txt.includes('work experience');
       });
 
       for (const section of sections) {
@@ -3817,7 +4302,7 @@ async function clickAddEducationRow(page) {
         const add = buttons.find((el) => {
           const t = ((el.textContent || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
           const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
-          return !disabled && t.includes('add');
+          return !disabled && (t.includes('add education') || t.includes('add school') || t === 'add' || t.startsWith('add '));
         });
         if (add) {
           add.click();
@@ -3847,11 +4332,10 @@ async function clickAddEducationRow(page) {
   } catch (_) {}
 
   const selectors = [
-    '[data-automation-id*="education" i] button:has-text("Add")',
-    'section:has-text("Education") button:has-text("Add")',
     'button:has-text("Add Education")',
     'button[aria-label*="Add Education" i]',
-    '[data-automation-id="add-button"]',
+    '[data-automation-id*="education" i] button:has-text("Add")',
+    '[data-automation-id*="education" i][role="button"]:has-text("Add")',
   ];
 
   for (const sel of selectors) {
@@ -4197,6 +4681,106 @@ async function fillEducationEntryByVisibleControls(page, entry, index = 0) {
   } catch (_) {
     return [];
   }
+}
+
+async function fillEducationByRowKeyNative(page, educationEntries) {
+  const entryList = Array.isArray(educationEntries) ? educationEntries.filter(Boolean).slice(0, 3) : [];
+  if (!entryList.length) {
+    return [];
+  }
+
+  const filled = [];
+  const rowKeys = await getInlineEducationRowKeys(page);
+  if (!rowKeys.length) {
+    return filled;
+  }
+
+  const readSchoolSignal = async (key) => {
+    try {
+      return await page.evaluate((rowKey) => {
+        const el = document.getElementById(`education-${rowKey}--school`);
+        if (!el) return '';
+        return String(el.value || el.getAttribute('value') || el.textContent || '').trim().toLowerCase();
+      }, key);
+    } catch (_) {
+      return '';
+    }
+  };
+
+  for (let index = 0; index < entryList.length && index < rowKeys.length; index++) {
+    const key = rowKeys[index];
+    const entry = entryList[index] || {};
+    const school = String(entry.school || '').trim();
+    const degree = String(entry.degree || '').trim();
+    const tagPrefix = index === 0 ? 'education' : `education_${index + 1}`;
+
+    if (school) {
+      try {
+        const schoolInput = page.locator(`[id="education-${key}--school"]`).first();
+        await schoolInput.waitFor({ state: 'visible', timeout: 1200 });
+        await schoolInput.click({ timeout: 900, force: true });
+        await page.keyboard.press('Control+A').catch(() => {});
+        await page.keyboard.press('Backspace').catch(() => {});
+        await page.keyboard.type(school, { delay: 12 }).catch(() => {});
+        await page.keyboard.press('Enter').catch(() => {});
+        await page.keyboard.press('Tab').catch(() => {});
+        await humanDelay(140, 300);
+        const signal = await readSchoolSignal(key);
+        if (signal && !signal.includes('0 items selected')) {
+          if (!filled.includes(`${tagPrefix}_school`)) {
+            filled.push(`${tagPrefix}_school`);
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (degree) {
+      try {
+        const degreeBtn = page.locator(`[id="education-${key}--degree"]`).first();
+        await degreeBtn.waitFor({ state: 'visible', timeout: 1200 });
+        await degreeBtn.click({ timeout: 1000, force: true });
+        await humanDelay(120, 260);
+
+        const labels = [degree];
+        const firstToken = degree.split(/[\-,:]/)[0].trim();
+        if (firstToken && firstToken.toLowerCase() !== degree.toLowerCase()) {
+          labels.push(firstToken);
+        }
+
+        let selected = false;
+        for (const label of labels) {
+          const optionSelectors = [
+            `[role="option"]:has-text("${label}")`,
+            `li[role="option"]:has-text("${label}")`,
+            `li[role="menuitem"]:has-text("${label}")`,
+            `[data-automation-id="promptOption"]:has-text("${label}")`,
+            `div[role="option"]:has-text("${label}")`,
+          ];
+          for (const sel of optionSelectors) {
+            try {
+              const option = page.locator(sel).first();
+              await option.waitFor({ state: 'visible', timeout: 700 });
+              await option.click({ timeout: 900, force: true });
+              selected = true;
+              break;
+            } catch (_) {}
+          }
+          if (selected) break;
+        }
+
+        await humanDelay(120, 260);
+        const degreeText = await degreeBtn.textContent().catch(() => '');
+        const selectedText = String(degreeText || '').trim().toLowerCase();
+        if ((selected && selectedText && !selectedText.includes('select one')) || selectedText.includes(degree.toLowerCase())) {
+          if (!filled.includes(`${tagPrefix}_degree`)) {
+            filled.push(`${tagPrefix}_degree`);
+          }
+        }
+      } catch (_) {}
+    }
+  }
+
+  return filled;
 }
 
 async function fillWorkExperienceByFieldNames(page, experienceEntries) {
@@ -4582,6 +5166,48 @@ async function fillWorkExperienceByFieldNames(page, experienceEntries) {
     return !!(monthOk && yearOk);
   };
 
+  const looksLikeDateString = (value) => {
+    const v = String(value || '').trim();
+    if (!v) return false;
+    return /^(\d{4}[-/]\d{1,2}([-/]\d{1,2})?|\d{1,2}[-/]\d{4}|\d{4})$/.test(v);
+  };
+
+  const readRawById = async (id) => {
+    try {
+      return await page.evaluate((id) => {
+        const el = document.getElementById(id);
+        if (!el) return '';
+        return String(el.value || el.getAttribute('value') || el.textContent || '').trim();
+      }, id);
+    } catch (_) {
+      return '';
+    }
+  };
+
+  const ensureRowIntegrity = async (key, expectedTitle, expectedCompany) => {
+    let repaired = false;
+    const titleId = `workExperience-${key}--jobTitle`;
+    const companyId = `workExperience-${key}--companyName`;
+
+    const titleActual = await readRawById(titleId);
+    if (expectedTitle && (!visualMatch(titleActual, expectedTitle) && (looksLikeDateString(titleActual) || titleActual.length < 3))) {
+      const fixed = await typeById(titleId, expectedTitle);
+      if (fixed) {
+        repaired = true;
+      }
+    }
+
+    const companyActual = await readRawById(companyId);
+    if (expectedCompany && (!visualMatch(companyActual, expectedCompany) && looksLikeDateString(companyActual))) {
+      const fixed = await typeById(companyId, expectedCompany);
+      if (fixed) {
+        repaired = true;
+      }
+    }
+
+    return repaired;
+  };
+
   try {
     const rowKeys = await getInlineExperienceRowKeys(page);
 
@@ -4642,6 +5268,11 @@ async function fillWorkExperienceByFieldNames(page, experienceEntries) {
         const b = dateOk || await typeById(`workExperience-${key}--endDate-dateSectionYear-input`, toParts.year);
         perRow.to = !!(dateOk || (a && b));
         if (perRow.to) filled.push(rowIndex === 0 ? 'experience_to' : `experience_${rowIndex + 1}_to`);
+      }
+
+      const repaired = await ensureRowIntegrity(key, jobTitle, company);
+      if (repaired) {
+        filled.push(rowIndex === 0 ? 'experience_row_repaired' : `experience_${rowIndex + 1}_row_repaired`);
       }
 
       process.stderr.write(`INFO: Inline row fill result: ${JSON.stringify(perRow)}\n`);
@@ -4725,7 +5356,328 @@ async function cleanupEmptyWorkExperienceRows(page) {
   }
 }
 
+async function fillExperienceRowByVisualContainer(page, entry, rowIndex = 0) {
+  const out = [];
+  const jobTitle = String(entry?.job_title || '').trim();
+  const company = String(entry?.company || '').trim();
+  const roleDescription = String(entry?.role_description || '').trim();
+  const fromParts = normalizeMonthYear(entry?.from || '');
+  const toParts = normalizeMonthYear(entry?.to || '');
+  const token = `jh-row-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const prepared = await page.evaluate(({ rowIndex, token }) => {
+    const isVisible = (el) => {
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const normalize = (v) => String(v || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const meta = (el) => normalize(`${el.id || ''} ${el.getAttribute('name') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('placeholder') || ''}`);
+
+    const roots = Array.from(document.querySelectorAll('section, div, fieldset, li'))
+      .filter(isVisible)
+      .filter((el) => {
+        const txt = normalize(el.innerText || '');
+        if (!txt.includes('job title') || !txt.includes('company') || !txt.includes('from') || !txt.includes('to')) return false;
+        const controls = el.querySelectorAll('input, textarea, select');
+        return controls.length >= 5;
+      });
+
+    const deduped = [];
+    for (const r of roots) {
+      if (!deduped.some((d) => d.contains(r) || r.contains(d))) {
+        deduped.push(r);
+      }
+    }
+    deduped.sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y);
+    const row = deduped[Math.min(Math.max(0, rowIndex), deduped.length - 1)];
+    if (!row) return { ok: false };
+
+    for (const el of document.querySelectorAll('[data-jh-row-target]')) {
+      el.removeAttribute('data-jh-row-target');
+      el.removeAttribute('data-jh-row-part');
+    }
+
+    const controls = Array.from(row.querySelectorAll('input, textarea, select, button')).filter(isVisible);
+    const find = (matchers, fallback = null) => controls.find((el) => matchers.some((rx) => rx.test(meta(el)))) || fallback;
+    const textInputs = controls.filter((el) => {
+      const tag = (el.tagName || '').toLowerCase();
+      const type = String(el.getAttribute('type') || '').toLowerCase();
+      return (tag === 'input' || tag === 'textarea') && !['hidden', 'checkbox', 'radio', 'file'].includes(type);
+    });
+
+    const title = find([/jobtitle/i, /job title/i]);
+    const company = find([/companyname/i, /company/i]);
+    const desc = find([/roledescription/i, /role description/i, /description/i], controls.find((el) => (el.tagName || '').toLowerCase() === 'textarea') || null);
+    const fromMonth = find([/startdate.*month/i]);
+    const fromYear = find([/startdate.*year/i]);
+    const toMonth = find([/enddate.*month/i]);
+    const toYear = find([/enddate.*year/i]);
+
+    const setMark = (el, part) => {
+      if (!el) return;
+      el.setAttribute('data-jh-row-target', token);
+      el.setAttribute('data-jh-row-part', part);
+    };
+    setMark(title || textInputs[0], 'title');
+    setMark(company || textInputs[1], 'company');
+    setMark(desc, 'description');
+    setMark(fromMonth, 'from-month');
+    setMark(fromYear, 'from-year');
+    setMark(toMonth, 'to-month');
+    setMark(toYear, 'to-year');
+
+    return { ok: true };
+  }, { rowIndex, token }).catch(() => ({ ok: false }));
+
+  if (!prepared?.ok) {
+    return out;
+  }
+
+  const setText = async (part, value, fieldName) => {
+    if (!value) return;
+    const loc = page.locator(`[data-jh-row-target="${token}"][data-jh-row-part="${part}"]`).first();
+    try {
+      const before = await loc.inputValue({ timeout: 500 }).catch(() => loc.textContent({ timeout: 500 }).catch(() => ''));
+      await loc.click({ timeout: 1000, force: true });
+      await page.keyboard.press('Control+A').catch(() => {});
+      await page.keyboard.press('Backspace').catch(() => {});
+      await page.keyboard.type(String(value), { delay: 10 }).catch(() => {});
+      await page.keyboard.press('Tab').catch(() => {});
+      await humanDelay(120, 260);
+      const after = await loc.inputValue({ timeout: 500 }).catch(() => loc.textContent({ timeout: 500 }).catch(() => ''));
+      const ok = visualMatch(String(after || ''), String(value || ''));
+      pushFieldAudit(fieldName, value, String(after || ''), ok, ok ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+      if (ok) out.push(fieldName);
+    } catch (_) {}
+  };
+
+  await setText('title', jobTitle, rowIndex === 0 ? 'experience_job_title' : `experience_${rowIndex + 1}_job_title`);
+  await setText('company', company, rowIndex === 0 ? 'experience_company' : `experience_${rowIndex + 1}_company`);
+  await setText('description', roleDescription, rowIndex === 0 ? 'experience_role_description' : `experience_${rowIndex + 1}_role_description`);
+
+  const setDateParts = async (monthPart, yearPart, parsed, fieldName) => {
+    if (!parsed?.month || !parsed?.year) return;
+    const mLoc = page.locator(`[data-jh-row-target="${token}"][data-jh-row-part="${monthPart}"]`).first();
+    const yLoc = page.locator(`[data-jh-row-target="${token}"][data-jh-row-part="${yearPart}"]`).first();
+    try {
+      await mLoc.click({ timeout: 1000, force: true });
+      await page.keyboard.press('Control+A').catch(() => {});
+      await page.keyboard.press('Backspace').catch(() => {});
+      await page.keyboard.type(String(parsed.month), { delay: 10 }).catch(() => {});
+      await yLoc.click({ timeout: 1000, force: true });
+      await page.keyboard.press('Control+A').catch(() => {});
+      await page.keyboard.press('Backspace').catch(() => {});
+      await page.keyboard.type(String(parsed.year), { delay: 10 }).catch(() => {});
+      await page.keyboard.press('Tab').catch(() => {});
+      await humanDelay(120, 260);
+      const am = await mLoc.inputValue({ timeout: 500 }).catch(() => '');
+      const ay = await yLoc.inputValue({ timeout: 500 }).catch(() => '');
+      const ok = visualMatch(String(am || ''), String(parsed.month)) && visualMatch(String(ay || ''), String(parsed.year));
+      pushFieldAudit(fieldName, `${parsed.month}/${parsed.year}`, `${am}/${ay}`, ok, ok ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+      if (ok) out.push(fieldName);
+    } catch (_) {}
+  };
+
+  await setDateParts('from-month', 'from-year', fromParts, rowIndex === 0 ? 'experience_from' : `experience_${rowIndex + 1}_from`);
+  await setDateParts('to-month', 'to-year', toParts, rowIndex === 0 ? 'experience_to' : `experience_${rowIndex + 1}_to`);
+
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('[data-jh-row-target]')) {
+      el.removeAttribute('data-jh-row-target');
+      el.removeAttribute('data-jh-row-part');
+    }
+  }).catch(() => {});
+
+  return out;
+}
+
+async function fillEducationRowByVisualContainer(page, entry, rowIndex = 0) {
+  const out = [];
+  const school = String(entry?.school || '').trim();
+  const degree = String(entry?.degree || '').trim();
+  const token = `jh-edu-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+  const prepared = await page.evaluate(({ rowIndex, token }) => {
+    const isVisible = (el) => {
+      if (!el) return false;
+      const rect = el.getBoundingClientRect();
+      const style = window.getComputedStyle(el);
+      return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+    };
+    const normalize = (v) => String(v || '').replace(/\s+/g, ' ').trim().toLowerCase();
+    const meta = (el) => normalize(`${el.id || ''} ${el.getAttribute('name') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('placeholder') || ''}`);
+
+    const roots = Array.from(document.querySelectorAll('section, div, fieldset, li'))
+      .filter(isVisible)
+      .filter((el) => {
+        const txt = normalize(el.innerText || '');
+        return txt.includes('school') && txt.includes('degree') && el.querySelectorAll('input, button, select').length >= 2;
+      });
+    roots.sort((a, b) => a.getBoundingClientRect().y - b.getBoundingClientRect().y);
+    const row = roots[Math.min(Math.max(0, rowIndex), roots.length - 1)];
+    if (!row) return { ok: false };
+
+    for (const el of document.querySelectorAll('[data-jh-edu-target]')) {
+      el.removeAttribute('data-jh-edu-target');
+      el.removeAttribute('data-jh-edu-part');
+    }
+
+    const controls = Array.from(row.querySelectorAll('input, select, button')).filter(isVisible);
+    const schoolControl = controls.find((el) => /school|university|institution/.test(meta(el))) || controls.find((el) => (el.tagName || '').toLowerCase() === 'input') || null;
+    const degreeControl = controls.find((el) => /degree|fieldofstudy|major|select one/.test(meta(el)) || (el.tagName || '').toLowerCase() === 'button') || null;
+
+    if (schoolControl) {
+      schoolControl.setAttribute('data-jh-edu-target', token);
+      schoolControl.setAttribute('data-jh-edu-part', 'school');
+    }
+    if (degreeControl) {
+      degreeControl.setAttribute('data-jh-edu-target', token);
+      degreeControl.setAttribute('data-jh-edu-part', 'degree');
+    }
+    return { ok: true };
+  }, { rowIndex, token }).catch(() => ({ ok: false }));
+
+  if (!prepared?.ok) {
+    return out;
+  }
+
+  if (school) {
+    try {
+      const loc = page.locator(`[data-jh-edu-target="${token}"][data-jh-edu-part="school"]`).first();
+      await loc.click({ timeout: 1000, force: true });
+      await page.keyboard.press('Control+A').catch(() => {});
+      await page.keyboard.press('Backspace').catch(() => {});
+      await page.keyboard.type(school, { delay: 10 }).catch(() => {});
+      await page.keyboard.press('Enter').catch(() => {});
+      await page.keyboard.press('Tab').catch(() => {});
+      await humanDelay(120, 260);
+      const after = await loc.inputValue({ timeout: 500 }).catch(() => loc.textContent({ timeout: 500 }).catch(() => ''));
+      const ok = !!String(after || '').trim() && !/0 items selected/i.test(String(after || ''));
+      pushFieldAudit(rowIndex === 0 ? 'education_school' : `education_${rowIndex + 1}_school`, school, String(after || ''), ok, ok ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+      if (ok) out.push(rowIndex === 0 ? 'education_school' : `education_${rowIndex + 1}_school`);
+    } catch (_) {}
+  }
+
+  if (degree) {
+    try {
+      const loc = page.locator(`[data-jh-edu-target="${token}"][data-jh-edu-part="degree"]`).first();
+      await loc.click({ timeout: 1000, force: true });
+      await humanDelay(120, 240);
+      const options = [degree, degree.split(/[\-,:]/)[0].trim(), degree.split(/\s+/).slice(0, 2).join(' ').trim()].filter(Boolean);
+      let selected = false;
+      for (const opt of options) {
+        const sels = [`[role="option"]:has-text("${opt}")`, `li[role="option"]:has-text("${opt}")`, `li[role="menuitem"]:has-text("${opt}")`, `[data-automation-id="promptOption"]:has-text("${opt}")`];
+        for (const s of sels) {
+          try {
+            const option = page.locator(s).first();
+            await option.waitFor({ state: 'visible', timeout: 700 });
+            await option.click({ timeout: 900, force: true });
+            selected = true;
+            break;
+          } catch (_) {}
+        }
+        if (selected) break;
+      }
+      await page.keyboard.press('Tab').catch(() => {});
+      await humanDelay(120, 260);
+      const after = await loc.textContent().catch(() => '');
+      const ok = (selected && !!String(after || '').trim() && !/select one/i.test(String(after || ''))) || visualMatch(String(after || ''), degree);
+      pushFieldAudit(rowIndex === 0 ? 'education_degree' : `education_${rowIndex + 1}_degree`, degree, String(after || ''), ok, ok ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+      if (ok) out.push(rowIndex === 0 ? 'education_degree' : `education_${rowIndex + 1}_degree`);
+    } catch (_) {}
+  }
+
+  await page.evaluate(() => {
+    for (const el of document.querySelectorAll('[data-jh-edu-target]')) {
+      el.removeAttribute('data-jh-edu-target');
+      el.removeAttribute('data-jh-edu-part');
+    }
+  }).catch(() => {});
+
+  return out;
+}
+
 async function forceFillExperienceFields(page, profile) {
+  if (STRICT_VISUAL_FORM_FILL) {
+    const filled = [];
+    const skipped = [];
+    const experienceEntries = extractExperienceEntries(profile || {});
+    const entries = (experienceEntries.length ? experienceEntries : [{
+      job_title: String(profile?.experience_job_title || '').trim(),
+      company: String(profile?.experience_company || '').trim(),
+      from: String(profile?.experience_from || '').trim(),
+      to: String(profile?.experience_to || '').trim(),
+      role_description: String(profile?.experience_role_description || '').trim(),
+    }]).slice(0, 3);
+
+    if (entries.length > 1) {
+      const rowReady = await ensureInlineExperienceRowCount(page, entries.length);
+      if (rowReady) {
+        filled.push(`experience_rows_ready_${entries.length}`);
+      } else {
+        skipped.push(`experience_rows_not_added_${entries.length}`);
+      }
+    }
+
+    for (let index = 0; index < entries.length; index++) {
+      const entry = entries[index] || {};
+      const keyMap = {
+        title: index === 0 ? 'experience_job_title' : `experience_${index + 1}_job_title`,
+        company: index === 0 ? 'experience_company' : `experience_${index + 1}_company`,
+        description: index === 0 ? 'experience_role_description' : `experience_${index + 1}_role_description`,
+        from: index === 0 ? 'experience_from' : `experience_${index + 1}_from`,
+        to: index === 0 ? 'experience_to' : `experience_${index + 1}_to`,
+      };
+
+      const visualWrites = [
+        { label: 'Job Title', value: String(entry.job_title || '').trim(), field: keyMap.title, mode: 'text' },
+        { label: 'Company', value: String(entry.company || '').trim(), field: keyMap.company, mode: 'text' },
+        { label: 'Role Description', value: String(entry.role_description || '').trim(), field: keyMap.description, mode: 'text' },
+        { label: 'From', value: String(entry.from || '').trim(), field: keyMap.from, mode: 'date' },
+        { label: 'To', value: String(entry.to || '').trim(), field: keyMap.to, mode: 'date' },
+      ];
+
+      for (const write of visualWrites) {
+        if (!write.value) {
+          continue;
+        }
+        const r = await fillByVisibleLabelWithVerification(page, {
+          label: write.label,
+          value: write.value,
+          occurrence: index,
+          mode: write.mode,
+          fieldTag: write.field,
+        });
+        if (r?.ok) {
+          if (!filled.includes(write.field)) {
+            filled.push(write.field);
+          }
+          if (!filled.includes(`${write.field}_visual_verified`)) {
+            filled.push(`${write.field}_visual_verified`);
+          }
+        } else {
+          if (!skipped.includes(write.field)) {
+            skipped.push(write.field);
+          }
+          if (!skipped.includes(`${write.field}_visual_unconfirmed`)) {
+            skipped.push(`${write.field}_visual_unconfirmed`);
+          }
+        }
+      }
+    }
+
+    const visualErrorResolved = await resolveReviewRequiredFieldsByErrorLinks(page, profile);
+    for (const tag of visualErrorResolved) {
+      if (!filled.includes(tag)) {
+        filled.push(tag);
+      }
+    }
+
+    return { filled, skipped };
+  }
+
   const filled = [];
   const skipped = [];
   const experienceEntries = extractExperienceEntries(profile || {});
@@ -4856,10 +5808,96 @@ async function forceFillExperienceFields(page, profile) {
     skipped.push('experience_role_description');
   }
 
+  const deletedRowsAfterFill = await cleanupEmptyWorkExperienceRows(page);
+  for (const d of deletedRowsAfterFill) {
+    if (!filled.includes(d)) {
+      filled.push(d);
+    }
+  }
+
   return { filled, skipped };
 }
 
 async function forceFillEducationFields(page, profile) {
+  if (STRICT_VISUAL_FORM_FILL) {
+    const filled = [];
+    const skipped = [];
+    const educationEntries = extractEducationEntries(profile || {});
+    if (!educationEntries.length) {
+      skipped.push('education_entries_missing');
+      return { filled, skipped };
+    }
+
+    if (educationEntries.length > 1) {
+      const rowReady = await ensureInlineEducationRowCount(page, educationEntries.length);
+      if (rowReady) {
+        filled.push(`education_rows_ready_${educationEntries.length}`);
+      } else {
+        skipped.push(`education_rows_not_added_${educationEntries.length}`);
+      }
+    }
+
+    for (let index = 0; index < educationEntries.length; index++) {
+      const entry = educationEntries[index] || {};
+      const prefix = index === 0 ? 'education' : `education_${index + 1}`;
+      const school = String(entry.school || '').trim();
+      const degree = String(entry.degree || '').trim();
+
+      if (school) {
+        const schoolKey = `${prefix}_school`;
+        const r = await fillByVisibleLabelWithVerification(page, {
+          label: 'School or University',
+          value: school,
+          occurrence: index,
+          mode: 'text',
+          fieldTag: schoolKey,
+        });
+        if (r?.ok) {
+          if (!filled.includes(schoolKey)) {
+            filled.push(schoolKey);
+          }
+          if (!filled.includes(`${schoolKey}_visual_verified`)) {
+            filled.push(`${schoolKey}_visual_verified`);
+          }
+        } else {
+          skipped.push(schoolKey);
+          skipped.push(`${schoolKey}_visual_unconfirmed`);
+        }
+      }
+
+      if (degree) {
+        const degreeKey = `${prefix}_degree`;
+        const r = await fillByVisibleLabelWithVerification(page, {
+          label: 'Degree',
+          value: degree,
+          occurrence: index,
+          mode: 'dropdown',
+          fieldTag: degreeKey,
+        });
+        if (r?.ok) {
+          if (!filled.includes(degreeKey)) {
+            filled.push(degreeKey);
+          }
+          if (!filled.includes(`${degreeKey}_visual_verified`)) {
+            filled.push(`${degreeKey}_visual_verified`);
+          }
+        } else {
+          skipped.push(degreeKey);
+          skipped.push(`${degreeKey}_visual_unconfirmed`);
+        }
+      }
+    }
+
+    const visualErrorResolved = await resolveReviewRequiredFieldsByErrorLinks(page, profile);
+    for (const tag of visualErrorResolved) {
+      if (!filled.includes(tag)) {
+        filled.push(tag);
+      }
+    }
+
+    return { filled, skipped };
+  }
+
   const filled = [];
   const skipped = [];
   const startedAt = Date.now();
@@ -4922,60 +5960,12 @@ async function forceFillEducationFields(page, profile) {
     }
   }
 
-  const fillEduOne = async (entry, prefix = 'education') => {
-    if (!entry) return;
-    const school = String(entry.school || '').trim();
-    const degree = String(entry.degree || '').trim();
-    const endDate = String(entry.end_date || '').trim();
-
-    if (school && !filled.includes(`${prefix}_school`)) {
-      const ok = await answerQuestionByXPathContainer(page, 'school', school, `${prefix}_school`, 'text')
-        || await answerQuestionByXPathContainer(page, 'institution', school, `${prefix}_school`, 'text')
-        || await answerQuestionByDomFallback(page, 'School', school, `${prefix}_school`);
-      if (ok && !filled.includes(`${prefix}_school`)) filled.push(`${prefix}_school`);
+  const rowNativeFilled = await fillEducationByRowKeyNative(page, educationEntries);
+  for (const f of rowNativeFilled) {
+    if (!filled.includes(f)) {
+      filled.push(f);
     }
-
-    if (degree && !filled.includes(`${prefix}_degree`)) {
-      const ok = await answerQuestionSmart(page, 'degree', degree, `${prefix}_degree`, 'dropdown')
-        || await answerQuestionSmart(page, 'field of study', degree, `${prefix}_degree`, 'dropdown')
-        || await answerQuestionSmart(page, 'major', degree, `${prefix}_degree`, 'dropdown')
-        || await answerQuestionByXPathContainer(page, 'degree', degree, `${prefix}_degree`, 'dropdown')
-        || await answerQuestionByXPathContainer(page, 'field of study', degree, `${prefix}_degree`, 'dropdown')
-        || await answerQuestionByXPathContainer(page, 'degree', degree, `${prefix}_degree`, 'text')
-        || await answerQuestionByXPathContainer(page, 'field of study', degree, `${prefix}_degree`, 'text')
-        || await answerQuestionByDomFallback(page, 'Degree', degree, `${prefix}_degree`);
-      if (ok && !filled.includes(`${prefix}_degree`)) filled.push(`${prefix}_degree`);
-    }
-
-    if (endDate && !filled.includes(`${prefix}_end_date`)) {
-      const parsed = normalizeMonthYear(endDate);
-      let ok = false;
-      if (parsed && parsed.month && parsed.year) {
-        const monthOk = await answerQuestionSmart(page, 'graduation month', parsed.month, `${prefix}_end_month`, 'text')
-          || await answerQuestionSmart(page, 'end month', parsed.month, `${prefix}_end_month`, 'text')
-          || await answerQuestionByXPathContainer(page, 'graduation month', parsed.month, `${prefix}_end_month`, 'text')
-          || await answerQuestionByXPathContainer(page, 'end month', parsed.month, `${prefix}_end_month`, 'text');
-        const yearOk = await answerQuestionSmart(page, 'graduation year', parsed.year, `${prefix}_end_year`, 'text')
-          || await answerQuestionSmart(page, 'end year', parsed.year, `${prefix}_end_year`, 'text')
-          || await answerQuestionByXPathContainer(page, 'graduation year', parsed.year, `${prefix}_end_year`, 'text')
-          || await answerQuestionByXPathContainer(page, 'end year', parsed.year, `${prefix}_end_year`, 'text');
-        ok = !!(monthOk && yearOk);
-      }
-
-      if (!ok) {
-        ok = await answerQuestionSmart(page, 'end date', endDate, `${prefix}_end_date`, 'text')
-        || await answerQuestionSmart(page, 'graduation date', endDate, `${prefix}_end_date`, 'text')
-        || await answerQuestionByXPathContainer(page, 'end date', endDate, `${prefix}_end_date`, 'text')
-        || await answerQuestionByXPathContainer(page, 'graduation', endDate, `${prefix}_end_date`, 'text')
-        || await answerQuestionByDomFallback(page, 'End Date', endDate, `${prefix}_end_date`);
-      }
-      if (ok && !filled.includes(`${prefix}_end_date`)) filled.push(`${prefix}_end_date`);
-    }
-  };
-
-  await fillEduOne(educationEntries[0] || null, 'education');
-  await fillEduOne(educationEntries[1] || null, 'education_2');
-  await fillEduOne(educationEntries[2] || null, 'education_3');
+  }
 
   if (!filled.some((x) => String(x).startsWith('education_') || x === 'education_school' || x === 'education_degree' || x === 'education_end_date')) {
     skipped.push('education_fields_not_filled');
@@ -5022,6 +6012,68 @@ async function countVisibleEducationEntries(page) {
     }).catch(() => 0);
 
     return Math.max(locatorCount, rowKeyCount, sectionCount);
+  } catch (_) {
+    return 0;
+  }
+}
+
+async function countMatchedEducationEntries(page, entries) {
+  const expected = Array.isArray(entries) ? entries.filter(Boolean).slice(0, 3) : [];
+  if (!expected.length) {
+    return 0;
+  }
+
+  try {
+    return await page.evaluate((expected) => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const normalize = (s) => String(s || '').trim().toLowerCase();
+      const controls = Array.from(document.querySelectorAll('input, select, textarea')).filter(isVisible);
+      const eduControls = controls.filter((el) => {
+        const id = normalize(el.id);
+        const name = normalize(el.getAttribute('name'));
+        const aria = normalize(el.getAttribute('aria-label'));
+        const combo = `${id} ${name} ${aria}`;
+        return /education|school|institution|degree|graduation|field of study|major/.test(combo);
+      });
+
+      const values = eduControls
+        .map((el) => {
+          if (String(el.tagName || '').toLowerCase() === 'select') {
+            const opt = el.options && el.selectedIndex >= 0 ? el.options[el.selectedIndex] : null;
+            return normalize(opt?.textContent || el.value || '');
+          }
+          return normalize(el.value || el.getAttribute('value') || el.textContent || '');
+        })
+        .filter(Boolean);
+
+      const sections = Array.from(document.querySelectorAll('section, div, fieldset')).filter((el) => {
+        if (!isVisible(el)) return false;
+        const txt = normalize(el.innerText);
+        return txt.includes('education');
+      });
+      const sectionText = normalize(sections.map((s) => s.innerText || '').join(' | '));
+
+      let matched = 0;
+      for (const entry of expected) {
+        const school = normalize(entry.school);
+        const degree = normalize(entry.degree);
+
+        const schoolOk = school && (values.some((v) => v.includes(school) || school.includes(v)) || sectionText.includes(school));
+        const degreeOk = !degree || values.some((v) => v.includes(degree) || degree.includes(v)) || sectionText.includes(degree);
+
+        if (schoolOk && degreeOk) {
+          matched += 1;
+        }
+      }
+
+      return matched;
+    }, expected);
   } catch (_) {
     return 0;
   }
@@ -5840,6 +6892,10 @@ async function run() {
             const firstError = await validationErrors.first().textContent({ timeout: 1000 }).catch(() => '');
             const firstErrorLower = String(firstError || '').toLowerCase();
 
+            if (stepKey === 'review_submit' && (firstErrorLower.includes('error-') || firstErrorLower.includes('required'))) {
+              clicked = false;
+            }
+
             if (stepKey === 'review_submit' && (firstErrorLower.includes('answer all required questions') || firstErrorLower.includes('page error'))) {
               const backed = await clickBackButton(page, evidenceParts);
               if (backed) {
@@ -5936,7 +6992,37 @@ async function run() {
             }
 
             if (!clicked) {
-              const resolvedFields = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
+              let resolvedFields = [];
+              if (stepKey === 'review_submit') {
+                const reviewResolved = await resolveReviewRequiredFieldsByErrorLinks(page, profile_data);
+                for (const fieldName of reviewResolved) {
+                  if (!resolvedFields.includes(fieldName)) {
+                    resolvedFields.push(fieldName);
+                  }
+                }
+              }
+
+              const genericResolved = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
+              for (const fieldName of genericResolved) {
+                if (!resolvedFields.includes(fieldName)) {
+                  resolvedFields.push(fieldName);
+                }
+              }
+
+              if (resolvedFields.length === 0 && stepKey === 'review_submit' && (firstErrorLower.includes('job title') || firstErrorLower.includes('school or university') || firstErrorLower.includes('degree') || firstErrorLower.includes('error-'))) {
+                const forceLocal = { fields_filled: [], fields_skipped: [], needs_manual_review: false };
+                await handleMyExperience(page, profile_data, forceLocal);
+                const postFixDeletedRows = await cleanupEmptyWorkExperienceRows(page);
+                for (const rowTag of postFixDeletedRows) {
+                  if (!forceLocal.fields_filled.includes(rowTag)) {
+                    forceLocal.fields_filled.push(rowTag);
+                  }
+                }
+                resolvedFields = forceLocal.fields_filled || [];
+                if (resolvedFields.length > 0) {
+                  evidenceParts.push('review_submit fallback: reran my_experience remediation on required-field errors');
+                }
+              }
               if (resolvedFields.length > 0) {
               for (const fieldName of resolvedFields) {
                 if (!stepResult.fields_filled.includes(fieldName)) {
