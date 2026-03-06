@@ -379,6 +379,7 @@ class RoomChatService {
     }
     $prompt .= "Recent conversation:\n" . implode("\n", $history_lines);
     $prompt .= "\n\nRespond in character as the Game Master. Keep your reply concise (2-4 sentences). If the player is performing a mechanical action (casting a spell, using a skill, using a feat, attacking, exploring), include the JSON action block as instructed in your system prompt.";
+    $prompt .= "\nIMPORTANT: Do NOT write dialogue for any NPC. Describe the scene, NPC body language and reactions, but let NPCs speak for themselves. Never put words in an NPC's mouth.";
 
     // Build enhanced system prompt with character abilities if character_id is available.
     $base_system_prompt = $this->promptManager->getBaseSystemPrompt();
@@ -1578,17 +1579,18 @@ class RoomChatService {
 You are the NPC interjection evaluator for a tabletop RPG. Your job is to decide which NPCs present in the room, if any, are motivated to speak up after the latest exchange.
 
 Rules:
-- NPCs should NOT interject on every message. Most of the time, output NONE.
-- An NPC should only speak if the conversation directly involves them, mentions them, touches on their motivations, or if their personality would compel them to react.
-- Hostile or unfriendly NPCs may interject with threats, complaints, or provocations.
+- If the player DIRECTLY ADDRESSES an NPC by name (e.g., "Hey Gribbles" or "Lets talk to Eldric" or asks them a question), that NPC MUST respond. This is mandatory — a directly addressed NPC always speaks.
+- If the conversation mentions an NPC's interests, motivations, or expertise, they are likely to speak up.
+- Hostile or unfriendly NPCs may interject with threats, complaints, or provocations when provoked.
 - Friendly or helpful NPCs may offer information, greetings, or advice if the topic is relevant.
-- Indifferent NPCs rarely speak unless directly addressed or their interests are at stake.
+- Indifferent NPCs rarely speak UNLESS directly addressed or their interests are at stake.
+- For general conversation that doesn't involve any NPC, output NONE.
 - Maximum 1 NPC interjection per exchange (keep the pace natural).
-- Keep interjections brief: 1-2 sentences max.
+- Each NPC has their own voice, personality, and knowledge. Their dialogue should reflect their character sheet, backstory, and current attitude.
 
 Output format — respond with EXACTLY one of:
 1. The word NONE (if no NPC wants to speak)
-2. A JSON object: {"speaker": "NPC Name", "message": "What they say"}
+2. A JSON object: {"speaker": "NPC Name"} — just identify WHO should speak; the dialogue will be generated separately with full character context.
 PROMPT;
 
     $user_prompt = "NPCs present in the room:\n" . implode("\n", $npc_descriptions);
@@ -1596,7 +1598,7 @@ PROMPT;
     $user_prompt .= "\n\nLatest exchange:";
     $user_prompt .= "\nPlayer: {$player_message}";
     $user_prompt .= "\nGame Master: {$gm_narrative}";
-    $user_prompt .= "\n\nShould any NPC interject? Respond with NONE or a JSON object.";
+    $user_prompt .= "\n\nShould any NPC speak? Respond with NONE or a JSON object with just the speaker name.";
 
     try {
       $result = $this->aiApiService->invokeModelDirect(
@@ -1638,7 +1640,7 @@ PROMPT;
       $parsed = json_decode($response_text, TRUE);
     }
 
-    if (!is_array($parsed) || empty($parsed['speaker']) || empty($parsed['message'])) {
+    if (!is_array($parsed) || empty($parsed['speaker'])) {
       $this->feedRoomChatToNpcSessions($campaign_id, $room_npcs, $player_message, $gm_narrative);
       return [];
     }
@@ -1646,10 +1648,12 @@ PROMPT;
     // Validate that the speaker is actually an NPC in the room.
     $valid_speaker = FALSE;
     $speaker_ref = '';
+    $speaker_npc = NULL;
     foreach ($room_npcs as $npc) {
       if (strcasecmp($npc['profile']['display_name'], $parsed['speaker']) === 0) {
         $valid_speaker = TRUE;
         $speaker_ref = $npc['entity_ref'];
+        $speaker_npc = $npc;
         break;
       }
     }
@@ -1662,10 +1666,21 @@ PROMPT;
       return [];
     }
 
+    // Generate full-context NPC dialogue using the psychology system.
+    $npc_dialogue = $this->generateNpcRoomDialogue(
+      $campaign_id, $room_id, $room_index, $dungeon_data,
+      $speaker_ref, $parsed['speaker'], $player_message, $gm_narrative
+    );
+
+    if (empty($npc_dialogue)) {
+      $this->feedRoomChatToNpcSessions($campaign_id, $room_npcs, $player_message, $gm_narrative);
+      return [];
+    }
+
     // Build the NPC chat message.
     $npc_message = [
       'speaker' => $parsed['speaker'],
-      'message' => $parsed['message'],
+      'message' => $npc_dialogue,
       'type' => 'npc',
       'channel' => 'room',
       'timestamp' => date('c'),
@@ -1699,14 +1714,14 @@ PROMPT;
     $session_key = $this->sessionManager->npcSessionKey($campaign_id, $speaker_ref);
     $context_for_npc = "Room conversation — Player: {$player_message} | GM: {$gm_narrative}";
     $this->sessionManager->appendMessage($session_key, $campaign_id, 'user', $context_for_npc);
-    $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $parsed['message']);
+    $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $npc_dialogue);
 
     // Record inner monologue for the speaking NPC.
     $this->psychologyService->recordInnerMonologue(
       $campaign_id,
       $speaker_ref,
       'conversation',
-      "I spoke up in the room chat: \"{$parsed['message']}\"",
+      "I spoke up in the room chat: \"{$npc_dialogue}\"",
       ['trigger' => 'room_interjection', 'player_said' => substr($player_message, 0, 200)]
     );
 
@@ -1715,16 +1730,153 @@ PROMPT;
 
     // Bridge into hierarchical session system.
     $this->bridgeNpcInterjectionToSessionSystem(
-      $campaign_id, $dungeon_id, $room_id, $parsed['speaker'], $parsed['message'], $speaker_ref
+      $campaign_id, $dungeon_id, $room_id, $parsed['speaker'], $npc_dialogue, $speaker_ref
     );
 
     $this->logger->info('NPC interjection by @npc in room @room: @msg', [
       '@npc' => $parsed['speaker'],
       '@room' => $room_id,
-      '@msg' => substr($parsed['message'], 0, 100),
+      '@msg' => substr($npc_dialogue, 0, 100),
     ]);
 
     return [$npc_message];
+  }
+
+  /**
+   * Generate NPC dialogue for a room chat interjection using full psychology context.
+   *
+   * This is the second step of the two-phase interjection system:
+   * 1. evaluateNpcInterjections() decides WHO speaks.
+   * 2. This method generates WHAT they say, using the NPC's full character sheet,
+   *    personality, backstory, inner monologue, and session memory.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room UUID.
+   * @param int|string $room_index
+   *   Room index in dungeon_data.
+   * @param array $dungeon_data
+   *   Full dungeon data.
+   * @param string $entity_ref
+   *   NPC entity reference (e.g., 'gribbles_rindsworth').
+   * @param string $display_name
+   *   NPC display name (e.g., 'Gribbles Rindsworth').
+   * @param string $player_message
+   *   The player's message that triggered this.
+   * @param string $gm_narrative
+   *   The GM's narrative response.
+   *
+   * @return string|null
+   *   The NPC's dialogue text, or NULL on failure.
+   */
+  protected function generateNpcRoomDialogue(
+    int $campaign_id,
+    string $room_id,
+    int|string $room_index,
+    array $dungeon_data,
+    string $entity_ref,
+    string $display_name,
+    string $player_message,
+    string $gm_narrative
+  ): ?string {
+    // Find the live entity instance for real-time stats.
+    $live_entity = [];
+    $room_meta = $dungeon_data['rooms'][$room_index] ?? [];
+    $entities = $room_meta['entities'] ?? [];
+    foreach ($entities as $ent) {
+      $ent_ref = $ent['entity_ref']['content_id'] ?? $ent['entity_ref'] ?? '';
+      if ($ent_ref === $entity_ref) {
+        $live_entity = $ent;
+        break;
+      }
+    }
+
+    // Build full NPC psychology context (character sheet + personality + monologue).
+    $npc_context = $this->psychologyService->buildNpcContextForPrompt(
+      $campaign_id,
+      $entity_ref,
+      $live_entity
+    );
+
+    // Build NPC session context (conversation memory).
+    $session_key = $this->sessionManager->npcSessionKey($campaign_id, $entity_ref);
+    $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 4);
+
+    // Get recent room chat for conversational flow.
+    $chat = $dungeon_data['rooms'][$room_index]['chat'] ?? [];
+    $recent = array_slice($chat, -8);
+    $history_lines = [];
+    foreach ($recent as $msg) {
+      $speaker = $msg['speaker'] ?? 'Unknown';
+      $text = $msg['message'] ?? '';
+      $history_lines[] = "{$speaker}: {$text}";
+    }
+
+    // Room scene context.
+    $scene = '';
+    if (!empty($room_meta['name'])) {
+      $scene .= 'Current room: ' . $room_meta['name'] . "\n";
+    }
+
+    // Build the user prompt.
+    $prompt = '';
+    if ($session_context !== '') {
+      $prompt .= "=== YOUR CONVERSATION MEMORY ===\n{$session_context}\n\n---\n";
+    }
+    if ($scene) {
+      $prompt .= $scene . "\n";
+    }
+    if ($npc_context) {
+      $prompt .= $npc_context . "\n\n";
+    }
+    $prompt .= "=== CURRENT ROOM CONVERSATION ===\n" . implode("\n", $history_lines) . "\n\n";
+    $prompt .= "The player just said: \"{$player_message}\"\n";
+    $prompt .= "The Game Master narrated: \"{$gm_narrative}\"\n\n";
+    $prompt .= "Respond in character as {$display_name}. Speak naturally in your own voice.\n";
+    $prompt .= "Your response should reflect your personality, backstory, current attitude, and knowledge.\n";
+    $prompt .= "Keep your reply concise (1-3 sentences). Do not narrate actions — just speak your dialogue.";
+
+    // Get NPC's current attitude for system prompt.
+    $npc_attitude = $this->psychologyService->getAttitude($campaign_id, $entity_ref) ?? 'indifferent';
+
+    $system_prompt = "You are {$display_name}, a character in a tabletop RPG. "
+      . "Your current attitude toward the party is: {$npc_attitude}. "
+      . "Use the character sheet and psychology profile provided to stay fully in character. "
+      . "Reflect your ancestry, background, personality traits, motivations, and recent inner thoughts in your tone and word choice. "
+      . "Speak in your own distinct voice — you know who you are, where you come from, and what you want. "
+      . "Do not break the fourth wall. Do not mention that you are an AI. Do not narrate — just speak.";
+
+    try {
+      $result = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'dungeoncrawler_content',
+        'npc_room_dialogue',
+        [
+          'campaign_id' => $campaign_id,
+          'room_id' => $room_id,
+          'npc_entity' => $entity_ref,
+        ],
+        [
+          'system_prompt' => $system_prompt,
+          'max_tokens' => 400,
+          'skip_cache' => TRUE,
+        ]
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('NPC room dialogue generation failed for @npc: @err', [
+        '@npc' => $entity_ref,
+        '@err' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
+
+    if (empty($result['success']) || empty($result['response'])) {
+      return NULL;
+    }
+
+    return trim($result['response']);
   }
 
   /**
