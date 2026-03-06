@@ -99,6 +99,16 @@ class MapGeneratorService {
     $this->psychologyService = $psychology_service;
   }
 
+  /**
+   * Minimum quality score for a library template to be considered usable.
+   */
+  const MIN_QUALITY_SCORE = 0.3;
+
+  /**
+   * Maximum number of library candidates to consider when matching.
+   */
+  const MAX_LIBRARY_CANDIDATES = 10;
+
   // =========================================================================
   // Public API
   // =========================================================================
@@ -108,10 +118,12 @@ class MapGeneratorService {
    *
    * This is the main entry point. Given a destination description (e.g., "the
    * blacksmith shop", "the town square", "the forest path outside town"), it:
-   * 1. Calls AI to flesh out the setting details
-   * 2. Builds a complete room structure matching dungeon_data schema
-   * 3. Appends the room to dungeon_data and creates connections
-   * 4. Returns the new room data and updated dungeon_data
+   * 1. Checks the setting template library for an adequate existing match
+   * 2. If no match, calls AI to generate the setting and caches it in library
+   * 3. Builds a complete room structure matching dungeon_data schema
+   * 4. Records a campaign instance in dc_campaign_settings
+   * 5. Appends the room to dungeon_data and creates connections
+   * 6. Returns the new room data and updated dungeon_data
    *
    * @param int $campaign_id
    *   The campaign ID.
@@ -131,6 +143,8 @@ class MapGeneratorService {
    *     'room' => array (the new room structure),
    *     'room_index' => int (index in dungeon_data.rooms),
    *     'dungeon_data' => array (updated full dungeon_data),
+   *     'source' => string ('library'|'ai_generated'),
+   *     'template_id' => string|null,
    *   ]
    *
    * @throws \RuntimeException
@@ -166,8 +180,35 @@ class MapGeneratorService {
       throw new \RuntimeException('Invalid dungeon data for campaign ' . $campaign_id);
     }
 
-    // Step 1: Use AI to generate the setting description and metadata.
-    $setting = $this->generateSettingDescription($destination, $narrative_context, $dungeon_data);
+    $party_level = $narrative_context['party_level']
+      ?? $dungeon_data['generation_rules']['party_level_target']
+      ?? 1;
+
+    // Step 1: Check the setting template library for an adequate match.
+    $template_id = NULL;
+    $source = 'ai_generated';
+    $library_match = $this->findLibraryMatch($destination, $party_level, $campaign_id);
+
+    if ($library_match) {
+      // Library hit — use cached template instead of AI generation.
+      $setting = $this->hydrateSettingFromTemplate($library_match);
+      $template_id = $library_match['template_id'];
+      $source = 'library';
+      $this->incrementTemplateUsage($template_id);
+      $this->logger->info('Library match found: @tid (score=@score, usage=@usage)', [
+        '@tid' => $template_id,
+        '@score' => $library_match['quality_score'],
+        '@usage' => $library_match['usage_count'] + 1,
+      ]);
+    }
+    else {
+      // No library match — generate via AI.
+      $setting = $this->generateSettingDescription($destination, $narrative_context, $dungeon_data);
+
+      // Cache the AI-generated setting as a new library template.
+      $template_id = $this->cacheSettingAsTemplate($setting, $destination, $party_level);
+      $this->logger->info('New template cached: @tid', ['@tid' => $template_id]);
+    }
 
     // Step 2: Build the room structure.
     $room = $this->buildRoomFromSetting($setting, $origin_room_id);
@@ -193,7 +234,7 @@ class MapGeneratorService {
     // Step 7: Update hex_map regions.
     $this->addRegionToHexMap($dungeon_data, $room);
 
-    // Step 8: Persist.
+    // Step 8: Persist dungeon_data.
     $this->database->update('dc_campaign_dungeons')
       ->fields([
         'dungeon_data' => json_encode($dungeon_data),
@@ -203,17 +244,25 @@ class MapGeneratorService {
       ->condition('campaign_id', $campaign_id)
       ->execute();
 
-    // Step 9: Create NPC psychology profiles for any new NPCs.
+    // Step 9: Record campaign setting instance.
+    $this->recordCampaignSettingInstance(
+      $campaign_id, $room['room_id'], $template_id, $room['name'],
+      $setting['setting_type'] ?? 'default', $room_index, $setting
+    );
+
+    // Step 10: Create NPC psychology profiles for any new NPCs.
     $room_entities = array_filter($entities, fn($e) => ($e['entity_type'] ?? '') === 'npc');
     if (!empty($room_entities)) {
       $this->psychologyService->ensureRoomNpcProfiles($campaign_id, $room_entities);
     }
 
-    $this->logger->info('New setting generated: @name (room_index=@idx, @hex_count hexes, @ent_count entities)', [
+    $this->logger->info('Setting ready: @name (source=@src, template=@tid, room_index=@idx, @hex hexes, @ent entities)', [
       '@name' => $room['name'],
+      '@src' => $source,
+      '@tid' => $template_id ?? 'none',
       '@idx' => $room_index,
-      '@hex_count' => count($room['hexes']),
-      '@ent_count' => count($entities),
+      '@hex' => count($room['hexes']),
+      '@ent' => count($entities),
     ]);
 
     return [
@@ -221,11 +270,343 @@ class MapGeneratorService {
       'room_index' => $room_index,
       'entities' => $entities,
       'dungeon_data' => $dungeon_data,
+      'source' => $source,
+      'template_id' => $template_id,
     ];
   }
 
   // =========================================================================
-  // Step 1: AI-driven setting generation
+  // Library: template lookup, caching, and campaign instance tracking
+  // =========================================================================
+
+  /**
+   * Search the setting template library for an adequate existing match.
+   *
+   * Matching strategy:
+   * 1. Extract keywords from the destination string
+   * 2. Infer a likely setting_type from the destination
+   * 3. Query library by setting_type + level range + quality threshold
+   * 4. Score candidates by keyword overlap with search_tags
+   * 5. Return the best match if score exceeds threshold, NULL otherwise
+   *
+   * @param string $destination
+   *   Player's stated destination.
+   * @param int $party_level
+   *   Current party level for level-range filtering.
+   * @param int $campaign_id
+   *   Campaign ID (to avoid re-using a template already active in this campaign).
+   *
+   * @return array|null
+   *   Library row (with all fields) or NULL if no adequate match.
+   */
+  protected function findLibraryMatch(string $destination, int $party_level, int $campaign_id): ?array {
+    $keywords = $this->extractSearchKeywords($destination);
+    $inferred_type = $this->inferSettingType($destination);
+
+    if (empty($keywords) && !$inferred_type) {
+      return NULL;
+    }
+
+    // Build query: setting_type match (if we can infer) + level range + quality.
+    $query = $this->database->select('dungeoncrawler_content_setting_templates', 't')
+      ->fields('t')
+      ->condition('t.quality_score', self::MIN_QUALITY_SCORE, '>=')
+      ->condition('t.level_min', $party_level, '<=')
+      ->condition('t.level_max', $party_level, '>=')
+      ->orderBy('t.quality_score', 'DESC')
+      ->orderBy('t.usage_count', 'ASC')
+      ->range(0, self::MAX_LIBRARY_CANDIDATES);
+
+    if ($inferred_type && $inferred_type !== 'default') {
+      $query->condition('t.setting_type', $inferred_type);
+    }
+
+    $candidates = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+
+    if (empty($candidates)) {
+      return NULL;
+    }
+
+    // Collect templates already used in this campaign to avoid duplicates.
+    $used_templates = $this->database->select('dc_campaign_settings', 'cs')
+      ->fields('cs', ['source_template_id'])
+      ->condition('cs.campaign_id', $campaign_id)
+      ->isNotNull('cs.source_template_id')
+      ->execute()
+      ->fetchCol();
+    $used_set = array_flip($used_templates);
+
+    // Score candidates by keyword overlap.
+    $best = NULL;
+    $best_score = 0;
+
+    foreach ($candidates as $candidate) {
+      // Skip templates already active in this campaign.
+      if (isset($used_set[$candidate['template_id']])) {
+        continue;
+      }
+
+      $tags = json_decode($candidate['search_tags'] ?? '[]', TRUE) ?: [];
+      $overlap = count(array_intersect($keywords, $tags));
+      $score = $overlap / max(count($keywords), 1);
+
+      // Boost for exact setting_type match.
+      if ($inferred_type && $candidate['setting_type'] === $inferred_type) {
+        $score += 0.3;
+      }
+
+      // Boost for quality.
+      $score += (float) $candidate['quality_score'] * 0.2;
+
+      // Penalize overused templates slightly.
+      $score -= min(0.1, (int) $candidate['usage_count'] * 0.01);
+
+      if ($score > $best_score) {
+        $best_score = $score;
+        $best = $candidate;
+      }
+    }
+
+    // Require minimum match score of 0.4 to use a library template.
+    if ($best_score < 0.4) {
+      $this->logger->debug('Library search: best score @score < 0.4 threshold, will generate fresh', [
+        '@score' => round($best_score, 2),
+      ]);
+      return NULL;
+    }
+
+    return $best;
+  }
+
+  /**
+   * Hydrate a full setting array from a library template row.
+   */
+  protected function hydrateSettingFromTemplate(array $template): array {
+    $setting_data = json_decode($template['setting_data'] ?? '{}', TRUE) ?: [];
+
+    return array_merge($setting_data, [
+      'name' => $template['name'],
+      'description' => $template['description'],
+      'setting_type' => $template['setting_type'],
+      'size' => $template['size'],
+      'lighting' => $template['lighting'],
+    ]);
+  }
+
+  /**
+   * Cache an AI-generated setting as a new library template.
+   *
+   * @param array $setting
+   *   Normalized setting data from generateSettingDescription().
+   * @param string $destination
+   *   Original destination string (for keyword extraction).
+   * @param int $party_level
+   *   Party level at time of generation.
+   *
+   * @return string
+   *   The new template_id.
+   */
+  protected function cacheSettingAsTemplate(array $setting, string $destination, int $party_level): string {
+    // Generate a stable template_id from the setting name.
+    $base_id = strtolower(preg_replace('/[^a-z0-9]+/i', '_', $setting['name'] ?? 'setting'));
+    $base_id = trim($base_id, '_');
+    $template_id = substr($base_id, 0, 80) . '_' . substr(md5($base_id . microtime()), 0, 8);
+
+    // Build search tags from destination keywords + setting metadata.
+    $keywords = $this->extractSearchKeywords($destination);
+    $tags = array_unique(array_merge(
+      $keywords,
+      $setting['theme_tags'] ?? [],
+      [$setting['setting_type'] ?? '', $setting['size'] ?? ''],
+      $this->extractSearchKeywords($setting['name'] ?? ''),
+      $this->extractSearchKeywords($setting['description'] ?? '')
+    ));
+    $tags = array_values(array_filter($tags));
+
+    // Separate NPCs/objects/atmosphere into setting_data blob.
+    $setting_data = [
+      'theme_tags' => $setting['theme_tags'] ?? [],
+      'atmosphere' => $setting['atmosphere'] ?? '',
+      'npcs' => $setting['npcs'] ?? [],
+      'objects' => $setting['objects'] ?? [],
+    ];
+
+    $now = time();
+    $level_min = max(1, $party_level - 2);
+    $level_max = min(20, $party_level + 3);
+
+    try {
+      $this->database->insert('dungeoncrawler_content_setting_templates')
+        ->fields([
+          'template_id' => $template_id,
+          'name' => $setting['name'] ?? 'Unknown Setting',
+          'description' => $setting['description'] ?? '',
+          'setting_type' => $setting['setting_type'] ?? 'default',
+          'size' => $setting['size'] ?? 'medium',
+          'lighting' => $setting['lighting'] ?? 'normal_light',
+          'setting_data' => json_encode($setting_data),
+          'search_tags' => json_encode($tags),
+          'level_min' => $level_min,
+          'level_max' => $level_max,
+          'usage_count' => 1,
+          'quality_score' => 0.5,
+          'source' => 'ai_generated',
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to cache setting template @tid: @err', [
+        '@tid' => $template_id,
+        '@err' => $e->getMessage(),
+      ]);
+    }
+
+    return $template_id;
+  }
+
+  /**
+   * Increment usage_count on a library template.
+   */
+  protected function incrementTemplateUsage(string $template_id): void {
+    try {
+      $this->database->update('dungeoncrawler_content_setting_templates')
+        ->expression('usage_count', 'usage_count + 1')
+        ->fields(['updated' => time()])
+        ->condition('template_id', $template_id)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to increment usage for template @tid', [
+        '@tid' => $template_id,
+      ]);
+    }
+  }
+
+  /**
+   * Record a campaign-scoped setting instance.
+   *
+   * This tracks which settings have been instantiated in each campaign,
+   * links back to the library template, and records visit history.
+   */
+  protected function recordCampaignSettingInstance(
+    int $campaign_id,
+    string $setting_id,
+    ?string $source_template_id,
+    string $name,
+    string $setting_type,
+    int $room_index,
+    array $setting
+  ): void {
+    $now = time();
+    $instance_data = [
+      'setting_type' => $setting_type,
+      'size' => $setting['size'] ?? 'medium',
+      'lighting' => $setting['lighting'] ?? 'normal_light',
+      'theme_tags' => $setting['theme_tags'] ?? [],
+      'atmosphere' => $setting['atmosphere'] ?? '',
+      'npc_count' => count($setting['npcs'] ?? []),
+      'object_count' => count($setting['objects'] ?? []),
+    ];
+
+    try {
+      $this->database->insert('dc_campaign_settings')
+        ->fields([
+          'campaign_id' => $campaign_id,
+          'setting_id' => $setting_id,
+          'source_template_id' => $source_template_id,
+          'name' => $name,
+          'setting_type' => $setting_type,
+          'room_index' => $room_index,
+          'instance_data' => json_encode($instance_data),
+          'status' => 'active',
+          'first_visited' => $now,
+          'last_visited' => $now,
+          'visit_count' => 1,
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Failed to record campaign setting instance @sid: @err', [
+        '@sid' => $setting_id,
+        '@err' => $e->getMessage(),
+      ]);
+    }
+  }
+
+  /**
+   * Extract lowercase search keywords from a text string.
+   *
+   * Filters out common stop words and short words.
+   */
+  protected function extractSearchKeywords(string $text): array {
+    $stop_words = [
+      'the', 'a', 'an', 'to', 'in', 'on', 'at', 'of', 'for', 'and', 'or',
+      'but', 'is', 'are', 'was', 'were', 'be', 'been', 'being', 'have', 'has',
+      'had', 'do', 'does', 'did', 'will', 'would', 'could', 'should', 'may',
+      'might', 'must', 'shall', 'can', 'need', 'dare', 'ought', 'used',
+      'i', 'we', 'you', 'he', 'she', 'it', 'they', 'me', 'us', 'him', 'her',
+      'them', 'my', 'our', 'your', 'his', 'its', 'their', 'this', 'that',
+      'these', 'those', 'here', 'there', 'where', 'when', 'how', 'what',
+      'which', 'who', 'whom', 'whose', 'not', 'no', 'nor', 'so', 'too',
+      'very', 'just', 'also', 'than', 'then', 'now', 'only', 'with',
+      'let', 'lets', 'go', 'head', 'want', 'like', 'from', 'into',
+    ];
+    $stop_set = array_flip($stop_words);
+
+    $words = preg_split('/[^a-z0-9]+/', strtolower(trim($text)));
+    $words = array_filter($words, function ($w) use ($stop_set) {
+      return strlen($w) >= 3 && !isset($stop_set[$w]);
+    });
+
+    return array_values(array_unique($words));
+  }
+
+  /**
+   * Infer a likely setting_type from the destination description.
+   *
+   * Uses keyword matching against known setting types.
+   */
+  protected function inferSettingType(string $destination): ?string {
+    $lower = strtolower($destination);
+
+    $patterns = [
+      'tavern'      => ['tavern', 'inn', 'pub', 'bar', 'ale house', 'taproom'],
+      'shop'        => ['shop', 'store', 'merchant', 'blacksmith', 'forge', 'bakery', 'apothecary', 'herbalist', 'armorer', 'weaponsmith', 'jeweler', 'tailor'],
+      'temple'      => ['temple', 'church', 'shrine', 'chapel', 'cathedral', 'monastery', 'abbey'],
+      'market'      => ['market', 'bazaar', 'trading post', 'marketplace', 'fair', 'auction'],
+      'street'      => ['street', 'road', 'lane', 'avenue', 'boulevard', 'path', 'way'],
+      'forest'      => ['forest', 'woods', 'grove', 'thicket', 'woodland', 'jungle'],
+      'cave'        => ['cave', 'cavern', 'grotto', 'underground', 'mine', 'tunnel'],
+      'dungeon'     => ['dungeon', 'crypt', 'catacomb', 'tomb', 'vault', 'labyrinth'],
+      'library'     => ['library', 'archive', 'study', 'scriptorium', 'bookshop'],
+      'throne_room' => ['throne', 'palace', 'castle', 'keep', 'citadel', 'court'],
+      'dock'        => ['dock', 'harbor', 'port', 'pier', 'wharf', 'marina', 'shipyard'],
+      'alley'       => ['alley', 'alleyway', 'back street', 'backstreet'],
+      'sewer'       => ['sewer', 'drain', 'undercity', 'waterway'],
+      'garden'      => ['garden', 'park', 'courtyard', 'orchard', 'vineyard', 'greenhouse'],
+      'arena'       => ['arena', 'colosseum', 'pit', 'fighting ring', 'gladiator'],
+      'prison'      => ['prison', 'jail', 'cell', 'dungeon', 'stockade', 'gaol'],
+      'residential' => ['house', 'home', 'cottage', 'mansion', 'apartment', 'dwelling', 'residence', 'quarters'],
+      'wilderness'  => ['wilderness', 'wasteland', 'plains', 'field', 'desert', 'tundra', 'swamp', 'marsh', 'moor', 'outside', 'outdoors'],
+    ];
+
+    foreach ($patterns as $type => $triggers) {
+      foreach ($triggers as $trigger) {
+        if (str_contains($lower, $trigger)) {
+          return $type;
+        }
+      }
+    }
+
+    return NULL;
+  }
+
+  // =========================================================================
+  // AI-driven setting generation (fallback when no library match)
   // =========================================================================
 
   /**

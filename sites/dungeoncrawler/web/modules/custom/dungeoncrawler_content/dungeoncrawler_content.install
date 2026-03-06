@@ -2423,6 +2423,70 @@ function dungeoncrawler_content_schema() {
     'indexes' => ['character' => ['character_id', 'claimed_at']],
   ];
 
+  // Library table: Setting/location templates for map generation.
+  // When the MapGeneratorService creates a new setting via AI, the result is
+  // cached here as a reusable template. Future navigation to similar locations
+  // checks this library first before invoking AI.
+  $schema['dungeoncrawler_content_setting_templates'] = [
+    'description' => 'Library of reusable setting/location templates for map generation.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'template_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Unique template identifier (snake_case, e.g., town_market_square).'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Display name of the setting.'],
+      'description' => ['type' => 'text', 'not null' => TRUE, 'description' => 'Vivid setting description.'],
+      'setting_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Type: tavern, shop, temple, market, street, forest, cave, dungeon, library, throne_room, dock, alley, sewer, garden, arena, prison, residential, wilderness.'],
+      'size' => ['type' => 'varchar', 'length' => 20, 'not null' => TRUE, 'description' => 'Size category: tiny, small, medium, large, huge.'],
+      'lighting' => ['type' => 'varchar', 'length' => 30, 'not null' => TRUE, 'default' => 'normal_light', 'description' => 'Default lighting level.'],
+      'setting_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'Full setting JSON: theme_tags, atmosphere, npcs, objects, terrain overrides.'],
+      'search_tags' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON array of searchable keywords for library matching (lowercase).'],
+      'level_min' => ['type' => 'int', 'not null' => TRUE, 'default' => 1, 'description' => 'Minimum party level this template is suitable for.'],
+      'level_max' => ['type' => 'int', 'not null' => TRUE, 'default' => 20, 'description' => 'Maximum party level this template is suitable for.'],
+      'usage_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'How many times this template has been instantiated.'],
+      'quality_score' => ['type' => 'float', 'not null' => TRUE, 'default' => 0.5, 'description' => 'Quality score 0.0-1.0 (can be updated by feedback).'],
+      'source' => ['type' => 'varchar', 'length' => 30, 'not null' => TRUE, 'default' => 'ai_generated', 'description' => 'Origin: ai_generated, hand_crafted, imported.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when created.'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when updated.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['template_id' => ['template_id']],
+    'indexes' => [
+      'setting_type_size' => ['setting_type', 'size'],
+      'level_range' => ['level_min', 'level_max'],
+      'usage_count' => ['usage_count'],
+      'quality_score' => ['quality_score'],
+      'source' => ['source'],
+    ],
+  ];
+
+  // Campaign table: Setting instances — per-campaign records of locations
+  // visited. Each row points back to its library template via source_template_id.
+  $schema['dc_campaign_settings'] = [
+    'description' => 'Campaign-scoped setting/location instances created from library templates.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Campaign this setting belongs to.'],
+      'setting_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Unique setting identifier within this campaign (matches room_id).'],
+      'source_template_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'FK to dungeoncrawler_content_setting_templates.template_id.'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Instance name (may differ from template).'],
+      'setting_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Setting type.'],
+      'room_index' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Index in dungeon_data.rooms[] array.'],
+      'instance_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON: campaign-specific overrides, state, visit history.'],
+      'status' => ['type' => 'varchar', 'length' => 30, 'not null' => TRUE, 'default' => 'active', 'description' => 'Status: active, visited, cleared, destroyed.'],
+      'first_visited' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Unix timestamp of first player visit.'],
+      'last_visited' => ['type' => 'int', 'not null' => FALSE, 'description' => 'Unix timestamp of most recent visit.'],
+      'visit_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Total number of visits.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when created.'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when updated.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['campaign_setting' => ['campaign_id', 'setting_id']],
+    'indexes' => [
+      'campaign_status' => ['campaign_id', 'status'],
+      'source_template' => ['source_template_id'],
+      'campaign_type' => ['campaign_id', 'setting_type'],
+    ],
+  ];
+
   return $schema;
 }
 
@@ -3892,4 +3956,40 @@ function dungeoncrawler_content_update_10025() {
   }
 
   return t('Added temp_hp column to combat_participants for PF2e temporary hit points.');
+}
+
+/**
+ * Create setting template library and campaign setting instance tables.
+ *
+ * The MapGeneratorService caches AI-generated settings as reusable templates
+ * in dungeoncrawler_content_setting_templates. When a player navigates to a
+ * new location, the library is checked first before invoking AI generation.
+ * Campaign-scoped instances in dc_campaign_settings track per-campaign visits.
+ */
+function dungeoncrawler_content_update_10026() {
+  $schema_handler = \Drupal::database()->schema();
+  $module_schema = dungeoncrawler_content_schema();
+  $created = [];
+
+  // Library table: setting templates.
+  if (!$schema_handler->tableExists('dungeoncrawler_content_setting_templates')) {
+    $schema_handler->createTable(
+      'dungeoncrawler_content_setting_templates',
+      $module_schema['dungeoncrawler_content_setting_templates']
+    );
+    $created[] = 'dungeoncrawler_content_setting_templates';
+  }
+
+  // Campaign table: setting instances.
+  if (!$schema_handler->tableExists('dc_campaign_settings')) {
+    $schema_handler->createTable(
+      'dc_campaign_settings',
+      $module_schema['dc_campaign_settings']
+    );
+    $created[] = 'dc_campaign_settings';
+  }
+
+  return t('Created setting library tables: @tables', [
+    '@tables' => implode(', ', $created) ?: '(already exist)',
+  ]);
 }
