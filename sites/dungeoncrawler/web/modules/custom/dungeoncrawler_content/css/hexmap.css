@@ -1168,6 +1168,7 @@
   width: 120px;
   accent-color: var(--accent, #60a5fa);
   cursor: pointer;
+  direction: rtl;
 }
 
 .game-layout__main {
