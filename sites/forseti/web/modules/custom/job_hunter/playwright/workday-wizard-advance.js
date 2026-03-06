@@ -3314,21 +3314,32 @@ async function fillByVisibleLabelWithVerification(page, {
       'to': [/enddate/i, /to/i],
     };
     const matchers = fieldMatchers[needle] || [];
-    const textLike = controls.filter((el) => {
+    const dateLike = controls.filter((el) => {
       const tag = String(el.tagName || '').toLowerCase();
-      if (tag === 'textarea' || tag === 'select') return true;
       if (tag === 'button') return false;
       const type = String(el.getAttribute('type') || '').toLowerCase();
       return !['hidden', 'checkbox', 'radio', 'file'].includes(type);
+    });
+
+    const textLike = dateLike.filter((el) => {
+      const tag = String(el.tagName || '').toLowerCase();
+      if (tag === 'textarea' || tag === 'select') return true;
+      const m = meta(el);
+      if (/datesection(month|year)|\bmonth\b|\byear\b|\bmm\b|\byyyy\b/.test(m)) return false;
+      return true;
     });
 
     const payload = { ok: true, before: '', beforeMonth: '', beforeYear: '', controlType: mode, reason: '' };
 
     if (mode === 'date') {
       const dateScoped = controls.filter((el) => matchers.some((rx) => rx.test(meta(el))));
-      const dateControls = dateScoped.length ? dateScoped : controls;
-      const monthControl = dateControls.find((el) => /month/.test(meta(el))) || textLike[0] || null;
-      const yearControl = dateControls.find((el) => /year/.test(meta(el))) || textLike[1] || null;
+      const dateControls = (dateScoped.length ? dateScoped : dateLike).filter((el) => {
+        const m = meta(el);
+        const tag = String(el.tagName || '').toLowerCase();
+        return tag === 'input' || /date|month|year|mm|yyyy/.test(m);
+      });
+      const monthControl = dateControls.find((el) => /month|\bmm\b/.test(meta(el))) || dateControls[0] || null;
+      const yearControl = dateControls.find((el) => /year|\byyyy\b/.test(meta(el))) || dateControls.find((el) => el !== monthControl) || dateControls[1] || null;
       if (!monthControl || !yearControl) {
         return { ok: false, reason: 'date_controls_not_found' };
       }
@@ -3507,6 +3518,44 @@ async function fillByVisibleLabelWithVerification(page, {
   await clearTempTargets();
 
   return { ok: writeOk && confirmed, before: setup, after };
+}
+
+async function fillByVisibleLabelWithRetry(page, {
+  labels,
+  value,
+  occurrence,
+  mode,
+  fieldTag,
+}) {
+  const labelList = Array.isArray(labels)
+    ? labels.map((x) => String(x || '').trim()).filter(Boolean)
+    : [String(labels || '').trim()].filter(Boolean);
+  const valueText = String(value || '').trim();
+  if (!labelList.length || !valueText) {
+    return { ok: false };
+  }
+
+  const occ = Math.max(0, Number(occurrence) || 0);
+  const tries = [occ, occ + 1, Math.max(0, occ - 1), occ + 2, occ + 3]
+    .filter((v, i, arr) => arr.indexOf(v) === i)
+    .slice(0, 4);
+
+  for (const label of labelList) {
+    for (const currentOccurrence of tries) {
+      const result = await fillByVisibleLabelWithVerification(page, {
+        label,
+        value: valueText,
+        occurrence: currentOccurrence,
+        mode,
+        fieldTag,
+      });
+      if (result?.ok) {
+        return { ok: true, label, occurrence: currentOccurrence };
+      }
+    }
+  }
+
+  return { ok: false };
 }
 
 async function openErrorsFoundSummary(page, evidenceParts = null) {
@@ -5632,19 +5681,19 @@ async function forceFillExperienceFields(page, profile) {
       };
 
       const visualWrites = [
-        { label: 'Job Title', value: String(entry.job_title || '').trim(), field: keyMap.title, mode: 'text' },
-        { label: 'Company', value: String(entry.company || '').trim(), field: keyMap.company, mode: 'text' },
-        { label: 'Role Description', value: String(entry.role_description || '').trim(), field: keyMap.description, mode: 'text' },
-        { label: 'From', value: String(entry.from || '').trim(), field: keyMap.from, mode: 'date' },
-        { label: 'To', value: String(entry.to || '').trim(), field: keyMap.to, mode: 'date' },
+        { labels: ['Job Title', 'Title'], value: String(entry.job_title || '').trim(), field: keyMap.title, mode: 'text' },
+        { labels: ['Company', 'Employer'], value: String(entry.company || '').trim(), field: keyMap.company, mode: 'text' },
+        { labels: ['Role Description', 'Job Description', 'Description'], value: String(entry.role_description || '').trim(), field: keyMap.description, mode: 'text' },
+        { labels: ['From', 'Start Date'], value: String(entry.from || '').trim(), field: keyMap.from, mode: 'date' },
+        { labels: ['To', 'End Date'], value: String(entry.to || '').trim(), field: keyMap.to, mode: 'date' },
       ];
 
       for (const write of visualWrites) {
         if (!write.value) {
           continue;
         }
-        const r = await fillByVisibleLabelWithVerification(page, {
-          label: write.label,
+        const r = await fillByVisibleLabelWithRetry(page, {
+          labels: write.labels,
           value: write.value,
           occurrence: index,
           mode: write.mode,
@@ -5845,11 +5894,11 @@ async function forceFillEducationFields(page, profile) {
 
       if (school) {
         const schoolKey = `${prefix}_school`;
-        const r = await fillByVisibleLabelWithVerification(page, {
-          label: 'School or University',
+        const r = await fillByVisibleLabelWithRetry(page, {
+          labels: ['School or University', 'School', 'University', 'Institution'],
           value: school,
           occurrence: index,
-          mode: 'text',
+          mode: 'dropdown',
           fieldTag: schoolKey,
         });
         if (r?.ok) {
@@ -5867,8 +5916,8 @@ async function forceFillEducationFields(page, profile) {
 
       if (degree) {
         const degreeKey = `${prefix}_degree`;
-        const r = await fillByVisibleLabelWithVerification(page, {
-          label: 'Degree',
+        const r = await fillByVisibleLabelWithRetry(page, {
+          labels: ['Degree', 'Field of Study', 'Major'],
           value: degree,
           occurrence: index,
           mode: 'dropdown',
