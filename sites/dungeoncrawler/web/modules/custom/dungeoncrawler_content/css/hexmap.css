@@ -792,88 +792,6 @@
   min-width: 110px;
 }
 
-/* ==========================================================================
-   Responsive Design - Mobile & Tablet
-   ========================================================================== */
-
-@media (max-width: 900px) {
-  .hexmap-canvas-wrapper {
-    width: 100%;
-    margin-left: 0;
-  }
-
-  .hexmap-chat {
-    width: 100%;
-    margin-left: 0;
-  }
-}
-
-/* ==========================================================================
-   UI Components - Pills, Chips, Badges
-   ========================================================================== */
-
-.action-instruction {
-  margin: 2px 0 0;
-  font-size: var(--text-sm);
-  color: var(--muted);
-}
-
-.btn-ghost {
-  background: var(--overlay-white-06);
-  border: 1px solid var(--overlay-white-12);
-  color: var(--text);
-}
-
-.btn-icon {
-  background: transparent;
-  color: var(--gray-500);
-  border: none;
-  padding: var(--space-2) var(--space-3);
-  font-size: var(--text-2xl);
-  cursor: pointer;
-  border-radius: var(--radius-md);
-  transition: all 0.2s ease;
-  min-width: unset;
-}
-
-.btn-icon:hover {
-  background: var(--overlay-black-15);
-  color: var(--gray-700);
-}
-
-.btn-active {
-  box-shadow: 0 0 0 2px var(--accent-strong);
-  background: var(--gradient-accent);
-  color: var(--accent-dark);
-}
-
-#toggle-fog {
-  background: var(--gradient-fog);
-}
-
-#toggle-fog:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--gray-600) 90%, var(--panel)) 0%, color-mix(in srgb, var(--gray-500) 92%, var(--panel)) 100%);
-}
-
-.action-list--horizontal {
-  flex-direction: row;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.action-list--horizontal li {
-  flex: 1 1 120px;
-  padding: 6px var(--space-2);
-  font-size: var(--text-base);
-}
-
-.turn-hud__actions-list {
-  flex-direction: column;
-  width: 100%;
-  background: var(--overlay-white-04);
-  border: 1px solid var(--overlay-white-08);
-  border-radius: var(--radius-xl);
-  padding: var(--space-2);
 }
 
 .turn-hud__actions-list .list-label {
@@ -1045,6 +963,83 @@
   margin: var(--space-2) 0;
 }
 
+.hex-contents-empty {
+  color: var(--gray-500);
+  font-size: var(--text-md);
+}
+
+.hex-contents-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.hex-contents-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: var(--gray-50);
+}
+
+.hex-contents-item.is-selected {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.15);
+}
+
+.hex-contents-item__meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.hex-contents-item__name {
+  font-weight: 700;
+  color: var(--gray-700);
+}
+
+.hex-contents-item__detail {
+  color: var(--gray-500);
+  font-size: var(--text-sm);
+}
+
+.hex-contents-item__actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.hex-contents-item__button {
+  border: 1px solid var(--primary);
+  background: white;
+  color: var(--primary);
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-size: var(--text-sm);
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.hex-contents-item__button:hover {
+  background: var(--primary);
+  color: white;
+}
+
+.hex-contents-item__button--secondary {
+  border-color: var(--gray-300);
+  color: var(--gray-600);
+}
+
+.hex-contents-item__button--secondary:hover {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
 /* ==========================================================================
    Quest Journal
    ========================================================================== */
@@ -1055,6 +1050,10 @@
   border: 1px solid var(--panel-border);
   border-radius: var(--radius-3xl);
   padding: 16px 20px;
+}
+
+.hexmap-quest-journal--sidebar {
+  margin-top: 0;
 }
 
 .hexmap-quest-journal__header {
@@ -1091,6 +1090,14 @@
   font-size: 0.9rem;
 }
 
+.hexmap-quest-journal__list .quest-status {
+  margin-bottom: 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted, #94a3b8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
 .hexmap-quest-journal__list .quest-objectives {
   list-style: none;
   padding: 0;
@@ -1112,6 +1119,88 @@
   color: var(--text-muted, #94a3b8);
   font-size: 0.85rem;
   font-style: italic;
+}
+
+.quest-confirmations {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.quest-confirmations__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.quest-confirmations__header h4 {
+  margin: 0;
+  font-size: 0.85rem;
+  color: var(--text-heading, #e2e8f0);
+}
+
+.quest-confirmations__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.quest-confirmation-entry {
+  margin-bottom: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.quest-confirmation-entry__prompt {
+  font-size: 0.8rem;
+  color: var(--text-muted, #94a3b8);
+  margin-bottom: 8px;
+}
+
+.quest-confirmation-entry__candidates {
+  list-style: none;
+  margin: 0 0 8px 0;
+  padding: 0;
+}
+
+.quest-confirmation-entry__candidates li {
+  font-size: 0.8rem;
+  color: var(--text-heading, #e2e8f0);
+  margin-bottom: 4px;
+}
+
+.quest-confirmation-entry__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quest-confirmation-action {
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: var(--text-heading, #e2e8f0);
+  border-radius: 6px;
+  padding: 4px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+
+.quest-confirmation-action:hover {
+  border-color: var(--primary, #60a5fa);
+  color: var(--primary, #60a5fa);
+}
+
+.quest-confirmation-action--approve {
+  border-color: rgba(34, 197, 94, 0.55);
+  color: #86efac;
+}
+
+.quest-confirmation-action--reject {
+  border-color: rgba(239, 68, 68, 0.55);
+  color: #fca5a5;
 }
 
 /* ==========================================================================
@@ -1561,6 +1650,24 @@
   align-items: flex-start;
   gap: var(--space-2);
   flex-wrap: wrap;
+}
+
+.character-sheet__portrait {
+  flex-shrink: 0;
+}
+
+.character-sheet__portrait-img {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid var(--panel-border);
+  background: var(--surface);
+}
+
+.character-sheet__header-info {
+  flex: 1;
+  min-width: 0;
 }
 
 .character-sheet__header h2 {
@@ -2725,75 +2832,6 @@
   backdrop-filter: blur(10px);
   box-shadow: var(--shadow-xl);
   pointer-events: auto;
-}
-
-/* ==========================================================================
-   Game Coordinator — Timeline Panel
-   ========================================================================== */
-
-.game-timeline {
-  margin-top: var(--space-4);
-  width: 100%;
-  background: var(--overlay-panel-98);
-  border: 1px solid var(--overlay-white-08);
-  border-radius: var(--radius-3xl);
-  padding: var(--space-4);
-  color: var(--text);
-  box-shadow: var(--shadow-lg);
-}
-
-.game-timeline__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-
-.game-timeline__header h3 {
-  margin: 0;
-  font-size: var(--text-lg);
-  color: var(--text-bright);
-}
-
-.game-timeline__log {
-  background: var(--overlay-white-04);
-  border: 1px solid var(--overlay-white-08);
-  border-radius: var(--radius-xl);
-  padding: var(--space-3);
-  min-height: 80px;
-  max-height: 200px;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-1);
-}
-
-.timeline-entry {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  padding: 3px 0;
-  font-size: var(--text-md);
-  color: var(--text);
-  border-bottom: 1px solid var(--overlay-white-04);
-}
-
-.timeline-entry:last-child {
-  border-bottom: none;
-}
-
-.timeline-entry--system {
-  color: var(--muted);
-  font-style: italic;
-}
-
-.timeline-entry--combat {
-  color: var(--accent);
-}
-
-.timeline-entry--move {
-  color: var(--primary);
 }
 
 .timeline-entry--phase {

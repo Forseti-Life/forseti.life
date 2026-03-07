@@ -580,7 +580,7 @@ class MapGeneratorService {
       'market'      => ['market', 'bazaar', 'trading post', 'marketplace', 'fair', 'auction'],
       'street'      => ['street', 'road', 'lane', 'avenue', 'boulevard', 'path', 'way'],
       'forest'      => ['forest', 'woods', 'grove', 'thicket', 'woodland', 'jungle'],
-      'cave'        => ['cave', 'cavern', 'grotto', 'underground', 'mine', 'tunnel'],
+      'cave'        => ['cave', 'cavern', 'grotto', 'underground', 'mine', 'tunnel', 'warren', 'warrens', 'burrow', 'lair', 'den'],
       'dungeon'     => ['dungeon', 'crypt', 'catacomb', 'tomb', 'vault', 'labyrinth'],
       'library'     => ['library', 'archive', 'study', 'scriptorium', 'bookshop'],
       'throne_room' => ['throne', 'palace', 'castle', 'keep', 'citadel', 'court'],

@@ -35,6 +35,7 @@ class RoomChatService {
   protected ?NarrationEngine $narrationEngine;
   protected ?ChatSessionManager $chatSessionManager;
   protected ?MapGeneratorService $mapGenerator;
+  protected CanonicalActionRegistryService $canonicalActionRegistry;
 
   /**
    * Constructor.
@@ -52,7 +53,8 @@ class RoomChatService {
     NpcPsychologyService $psychology_service,
     ?NarrationEngine $narration_engine = NULL,
     ?ChatSessionManager $chat_session_manager = NULL,
-    ?MapGeneratorService $map_generator = NULL
+    ?MapGeneratorService $map_generator = NULL,
+    ?CanonicalActionRegistryService $canonical_action_registry = NULL
   ) {
     $this->database = $database;
     $this->dungeonStateService = $dungeon_state_service;
@@ -67,6 +69,7 @@ class RoomChatService {
     $this->narrationEngine = $narration_engine;
     $this->chatSessionManager = $chat_session_manager;
     $this->mapGenerator = $map_generator;
+    $this->canonicalActionRegistry = $canonical_action_registry ?? new CanonicalActionRegistryService($database, $current_user);
   }
 
   /**
@@ -270,6 +273,7 @@ class RoomChatService {
     // Generate AI response (GM for room channel, NPC for private channels).
     $gm_response = NULL;
     $state_diff = NULL;
+    $navigation = NULL;
     $npc_interjections = [];
     if ($type === 'player') {
       if ($channel === 'room') {
@@ -283,6 +287,7 @@ class RoomChatService {
       if ($gm_result !== NULL) {
         $gm_response = $gm_result['message'];
         $state_diff = $gm_result['state_diff'] ?? NULL;
+        $navigation = $gm_result['navigation'] ?? NULL;
       }
 
       // After GM replies on the room channel, evaluate NPC interjections.
@@ -306,6 +311,12 @@ class RoomChatService {
     }
     if (!empty($npc_interjections)) {
       $result['npc_interjections'] = $npc_interjections;
+    }
+    // Include navigation data so the client can switch to the new room.
+    if ($navigation !== NULL && empty($navigation['error'])) {
+      $result['navigation'] = $this->buildClientNavigationPayload(
+        $navigation, $campaign_id, $dungeon_data
+      );
     }
     return $result;
   }
@@ -419,38 +430,59 @@ class RoomChatService {
       'session_key' => $session_key,
     ];
 
-    try {
-      $result = $this->aiApiService->invokeModelDirect(
-        $prompt,
-        'dungeoncrawler_content',
-        'room_chat_gm_reply',
-        $context_data,
-        [
-          'system_prompt' => $system_prompt,
-          'max_tokens' => 800,
-          'skip_cache' => TRUE,
-        ]
-      );
-    }
-    catch (\Exception $e) {
-      $this->logger->error('AI API error generating GM reply: @msg', ['@msg' => $e->getMessage()]);
+    $checked_response = $this->generateRealityCheckedGmResponse(
+      $prompt,
+      $system_prompt,
+      $context_data,
+      $campaign_id,
+      $room_id,
+      $character_id,
+      $char_data,
+      $room_inventory
+    );
+    if ($checked_response === NULL) {
       return NULL;
     }
 
-    if (empty($result['success']) || empty($result['response'])) {
-      $this->logger->warning('AI API returned unsuccessful or empty response for GM reply in room @room', [
-        '@room' => $room_id,
+    $narrative = $checked_response['narrative'] ?? '';
+    $actions = $checked_response['actions'] ?? [];
+    $dice_rolls = $checked_response['dice_rolls'] ?? [];
+    $validation_errors = $checked_response['validation_errors'] ?? [];
+
+    $this->recordCanonicalActionBatch($campaign_id, $actions, 'validated', [
+      'room_id' => $room_id,
+      'character_id' => $character_id,
+    ]);
+    if (!empty($validation_errors)) {
+      $this->canonicalActionRegistry->recordUsage($campaign_id, 'validation_failure', 'rejected', [
+        'room_id' => $room_id,
+        'character_id' => $character_id,
+        'errors' => $validation_errors,
       ]);
-      return NULL;
     }
 
-    $response_text = $result['response'];
-
-    // Parse the response for mechanical actions.
-    $parsed = $this->actionProcessor->parseResponse($response_text);
-    $narrative = $parsed['narrative'];
-    $actions = $parsed['actions'] ?? [];
-    $dice_rolls = $parsed['dice_rolls'] ?? [];
+    $canonical_results = [
+      'quest_turn_in' => [],
+      'combat_initiation' => NULL,
+    ];
+    if (!empty($actions)) {
+      $canonical_execution = $this->executeCanonicalAuthoritativeActions(
+        $campaign_id,
+        $room_id,
+        $room_meta,
+        $character_id,
+        $actions,
+        $dungeon_data
+      );
+      $actions = $canonical_execution['actions'] ?? $actions;
+      $canonical_results = $canonical_execution['results'] ?? $canonical_results;
+      if (!empty($canonical_execution['errors'])) {
+        $validation_errors = array_merge($validation_errors, $canonical_execution['errors']);
+      }
+      if (!empty($canonical_execution['reloaded_dungeon_data']) && is_array($canonical_execution['reloaded_dungeon_data'])) {
+        $dungeon_data = $canonical_execution['reloaded_dungeon_data'];
+      }
+    }
 
     // Apply state mutations if there are mechanical actions.
     $char_diff = [];
@@ -460,7 +492,7 @@ class RoomChatService {
     if (!empty($actions)) {
       // Apply character state changes.
       if ($character_id) {
-        $char_diff = $this->actionProcessor->applyCharacterStateChanges($character_id, $actions);
+        $char_diff = $this->actionProcessor->applyCharacterStateChanges($character_id, $actions, $campaign_id);
       }
 
       // Apply room/dungeon state changes.
@@ -470,13 +502,23 @@ class RoomChatService {
 
       // Build the state diff summary for the client.
       $state_diff = $this->actionProcessor->buildStateDiffSummary(
-        $char_diff, $room_diff, $dice_rolls, $actions
+        $char_diff, $room_diff, $dice_rolls, $actions, $validation_errors
       );
 
       $this->logger->info('Mechanical actions processed: @count actions, @rolls dice rolls', [
         '@count' => count($actions),
         '@rolls' => count($dice_rolls),
       ]);
+
+      $this->recordCanonicalActionBatch($campaign_id, $actions, 'executed', [
+        'room_id' => $room_id,
+        'character_id' => $character_id,
+      ]);
+    }
+    elseif (!empty($validation_errors)) {
+      $state_diff = $this->actionProcessor->buildStateDiffSummary(
+        $char_diff, $room_diff, $dice_rolls, $actions, $validation_errors
+      );
     }
 
     // Detect navigate_to_location actions and trigger map generation.
@@ -485,6 +527,18 @@ class RoomChatService {
       $navigation_result = $this->handleNavigationActions(
         $actions, $campaign_id, $room_id, $dungeon_data, $narrative
       );
+
+      // If navigation was successful, MapGeneratorService persisted its own
+      // copy of dungeon_data with the new room/entities/connections. Adopt
+      // the updated version so our subsequent persist doesn't clobber it.
+      if ($navigation_result && empty($navigation_result['error']) && !empty($navigation_result['dungeon_data'])) {
+        $dungeon_data = $navigation_result['dungeon_data'];
+        // Re-resolve room_index since dungeon_data was replaced.
+        $room_index = $this->findRoomIndex($dungeon_data['rooms'] ?? [], $room_id);
+        if ($room_index === NULL) {
+          $room_index = 0;
+        }
+      }
 
       // Record location transition in dungeon_data for GM context.
       if ($navigation_result && empty($navigation_result['error'])) {
@@ -556,7 +610,430 @@ class RoomChatService {
       'message' => $gm_message,
       'state_diff' => $state_diff,
       'navigation' => $navigation_result,
+      'canonical_actions' => $canonical_results,
     ];
+  }
+
+  /**
+   * Generate a GM response and run centralized reality validation with retry.
+   *
+   * If the generated mechanics fail the authoritative resource checks, the
+   * model receives a second prompt containing the validated state snapshot and
+   * must regenerate before the text is finalized.
+   */
+  protected function generateRealityCheckedGmResponse(
+    string $prompt,
+    string $system_prompt,
+    array $context_data,
+    int $campaign_id,
+    string $room_id,
+    ?int $character_id,
+    ?array $character_data,
+    array $room_inventory
+  ): ?array {
+    $attempt = $this->invokeGmModel($prompt, $system_prompt, $context_data, $room_id);
+    if ($attempt === NULL) {
+      return NULL;
+    }
+
+    $parsed = $this->actionProcessor->parseResponse($attempt);
+    $actions = $parsed['actions'] ?? [];
+    $validation_errors = [];
+
+    $this->recordCanonicalActionBatch($campaign_id, $actions, 'proposed', [
+      'room_id' => $room_id,
+      'character_id' => $character_id,
+      'attempt' => 1,
+    ]);
+
+    if (!empty($actions) && $character_id) {
+      $validation = $this->actionProcessor->validateCharacterActionResources($character_id, $actions, $campaign_id);
+      $actions = $validation['actions'] ?? [];
+      $validation_errors = $validation['errors'] ?? [];
+
+      if (!empty($validation_errors)) {
+        $snapshot = $this->actionProcessor->buildRealitySnapshot($character_data, $room_inventory);
+        $retry_prompt = $prompt . "\n\n---\n" . $this->actionProcessor->buildRealityRetryPrompt($validation_errors, $snapshot);
+        $retry_context = $context_data + [
+          'reality_retry' => 1,
+          'campaign_id' => $campaign_id,
+        ];
+
+        $retry = $this->invokeGmModel($retry_prompt, $system_prompt, $retry_context, $room_id);
+        if ($retry !== NULL) {
+          $retry_parsed = $this->actionProcessor->parseResponse($retry);
+          $retry_actions = $retry_parsed['actions'] ?? [];
+          $retry_validation_errors = [];
+
+          $this->recordCanonicalActionBatch($campaign_id, $retry_actions, 'proposed_retry', [
+            'room_id' => $room_id,
+            'character_id' => $character_id,
+            'attempt' => 2,
+          ]);
+
+          if (!empty($retry_actions) && $character_id) {
+            $retry_validation = $this->actionProcessor->validateCharacterActionResources($character_id, $retry_actions, $campaign_id);
+            $retry_actions = $retry_validation['actions'] ?? [];
+            $retry_validation_errors = $retry_validation['errors'] ?? [];
+          }
+
+          if (empty($retry_validation_errors)) {
+            return [
+              'narrative' => $retry_parsed['narrative'] ?? '',
+              'actions' => $retry_actions,
+              'dice_rolls' => $retry_parsed['dice_rolls'] ?? [],
+              'validation_errors' => [],
+            ];
+          }
+
+          $validation_errors = $retry_validation_errors;
+          $parsed = $retry_parsed;
+          $actions = [];
+        }
+        else {
+          $actions = [];
+        }
+
+        $narrative = rtrim((string) ($parsed['narrative'] ?? ''));
+        $correction = $this->actionProcessor->buildValidationFailureSummary($validation_errors);
+        if ($correction !== '') {
+          $narrative .= ($narrative !== '' ? "\n\n" : '') . $correction;
+        }
+
+        return [
+          'narrative' => $narrative,
+          'actions' => [],
+          'dice_rolls' => [],
+          'validation_errors' => $validation_errors,
+        ];
+      }
+    }
+
+    return [
+      'narrative' => $parsed['narrative'] ?? '',
+      'actions' => $actions,
+      'dice_rolls' => $parsed['dice_rolls'] ?? [],
+      'validation_errors' => [],
+    ];
+  }
+
+  /**
+   * Invoke the GM model for room chat.
+   */
+  protected function invokeGmModel(string $prompt, string $system_prompt, array $context_data, string $room_id): ?string {
+    try {
+      $result = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'dungeoncrawler_content',
+        'room_chat_gm_reply',
+        $context_data,
+        [
+          'system_prompt' => $system_prompt,
+          'max_tokens' => 800,
+          'skip_cache' => TRUE,
+        ]
+      );
+    }
+    catch (\Exception $e) {
+      $this->logger->error('AI API error generating GM reply: @msg', ['@msg' => $e->getMessage()]);
+      return NULL;
+    }
+
+    if (empty($result['success']) || empty($result['response'])) {
+      $this->logger->warning('AI API returned unsuccessful or empty response for GM reply in room @room', [
+        '@room' => $room_id,
+      ]);
+      return NULL;
+    }
+
+    return (string) $result['response'];
+  }
+
+  /**
+   * Record canonical action usage entries for observability.
+   */
+  protected function recordCanonicalActionBatch(int $campaign_id, array $actions, string $status, array $context = []): void {
+    foreach ($actions as $action) {
+      $action_type = (string) ($action['type'] ?? 'other');
+      $this->canonicalActionRegistry->recordUsage($campaign_id, $action_type, $status, $context + [
+        'action_name' => $action['name'] ?? $action_type,
+        'details' => $action['details'] ?? [],
+      ]);
+    }
+  }
+
+  /**
+   * Execute canonical authoritative actions that live outside local deltas.
+   */
+  protected function executeCanonicalAuthoritativeActions(
+    int $campaign_id,
+    string $room_id,
+    array $room_meta,
+    ?int $character_id,
+    array $actions,
+    array $dungeon_data
+  ): array {
+    $results = [
+      'quest_turn_in' => [],
+      'combat_initiation' => NULL,
+    ];
+    $errors = [];
+    $remaining_actions = [];
+    $reloaded_dungeon_data = NULL;
+
+    foreach ($actions as $action) {
+      $type = (string) ($action['type'] ?? 'other');
+      if ($type === 'quest_turn_in') {
+        $turn_in = $this->handleQuestTurnInAction($campaign_id, $room_id, $character_id, $action);
+        $results['quest_turn_in'][] = $turn_in;
+        if (!empty($turn_in['success'])) {
+          $remaining_actions[] = $action;
+        }
+        else {
+          $errors[] = [
+            'action_name' => $action['name'] ?? 'quest_turn_in',
+            'message' => $turn_in['error'] ?? 'Quest turn-in failed.',
+          ];
+        }
+        continue;
+      }
+
+      if ($type === 'combat_initiation') {
+        $combat = $this->handleCombatInitiationAction($campaign_id, $room_id, $room_meta, $dungeon_data, $action);
+        $results['combat_initiation'] = $combat;
+        if (!empty($combat['success'])) {
+          $remaining_actions[] = $action;
+          if (!empty($combat['dungeon_data']) && is_array($combat['dungeon_data'])) {
+            $reloaded_dungeon_data = $combat['dungeon_data'];
+          }
+        }
+        else {
+          $errors[] = [
+            'action_name' => $action['name'] ?? 'combat_initiation',
+            'message' => $combat['error'] ?? 'Combat initiation failed.',
+          ];
+        }
+        continue;
+      }
+
+      $remaining_actions[] = $action;
+    }
+
+    return [
+      'actions' => $remaining_actions,
+      'results' => $results,
+      'errors' => $errors,
+      'reloaded_dungeon_data' => $reloaded_dungeon_data,
+    ];
+  }
+
+  /**
+   * Validate and execute a quest turn-in action.
+   */
+  protected function handleQuestTurnInAction(int $campaign_id, string $room_id, ?int $character_id, array $action): array {
+    $validation = $this->validateQuestTurnInAction($character_id, $action);
+    if (empty($validation['valid'])) {
+      $this->canonicalActionRegistry->recordUsage($campaign_id, 'quest_turn_in', 'rejected', [
+        'room_id' => $room_id,
+        'character_id' => $character_id,
+        'errors' => $validation['errors'] ?? [],
+      ]);
+      return [
+        'success' => FALSE,
+        'error' => implode(' ', $validation['errors'] ?? ['Quest turn-in validation failed.']),
+      ];
+    }
+
+    $quest = $action['details']['quest'] ?? [];
+    /** @var \Drupal\dungeoncrawler_content\Service\QuestTouchpointService $touchpoint_service */
+    $touchpoint_service = \Drupal::service('dungeoncrawler_content.quest_touchpoint');
+    $result = $touchpoint_service->ingestEvent($campaign_id, [
+      'character_id' => $character_id,
+      'touchpoint' => [
+        'objective_type' => $quest['objective_type'] ?? '',
+        'objective_id' => $quest['objective_id'] ?? '',
+        'item_ref' => $quest['item_ref'] ?? '',
+        'npc_ref' => $quest['npc_ref'] ?? '',
+        'entity_ref' => $quest['npc_ref'] ?? ($quest['item_ref'] ?? ''),
+        'quantity' => (int) ($quest['quantity'] ?? 1),
+        'room_id' => $room_id,
+        'confidence' => $quest['confidence'] ?? 'high',
+      ],
+    ]);
+
+    if (empty($result['success'])) {
+      $this->canonicalActionRegistry->recordUsage($campaign_id, 'quest_turn_in', 'rejected', [
+        'room_id' => $room_id,
+        'character_id' => $character_id,
+        'result' => $result,
+      ]);
+      return [
+        'success' => FALSE,
+        'error' => (string) ($result['error'] ?? 'Quest turn-in could not be applied.'),
+      ];
+    }
+
+    return $result + ['success' => TRUE];
+  }
+
+  /**
+   * Validate quest turn-in action payload.
+   */
+  protected function validateQuestTurnInAction(?int $character_id, array $action): array {
+    $errors = [];
+    if (!$character_id) {
+      $errors[] = 'Quest turn-in requires an acting character.';
+    }
+    $quest = $action['details']['quest'] ?? NULL;
+    if (!is_array($quest)) {
+      $errors[] = 'Quest turn-in action is missing details.quest.';
+    }
+    elseif (empty($quest['objective_type'])) {
+      $errors[] = 'Quest turn-in action is missing objective_type.';
+    }
+
+    return [
+      'valid' => empty($errors),
+      'errors' => $errors,
+    ];
+  }
+
+  /**
+   * Validate and execute a combat initiation action.
+   */
+  protected function handleCombatInitiationAction(int $campaign_id, string $room_id, array $room_meta, array $dungeon_data, array $action): array {
+    $validation = $this->validateCombatInitiationAction($room_id, $dungeon_data, $action);
+    if (empty($validation['valid'])) {
+      $this->canonicalActionRegistry->recordUsage($campaign_id, 'combat_initiation', 'rejected', [
+        'room_id' => $room_id,
+        'errors' => $validation['errors'] ?? [],
+      ]);
+      return [
+        'success' => FALSE,
+        'error' => implode(' ', $validation['errors'] ?? ['Combat initiation validation failed.']),
+      ];
+    }
+
+    $combat = $action['details']['combat'] ?? [];
+    /** @var \Drupal\dungeoncrawler_content\Service\GameCoordinatorService $game_coordinator */
+    $game_coordinator = \Drupal::service('dungeoncrawler_content.game_coordinator');
+    $result = $game_coordinator->transitionPhase($campaign_id, 'encounter', [
+      'reason' => $combat['reason'] ?? 'Combat begins.',
+      'encounter_context' => [
+        'room_id' => $room_id,
+        'room_name' => $room_meta['name'] ?? $room_id,
+        'enemies' => $validation['enemies'] ?? [],
+      ],
+    ]);
+
+    if (empty($result['success'])) {
+      $this->canonicalActionRegistry->recordUsage($campaign_id, 'combat_initiation', 'rejected', [
+        'room_id' => $room_id,
+        'result' => $result,
+      ]);
+      return [
+        'success' => FALSE,
+        'error' => (string) ($result['error'] ?? 'Combat could not be started.'),
+      ];
+    }
+
+    return [
+      'success' => TRUE,
+      'transition' => $result,
+      'dungeon_data' => $this->reloadDungeonData($campaign_id),
+    ];
+  }
+
+  /**
+   * Validate combat initiation action payload and resolve targets.
+   */
+  protected function validateCombatInitiationAction(string $room_id, array $dungeon_data, array $action): array {
+    $game_state = $dungeon_data['game_state'] ?? [];
+    if (($game_state['phase'] ?? 'exploration') === 'encounter') {
+      return [
+        'valid' => FALSE,
+        'errors' => ['Combat is already active.'],
+      ];
+    }
+
+    $combat = $action['details']['combat'] ?? NULL;
+    if (!is_array($combat)) {
+      return [
+        'valid' => FALSE,
+        'errors' => ['Combat initiation action is missing details.combat.'],
+      ];
+    }
+
+    $enemies = $this->resolveCombatEnemyEntities($room_id, $dungeon_data, $combat);
+    if (empty($enemies)) {
+      return [
+        'valid' => FALSE,
+        'errors' => ['No valid enemy entities were found for combat initiation.'],
+      ];
+    }
+
+    return [
+      'valid' => TRUE,
+      'errors' => [],
+      'enemies' => $enemies,
+    ];
+  }
+
+  /**
+   * Resolve enemy entity payloads for combat initiation.
+   */
+  protected function resolveCombatEnemyEntities(string $room_id, array $dungeon_data, array $combat): array {
+    $requested_ids = $combat['enemy_entity_ids'] ?? [];
+    if (!is_array($requested_ids)) {
+      $requested_ids = [];
+    }
+    if (!empty($combat['target_entity_id'])) {
+      $requested_ids[] = $combat['target_entity_id'];
+    }
+
+    $requested_ids = array_values(array_filter(array_map('strval', $requested_ids)));
+    $entities = $dungeon_data['entities'] ?? [];
+    $resolved = [];
+
+    foreach ($entities as $entity) {
+      $entity_room = $entity['placement']['room_id'] ?? '';
+      if ($entity_room !== $room_id) {
+        continue;
+      }
+
+      $entity_id = (string) ($entity['entity_instance_id'] ?? $entity['instance_id'] ?? $entity['id'] ?? '');
+      $team = strtolower((string) ($entity['state']['metadata']['team'] ?? $entity['team'] ?? ''));
+      $is_hostile = in_array($team, ['hostile', 'enemy', 'monsters'], TRUE);
+
+      if (!empty($requested_ids)) {
+        if ($entity_id !== '' && in_array($entity_id, $requested_ids, TRUE)) {
+          $resolved[] = $entity;
+        }
+        continue;
+      }
+
+      if ($is_hostile) {
+        $resolved[] = $entity;
+      }
+    }
+
+    return $resolved;
+  }
+
+  /**
+   * Reload latest dungeon_data from persistence.
+   */
+  protected function reloadDungeonData(int $campaign_id): array {
+    $record = $this->database->select('dc_campaign_dungeons', 'd')
+      ->fields('d', ['dungeon_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->orderBy('updated', 'DESC')
+      ->range(0, 1)
+      ->execute()
+      ->fetchAssoc();
+
+    $dungeon_data = json_decode($record['dungeon_data'] ?? '{}', TRUE);
+    return is_array($dungeon_data) ? $dungeon_data : [];
   }
 
   /**
@@ -634,7 +1111,9 @@ class RoomChatService {
         'destination' => $destination,
         'new_room' => $result['room'],
         'new_room_index' => $result['room_index'],
+        'entities' => $result['entities'] ?? [],
         'entities_added' => count($result['entities'] ?? []),
+        'dungeon_data' => $result['dungeon_data'] ?? [],
       ];
     }
     catch (\Exception $e) {
@@ -715,6 +1194,110 @@ class RoomChatService {
     if (count($dungeon_data['location_history']) > 50) {
       $dungeon_data['location_history'] = array_slice($dungeon_data['location_history'], -50);
     }
+  }
+
+  /**
+   * Build a client-consumable navigation payload.
+   *
+   * Normalizes the new room, its entities, and connection data into the same
+   * format the client hexmap expects, so the JS can inject them into the
+   * live dungeonData and call setActiveRoom().
+   *
+   * @param array $navigation
+   *   Navigation result from handleNavigationActions().
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $dungeon_data
+   *   Updated dungeon_data (already contains the new room + entities).
+   *
+   * @return array
+   *   Client-ready navigation payload:
+   *   - target_room_id: string (room to switch to)
+   *   - room: array (normalized room data, same format as rooms[room_id])
+   *   - entities: array (new entities for this room)
+   *   - connections: array (new connections involving this room)
+   *   - entry_hex: {q, r} (where to place the player)
+   */
+  protected function buildClientNavigationPayload(array $navigation, int $campaign_id, array $dungeon_data): array {
+    $room = $navigation['new_room'] ?? [];
+    $room_id = (string) ($room['room_id'] ?? '');
+
+    // Normalize room into the client-expected format (matches HexMapController).
+    $normalized_room = [
+      'room_id' => $room_id,
+      'name' => (string) ($room['name'] ?? ''),
+      'description' => (string) ($room['description'] ?? ''),
+      'hexes' => is_array($room['hexes'] ?? NULL) ? $room['hexes'] : [],
+      'terrain' => is_array($room['terrain'] ?? NULL) ? $room['terrain'] : [],
+      'lighting' => is_string($room['lighting'] ?? NULL)
+        ? $room['lighting']
+        : (is_array($room['lighting'] ?? NULL) && isset($room['lighting']['level'])
+          ? (string) $room['lighting']['level']
+          : 'normal'),
+      'room_type' => (string) ($room['room_type'] ?? 'unknown'),
+      'size_category' => (string) ($room['size_category'] ?? 'medium'),
+      'gameplay_state' => is_array($room['gameplay_state'] ?? NULL) ? $room['gameplay_state'] : [],
+    ];
+
+    // Collect entities that belong to the new room.
+    $room_entities = [];
+    foreach (($navigation['entities'] ?? []) as $entity) {
+      if (!is_array($entity)) {
+        continue;
+      }
+      $room_entities[] = $entity;
+    }
+
+    // Extract connections involving this room from the updated dungeon_data.
+    $new_connections = [];
+    $hex_map_connections = $dungeon_data['hex_map']['connections'] ?? ($dungeon_data['connections'] ?? []);
+    if (is_array($hex_map_connections)) {
+      foreach ($hex_map_connections as $conn) {
+        if (!is_array($conn)) {
+          continue;
+        }
+        if (($conn['from_room'] ?? '') === $room_id || ($conn['to_room'] ?? '') === $room_id) {
+          $new_connections[] = $conn;
+        }
+      }
+    }
+
+    // Determine entry hex: first hex in the new room, or the connection endpoint.
+    $entry_hex = ['q' => 0, 'r' => 0];
+    // Prefer the connection to_hex (the entry point from the origin room).
+    foreach ($new_connections as $conn) {
+      if (($conn['to_room'] ?? '') === $room_id && isset($conn['to_hex'])) {
+        $entry_hex = [
+          'q' => (int) ($conn['to_hex']['q'] ?? 0),
+          'r' => (int) ($conn['to_hex']['r'] ?? 0),
+        ];
+        break;
+      }
+      if (($conn['from_room'] ?? '') === $room_id && isset($conn['from_hex'])) {
+        $entry_hex = [
+          'q' => (int) ($conn['from_hex']['q'] ?? 0),
+          'r' => (int) ($conn['from_hex']['r'] ?? 0),
+        ];
+        break;
+      }
+    }
+    // Fallback: use the first hex of the room.
+    if ($entry_hex['q'] === 0 && $entry_hex['r'] === 0 && !empty($normalized_room['hexes'])) {
+      $first_hex = $normalized_room['hexes'][0];
+      $entry_hex = [
+        'q' => (int) ($first_hex['q'] ?? 0),
+        'r' => (int) ($first_hex['r'] ?? 0),
+      ];
+    }
+
+    return [
+      'target_room_id' => $room_id,
+      'destination' => $navigation['destination'] ?? '',
+      'room' => $normalized_room,
+      'entities' => $room_entities,
+      'connections' => $new_connections,
+      'entry_hex' => $entry_hex,
+    ];
   }
 
   /**

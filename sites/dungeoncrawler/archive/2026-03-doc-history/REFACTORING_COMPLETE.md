@@ -1,5 +1,13 @@
 # Item System Refactoring - Complete
 
+> **Status (Current)**: Historical milestone report.
+>
+> This file documents a completed refactoring effort (dated 2025-02-19) and should be read as change history, not as the canonical current-state architecture source.
+>
+> For active module architecture and service inventory, use:
+> - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/README.md`
+> - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/COMBAT_ENGINE_ARCHITECTURE.md`
+
 **Date:** February 19, 2025  
 **Objective:** Eliminate redundancy across three weapon systems by creating a single source of truth using item templates.
 

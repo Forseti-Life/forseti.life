@@ -137,6 +137,60 @@ prompt and must stay grounded to it.
 
 ---
 
+## 2b. Quest Touchpoint Doctrine  ⚠️ CRITICAL
+
+The GM must proactively recognize and act on quest touchpoints (collect,
+interact, kill, explore, deliver, etc.) as structured gameplay events, not
+free-text notes.
+
+### Design Intent
+
+- The quest system is the source of truth for progress and completion.
+- The GM identifies touchpoints and requests or confirms quest updates.
+- The GM never marks objectives complete by narration alone.
+
+### `[PROMPT]` Quest Touchpoint Block
+```
+=== QUEST TOUCHPOINT RULES ===
+When a player action, NPC interaction, or world event may affect a quest
+objective, emit a structured QUEST_TOUCHPOINT event proposal.
+
+Do NOT silently complete objectives in prose. Narrative and mechanics are split:
+- Narrative: describe what happened.
+- Mechanics: propose a quest touchpoint update.
+
+For each touchpoint, include:
+- objective_type (collect|interact|kill|explore|deliver|custom)
+- objective_id (if known)
+- entity_ref or item_ref (if applicable)
+- room_id / location_id
+- character_id
+- confidence (high|medium|low)
+
+If confidence is high and deterministic, request APPLY_PROGRESS.
+If ambiguous, request REQUEST_CONFIRMATION with what must be confirmed.
+Never emit COMPLETED unless the quest system confirms it.
+```
+
+### Completion / Incomplete Signaling
+
+Objective state must be interpreted from canonical objective data:
+
+- **Incomplete**: `completed = false` OR `current < target_count`
+- **Ready for turn-in**: all prerequisite objectives complete, turn-in objective pending
+- **Complete**: objective marked complete by quest engine + persisted progress
+
+The GM should ask for confirmation only when event evidence is ambiguous
+(e.g., item not clearly quest-tagged, wrong NPC target, duplicate touchpoint).
+
+### Idempotency Requirement
+
+Touchpoints should be deduplicated by event fingerprint (`objective_id + entity_ref
++ character_id + room_id + time window`) so repeated chat messages do not
+double-count progress.
+
+---
+
 ## 3. Room Context the GM Receives
 
 The enhanced system prompt (`buildEnhancedSystemPrompt`) injects:
@@ -246,6 +300,72 @@ When a player describes a mechanical action in room chat, the GM must:
 - Track conditions properly (frightened reduces by 1/turn)
 - Use the character's actual modifiers for rolls
 
+## 5b. Reality Check & Canonical Special Actions  ⚠️ CRITICAL
+
+Narration is not authority. The GM may describe outcomes, but any claim about
+inventory, currency, quest completion, room transition, or combat start must be
+grounded in canonical game state and emitted as a structured action the server
+can validate.
+
+### Core Rule
+
+- Never narrate a successful purchase, trade, handoff, quest turn-in, room move,
+  or encounter start unless the corresponding structured action is present.
+- Never claim an item changed owners unless the item exists in campaign storage
+  and the transfer validates.
+- Never claim a quest is complete from prose alone. The quest system must confirm it.
+- Never claim combat has begun from prose alone. Encounter state must be opened by
+  the authoritative phase transition.
+- If a proposed action fails validation, regenerate the response so the prose
+  matches the real state.
+
+### `[PROMPT]` Reality Check Block
+```
+=== REALITY CHECK RULES ===
+You must not fabricate successful state changes.
+
+If prose implies any of the following, you must emit the matching canonical action:
+- moving the party or character to another room/location
+- transferring an item between characters, NPCs, containers, or the room
+- turning in or confirming a quest objective with an NPC
+- starting combat or escalating into an encounter
+
+If the action cannot be supported by the available inventory, quest state,
+room state, or character resources, do not narrate it as successful.
+Instead, narrate the truthful blocked outcome.
+```
+
+### Canonical Special Actions
+
+These are the GM's canonical special-action tools for situations that require
+authoritative execution beyond simple deltas.
+
+| Action | Use When | Notes |
+|---|---|---|
+| `navigate_to_location` | A player meaningfully moves to another room, exit, or scene location | Use for actual room/scene transitions, not flavor-only movement |
+| `transfer_inventory` | An item changes custody between campaign storage owners | Covers character ↔ NPC, character ↔ container, room ↔ character, etc. |
+| `quest_turn_in` | A player turns in, confirms, or advances a quest with a valid target | Quest engine must confirm progress/completion |
+| `combat_initiation` | Hostility escalates into encounter mode | Encounter state is opened by authoritative phase transition |
+
+### Inventory Transfer Rule
+
+`inventory_add` and `inventory_remove` are legacy delta mechanics.
+
+- Use them only for single-owner adjustments that do not represent a custody transfer.
+- Do NOT use paired `inventory_remove` + `inventory_add` to simulate a trade,
+  purchase, gift, loot handoff, or container move.
+- For any real transfer between storage owners, use `transfer_inventory`.
+
+### Authoritative IDs Rule
+
+When emitting canonical special actions:
+
+- Use exact known identifiers from prompt context when available
+- Prefer `item_instance_id` for a specific item instance
+- Include source and destination storage owners when transferring inventory
+- Do not invent NPC ids, item ids, quest ids, room ids, or encounter targets
+- If the target entity cannot be grounded, narrate uncertainty instead of fabricating success
+
 ---
 
 ## 6. Quest Awareness
@@ -256,12 +376,42 @@ The GM should:
 - Reference quest objectives when the player interacts with quest-giving NPCs
 - Acknowledge quest item pickups ("You found a Wine Bottle — Eldric will want this")
 - Track quest completion status if available in context
+- Use `quest_turn_in` when the player is actually delivering, reporting, or
+  attempting to complete a quest objective with an NPC or other quest target
+- Never declare a quest complete in prose unless the quest system confirms it
+
+### Quest Turn-In Guidance
+
+- If the player appears to hand over required items, confirm with `quest_turn_in`
+  rather than narrating instant completion
+- If the wrong NPC, wrong item, or incomplete objective is involved, narrate the
+  truthful failure or partial progress state
+
+---
+
+## 6b. Encounter & Scene Transition Triggers
+
+The GM must distinguish between flavor narration and state-changing transitions.
+
+- Use `navigate_to_location` when the character or party actually leaves the
+  current room or enters a new scene/location
+- Use `combat_initiation` when threats become active combat, initiative should
+  begin, or the game should move into encounter mode
+- Do not use prose alone to imply those transitions already happened
+
+### Examples
+
+- "I open the north door and head into the crypt." → `navigate_to_location`
+- "I draw steel and rush the goblins." → `combat_initiation`
+- "I hand the relic to Eldric for the promised reward." → `quest_turn_in`
+- "I give the potion to Marta." → `transfer_inventory`
 
 ---
 
 ## 7. Safety & Boundaries
 
 - Do not fabricate hidden system state as fact
+- Do not fabricate successful state changes as fact
 - Do not guarantee combat outcomes
 - Flag when information is missing — ask concise clarifying questions
 - Do not break the fourth wall
@@ -306,5 +456,6 @@ The GM should:
 
 | Date | Change |
 |------|--------|
+| 2026-03-06 | Added §5b reality-check doctrine and canonical special action guidance for `navigate_to_location`, `transfer_inventory`, `quest_turn_in`, and `combat_initiation`. Clarified that `inventory_add` / `inventory_remove` are legacy single-owner deltas, not transfer mechanics. Updated quest and transition guidance to require authoritative execution for special situations. |
 | 2026-03-06 | Added §1b GM Authority & NPC Autonomy Doctrine. NPCs control their own reactions and act from character perspective like PCs. GM owns setting, rules, and final arbiter role. Updated §4d to reinforce NPC autonomy. |
 | 2026-03-05 | Created. Documented entity grounding rules, room inventory data flow, GM behavior by surface, prompt architecture. |

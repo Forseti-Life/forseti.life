@@ -411,93 +411,145 @@ class InventoryManagementService {
       throw new \InvalidArgumentException('Transfer quantity must be at least 1');
     }
 
+    return $this->transferItemTransaction(
+      [
+        'owner_id' => $source_owner_id,
+        'owner_type' => $source_owner_type,
+      ],
+      [
+        'owner_id' => $dest_owner_id,
+        'owner_type' => $dest_owner_type,
+        'location_type' => $this->defaultLocationTypeForOwnerType($dest_owner_type),
+      ],
+      $item_instance_id,
+      $quantity,
+      $campaign_id
+    );
+  }
+
+  /**
+   * Execute a campaign-scoped transfer transaction between storage objects.
+   *
+   * This is the authoritative transfer path for character/container/room item
+   * movement. It performs pre-checks, mutation-time verification, post-write
+   * verification, and audit logging within a single transaction.
+   *
+   * @param array $source_storage
+   *   Source storage reference with keys:
+   *   - owner_id: string
+   *   - owner_type: character|container|room
+   *   - location_type: optional explicit item location/slot
+   * @param array $dest_storage
+   *   Destination storage reference with keys:
+   *   - owner_id: string
+   *   - owner_type: character|container|room
+   *   - location_type: optional explicit item location/slot
+   * @param string $item_instance_id
+   *   The item instance being moved.
+   * @param int $quantity
+   *   Quantity to move.
+   * @param int|null $campaign_id
+   *   Campaign scope.
+   *
+   * @return array
+   *   Transaction result and verification snapshots.
+   */
+  public function transferItemTransaction(
+    array $source_storage,
+    array $dest_storage,
+    string $item_instance_id,
+    int $quantity = 1,
+    ?int $campaign_id = NULL
+  ): array {
+    if ($quantity < 1) {
+      throw new \InvalidArgumentException('Transfer quantity must be at least 1');
+    }
+
+    $source = $this->normalizeStorageReference($source_storage, 'source');
+    $dest = $this->normalizeStorageReference($dest_storage, 'destination');
+    $transaction_id = uniqid('inv_tx_', TRUE);
+
+    $this->validateOwner($source['owner_id'], $source['owner_type']);
+    $this->validateOwner($dest['owner_id'], $dest['owner_type']);
+    $this->validateTransferPermission($source['owner_id'], $source['owner_type']);
+
+    $this->logInventoryOperation(
+      'transfer_transaction_start',
+      $source['owner_id'],
+      $source['owner_type'],
+      $campaign_id,
+      [
+        'transaction_id' => $transaction_id,
+        'item_instance_id' => $item_instance_id,
+        'quantity' => $quantity,
+        'source' => $source,
+        'destination' => $dest,
+      ]
+    );
+
     try {
       $this->database->startTransaction();
 
-      // Get source item
-      $source_item_row = $this->database->select('dc_campaign_item_instances', 'i')
-        ->fields('i')
-        ->condition('item_instance_id', $item_instance_id)
-        ->condition('location_ref', $source_owner_id)
-        ->execute()
-        ->fetchAssoc();
+      $source_before = $this->buildStorageSnapshot($source, $campaign_id, $item_instance_id);
+      $dest_before = $this->buildStorageSnapshot($dest, $campaign_id);
 
-      if (!$source_item_row) {
-        throw new \InvalidArgumentException("Item not found in source inventory");
+      $source_item_row = $this->loadTransferItemRecord($item_instance_id, $source, $campaign_id);
+      $preflight = $this->verifyTransferPreconditions($source, $dest, $source_item_row, $quantity, $campaign_id);
+      if (empty($preflight['valid'])) {
+        throw new \InvalidArgumentException(implode(' ', $preflight['errors'] ?? ['Transfer preflight failed.']));
       }
 
-      $source_qty = (int) $source_item_row['quantity'];
-      if ($quantity > $source_qty) {
-        throw new \InvalidArgumentException(
-          "Cannot transfer {$quantity} items; only {$source_qty} available"
-        );
-      }
+      $move_result = $this->applyTransferMutation($source, $dest, $source_item_row, $quantity, $campaign_id, $transaction_id);
 
-      // Get destination capacity
-      $dest_capacity = $this->getInventoryCapacity($dest_owner_id, $dest_owner_type);
-      $dest_current_bulk = $this->calculateCurrentBulk($dest_owner_id, $dest_owner_type);
+      $source_after_mutation = $this->buildStorageSnapshot($source, $campaign_id, $item_instance_id);
+      $dest_after_mutation = $this->buildStorageSnapshot($dest, $campaign_id, $move_result['moved_item_instance_id']);
 
-      $item_bulk = $this->calculateItemBulk(
-        json_decode($source_item_row['state_data'], TRUE) ?? [],
-        $quantity
+      $mutation_check = $this->verifyTransferPostconditions(
+        $move_result,
+        $source_after_mutation,
+        $dest_after_mutation,
+        FALSE
       );
-
-      if ($dest_current_bulk + $item_bulk > $dest_capacity) {
-        throw new \InvalidArgumentException(
-          "Transfer would exceed destination capacity (current: {$dest_current_bulk}, capacity: {$dest_capacity}, item bulk: {$item_bulk})"
-        );
+      if (empty($mutation_check['valid'])) {
+        throw new \RuntimeException(implode(' ', $mutation_check['errors'] ?? ['Transfer verification failed after mutation.']));
       }
 
-      // Create new instance for destination
-      $new_item_instance_id = $this->createItemInstance(
-        $dest_owner_id,
-        $dest_owner_type,
-        json_decode($source_item_row['state_data'], TRUE) ?? [
-          'id' => $source_item_row['item_id'],
-          'name' => 'Item',
-        ],
-        'carried',
-        $quantity,
-        $campaign_id
+      if ($source['owner_type'] === 'character') {
+        $this->syncCharacterStateInventory($source['owner_id'], $campaign_id);
+      }
+      if ($dest['owner_type'] === 'character' && ($dest['owner_id'] !== $source['owner_id'] || $dest['owner_type'] !== $source['owner_type'])) {
+        $this->syncCharacterStateInventory($dest['owner_id'], $campaign_id);
+      }
+
+      $source_after_write = $this->buildStorageSnapshot($source, $campaign_id, $item_instance_id);
+      $dest_after_write = $this->buildStorageSnapshot($dest, $campaign_id, $move_result['moved_item_instance_id']);
+      $post_write_check = $this->verifyTransferPostconditions(
+        $move_result,
+        $source_after_write,
+        $dest_after_write,
+        TRUE
       );
-
-      // Update source
-      if ($quantity === $source_qty) {
-        $this->database->delete('dc_campaign_item_instances')
-          ->condition('item_instance_id', $item_instance_id)
-          ->execute();
-      }
-      else {
-        $this->database->update('dc_campaign_item_instances')
-          ->fields(['quantity' => $source_qty - $quantity])
-          ->condition('item_instance_id', $item_instance_id)
-          ->execute();
+      if (empty($post_write_check['valid'])) {
+        throw new \RuntimeException(implode(' ', $post_write_check['errors'] ?? ['Transfer verification failed after write.']));
       }
 
-      // Sync character states if applicable
-      if ($source_owner_type === 'character') {
-        $this->syncCharacterStateInventory($source_owner_id, $campaign_id);
-      }
-      if ($dest_owner_type === 'character') {
-        $this->syncCharacterStateInventory($dest_owner_id, $campaign_id);
-      }
+      $source_inventory = $this->getInventory($source['owner_id'], $source['owner_type'], $campaign_id);
+      $dest_inventory = $this->getInventory($dest['owner_id'], $dest['owner_type'], $campaign_id);
 
-      // Get updated inventories
-      $source_inventory = $this->getInventory($source_owner_id, $source_owner_type, $campaign_id);
-      $dest_inventory = $this->getInventory($dest_owner_id, $dest_owner_type, $campaign_id);
-
-      // Log operation
       $this->logInventoryOperation(
-        'transfer_items',
-        $source_owner_id,
-        $source_owner_type,
+        'transfer_transaction_complete',
+        $source['owner_id'],
+        $source['owner_type'],
         $campaign_id,
         [
-          'from' => "{$source_owner_type}:{$source_owner_id}",
-          'to' => "{$dest_owner_type}:{$dest_owner_id}",
+          'transaction_id' => $transaction_id,
+          'from' => $source,
+          'to' => $dest,
           'item_instance_id' => $item_instance_id,
-          'new_item_instance_id' => $new_item_instance_id,
+          'moved_item_instance_id' => $move_result['moved_item_instance_id'],
           'quantity' => $quantity,
+          'source_expected_quantity' => $move_result['expected_source_quantity'],
+          'destination_expected_quantity' => $move_result['expected_destination_quantity'],
         ]
       );
 
@@ -505,14 +557,89 @@ class InventoryManagementService {
 
       return [
         'success' => TRUE,
+        'transaction_id' => $transaction_id,
+        'source' => $source,
+        'destination' => $dest,
+        'verification' => [
+          'source_before' => $source_before,
+          'destination_before' => $dest_before,
+          'source_after_mutation' => $source_after_mutation,
+          'destination_after_mutation' => $dest_after_mutation,
+          'source_after_write' => $source_after_write,
+          'destination_after_write' => $dest_after_write,
+        ],
         'source_inventory' => $source_inventory,
         'dest_inventory' => $dest_inventory,
-        'message' => "Transferred {$quantity} items from {$source_owner_type} to {$dest_owner_type}",
+        'moved_item_instance_id' => $move_result['moved_item_instance_id'],
+        'item_id' => $move_result['item_id'] ?? '',
+        'item_name' => $move_result['item_name'] ?? 'Item',
+        'message' => "Transferred {$quantity} items from {$source['owner_type']} to {$dest['owner_type']}",
       ];
     }
     catch (\Exception $e) {
       $this->database->rollBack();
+      $this->logInventoryOperation(
+        'transfer_transaction_failed',
+        $source['owner_id'],
+        $source['owner_type'],
+        $campaign_id,
+        [
+          'transaction_id' => $transaction_id,
+          'item_instance_id' => $item_instance_id,
+          'quantity' => $quantity,
+          'source' => $source,
+          'destination' => $dest,
+          'error' => $e->getMessage(),
+        ]
+      );
       throw $e;
+    }
+  }
+
+  /**
+   * Validate a transfer transaction without mutating storage.
+   */
+  public function validateTransferTransaction(
+    array $source_storage,
+    array $dest_storage,
+    string $item_instance_id,
+    int $quantity = 1,
+    ?int $campaign_id = NULL
+  ): array {
+    if ($quantity < 1) {
+      return [
+        'valid' => FALSE,
+        'errors' => ['Transfer quantity must be at least 1.'],
+      ];
+    }
+
+    try {
+      $source = $this->normalizeStorageReference($source_storage, 'source');
+      $dest = $this->normalizeStorageReference($dest_storage, 'destination');
+      $this->validateOwner($source['owner_id'], $source['owner_type']);
+      $this->validateOwner($dest['owner_id'], $dest['owner_type']);
+      $source_item_row = $this->loadTransferItemRecord($item_instance_id, $source, $campaign_id);
+      $preflight = $this->verifyTransferPreconditions($source, $dest, $source_item_row, $quantity, $campaign_id);
+      $state = json_decode($source_item_row['state_data'] ?? '{}', TRUE) ?: [];
+
+      return [
+        'valid' => !empty($preflight['valid']),
+        'errors' => $preflight['errors'] ?? [],
+        'source' => $source,
+        'destination' => $dest,
+        'item' => [
+          'item_instance_id' => $source_item_row['item_instance_id'] ?? $item_instance_id,
+          'item_id' => $source_item_row['item_id'] ?? '',
+          'item_name' => $state['name'] ?? ($source_item_row['item_id'] ?? 'Item'),
+          'available_quantity' => (int) ($source_item_row['quantity'] ?? 0),
+        ],
+      ];
+    }
+    catch (\Exception $e) {
+      return [
+        'valid' => FALSE,
+        'errors' => [$e->getMessage()],
+      ];
     }
   }
 
@@ -1015,6 +1142,42 @@ class InventoryManagementService {
   }
 
   /**
+   * Create a moved item instance record that preserves state metadata.
+   */
+  protected function createTransferredItemInstance(
+    string $owner_id,
+    string $location_type,
+    array $source_item_row,
+    int $quantity,
+    ?int $campaign_id,
+    string $transaction_id
+  ): string {
+    $item_instance_id = uniqid('item_', TRUE);
+    $state = json_decode($source_item_row['state_data'] ?? '{}', TRUE) ?: [];
+    $state['_transfer'] = [
+      'transaction_id' => $transaction_id,
+      'moved_from_instance_id' => $source_item_row['item_instance_id'] ?? '',
+      'moved_at' => date('c'),
+    ];
+
+    $this->database->insert('dc_campaign_item_instances')
+      ->fields([
+        'campaign_id' => $campaign_id ?? (int) ($source_item_row['campaign_id'] ?? 0),
+        'item_instance_id' => $item_instance_id,
+        'item_id' => $source_item_row['item_id'] ?? ($state['id'] ?? ''),
+        'location_type' => $location_type,
+        'location_ref' => $owner_id,
+        'quantity' => $quantity,
+        'state_data' => json_encode($state),
+        'created' => time(),
+        'updated' => time(),
+      ])
+      ->execute();
+
+    return $item_instance_id;
+  }
+
+  /**
    * Calculate bulk for item(s).
    *
    * @param array $item_state
@@ -1089,6 +1252,257 @@ class InventoryManagementService {
       'room' => 'room',
     ];
     return $map[$owner_type] ?? 'inventory';
+  }
+
+  /**
+   * Default item location for a destination owner type.
+   */
+  protected function defaultLocationTypeForOwnerType(string $owner_type): string {
+    return match ($owner_type) {
+      'character' => 'carried',
+      'container' => 'container',
+      'room' => 'room',
+      default => 'carried',
+    };
+  }
+
+  /**
+   * Normalize a storage reference for transfer use.
+   */
+  protected function normalizeStorageReference(array $storage, string $label): array {
+    $owner_id = (string) ($storage['owner_id'] ?? '');
+    $owner_type = (string) ($storage['owner_type'] ?? '');
+    if ($owner_id === '' || $owner_type === '') {
+      throw new \InvalidArgumentException("{$label} storage must include owner_id and owner_type");
+    }
+
+    if (!in_array($owner_type, ['character', 'container', 'room'], TRUE)) {
+      throw new \InvalidArgumentException("Invalid {$label} owner type: {$owner_type}");
+    }
+
+    $location_type = $storage['location_type'] ?? NULL;
+    if ($location_type !== NULL && !is_string($location_type)) {
+      throw new \InvalidArgumentException("{$label} location_type must be a string when provided");
+    }
+
+    if ($location_type === NULL && $label === 'destination') {
+      $location_type = $this->defaultLocationTypeForOwnerType($owner_type);
+    }
+
+    return [
+      'owner_id' => $owner_id,
+      'owner_type' => $owner_type,
+      'location_type' => $location_type,
+    ];
+  }
+
+  /**
+   * Load the source item record being transferred.
+   */
+  protected function loadTransferItemRecord(string $item_instance_id, array $source, ?int $campaign_id = NULL): array {
+    $query = $this->database->select('dc_campaign_item_instances', 'i')
+      ->fields('i')
+      ->condition('item_instance_id', $item_instance_id)
+      ->condition('location_ref', $source['owner_id']);
+
+    if ($campaign_id !== NULL) {
+      $query->condition('campaign_id', $campaign_id);
+    }
+    if (!empty($source['location_type'])) {
+      $query->condition('location_type', $source['location_type']);
+    }
+
+    $row = $query->execute()->fetchAssoc();
+    if (!$row) {
+      throw new \InvalidArgumentException("Item instance not found in source storage: {$item_instance_id}");
+    }
+
+    return $row;
+  }
+
+  /**
+   * Verify preconditions before mutating the transfer transaction.
+   */
+  protected function verifyTransferPreconditions(
+    array $source,
+    array $dest,
+    array $source_item_row,
+    int $quantity,
+    ?int $campaign_id = NULL
+  ): array {
+    $errors = [];
+    $source_qty = (int) ($source_item_row['quantity'] ?? 0);
+    if ($source_qty < $quantity) {
+      $errors[] = "Cannot transfer {$quantity} items; only {$source_qty} available.";
+    }
+
+    $item_state = json_decode($source_item_row['state_data'] ?? '{}', TRUE) ?: [];
+    $item_bulk = $this->calculateItemBulk($item_state, $quantity);
+    $dest_capacity = $this->getInventoryCapacity($dest['owner_id'], $dest['owner_type']);
+    $dest_current_bulk = $this->calculateCurrentBulk($dest['owner_id'], $dest['owner_type'], $campaign_id);
+    if (($dest_current_bulk + $item_bulk) > $dest_capacity) {
+      $errors[] = "Transfer would exceed destination capacity (current: {$dest_current_bulk}, capacity: {$dest_capacity}, item bulk: {$item_bulk}).";
+    }
+
+    if ($dest['owner_type'] === 'character' && !in_array($dest['location_type'], ['carried', 'equipped', 'worn', 'stashed'], TRUE)) {
+      $errors[] = 'Character destination location_type must be one of carried, equipped, worn, or stashed.';
+    }
+
+    if ($dest['owner_type'] !== 'character' && $dest['location_type'] !== $this->defaultLocationTypeForOwnerType($dest['owner_type'])) {
+      $errors[] = "Destination {$dest['owner_type']} storage must use location_type '{$this->defaultLocationTypeForOwnerType($dest['owner_type'])}'.";
+    }
+
+    return [
+      'valid' => empty($errors),
+      'errors' => $errors,
+    ];
+  }
+
+  /**
+   * Apply the transfer mutation inside the active database transaction.
+   */
+  protected function applyTransferMutation(
+    array $source,
+    array $dest,
+    array $source_item_row,
+    int $quantity,
+    ?int $campaign_id,
+    string $transaction_id
+  ): array {
+    $source_qty = (int) ($source_item_row['quantity'] ?? 0);
+    $source_location_type = (string) ($source_item_row['location_type'] ?? $this->defaultLocationTypeForOwnerType($source['owner_type']));
+    $dest_location_type = (string) ($dest['location_type'] ?? $this->defaultLocationTypeForOwnerType($dest['owner_type']));
+    $same_storage = $source['owner_id'] === $dest['owner_id'] && $source['owner_type'] === $dest['owner_type'];
+    $state = json_decode($source_item_row['state_data'] ?? '{}', TRUE) ?: [];
+    $item_name = $state['name'] ?? ($source_item_row['item_id'] ?? 'Item');
+
+    $expected_source_quantity = max(0, $source_qty - $quantity);
+    $moved_item_instance_id = (string) $source_item_row['item_instance_id'];
+
+    if ($same_storage && $source_location_type === $dest_location_type) {
+      return [
+        'source_owner' => $source,
+        'dest_owner' => $dest,
+        'source_item_instance_id' => $source_item_row['item_instance_id'],
+        'moved_item_instance_id' => $moved_item_instance_id,
+        'expected_source_quantity' => $source_qty,
+        'expected_destination_quantity' => $source_qty,
+        'item_id' => $source_item_row['item_id'] ?? '',
+        'item_name' => $item_name,
+      ];
+    }
+
+    if ($quantity === $source_qty) {
+      $this->database->update('dc_campaign_item_instances')
+        ->fields([
+          'location_ref' => $dest['owner_id'],
+          'location_type' => $dest_location_type,
+          'updated' => time(),
+        ])
+        ->condition('item_instance_id', $source_item_row['item_instance_id'])
+        ->execute();
+
+      $expected_source_quantity = 0;
+    }
+    else {
+      $this->database->update('dc_campaign_item_instances')
+        ->fields([
+          'quantity' => $expected_source_quantity,
+          'updated' => time(),
+        ])
+        ->condition('item_instance_id', $source_item_row['item_instance_id'])
+        ->execute();
+
+      $moved_item_instance_id = $this->createTransferredItemInstance(
+        $dest['owner_id'],
+        $dest_location_type,
+        $source_item_row,
+        $quantity,
+        $campaign_id,
+        $transaction_id
+      );
+    }
+
+    return [
+      'source_owner' => $source,
+      'dest_owner' => $dest,
+      'source_item_instance_id' => $source_item_row['item_instance_id'],
+      'moved_item_instance_id' => $moved_item_instance_id,
+      'expected_source_quantity' => $expected_source_quantity,
+      'expected_destination_quantity' => $quantity,
+      'item_id' => $source_item_row['item_id'] ?? '',
+      'item_name' => $item_name,
+    ];
+  }
+
+  /**
+   * Verify source and destination state after transfer mutation/write.
+   */
+  protected function verifyTransferPostconditions(
+    array $move_result,
+    array $source_snapshot,
+    array $dest_snapshot,
+    bool $after_write
+  ): array {
+    $errors = [];
+    $expected_source_quantity = (int) ($move_result['expected_source_quantity'] ?? 0);
+    $expected_dest_quantity = (int) ($move_result['expected_destination_quantity'] ?? 0);
+
+    if ((int) ($source_snapshot['tracked_item_quantity'] ?? 0) !== $expected_source_quantity) {
+      $errors[] = $after_write
+        ? 'Source storage verification failed after write.'
+        : 'Source storage verification failed after mutation.';
+    }
+
+    if ((int) ($dest_snapshot['tracked_item_quantity'] ?? 0) !== $expected_dest_quantity) {
+      $errors[] = $after_write
+        ? 'Destination storage verification failed after write.'
+        : 'Destination storage verification failed after mutation.';
+    }
+
+    return [
+      'valid' => empty($errors),
+      'errors' => $errors,
+    ];
+  }
+
+  /**
+   * Build a verification snapshot for a storage object.
+   */
+  protected function buildStorageSnapshot(array $storage, ?int $campaign_id = NULL, ?string $tracked_item_instance_id = NULL): array {
+    $query = $this->database->select('dc_campaign_item_instances', 'i')
+      ->fields('i', ['item_instance_id', 'quantity'])
+      ->condition('location_ref', $storage['owner_id']);
+
+    if ($campaign_id !== NULL) {
+      $query->condition('campaign_id', $campaign_id);
+    }
+    if (!empty($storage['location_type']) && $storage['owner_type'] !== 'character') {
+      $query->condition('location_type', $storage['location_type']);
+    }
+
+    $rows = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    $total_quantity = 0;
+    $tracked_quantity = 0;
+    foreach ($rows as $row) {
+      $row_quantity = (int) ($row['quantity'] ?? 0);
+      $total_quantity += $row_quantity;
+      if ($tracked_item_instance_id !== NULL && ($row['item_instance_id'] ?? '') === $tracked_item_instance_id) {
+        $tracked_quantity += $row_quantity;
+      }
+    }
+
+    return [
+      'owner_id' => $storage['owner_id'],
+      'owner_type' => $storage['owner_type'],
+      'location_type' => $storage['location_type'],
+      'item_rows' => count($rows),
+      'total_quantity' => $total_quantity,
+      'tracked_item_instance_id' => $tracked_item_instance_id,
+      'tracked_item_quantity' => $tracked_quantity,
+      'total_bulk' => $this->calculateCurrentBulk($storage['owner_id'], $storage['owner_type'], $campaign_id),
+      'captured_at' => date('c'),
+    ];
   }
 
   /**

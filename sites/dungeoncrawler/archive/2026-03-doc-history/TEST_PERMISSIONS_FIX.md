@@ -1,5 +1,11 @@
 # Test Permissions Fix
 
+> **Status (Current)**: Historical incident note.
+>
+> This document records a specific repository cleanup related to `web/sites/simpletest/`. For current test environment preparation and permissions guidance, use:
+> - `TEST_SETUP.md`
+> - `CI_TESTING_SETUP.md`
+
 ## Issue
 PHPUnit functional tests were failing with the error:
 ```

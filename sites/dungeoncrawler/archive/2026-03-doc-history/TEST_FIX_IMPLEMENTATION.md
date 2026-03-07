@@ -1,5 +1,12 @@
 # Test Failure Fix Implementation
 
+> **Status (Current)**: Historical implementation log.
+>
+> This file documents one test-failure remediation cycle and should be treated as change history. For current, day-to-day test setup and execution, use:
+> - `TESTING.md`
+> - `TEST_SETUP.md`
+> - `CI_TESTING_SETUP.md`
+
 ## Issue Summary
 The PHPUnit test `CharacterStateControllerTest::testUpdateCharacterStateNegativeGetMethod` and 156 other tests were failing with the error:
 ```

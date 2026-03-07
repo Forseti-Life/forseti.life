@@ -74,14 +74,19 @@ class HexMapController extends ControllerBase {
     ];
 
     // Verify the current user owns the campaign before exposing data.
+    // Administrators may access any campaign for testing/debugging.
     if ($launch_context['campaign_id'] > 0) {
-      $campaign_uid = $this->database->select('dc_campaigns', 'c')
-        ->fields('c', ['uid'])
-        ->condition('id', $launch_context['campaign_id'])
-        ->execute()
-        ->fetchField();
-      if ($campaign_uid === FALSE || (int) $campaign_uid !== (int) $account->id()) {
-        throw new AccessDeniedHttpException('You do not own this campaign.');
+      $is_admin = in_array('administrator', $account->getRoles(), TRUE)
+        || (int) $account->id() === 1;
+      if (!$is_admin) {
+        $campaign_uid = $this->database->select('dc_campaigns', 'c')
+          ->fields('c', ['uid'])
+          ->condition('id', $launch_context['campaign_id'])
+          ->execute()
+          ->fetchField();
+        if ($campaign_uid === FALSE || (int) $campaign_uid !== (int) $account->id()) {
+          throw new AccessDeniedHttpException('You do not own this campaign.');
+        }
       }
     }
 
@@ -150,7 +155,7 @@ class HexMapController extends ControllerBase {
     }
 
     $query = $this->database->select('dc_campaign_characters', 'cc')
-      ->fields('cc', ['id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'character_data'])
+      ->fields('cc', ['id', 'character_id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'character_data'])
       ->condition('campaign_id', $campaign_id);
 
     $character_match = $query->orConditionGroup()
@@ -169,7 +174,7 @@ class HexMapController extends ControllerBase {
     if (!$record) {
       // Fallback to canonical library/fact character record by direct ID.
       $record = $this->database->select('dc_campaign_characters', 'cc')
-        ->fields('cc', ['id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'character_data'])
+        ->fields('cc', ['id', 'character_id', 'name', 'level', 'ancestry', 'class', 'hp_current', 'hp_max', 'armor_class', 'character_data'])
         ->condition('id', $character_id)
         ->orderBy('updated', 'DESC')
         ->range(0, 1)
@@ -305,8 +310,29 @@ class HexMapController extends ControllerBase {
       ? ($character_data['ancestry']['speed'] ?? 25)
       : ($character_data['speed'] ?? 25);
 
+    $sheet_character_id = (int) (($record['character_id'] ?? 0) ?: ($record['id'] ?? 0));
+
+    // Resolve portrait URL using the same logic as entity portrait injection.
+    $portrait_url = NULL;
+    $char_id = (int) $record['id'];
+    $portrait_rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $char_id, $campaign_id > 0 ? $campaign_id : NULL, 'portrait', 'original');
+    if (empty($portrait_rows) && $campaign_id > 0) {
+      $portrait_rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $char_id, NULL, 'portrait', 'original');
+    }
+    if (empty($portrait_rows) && $sheet_character_id > 0 && $sheet_character_id !== $char_id) {
+      $portrait_rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $sheet_character_id, $campaign_id > 0 ? $campaign_id : NULL, 'portrait', 'original');
+      if (empty($portrait_rows) && $campaign_id > 0) {
+        $portrait_rows = $this->imageRepository->loadImagesForObject('dc_campaign_characters', (string) $sheet_character_id, NULL, 'portrait', 'original');
+      }
+    }
+    if (!empty($portrait_rows)) {
+      $portrait_url = $this->imageRepository->resolveClientUrl($portrait_rows[0]);
+    }
+
     return [
       'id' => (int) $record['id'],
+      'sheet_character_id' => $sheet_character_id,
+      'character_id' => (int) ($record['character_id'] ?? 0),
       'name' => $name,
       'level' => $level,
       'ancestry' => $ancestry,
@@ -330,6 +356,7 @@ class HexMapController extends ControllerBase {
       'currency' => $inv_currency ?: ['gp' => $gold, 'sp' => 0, 'cp' => 0],
       'hero_points' => $hero_points,
       'conditions' => $conditions,
+      'portrait_url' => $portrait_url,
     ];
   }
 
@@ -360,6 +387,8 @@ class HexMapController extends ControllerBase {
       $quest['generated_rewards'] = json_decode((string) ($quest['generated_rewards'] ?? '[]'), TRUE) ?? [];
       $quest['objective_states'] = json_decode((string) ($quest['objective_states'] ?? '[]'), TRUE) ?? [];
       $quest['quest_data'] = json_decode((string) ($quest['quest_data'] ?? '{}'), TRUE) ?? [];
+      $quest['title'] = (string) ($quest['title'] ?? $quest['quest_name'] ?? $quest['name'] ?? $quest['quest_id'] ?? '');
+      $quest['quest_key'] = (string) ($quest['quest_key'] ?? $quest['source_template_id'] ?? $quest['quest_id'] ?? '');
       return $quest;
     };
 
@@ -1778,7 +1807,7 @@ class HexMapController extends ControllerBase {
         'description' => (string) ($room['description'] ?? ''),
         'hexes' => $normalized_hexes,
         'terrain' => is_array($room['terrain'] ?? NULL) ? $room['terrain'] : [],
-        'lighting' => is_string($room['lighting'] ?? NULL) ? $room['lighting'] : 'normal',
+        'lighting' => is_string($room['lighting'] ?? NULL) ? $room['lighting'] : (is_array($room['lighting'] ?? NULL) && isset($room['lighting']['level']) ? (string) $room['lighting']['level'] : 'normal'),
         'room_type' => (string) ($room['room_type'] ?? 'unknown'),
         'size_category' => (string) ($room['size_category'] ?? 'medium'),
         'gameplay_state' => is_array($room['gameplay_state'] ?? NULL) ? $room['gameplay_state'] : [],
@@ -2204,6 +2233,25 @@ class HexMapController extends ControllerBase {
 
       if ($by_name !== FALSE) {
         return (string) $by_name;
+      }
+    }
+
+    // If the payload uses UUID room IDs while dc_campaign_rooms stores slugs,
+    // preserve room ordering as a fallback mapping strategy. The generated map
+    // payload keeps rooms in authored order, and campaign room rows are stored
+    // in the same sequence for the template flow.
+    $payload_room_ids = array_keys(is_array($dungeon_payload['rooms'] ?? NULL) ? $dungeon_payload['rooms'] : []);
+    $payload_room_index = array_search($room_id, $payload_room_ids, TRUE);
+    if ($payload_room_index !== FALSE) {
+      $ordered_room_ids = $this->database->select('dc_campaign_rooms', 'r')
+        ->fields('r', ['room_id'])
+        ->condition('campaign_id', $campaign_id)
+        ->orderBy('id', 'ASC')
+        ->execute()
+        ->fetchCol();
+
+      if (isset($ordered_room_ids[$payload_room_index])) {
+        return (string) $ordered_room_ids[$payload_room_index];
       }
     }
 

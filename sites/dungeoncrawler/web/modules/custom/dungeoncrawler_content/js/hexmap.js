@@ -16,6 +16,103 @@ import { SpriteService } from './SpriteService.js';
 (function (Drupal, once) {
   'use strict';
 
+  function resolveQuestTitle(quest) {
+    if (!quest || typeof quest !== 'object') {
+      return 'Unknown Quest';
+    }
+    return quest.title || quest.quest_name || quest.name || quest.quest_key || quest.quest_id || quest.id || 'Unknown Quest';
+  }
+
+  function escapeQuestHtml(value) {
+    return String(value ?? '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function extractQuestPhases(quest) {
+    if (!quest || typeof quest !== 'object') {
+      return [];
+    }
+    if (Array.isArray(quest.generated_objectives) && quest.generated_objectives.length > 0) {
+      return quest.generated_objectives;
+    }
+    if (Array.isArray(quest.objective_states) && quest.objective_states.some(phase => phase && Array.isArray(phase.objectives))) {
+      return quest.objective_states;
+    }
+    return [];
+  }
+
+  function buildObjectiveStateIndex(quest) {
+    const index = {};
+    if (!quest || !Array.isArray(quest.objective_states)) {
+      return index;
+    }
+
+    for (const entry of quest.objective_states) {
+      if (!entry || typeof entry !== 'object') {
+        continue;
+      }
+
+      if (Array.isArray(entry.objectives)) {
+        for (const objective of entry.objectives) {
+          const objectiveId = objective?.objective_id;
+          if (!objectiveId) {
+            continue;
+          }
+          index[objectiveId] = {
+            current: Number(objective.current || 0),
+            target: Number(objective.target_count || 1),
+            description: objective.description || objectiveId,
+            completed: Boolean(objective.completed),
+          };
+        }
+        continue;
+      }
+
+      const objectiveId = entry.objective_id;
+      if (!objectiveId) {
+        continue;
+      }
+      index[objectiveId] = {
+        current: Number(entry.current || 0),
+        target: Number(entry.target || entry.target_count || 1),
+        description: entry.description || objectiveId,
+        completed: Boolean(entry.completed),
+      };
+    }
+
+    return index;
+  }
+
+  function mergeObjectiveProgress(baseObjective, objectiveIndex) {
+    const objectiveId = baseObjective?.objective_id;
+    const merged = {
+      objective_id: objectiveId,
+      type: baseObjective?.type || '',
+      description: baseObjective?.description || objectiveId || '',
+      target_count: Number(baseObjective?.target_count || 1),
+      current: Number(baseObjective?.current || 0),
+      completed: Boolean(baseObjective?.completed),
+    };
+
+    if (objectiveId && objectiveIndex[objectiveId]) {
+      const state = objectiveIndex[objectiveId];
+      merged.current = Math.max(merged.current, Number(state.current || 0));
+      merged.target_count = Number(merged.target_count || state.target || 1);
+      if (!baseObjective?.description) {
+        merged.description = state.description || merged.description;
+      }
+      merged.completed = merged.completed || Boolean(state.completed) || merged.current >= merged.target_count;
+    } else {
+      merged.completed = merged.completed || merged.current >= merged.target_count;
+    }
+
+    return merged;
+  }
+
   /**
    * UIManager - Handles all DOM interactions and UI updates.
    * Decouples business logic from DOM manipulation.
@@ -177,6 +274,9 @@ import { SpriteService } from './SpriteService.js';
         hexDetailObjects: document.getElementById('hex-detail-objects'),
         hexDetailEntities: document.getElementById('hex-detail-entities'),
         hexDetailConnection: document.getElementById('hex-detail-connection'),
+        selectedHexContentsSummary: document.getElementById('selected-hex-contents-summary'),
+        selectedHexContentsEmpty: document.getElementById('selected-hex-contents-empty'),
+        selectedHexContentsList: document.getElementById('selected-hex-contents-list'),
 
         // Turn clarity HUD
         turnHud: document.getElementById('turn-hud'),
@@ -197,6 +297,8 @@ import { SpriteService } from './SpriteService.js';
         characterSheetEmbedWrap: document.getElementById('char-sheet-embed-wrap'),
         characterSheetEmbed: document.getElementById('char-sheet-embed'),
         characterSheetLegacy: document.getElementById('char-sheet-legacy'),
+        characterPortraitWrap: document.getElementById('char-portrait-wrap'),
+        characterPortrait: document.getElementById('char-portrait'),
         characterName: document.getElementById('char-name'),
         characterType: document.getElementById('char-type'),
         characterSubtitle: document.getElementById('char-subtitle'),
@@ -249,7 +351,9 @@ import { SpriteService } from './SpriteService.js';
         // Quest journal panel
         questJournal: document.getElementById('quest-journal'),
         questList: document.getElementById('quest-list'),
-        questCount: document.getElementById('quest-count')
+        questCount: document.getElementById('quest-count'),
+        questConfirmationCount: document.getElementById('quest-confirmation-count'),
+        questConfirmationList: document.getElementById('quest-confirmation-list')
       };
 
       this.setupCharacterSheetSections();
@@ -609,6 +713,7 @@ import { SpriteService } from './SpriteService.js';
       const level = Number(basicInfo.level || state.level || launchCharacter.level || 0);
       const speed = Number(state.speed || launchCharacter.speed || 25);
       const characterId = state.id || launchCharacter.id || null;
+      const sheetCharacterId = state.sheet_character_id || state.character_id || launchCharacter.sheet_character_id || launchCharacter.character_id || characterId || null;
       
       // Resources
       const hpCurrent = Number(resources.hitPoints?.current ?? state.hp_current ?? launchCharacter.hp_current ?? 0);
@@ -635,6 +740,18 @@ import { SpriteService } from './SpriteService.js';
       };
       const formatMod = (val) => val >= 0 ? `+${val}` : `${val}`;
 
+      // Portrait
+      const portraitUrl = state.portrait_url || state.portrait || launchCharacter.portrait_url || launchCharacter.portrait || null;
+      if (this.elements.characterPortrait && this.elements.characterPortraitWrap) {
+        if (portraitUrl) {
+          this.elements.characterPortrait.src = portraitUrl;
+          this.elements.characterPortrait.alt = `${name} portrait`;
+          this.elements.characterPortraitWrap.style.display = '';
+        } else {
+          this.elements.characterPortraitWrap.style.display = 'none';
+        }
+      }
+
       // Update basic info
       if (this.elements.characterName) this.elements.characterName.textContent = name;
       if (this.elements.characterType) {
@@ -652,11 +769,11 @@ import { SpriteService } from './SpriteService.js';
         }
       }
       // "View Full Sheet" link
-      if (this.elements.characterFullSheetLink && characterId) {
-        this.elements.characterFullSheetLink.href = `/characters/${characterId}`;
+      if (this.elements.characterFullSheetLink && sheetCharacterId) {
+        this.elements.characterFullSheetLink.href = `/characters/${sheetCharacterId}`;
         this.elements.characterFullSheetLink.style.display = '';
       }
-      this.showEmbeddedCharacterSheet(characterId);
+      this.showEmbeddedCharacterSheet(sheetCharacterId);
       if (this.elements.characterAncestry) this.elements.characterAncestry.textContent = ancestry || '—';
       if (this.elements.characterLevel) this.elements.characterLevel.textContent = level > 0 ? `Lvl ${level}` : 'Lvl —';
 
@@ -933,6 +1050,81 @@ import { SpriteService } from './SpriteService.js';
         if (this.elements[key]) {
           this.elements[key].textContent = value;
         }
+      });
+    }
+
+    /**
+     * Render an exact list of everything occupying the selected hex.
+     * @param {Array<Object>} occupants - Occupant view models
+     * @param {number|null} q - Selected q
+     * @param {number|null} r - Selected r
+     * @param {(entityId:number, mode:string)=>void} onChoose - Click callback
+     */
+    updateSelectedHexContents(occupants, q, r, onChoose) {
+      const summary = this.elements.selectedHexContentsSummary;
+      const empty = this.elements.selectedHexContentsEmpty;
+      const list = this.elements.selectedHexContentsList;
+      if (!summary || !empty || !list) {
+        return;
+      }
+
+      const hasCoords = Number.isFinite(q) && Number.isFinite(r);
+      summary.textContent = hasCoords
+        ? `Hex (${q}, ${r}) contains ${occupants.length} entr${occupants.length === 1 ? 'y' : 'ies'}.`
+        : 'Click a hex to inspect everything on it.';
+
+      list.innerHTML = '';
+
+      if (!occupants.length) {
+        empty.style.display = '';
+        return;
+      }
+
+      empty.style.display = 'none';
+
+      occupants.forEach((occupant) => {
+        const row = document.createElement('div');
+        row.className = 'hex-contents-item';
+        if (occupant.isSelected) {
+          row.classList.add('is-selected');
+        }
+
+        const meta = document.createElement('div');
+        meta.className = 'hex-contents-item__meta';
+
+        const name = document.createElement('div');
+        name.className = 'hex-contents-item__name';
+        name.textContent = occupant.name;
+
+        const detail = document.createElement('div');
+        detail.className = 'hex-contents-item__detail';
+        detail.textContent = `${occupant.typeLabel}${occupant.teamLabel ? ` • ${occupant.teamLabel}` : ''}`;
+
+        meta.appendChild(name);
+        meta.appendChild(detail);
+
+        const actions = document.createElement('div');
+        actions.className = 'hex-contents-item__actions';
+
+        const inspectBtn = document.createElement('button');
+        inspectBtn.type = 'button';
+        inspectBtn.className = 'hex-contents-item__button hex-contents-item__button--secondary';
+        inspectBtn.textContent = 'Inspect';
+        inspectBtn.addEventListener('click', () => onChoose(occupant.entityId, 'inspect'));
+        actions.appendChild(inspectBtn);
+
+        if (occupant.canSelect) {
+          const selectBtn = document.createElement('button');
+          selectBtn.type = 'button';
+          selectBtn.className = 'hex-contents-item__button';
+          selectBtn.textContent = occupant.isSelected ? 'Selected' : 'Select';
+          selectBtn.addEventListener('click', () => onChoose(occupant.entityId, 'select'));
+          actions.appendChild(selectBtn);
+        }
+
+        row.appendChild(meta);
+        row.appendChild(actions);
+        list.appendChild(row);
       });
     }
 
@@ -1371,7 +1563,131 @@ import { SpriteService } from './SpriteService.js';
         }
       }
 
+      // Handle navigation: if the GM triggered a location change, inject the
+      // new room/entities/connections into the live dungeon data and switch.
+      if (result.data?.navigation?.target_room_id) {
+        this.handleNavigationResult(result.data.navigation);
+      }
+
       return result;
+    }
+
+    /**
+     * Handle a navigate_to_location result from the chat API.
+     *
+     * Injects the new room, entities, and connections into the live dungeonData,
+     * moves the player entity to the entry hex, and switches the active room.
+     *
+     * @param {object} nav - Navigation payload from the server:
+     *   { target_room_id, destination, room, entities, connections, entry_hex }
+     */
+    handleNavigationResult(nav) {
+      const hexmap = this.stateManager?.hexmap;
+      if (!hexmap || !hexmap.dungeonData) {
+        console.error('[Navigation] hexmap or dungeonData not available');
+        return;
+      }
+
+      const targetRoomId = nav.target_room_id;
+      const newRoom = nav.room;
+      const newEntities = nav.entities || [];
+      const newConnections = nav.connections || [];
+      const entryHex = nav.entry_hex || { q: 0, r: 0 };
+
+      console.log('[Navigation] Transitioning to:', targetRoomId, nav.destination);
+
+      // 1. Inject the new room into dungeonData.rooms (keyed by room_id).
+      if (newRoom && targetRoomId) {
+        hexmap.dungeonData.rooms[targetRoomId] = newRoom;
+      }
+
+      // 2. Append new entities to dungeonData.entities.
+      if (!Array.isArray(hexmap.dungeonData.entities)) {
+        hexmap.dungeonData.entities = [];
+      }
+      for (const entity of newEntities) {
+        // Avoid duplicates by instance_id.
+        const existingIdx = hexmap.dungeonData.entities.findIndex(
+          (e) => (e.instance_id || e.entity_instance_id) === (entity.instance_id || entity.entity_instance_id)
+        );
+        if (existingIdx === -1) {
+          hexmap.dungeonData.entities.push(entity);
+        }
+      }
+
+      // 3. Append new connections to dungeonData.connections.
+      if (!Array.isArray(hexmap.dungeonData.connections)) {
+        hexmap.dungeonData.connections = [];
+      }
+      for (const conn of newConnections) {
+        // Avoid duplicate connections.
+        const connId = conn.connection_id || `${conn.from_room}_${conn.to_room}`;
+        const exists = hexmap.dungeonData.connections.some(
+          (c) => (c.connection_id || `${c.from_room}_${c.to_room}`) === connId
+        );
+        if (!exists) {
+          hexmap.dungeonData.connections.push(conn);
+        }
+      }
+
+      // 4. Move the selected player entity to the new room entry hex.
+      const selectedEntity = hexmap.stateManager?.get('selectedEntity');
+      if (selectedEntity && Array.isArray(hexmap.dungeonData.entities)) {
+        const entityRef = selectedEntity.dcEntityRef;
+        for (const de of hexmap.dungeonData.entities) {
+          const deRef = de.instance_id || de.entity_instance_id;
+          if (deRef === entityRef || (selectedEntity.dcCharacterId && de?.state?.metadata?.character_id == selectedEntity.dcCharacterId)) {
+            de.placement = {
+              room_id: targetRoomId,
+              hex: { q: Number(entryHex.q), r: Number(entryHex.r) },
+            };
+            break;
+          }
+        }
+
+        // Also move ally NPCs to adjacent hexes.
+        const allyNpcs = hexmap.dungeonData.entities.filter(
+          (e) => e.entity_type === 'npc' && e?.state?.metadata?.team === 'ally'
+        );
+        const offsets = [{ q: 1, r: 0 }, { q: -1, r: 0 }, { q: 0, r: 1 }, { q: 0, r: -1 }, { q: 1, r: -1 }, { q: -1, r: 1 }];
+        allyNpcs.forEach((npc, i) => {
+          const offset = offsets[i % offsets.length];
+          npc.placement = {
+            room_id: targetRoomId,
+            hex: { q: Number(entryHex.q) + offset.q, r: Number(entryHex.r) + offset.r },
+          };
+        });
+
+        // Persist entity position to server.
+        const campaignId = hexmap.resolveCampaignId();
+        if (campaignId && entityRef) {
+          fetch(`/api/campaign/${campaignId}/entity/${entityRef}/move`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            body: JSON.stringify({ room_id: targetRoomId, q: Number(entryHex.q), r: Number(entryHex.r) }),
+          }).catch((err) => console.warn('[Navigation] Entity move persist failed:', err));
+        }
+
+        // Deselect before room switch.
+        hexmap.deselectEntity();
+      }
+
+      // 5. Show travel notification in chat.
+      this.appendChatLine('System', `🗺️ Traveling to ${nav.destination || newRoom?.name || targetRoomId}...`, 'system');
+
+      // 6. Switch to the new room (triggers full re-render, chat reload, banner).
+      hexmap.setActiveRoom(targetRoomId);
+
+      // 7. Re-select the player entity in the new room.
+      const newPlayerEntity = hexmap.findLaunchPlayerEntity();
+      if (newPlayerEntity) {
+        hexmap.selectEntity(newPlayerEntity);
+        if (hexmap.launchCharacter) {
+          hexmap.uiManager?.showLaunchCharacter?.(hexmap.launchCharacter);
+        }
+      }
+
+      console.log('[Navigation] Room switch complete:', targetRoomId);
     }
 
     appendChatLine(speaker, message, type = 'npc') {
@@ -1674,44 +1990,39 @@ import { SpriteService } from './SpriteService.js';
       if (count) count.textContent = String(activeQuests.length);
 
       list.innerHTML = activeQuests.map(quest => {
-        const title = quest.title || quest.quest_key || 'Unknown Quest';
-        const phases = quest.generated_objectives || [];
-        const objectiveStates = quest.objective_states || [];
+        const title = resolveQuestTitle(quest);
+        const phases = extractQuestPhases(quest);
+        const objectiveIndex = buildObjectiveStateIndex(quest);
+        const rawStatus = String(quest.status || '').trim().toLowerCase();
+        const status = rawStatus ? rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1) : 'Active';
 
         // Build objective list HTML for the first incomplete phase.
         let objectiveHtml = '';
         for (const phase of phases) {
           const objectives = phase.objectives || [];
           objectiveHtml = objectives.map(obj => {
-            // Merge progress from objective_states.
-            let current = obj.current || 0;
-            for (const os of objectiveStates) {
-              if (os.objective_id === obj.objective_id) {
-                current = Math.max(current, os.current || 0);
-                break;
-              }
-            }
-            const target = obj.target_count || 1;
-            const completed = obj.completed || current >= target;
+            const merged = mergeObjectiveProgress(obj, objectiveIndex);
+            const current = merged.current;
+            const target = merged.target_count || 1;
+            const completed = merged.completed;
             const icon = completed ? '✅' : '⬜';
-            const desc = obj.description || obj.objective_id;
-            const progress = obj.type === 'collect' ? ` (${current}/${target})` : '';
+            const desc = merged.description || merged.objective_id;
+            const progress = merged.type === 'collect' ? ` (${current}/${target})` : '';
             return `<li class="quest-objective ${completed ? 'quest-objective--done' : ''}">${icon} ${desc}${progress}</li>`;
           }).join('');
 
           // Show only the first phase that has incomplete objectives.
-          const allDone = objectives.every(o => {
-            let cur = o.current || 0;
-            for (const os of objectiveStates) {
-              if (os.objective_id === o.objective_id) { cur = Math.max(cur, os.current || 0); break; }
-            }
-            return o.completed || cur >= (o.target_count || 1);
-          });
+          const allDone = objectives.every(o => mergeObjectiveProgress(o, objectiveIndex).completed);
           if (!allDone) break;
+        }
+
+        if (!objectiveHtml) {
+          objectiveHtml = '<li class="quest-objective">✅ All objectives complete</li>';
         }
 
         return `<li class="quest-entry">
           <strong class="quest-title">📜 ${title}</strong>
+          <div class="quest-status">Status: ${status}</div>
           <ul class="quest-objectives">${objectiveHtml}</ul>
         </li>`;
       }).join('');
@@ -1845,9 +2156,12 @@ import { SpriteService } from './SpriteService.js';
     gridContainer: null,
     objectContainer: null,
     uiContainer: null,
+    interactionContainer: null,
     hudContainer: null,
     _roomBanner: null,
     _orientationReferenceOverlay: null,
+    _spreadHoverAnchorKey: null,
+    _spreadClearTimer: null,
     
     // Managers
     uiManager: null,
@@ -2250,6 +2564,10 @@ import { SpriteService } from './SpriteService.js';
       this.objectContainer.y = y;
       this.uiContainer.x = x;
       this.uiContainer.y = y;
+      if (this.interactionContainer) {
+        this.interactionContainer.x = x;
+        this.interactionContainer.y = y;
+      }
     },
 
     /**
@@ -2261,6 +2579,9 @@ import { SpriteService } from './SpriteService.js';
       this.gridContainer.scale.set(scale);
       this.objectContainer.scale.set(scale);
       this.uiContainer.scale.set(scale);
+      if (this.interactionContainer) {
+        this.interactionContainer.scale.set(scale);
+      }
     },
 
     /**
@@ -2270,6 +2591,9 @@ import { SpriteService } from './SpriteService.js';
       if (!this.entityManager) {
         return;
       }
+
+      this.clearSpreadInteractionTargets();
+      this._spreadHoverAnchorKey = null;
 
       this.deselectEntity();
 
@@ -2358,6 +2682,7 @@ import { SpriteService } from './SpriteService.js';
       this.gridContainer = new PIXI.Container();
       this.objectContainer = new PIXI.Container();
       this.uiContainer = new PIXI.Container();
+      this.interactionContainer = new PIXI.Container();
 
       // Keep overlay layers deterministic; ui sits on top of sprites.
       this.app.stage.sortableChildren = true;
@@ -2365,12 +2690,14 @@ import { SpriteService } from './SpriteService.js';
       this.gridContainer.zIndex = 20;
       this.objectContainer.zIndex = 30;
       this.uiContainer.zIndex = 40;
+      this.interactionContainer.zIndex = 45;
       
       // Add layers in order: hexes (terrain), grid (coords), objects (sprites), ui (overlays)
       this.app.stage.addChild(this.hexContainer);
       this.app.stage.addChild(this.gridContainer);
       this.app.stage.addChild(this.objectContainer);
       this.app.stage.addChild(this.uiContainer);
+      this.app.stage.addChild(this.interactionContainer);
 
       // Center the view
       this.hexContainer.x = this.app.screen.width / 2;
@@ -2379,8 +2706,13 @@ import { SpriteService } from './SpriteService.js';
       this.gridContainer.y = this.hexContainer.y;
       this.uiContainer.x = this.hexContainer.x;
       this.uiContainer.y = this.hexContainer.y;
+      this.interactionContainer.x = this.hexContainer.x;
+      this.interactionContainer.y = this.hexContainer.y;
       this.objectContainer.x = this.hexContainer.x;
       this.objectContainer.y = this.hexContainer.y;
+
+      this.interactionContainer.eventMode = 'passive';
+      this.interactionContainer.interactiveChildren = true;
 
       // Enable interactivity on stage
       this.app.stage.interactive = true;
@@ -2529,6 +2861,8 @@ import { SpriteService } from './SpriteService.js';
       // Clear existing hexes
       this.hexContainer.removeChildren();
       this.gridContainer.removeChildren();
+      this.clearSpreadInteractionTargets();
+      this._spreadHoverAnchorKey = null;
 
       // Reset transient UI state tied to previous hex graphics
       this.stateManager.set('hoveredHex', null);
@@ -2610,7 +2944,7 @@ import { SpriteService } from './SpriteService.js';
       // Event handlers
       hex.on('pointerover', () => this.onHexHover(hex));
       hex.on('pointerout', () => this.onHexOut(hex));
-      hex.on('pointerdown', () => this.onHexClick(hex));
+      hex.on('pointerdown', (event) => this.onHexClick(hex, event));
 
       this.hexContainer.addChild(hex);
 
@@ -2651,6 +2985,9 @@ import { SpriteService } from './SpriteService.js';
         return;
       }
 
+      const entitiesAtHex = this.getLiveEntitiesAtHex(q, r);
+      const shouldShowLabels = Boolean(visible) && entitiesAtHex.length > 1;
+
       const entities = this.entityManager.getEntitiesWith('PositionComponent', 'RenderComponent');
       entities.forEach((entity) => {
         const position = entity.getComponent('PositionComponent');
@@ -2660,8 +2997,187 @@ import { SpriteService } from './SpriteService.js';
         }
 
         if (position.q === q && position.r === r) {
-          render._hoverLabelVisible = Boolean(visible);
+          render._hoverLabelVisible = shouldShowLabels;
         }
+      });
+    },
+
+    /**
+     * Spread co-located entities apart while hovering a crowded hex.
+     * @param {number} q - Axial q coordinate
+     * @param {number} r - Axial r coordinate
+     * @param {boolean} active - Whether spread should be active
+     */
+    setEntitySpreadForHex: function (q, r, active) {
+      if (!this.entityManager) {
+        return;
+      }
+
+      const entities = this.getLiveEntitiesAtHex(q, r);
+      if (!entities.length) {
+        return;
+      }
+
+      const currentHexSize = Number(this.config?.hexSize || 0);
+      const spreadRadius = currentHexSize > 0 ? currentHexSize * 1.0 : 30;
+
+      if (!active || entities.length <= 1) {
+        entities.forEach((entity) => {
+          const render = entity.getComponent('RenderComponent');
+          if (!render) {
+            return;
+          }
+          render._spreadOffsetX = 0;
+          render._spreadOffsetY = 0;
+        });
+        return;
+      }
+
+      entities.forEach((entity, index) => {
+        const render = entity.getComponent('RenderComponent');
+        if (!render) {
+          return;
+        }
+
+        const angle = ((Math.PI * 2) / entities.length) * index - (Math.PI / 2);
+        render._spreadOffsetX = Math.cos(angle) * spreadRadius;
+        render._spreadOffsetY = Math.sin(angle) * spreadRadius;
+      });
+
+      this.refreshSpreadInteractionTargets(q, r);
+    },
+
+    /**
+     * Remove temporary click targets for spread entities.
+     */
+    clearSpreadInteractionTargets: function () {
+      if (!this.interactionContainer) {
+        return;
+      }
+
+      this.interactionContainer.removeChildren().forEach((child) => {
+        child.destroy({ children: true });
+      });
+    },
+
+    /**
+     * Build temporary click targets for entities visually spread from a crowded hex.
+     * @param {number} q
+     * @param {number} r
+     */
+    refreshSpreadInteractionTargets: function (q, r) {
+      this.clearSpreadInteractionTargets();
+
+      if (!this.interactionContainer) {
+        return;
+      }
+
+      const entities = this.getLiveEntitiesAtHex(q, r);
+      if (entities.length <= 1) {
+        return;
+      }
+
+      const hexKey = `${q}:${r}`;
+      entities.forEach((entity) => {
+        const render = entity.getComponent('RenderComponent');
+        const center = this.getRenderedEntityCenter(entity);
+        if (!render || !center) {
+          return;
+        }
+
+        const spriteWidth = Number(render?.sprite?.width || 0);
+        const spriteHeight = Number(render?.sprite?.height || 0);
+        const hitRadius = Math.max(
+          this.config.hexSize * 0.42,
+          spriteWidth * 0.4,
+          spriteHeight * 0.4
+        );
+
+        const target = new PIXI.Graphics();
+        target.beginFill(0xffffff, 0.001);
+        target.drawCircle(0, 0, hitRadius);
+        target.endFill();
+        target.x = center.x;
+        target.y = center.y;
+        target.zIndex = 9500 + (render.zIndex || 0);
+        target.eventMode = 'static';
+        target.interactive = true;
+        target.cursor = 'pointer';
+
+        target.on('pointerover', () => {
+          this._spreadHoverAnchorKey = hexKey;
+          this.setEntityLabelsForHex(q, r, true);
+          const identity = entity.getComponent('IdentityComponent');
+          this.uiManager?.updateHoveredObject(identity?.name || this.getObjectLabelAtHex(q, r));
+        });
+
+        target.on('pointerout', () => {
+          if (this._spreadHoverAnchorKey === hexKey) {
+            this._spreadHoverAnchorKey = null;
+          }
+          this.scheduleSpreadHoverClear(q, r);
+        });
+
+        target.on('pointertap', (event) => {
+          if (typeof event?.stopPropagation === 'function') {
+            event.stopPropagation();
+          }
+          this.handleEntityClick(entity, q, r, event);
+        });
+
+        this.interactionContainer.addChild(target);
+      });
+    },
+
+    /**
+     * Defer clearing spread state so pointer travel from the hex to a spread item
+     * does not immediately collapse the hover layout.
+     * @param {number} q
+     * @param {number} r
+     */
+    scheduleSpreadHoverClear: function (q, r) {
+      if (this._spreadClearTimer) {
+        clearTimeout(this._spreadClearTimer);
+      }
+
+      const hexKey = `${q}:${r}`;
+      this._spreadClearTimer = setTimeout(() => {
+        this._spreadClearTimer = null;
+
+        if (this._spreadHoverAnchorKey === hexKey) {
+          return;
+        }
+
+        const hoveredHex = this.stateManager.get('hoveredHex');
+        if (hoveredHex?.hexData?.q === q && hoveredHex?.hexData?.r === r) {
+          return;
+        }
+
+        this.setEntityLabelsForHex(q, r, false);
+        this.setEntitySpreadForHex(q, r, false);
+        this.clearSpreadInteractionTargets();
+        this.uiManager.updateHoveredHex(null, null);
+        this.uiManager.updateHoveredObject('None');
+        this.uiManager.updateHexDetails(null);
+      }, 0);
+    },
+
+    /**
+     * Clear all temporary hover spread offsets.
+     */
+    clearAllEntitySpreadOffsets: function () {
+      if (!this.entityManager) {
+        return;
+      }
+
+      const entities = this.entityManager.getEntitiesWith('RenderComponent');
+      entities.forEach((entity) => {
+        const render = entity.getComponent('RenderComponent');
+        if (!render) {
+          return;
+        }
+        render._spreadOffsetX = 0;
+        render._spreadOffsetY = 0;
       });
     },
 
@@ -2728,12 +3244,18 @@ import { SpriteService } from './SpriteService.js';
      * Hex hover event.
      */
     onHexHover: function (hex) {
+      if (this._spreadClearTimer) {
+        clearTimeout(this._spreadClearTimer);
+        this._spreadClearTimer = null;
+      }
+
       const previousHover = this.stateManager.get('hoveredHex');
       if (previousHover?.hexCoordText) {
         previousHover.hexCoordText.visible = false;
       }
       if (previousHover?.hexData) {
         this.setEntityLabelsForHex(previousHover.hexData.q, previousHover.hexData.r, false);
+        this.clearSpreadInteractionTargets();
       }
 
       // Highlight hex
@@ -2762,7 +3284,9 @@ import { SpriteService } from './SpriteService.js';
       
       // Update UI
       const { q, r } = hex.hexData;
+      this._spreadHoverAnchorKey = `${q}:${r}`;
       this.setEntityLabelsForHex(q, r, true);
+      this.setEntitySpreadForHex(q, r, true);
       this.uiManager.updateHoveredHex(q, r);
       this.uiManager.updateHoveredObject(this.getObjectLabelAtHex(q, r));
       this.uiManager.updateHexDetails(this.getHexDetail(q, r));
@@ -2782,20 +3306,78 @@ import { SpriteService } from './SpriteService.js';
         hex.hexCoordText.visible = showCoordinates;
       }
       if (hex?.hexData) {
-        this.setEntityLabelsForHex(hex.hexData.q, hex.hexData.r, false);
+        const hexKey = `${hex.hexData.q}:${hex.hexData.r}`;
+        if (this._spreadHoverAnchorKey === hexKey) {
+          this._spreadHoverAnchorKey = null;
+        }
+        this.scheduleSpreadHoverClear(hex.hexData.q, hex.hexData.r);
       }
 
       this.stateManager.set('hoveredHex', null);
-      this.uiManager.updateHoveredHex(null, null);
-      this.uiManager.updateHoveredObject('None');
-      this.uiManager.updateHexDetails(null);
+    },
+
+    /**
+     * Handle an exact entity click, including items and obstacles.
+     * @param {Entity} entity
+     * @param {number} q
+     * @param {number} r
+     * @param {PIXI.FederatedPointerEvent|null} pointerEvent
+     * @returns {boolean}
+     */
+    handleEntityClick: function (entity, q, r, pointerEvent = null) {
+      if (!entity) {
+        return false;
+      }
+
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      const actionMode = this.stateManager.get('actionMode') || 'attack';
+
+      if (selectedEntity && actionMode === 'interact' && entity.id !== selectedEntity.id) {
+        if (this.performInteractAtHex(selectedEntity, q, r, entity)) {
+          this.refreshSelectedHexContents(q, r);
+          return true;
+        }
+      }
+
+      if (selectedEntity && entity.id !== selectedEntity.id) {
+        const attackerCombat = selectedEntity.getComponent('CombatComponent');
+        const targetCombat = entity.getComponent('CombatComponent');
+
+        if (actionMode === 'attack' && attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
+          const canAttackCheck = this.combatSystem.canAttack(selectedEntity, entity);
+          console.info('Click attack check', { actorId: selectedEntity.id, targetId: entity.id, mode: actionMode, check: canAttackCheck });
+          if (!canAttackCheck.canAttack) {
+            console.warn('Cannot attack target', canAttackCheck.reason);
+            return true;
+          }
+
+          this.performAttack(selectedEntity, entity);
+          return true;
+        }
+      }
+
+      if (entity.hasComponent('MovementComponent')) {
+        this.selectEntity(entity);
+        this.refreshSelectedHexContents(q, r);
+        return true;
+      }
+
+      this.uiManager.showEntityInfo(entity);
+      if (this.uiManager.elements.actionInstruction) {
+        const identity = entity.getComponent('IdentityComponent');
+        this.uiManager.elements.actionInstruction.textContent = `Inspecting ${identity?.name || 'entity'} in hex (${q}, ${r}).`;
+      }
+      this.refreshSelectedHexContents(q, r);
+      return true;
     },
 
     /**
      * Hex click event.
      */
-    onHexClick: function (hex) {
+    onHexClick: function (hex, pointerEvent = null) {
       const { q, r } = hex.hexData;
+
+      this.refreshSelectedHexContents(q, r);
 
       // Game Coordinator intercept — routes clicks to the active phase handler.
       // Falls through to legacy logic if the coordinator doesn't consume the click.
@@ -2839,41 +3421,17 @@ import { SpriteService } from './SpriteService.js';
       }
       
       // Mode 2: Check if clicking on an entity
-      const entitiesAtPos = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
+      const entitiesAtPos = this.getLiveEntitiesAtHex(q, r);
+      const pickedEntity = this.pickEntityAtHexFromPointer(q, r, pointerEvent, entitiesAtPos);
       const selectedEntity = this.stateManager.get('selectedEntity');
-      
-      for (const entity of entitiesAtPos) {
+      const entitiesToCheck = pickedEntity
+        ? [pickedEntity, ...entitiesAtPos.filter((entity) => entity.id !== pickedEntity.id)]
+        : entitiesAtPos;
+
+      for (const entity of entitiesToCheck) {
         const pos = entity.getComponent('PositionComponent');
         if (pos.q === q && pos.r === r) {
-          const actionMode = this.stateManager.get('actionMode') || 'attack';
-
-          if (selectedEntity && actionMode === 'interact' && entity.id !== selectedEntity.id) {
-            if (this.performInteractAtHex(selectedEntity, q, r, entity)) {
-              return;
-            }
-          }
-
-          // Check if this is an attack action (selected entity + hostile target)
-              if (selectedEntity && entity.id !== selectedEntity.id) {
-            const attackerCombat = selectedEntity.getComponent('CombatComponent');
-            const targetCombat = entity.getComponent('CombatComponent');
-            
-                if (actionMode === 'attack' && attackerCombat && targetCombat && attackerCombat.isHostileTo(targetCombat)) {
-              const canAttackCheck = this.combatSystem.canAttack(selectedEntity, entity);
-              console.info('Click attack check', { actorId: selectedEntity.id, targetId: entity.id, mode: actionMode, check: canAttackCheck });
-              if (!canAttackCheck.canAttack) {
-                console.warn('Cannot attack target', canAttackCheck.reason);
-                return;
-              }
-              // Attempt attack
-              this.performAttack(selectedEntity, entity);
-              return;
-            }
-          }
-          
-          // Otherwise select the entity if it has MovementComponent
-          if (entity.hasComponent('MovementComponent')) {
-            this.selectEntity(entity);
+          if (this.handleEntityClick(entity, q, r, pointerEvent)) {
             return;
           }
         }
@@ -2933,8 +3491,166 @@ import { SpriteService } from './SpriteService.js';
       }
 
       this.setSelectedHex(hex);
+      this.refreshSelectedHexContents(q, r);
       
       console.log('Selected hex:', q, r);
+    },
+
+    /**
+     * Return all live ECS entities on the given hex, sorted top-down by render order.
+     * @param {number} q
+     * @param {number} r
+     * @returns {Array<Entity>}
+     */
+    getLiveEntitiesAtHex: function (q, r) {
+      if (!this.entityManager) {
+        return [];
+      }
+
+      const entities = this.entityManager.getEntitiesWith('PositionComponent', 'IdentityComponent');
+      return entities
+        .filter((entity) => {
+          const pos = entity.getComponent('PositionComponent');
+          return pos?.q === q && pos?.r === r;
+        })
+        .sort((a, b) => {
+          const ar = a.getComponent('RenderComponent');
+          const br = b.getComponent('RenderComponent');
+          return (br?.zIndex || 0) - (ar?.zIndex || 0);
+        });
+    },
+
+    /**
+     * Resolve an entity's rendered center position, including hover spread.
+     * @param {Entity} entity
+     * @returns {{x:number, y:number}|null}
+     */
+    getRenderedEntityCenter: function (entity) {
+      if (!entity) {
+        return null;
+      }
+
+      const position = entity.getComponent('PositionComponent');
+      const render = entity.getComponent('RenderComponent');
+      if (!position || !render) {
+        return null;
+      }
+
+      const base = this.axialToPixel(position.q, position.r, this.config.hexSize);
+      const offsetX = Number.isFinite(render._spreadOffsetX) ? render._spreadOffsetX : 0;
+      const offsetY = Number.isFinite(render._spreadOffsetY) ? render._spreadOffsetY : 0;
+
+      return {
+        x: base.x + offsetX,
+        y: base.y + offsetY,
+      };
+    },
+
+    /**
+     * Pick the exact rendered entity under the pointer within a crowded hex.
+     * @param {number} q
+     * @param {number} r
+     * @param {PIXI.FederatedPointerEvent|null} pointerEvent
+     * @param {Array<Entity>} entitiesAtPos
+     * @returns {Entity|null}
+     */
+    pickEntityAtHexFromPointer: function (q, r, pointerEvent, entitiesAtPos = []) {
+      if (!Array.isArray(entitiesAtPos) || !entitiesAtPos.length) {
+        return null;
+      }
+
+      if (!pointerEvent?.data || !this.objectContainer) {
+        return entitiesAtPos[0] || null;
+      }
+
+      const localPoint = pointerEvent.data.getLocalPosition(this.objectContainer);
+      let bestMatch = null;
+
+      entitiesAtPos.forEach((entity) => {
+        const render = entity.getComponent('RenderComponent');
+        const center = this.getRenderedEntityCenter(entity);
+        if (!render || !center) {
+          return;
+        }
+
+        const dx = localPoint.x - center.x;
+        const dy = localPoint.y - center.y;
+        const distance = Math.sqrt((dx * dx) + (dy * dy));
+        const spriteWidth = Number(render?.sprite?.width || 0);
+        const spriteHeight = Number(render?.sprite?.height || 0);
+        const hitRadius = Math.max(
+          this.config.hexSize * 0.28,
+          spriteWidth * 0.35,
+          spriteHeight * 0.35
+        );
+
+        if (distance > hitRadius) {
+          return;
+        }
+
+        if (!bestMatch || distance < bestMatch.distance) {
+          bestMatch = { entity, distance };
+        }
+      });
+
+      return bestMatch?.entity || entitiesAtPos[0] || null;
+    },
+
+    /**
+     * Build view models for the Selected Hex Contents panel.
+     * @param {number} q
+     * @param {number} r
+     * @returns {Array<Object>}
+     */
+    getHexOccupantEntries: function (q, r) {
+      const selectedEntity = this.stateManager.get('selectedEntity');
+      return this.getLiveEntitiesAtHex(q, r).map((entity) => {
+        const identity = entity.getComponent('IdentityComponent');
+        const combat = entity.getComponent('CombatComponent');
+        return {
+          entityId: entity.id,
+          name: identity?.name || `Entity ${entity.id}`,
+          typeLabel: identity?.entityType || 'entity',
+          teamLabel: combat?.team || '',
+          canSelect: entity.hasComponent('MovementComponent'),
+          isSelected: selectedEntity?.id === entity.id,
+        };
+      });
+    },
+
+    /**
+     * Refresh the Selected Hex Contents panel for an exact hex.
+     * @param {number} q
+     * @param {number} r
+     */
+    refreshSelectedHexContents: function (q, r) {
+      if (!this.uiManager) {
+        return;
+      }
+
+      this.uiManager.updateSelectedHex(q, r);
+      const occupants = this.getHexOccupantEntries(q, r);
+      this.uiManager.updateSelectedHexContents(occupants, q, r, (entityId, mode) => {
+        const entity = this.entityManager?.getEntity(entityId);
+        if (!entity) {
+          return;
+        }
+
+        if (mode === 'select' && entity.hasComponent('MovementComponent')) {
+          this.selectEntity(entity);
+          return;
+        }
+
+        this.uiManager.showEntityInfo(entity);
+        if (this.uiManager.elements.actionInstruction) {
+          const identity = entity.getComponent('IdentityComponent');
+          this.uiManager.elements.actionInstruction.textContent = `Inspecting ${identity?.name || 'entity'} in hex (${q}, ${r}).`;
+        }
+      });
+
+      if (occupants.length > 1 && this.uiManager.elements.actionInstruction) {
+        this.uiManager.elements.actionInstruction.textContent = `Multiple entities occupy hex (${q}, ${r}). Use Selected Hex Contents to inspect or select the exact one you want.`;
+      }
     },
     
     /**
@@ -2947,17 +3663,6 @@ import { SpriteService } from './SpriteService.js';
      * @returns {Entity} Created entity
      */
     createEntityObject: function (q, r, entityType, name, spriteKey = null, options = {}) {
-      // Check if entity already exists at this position
-      const existingEntities = this.entityManager.getEntitiesWith('PositionComponent');
-      for (const entity of existingEntities) {
-        const pos = entity.getComponent('PositionComponent');
-        if (pos.q === q && pos.r === r) {
-          // Remove existing entity
-          this.entityManager.removeEntity(entity.id);
-          break;
-        }
-      }
-      
       // Create new entity
       const entity = this.entityManager.createEntity();
       
@@ -2965,7 +3670,12 @@ import { SpriteService } from './SpriteService.js';
       entity.addComponent('PositionComponent', new PositionComponent(q, r));
       entity.addComponent('IdentityComponent', new IdentityComponent(name, entityType));
       const renderComp = new RenderComponent(spriteKey);
+      const explicitScale = Number(options.scale);
       renderComp.orientation = String(options.orientation || 'n').toLowerCase();
+      renderComp.scale = Number.isFinite(explicitScale)
+        ? explicitScale
+        : (entityType === EntityType.ITEM ? 0.4 : 1.0);
+      renderComp.zIndex = this.getEntityRenderZIndex(entityType, q, r);
       if (options.objectCategory) {
         renderComp.objectCategory = options.objectCategory;
       }
@@ -3021,6 +3731,32 @@ import { SpriteService } from './SpriteService.js';
       
       console.log(`Created entity "${name}" (${entityType}) at (${q}, ${r})`);
       return entity;
+    },
+
+    /**
+     * Compute render ordering so multiple entities can share one hex.
+     * Higher values render later/on top.
+     *
+     * @param {string} entityType - Entity type from EntityType enum
+     * @param {number} q - Hex q coordinate
+     * @param {number} r - Hex r coordinate
+     * @returns {number}
+     */
+    getEntityRenderZIndex: function (entityType, q, r) {
+      const depthBias = ((Number.isFinite(r) ? r : 0) * 100) + (Number.isFinite(q) ? q : 0);
+      switch (entityType) {
+        case EntityType.OBSTACLE:
+          return 1000 + depthBias;
+        case EntityType.ITEM:
+          return 2000 + depthBias;
+        case EntityType.CREATURE:
+        case EntityType.NPC:
+          return 3000 + depthBias;
+        case EntityType.PLAYER_CHARACTER:
+          return 4000 + depthBias;
+        default:
+          return 2500 + depthBias;
+      }
     },
 
     /**
@@ -4358,29 +5094,6 @@ import { SpriteService } from './SpriteService.js';
         self.uiManager.updateZoomLevel(1);
       });
 
-      // Object type buttons
-      document.querySelectorAll('.btn-object').forEach(function (btn) {
-        const clickHandler = function () {
-          // Remove active class from all buttons
-          document.querySelectorAll('.btn-object').forEach(b => b.classList.remove('active'));
-          
-          // Set active button
-          btn.classList.add('active');
-          const objectType = btn.dataset.type;
-          self.stateManager.set('selectedObjectType', objectType);
-          
-          console.log('Selected object type:', objectType);
-        };
-        addTrackedListener(btn, 'click', clickHandler);
-      });
-
-      // Clear all objects
-      const clearObjects = document.getElementById('clear-objects');
-      addTrackedListener(clearObjects, 'click', function () {
-        self.clearEntities();
-        console.log('Cleared all objects');
-      });
-      
       // Deselect entity button
       const deselectBtn = document.getElementById('deselect-entity');
       addTrackedListener(deselectBtn, 'click', function () {
@@ -5544,7 +6257,205 @@ import { SpriteService } from './SpriteService.js';
       if (this.uiManager) {
         this.uiManager.renderQuestJournal(activeQuests);
       }
+      this.refreshQuestConfirmations();
       console.log('Quest data initialized:', { active: activeQuests.length, available: (this.questData.available || []).length });
+    },
+
+    /**
+     * Refresh quest journal from API and re-render active quests.
+     */
+    refreshQuestJournalFromApi: async function () {
+      const campaignId = this.resolveCampaignId();
+      if (!campaignId || !this.uiManager) {
+        return;
+      }
+
+      const characterId = Number(this.launchContext?.character_id || 0);
+      const endpoint = characterId > 0
+        ? `/api/campaign/${campaignId}/character/${characterId}/quest-journal`
+        : `/api/campaign/${campaignId}/quest-journal`;
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        if (!response.ok) {
+          return;
+        }
+
+        const payload = await response.json();
+        if (!payload?.success) {
+          return;
+        }
+
+        const tracking = Array.isArray(payload.tracking) ? payload.tracking : [];
+        const inactiveStatuses = new Set(['completed', 'failed', 'abandoned', 'archived']);
+        const activeQuests = tracking.filter((quest) => {
+          const status = String(quest?.status || '').trim().toLowerCase();
+          return status === '' || !inactiveStatuses.has(status);
+        });
+
+        this.questData = this.questData || {};
+        this.questData.active = activeQuests;
+        this.uiManager.renderQuestJournal(activeQuests);
+      } catch (error) {
+        console.warn('Failed to refresh quest journal from API:', error);
+      }
+    },
+
+    /**
+     * Fetch and render pending quest confirmations.
+     */
+    refreshQuestConfirmations: async function () {
+      const campaignId = this.resolveCampaignId();
+      if (!campaignId || !this.uiManager) {
+        return;
+      }
+
+      const characterId = Number(this.launchContext?.character_id || 0);
+      const query = characterId > 0 ? `?character_id=${encodeURIComponent(String(characterId))}` : '';
+
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/quest-confirmations${query}`, {
+          method: 'GET',
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+        });
+
+        if (!response.ok) {
+          this.renderQuestConfirmations([]);
+          return;
+        }
+
+        const payload = await response.json();
+        const confirmations = payload?.success && Array.isArray(payload.confirmations)
+          ? payload.confirmations
+          : [];
+        this.renderQuestConfirmations(confirmations);
+      } catch (error) {
+        console.warn('Failed to fetch quest confirmations:', error);
+        this.renderQuestConfirmations([]);
+      }
+    },
+
+    /**
+     * Render pending confirmation cards and wire resolve actions.
+     * @param {Array} confirmations
+     */
+    renderQuestConfirmations: function (confirmations) {
+      const countEl = this.uiManager?.elements?.questConfirmationCount;
+      const listEl = this.uiManager?.elements?.questConfirmationList;
+      if (!listEl) {
+        return;
+      }
+
+      const rows = Array.isArray(confirmations) ? confirmations : [];
+      if (countEl) {
+        countEl.textContent = String(rows.length);
+      }
+
+      if (rows.length === 0) {
+        listEl.innerHTML = '<li class="quest-empty">No pending confirmations</li>';
+        return;
+      }
+
+      listEl.innerHTML = rows.map((entry) => {
+        const confirmationId = escapeQuestHtml(entry?.confirmation_id || '');
+        const prompt = escapeQuestHtml(entry?.prompt || 'Confirm objective mapping');
+        const candidates = Array.isArray(entry?.candidates) ? entry.candidates : [];
+        const candidateHtml = candidates.map((candidate) => {
+          const objectiveId = escapeQuestHtml(candidate?.objective_id || '');
+          const label = escapeQuestHtml(candidate?.label || objectiveId || 'Objective');
+          const questName = escapeQuestHtml(candidate?.quest_name || candidate?.quest_id || 'Quest');
+          return `<li>${label} <span class="quest-status">(${questName})</span></li>`;
+        }).join('');
+
+        const approveActions = candidates.map((candidate) => {
+          const objectiveId = escapeQuestHtml(candidate?.objective_id || '');
+          const label = escapeQuestHtml(candidate?.label || objectiveId || 'objective');
+          return `<button class="quest-confirmation-action quest-confirmation-action--approve" data-confirmation-id="${confirmationId}" data-decision="approved" data-objective-id="${objectiveId}">Approve: ${label}</button>`;
+        }).join('');
+
+        return `<li class="quest-confirmation-entry" data-confirmation-id="${confirmationId}">
+          <div class="quest-confirmation-entry__prompt">${prompt}</div>
+          <ul class="quest-confirmation-entry__candidates">${candidateHtml}</ul>
+          <div class="quest-confirmation-entry__actions">
+            ${approveActions}
+            <button class="quest-confirmation-action quest-confirmation-action--reject" data-confirmation-id="${confirmationId}" data-decision="rejected">Reject</button>
+          </div>
+        </li>`;
+      }).join('');
+
+      listEl.querySelectorAll('.quest-confirmation-action').forEach((button) => {
+        button.addEventListener('click', async (event) => {
+          event.preventDefault();
+          const actionButton = event.currentTarget;
+          const confirmationId = actionButton.dataset.confirmationId || '';
+          const resolution = actionButton.dataset.decision || 'rejected';
+          const selectedObjectiveId = actionButton.dataset.objectiveId || null;
+          if (!confirmationId) {
+            return;
+          }
+
+          const entry = actionButton.closest('.quest-confirmation-entry');
+          if (entry) {
+            entry.querySelectorAll('.quest-confirmation-action').forEach((btn) => {
+              btn.disabled = true;
+            });
+          }
+
+          await this.resolveQuestConfirmation(confirmationId, resolution, selectedObjectiveId);
+        });
+      });
+    },
+
+    /**
+     * Resolve one pending confirmation and refresh quest/confirmation state.
+     * @param {string} confirmationId
+     * @param {'approved'|'rejected'} resolution
+     * @param {string|null} selectedObjectiveId
+     */
+    resolveQuestConfirmation: async function (confirmationId, resolution, selectedObjectiveId = null) {
+      const campaignId = this.resolveCampaignId();
+      if (!campaignId) {
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/campaign/${campaignId}/quest-confirmations/${encodeURIComponent(confirmationId)}/resolve`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+          body: JSON.stringify({
+            resolution,
+            selected_objective_id: selectedObjectiveId,
+            resolved_by: 'player',
+          }),
+        });
+
+        const payload = await response.json().catch(() => null);
+        if (!response.ok || !payload?.success) {
+          this.uiManager?.appendChatLine('Quest', 'Failed to resolve confirmation.', 'system');
+          await this.refreshQuestConfirmations();
+          return;
+        }
+
+        if (resolution === 'approved') {
+          this.uiManager?.showQuestToast('Quest confirmation approved and applied.', 'success');
+        } else {
+          this.uiManager?.showQuestToast('Quest confirmation rejected.', 'info');
+        }
+
+        await this.refreshQuestJournalFromApi();
+        await this.refreshQuestConfirmations();
+      } catch (error) {
+        console.warn('Failed to resolve quest confirmation:', error);
+        this.uiManager?.appendChatLine('Quest', 'Unable to resolve confirmation right now.', 'system');
+        await this.refreshQuestConfirmations();
+      }
     },
 
     /**
@@ -5645,8 +6556,8 @@ import { SpriteService } from './SpriteService.js';
       // Find a quest that has all collect objectives complete and an interact
       // objective targeting this NPC type.
       for (const quest of activeQuests) {
-        const phases = quest.generated_objectives || [];
-        const objectiveStates = quest.objective_states || [];
+        const phases = extractQuestPhases(quest);
+        const objectiveIndex = buildObjectiveStateIndex(quest);
         const questId = quest.quest_id || quest.id;
         const questData = quest.quest_data || {};
         const giverNpcId = questData.variables?.giver_npc_id;
@@ -5667,11 +6578,8 @@ import { SpriteService } from './SpriteService.js';
             // Check if all collect objectives in earlier phases are complete.
             const allCollectsDone = phases.every(p => {
               return (p.objectives || []).filter(o => o.type === 'collect').every(o => {
-                let cur = o.current || 0;
-                for (const os of objectiveStates) {
-                  if (os.objective_id === o.objective_id) { cur = Math.max(cur, os.current || 0); break; }
-                }
-                return cur >= (o.target_count || 1);
+                const merged = mergeObjectiveProgress(o, objectiveIndex);
+                return merged.current >= (merged.target_count || 1);
               });
             });
 
@@ -5710,7 +6618,7 @@ import { SpriteService } from './SpriteService.js';
                   if (xp > 0) rewardParts.push(`${xp} XP`);
                   if (gold > 0) rewardParts.push(`${gold} gold`);
                   this.uiManager.showQuestToast(
-                    `Quest complete: ${quest.title || questId}! Rewards: ${rewardParts.join(', ') || 'none'}`,
+                    `Quest complete: ${resolveQuestTitle(quest)}! Rewards: ${rewardParts.join(', ') || 'none'}`,
                     'success'
                   );
 
@@ -5751,8 +6659,8 @@ import { SpriteService } from './SpriteService.js';
       for (const quest of activeQuests) {
         if ((quest.quest_id || quest.id) != questId) continue;
 
-        const phases = quest.generated_objectives || [];
-        for (const phase of phases) {
+        const generatedPhases = Array.isArray(quest.generated_objectives) ? quest.generated_objectives : [];
+        for (const phase of generatedPhases) {
           for (const obj of (phase.objectives || [])) {
             if (obj.objective_id === objectiveId) {
               obj.current = (obj.current || 0) + increment;
@@ -5760,18 +6668,39 @@ import { SpriteService } from './SpriteService.js';
           }
         }
 
-        // Also update objective_states.
+        // Update objective_states (supports flat and nested shapes).
         if (!quest.objective_states) quest.objective_states = [];
         let found = false;
+
         for (const os of quest.objective_states) {
+          if (os && Array.isArray(os.objectives)) {
+            for (const objective of os.objectives) {
+              if (objective.objective_id === objectiveId) {
+                objective.current = (objective.current || 0) + increment;
+                found = true;
+                break;
+              }
+            }
+            if (found) {
+              break;
+            }
+            continue;
+          }
+
           if (os.objective_id === objectiveId) {
             os.current = (os.current || 0) + increment;
             found = true;
             break;
           }
         }
+
         if (!found) {
-          quest.objective_states.push({ objective_id: objectiveId, current: increment });
+          const firstNestedPhase = quest.objective_states.find(os => os && Array.isArray(os.objectives));
+          if (firstNestedPhase) {
+            firstNestedPhase.objectives.push({ objective_id: objectiveId, current: increment, target_count: 1, completed: false });
+          } else {
+            quest.objective_states.push({ objective_id: objectiveId, current: increment });
+          }
         }
         break;
       }
@@ -5785,17 +6714,21 @@ import { SpriteService } from './SpriteService.js';
       const activeQuests = this.questData?.active || [];
       for (const quest of activeQuests) {
         if ((quest.quest_id || quest.id) != questId) continue;
-        const phases = quest.generated_objectives || [];
+        const phases = extractQuestPhases(quest);
+        const objectiveIndex = buildObjectiveStateIndex(quest);
         for (const phase of phases) {
           for (const obj of (phase.objectives || [])) {
             if (obj.objective_id === objectiveId) {
-              let current = obj.current || 0;
-              for (const os of (quest.objective_states || [])) {
-                if (os.objective_id === objectiveId) { current = Math.max(current, os.current || 0); break; }
-              }
-              return { current, target: obj.target_count || 1, description: obj.description || '' };
+              const merged = mergeObjectiveProgress(obj, objectiveIndex);
+              return { current: merged.current, target: merged.target_count || 1, description: merged.description || '' };
             }
           }
+        }
+
+        // Fallback for state-only objectives that don't exist in generated_objectives.
+        const fallback = objectiveIndex[objectiveId];
+        if (fallback) {
+          return { current: fallback.current || 0, target: fallback.target || 1, description: fallback.description || '' };
         }
       }
       return null;
@@ -5810,7 +6743,7 @@ import { SpriteService } from './SpriteService.js';
       const activeQuests = this.questData?.active || [];
       for (const quest of activeQuests) {
         if ((quest.quest_id || quest.id) != questId) continue;
-        const phases = quest.generated_objectives || [];
+        const phases = extractQuestPhases(quest);
         for (const phase of phases) {
           for (const obj of (phase.objectives || [])) {
             if (obj.type === 'interact') continue; // Turn-in objectives checked separately.
@@ -5831,7 +6764,7 @@ import { SpriteService } from './SpriteService.js';
     getQuestTitle: function (questId) {
       const activeQuests = this.questData?.active || [];
       for (const quest of activeQuests) {
-        if ((quest.quest_id || quest.id) == questId) return quest.title || quest.quest_key || 'Quest';
+        if ((quest.quest_id || quest.id) == questId) return resolveQuestTitle(quest);
       }
       return 'Quest';
     },

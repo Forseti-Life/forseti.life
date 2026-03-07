@@ -14,3 +14,10 @@ services:
       - '@logger.factory'
     tags:
       - { name: drush.command }
+
+  dungeoncrawler_content.commands.content_seeder:
+    class: Drupal\dungeoncrawler_content\Commands\ContentSeederCommands
+    arguments:
+      - '@dungeoncrawler_content.content_seeder'
+    tags:
+      - { name: drush.command }

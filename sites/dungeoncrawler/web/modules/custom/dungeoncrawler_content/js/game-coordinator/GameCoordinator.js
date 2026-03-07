@@ -118,10 +118,6 @@ export class GameCoordinator {
     // Update UI to reflect initial phase.
     this._updatePhaseUI(this.phaseManager.currentPhase);
 
-    // Show the game timeline panel.
-    const timeline = document.getElementById('game-timeline');
-    if (timeline) timeline.style.display = '';
-
     // Show the phase indicator.
     const indicator = document.getElementById('game-phase-indicator');
     if (indicator) indicator.style.display = '';
@@ -323,10 +319,7 @@ export class GameCoordinator {
     // Show narration overlay for GM narration events.
     this._showNarrations(events);
 
-    // Render into timeline panel.
-    this._renderTimelineEntries(events);
-
-    // Emit custom event for timeline UI.
+    // Emit custom event for UI listeners.
     window.dispatchEvent(new CustomEvent('dungeoncrawler:game-events', {
       detail: { events, total: this.eventLog.length },
     }));
@@ -359,91 +352,6 @@ export class GameCoordinator {
         this.narrationOverlay.show(text, { style });
       }
     }
-  }
-
-  /**
-   * Render new events into the game timeline DOM panel.
-   * @param {Array} events
-   * @private
-   */
-  _renderTimelineEntries(events) {
-    const log = document.getElementById('timeline-log');
-    const counter = document.getElementById('timeline-event-count');
-    if (!log) return;
-
-    for (const event of events) {
-      const entry = document.createElement('div');
-      const typeClass = this._timelineTypeClass(event.type);
-      entry.className = `timeline-entry ${typeClass}`;
-
-      const icon = document.createElement('span');
-      icon.className = 'timeline-entry__icon';
-      icon.textContent = this._timelineIcon(event.type);
-
-      const text = document.createElement('span');
-      text.className = 'timeline-entry__text';
-      text.textContent = event.description || event.type || 'Event';
-
-      entry.appendChild(icon);
-      entry.appendChild(text);
-      log.appendChild(entry);
-    }
-
-    // Auto-scroll to bottom.
-    log.scrollTop = log.scrollHeight;
-
-    // Update counter.
-    if (counter) {
-      counter.textContent = String(this.eventLog.length);
-    }
-  }
-
-  /**
-   * @private
-   */
-  _timelineTypeClass(type) {
-    const map = {
-      'move': 'timeline-entry--move',
-      'stride': 'timeline-entry--move',
-      'strike': 'timeline-entry--combat',
-      'attack': 'timeline-entry--combat',
-      'cast_spell': 'timeline-entry--combat',
-      'phase_change': 'timeline-entry--phase',
-      'encounter_start': 'timeline-entry--phase',
-      'encounter_end': 'timeline-entry--phase',
-      'turn_start': 'timeline-entry--combat',
-      'round_start': 'timeline-entry--phase',
-      'gm_narration': 'timeline-entry--narration',
-      'room_entered': 'timeline-entry--phase',
-      'phase_transition': 'timeline-entry--phase',
-    };
-    return map[type] || 'timeline-entry--system';
-  }
-
-  /**
-   * @private
-   */
-  _timelineIcon(type) {
-    const map = {
-      'move': '🚶',
-      'stride': '🚶',
-      'strike': '⚔️',
-      'attack': '⚔️',
-      'cast_spell': '✨',
-      'interact': '🤝',
-      'talk': '💬',
-      'search': '🔍',
-      'rest': '🛌',
-      'phase_change': '📍',
-      'encounter_start': '⚔️',
-      'encounter_end': '🏳️',
-      'turn_start': '▶️',
-      'round_start': '🔄',
-      'gm_narration': '📜',
-      'room_entered': '🚪',
-      'phase_transition': '🔀',
-    };
-    return map[type] || '•';
   }
 
   // =========================================================================

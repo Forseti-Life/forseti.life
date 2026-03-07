@@ -1,5 +1,13 @@
 # Chat System Refactoring Summary
 
+> **Status (2026-03+)**: Historical milestone document.
+>
+> This file captures the room-chat refactor completed in February 2026. It is useful for change history, but it is not the authoritative source for the current multi-session chat and narration architecture.
+>
+> For current architecture and behavior, refer to:
+> - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/CHAT_AND_NARRATION_ARCHITECTURE.md`
+> - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/README.md`
+
 **Date**: February 19, 2026  
 **Scope**: Room chat system architecture improvements
 

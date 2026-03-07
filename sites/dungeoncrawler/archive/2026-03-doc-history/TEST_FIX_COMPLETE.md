@@ -1,5 +1,14 @@
 # PHPUnit Test Fix Summary
 
+> **Status (Current)**: Historical incident summary.
+>
+> This document captures a specific February 2026 remediation event. It is useful for audit/history, but not the primary operational source for current test execution.
+>
+> Use these for active setup/run instructions:
+> - `TESTING.md`
+> - `TEST_SETUP.md`
+> - `CI_TESTING_SETUP.md`
+
 ## Issue Resolved
 Fixed test failure: `Drupal\Tests\dungeoncrawler_tester\Functional\Controller\CharacterCreationControllerTest::testCharacterCreationAccessNegative`
 

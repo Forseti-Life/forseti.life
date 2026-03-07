@@ -16,18 +16,34 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
  */
 class GameplayActionProcessor {
 
+  /**
+   * Currency denomination values in copper pieces.
+   */
+  protected const CURRENCY_CP_VALUES = [
+    'cp' => 1,
+    'sp' => 10,
+    'gp' => 100,
+    'pp' => 1000,
+  ];
+
   protected Connection $database;
   protected LoggerInterface $logger;
+  protected InventoryManagementService $inventoryManagementService;
+  protected CanonicalActionRegistryService $canonicalActionRegistry;
 
   /**
    * Constructor.
    */
   public function __construct(
     Connection $database,
-    LoggerChannelFactoryInterface $logger_factory
+    LoggerChannelFactoryInterface $logger_factory,
+    InventoryManagementService $inventory_management_service,
+    CanonicalActionRegistryService $canonical_action_registry
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler_gameplay');
+    $this->inventoryManagementService = $inventory_management_service;
+    $this->canonicalActionRegistry = $canonical_action_registry;
   }
 
   /**
@@ -143,10 +159,20 @@ class GameplayActionProcessor {
     // Inventory
     $inventory = $character_data['inventory'] ?? [];
     $inv_lines = [];
-    foreach ($inventory as $item) {
-      if (is_array($item)) {
-        $iname = $item['name'] ?? 'Unknown';
-        $inv_lines[] = $iname;
+    foreach ($this->extractInventoryItems($character_data) as $item) {
+      $iname = $item['name'] ?? 'Unknown';
+      $qty = max(1, (int) ($item['quantity'] ?? 1));
+      $instance_id = $item['item_instance_id'] ?? '';
+      $ref_suffix = $instance_id ? " {id: {$instance_id}}" : '';
+      $inv_lines[] = $qty > 1 ? "{$iname} (x{$qty}){$ref_suffix}" : "{$iname}{$ref_suffix}";
+    }
+
+    $currency = $this->extractCurrency($character_data);
+    $currency_parts = [];
+    foreach (['pp', 'gp', 'sp', 'cp'] as $denomination) {
+      $amount = (float) ($currency[$denomination] ?? 0);
+      if ($amount > 0) {
+        $currency_parts[] = rtrim(rtrim(number_format($amount, 2, '.', ''), '0'), '.') . ' ' . $denomination;
       }
     }
 
@@ -187,7 +213,8 @@ class GameplayActionProcessor {
     if (!empty($spell_1_names)) {
       $enhanced .= "  Spellbook (1st): " . implode(', ', $spell_1_names) . "\n";
     }
-    $enhanced .= "\nInventory: " . implode(', ', $inv_lines) . "\n";
+    $enhanced .= "\nInventory: " . (!empty($inv_lines) ? implode(', ', $inv_lines) : 'None listed') . "\n";
+    $enhanced .= "Currency: " . (!empty($currency_parts) ? implode(', ', $currency_parts) : '0 gp') . "\n";
     if (!empty($conditions)) {
       $enhanced .= "Conditions: " . implode(', ', $conditions) . "\n";
     }
@@ -221,6 +248,9 @@ class GameplayActionProcessor {
         }
         if (!empty($npc['description'])) {
           $npc_line .= " — " . substr($npc['description'], 0, 120);
+        }
+        if (!empty($npc['owner_id'])) {
+          $npc_line .= " {owner_id: {$npc['owner_id']}}";
         }
         $enhanced .= $npc_line . "\n";
       }
@@ -280,10 +310,27 @@ class GameplayActionProcessor {
         if (!empty($item['quantity']) && $item['quantity'] > 1) {
           $i_line .= " (x{$item['quantity']})";
         }
+        if (!empty($item['item_instance_id'])) {
+          $i_line .= " {id: {$item['item_instance_id']}}";
+        }
         if (!empty($item['description'])) {
           $i_line .= " — " . substr($item['description'], 0, 80);
         }
         $enhanced .= $i_line . "\n";
+      }
+    }
+
+    $storage_owners = $room_inventory_data['storage_owners'] ?? [];
+    if (!empty($storage_owners)) {
+      $enhanced .= "\nStorage owners in scope:\n";
+      foreach ($storage_owners as $owner) {
+        $owner_name = $owner['name'] ?? ($owner['owner_type'] ?? 'storage');
+        $owner_type = $owner['owner_type'] ?? 'unknown';
+        $owner_id = $owner['owner_id'] ?? '';
+        if ($owner_id === '') {
+          continue;
+        }
+        $enhanced .= "  - {$owner_name} ({$owner_type}) {owner_id: {$owner_id}}\n";
       }
     }
 
@@ -306,6 +353,8 @@ class GameplayActionProcessor {
     if (!empty($dungeon_data)) {
       $enhanced .= $this->buildLocationContext($dungeon_data, $room_meta, $room_index);
     }
+
+    $enhanced .= "\n" . $this->canonicalActionRegistry->buildPromptGuidance();
 
     $enhanced .= <<<'GROUNDING'
 
@@ -332,7 +381,7 @@ The JSON block should declare ALL mechanical state changes that result from the 
 {
   "actions": [
     {
-      "type": "cast_spell|use_skill|use_feat|strike|stride|interact|recall_knowledge|perception_check|save|navigate_to_location|other",
+      "type": "cast_spell|use_skill|use_feat|strike|stride|interact|recall_knowledge|perception_check|save|navigate_to_location|transfer_inventory|quest_turn_in|combat_initiation|other",
       "name": "Specific action name (e.g., 'Cast Light', 'Recall Knowledge: Arcana')",
       "details": {
         "spell_name": "light",
@@ -348,6 +397,7 @@ The JSON block should declare ALL mechanical state changes that result from the 
           "hp_delta": 0,
           "temp_hp": 0,
           "spell_slot_used": null,
+          "currency_delta": {"cp": 0, "sp": 0, "gp": 0, "pp": 0},
           "conditions_add": [],
           "conditions_remove": [],
           "hero_points_delta": 0,
@@ -371,6 +421,77 @@ The JSON block should declare ALL mechanical state changes that result from the 
 }
 ```
 
+Inventory transfer format:
+```json
+{
+  "actions": [
+    {
+      "type": "transfer_inventory",
+      "name": "Give Eldric the bottle",
+      "details": {
+        "transfer": {
+          "source_owner_type": "character",
+          "source_owner_id": "ACTING_CHARACTER",
+          "dest_owner_type": "container|character|room",
+          "dest_owner_id": "target storage owner id",
+          "item_instance_id": "exact item instance id from prompt context",
+          "quantity": 1,
+          "dest_location_type": "carried|container|room"
+        },
+        "result_description": "Brief transfer outcome"
+      },
+      "state_changes": { "character": {}, "room": {} }
+    }
+  ]
+}
+```
+
+Quest turn-in format:
+```json
+{
+  "actions": [
+    {
+      "type": "quest_turn_in",
+      "name": "Turn in the herbalist bundle",
+      "details": {
+        "quest": {
+          "objective_type": "deliver",
+          "quest_id": "optional quest id if known",
+          "objective_id": "optional objective id if known",
+          "npc_ref": "target npc owner_id if known",
+          "item_ref": "quest item name or item id",
+          "quantity": 1,
+          "claim_rewards": false
+        },
+        "result_description": "Brief quest progress outcome"
+      },
+      "state_changes": { "character": {}, "room": {} }
+    }
+  ]
+}
+```
+
+Combat initiation format:
+```json
+{
+  "actions": [
+    {
+      "type": "combat_initiation",
+      "name": "Draw steel and begin combat",
+      "details": {
+        "combat": {
+          "reason": "Hostilities break out with the bandits",
+          "enemy_entity_ids": ["exact enemy entity ids if known"],
+          "target_entity_id": "single enemy entity id if only one matters"
+        },
+        "result_description": "Brief combat start outcome"
+      },
+      "state_changes": { "character": {}, "room": {} }
+    }
+  ]
+}
+```
+
 Rules for mechanical responses:
 1. ALWAYS include the JSON block when the player attempts any mechanical action (spell, skill check, attack, feat usage, exploration action).
 2. For spells that consume a spell slot (non-cantrips), set spell_slot_used to the level number (e.g., 1 for 1st-level).
@@ -379,7 +500,16 @@ Rules for mechanical responses:
 5. If no mechanical action occurs (pure roleplay/conversation), do NOT include a JSON block.
 6. Keep narrative text BEFORE the JSON block. The JSON block must be the LAST thing in your response.
 7. Respect the character's current resources - don't let them cast if they have no slots.
-8. Track conditions properly (frightened reduces by 1 each turn, etc.).
+8. Before narrating a payment, gift, trade, use, or consumption of an item, verify the acting character actually has that currency or item in the ACTIVE CHARACTER inventory/currency above.
+9. Use currency_delta for coin changes. Negative values spend currency, positive values gain currency.
+10. If the character lacks the required item/currency/spell slot, narrate the failed attempt honestly and do NOT declare a successful transfer, payment, or use.
+11. Track conditions properly (frightened reduces by 1 each turn, etc.).
+12. For moving an item between characters, containers, or rooms, use the action type "transfer_inventory" instead of manually pairing inventory_add and inventory_remove.
+13. A transfer_inventory action must reference the exact item_instance_id and the exact source/destination owner ids from the authoritative prompt context.
+14. Do not invent storage owner ids, item instance ids, or container ids. If the source/destination cannot be identified exactly, narrate uncertainty instead of claiming a completed transfer.
+15. For delivering or turning in a quest item/objective, use "quest_turn_in" with the quest payload instead of only describing it narratively.
+16. For starting a fight, use "combat_initiation" instead of only narrating that combat begins.
+17. Do not invent quest ids, objective ids, npc ids, or enemy entity ids. If they are unclear, narrate uncertainty rather than claiming the action completed.
 
 === NAVIGATION / TRAVEL ===
 When the player decides to LEAVE the current location and travel to a new place
@@ -743,7 +873,7 @@ LOCATION_RULES;
    * @return array
    *   State diff: what changed.
    */
-  public function applyCharacterStateChanges(int $character_id, array $actions): array {
+  public function applyCharacterStateChanges(int $character_id, array $actions, ?int $campaign_id = NULL): array {
     $diff = [
       'hp_before' => NULL,
       'hp_after' => NULL,
@@ -763,7 +893,7 @@ LOCATION_RULES;
 
     // Load character data
     $record = $this->database->select('dc_campaign_characters', 'c')
-      ->fields('c', ['character_data'])
+      ->fields('c', ['character_data', 'state_data'])
       ->condition('id', $character_id)
       ->execute()
       ->fetchAssoc();
@@ -773,47 +903,55 @@ LOCATION_RULES;
       return $diff;
     }
 
-    $char_data = json_decode($record['character_data'], TRUE) ?? [];
+    $char_data = $this->hydrateCharacterDataFromRecord($record);
+    $runtime_state = json_decode($record['state_data'] ?? '', TRUE);
+    if (!is_array($runtime_state)) {
+      $runtime_state = [];
+    }
     $changed = FALSE;
 
     // Snapshot before values
-    $diff['hp_before'] = $char_data['hit_points']['current'] ?? ($char_data['hit_points']['max'] ?? 0);
+    $diff['hp_before'] = $this->getCurrentHp($char_data);
     $diff['spell_slots_before'] = $char_data['spells']['slots_used'] ?? [];
-    $diff['hero_points_before'] = $char_data['hero_points'] ?? 0;
+    $diff['hero_points_before'] = $this->getHeroPoints($char_data);
 
     foreach ($actions as $action) {
+      if (($action['type'] ?? '') === 'transfer_inventory') {
+        $transfer_result = $this->applyTransferInventoryAction($action, $character_id, $campaign_id);
+        if (!empty($transfer_result['applied'])) {
+          if (!empty($transfer_result['removed_label'])) {
+            $diff['inventory_removed'][] = $transfer_result['removed_label'];
+          }
+          if (!empty($transfer_result['added_label'])) {
+            $diff['inventory_added'][] = $transfer_result['added_label'];
+          }
+          $changed = TRUE;
+        }
+        continue;
+      }
+
       $state_changes = $action['state_changes']['character'] ?? [];
 
       // HP delta
       if (!empty($state_changes['hp_delta'])) {
         $delta = (int) $state_changes['hp_delta'];
-        $current = $char_data['hit_points']['current'] ?? ($char_data['hit_points']['max'] ?? 0);
-        $max = $char_data['hit_points']['max'] ?? 0;
+        $current = $this->getCurrentHp($char_data);
+        $max = $this->getMaxHp($char_data);
         $new_hp = max(0, min($max, $current + $delta));
-        $char_data['hit_points']['current'] = $new_hp;
+        $this->setCurrentHp($char_data, $new_hp);
         $changed = TRUE;
       }
 
       // Temp HP
       if (!empty($state_changes['temp_hp'])) {
-        $char_data['hit_points']['temp'] = max(
-          $char_data['hit_points']['temp'] ?? 0,
-          (int) $state_changes['temp_hp']
-        );
+        $new_temp_hp = max($this->getTempHp($char_data), (int) $state_changes['temp_hp']);
+        $this->setTempHp($char_data, $new_temp_hp);
         $changed = TRUE;
       }
 
       // Spell slot usage
       if (!empty($state_changes['spell_slot_used'])) {
-        $level = (string) $state_changes['spell_slot_used'];
-        // Map numeric level to actual slot key (character_data uses "first", "second", etc.)
-        $slot_key_map = [
-          '1' => 'first', '2' => 'second', '3' => 'third',
-          '4' => 'fourth', '5' => 'fifth', '6' => 'sixth',
-          '7' => 'seventh', '8' => 'eighth', '9' => 'ninth', '10' => 'tenth',
-          'first' => 'first', 'second' => 'second', 'third' => 'third',
-        ];
-        $slot_key = $slot_key_map[$level] ?? $level;
+        $slot_key = $this->mapSpellSlotKey((string) $state_changes['spell_slot_used']);
 
         if (!isset($char_data['spells']['slots_used'])) {
           $char_data['spells']['slots_used'] = [];
@@ -823,6 +961,17 @@ LOCATION_RULES;
         // Don't exceed max slots
         $char_data['spells']['slots_used'][$slot_key] = min($used, $max_slots);
         $changed = TRUE;
+      }
+
+      // Currency delta.
+      if (!empty($state_changes['currency_delta']) && is_array($state_changes['currency_delta'])) {
+        $currency = $this->extractCurrency($char_data);
+        $delta = $this->normalizeCurrencyDelta($state_changes['currency_delta']);
+        $total_cp = $this->currencyToCopper($currency) + $this->currencyToCopper($delta);
+        if ($total_cp >= 0) {
+          $this->setCurrency($char_data, $this->copperToCurrency($total_cp));
+          $changed = TRUE;
+        }
       }
 
       // Conditions add
@@ -866,19 +1015,28 @@ LOCATION_RULES;
 
       // Hero points
       if (!empty($state_changes['hero_points_delta'])) {
-        $hp_current = $char_data['hero_points'] ?? 0;
-        $char_data['hero_points'] = max(0, min(3, $hp_current + (int) $state_changes['hero_points_delta']));
+        $hero_points_current = $this->getHeroPoints($char_data);
+        $this->setHeroPoints($char_data, max(0, min(3, $hero_points_current + (int) $state_changes['hero_points_delta'])));
         $changed = TRUE;
       }
 
       // Inventory add
       if (!empty($state_changes['inventory_add'])) {
-        if (!isset($char_data['inventory'])) {
-          $char_data['inventory'] = [];
-        }
         foreach ($state_changes['inventory_add'] as $item) {
-          $char_data['inventory'][] = is_array($item) ? $item : ['name' => $item, 'quantity' => 1];
-          $diff['inventory_added'][] = is_array($item) ? ($item['name'] ?? $item) : $item;
+          if ($currency_add = $this->parseCurrencyDescriptor($item)) {
+            $currency = $this->extractCurrency($char_data);
+            $currency[$currency_add['denomination']] += $currency_add['amount'];
+            $this->setCurrency($char_data, $currency);
+            $diff['inventory_added'][] = $currency_add['amount'] . ' ' . $currency_add['denomination'];
+            $changed = TRUE;
+            continue;
+          }
+
+          $normalized_item = $this->normalizeInventoryEntry($item);
+          $this->addInventoryItemToCharacterData($char_data, $normalized_item);
+          $diff['inventory_added'][] = $normalized_item['quantity'] > 1
+            ? $normalized_item['quantity'] . 'x ' . $normalized_item['name']
+            : $normalized_item['name'];
         }
         $changed = TRUE;
       }
@@ -886,15 +1044,22 @@ LOCATION_RULES;
       // Inventory remove
       if (!empty($state_changes['inventory_remove'])) {
         foreach ($state_changes['inventory_remove'] as $item_to_remove) {
-          $item_name = is_array($item_to_remove) ? ($item_to_remove['name'] ?? $item_to_remove) : $item_to_remove;
-          foreach ($char_data['inventory'] as $key => $inv_item) {
-            $inv_name = is_array($inv_item) ? ($inv_item['name'] ?? $inv_item) : $inv_item;
-            if (strtolower($inv_name) === strtolower($item_name)) {
-              unset($char_data['inventory'][$key]);
-              $char_data['inventory'] = array_values($char_data['inventory']);
-              $diff['inventory_removed'][] = $item_name;
-              break;
+          if ($currency_remove = $this->parseCurrencyDescriptor($item_to_remove)) {
+            $currency = $this->extractCurrency($char_data);
+            $total_cp = $this->currencyToCopper($currency) - ($currency_remove['amount'] * self::CURRENCY_CP_VALUES[$currency_remove['denomination']]);
+            if ($total_cp >= 0) {
+              $this->setCurrency($char_data, $this->copperToCurrency($total_cp));
+              $diff['inventory_removed'][] = $currency_remove['amount'] . ' ' . $currency_remove['denomination'];
+              $changed = TRUE;
             }
+            continue;
+          }
+
+          $normalized_item = $this->normalizeInventoryEntry($item_to_remove);
+          if ($this->removeInventoryItemFromCharacterData($char_data, $normalized_item)) {
+            $diff['inventory_removed'][] = $normalized_item['quantity'] > 1
+              ? $normalized_item['quantity'] . 'x ' . $normalized_item['name']
+              : $normalized_item['name'];
           }
         }
         $changed = TRUE;
@@ -902,16 +1067,20 @@ LOCATION_RULES;
     }
 
     // Snapshot after values
-    $diff['hp_after'] = $char_data['hit_points']['current'] ?? 0;
+    $diff['hp_after'] = $this->getCurrentHp($char_data);
     $diff['spell_slots_after'] = $char_data['spells']['slots_used'] ?? [];
-    $diff['hero_points_after'] = $char_data['hero_points'] ?? 0;
+    $diff['hero_points_after'] = $this->getHeroPoints($char_data);
 
     // Persist changes
     if ($changed) {
+      $runtime_state = $this->syncRuntimeStateFromCharacterData($char_data, $runtime_state);
+
       $this->database->update('dc_campaign_characters')
         ->fields([
           'character_data' => json_encode($char_data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
+          'state_data' => json_encode($runtime_state, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE),
           'changed' => time(),
+          'updated' => time(),
         ])
         ->condition('id', $character_id)
         ->execute();
@@ -1075,7 +1244,7 @@ LOCATION_RULES;
    */
   public function loadCharacterData(int $character_id): ?array {
     $record = $this->database->select('dc_campaign_characters', 'c')
-      ->fields('c', ['character_data', 'name', 'level', 'ancestry', 'class'])
+      ->fields('c', ['character_data', 'state_data', 'name', 'level', 'ancestry', 'class'])
       ->condition('id', $character_id)
       ->execute()
       ->fetchAssoc();
@@ -1084,7 +1253,7 @@ LOCATION_RULES;
       return NULL;
     }
 
-    $char_data = json_decode($record['character_data'], TRUE) ?? [];
+    $char_data = $this->hydrateCharacterDataFromRecord($record);
     // Ensure top-level fields are available
     $char_data['name'] = $char_data['name'] ?? $record['name'];
     $char_data['class'] = $char_data['class'] ?? $record['class'];
@@ -1092,6 +1261,269 @@ LOCATION_RULES;
     $char_data['level'] = $char_data['level'] ?? $record['level'];
 
     return $char_data;
+  }
+
+  /**
+   * Validate that declared character-side resource usage is actually possible.
+   *
+   * Invalid actions are rejected before any state changes are applied.
+   *
+   * @param int $character_id
+   *   Character row ID.
+   * @param array $actions
+   *   Parsed actions.
+   *
+   * @return array
+   *   Validation result.
+   */
+  public function validateCharacterActionResources(int $character_id, array $actions, ?int $campaign_id = NULL): array {
+    $char_data = $this->loadCharacterData($character_id);
+    if (!$char_data) {
+      return [
+        'valid' => FALSE,
+        'actions' => [],
+        'errors' => [[
+          'action_name' => 'unknown',
+          'message' => 'Character resources could not be verified.',
+        ]],
+      ];
+    }
+
+    $validated_actions = [];
+    $errors = [];
+    $simulated_state = $char_data;
+
+    foreach ($actions as $action) {
+      $action_name = $action['name'] ?? ($action['type'] ?? 'Unknown action');
+      $state_changes = $action['state_changes']['character'] ?? [];
+      $action_errors = [];
+
+      if (($action['type'] ?? '') === 'transfer_inventory') {
+        $transfer_validation = $this->validateTransferInventoryAction($action, $character_id, $campaign_id);
+        if (empty($transfer_validation['valid'])) {
+          $action_errors = array_merge($action_errors, $transfer_validation['errors'] ?? []);
+        }
+        if (!empty($action_errors)) {
+          $errors[] = [
+            'action_name' => $action_name,
+            'message' => "Cannot resolve {$action_name}: " . implode('; ', array_unique($action_errors)) . '.',
+          ];
+          continue;
+        }
+
+        $validated_actions[] = $action;
+        continue;
+      }
+
+      if (($action['type'] ?? '') === 'quest_turn_in') {
+        $quest_validation = $this->validateQuestTurnInStructure($action);
+        if (empty($quest_validation['valid'])) {
+          $action_errors = array_merge($action_errors, $quest_validation['errors'] ?? []);
+        }
+        if (!empty($action_errors)) {
+          $errors[] = [
+            'action_name' => $action_name,
+            'message' => "Cannot resolve {$action_name}: " . implode('; ', array_unique($action_errors)) . '.',
+          ];
+          continue;
+        }
+
+        $validated_actions[] = $action;
+        continue;
+      }
+
+      if (($action['type'] ?? '') === 'combat_initiation') {
+        $combat_validation = $this->validateCombatInitiationStructure($action);
+        if (empty($combat_validation['valid'])) {
+          $action_errors = array_merge($action_errors, $combat_validation['errors'] ?? []);
+        }
+        if (!empty($action_errors)) {
+          $errors[] = [
+            'action_name' => $action_name,
+            'message' => "Cannot resolve {$action_name}: " . implode('; ', array_unique($action_errors)) . '.',
+          ];
+          continue;
+        }
+
+        $validated_actions[] = $action;
+        continue;
+      }
+
+      if (!empty($state_changes['spell_slot_used'])) {
+        $slot_key = $this->mapSpellSlotKey((string) $state_changes['spell_slot_used']);
+        $slots = $simulated_state['spells']['slots'][$slot_key] ?? 0;
+        $used = $simulated_state['spells']['slots_used'][$slot_key] ?? 0;
+        if (($slots - $used) < 1) {
+          $action_errors[] = "no {$slot_key}-level spell slots remain";
+        }
+      }
+
+      if (!empty($state_changes['currency_delta']) && is_array($state_changes['currency_delta'])) {
+        $currency_total = $this->currencyToCopper($this->extractCurrency($simulated_state));
+        $delta_total = $this->currencyToCopper($this->normalizeCurrencyDelta($state_changes['currency_delta']));
+        if (($currency_total + $delta_total) < 0) {
+          $action_errors[] = 'insufficient currency is available';
+        }
+      }
+
+      foreach (($state_changes['inventory_remove'] ?? []) as $item_to_remove) {
+        if ($currency_remove = $this->parseCurrencyDescriptor($item_to_remove)) {
+          $currency_total = $this->currencyToCopper($this->extractCurrency($simulated_state));
+          $remove_total = $currency_remove['amount'] * self::CURRENCY_CP_VALUES[$currency_remove['denomination']];
+          if ($currency_total < $remove_total) {
+            $action_errors[] = 'insufficient currency is available';
+          }
+          continue;
+        }
+
+        $normalized_item = $this->normalizeInventoryEntry($item_to_remove);
+        if (!$this->inventoryHasItemQuantity($simulated_state, $normalized_item['name'], $normalized_item['quantity'])) {
+          $required = $normalized_item['quantity'] > 1
+            ? $normalized_item['quantity'] . 'x ' . $normalized_item['name']
+            : $normalized_item['name'];
+          $action_errors[] = "required item not found in inventory: {$required}";
+        }
+      }
+
+      if (!empty($action_errors)) {
+        $errors[] = [
+          'action_name' => $action_name,
+          'message' => "Cannot resolve {$action_name}: " . implode('; ', array_unique($action_errors)) . '.',
+        ];
+        continue;
+      }
+
+      $this->simulateCharacterStateChanges($simulated_state, $state_changes);
+      $validated_actions[] = $action;
+    }
+
+    return [
+      'valid' => empty($errors),
+      'actions' => $validated_actions,
+      'errors' => $errors,
+    ];
+  }
+
+  /**
+   * Build a concise user-facing correction summary for validation failures.
+   */
+  public function buildValidationFailureSummary(array $errors): string {
+    if (empty($errors)) {
+      return '';
+    }
+
+    $messages = array_map(static function (array $error): string {
+      return $error['message'] ?? 'A resource validation check failed.';
+    }, $errors);
+
+    return 'However, the action cannot resolve as described: ' . implode(' ', array_unique($messages));
+  }
+
+  /**
+   * Build an authoritative reality snapshot for regeneration prompts.
+   *
+   * This is the centralized lookup payload for inventory, currency, spell
+   * slots, conditions, and room context that the model must obey.
+   *
+   * @param array|null $character_data
+   *   Hydrated character data.
+   * @param array $room_inventory
+   *   Structured room inventory.
+   *
+   * @return array
+   *   Snapshot payload.
+   */
+  public function buildRealitySnapshot(?array $character_data, array $room_inventory = []): array {
+    $inventory_items = [];
+    foreach ($this->extractInventoryItems($character_data ?? []) as $item) {
+      $inventory_items[] = [
+        'item_instance_id' => $item['item_instance_id'] ?? NULL,
+        'name' => $item['name'] ?? 'Unknown item',
+        'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+      ];
+    }
+
+    $room_items = [];
+    foreach (($room_inventory['items'] ?? []) as $item) {
+      $room_items[] = [
+        'item_instance_id' => $item['item_instance_id'] ?? NULL,
+        'name' => $item['name'] ?? 'Unknown item',
+        'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+      ];
+    }
+
+    return [
+      'character' => [
+        'name' => $character_data['name'] ?? 'Unknown character',
+        'currency' => $this->extractCurrency($character_data ?? []),
+        'inventory' => $inventory_items,
+        'spell_slots_remaining' => $this->buildSpellSlotAvailabilitySnapshot($character_data ?? []),
+        'conditions' => $character_data['conditions'] ?? [],
+        'hp' => [
+          'current' => $this->getCurrentHp($character_data ?? []),
+          'max' => $this->getMaxHp($character_data ?? []),
+          'temp' => $this->getTempHp($character_data ?? []),
+        ],
+      ],
+      'room' => [
+        'npcs' => array_values(array_map(static function (array $npc): string {
+          return (string) ($npc['name'] ?? 'Unknown NPC');
+        }, $room_inventory['npcs'] ?? [])),
+        'storage_owners' => array_values(array_map(static function (array $owner): array {
+          return [
+            'owner_id' => $owner['owner_id'] ?? '',
+            'owner_type' => $owner['owner_type'] ?? '',
+            'name' => $owner['name'] ?? '',
+          ];
+        }, $room_inventory['storage_owners'] ?? [])),
+        'items' => $room_items,
+        'obstacles' => array_values(array_map(static function (array $entry): string {
+          return (string) ($entry['name'] ?? 'Unknown obstacle');
+        }, $room_inventory['obstacles'] ?? [])),
+        'hazards' => array_values(array_map(static function (array $entry): string {
+          return (string) ($entry['name'] ?? 'Unknown hazard');
+        }, $room_inventory['hazards'] ?? [])),
+        'active_effects' => array_values(array_map(static function ($entry): string {
+          if (is_array($entry)) {
+            return (string) ($entry['name'] ?? 'Unknown effect');
+          }
+          return (string) $entry;
+        }, $room_inventory['active_effects'] ?? [])),
+      ],
+    ];
+  }
+
+  /**
+   * Build a regeneration instruction block after a failed reality check.
+   *
+   * @param array $errors
+   *   Validation errors.
+   * @param array $snapshot
+   *   Authoritative reality snapshot.
+   *
+   * @return string
+   *   Retry prompt suffix.
+   */
+  public function buildRealityRetryPrompt(array $errors, array $snapshot): string {
+    $error_lines = array_map(static function (array $error): string {
+      return '- ' . ($error['message'] ?? 'Unknown validation error.');
+    }, $errors);
+
+    $character = $snapshot['character'] ?? [];
+    $room = $snapshot['room'] ?? [];
+
+    return "=== REALITY CHECK FAILED ===\n"
+      . "Your prior response attempted mechanics that do not match server reality.\n"
+      . "Regenerate the FULL response from scratch using ONLY the authoritative values below.\n"
+      . "If a requested action cannot happen, narrate the failed attempt honestly and do not claim success.\n\n"
+      . "Validation failures:\n"
+      . implode("\n", $error_lines)
+      . "\n\n=== AUTHORITATIVE CHARACTER STATE ===\n"
+      . json_encode($character, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+      . "\n\n=== AUTHORITATIVE ROOM STATE ===\n"
+      . json_encode($room, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE)
+      . "\n\nReturn corrected narrative text. If mechanics still apply, include a corrected JSON block."
+      ;
   }
 
   /**
@@ -1109,10 +1541,11 @@ LOCATION_RULES;
    * @return array
    *   A summary suitable for JSON response to the client.
    */
-  public function buildStateDiffSummary(array $char_diff, array $room_diff, array $dice_rolls, array $actions): array {
+  public function buildStateDiffSummary(array $char_diff, array $room_diff, array $dice_rolls, array $actions, array $validation_errors = []): array {
     $summary = [
       'has_mechanical_effects' => !empty($actions),
       'actions_taken' => [],
+      'validation_errors' => $validation_errors,
       'dice_rolls' => $dice_rolls,
       'character_changes' => [],
       'room_changes' => [],
@@ -1210,6 +1643,630 @@ LOCATION_RULES;
   }
 
   /**
+   * Merge persisted record payloads into a single working character array.
+   */
+  protected function hydrateCharacterDataFromRecord(array $record): array {
+    $char_data = json_decode($record['character_data'] ?? '', TRUE);
+    if (!is_array($char_data)) {
+      $char_data = [];
+    }
+
+    $runtime_state = json_decode($record['state_data'] ?? '', TRUE);
+    if (is_array($runtime_state) && !empty($runtime_state)) {
+      if (!empty($runtime_state['inventory'])) {
+        $char_data['inventory'] = $runtime_state['inventory'];
+      }
+      if (!empty($runtime_state['conditions'])) {
+        $char_data['conditions'] = $runtime_state['conditions'];
+      }
+      if (!empty($runtime_state['spells'])) {
+        $char_data['spells'] = array_replace_recursive($char_data['spells'] ?? [], $runtime_state['spells']);
+      }
+      if (!empty($runtime_state['resources']['hitPoints'])) {
+        $char_data['hit_points'] = [
+          'current' => $runtime_state['resources']['hitPoints']['current'] ?? ($char_data['hit_points']['current'] ?? 0),
+          'max' => $runtime_state['resources']['hitPoints']['max'] ?? ($char_data['hit_points']['max'] ?? 0),
+          'temp' => $runtime_state['resources']['hitPoints']['temporary'] ?? ($char_data['hit_points']['temp'] ?? 0),
+        ];
+      }
+      if (isset($runtime_state['resources']['heroPoints']['current'])) {
+        $char_data['hero_points'] = (int) $runtime_state['resources']['heroPoints']['current'];
+      }
+    }
+
+    return $char_data;
+  }
+
+  /**
+   * Mirror gameplay-relevant fields back into runtime state.
+   */
+  protected function syncRuntimeStateFromCharacterData(array $char_data, array $runtime_state): array {
+    $runtime_state['inventory'] = $char_data['inventory'] ?? ($runtime_state['inventory'] ?? []);
+    $runtime_state['conditions'] = $char_data['conditions'] ?? ($runtime_state['conditions'] ?? []);
+    $runtime_state['spells'] = $char_data['spells'] ?? ($runtime_state['spells'] ?? []);
+    $runtime_state['resources']['hitPoints'] = [
+      'current' => $this->getCurrentHp($char_data),
+      'max' => $this->getMaxHp($char_data),
+      'temporary' => $this->getTempHp($char_data),
+    ];
+    $runtime_state['resources']['heroPoints']['current'] = $this->getHeroPoints($char_data);
+    return $runtime_state;
+  }
+
+  /**
+   * Build remaining spell slot snapshot for prompts.
+   */
+  protected function buildSpellSlotAvailabilitySnapshot(array $character_data): array {
+    $slots = $character_data['spells']['slots'] ?? [];
+    $used = $character_data['spells']['slots_used'] ?? [];
+    $remaining = [];
+    foreach ($slots as $slot_key => $count) {
+      if ($slot_key === 'cantrips') {
+        continue;
+      }
+      $remaining[$slot_key] = max(0, (int) $count - (int) ($used[$slot_key] ?? 0));
+    }
+    return $remaining;
+  }
+
+  /**
+   * Simulate character changes for validation across multiple actions.
+   */
+  protected function simulateCharacterStateChanges(array &$char_data, array $state_changes): void {
+    if (!empty($state_changes['spell_slot_used'])) {
+      $slot_key = $this->mapSpellSlotKey((string) $state_changes['spell_slot_used']);
+      $char_data['spells']['slots_used'][$slot_key] = ($char_data['spells']['slots_used'][$slot_key] ?? 0) + 1;
+    }
+
+    if (!empty($state_changes['currency_delta']) && is_array($state_changes['currency_delta'])) {
+      $total_cp = $this->currencyToCopper($this->extractCurrency($char_data)) + $this->currencyToCopper($this->normalizeCurrencyDelta($state_changes['currency_delta']));
+      $this->setCurrency($char_data, $this->copperToCurrency(max(0, $total_cp)));
+    }
+
+    foreach (($state_changes['inventory_remove'] ?? []) as $item_to_remove) {
+      if ($currency_remove = $this->parseCurrencyDescriptor($item_to_remove)) {
+        $total_cp = $this->currencyToCopper($this->extractCurrency($char_data)) - ($currency_remove['amount'] * self::CURRENCY_CP_VALUES[$currency_remove['denomination']]);
+        $this->setCurrency($char_data, $this->copperToCurrency(max(0, $total_cp)));
+        continue;
+      }
+      $this->removeInventoryItemFromCharacterData($char_data, $this->normalizeInventoryEntry($item_to_remove));
+    }
+
+    foreach (($state_changes['inventory_add'] ?? []) as $item_to_add) {
+      if ($currency_add = $this->parseCurrencyDescriptor($item_to_add)) {
+        $currency = $this->extractCurrency($char_data);
+        $currency[$currency_add['denomination']] += $currency_add['amount'];
+        $this->setCurrency($char_data, $currency);
+        continue;
+      }
+      $this->addInventoryItemToCharacterData($char_data, $this->normalizeInventoryEntry($item_to_add));
+    }
+  }
+
+  /**
+   * Map spell slot identifiers to stored keys.
+   */
+  protected function mapSpellSlotKey(string $level): string {
+    $slot_key_map = [
+      '1' => 'first', '2' => 'second', '3' => 'third',
+      '4' => 'fourth', '5' => 'fifth', '6' => 'sixth',
+      '7' => 'seventh', '8' => 'eighth', '9' => 'ninth', '10' => 'tenth',
+      'first' => 'first', 'second' => 'second', 'third' => 'third',
+      'fourth' => 'fourth', 'fifth' => 'fifth', 'sixth' => 'sixth',
+      'seventh' => 'seventh', 'eighth' => 'eighth', 'ninth' => 'ninth', 'tenth' => 'tenth',
+    ];
+    return $slot_key_map[strtolower($level)] ?? strtolower($level);
+  }
+
+  /**
+   * Extract a flattened list of inventory items from mixed schemas.
+   */
+  protected function extractInventoryItems(array $char_data): array {
+    $inventory = $char_data['inventory'] ?? [];
+    if (!is_array($inventory)) {
+      return [];
+    }
+
+    if (isset($inventory['carried']) || isset($inventory['worn']) || isset($inventory['equipped']) || isset($inventory['stashed'])) {
+      $items = [];
+      foreach (($inventory['carried'] ?? []) as $item) {
+        if (is_array($item)) {
+          $items[] = $item;
+        }
+      }
+      foreach (($inventory['equipped'] ?? []) as $item) {
+        if (is_array($item)) {
+          $items[] = $item;
+        }
+      }
+      foreach (($inventory['stashed'] ?? []) as $item) {
+        if (is_array($item)) {
+          $items[] = $item;
+        }
+      }
+      $worn = $inventory['worn'] ?? [];
+      foreach (($worn['weapons'] ?? []) as $item) {
+        if (is_array($item)) {
+          $items[] = $item;
+        }
+      }
+      if (!empty($worn['armor']) && is_array($worn['armor'])) {
+        $items[] = $worn['armor'];
+      }
+      foreach (($worn['accessories'] ?? []) as $item) {
+        if (is_array($item)) {
+          $items[] = $item;
+        }
+      }
+      return $items;
+    }
+
+    return array_values(array_filter($inventory, 'is_array'));
+  }
+
+  /**
+   * Validate a centralized inventory transfer action.
+   */
+  protected function validateTransferInventoryAction(array $action, int $acting_character_id, ?int $campaign_id = NULL): array {
+      $transfer = $this->extractTransferSpec($action, $acting_character_id);
+      if (empty($transfer['valid'])) {
+        return $transfer;
+      }
+
+      $validation = $this->inventoryManagementService->validateTransferTransaction(
+        $transfer['source'],
+        $transfer['destination'],
+        $transfer['item_instance_id'],
+        $transfer['quantity'],
+        $campaign_id
+      );
+
+      if (empty($validation['valid'])) {
+        return [
+          'valid' => FALSE,
+          'errors' => $validation['errors'] ?? ['Inventory transfer could not be validated.'],
+        ];
+      }
+
+      return ['valid' => TRUE, 'errors' => []];
+  }
+
+  /**
+   * Execute a centralized inventory transfer action.
+   */
+  protected function applyTransferInventoryAction(array $action, int $acting_character_id, ?int $campaign_id = NULL): array {
+      $transfer = $this->extractTransferSpec($action, $acting_character_id);
+      if (empty($transfer['valid'])) {
+        return ['applied' => FALSE];
+      }
+
+      $result = $this->inventoryManagementService->transferItemTransaction(
+        $transfer['source'],
+        $transfer['destination'],
+        $transfer['item_instance_id'],
+        $transfer['quantity'],
+        $campaign_id
+      );
+
+      $label = ($result['item_name'] ?? 'Item');
+      if (($transfer['quantity'] ?? 1) > 1) {
+        $label = $transfer['quantity'] . 'x ' . $label;
+      }
+
+      return [
+        'applied' => !empty($result['success']),
+        'removed_label' => ((string) $transfer['source']['owner_id'] === (string) $acting_character_id && $transfer['source']['owner_type'] === 'character') ? $label : NULL,
+        'added_label' => ((string) $transfer['destination']['owner_id'] === (string) $acting_character_id && $transfer['destination']['owner_type'] === 'character') ? $label : NULL,
+      ];
+  }
+
+  /**
+   * Extract and normalize the transfer spec from an action payload.
+   */
+  protected function extractTransferSpec(array $action, int $acting_character_id): array {
+      $transfer = $action['details']['transfer'] ?? [];
+      if (!is_array($transfer)) {
+        return [
+          'valid' => FALSE,
+          'errors' => ['transfer_inventory action is missing details.transfer.'],
+        ];
+      }
+
+      $item_instance_id = (string) ($transfer['item_instance_id'] ?? '');
+      $source_owner_type = (string) ($transfer['source_owner_type'] ?? 'character');
+      $source_owner_id = (string) ($transfer['source_owner_id'] ?? $acting_character_id);
+      $dest_owner_type = (string) ($transfer['dest_owner_type'] ?? '');
+      $dest_owner_id = (string) ($transfer['dest_owner_id'] ?? '');
+      $quantity = max(1, (int) ($transfer['quantity'] ?? 1));
+
+      if (strtoupper($source_owner_id) === 'ACTING_CHARACTER') {
+        $source_owner_id = (string) $acting_character_id;
+      }
+      if (strtoupper($dest_owner_id) === 'ACTING_CHARACTER') {
+        $dest_owner_id = (string) $acting_character_id;
+      }
+
+      $errors = [];
+      if ($item_instance_id === '') {
+        $errors[] = 'missing item_instance_id';
+      }
+      if ($dest_owner_type === '' || $dest_owner_id === '') {
+        $errors[] = 'missing destination storage owner';
+      }
+
+      if (!empty($errors)) {
+        return ['valid' => FALSE, 'errors' => $errors];
+      }
+
+      return [
+        'valid' => TRUE,
+        'item_instance_id' => $item_instance_id,
+        'quantity' => $quantity,
+        'source' => [
+          'owner_type' => $source_owner_type,
+          'owner_id' => $source_owner_id,
+          'location_type' => $transfer['source_location_type'] ?? NULL,
+        ],
+        'destination' => [
+          'owner_type' => $dest_owner_type,
+          'owner_id' => $dest_owner_id,
+          'location_type' => $transfer['dest_location_type'] ?? NULL,
+        ],
+      ];
+  }
+
+  /**
+   * Validate the structure of a quest turn-in action.
+   */
+  protected function validateQuestTurnInStructure(array $action): array {
+    $quest = $action['details']['quest'] ?? NULL;
+    if (!is_array($quest)) {
+      return ['valid' => FALSE, 'errors' => ['missing details.quest payload']];
+    }
+
+    $errors = [];
+    if (empty($quest['objective_type'])) {
+      $errors[] = 'missing objective_type';
+    }
+    if (empty($quest['objective_id']) && empty($quest['quest_id']) && empty($quest['npc_ref']) && empty($quest['item_ref'])) {
+      $errors[] = 'quest_turn_in needs at least one of objective_id, quest_id, npc_ref, or item_ref';
+    }
+
+    return ['valid' => empty($errors), 'errors' => $errors];
+  }
+
+  /**
+   * Validate the structure of a combat initiation action.
+   */
+  protected function validateCombatInitiationStructure(array $action): array {
+    $combat = $action['details']['combat'] ?? NULL;
+    if (!is_array($combat)) {
+      return ['valid' => FALSE, 'errors' => ['missing details.combat payload']];
+    }
+
+    $errors = [];
+    if (empty($combat['reason']) && empty($combat['enemy_entity_ids']) && empty($combat['target_entity_id'])) {
+      $errors[] = 'combat_initiation needs a reason or target enemy reference';
+    }
+
+    return ['valid' => empty($errors), 'errors' => $errors];
+  }
+
+
+  /**
+   * Extract currency from mixed schemas.
+   */
+  protected function extractCurrency(array $char_data): array {
+    $currency = $char_data['inventory']['currency'] ?? [];
+    if (!is_array($currency)) {
+      $currency = [];
+    }
+
+    return [
+      'cp' => (float) ($currency['cp'] ?? 0),
+      'sp' => (float) ($currency['sp'] ?? 0),
+      'gp' => (float) ($currency['gp'] ?? ($char_data['gold'] ?? 0)),
+      'pp' => (float) ($currency['pp'] ?? 0),
+    ];
+  }
+
+  /**
+   * Persist currency into mixed schemas.
+   */
+  protected function setCurrency(array &$char_data, array $currency): void {
+    if (!isset($char_data['inventory']) || !is_array($char_data['inventory'])) {
+      $char_data['inventory'] = [];
+    }
+    $char_data['inventory']['currency'] = [
+      'cp' => (int) ($currency['cp'] ?? 0),
+      'sp' => (int) ($currency['sp'] ?? 0),
+      'gp' => (int) ($currency['gp'] ?? 0),
+      'pp' => (int) ($currency['pp'] ?? 0),
+    ];
+    $char_data['gold'] = (int) ($currency['gp'] ?? 0);
+  }
+
+  /**
+   * Normalize currency deltas.
+   */
+  protected function normalizeCurrencyDelta(array $delta): array {
+    return [
+      'cp' => (int) ($delta['cp'] ?? 0),
+      'sp' => (int) ($delta['sp'] ?? 0),
+      'gp' => (int) ($delta['gp'] ?? 0),
+      'pp' => (int) ($delta['pp'] ?? 0),
+    ];
+  }
+
+  /**
+   * Convert currency arrays to copper pieces.
+   */
+  protected function currencyToCopper(array $currency): int {
+    $total = 0;
+    foreach (self::CURRENCY_CP_VALUES as $denomination => $cp_value) {
+      $total += ((int) ($currency[$denomination] ?? 0)) * $cp_value;
+    }
+    return $total;
+  }
+
+  /**
+   * Convert copper pieces to normalized currency breakdown.
+   */
+  protected function copperToCurrency(int $total_cp): array {
+    $remaining = max(0, $total_cp);
+    $currency = ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+    foreach (['pp', 'gp', 'sp', 'cp'] as $denomination) {
+      $cp_value = self::CURRENCY_CP_VALUES[$denomination];
+      $currency[$denomination] = intdiv($remaining, $cp_value);
+      $remaining %= $cp_value;
+    }
+    return $currency;
+  }
+
+  /**
+   * Parse a currency descriptor from a string or array.
+   */
+  protected function parseCurrencyDescriptor($item): ?array {
+    if (is_array($item) && isset($item['currency'], $item['amount'])) {
+      $denomination = strtolower((string) $item['currency']);
+      if (isset(self::CURRENCY_CP_VALUES[$denomination])) {
+        return ['denomination' => $denomination, 'amount' => max(1, (int) $item['amount'])];
+      }
+    }
+
+    if (!is_string($item)) {
+      return NULL;
+    }
+
+    $value = strtolower(trim($item));
+    if (preg_match('/^(\d+)\s*(pp|gp|sp|cp)$/', $value, $matches)) {
+      return ['denomination' => $matches[2], 'amount' => (int) $matches[1]];
+    }
+    if (preg_match('/^(\d+)\s*(platinum|gold|silver|copper)(?:\s+pieces?)?$/', $value, $matches)) {
+      $map = ['platinum' => 'pp', 'gold' => 'gp', 'silver' => 'sp', 'copper' => 'cp'];
+      return ['denomination' => $map[$matches[2]], 'amount' => (int) $matches[1]];
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Normalize inventory descriptors.
+   */
+  protected function normalizeInventoryEntry($item): array {
+    if (is_array($item)) {
+      return [
+        'name' => trim((string) ($item['name'] ?? $item['item_id'] ?? 'Unknown item')),
+        'quantity' => max(1, (int) ($item['quantity'] ?? 1)),
+      ];
+    }
+
+    $value = trim((string) $item);
+    if (preg_match('/^(\d+)\s*x?\s+(.+)$/i', $value, $matches)) {
+      return ['name' => trim($matches[2]), 'quantity' => max(1, (int) $matches[1])];
+    }
+
+    return ['name' => $value, 'quantity' => 1];
+  }
+
+  /**
+   * Determine whether inventory contains a required quantity.
+   */
+  protected function inventoryHasItemQuantity(array $char_data, string $item_name, int $required_quantity): bool {
+    $available = 0;
+    foreach ($this->extractInventoryItems($char_data) as $item) {
+      $name = trim((string) ($item['name'] ?? ''));
+      if (strcasecmp($name, $item_name) === 0) {
+        $available += max(1, (int) ($item['quantity'] ?? 1));
+      }
+      if ($available >= $required_quantity) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Add an inventory entry to character data.
+   */
+  protected function addInventoryItemToCharacterData(array &$char_data, array $item): void {
+    if (!isset($char_data['inventory']) || !is_array($char_data['inventory'])) {
+      $char_data['inventory'] = [];
+    }
+
+    if (isset($char_data['inventory']['carried']) || isset($char_data['inventory']['worn']) || isset($char_data['inventory']['equipped']) || isset($char_data['inventory']['stashed'])) {
+      if (!isset($char_data['inventory']['carried']) || !is_array($char_data['inventory']['carried'])) {
+        $char_data['inventory']['carried'] = [];
+      }
+      $char_data['inventory']['carried'][] = $item;
+      return;
+    }
+
+    $char_data['inventory'][] = $item;
+  }
+
+  /**
+   * Remove an inventory entry from character data.
+   */
+  protected function removeInventoryItemFromCharacterData(array &$char_data, array $item): bool {
+    $remaining_to_remove = max(1, (int) ($item['quantity'] ?? 1));
+    $target_name = trim((string) ($item['name'] ?? ''));
+
+    if (isset($char_data['inventory']['carried']) || isset($char_data['inventory']['worn']) || isset($char_data['inventory']['equipped']) || isset($char_data['inventory']['stashed'])) {
+      return $this->removeInventoryItemFromStructuredInventory($char_data['inventory'], $target_name, $remaining_to_remove);
+    }
+
+    if (!isset($char_data['inventory']) || !is_array($char_data['inventory'])) {
+      return FALSE;
+    }
+
+    foreach ($char_data['inventory'] as $key => &$existing_item) {
+      if (!is_array($existing_item)) {
+        continue;
+      }
+      $existing_name = trim((string) ($existing_item['name'] ?? ''));
+      if (strcasecmp($existing_name, $target_name) !== 0) {
+        continue;
+      }
+      $existing_qty = max(1, (int) ($existing_item['quantity'] ?? 1));
+      if ($existing_qty > $remaining_to_remove) {
+        $existing_item['quantity'] = $existing_qty - $remaining_to_remove;
+        return TRUE;
+      }
+      unset($char_data['inventory'][$key]);
+      $char_data['inventory'] = array_values($char_data['inventory']);
+      return TRUE;
+    }
+    unset($existing_item);
+
+    return FALSE;
+  }
+
+  /**
+   * Remove item from structured inventory sections.
+   */
+  protected function removeInventoryItemFromStructuredInventory(array &$inventory, string $target_name, int $remaining_to_remove): bool {
+    $sections = ['carried', 'equipped', 'stashed'];
+    foreach ($sections as $section) {
+      if (!isset($inventory[$section]) || !is_array($inventory[$section])) {
+        $inventory[$section] = [];
+      }
+      if ($this->removeInventoryItemFromList($inventory[$section], $target_name, $remaining_to_remove)) {
+        return TRUE;
+      }
+    }
+
+    if (!isset($inventory['worn']) || !is_array($inventory['worn'])) {
+      $inventory['worn'] = [];
+    }
+    if (!isset($inventory['worn']['weapons']) || !is_array($inventory['worn']['weapons'])) {
+      $inventory['worn']['weapons'] = [];
+    }
+    if (!isset($inventory['worn']['accessories']) || !is_array($inventory['worn']['accessories'])) {
+      $inventory['worn']['accessories'] = [];
+    }
+
+    if (!empty($inventory['worn']['weapons']) && $this->removeInventoryItemFromList($inventory['worn']['weapons'], $target_name, $remaining_to_remove)) {
+      return TRUE;
+    }
+    if (!empty($inventory['worn']['accessories']) && $this->removeInventoryItemFromList($inventory['worn']['accessories'], $target_name, $remaining_to_remove)) {
+      return TRUE;
+    }
+    if (!empty($inventory['worn']['armor']) && is_array($inventory['worn']['armor'])) {
+      $armor_name = trim((string) ($inventory['worn']['armor']['name'] ?? ''));
+      if (strcasecmp($armor_name, $target_name) === 0) {
+        $inventory['worn']['armor'] = [];
+        return TRUE;
+      }
+    }
+
+    return FALSE;
+  }
+
+  /**
+   * Remove item from a list section.
+   */
+  protected function removeInventoryItemFromList(?array &$items, string $target_name, int $remaining_to_remove): bool {
+    if (!is_array($items)) {
+      return FALSE;
+    }
+
+    foreach ($items as $key => &$existing_item) {
+      if (!is_array($existing_item)) {
+        continue;
+      }
+      $existing_name = trim((string) ($existing_item['name'] ?? ''));
+      if (strcasecmp($existing_name, $target_name) !== 0) {
+        continue;
+      }
+      $existing_qty = max(1, (int) ($existing_item['quantity'] ?? 1));
+      if ($existing_qty > $remaining_to_remove) {
+        $existing_item['quantity'] = $existing_qty - $remaining_to_remove;
+      }
+      else {
+        unset($items[$key]);
+        $items = array_values($items);
+      }
+      return TRUE;
+    }
+    unset($existing_item);
+
+    return FALSE;
+  }
+
+  /**
+   * Current HP getter for mixed schemas.
+   */
+  protected function getCurrentHp(array $char_data): int {
+    return (int) ($char_data['hit_points']['current'] ?? $char_data['resources']['hitPoints']['current'] ?? $char_data['hit_points']['max'] ?? 0);
+  }
+
+  /**
+   * Max HP getter for mixed schemas.
+   */
+  protected function getMaxHp(array $char_data): int {
+    return (int) ($char_data['hit_points']['max'] ?? $char_data['resources']['hitPoints']['max'] ?? 0);
+  }
+
+  /**
+   * Temp HP getter for mixed schemas.
+   */
+  protected function getTempHp(array $char_data): int {
+    return (int) ($char_data['hit_points']['temp'] ?? $char_data['resources']['hitPoints']['temporary'] ?? 0);
+  }
+
+  /**
+   * Set current HP for mixed schemas.
+   */
+  protected function setCurrentHp(array &$char_data, int $value): void {
+    $char_data['hit_points']['current'] = $value;
+    $char_data['resources']['hitPoints']['current'] = $value;
+  }
+
+  /**
+   * Set temp HP for mixed schemas.
+   */
+  protected function setTempHp(array &$char_data, int $value): void {
+    $char_data['hit_points']['temp'] = $value;
+    $char_data['resources']['hitPoints']['temporary'] = $value;
+  }
+
+  /**
+   * Hero point getter for mixed schemas.
+   */
+  protected function getHeroPoints(array $char_data): int {
+    return (int) ($char_data['hero_points'] ?? $char_data['resources']['heroPoints']['current'] ?? 0);
+  }
+
+  /**
+   * Hero point setter for mixed schemas.
+   */
+  protected function setHeroPoints(array &$char_data, int $value): void {
+    $char_data['hero_points'] = $value;
+    $char_data['resources']['heroPoints']['current'] = $value;
+  }
+
+  /**
    * Build full room inventory context for the GM system prompt.
    *
    * Collects NPCs, obstacles, hazards, traps, items on the ground,
@@ -1242,6 +2299,7 @@ LOCATION_RULES;
       'hazards' => [],
       'traps' => [],
       'items' => [],
+      'storage_owners' => [],
       'active_effects' => [],
     ];
 
@@ -1423,11 +2481,20 @@ LOCATION_RULES;
             'team' => $team,
             'description' => $description,
             'hp_status' => $hp_status,
+            'owner_id' => (string) ($entity['character_id'] ?? $entity['id'] ?? $entity['entity_instance_id'] ?? ''),
           ];
           if ($cond_str) {
             $npc_entry['conditions'] = $cond_str;
           }
           $inventory['npcs'][] = $npc_entry;
+          $runtime_owner_id = (string) ($entity['character_id'] ?? $entity['id'] ?? $entity['entity_instance_id'] ?? '');
+          if ($runtime_owner_id !== '') {
+            $inventory['storage_owners'][] = [
+              'owner_id' => $runtime_owner_id,
+              'owner_type' => 'character',
+              'name' => $name,
+            ];
+          }
           $runtime_entity_names[] = $name;
           $all_known_names[] = $name;
           break;
@@ -1528,7 +2595,16 @@ LOCATION_RULES;
               'role' => $echar['role'] ?? 'neutral',
               'description' => $edesc,
               'hp_status' => '',
+              'owner_id' => (string) ($echar['id'] ?? $estate['characterId'] ?? ''),
             ];
+            $entity_owner_id = (string) ($echar['id'] ?? $estate['characterId'] ?? '');
+            if ($entity_owner_id !== '') {
+              $inventory['storage_owners'][] = [
+                'owner_id' => $entity_owner_id,
+                'owner_type' => 'character',
+                'name' => $ename,
+              ];
+            }
             break;
           case 'hazard':
             $inventory['hazards'][] = [
@@ -1599,6 +2675,7 @@ LOCATION_RULES;
         }
 
         $inventory['items'][] = [
+          'item_instance_id' => $irow->item_instance_id,
           'name' => $iname,
           'description' => $idesc,
           'quantity' => (int) ($irow->quantity ?? 1),
@@ -1612,6 +2689,24 @@ LOCATION_RULES;
     // 5. Active effects from gameplay_state.
     $gameplay_state = $room_meta['gameplay_state'] ?? [];
     $inventory['active_effects'] = $gameplay_state['active_effects'] ?? [];
+
+    if (!empty($db_room_id)) {
+      $inventory['storage_owners'][] = [
+        'owner_id' => (string) $db_room_id,
+        'owner_type' => 'room',
+        'name' => $room_meta['name'] ?? 'Current room',
+      ];
+    }
+
+    $deduped_storage = [];
+    foreach ($inventory['storage_owners'] as $owner) {
+      $key = ($owner['owner_type'] ?? '') . ':' . ($owner['owner_id'] ?? '');
+      if ($key === ':' || isset($deduped_storage[$key])) {
+        continue;
+      }
+      $deduped_storage[$key] = $owner;
+    }
+    $inventory['storage_owners'] = array_values($deduped_storage);
 
     return $inventory;
   }

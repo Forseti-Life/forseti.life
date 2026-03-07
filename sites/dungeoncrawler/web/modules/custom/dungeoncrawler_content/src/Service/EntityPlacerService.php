@@ -462,11 +462,29 @@ class EntityPlacerService {
       $hex['r']
     );
 
-    // Build entity_instance per schema
+    // Map numeric facing (0-5) to hex direction string for hexmap.js
+    $facing_int = $rng->nextInt(0, 5);
+    $facing_directions = ['n', 'ne', 'se', 's', 'sw', 'nw'];
+    $orientation = $facing_directions[$facing_int] ?? 'n';
+
+    // Resolve display name from entity data
+    $display_name = $entity['name'] ?? $entity_ref;
+
+    // Build PF2e-compatible stats based on creature level
+    $creature_level = $entity['level'] ?? 1;
+    $max_hp = $entity['max_hp'] ?? (10 + ($creature_level * 5));
+    $ac = 14 + $creature_level;
+    $attack_bonus = 4 + $creature_level;
+    $perception = 2 + $creature_level;
+    $speed = $entity['speed'] ?? 25;
+
+    // Build entity_instance per schema, with state.metadata for hexmap.js ECS mapping
     $instance = [
       'schema_version' => '1.0.0',
       'entity_instance_id' => $entity_instance_id,
+      'instance_id' => $entity_instance_id,
       'entity_type' => $entity_type,
+      'display_name' => $display_name,
       'entity_ref' => [
         'content_type' => $entity_type,
         'content_id' => $entity_ref,
@@ -479,7 +497,8 @@ class EntityPlacerService {
           'r' => $hex['r'],
         ],
         'elevation' => 0,
-        'facing' => $rng->nextInt(0, 5),
+        'facing' => $facing_int,
+        'orientation' => $orientation,
         'spawn_type' => $entity['spawn_type'] ?? 'permanent',
       ],
       'state' => [
@@ -490,17 +509,34 @@ class EntityPlacerService {
         'collected' => FALSE,
         'hit_points' => NULL,
         'inventory' => [],
-        'metadata' => [],
+        'metadata' => [
+          'display_name' => $display_name,
+          'name' => $display_name,
+          'team' => $entity['team'] ?? ($entity_type === 'creature' ? 'enemy' : 'neutral'),
+          'orientation' => $orientation,
+          'movement_speed' => $speed,
+          'actions_per_turn' => 3,
+          'initiative_bonus' => $creature_level + 1,
+          'stats' => [
+            'speed' => $speed,
+            'maxHp' => $max_hp,
+            'currentHp' => $max_hp,
+            'ac' => $ac,
+            'perception' => $perception,
+            'initiative_bonus' => $creature_level + 1,
+            'attack_bonus' => $attack_bonus,
+          ],
+        ],
       ],
       'created_at' => date('c'),
       'updated_at' => date('c'),
     ];
 
     // Add hit points for creatures
-    if ($entity_type === 'creature' && isset($entity['max_hp'])) {
+    if ($entity_type === 'creature' && $max_hp > 0) {
       $instance['state']['hit_points'] = [
-        'current' => $entity['max_hp'],
-        'max' => $entity['max_hp'],
+        'current' => $max_hp,
+        'max' => $max_hp,
       ];
     }
 

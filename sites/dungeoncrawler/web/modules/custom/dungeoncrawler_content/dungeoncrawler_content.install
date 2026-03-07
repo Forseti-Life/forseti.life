@@ -2423,6 +2423,52 @@ function dungeoncrawler_content_schema() {
     'indexes' => ['character' => ['character_id', 'claimed_at']],
   ];
 
+  // Library table: Room templates for procedural dungeon generation.
+  // When the RoomGeneratorService creates a new room, the result is catalogued
+  // here as a reusable template. Future generation checks this library first
+  // before creating fresh content. Similar to the image cache pattern.
+  $schema['dungeoncrawler_content_room_templates'] = [
+    'description' => 'Library of reusable room templates for procedural dungeon generation.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'template_id' => ['type' => 'varchar', 'length' => 100, 'not null' => TRUE, 'description' => 'Unique template identifier (e.g., goblin_warrens_chamber_medium_1).'],
+      'name' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'description' => 'Display name of the room.'],
+      'description' => ['type' => 'text', 'not null' => FALSE, 'description' => 'Room narrative description.'],
+      'room_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'description' => 'Type: chamber, corridor, boss_room, treasure_room, trap_room, entrance, library, shrine.'],
+      'size_category' => ['type' => 'varchar', 'length' => 20, 'not null' => TRUE, 'description' => 'Size: tiny, small, medium, large, huge.'],
+      'theme' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => 'classic_dungeon', 'description' => 'Dungeon theme: goblin_warrens, undead_crypt, classic_dungeon, etc.'],
+      'terrain_type' => ['type' => 'varchar', 'length' => 50, 'not null' => TRUE, 'default' => 'stone_floor', 'description' => 'Primary terrain type.'],
+      'lighting' => ['type' => 'varchar', 'length' => 30, 'not null' => TRUE, 'default' => 'normal', 'description' => 'Default lighting level.'],
+      'hex_count' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'description' => 'Number of hexes in the room layout.'],
+      'layout_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON: hexes, hex_manifest, entry_points, exit_points, terrain, lighting.'],
+      'contents_data' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON: creatures, items, traps, hazards, obstacles, interactables.'],
+      'environment_tags' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON array of environment/atmosphere tags.'],
+      'search_tags' => ['type' => 'text', 'not null' => FALSE, 'description' => 'JSON array of searchable keywords for library matching (lowercase).'],
+      'level_min' => ['type' => 'int', 'not null' => TRUE, 'default' => 1, 'description' => 'Minimum party level this template is suitable for.'],
+      'level_max' => ['type' => 'int', 'not null' => TRUE, 'default' => 20, 'description' => 'Maximum party level this template is suitable for.'],
+      'difficulty' => ['type' => 'varchar', 'length' => 20, 'not null' => TRUE, 'default' => 'moderate', 'description' => 'Encounter difficulty: trivial, low, moderate, severe, extreme.'],
+      'usage_count' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'How many times this template has been instantiated.'],
+      'quality_score' => ['type' => 'float', 'not null' => TRUE, 'default' => 0.5, 'description' => 'Quality score 0.0-1.0 (can be updated by feedback).'],
+      'source' => ['type' => 'varchar', 'length' => 30, 'not null' => TRUE, 'default' => 'generated', 'description' => 'Origin: generated, hand_crafted, imported.'],
+      'source_campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'description' => 'Campaign that first generated this room (NULL for hand_crafted).'],
+      'source_room_id' => ['type' => 'varchar', 'length' => 100, 'not null' => FALSE, 'description' => 'Original room_id from the source campaign.'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when created.'],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when updated.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['template_id' => ['template_id']],
+    'indexes' => [
+      'room_type_size' => ['room_type', 'size_category'],
+      'theme_type' => ['theme', 'room_type'],
+      'level_range' => ['level_min', 'level_max'],
+      'difficulty' => ['difficulty'],
+      'usage_count' => ['usage_count'],
+      'quality_score' => ['quality_score'],
+      'source' => ['source'],
+      'terrain_type' => ['terrain_type'],
+    ],
+  ];
+
   // Library table: Setting/location templates for map generation.
   // When the MapGeneratorService creates a new setting via AI, the result is
   // cached here as a reusable template. Future navigation to similar locations
@@ -2505,6 +2551,18 @@ function dungeoncrawler_content_install() {
   }
   catch (\Exception $e) {
     \Drupal::logger('dungeoncrawler_content')->error('Content import during install failed: @error', ['@error' => $e->getMessage()]);
+  }
+
+  // Seed template libraries (setting/room templates, encounters, loot, etc.).
+  try {
+    /** @var \Drupal\dungeoncrawler_content\Service\ContentSeederService $seeder */
+    $seeder = \Drupal::service('dungeoncrawler_content.content_seeder');
+    $summary = $seeder->seedAll();
+    $total = array_sum($summary);
+    \Drupal::messenger()->addMessage(t('Seeded @count template/content records from packaged JSON.', ['@count' => $total]));
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Content seeder during install failed: @error', ['@error' => $e->getMessage()]);
   }
 }
 
@@ -3999,4 +4057,62 @@ function dungeoncrawler_content_update_10026() {
   return t('Created setting library tables: @tables', [
     '@tables' => implode(', ', $created) ?: '(already exist)',
   ]);
+}
+
+/**
+ * Create room template library table for reusable room content.
+ *
+ * The RoomGeneratorService catalogues every generated room into
+ * dungeoncrawler_content_room_templates as a reusable blueprint.
+ * When generating new rooms, the library is checked first — matching
+ * rooms by theme, room_type, size_category, and party level range.
+ * dc_campaign_rooms.source_room_id links back to template_id.
+ */
+function dungeoncrawler_content_update_10027() {
+  $schema_handler = \Drupal::database()->schema();
+  $module_schema = dungeoncrawler_content_schema();
+  $created = [];
+
+  if (!$schema_handler->tableExists('dungeoncrawler_content_room_templates')) {
+    $schema_handler->createTable(
+      'dungeoncrawler_content_room_templates',
+      $module_schema['dungeoncrawler_content_room_templates']
+    );
+    $created[] = 'dungeoncrawler_content_room_templates';
+  }
+
+  return t('Created room library tables: @tables', [
+    '@tables' => implode(', ', $created) ?: '(already exist)',
+  ]);
+}
+
+/**
+ * Seed all packaged content (setting/room templates, encounters, loot, etc).
+ *
+ * For existing installs, this runs the ContentSeederService to import all
+ * JSON seed files that were previously only available on fresh installs.
+ */
+function dungeoncrawler_content_update_10028() {
+  try {
+    /** @var \Drupal\dungeoncrawler_content\Service\ContentSeederService $seeder */
+    $seeder = \Drupal::service('dungeoncrawler_content.content_seeder');
+    $summary = $seeder->seedAll();
+    $total = array_sum($summary);
+
+    $parts = [];
+    foreach ($summary as $cat => $count) {
+      if ($count > 0) {
+        $parts[] = "$cat: $count";
+      }
+    }
+
+    return t('Seeded @total content records: @breakdown', [
+      '@total' => $total,
+      '@breakdown' => implode(', ', $parts) ?: '(all already exist)',
+    ]);
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Update 10028 content seeder failed: @error', ['@error' => $e->getMessage()]);
+    return t('Content seeder failed: @error', ['@error' => $e->getMessage()]);
+  }
 }

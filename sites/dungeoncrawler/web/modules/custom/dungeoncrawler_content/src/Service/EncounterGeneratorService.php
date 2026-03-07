@@ -332,6 +332,8 @@ class EncounterGeneratorService {
       $combatants[] = [
         'entity_type' => 'creature',
         'entity_ref' => $creature['creature_id'],
+        'name' => $creature['name'] ?? $creature['creature_id'],
+        'level' => $creature['level'] ?? 1,
         'quantity' => 1,
         'placement_hint' => $this->getPlacementHint(count($combatants)),
         'max_hp' => $creature['max_hp'] ?? 20,

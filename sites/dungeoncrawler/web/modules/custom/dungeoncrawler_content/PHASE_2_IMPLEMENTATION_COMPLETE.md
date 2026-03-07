@@ -299,35 +299,43 @@ Phase 2 implementation removes all blockers for:
 3. **Line of Sight**: Elevation data and line drawing (`getLine()`) ready
 4. **Movement Calculation**: Distance and pathfinding utilities ready
 
-## Known Limitations (To Be Addressed in Phase 3)
+## Known Limitations (Phase 3 Resolution Status)
 
-1. **No Schema Validation**: Room data not yet validated against `room.schema.json` (Phase 3)
-2. **No Database Persistence**: Rooms not yet saved to `dc_campaign_rooms` (Phase 3)
-3. **No Entity Placement**: `generateEntities()` still returns empty array (Phase 3)
-4. **No Cache Check**: `getRoomFromCache()` not yet implemented (Phase 3)
-5. **No AI Integration**: Description generation uses template fallback (Phase 3/4)
+1. ~~**No Schema Validation**: Room data not yet validated against `room.schema.json`~~ — **RESOLVED**: Schema validation wired into `generateRoom()` flow (non-blocking try/catch)
+2. ~~**No Database Persistence**: Rooms not yet saved to `dc_campaign_rooms`~~ — **RESOLVED**: `persistRoom()` implemented in RoomGeneratorService; `persistDungeon()` implemented in DungeonGeneratorService
+3. ~~**No Entity Placement**: `generateEntities()` still returns empty array~~ — **RESOLVED**: EncounterBalancer fully implemented with PF2e XP budget creature selection; entities placed via EntityPlacerService
+4. ~~**No Cache Check**: `getRoomFromCache()` not yet implemented~~ — **RESOLVED**: `getRoomFromCache()` implemented with DB lookup by campaign_id + room_id; DungeonCache provides in-memory + DB caching
+5. ~~**No AI Integration**: Description generation uses template fallback~~ — **RESOLVED**: `generateAIDescription()` implemented with `generateText()`/`complete()` AI service calls and JSON parsing fallback
 6. **No Shadow Calculation**: Lighting shadows array remains empty (Phase 4)
 
-## Next Steps: Phase 3 Implementation
+## Next Steps: Phase 3 Implementation ✅ COMPLETE
 
-### Phase 3: Entity Placement (Weeks 3-4)
+### Phase 3: Entity Placement — IMPLEMENTED
 
-**Focus**: Implement `EntityPlacerService` and `EncounterGeneratorService`
+All Phase 3 tasks have been completed:
 
-**Tasks**:
-1. Implement `EntityPlacerService::placeEntities()` using hex utilities
-2. Implement `EntityPlacerService::findValidHex()` with collision detection
-3. Implement `EntityPlacerService::hasLineOfSight()` using elevation and `getLine()`
-4. Implement `EntityPlacerService::isPassable()` using terrain data
-5. Integrate encounter generation from `EncounterGeneratorService`
-6. Update `RoomGeneratorService::generateEntities()` to call entity placer
-7. Implement entity persistence to `dc_campaign_characters` table
+1. ✅ `EntityPlacerService::placeEntities()` — uses hex utilities for valid placement
+2. ✅ `EntityPlacerService::findValidHex()` — collision detection implemented
+3. ✅ `EntityPlacerService::hasLineOfSight()` — uses elevation and `getLine()`
+4. ✅ `EntityPlacerService::isPassable()` — uses terrain data
+5. ✅ Encounter generation — `EncounterBalancer` fully implemented (PF2e XP budgets, creature selection, 8-theme catalog)
+6. ✅ `RoomGeneratorService::generateEntities()` — calls entity placer
+7. ✅ Entity persistence — rooms + creatures saved to `dc_campaign_rooms` and `dc_campaign_characters`
 
-**Deliverables**:
-- EntityPlacerService fully implemented (240+ lines)
-- RoomGeneratorService produces rooms with placed entities
-- Entity position validation using hex utilities
-- Line-of-sight calculations using elevation data
+### Additional Completions Beyond Phase 3 Scope
+
+- ✅ `RoomConnectionAlgorithm` — Delaunay triangulation, Kruskal MST, BFS validation, BSP generation
+- ✅ `DungeonCache` — in-memory + DB caching with event-based state updates
+- ✅ `DungeonGeneratorService` — full `generateDungeon()`, `generateHexmap()`, `persistDungeon()` pipeline
+- ✅ `RoomGeneratorController` — 3 REST endpoints (create, get, regenerate)
+- ✅ `DungeonGeneratorController` — 4 REST endpoints (generate, get, getLevel, addLevel)
+
+### Remaining Work (Phase 4+)
+
+- Shadow calculation for lighting system
+- Frontend hex grid renderer
+- Performance testing and load testing
+- OpenAPI/Swagger documentation
 
 ## Architecture Compliance
 

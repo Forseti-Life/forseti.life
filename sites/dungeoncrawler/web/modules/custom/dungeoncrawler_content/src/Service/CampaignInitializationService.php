@@ -363,6 +363,7 @@ class CampaignInitializationService {
           'quests' => [
             'gather_wine',
             'gather_torch_components',
+            'gather_two_room_items',
           ],
         ],
         [
@@ -392,6 +393,8 @@ class CampaignInitializationService {
         ['content_id' => 'torch_component_4', 'name' => 'Flint Stone', 'position' => ['q' => -1, 'r' => 0], 'quest_association' => 'gather_torch_components'],
         ['content_id' => 'torch_component_5', 'name' => 'Cloth Wrapping', 'position' => ['q' => 1, 'r' => -1], 'quest_association' => 'gather_torch_components'],
         ['content_id' => 'torch_component_6', 'name' => 'Flint Stone', 'position' => ['q' => 2, 'r' => 1], 'quest_association' => 'gather_torch_components'],
+        ['content_id' => 'room_supply_1', 'name' => 'Room Supply Bundle', 'position' => ['q' => -2, 'r' => 0], 'quest_association' => 'gather_two_room_items'],
+        ['content_id' => 'room_supply_2', 'name' => 'Room Supply Bundle', 'position' => ['q' => -2, 'r' => 1], 'quest_association' => 'gather_two_room_items'],
       ],
       'obstacles' => [],
     ];
@@ -510,6 +513,10 @@ class CampaignInitializationService {
       ],
       'gather_torch_components' => [
         'item_name' => 'torch components',
+        'giver_npc_id' => $npc_ids['tavern_keeper'] ?? NULL,
+      ],
+      'gather_two_room_items' => [
+        'item_name' => 'room supplies',
         'giver_npc_id' => $npc_ids['tavern_keeper'] ?? NULL,
       ],
       'collect_spellbooks' => [

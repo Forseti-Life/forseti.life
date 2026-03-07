@@ -1,5 +1,16 @@
 # Enhanced Character Sheet - Implementation Status
 
+> **Status (2026-03-07)**: Point-in-time implementation snapshot.
+>
+> This document is a historical status report and may drift as implementation evolves. Treat counts, line totals, and pending/completed flags as time-bound.
+>
+> Current authoritative implementation references:
+> - `src/Service/CharacterStateService.php`
+> - `src/Controller/CharacterStateController.php`
+> - `dungeoncrawler_content.routing.yml` (`/api/character/{character_id}/...` routes)
+>
+> Design note: references to `docs/dungeoncrawler/issues/issue-4-enhanced-character-sheet-design.md` may point to an external/archived planning location not present in this repository.
+
 **Module**: dungeoncrawler_content  
 **Version**: 1.0  
 **Last Updated**: 2026-02-17  

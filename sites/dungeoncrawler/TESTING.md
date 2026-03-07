@@ -1,52 +1,78 @@
-# Running Tests
+# Running Tests (Canonical)
 
-## Setup
+> **Primary test runbook for `sites/dungeoncrawler`.**
+>
+> Use this file as the single source of truth for local and CI test execution.
+>
+> Environment-specific supplements:
+> - Local environment details: `TEST_SETUP.md`
+> - CI pipeline details: `CI_TESTING_SETUP.md`
 
-1. **Copy the PHPUnit configuration template:**
-   ```bash
-   cp phpunit.xml.dist phpunit.xml
-   ```
+## Quick Start
 
-2. **Edit `phpunit.xml` and set your local values:**
-   - `SIMPLETEST_DB`: Your test database connection string (e.g., `mysql://your_db_user:your_db_password@localhost/drupal_test`)
-   - `SIMPLETEST_BASE_URL`: Your local Drupal site URL (e.g., `http://localhost:8080`)
-
-3. **Ensure the test database exists:**
-   ```bash
-   mysql -u root -p -e "CREATE DATABASE IF NOT EXISTS drupal_test;"
-   ```
-
-4. **Ensure the simpletest directory is writable by the test runner:**
-   
-   PHPUnit tests create temporary test sites in `web/sites/simpletest/`. The directory must be writable by the user running the tests.
-   
-   ```bash
-   # For command-line test execution by current user
-   chmod 755 web/sites/simpletest
-   
-   # If running tests as web server user (e.g., via CI/CD)
-   # sudo chown -R www-data:www-data web/sites/simpletest
-   # chmod 775 web/sites/simpletest
-   ```
-   
-   **Note:** Tests should only be run in development environments, never on production servers.
-
-## Running Tests
-
-### Run all project-level functional tests:
+### Local
 ```bash
-./vendor/bin/phpunit -c phpunit.xml
+cd sites/dungeoncrawler
+cp phpunit.xml.dist phpunit.xml
+composer install
+./setup-tests.sh
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
-## Running Module Tests
-
-For module-specific tests, use the module's phpunit.xml:
+### CI
 ```bash
-./vendor/bin/phpunit -c web/modules/custom/dungeoncrawler_tester/phpunit.xml
+cd sites/dungeoncrawler
+composer install --no-interaction --prefer-dist
+./setup-tests.sh
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
 ```
 
-## Notes
+## Required Configuration
 
-- The `phpunit.xml` file is ignored by git to prevent committing local credentials
-- Always use `phpunit.xml.dist` as the template for creating your local `phpunit.xml`
-- Test databases are temporary and will be cleaned up automatically after tests run
+Set these values in `phpunit.xml` (or provide via environment variables):
+- `SIMPLETEST_DB` (required)
+- `SIMPLETEST_BASE_URL` (required for functional/browser flows)
+- `SIMPLETEST_FILES_DIRECTORY` (optional; defaults to `/tmp/dungeoncrawler-simpletest`)
+
+Example:
+```xml
+<env name="SIMPLETEST_DB" value="mysql://user:pass@127.0.0.1:3306/dungeoncrawler_dev"/>
+<env name="SIMPLETEST_BASE_URL" value="http://localhost:8080"/>
+<env name="SIMPLETEST_FILES_DIRECTORY" value="/tmp/dungeoncrawler-simpletest"/>
+```
+
+## Common Commands
+
+```bash
+# all tests
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml
+
+# single testsuite
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --testsuite=functional
+
+# single test
+./vendor/bin/phpunit --configuration web/modules/custom/dungeoncrawler_tester/phpunit.xml --filter=testCharacterLoadApiNegativeNoAuth
+```
+
+## Permissions and Directories
+
+Test runs need writable directories:
+- `web/sites/simpletest`
+- `/tmp/dungeoncrawler-simpletest` (or your configured files directory)
+
+Prepare with:
+```bash
+./setup-tests.sh
+```
+
+## Troubleshooting
+
+- Missing `web/autoload.php` or autoload errors: run `composer install`.
+- `settings.php` write/open failures: verify `web/sites/simpletest` permissions and rerun `./setup-tests.sh`.
+- DB errors: confirm database exists and credentials in `SIMPLETEST_DB` are valid.
+
+## Related Docs
+
+- `TEST_SETUP.md` (local machine specifics)
+- `CI_TESTING_SETUP.md` (pipeline specifics)
+- `web/modules/custom/dungeoncrawler_tester/README.md`

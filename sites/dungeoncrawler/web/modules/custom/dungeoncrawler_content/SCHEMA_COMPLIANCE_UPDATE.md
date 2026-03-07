@@ -422,15 +422,15 @@ All 15 themes now use schema-compliant terrain types:
 ]
 ```
 
-## Next Steps: Phase 3 Preparation
+## Next Steps: Phase 3 — ✅ COMPLETE
 
-Phase 3 (Entity Placement) must now use `entity_instance.schema.json` format:
+Phase 3 (Entity Placement) requirements have been implemented:
 
-1. **EntityPlacerService::placeEntities()** must return entity_instance objects
-2. **Entity references** must use `entity_ref` with `content_type` and `content_id`
-3. **Placement data** must include `room_id`, `hex` {q, r}, `elevation`, `facing`, `spawn_type`
-4. **State tracking** must include `hit_points` for creatures, lifecycle flags
-5. **Database persistence** must save to `dc_campaign_characters` with position_q, position_r
+1. ✅ **EntityPlacerService::placeEntities()** — returns entity_instance objects with schema-compliant format
+2. ✅ **Entity references** — uses `entity_ref` with `content_type` and `content_id`
+3. ✅ **Placement data** — includes `room_id`, `hex` {q, r}, `elevation`, `facing`, `spawn_type`
+4. ✅ **State tracking** — includes `hit_points` for creatures, lifecycle flags
+5. ✅ **Database persistence** — saves to `dc_campaign_characters` with position_q, position_r via `DungeonGeneratorService::persistDungeon()` and `RoomGeneratorService::persistRoom()`
 
 ## Benefits of Schema Compliance
 

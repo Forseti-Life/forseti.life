@@ -207,7 +207,8 @@ class CharacterViewController extends ControllerBase {
     $inv_currency = $inventory['currency'] ?? [];
     $equipment_gold = (float) ($inv_currency['gp'] ?? ($char_data['gold'] ?? 15));
 
-    // Load portrait from generated images
+    // Load portrait: try generated images first, fall back to DB column.
+    $portrait_url = NULL;
     $portraits = $this->imageRepository->loadImagesForObject(
       'dc_campaign_characters',
       (string) $record->id,
@@ -215,9 +216,25 @@ class CharacterViewController extends ControllerBase {
       'portrait',
       'original'
     );
-    $portrait_url = NULL;
     if (!empty($portraits)) {
       $portrait_url = $this->imageRepository->resolveClientUrl($portraits[0]);
+    }
+    // Fall back to global (non-campaign-scoped) image link.
+    if (!$portrait_url && $campaign_id > 0) {
+      $global = $this->imageRepository->loadImagesForObject(
+        'dc_campaign_characters',
+        (string) $record->id,
+        NULL,
+        'portrait',
+        'original'
+      );
+      if (!empty($global)) {
+        $portrait_url = $this->imageRepository->resolveClientUrl($global[0]);
+      }
+    }
+    // Final fallback: portrait column on the record itself.
+    if (!$portrait_url && !empty($record->portrait)) {
+      $portrait_url = $record->portrait;
     }
 
     $alignment = is_array($char_data['personality'] ?? NULL)
@@ -307,6 +324,9 @@ class CharacterViewController extends ControllerBase {
       '#back_url' => $back_url->toString(),
       '#attached' => [
         'library' => ['dungeoncrawler_content/character-sheet'],
+      ],
+      '#cache' => [
+        'max-age' => 0,
       ],
     ];
 

@@ -1,5 +1,15 @@
 # Tileset Management & Tracking Architecture
 
+> **Status (Current)**: Design proposal / not fully implemented.
+>
+> This document describes a target-state tileset system. Several items here are architectural proposals rather than active runtime components.
+>
+> Current implementation note:
+> - The proposed tables (`dc_tilesets`, `dc_tile_instances`) are not present in active module schema.
+> - The proposed service `dungeoncrawler_content.tileset_manager` / `TilesetManagerService` is not currently registered.
+>
+> Treat SQL and service sections below as planning/reference material unless and until corresponding schema hooks and service wiring are merged.
+
 ## Overview
 
 Tilesets define the visual vocabulary and mechanical properties for dungeon levels. Each dungeon map should reference a tileset that determines available tiles, their appearance, and behavior.

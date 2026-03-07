@@ -1,5 +1,19 @@
 # Room Chat System Documentation
 
+> **Status (2026-03+)**: Historical/legacy overview.
+>
+> This file documents the earlier room-chat-first implementation and is no longer the canonical architecture source for the full chat + narration stack.
+>
+> For the current implemented architecture, use:
+> - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/CHAT_AND_NARRATION_ARCHITECTURE.md`
+> - `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/README.md` (Services + API summary)
+
+## Scope Clarification
+
+- `RoomChatService` remains part of the stack for room-level chat interactions.
+- The production architecture now includes `ChatSessionManager`, `ChatChannelManager`, and `NarrationEngine` orchestration alongside `AiGmService` responses.
+- Session-aware narration and channel routing are described in `CHAT_AND_NARRATION_ARCHITECTURE.md` and supersede the single-channel framing in this document.
+
 ## Overview
 
 The room chat system enables persistent dialogue logs for each room in the dungeon. Characters can communicate with each other and NPCs, with full conversation history stored for later reference by characters and LLM-powered AI agents.

@@ -9,6 +9,8 @@ use Drupal\Core\Database\Connection;
  */
 class WorkdayProfileDataMapper {
 
+  private const MAX_EDUCATION_ENTRIES = 3;
+
   protected Connection $database;
 
   public function __construct(Connection $database) {
@@ -332,8 +334,11 @@ class WorkdayProfileDataMapper {
       if (implode('', $entry) === '') {
         continue;
       }
+      if ($this->hasDuplicateEducationEntry($normalized, $entry)) {
+        continue;
+      }
       $normalized[] = $entry;
-      if (count($normalized) >= 3) {
+      if (count($normalized) >= self::MAX_EDUCATION_ENTRIES) {
         break;
       }
     }
@@ -344,32 +349,48 @@ class WorkdayProfileDataMapper {
 
     $data['education_entries'] = $normalized;
 
-    $ed0 = $normalized[0];
-    $data['education_school'] = $ed0['school'];
-    $data['education_degree'] = $ed0['degree'];
-    $data['education_end_date'] = $ed0['end_date'];
-
-    if (!empty($normalized[1])) {
-      $ed1 = $normalized[1];
-      $data['education2_school'] = $ed1['school'];
-      $data['education2_degree'] = $ed1['degree'];
-      $data['education2_end_date'] = $ed1['end_date'];
-    }
-
-    if (!empty($normalized[2])) {
-      $ed2 = $normalized[2];
-      $data['education3_school'] = $ed2['school'];
-      $data['education3_degree'] = $ed2['degree'];
-      $data['education3_end_date'] = $ed2['end_date'];
+    foreach ($normalized as $index => $entry) {
+      $this->applyIndexedEducationEntry($data, $entry, $index);
     }
   }
 
   private function normalizeEducationEntry(array $row): array {
     return [
-      'school' => (string) ($row['institution'] ?? $row['school'] ?? ''),
-      'degree' => (string) ($row['degree'] ?? ''),
-      'end_date' => (string) ($row['end_date'] ?? $row['graduation_date'] ?? ''),
+      'school' => trim((string) ($row['institution'] ?? $row['school'] ?? '')),
+      'degree' => trim((string) ($row['degree'] ?? '')),
+      'end_date' => trim((string) ($row['end_date'] ?? $row['graduation_date'] ?? '')),
     ];
+  }
+
+  private function applyIndexedEducationEntry(array &$data, array $entry, int $index): void {
+    if ($index === 0) {
+      $data['education_school'] = $entry['school'];
+      $data['education_degree'] = $entry['degree'];
+      $data['education_end_date'] = $entry['end_date'];
+      return;
+    }
+
+    $suffix = $index + 1;
+    $data["education{$suffix}_school"] = $entry['school'];
+    $data["education{$suffix}_degree"] = $entry['degree'];
+    $data["education{$suffix}_end_date"] = $entry['end_date'];
+  }
+
+  private function hasDuplicateEducationEntry(array $existing, array $candidate): bool {
+    $normalize = static function (string $value): string {
+      return strtolower(trim(preg_replace('/\s+/', ' ', $value)));
+    };
+
+    foreach ($existing as $entry) {
+      $sameSchool = $normalize((string) ($entry['school'] ?? '')) === $normalize((string) ($candidate['school'] ?? ''));
+      $sameDegree = $normalize((string) ($entry['degree'] ?? '')) === $normalize((string) ($candidate['degree'] ?? ''));
+      $sameEndDate = $normalize((string) ($entry['end_date'] ?? '')) === $normalize((string) ($candidate['end_date'] ?? ''));
+      if ($sameSchool && $sameDegree && $sameEndDate) {
+        return TRUE;
+      }
+    }
+
+    return FALSE;
   }
 
   private function finalizeProfileData(array &$data, array $demographics, array $contact, array $row): void {

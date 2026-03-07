@@ -1,5 +1,23 @@
 # Dungeon Crawler Content Module Documentation
 
+## Quest System
+
+### Core Documentation
+
+- **[QUEST_FULFILLMENT_PROCESS_FLOW.md](QUEST_FULFILLMENT_PROCESS_FLOW.md)** - DM-agent-aware quest fulfillment architecture
+  - High-level process flow from touchpoint detection to objective completion
+  - Deterministic vs ambiguous update handling
+  - Incomplete/completion signaling model
+  - Idempotency and duplicate-event safeguards
+  - MVP rollout plan and acceptance criteria
+
+- **[QUEST_FULFILLMENT_MVP_CONTRACTS.md](QUEST_FULFILLMENT_MVP_CONTRACTS.md)** - Implementation-ready quest fulfillment contracts
+  - Canonical touchpoint event payload
+  - Evaluator registry interfaces and decision contract
+  - Confirmation queue data model and resolution flow
+  - Minimal API/service boundaries for MVP
+  - Observability and acceptance checks
+
 ## Inventory Management System
 
 ### Core Documentation

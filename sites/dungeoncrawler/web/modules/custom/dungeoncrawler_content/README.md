@@ -9,6 +9,22 @@
 
 Core content module for the living dungeon crawler RPG. Provides character management, game content types, and navigation structure for the Dungeoncrawler universe.
 
+## Documentation Index
+
+### Canonical (Active)
+- `web/modules/custom/dungeoncrawler_content/README.md` (this file)
+- `web/modules/custom/dungeoncrawler_content/CHAT_AND_NARRATION_ARCHITECTURE.md`
+- `web/modules/custom/dungeoncrawler_content/COMBAT_ENGINE_ARCHITECTURE.md`
+- `sites/dungeoncrawler/TESTING.md`
+- `sites/dungeoncrawler/TEST_SETUP.md`
+- `sites/dungeoncrawler/CI_TESTING_SETUP.md`
+
+### Proposal / Planning Docs
+- `web/modules/custom/dungeoncrawler_content/TILESET_ARCHITECTURE.md` (target-state proposal; not fully implemented)
+
+### Archived Historical / Status Docs
+- `sites/dungeoncrawler/archive/2026-03-doc-history/README.md`
+
 ### Player-Facing Positioning (2026-02-18)
 
 Current game-facing messaging is intentionally tuned for former tabletop/classic RPG players who want:
@@ -662,7 +678,7 @@ The review maintains 100% functional compatibility while improving:
 - `CHAT_AND_NARRATION_ARCHITECTURE.md` - **Chat session hierarchy, dual narration pipeline, NarrationEngine event flow, ChatChannelManager, database tables, service dependency graph** (authoritative reference for chat/session/narration subsystems)
 - `COMBAT_ENGINE_ARCHITECTURE.md` - **Combat/encounter engine status: all services, controllers, API endpoints, database tables, test coverage, known bugs, prioritized gaps, and completion matrix** (authoritative reference for combat subsystem)
 - `HEXMAP_ARCHITECTURE.md` - Hexmap and schema architecture reference
-- `ENHANCED_CHARACTER_SHEET_STUBS.md` - Character sheet implementation status and gaps
+- `../../../archive/2026-03-doc-history/ENHANCED_CHARACTER_SHEET_STUBS.md` - Historical character sheet implementation status snapshot
 - `AI_ENCOUNTER_INTEGRATION.md` - Encounter AI integration blueprint and phased implementation plan
 
 ### Encounter AI Services (Phase 1)
@@ -1045,14 +1061,14 @@ Test results are visible in the GitHub Actions tab of each PR.
 ### Pending
 - [ ] CombatApiController routing — 12 endpoints implemented but **no routes in routing.yml** yet
 - [ ] CombatController + CombatActionController — fully stubbed, zero routes registered
-- [ ] EncounterBalancer — creature selection, XP budgets, party size adjustment almost entirely stubbed
-- [ ] ActionProcessor spell casting — `executeCastSpell` is a stub
-- [ ] RulesEngine `validateAction` — main entry point is a stub (6-layer validation pipeline TODO)
+- [x] ~~EncounterBalancer~~ — **COMPLETE**: Full PF2e XP budget encounter building, creature selection (8-theme catalog), party size adjustment, XP cost calculation
+- [x] ~~ActionProcessor spell casting~~ — `executeCastSpell` fully implemented
+- [x] ~~RulesEngine `validateAction`~~ — 6-layer validation pipeline implemented
 - [ ] Action economy 2/3-action activities — only 1-action enforcement exists
 - [ ] Damage type resistances/weaknesses
-- [ ] Persistent damage flat checks (ConditionManager `processPersistentDamage` stub)
+- [x] ~~Persistent damage flat checks~~ — `ConditionManager::processPersistentDamage` implemented
 - [ ] XP award computation on encounter end
-- [ ] Procedural dungeon generation integration
+- [x] ~~Procedural dungeon generation integration~~ — **COMPLETE**: Full pipeline — DungeonGeneratorService, RoomGeneratorService, RoomConnectionAlgorithm (Delaunay/MST/BSP), DungeonCache, all controllers with REST endpoints
 - [ ] Multiplayer party synchronization (WebSocket real-time updates)
 - [ ] Inventory management system (equipment equip/unequip, encumbrance)
 - [ ] Spell and ability customization (focus spells, innate spells, signature spells)

@@ -78,6 +78,13 @@ class RoomGeneratorService {
   protected NumberGenerationService $numberGeneration;
 
   /**
+   * Room library service for caching/reusing generated rooms.
+   *
+   * @var \Drupal\dungeoncrawler_content\Service\RoomLibraryService
+   */
+  protected RoomLibraryService $roomLibrary;
+
+  /**
    * Optional AI API service for narrative generation.
    *
    * @var \Drupal\ai_conversation\Service\AIApiService|null
@@ -109,8 +116,9 @@ class RoomGeneratorService {
     EntityPlacerService $entity_placer,
     EncounterGeneratorService $encounter_generator,
     HexUtilityService $hex_utility,
-      TerrainGeneratorService $terrain_generator,
-      NumberGenerationService $number_generation
+    TerrainGeneratorService $terrain_generator,
+    NumberGenerationService $number_generation,
+    RoomLibraryService $room_library
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -120,6 +128,7 @@ class RoomGeneratorService {
     $this->hexUtility = $hex_utility;
     $this->terrainGenerator = $terrain_generator;
     $this->numberGeneration = $number_generation;
+    $this->roomLibrary = $room_library;
 
     // Try to inject AI service if available
     try {
@@ -186,10 +195,37 @@ class RoomGeneratorService {
       $context['seed'] = $this->numberGeneration->rollRange(1, 2147483647);
     }
 
-    // Step 1: Check cache
-    // TODO Phase 3: Implement cache check
-    // $cached = $this->getRoomFromCache($context);
-    // if ($cached) return $cached;
+    // Step 1: Check campaign-scoped cache
+    $cached = $this->getRoomFromCache($context);
+    if ($cached) {
+      return $cached;
+    }
+
+    // Step 1b: Check the room template library for a reusable match
+    $library_room = $this->findAndInstantiateFromLibrary($context);
+    if ($library_room) {
+      // Persist the library instance to the campaign cache
+      try {
+        $db_id = $this->persistRoom($context, $library_room);
+        if ($db_id) {
+          $library_room['db_id'] = $db_id;
+        }
+        // Update source_room_id link
+        if (!empty($library_room['_library_source'])) {
+          $this->database->update('dc_campaign_rooms')
+            ->fields(['source_room_id' => $library_room['_library_source']])
+            ->condition('id', $db_id)
+            ->execute();
+        }
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Failed to persist library room: @error', [
+          '@error' => $e->getMessage(),
+        ]);
+      }
+      $library_room['from_library'] = TRUE;
+      return $library_room;
+    }
 
     // Step 2: Generate hexes (terrain, elevation, obstacles)
     $hexes = $this->generateHexes($context);
@@ -199,6 +235,14 @@ class RoomGeneratorService {
 
     // Step 4: Generate lighting effects
     $lighting = $this->generateLighting($context);
+
+    // Compute room_id early so entities can reference it
+    $room_id = sprintf('room_%d_%d_%d',
+      $context['dungeon_id'],
+      $context['level_id'],
+      $context['room_index']
+    );
+    $context['room_id'] = $room_id;
 
     // Step 5: Place entities (creatures, items, hazards)
     $entities = $this->generateEntities($context, $hexes);
@@ -216,11 +260,7 @@ class RoomGeneratorService {
 
     $room_data = [
       'schema_version' => '1.0.0',
-      'room_id' => sprintf('room_%d_%d_%d',
-        $context['dungeon_id'],
-        $context['level_id'],
-        $context['room_index']
-      ),
+      'room_id' => $room_id,
       'name' => $description_data['name'],
       'description' => $description_data['description'] ?? '',
       'gm_notes' => $description_data['gm_notes'] ?? '',
@@ -252,22 +292,146 @@ class RoomGeneratorService {
     ];
 
     // Step 6: Validate against room.schema.json
-    // TODO Phase 3: Schema validation
-    // $validated = $this->schemaLoader->validateRoomData($room_data);
-    // if (!$validated) {
-    //   throw new GenerationException('Room data failed schema validation');
-    // }
+    try {
+      if (method_exists($this->schemaLoader, 'validate')) {
+        $validated = $this->schemaLoader->validate('room', $room_data);
+        if (!$validated) {
+          $this->logger->warning('Room data failed schema validation for @name — proceeding with unvalidated data', [
+            '@name' => $room_data['name'],
+          ]);
+        }
+      }
+    }
+    catch (\Throwable $e) {
+      // Schema validation is non-blocking; log and continue.
+      $this->logger->notice('Schema validation unavailable: @msg', [
+        '@msg' => $e->getMessage(),
+      ]);
+    }
 
     // Step 7: Persist to database
-    // TODO Phase 3: Database persistence
-    // $db_id = $this->persistRoom($context, $room_data);
-    // $room_data['db_id'] = $db_id;
+    try {
+      $db_id = $this->persistRoom($context, $room_data);
+      if ($db_id) {
+        $room_data['db_id'] = $db_id;
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Failed to persist room @name: @error', [
+        '@name' => $room_data['name'],
+        '@error' => $e->getMessage(),
+      ]);
+    }
 
-    $this->logger->info('Room generation complete: @name', [
+    // Step 8: Catalogue into the room library for future reuse
+    try {
+      $template_id = $this->roomLibrary->catalogueRoom($room_data, $context);
+      if ($template_id) {
+        $room_data['_library_source'] = $template_id;
+        // Link the campaign room back to the library template
+        if (!empty($room_data['db_id'])) {
+          $this->database->update('dc_campaign_rooms')
+            ->fields(['source_room_id' => $template_id])
+            ->condition('id', $room_data['db_id'])
+            ->execute();
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->notice('Room library catalogue skipped: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+    }
+
+    $this->logger->info('Room generation complete: @name (library: @lib)', [
       '@name' => $room_data['name'],
+      '@lib' => $room_data['_library_source'] ?? 'new',
     ]);
 
     return $room_data;
+  }
+
+  /**
+   * Check if a room already exists in the database for the given context.
+   *
+   * @param array $context
+   *   Generation context with campaign_id, dungeon_id, level_id, room_index.
+   *
+   * @return array|null
+   *   Cached room data array, or NULL if not found.
+   */
+  protected function getRoomFromCache(array $context): ?array {
+    $room_id = sprintf('room_%d_%d_%d',
+      $context['dungeon_id'] ?? 0,
+      $context['level_id'] ?? 0,
+      $context['room_index'] ?? 0
+    );
+
+    try {
+      $row = $this->database->select('dc_campaign_rooms', 'r')
+        ->fields('r')
+        ->condition('r.campaign_id', $context['campaign_id'] ?? 0)
+        ->condition('r.room_id', $room_id)
+        ->execute()
+        ->fetchAssoc();
+
+      if (!$row) {
+        return NULL;
+      }
+
+      $layout = json_decode($row['layout_data'], TRUE) ?: [];
+      $contents = json_decode($row['contents_data'], TRUE) ?: [];
+
+      return array_merge([
+        'room_id' => $row['room_id'],
+        'name' => $row['name'],
+        'description' => $row['description'] ?? '',
+        'cached' => TRUE,
+      ], $layout, $contents);
+    }
+    catch (\Exception $e) {
+      return NULL;
+    }
+  }
+
+  /**
+   * Attempt to find and instantiate a room from the template library.
+   *
+   * @param array $context
+   *   Generation context (theme, room_type, party_level, etc.).
+   *
+   * @return array|null
+   *   Instantiated room data, or NULL if no suitable template found.
+   */
+  protected function findAndInstantiateFromLibrary(array $context): ?array {
+    try {
+      $template = $this->roomLibrary->findTemplate([
+        'theme' => $context['theme'] ?? '',
+        'room_type' => $context['room_type'] ?? '',
+        'size_category' => $context['room_size'] ?? '',
+        'party_level' => $context['party_level'] ?? 1,
+        'terrain_type' => $context['terrain_type'] ?? '',
+        'exclude_template_ids' => $context['exclude_template_ids'] ?? [],
+      ]);
+
+      if (!$template) {
+        return NULL;
+      }
+
+      $this->logger->info('Found library template @id for @theme/@type', [
+        '@id' => $template['template_id'],
+        '@theme' => $context['theme'] ?? '?',
+        '@type' => $context['room_type'] ?? '?',
+      ]);
+
+      return $this->roomLibrary->instantiateTemplate($template, $context);
+    }
+    catch (\Exception $e) {
+      $this->logger->notice('Library lookup failed, will generate fresh: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      return NULL;
+    }
   }
 
   /**
@@ -535,10 +699,47 @@ class RoomGeneratorService {
 
     $this->logger->info('Generating AI description for room');
 
-    // TODO: Implement direct AI API call
-    // For Phase 3, we need a simpler method that doesn't require conversation nodes
-    // Fall back to template for now
-    return $this->generateFallbackDescription($context, $hexes);
+    // Attempt direct AI API call for description generation.
+    try {
+      if (method_exists($this->aiService, 'generateText')) {
+        $response = $this->aiService->generateText($prompt);
+      }
+      elseif (method_exists($this->aiService, 'complete')) {
+        $response = $this->aiService->complete($prompt);
+      }
+      else {
+        // No compatible method — fall back.
+        return $this->generateFallbackDescription($context, $hexes);
+      }
+
+      // Parse JSON response from AI.
+      $text = is_array($response) ? ($response['text'] ?? json_encode($response)) : (string) $response;
+
+      // Try to extract JSON from the response.
+      if (preg_match('/\{[^}]*"name"[^}]*\}/s', $text, $matches)) {
+        $parsed = json_decode($matches[0], TRUE);
+        if ($parsed && !empty($parsed['name'])) {
+          return [
+            'name' => $parsed['name'],
+            'description' => $parsed['description'] ?? '',
+            'gm_notes' => $parsed['gm_notes'] ?? '',
+          ];
+        }
+      }
+
+      // If we can't parse JSON, use the text as description.
+      $fallback = $this->generateFallbackDescription($context, $hexes);
+      if (strlen($text) > 10) {
+        $fallback['description'] = $text;
+      }
+      return $fallback;
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('AI description direct call failed: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      return $this->generateFallbackDescription($context, $hexes);
+    }
   }
 
   /**
@@ -1228,10 +1429,57 @@ class RoomGeneratorService {
    *   Room database ID
    */
   protected function persistRoom(array $context, array $room_data): int {
-    // TODO: Implementation
-    // INSERT INTO dc_campaign_rooms (...)
-    // VALUES (..., json_encode($room_data), ...)
-    return 0;
+    $now = time();
+    $campaign_id = $context['campaign_id'] ?? 0;
+    $room_id = $room_data['room_id'] ?? '';
+
+    $layout_data = json_encode([
+      'hexes' => $room_data['hexes'] ?? [],
+      'hex_manifest' => $room_data['hex_manifest'] ?? [],
+      'entry_points' => $room_data['entry_points'] ?? [],
+      'exit_points' => $room_data['exit_points'] ?? [],
+      'terrain' => $room_data['terrain'] ?? [],
+      'lighting' => $room_data['lighting'] ?? [],
+    ]);
+
+    $contents_data = json_encode([
+      'creatures' => $room_data['creatures'] ?? [],
+      'items' => $room_data['items'] ?? [],
+      'traps' => $room_data['traps'] ?? [],
+      'hazards' => $room_data['hazards'] ?? [],
+      'obstacles' => $room_data['obstacles'] ?? [],
+      'interactables' => $room_data['interactables'] ?? [],
+    ]);
+
+    $env_tags = json_encode($room_data['environmental_effects'] ?? []);
+
+    $db_id = $this->database->insert('dc_campaign_rooms')
+      ->fields([
+        'campaign_id' => $campaign_id,
+        'room_id' => $room_id,
+        'name' => $room_data['name'] ?? 'Unknown Room',
+        'description' => $room_data['description'] ?? '',
+        'environment_tags' => $env_tags,
+        'layout_data' => $layout_data,
+        'contents_data' => $contents_data,
+        'created' => $now,
+        'updated' => $now,
+      ])
+      ->execute();
+
+    // Initialize room state.
+    $this->database->insert('dc_campaign_room_states')
+      ->fields([
+        'campaign_id' => $campaign_id,
+        'room_id' => $room_id,
+        'is_cleared' => 0,
+        'fog_state' => json_encode($room_data['state'] ?? ['explored' => FALSE, 'visibility' => 'hidden']),
+        'last_visited' => 0,
+        'updated' => $now,
+      ])
+      ->execute();
+
+    return (int) $db_id;
   }
 
 }

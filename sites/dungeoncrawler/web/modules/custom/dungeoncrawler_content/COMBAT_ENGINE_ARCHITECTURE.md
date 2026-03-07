@@ -1,7 +1,7 @@
 # Combat & Encounter Engine Architecture
 
 **Module**: dungeoncrawler_content  
-**Last updated**: 2026-06-04  
+**Last updated**: 2026-03-07  
 **Overall completion**: ~75%
 
 This document tracks the implementation status of the PF2e combat/encounter engine — every service, controller, API endpoint, database table, and known gap.
@@ -43,8 +43,8 @@ This document tracks the implementation status of the PF2e combat/encounter engi
 
 | Service ID | Class | Lines | Status | Notes |
 |---|---|---:|---|---|
-| `dungeoncrawler_content.encounter_balancer` | EncounterBalancer | 296 | **Stub** | 6 TODOs. `createEncounter` returns `[]`. Party size adjustment, creature selection, XP cost calculation all stubbed. |
-| `dungeoncrawler_content.encounter_generator` | EncounterGeneratorService | 422 | **Partial** | `generateEncounter` has real logic but depends on EncounterBalancer (which is stubbed). |
+| `dungeoncrawler_content.encounter_balancer` | EncounterBalancer | 450+ | **Complete** | `createEncounter` — full PF2e XP budget encounter building; `selectCreaturesForBudget` — weighted knapsack creature selection with grouping; `getCreatureLevelRange` — difficulty-to-level mapping; `getCreatureXPCost` — level-differential XP lookup table; `getFallbackCreatures` — 8-theme creature catalog (dungeon, cave, crypt, ruins, underground, demonic, underdark, sewer); `adjustForPartySize` — scales budgets for non-standard party sizes. No TODOs. |
+| `dungeoncrawler_content.encounter_generator` | EncounterGeneratorService | 422 | **Complete** | `generateEncounter` has real logic with EncounterBalancer now fully operational. |
 
 ### Encounter AI Integration
 
@@ -176,7 +176,7 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 - ~ConditionManager~ — **RESOLVED**: `processPersistentDamage` tested in `combat_services_wiring_test.php` (9 tests)
 - ~RulesEngine~ — **RESOLVED**: `validateAction` 6-layer pipeline tested in `combat_services_wiring_test.php` (12 tests)
 - ~ActionProcessor~ — **RESOLVED**: `executeCastSpell` tested in `combat_services_wiring_test.php` (13 tests)
-- **EncounterBalancer / EncounterGeneratorService** — no tests (mostly stubs)
+- **EncounterBalancer / EncounterGeneratorService** — no dedicated tests yet (implementations complete, needs test coverage)
 - **Full-round simulation** — no end-to-end multi-round combat scenario test
 - **CombatApiController condition/initiative/participant endpoints** — fully tested (112 tests in `combat_api_controller_test.php`)
 
@@ -208,7 +208,7 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 | Gap | Service | Current State | Impact |
 |---|---|---|---|
 | ~10 CombatApiController stubs~ | CombatApiController | **RESOLVED** — All 12/12 endpoints implemented + 112 tests | ~~Secondary combat API non-functional~~ |
-| EncounterBalancer stubs | EncounterBalancer | 6 TODOs, `createEncounter` → `[]` | Cannot auto-generate balanced encounters |
+| ~EncounterBalancer stubs~ | EncounterBalancer | **RESOLVED** — All 6 methods + 4 helpers implemented. Full PF2e XP budget encounter building. | ~~Cannot auto-generate balanced encounters~~ |
 | `delayTurn`/`resumeFromDelay` stubs | CombatEngine | Return `[]` | Delay action doesn't work |
 | 2/3-action activities | ActionProcessor | Only 1-action enforcement | Multi-action activities (Power Attack, combat maneuvers) not available |
 | Reaction enforcement | ActionProcessor | `reaction_available` in DB but not consumed | Reactions can be used unlimited times |
@@ -237,11 +237,11 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 | Primary combat API | 80% | `CombatEncounterApiController` — 8/9 endpoints working. This is the real game API. |
 | Secondary combat API | 100% | `CombatApiController` — **12/12 endpoints implemented, all routed** at `/api/combat/{encounter_id}/...`. |
 | UI controllers | 0% | `CombatController` + `CombatActionController` — fully stubbed, not routed. |
-| Encounter generation | 15% | EncounterBalancer almost entirely stubbed. |
+| Encounter generation | 90% | EncounterBalancer fully implemented. EncounterGeneratorService operational. Missing: full-round simulation tests. |
 | AI integration | 95% | Full provider chain with stub fallback. Guarded autoplay + narration. |
 | Phase handlers | 90% | EncounterPhaseHandler (1780 lines) deeply integrated. |
 | Test coverage | 80% | 136+86+112+**99** combat tests + 54+46+67+66 other + 43 PHPUnit = **666+43 total**. All core combat services now tested. Missing: EncounterBalancer, full-round simulation. |
-| **Overall** | **~75%** | Core combat loop fully functional: strikes, spells, conditions, persistent damage, validation pipeline. Remaining gaps: encounter generation, UI controllers, delay/resume, XP awards, damage resistances. |
+| **Overall** | **~80%** | Core combat loop fully functional: strikes, spells, conditions, persistent damage, validation pipeline. Encounter generation now complete. Remaining gaps: UI controllers, delay/resume, XP awards, damage resistances. |
 
 ---
 

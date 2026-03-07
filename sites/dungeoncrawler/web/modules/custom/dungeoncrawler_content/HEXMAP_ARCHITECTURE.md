@@ -774,16 +774,19 @@ dungeoncrawler_content/
 - [x] Campaign ownership validation
 - [x] API documentation in `API_DOCUMENTATION.md`
 
-### Phase 3: Services (IN PROGRESS)
+### Phase 3: Services (MOSTLY COMPLETE)
 
 **Implemented**:
 - [x] `CharacterManager` — Character CRUD operations
 - [x] `SchemaLoader` — Schema loading & validation
 - [x] `GameContentManager` — Basic content management
+- [x] `DungeonGeneratorService` — Procedural dungeon generation with hex map, multi-level persistence, room connections
+- [x] `EncounterBalancer` — PF2e XP budget encounter building, creature selection, 8-theme catalog
+- [x] `DungeonCache` — In-memory + DB dungeon state caching with event-based updates
+- [x] `RoomConnectionAlgorithm` — Delaunay triangulation, Kruskal MST, BFS validation, BSP generation
 
 **Planned**:
 - [ ] `HexMapService` — Hex math, pathfinding, line of sight
-- [ ] `DungeonGeneratorService` — AI-driven procedural room generation
 - [ ] `EncounterService` — Initiative, combat rounds, action resolution
 - [ ] `CreatureAIService` — NPC decision-making, personality-driven behavior
 - [ ] `PartyService` — Party state management, exploration tracking
@@ -812,9 +815,9 @@ dungeoncrawler_content/
 
 ### Current Focus
 
-**Active Development**: Phase 3 - Services layer implementation
+**Active Development**: Phase 3 - Services layer implementation (dungeon/room generation complete, encounter balancing complete)
 
-**Next Priority**: HexMapService for coordinate math and pathfinding
+**Next Priority**: HexMapService for coordinate math and pathfinding; FogOfWarService for visibility
 
 **Testing**: 137+ tests covering routes, controllers, and workflows
 

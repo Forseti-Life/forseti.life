@@ -1282,47 +1282,48 @@ fixtures/
 
 ## Implementation Roadmap
 
-### Phase 1: Foundation (Weeks 1-2)
+### Phase 1: Foundation (Weeks 1-2) ✅ COMPLETE
 
-- [ ] Create RoomGeneratorService stub
-- [ ] Create DungeonGeneratorService stub
-- [ ] Create RoomGeneratorController
-- [ ] Create DungeonGeneratorController
-- [ ] Add routing for API endpoints
-- [ ] Set up service container entries
+- [x] Create RoomGeneratorService stub
+- [x] Create DungeonGeneratorService stub
+- [x] Create RoomGeneratorController
+- [x] Create DungeonGeneratorController
+- [x] Add routing for API endpoints
+- [x] Set up service container entries
 
-### Phase 2: Hex Generation (Weeks 2-3)
+### Phase 2: Hex Generation (Weeks 2-3) ✅ COMPLETE
 
-- [ ] Implement hex generation algorithm
-- [ ] Implement terrain assignment
-- [ ] Implement elevation calculation
-- [ ] Add unit tests
+- [x] Implement hex generation algorithm
+- [x] Implement terrain assignment
+- [x] Implement elevation calculation
+- [x] Add unit tests
 
-### Phase 3: Entity Placement (Weeks 3-4)
+### Phase 3: Entity Placement (Weeks 3-4) ✅ COMPLETE
 
-- [ ] Implement EntityPlacerService
-- [ ] Implement hex collision detection
-- [ ] Implement line-of-sight calculation
-- [ ] Add comprehensive tests
+- [x] Implement EntityPlacerService
+- [x] Implement hex collision detection
+- [x] Implement line-of-sight calculation
+- [x] Add comprehensive tests
 
-### Phase 4: Room Generation (Weeks 4-5)
+### Phase 4: Room Generation (Weeks 4-5) ✅ COMPLETE
 
-- [ ] Implement full RoomGeneratorService
-- [ ] Integrate AI description generation
-- [ ] Complete schema validation
-- [ ] Integration testing
+- [x] Implement full RoomGeneratorService — `generateRoom()`, `persistRoom()`, `getRoomFromCache()`, AI description generation
+- [x] Integrate AI description generation — `generateAIDescription()` with JSON parsing fallback
+- [x] Complete schema validation — wired into `generateRoom()` flow (non-blocking)
+- [x] Integration testing
 
-### Phase 5: Dungeon Orchestration (Weeks 5-6)
+### Phase 5: Dungeon Orchestration (Weeks 5-6) ✅ COMPLETE
 
-- [ ] Implement full DungeonGeneratorService
-- [ ] Implement room connection algorithm
-- [ ] Implement multi-level persistence
-- [ ] Complete end-to-end testing
+- [x] Implement full DungeonGeneratorService — `generateDungeon()`, `generateHexmap()`, `persistDungeon()` with DB persistence
+- [x] Implement room connection algorithm — Delaunay triangulation approximation, Kruskal MST, BFS validation, BSP generation
+- [x] Implement multi-level persistence — rooms + creatures persisted to `dc_campaign_rooms` and `dc_campaign_characters`
+- [x] Complete end-to-end testing
 
-### Phase 6: API & Documentation (Week 6-7)
+### Phase 6: API & Documentation (Week 6-7) — IN PROGRESS
 
+- [x] RoomGeneratorController — `createRoom` (POST), `getRoom` (GET), `regenerateRoom` (POST) all implemented
+- [x] DungeonGeneratorController — `generateDungeon` (POST), `getDungeon` (GET), `getDungeonLevel` (GET), `addDungeonLevel` (POST) all implemented
 - [ ] API documentation (OpenAPI/Swagger)
-- [ ] Integration tests
 - [ ] Performance testing
 - [ ] Load testing
 

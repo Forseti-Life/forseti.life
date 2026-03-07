@@ -104,11 +104,17 @@ export class RenderSystem extends System {
 
     // Update position
     const pixelPos = this.hexToPixel(position.q, position.r);
-    render.sprite.x = pixelPos.x;
-    render.sprite.y = pixelPos.y;
+    const offsetX = Number.isFinite(render._spreadOffsetX) ? render._spreadOffsetX : 0;
+    const offsetY = Number.isFinite(render._spreadOffsetY) ? render._spreadOffsetY : 0;
+    const renderPos = {
+      x: pixelPos.x + offsetX,
+      y: pixelPos.y + offsetY,
+    };
+    render.sprite.x = renderPos.x;
+    render.sprite.y = renderPos.y;
     if (render.sprite.__categoryMask) {
-      render.sprite.__categoryMask.x = pixelPos.x;
-      render.sprite.__categoryMask.y = pixelPos.y;
+      render.sprite.__categoryMask.x = renderPos.x;
+      render.sprite.__categoryMask.y = renderPos.y;
       render.sprite.__categoryMask.visible = render.visible;
     }
 
@@ -146,16 +152,16 @@ export class RenderSystem extends System {
     if (stats && (identity?.entityType === 'creature' || 
                   identity?.entityType === 'player_character' || 
                   identity?.entityType === 'npc')) {
-      this.updateHealthBar(entity, render, stats, pixelPos);
+      this.updateHealthBar(entity, render, stats, renderPos);
     }
     
     // Update or create name label
     if (identity && identity.name) {
-      this.updateNameLabel(entity, render, identity, pixelPos);
+      this.updateNameLabel(entity, render, identity, renderPos);
     }
 
     if (this.shouldShowDirectionIndicator(identity)) {
-      this.updateDirectionIndicator(entity, render, pixelPos);
+      this.updateDirectionIndicator(entity, render, renderPos);
     }
     else if (render.directionIndicator) {
       render.directionIndicator.visible = false;
@@ -338,10 +344,10 @@ export class RenderSystem extends System {
       // Create name label
       const text = new PIXI.Text(identity.name, {
         fontFamily: 'Arial',
-        fontSize: 12,
+        fontSize: 24,
         fill: 0xffffff,
         stroke: 0x000000,
-        strokeThickness: 3,
+        strokeThickness: 6,
         align: 'center'
       });
       text.anchor.set(0.5, 1);
@@ -353,7 +359,7 @@ export class RenderSystem extends System {
     
     // Update name label position (below sprite)
     render.nameLabel.x = pixelPos.x;
-    render.nameLabel.y = pixelPos.y + this.hexSize * 0.7;
+    render.nameLabel.y = pixelPos.y + this.hexSize * 1.0;
     render.nameLabel.visible = render.visible && Boolean(render._hoverLabelVisible);
     
     // Update text if name changed

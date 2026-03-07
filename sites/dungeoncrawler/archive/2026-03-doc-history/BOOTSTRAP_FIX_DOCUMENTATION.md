@@ -1,5 +1,12 @@
 # Bootstrap.php Corruption Fix
 
+> **Status (Current)**: Historical incident documentation.
+>
+> This file records a specific bootstrap remediation event and should be treated as troubleshooting history. For current setup and execution guidance, use:
+> - `TESTING.md`
+> - `TEST_SETUP.md`
+> - `CI_TESTING_SETUP.md`
+
 ## Issue
 PHPUnit test `Drupal\Tests\dungeoncrawler_tester\Functional\Controller\CharacterCreationControllerTest::testCharacterCreationAccessNegative` was failing with exit code 2, along with 156 other functional tests.
 

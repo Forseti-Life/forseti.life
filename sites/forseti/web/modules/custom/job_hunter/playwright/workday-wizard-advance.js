@@ -123,6 +123,153 @@ const AUTO_STEP_ORDER = [
   'review_submit',
 ];
 
+const MAX_EDUCATION_ENTRIES = 3;
+const STRICT_EDUCATION_ENTRY_LIMIT = 1;
+const EDUCATION_SCHOOL_LABELS = [
+  'School or University',
+  'School',
+  'University',
+  'Institution',
+  'School Name',
+  'type your school name',
+  'please type your school name',
+  'please type your school name and click enter',
+];
+const EDUCATION_DEGREE_LABELS = ['Degree', 'Field of Study', 'Major'];
+
+function mergeUniqueTags(target, incoming) {
+  if (!Array.isArray(target) || !Array.isArray(incoming) || !incoming.length) {
+    return;
+  }
+  for (const tag of incoming) {
+    if (!target.includes(tag)) {
+      target.push(tag);
+    }
+  }
+}
+
+function normalizeEducationValue(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim().toLowerCase();
+}
+
+function normalizeEducationSchoolComparable(value) {
+  return normalizeEducationValue(value)
+    .replace(/\buniversity\b/g, 'univ')
+    .replace(/\bcollege\b/g, 'col')
+    .replace(/\binstitute\b/g, 'inst')
+    .replace(/\bof\b/g, ' ')
+    .replace(/\bat\b/g, ' ')
+    .replace(/[^a-z0-9 ]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function getEducationEntryTagPrefix(index) {
+  return index === 0 ? 'education' : `education_${index + 1}`;
+}
+
+function buildEducationEntryList(profile) {
+  const allEntries = extractEducationEntries(profile || {});
+  return {
+    all: allEntries,
+    effective: STRICT_VISUAL_FORM_FILL ? allEntries.slice(0, STRICT_EDUCATION_ENTRY_LIMIT) : allEntries,
+  };
+}
+
+async function confirmEducationSchoolVisible(page, school) {
+  const needle = String(school || '').trim();
+  if (!needle) {
+    return false;
+  }
+
+  try {
+    return await page.evaluate(({ needle }) => {
+      const normalize = (value) => String(value || '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .toLowerCase()
+        .replace(/\buniversity\b/g, 'univ')
+        .replace(/\bcollege\b/g, 'col')
+        .replace(/\binstitute\b/g, 'inst')
+        .replace(/\bof\b/g, ' ')
+        .replace(/\bat\b/g, ' ')
+        .replace(/[^a-z0-9 ]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const schoolMatch = (observedText, expectedText) => {
+        const observed = normalize(observedText);
+        const expected = normalize(expectedText);
+        if (!observed || !expected) {
+          return false;
+        }
+        if (observed.includes(expected) || expected.includes(observed)) {
+          return true;
+        }
+        const expectedTokens = Array.from(new Set(expected.split(' ').map((x) => x.trim()).filter((x) => x.length >= 2)));
+        if (!expectedTokens.length) {
+          return false;
+        }
+        const matched = expectedTokens.filter((token) => observed.includes(token));
+        return (matched.length / expectedTokens.length) >= 0.6;
+      };
+
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
+
+      const sections = Array.from(document.querySelectorAll('section, div, fieldset, li')).filter((el) => {
+        if (!isVisible(el)) return false;
+        const txt = String(el.innerText || '').toLowerCase();
+        return txt.includes('education') || txt.includes('school') || txt.includes('university') || txt.includes('institution');
+      });
+
+      const tokenSelectors = [
+        '[data-automation-id*="token" i]',
+        '[data-automation-id*="pill" i]',
+        '[data-automation-id*="selection" i]',
+        '[data-automation-id*="selected" i]',
+        '[data-automation-id*="chip" i]',
+        '[data-automation-id*="tag" i]',
+        '[aria-label*="remove" i]',
+        '[role="option"][aria-selected="true"]',
+        'input',
+        'button',
+        'span',
+        'div',
+      ];
+
+      for (const root of sections) {
+        for (const sel of tokenSelectors) {
+          const nodes = Array.from(root.querySelectorAll(sel)).filter(isVisible);
+          for (const node of nodes) {
+            const text = String(node.value || node.textContent || node.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+            if (!text || text.length > 260) continue;
+            if (schoolMatch(text, needle)) {
+              return true;
+            }
+          }
+        }
+      }
+
+      return false;
+    }, { needle });
+  } catch (_) {
+    return false;
+  }
+}
+
+function addVisualFillTagResult(filled, skipped, fieldKey, result) {
+  if (result?.ok) {
+    mergeUniqueTags(filled, [fieldKey, `${fieldKey}_visual_verified`]);
+    return;
+  }
+  mergeUniqueTags(skipped, [fieldKey, `${fieldKey}_visual_unconfirmed`]);
+}
+
 const TACTIC_REGISTRY = Object.freeze({
   field_visual_readback: 'Every write requires visible read-back match',
   click_post_action_confirmation: 'Every click requires post-action confirmation',
@@ -1544,9 +1691,9 @@ async function handleMyInformation(page, profile, result) {
 async function handleMyExperience(page, profile, result) {
   const filled = [];
   const skipped = [];
-  const educationEntries = extractEducationEntries(profile || {});
-  const effectiveEducationEntries = STRICT_VISUAL_FORM_FILL ? educationEntries.slice(0, 1) : educationEntries;
-  const desiredEducationCount = Math.max(0, Math.min(3, effectiveEducationEntries.length));
+  const educationEntrySet = buildEducationEntryList(profile || {});
+  const effectiveEducationEntries = educationEntrySet.effective;
+  const desiredEducationCount = Math.max(0, Math.min(MAX_EDUCATION_ENTRIES, effectiveEducationEntries.length));
   const hasExperienceFillTag = () => filled.some((x) => {
     const s = String(x || '');
     return s === 'experience_job_title'
@@ -1577,18 +1724,10 @@ async function handleMyExperience(page, profile, result) {
   // present and align to profile data when fields are available.
   const correctedPrimary = await forceFillExperienceFields(page, profile);
   const correctedEducation = await forceFillEducationFields(page, profile);
-  filled.push(...correctedPrimary.filled.filter((x) => !filled.includes(x)));
-  filled.push(...correctedEducation.filled.filter((x) => !filled.includes(x)));
-  for (const s of correctedPrimary.skipped) {
-    if (!skipped.includes(s)) {
-      skipped.push(s);
-    }
-  }
-  for (const s of correctedEducation.skipped) {
-    if (!skipped.includes(s)) {
-      skipped.push(s);
-    }
-  }
+  mergeUniqueTags(filled, correctedPrimary.filled || []);
+  mergeUniqueTags(filled, correctedEducation.filled || []);
+  mergeUniqueTags(skipped, correctedPrimary.skipped || []);
+  mergeUniqueTags(skipped, correctedEducation.skipped || []);
   if (correctedPrimary.filled.length > 0 || correctedEducation.filled.length > 0) {
     const committed = await commitMyExperienceEditor(page);
     if (committed) {
@@ -1601,12 +1740,8 @@ async function handleMyExperience(page, profile, result) {
     let matchedEducationCount = await countMatchedEducationEntries(page, effectiveEducationEntries);
     if (savedEducationCount < desiredEducationCount) {
       const refillEducation = await forceFillEducationFields(page, profile);
-      filled.push(...refillEducation.filled.filter((x) => !filled.includes(x)));
-      for (const s of refillEducation.skipped) {
-        if (!skipped.includes(s)) {
-          skipped.push(s);
-        }
-      }
+      mergeUniqueTags(filled, refillEducation.filled || []);
+      mergeUniqueTags(skipped, refillEducation.skipped || []);
       if (refillEducation.filled.length > 0) {
         const committed = await commitMyExperienceEditor(page);
         if (committed && !filled.includes('experience_editor_saved')) {
@@ -1632,18 +1767,10 @@ async function handleMyExperience(page, profile, result) {
       filled.push('opened_experience_editor');
       const correctedAfterOpen = await forceFillExperienceFields(page, profile);
       const correctedEducationAfterOpen = await forceFillEducationFields(page, profile);
-      filled.push(...correctedAfterOpen.filled.filter((x) => !filled.includes(x)));
-      filled.push(...correctedEducationAfterOpen.filled.filter((x) => !filled.includes(x)));
-      for (const s of correctedAfterOpen.skipped) {
-        if (!skipped.includes(s)) {
-          skipped.push(s);
-        }
-      }
-      for (const s of correctedEducationAfterOpen.skipped) {
-        if (!skipped.includes(s)) {
-          skipped.push(s);
-        }
-      }
+      mergeUniqueTags(filled, correctedAfterOpen.filled || []);
+      mergeUniqueTags(filled, correctedEducationAfterOpen.filled || []);
+      mergeUniqueTags(skipped, correctedAfterOpen.skipped || []);
+      mergeUniqueTags(skipped, correctedEducationAfterOpen.skipped || []);
       if (correctedAfterOpen.filled.length > 0 || correctedEducationAfterOpen.filled.length > 0) {
         const committed = await commitMyExperienceEditor(page);
         if (committed) {
@@ -2237,15 +2364,23 @@ async function clickContinueButton(page, evidenceParts) {
   await dismissDiscardApplicationPopup(page, evidenceParts);
 
   const continueSelectors = [
+    '[data-automation-id="bottom-navigation-next-button"]',
     'button[data-automation-id="bottom-navigation-next-button"]',
+    '[data-automation-id="bottom-navigation"] [data-automation-id="bottom-navigation-next-button"]',
     '[data-automation-id="bottom-navigation"] button:has-text("Continue")',
     '[data-automation-id="bottom-navigation"] button:has-text("Next")',
     '[data-automation-id="bottom-navigation"] button:has-text("Save and Continue")',
+    '[data-automation-id="bottom-navigation"] [role="button"]:has-text("Save and Continue")',
+    '[data-automation-id="bottom-navigation"] [role="button"]:has-text("Continue")',
+    '[data-automation-id="bottom-navigation"] [role="button"]:has-text("Next")',
     'button:has-text("Save and Continue")',
     '[role="button"]:has-text("Save and Continue")',
     'div[role="button"]:has-text("Save and Continue")',
     'button[data-automation-id="nextButton"]',
+    '[data-automation-id="nextButton"]',
     'button[aria-label*="Continue" i]',
+    '[role="button"][aria-label*="Continue" i]',
+    '[role="button"][aria-label*="Next" i]',
     '[role="button"]:has-text("Continue")',
     '[role="button"]:has-text("Next")',
     'div[role="button"]:has-text("Continue")',
@@ -2260,7 +2395,9 @@ async function clickContinueButton(page, evidenceParts) {
       await btn.scrollIntoViewIfNeeded({ timeout: 1000 });
       const disabled = await btn.evaluate((el) => {
         const aria = (el.getAttribute('aria-disabled') || '').toLowerCase();
-        return !!(el.disabled || aria === 'true');
+        const klass = (el.getAttribute('class') || '').toLowerCase();
+        const pointerEvents = (window.getComputedStyle(el).pointerEvents || '').toLowerCase();
+        return !!(el.disabled || aria === 'true' || klass.includes('disabled') || pointerEvents === 'none');
       });
       if (disabled) {
         continue;
@@ -2275,8 +2412,15 @@ async function clickContinueButton(page, evidenceParts) {
 
   try {
     const clicked = await page.evaluate(() => {
+      const isVisible = (el) => {
+        if (!el) return false;
+        const rect = el.getBoundingClientRect();
+        const style = window.getComputedStyle(el);
+        return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
+      };
       const candidates = Array.from(document.querySelectorAll('button, [role="button"], a, input[type="button"], input[type="submit"]'));
       const match = candidates.find((el) => {
+        if (!isVisible(el)) return false;
         const txt = ((el.textContent || '') + ' ' + (el.getAttribute('value') || '') + ' ' + (el.getAttribute('aria-label') || '')).toLowerCase();
         const disabled = el.disabled || (el.getAttribute('aria-disabled') || '').toLowerCase() === 'true';
         return !disabled && /save and continue|continue|next/.test(txt);
@@ -4526,7 +4670,7 @@ function extractEducationEntries(profile) {
       }))
       .filter((x) => x.school || x.degree || x.end_date)
     : [];
-  out.push(...fromArray.slice(0, 3));
+  out.push(...fromArray.slice(0, MAX_EDUCATION_ENTRIES));
 
   const legacy1 = {
     school: String(profile?.education_school || '').trim(),
@@ -4558,10 +4702,17 @@ function extractEducationEntries(profile) {
   const unique = [];
   for (const e of out) {
     if (!e) continue;
-    const dup = unique.some((x) => x.school === e.school && x.degree === e.degree && x.end_date === e.end_date);
+    const school = normalizeEducationValue(e.school);
+    const degree = normalizeEducationValue(e.degree);
+    const endDate = normalizeEducationValue(e.end_date);
+    const dup = unique.some((x) => {
+      return normalizeEducationValue(x.school) === school
+        && normalizeEducationValue(x.degree) === degree
+        && normalizeEducationValue(x.end_date) === endDate;
+    });
     if (!dup) unique.push(e);
   }
-  return unique.slice(0, 3);
+  return unique.slice(0, MAX_EDUCATION_ENTRIES);
 }
 
 async function getInlineEducationRowKeys(page) {
@@ -6161,7 +6312,7 @@ async function forceFillEducationFields(page, profile) {
       return { filled, skipped };
     }
 
-    const educationEntries = allEducationEntries.slice(0, 1);
+    const educationEntries = allEducationEntries.slice(0, STRICT_EDUCATION_ENTRY_LIMIT);
     if (allEducationEntries.length > 1) {
       skipped.push('education_multiple_schools_disabled');
     }
@@ -6183,23 +6334,14 @@ async function forceFillEducationFields(page, profile) {
       await dismissDiscardApplicationPopup(page);
 
       const entry = educationEntries[index] || {};
-      const prefix = index === 0 ? 'education' : `education_${index + 1}`;
+      const prefix = getEducationEntryTagPrefix(index);
       const school = String(entry.school || '').trim();
       const degree = String(entry.degree || '').trim();
 
       if (school) {
         const schoolKey = `${prefix}_school`;
         const r = await fillByVisibleLabelWithRetry(page, {
-          labels: [
-            'School or University',
-            'School',
-            'University',
-            'Institution',
-            'School Name',
-            'type your school name',
-            'please type your school name',
-            'please type your school name and click enter',
-          ],
+          labels: EDUCATION_SCHOOL_LABELS,
           value: school,
           occurrence: index,
           mode: 'text',
@@ -6207,47 +6349,32 @@ async function forceFillEducationFields(page, profile) {
           pressEnter: true,
         });
         if (r?.ok) {
-          if (!filled.includes(schoolKey)) {
-            filled.push(schoolKey);
-          }
-          if (!filled.includes(`${schoolKey}_visual_verified`)) {
-            filled.push(`${schoolKey}_visual_verified`);
-          }
+          addVisualFillTagResult(filled, skipped, schoolKey, r);
         } else {
-          skipped.push(schoolKey);
-          skipped.push(`${schoolKey}_visual_unconfirmed`);
+          const schoolVisible = await confirmEducationSchoolVisible(page, school);
+          if (schoolVisible) {
+            mergeUniqueTags(filled, [schoolKey, `${schoolKey}_visual_verified`]);
+          } else {
+            addVisualFillTagResult(filled, skipped, schoolKey, r);
+          }
         }
       }
 
       if (degree) {
         const degreeKey = `${prefix}_degree`;
         const r = await fillByVisibleLabelWithRetry(page, {
-          labels: ['Degree', 'Field of Study', 'Major'],
+          labels: EDUCATION_DEGREE_LABELS,
           value: degree,
           occurrence: index,
           mode: 'dropdown',
           fieldTag: degreeKey,
         });
-        if (r?.ok) {
-          if (!filled.includes(degreeKey)) {
-            filled.push(degreeKey);
-          }
-          if (!filled.includes(`${degreeKey}_visual_verified`)) {
-            filled.push(`${degreeKey}_visual_verified`);
-          }
-        } else {
-          skipped.push(degreeKey);
-          skipped.push(`${degreeKey}_visual_unconfirmed`);
-        }
+        addVisualFillTagResult(filled, skipped, degreeKey, r);
       }
     }
 
     const visualErrorResolved = await resolveReviewRequiredFieldsByErrorLinks(page, profile);
-    for (const tag of visualErrorResolved) {
-      if (!filled.includes(tag)) {
-        filled.push(tag);
-      }
-    }
+    mergeUniqueTags(filled, visualErrorResolved);
 
     return { filled, skipped };
   }
@@ -6377,7 +6504,7 @@ async function countVisibleEducationEntries(page) {
 }
 
 async function countMatchedEducationEntries(page, entries) {
-  const expected = Array.isArray(entries) ? entries.filter(Boolean).slice(0, 3) : [];
+  const expected = Array.isArray(entries) ? entries.filter(Boolean).slice(0, MAX_EDUCATION_ENTRIES) : [];
   if (!expected.length) {
     return 0;
   }
@@ -6391,7 +6518,36 @@ async function countMatchedEducationEntries(page, entries) {
         return rect.width > 0 && rect.height > 0 && style.visibility !== 'hidden' && style.display !== 'none';
       };
 
-      const normalize = (s) => String(s || '').trim().toLowerCase();
+      const normalize = (s) => String(s || '').replace(/\s+/g, ' ').trim().toLowerCase();
+      const toTokens = (s) => normalize(s)
+        .replace(/[^a-z0-9 ]+/g, ' ')
+        .split(' ')
+        .map((x) => x.trim())
+        .filter((x) => x.length >= 2);
+      const normalizeSchool = (s) => {
+        const raw = normalize(s)
+          .replace(/\buniversity\b/g, 'univ')
+          .replace(/\bcollege\b/g, 'col')
+          .replace(/\binstitute\b/g, 'inst')
+          .replace(/\bof\b/g, ' ')
+          .replace(/\bat\b/g, ' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        return raw;
+      };
+      const schoolMatches = (observedText, expectedSchool) => {
+        const observed = normalizeSchool(observedText);
+        const expectedValue = normalizeSchool(expectedSchool);
+        if (!observed || !expectedValue) return false;
+        if (observed.includes(expectedValue) || expectedValue.includes(observed)) {
+          return true;
+        }
+        const expectedTokens = Array.from(new Set(toTokens(expectedValue)));
+        if (!expectedTokens.length) return false;
+        const matchedTokens = expectedTokens.filter((token) => observed.includes(token));
+        const ratio = matchedTokens.length / expectedTokens.length;
+        return ratio >= 0.6;
+      };
       const controls = Array.from(document.querySelectorAll('input, select, textarea')).filter(isVisible);
       const eduControls = controls.filter((el) => {
         const id = normalize(el.id);
@@ -6411,20 +6567,42 @@ async function countMatchedEducationEntries(page, entries) {
         })
         .filter(Boolean);
 
+      const tokenLike = [];
+      const tokenSelectors = [
+        '[data-automation-id*="token" i]',
+        '[data-automation-id*="pill" i]',
+        '[data-automation-id*="selection" i]',
+        '[data-automation-id*="selected" i]',
+        '[data-automation-id*="chip" i]',
+        '[data-automation-id*="tag" i]',
+        '[role="option"][aria-selected="true"]',
+        '[aria-label*="remove" i]',
+      ];
+      for (const sel of tokenSelectors) {
+        const nodes = Array.from(document.querySelectorAll(sel)).filter(isVisible);
+        for (const node of nodes) {
+          const txt = normalize(node.textContent || node.getAttribute('aria-label') || '');
+          if (txt && txt.length <= 240) {
+            tokenLike.push(txt);
+          }
+        }
+      }
+
       const sections = Array.from(document.querySelectorAll('section, div, fieldset')).filter((el) => {
         if (!isVisible(el)) return false;
         const txt = normalize(el.innerText);
         return txt.includes('education');
       });
       const sectionText = normalize(sections.map((s) => s.innerText || '').join(' | '));
+      const observedPool = [...values, ...tokenLike, sectionText].filter(Boolean);
 
       let matched = 0;
       for (const entry of expected) {
         const school = normalize(entry.school);
         const degree = normalize(entry.degree);
 
-        const schoolOk = school && (values.some((v) => v.includes(school) || school.includes(v)) || sectionText.includes(school));
-        const degreeOk = !degree || values.some((v) => v.includes(degree) || degree.includes(v)) || sectionText.includes(degree);
+        const schoolOk = school && observedPool.some((v) => schoolMatches(v, school));
+        const degreeOk = !degree || observedPool.some((v) => v.includes(degree) || degree.includes(v));
 
         if (schoolOk && degreeOk) {
           matched += 1;
@@ -7878,26 +8056,14 @@ async function run() {
       process.stderr.write('INFO: Looking for Continue/Next button...\n');
       await humanDelay(500, 1000);
 
-      const continueSelectors = [
-        'button[data-automation-id="bottom-navigation-next-button"]',
-        'button:has-text("Continue")',
-        'button:has-text("Next")',
-        'button:has-text("Save and Continue")',
-        '[data-automation-id="nextButton"]',
-      ];
-
-      for (const sel of continueSelectors) {
-        try {
-          const btn = page.locator(sel).first();
-          await btn.waitFor({ state: 'visible', timeout: 5000 });
-          await humanDelay(500, 1000);
-          await btn.click({ timeout: 5000 });
-          result.continue_clicked = true;
-          process.stderr.write(`INFO: Clicked Continue via: ${sel}\n`);
-          evidenceParts.push('Clicked Continue');
-          break;
-        } catch (_) {
-          continue;
+      result.continue_clicked = await clickContinueButton(page, evidenceParts);
+      if (result.continue_clicked) {
+        process.stderr.write('INFO: Clicked Continue via robust selector flow.\n');
+        evidenceParts.push('Clicked Continue');
+      } else {
+        const availableActions = await getVisibleActionLabels(page);
+        if (availableActions.length > 0) {
+          evidenceParts.push('Visible actions at continue-search: ' + availableActions.join(' | '));
         }
       }
     }
@@ -7965,10 +8131,39 @@ async function run() {
       const sameUrl = preActionUrl === postUrl;
       const stillOnStep = sameUrl ? await isLikelyStillOnStep(page, target_step) : false;
       if (sameUrl && stillOnStep) {
-        result.continue_clicked = false;
-        const msg = `Click did not visibly advance from ${target_step}.`;
-        result.error = result.error || msg;
-        evidenceParts.push(msg);
+        const resolvedFields = await resolveValidationErrorsFromProfile(page, profile_data, evidenceParts, resume_pdf_path);
+        if (Array.isArray(resolvedFields) && resolvedFields.length > 0) {
+          mergeUniqueTags(result.fields_filled, resolvedFields);
+          await humanDelay(400, 900);
+
+          const retryClicked = await clickContinueButton(page, evidenceParts);
+          if (retryClicked) {
+            await humanDelay(1200, 2200);
+            const retryUrl = page.url();
+            const retryStillOnStep = retryUrl === preActionUrl ? await isLikelyStillOnStep(page, target_step) : false;
+            if (!retryStillOnStep) {
+              result.continue_clicked = true;
+              result.post_continue_url = retryUrl;
+              result.page_title = await page.title();
+              evidenceParts.push(`Recovered continue progression from ${target_step} after resolving required fields.`);
+            } else {
+              result.continue_clicked = false;
+              const msg = `Click did not visibly advance from ${target_step}.`;
+              result.error = result.error || msg;
+              evidenceParts.push(msg);
+            }
+          } else {
+            result.continue_clicked = false;
+            const msg = `Click did not visibly advance from ${target_step}.`;
+            result.error = result.error || msg;
+            evidenceParts.push(msg);
+          }
+        } else {
+          result.continue_clicked = false;
+          const msg = `Click did not visibly advance from ${target_step}.`;
+          result.error = result.error || msg;
+          evidenceParts.push(msg);
+        }
       }
       pushClickAudit(target_step, 'continue', !!result.continue_clicked, result.error || 'single-step continue confirmed', {
         pre_url: preActionUrl,

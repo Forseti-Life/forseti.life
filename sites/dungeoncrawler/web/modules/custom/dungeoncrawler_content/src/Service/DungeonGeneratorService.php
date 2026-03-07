@@ -192,18 +192,46 @@ class DungeonGeneratorService {
       $levels[] = $level;
     }
 
-    // Step 6: Build complete dungeon structure
+    // Step 6: Build complete dungeon structure (normalizer-compatible format).
+    // Flatten rooms and entities from levels for normalizeDungeonPayload().
+    $all_rooms = [];
+    $all_entities = [];
+    $all_connections = [];
+    foreach ($levels as $level) {
+      foreach (($level['rooms'] ?? []) as $room) {
+        $all_rooms[] = $room;
+        foreach (($room['creatures'] ?? []) as $entity) {
+          $all_entities[] = $entity;
+        }
+      }
+      foreach (($level['connections'] ?? []) as $conn) {
+        $all_connections[] = $conn;
+      }
+    }
+
+    $first_level = $levels[0] ?? [];
+    $dungeon_id = sprintf('dungeon_%d_%d_%d',
+      $context['campaign_id'],
+      $context['location_x'],
+      $context['location_y']
+    );
+
     $dungeon_data = [
-      'dungeon_id' => sprintf('dungeon_%d_%d_%d',
-        $context['campaign_id'],
-        $context['location_x'],
-        $context['location_y']
-      ),
+      'schema_version' => '1.0.0',
+      'dungeon_id' => $dungeon_id,
       'name' => $this->generateDungeonName($theme, $context),
       'theme' => $theme,
       'depth' => $depth,
       'location_x' => $context['location_x'],
       'location_y' => $context['location_y'],
+      'level_id' => $first_level['level_id'] ?? '',
+      'hex_map' => [
+        'map_id' => $dungeon_id,
+        'connections' => $all_connections,
+      ],
+      'rooms' => $all_rooms,
+      'entities' => $all_entities,
+      'object_definitions' => [],
       'levels' => $levels,
       'generation_context' => [
         'party_level' => $context['party_level'],
@@ -212,6 +240,13 @@ class DungeonGeneratorService {
         'generated_at' => date('c'),
       ],
     ];
+
+    // Step 7: Persist complete dungeon to database.
+    $db_dungeon_id = $this->persistDungeon($context, $levels);
+    if ($db_dungeon_id) {
+      $dungeon_data['persisted'] = TRUE;
+      $dungeon_data['dungeon_id'] = $db_dungeon_id;
+    }
 
     $this->logger->info('Dungeon generation complete: @name with @depth levels', [
       '@name' => $dungeon_data['name'],
@@ -394,8 +429,33 @@ class DungeonGeneratorService {
    *   }
    */
   protected function generateHexmap(array $context): array {
-    // TODO: Implementation
-    return [];
+    $party_level = $context['party_level'] ?? 1;
+    $depth = $context['depth'] ?? 1;
+
+    // Scale hexmap size with party level and depth.
+    $base_width = 30 + ($party_level * 2);
+    $base_height = 20 + ($party_level * 2);
+    $width = min(80, $base_width + ($depth * 5));
+    $height = min(60, $base_height + ($depth * 5));
+
+    $hexes = [];
+    for ($q = 0; $q < $width; $q++) {
+      for ($r = 0; $r < $height; $r++) {
+        $hexes[] = [
+          'q' => $q,
+          'r' => $r,
+          'terrain' => 'void',
+          'elevation' => 0,
+          'passable' => FALSE,
+        ];
+      }
+    }
+
+    return [
+      'width' => $width,
+      'height' => $height,
+      'hexes' => $hexes,
+    ];
   }
 
   /**
@@ -473,11 +533,186 @@ class DungeonGeneratorService {
    *   Dungeon ID (UUID)
    */
   protected function persistDungeon(array $context, array $levels): string {
-    // TODO: Implementation
-    // INSERT INTO dc_campaign_dungeons (...)
-    // For each level, INSERT INTO dc_campaign_rooms (...)
-    // For each entity, INSERT INTO dc_campaign_characters (...)
-    return '';
+    $now = time();
+    $campaign_id = $context['campaign_id'];
+
+    // Build dungeon_id.
+    $dungeon_id = sprintf('dungeon_%d_%d_%d',
+      $campaign_id,
+      $context['location_x'] ?? 0,
+      $context['location_y'] ?? 0
+    );
+
+    // Build dungeon_data JSON in normalizer-compatible format.
+    // normalizeDungeonPayload() expects: rooms[], entities[], hex_map, level_id
+    // at top level — NOT nested under levels[].
+    $all_rooms = [];
+    $all_entities = [];
+    $all_connections = [];
+    foreach ($levels as $level) {
+      foreach (($level['rooms'] ?? []) as $room) {
+        $all_rooms[] = $room;
+        // Extract creature entities from room into top-level entities array.
+        foreach (($room['creatures'] ?? []) as $creature_entity) {
+          $all_entities[] = $creature_entity;
+        }
+      }
+      foreach (($level['connections'] ?? []) as $conn) {
+        $all_connections[] = $conn;
+      }
+    }
+
+    $first_level = $levels[0] ?? [];
+    $dungeon_data = json_encode([
+      'schema_version' => '1.0.0',
+      'level_id' => $first_level['level_id'] ?? '',
+      'hex_map' => [
+        'map_id' => $dungeon_id,
+        'connections' => $all_connections,
+      ],
+      'rooms' => $all_rooms,
+      'entities' => $all_entities,
+      'object_definitions' => [],
+      'generation_context' => [
+        'party_level' => $context['party_level'],
+        'party_size' => $context['party_size'] ?? 4,
+        'seed' => $context['seed'] ?? 0,
+        'generated_at' => date('c'),
+      ],
+    ]);
+
+    $theme = $context['theme'] ?? 'dungeon';
+    $name = $this->generateDungeonName($theme, $context);
+
+    try {
+      // Upsert dungeon record (may already exist from prior generation).
+      $this->database->merge('dc_campaign_dungeons')
+        ->keys([
+          'campaign_id' => $campaign_id,
+          'dungeon_id' => $dungeon_id,
+        ])
+        ->fields([
+          'name' => $name,
+          'description' => '',
+          'theme' => $theme,
+          'dungeon_data' => $dungeon_data,
+          'created' => $now,
+          'updated' => $now,
+        ])
+        ->execute();
+
+      // Persist each room from each level.
+      foreach ($levels as $level) {
+        foreach (($level['rooms'] ?? []) as $room) {
+          $room_id = $room['room_id'] ?? '';
+          $layout_data = json_encode([
+            'hexes' => $room['hexes'] ?? [],
+            'hex_manifest' => $room['hex_manifest'] ?? [],
+            'entry_points' => $room['entry_points'] ?? [],
+            'exit_points' => $room['exit_points'] ?? [],
+            'terrain' => $room['terrain'] ?? [],
+            'lighting' => $room['lighting'] ?? [],
+          ]);
+          $contents_data = json_encode([
+            'creatures' => $room['creatures'] ?? [],
+            'items' => $room['items'] ?? [],
+            'traps' => $room['traps'] ?? [],
+            'hazards' => $room['hazards'] ?? [],
+            'obstacles' => $room['obstacles'] ?? [],
+            'interactables' => $room['interactables'] ?? [],
+          ]);
+          $env_tags = json_encode($room['environmental_effects'] ?? []);
+
+          // Upsert room — RoomGeneratorService::persistRoom() may have already
+          // inserted this row during generateRoom().
+          $this->database->merge('dc_campaign_rooms')
+            ->keys([
+              'campaign_id' => $campaign_id,
+              'room_id' => $room_id,
+            ])
+            ->fields([
+              'name' => $room['name'] ?? 'Unknown Room',
+              'description' => $room['description'] ?? '',
+              'environment_tags' => $env_tags,
+              'layout_data' => $layout_data,
+              'contents_data' => $contents_data,
+              'created' => $now,
+              'updated' => $now,
+            ])
+            ->execute();
+
+          // Persist creature entities into dc_campaign_characters.
+          // Creatures are now entity_instance objects from EntityPlacerService.
+          foreach (($room['creatures'] ?? []) as $creature) {
+            $instance_id = $creature['instance_id'] ?? $creature['entity_instance_id'] ?? '';
+            if (!$instance_id) {
+              continue;
+            }
+            $content_id = $creature['entity_ref']['content_id'] ?? 'creature';
+            $display_name = $creature['display_name'] ?? $creature['state']['metadata']['display_name'] ?? 'Unknown Creature';
+            $creature_level = $creature['state']['metadata']['stats']['level'] ?? 1;
+            $hp_max = $creature['state']['hit_points']['max'] ?? $creature['state']['metadata']['stats']['maxHp'] ?? 0;
+            $hp_current = $creature['state']['hit_points']['current'] ?? $creature['state']['metadata']['stats']['currentHp'] ?? $hp_max;
+            $ac = $creature['state']['metadata']['stats']['ac'] ?? 10;
+            $hex = $creature['placement']['hex'] ?? [];
+
+            try {
+              $this->database->merge('dc_campaign_characters')
+                ->keys([
+                  'campaign_id' => $campaign_id,
+                  'instance_id' => $instance_id,
+                ])
+                ->fields([
+                  'character_id' => 0,
+                  'name' => $display_name,
+                  'level' => $creature_level,
+                  'ancestry' => '',
+                  'class' => $content_id,
+                  'hp_current' => $hp_current,
+                  'hp_max' => $hp_max,
+                  'armor_class' => $ac,
+                  'experience_points' => 0,
+                  'position_q' => $hex['q'] ?? 0,
+                  'position_r' => $hex['r'] ?? 0,
+                  'last_room_id' => $room_id,
+                  'type' => 'npc',
+                  'status' => 1,
+                  'uid' => 0,
+                  'role' => 'creature',
+                  'location_type' => 'room',
+                  'location_ref' => $room_id,
+                  'is_active' => 1,
+                  'joined' => $now,
+                  'created' => $now,
+                  'changed' => $now,
+                  'updated' => $now,
+                  'version' => 0,
+                ])
+                ->execute();
+            }
+            catch (\Exception $e) {
+              $this->logger->warning('Failed to persist creature @id: @error', [
+                '@id' => $instance_id,
+                '@error' => $e->getMessage(),
+              ]);
+            }
+          }
+        }
+      }
+
+      $this->logger->info('Dungeon @id persisted with @count levels', [
+        '@id' => $dungeon_id,
+        '@count' => count($levels),
+      ]);
+
+      return $dungeon_id;
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Failed to persist dungeon: @error', [
+        '@error' => $e->getMessage(),
+      ]);
+      return '';
+    }
   }
 
   /**
@@ -583,7 +818,8 @@ class DungeonGeneratorService {
   /**
    * Connect rooms in linear sequence.
    *
-   * TODO: Replace with Delaunay triangulation algorithm.
+   * Note: Uses linear connections. For graph-based layouts, call
+   * RoomConnectionAlgorithm::connectRooms() instead.
    *
    * @param array $rooms
    *   Generated rooms

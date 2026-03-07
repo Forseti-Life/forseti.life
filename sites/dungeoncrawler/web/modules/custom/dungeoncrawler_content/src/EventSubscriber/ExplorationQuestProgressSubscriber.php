@@ -117,6 +117,7 @@ class ExplorationQuestProgressSubscriber implements EventSubscriberInterface {
     $quests = $this->database->select('dc_campaign_quest_progress', 'p')
       ->fields('p', ['quest_id', 'character_id', 'objective_states'])
       ->condition('p.campaign_id', $campaign_id)
+      ->condition('p.character_id', NULL, 'IS NOT NULL')
       ->execute()
       ->fetchAll(\PDO::FETCH_ASSOC);
 
