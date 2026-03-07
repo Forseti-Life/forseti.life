@@ -254,6 +254,89 @@ class GeneratedImageRepository {
   }
 
   /**
+   * Loads the first matching image for each of multiple objects in one query.
+   *
+   * @param string $table_name
+   *   Linked table name (e.g. 'dc_dungeon_sprites').
+   * @param array<int, string> $object_ids
+   *   Object IDs to look up.
+   * @param int|null $campaign_id
+   *   Optional campaign scope.
+   * @param string|null $slot
+   *   Optional slot filter (e.g. 'sprite', 'portrait').
+   * @param string|null $variant
+   *   Optional variant filter (e.g. 'original').
+   *
+   * @return array<string, array<string, mixed>>
+   *   Map of object_id => first matching image row (primary, most recent).
+   */
+  public function loadImagesForObjects(string $table_name, array $object_ids, ?int $campaign_id = NULL, ?string $slot = NULL, ?string $variant = NULL): array {
+    $clean_ids = [];
+    foreach ($object_ids as $id) {
+      $value = trim((string) $id);
+      if ($value !== '') {
+        $clean_ids[] = $value;
+      }
+    }
+
+    if (empty($clean_ids)) {
+      return [];
+    }
+
+    $query = $this->database->select('dc_generated_image_links', 'l');
+    $query->fields('l');
+    $query->condition('l.table_name', $table_name);
+    $query->condition('l.object_id', array_values(array_unique($clean_ids)), 'IN');
+
+    if ($campaign_id !== NULL) {
+      $query->condition('l.campaign_id', $campaign_id);
+    }
+    if ($slot !== NULL && $slot !== '') {
+      $query->condition('l.slot', $slot);
+    }
+    if ($variant !== NULL && $variant !== '') {
+      $query->condition('l.variant', $variant);
+    }
+
+    $query->leftJoin('dc_generated_images', 'i', 'i.id = l.image_id');
+    $query->addField('i', 'image_uuid', 'image_uuid');
+    $query->addField('i', 'owner_uid', 'owner_uid');
+    $query->addField('i', 'provider', 'provider');
+    $query->addField('i', 'provider_model', 'provider_model');
+    $query->addField('i', 'status', 'image_status');
+    $query->addField('i', 'mime_type', 'mime_type');
+    $query->addField('i', 'width', 'width');
+    $query->addField('i', 'height', 'height');
+    $query->addField('i', 'bytes', 'bytes');
+    $query->addField('i', 'storage_scheme', 'storage_scheme');
+    $query->addField('i', 'file_uri', 'file_uri');
+    $query->addField('i', 'public_url', 'public_url');
+    $query->addField('i', 'created', 'image_created');
+
+    $query->condition('i.deleted', 0);
+    $query->condition('i.status', 'ready');
+    $query->orderBy('l.is_primary', 'DESC');
+    $query->orderBy('l.sort_weight', 'ASC');
+    $query->orderBy('l.created', 'DESC');
+
+    $rows = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    if (!is_array($rows)) {
+      return [];
+    }
+
+    // Keep only the first (highest priority) row per object_id.
+    $results = [];
+    foreach ($rows as $row) {
+      $oid = (string) ($row['object_id'] ?? '');
+      if ($oid !== '' && !isset($results[$oid])) {
+        $results[$oid] = $row;
+      }
+    }
+
+    return $results;
+  }
+
+  /**
    * Loads generated image counts per object for a table.
    *
    * @param string $table_name

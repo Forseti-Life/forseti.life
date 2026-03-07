@@ -143,6 +143,7 @@ hexmap:
     # ECS Index
     js/ecs/index.js: { attributes: { type: module } }
     # Main hexmap (loads ECS as module)
+    js/SpriteService.js: { attributes: { type: module } }
     js/hexmap.js: { attributes: { type: module } }
   css:
     theme:

@@ -42,6 +42,76 @@ class SpriteGenerationService {
   }
 
   /**
+   * Looks up an existing sprite URL without generating.
+   *
+   * Central lookup method — all sprite read paths should delegate here
+   * instead of querying GeneratedImageRepository directly.
+   *
+   * @param string $sprite_id
+   *   The sprite identifier.
+   * @param int|null $campaign_id
+   *   Campaign scope (falls back to global if not found).
+   *
+   * @return string|null
+   *   Resolved client URL, or NULL if no sprite exists.
+   */
+  public function lookupSprite(string $sprite_id, ?int $campaign_id = NULL): ?string {
+    if (trim($sprite_id) === '') {
+      return NULL;
+    }
+    return $this->findExistingSprite($sprite_id, $campaign_id);
+  }
+
+  /**
+   * Bulk lookup of existing sprite URLs (no generation).
+   *
+   * Resolves all provided sprite_ids in one query per scope
+   * (campaign + global fallback). Callers that need lookup-only
+   * semantics should use this instead of resolveBatch().
+   *
+   * @param array<string> $sprite_ids
+   *   Sprite identifiers to look up.
+   * @param int|null $campaign_id
+   *   Campaign scope (falls back to global for missing sprites).
+   *
+   * @return array<string, string|null>
+   *   Map of sprite_id => URL (null when no image exists).
+   */
+  public function lookupSprites(array $sprite_ids, ?int $campaign_id = NULL): array {
+    $clean = array_values(array_unique(array_filter(array_map('trim', $sprite_ids))));
+    if (empty($clean)) {
+      return [];
+    }
+
+    $urls = [];
+
+    // Bulk query: campaign-scoped.
+    $rows = $this->generatedImageRepository->loadImagesForObjects(
+      'dc_dungeon_sprites', $clean, $campaign_id, 'sprite', 'original'
+    );
+    foreach ($clean as $sid) {
+      if (isset($rows[$sid])) {
+        $urls[$sid] = $this->generatedImageRepository->resolveClientUrl($rows[$sid]);
+      }
+    }
+
+    // Bulk query: global fallback for any still-missing IDs.
+    $missing = array_values(array_diff($clean, array_keys($urls)));
+    if (!empty($missing) && $campaign_id !== NULL) {
+      $global = $this->generatedImageRepository->loadImagesForObjects(
+        'dc_dungeon_sprites', $missing, NULL, 'sprite', 'original'
+      );
+      foreach ($missing as $sid) {
+        if (isset($global[$sid])) {
+          $urls[$sid] = $this->generatedImageRepository->resolveClientUrl($global[$sid]);
+        }
+      }
+    }
+
+    return $urls;
+  }
+
+  /**
    * Resolves a sprite URL for an object, generating if needed.
    *
    * @param string $sprite_id
@@ -113,14 +183,11 @@ class SpriteGenerationService {
       return [];
     }
 
-    // Check which sprites already exist.
-    $sprite_ids = array_keys($sprite_map);
-    foreach ($sprite_ids as $sid) {
-      $existing_url = $this->findExistingSprite($sid, $campaign_id);
-      if ($existing_url !== NULL) {
-        $sprite_map[$sid] = $existing_url;
-        unset($to_generate[$sid]);
-      }
+    // Bulk lookup of existing sprites (2 queries max: campaign + global).
+    $existing = $this->lookupSprites(array_keys($sprite_map), $campaign_id);
+    foreach ($existing as $sid => $url) {
+      $sprite_map[$sid] = $url;
+      unset($to_generate[$sid]);
     }
 
     // Generate missing sprites.

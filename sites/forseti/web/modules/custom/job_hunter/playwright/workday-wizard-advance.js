@@ -3415,7 +3415,7 @@ async function fillByVisibleLabelWithVerification(page, {
       .filter(isVisible)
       .filter((el) => {
         const text = normalize(el.innerText || el.textContent || '');
-        if (!text || text.length > 120) return false;
+        if (!text || text.length > 260) return false;
         if (text.startsWith('error-') || text.includes('the field') || text.includes('required and must have a value')) return false;
         return text.includes(needle);
       });
@@ -3475,7 +3475,29 @@ async function fillByVisibleLabelWithVerification(page, {
       'from': [/startdate/i, /from/i],
       'to': [/enddate/i, /to/i],
     };
-    const matchers = fieldMatchers[needle] || [];
+    const inferMatchers = () => {
+      if (fieldMatchers[needle]) return fieldMatchers[needle];
+      if (/school|university|institution|type your school/i.test(needle)) {
+        return fieldMatchers['school or university'];
+      }
+      if (/degree|field of study|major/i.test(needle)) {
+        return fieldMatchers.degree;
+      }
+      if (/job title|title/i.test(needle)) {
+        return fieldMatchers['job title'];
+      }
+      if (/company|employer/i.test(needle)) {
+        return fieldMatchers.company;
+      }
+      if (/from|start/i.test(needle)) {
+        return fieldMatchers.from;
+      }
+      if (/to|end/i.test(needle)) {
+        return fieldMatchers.to;
+      }
+      return [];
+    };
+    const matchers = inferMatchers();
     const dateLike = controls.filter((el) => {
       const tag = String(el.tagName || '').toLowerCase();
       if (tag === 'button') return false;
@@ -3532,7 +3554,26 @@ async function fillByVisibleLabelWithVerification(page, {
     }
 
     const preferredText = textLike.find((el) => matchers.some((rx) => rx.test(meta(el))));
-    const input = preferredText || textLike[0] || controls[0];
+    const inputLike = controls.filter((el) => {
+      const tag = String(el.tagName || '').toLowerCase();
+      if (tag === 'button') return false;
+      if (tag === 'input' || tag === 'textarea' || tag === 'select') return true;
+      const role = String(el.getAttribute('role') || '').toLowerCase();
+      if (role === 'combobox' || role === 'textbox' || role === 'searchbox') return true;
+      const editable = String(el.getAttribute('contenteditable') || '').toLowerCase();
+      return editable === 'true';
+    });
+    const schoolLike = /school|university|institution|type your school/i.test(needle);
+    const schoolPreferred = schoolLike
+      ? inputLike.find((el) => {
+          const m = meta(el);
+          return /school|university|institution|search|type your school|autocomplete|combobox|prompt/i.test(m);
+        }) || textLike.find((el) => {
+          const m = meta(el);
+          return /school|university|institution|search|type your school|autocomplete|combobox|prompt/i.test(m);
+        })
+      : null;
+    const input = preferredText || schoolPreferred || textLike[0] || inputLike[0] || controls.find((el) => String(el.tagName || '').toLowerCase() !== 'button') || controls[0];
     input.setAttribute('data-jh-visual-target', token);
     input.setAttribute('data-jh-visual-part', 'single');
     markScope(input);
@@ -3633,7 +3674,7 @@ async function fillByVisibleLabelWithVerification(page, {
 
   await humanDelay(140, 300);
 
-  const after = await page.evaluate(({ token, mode }) => {
+  const after = await page.evaluate(({ token, mode, desiredValue }) => {
     const readValue = (el) => {
       if (!el) return '';
       const tag = String(el.tagName || '').toLowerCase();
@@ -3643,6 +3684,8 @@ async function fillByVisibleLabelWithVerification(page, {
       }
       return String(el.value || el.getAttribute('value') || el.textContent || el.getAttribute('aria-label') || '').trim();
     };
+
+    const normalize = (v) => String(v || '').replace(/\s+/g, ' ').trim().toLowerCase();
 
     if (mode === 'date') {
       const month = document.querySelector(`[data-jh-visual-target="${token}"][data-jh-visual-part="month"]`);
@@ -3655,11 +3698,56 @@ async function fillByVisibleLabelWithVerification(page, {
 
     const el = document.querySelector(`[data-jh-visual-target="${token}"]`);
     const scope = document.querySelector(`[data-jh-visual-scope="${token}"]`);
+    const desired = normalize(desiredValue);
+
+    const scanRoots = [];
+    if (scope) scanRoots.push(scope);
+    if (scope?.parentElement) scanRoots.push(scope.parentElement);
+    if (scope?.parentElement?.parentElement) scanRoots.push(scope.parentElement.parentElement);
+    if (scope?.parentElement?.parentElement?.parentElement) scanRoots.push(scope.parentElement.parentElement.parentElement);
+
+    const formFieldRoot = el?.closest?.('[data-automation-id="formField"], [role="group"], fieldset, li, section, form, div');
+    if (formFieldRoot) scanRoots.push(formFieldRoot);
+    if (formFieldRoot?.parentElement) scanRoots.push(formFieldRoot.parentElement);
+
+    const tokenSelectors = [
+      '[data-automation-id*="token" i]',
+      '[data-automation-id*="pill" i]',
+      '[data-automation-id*="selection" i]',
+      '[data-automation-id*="selected" i]',
+      '[data-automation-id*="chip" i]',
+      '[data-automation-id*="tag" i]',
+      '[role="option"][aria-selected="true"]',
+      '[aria-label*="remove" i]',
+      'button[aria-label*="remove" i]',
+      'li',
+      'span',
+      'div',
+    ];
+
+    const tokenTexts = [];
+    for (const root of scanRoots) {
+      if (!root || !root.querySelectorAll) continue;
+      for (const sel of tokenSelectors) {
+        const nodes = Array.from(root.querySelectorAll(sel));
+        for (const node of nodes) {
+          const txt = String(node.textContent || node.getAttribute('aria-label') || '').replace(/\s+/g, ' ').trim();
+          if (!txt) continue;
+          if (txt.length > 200) continue;
+          if (normalize(txt).includes(desired) || desired.includes(normalize(txt))) {
+            tokenTexts.push(txt);
+          }
+        }
+      }
+      if (tokenTexts.length > 0) break;
+    }
+
     return {
       value: readValue(el),
       scopeText: String(scope?.innerText || scope?.textContent || '').replace(/\s+/g, ' ').trim(),
+      tokenTexts,
     };
-  }, { token, mode }).catch(() => ({}));
+  }, { token, mode, desiredValue }).catch(() => ({}));
 
   const clearTempTargets = async () => {
     await page.evaluate(() => {
@@ -3687,14 +3775,18 @@ async function fillByVisibleLabelWithVerification(page, {
   } else {
     const afterValue = String(after.value || '');
     const scopeText = String(after.scopeText || '');
+    const tokenTexts = Array.isArray(after.tokenTexts) ? after.tokenTexts.map((x) => String(x || '')) : [];
     if (pressEnter) {
       const byValue = !!afterValue && !/select one|0 items selected/i.test(afterValue) && (visualMatch(afterValue, desiredValue) || afterValue.length > 0);
       const byScope = !!scopeText && visualMatch(scopeText, desiredValue);
-      confirmed = byValue || byScope;
+      const byToken = tokenTexts.some((txt) => visualMatch(txt, desiredValue));
+      const schoolField = /education(_\d+)?_school|school|university|institution/i.test(`${fieldTag || ''} ${label || ''}`);
+      confirmed = schoolField ? (byToken || byValue) : (byValue || byScope || byToken);
     } else {
       confirmed = visualMatch(afterValue, desiredValue);
     }
-    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, (afterValue || scopeText), writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+    const observed = [afterValue, scopeText, tokenTexts.join(' | ')].filter(Boolean).join(' || ');
+    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, observed, writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
   }
 
   await clearTempTargets();
@@ -6098,7 +6190,16 @@ async function forceFillEducationFields(page, profile) {
       if (school) {
         const schoolKey = `${prefix}_school`;
         const r = await fillByVisibleLabelWithRetry(page, {
-          labels: ['School or University', 'School', 'University', 'Institution', 'School Name'],
+          labels: [
+            'School or University',
+            'School',
+            'University',
+            'Institution',
+            'School Name',
+            'type your school name',
+            'please type your school name',
+            'please type your school name and click enter',
+          ],
           value: school,
           occurrence: index,
           mode: 'text',

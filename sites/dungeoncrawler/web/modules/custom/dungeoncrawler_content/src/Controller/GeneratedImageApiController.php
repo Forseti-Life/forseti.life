@@ -298,35 +298,35 @@ class GeneratedImageApiController extends ControllerBase {
     $owner_uid = (int) $this->currentAccount->id();
     $sprites = [];
 
-    foreach ($object_definitions as $object_id => $def) {
-      $sprite_id = trim((string) ($def['visual']['sprite_id'] ?? ''));
-      if ($sprite_id === '') {
-        continue;
+    if ($should_generate) {
+      // Generate-on-demand: uses bulk lookup + sequential generation for missing.
+      $sprite_map = $this->spriteGenerator->resolveBatch($object_definitions, $campaign_id, $owner_uid);
+      foreach ($sprite_map as $sid => $url) {
+        $sprites[$sid] = [
+          'url' => $url,
+          'generated' => FALSE,
+          'cached' => $url !== NULL,
+        ];
       }
-
-      if (isset($sprites[$sprite_id])) {
-        // Already resolved this sprite_id.
-        continue;
-      }
-
-      if ($should_generate) {
-        $result = $this->spriteGenerator->resolveSprite($sprite_id, $def, $campaign_id, $owner_uid);
-      }
-      else {
-        // Lookup only — no generation.
-        $existing = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, $campaign_id, 'sprite', 'original');
-        if (empty($existing)) {
-          $existing = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, NULL, 'sprite', 'original');
+    }
+    else {
+      // Lookup only — single bulk query via centralized service.
+      $sprite_ids = [];
+      foreach ($object_definitions as $object_id => $def) {
+        $sid = trim((string) ($def['visual']['sprite_id'] ?? ''));
+        if ($sid !== '' && !in_array($sid, $sprite_ids, TRUE)) {
+          $sprite_ids[] = $sid;
         }
-        $url = !empty($existing) ? $this->imageRepository->resolveClientUrl($existing[0]) : NULL;
-        $result = ['url' => $url, 'generated' => FALSE, 'cached' => $url !== NULL, 'error' => NULL];
       }
-
-      $sprites[$sprite_id] = [
-        'url' => $result['url'],
-        'generated' => $result['generated'] ?? FALSE,
-        'cached' => $result['cached'] ?? FALSE,
-      ];
+      $url_map = $this->spriteGenerator->lookupSprites($sprite_ids, $campaign_id);
+      foreach ($sprite_ids as $sid) {
+        $url = $url_map[$sid] ?? NULL;
+        $sprites[$sid] = [
+          'url' => $url,
+          'generated' => FALSE,
+          'cached' => $url !== NULL,
+        ];
+      }
     }
 
     return new JsonResponse([
@@ -345,24 +345,17 @@ class GeneratedImageApiController extends ControllerBase {
     $campaign_id = $request->query->get('campaign_id');
     $campaign_id = is_numeric($campaign_id) ? (int) $campaign_id : NULL;
 
-    $images = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, $campaign_id, 'sprite', 'original');
-    if (empty($images)) {
-      $images = $this->imageRepository->loadImagesForObject('dc_dungeon_sprites', $sprite_id, NULL, 'sprite', 'original');
-    }
+    // Delegate to centralized sprite lookup service.
+    $url = $this->spriteGenerator->lookupSprite($sprite_id, $campaign_id);
 
-    if (empty($images)) {
+    if ($url === NULL) {
       return new JsonResponse(['success' => FALSE, 'error' => 'Sprite not found', 'sprite_id' => $sprite_id], 404);
     }
-
-    $url = $this->imageRepository->resolveClientUrl($images[0]);
 
     return new JsonResponse([
       'success' => TRUE,
       'sprite_id' => $sprite_id,
       'url' => $url,
-      'mime_type' => $images[0]['mime_type'] ?? NULL,
-      'width' => isset($images[0]['width']) ? (int) $images[0]['width'] : NULL,
-      'height' => isset($images[0]['height']) ? (int) $images[0]['height'] : NULL,
     ]);
   }
 

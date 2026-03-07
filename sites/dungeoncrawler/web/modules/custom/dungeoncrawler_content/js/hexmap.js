@@ -8,6 +8,7 @@ import { EntityManager, PositionComponent, RenderComponent, IdentityComponent, E
 import combatApi from './hexmap-api.js';
 import { GameCoordinator } from './game-coordinator/GameCoordinator.js';
 import { ChatSessionApi } from './ChatSessionApi.js';
+import { SpriteService } from './SpriteService.js';
 
 // Ensure Drupal and once are available
 /* global Drupal, once, PIXI */
@@ -1873,8 +1874,7 @@ import { ChatSessionApi } from './ChatSessionApi.js';
     activeRoomId: null,
 
     // Cache of sprite_id => URL from server-side generated images.
-    _spriteUrlCache: {},
-    _spriteResolveInFlight: false,
+    spriteService: null,
 
     // Procedural tile textures for terrain rendering.
     tileTextures: null,
@@ -1898,6 +1898,7 @@ import { ChatSessionApi } from './ChatSessionApi.js';
       // Initialize managers
       this.uiManager = new UIManager();
       this.stateManager = new StateManager();
+      this.spriteService = new SpriteService();
       this.uiManager.stateManager = this.stateManager; // Give UIManager access to state manager
       this.stateManager.hexmap = this; // Allow state manager to reference hexmap methods
       this.setupStateSubscriptions();
@@ -5108,7 +5109,7 @@ import { ChatSessionApi } from './ChatSessionApi.js';
             }
           };
 
-          this._spriteUrlCache[portraitSpriteId] = portraitUrl;
+          this.spriteService.preloadUrl(portraitSpriteId, portraitUrl);
           options.objectCategory = options.objectCategory || 'creature';
         }
 
@@ -5132,7 +5133,13 @@ import { ChatSessionApi } from './ChatSessionApi.js';
       }
 
       // Resolve generated sprite images for all object definitions in view.
-      this.resolveAndApplySprites();
+      this.spriteService.resolveAndApply(
+        this.entityManager,
+        this.renderSystem,
+        this.dungeonData,
+        this.activeRoomId,
+        this.resolveCampaignId()
+      );
     },
 
     /**
@@ -5151,178 +5158,6 @@ import { ChatSessionApi } from './ChatSessionApi.js';
       }
 
       return definitions[contentId] || null;
-    },
-
-    /**
-     * Resolve generated sprite images for all object definitions in the active room.
-     * Calls POST /api/sprites/resolve with object_definitions, then swaps placeholder sprites.
-     */
-    resolveAndApplySprites: async function () {
-      if (this._spriteResolveInFlight) {
-        return;
-      }
-
-      const definitions = this.dungeonData?.object_definitions;
-      if (!definitions || typeof definitions !== 'object') {
-        return;
-      }
-
-      // Collect object_definitions that are used by entities in this room and not already cached.
-      const entities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
-      const neededDefs = {};
-      entities.forEach((entity) => {
-        const placement = entity?.placement;
-        if (!placement || placement.room_id !== this.activeRoomId) {
-          return;
-        }
-        const contentId = entity?.entity_ref?.content_id;
-        if (!contentId || !definitions[contentId]) {
-          return;
-        }
-        const spriteId = definitions[contentId]?.visual?.sprite_id;
-        if (!spriteId || this._spriteUrlCache[spriteId]) {
-          return;
-        }
-        neededDefs[contentId] = definitions[contentId];
-      });
-
-      if (Object.keys(neededDefs).length === 0) {
-        // All sprites already cached — apply from cache.
-        this._applySpritesFromCache();
-        return;
-      }
-
-      this._spriteResolveInFlight = true;
-      const campaignId = this.resolveCampaignId();
-
-      try {
-        const response = await fetch('/api/sprites/resolve', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          credentials: 'same-origin',
-          body: JSON.stringify({
-            campaign_id: campaignId || null,
-            object_definitions: neededDefs,
-            generate: true
-          })
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          if (data.success && data.sprites) {
-            // Merge resolved sprites into cache.
-            const sprites = data.sprites;
-            for (const [spriteId, info] of Object.entries(sprites)) {
-              if (info.url) {
-                this._spriteUrlCache[spriteId] = info.url;
-              }
-            }
-
-            console.log(`Sprites resolved: ${data.count} (generated: ${Object.values(sprites).filter(s => s.generated).length}, cached: ${Object.values(sprites).filter(s => s.cached).length})`);
-          }
-        } else {
-          console.warn('Sprite resolve API returned', response.status);
-        }
-      } catch (err) {
-        console.warn('Sprite resolution failed:', err);
-      } finally {
-        // Always apply cached sprites (including pre-cached portrait URLs)
-        // regardless of whether furniture sprite resolution succeeded.
-        this._applySpritesFromCache();
-        this._spriteResolveInFlight = false;
-      }
-    },
-
-    /**
-     * Apply cached sprite URLs to active entities by loading textures and swapping placeholders.
-     */
-    _applySpritesFromCache: function () {
-      if (!this.entityManager || !this.renderSystem) {
-        return;
-      }
-
-      const allEntities = this.entityManager.getEntitiesWith('RenderComponent');
-      const definitions = this.dungeonData?.object_definitions;
-      if (!definitions) {
-        return;
-      }
-
-      allEntities.forEach((entity) => {
-        // Match entity back to its object_definition sprite_id.
-        const dcRef = entity.dcEntityRef;
-        if (!dcRef) {
-          return;
-        }
-
-        // Find the dungeon entity to get content_id.
-        const dungeonEntities = Array.isArray(this.dungeonData?.entities) ? this.dungeonData.entities : [];
-        const match = dungeonEntities.find(e =>
-          (e?.instance_id === dcRef || e?.entity_ref?.content_id === dcRef)
-        );
-        if (!match) {
-          return;
-        }
-
-        const contentId = match?.entity_ref?.content_id;
-        const spriteId = definitions[contentId]?.visual?.sprite_id;
-        if (!spriteId || !this._spriteUrlCache[spriteId]) {
-          return;
-        }
-
-        const render = entity.getComponent('RenderComponent');
-        if (!render || render._generatedSpriteApplied) {
-          return;
-        }
-
-        const url = this._spriteUrlCache[spriteId];
-        this._loadAndApplyTexture(entity, url, spriteId);
-      });
-    },
-
-    /**
-     * Load a texture from URL and replace the entity's placeholder sprite.
-     * @param {Entity} entity - ECS entity
-     * @param {string} url - Image URL
-     * @param {string} spriteId - For logging
-     */
-    _loadAndApplyTexture: function (entity, url, spriteId) {
-      const render = entity.getComponent('RenderComponent');
-      if (!render) {
-        return;
-      }
-
-      // Check PixiJS texture cache first.
-      const cacheKey = 'gen_' + spriteId;
-      if (PIXI.utils.TextureCache[cacheKey]) {
-        this.renderSystem.replaceEntitySprite(entity, PIXI.utils.TextureCache[cacheKey]);
-        render._generatedSpriteApplied = true;
-        return;
-      }
-
-      // Load image async.
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-      img.onload = () => {
-        try {
-          const baseTexture = new PIXI.BaseTexture(img);
-          const texture = new PIXI.Texture(baseTexture);
-          PIXI.utils.TextureCache[cacheKey] = texture;
-
-          // Verify entity still exists and hasn't been cleared.
-          const currentRender = entity.getComponent('RenderComponent');
-          if (currentRender && currentRender.sprite && !currentRender._generatedSpriteApplied) {
-            this.renderSystem.replaceEntitySprite(entity, texture);
-            currentRender._generatedSpriteApplied = true;
-            console.log(`Applied generated sprite for ${spriteId}`);
-          }
-        } catch (err) {
-          console.warn(`Failed to create texture for ${spriteId}:`, err);
-        }
-      };
-      img.onerror = () => {
-        console.warn(`Failed to load sprite image for ${spriteId}: ${url}`);
-      };
-      img.src = url;
     },
 
     /**
