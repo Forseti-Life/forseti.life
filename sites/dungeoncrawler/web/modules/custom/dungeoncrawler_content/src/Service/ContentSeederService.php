@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Extension\ModuleExtensionList;
+use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
 
@@ -44,16 +45,23 @@ class ContentSeederService {
   protected ModuleExtensionList $moduleExtensionList;
 
   /**
+   * The file system service.
+   */
+  protected FileSystemInterface $fileSystem;
+
+  /**
    * Constructs a ContentSeederService.
    */
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
     ModuleExtensionList $module_extension_list,
+    FileSystemInterface $file_system,
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
     $this->moduleExtensionList = $module_extension_list;
+    $this->fileSystem = $file_system;
   }
 
   /**
@@ -82,6 +90,7 @@ class ContentSeederService {
     $summary['encounter_templates'] = $this->seedEncounterTemplates($force);
     $summary['quest_templates'] = $this->seedQuestTemplates($force);
     $summary['images'] = $this->seedImageManifest($force);
+    $summary['image_files'] = $this->copyImageFiles();
     $summary['prompt_cache'] = $this->seedPromptCache($force);
 
     $total = array_sum($summary);
@@ -132,8 +141,8 @@ class ContentSeederService {
         'setting_type' => $data['setting_type'] ?? 'default',
         'size' => $data['size'] ?? 'medium',
         'lighting' => $data['lighting'] ?? 'normal_light',
-        'setting_data' => json_encode($data['setting_data'] ?? []),
-        'search_tags' => json_encode($data['search_tags'] ?? []),
+        'setting_data' => is_array($data['setting_data'] ?? NULL) ? json_encode($data['setting_data']) : ($data['setting_data'] ?? '{}'),
+        'search_tags' => is_array($data['search_tags'] ?? NULL) ? json_encode($data['search_tags']) : ($data['search_tags'] ?? '[]'),
         'level_min' => (int) ($data['level_min'] ?? 1),
         'level_max' => (int) ($data['level_max'] ?? 20),
         'usage_count' => (int) ($data['usage_count'] ?? 0),
@@ -570,6 +579,82 @@ class ContentSeederService {
   }
 
   /**
+   * Copy packaged image files into the Drupal public files directory.
+   *
+   * Reads the image manifest and for each entry that has a seed_filename,
+   * copies the file from content/images/files/ into the correct public://
+   * path (recreating the year/month directory structure).
+   *
+   * @return int
+   *   Number of image files copied.
+   */
+  public function copyImageFiles(): int {
+    $manifest_path = $this->getContentPath() . '/images/image_manifest.json';
+    if (!file_exists($manifest_path)) {
+      return 0;
+    }
+
+    $manifest = $this->loadJsonFile($manifest_path);
+    if (!is_array($manifest)) {
+      return 0;
+    }
+
+    $files_dir = $this->getContentPath() . '/images/files';
+    $count = 0;
+
+    foreach ($manifest as $entry) {
+      $image = $entry['image'] ?? [];
+      $seed_filename = $entry['seed_filename'] ?? NULL;
+      $file_uri = $image['file_uri'] ?? '';
+
+      if (!$seed_filename || !$file_uri) {
+        continue;
+      }
+
+      $src = $files_dir . '/' . $seed_filename;
+      if (!file_exists($src)) {
+        continue;
+      }
+
+      // Convert public://path to real filesystem path to check existence.
+      // If the file already exists at the destination, skip.
+      $dest_uri = $file_uri;
+      if (strpos($dest_uri, 'temporary://') === 0) {
+        // Remap temporary:// to public:// for permanence.
+        $dest_uri = 'public://' . substr($dest_uri, strlen('temporary://'));
+      }
+
+      $real_dest = $this->fileSystem->realpath($dest_uri);
+      if ($real_dest && file_exists($real_dest)) {
+        continue;
+      }
+
+      // Ensure the destination directory exists.
+      $dest_dir = dirname($dest_uri);
+      try {
+        $this->fileSystem->prepareDirectory($dest_dir, FileSystemInterface::CREATE_DIRECTORY | FileSystemInterface::MODIFY_PERMISSIONS);
+        $this->fileSystem->copy($src, $dest_uri, FileSystemInterface::EXISTS_REPLACE);
+        $count++;
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('Failed to copy image file @name to @dest: @err', [
+          '@name' => $seed_filename,
+          '@dest' => $dest_uri,
+          '@err' => $e->getMessage(),
+        ]);
+      }
+    }
+
+    if ($count > 0) {
+      $this->logger->info('Copied @count image files to public files directory.', [
+        '@count' => $count,
+      ]);
+    }
+
+    return $count;
+  }
+
+  /**
    * Seed image prompt cache from content/images/prompt_cache.json.
    *
    * Schema: provider, provider_model, prompt_hash, prompt_text,
@@ -579,7 +664,10 @@ class ContentSeederService {
    *         entity_type, terrain_type, habitat_name, created, updated, hits.
    */
   public function seedPromptCache(bool $force = FALSE): int {
-    $file = $this->getContentPath() . '/images/prompt_cache.json';
+    $file = $this->getContentPath() . '/images/prompt_cache_manifest.json';
+    if (!file_exists($file)) {
+      $file = $this->getContentPath() . '/images/prompt_cache.json';
+    }
     if (!file_exists($file)) {
       return 0;
     }
@@ -615,9 +703,9 @@ class ContentSeederService {
         'style' => $row['style'] ?? '',
         'aspect_ratio' => $row['aspect_ratio'] ?? '',
         'status' => $row['status'] ?? 'ready',
-        'request_payload' => is_array($row['request_payload'] ?? NULL) ? json_encode($row['request_payload']) : ($row['request_payload'] ?? ''),
-        'response_payload' => is_array($row['response_payload'] ?? NULL) ? json_encode($row['response_payload']) : ($row['response_payload'] ?? ''),
-        'output_payload' => is_array($row['output_payload'] ?? NULL) ? json_encode($row['output_payload']) : ($row['output_payload'] ?? ''),
+        'request_payload' => $this->encodePromptCachePayload($row['request_payload'] ?? ''),
+        'response_payload' => $this->encodePromptCachePayload($row['response_payload'] ?? ''),
+        'output_payload' => $this->encodePromptCachePayload($row['output_payload'] ?? ''),
         'campaign_id' => !empty($row['campaign_id']) ? (int) $row['campaign_id'] : NULL,
         'map_id' => $row['map_id'] ?? NULL,
         'dungeon_id' => $row['dungeon_id'] ?? NULL,
@@ -712,6 +800,28 @@ class ContentSeederService {
       ['layout_data', 'contents_data', 'environment_tags', 'search_tags']
     );
 
+    $summary['loot_tables'] = $this->exportBulkTable(
+      'dungeoncrawler_content_loot_tables',
+      $base . '/loot_tables.json',
+      ['entries']
+    );
+
+    $summary['encounter_templates'] = $this->exportBulkTable(
+      'dungeoncrawler_content_encounter_templates',
+      $base . '/encounter_templates.json',
+      ['creature_slots']
+    );
+
+    $summary['quest_templates'] = $this->exportBulkTable(
+      'dungeoncrawler_content_quest_templates',
+      $base . '/quest_templates.json',
+      ['tags', 'objectives_schema', 'rewards_schema', 'prerequisites', 'story_impact']
+    );
+
+    $summary['prompt_cache'] = $this->exportPromptCacheManifest();
+
+    $summary['images'] = $this->exportImageManifest();
+
     return $summary;
   }
 
@@ -761,6 +871,344 @@ class ContentSeederService {
     }
 
     return $count;
+  }
+
+  /**
+   * Export a table to a single JSON array file.
+   *
+   * @param string $table
+   *   Table name.
+   * @param string $file
+   *   Target file path.
+   * @param array $json_fields
+   *   Fields that contain JSON strings to decode.
+   *
+   * @return int
+   *   Number of rows exported.
+   */
+  protected function exportBulkTable(string $table, string $file, array $json_fields = []): int {
+    $dir = dirname($file);
+    if (!is_dir($dir)) {
+      @mkdir($dir, 0755, TRUE);
+    }
+
+    $rows = $this->database->select($table, 't')
+      ->fields('t')
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    foreach ($rows as &$row) {
+      unset($row['id']);
+      foreach ($json_fields as $field) {
+        if (isset($row[$field]) && is_string($row[$field])) {
+          $decoded = json_decode($row[$field], TRUE);
+          if ($decoded !== NULL) {
+            $row[$field] = $decoded;
+          }
+        }
+      }
+    }
+
+    file_put_contents($file, json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    return count($rows);
+  }
+
+  /**
+   * Export image manifest from dc_generated_images + dc_generated_image_links.
+   *
+   * @return int
+   *   Number of image records exported.
+   */
+  protected function exportImageManifest(): int {
+    $base = $this->getContentPath();
+    $files_dir = $base . '/images/files';
+    $manifest_path = $base . '/images/image_manifest.json';
+
+    if (!is_dir(dirname($manifest_path))) {
+      @mkdir(dirname($manifest_path), 0755, TRUE);
+    }
+
+    $images = $this->database->select('dc_generated_images', 'i')
+      ->fields('i')
+      ->condition('deleted', 0)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    $manifest = [];
+    foreach ($images as $image) {
+      $image_id = $image['id'];
+      unset($image['id']);
+
+      // Decode JSON fields.
+      if (isset($image['generation_params']) && is_string($image['generation_params'])) {
+        $decoded = json_decode($image['generation_params'], TRUE);
+        if ($decoded !== NULL) {
+          $image['generation_params'] = $decoded;
+        }
+      }
+
+      // Get linked records.
+      $links = $this->database->select('dc_generated_image_links', 'l')
+        ->fields('l')
+        ->condition('image_id', $image_id)
+        ->execute()
+        ->fetchAll(\PDO::FETCH_ASSOC);
+
+      foreach ($links as &$link) {
+        unset($link['id']);
+        unset($link['image_id']);
+      }
+
+      $entry = ['image' => $image, 'links' => $links];
+
+      // Check seed_filename availability.
+      $filename = basename($image['file_uri'] ?? '');
+      if ($filename && is_dir($files_dir) && file_exists($files_dir . '/' . $filename)) {
+        $entry['seed_filename'] = $filename;
+      }
+
+      $manifest[] = $entry;
+    }
+
+    file_put_contents($manifest_path, json_encode($manifest, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    return count($manifest);
+  }
+
+  /**
+   * Export prompt cache metadata to a slim manifest and archive unique images.
+   *
+   * This avoids storing inline base64 image payloads in git while preserving
+   * prompt metadata and keeping image bytes available either through the main
+   * generated image manifest or a prompt-cache-specific archive file.
+   *
+   * @return int
+   *   Number of prompt cache rows exported.
+   */
+  protected function exportPromptCacheManifest(): int {
+    $base = $this->getContentPath();
+    $manifest_path = $base . '/images/prompt_cache_manifest.json';
+    $archive_dir = $base . '/images/prompt-cache-files';
+
+    if (!is_dir(dirname($manifest_path))) {
+      @mkdir(dirname($manifest_path), 0755, TRUE);
+    }
+    if (!is_dir($archive_dir)) {
+      @mkdir($archive_dir, 0755, TRUE);
+    }
+
+    $rows = $this->database->select('dungeoncrawler_content_image_prompt_cache', 't')
+      ->fields('t')
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    $generated_images = $this->database->select('dc_generated_images', 'i')
+      ->fields('i', ['image_uuid', 'file_uri', 'public_url', 'sha256', 'mime_type', 'bytes', 'width', 'height'])
+      ->condition('deleted', 0)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    $generated_by_hash = [];
+    foreach ($generated_images as $generated_image) {
+      if (!empty($generated_image['sha256'])) {
+        $generated_by_hash[$generated_image['sha256']] = $generated_image;
+      }
+    }
+
+    foreach ($rows as &$row) {
+      unset($row['id']);
+
+      $prompt_hash = $row['prompt_hash'] ?? sha1((string) json_encode($row));
+      $request_payload = $this->decodePromptCachePayload($row['request_payload'] ?? '');
+      $response_payload = $this->decodePromptCachePayload($row['response_payload'] ?? '');
+      $output_payload = $this->decodePromptCachePayload($row['output_payload'] ?? '');
+
+      $artifact = $this->extractPromptCacheImageArtifact($output_payload, $prompt_hash, $archive_dir);
+      if (!$artifact) {
+        $artifact = $this->extractPromptCacheImageArtifact($response_payload, $prompt_hash, $archive_dir);
+      }
+
+      if ($artifact && !empty($generated_by_hash[$artifact['sha256']])) {
+        $generated_image = $generated_by_hash[$artifact['sha256']];
+        $artifact = [
+          'source' => 'generated_image_manifest',
+          'image_uuid' => $generated_image['image_uuid'] ?? NULL,
+          'file_uri' => $generated_image['file_uri'] ?? NULL,
+          'public_url' => $generated_image['public_url'] ?? NULL,
+          'sha256' => $generated_image['sha256'] ?? NULL,
+          'mime_type' => $generated_image['mime_type'] ?? NULL,
+          'bytes' => isset($generated_image['bytes']) ? (int) $generated_image['bytes'] : NULL,
+          'width' => isset($generated_image['width']) ? (int) $generated_image['width'] : NULL,
+          'height' => isset($generated_image['height']) ? (int) $generated_image['height'] : NULL,
+        ];
+      }
+
+      if (is_array($request_payload)) {
+        $row['request_payload'] = $this->stripInlineImageDataFromPayload($request_payload, $artifact);
+      }
+      if (is_array($response_payload)) {
+        $row['response_payload'] = $this->stripInlineImageDataFromPayload($response_payload, $artifact);
+      }
+      if (is_array($output_payload)) {
+        $row['output_payload'] = $this->stripInlineImageDataFromPayload($output_payload, $artifact);
+      }
+
+      if ($artifact) {
+        $row['cached_image'] = $artifact;
+      }
+    }
+
+    file_put_contents($manifest_path, json_encode($rows, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+    return count($rows);
+  }
+
+  /**
+   * Decode a prompt cache payload when it is JSON-encoded.
+   *
+   * @param mixed $payload
+   *   Raw payload.
+   *
+   * @return mixed
+   *   Decoded array if JSON, otherwise the original scalar value.
+   */
+  protected function decodePromptCachePayload(mixed $payload): mixed {
+    if (!is_string($payload) || $payload === '') {
+      return $payload;
+    }
+
+    $decoded = json_decode($payload, TRUE);
+    return $decoded !== NULL ? $decoded : $payload;
+  }
+
+  /**
+   * Encode a prompt cache payload for database storage.
+   *
+   * @param mixed $payload
+   *   Payload value.
+   *
+   * @return string
+   *   Encoded payload string.
+   */
+  protected function encodePromptCachePayload(mixed $payload): string {
+    if (is_array($payload)) {
+      return json_encode($payload, JSON_UNESCAPED_SLASHES);
+    }
+    return (string) $payload;
+  }
+
+  /**
+   * Extract and persist an image artifact referenced by a data URI payload.
+   *
+   * @param mixed $payload
+   *   Decoded payload array.
+   * @param string $prompt_hash
+   *   Prompt cache key.
+   * @param string $archive_dir
+   *   Destination directory for archived prompt cache images.
+   *
+   * @return array|null
+   *   Archived image metadata or NULL if no embedded image was found.
+   */
+  protected function extractPromptCacheImageArtifact(mixed $payload, string $prompt_hash, string $archive_dir): ?array {
+    $data_uri = $this->findDataUriInPayload($payload);
+    if (!$data_uri) {
+      return NULL;
+    }
+
+    if (!preg_match('/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/', $data_uri, $matches)) {
+      return NULL;
+    }
+
+    $mime_type = $matches[1];
+    $binary = base64_decode($matches[2], TRUE);
+    if ($binary === FALSE) {
+      return NULL;
+    }
+
+    $extension = match ($mime_type) {
+      'image/jpeg' => 'jpg',
+      'image/webp' => 'webp',
+      'image/gif' => 'gif',
+      default => 'png',
+    };
+
+    $filename = $prompt_hash . '.' . $extension;
+    $path = $archive_dir . '/' . $filename;
+    if (!file_exists($path)) {
+      file_put_contents($path, $binary);
+    }
+
+    return [
+      'source' => 'prompt_cache_archive',
+      'seed_filename' => $filename,
+      'relative_path' => 'images/prompt-cache-files/' . $filename,
+      'mime_type' => $mime_type,
+      'bytes' => strlen($binary),
+      'sha256' => hash('sha256', $binary),
+    ];
+  }
+
+  /**
+   * Find a data URI anywhere inside a nested payload structure.
+   *
+   * @param mixed $payload
+   *   Payload to inspect.
+   *
+   * @return string|null
+   *   Data URI string if found.
+   */
+  protected function findDataUriInPayload(mixed $payload): ?string {
+    if (is_string($payload) && str_starts_with($payload, 'data:image/')) {
+      return $payload;
+    }
+
+    if (!is_array($payload)) {
+      return NULL;
+    }
+
+    foreach ($payload as $value) {
+      $found = $this->findDataUriInPayload($value);
+      if ($found) {
+        return $found;
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Remove inline image data from a payload and replace it with file refs.
+   *
+   * @param mixed $payload
+   *   Payload to sanitize.
+   * @param array|null $artifact
+   *   Archived or linked image metadata.
+   *
+   * @return mixed
+   *   Sanitized payload.
+   */
+  protected function stripInlineImageDataFromPayload(mixed $payload, ?array $artifact = NULL): mixed {
+    if (is_string($payload) && str_starts_with($payload, 'data:image/')) {
+      return $artifact ? '[image archived externally]' : '[image data removed]';
+    }
+
+    if (!is_array($payload)) {
+      return $payload;
+    }
+
+    foreach ($payload as $key => $value) {
+      if (is_string($value) && str_starts_with($value, 'data:image/')) {
+        unset($payload[$key]);
+        continue;
+      }
+
+      $payload[$key] = $this->stripInlineImageDataFromPayload($value, $artifact);
+    }
+
+    if ($artifact) {
+      $payload['image_ref'] = $artifact;
+    }
+
+    return $payload;
   }
 
 }

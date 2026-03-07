@@ -6,9 +6,25 @@
         "level": "1",
         "xp_budget": "60",
         "threat_level": "low",
-        "creature_slots": "[{\"role\":\"frontline\",\"count\":1,\"level_offset\":0,\"tags_required\":[\"humanoid\"]},{\"role\":\"support\",\"count\":1,\"level_offset\":-1,\"tags_required\":[\"humanoid\"]}]",
-        "environment_tags": "[\"tavern\",\"social\",\"starter\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "frontline",
+                "count": 1,
+                "level_offset": 0,
+                "tags_required": [
+                    "humanoid"
+                ]
+            },
+            {
+                "role": "support",
+                "count": 1,
+                "level_offset": -1,
+                "tags_required": [
+                    "humanoid"
+                ]
+            }
+        ],
+        "environment_tags": "[\"tavern\",\"social\",\"starter\"]"
     },
     {
         "template_id": "starter_goblin_raiders",
@@ -17,9 +33,25 @@
         "level": "1",
         "xp_budget": "80",
         "threat_level": "moderate",
-        "creature_slots": "[{\"role\":\"leader\",\"count\":1,\"level_offset\":0,\"tags_required\":[\"goblin\"]},{\"role\":\"skirmisher\",\"count\":2,\"level_offset\":-1,\"tags_required\":[\"goblin\"]}]",
-        "environment_tags": "[\"goblin\",\"warrens\",\"starter\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "leader",
+                "count": 1,
+                "level_offset": 0,
+                "tags_required": [
+                    "goblin"
+                ]
+            },
+            {
+                "role": "skirmisher",
+                "count": 2,
+                "level_offset": -1,
+                "tags_required": [
+                    "goblin"
+                ]
+            }
+        ],
+        "environment_tags": "[\"goblin\",\"warrens\",\"starter\"]"
     },
     {
         "template_id": "goblin_warband_bridge",
@@ -28,9 +60,26 @@
         "level": "2",
         "xp_budget": "80",
         "threat_level": "moderate",
-        "creature_slots": "[{\"role\":\"leader\",\"count\":1,\"level_offset\":0,\"tags_required\":[\"goblin\",\"martial\"]},{\"role\":\"skirmisher\",\"count\":2,\"level_offset\":-1,\"tags_required\":[\"goblin\"]}]",
-        "environment_tags": "[\"bridge\",\"wilderness\",\"goblin\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "leader",
+                "count": 1,
+                "level_offset": 0,
+                "tags_required": [
+                    "goblin",
+                    "martial"
+                ]
+            },
+            {
+                "role": "skirmisher",
+                "count": 2,
+                "level_offset": -1,
+                "tags_required": [
+                    "goblin"
+                ]
+            }
+        ],
+        "environment_tags": "[\"bridge\",\"wilderness\",\"goblin\"]"
     },
     {
         "template_id": "crypt_guardians_hall",
@@ -39,9 +88,25 @@
         "level": "3",
         "xp_budget": "120",
         "threat_level": "severe",
-        "creature_slots": "[{\"role\":\"frontline\",\"count\":2,\"level_offset\":0,\"tags_required\":[\"undead\"]},{\"role\":\"hazard\",\"count\":1,\"level_offset\":-1,\"tags_required\":[\"negative_energy\"]}]",
-        "environment_tags": "[\"crypt\",\"undead\",\"stone\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "frontline",
+                "count": 2,
+                "level_offset": 0,
+                "tags_required": [
+                    "undead"
+                ]
+            },
+            {
+                "role": "hazard",
+                "count": 1,
+                "level_offset": -1,
+                "tags_required": [
+                    "negative_energy"
+                ]
+            }
+        ],
+        "environment_tags": "[\"crypt\",\"undead\",\"stone\"]"
     },
     {
         "template_id": "hallway_spear_gauntlet",
@@ -50,9 +115,18 @@
         "level": "3",
         "xp_budget": "80",
         "threat_level": "moderate",
-        "creature_slots": "[{\"role\":\"hazard\",\"count\":2,\"level_offset\":0,\"tags_required\":[\"mechanical\",\"trap\"]}]",
-        "environment_tags": "[\"trap\",\"corridor\",\"mechanical\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "hazard",
+                "count": 2,
+                "level_offset": 0,
+                "tags_required": [
+                    "mechanical",
+                    "trap"
+                ]
+            }
+        ],
+        "environment_tags": "[\"trap\",\"corridor\",\"mechanical\"]"
     },
     {
         "template_id": "cistern_swarm_rush",
@@ -61,9 +135,25 @@
         "level": "4",
         "xp_budget": "80",
         "threat_level": "moderate",
-        "creature_slots": "[{\"role\":\"swarm\",\"count\":1,\"level_offset\":0,\"tags_required\":[\"swarm\"]},{\"role\":\"lurker\",\"count\":1,\"level_offset\":-1,\"tags_required\":[\"aquatic\"]}]",
-        "environment_tags": "[\"water\",\"cistern\",\"low_visibility\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "swarm",
+                "count": 1,
+                "level_offset": 0,
+                "tags_required": [
+                    "swarm"
+                ]
+            },
+            {
+                "role": "lurker",
+                "count": 1,
+                "level_offset": -1,
+                "tags_required": [
+                    "aquatic"
+                ]
+            }
+        ],
+        "environment_tags": "[\"water\",\"cistern\",\"low_visibility\"]"
     },
     {
         "template_id": "alchemy_lab_spillover",
@@ -72,9 +162,26 @@
         "level": "5",
         "xp_budget": "120",
         "threat_level": "severe",
-        "creature_slots": "[{\"role\":\"brute\",\"count\":1,\"level_offset\":0,\"tags_required\":[\"ooze\"]},{\"role\":\"hazard\",\"count\":1,\"level_offset\":-1,\"tags_required\":[\"acid\",\"alchemy\"]}]",
-        "environment_tags": "[\"alchemy\",\"acid\",\"ruins\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "brute",
+                "count": 1,
+                "level_offset": 0,
+                "tags_required": [
+                    "ooze"
+                ]
+            },
+            {
+                "role": "hazard",
+                "count": 1,
+                "level_offset": -1,
+                "tags_required": [
+                    "acid",
+                    "alchemy"
+                ]
+            }
+        ],
+        "environment_tags": "[\"alchemy\",\"acid\",\"ruins\"]"
     },
     {
         "template_id": "foundry_construct_detail",
@@ -83,9 +190,25 @@
         "level": "7",
         "xp_budget": "120",
         "threat_level": "severe",
-        "creature_slots": "[{\"role\":\"frontline\",\"count\":2,\"level_offset\":-1,\"tags_required\":[\"construct\"]},{\"role\":\"elite\",\"count\":1,\"level_offset\":1,\"tags_required\":[\"construct\"]}]",
-        "environment_tags": "[\"clockwork\",\"industrial\",\"construct\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "frontline",
+                "count": 2,
+                "level_offset": -1,
+                "tags_required": [
+                    "construct"
+                ]
+            },
+            {
+                "role": "elite",
+                "count": 1,
+                "level_offset": 1,
+                "tags_required": [
+                    "construct"
+                ]
+            }
+        ],
+        "environment_tags": "[\"clockwork\",\"industrial\",\"construct\"]"
     },
     {
         "template_id": "frozen_shrine_guardians",
@@ -94,9 +217,26 @@
         "level": "8",
         "xp_budget": "120",
         "threat_level": "severe",
-        "creature_slots": "[{\"role\":\"caster\",\"count\":1,\"level_offset\":0,\"tags_required\":[\"cold\",\"divine\"]},{\"role\":\"skirmisher\",\"count\":2,\"level_offset\":-1,\"tags_required\":[\"cold\"]}]",
-        "environment_tags": "[\"arctic\",\"shrine\",\"ice\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "caster",
+                "count": 1,
+                "level_offset": 0,
+                "tags_required": [
+                    "cold",
+                    "divine"
+                ]
+            },
+            {
+                "role": "skirmisher",
+                "count": 2,
+                "level_offset": -1,
+                "tags_required": [
+                    "cold"
+                ]
+            }
+        ],
+        "environment_tags": "[\"arctic\",\"shrine\",\"ice\"]"
     },
     {
         "template_id": "storm_summit_apex",
@@ -105,8 +245,25 @@
         "level": "12",
         "xp_budget": "160",
         "threat_level": "extreme",
-        "creature_slots": "[{\"role\":\"boss\",\"count\":1,\"level_offset\":2,\"tags_required\":[\"storm\",\"mythic\"]},{\"role\":\"support\",\"count\":2,\"level_offset\":-2,\"tags_required\":[\"elemental\"]}]",
-        "environment_tags": "[\"storm\",\"summit\",\"boss_arena\"]",
-        "encounter_data": []
+        "creature_slots": [
+            {
+                "role": "boss",
+                "count": 1,
+                "level_offset": 2,
+                "tags_required": [
+                    "storm",
+                    "mythic"
+                ]
+            },
+            {
+                "role": "support",
+                "count": 2,
+                "level_offset": -2,
+                "tags_required": [
+                    "elemental"
+                ]
+            }
+        ],
+        "environment_tags": "[\"storm\",\"summit\",\"boss_arena\"]"
     }
 ]

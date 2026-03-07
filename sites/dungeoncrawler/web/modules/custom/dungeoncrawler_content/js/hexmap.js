@@ -259,12 +259,16 @@ import { SpriteService } from './SpriteService.js';
         entityInfoPanel: document.getElementById('entity-info-panel'),
         entityName: document.getElementById('entity-name'),
         entityType: document.getElementById('entity-type'),
+        entityImageWrap: document.getElementById('entity-image-wrap'),
+        entityImage: document.getElementById('entity-image'),
+        entitySummary: document.getElementById('entity-summary'),
+        entityDescription: document.getElementById('entity-description'),
+        entityKnownDetails: document.getElementById('entity-known-details'),
         entityTeam: document.getElementById('entity-team'),
         entityHp: document.getElementById('entity-hp'),
         entityAc: document.getElementById('entity-ac'),
         entityActions: document.getElementById('entity-actions'),
         entityMovement: document.getElementById('entity-movement'),
-        selectedObjectType: document.getElementById('selected-object-type'),
         zoomLevel: document.getElementById('zoom-level'),
         hexDetailRoom: document.getElementById('hex-detail-room'),
         hexDetailTerrain: document.getElementById('hex-detail-terrain'),
@@ -636,22 +640,92 @@ import { SpriteService } from './SpriteService.js';
     showEntityInfo(entity) {
       if (!this.elements.entityInfoPanel) return;
 
+      this.elements.entityInfoPanel.classList.remove('dc-is-hidden');
       this.elements.entityInfoPanel.style.display = 'block';
+      this.elements.entityInfoPanel.setAttribute('aria-hidden', 'false');
 
+      const hexmap = this.stateManager?.hexmap || null;
       const identity = entity.getComponent('IdentityComponent');
       const stats = entity.getComponent('StatsComponent');
       const combat = entity.getComponent('CombatComponent');
       const actions = entity.getComponent('ActionsComponent');
       const movement = entity.getComponent('MovementComponent');
+      const render = entity.getComponent('RenderComponent');
+      const metadata = entity?.dcStatePayload?.metadata || {};
+      const contentId = entity?.dcContentId || entity?.entity_ref?.content_id || null;
+      const objectDefinition = hexmap?.getObjectDefinition?.(contentId) || null;
+      const spriteId = metadata.sprite_id || objectDefinition?.visual?.sprite_id || render?.spriteKey || null;
+      const imageUrl = metadata.portrait_url || metadata.portrait || (spriteId ? hexmap?.spriteService?.getCachedUrl?.(spriteId) : null) || null;
+      const displayType = objectDefinition?.category || identity?.entityType || '-';
+      const teamLabel = combat?.team || metadata.team || '-';
+      const description = metadata.description || objectDefinition?.description || metadata.item_description || '';
+      const movementValue = Number.isFinite(movement?.movementRemaining)
+        ? `${movement.movementRemaining} ft`
+        : (Number.isFinite(movement?.speed) ? `${movement.speed} ft` : (Number.isFinite(metadata?.movement_speed) ? `${metadata.movement_speed} ft` : '-'));
+      const knownSummary = [
+        metadata.role,
+        metadata.item_name,
+        objectDefinition?.label && objectDefinition?.label !== identity?.name ? objectDefinition.label : null,
+        displayType && displayType !== identity?.entityType ? displayType : null,
+      ].filter(Boolean)[0] || 'Known details';
+      const knownDetails = [];
+
+      if (teamLabel && teamLabel !== '-') {
+        knownDetails.push(`Team: ${teamLabel}`);
+      }
+      if (objectDefinition?.category) {
+        knownDetails.push(`Category: ${objectDefinition.category}`);
+      }
+      if (metadata.role) {
+        knownDetails.push(`Role: ${metadata.role}`);
+      }
+      if (metadata.collectible === true) {
+        knownDetails.push('Collectible');
+      }
+      if (typeof metadata.movable === 'boolean') {
+        knownDetails.push(metadata.movable ? 'Movable' : 'Fixed in place');
+      }
+      if (typeof metadata.passable === 'boolean') {
+        knownDetails.push(metadata.passable ? 'Passable' : 'Blocks movement');
+      }
+      if (Array.isArray(objectDefinition?.traits) && objectDefinition.traits.length) {
+        knownDetails.push(`Traits: ${objectDefinition.traits.join(', ')}`);
+      }
 
       if (this.elements.entityName) {
         this.elements.entityName.textContent = identity?.name || 'Unknown';
       }
       if (this.elements.entityType) {
-        this.elements.entityType.textContent = identity?.entityType || '-';
+        this.elements.entityType.textContent = displayType;
+      }
+      if (this.elements.entityImageWrap && this.elements.entityImage) {
+        if (imageUrl) {
+          this.elements.entityImage.src = imageUrl;
+          this.elements.entityImage.alt = `${identity?.name || 'Entity'} portrait`;
+          this.elements.entityImageWrap.classList.remove('dc-is-hidden');
+        } else {
+          this.elements.entityImage.removeAttribute('src');
+          this.elements.entityImage.alt = '';
+          this.elements.entityImageWrap.classList.add('dc-is-hidden');
+        }
+      }
+      if (this.elements.entitySummary) {
+        this.elements.entitySummary.textContent = knownSummary;
+      }
+      if (this.elements.entityDescription) {
+        this.elements.entityDescription.textContent = description || 'No additional details are known yet.';
+      }
+      if (this.elements.entityKnownDetails) {
+        if (knownDetails.length) {
+          this.elements.entityKnownDetails.innerHTML = knownDetails
+            .map((detail) => `<li>${detail}</li>`)
+            .join('');
+        } else {
+          this.elements.entityKnownDetails.innerHTML = '<li>No additional details are known yet.</li>';
+        }
       }
       if (this.elements.entityTeam) {
-        this.elements.entityTeam.textContent = combat?.team || '-';
+        this.elements.entityTeam.textContent = teamLabel;
       }
       if (this.elements.entityHp) {
         this.elements.entityHp.textContent = stats ? `${stats.currentHp}/${stats.maxHp}` : '-';
@@ -661,6 +735,9 @@ import { SpriteService } from './SpriteService.js';
       }
       if (this.elements.entityActions) {
         this.elements.entityActions.textContent = actions ? actions.getActionDisplay?.() || `${actions.actionsRemaining}/${actions.maxActions ?? actions.actionsRemaining} actions` : '-';
+      }
+      if (this.elements.entityMovement) {
+        this.elements.entityMovement.textContent = movementValue;
       }
 
       // NOTE: Character sheet (character* elements) is only populated by
@@ -984,17 +1061,9 @@ import { SpriteService } from './SpriteService.js';
      */
     hideEntityInfo() {
       if (this.elements.entityInfoPanel) {
+        this.elements.entityInfoPanel.classList.add('dc-is-hidden');
         this.elements.entityInfoPanel.style.display = 'none';
-      }
-    }
-
-    /**
-     * Update selected object type display.
-     */
-    updateSelectedObjectType(type) {
-      if (this.elements.selectedObjectType) {
-        const displayName = type ? type.charAt(0).toUpperCase() + type.slice(1) : 'None';
-        this.elements.selectedObjectType.textContent = `Selected: ${displayName}`;
+        this.elements.entityInfoPanel.setAttribute('aria-hidden', 'true');
       }
     }
 
@@ -2049,7 +2118,6 @@ import { SpriteService } from './SpriteService.js';
         selectedEntity: null,
         selectedHex: null,
         hoveredHex: null,
-        selectedObjectType: null,
         
         // Movement state
         movementRange: null,
@@ -2115,7 +2183,6 @@ import { SpriteService } from './SpriteService.js';
         selectedEntity: null,
         selectedHex: null,
         hoveredHex: null,
-        selectedObjectType: null,
         movementRange: null,
         movementRangeOverlay: null,
         combatActive: false,
@@ -2527,12 +2594,6 @@ import { SpriteService } from './SpriteService.js';
      */
     setupStateSubscriptions: function () {
       this.stateSubscriptions.push(
-        this.stateManager.subscribe('selectedObjectType', (value) => {
-          this.uiManager.updateSelectedObjectType(value);
-        })
-      );
-
-      this.stateSubscriptions.push(
         this.stateManager.subscribe('showGrid', (value) => {
           if (this.gridContainer) {
             this.gridContainer.visible = value;
@@ -2545,9 +2606,6 @@ import { SpriteService } from './SpriteService.js';
           this.refreshFogOfWar();
         })
       );
-
-
-      this.uiManager.updateSelectedObjectType(this.stateManager.get('selectedObjectType'));
     },
 
     /**
@@ -2985,8 +3043,11 @@ import { SpriteService } from './SpriteService.js';
         return;
       }
 
-      const entitiesAtHex = this.getLiveEntitiesAtHex(q, r);
-      const shouldShowLabels = Boolean(visible) && entitiesAtHex.length > 1;
+      // Keep in-world hover labels disabled to avoid screen-filling text.
+      // Exact hover/click feedback is provided through the HUD panels and the
+      // spread click targets instead of rendering every name over the map.
+      this.hideAllEntityLabels();
+      const shouldShowLabels = false;
 
       const entities = this.entityManager.getEntitiesWith('PositionComponent', 'RenderComponent');
       entities.forEach((entity) => {
@@ -3153,13 +3214,59 @@ import { SpriteService } from './SpriteService.js';
           return;
         }
 
-        this.setEntityLabelsForHex(q, r, false);
-        this.setEntitySpreadForHex(q, r, false);
-        this.clearSpreadInteractionTargets();
-        this.uiManager.updateHoveredHex(null, null);
-        this.uiManager.updateHoveredObject('None');
-        this.uiManager.updateHexDetails(null);
-      }, 0);
+        this.clearCrowdedHexHoverState(q, r);
+      }, 120);
+    },
+
+    /**
+     * Collapse temporary crowded-hex hover state and restore idle UI.
+     * @param {?number} q
+     * @param {?number} r
+     */
+    clearCrowdedHexHoverState: function (q = null, r = null) {
+      if (this._spreadClearTimer) {
+        clearTimeout(this._spreadClearTimer);
+        this._spreadClearTimer = null;
+      }
+
+      const targets = [];
+      const addTarget = (targetQ, targetR) => {
+        if (!Number.isFinite(targetQ) || !Number.isFinite(targetR)) {
+          return;
+        }
+        const key = `${targetQ}:${targetR}`;
+        if (targets.some((target) => target.key === key)) {
+          return;
+        }
+        targets.push({ key, q: targetQ, r: targetR });
+      };
+
+      addTarget(q, r);
+
+      const hoveredHex = this.stateManager.get('hoveredHex');
+      if (hoveredHex?.hexData) {
+        addTarget(hoveredHex.hexData.q, hoveredHex.hexData.r);
+      }
+
+      targets.forEach((target) => {
+        this.setEntityLabelsForHex(target.q, target.r, false);
+        this.setEntitySpreadForHex(target.q, target.r, false);
+
+        const renderedHex = this.findHexByCoords(target.q, target.r);
+        if (renderedHex && this.stateManager.get('selectedHex') !== renderedHex) {
+          this.resetHexAppearance(renderedHex);
+        }
+        if (renderedHex?.hexCoordText) {
+          renderedHex.hexCoordText.visible = Boolean(this.stateManager.get('showCoordinates'));
+        }
+      });
+
+      this.clearSpreadInteractionTargets();
+      this._spreadHoverAnchorKey = null;
+      this.stateManager.set('hoveredHex', null);
+      this.uiManager.updateHoveredHex(null, null);
+      this.uiManager.updateHoveredObject('None');
+      this.uiManager.updateHexDetails(null);
     },
 
     /**
@@ -3255,6 +3362,7 @@ import { SpriteService } from './SpriteService.js';
       }
       if (previousHover?.hexData) {
         this.setEntityLabelsForHex(previousHover.hexData.q, previousHover.hexData.r, false);
+        this.setEntitySpreadForHex(previousHover.hexData.q, previousHover.hexData.r, false);
         this.clearSpreadInteractionTargets();
       }
 
@@ -3363,6 +3471,7 @@ import { SpriteService } from './SpriteService.js';
       }
 
       this.uiManager.showEntityInfo(entity);
+      this.clearCrowdedHexHoverState(q, r);
       if (this.uiManager.elements.actionInstruction) {
         const identity = entity.getComponent('IdentityComponent');
         this.uiManager.elements.actionInstruction.textContent = `Inspecting ${identity?.name || 'entity'} in hex (${q}, ${r}).`;
@@ -3385,37 +3494,7 @@ import { SpriteService } from './SpriteService.js';
         return;
       }
       
-      // Mode 1: Object placement mode
-      const selectedObjectType = this.stateManager.get('selectedObjectType');
-      if (selectedObjectType) {
-        // Map object type to EntityType
-        let entityType;
-        let name;
-        switch (selectedObjectType) {
-          case 'creature':
-            entityType = EntityType.CREATURE;
-            name = 'Creature';
-            break;
-          case 'item':
-            entityType = EntityType.ITEM;
-            name = 'Item';
-            break;
-          case 'obstacle':
-            entityType = EntityType.OBSTACLE;
-            name = 'Obstacle';
-            break;
-          default:
-            entityType = EntityType.CREATURE;
-            name = 'Unknown';
-        }
-        
-        // Create entity using ECS (components are auto-added based on type)
-        this.createEntityObject(q, r, entityType, name, null);
-        
-        return;
-      }
-
-      // Mode 1.5: Room transition if hex is a passable room connection endpoint.
+      // Mode 1: Room transition if hex is a passable room connection endpoint.
       if (this.tryTransitionAtHex(q, r)) {
         return;
       }
@@ -5310,6 +5389,14 @@ import { SpriteService } from './SpriteService.js';
       
       this.app.view.addEventListener('wheel', wheelHandler);
       this.eventListeners.push({ element: this.app.view, event: 'wheel', handler: wheelHandler });
+
+      const leaveHandler = function () {
+        isDragging = false;
+        self.clearCrowdedHexHoverState();
+      };
+
+      this.app.view.addEventListener('mouseleave', leaveHandler);
+      this.eventListeners.push({ element: this.app.view, event: 'mouseleave', handler: leaveHandler });
     },
 
     /**
@@ -5829,6 +5916,7 @@ import { SpriteService } from './SpriteService.js';
         const created = this.createEntityObject(q, r, entityType, entityName, null, options);
         if (created) {
           created.dcEntityRef = entity?.instance_id || entity?.entity_ref?.content_id || null;
+          created.dcContentId = contentId || null;
           created.dcCharacterId = Number(metadata.character_id || entity?.character_id || 0) || null;
           created.dcStatePayload = entity?.state || null;
         }

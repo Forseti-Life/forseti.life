@@ -547,13 +547,24 @@
     <div class="info-panel dc-is-hidden" id="entity-info-panel">
       <h3>{{ 'Selected Entity'|t }}</h3>
       <div class="info-content">
+        <div class="entity-inspect-media dc-is-hidden" id="entity-image-wrap">
+          <img id="entity-image" src="" alt="" loading="lazy">
+        </div>
         <p><strong>{{ 'Name:'|t }}</strong> <span id="entity-name">-</span></p>
         <p><strong>{{ 'Type:'|t }}</strong> <span id="entity-type">-</span></p>
+        <p><strong>{{ 'Summary:'|t }}</strong> <span id="entity-summary">-</span></p>
         <p><strong>{{ 'Team:'|t }}</strong> <span id="entity-team">-</span></p>
         <p><strong>{{ 'HP:'|t }}</strong> <span id="entity-hp">-</span></p>
         <p><strong>{{ 'AC:'|t }}</strong> <span id="entity-ac">-</span></p>
         <p><strong>{{ 'Actions:'|t }}</strong> <span id="entity-actions">-</span></p>
         <p><strong>{{ 'Movement:'|t }}</strong> <span id="entity-movement">-</span></p>
+        <p><strong>{{ 'Description:'|t }}</strong> <span id="entity-description">-</span></p>
+        <div class="entity-known-block">
+          <strong>{{ 'Known Details:'|t }}</strong>
+          <ul id="entity-known-details" class="entity-known-list">
+            <li>{{ 'No additional details are known yet.'|t }}</li>
+          </ul>
+        </div>
       </div>
     </div>
     

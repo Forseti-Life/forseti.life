@@ -492,6 +492,7 @@ services:
       - '@database'
       - '@logger.factory'
       - '@extension.list.module'
+      - '@file_system'
 
   dungeoncrawler_content.ai_gm:
     class: Drupal\dungeoncrawler_content\Service\AiGmService
