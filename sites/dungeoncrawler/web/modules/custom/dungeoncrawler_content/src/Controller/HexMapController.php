@@ -1810,6 +1810,8 @@ class HexMapController extends ControllerBase {
             'stackable' => isset($object['stackable']) ? (bool) $object['stackable'] : FALSE,
             'movement' => [
               'passable' => $passable,
+              'blocks_movement' => !$passable,
+              'cost_multiplier' => $passable ? 1 : 999,
             ],
             'visual' => array_filter([
               'sprite_id' => $sprite_id,

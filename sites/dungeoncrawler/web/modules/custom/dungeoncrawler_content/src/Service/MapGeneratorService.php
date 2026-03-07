@@ -704,7 +704,7 @@ Respond with this exact JSON structure:
     {
       "object_id": "snake_case_id",
       "label": "Display Name",
-      "category": "furniture/container/decoration/obstacle",
+      "category": "bar/table/stool/crate/door/decor/wall/custom",
       "description": "Brief description",
       "passable": true,
       "interactable": true
@@ -834,7 +834,7 @@ PROMPT;
       return [
         'object_id' => $obj['object_id'] ?? strtolower(preg_replace('/[^a-z0-9]+/i', '_', $obj['label'] ?? 'obj_' . uniqid())),
         'label' => $obj['label'] ?? 'Object',
-        'category' => $obj['category'] ?? 'furniture',
+        'category' => $obj['category'] ?? 'custom',
         'description' => $obj['description'] ?? '',
         'passable' => $obj['passable'] ?? TRUE,
         'interactable' => $obj['interactable'] ?? FALSE,
