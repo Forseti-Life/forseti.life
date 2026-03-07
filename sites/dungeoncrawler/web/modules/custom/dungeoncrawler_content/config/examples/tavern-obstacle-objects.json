@@ -21,7 +21,10 @@
         "blocks_movement": false,
         "cost_multiplier": 1
       },
-      "tags": ["door", "transition"],
+      "tags": [
+        "door",
+        "transition"
+      ],
       "size": "large",
       "weight": "10",
       "interaction": {
@@ -49,10 +52,14 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["bar", "fixture", "cover"],
+      "tags": [
+        "bar",
+        "fixture",
+        "cover"
+      ],
       "size": "large",
       "visual": {
-        "sprite_id": "table_long_wood_end",
+        "sprite_id": "bar_counter_wood_a",
         "color": "#654321",
         "orientation": "se"
       },
@@ -70,10 +77,14 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["bar", "fixture", "cover"],
+      "tags": [
+        "bar",
+        "fixture",
+        "cover"
+      ],
       "size": "large",
       "visual": {
-        "sprite_id": "table_long_wood_end",
+        "sprite_id": "bar_counter_wood_b",
         "color": "#654321",
         "orientation": "se"
       },
@@ -91,10 +102,14 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["bar", "fixture", "cover"],
+      "tags": [
+        "bar",
+        "fixture",
+        "cover"
+      ],
       "size": "large",
       "visual": {
-        "sprite_id": "table_long_wood_end",
+        "sprite_id": "bar_counter_wood_c",
         "color": "#654321",
         "orientation": "se"
       },
@@ -112,7 +127,11 @@
         "blocks_movement": true,
         "cost_multiplier": 2
       },
-      "tags": ["table", "furniture", "cover"],
+      "tags": [
+        "table",
+        "furniture",
+        "cover"
+      ],
       "size": "medium",
       "weight": "5",
       "interaction": {
@@ -138,7 +157,11 @@
         "blocks_movement": true,
         "cost_multiplier": 2
       },
-      "tags": ["table", "furniture", "cover"],
+      "tags": [
+        "table",
+        "furniture",
+        "cover"
+      ],
       "size": "large",
       "weight": "10",
       "interaction": {
@@ -166,7 +189,11 @@
         "blocks_movement": true,
         "cost_multiplier": 2
       },
-      "tags": ["table", "furniture", "cover"],
+      "tags": [
+        "table",
+        "furniture",
+        "cover"
+      ],
       "size": "large",
       "weight": "10",
       "interaction": {
@@ -194,7 +221,11 @@
         "blocks_movement": true,
         "cost_multiplier": 2
       },
-      "tags": ["table", "furniture", "cover"],
+      "tags": [
+        "table",
+        "furniture",
+        "cover"
+      ],
       "size": "large",
       "weight": "10",
       "interaction": {
@@ -222,7 +253,11 @@
         "blocks_movement": false,
         "cost_multiplier": 1.5
       },
-      "tags": ["stool", "furniture", "stack"],
+      "tags": [
+        "stool",
+        "furniture",
+        "stack"
+      ],
       "size": "small",
       "weight": "L",
       "interaction": {
@@ -248,7 +283,12 @@
         "blocks_movement": true,
         "cost_multiplier": 3
       },
-      "tags": ["crate", "storage", "stack", "cover"],
+      "tags": [
+        "crate",
+        "storage",
+        "stack",
+        "cover"
+      ],
       "size": "medium",
       "weight": "5",
       "interaction": {
@@ -263,25 +303,6 @@
       }
     },
     {
-      "object_id": "tavern_wall_segment",
-      "label": "Tavern Wall Segment",
-      "category": "wall",
-      "description": "Fixed perimeter wall segment used to delineate room boundaries in the tavern staging area.",
-      "movable": false,
-      "stackable": false,
-      "movement": {
-        "passable": false,
-        "blocks_movement": true,
-        "cost_multiplier": 999
-      },
-      "tags": ["wall", "fixture", "boundary", "cover"],
-      "size": "large",
-      "visual": {
-        "sprite_id": "wall_stone_flat",
-        "color": "#696969"
-      }
-    },
-    {
       "object_id": "wall_log_flat",
       "label": "Log Wall Flat",
       "category": "wall",
@@ -293,7 +314,13 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "wood", "palisade", "boundary", "cover"],
+      "tags": [
+        "wall",
+        "wood",
+        "palisade",
+        "boundary",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_log_flat",
@@ -313,7 +340,15 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "wood", "palisade", "corner", "acute", "boundary", "cover"],
+      "tags": [
+        "wall",
+        "wood",
+        "palisade",
+        "corner",
+        "acute",
+        "boundary",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_log_corner_acute",
@@ -333,7 +368,15 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "wood", "palisade", "corner", "obtuse", "boundary", "cover"],
+      "tags": [
+        "wall",
+        "wood",
+        "palisade",
+        "corner",
+        "obtuse",
+        "boundary",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_log_corner_obtuse",
@@ -353,7 +396,13 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "stone", "fortress", "boundary", "cover"],
+      "tags": [
+        "wall",
+        "stone",
+        "fortress",
+        "boundary",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_stone_flat",
@@ -373,7 +422,15 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "stone", "fortress", "boundary", "cover", "flat", "east_west"],
+      "tags": [
+        "wall",
+        "stone",
+        "fortress",
+        "boundary",
+        "cover",
+        "flat",
+        "east_west"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_stone_flat_ew",
@@ -392,7 +449,15 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "stone", "fortress", "boundary", "cover", "flat", "north_south"],
+      "tags": [
+        "wall",
+        "stone",
+        "fortress",
+        "boundary",
+        "cover",
+        "flat",
+        "north_south"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_stone_flat_ns",
@@ -411,7 +476,15 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "stone", "fortress", "corner", "acute", "boundary", "cover"],
+      "tags": [
+        "wall",
+        "stone",
+        "fortress",
+        "corner",
+        "acute",
+        "boundary",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_stone_corner_acute",
@@ -431,7 +504,15 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["wall", "stone", "fortress", "corner", "obtuse", "boundary", "cover"],
+      "tags": [
+        "wall",
+        "stone",
+        "fortress",
+        "corner",
+        "obtuse",
+        "boundary",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "wall_stone_corner_obtuse",
@@ -451,7 +532,13 @@
         "blocks_movement": true,
         "cost_multiplier": 999
       },
-      "tags": ["decor", "fixture", "light_source", "fire", "cover"],
+      "tags": [
+        "decor",
+        "fixture",
+        "light_source",
+        "fire",
+        "cover"
+      ],
       "size": "large",
       "visual": {
         "sprite_id": "fireplace_stone_lit",
@@ -470,11 +557,36 @@
         "blocks_movement": false,
         "cost_multiplier": 1
       },
-      "tags": ["decor", "floor"],
+      "tags": [
+        "decor",
+        "floor"
+      ],
       "size": "medium",
       "visual": {
         "sprite_id": "rug_decorative_red",
         "color": "#8B0000"
+      }
+    },
+    {
+      "object_id": "compass_orientation_reference",
+      "label": "Compass Orientation Marker",
+      "category": "decor",
+      "description": "A decorative compass rose embedded in the floor, used as a directional reference for map orientation. Purely cosmetic \u2014 does not block movement.",
+      "movable": false,
+      "stackable": false,
+      "movement": {
+        "passable": true,
+        "blocks_movement": false,
+        "cost_multiplier": 1
+      },
+      "tags": [
+        "decor",
+        "floor",
+        "reference"
+      ],
+      "visual": {
+        "sprite_id": "compass1",
+        "color": "#22c55e"
       }
     }
   ]

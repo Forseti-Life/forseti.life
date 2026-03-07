@@ -1893,7 +1893,7 @@
       ],
       "size": "large",
       "visual": {
-        "sprite_id": "table_long_wood_end",
+        "sprite_id": "bar_counter_wood_a",
         "color": "#654321",
         "orientation": "se"
       },
@@ -1918,7 +1918,7 @@
       ],
       "size": "large",
       "visual": {
-        "sprite_id": "table_long_wood_end",
+        "sprite_id": "bar_counter_wood_b",
         "color": "#654321",
         "orientation": "se"
       },
@@ -1943,7 +1943,7 @@
       ],
       "size": "large",
       "visual": {
-        "sprite_id": "table_long_wood_end",
+        "sprite_id": "bar_counter_wood_c",
         "color": "#654321",
         "orientation": "se"
       },
@@ -2184,30 +2184,6 @@
       }
     },
     "12": {
-      "object_id": "tavern_wall_segment",
-      "label": "Tavern Wall Segment",
-      "category": "wall",
-      "description": "Fixed perimeter wall segment used to delineate room boundaries in the tavern staging area.",
-      "movable": false,
-      "stackable": false,
-      "movement": {
-        "passable": false,
-        "blocks_movement": true,
-        "cost_multiplier": 999
-      },
-      "tags": [
-        "wall",
-        "fixture",
-        "boundary",
-        "cover"
-      ],
-      "size": "large",
-      "visual": {
-        "sprite_id": "wall_stone_flat",
-        "color": "#696969"
-      }
-    },
-    "13": {
       "object_id": "wall_stone_corner_acute",
       "label": "Stone Wall Corner Acute",
       "category": "wall",
@@ -2235,7 +2211,7 @@
         "prompt": "A top-down orthographic 2D map tile of a sturdy grey stone fortress wall turning through an acute corner inside a hexagonal frame. The wall is made of heavy weathered masonry blocks with visible mortar and crenellations. The ground is a neutral stone floor texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
       }
     },
-    "14": {
+    "13": {
       "object_id": "wall_stone_corner_obtuse",
       "label": "Stone Wall Corner Obtuse",
       "category": "wall",
@@ -2263,7 +2239,7 @@
         "prompt": "A top-down orthographic 2D map tile of a sturdy grey stone fortress wall turning through an obtuse corner inside a hexagonal frame. The wall is made of heavy weathered masonry blocks with visible mortar and crenellations. The ground is a neutral stone floor texture. Clean hexagonal border, tabletop RPG style, flat lighting, high detail, white background."
       }
     },
-    "15": {
+    "14": {
       "object_id": "wall_stone_flat_ew",
       "label": "Stone Wall Flat EW",
       "category": "wall",
@@ -2290,7 +2266,7 @@
         "color": "#696969"
       }
     },
-    "16": {
+    "15": {
       "object_id": "wall_stone_flat_ns",
       "label": "Stone Wall Flat NS",
       "category": "wall",
@@ -2317,7 +2293,7 @@
         "color": "#696969"
       }
     },
-    "compass_orientation_reference": {
+    "16": {
       "object_id": "compass_orientation_reference",
       "label": "Compass Orientation Marker",
       "category": "decor",
@@ -2337,7 +2313,8 @@
       },
       "movement": {
         "passable": true,
-        "cost_modifier": 1
+        "cost_multiplier": 1,
+        "blocks_movement": false
       }
     }
   }

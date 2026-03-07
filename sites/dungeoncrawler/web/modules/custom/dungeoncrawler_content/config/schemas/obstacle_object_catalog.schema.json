@@ -84,8 +84,8 @@
           },
           "category": {
             "type": "string",
-            "enum": ["bar", "table", "stool", "crate", "door", "decor", "custom"],
-            "description": "Coarse grouping used for styling/filtering. Common categories: bar (fixed counters), table (movable furniture), stool (seating), crate (storage), door (transitions), decor (non-functional), custom (other)."
+            "enum": ["bar", "table", "stool", "crate", "door", "decor", "wall", "custom"],
+            "description": "Coarse grouping used for styling/filtering. Common categories: bar (fixed counters), table (movable furniture), stool (seating), crate (storage), door (transitions), decor (non-functional), wall (structural barriers), custom (other)."
           },
           "description": {
             "type": ["string", "null"],
