@@ -74,6 +74,7 @@ class CampaignInitializationService {
   ): int {
     $now = $this->time->getRequestTime();
 
+    $transaction = $this->database->startTransaction('campaign_init');
     try {
       // 1. Create campaign record
       $campaign_id = $this->createCampaign($uid, $name, $theme, $difficulty, $now);
@@ -84,6 +85,7 @@ class CampaignInitializationService {
       // 2. Create default starter dungeon
       $dungeon_id = $this->createStarterDungeon($campaign_id, $theme, $now);
       if (!$dungeon_id) {
+        $transaction->rollBack();
         $this->logger->error('Failed to create starter dungeon for campaign {campaign_id}', [
           'campaign_id' => $campaign_id,
         ]);
@@ -92,6 +94,7 @@ class CampaignInitializationService {
 
       // 3. Load Tavern Entrance room and content
       if (!$this->loadTavernEntranceRoom($campaign_id, $now)) {
+        $transaction->rollBack();
         $this->logger->error('Failed to load tavern entrance for campaign {campaign_id}', [
           'campaign_id' => $campaign_id,
         ]);
@@ -113,6 +116,9 @@ class CampaignInitializationService {
       return $campaign_id;
     }
     catch (\Exception $e) {
+      if (isset($transaction)) {
+        $transaction->rollBack();
+      }
       $this->logger->error('Campaign initialization failed: {error}', ['error' => $e->getMessage()]);
       return 0;
     }
@@ -196,7 +202,23 @@ class CampaignInitializationService {
       $obstacle_path = $this->getModulePath() . '/config/examples/tavern-obstacle-objects.json';
       $obstacle_catalog = $this->readJsonFile($obstacle_path);
       if (is_array($obstacle_catalog) && !empty($obstacle_catalog['objects'])) {
-        $seed_payload['object_definitions'] = $obstacle_catalog['objects'];
+        // Merge catalog definitions into the seed payload's existing definitions.
+        // Index by object_id so the catalog augments (not overwrites) the seed.
+        $existing_defs = [];
+        foreach (($seed_payload['object_definitions'] ?? []) as $def) {
+          if (is_array($def) && !empty($def['object_id'])) {
+            $existing_defs[$def['object_id']] = $def;
+          }
+        }
+        foreach ($obstacle_catalog['objects'] as $catalog_def) {
+          if (is_array($catalog_def) && !empty($catalog_def['object_id'])) {
+            $oid = $catalog_def['object_id'];
+            if (!isset($existing_defs[$oid])) {
+              $existing_defs[$oid] = $catalog_def;
+            }
+          }
+        }
+        $seed_payload['object_definitions'] = array_values($existing_defs);
       }
 
       $this->database->insert('dc_campaign_dungeons')
@@ -322,30 +344,12 @@ class CampaignInitializationService {
     $room_name = 'Tavern Entrance';
     $room_description = 'You stand in the entrance of a well-established tavern. The common room is warm and comfortable, with flickering candlelight casting dancing shadows across wooden walls. The air smells of ale, bread, and hearth smoke.';
 
+    // Room layout data is authoritative from the dungeon seed payload
+    // (dc_campaign_dungeons.dungeon_data). This field stores a reference
+    // marker; the real hex grid lives in the dungeon data.
     $layout_data = [
-      'dimensions' => [
-        'hex_radius' => 6,
-        'width' => 13,
-        'height' => 13,
-      ],
-      'terrain_grid' => [
-        ['q' => 0, 'r' => 0, 'type' => 'floor'],
-        ['q' => 1, 'r' => 0, 'type' => 'floor'],
-        ['q' => 2, 'r' => 0, 'type' => 'floor'],
-        ['q' => 3, 'r' => 0, 'type' => 'floor'],
-        ['q' => -1, 'r' => 0, 'type' => 'floor'],
-        ['q' => -2, 'r' => 0, 'type' => 'wall'],
-        ['q' => 0, 'r' => 1, 'type' => 'floor'],
-        ['q' => 1, 'r' => 1, 'type' => 'floor'],
-        ['q' => 2, 'r' => 1, 'type' => 'floor'],
-        ['q' => 0, 'r' => -1, 'type' => 'floor'],
-        ['q' => 1, 'r' => -1, 'type' => 'floor'],
-        ['q' => -1, 'r' => 1, 'type' => 'wall'],
-      ],
-      'safe_zones' => [
-        ['q' => 0, 'r' => 0, 'radius' => 2],
-      ],
-      'exits' => [],
+      'source' => 'dungeon_data',
+      'note' => 'Hex grid is authoritative from dc_campaign_dungeons.dungeon_data. This field is retained for schema compatibility.',
     ];
 
     $contents_data = [

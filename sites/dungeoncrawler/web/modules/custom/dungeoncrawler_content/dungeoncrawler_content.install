@@ -2930,13 +2930,20 @@ function dungeoncrawler_content_update_10009() {
   $database = \Drupal::database();
   $schema_handler = $database->schema();
   $messages = [];
+  $table_name = 'combat_participants';
 
   try {
+    if (!$schema_handler->tableExists($table_name)) {
+      return t('Skipped combat participant coordinate migration: @table table does not exist on this site.', [
+        '@table' => $table_name,
+      ]);
+    }
+
     // Check if old columns exist
-    $has_x = $schema_handler->fieldExists('combat_participants', 'position_x');
-    $has_y = $schema_handler->fieldExists('combat_participants', 'position_y');
-    $has_q = $schema_handler->fieldExists('combat_participants', 'position_q');
-    $has_r = $schema_handler->fieldExists('combat_participants', 'position_r');
+    $has_x = $schema_handler->fieldExists($table_name, 'position_x');
+    $has_y = $schema_handler->fieldExists($table_name, 'position_y');
+    $has_q = $schema_handler->fieldExists($table_name, 'position_q');
+    $has_r = $schema_handler->fieldExists($table_name, 'position_r');
 
     // If new columns already exist and old ones don't, migration already done
     if ($has_q && $has_r && !$has_x && !$has_y) {
@@ -2945,23 +2952,23 @@ function dungeoncrawler_content_update_10009() {
 
     // Add new columns if they don't exist
     if (!$has_q) {
-      $schema_handler->addField('combat_participants', 'position_q', $schema['combat_participants']['fields']['position_q']);
+      $schema_handler->addField($table_name, 'position_q', $schema['combat_participants']['fields']['position_q']);
       $messages[] = 'Added position_q column';
     }
     if (!$has_r) {
-      $schema_handler->addField('combat_participants', 'position_r', $schema['combat_participants']['fields']['position_r']);
+      $schema_handler->addField($table_name, 'position_r', $schema['combat_participants']['fields']['position_r']);
       $messages[] = 'Added position_r column';
     }
 
     // Migrate data: Assume x=q, y=r for simplicity (1:1 mapping)
     // In production, you may need more sophisticated coordinate conversion
     if ($has_x && $has_y) {
-      $database->query('UPDATE {combat_participants} SET position_q = position_x, position_r = position_y WHERE position_q IS NULL OR position_r IS NULL');
+      $database->query('UPDATE {' . $table_name . '} SET position_q = position_x, position_r = position_y WHERE position_q IS NULL OR position_r IS NULL');
       $messages[] = 'Migrated position data from (x, y) to (q, r)';
 
       // Drop old columns
-      $schema_handler->dropField('combat_participants', 'position_x');
-      $schema_handler->dropField('combat_participants', 'position_y');
+      $schema_handler->dropField($table_name, 'position_x');
+      $schema_handler->dropField($table_name, 'position_y');
       $messages[] = 'Dropped position_x and position_y columns';
     }
 
