@@ -72,13 +72,14 @@ export class SpriteService {
   /**
    * Batch-resolve sprite URLs from the server.
    * Calls POST /api/sprites/resolve with object_definitions.
+   * The server checks its cache (campaign then library/global) and only
+   * generates new images for truly missing sprites.
    *
    * @param {Object} neededDefs - Map of contentId → object_definition
    * @param {number|null} campaignId
-   * @param {boolean} generate - Whether the server should generate missing sprites.
    * @returns {Promise<Object<string, {url: string|null, generated: boolean, cached: boolean}>>}
    */
-  async fetchBatch(neededDefs, campaignId = null, generate = true) {
+  async fetchBatch(neededDefs, campaignId = null) {
     try {
       const response = await fetch('/api/sprites/resolve', {
         method: 'POST',
@@ -87,7 +88,6 @@ export class SpriteService {
         body: JSON.stringify({
           campaign_id: campaignId,
           object_definitions: neededDefs,
-          generate,
         }),
       });
 
@@ -299,7 +299,7 @@ export class SpriteService {
 
     this._resolveInFlight = true;
     try {
-      await this.fetchBatch(neededDefs, campaignId, true);
+      await this.fetchBatch(neededDefs, campaignId);
     } finally {
       // Always apply cached sprites (including pre-cached portrait URLs)
       // regardless of whether furniture sprite resolution succeeded.
