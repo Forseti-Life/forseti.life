@@ -22,6 +22,15 @@ class HexMapController extends ControllerBase {
   protected Connection $database;
   protected QuestTrackerService $questTracker;
   protected GeneratedImageRepository $imageRepository;
+
+  /**
+   * Per-request cache of room contents_data to avoid redundant DB reads.
+   *
+   * Keyed by "{campaign_id}:{room_id}".
+   *
+   * @var array<string, array|null>
+   */
+  protected array $roomContentsCache = [];
   public function __construct(RequestStack $request_stack, Connection $database, QuestTrackerService $quest_tracker, GeneratedImageRepository $image_repository) {
     $this->requestStack = $request_stack;
     $this->database = $database;
@@ -721,35 +730,8 @@ class HexMapController extends ControllerBase {
       return $dungeon_payload;
     }
 
-    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
-      ->fields('r', ['contents_data'])
-      ->condition('campaign_id', $campaign_id)
-      ->condition('room_id', $room_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    // Fallback: active_room_id may be canonical UUID while room templates are
-    // keyed by logical room slug from launch context (e.g. tavern_entrance).
-    if (($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') && !empty($launch_context['room_id'])) {
-      $fallback_room_id = (string) $launch_context['room_id'];
-      if ($fallback_room_id !== '' && $fallback_room_id !== $room_id) {
-        $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
-          ->fields('r', ['contents_data'])
-          ->condition('campaign_id', $campaign_id)
-          ->condition('room_id', $fallback_room_id)
-          ->range(0, 1)
-          ->execute()
-          ->fetchField();
-      }
-    }
-
-    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
-      return $dungeon_payload;
-    }
-
-    $contents_data = json_decode((string) $raw_contents, TRUE);
-    if (!is_array($contents_data)) {
+    $contents_data = $this->loadRoomContentsData($campaign_id, $room_id, $dungeon_payload, $launch_context);
+    if ($contents_data === NULL) {
       return $dungeon_payload;
     }
 
@@ -1207,25 +1189,8 @@ class HexMapController extends ControllerBase {
       return $dungeon_payload;
     }
 
-    $db_room_id = $this->resolveDbRoomSlug($campaign_id, $room_id, $dungeon_payload);
-    if ($db_room_id === NULL) {
-      return $dungeon_payload;
-    }
-
-    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
-      ->fields('r', ['contents_data'])
-      ->condition('campaign_id', $campaign_id)
-      ->condition('room_id', $db_room_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
-      return $dungeon_payload;
-    }
-
-    $contents_data = json_decode((string) $raw_contents, TRUE);
-    if (!is_array($contents_data)) {
+    $contents_data = $this->loadRoomContentsData($campaign_id, $room_id, $dungeon_payload, $launch_context);
+    if ($contents_data === NULL) {
       return $dungeon_payload;
     }
 
@@ -1348,25 +1313,8 @@ class HexMapController extends ControllerBase {
       return $dungeon_payload;
     }
 
-    $db_room_id = $this->resolveDbRoomSlug($campaign_id, $room_id, $dungeon_payload);
-    if ($db_room_id === NULL) {
-      return $dungeon_payload;
-    }
-
-    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
-      ->fields('r', ['contents_data'])
-      ->condition('campaign_id', $campaign_id)
-      ->condition('room_id', $db_room_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
-      return $dungeon_payload;
-    }
-
-    $contents_data = json_decode((string) $raw_contents, TRUE);
-    if (!is_array($contents_data)) {
+    $contents_data = $this->loadRoomContentsData($campaign_id, $room_id, $dungeon_payload, $launch_context);
+    if ($contents_data === NULL) {
       return $dungeon_payload;
     }
 
@@ -2153,6 +2101,71 @@ class HexMapController extends ControllerBase {
    * @return string|null
    *   The DB room_id (slug) or NULL if not found.
    */
+  /**
+   * Load and cache room contents_data for a campaign/room pair.
+   *
+   * Avoids redundant DB reads when multiple injection methods (items,
+   * barkeep, NPCs) all need the same contents_data from dc_campaign_rooms.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $room_id
+   *   Room ID (slug or UUID).
+   * @param array $dungeon_payload
+   *   Current dungeon payload for fallback room resolution.
+   * @param array $launch_context
+   *   Launch context for fallback room_id.
+   *
+   * @return array|null
+   *   Decoded contents_data array, or NULL if not found.
+   */
+  protected function loadRoomContentsData(int $campaign_id, string $room_id, array $dungeon_payload = [], array $launch_context = []): ?array {
+    // Try the DB-slug form first (barkeep + NPC methods use this).
+    $db_room_id = $this->resolveDbRoomSlug($campaign_id, $room_id, $dungeon_payload);
+    $effective_id = $db_room_id ?? $room_id;
+
+    $cache_key = $campaign_id . ':' . $effective_id;
+    if (array_key_exists($cache_key, $this->roomContentsCache)) {
+      return $this->roomContentsCache[$cache_key];
+    }
+
+    $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
+      ->fields('r', ['contents_data'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('room_id', $effective_id)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+
+    // Fallback: active_room_id may be canonical UUID while DB uses slug.
+    if (($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') && !empty($launch_context['room_id'])) {
+      $fallback_room_id = (string) $launch_context['room_id'];
+      if ($fallback_room_id !== '' && $fallback_room_id !== $effective_id) {
+        $raw_contents = $this->database->select('dc_campaign_rooms', 'r')
+          ->fields('r', ['contents_data'])
+          ->condition('campaign_id', $campaign_id)
+          ->condition('room_id', $fallback_room_id)
+          ->range(0, 1)
+          ->execute()
+          ->fetchField();
+        // Update cache key if fallback succeeded.
+        if ($raw_contents !== FALSE && $raw_contents !== NULL && $raw_contents !== '') {
+          $cache_key = $campaign_id . ':' . $fallback_room_id;
+        }
+      }
+    }
+
+    if ($raw_contents === FALSE || $raw_contents === NULL || $raw_contents === '') {
+      $this->roomContentsCache[$cache_key] = NULL;
+      return NULL;
+    }
+
+    $decoded = json_decode((string) $raw_contents, TRUE);
+    $result = is_array($decoded) ? $decoded : NULL;
+    $this->roomContentsCache[$cache_key] = $result;
+    return $result;
+  }
+
   protected function resolveDbRoomSlug(int $campaign_id, string $room_id, array $dungeon_payload = []): ?string {
     if ($campaign_id <= 0 || $room_id === '') {
       return NULL;
