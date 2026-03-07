@@ -35,7 +35,11 @@
         </div>
       {% endif %}
       {% if character.status == 'incomplete' %}
-        <div class="dc-sheet__status-incomplete">⚠️ INCOMPLETE</div>
+        {% if not character.portrait and character.step >= 8 %}
+          <div class="dc-sheet__status-incomplete">🖼️ Image generation in progress</div>
+        {% else %}
+          <div class="dc-sheet__status-incomplete">⚠️ Character setup incomplete (Step {{ character.step }}/8)</div>
+        {% endif %}
       {% elseif character.status == 'dead' %}
         <div class="dc-sheet__status-dead">☠️ FALLEN</div>
       {% endif %}

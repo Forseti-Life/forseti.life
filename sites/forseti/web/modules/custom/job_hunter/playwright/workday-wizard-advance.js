@@ -100,7 +100,7 @@ function resolveHeadlessMode() {
       return true;
     }
   }
-  return true;
+  return false;
 }
 
 // ── Step metadata ──────────────────────────────────────────────────────────────
@@ -1545,7 +1545,8 @@ async function handleMyExperience(page, profile, result) {
   const filled = [];
   const skipped = [];
   const educationEntries = extractEducationEntries(profile || {});
-  const desiredEducationCount = Math.max(0, Math.min(3, educationEntries.length));
+  const effectiveEducationEntries = STRICT_VISUAL_FORM_FILL ? educationEntries.slice(0, 1) : educationEntries;
+  const desiredEducationCount = Math.max(0, Math.min(3, effectiveEducationEntries.length));
   const hasExperienceFillTag = () => filled.some((x) => {
     const s = String(x || '');
     return s === 'experience_job_title'
@@ -1597,7 +1598,7 @@ async function handleMyExperience(page, profile, result) {
 
   if (desiredEducationCount > 0) {
     let savedEducationCount = await countVisibleEducationEntries(page);
-    let matchedEducationCount = await countMatchedEducationEntries(page, educationEntries);
+    let matchedEducationCount = await countMatchedEducationEntries(page, effectiveEducationEntries);
     if (savedEducationCount < desiredEducationCount) {
       const refillEducation = await forceFillEducationFields(page, profile);
       filled.push(...refillEducation.filled.filter((x) => !filled.includes(x)));
@@ -1613,10 +1614,10 @@ async function handleMyExperience(page, profile, result) {
         }
       }
       savedEducationCount = await countVisibleEducationEntries(page);
-      matchedEducationCount = await countMatchedEducationEntries(page, educationEntries);
+      matchedEducationCount = await countMatchedEducationEntries(page, effectiveEducationEntries);
     }
 
-    if (savedEducationCount >= desiredEducationCount && matchedEducationCount >= Math.max(1, Math.min(desiredEducationCount, educationEntries.length))) {
+    if (savedEducationCount >= desiredEducationCount && matchedEducationCount >= Math.max(1, Math.min(desiredEducationCount, effectiveEducationEntries.length))) {
       filled.push('education_saved_verified');
     } else {
       skipped.push(`education_not_saved_visible_${savedEducationCount}_of_${desiredEducationCount}`);
@@ -1977,7 +1978,54 @@ async function inferCurrentWizardStep(page) {
         });
       };
 
+      const progressCurrent = Array.from(document.querySelectorAll('[data-automation-id="progressBarCurrentStep"], li[aria-current="step"], [aria-current="step"], .active-step'))
+        .find(visible);
+      const progressRaw = String(progressCurrent?.textContent || progressCurrent?.innerText || '').toLowerCase();
+      const progressFallback = String(document.querySelector('[data-automation-id="progressBar"]')?.textContent || '').toLowerCase();
+      const progressText = progressRaw || progressFallback;
+
+      const fromCurrentStepText = (txt) => {
+        const t = String(txt || '').toLowerCase();
+        if (!t) return '';
+        const currentSlice = t.includes('current step') ? t.slice(t.indexOf('current step')) : t;
+        if (currentSlice.includes('my information')) return 'my_information';
+        if (currentSlice.includes('my experience')) return 'my_experience';
+        if (currentSlice.includes('application questions') || currentSlice.includes('job-specific information')) return 'application_questions';
+        if (currentSlice.includes('voluntary disclosures')) return 'voluntary_disclosures';
+        if (currentSlice.includes('self-identify') || currentSlice.includes('self identify') || currentSlice.includes('disability')) return 'self_identify';
+        if (currentSlice.includes('review')) return 'review_submit';
+        return '';
+      };
+
+      const stepFromProgress = fromCurrentStepText(progressText);
+      if (stepFromProgress) {
+        return stepFromProgress;
+      }
+
+      if (progressRaw.includes('my information')) {
+        return 'my_information';
+      }
+      if (progressRaw.includes('my experience')) {
+        return 'my_experience';
+      }
+      if (progressRaw.includes('application questions') || progressRaw.includes('job-specific information')) {
+        return 'application_questions';
+      }
+      if (progressRaw.includes('voluntary disclosures')) {
+        return 'voluntary_disclosures';
+      }
+      if (progressRaw.includes('self-identify') || progressRaw.includes('self identify') || progressRaw.includes('disability')) {
+        return 'self_identify';
+      }
+      if (progressRaw.includes('review')) {
+        return 'review_submit';
+      }
+
       if (has('[data-automation-id="applyFlowMyExpPage"]') || document.querySelector('input[name="jobTitle"][id*="workExperience-"]')) {
+        return 'my_experience';
+      }
+
+      if (document.querySelector('[id*="workExperience-"]') || document.querySelector('[id*="education-"]')) {
         return 'my_experience';
       }
 
@@ -1996,6 +2044,10 @@ async function inferCurrentWizardStep(page) {
 
       const hasSubmit = hasAnyVisibleAction(/submit/);
       const hasContinue = hasAnyVisibleAction(/save and continue|continue|next/);
+
+      if (pageText.includes('job title') && (pageText.includes('school or university') || pageText.includes('work experience') || pageText.includes('education'))) {
+        return 'my_experience';
+      }
 
       if (hasContinue && !hasSubmit) {
         if (pageText.includes('phone device type')
@@ -2043,12 +2095,21 @@ async function isLikelyStillOnStep(page, stepKey) {
           return true;
         }
 
+        const workEduControls = Array.from(document.querySelectorAll('[id*="workExperience-"], [id*="education-"], [data-automation-id*="workExperience" i], [data-automation-id*="education" i], input[name="jobTitle"], input[id*="school" i], button[id*="degree" i]'))
+          .filter(visible);
+        if (workEduControls.length >= 4) {
+          return true;
+        }
+
         const expRoot = document.querySelector('[data-automation-id="applyFlowMyExpPage"]');
         if (expRoot && visible(expRoot)) {
           return true;
         }
 
         const pageText = (document.body?.innerText || '').toLowerCase();
+        if (pageText.includes('job title') && (pageText.includes('school or university') || pageText.includes('work experience') || pageText.includes('education'))) {
+          return true;
+        }
         return pageText.includes('work experience') && pageText.includes('education');
       }
 
@@ -2173,6 +2234,8 @@ async function isMyInformationFormVisible(page) {
 }
 
 async function clickContinueButton(page, evidenceParts) {
+  await dismissDiscardApplicationPopup(page, evidenceParts);
+
   const continueSelectors = [
     'button[data-automation-id="bottom-navigation-next-button"]',
     '[data-automation-id="bottom-navigation"] button:has-text("Continue")',
@@ -2204,6 +2267,7 @@ async function clickContinueButton(page, evidenceParts) {
       }
       await humanDelay(150, 350);
       await btn.click({ timeout: 1800, force: true });
+      await dismissDiscardApplicationPopup(page, evidenceParts);
       evidenceParts.push(`Clicked Continue via ${sel}`);
       return true;
     } catch (_) {}
@@ -2225,6 +2289,7 @@ async function clickContinueButton(page, evidenceParts) {
       return false;
     });
     if (clicked) {
+      await dismissDiscardApplicationPopup(page, evidenceParts);
       evidenceParts.push('Clicked Continue via DOM fallback');
       return true;
     }
@@ -2233,7 +2298,85 @@ async function clickContinueButton(page, evidenceParts) {
   return false;
 }
 
+async function dismissDiscardApplicationPopup(page, evidenceParts = []) {
+  const closeSelectors = [
+    'button[data-automation-id="closeButton"]',
+    '.workday-popup-close-container button[aria-label="Close"]',
+    '.workday-popup-close-container .workday-popup-close-button',
+    'button[title="Close"][data-automation-id="closeButton"]',
+  ];
+
+  for (let i = 0; i < 3; i++) {
+    let closed = false;
+    for (const sel of closeSelectors) {
+      try {
+        const btn = page.locator(sel).first();
+        await btn.waitFor({ state: 'visible', timeout: 600 });
+        await btn.scrollIntoViewIfNeeded({ timeout: 600 }).catch(() => {});
+        await btn.click({ timeout: 1000, force: true });
+        await humanDelay(140, 260);
+        evidenceParts.push(`Dismissed popup via ${sel}`);
+        closed = true;
+        break;
+      } catch (_) {}
+    }
+
+    if (!closed) {
+      return false;
+    }
+
+    async function dismissDiscardApplicationPopup(page, evidenceParts = []) {
+      try {
+        const hasDiscardPrompt = await page.evaluate(() => {
+          const txt = (document.body?.innerText || '').toLowerCase();
+          return txt.includes('discard application') || txt.includes('do you want to discard') || txt.includes('keep applying');
+        }).catch(() => false);
+
+        const closeSelectors = [
+          'button:has-text("Keep Applying")',
+          'button:has-text("Cancel")',
+          'button[data-automation-id="closeButton"]',
+          '.workday-popup-close-container button',
+          '.workday-popup-close-button',
+          '[data-automation-id="popupClose"]',
+        ];
+
+        for (const sel of closeSelectors) {
+          try {
+            const btn = page.locator(sel).first();
+            const visible = await btn.isVisible({ timeout: 300 }).catch(() => false);
+            if (!visible) {
+              continue;
+            }
+            await btn.click({ timeout: 1200, force: true });
+            await humanDelay(160, 320);
+            evidenceParts.push(`Dismissed discard popup via ${sel}`);
+            return true;
+          } catch (_) {}
+        }
+
+        if (hasDiscardPrompt) {
+          try {
+            await page.keyboard.press('Escape').catch(() => {});
+            await humanDelay(120, 260);
+            evidenceParts.push('Dismissed discard popup via Escape');
+            return true;
+          } catch (_) {}
+        }
+      } catch (_) {}
+
+      return false;
+    }
+  }
+
+      await dismissDiscardApplicationPopup(page, evidenceParts);
+
+  return true;
+}
+
 async function clickBackButton(page, evidenceParts) {
+  await dismissDiscardApplicationPopup(page, evidenceParts);
+
   const backSelectors = [
     'button[data-automation-id="pageFooterBackButton"]',
     '[data-automation-id="bottom-navigation"] button:has-text("Back")',
@@ -2286,6 +2429,8 @@ async function acceptCookiesIfPresent(page, evidenceParts = []) {
 
 async function enterApplyFlowIfNeeded(page, evidenceParts = []) {
   try {
+    await dismissDiscardApplicationPopup(page, evidenceParts);
+
     const url = (page.url() || '').toLowerCase();
     if (url.includes('/apply/')) {
       return true;
@@ -2294,6 +2439,8 @@ async function enterApplyFlowIfNeeded(page, evidenceParts = []) {
     const clickFirstEnabled = async (selectors, label) => {
       for (const sel of selectors) {
         try {
+          await dismissDiscardApplicationPopup(page, evidenceParts);
+
           const btn = page.locator(sel).first();
           await btn.waitFor({ state: 'visible', timeout: 1200 });
           await btn.scrollIntoViewIfNeeded({ timeout: 1000 }).catch(() => {});
@@ -2420,6 +2567,8 @@ async function probeWorkExperienceDateControls(page) {
 }
 
 async function clickSubmitButton(page, evidenceParts) {
+  await dismissDiscardApplicationPopup(page, evidenceParts);
+
   const submitSelectors = [
     'button[data-automation-id="submitButton"]',
     'button[data-automation-id="bottom-navigation-next-button"]:has-text("Submit")',
@@ -2456,6 +2605,8 @@ async function clickSubmitButton(page, evidenceParts) {
 }
 
 async function clickSaveAndContinueLaterButton(page, evidenceParts) {
+  await dismissDiscardApplicationPopup(page, evidenceParts);
+
   const saveSelectors = [
     'button[data-automation-id="saveAndContinueLaterButton"]',
     'button[data-automation-id="bottom-navigation-save-button"]',
@@ -3184,7 +3335,7 @@ async function resolveReviewRequiredFieldsByErrorLinks(page, profile) {
     const schools = educationEntries.map((e) => String(e?.school || '').trim()).filter(Boolean);
     const degrees = educationEntries.map((e) => String(e?.degree || '').trim()).filter(Boolean);
     if (schools.length > 0) {
-      const n = await resolveRepeatedErrorLinks(page, 'School or University', schools, 'text', 8);
+      const n = await resolveRepeatedErrorLinks(page, 'School or University', schools, 'dropdown', 8);
       if (n > 0) resolved.push('education_school_errorlink_visual');
     }
     if (degrees.length > 0) {
@@ -3231,6 +3382,7 @@ async function fillByVisibleLabelWithVerification(page, {
   occurrence = 0,
   mode = 'text',
   fieldTag = '',
+  pressEnter = false,
 }) {
   const desiredValue = String(value || '').trim();
   if (!label || !desiredValue) {
@@ -3302,6 +3454,16 @@ async function fillByVisibleLabelWithVerification(page, {
       el.removeAttribute('data-jh-visual-target');
       el.removeAttribute('data-jh-visual-part');
     }
+    for (const el of document.querySelectorAll('[data-jh-visual-scope]')) {
+      el.removeAttribute('data-jh-visual-scope');
+    }
+
+    const markScope = (el) => {
+      const scope = el?.closest?.('div, section, li, fieldset, form') || el;
+      if (scope && scope.setAttribute) {
+        scope.setAttribute('data-jh-visual-scope', token);
+      }
+    };
 
     const meta = (el) => normalize(`${el.id || ''} ${el.getAttribute('name') || ''} ${el.getAttribute('aria-label') || ''} ${el.getAttribute('placeholder') || ''}`);
     const fieldMatchers = {
@@ -3364,6 +3526,7 @@ async function fillByVisibleLabelWithVerification(page, {
       }) || controls[0];
       preferred.setAttribute('data-jh-visual-target', token);
       preferred.setAttribute('data-jh-visual-part', 'single');
+      markScope(preferred);
       payload.before = readValue(preferred);
       return payload;
     }
@@ -3372,6 +3535,7 @@ async function fillByVisibleLabelWithVerification(page, {
     const input = preferredText || textLike[0] || controls[0];
     input.setAttribute('data-jh-visual-target', token);
     input.setAttribute('data-jh-visual-part', 'single');
+    markScope(input);
     payload.before = readValue(input);
     return payload;
   }, { label, occurrence, mode, token });
@@ -3458,6 +3622,10 @@ async function fillByVisibleLabelWithVerification(page, {
       await page.keyboard.press('Control+A').catch(() => {});
       await page.keyboard.press('Backspace').catch(() => {});
       await page.keyboard.type(desiredValue, { delay: 10 }).catch(() => {});
+      if (pressEnter) {
+        await page.keyboard.press('Enter').catch(() => {});
+        await humanDelay(90, 180);
+      }
       await page.keyboard.press('Tab').catch(() => {});
       writeOk = true;
     } catch (_) {}
@@ -3486,7 +3654,11 @@ async function fillByVisibleLabelWithVerification(page, {
     }
 
     const el = document.querySelector(`[data-jh-visual-target="${token}"]`);
-    return { value: readValue(el) };
+    const scope = document.querySelector(`[data-jh-visual-scope="${token}"]`);
+    return {
+      value: readValue(el),
+      scopeText: String(scope?.innerText || scope?.textContent || '').replace(/\s+/g, ' ').trim(),
+    };
   }, { token, mode }).catch(() => ({}));
 
   const clearTempTargets = async () => {
@@ -3494,6 +3666,9 @@ async function fillByVisibleLabelWithVerification(page, {
       for (const el of document.querySelectorAll('[data-jh-visual-target]')) {
         el.removeAttribute('data-jh-visual-target');
         el.removeAttribute('data-jh-visual-part');
+      }
+      for (const el of document.querySelectorAll('[data-jh-visual-scope]')) {
+        el.removeAttribute('data-jh-visual-scope');
       }
     }).catch(() => {});
   };
@@ -3511,8 +3686,15 @@ async function fillByVisibleLabelWithVerification(page, {
     pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, afterValue, writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
   } else {
     const afterValue = String(after.value || '');
-    confirmed = visualMatch(afterValue, desiredValue);
-    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, afterValue, writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
+    const scopeText = String(after.scopeText || '');
+    if (pressEnter) {
+      const byValue = !!afterValue && !/select one|0 items selected/i.test(afterValue) && (visualMatch(afterValue, desiredValue) || afterValue.length > 0);
+      const byScope = !!scopeText && visualMatch(scopeText, desiredValue);
+      confirmed = byValue || byScope;
+    } else {
+      confirmed = visualMatch(afterValue, desiredValue);
+    }
+    pushFieldAudit(fieldTag || `${label}_${occurrence + 1}`, desiredValue, (afterValue || scopeText), writeOk && confirmed, writeOk && confirmed ? 'visual-before-after-confirmed' : 'visual-before-after-failed');
   }
 
   await clearTempTargets();
@@ -3526,6 +3708,7 @@ async function fillByVisibleLabelWithRetry(page, {
   occurrence,
   mode,
   fieldTag,
+  pressEnter = false,
 }) {
   const labelList = Array.isArray(labels)
     ? labels.map((x) => String(x || '').trim()).filter(Boolean)
@@ -3548,6 +3731,7 @@ async function fillByVisibleLabelWithRetry(page, {
         occurrence: currentOccurrence,
         mode,
         fieldTag,
+        pressEnter,
       });
       if (result?.ok) {
         return { ok: true, label, occurrence: currentOccurrence };
@@ -5727,6 +5911,11 @@ async function forceFillExperienceFields(page, profile) {
     return { filled, skipped };
   }
 
+  return {
+    filled: [],
+    skipped: ['deprecated_non_visual_execution_disabled_experience'],
+  };
+
   const filled = [];
   const skipped = [];
   const experienceEntries = extractExperienceEntries(profile || {});
@@ -5871,22 +6060,36 @@ async function forceFillEducationFields(page, profile) {
   if (STRICT_VISUAL_FORM_FILL) {
     const filled = [];
     const skipped = [];
-    const educationEntries = extractEducationEntries(profile || {});
-    if (!educationEntries.length) {
+
+    await dismissDiscardApplicationPopup(page);
+
+    const allEducationEntries = extractEducationEntries(profile || {});
+    if (!allEducationEntries.length) {
       skipped.push('education_entries_missing');
       return { filled, skipped };
     }
 
-    if (educationEntries.length > 1) {
-      const rowReady = await ensureInlineEducationRowCount(page, educationEntries.length);
-      if (rowReady) {
-        filled.push(`education_rows_ready_${educationEntries.length}`);
+    const educationEntries = allEducationEntries.slice(0, 1);
+    if (allEducationEntries.length > 1) {
+      skipped.push('education_multiple_schools_disabled');
+    }
+
+    filled.push('education_single_entry_mode');
+
+    const existingRows = (await getInlineEducationRowKeys(page)).length;
+    if (existingRows === 0) {
+      const openedEducation = await clickAddEducationRow(page);
+      if (openedEducation) {
+        await humanDelay(220, 420);
+        filled.push('education_editor_opened');
       } else {
-        skipped.push(`education_rows_not_added_${educationEntries.length}`);
+        skipped.push('education_editor_not_opened');
       }
     }
 
     for (let index = 0; index < educationEntries.length; index++) {
+      await dismissDiscardApplicationPopup(page);
+
       const entry = educationEntries[index] || {};
       const prefix = index === 0 ? 'education' : `education_${index + 1}`;
       const school = String(entry.school || '').trim();
@@ -5895,11 +6098,12 @@ async function forceFillEducationFields(page, profile) {
       if (school) {
         const schoolKey = `${prefix}_school`;
         const r = await fillByVisibleLabelWithRetry(page, {
-          labels: ['School or University', 'School', 'University', 'Institution'],
+          labels: ['School or University', 'School', 'University', 'Institution', 'School Name'],
           value: school,
           occurrence: index,
-          mode: 'dropdown',
+          mode: 'text',
           fieldTag: schoolKey,
+          pressEnter: true,
         });
         if (r?.ok) {
           if (!filled.includes(schoolKey)) {
@@ -5946,6 +6150,11 @@ async function forceFillEducationFields(page, profile) {
 
     return { filled, skipped };
   }
+
+  return {
+    filled: [],
+    skipped: ['deprecated_non_visual_execution_disabled_education'],
+  };
 
   const filled = [];
   const skipped = [];
@@ -7299,11 +7508,18 @@ async function run() {
         process.stderr.write(`INFO: Realigned to target step "${target_step}" before handler.\n`);
       } else if (target_step === 'my_experience') {
         let reached = false;
-        for (let hop = 0; hop < 3; hop++) {
+        for (let hop = 0; hop < 5; hop++) {
           const onExperience = await isLikelyStillOnStep(page, 'my_experience');
           if (onExperience) {
             reached = true;
             evidenceParts.push(`Forced pre-step progression reached my_experience in ${hop} hop(s)`);
+            break;
+          }
+
+          const inferred = await inferCurrentWizardStep(page);
+          if (inferred === 'my_experience') {
+            reached = true;
+            evidenceParts.push(`Forced pre-step progression inferred my_experience in ${hop} hop(s)`);
             break;
           }
 
@@ -7315,7 +7531,21 @@ async function run() {
             }
           }
 
-          const moved = await clickContinueButton(page, evidenceParts);
+          let moved = false;
+          const targetIdx = AUTO_STEP_ORDER.indexOf('my_experience');
+          const inferredIdx = AUTO_STEP_ORDER.indexOf(inferred);
+          if (inferredIdx >= 0) {
+            moved = inferredIdx > targetIdx
+              ? await clickBackButton(page, evidenceParts)
+              : await clickContinueButton(page, evidenceParts);
+          } else {
+            // Unknown inference: probe both directions safely, prefer Back to avoid overshooting.
+            moved = await clickBackButton(page, evidenceParts);
+            if (!moved) {
+              moved = await clickContinueButton(page, evidenceParts);
+            }
+          }
+
           if (!moved) {
             break;
           }
@@ -7332,6 +7562,36 @@ async function run() {
 
     const ssPage = await takeScreenshot(page, screenshot_dir, application_id, `wd_${target_step}_page`);
     if (ssPage) result.screenshots.push(ssPage);
+
+    if (target_step === 'my_experience') {
+      const confirmedContext = await isLikelyStillOnStep(page, 'my_experience');
+      const inferredContext = await inferCurrentWizardStep(page);
+      const structuralContext = await page.evaluate(() => {
+        const visible = (el) => {
+          if (!el) return false;
+          const r = el.getBoundingClientRect();
+          const s = window.getComputedStyle(el);
+          return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && s.display !== 'none';
+        };
+        const hasFlow = !!Array.from(document.querySelectorAll('[data-automation-id="applyFlowMyExpPage"], [data-automation-id*="workExperience" i], [id*="workExperience-"]')).find(visible);
+        const jobTitleInputs = Array.from(document.querySelectorAll('input[id*="workExperience-"][id*="--jobTitle"], input[name="jobTitle"]')).filter(visible);
+        return hasFlow || jobTitleInputs.length > 0;
+      }).catch(() => false);
+
+      const gatePass = !!confirmedContext || inferredContext === 'my_experience' || !!structuralContext;
+      if (!gatePass) {
+        const msg = 'Strict visual gate: my_experience context not confirmed; aborting fill to avoid writing wrong fields.';
+        result.error = msg;
+        result.ok = false;
+        result.continue_clicked = false;
+        await writeGenericStepDebugDump(page, screenshot_dir, application_id, evidenceParts, 'my_experience_gate_failed');
+        evidenceParts.push(msg);
+        attachVisualAuditToResult(result, evidenceParts);
+        result.evidence = evidenceParts.join(' | ');
+        writeResult(result);
+        return;
+      }
+    }
 
     // ── Step D: Execute the step-specific handler ──────────────────────────
     process.stderr.write(`INFO: [${target_step}] Running step handler...\n`);

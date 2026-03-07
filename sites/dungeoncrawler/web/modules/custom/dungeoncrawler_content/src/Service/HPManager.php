@@ -24,7 +24,7 @@ class HPManager {
    *
    * PF2e: Temp HP absorbs damage first. Remaining damage reduces current HP.
    * If HP drops to 0 or below, dying condition is applied.
-   * If HP drops to negative of max HP, instant death (massive damage).
+   * If HP drops to negative of max HP or less, instant death (massive damage).
    *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applydamage
    */

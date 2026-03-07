@@ -383,7 +383,25 @@ class GeneratedImageRepository {
     }
 
     try {
-      return $this->fileUrlGenerator->generateAbsoluteString($file_uri);
+      $relative = $this->fileUrlGenerator->generateString($file_uri);
+      if (is_string($relative) && $relative !== '') {
+        return $relative;
+      }
+
+      $absolute = $this->fileUrlGenerator->generateAbsoluteString($file_uri);
+      if (!is_string($absolute) || $absolute === '') {
+        return NULL;
+      }
+
+      $parts = parse_url($absolute);
+      if (($parts['host'] ?? '') === 'default') {
+        $path = (string) ($parts['path'] ?? '');
+        $query = isset($parts['query']) ? '?' . $parts['query'] : '';
+        $fragment = isset($parts['fragment']) ? '#' . $parts['fragment'] : '';
+        return $path !== '' ? $path . $query . $fragment : NULL;
+      }
+
+      return $absolute;
     }
     catch (\Throwable) {
       return NULL;
