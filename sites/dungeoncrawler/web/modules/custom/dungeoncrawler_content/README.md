@@ -15,6 +15,7 @@ Core content module for the living dungeon crawler RPG. Provides character manag
 - `web/modules/custom/dungeoncrawler_content/README.md` (this file)
 - `web/modules/custom/dungeoncrawler_content/CHAT_AND_NARRATION_ARCHITECTURE.md`
 - `web/modules/custom/dungeoncrawler_content/COMBAT_ENGINE_ARCHITECTURE.md`
+- `web/modules/custom/dungeoncrawler_content/GAMEPLAY_ORCHESTRATION_ARCHITECTURE.md`
 - `sites/dungeoncrawler/TESTING.md`
 - `sites/dungeoncrawler/TEST_SETUP.md`
 - `sites/dungeoncrawler/CI_TESTING_SETUP.md`
@@ -74,48 +75,48 @@ Implementation strategy (first-pass architecture):
 - [ ] `burn-it` — Burn It!
 - [ ] `burrow-elocutionist` — Burrow Elocutionist
 - [ ] `cat-nap` — Cat Nap
-- [ ] `catfolk-lore` — Catfolk Lore
-- [ ] `catfolk-weapon-familiarity` — Catfolk Weapon Familiarity
+- [x] `catfolk-lore` — Catfolk Lore
+- [x] `catfolk-weapon-familiarity` — Catfolk Weapon Familiarity
 - [ ] `cheek-pouches` — Cheek Pouches
 - [ ] `city-scavenger` — City Scavenger
 - [ ] `communal-instinct` — Communal Instinct
 - [ ] `cooperative-nature` — Cooperative Nature
 - [ ] `cross-cultural-upbringing` — Cross-Cultural Upbringing
-- [ ] `distracting-shadows` — Distracting Shadows
+- [x] `distracting-shadows` — Distracting Shadows
 - [ ] `draconic-scout` — Draconic Scout
 - [ ] `draconic-ties` — Draconic Ties
-- [ ] `dwarven-lore` — Dwarven Lore
-- [ ] `dwarven-weapon-familiarity` — Dwarven Weapon Familiarity
+- [x] `dwarven-lore` — Dwarven Lore
+- [x] `dwarven-weapon-familiarity` — Dwarven Weapon Familiarity
 - [ ] `elf-atavism` — Elf Atavism
 - [x] `elven-instincts` — Elven Instincts
-- [ ] `elven-lore` — Elven Lore
-- [ ] `elven-weapon-familiarity` — Elven Weapon Familiarity
+- [x] `elven-lore` — Elven Lore
+- [x] `elven-weapon-familiarity` — Elven Weapon Familiarity
 - [x] `feline-eyes` — Feline Eyes
 - [x] `feral-endurance` — Feral Endurance
 - [ ] `fey-fellowship` — Fey Fellowship
 - [x] `first-world-magic` — First World Magic
 - [ ] `forest-step` — Forest Step
-- [ ] `forlorn` — Forlorn
+- [x] `forlorn` — Forlorn
 - [ ] `forlorn-half-elf` — Forlorn Half-Elf
 - [ ] `general-training` — General Training
 - [ ] `gnome-obsession` — Gnome Obsession
-- [ ] `gnome-weapon-familiarity` — Gnome Weapon Familiarity
-- [ ] `goblin-lore` — Goblin Lore
+- [x] `gnome-weapon-familiarity` — Gnome Weapon Familiarity
+- [x] `goblin-lore` — Goblin Lore
 - [ ] `goblin-scuttle` — Goblin Scuttle
 - [ ] `goblin-song` — Goblin Song
-- [ ] `goblin-weapon-familiarity` — Goblin Weapon Familiarity
-- [ ] `graceful-step` — Graceful Step
-- [ ] `halfling-lore` — Halfling Lore
+- [x] `goblin-weapon-familiarity` — Goblin Weapon Familiarity
+- [x] `graceful-step` — Graceful Step
+- [x] `halfling-lore` — Halfling Lore
 - [x] `halfling-luck` — Halfling Luck
-- [ ] `halfling-weapon-familiarity` — Halfling Weapon Familiarity
-- [ ] `haughty-obstinacy` — Haughty Obstinacy
+- [x] `halfling-weapon-familiarity` — Halfling Weapon Familiarity
+- [x] `haughty-obstinacy` — Haughty Obstinacy
 - [ ] `hold-scarred` — Hold-Scarred Orc
 - [ ] `illusion-sense` — Illusion Sense
 - [ ] `intimidating-glare-half-orc` — Intimidating Glare
 - [ ] `junk-tinker` — Junk Tinker
-- [ ] `kobold-lore` — Kobold Lore
-- [ ] `kobold-weapon-familiarity` — Kobold Weapon Familiarity
-- [ ] `leshy-lore` — Leshy Lore
+- [x] `kobold-lore` — Kobold Lore
+- [x] `kobold-weapon-familiarity` — Kobold Weapon Familiarity
+- [x] `leshy-lore` — Leshy Lore
 - [ ] `mixed-heritage-adaptability` — Mixed Heritage Adaptability
 - [ ] `multitalented` — Multitalented
 - [ ] `natural-ambition` — Natural Ambition
@@ -127,32 +128,32 @@ Implementation strategy (first-pass architecture):
 - [x] `orc-sight` — Orc Sight
 - [ ] `orc-superstition` — Orc Superstition
 - [ ] `orc-weapon-carnage` — Orc Weapon Carnage
-- [ ] `orc-weapon-familiarity` — Orc Weapon Familiarity
-- [ ] `orc-weapon-familiarity-half-orc` — Orc Weapon Familiarity
+- [x] `orc-weapon-familiarity` — Orc Weapon Familiarity
+- [x] `orc-weapon-familiarity-half-orc` — Orc Weapon Familiarity
 - [x] `otherworldly-magic` — Otherworldly Magic
 - [ ] `photosynthetic-recovery` — Photosynthetic Recovery
-- [ ] `ratfolk-lore` — Ratfolk Lore
-- [ ] `ratfolk-weapon-familiarity` — Ratfolk Weapon Familiarity
-- [ ] `rock-runner` — Rock Runner
+- [x] `ratfolk-lore` — Ratfolk Lore
+- [x] `ratfolk-weapon-familiarity` — Ratfolk Weapon Familiarity
+- [x] `rock-runner` — Rock Runner
 - [ ] `rooted-resilience` — Rooted Resilience
-- [ ] `scar-thickened` — Scar-Thickened
+- [x] `scar-thickened` — Scar-Thickened
 - [ ] `scrounger` — Scrounger
 - [ ] `seedpod` — Seedpod
 - [ ] `sky-bridge-runner` — Sky-Bridge Runner
 - [ ] `snare-setter` — Snare Setter
 - [ ] `squawk` — Squawk
 - [ ] `stonecunning` — Stonecunning
-- [ ] `sure-feet` — Sure Feet
-- [ ] `tengu-lore` — Tengu Lore
-- [ ] `tengu-weapon-familiarity` — Tengu Weapon Familiarity
+- [x] `sure-feet` — Sure Feet
+- [x] `tengu-lore` — Tengu Lore
+- [x] `tengu-weapon-familiarity` — Tengu Weapon Familiarity
 - [ ] `titan-slinger` — Titan Slinger
 - [ ] `tunnel-runner` — Tunnel Runner
 - [ ] `tunnel-vision` — Tunnel Vision
 - [x] `unburdened-iron` — Unburdened Iron
 - [ ] `unconventional-weaponry` — Unconventional Weaponry
-- [ ] `unfettered-halfling` — Unfettered Halfling
-- [ ] `unwavering-mien` — Unwavering Mien
-- [ ] `unyielding-will` — Unyielding Will
+- [x] `unfettered-halfling` — Unfettered Halfling
+- [x] `unwavering-mien` — Unwavering Mien
+- [x] `unyielding-will` — Unyielding Will
 - [ ] `vengeful-hatred` — Vengeful Hatred
 - [ ] `verdant-voice` — Verdant Voice
 - [ ] `well-groomed` — Well-Groomed

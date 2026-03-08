@@ -280,6 +280,8 @@
 
       {% if feat_effects is defined %}
         {% set adjustments = feat_effects.derived_adjustments ?? {} %}
+        {% set training = feat_effects.training_grants ?? {} %}
+        {% set conditional = feat_effects.conditional_modifiers ?? {} %}
         {% set actions = feat_effects.available_actions ?? {} %}
         {% set resources = feat_effects.rest_resources ?? {} %}
 
@@ -293,6 +295,37 @@
           {% endif %}
           {% if (adjustments.initiative_bonus ?? 0) > 0 %}
             <div class="dc-sheet__detail">+{{ adjustments.initiative_bonus }} Initiative</div>
+          {% endif %}
+        {% endif %}
+
+        {% if (conditional.saving_throws|default([]))|length > 0 or (conditional.skills|default([]))|length > 0 or (conditional.movement|default([]))|length > 0 or (conditional.outcome_upgrades|default([]))|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Conditional Modifiers</h3>
+          {% for mod in conditional.saving_throws|default([]) %}
+            <div class="dc-sheet__detail">+{{ mod.bonus }} {{ mod.save }} saves ({{ mod.context }})</div>
+          {% endfor %}
+          {% for mod in conditional.skills|default([]) %}
+            <div class="dc-sheet__detail">+{{ mod.bonus }} {{ mod.skill }} ({{ mod.context }})</div>
+          {% endfor %}
+          {% for mod in conditional.movement|default([]) %}
+            <div class="dc-sheet__detail">{{ mod.rule|replace({'_':' '})|capitalize }} ({{ mod.context }})</div>
+          {% endfor %}
+          {% for mod in conditional.outcome_upgrades|default([]) %}
+            <div class="dc-sheet__detail">{{ mod.target }}: {{ mod.from|replace({'_':' '}) }} → {{ mod.to|replace({'_':' '}) }} ({{ mod.context }})</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if (training.skills|default([]))|length > 0 or (training.lore|default([]))|length > 0 or (training.weapons|default([]))|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Training Grants</h3>
+          {% if (training.skills|default([]))|length > 0 %}
+            <div class="dc-sheet__detail"><strong>Skills:</strong> {{ training.skills|join(', ') }}</div>
+          {% endif %}
+          {% if (training.lore|default([]))|length > 0 %}
+            <div class="dc-sheet__detail"><strong>Lore:</strong> {{ training.lore|join(', ') }}</div>
+          {% endif %}
+          {% if (training.weapons|default([]))|length > 0 %}
+            {% for weapon in training.weapons %}
+              <div class="dc-sheet__detail"><strong>{{ weapon.group }}:</strong> {{ weapon.proficiency|capitalize }}{% if weapon.examples is defined and weapon.examples|length > 0 %} ({{ weapon.examples|join(', ') }}){% endif %}</div>
+            {% endfor %}
           {% endif %}
         {% endif %}
 

@@ -949,6 +949,17 @@ class CharacterStateService {
       $state['spells'] = [];
     }
     $state['spells']['featAugments'] = $effects['spell_augments'] ?? [];
+    $state['features']['featTraining'] = $effects['training_grants'] ?? [
+      'skills' => [],
+      'lore' => [],
+      'weapons' => [],
+    ];
+    $state['features']['featConditionalModifiers'] = $effects['conditional_modifiers'] ?? [
+      'saving_throws' => [],
+      'skills' => [],
+      'movement' => [],
+      'outcome_upgrades' => [],
+    ];
 
     // Apply selected core stat adjustments directly into state.
     $hp_bonus = (int) ($effects['derived_adjustments']['hp_max_bonus'] ?? 0);

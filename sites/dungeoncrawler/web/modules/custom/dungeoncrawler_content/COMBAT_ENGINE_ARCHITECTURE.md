@@ -1,7 +1,7 @@
 # Combat & Encounter Engine Architecture
 
 **Module**: dungeoncrawler_content  
-**Last updated**: 2026-03-07  
+**Last updated**: 2026-03-08  
 **Overall completion**: ~75%
 
 This document tracks the implementation status of the PF2e combat/encounter engine — every service, controller, API endpoint, database table, and known gap.
@@ -144,7 +144,7 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 
 ## Test Coverage
 
-### Drush Script Functional Tests (666 total, all passing)
+### Drush Script Functional Tests (694 total, all passing)
 
 | Suite | Tests | Covers |
 |---|---:|---|
@@ -152,6 +152,7 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 | `hp_manager_test.php` | 86 | HPManager damage, healing, temp HP (grant/no-stack/upgrade/absorb), dying, massive death, stabilization |
 | `combat_api_controller_test.php` | 112 | CombatApiController all 12 endpoints: HP CRUD, conditions, initiative, participants, combat log, statistics |
 | `combat_services_wiring_test.php` | 99 | RulesEngine::validateAction (12 tests), ActionProcessor::executeCastSpell (13 tests), ConditionManager::processPersistentDamage (9 tests), executeAction dispatcher (4 tests), combat log verification (2 tests) |
+| `multi_round_combat_cycle_test.php` | 28 | Dialogue combat start, player `end_turn`, NPC auto-play, round advancement, encounter end, return to exploration |
 | `chat_session_test.php` | 54 | ChatSessionManager hierarchy, deterministic keys, feed-up rules |
 | `chat_integration_test.php` | 46 | Chat REST endpoints, bridge methods, ChatChannelManager |
 | `npc_psychology_test.php` | 67 | NpcPsychologyService personality, attitude, inner monologue |
@@ -177,7 +178,7 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 - ~RulesEngine~ — **RESOLVED**: `validateAction` 6-layer pipeline tested in `combat_services_wiring_test.php` (12 tests)
 - ~ActionProcessor~ — **RESOLVED**: `executeCastSpell` tested in `combat_services_wiring_test.php` (13 tests)
 - **EncounterBalancer / EncounterGeneratorService** — no dedicated tests yet (implementations complete, needs test coverage)
-- **Full-round simulation** — no end-to-end multi-round combat scenario test
+- ~~Full-round simulation~~ — **RESOLVED**: `multi_round_combat_cycle_test.php` validates end-turn, NPC auto-play, round 2 advancement, and return to exploration
 - **CombatApiController condition/initiative/participant endpoints** — fully tested (112 tests in `combat_api_controller_test.php`)
 
 ---
@@ -237,10 +238,10 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 | Primary combat API | 80% | `CombatEncounterApiController` — 8/9 endpoints working. This is the real game API. |
 | Secondary combat API | 100% | `CombatApiController` — **12/12 endpoints implemented, all routed** at `/api/combat/{encounter_id}/...`. |
 | UI controllers | 0% | `CombatController` + `CombatActionController` — fully stubbed, not routed. |
-| Encounter generation | 90% | EncounterBalancer fully implemented. EncounterGeneratorService operational. Missing: full-round simulation tests. |
+| Encounter generation | 90% | EncounterBalancer fully implemented. EncounterGeneratorService operational. Multi-round encounter lifecycle test coverage now exists. |
 | AI integration | 95% | Full provider chain with stub fallback. Guarded autoplay + narration. |
 | Phase handlers | 90% | EncounterPhaseHandler (1780 lines) deeply integrated. |
-| Test coverage | 80% | 136+86+112+**99** combat tests + 54+46+67+66 other + 43 PHPUnit = **666+43 total**. All core combat services now tested. Missing: EncounterBalancer, full-round simulation. |
+| Test coverage | 84% | 136+86+112+**99**+28 combat tests + 54+46+67+66 other + 43 PHPUnit = **694+43 total**. All core combat services now tested. Missing: EncounterBalancer dedicated tests. |
 | **Overall** | **~80%** | Core combat loop fully functional: strikes, spells, conditions, persistent damage, validation pipeline. Encounter generation now complete. Remaining gaps: UI controllers, delay/resume, XP awards, damage resistances. |
 
 ---
@@ -299,6 +300,7 @@ All 11 public methods (8 with TODO markers) are stubs. No routes registered.
 ## Related Documentation
 
 - **README.md** — Module overview, all routes, permissions, Future Enhancements checklist
+- **GAMEPLAY_ORCHESTRATION_ARCHITECTURE.md** — authoritative gameplay process flow, orchestrator ownership, dialogue→combat→exploration lifecycle
 - **CHAT_AND_NARRATION_ARCHITECTURE.md** — Chat session hierarchy, NarrationEngine pipeline, channel manager
 - **AI_ENCOUNTER_INTEGRATION.md** — Encounter AI provider chain, phased rollout, observability
 - **HEXMAP_ARCHITECTURE.md** — Hexmap rendering, spatial model, fog-of-war

@@ -16,6 +16,8 @@ complementary narrative outputs for every game action:
 Both run in parallel on every `GameCoordinatorService.processAction()` call, preserving
 backward compatibility while enabling the new perception-aware narrative system.
 
+See also [GAMEPLAY_ORCHESTRATION_ARCHITECTURE.md](GAMEPLAY_ORCHESTRATION_ARCHITECTURE.md) for the authoritative dialogue -> canonical action -> phase transition -> encounter lifecycle.
+
 ---
 
 ## System Diagram
@@ -350,6 +352,13 @@ GameCoordinatorService
 | `EncounterPhaseHandler.php` | ~1450 | 9 encounter actions + NarrationEngine bridge |
 | `RoomChatService.php` | ~1480 | AI GM conversation, bridge to sessions |
 | `AiGmService.php` | ~??? | Trigger-based one-shot narration |
+
+---
+
+## Related Documentation
+
+- [GAMEPLAY_ORCHESTRATION_ARCHITECTURE.md](GAMEPLAY_ORCHESTRATION_ARCHITECTURE.md) — authoritative process flow and orchestrator ownership
+- [COMBAT_ENGINE_ARCHITECTURE.md](COMBAT_ENGINE_ARCHITECTURE.md) — combat lifecycle, APIs, persistence, test coverage
 
 ---
 

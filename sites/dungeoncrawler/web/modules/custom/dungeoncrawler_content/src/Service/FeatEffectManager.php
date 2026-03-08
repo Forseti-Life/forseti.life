@@ -36,6 +36,17 @@ class FeatEffectManager {
         'metamagic' => [],
         'innate_spells' => [],
       ],
+      'training_grants' => [
+        'skills' => [],
+        'lore' => [],
+        'weapons' => [],
+      ],
+      'conditional_modifiers' => [
+        'saving_throws' => [],
+        'skills' => [],
+        'movement' => [],
+        'outcome_upgrades' => [],
+      ],
       'available_actions' => [
         'at_will' => [],
         'per_short_rest' => [],
@@ -84,6 +95,45 @@ class FeatEffectManager {
         case 'unburdened-iron':
           $effects['derived_adjustments']['flags']['ignore_armor_speed_penalty'] = TRUE;
           $effects['notes'][] = 'Unburdened Iron: ignore armor Speed penalties.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'rock-runner':
+          $effects['derived_adjustments']['flags']['ignore_difficult_terrain_rubble_stone'] = TRUE;
+          $this->addConditionalSkillModifier($effects, 'Acrobatics', 2, 'Balance on stone/earth surfaces');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'forest-step':
+          $effects['derived_adjustments']['flags']['ignore_difficult_terrain_natural_undergrowth'] = TRUE;
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'graceful-step':
+          $this->addConditionalSkillModifier($effects, 'Acrobatics', 2, 'Balance and Tumble Through');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'sure-feet':
+          $effects['conditional_modifiers']['outcome_upgrades'][] = [
+            'id' => 'sure-feet',
+            'target' => 'Acrobatics:Balance',
+            'from' => 'critical_failure',
+            'to' => 'success',
+            'context' => 'narrow or uneven surfaces',
+          ];
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'unfettered-halfling':
+          $this->addConditionalSkillModifier($effects, 'Escape', 2, 'Escape checks');
+          $effects['conditional_modifiers']['outcome_upgrades'][] = [
+            'id' => 'unfettered-halfling',
+            'target' => 'Escape',
+            'from' => 'success',
+            'to' => 'critical_success',
+            'context' => 'all escape attempts',
+          ];
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -216,6 +266,168 @@ class FeatEffectManager {
             'action_cost' => 'reaction',
             'description' => 'Attempt to identify a spell as it is being cast.',
           ];
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'haughty-obstinacy':
+          $this->addConditionalSaveModifier($effects, 'Will', 1, 'mental effects');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'unyielding-will':
+          $this->addConditionalSaveModifier($effects, 'Will', 1, 'fear effects');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'scar-thickened':
+          $this->addConditionalSaveModifier($effects, 'Fortitude', 1, 'bleed and poison effects');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'forlorn':
+          $this->addConditionalSaveModifier($effects, 'All', 1, 'emotion effects');
+          $effects['conditional_modifiers']['outcome_upgrades'][] = [
+            'id' => 'forlorn',
+            'target' => 'saving_throw',
+            'from' => 'success',
+            'to' => 'critical_success',
+            'context' => 'emotion effects',
+          ];
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'unwavering-mien':
+          $effects['conditional_modifiers']['outcome_upgrades'][] = [
+            'id' => 'unwavering-mien',
+            'target' => 'saving_throw',
+            'from' => 'success',
+            'to' => 'critical_success',
+            'context' => 'mental effects',
+          ];
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'distracting-shadows':
+          $effects['conditional_modifiers']['movement'][] = [
+            'id' => 'distracting-shadows',
+            'rule' => 'can_use_larger_creatures_as_cover',
+            'context' => 'Hide and Sneak',
+          ];
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'dwarven-lore':
+          $this->addSkillTraining($effects, 'Crafting');
+          $this->addSkillTraining($effects, 'Religion');
+          $this->addLoreTraining($effects, 'Crafting Lore');
+          $this->addLoreTraining($effects, 'Dwarven Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'elven-lore':
+          $this->addSkillTraining($effects, 'Arcana');
+          $this->addSkillTraining($effects, 'Nature');
+          $this->addLoreTraining($effects, 'Elven Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'goblin-lore':
+          $this->addSkillTraining($effects, 'Nature');
+          $this->addSkillTraining($effects, 'Stealth');
+          $this->addLoreTraining($effects, 'Goblin Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'halfling-lore':
+          $this->addSkillTraining($effects, 'Acrobatics');
+          $this->addSkillTraining($effects, 'Stealth');
+          $this->addLoreTraining($effects, 'Halfling Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'catfolk-lore':
+          $this->addSkillTraining($effects, 'Acrobatics');
+          $this->addSkillTraining($effects, 'Stealth');
+          $this->addLoreTraining($effects, 'Catfolk Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'kobold-lore':
+          $this->addSkillTraining($effects, 'Crafting');
+          $this->addSkillTraining($effects, 'Stealth');
+          $this->addLoreTraining($effects, 'Kobold Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'leshy-lore':
+          $this->addSkillTraining($effects, 'Nature');
+          $this->addSkillTraining($effects, 'Diplomacy');
+          $this->addLoreTraining($effects, 'Leshy Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'ratfolk-lore':
+          $this->addSkillTraining($effects, 'Society');
+          $this->addSkillTraining($effects, 'Thievery');
+          $this->addLoreTraining($effects, 'Ratfolk Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'tengu-lore':
+          $this->addSkillTraining($effects, 'Acrobatics');
+          $this->addSkillTraining($effects, 'Deception');
+          $this->addLoreTraining($effects, 'Tengu Lore');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'dwarven-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Dwarven Weapons', ['battle axe', 'pick', 'warhammer']);
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'elven-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Elven Weapons', ['longbow', 'composite longbow', 'longsword', 'rapier', 'shortbow', 'composite shortbow']);
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'gnome-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Gnome Weapons', ['glaive', 'kukri']);
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'goblin-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Goblin Weapons', ['dogslicer', 'horsechopper']);
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'halfling-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Halfling Weapons', ['sling', 'halfling sling staff']);
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'catfolk-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Catfolk Weapons');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'kobold-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Kobold Weapons');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'ratfolk-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Ratfolk Weapons');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'tengu-weapon-familiarity':
+          $this->addWeaponFamiliarity($effects, 'Tengu Weapons');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'orc-weapon-familiarity':
+        case 'orc-weapon-familiarity-half-orc':
+          $this->addWeaponFamiliarity($effects, 'Orc Weapons');
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -362,6 +574,65 @@ class FeatEffectManager {
       'max' => $max_uses,
       'remaining' => $remaining,
       'reset_on' => 'long_rest',
+    ];
+  }
+
+  /**
+   * Add a trained skill grant.
+   */
+  private function addSkillTraining(array &$effects, string $skill_name): void {
+    if (!in_array($skill_name, $effects['training_grants']['skills'], TRUE)) {
+      $effects['training_grants']['skills'][] = $skill_name;
+    }
+  }
+
+  /**
+   * Add a lore skill grant.
+   */
+  private function addLoreTraining(array &$effects, string $lore_name): void {
+    if (!in_array($lore_name, $effects['training_grants']['lore'], TRUE)) {
+      $effects['training_grants']['lore'][] = $lore_name;
+    }
+  }
+
+  /**
+   * Add a weapon familiarity grant.
+   */
+  private function addWeaponFamiliarity(array &$effects, string $group_name, array $examples = []): void {
+    foreach ($effects['training_grants']['weapons'] as $existing) {
+      if (($existing['group'] ?? '') === $group_name) {
+        return;
+      }
+    }
+
+    $effects['training_grants']['weapons'][] = [
+      'group' => $group_name,
+      'proficiency' => 'trained',
+      'examples' => $examples,
+    ];
+  }
+
+  /**
+   * Add conditional saving throw modifier.
+   */
+  private function addConditionalSaveModifier(array &$effects, string $save, int $bonus, string $context): void {
+    $effects['conditional_modifiers']['saving_throws'][] = [
+      'save' => $save,
+      'bonus' => $bonus,
+      'context' => $context,
+      'type' => 'circumstance',
+    ];
+  }
+
+  /**
+   * Add conditional skill modifier.
+   */
+  private function addConditionalSkillModifier(array &$effects, string $skill, int $bonus, string $context): void {
+    $effects['conditional_modifiers']['skills'][] = [
+      'skill' => $skill,
+      'bonus' => $bonus,
+      'context' => $context,
+      'type' => 'circumstance',
     ];
   }
 

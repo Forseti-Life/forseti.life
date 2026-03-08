@@ -72,6 +72,10 @@ $character_data = [
     ['type' => 'general', 'id' => 'fleet', 'name' => 'Fleet', 'level' => 1],
     ['type' => 'class', 'id' => 'reach-spell', 'name' => 'Reach Spell', 'level' => 1],
     ['type' => 'ancestry', 'id' => 'orc-sight', 'name' => 'Orc Sight', 'level' => 1],
+    ['type' => 'ancestry', 'id' => 'dwarven-lore', 'name' => 'Dwarven Lore', 'level' => 1],
+    ['type' => 'ancestry', 'id' => 'dwarven-weapon-familiarity', 'name' => 'Dwarven Weapon Familiarity', 'level' => 1],
+    ['type' => 'ancestry', 'id' => 'haughty-obstinacy', 'name' => 'Haughty Obstinacy', 'level' => 1],
+    ['type' => 'ancestry', 'id' => 'rock-runner', 'name' => 'Rock Runner', 'level' => 1],
   ],
   'hit_points' => ['current' => 18, 'max' => 18],
   'hero_points' => 1,
@@ -128,11 +132,17 @@ try {
   assert_true(isset($state['resources']['featResources']), 'resources.featResources persisted');
   assert_true(isset($state['spells']['featAugments']), 'spells.featAugments persisted');
   assert_true(isset($state['senses']) && is_array($state['senses']), 'senses persisted');
+  assert_true(isset($state['features']['featTraining']) && is_array($state['features']['featTraining']), 'features.featTraining persisted');
+  assert_true(isset($state['features']['featConditionalModifiers']) && is_array($state['features']['featConditionalModifiers']), 'features.featConditionalModifiers persisted');
 
   $applied = $state['features']['featEffects']['applied_feats'] ?? [];
   assert_true(in_array('fleet', $applied, TRUE), 'fleet appears in applied feat list');
   assert_true(in_array('reach-spell', $applied, TRUE), 'reach-spell appears in applied feat list');
   assert_true(in_array('orc-sight', $applied, TRUE), 'orc-sight appears in applied feat list');
+  assert_true(in_array('dwarven-lore', $applied, TRUE), 'dwarven-lore appears in applied feat list');
+  assert_true(in_array('dwarven-weapon-familiarity', $applied, TRUE), 'dwarven-weapon-familiarity appears in applied feat list');
+  assert_true(in_array('haughty-obstinacy', $applied, TRUE), 'haughty-obstinacy appears in applied feat list');
+  assert_true(in_array('rock-runner', $applied, TRUE), 'rock-runner appears in applied feat list');
 
   $speed_bonus = (int) ($state['features']['featEffects']['derived_adjustments']['speed_bonus'] ?? 0);
   $speed_total = (int) ($state['movement']['speed']['total'] ?? 0);
@@ -153,6 +163,42 @@ try {
     return $sense['id'] ?? '';
   }, $state['senses'] ?? []);
   assert_true(in_array('darkvision', $sense_ids, TRUE), 'Darkvision sense persisted from orc-sight');
+
+  $trained_skills = $state['features']['featTraining']['skills'] ?? [];
+  $trained_lore = $state['features']['featTraining']['lore'] ?? [];
+  $trained_weapons = $state['features']['featTraining']['weapons'] ?? [];
+  assert_true(in_array('Crafting', $trained_skills, TRUE), 'Dwarven Lore skill training persisted (Crafting)');
+  assert_true(in_array('Dwarven Lore', $trained_lore, TRUE), 'Dwarven Lore lore training persisted');
+  $has_dwarven_weapons = FALSE;
+  foreach ($trained_weapons as $weapon_group) {
+    if (($weapon_group['group'] ?? '') === 'Dwarven Weapons') {
+      $has_dwarven_weapons = TRUE;
+      break;
+    }
+  }
+  assert_true($has_dwarven_weapons, 'Dwarven weapon familiarity persisted');
+
+  $conditional = $state['features']['featConditionalModifiers'] ?? [];
+  $save_mods = $conditional['saving_throws'] ?? [];
+  $skill_mods = $conditional['skills'] ?? [];
+
+  $has_haughty = FALSE;
+  foreach ($save_mods as $mod) {
+    if (($mod['save'] ?? '') === 'Will' && (int) ($mod['bonus'] ?? 0) === 1 && ($mod['context'] ?? '') === 'mental effects') {
+      $has_haughty = TRUE;
+      break;
+    }
+  }
+  assert_true($has_haughty, 'Haughty Obstinacy conditional save modifier persisted');
+
+  $has_rock_runner = FALSE;
+  foreach ($skill_mods as $mod) {
+    if (($mod['skill'] ?? '') === 'Acrobatics' && (int) ($mod['bonus'] ?? 0) === 2) {
+      $has_rock_runner = TRUE;
+      break;
+    }
+  }
+  assert_true($has_rock_runner, 'Rock Runner conditional skill modifier persisted');
 }
 catch (\Throwable $e) {
   assert_true(FALSE, 'Unexpected exception: ' . $e->getMessage());
