@@ -162,7 +162,7 @@ dungeoncrawler_content.hexmap_demo:
     _title: 'Hex Map Demo'
   methods: [GET]
   requirements:
-    _permission: 'access dungeoncrawler characters'
+    _access: 'TRUE'
 
 # ==============================================================================
 # CHARACTER MANAGEMENT ROUTES
