@@ -866,3 +866,30 @@ function ai_conversation_update_8009() {
 
   return t('Skipped prompt migration because a custom non-legacy prompt is already configured.');
 }
+
+/**
+ * Fix ai_conversation_api_usage schema: widen prompt_preview and response_preview from
+ * varchar(500) to TEXT so full prompts can be stored without truncation errors.
+ *
+ * Background: the install hook defined these columns as 'type' => 'text' (TEXT) but the
+ * initial DB create used varchar(500). This mismatch caused SQLSTATE[22001] errors when
+ * prompts exceeded 500 chars. The AIApiService now pre-truncates to 490 chars as a safety
+ * guard, but widening the column ensures no future overflow if the limit is ever raised.
+ */
+function ai_conversation_update_8010() {
+  $schema = \Drupal::database()->schema();
+  $table = 'ai_conversation_api_usage';
+
+  foreach (['prompt_preview', 'response_preview'] as $field) {
+    if ($schema->fieldExists($table, $field)) {
+      $schema->changeField($table, $field, $field, [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => FALSE,
+        'description' => 'Preview of the prompt/response sent to the AI (truncated for safety).',
+      ]);
+    }
+  }
+
+  return t('Widened ai_conversation_api_usage.prompt_preview and response_preview from varchar(500) to TEXT.');
+}
