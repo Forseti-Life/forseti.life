@@ -3,7 +3,8 @@
 Admin module to track Copilot agent status and a sanitized event stream (no raw chat transcripts).
 
 ## Routes
-- `/admin/reports/copilot-agent-tracker` (admin dashboard)
+- `/admin/reports/copilot-agent-tracker` (legacy route; 301 redirect to LangGraph dashboard)
+- `/admin/reports/copilot-agent-tracker/langgraph` (LangGraph dashboard home)
 - `/admin/reports/copilot-agent-tracker/agent/{agent_id}` (agent detail)
 - `/admin/reports/copilot-agent-tracker/llm-management` (local LLM model selection + prompt test)
 - `POST /api/copilot-agent-tracker/event` (internal telemetry; header token required)

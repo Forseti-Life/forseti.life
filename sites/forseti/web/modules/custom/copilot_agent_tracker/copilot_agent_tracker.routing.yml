@@ -1,8 +1,8 @@
 copilot_agent_tracker.dashboard:
   path: '/admin/reports/copilot-agent-tracker'
   defaults:
-    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::dashboard'
-    _title: 'Copilot Agent Tracker'
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::legacyDashboardRedirect'
+    _title: 'Copilot Agent Tracker (Legacy Redirect)'
   requirements:
     _permission: 'administer copilot agent tracker'
 
@@ -135,6 +135,22 @@ copilot_agent_tracker.langgraph_release_status:
   defaults:
     _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphReleaseStatus'
     _title: 'LangGraph Release-cycle Status'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.langgraph_release_notes:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/release-notes'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphReleaseNotes'
+    _title: 'LangGraph Release-cycle Notes'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
+copilot_agent_tracker.langgraph_release_troubleshooting:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/release-troubleshooting'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphReleaseTroubleshooting'
+    _title: 'LangGraph Release-cycle Troubleshooting'
   requirements:
     _permission: 'administer copilot agent tracker'
 

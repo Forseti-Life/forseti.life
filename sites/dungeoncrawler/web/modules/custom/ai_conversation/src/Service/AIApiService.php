@@ -475,10 +475,10 @@ class AIApiService {
         $fields['error_message'] = $params['error_message'] ?? NULL;
       }
       if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'prompt_preview')) {
-        $fields['prompt_preview'] = $full_prompt;
+        $fields['prompt_preview'] = mb_substr((string) $full_prompt, 0, 250);
       }
       if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'response_preview')) {
-        $fields['response_preview'] = $full_response;
+        $fields['response_preview'] = mb_substr((string) $full_response, 0, 250);
       }
       
       $connection->insert('ai_conversation_api_usage')

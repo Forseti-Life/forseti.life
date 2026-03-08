@@ -277,6 +277,48 @@
           {% if feat.level_gained %}<span class="dc-sheet__tag">Level {{ feat.level_gained }}</span>{% endif %}
         </div>
       {% endfor %}
+
+      {% if feat_effects is defined %}
+        {% set adjustments = feat_effects.derived_adjustments ?? {} %}
+        {% set actions = feat_effects.available_actions ?? {} %}
+        {% set resources = feat_effects.rest_resources ?? {} %}
+
+        {% if (adjustments.hp_max_bonus ?? 0) > 0 or (adjustments.speed_bonus ?? 0) > 0 or (adjustments.initiative_bonus ?? 0) > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Adjustments</h3>
+          {% if (adjustments.hp_max_bonus ?? 0) > 0 %}
+            <div class="dc-sheet__detail">+{{ adjustments.hp_max_bonus }} Max HP</div>
+          {% endif %}
+          {% if (adjustments.speed_bonus ?? 0) > 0 %}
+            <div class="dc-sheet__detail">+{{ adjustments.speed_bonus }} ft Speed</div>
+          {% endif %}
+          {% if (adjustments.initiative_bonus ?? 0) > 0 %}
+            <div class="dc-sheet__detail">+{{ adjustments.initiative_bonus }} Initiative</div>
+          {% endif %}
+        {% endif %}
+
+        {% if (actions.at_will|default([]))|length > 0 or (actions.per_short_rest|default([]))|length > 0 or (actions.per_long_rest|default([]))|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Actions</h3>
+          {% for action in actions.at_will|default([]) %}
+            <div class="dc-sheet__detail"><strong>{{ action.name }}:</strong> {{ action.description }} <span class="dc-sheet__tag">At Will</span></div>
+          {% endfor %}
+          {% for action in actions.per_short_rest|default([]) %}
+            <div class="dc-sheet__detail"><strong>{{ action.name }}:</strong> {{ action.description }} <span class="dc-sheet__tag">Per Short Rest</span></div>
+          {% endfor %}
+          {% for action in actions.per_long_rest|default([]) %}
+            <div class="dc-sheet__detail"><strong>{{ action.name }}:</strong> {{ action.description }} <span class="dc-sheet__tag">Per Long Rest</span>{% if action.uses_remaining is defined %} <span class="dc-sheet__tag">{{ action.uses_remaining }}/{{ action.uses_max }} remaining</span>{% endif %}</div>
+          {% endfor %}
+        {% endif %}
+
+        {% if (resources.per_short_rest|default([]))|length > 0 or (resources.per_long_rest|default([]))|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Rest Resources</h3>
+          {% for resource in resources.per_short_rest|default([]) %}
+            <div class="dc-sheet__detail">{{ resource.name }}: {{ resource.remaining }}/{{ resource.max }} remaining (resets on short rest)</div>
+          {% endfor %}
+          {% for resource in resources.per_long_rest|default([]) %}
+            <div class="dc-sheet__detail">{{ resource.name }}: {{ resource.remaining }}/{{ resource.max }} remaining (resets on long rest)</div>
+          {% endfor %}
+        {% endif %}
+      {% endif %}
     </div>
   {% endif %}
 
@@ -297,6 +339,21 @@
         <div class="dc-sheet__detail">
           <strong>Focus Points:</strong> {{ spells.focus_points.remaining ?? 0 }} / {{ spells.focus_points.max }}
         </div>
+      {% endif %}
+
+      {% if spells.feat_augments is defined %}
+        {% if spells.feat_augments.metamagic|default([])|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Metamagic</h3>
+          {% for augment in spells.feat_augments.metamagic %}
+            <div class="dc-sheet__detail"><strong>{{ augment.name }}:</strong> {{ augment.description }}</div>
+          {% endfor %}
+        {% endif %}
+        {% if spells.feat_augments.innate_spells|default([])|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Innate Spells</h3>
+          {% for innate in spells.feat_augments.innate_spells %}
+            <div class="dc-sheet__detail"><strong>{{ innate.name }}:</strong> {{ innate.description }}</div>
+          {% endfor %}
+        {% endif %}
       {% endif %}
 
       {% if spells.rank_groups|length > 0 %}

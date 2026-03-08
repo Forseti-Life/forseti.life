@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
+use Drupal\dungeoncrawler_content\Service\FeatEffectManager;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Response;
@@ -17,16 +18,19 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 class CharacterViewController extends ControllerBase {
 
   protected CharacterManager $characterManager;
+  protected FeatEffectManager $featEffectManager;
   protected GeneratedImageRepository $imageRepository;
 
-  public function __construct(CharacterManager $character_manager, GeneratedImageRepository $image_repository) {
+  public function __construct(CharacterManager $character_manager, FeatEffectManager $feat_effect_manager, GeneratedImageRepository $image_repository) {
     $this->characterManager = $character_manager;
+    $this->featEffectManager = $feat_effect_manager;
     $this->imageRepository = $image_repository;
   }
 
   public static function create(ContainerInterface $container) {
     return new static(
       $container->get('dungeoncrawler_content.character_manager'),
+      $container->get('dungeoncrawler_content.feat_effect_manager'),
       $container->get('dungeoncrawler_content.generated_image_repository'),
     );
   }
@@ -181,7 +185,7 @@ class CharacterViewController extends ControllerBase {
     $size = is_array($char_data['ancestry'] ?? NULL)
       ? ($char_data['ancestry']['size'] ?? 'Medium')
       : ($char_data['size'] ?? 'Medium');
-    $speed = is_array($char_data['ancestry'] ?? NULL)
+    $base_speed = is_array($char_data['ancestry'] ?? NULL)
       ? ($char_data['ancestry']['speed'] ?? 25)
       : ($char_data['speed'] ?? 25);
     $languages = is_array($char_data['ancestry'] ?? NULL)
@@ -200,6 +204,20 @@ class CharacterViewController extends ControllerBase {
     $class_hp_per_level = is_array($char_data['class'] ?? NULL)
       ? ((int) ($char_data['class']['hp_per_level'] ?? 8))
       : 8;
+
+    $feat_effects = $this->featEffectManager->buildEffectState($char_data, [
+      'level' => (int) $level,
+      'base_speed' => (int) $base_speed,
+      'existing_hp_max' => (int) $max_hp,
+    ]);
+
+    $perception['modifier'] += (int) ($feat_effects['derived_adjustments']['perception_bonus'] ?? 0);
+    $perception['senses'] = array_map(static function (array $sense): string {
+      return (string) ($sense['name'] ?? '');
+    }, $feat_effects['senses'] ?? []);
+
+    $max_hp += (int) ($feat_effects['derived_adjustments']['hp_max_bonus'] ?? 0);
+    $speed = (int) ($feat_effects['derived_adjustments']['computed_speed'] ?? $base_speed);
 
     // Read inventory data (structured format from Step 7).
     $inventory = $char_data['inventory'] ?? [];
@@ -303,8 +321,9 @@ class CharacterViewController extends ControllerBase {
         'items' => $equipment_items,
       ],
       '#feats' => $char_data['feats'] ?? [],
-      '#spells' => $this->buildSpellsDisplayData($char_data),
+      '#spells' => $this->buildSpellsDisplayData($char_data, $feat_effects),
       '#conditions' => $char_data['conditions'] ?? [],
+      '#feat_effects' => $feat_effects,
       '#personality' => [
         'alignment' => $alignment,
         'deity' => $deity,
@@ -374,7 +393,7 @@ class CharacterViewController extends ControllerBase {
    * @return array|null
    *   Enriched spells data with spells_known, or NULL if not a caster.
    */
-  private function buildSpellsDisplayData(array $char_data): ?array {
+  private function buildSpellsDisplayData(array $char_data, array $feat_effects = []): ?array {
     $spells_raw = $char_data['spells'] ?? NULL;
     if (empty($spells_raw) || empty($spells_raw['tradition'])) {
       return NULL;
@@ -440,6 +459,9 @@ class CharacterViewController extends ControllerBase {
     $result = $spells_raw;
     $result['spells_known'] = $spells_known;
     $result['rank_groups'] = $rank_groups;
+    if (!empty($feat_effects['spell_augments']) && is_array($feat_effects['spell_augments'])) {
+      $result['feat_augments'] = $feat_effects['spell_augments'];
+    }
 
     return $result;
   }

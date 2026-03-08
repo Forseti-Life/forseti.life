@@ -28,7 +28,7 @@ services:
 
   dungeoncrawler_content.character_state:
     class: Drupal\dungeoncrawler_content\Service\CharacterStateService
-    arguments: ['@database', '@current_user']
+    arguments: ['@database', '@current_user', '@dungeoncrawler_content.feat_effect_manager']
 
   dungeoncrawler_content.character_state_service:
     alias: dungeoncrawler_content.character_state
@@ -58,6 +58,9 @@ services:
   dungeoncrawler_content.ability_score_tracker:
     class: Drupal\dungeoncrawler_content\Service\AbilityScoreTracker
     arguments: ['@dungeoncrawler_content.character_manager']
+
+  dungeoncrawler_content.feat_effect_manager:
+    class: Drupal\dungeoncrawler_content\Service\FeatEffectManager
 
   # Access Control Services
   dungeoncrawler_content.character_access_check:

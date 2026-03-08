@@ -48,7 +48,7 @@ class CombatEncounterStore {
       $this->database->insert('combat_participants')
         ->fields([
           'encounter_id' => $encounter_id,
-          'entity_id' => (int) ($participant['entity_id'] ?? ($participant['id'] ?? 0)),
+          'entity_id' => $participant['entity_id'] ?? ($participant['id'] ?? 0),
           'entity_ref' => $participant['entity_ref'] ?? NULL,
           'name' => $participant['name'] ?? 'Entity',
           'team' => $participant['team'] ?? NULL,
@@ -144,7 +144,7 @@ class CombatEncounterStore {
       $this->database->insert('combat_participants')
         ->fields([
           'encounter_id' => $encounter_id,
-          'entity_id' => (int) ($participant['entity_id'] ?? ($participant['id'] ?? 0)),
+          'entity_id' => $participant['entity_id'] ?? ($participant['id'] ?? 0),
           'entity_ref' => $participant['entity_ref'] ?? NULL,
           'name' => $participant['name'] ?? 'Entity',
           'team' => $participant['team'] ?? NULL,

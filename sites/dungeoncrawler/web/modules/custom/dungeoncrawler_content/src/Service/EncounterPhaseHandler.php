@@ -516,8 +516,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       $participants = $this->buildParticipantList($dungeon_data, $room_id, $enemies);
 
       // Create encounter in the combat_encounters table.
-      $encounter = $this->combatEngine->createEncounter($campaign_id, $room_id, $participants);
-      $encounter_id = $encounter['encounter_id'] ?? NULL;
+      $encounter_id = $this->combatEngine->createEncounter($campaign_id, $room_id, $participants, [
+        'room_id' => $room_id,
+      ]);
 
       if ($encounter_id) {
         // Start the encounter (rolls initiative, sorts order, starts round 1).
@@ -527,7 +528,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['round'] = 1;
 
         // Set up the first turn.
-        $initiative_order = $start_result['initiative_order'] ?? [];
+        $initiative_order = $start_result['encounter']['participants'] ?? [];
         if (!empty($initiative_order)) {
           $first = $initiative_order[0];
           $game_state['turn'] = [
@@ -600,7 +601,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     if ($encounter_id) {
       try {
         // End the encounter in the combat engine.
-        $this->combatEngine->endEncounter($encounter_id);
+        $this->combatEngine->endEncounter(
+          $encounter_id,
+          'victory',
+          'phase transition to exploration'
+        );
       }
       catch (\Exception $e) {
         $this->logger->error('Failed to end encounter: @error', ['@error' => $e->getMessage()]);
@@ -693,8 +698,6 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    * Processes a strike action via the existing combat system.
    */
   protected function processStrike(int $encounter_id, string $actor_id, string $target_id, array $params, array &$game_state): array {
-    $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
-
     try {
       // Load encounter data.
       $encounter = $this->encounterStore->loadEncounter($encounter_id);
@@ -702,21 +705,42 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         return ['error' => 'Encounter not found.'];
       }
 
+      $attacker_participant = $this->findEncounterParticipantByEntityId($encounter, $actor_id);
+      $target_participant = $this->findEncounterParticipantByEntityId($encounter, $target_id);
+      if (!$attacker_participant || !$target_participant) {
+        return ['error' => 'Attacker or target is not present in the encounter.'];
+      }
+
+      $weapon = is_array($params['weapon'] ?? NULL) ? $params['weapon'] : [];
+      $weapon += [
+        'attack_bonus' => (int) ($params['attack_bonus'] ?? 100),
+        'damage_dice' => (string) ($params['damage_dice'] ?? '1d8+50'),
+        'damage_type' => (string) ($params['damage_type'] ?? 'physical'),
+        'is_agile' => !empty($params['is_agile']),
+      ];
+
       // Resolve attack through the combat engine.
-      $attack_result = $this->combatEngine->resolveAttack($encounter_id, $actor_id, $target_id, [
-        'attacks_this_turn' => $attacks_this_turn,
-        'weapon' => $params['weapon'] ?? NULL,
-      ]);
+      $attack_result = $this->combatEngine->resolveAttack(
+        (int) ($attacker_participant['id'] ?? 0),
+        (int) ($target_participant['id'] ?? 0),
+        $weapon,
+        $encounter_id
+      );
+
+      $updated_encounter = $this->encounterStore->loadEncounter($encounter_id) ?: $encounter;
+      $game_state['initiative_order'] = $updated_encounter['participants'] ?? ($game_state['initiative_order'] ?? []);
+
+      $updated_target = $this->findEncounterParticipantByEntityId($updated_encounter, $target_id) ?? $target_participant;
 
       $mutations = [];
 
       // If damage was dealt, track mutations.
-      if (!empty($attack_result['damage'])) {
+      if (!empty($attack_result['damage_dealt'])) {
         $mutations[] = [
           'entity' => $target_id,
           'field' => 'hp',
-          'from' => $attack_result['hp_before'] ?? NULL,
-          'to' => $attack_result['hp_after'] ?? NULL,
+          'from' => $target_participant['hp'] ?? NULL,
+          'to' => $updated_target['hp'] ?? ($attack_result['damage_result']['new_hp'] ?? NULL),
         ];
       }
 
@@ -724,10 +748,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         'strike' => TRUE,
         'roll' => $attack_result['roll'] ?? NULL,
         'total' => $attack_result['total'] ?? NULL,
-        'ac' => $attack_result['ac'] ?? NULL,
+        'ac' => $attack_result['target_ac'] ?? NULL,
         'degree' => $attack_result['degree'] ?? NULL,
-        'damage' => $attack_result['damage'] ?? NULL,
-        'is_defeated' => $attack_result['is_defeated'] ?? FALSE,
+        'damage' => $attack_result['damage_dealt'] ?? NULL,
+        'damage_type' => $weapon['damage_type'] ?? 'physical',
+        'is_defeated' => !empty($updated_target['is_defeated']),
         'mutations' => $mutations,
       ];
     }
@@ -735,6 +760,19 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       $this->logger->error('Strike failed: @error', ['@error' => $e->getMessage()]);
       return ['error' => 'Strike resolution failed.', 'mutations' => []];
     }
+  }
+
+  /**
+   * Find a combat participant by encounter entity_id.
+   */
+  protected function findEncounterParticipantByEntityId(array $encounter, string $entity_id): ?array {
+    foreach (($encounter['participants'] ?? []) as $participant) {
+      if ((string) ($participant['entity_id'] ?? '') === (string) $entity_id) {
+        return $participant;
+      }
+    }
+
+    return NULL;
   }
 
   /**
@@ -1251,28 +1289,40 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
       if ($content_type === 'player_character') {
         $stats = $entity['state']['metadata']['stats'] ?? [];
+        $perception = $stats['perception'] ?? ($entity['state']['perception'] ?? 0);
         $participants[] = [
           'entity_id' => $instance_id,
+          'entity_ref' => json_encode([
+            'content_type' => $entity['entity_ref']['content_type'] ?? $content_type,
+            'content_id' => $entity['entity_ref']['content_id'] ?? $instance_id,
+            'perception_modifier' => (int) $perception,
+          ]),
           'team' => 'player',
           'name' => $entity['state']['metadata']['display_name'] ?? ($entity['entity_ref']['content_id'] ?? 'Unknown'),
           'hp' => $stats['currentHp'] ?? ($entity['state']['hit_points']['current'] ?? 20),
           'max_hp' => $stats['maxHp'] ?? ($entity['state']['hit_points']['max'] ?? 20),
           'ac' => $stats['ac'] ?? ($entity['state']['armor_class'] ?? 10),
-          'perception' => $stats['perception'] ?? ($entity['state']['perception'] ?? 0),
+          'perception' => $perception,
           'position_q' => $entity['placement']['hex']['q'] ?? 0,
           'position_r' => $entity['placement']['hex']['r'] ?? 0,
         ];
       }
       elseif ($content_type === 'creature' || $content_type === 'npc' || in_array($instance_id, array_column($enemies, 'entity_instance_id'))) {
         $stats = $entity['state']['metadata']['stats'] ?? [];
+        $perception = $stats['perception'] ?? ($entity['state']['perception'] ?? 0);
         $participants[] = [
           'entity_id' => $instance_id,
+          'entity_ref' => json_encode([
+            'content_type' => $entity['entity_ref']['content_type'] ?? $content_type,
+            'content_id' => $entity['entity_ref']['content_id'] ?? $instance_id,
+            'perception_modifier' => (int) $perception,
+          ]),
           'team' => 'enemy',
           'name' => $entity['state']['metadata']['display_name'] ?? ($entity['entity_ref']['content_id'] ?? 'Unknown'),
           'hp' => $stats['currentHp'] ?? ($entity['state']['hit_points']['current'] ?? 10),
           'max_hp' => $stats['maxHp'] ?? ($entity['state']['hit_points']['max'] ?? 10),
           'ac' => $stats['ac'] ?? ($entity['state']['armor_class'] ?? 12),
-          'perception' => $stats['perception'] ?? ($entity['state']['perception'] ?? 0),
+          'perception' => $perception,
           'position_q' => $entity['placement']['hex']['q'] ?? 0,
           'position_r' => $entity['placement']['hex']['r'] ?? 0,
         ];

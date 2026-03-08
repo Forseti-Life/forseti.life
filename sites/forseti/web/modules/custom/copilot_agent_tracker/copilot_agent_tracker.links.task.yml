@@ -27,3 +27,15 @@ copilot_agent_tracker.langgraph_release_status_tab:
   title: 'Release Status'
   base_route: copilot_agent_tracker.langgraph_dashboard
   weight: 4
+
+copilot_agent_tracker.langgraph_release_notes_tab:
+  route_name: copilot_agent_tracker.langgraph_release_notes
+  title: 'Release Notes'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 5
+
+copilot_agent_tracker.langgraph_release_troubleshooting_tab:
+  route_name: copilot_agent_tracker.langgraph_release_troubleshooting
+  title: 'Troubleshooting'
+  base_route: copilot_agent_tracker.langgraph_dashboard
+  weight: 6

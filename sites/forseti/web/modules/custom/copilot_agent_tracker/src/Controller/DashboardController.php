@@ -221,6 +221,17 @@ final class DashboardController extends ControllerBase {
   }
 
   /**
+   * Legacy dashboard URL redirect.
+   *
+   * Retired path kept for backward compatibility:
+   * /admin/reports/copilot-agent-tracker
+   */
+  public function legacyDashboardRedirect(): RedirectResponse {
+    $url = Url::fromRoute('copilot_agent_tracker.langgraph_dashboard');
+    return new RedirectResponse($url->toString(), 301);
+  }
+
+  /**
    * Architecture page: how agents, process, and systems fit together.
    */
   public function architecture(): array {
@@ -1487,9 +1498,7 @@ final class DashboardController extends ControllerBase {
    * splitting the workflow across two separate admin reports.
    */
   public function waitingOnKeithRedirect(): RedirectResponse {
-    $url = Url::fromRoute('copilot_agent_tracker.dashboard', [], [
-      'fragment' => 'todo-for-keith',
-    ]);
+    $url = Url::fromRoute('copilot_agent_tracker.langgraph_dashboard');
     return new RedirectResponse($url->toString(), 301);
   }
 
@@ -3892,6 +3901,149 @@ final class DashboardController extends ControllerBase {
         [$this->t('agent_cap'), (string) $agent_cap],
         [$this->t('Ticks with publish_enabled=true (last 24h)'), (string) $publish_enabled_count],
       ],
+    ];
+
+    $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('Release-cycle Troubleshooting');
+
+    return $build;
+  }
+
+  /**
+   * LangGraph release-cycle notes view.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/release-notes
+   */
+  public function langGraphReleaseNotes(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Notes') . '</h2>',
+    ];
+    $build['reference_note'] = [
+      '#markup' => '<p><strong>Reference:</strong> this is the release notes view linked from the LangGraph dashboard tabs.</p>',
+    ];
+    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build['notes'] = $this->releaseNotes();
+
+    return $build;
+  }
+
+  /**
+   * LangGraph release-cycle troubleshooting view.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/release-troubleshooting
+   */
+  public function langGraphReleaseTroubleshooting(): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+    ];
+
+    $build['title'] = [
+      '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Troubleshooting') . '</h2>',
+    ];
+    $build['intro'] = [
+      '#markup' => '<p>Use this page to identify where work is currently sitting by seat, including active item and current action.</p>',
+    ];
+    $build['nav'] = $this->renderLanggraphReferenceNav();
+
+    if (!$this->database->schema()->tableExists('copilot_agent_tracker_agents')) {
+      $build['empty'] = [
+        '#markup' => '<p class="messages messages--warning">' . $this->t('Tracker agent table is missing. Run database updates and publishing jobs.') . '</p>',
+      ];
+      return $build;
+    }
+
+    $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
+      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
+      ->orderBy('website', 'ASC')
+      ->orderBy('module', 'ASC')
+      ->orderBy('role', 'ASC')
+      ->orderBy('agent_id', 'ASC')
+      ->execute()
+      ->fetchAllAssoc('agent_id');
+
+    $table_rows = [];
+    $blocked = 0;
+    $needs_info = 0;
+    $working = 0;
+
+    foreach ($rows as $agent_id => $row) {
+      $status = trim((string) ($row->status ?? ''));
+      $status_lc = strtolower($status);
+      if (str_contains($status_lc, 'blocked')) {
+        $blocked++;
+      }
+      if (str_contains($status_lc, 'needs-info') || str_contains($status_lc, 'needs_info')) {
+        $needs_info++;
+      }
+      if (str_contains($status_lc, 'running') || str_contains($status_lc, 'working') || str_contains($status_lc, 'in-progress')) {
+        $working++;
+      }
+
+      $meta = [];
+      if (!empty($row->metadata)) {
+        try {
+          $meta = Json::decode((string) $row->metadata) ?? [];
+        }
+        catch (\Throwable) {
+          $meta = [];
+        }
+      }
+
+      $active_item = trim((string) ($meta['active_inbox'] ?? ''));
+      $next_item = trim((string) ($meta['next_inbox'] ?? ''));
+      $inbox_count = (int) ($meta['inbox_count'] ?? 0);
+
+      $agent_link = Link::fromTextAndUrl(
+        (string) $agent_id,
+        Url::fromRoute('copilot_agent_tracker.agent', ['agent_id' => (string) $agent_id])
+      )->toString();
+
+      $table_rows[] = [
+        Markup::create($agent_link),
+        (string) ($row->website ?? ''),
+        (string) ($row->module ?? ''),
+        (string) ($row->role ?? ''),
+        $status !== '' ? $status : '-',
+        trim((string) ($row->current_action ?? '')) ?: '-',
+        $active_item !== '' ? $active_item : '-',
+        $next_item !== '' ? $next_item : '-',
+        (string) $inbox_count,
+        !empty($row->last_seen) ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '-',
+      ];
+    }
+
+    $build['summary'] = [
+      '#type' => 'table',
+      '#header' => [$this->t('Signal'), $this->t('Value')],
+      '#rows' => [
+        [$this->t('Total tracked seats'), (string) count($rows)],
+        [$this->t('Blocked seats'), (string) $blocked],
+        [$this->t('Needs-info seats'), (string) $needs_info],
+        [$this->t('Working seats'), (string) $working],
+      ],
+    ];
+
+    $build['current_action_table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Agent'),
+        $this->t('Website'),
+        $this->t('Module'),
+        $this->t('Role'),
+        $this->t('Status'),
+        $this->t('Current action'),
+        $this->t('Active item'),
+        $this->t('Next item'),
+        $this->t('Inbox count'),
+        $this->t('Last seen'),
+      ],
+      '#rows' => $table_rows,
+      '#empty' => $this->t('No agent state published yet.'),
     ];
 
     $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('Release-cycle Troubleshooting');

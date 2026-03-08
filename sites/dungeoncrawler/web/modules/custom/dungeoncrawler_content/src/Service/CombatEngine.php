@@ -67,7 +67,7 @@ class CombatEngine {
    * Create new combat encounter and insert participants.
    */
   public function createEncounter($campaign_id, $encounter_name, array $participants, array $settings = []) {
-    $room_id = $settings['room_id'] ?? NULL;
+    $room_id = $settings['room_id'] ?? (is_string($encounter_name) ? $encounter_name : NULL);
     return $this->store->createEncounter($campaign_id, $room_id, $participants);
   }
 
