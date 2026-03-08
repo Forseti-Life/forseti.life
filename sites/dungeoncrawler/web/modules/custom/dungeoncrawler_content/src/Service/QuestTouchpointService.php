@@ -184,51 +184,87 @@ class QuestTouchpointService {
       }
 
       $quest_name = (string) ($quest['quest_name'] ?? $quest_id);
-      $phases = json_decode((string) ($quest['generated_objectives'] ?? '[]'), TRUE);
-      if (!is_array($phases)) {
-        continue;
-      }
-
-      foreach ($phases as $phase) {
-        foreach (($phase['objectives'] ?? []) as $objective) {
-          $candidate_objective_id = (string) ($objective['objective_id'] ?? '');
-          if ($candidate_objective_id === '') {
-            continue;
-          }
-
-          $candidate_type = strtolower((string) ($objective['type'] ?? ''));
-          if ($candidate_type !== $objective_type) {
-            continue;
-          }
-
-          if ($objective_id_hint !== '' && $objective_id_hint !== $candidate_objective_id) {
-            continue;
-          }
-
-          if ($objective_id_hint === '' || $objective_id_hint !== $candidate_objective_id) {
-            $target_item = $this->normalizeToken((string) ($objective['item'] ?? ''));
-            $target_npc = $this->normalizeToken((string) ($objective['target'] ?? ''));
-
-            $item_match = $item_ref === '' || $target_item === '' || str_contains($item_ref, $target_item) || str_contains($target_item, $item_ref);
-            $npc_match = $npc_ref === '' || $target_npc === '' || str_contains($npc_ref, $target_npc) || str_contains($target_npc, $npc_ref);
-
-            if (!$item_match || !$npc_match) {
-              continue;
-            }
-          }
-
-          $matches[] = [
-            'quest_id' => $quest_id,
-            'quest_name' => $quest_name,
-            'objective_id' => $candidate_objective_id,
-            'objective_type' => $candidate_type,
-            'label' => (string) ($objective['description'] ?? $candidate_objective_id),
-          ];
+      $active_objectives = $this->getActiveObjectivesForCurrentPhase($quest);
+      foreach ($active_objectives as $objective) {
+        $candidate_objective_id = (string) ($objective['objective_id'] ?? '');
+        if ($candidate_objective_id === '') {
+          continue;
         }
+
+        $candidate_type = strtolower((string) ($objective['type'] ?? ''));
+        if ($candidate_type !== $objective_type) {
+          continue;
+        }
+
+        if ($objective_id_hint !== '' && $objective_id_hint !== $candidate_objective_id) {
+          continue;
+        }
+
+        if ($objective_id_hint === '' || $objective_id_hint !== $candidate_objective_id) {
+          $target_item = $this->normalizeToken((string) ($objective['item'] ?? ''));
+          $target_npc = $this->normalizeToken((string) ($objective['target'] ?? ''));
+
+          $item_match = $item_ref === '' || $target_item === '' || str_contains($item_ref, $target_item) || str_contains($target_item, $item_ref);
+          $npc_match = $npc_ref === '' || $target_npc === '' || str_contains($npc_ref, $target_npc) || str_contains($target_npc, $npc_ref);
+
+          if (!$item_match || !$npc_match) {
+            continue;
+          }
+        }
+
+        $matches[] = [
+          'quest_id' => $quest_id,
+          'quest_name' => $quest_name,
+          'objective_id' => $candidate_objective_id,
+          'objective_type' => $candidate_type,
+          'label' => (string) ($objective['description'] ?? $candidate_objective_id),
+        ];
       }
     }
 
     return $matches;
+  }
+
+  /**
+   * Return non-completed objectives for the quest's current phase.
+   */
+  protected function getActiveObjectivesForCurrentPhase(array $quest): array {
+    $current_phase = (int) ($quest['current_phase'] ?? 1);
+    if ($current_phase <= 0) {
+      $current_phase = 1;
+    }
+
+    $phase_rows = json_decode((string) ($quest['objective_states'] ?? '[]'), TRUE);
+    if (!is_array($phase_rows) || $phase_rows === []) {
+      $phase_rows = json_decode((string) ($quest['generated_objectives'] ?? '[]'), TRUE);
+    }
+
+    if (!is_array($phase_rows)) {
+      return [];
+    }
+
+    foreach ($phase_rows as $phase) {
+      if ((int) ($phase['phase'] ?? 0) !== $current_phase) {
+        continue;
+      }
+
+      $objectives = is_array($phase['objectives'] ?? NULL) ? $phase['objectives'] : [];
+      return array_values(array_filter($objectives, static function (array $objective): bool {
+        if (!empty($objective['completed'])) {
+          return FALSE;
+        }
+
+        $target_count = (int) ($objective['target_count'] ?? 0);
+        $current = (int) ($objective['current'] ?? 0);
+        if ($target_count > 0 && $current >= $target_count) {
+          return FALSE;
+        }
+
+        return TRUE;
+      }));
+    }
+
+    return [];
   }
 
   /**

@@ -221,11 +221,93 @@ class QuestGeneratorService {
     $query = $this->database->select('dungeoncrawler_content_quest_templates', 't')
       ->fields('t')
       ->condition('level_min', $party_level, '<=')
-      ->condition('level_max', $party_level, '>=')
-      ->orderRandom()
-      ->range(0, 10);
+      ->condition('level_max', $party_level, '>=');
 
-    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    $templates = $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    if (empty($templates)) {
+      return [];
+    }
+
+    $requested_tags = $this->normalizeTags($tags);
+
+    // Without location tags, keep behavior random.
+    if (empty($requested_tags)) {
+      shuffle($templates);
+      return array_slice($templates, 0, 10);
+    }
+
+    $matched = [];
+    $fallback = [];
+
+    foreach ($templates as $template) {
+      $template_tags = $this->decodeTemplateTags($template['tags'] ?? '[]');
+      $overlap = array_values(array_intersect($requested_tags, $template_tags));
+      $score = count($overlap);
+
+      if ($score > 0) {
+        $template['_tag_score'] = $score;
+        $matched[] = $template;
+      }
+      else {
+        $fallback[] = $template;
+      }
+    }
+
+    usort($matched, static function (array $a, array $b): int {
+      $score_cmp = (int) ($b['_tag_score'] ?? 0) <=> (int) ($a['_tag_score'] ?? 0);
+      if ($score_cmp !== 0) {
+        return $score_cmp;
+      }
+      return strcmp((string) ($a['template_id'] ?? ''), (string) ($b['template_id'] ?? ''));
+    });
+
+    shuffle($fallback);
+    $ordered = array_merge($matched, $fallback);
+
+    // Remove internal scoring field before returning.
+    $ordered = array_map(static function (array $row): array {
+      unset($row['_tag_score']);
+      return $row;
+    }, $ordered);
+
+    return array_slice($ordered, 0, 10);
+  }
+
+  /**
+   * Normalize tags to lowercase tokens.
+   */
+  protected function normalizeTags(array $tags): array {
+    $normalized = [];
+    foreach ($tags as $tag) {
+      if (!is_string($tag) && !is_numeric($tag)) {
+        continue;
+      }
+
+      $value = strtolower(trim((string) $tag));
+      if ($value === '') {
+        continue;
+      }
+
+      $normalized[$value] = TRUE;
+    }
+
+    return array_keys($normalized);
+  }
+
+  /**
+   * Decode template tag payload from database.
+   */
+  protected function decodeTemplateTags(?string $raw_tags): array {
+    if ($raw_tags === NULL || $raw_tags === '') {
+      return [];
+    }
+
+    $decoded = json_decode($raw_tags, TRUE);
+    if (!is_array($decoded)) {
+      return [];
+    }
+
+    return $this->normalizeTags($decoded);
   }
 
   /**

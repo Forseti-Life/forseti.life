@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_content\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
+use Drupal\dungeoncrawler_content\Service\QuestGeneratorService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -26,7 +27,7 @@ class QuestGeneratorController extends ControllerBase {
    *
    * @var \Drupal\dungeoncrawler_content\Service\QuestGeneratorService
    */
-  protected $questGenerator;
+  protected QuestGeneratorService $questGenerator;
 
   /**
    * Logger instance.
@@ -42,10 +43,17 @@ class QuestGeneratorController extends ControllerBase {
    *   The database connection.
    * @param \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory
    *   The logger factory.
+   * @param \Drupal\dungeoncrawler_content\Service\QuestGeneratorService $quest_generator
+   *   The quest generator service.
    */
-  public function __construct(Connection $database, LoggerChannelFactoryInterface $logger_factory) {
+  public function __construct(
+    Connection $database,
+    LoggerChannelFactoryInterface $logger_factory,
+    QuestGeneratorService $quest_generator
+  ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler_content');
+    $this->questGenerator = $quest_generator;
   }
 
   /**
@@ -54,7 +62,8 @@ class QuestGeneratorController extends ControllerBase {
   public static function create(ContainerInterface $container): self {
     return new static(
       $container->get('database'),
-      $container->get('logger.factory')
+      $container->get('logger.factory'),
+      $container->get('dungeoncrawler_content.quest_generator')
     );
   }
 
@@ -82,9 +91,6 @@ class QuestGeneratorController extends ControllerBase {
         ], 400);
       }
 
-      // Get quest generator service
-      $quest_generator = \Drupal::service('dungeoncrawler_content.quest_generator');
-
       // Validate input
       if (empty($payload['template_id'])) {
         return new JsonResponse([
@@ -99,7 +105,7 @@ class QuestGeneratorController extends ControllerBase {
       $context['difficulty'] = $context['difficulty'] ?? 'moderate';
 
       // Generate quest
-      $quest_data = $quest_generator->generateQuestFromTemplate(
+      $quest_data = $this->questGenerator->generateQuestFromTemplate(
         $payload['template_id'],
         $campaign_id,
         $context
@@ -162,8 +168,6 @@ class QuestGeneratorController extends ControllerBase {
         ], 400);
       }
 
-      $quest_generator = \Drupal::service('dungeoncrawler_content.quest_generator');
-
       // Build context
       $context = $payload['context'] ?? [];
       $context['party_level'] = $context['party_level'] ?? 1;
@@ -172,7 +176,7 @@ class QuestGeneratorController extends ControllerBase {
 
       // Generate quests
       $count = $payload['count'] ?? 3;
-      $quests = $quest_generator->generateQuestsForLocation($campaign_id, $context, $count);
+      $quests = $this->questGenerator->generateQuestsForLocation($campaign_id, $context, $count);
 
       // Insert into database
       foreach ($quests as $quest_data) {

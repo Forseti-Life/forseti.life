@@ -528,6 +528,14 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $message = $params['message'] ?? '';
     $room_id = $dungeon_data['active_room_id'] ?? NULL;
     $character_id = $params['character_id'] ?? NULL;
+    $speaker = 'Player';
+
+    if ($actor_id) {
+      $actor_entity = $this->findEntityInDungeon($actor_id, $dungeon_data);
+      $speaker = $actor_entity['state']['metadata']['display_name']
+        ?? $actor_entity['name']
+        ?? $actor_id;
+    }
 
     if (!$room_id) {
       return ['error' => 'No active room set.'];
@@ -540,17 +548,25 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       $chat_result = $this->roomChatService->postMessage(
         $campaign_id,
         $room_id,
+        $speaker,
         $message,
         'player',
         $character_id
       );
 
+      if (!empty($chat_result['dungeon_data']) && is_array($chat_result['dungeon_data'])) {
+        $dungeon_data = $chat_result['dungeon_data'];
+        $game_state = $dungeon_data['game_state'] ?? $game_state;
+      }
+
       return [
         'talked' => TRUE,
         'message' => $message,
         'gm_response' => $chat_result['gm_response'] ?? NULL,
-        'narration' => $chat_result['gm_response']['text'] ?? NULL,
+        'narration' => $chat_result['gm_response']['message'] ?? ($chat_result['gm_response']['text'] ?? NULL),
         'state_diff' => $chat_result['state_diff'] ?? [],
+        'combat_transition' => $chat_result['combat_transition'] ?? NULL,
+        'canonical_actions' => $chat_result['canonical_actions'] ?? [],
         'mutations' => $chat_result['mutations'] ?? [],
       ];
     }

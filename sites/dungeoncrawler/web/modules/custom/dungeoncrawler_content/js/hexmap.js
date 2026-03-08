@@ -2228,6 +2228,7 @@ import { SpriteService } from './SpriteService.js';
     _roomBanner: null,
     _orientationReferenceOverlay: null,
     _spreadHoverAnchorKey: null,
+    _spreadExpandedHexKey: null,
     _spreadClearTimer: null,
     
     // Managers
@@ -3091,6 +3092,9 @@ import { SpriteService } from './SpriteService.js';
           render._spreadOffsetX = 0;
           render._spreadOffsetY = 0;
         });
+        if (this._spreadExpandedHexKey === `${q}:${r}`) {
+          this._spreadExpandedHexKey = null;
+        }
         return;
       }
 
@@ -3105,6 +3109,7 @@ import { SpriteService } from './SpriteService.js';
         render._spreadOffsetY = Math.sin(angle) * spreadRadius;
       });
 
+      this._spreadExpandedHexKey = `${q}:${r}`;
       this.refreshSpreadInteractionTargets(q, r);
     },
 
@@ -3356,6 +3361,16 @@ import { SpriteService } from './SpriteService.js';
         this._spreadClearTimer = null;
       }
 
+      const incomingHexKey = hex?.hexData ? `${hex.hexData.q}:${hex.hexData.r}` : null;
+      if (this._spreadExpandedHexKey && this._spreadExpandedHexKey !== incomingHexKey) {
+        const [prevQ, prevR] = this._spreadExpandedHexKey.split(':').map(Number);
+        if (Number.isFinite(prevQ) && Number.isFinite(prevR)) {
+          this.setEntityLabelsForHex(prevQ, prevR, false);
+          this.setEntitySpreadForHex(prevQ, prevR, false);
+        }
+        this.clearSpreadInteractionTargets();
+      }
+
       const previousHover = this.stateManager.get('hoveredHex');
       if (previousHover?.hexCoordText) {
         previousHover.hexCoordText.visible = false;
@@ -3401,6 +3416,7 @@ import { SpriteService } from './SpriteService.js';
     },
 
     /**
+      this._spreadExpandedHexKey = null;
      * Hex out event.
      */
     onHexOut: function (hex) {

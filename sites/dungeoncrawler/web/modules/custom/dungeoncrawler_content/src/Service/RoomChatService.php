@@ -312,6 +312,15 @@ class RoomChatService {
     if (!empty($npc_interjections)) {
       $result['npc_interjections'] = $npc_interjections;
     }
+    if (!empty($gm_result['canonical_actions'])) {
+      $result['canonical_actions'] = $gm_result['canonical_actions'];
+
+      $combat_transition = $gm_result['canonical_actions']['combat_initiation']['transition'] ?? NULL;
+      if (is_array($combat_transition) && !empty($combat_transition['success'])) {
+        $result['combat_transition'] = $combat_transition;
+        $result['dungeon_data'] = $this->reloadDungeonData($campaign_id);
+      }
+    }
     // Include navigation data so the client can switch to the new room.
     if ($navigation !== NULL && empty($navigation['error'])) {
       $result['navigation'] = $this->buildClientNavigationPayload(
@@ -991,7 +1000,18 @@ class RoomChatService {
       $requested_ids[] = $combat['target_entity_id'];
     }
 
+    $requested_names = $combat['enemy_names'] ?? [];
+    if (!is_array($requested_names)) {
+      $requested_names = [];
+    }
+    if (!empty($combat['target_name'])) {
+      $requested_names[] = $combat['target_name'];
+    }
+
     $requested_ids = array_values(array_filter(array_map('strval', $requested_ids)));
+    $requested_names = array_values(array_filter(array_map(static function ($value): string {
+      return strtolower(trim((string) $value));
+    }, $requested_names)));
     $entities = $dungeon_data['entities'] ?? [];
     $resolved = [];
 
@@ -1002,11 +1022,24 @@ class RoomChatService {
       }
 
       $entity_id = (string) ($entity['entity_instance_id'] ?? $entity['instance_id'] ?? $entity['id'] ?? '');
+      $entity_character_id = (string) ($entity['character_id'] ?? '');
+      $entity_name = strtolower(trim((string) ($entity['state']['metadata']['display_name'] ?? $entity['name'] ?? '')));
       $team = strtolower((string) ($entity['state']['metadata']['team'] ?? $entity['team'] ?? ''));
       $is_hostile = in_array($team, ['hostile', 'enemy', 'monsters'], TRUE);
 
       if (!empty($requested_ids)) {
-        if ($entity_id !== '' && in_array($entity_id, $requested_ids, TRUE)) {
+        $matchable_ids = array_values(array_filter([
+          $entity_id,
+          $entity_character_id,
+        ], static fn($value): bool => $value !== ''));
+        if (!empty(array_intersect($matchable_ids, $requested_ids))) {
+          $resolved[] = $entity;
+        }
+        continue;
+      }
+
+      if (!empty($requested_names)) {
+        if ($entity_name !== '' && in_array($entity_name, $requested_names, TRUE)) {
           $resolved[] = $entity;
         }
         continue;

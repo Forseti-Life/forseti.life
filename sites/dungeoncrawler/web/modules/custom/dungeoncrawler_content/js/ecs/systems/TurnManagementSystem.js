@@ -568,6 +568,12 @@ export class TurnManagementSystem extends System {
    * @param {Object} serverState
    */
   hydrateFromServer(serverState = {}) {
+    const previousOrder = Array.isArray(this.initiativeOrder) ? [...this.initiativeOrder] : [];
+    const previousTurnIndex = this.currentTurnIndex;
+    const previousRound = this.currentRound;
+    const previousCombatState = this.combatState;
+    const wasServerHydrated = this.serverHydrated;
+
     const initiativeEntries = Array.isArray(serverState.initiative_order)
       ? serverState.initiative_order
       : [];
@@ -641,19 +647,31 @@ export class TurnManagementSystem extends System {
     this.initiativeOrder = order;
     this.currentTurnIndex = Number.isInteger(serverState.turn_index) ? serverState.turn_index : 0;
     this.currentRound = Number.isInteger(serverState.current_round) ? serverState.current_round : 1;
-    this.combatState = CombatState.IN_PROGRESS;
+    this.combatState = serverState?.status === 'active'
+      ? CombatState.IN_PROGRESS
+      : previousCombatState;
     this.serverHydrated = true;
 
+    const orderChanged = previousOrder.length !== this.initiativeOrder.length
+      || previousOrder.some((entityId, index) => entityId !== this.initiativeOrder[index]);
+    const turnChanged = !wasServerHydrated
+      || orderChanged
+      || previousTurnIndex !== this.currentTurnIndex;
+    const roundChanged = !wasServerHydrated
+      || previousRound !== this.currentRound;
+    const combatStateChanged = !wasServerHydrated
+      || previousCombatState !== this.combatState;
+
     const currentEntity = this.getCurrentTurnEntity();
-    if (currentEntity && this.onTurnChangeCallback) {
+    if (currentEntity && this.onTurnChangeCallback && turnChanged) {
       this.onTurnChangeCallback(currentEntity, this.currentTurnIndex, this.initiativeOrder.length);
     }
 
-    if (this.onRoundChangeCallback) {
+    if (this.onRoundChangeCallback && roundChanged) {
       this.onRoundChangeCallback(this.currentRound);
     }
 
-    if (this.onCombatStateChangeCallback) {
+    if (this.onCombatStateChangeCallback && combatStateChanged) {
       this.onCombatStateChangeCallback(this.combatState);
     }
   }

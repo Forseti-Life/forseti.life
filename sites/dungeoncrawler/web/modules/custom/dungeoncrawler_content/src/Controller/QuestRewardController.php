@@ -78,61 +78,6 @@ class QuestRewardController extends ControllerBase {
 
       $character_id = $payload['character_id'];
 
-      // Check if quest is completed
-      $quest = $this->database->select('dc_campaign_quest_progress', 'qp')
-        ->fields('qp', ['quest_id', 'status'])
-        ->condition('qp.campaign_id', $campaign_id)
-        ->condition('qp.quest_id', $quest_id)
-        ->execute()
-        ->fetchAssoc();
-
-      if (empty($quest)) {
-        return new JsonResponse([
-          'success' => FALSE,
-          'error' => 'Quest not found',
-        ], 404);
-      }
-
-      if ($quest['status'] !== 'completed') {
-        return new JsonResponse([
-          'success' => FALSE,
-          'error' => 'Quest is not completed',
-        ], 400);
-      }
-
-      // Check if already claimed
-      $claimed = $this->database->select('dc_campaign_quest_rewards_claimed', 'rc')
-        ->condition('rc.campaign_id', $campaign_id)
-        ->condition('rc.quest_id', $quest_id)
-        ->condition('rc.character_id', $character_id)
-        ->countQuery()
-        ->execute()
-        ->fetchField();
-
-      if ($claimed > 0) {
-        return new JsonResponse([
-          'success' => FALSE,
-          'error' => 'Rewards already claimed for this character',
-        ], 400);
-      }
-
-      // Get quest rewards
-      $quest_data = $this->database->select('dc_campaign_quests', 'q')
-        ->fields('q', ['generated_rewards'])
-        ->condition('q.campaign_id', $campaign_id)
-        ->condition('q.quest_id', $quest_id)
-        ->execute()
-        ->fetchAssoc();
-
-      if (empty($quest_data)) {
-        return new JsonResponse([
-          'success' => FALSE,
-          'error' => 'Quest data not found',
-        ], 404);
-      }
-
-      $rewards = json_decode($quest_data['generated_rewards'], TRUE) ?? [];
-
       $quest_reward_service = \Drupal::service('dungeoncrawler_content.quest_reward');
 
       // Claim rewards
@@ -142,28 +87,19 @@ class QuestRewardController extends ControllerBase {
         $character_id
       );
 
-      if (empty($reward_result)) {
+      if (empty($reward_result) || empty($reward_result['success'])) {
+        $error = (string) ($reward_result['error'] ?? 'Failed to claim rewards');
+        $status_code = str_contains($error, 'not found') ? 404 : 400;
         return new JsonResponse([
           'success' => FALSE,
-          'error' => 'Failed to claim rewards',
-        ], 500);
+          'error' => $error,
+        ], $status_code);
       }
-
-      // Record claim in database
-      $this->database->insert('dc_campaign_quest_rewards_claimed')
-        ->fields([
-          'campaign_id' => $campaign_id,
-          'quest_id' => $quest_id,
-          'character_id' => $character_id,
-          'reward_data' => json_encode($reward_result),
-          'claimed_at' => time(),
-        ])
-        ->execute();
 
       return new JsonResponse([
         'success' => TRUE,
         'message' => 'Rewards claimed successfully',
-        'rewards' => $reward_result,
+        'rewards' => $reward_result['rewards_granted'] ?? [],
       ]);
     }
     catch (\Exception $e) {

@@ -59,6 +59,10 @@ export class ExplorationPhaseHandler {
     // 2. Entity at hex — interact or talk.
     const entityAtHex = this._findEntityAtHex(q, r);
     if (entityAtHex && selectedEntity && entityAtHex.id !== selectedEntity.id) {
+      if (actionMode === 'attack') {
+        this._handleAggressiveAction(selectedEntity, entityAtHex);
+        return true;
+      }
       if (actionMode === 'interact') {
         return this._handleInteract(selectedEntity, entityAtHex, q, r);
       }
@@ -223,6 +227,49 @@ export class ExplorationPhaseHandler {
       }
     } catch (err) {
       console.warn(`[ExplorationPhaseHandler] Server notification failed for '${type}':`, err.message);
+    }
+  }
+
+  /**
+   * Transition from exploration into encounter when the player commits to an
+   * aggressive action.
+   * @private
+   */
+  async _handleAggressiveAction(selectedEntity, targetEntity) {
+    const actorId = this._getEntityInstanceId(selectedEntity);
+    const targetId = this._getEntityInstanceId(targetEntity);
+    if (!actorId || !targetId) {
+      return null;
+    }
+
+    const actorIdentity = selectedEntity.getComponent?.('IdentityComponent');
+    const targetIdentity = targetEntity.getComponent?.('IdentityComponent');
+    const targetPosition = targetEntity.getComponent?.('PositionComponent');
+    const roomId = targetPosition?.room_id || this.hexmap.activeRoomId || null;
+    const reason = `${actorIdentity?.name || 'A combatant'} initiates an aggressive action against ${targetIdentity?.name || 'a target'}.`;
+
+    try {
+      const result = await this.api.transitionPhase('encounter', {
+        reason,
+        trigger_action: 'aggressive_action',
+        aggressor: actorId,
+        target: targetId,
+        encounter_context: {
+          room_id: roomId,
+          enemies: [{ entity_instance_id: targetId }],
+          reason,
+        },
+      });
+
+      if (result?.success) {
+        this.hexmap.stateManager?.set('actionMode', 'attack');
+        this._applyResult(result);
+      }
+
+      return result;
+    } catch (err) {
+      console.error('[ExplorationPhaseHandler] Aggressive action transition failed:', err);
+      return null;
     }
   }
 

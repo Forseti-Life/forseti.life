@@ -249,6 +249,9 @@ class GameplayActionProcessor {
         if (!empty($npc['description'])) {
           $npc_line .= " — " . substr($npc['description'], 0, 120);
         }
+        if (!empty($npc['entity_instance_id'])) {
+          $npc_line .= " {entity_instance_id: {$npc['entity_instance_id']}}";
+        }
         if (!empty($npc['owner_id'])) {
           $npc_line .= " {owner_id: {$npc['owner_id']}}";
         }
@@ -482,7 +485,9 @@ Combat initiation format:
         "combat": {
           "reason": "Hostilities break out with the bandits",
           "enemy_entity_ids": ["exact enemy entity ids if known"],
-          "target_entity_id": "single enemy entity id if only one matters"
+          "enemy_names": ["exact enemy names if ids are unavailable"],
+          "target_entity_id": "single enemy entity id if only one matters",
+          "target_name": "single enemy name if ids are unavailable"
         },
         "result_description": "Brief combat start outcome"
       },
@@ -509,7 +514,9 @@ Rules for mechanical responses:
 14. Do not invent storage owner ids, item instance ids, or container ids. If the source/destination cannot be identified exactly, narrate uncertainty instead of claiming a completed transfer.
 15. For delivering or turning in a quest item/objective, use "quest_turn_in" with the quest payload instead of only describing it narratively.
 16. For starting a fight, use "combat_initiation" instead of only narrating that combat begins.
-17. Do not invent quest ids, objective ids, npc ids, or enemy entity ids. If they are unclear, narrate uncertainty rather than claiming the action completed.
+17. If the player says or clearly implies an aggressive action against a present NPC or creature (for example, "I attack Gribbles"), emit a "combat_initiation" action immediately.
+18. When a target NPC or creature is listed in CURRENT ROOM, prefer that target's exact entity_instance_id for combat_initiation.target_entity_id. If only the exact name is available, use target_name/enemy_names with the exact grounded room name.
+19. Do not invent quest ids, objective ids, npc ids, names, or enemy entity ids. If they are unclear, narrate uncertainty rather than claiming the action completed.
 
 === NAVIGATION / TRAVEL ===
 When the player decides to LEAVE the current location and travel to a new place
@@ -1945,7 +1952,7 @@ LOCATION_RULES;
     }
 
     $errors = [];
-    if (empty($combat['reason']) && empty($combat['enemy_entity_ids']) && empty($combat['target_entity_id'])) {
+    if (empty($combat['reason']) && empty($combat['enemy_entity_ids']) && empty($combat['target_entity_id']) && empty($combat['enemy_names']) && empty($combat['target_name'])) {
       $errors[] = 'combat_initiation needs a reason or target enemy reference';
     }
 
@@ -2481,6 +2488,7 @@ LOCATION_RULES;
             'team' => $team,
             'description' => $description,
             'hp_status' => $hp_status,
+            'entity_instance_id' => (string) ($entity['entity_instance_id'] ?? $entity['instance_id'] ?? $entity['id'] ?? ''),
             'owner_id' => (string) ($entity['character_id'] ?? $entity['id'] ?? $entity['entity_instance_id'] ?? ''),
           ];
           if ($cond_str) {
@@ -2595,6 +2603,7 @@ LOCATION_RULES;
               'role' => $echar['role'] ?? 'neutral',
               'description' => $edesc,
               'hp_status' => '',
+              'entity_instance_id' => (string) ($estate['entityInstanceId'] ?? $estate['entity_instance_id'] ?? $echar['entity_instance_id'] ?? ''),
               'owner_id' => (string) ($echar['id'] ?? $estate['characterId'] ?? ''),
             ];
             $entity_owner_id = (string) ($echar['id'] ?? $estate['characterId'] ?? '');
