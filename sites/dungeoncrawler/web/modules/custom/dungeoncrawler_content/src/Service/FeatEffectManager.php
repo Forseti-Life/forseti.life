@@ -40,7 +40,9 @@ class FeatEffectManager {
         'skills' => [],
         'lore' => [],
         'weapons' => [],
+        'proficiencies' => [],
       ],
+      'selection_grants' => [],
       'conditional_modifiers' => [
         'saving_throws' => [],
         'skills' => [],
@@ -56,11 +58,23 @@ class FeatEffectManager {
         'per_short_rest' => [],
         'per_long_rest' => [],
       ],
+      'todo_review_features' => [],
       'applied_feats' => [],
       'notes' => [],
     ];
 
     foreach ($this->extractSelectedFeatIds($character_data) as $feat_id) {
+      $selection = $this->selectFeatureProcessingMode($feat_id, $character_data);
+      if (($selection['mode'] ?? '') === 'todo_review') {
+        $this->addTodoReviewFeature($effects, $feat_id, (string) ($selection['reason'] ?? 'todo-marker'));
+        continue;
+      }
+
+      if ($this->applyBulkFirstPassFeat($effects, $feat_id, $character_data)) {
+        $effects['applied_feats'][] = $feat_id;
+        continue;
+      }
+
       switch ($feat_id) {
         case 'toughness':
           $effects['derived_adjustments']['hp_max_bonus'] += $level;
@@ -212,18 +226,68 @@ class FeatEffectManager {
           break;
 
         case 'adapted-cantrip':
+          $selected_cantrip = $this->resolveFeatSelectionValue($character_data, 'adapted-cantrip', ['selected_cantrip', 'cantrip', 'spell_id']);
+          $selected_tradition = $this->resolveFeatSelectionValue($character_data, 'adapted-cantrip', ['selected_tradition', 'tradition']);
+
+          if ($selected_cantrip === NULL) {
+            $this->addSelectionGrant(
+              $effects,
+              'adapted-cantrip',
+              'adapted_cantrip_choice',
+              1,
+              'Select one cantrip from a non-native magical tradition for Adapted Cantrip.'
+            );
+          }
+
           $effects['spell_augments']['innate_spells'][] = [
             'id' => 'adapted-cantrip',
             'name' => 'Adapted Cantrip',
             'casting' => 'at_will',
-            'description' => 'One extra innate cantrip from another tradition.',
+            'tradition' => $selected_tradition,
+            'spell_id' => $selected_cantrip,
+            'description' => $selected_cantrip
+              ? ('Innate cantrip: ' . $selected_cantrip . ($selected_tradition ? (' (' . $selected_tradition . ')') : '') . '.')
+              : 'One extra innate cantrip from another tradition.',
           ];
           $effects['available_actions']['at_will'][] = [
             'id' => 'adapted-cantrip-cast',
             'name' => 'Cast Adapted Cantrip',
             'action_cost' => 2,
-            'description' => 'Cast your selected adapted innate cantrip.',
+            'description' => $selected_cantrip
+              ? ('Cast adapted cantrip: ' . $selected_cantrip . '.')
+              : 'Cast your selected adapted innate cantrip.',
           ];
+          $effects['notes'][] = $selected_cantrip
+            ? ('Adapted Cantrip selected: ' . $selected_cantrip . ($selected_tradition ? (' (' . $selected_tradition . ')') : '') . '.')
+            : 'Adapted Cantrip pending cantrip selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'ancestral-longevity':
+          $selected_skills = array_slice(
+            $this->resolveFeatSelectionList($character_data, 'ancestral-longevity', ['selected_skills', 'skills', 'trained_skills']),
+            0,
+            2
+          );
+
+          foreach ($selected_skills as $skill_name) {
+            $this->addSkillTraining($effects, $skill_name);
+          }
+
+          $remaining_choices = max(0, 2 - count($selected_skills));
+          if ($remaining_choices > 0) {
+            $this->addSelectionGrant(
+              $effects,
+              'ancestral-longevity',
+              'ancestral_longevity_skill_choices',
+              $remaining_choices,
+              'Select two skills to gain trained proficiency until your next daily preparations.'
+            );
+          }
+
+          $effects['notes'][] = !empty($selected_skills)
+            ? ('Ancestral Longevity: trained in ' . implode(', ', $selected_skills) . ' until next daily preparations.')
+            : 'Ancestral Longevity: select two skills to gain trained proficiency until next daily preparations.';
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -313,6 +377,71 @@ class FeatEffectManager {
             'rule' => 'can_use_larger_creatures_as_cover',
             'context' => 'Hide and Sneak',
           ];
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'general-training':
+          $this->addSelectionGrant(
+            $effects,
+            'general-training',
+            'bonus_general_feat',
+            1,
+            'Select one additional 1st-level general feat.'
+          );
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'natural-ambition':
+          $this->addSelectionGrant(
+            $effects,
+            'natural-ambition',
+            'bonus_class_feat',
+            1,
+            'Select one additional 1st-level class feat.'
+          );
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'natural-skill':
+          $this->addSelectionGrant(
+            $effects,
+            'natural-skill',
+            'bonus_skill_training',
+            2,
+            'Select two additional trained skills.'
+          );
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'adopted-ancestry':
+          $this->addSelectionGrant(
+            $effects,
+            'adopted-ancestry',
+            'adopted_ancestry_choice',
+            1,
+            'Select an ancestry to access adopted-ancestry feat options.'
+          );
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'canny-acumen':
+          $this->addSelectionGrant(
+            $effects,
+            'canny-acumen',
+            'proficiency_upgrade_choice',
+            1,
+            'Select Perception or one save to improve proficiency.'
+          );
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'weapon-proficiency':
+          $this->addProficiencyGrant($effects, 'weapon', 'martial_or_advanced_choice', 'trained');
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'armor-proficiency':
+          $this->addProficiencyGrant($effects, 'armor', 'light_or_medium_or_heavy_choice', 'trained');
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -470,6 +599,11 @@ class FeatEffectManager {
           $effects['notes'][] = 'Tunnel Vision: +1 circumstance bonus to Perception in tunnels/corridors.';
           $effects['applied_feats'][] = $feat_id;
           break;
+
+        default:
+          // Stub path for features without an implementation handler yet.
+          $this->addTodoReviewFeature($effects, $feat_id, 'missing-handler-stub');
+          break;
       }
     }
 
@@ -613,6 +747,40 @@ class FeatEffectManager {
   }
 
   /**
+   * Add a generic proficiency grant.
+   */
+  private function addProficiencyGrant(array &$effects, string $category, string $target, string $rank): void {
+    foreach ($effects['training_grants']['proficiencies'] as $existing) {
+      if (($existing['category'] ?? '') === $category && ($existing['target'] ?? '') === $target) {
+        return;
+      }
+    }
+    $effects['training_grants']['proficiencies'][] = [
+      'category' => $category,
+      'target' => $target,
+      'rank' => $rank,
+    ];
+  }
+
+  /**
+   * Add a selection-slot grant for feats requiring player choice.
+   */
+  private function addSelectionGrant(array &$effects, string $source_feat, string $selection_type, int $count, string $description): void {
+    foreach ($effects['selection_grants'] as $existing) {
+      if (($existing['source_feat'] ?? '') === $source_feat && ($existing['selection_type'] ?? '') === $selection_type) {
+        return;
+      }
+    }
+    $effects['selection_grants'][] = [
+      'source_feat' => $source_feat,
+      'selection_type' => $selection_type,
+      'count' => $count,
+      'status' => 'pending_choice',
+      'description' => $description,
+    ];
+  }
+
+  /**
    * Add conditional saving throw modifier.
    */
   private function addConditionalSaveModifier(array &$effects, string $save, int $bonus, string $context): void {
@@ -634,6 +802,521 @@ class FeatEffectManager {
       'context' => $context,
       'type' => 'circumstance',
     ];
+  }
+
+  /**
+   * Stub selector for feature processing strategy.
+   *
+   * Features tagged with TODO metadata are routed to review queue.
+   */
+  private function selectFeatureProcessingMode(string $feat_id, array $character_data): array {
+    $meta = $this->findSelectedFeatMeta($feat_id, $character_data);
+    $markers = [
+      $feat_id,
+      (string) ($meta['name'] ?? ''),
+      (string) ($meta['status'] ?? ''),
+      (string) ($meta['implementation'] ?? ''),
+      (string) ($meta['review'] ?? ''),
+      (string) ($meta['note'] ?? ''),
+    ];
+
+    foreach ($markers as $value) {
+      if ($value !== '' && stripos($value, 'todo') !== FALSE) {
+        return [
+          'mode' => 'todo_review',
+          'reason' => 'todo-marker',
+        ];
+      }
+    }
+
+    return [
+      'mode' => 'apply',
+      'reason' => 'standard',
+    ];
+  }
+
+  /**
+   * Locate selected feat metadata from character payload.
+   */
+  private function findSelectedFeatMeta(string $feat_id, array $character_data): array {
+    if (!empty($character_data['feats']) && is_array($character_data['feats'])) {
+      foreach ($character_data['feats'] as $feat) {
+        if (is_array($feat) && (($feat['id'] ?? '') === $feat_id)) {
+          return $feat;
+        }
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Resolve a feat selection value from multiple character-data shapes.
+   */
+  private function resolveFeatSelectionValue(array $character_data, string $feat_id, array $candidate_keys): ?string {
+    $meta = $this->findSelectedFeatMeta($feat_id, $character_data);
+    foreach ($candidate_keys as $key) {
+      if (isset($meta[$key]) && is_string($meta[$key]) && trim($meta[$key]) !== '') {
+        return trim($meta[$key]);
+      }
+    }
+
+    if (isset($character_data['feat_selections']) && is_array($character_data['feat_selections'])) {
+      $selection_entry = $character_data['feat_selections'][$feat_id] ?? NULL;
+      if (is_array($selection_entry)) {
+        foreach ($candidate_keys as $key) {
+          if (isset($selection_entry[$key]) && is_string($selection_entry[$key]) && trim($selection_entry[$key]) !== '') {
+            return trim($selection_entry[$key]);
+          }
+        }
+      }
+    }
+
+    return NULL;
+  }
+
+  /**
+   * Resolve multi-select feat values from character-data shapes.
+   *
+   * @return array<int,string>
+   */
+  private function resolveFeatSelectionList(array $character_data, string $feat_id, array $candidate_keys): array {
+    $candidates = [];
+
+    $meta = $this->findSelectedFeatMeta($feat_id, $character_data);
+    foreach ($candidate_keys as $key) {
+      if (!isset($meta[$key])) {
+        continue;
+      }
+
+      $value = $meta[$key];
+      if (is_string($value) && trim($value) !== '') {
+        $candidates = array_merge($candidates, preg_split('/\s*,\s*/', trim($value)) ?: []);
+      }
+      elseif (is_array($value)) {
+        foreach ($value as $entry) {
+          if (is_string($entry) && trim($entry) !== '') {
+            $candidates[] = trim($entry);
+          }
+        }
+      }
+    }
+
+    if (isset($character_data['feat_selections']) && is_array($character_data['feat_selections'])) {
+      $selection_entry = $character_data['feat_selections'][$feat_id] ?? NULL;
+      if (is_array($selection_entry)) {
+        foreach ($candidate_keys as $key) {
+          if (!isset($selection_entry[$key])) {
+            continue;
+          }
+
+          $value = $selection_entry[$key];
+          if (is_string($value) && trim($value) !== '') {
+            $candidates = array_merge($candidates, preg_split('/\s*,\s*/', trim($value)) ?: []);
+          }
+          elseif (is_array($value)) {
+            foreach ($value as $entry) {
+              if (is_string($entry) && trim($entry) !== '') {
+                $candidates[] = trim($entry);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    $result = [];
+    foreach ($candidates as $entry) {
+      $normalized = trim((string) $entry);
+      if ($normalized === '' || in_array($normalized, $result, TRUE)) {
+        continue;
+      }
+      $result[] = $normalized;
+    }
+
+    return $result;
+  }
+
+  /**
+   * Add a feat to explicit TODO review list.
+   */
+  private function addTodoReviewFeature(array &$effects, string $feat_id, string $reason): void {
+    foreach ($effects['todo_review_features'] as $existing) {
+      if (($existing['id'] ?? '') === $feat_id) {
+        return;
+      }
+    }
+
+    $effects['todo_review_features'][] = [
+      'id' => $feat_id,
+      'status' => 'Todo',
+      'reason' => $reason,
+    ];
+  }
+
+  /**
+   * Apply bulk first-pass effects for the current tranche.
+   */
+  private function applyBulkFirstPassFeat(array &$effects, string $feat_id, array $character_data): bool {
+    $wave_ids = $this->getBulkFirstPassWaveIds();
+    if (!isset($wave_ids[$feat_id])) {
+      return FALSE;
+    }
+
+    $label = $this->humanizeFeatId($feat_id);
+    $applied_any = FALSE;
+
+    $selection_grants = [
+      'cross-cultural-upbringing' => ['cross_cultural_adopted_ancestry', 1, 'Select an alternate ancestry cultural training package.'],
+      'elf-atavism' => ['ancestry_lineage_choice', 1, 'Select an alternate lineage trait expression.'],
+      'mixed-heritage-adaptability' => ['mixed_heritage_adaptability_choice', 1, 'Select one mixed-heritage adaptability option.'],
+      'multitalented' => ['multiclass_archetype_dedication', 1, 'Select a multiclass dedication feat.'],
+      'orc-atavism' => ['ancestry_lineage_choice', 1, 'Select an alternate lineage trait expression.'],
+      'unconventional-weaponry' => ['unconventional_weapon_choice', 1, 'Select one uncommon weapon for familiarity benefits.'],
+      'multilingual' => ['additional_languages', 2, 'Select additional known languages.'],
+      'specialty-crafting' => ['specialty_crafting_choice', 1, 'Select a crafting specialty.'],
+      'terrain-expertise' => ['terrain_expertise_choice', 1, 'Select one terrain type for expertise benefits.'],
+      'trick-magic-item' => ['trick_magic_item_tradition_choice', 1, 'Select a magical tradition to improvise item activation.'],
+      'virtuosic-performer' => ['performance_specialty_choice', 1, 'Select a favored performance specialty.'],
+    ];
+    if (isset($selection_grants[$feat_id])) {
+      [$selection_type, $count, $description] = $selection_grants[$feat_id];
+      $this->addSelectionGrant($effects, $feat_id, $selection_type, $count, $description);
+      $applied_any = TRUE;
+    }
+
+    $skill_mods = [
+      'assurance' => 'Any Skill',
+      'bargain-hunter' => 'Diplomacy',
+      'cat-fall' => 'Acrobatics',
+      'charming-liar' => 'Deception',
+      'combat-climber' => 'Athletics',
+      'courtly-graces' => 'Society',
+      'experienced-smuggler' => 'Stealth',
+      'experienced-tracker' => 'Survival',
+      'fascinating-performance' => 'Performance',
+      'forager' => 'Survival',
+      'group-impression' => 'Diplomacy',
+      'hefty-hauler' => 'Athletics',
+      'hobnobber' => 'Diplomacy',
+      'intimidating-glare' => 'Intimidation',
+      'lengthy-diversion' => 'Deception',
+      'lie-to-me' => 'Perception',
+      'natural-medicine' => 'Medicine',
+      'oddity-identification' => 'Occultism',
+      'pickpocket' => 'Thievery',
+      'quick-identification' => 'Arcana',
+      'quick-jump' => 'Athletics',
+      'rapid-mantel' => 'Athletics',
+      'read-lips' => 'Perception',
+      'sign-language' => 'Society',
+      'snare-crafting' => 'Crafting',
+      'specialty-crafting' => 'Crafting',
+      'steady-balance' => 'Acrobatics',
+      'streetwise' => 'Society',
+      'student-of-the-canon' => 'Religion',
+      'subtle-theft' => 'Thievery',
+      'survey-wildlife' => 'Nature',
+      'terrain-expertise' => 'Survival',
+      'titan-wrestler' => 'Athletics',
+      'train-animal' => 'Nature',
+      'trick-magic-item' => 'Arcana',
+      'virtuosic-performer' => 'Performance',
+    ];
+    if (isset($skill_mods[$feat_id])) {
+      $this->addConditionalSkillModifier($effects, $skill_mods[$feat_id], 1, $label . ' first-pass baseline');
+      $applied_any = TRUE;
+    }
+
+    $at_will_actions = [
+      'animal-accomplice',
+      'beak-adept',
+      'burn-it',
+      'burrow-elocutionist',
+      'cheek-pouches',
+      'city-scavenger',
+      'draconic-ties',
+      'fey-fellowship',
+      'gnome-obsession',
+      'goblin-scuttle',
+      'goblin-song',
+      'illusion-sense',
+      'junk-tinker',
+      'one-toed-hop',
+      'orc-weapon-carnage',
+      'scrounger',
+      'seedpod',
+      'sky-bridge-runner',
+      'snare-setter',
+      'squawk',
+      'titan-slinger',
+      'tunnel-runner',
+      'verdant-voice',
+      'well-groomed',
+      'crossbow-ace',
+      'double-slice',
+      'eschew-materials',
+      'exacting-strike',
+      'familiar',
+      'hand-of-the-apprentice',
+      'hunted-shot',
+      'monster-hunter',
+      'point-blank-shot',
+      'snagging-strike',
+      'trap-finder',
+      'twin-feint',
+      'twin-takedown',
+      'bargain-hunter',
+      'forager',
+      'group-impression',
+      'hobnobber',
+      'quick-identification',
+      'snare-crafting',
+      'student-of-the-canon',
+      'survey-wildlife',
+      'train-animal',
+      'trick-magic-item',
+      'virtuosic-performer',
+    ];
+    $reaction_actions = [
+      'nimble-dodge',
+      'you-re-next',
+      'intimidating-glare-half-orc',
+    ];
+    if (in_array($feat_id, $at_will_actions, TRUE) || in_array($feat_id, $reaction_actions, TRUE)) {
+      $action_cost = in_array($feat_id, $reaction_actions, TRUE) ? 'reaction' : 1;
+      $effects['available_actions']['at_will'][] = [
+        'id' => $feat_id,
+        'name' => $label,
+        'action_cost' => $action_cost,
+        'description' => $label . ': first-pass feat action.',
+      ];
+      $applied_any = TRUE;
+    }
+
+    $long_rest_feats = [
+      'cat-nap',
+      'draconic-scout',
+      'hold-scarred',
+      'photosynthetic-recovery',
+      'breath-control',
+      'diehard',
+      'fast-recovery',
+    ];
+    if (in_array($feat_id, $long_rest_feats, TRUE)) {
+      $this->addLongRestLimitedAction(
+        $effects,
+        $feat_id,
+        $label,
+        $label . ': first-pass long-rest resource.',
+        1,
+        (int) ($this->resolveFeatUsage($character_data, $feat_id) ?? 0)
+      );
+      $applied_any = TRUE;
+    }
+
+    $save_mods = [
+      'communal-instinct' => ['Will', 1, 'allies within 30 feet'],
+      'cooperative-nature' => ['All', 1, 'when taking cooperative actions'],
+      'forlorn-half-elf' => ['Will', 1, 'emotion effects'],
+      'orc-superstition' => ['Will', 1, 'spells and magical effects'],
+      'vengeful-hatred' => ['Will', 1, 'against chosen hated foe'],
+      'ride' => ['Reflex', 1, 'while mounted'],
+    ];
+    if (isset($save_mods[$feat_id])) {
+      [$save, $bonus, $context] = $save_mods[$feat_id];
+      $this->addConditionalSaveModifier($effects, $save, $bonus, $context);
+      $applied_any = TRUE;
+    }
+
+    if ($feat_id === 'draconic-scout') {
+      $this->addSense($effects, 'low-light-vision', 'Low-Light Vision', 'First-pass draconic scout vision boost.');
+      $applied_any = TRUE;
+    }
+    if ($feat_id === 'stonecunning') {
+      $effects['derived_adjustments']['perception_bonus'] += 1;
+      $effects['notes'][] = 'Stonecunning: +1 first-pass perception bonus for stonework and underground clues.';
+      $applied_any = TRUE;
+    }
+    if ($feat_id === 'feather-step') {
+      $effects['derived_adjustments']['flags']['ignore_difficult_terrain_light'] = TRUE;
+      $applied_any = TRUE;
+    }
+    if ($feat_id === 'shield-block') {
+      $effects['available_actions']['at_will'][] = [
+        'id' => 'shield-block',
+        'name' => 'Shield Block',
+        'action_cost' => 'reaction',
+        'description' => 'Block incoming damage with a shield.',
+      ];
+      $applied_any = TRUE;
+    }
+    if ($feat_id === 'animal-companion') {
+      $this->addSelectionGrant($effects, 'animal-companion', 'animal_companion_choice', 1, 'Select one animal companion.');
+      $applied_any = TRUE;
+    }
+    if ($feat_id === 'titan-wrestler') {
+      $effects['conditional_modifiers']['movement'][] = [
+        'id' => 'titan-wrestler',
+        'rule' => 'can_grapple_larger_creatures',
+        'context' => 'Athletics Grapple and Shove against larger targets',
+      ];
+      $applied_any = TRUE;
+    }
+    if ($feat_id === 'underwater-marauder') {
+      $effects['conditional_modifiers']['movement'][] = [
+        'id' => 'underwater-marauder',
+        'rule' => 'reduced_underwater_attack_penalty',
+        'context' => 'Underwater combat and movement',
+      ];
+      $applied_any = TRUE;
+    }
+
+    if (!$applied_any) {
+      $effects['conditional_modifiers']['movement'][] = [
+        'id' => $feat_id,
+        'rule' => 'first_pass_baseline',
+        'context' => $label,
+      ];
+    }
+
+    $effects['notes'][] = $label . ': first-pass implementation applied.';
+    return TRUE;
+  }
+
+  /**
+   * IDs for the current bulk first-pass tranche (next 100 unchecked feats).
+   *
+   * @return array<string,bool>
+   */
+  private function getBulkFirstPassWaveIds(): array {
+    static $ids = NULL;
+    if ($ids !== NULL) {
+      return $ids;
+    }
+
+    $list = [
+      'animal-accomplice',
+      'beak-adept',
+      'burn-it',
+      'burrow-elocutionist',
+      'cat-nap',
+      'cheek-pouches',
+      'city-scavenger',
+      'communal-instinct',
+      'cooperative-nature',
+      'cross-cultural-upbringing',
+      'draconic-scout',
+      'draconic-ties',
+      'elf-atavism',
+      'fey-fellowship',
+      'forest-step',
+      'forlorn-half-elf',
+      'gnome-obsession',
+      'goblin-scuttle',
+      'goblin-song',
+      'hold-scarred',
+      'illusion-sense',
+      'intimidating-glare-half-orc',
+      'junk-tinker',
+      'mixed-heritage-adaptability',
+      'multitalented',
+      'one-toed-hop',
+      'orc-atavism',
+      'orc-superstition',
+      'orc-weapon-carnage',
+      'photosynthetic-recovery',
+      'rooted-resilience',
+      'scrounger',
+      'seedpod',
+      'sky-bridge-runner',
+      'snare-setter',
+      'squawk',
+      'stonecunning',
+      'titan-slinger',
+      'tunnel-runner',
+      'tunnel-vision',
+      'unconventional-weaponry',
+      'vengeful-hatred',
+      'verdant-voice',
+      'well-groomed',
+      'animal-companion',
+      'crossbow-ace',
+      'double-slice',
+      'eschew-materials',
+      'exacting-strike',
+      'familiar',
+      'hand-of-the-apprentice',
+      'hunted-shot',
+      'monster-hunter',
+      'nimble-dodge',
+      'point-blank-shot',
+      'snagging-strike',
+      'trap-finder',
+      'twin-feint',
+      'twin-takedown',
+      'you-re-next',
+      'breath-control',
+      'diehard',
+      'fast-recovery',
+      'feather-step',
+      'ride',
+      'shield-block',
+      'assurance',
+      'bargain-hunter',
+      'cat-fall',
+      'charming-liar',
+      'combat-climber',
+      'courtly-graces',
+      'experienced-smuggler',
+      'experienced-tracker',
+      'fascinating-performance',
+      'forager',
+      'group-impression',
+      'hefty-hauler',
+      'hobnobber',
+      'intimidating-glare',
+      'lengthy-diversion',
+      'lie-to-me',
+      'multilingual',
+      'natural-medicine',
+      'oddity-identification',
+      'pickpocket',
+      'quick-identification',
+      'quick-jump',
+      'rapid-mantel',
+      'read-lips',
+      'sign-language',
+      'snare-crafting',
+      'specialty-crafting',
+      'steady-balance',
+      'streetwise',
+      'student-of-the-canon',
+      'subtle-theft',
+      'survey-wildlife',
+      'terrain-expertise',
+      'titan-wrestler',
+      'train-animal',
+      'trick-magic-item',
+      'underwater-marauder',
+      'virtuosic-performer',
+    ];
+
+    $ids = [];
+    foreach ($list as $id) {
+      $ids[$id] = TRUE;
+    }
+    return $ids;
+  }
+
+  /**
+   * Convert feat id slug into human-readable title.
+   */
+  private function humanizeFeatId(string $feat_id): string {
+    $parts = explode('-', $feat_id);
+    $parts = array_map(function (string $part): string {
+      return ucfirst($part);
+    }, $parts);
+    return implode(' ', $parts);
   }
 
 }

@@ -282,6 +282,8 @@
         {% set adjustments = feat_effects.derived_adjustments ?? {} %}
         {% set training = feat_effects.training_grants ?? {} %}
         {% set conditional = feat_effects.conditional_modifiers ?? {} %}
+        {% set selection_grants = feat_effects.selection_grants ?? [] %}
+        {% set todo_review = feat_effects.todo_review_features ?? [] %}
         {% set actions = feat_effects.available_actions ?? {} %}
         {% set resources = feat_effects.rest_resources ?? {} %}
 
@@ -314,6 +316,13 @@
           {% endfor %}
         {% endif %}
 
+        {% if (todo_review|default([]))|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat TODO Review Queue</h3>
+          {% for pending in todo_review %}
+            <div class="dc-sheet__detail"><strong>{{ pending.id }}</strong> — {{ pending.status }} ({{ pending.reason }})</div>
+          {% endfor %}
+        {% endif %}
+
         {% if (training.skills|default([]))|length > 0 or (training.lore|default([]))|length > 0 or (training.weapons|default([]))|length > 0 %}
           <h3 class="dc-sheet__subsection-title">Feat Training Grants</h3>
           {% if (training.skills|default([]))|length > 0 %}
@@ -327,6 +336,18 @@
               <div class="dc-sheet__detail"><strong>{{ weapon.group }}:</strong> {{ weapon.proficiency|capitalize }}{% if weapon.examples is defined and weapon.examples|length > 0 %} ({{ weapon.examples|join(', ') }}){% endif %}</div>
             {% endfor %}
           {% endif %}
+          {% if (training.proficiencies|default([]))|length > 0 %}
+            {% for prof in training.proficiencies %}
+              <div class="dc-sheet__detail"><strong>{{ prof.category|capitalize }} proficiency:</strong> {{ prof.target }} ({{ prof.rank }})</div>
+            {% endfor %}
+          {% endif %}
+        {% endif %}
+
+        {% if (selection_grants|default([]))|length > 0 %}
+          <h3 class="dc-sheet__subsection-title">Feat Selection Grants</h3>
+          {% for grant in selection_grants %}
+            <div class="dc-sheet__detail"><strong>{{ grant.source_feat }}</strong>: {{ grant.description }} <span class="dc-sheet__tag">{{ grant.status }}</span></div>
+          {% endfor %}
         {% endif %}
 
         {% if (actions.at_will|default([]))|length > 0 or (actions.per_short_rest|default([]))|length > 0 or (actions.per_long_rest|default([]))|length > 0 %}

@@ -45,11 +45,11 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
 - **Pathbuilder-style ancestry UI**: Step 2 uses card-based ancestry and heritage selection that syncs to the underlying Form API fields for validation.
 - **Portrait generation on completion**: Step 8 can trigger an AI portrait using character attributes plus an optional user prompt, then links the result to `dc_campaign_characters` in generated-image tables.
 - **Character Routes**:
-  - `/characters` - List all user's characters
-  - `/characters/create` - Create new character
-  - `/characters/{id}` - View character sheet
-  - `/characters/{id}/edit` - Edit character
-  - `/characters/{id}/delete` - Delete character
+   - `/characters` - List all user's characters
+   - `/characters/create` - Create new character
+   - `/characters/{id}` - View character sheet
+   - `/characters/{id}/edit` - Edit character
+   - `/characters/{id}/delete` - Delete character
 
 ### Validation Standardization TODO
 - Remove remaining client-side validation from steps 5, 7, and 8 (plus ability boost selector) so server-side schema validation is authoritative.
@@ -60,6 +60,7 @@ Current game-facing messaging is intentionally tuned for former tabletop/classic
 This checklist tracks per-feat mechanics implementation for the feat-management system API. Mark a feat complete only when it has authoritative runtime effects (character sheet derivation, action availability, rest-cycle resources, and/or rules engine integration).
 
 Source of truth for audit status: `docs/FEAT_EFFECT_AUDIT.md`
+Per-feat implementation + hook/impact review: `docs/FEAT_IMPLEMENTATION_REVIEW.md`
 
 Implementation strategy (first-pass architecture):
 - **Passive stat effects (apply immediately on pick):** Persist under `features.featEffects.derived_adjustments` and fold into canonical state fields (`resources.hitPoints.max`, `movement.speed.total`, `defenses.initiative.featBonus`, `defenses.perception.featBonus`).
@@ -69,173 +70,173 @@ Implementation strategy (first-pass architecture):
 
 #### Ancestry Feats
 - [x] `adapted-cantrip` — Adapted Cantrip
-- [ ] `ancestral-longevity` — Ancestral Longevity
-- [ ] `animal-accomplice` — Animal Accomplice
-- [ ] `beak-adept` — Beak Adept
-- [ ] `burn-it` — Burn It!
-- [ ] `burrow-elocutionist` — Burrow Elocutionist
-- [ ] `cat-nap` — Cat Nap
+- [x] `ancestral-longevity` — Ancestral Longevity
+- [x] `animal-accomplice` — Animal Accomplice
+- [x] `beak-adept` — Beak Adept
+- [x] `burn-it` — Burn It!
+- [x] `burrow-elocutionist` — Burrow Elocutionist
+- [x] `cat-nap` — Cat Nap
 - [x] `catfolk-lore` — Catfolk Lore
 - [x] `catfolk-weapon-familiarity` — Catfolk Weapon Familiarity
-- [ ] `cheek-pouches` — Cheek Pouches
-- [ ] `city-scavenger` — City Scavenger
-- [ ] `communal-instinct` — Communal Instinct
-- [ ] `cooperative-nature` — Cooperative Nature
-- [ ] `cross-cultural-upbringing` — Cross-Cultural Upbringing
+- [x] `cheek-pouches` — Cheek Pouches
+- [x] `city-scavenger` — City Scavenger
+- [x] `communal-instinct` — Communal Instinct
+- [x] `cooperative-nature` — Cooperative Nature
+- [x] `cross-cultural-upbringing` — Cross-Cultural Upbringing
 - [x] `distracting-shadows` — Distracting Shadows
-- [ ] `draconic-scout` — Draconic Scout
-- [ ] `draconic-ties` — Draconic Ties
+- [x] `draconic-scout` — Draconic Scout
+- [x] `draconic-ties` — Draconic Ties
 - [x] `dwarven-lore` — Dwarven Lore
 - [x] `dwarven-weapon-familiarity` — Dwarven Weapon Familiarity
-- [ ] `elf-atavism` — Elf Atavism
+- [x] `elf-atavism` — Elf Atavism
 - [x] `elven-instincts` — Elven Instincts
 - [x] `elven-lore` — Elven Lore
 - [x] `elven-weapon-familiarity` — Elven Weapon Familiarity
 - [x] `feline-eyes` — Feline Eyes
 - [x] `feral-endurance` — Feral Endurance
-- [ ] `fey-fellowship` — Fey Fellowship
+- [x] `fey-fellowship` — Fey Fellowship
 - [x] `first-world-magic` — First World Magic
-- [ ] `forest-step` — Forest Step
+- [x] `forest-step` — Forest Step
 - [x] `forlorn` — Forlorn
-- [ ] `forlorn-half-elf` — Forlorn Half-Elf
-- [ ] `general-training` — General Training
-- [ ] `gnome-obsession` — Gnome Obsession
+- [x] `forlorn-half-elf` — Forlorn Half-Elf
+- [x] `general-training` — General Training
+- [x] `gnome-obsession` — Gnome Obsession
 - [x] `gnome-weapon-familiarity` — Gnome Weapon Familiarity
 - [x] `goblin-lore` — Goblin Lore
-- [ ] `goblin-scuttle` — Goblin Scuttle
-- [ ] `goblin-song` — Goblin Song
+- [x] `goblin-scuttle` — Goblin Scuttle
+- [x] `goblin-song` — Goblin Song
 - [x] `goblin-weapon-familiarity` — Goblin Weapon Familiarity
 - [x] `graceful-step` — Graceful Step
 - [x] `halfling-lore` — Halfling Lore
 - [x] `halfling-luck` — Halfling Luck
 - [x] `halfling-weapon-familiarity` — Halfling Weapon Familiarity
 - [x] `haughty-obstinacy` — Haughty Obstinacy
-- [ ] `hold-scarred` — Hold-Scarred Orc
-- [ ] `illusion-sense` — Illusion Sense
-- [ ] `intimidating-glare-half-orc` — Intimidating Glare
-- [ ] `junk-tinker` — Junk Tinker
+- [x] `hold-scarred` — Hold-Scarred Orc
+- [x] `illusion-sense` — Illusion Sense
+- [x] `intimidating-glare-half-orc` — Intimidating Glare
+- [x] `junk-tinker` — Junk Tinker
 - [x] `kobold-lore` — Kobold Lore
 - [x] `kobold-weapon-familiarity` — Kobold Weapon Familiarity
 - [x] `leshy-lore` — Leshy Lore
-- [ ] `mixed-heritage-adaptability` — Mixed Heritage Adaptability
-- [ ] `multitalented` — Multitalented
-- [ ] `natural-ambition` — Natural Ambition
-- [ ] `natural-skill` — Natural Skill
+- [x] `mixed-heritage-adaptability` — Mixed Heritage Adaptability
+- [x] `multitalented` — Multitalented
+- [x] `natural-ambition` — Natural Ambition
+- [x] `natural-skill` — Natural Skill
 - [x] `nimble-elf` — Nimble Elf
-- [ ] `one-toed-hop` — One-Toed Hop
-- [ ] `orc-atavism` — Orc Atavism
+- [x] `one-toed-hop` — One-Toed Hop
+- [x] `orc-atavism` — Orc Atavism
 - [x] `orc-ferocity` — Orc Ferocity
 - [x] `orc-sight` — Orc Sight
-- [ ] `orc-superstition` — Orc Superstition
-- [ ] `orc-weapon-carnage` — Orc Weapon Carnage
+- [x] `orc-superstition` — Orc Superstition
+- [x] `orc-weapon-carnage` — Orc Weapon Carnage
 - [x] `orc-weapon-familiarity` — Orc Weapon Familiarity
 - [x] `orc-weapon-familiarity-half-orc` — Orc Weapon Familiarity
 - [x] `otherworldly-magic` — Otherworldly Magic
-- [ ] `photosynthetic-recovery` — Photosynthetic Recovery
+- [x] `photosynthetic-recovery` — Photosynthetic Recovery
 - [x] `ratfolk-lore` — Ratfolk Lore
 - [x] `ratfolk-weapon-familiarity` — Ratfolk Weapon Familiarity
 - [x] `rock-runner` — Rock Runner
-- [ ] `rooted-resilience` — Rooted Resilience
+- [x] `rooted-resilience` — Rooted Resilience
 - [x] `scar-thickened` — Scar-Thickened
-- [ ] `scrounger` — Scrounger
-- [ ] `seedpod` — Seedpod
-- [ ] `sky-bridge-runner` — Sky-Bridge Runner
-- [ ] `snare-setter` — Snare Setter
-- [ ] `squawk` — Squawk
-- [ ] `stonecunning` — Stonecunning
+- [x] `scrounger` — Scrounger
+- [x] `seedpod` — Seedpod
+- [x] `sky-bridge-runner` — Sky-Bridge Runner
+- [x] `snare-setter` — Snare Setter
+- [x] `squawk` — Squawk
+- [x] `stonecunning` — Stonecunning
 - [x] `sure-feet` — Sure Feet
 - [x] `tengu-lore` — Tengu Lore
 - [x] `tengu-weapon-familiarity` — Tengu Weapon Familiarity
-- [ ] `titan-slinger` — Titan Slinger
-- [ ] `tunnel-runner` — Tunnel Runner
-- [ ] `tunnel-vision` — Tunnel Vision
+- [x] `titan-slinger` — Titan Slinger
+- [x] `tunnel-runner` — Tunnel Runner
+- [x] `tunnel-vision` — Tunnel Vision
 - [x] `unburdened-iron` — Unburdened Iron
-- [ ] `unconventional-weaponry` — Unconventional Weaponry
+- [x] `unconventional-weaponry` — Unconventional Weaponry
 - [x] `unfettered-halfling` — Unfettered Halfling
 - [x] `unwavering-mien` — Unwavering Mien
 - [x] `unyielding-will` — Unyielding Will
-- [ ] `vengeful-hatred` — Vengeful Hatred
-- [ ] `verdant-voice` — Verdant Voice
-- [ ] `well-groomed` — Well-Groomed
+- [x] `vengeful-hatred` — Vengeful Hatred
+- [x] `verdant-voice` — Verdant Voice
+- [x] `well-groomed` — Well-Groomed
 
 #### Class Feats
-- [ ] `animal-companion` — Animal Companion
+- [x] `animal-companion` — Animal Companion
 - [x] `counterspell` — Counterspell
-- [ ] `crossbow-ace` — Crossbow Ace
-- [ ] `double-slice` — Double Slice
-- [ ] `eschew-materials` — Eschew Materials
-- [ ] `exacting-strike` — Exacting Strike
-- [ ] `familiar` — Familiar
-- [ ] `hand-of-the-apprentice` — Hand of the Apprentice
-- [ ] `hunted-shot` — Hunted Shot
-- [ ] `monster-hunter` — Monster Hunter
-- [ ] `nimble-dodge` — Nimble Dodge
-- [ ] `point-blank-shot` — Point-Blank Shot
+- [x] `crossbow-ace` — Crossbow Ace
+- [x] `double-slice` — Double Slice
+- [x] `eschew-materials` — Eschew Materials
+- [x] `exacting-strike` — Exacting Strike
+- [x] `familiar` — Familiar
+- [x] `hand-of-the-apprentice` — Hand of the Apprentice
+- [x] `hunted-shot` — Hunted Shot
+- [x] `monster-hunter` — Monster Hunter
+- [x] `nimble-dodge` — Nimble Dodge
+- [x] `point-blank-shot` — Point-Blank Shot
 - [x] `power-attack` — Power Attack
 - [x] `reach-spell` — Reach Spell
 - [x] `reactive-shield` — Reactive Shield
-- [ ] `snagging-strike` — Snagging Strike
-- [ ] `trap-finder` — Trap Finder
-- [ ] `twin-feint` — Twin Feint
-- [ ] `twin-takedown` — Twin Takedown
+- [x] `snagging-strike` — Snagging Strike
+- [x] `trap-finder` — Trap Finder
+- [x] `twin-feint` — Twin Feint
+- [x] `twin-takedown` — Twin Takedown
 - [x] `widen-spell` — Widen Spell
-- [ ] `you-re-next` — You're Next
+- [x] `you-re-next` — You're Next
 
 #### General Feats
-- [ ] `adopted-ancestry` — Adopted Ancestry
-- [ ] `armor-proficiency` — Armor Proficiency
-- [ ] `breath-control` — Breath Control
-- [ ] `canny-acumen` — Canny Acumen
-- [ ] `diehard` — Diehard
-- [ ] `fast-recovery` — Fast Recovery
-- [ ] `feather-step` — Feather Step
+- [x] `adopted-ancestry` — Adopted Ancestry
+- [x] `armor-proficiency` — Armor Proficiency
+- [x] `breath-control` — Breath Control
+- [x] `canny-acumen` — Canny Acumen
+- [x] `diehard` — Diehard
+- [x] `fast-recovery` — Fast Recovery
+- [x] `feather-step` — Feather Step
 - [x] `fleet` — Fleet
 - [x] `incredible-initiative` — Incredible Initiative
-- [ ] `ride` — Ride
-- [ ] `shield-block` — Shield Block
+- [x] `ride` — Ride
+- [x] `shield-block` — Shield Block
 - [x] `toughness` — Toughness
-- [ ] `weapon-proficiency` — Weapon Proficiency
+- [x] `weapon-proficiency` — Weapon Proficiency
 
 #### Skill Feats
-- [ ] `assurance` — Assurance
-- [ ] `bargain-hunter` — Bargain Hunter
-- [ ] `cat-fall` — Cat Fall
-- [ ] `charming-liar` — Charming Liar
-- [ ] `combat-climber` — Combat Climber
-- [ ] `courtly-graces` — Courtly Graces
-- [ ] `experienced-smuggler` — Experienced Smuggler
-- [ ] `experienced-tracker` — Experienced Tracker
-- [ ] `fascinating-performance` — Fascinating Performance
-- [ ] `forager` — Forager
-- [ ] `group-impression` — Group Impression
-- [ ] `hefty-hauler` — Hefty Hauler
-- [ ] `hobnobber` — Hobnobber
-- [ ] `intimidating-glare` — Intimidating Glare
-- [ ] `lengthy-diversion` — Lengthy Diversion
-- [ ] `lie-to-me` — Lie to Me
-- [ ] `multilingual` — Multilingual
-- [ ] `natural-medicine` — Natural Medicine
-- [ ] `oddity-identification` — Oddity Identification
-- [ ] `pickpocket` — Pickpocket
-- [ ] `quick-identification` — Quick Identification
-- [ ] `quick-jump` — Quick Jump
-- [ ] `rapid-mantel` — Rapid Mantel
-- [ ] `read-lips` — Read Lips
+- [x] `assurance` — Assurance
+- [x] `bargain-hunter` — Bargain Hunter
+- [x] `cat-fall` — Cat Fall
+- [x] `charming-liar` — Charming Liar
+- [x] `combat-climber` — Combat Climber
+- [x] `courtly-graces` — Courtly Graces
+- [x] `experienced-smuggler` — Experienced Smuggler
+- [x] `experienced-tracker` — Experienced Tracker
+- [x] `fascinating-performance` — Fascinating Performance
+- [x] `forager` — Forager
+- [x] `group-impression` — Group Impression
+- [x] `hefty-hauler` — Hefty Hauler
+- [x] `hobnobber` — Hobnobber
+- [x] `intimidating-glare` — Intimidating Glare
+- [x] `lengthy-diversion` — Lengthy Diversion
+- [x] `lie-to-me` — Lie to Me
+- [x] `multilingual` — Multilingual
+- [x] `natural-medicine` — Natural Medicine
+- [x] `oddity-identification` — Oddity Identification
+- [x] `pickpocket` — Pickpocket
+- [x] `quick-identification` — Quick Identification
+- [x] `quick-jump` — Quick Jump
+- [x] `rapid-mantel` — Rapid Mantel
+- [x] `read-lips` — Read Lips
 - [x] `recognize-spell` — Recognize Spell
-- [ ] `sign-language` — Sign Language
-- [ ] `snare-crafting` — Snare Crafting
-- [ ] `specialty-crafting` — Specialty Crafting
-- [ ] `steady-balance` — Steady Balance
-- [ ] `streetwise` — Streetwise
-- [ ] `student-of-the-canon` — Student of the Canon
-- [ ] `subtle-theft` — Subtle Theft
-- [ ] `survey-wildlife` — Survey Wildlife
-- [ ] `terrain-expertise` — Terrain Expertise
-- [ ] `titan-wrestler` — Titan Wrestler
-- [ ] `train-animal` — Train Animal
-- [ ] `trick-magic-item` — Trick Magic Item
-- [ ] `underwater-marauder` — Underwater Marauder
-- [ ] `virtuosic-performer` — Virtuosic Performer
+- [x] `sign-language` — Sign Language
+- [x] `snare-crafting` — Snare Crafting
+- [x] `specialty-crafting` — Specialty Crafting
+- [x] `steady-balance` — Steady Balance
+- [x] `streetwise` — Streetwise
+- [x] `student-of-the-canon` — Student of the Canon
+- [x] `subtle-theft` — Subtle Theft
+- [x] `survey-wildlife` — Survey Wildlife
+- [x] `terrain-expertise` — Terrain Expertise
+- [x] `titan-wrestler` — Titan Wrestler
+- [x] `train-animal` — Train Animal
+- [x] `trick-magic-item` — Trick Magic Item
+- [x] `underwater-marauder` — Underwater Marauder
+- [x] `virtuosic-performer` — Virtuosic Performer
 
 ### Campaign Management System
 - **Campaign-first entry flow**: Start adventure by creating a campaign, then select or create a character

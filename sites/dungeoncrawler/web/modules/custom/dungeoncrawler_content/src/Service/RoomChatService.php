@@ -277,6 +277,7 @@ class RoomChatService {
     $npc_interjections = [];
     if ($type === 'player') {
       if ($channel === 'room') {
+        $this->ensureCurrentRoomNpcProfiles($campaign_id, $room_id, $dungeon_data, $room_index);
         // Room channel: GM responds.
         $gm_result = $this->generateGmReply($campaign_id, $room_id, $room_index, $dungeon_id, $dungeon_data, $character_id);
       } else {
@@ -328,6 +329,41 @@ class RoomChatService {
       );
     }
     return $result;
+  }
+
+  /**
+   * Ensure NPC psychology profiles exist for the current room before chat.
+   *
+   * The tavern / starting room can be active before any room-transition logic
+   * runs, which means NPC interjection logic may have no psychology profiles to
+   * evaluate against. This method backfills profiles opportunistically during
+   * room chat so directly addressed NPCs can speak.
+   */
+  protected function ensureCurrentRoomNpcProfiles(int $campaign_id, string $room_id, array $dungeon_data, int|string $room_index): void {
+    $room_entities = [];
+
+    foreach (($dungeon_data['entities'] ?? []) as $entity) {
+      if (($entity['placement']['room_id'] ?? '') === $room_id) {
+        $room_entities[] = $entity;
+      }
+    }
+
+    foreach (($dungeon_data['rooms'][$room_index]['entities'] ?? []) as $entity) {
+      $room_entities[] = $entity;
+    }
+
+    if (empty($room_entities)) {
+      return;
+    }
+
+    try {
+      $this->ensureNpcProfiles($campaign_id, $room_entities);
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('Room chat NPC profile ensure failed: @err', [
+        '@err' => $e->getMessage(),
+      ]);
+    }
   }
 
   /**

@@ -960,6 +960,8 @@ class CharacterStateService {
       'movement' => [],
       'outcome_upgrades' => [],
     ];
+    $state['features']['featSelectionGrants'] = $effects['selection_grants'] ?? [];
+    $state['features']['featTodoReview'] = $effects['todo_review_features'] ?? [];
 
     // Apply selected core stat adjustments directly into state.
     $hp_bonus = (int) ($effects['derived_adjustments']['hp_max_bonus'] ?? 0);

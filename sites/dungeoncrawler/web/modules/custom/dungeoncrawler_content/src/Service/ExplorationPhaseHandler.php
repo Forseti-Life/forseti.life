@@ -564,6 +564,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         'message' => $message,
         'gm_response' => $chat_result['gm_response'] ?? NULL,
         'narration' => $chat_result['gm_response']['message'] ?? ($chat_result['gm_response']['text'] ?? NULL),
+        'npc_interjections' => $chat_result['npc_interjections'] ?? [],
         'state_diff' => $chat_result['state_diff'] ?? [],
         'combat_transition' => $chat_result['combat_transition'] ?? NULL,
         'canonical_actions' => $chat_result['canonical_actions'] ?? [],

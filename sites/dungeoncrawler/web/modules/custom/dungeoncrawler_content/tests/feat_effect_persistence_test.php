@@ -71,11 +71,19 @@ $character_data = [
   'feats' => [
     ['type' => 'general', 'id' => 'fleet', 'name' => 'Fleet', 'level' => 1],
     ['type' => 'class', 'id' => 'reach-spell', 'name' => 'Reach Spell', 'level' => 1],
+    ['type' => 'general', 'id' => 'general-training', 'name' => 'General Training', 'level' => 1],
+    ['type' => 'ancestry', 'id' => 'natural-ambition', 'name' => 'Natural Ambition', 'level' => 1],
+    ['type' => 'ancestry', 'id' => 'natural-skill', 'name' => 'Natural Skill', 'level' => 1],
+    ['type' => 'general', 'id' => 'adopted-ancestry', 'name' => 'Adopted Ancestry', 'level' => 1],
+    ['type' => 'general', 'id' => 'canny-acumen', 'name' => 'Canny Acumen', 'level' => 1],
+    ['type' => 'general', 'id' => 'weapon-proficiency', 'name' => 'Weapon Proficiency', 'level' => 1],
+    ['type' => 'general', 'id' => 'armor-proficiency', 'name' => 'Armor Proficiency', 'level' => 1],
     ['type' => 'ancestry', 'id' => 'orc-sight', 'name' => 'Orc Sight', 'level' => 1],
     ['type' => 'ancestry', 'id' => 'dwarven-lore', 'name' => 'Dwarven Lore', 'level' => 1],
     ['type' => 'ancestry', 'id' => 'dwarven-weapon-familiarity', 'name' => 'Dwarven Weapon Familiarity', 'level' => 1],
     ['type' => 'ancestry', 'id' => 'haughty-obstinacy', 'name' => 'Haughty Obstinacy', 'level' => 1],
     ['type' => 'ancestry', 'id' => 'rock-runner', 'name' => 'Rock Runner', 'level' => 1],
+    ['type' => 'skill', 'id' => 'titan-wrestler', 'name' => 'Titan Wrestler', 'level' => 1],
   ],
   'hit_points' => ['current' => 18, 'max' => 18],
   'hero_points' => 1,
@@ -133,16 +141,26 @@ try {
   assert_true(isset($state['spells']['featAugments']), 'spells.featAugments persisted');
   assert_true(isset($state['senses']) && is_array($state['senses']), 'senses persisted');
   assert_true(isset($state['features']['featTraining']) && is_array($state['features']['featTraining']), 'features.featTraining persisted');
+  assert_true(isset($state['features']['featSelectionGrants']) && is_array($state['features']['featSelectionGrants']), 'features.featSelectionGrants persisted');
   assert_true(isset($state['features']['featConditionalModifiers']) && is_array($state['features']['featConditionalModifiers']), 'features.featConditionalModifiers persisted');
+  assert_true(isset($state['features']['featTodoReview']) && is_array($state['features']['featTodoReview']), 'features.featTodoReview persisted');
 
   $applied = $state['features']['featEffects']['applied_feats'] ?? [];
   assert_true(in_array('fleet', $applied, TRUE), 'fleet appears in applied feat list');
   assert_true(in_array('reach-spell', $applied, TRUE), 'reach-spell appears in applied feat list');
+  assert_true(in_array('general-training', $applied, TRUE), 'general-training appears in applied feat list');
+  assert_true(in_array('natural-ambition', $applied, TRUE), 'natural-ambition appears in applied feat list');
+  assert_true(in_array('natural-skill', $applied, TRUE), 'natural-skill appears in applied feat list');
+  assert_true(in_array('adopted-ancestry', $applied, TRUE), 'adopted-ancestry appears in applied feat list');
+  assert_true(in_array('canny-acumen', $applied, TRUE), 'canny-acumen appears in applied feat list');
+  assert_true(in_array('weapon-proficiency', $applied, TRUE), 'weapon-proficiency appears in applied feat list');
+  assert_true(in_array('armor-proficiency', $applied, TRUE), 'armor-proficiency appears in applied feat list');
   assert_true(in_array('orc-sight', $applied, TRUE), 'orc-sight appears in applied feat list');
   assert_true(in_array('dwarven-lore', $applied, TRUE), 'dwarven-lore appears in applied feat list');
   assert_true(in_array('dwarven-weapon-familiarity', $applied, TRUE), 'dwarven-weapon-familiarity appears in applied feat list');
   assert_true(in_array('haughty-obstinacy', $applied, TRUE), 'haughty-obstinacy appears in applied feat list');
   assert_true(in_array('rock-runner', $applied, TRUE), 'rock-runner appears in applied feat list');
+  assert_true(in_array('titan-wrestler', $applied, TRUE), 'titan-wrestler appears in applied feat list');
 
   $speed_bonus = (int) ($state['features']['featEffects']['derived_adjustments']['speed_bonus'] ?? 0);
   $speed_total = (int) ($state['movement']['speed']['total'] ?? 0);
@@ -167,6 +185,7 @@ try {
   $trained_skills = $state['features']['featTraining']['skills'] ?? [];
   $trained_lore = $state['features']['featTraining']['lore'] ?? [];
   $trained_weapons = $state['features']['featTraining']['weapons'] ?? [];
+  $trained_proficiencies = $state['features']['featTraining']['proficiencies'] ?? [];
   assert_true(in_array('Crafting', $trained_skills, TRUE), 'Dwarven Lore skill training persisted (Crafting)');
   assert_true(in_array('Dwarven Lore', $trained_lore, TRUE), 'Dwarven Lore lore training persisted');
   $has_dwarven_weapons = FALSE;
@@ -177,6 +196,29 @@ try {
     }
   }
   assert_true($has_dwarven_weapons, 'Dwarven weapon familiarity persisted');
+
+  $has_weapon_proficiency = FALSE;
+  $has_armor_proficiency = FALSE;
+  foreach ($trained_proficiencies as $proficiency) {
+    if (($proficiency['category'] ?? '') === 'weapon' && ($proficiency['target'] ?? '') === 'martial_or_advanced_choice' && ($proficiency['rank'] ?? '') === 'trained') {
+      $has_weapon_proficiency = TRUE;
+    }
+    if (($proficiency['category'] ?? '') === 'armor' && ($proficiency['target'] ?? '') === 'light_or_medium_or_heavy_choice' && ($proficiency['rank'] ?? '') === 'trained') {
+      $has_armor_proficiency = TRUE;
+    }
+  }
+  assert_true($has_weapon_proficiency, 'Weapon Proficiency generic proficiency grant persisted');
+  assert_true($has_armor_proficiency, 'Armor Proficiency generic proficiency grant persisted');
+
+  $selection_grants = $state['features']['featSelectionGrants'] ?? [];
+  $selection_types = array_map(function ($grant) {
+    return $grant['selection_type'] ?? '';
+  }, $selection_grants);
+  assert_true(in_array('bonus_general_feat', $selection_types, TRUE), 'General Training selection grant persisted');
+  assert_true(in_array('bonus_class_feat', $selection_types, TRUE), 'Natural Ambition selection grant persisted');
+  assert_true(in_array('bonus_skill_training', $selection_types, TRUE), 'Natural Skill selection grant persisted');
+  assert_true(in_array('adopted_ancestry_choice', $selection_types, TRUE), 'Adopted Ancestry selection grant persisted');
+  assert_true(in_array('proficiency_upgrade_choice', $selection_types, TRUE), 'Canny Acumen selection grant persisted');
 
   $conditional = $state['features']['featConditionalModifiers'] ?? [];
   $save_mods = $conditional['saving_throws'] ?? [];
@@ -199,6 +241,9 @@ try {
     }
   }
   assert_true($has_rock_runner, 'Rock Runner conditional skill modifier persisted');
+
+  $todo_review = $state['features']['featTodoReview'] ?? [];
+  assert_equals(0, count($todo_review), 'No TODO review entries remain for fully implemented feat set');
 }
 catch (\Throwable $e) {
   assert_true(FALSE, 'Unexpected exception: ' . $e->getMessage());
