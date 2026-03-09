@@ -893,8 +893,22 @@ class GameObjectsController extends ControllerBase {
         Url::fromRoute('dungeoncrawler_content.api.image_get', ['image_uuid' => $image_uuid]),
       )->toRenderable();
 
-      $preview_cell = $client_url !== NULL
-        ? Link::fromTextAndUrl($this->t('Open image'), Url::fromUri($client_url))->toRenderable()
+      // Url::fromUri() requires an absolute URI scheme (http://, public://, etc.).
+      // resolveClientUrl() may return a relative web path (/sites/default/files/...)
+      // which is not a valid URI. Use fromUserInput() for relative paths.
+      $preview_url = NULL;
+      if ($client_url !== NULL) {
+        try {
+          $preview_url = (str_starts_with($client_url, 'http://') || str_starts_with($client_url, 'https://'))
+            ? Url::fromUri($client_url)
+            : Url::fromUserInput($client_url);
+        }
+        catch (\Throwable) {
+          $preview_url = NULL;
+        }
+      }
+      $preview_cell = $preview_url !== NULL
+        ? Link::fromTextAndUrl($this->t('Open image'), $preview_url)->toRenderable()
         : $this->t('Unavailable');
 
       $rows[] = [

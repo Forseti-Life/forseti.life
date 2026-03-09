@@ -89,30 +89,49 @@ class GameObjectInventoryService {
    * Loads rows from a selected table.
    */
   public function loadTableRows(string $table_name, array $primary_keys, string $search = ''): array {
+    $columns = $this->getTableColumns($table_name);
     $query = $this->database->select($table_name, 't');
-    $query->fields('t');
+
+    if (empty($columns)) {
+      // Fallback if schema info is unavailable.
+      $query->fields('t');
+    }
+    else {
+      // Truncate large text/blob columns to avoid OOM when fetching many rows.
+      // Full values are available in the single-row editor (loadTableRowByPrimaryKey).
+      $large_types = ['text', 'mediumtext', 'longtext', 'blob', 'mediumblob', 'longblob'];
+      foreach ($columns as $column_name => $column_meta) {
+        if (in_array(strtolower($column_meta['data_type']), $large_types, TRUE)) {
+          $safe_col = $this->database->escapeField($column_name);
+          $query->addExpression('SUBSTRING(t.' . $safe_col . ', 1, 255)', $column_name);
+        }
+        else {
+          $query->addField('t', $column_name);
+        }
+      }
+    }
 
     if (count($primary_keys) === 1) {
       $query->orderBy($primary_keys[0], 'DESC');
     }
 
     $search = trim($search);
-    if ($search !== '') {
-      $columns = array_keys($this->getTableColumns($table_name));
-      if (!empty($columns)) {
-        $where_parts = [];
-        $arguments = [];
-        foreach ($columns as $index => $column_name) {
-          $placeholder = ':row_search_' . $index;
-          $where_parts[] = 'CAST(t.' . $this->database->escapeField($column_name) . ' AS CHAR) LIKE ' . $placeholder;
-          $arguments[$placeholder] = '%' . $search . '%';
-        }
-        $query->where('(' . implode(' OR ', $where_parts) . ')', $arguments);
+    if ($search !== '' && !empty($columns)) {
+      $where_parts = [];
+      $arguments = [];
+      foreach (array_keys($columns) as $index => $column_name) {
+        $placeholder = ':row_search_' . $index;
+        $where_parts[] = 'CAST(t.' . $this->database->escapeField($column_name) . ' AS CHAR) LIKE ' . $placeholder;
+        $arguments[$placeholder] = '%' . $search . '%';
       }
+      $query->where('(' . implode(' OR ', $where_parts) . ')', $arguments);
     }
 
     $query->range(0, self::MAX_ROWS);
-    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    $stmt = $query->execute();
+    $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    unset($stmt);
+    return $rows;
   }
 
   /**
@@ -133,7 +152,9 @@ class GameObjectInventoryService {
     }
     $query->range(0, 1);
 
-    $row = $query->execute()->fetchAssoc();
+    $stmt = $query->execute();
+    $row = $stmt->fetchAssoc();
+    unset($stmt);
     return is_array($row) ? $row : [];
   }
 
@@ -141,7 +162,7 @@ class GameObjectInventoryService {
    * Discovers Dungeon Crawler-owned table names from the active schema.
    */
   protected function discoverDungeonCrawlerTables(): array {
-    $query = $this->database->query(
+    $stmt = $this->database->query(
       'SELECT TABLE_NAME
        FROM information_schema.TABLES
        WHERE TABLE_SCHEMA = DATABASE()
@@ -153,8 +174,11 @@ class GameObjectInventoryService {
       ],
     );
 
+    $table_names_raw = $stmt->fetchCol();
+    unset($stmt);
+
     $tables = [];
-    foreach ($query->fetchCol() as $table_name) {
+    foreach ($table_names_raw as $table_name) {
       if (is_string($table_name) && $table_name !== '') {
         $tables[] = $table_name;
       }
@@ -167,7 +191,7 @@ class GameObjectInventoryService {
    * Loads table column metadata from information_schema.
    */
   protected function getTableColumns(string $table_name): array {
-    $query = $this->database->query(
+    $stmt = $this->database->query(
       'SELECT COLUMN_NAME, DATA_TYPE, IS_NULLABLE, COLUMN_KEY
        FROM information_schema.COLUMNS
        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = :table
@@ -175,8 +199,11 @@ class GameObjectInventoryService {
       [':table' => $table_name],
     );
 
+    $columns_raw = $stmt->fetchAllAssoc('COLUMN_NAME');
+    unset($stmt);
+
     $columns = [];
-    foreach ($query->fetchAllAssoc('COLUMN_NAME') as $column_name => $row) {
+    foreach ($columns_raw as $column_name => $row) {
       $columns[$column_name] = [
         'data_type' => (string) $row->DATA_TYPE,
         'is_nullable' => (string) $row->IS_NULLABLE,
@@ -191,10 +218,16 @@ class GameObjectInventoryService {
    * Gets row count for a table.
    */
   protected function getTableRowCount(string $table_name): int {
-    return (int) $this->database->select($table_name, 't')
+    // Explicitly store and unset the statement to ensure mysqlnd releases
+    // the cursor via the PDOStatement destructor (mysql_free_result).
+    // Without explicit unset(), buffered queries on tables with LONGTEXT
+    // columns can trigger SQLSTATE 2014 during session_write_close().
+    $stmt = $this->database->select($table_name, 't')
       ->countQuery()
-      ->execute()
-      ->fetchField();
+      ->execute();
+    $rows = $stmt->fetchAll();
+    unset($stmt);
+    return isset($rows[0]->expression) ? (int) $rows[0]->expression : 0;
   }
 
   /**
