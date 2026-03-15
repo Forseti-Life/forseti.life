@@ -70,11 +70,6 @@ class FeatEffectManager {
         continue;
       }
 
-      if ($this->applyBulkFirstPassFeat($effects, $feat_id, $character_data)) {
-        $effects['applied_feats'][] = $feat_id;
-        continue;
-      }
-
       switch ($feat_id) {
         case 'toughness':
           $effects['derived_adjustments']['hp_max_bonus'] += $level;
@@ -288,6 +283,306 @@ class FeatEffectManager {
           $effects['notes'][] = !empty($selected_skills)
             ? ('Ancestral Longevity: trained in ' . implode(', ', $selected_skills) . ' until next daily preparations.')
             : 'Ancestral Longevity: select two skills to gain trained proficiency until next daily preparations.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'animal-accomplice':
+          $selected_animal = $this->resolveFeatSelectionValue($character_data, 'animal-accomplice', ['selected_companion', 'companion', 'animal']);
+
+          if ($selected_animal === NULL) {
+            $this->addSelectionGrant(
+              $effects,
+              'animal-accomplice',
+              'animal_accomplice_choice',
+              1,
+              'Select one Tiny animal accomplice to accompany your character.'
+            );
+          }
+
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'animal-accomplice-command',
+            'name' => 'Command Animal Accomplice',
+            'action_cost' => 1,
+            'description' => $selected_animal
+              ? ('Command your animal accomplice (' . $selected_animal . ') to Assist, Scout, or perform simple tasks.')
+              : 'Command your animal accomplice to Assist, Scout, or perform simple tasks.',
+          ];
+          $effects['conditional_modifiers']['movement'][] = [
+            'id' => 'animal-accomplice',
+            'rule' => 'animal_accomplice_support',
+            'context' => 'Exploration support and helper interactions',
+          ];
+          $effects['notes'][] = $selected_animal
+            ? ('Animal Accomplice selected: ' . $selected_animal . '.')
+            : 'Animal Accomplice pending companion selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'beak-adept':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'beak-adept',
+            'name' => 'Beak Adept',
+            'action_cost' => 1,
+            'description' => 'Use your beak as a natural attack for close-quarters strikes.',
+          ];
+          $effects['notes'][] = 'Beak Adept: grants a beak natural attack action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'burn-it':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'burn-it',
+            'name' => 'Burn It!',
+            'action_cost' => 1,
+            'description' => 'Leverage fiery goblin pyromania for offensive pressure and intimidation.',
+          ];
+          $effects['notes'][] = 'Burn It!: grants offensive pyromaniac utility action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'burrow-elocutionist':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'burrow-elocutionist',
+            'name' => 'Burrow Elocutionist',
+            'action_cost' => 1,
+            'description' => 'Communicate effectively through subterranean and enclosed terrain conditions.',
+          ];
+          $effects['notes'][] = 'Burrow Elocutionist: grants at-will subterranean communication utility.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'cat-nap':
+          $this->addLongRestLimitedAction(
+            $effects,
+            'cat-nap',
+            'Cat Nap',
+            'Take a rapid restorative nap to recover readiness once per long rest.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, 'cat-nap') ?? 0)
+          );
+          $effects['notes'][] = 'Cat Nap: long-rest tracked restorative feat resource.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'cheek-pouches':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'cheek-pouches',
+            'name' => 'Cheek Pouches',
+            'action_cost' => 1,
+            'description' => 'Stow or retrieve tiny carried items quickly using cheek pouches.',
+          ];
+          $effects['notes'][] = 'Cheek Pouches: at-will quick stow/retrieve utility action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'city-scavenger':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'city-scavenger',
+            'name' => 'City Scavenger',
+            'action_cost' => 1,
+            'description' => 'Search urban refuse and improvised sources for useful consumable materials.',
+          ];
+          $effects['notes'][] = 'City Scavenger: at-will urban scavenging utility action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'communal-instinct':
+          $this->addConditionalSaveModifier($effects, 'Will', 1, 'allies within 30 feet');
+          $effects['notes'][] = 'Communal Instinct: +1 conditional Will save when near allies.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'cooperative-nature':
+          $this->addConditionalSaveModifier($effects, 'All', 1, 'when taking cooperative actions');
+          $effects['notes'][] = 'Cooperative Nature: +1 conditional save bonus during cooperative actions.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'cross-cultural-upbringing':
+          $this->addSelectionGrant(
+            $effects,
+            'cross-cultural-upbringing',
+            'cross_cultural_adopted_ancestry',
+            1,
+            'Select an alternate ancestry cultural training package.'
+          );
+          $effects['notes'][] = 'Cross-Cultural Upbringing: pending alternate ancestry cultural package selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'draconic-scout':
+          $this->addLongRestLimitedAction(
+            $effects,
+            'draconic-scout',
+            'Draconic Scout',
+            'Invoke draconic scouting instincts once per long rest.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, 'draconic-scout') ?? 0)
+          );
+          $this->addSense($effects, 'low-light-vision', 'Low-Light Vision', 'Draconic senses improve visibility in dim conditions.');
+          $effects['notes'][] = 'Draconic Scout: long-rest scouting resource plus low-light vision support.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'draconic-ties':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'draconic-ties',
+            'name' => 'Draconic Ties',
+            'action_cost' => 1,
+            'description' => 'Channel draconic lineage in social or thematic interaction moments.',
+          ];
+          $effects['notes'][] = 'Draconic Ties: at-will lineage expression action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'animal-companion':
+          $this->addSelectionGrant($effects, 'animal-companion', 'animal_companion_choice', 1, 'Select one animal companion.');
+          $effects['notes'][] = 'Animal Companion: pending companion selection slot.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'crossbow-ace':
+        case 'double-slice':
+        case 'eschew-materials':
+        case 'exacting-strike':
+        case 'familiar':
+        case 'hand-of-the-apprentice':
+        case 'hunted-shot':
+        case 'monster-hunter':
+        case 'point-blank-shot':
+        case 'snagging-strike':
+        case 'trap-finder':
+        case 'twin-feint':
+        case 'twin-takedown':
+          $label = $this->humanizeFeatId($feat_id);
+          $effects['available_actions']['at_will'][] = [
+            'id' => $feat_id,
+            'name' => $label,
+            'action_cost' => 1,
+            'description' => $label . ': first-pass feat action.',
+          ];
+          $effects['notes'][] = $label . ': explicit class-feat action handler applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'nimble-dodge':
+        case 'you-re-next':
+          $label = $this->humanizeFeatId($feat_id);
+          $effects['available_actions']['at_will'][] = [
+            'id' => $feat_id,
+            'name' => $label,
+            'action_cost' => 'reaction',
+            'description' => $label . ': reaction feat action.',
+          ];
+          $effects['notes'][] = $label . ': explicit class-feat reaction handler applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'elf-atavism':
+          $this->addSelectionGrant(
+            $effects,
+            'elf-atavism',
+            'ancestry_lineage_choice',
+            1,
+            'Select an alternate lineage trait expression.'
+          );
+          $effects['notes'][] = 'Elf Atavism: pending ancestry lineage selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'fey-fellowship':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'fey-fellowship',
+            'name' => 'Fey Fellowship',
+            'action_cost' => 1,
+            'description' => 'Invoke fey rapport during social and exploration interactions.',
+          ];
+          $effects['notes'][] = 'Fey Fellowship: at-will fey rapport utility action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'forlorn-half-elf':
+          $this->addConditionalSaveModifier($effects, 'Will', 1, 'emotion effects');
+          $effects['notes'][] = 'Forlorn Half-Elf: +1 conditional Will save vs emotion effects.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'gnome-obsession':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'gnome-obsession',
+            'name' => 'Gnome Obsession',
+            'action_cost' => 1,
+            'description' => 'Pursue and apply your obsession for focused exploration advantages.',
+          ];
+          $effects['notes'][] = 'Gnome Obsession: at-will obsession utility action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'goblin-scuttle':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'goblin-scuttle',
+            'name' => 'Goblin Scuttle',
+            'action_cost' => 1,
+            'description' => 'Scuttle quickly with goblin agility to reposition opportunistically.',
+          ];
+          $effects['notes'][] = 'Goblin Scuttle: at-will mobility action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'goblin-song':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'goblin-song',
+            'name' => 'Goblin Song',
+            'action_cost' => 1,
+            'description' => 'Perform disruptive goblin songs to pressure nearby foes.',
+          ];
+          $effects['notes'][] = 'Goblin Song: at-will disruptive performance action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'hold-scarred':
+          $this->addLongRestLimitedAction(
+            $effects,
+            'hold-scarred',
+            'Hold-Scarred',
+            'Draw on hold-scarred resilience once per long rest.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, 'hold-scarred') ?? 0)
+          );
+          $effects['notes'][] = 'Hold-Scarred: long-rest tracked resilience resource.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'illusion-sense':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'illusion-sense',
+            'name' => 'Illusion Sense',
+            'action_cost' => 1,
+            'description' => 'Probe suspicious phenomena for signs of illusion and trickery.',
+          ];
+          $effects['notes'][] = 'Illusion Sense: at-will illusion probing action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'intimidating-glare-half-orc':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'intimidating-glare-half-orc',
+            'name' => 'Intimidating Glare',
+            'action_cost' => 'reaction',
+            'description' => 'Use a fierce glare as an immediate intimidation reaction.',
+          ];
+          $effects['notes'][] = 'Intimidating Glare (Half-Orc): reaction-based intimidation action.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'junk-tinker':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'junk-tinker',
+            'name' => 'Junk Tinker',
+            'action_cost' => 1,
+            'description' => 'Improvise minor tools and gadgets from salvage and scraps.',
+          ];
+          $effects['notes'][] = 'Junk Tinker: at-will salvage tinkering action.';
           $effects['applied_feats'][] = $feat_id;
           break;
 
@@ -600,8 +895,322 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'mixed-heritage-adaptability':
+          $this->addSelectionGrant(
+            $effects,
+            'mixed-heritage-adaptability',
+            'mixed_heritage_adaptability_choice',
+            1,
+            'Select one mixed-heritage adaptability option.'
+          );
+          $effects['notes'][] = 'Mixed Heritage Adaptability: pending mixed-heritage choice.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'multitalented':
+          $this->addSelectionGrant(
+            $effects,
+            'multitalented',
+            'multiclass_archetype_dedication',
+            1,
+            'Select a multiclass dedication feat.'
+          );
+          $effects['notes'][] = 'Multitalented: pending multiclass dedication selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'orc-atavism':
+          $this->addSelectionGrant(
+            $effects,
+            'orc-atavism',
+            'ancestry_lineage_choice',
+            1,
+            'Select an alternate lineage trait expression.'
+          );
+          $effects['notes'][] = 'Orc Atavism: pending ancestry lineage selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'unconventional-weaponry':
+          $this->addSelectionGrant(
+            $effects,
+            'unconventional-weaponry',
+            'unconventional_weapon_choice',
+            1,
+            'Select one uncommon weapon for familiarity benefits.'
+          );
+          $effects['notes'][] = 'Unconventional Weaponry: pending uncommon weapon selection.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'orc-superstition':
+          $this->addConditionalSaveModifier($effects, 'Will', 1, 'spells and magical effects');
+          $effects['notes'][] = 'Orc Superstition: +1 conditional Will save vs spells/magic.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'vengeful-hatred':
+          $this->addConditionalSaveModifier($effects, 'Will', 1, 'against chosen hated foe');
+          $effects['notes'][] = 'Vengeful Hatred: +1 conditional Will save against hated foe.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'photosynthetic-recovery':
+          $this->addLongRestLimitedAction(
+            $effects,
+            'photosynthetic-recovery',
+            'Photosynthetic Recovery',
+            'Recover vitality through photosynthetic rest once per long rest.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, 'photosynthetic-recovery') ?? 0)
+          );
+          $effects['notes'][] = 'Photosynthetic Recovery: long-rest tracked recovery resource.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'one-toed-hop':
+        case 'orc-weapon-carnage':
+        case 'scrounger':
+        case 'seedpod':
+        case 'sky-bridge-runner':
+        case 'snare-setter':
+        case 'squawk':
+        case 'titan-slinger':
+        case 'tunnel-runner':
+        case 'verdant-voice':
+        case 'well-groomed':
+          $label = $this->humanizeFeatId($feat_id);
+          $effects['available_actions']['at_will'][] = [
+            'id' => $feat_id,
+            'name' => $label,
+            'action_cost' => 1,
+            'description' => $label . ': first-pass feat action.',
+          ];
+          $effects['notes'][] = $label . ': explicit action handler applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'rooted-resilience':
+          $effects['conditional_modifiers']['movement'][] = [
+            'id' => 'rooted-resilience',
+            'rule' => 'first_pass_baseline',
+            'context' => 'Rooted Resilience',
+          ];
+          $effects['notes'][] = 'Rooted Resilience: baseline movement/utility modifier applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'stonecunning':
+          $effects['derived_adjustments']['perception_bonus'] += 1;
+          $effects['notes'][] = 'Stonecunning: +1 perception bonus for stonework and underground clues.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'breath-control':
+        case 'diehard':
+        case 'fast-recovery':
+          $label = $this->humanizeFeatId($feat_id);
+          $this->addLongRestLimitedAction(
+            $effects,
+            $feat_id,
+            $label,
+            $label . ': explicit long-rest resource.',
+            1,
+            (int) ($this->resolveFeatUsage($character_data, $feat_id) ?? 0)
+          );
+          $effects['notes'][] = $label . ': explicit long-rest handler applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'feather-step':
+          $effects['derived_adjustments']['flags']['ignore_difficult_terrain_light'] = TRUE;
+          $effects['notes'][] = 'Feather Step: ignore light difficult terrain.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'ride':
+          $this->addConditionalSaveModifier($effects, 'Reflex', 1, 'while mounted');
+          $effects['notes'][] = 'Ride: +1 conditional Reflex save while mounted.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'shield-block':
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'shield-block',
+            'name' => 'Shield Block',
+            'action_cost' => 'reaction',
+            'description' => 'Block incoming damage with a shield.',
+          ];
+          $effects['notes'][] = 'Shield Block: explicit reaction action handler.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'multilingual':
+          $this->addSelectionGrant($effects, 'multilingual', 'additional_languages', 2, 'Select additional known languages.');
+          $effects['notes'][] = 'Multilingual: pending additional language selections.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'specialty-crafting':
+          $this->addSelectionGrant($effects, 'specialty-crafting', 'specialty_crafting_choice', 1, 'Select a crafting specialty.');
+          $this->addConditionalSkillModifier($effects, 'Crafting', 1, 'Specialty Crafting first-pass baseline');
+          $effects['notes'][] = 'Specialty Crafting: crafting specialty selection and skill modifier applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'terrain-expertise':
+          $this->addSelectionGrant($effects, 'terrain-expertise', 'terrain_expertise_choice', 1, 'Select one terrain type for expertise benefits.');
+          $this->addConditionalSkillModifier($effects, 'Survival', 1, 'Terrain Expertise first-pass baseline');
+          $effects['notes'][] = 'Terrain Expertise: terrain choice and survival modifier applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'trick-magic-item':
+          $this->addSelectionGrant($effects, 'trick-magic-item', 'trick_magic_item_tradition_choice', 1, 'Select a magical tradition to improvise item activation.');
+          $this->addConditionalSkillModifier($effects, 'Arcana', 1, 'Trick Magic Item first-pass baseline');
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'trick-magic-item',
+            'name' => 'Trick Magic Item',
+            'action_cost' => 1,
+            'description' => 'Trick Magic Item: first-pass feat action.',
+          ];
+          $effects['notes'][] = 'Trick Magic Item: tradition selection, skill modifier, and action applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'virtuosic-performer':
+          $this->addSelectionGrant($effects, 'virtuosic-performer', 'performance_specialty_choice', 1, 'Select a favored performance specialty.');
+          $this->addConditionalSkillModifier($effects, 'Performance', 1, 'Virtuosic Performer first-pass baseline');
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'virtuosic-performer',
+            'name' => 'Virtuosic Performer',
+            'action_cost' => 1,
+            'description' => 'Virtuosic Performer: first-pass feat action.',
+          ];
+          $effects['notes'][] = 'Virtuosic Performer: performance specialty selection, skill modifier, and action applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'titan-wrestler':
+          $this->addConditionalSkillModifier($effects, 'Athletics', 1, 'Titan Wrestler first-pass baseline');
+          $effects['conditional_modifiers']['movement'][] = [
+            'id' => 'titan-wrestler',
+            'rule' => 'can_grapple_larger_creatures',
+            'context' => 'Athletics Grapple and Shove against larger targets',
+          ];
+          $effects['notes'][] = 'Titan Wrestler: athletics modifier plus larger-target grapple/shove handling.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'train-animal':
+          $this->addConditionalSkillModifier($effects, 'Nature', 1, 'Train Animal first-pass baseline');
+          $effects['available_actions']['at_will'][] = [
+            'id' => 'train-animal',
+            'name' => 'Train Animal',
+            'action_cost' => 1,
+            'description' => 'Train Animal: first-pass feat action.',
+          ];
+          $effects['notes'][] = 'Train Animal: nature skill modifier and action applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'underwater-marauder':
+          $effects['conditional_modifiers']['movement'][] = [
+            'id' => 'underwater-marauder',
+            'rule' => 'reduced_underwater_attack_penalty',
+            'context' => 'Underwater combat and movement',
+          ];
+          $effects['notes'][] = 'Underwater Marauder: underwater combat and movement modifier applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'assurance':
+        case 'cat-fall':
+        case 'charming-liar':
+        case 'combat-climber':
+        case 'courtly-graces':
+        case 'experienced-smuggler':
+        case 'experienced-tracker':
+        case 'fascinating-performance':
+        case 'hefty-hauler':
+        case 'intimidating-glare':
+        case 'lengthy-diversion':
+        case 'lie-to-me':
+        case 'natural-medicine':
+        case 'oddity-identification':
+        case 'pickpocket':
+        case 'quick-jump':
+        case 'rapid-mantel':
+        case 'read-lips':
+        case 'sign-language':
+        case 'steady-balance':
+        case 'streetwise':
+        case 'subtle-theft':
+          $skill_mod_map = [
+            'assurance' => 'Any Skill',
+            'cat-fall' => 'Acrobatics',
+            'charming-liar' => 'Deception',
+            'combat-climber' => 'Athletics',
+            'courtly-graces' => 'Society',
+            'experienced-smuggler' => 'Stealth',
+            'experienced-tracker' => 'Survival',
+            'fascinating-performance' => 'Performance',
+            'hefty-hauler' => 'Athletics',
+            'intimidating-glare' => 'Intimidation',
+            'lengthy-diversion' => 'Deception',
+            'lie-to-me' => 'Perception',
+            'natural-medicine' => 'Medicine',
+            'oddity-identification' => 'Occultism',
+            'pickpocket' => 'Thievery',
+            'quick-jump' => 'Athletics',
+            'rapid-mantel' => 'Athletics',
+            'read-lips' => 'Perception',
+            'sign-language' => 'Society',
+            'steady-balance' => 'Acrobatics',
+            'streetwise' => 'Society',
+            'subtle-theft' => 'Thievery',
+          ];
+          $label = $this->humanizeFeatId($feat_id);
+          $this->addConditionalSkillModifier($effects, $skill_mod_map[$feat_id], 1, $label . ' first-pass baseline');
+          $effects['notes'][] = $label . ': explicit conditional skill modifier applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'bargain-hunter':
+        case 'forager':
+        case 'group-impression':
+        case 'hobnobber':
+        case 'quick-identification':
+        case 'snare-crafting':
+        case 'student-of-the-canon':
+        case 'survey-wildlife':
+          $skill_mod_map = [
+            'bargain-hunter' => 'Diplomacy',
+            'forager' => 'Survival',
+            'group-impression' => 'Diplomacy',
+            'hobnobber' => 'Diplomacy',
+            'quick-identification' => 'Arcana',
+            'snare-crafting' => 'Crafting',
+            'student-of-the-canon' => 'Religion',
+            'survey-wildlife' => 'Nature',
+          ];
+          $label = $this->humanizeFeatId($feat_id);
+          $this->addConditionalSkillModifier($effects, $skill_mod_map[$feat_id], 1, $label . ' first-pass baseline');
+          $effects['available_actions']['at_will'][] = [
+            'id' => $feat_id,
+            'name' => $label,
+            'action_cost' => 1,
+            'description' => $label . ': first-pass feat action.',
+          ];
+          $effects['notes'][] = $label . ': explicit skill+action handler applied.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         default:
-          // Stub path for features without an implementation handler yet.
+          if ($this->applyBulkFirstPassFeat($effects, $feat_id, $character_data)) {
+            $effects['applied_feats'][] = $feat_id;
+            break;
+          }
           $this->addTodoReviewFeature($effects, $feat_id, 'missing-handler-stub');
           break;
       }
@@ -966,8 +1575,6 @@ class FeatEffectManager {
     $applied_any = FALSE;
 
     $selection_grants = [
-      'cross-cultural-upbringing' => ['cross_cultural_adopted_ancestry', 1, 'Select an alternate ancestry cultural training package.'],
-      'elf-atavism' => ['ancestry_lineage_choice', 1, 'Select an alternate lineage trait expression.'],
       'mixed-heritage-adaptability' => ['mixed_heritage_adaptability_choice', 1, 'Select one mixed-heritage adaptability option.'],
       'multitalented' => ['multiclass_archetype_dedication', 1, 'Select a multiclass dedication feat.'],
       'orc-atavism' => ['ancestry_lineage_choice', 1, 'Select an alternate lineage trait expression.'],
@@ -1028,19 +1635,6 @@ class FeatEffectManager {
     }
 
     $at_will_actions = [
-      'animal-accomplice',
-      'beak-adept',
-      'burn-it',
-      'burrow-elocutionist',
-      'cheek-pouches',
-      'city-scavenger',
-      'draconic-ties',
-      'fey-fellowship',
-      'gnome-obsession',
-      'goblin-scuttle',
-      'goblin-song',
-      'illusion-sense',
-      'junk-tinker',
       'one-toed-hop',
       'orc-weapon-carnage',
       'scrounger',
@@ -1080,7 +1674,6 @@ class FeatEffectManager {
     $reaction_actions = [
       'nimble-dodge',
       'you-re-next',
-      'intimidating-glare-half-orc',
     ];
     if (in_array($feat_id, $at_will_actions, TRUE) || in_array($feat_id, $reaction_actions, TRUE)) {
       $action_cost = in_array($feat_id, $reaction_actions, TRUE) ? 'reaction' : 1;
@@ -1094,9 +1687,6 @@ class FeatEffectManager {
     }
 
     $long_rest_feats = [
-      'cat-nap',
-      'draconic-scout',
-      'hold-scarred',
       'photosynthetic-recovery',
       'breath-control',
       'diehard',
@@ -1115,9 +1705,6 @@ class FeatEffectManager {
     }
 
     $save_mods = [
-      'communal-instinct' => ['Will', 1, 'allies within 30 feet'],
-      'cooperative-nature' => ['All', 1, 'when taking cooperative actions'],
-      'forlorn-half-elf' => ['Will', 1, 'emotion effects'],
       'orc-superstition' => ['Will', 1, 'spells and magical effects'],
       'vengeful-hatred' => ['Will', 1, 'against chosen hated foe'],
       'ride' => ['Reflex', 1, 'while mounted'],
@@ -1128,10 +1715,6 @@ class FeatEffectManager {
       $applied_any = TRUE;
     }
 
-    if ($feat_id === 'draconic-scout') {
-      $this->addSense($effects, 'low-light-vision', 'Low-Light Vision', 'First-pass draconic scout vision boost.');
-      $applied_any = TRUE;
-    }
     if ($feat_id === 'stonecunning') {
       $effects['derived_adjustments']['perception_bonus'] += 1;
       $effects['notes'][] = 'Stonecunning: +1 first-pass perception bonus for stonework and underground clues.';
@@ -1195,29 +1778,7 @@ class FeatEffectManager {
     }
 
     $list = [
-      'animal-accomplice',
-      'beak-adept',
-      'burn-it',
-      'burrow-elocutionist',
-      'cat-nap',
-      'cheek-pouches',
-      'city-scavenger',
-      'communal-instinct',
-      'cooperative-nature',
-      'cross-cultural-upbringing',
-      'draconic-scout',
-      'draconic-ties',
-      'elf-atavism',
-      'fey-fellowship',
       'forest-step',
-      'forlorn-half-elf',
-      'gnome-obsession',
-      'goblin-scuttle',
-      'goblin-song',
-      'hold-scarred',
-      'illusion-sense',
-      'intimidating-glare-half-orc',
-      'junk-tinker',
       'mixed-heritage-adaptability',
       'multitalented',
       'one-toed-hop',

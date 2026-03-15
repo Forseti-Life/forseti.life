@@ -184,13 +184,16 @@ def build_report():
     lines.append("|---:|---|---|---|---|---|")
 
     for idx, (feat_id, feat_name) in enumerate(feats, start=1):
-        if feat_id in bulk_ids:
+        block = get_switch_block(code, feat_id)
+        if block:
+            impl = "switch-case"
+            hooks, impact = infer_switch_impact(block)
+        elif feat_id in bulk_ids:
             impl = "bulk-first-pass"
             hooks, impact = infer_bulk_impact(feat_id, buckets)
         else:
             impl = "switch-case"
-            block = get_switch_block(code, feat_id)
-            hooks, impact = infer_switch_impact(block)
+            hooks, impact = "buildEffectState switch case", "Custom first-pass feat effect mapping"
 
         lines.append(
             f"| {idx} | `{feat_id}` | {feat_name} | {impl} | {hooks} | {impact} |"
