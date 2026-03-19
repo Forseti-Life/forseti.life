@@ -5,6 +5,7 @@ dependencies:
   module:
     - ai_conversation
     - comment
+    - copilot_agent_tracker
     - dungeoncrawler_content
     - node
     - system
@@ -19,6 +20,7 @@ permissions:
   - 'access content overview'
   - 'access dungeoncrawler characters'
   - 'administer ai conversation'
+  - 'administer copilot agent tracker'
   - 'administer dungeoncrawler content'
   - 'administer site configuration'
   - 'create dungeoncrawler characters'

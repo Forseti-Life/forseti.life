@@ -12,6 +12,7 @@ module:
   comment: 0
   config: 0
   contextual: 0
+  copilot_agent_tracker: 0
   datetime: 0
   dblog: 0
   dungeoncrawler_content: 0
