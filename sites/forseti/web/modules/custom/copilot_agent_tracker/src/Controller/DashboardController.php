@@ -191,11 +191,11 @@ final class DashboardController extends ControllerBase {
         '#theme' => 'item_list',
         '#title' => $this->t('Operational troubleshooting views'),
         '#items' => [
-          Link::fromTextAndUrl($this->t('Agentic Architecture'), Url::fromRoute('copilot_agent_tracker.architecture'))->toString(),
-          Link::fromTextAndUrl($this->t('LangGraph Session Monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
-          Link::fromTextAndUrl($this->t('LangGraph Feature Progress'), Url::fromRoute('copilot_agent_tracker.langgraph_feature_progress'))->toString(),
-          Link::fromTextAndUrl($this->t('LangGraph Engine / Parity Health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
-          Link::fromTextAndUrl($this->t('LangGraph Release-cycle Status'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
+          $this->safeRouteLink('Agentic Architecture', 'copilot_agent_tracker.architecture'),
+          $this->safeRouteLink('LangGraph Session Monitoring', 'copilot_agent_tracker.langgraph_session'),
+          $this->safeRouteLink('LangGraph Feature Progress', 'copilot_agent_tracker.langgraph_feature_progress'),
+          $this->safeRouteLink('LangGraph Engine / Parity Health', 'copilot_agent_tracker.langgraph_parity'),
+          $this->safeRouteLink('LangGraph Release-cycle Status', 'copilot_agent_tracker.langgraph_release_status'),
         ],
       ],
       'todo_separator' => [
@@ -276,8 +276,8 @@ final class DashboardController extends ControllerBase {
       ['1', 'hq-automation-watchdog', 'scripts/hq-automation-watchdog.sh', 'Runs convergence checks and repairs process drift.'],
       ['1.1', 'converge', 'scripts/hq-automation.sh converge', 'Ensures required loops are started/stopped per org-control state.'],
       ['2', 'orchestrator loop', 'scripts/orchestrator-loop.sh (every 60s)', 'Runs one orchestration tick when org is enabled.'],
-      ['2.1', 'engine dispatch', 'ORCHESTRATOR_ENGINE=legacy|langgraph', 'Selects runtime entrypoint (legacy run.py or langgraph runner).'],
-      ['3', 'tick entry', 'orchestrator/run.py --once OR -m orchestrator.langgraph.runner --once', 'Starts one end-to-end scheduling/execution cycle.'],
+      ['2.1', 'engine dispatch', 'orchestrator/run.py (LangGraph-backed tick engine)', 'Runs one orchestration tick through the LangGraph runtime graph.'],
+      ['3', 'tick entry', 'orchestrator/run.py --once', 'Starts one end-to-end scheduling/execution cycle.'],
       ['3.1', 'consume_replies', 'scripts/consume-forseti-replies.sh', 'Board/Drupal replies are materialized into seat inboxes.'],
       ['3.2', 'dispatch_commands', 'inbox/commands/*.md routing', 'Commands are routed to PM or CEO queues.'],
       ['3.3', 'release_cycle (gated)', 'scripts/release-cycle-start.sh + tmp/release-cycle-active/', 'Creates/advances current+next coordinated release tasks.'],
@@ -325,7 +325,7 @@ final class DashboardController extends ControllerBase {
     $systems_rows = [
       ['Org model', 'org-chart/', 'Roles, seats, ownership, and product-team registry.'],
       ['Queue state', 'sessions/<agent>/inbox|outbox|artifacts', 'Source-of-truth work queue and outputs.'],
-      ['Orchestrator engine', 'scripts/orchestrator-loop.sh + orchestrator/run.py / orchestrator/langgraph/runner.py', 'Tick scheduler and execution control-flow.'],
+      ['Orchestrator engine', 'scripts/orchestrator-loop.sh + orchestrator/run.py + orchestrator/runtime_graph/engine.py', 'Tick scheduler and LangGraph execution control-flow.'],
       ['Execution runtime', 'scripts/agent-exec-next.sh', 'Agent seat execution with lock-safe queue handling.'],
       ['Local LLM layer', 'llm/routing.yaml + llm/runner.py', 'Role/seat model routing for local inference.'],
       ['Copilot CLI fallback', 'gh copilot --resume (executor path)', 'Fallback runtime when no local model is available.'],
@@ -661,17 +661,125 @@ final class DashboardController extends ControllerBase {
    */
   private function renderLanggraphReferenceNav(): array {
     return [
-      '#type' => 'item_list',
-      '#title' => $this->t('Operational pages (reference-aligned)'),
-      '#items' => [
-        Link::fromTextAndUrl($this->t('Main Copilot Agent Tracker'), Url::fromRoute('copilot_agent_tracker.dashboard'))->toString(),
-        Link::fromTextAndUrl($this->t('LangGraph Dashboard (home)'), Url::fromRoute('copilot_agent_tracker.langgraph_dashboard'))->toString(),
-        Link::fromTextAndUrl($this->t('LangGraph Session Monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
-        Link::fromTextAndUrl($this->t('LangGraph Feature Progress'), Url::fromRoute('copilot_agent_tracker.langgraph_feature_progress'))->toString(),
-        Link::fromTextAndUrl($this->t('LangGraph Engine / Parity Health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
-        Link::fromTextAndUrl($this->t('LangGraph Release-cycle Status'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
-        Link::fromTextAndUrl($this->t('Agentic Architecture'), Url::fromRoute('copilot_agent_tracker.architecture'))->toString(),
+      '#type' => 'container',
+      'title' => [
+        '#markup' => '<h3>' . $this->t('Navigation hierarchy') . '</h3>',
       ],
+      'system_level' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('1) LangGraph management (system-level)'),
+        '#items' => [
+          $this->safeRouteLink('Main Copilot Agent Tracker', 'copilot_agent_tracker.dashboard'),
+          $this->safeRouteLink('LangGraph Dashboard (home)', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('LangGraph Session Monitoring', 'copilot_agent_tracker.langgraph_session'),
+          $this->safeRouteLink('LangGraph Engine / Parity Health', 'copilot_agent_tracker.langgraph_parity'),
+          $this->safeRouteLink('Workflow management (see dashboard list below)', 'copilot_agent_tracker.langgraph_dashboard'),
+        ],
+      ],
+      'workflow_level' => [
+        '#theme' => 'item_list',
+        '#title' => $this->t('2) Workflow-specific management'),
+        '#items' => [
+          $this->safeRouteLink('Workflow management entry (dashboard)', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('LangGraph Feature Progress', 'copilot_agent_tracker.langgraph_feature_progress'),
+          $this->safeRouteLink('LangGraph Release-cycle Status', 'copilot_agent_tracker.langgraph_release_status'),
+          $this->safeRouteLink('LangGraph Release-cycle Notes', 'copilot_agent_tracker.langgraph_release_notes'),
+          $this->safeRouteLink('LangGraph Release-cycle Troubleshooting', 'copilot_agent_tracker.langgraph_release_troubleshooting'),
+          $this->safeRouteLink('Agentic Architecture', 'copilot_agent_tracker.architecture'),
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Render a route link safely; falls back to plain text if route is unavailable.
+   */
+  private function safeRouteLink(string $label, string $route_name): string {
+    try {
+      return Link::fromTextAndUrl($this->t($label), Url::fromRoute($route_name))->toString();
+    }
+    catch (RouteNotFoundException) {
+      return htmlspecialchars((string) $this->t($label), ENT_QUOTES, 'UTF-8');
+    }
+  }
+
+  /**
+   * Render standardized page guidance for LangGraph operational pages.
+   */
+  private function renderLanggraphPageGuide(string $purpose, string $usage, array $represents): array {
+    $items = '';
+    foreach ($represents as $item) {
+      $items .= '<li>' . htmlspecialchars((string) $item, ENT_QUOTES, 'UTF-8') . '</li>';
+    }
+
+    return [
+      '#type' => 'details',
+      '#title' => $this->t('Purpose, usage, and data represented'),
+      '#open' => TRUE,
+      'purpose' => [
+        '#markup' => '<p><strong>' . $this->t('Purpose') . ':</strong> '
+          . htmlspecialchars($purpose, ENT_QUOTES, 'UTF-8') . '</p>',
+      ],
+      'usage' => [
+        '#markup' => '<p><strong>' . $this->t('How to use') . ':</strong> '
+          . htmlspecialchars($usage, ENT_QUOTES, 'UTF-8') . '</p>',
+      ],
+      'represents' => [
+        '#markup' => '<p><strong>' . $this->t('What this page represents') . ':</strong></p><ul>' . $items . '</ul>',
+      ],
+    ];
+  }
+
+  /**
+   * Build shared LangGraph page shell (container, title, optional reference, nav).
+   */
+  private function buildLanggraphPageShell(string $title, ?string $reference_note = NULL): array {
+    $build = [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+      'title' => [
+        '#markup' => '<h2>' . $this->t($title) . '</h2>',
+      ],
+    ];
+    if ($reference_note !== NULL && $reference_note !== '') {
+      $build['reference_note'] = [
+        '#markup' => '<p><strong>' . $this->t('Reference:') . '</strong> ' . htmlspecialchars($reference_note, ENT_QUOTES, 'UTF-8') . '</p>',
+      ];
+    }
+    $build['nav'] = $this->renderLanggraphReferenceNav();
+    return $build;
+  }
+
+  /**
+   * Render a standardized expected-operator-action banner.
+   */
+  private function renderLanggraphExpectedAction(
+    bool $ok,
+    string $ok_label,
+    string $ok_message,
+    string $warn_label,
+    string $warn_message,
+  ): array {
+    $is_ok = $ok ? 'status' : 'warning';
+    $label = $ok ? $ok_label : $warn_label;
+    $message = $ok ? $ok_message : $warn_message;
+    return [
+      '#markup' => '<div class="messages messages--' . $is_ok . '"><strong>'
+        . $this->t($label) . ':</strong> ' . $this->t($message) . '</div>',
+    ];
+  }
+
+  /**
+   * Render a fixed expected-operator-action banner.
+   */
+  private function renderLanggraphExpectedActionFixed(
+    string $severity,
+    string $label,
+    string $message,
+  ): array {
+    return [
+      '#markup' => '<div class="messages messages--' . $severity . '"><strong>'
+        . $this->t($label) . ':</strong> ' . $this->t($message) . '</div>',
     ];
   }
 
@@ -3388,18 +3496,24 @@ final class DashboardController extends ControllerBase {
    * Route: /admin/reports/copilot-agent-tracker/langgraph
    */
   public function langGraphDashboard(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Dashboard') . '</h2>',
-    ];
+    $build = $this->buildLanggraphPageShell('LangGraph Dashboard');
 
     $build['intro'] = [
       '#markup' => '<p>This is the LangGraph operational home. Use this page as the starting point for session health, parity, release-cycle status, and troubleshooting.</p>',
     ];
+    $build['hierarchy_note'] = [
+      '#markup' => '<p><strong>' . $this->t('Hierarchy') . ':</strong> '
+        . $this->t('System-level LangGraph management lives on Overview, Session, and Parity. Workflow-specific operations (feature and release-cycle execution) are grouped under the Workflow Management Hub.') . '</p>',
+    ];
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Provide a single operational entry point for LangGraph orchestration health.',
+      'Start here first, then jump to Session, Parity, or Release pages based on which signal is degraded.',
+      [
+        'Top-level health signals: latest tick freshness, parity status, publish mode, and release-cycle control state.',
+        'A quick action launchpad for deeper diagnostics pages.',
+        'Operational control forms (org automation and release-cycle control).',
+      ]
+    );
 
     $latest_tick = $this->readLastJsonlObject(self::LANGGRAPH_TICKS_FILE);
     $parity_data = $this->readJsonFile(self::LANGGRAPH_PARITY_FILE);
@@ -3430,6 +3544,13 @@ final class DashboardController extends ControllerBase {
         ? '<div class="messages messages--status"><strong>' . $this->t('LangGraph Health: OK') . '</strong> — ' . $this->t('Ticks, parity, publishing, and release-cycle automation are all healthy.') . '</div>'
         : '<div class="messages messages--warning"><strong>' . $this->t('LangGraph Health: ATTENTION') . '</strong> — ' . $this->t('One or more critical signals are degraded. Use the quick actions below to investigate.') . '</div>',
     ];
+    $build['expected_action'] = $this->renderLanggraphExpectedAction(
+      $ok_overall,
+      'Expected operator action (HEALTHY)',
+      'Continue normal operations and monitor Session/Release pages on routine cadence.',
+      'Expected operator action (ATTENTION)',
+      'Pause release approvals, investigate parity/session/release signals, and restore green status before proceeding.'
+    );
 
     $build['status_snapshot'] = [
       '#type' => 'table',
@@ -3470,14 +3591,67 @@ final class DashboardController extends ControllerBase {
       '#theme' => 'item_list',
       '#title' => $this->t('Quick actions'),
       '#items' => [
-        Link::fromTextAndUrl($this->t('Review parity health now'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
-        Link::fromTextAndUrl($this->t('Review release-cycle status now'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
-        Link::fromTextAndUrl($this->t('Review session monitoring now'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
-        Link::fromTextAndUrl($this->t('Open main Copilot dashboard'), Url::fromRoute('copilot_agent_tracker.dashboard'))->toString(),
+        $this->safeRouteLink('Review parity health now', 'copilot_agent_tracker.langgraph_parity'),
+        $this->safeRouteLink('Review release-cycle status now', 'copilot_agent_tracker.langgraph_release_status'),
+        $this->safeRouteLink('Review session monitoring now', 'copilot_agent_tracker.langgraph_session'),
+        $this->safeRouteLink('Open main Copilot dashboard', 'copilot_agent_tracker.dashboard'),
       ],
     ];
 
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build['workflow_management'] = [
+      '#type' => 'table',
+      '#caption' => $this->t('Workflow management list'),
+      '#header' => [
+        $this->t('Workflow'),
+        $this->t('Purpose'),
+        $this->t('Manage from'),
+        $this->t('Primary monitor'),
+      ],
+      '#rows' => [
+        [
+          $this->t('Orchestration tick flow'),
+          $this->t('Run ordered LangGraph workflow nodes from consume_replies through publish.'),
+          $this->safeRouteLink('LangGraph Dashboard', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('Session Monitoring', 'copilot_agent_tracker.langgraph_session'),
+        ],
+        [
+          $this->t('Workflow management hierarchy'),
+          $this->t('Enter workflow-specific management pages from a dedicated hub rather than system-level tabs.'),
+          $this->safeRouteLink('LangGraph Dashboard', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('LangGraph Dashboard', 'copilot_agent_tracker.langgraph_dashboard'),
+        ],
+        [
+          $this->t('Engine parity flow'),
+          $this->t('Validate selected agents and step order parity against expected orchestration behavior.'),
+          $this->safeRouteLink('Engine / Parity Health', 'copilot_agent_tracker.langgraph_parity'),
+          $this->safeRouteLink('Engine / Parity Health', 'copilot_agent_tracker.langgraph_parity'),
+        ],
+        [
+          $this->t('Release-cycle automation flow'),
+          $this->t('Manage release-cycle control and verify publish/release signals for coordinated shipping.'),
+          $this->safeRouteLink('LangGraph Dashboard (controls)', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('Release-cycle Status', 'copilot_agent_tracker.langgraph_release_status'),
+        ],
+        [
+          $this->t('Release troubleshooting flow'),
+          $this->t('Inspect seat-level blockers, needs-info, active items, and inbox depth during stalled releases.'),
+          $this->safeRouteLink('Release Troubleshooting', 'copilot_agent_tracker.langgraph_release_troubleshooting'),
+          $this->safeRouteLink('Release Troubleshooting', 'copilot_agent_tracker.langgraph_release_troubleshooting'),
+        ],
+        [
+          $this->t('Feature planning visibility flow'),
+          $this->t('Track feature/work-item progress with LangGraph telemetry context for planning and prioritization.'),
+          $this->safeRouteLink('Feature Progress', 'copilot_agent_tracker.langgraph_feature_progress'),
+          $this->safeRouteLink('Feature Progress', 'copilot_agent_tracker.langgraph_feature_progress'),
+        ],
+        [
+          $this->t('Release evidence and notes flow'),
+          $this->t('Review release notes, signoffs, and linked release evidence before approvals.'),
+          $this->safeRouteLink('Release-cycle Notes', 'copilot_agent_tracker.langgraph_release_notes'),
+          $this->safeRouteLink('Release-cycle Notes', 'copilot_agent_tracker.langgraph_release_notes'),
+        ],
+      ],
+    ];
 
     $build['ops_control'] = [
       '#type' => 'details',
@@ -3509,23 +3683,81 @@ final class DashboardController extends ControllerBase {
   }
 
   /**
+   * LangGraph workflow management hub.
+   *
+   * Note: no dedicated route currently; this is kept for forward compatibility.
+   */
+  public function langGraphWorkflowManagement(): array {
+    $build = $this->buildLanggraphPageShell(
+      'LangGraph Workflow Management Hub',
+      'workflow-specific operational pages are grouped under this hub to keep system-level management separate.'
+    );
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Provide a dedicated entry point for workflow-level execution management.',
+      'Use this page after system health (Overview/Session/Parity) is green, then move into feature/release workflow pages.',
+      [
+        'Clear separation between platform management and workflow execution.',
+        'Direct links to feature progress and release-cycle operational pages.',
+        'Expected sequence: system health first, workflow decisions second.',
+      ]
+    );
+    $build['expected_action'] = $this->renderLanggraphExpectedActionFixed(
+      'status',
+      'Expected operator action',
+      'Use this hub to enter workflow-specific pages; keep system-level diagnosis in Overview/Session/Parity.'
+    );
+    $build['workflow_table'] = [
+      '#type' => 'table',
+      '#header' => [
+        $this->t('Workflow area'),
+        $this->t('Use for'),
+        $this->t('Open page'),
+      ],
+      '#rows' => [
+        [
+          $this->t('Feature workflow management'),
+          $this->t('Prioritization, ownership, and work-item tracking with telemetry context.'),
+          $this->safeRouteLink('Feature Progress', 'copilot_agent_tracker.langgraph_feature_progress'),
+        ],
+        [
+          $this->t('Release workflow status'),
+          $this->t('Release-cycle readiness and publish-control posture.'),
+          $this->safeRouteLink('Release-cycle Status', 'copilot_agent_tracker.langgraph_release_status'),
+        ],
+        [
+          $this->t('Release workflow evidence'),
+          $this->t('Release notes and signoff evidence review before approvals.'),
+          $this->safeRouteLink('Release-cycle Notes', 'copilot_agent_tracker.langgraph_release_notes'),
+        ],
+        [
+          $this->t('Release workflow troubleshooting'),
+          $this->t('Seat-level blockers, needs-info routing, and stalled flow diagnosis.'),
+          $this->safeRouteLink('Release-cycle Troubleshooting', 'copilot_agent_tracker.langgraph_release_troubleshooting'),
+        ],
+      ],
+    ];
+    return $build;
+  }
+
+  /**
    * LangGraph Session Monitoring view.
    *
    * Route: /admin/reports/copilot-agent-tracker/langgraph/session
    */
   public function langGraphSessionMonitoring(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Session Monitoring') . '</h2>',
-    ];
-    $build['reference_note'] = [
-      '#markup' => '<p><strong>Reference:</strong> this page mirrors troubleshooting depth used by the main Copilot Agent Tracker dashboard.</p>',
-    ];
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build = $this->buildLanggraphPageShell(
+      'LangGraph Session Monitoring',
+      'this page mirrors troubleshooting depth used by the main Copilot Agent Tracker dashboard.'
+    );
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Track execution cadence and detect session-level instability across recent LangGraph ticks.',
+      'Use this page to confirm ticks are frequent, not error-heavy, and running in the expected mode (dry-run vs live).',
+      [
+        'Recent tick timeline with dry_run/publish/provider metadata.',
+        'Per-tick error count derived from top-level and per-step error markers.',
+        'Session health banner highlighting whether the latest tick is healthy.',
+      ]
+    );
 
     $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
     if ($content === NULL) {
@@ -3566,12 +3798,19 @@ final class DashboardController extends ControllerBase {
         ? '<div class="messages messages--warning"><strong>' . $this->t('Session Health: ATTENTION') . '</strong> — ' . $this->t('Latest tick reported @n errors across node execution.', ['@n' => (string) $latest_error_count]) . '</div>'
         : '<div class="messages messages--status"><strong>' . $this->t('Session Health: OK') . '</strong> — ' . $this->t('Latest tick reported no node execution errors.') . '</div>',
     ];
+    $build['expected_action'] = $this->renderLanggraphExpectedAction(
+      $latest_error_count === 0,
+      'Expected operator action (NO ERRORS)',
+      'Proceed with normal flow and keep parity/release checks as routine guardrails.',
+      'Expected operator action (ERRORS PRESENT)',
+      'Inspect failed node details, address runtime blockers, and wait for a clean tick before continuing release actions.'
+    );
     $build['next_actions'] = [
       '#theme' => 'item_list',
       '#title' => $this->t('Next actions'),
       '#items' => [
-        Link::fromTextAndUrl($this->t('Review parity health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
-        Link::fromTextAndUrl($this->t('Review release-cycle status'), Url::fromRoute('copilot_agent_tracker.langgraph_release_status'))->toString(),
+        $this->safeRouteLink('Review parity health', 'copilot_agent_tracker.langgraph_parity'),
+        $this->safeRouteLink('Review release-cycle status', 'copilot_agent_tracker.langgraph_release_status'),
       ],
     ];
 
@@ -3641,18 +3880,19 @@ final class DashboardController extends ControllerBase {
    * from features/<feature>/feature.md by the orchestrator dashboard generator).
    */
   public function langGraphFeatureProgress(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Feature Progress') . '</h2>',
-    ];
-    $build['reference_note'] = [
-      '#markup' => '<p><strong>Reference:</strong> troubleshooting capabilities are aligned with the main Copilot Agent Tracker dashboard.</p>',
-    ];
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build = $this->buildLanggraphPageShell(
+      'LangGraph Feature Progress',
+      'troubleshooting capabilities are aligned with the main Copilot Agent Tracker dashboard.'
+    );
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Give product/release planning visibility tied to LangGraph telemetry context.',
+      'Use this page to review feature/work-item ownership and status, then confirm telemetry/parity are healthy before making execution decisions.',
+      [
+        'Feature work table parsed from LANGGRAPH_FEATURE_PROGRESS.md.',
+        'Latest tick timestamp and inferred engine mode (live vs dry_run).',
+        'Parity status snapshot to validate confidence in telemetry interpretation.',
+      ]
+    );
 
     // Parse markdown table from LANGGRAPH_FEATURE_PROGRESS.md.
     $md = $this->readFileSafe(self::LANGGRAPH_FEATURE_PROGRESS_FILE);
@@ -3724,12 +3964,19 @@ final class DashboardController extends ControllerBase {
         ? '<div class="messages messages--status"><strong>' . $this->t('Feature Progress Health: OK') . '</strong> — ' . $this->t('Telemetry and parity signals are available for planning decisions.') . '</div>'
         : '<div class="messages messages--warning"><strong>' . $this->t('Feature Progress Health: ATTENTION') . '</strong> — ' . $this->t('Telemetry or parity is incomplete; verify session and parity pages.') . '</div>',
     ];
+    $build['expected_action'] = $this->renderLanggraphExpectedAction(
+      $is_parity_pass && $has_tick,
+      'Expected operator action (READY)',
+      'Use this view for prioritization and assignment decisions.',
+      'Expected operator action (NOT READY)',
+      'Treat feature status as advisory only until telemetry/parity recover.'
+    );
     $build['next_actions'] = [
       '#theme' => 'item_list',
       '#title' => $this->t('Next actions'),
       '#items' => [
-        Link::fromTextAndUrl($this->t('Review session monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
-        Link::fromTextAndUrl($this->t('Review parity health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+        $this->safeRouteLink('Review session monitoring', 'copilot_agent_tracker.langgraph_session'),
+        $this->safeRouteLink('Review parity health', 'copilot_agent_tracker.langgraph_parity'),
       ],
     ];
 
@@ -3752,18 +3999,19 @@ final class DashboardController extends ControllerBase {
    * Route: /admin/reports/copilot-agent-tracker/langgraph/parity
    */
   public function langGraphParityHealth(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Engine / Parity Health') . '</h2>',
-    ];
-    $build['reference_note'] = [
-      '#markup' => '<p><strong>Reference:</strong> this parity page is anchored to the same troubleshooting model as the main Copilot Agent Tracker dashboard.</p>',
-    ];
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build = $this->buildLanggraphPageShell(
+      'LangGraph Engine / Parity Health',
+      'this parity page is anchored to the same troubleshooting model as the main Copilot Agent Tracker dashboard.'
+    );
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Validate that runtime behavior still matches expected LangGraph parity checks.',
+      'Use this page during incidents, upgrades, or runtime changes to verify selected-agent and step-order parity before trusting downstream metrics.',
+      [
+        'parity_ok overall status and generation timestamp.',
+        'selected_agents.match and steps.match comparisons.',
+        'Parity error details from langgraph-parity-latest.json.',
+      ]
+    );
 
     $content = $this->readFileSafe(self::LANGGRAPH_PARITY_FILE);
     if ($content === NULL) {
@@ -3784,19 +4032,35 @@ final class DashboardController extends ControllerBase {
       $build['warning'] = [
         '#markup' => '<div class="messages messages--warning"><strong>' . $this->t('PARITY FAILURE') . '</strong> — ' . $this->t('LangGraph engine does not match legacy expectations. Review errors below.') . '</div>',
       ];
+      $build['expected_action'] = $this->renderLanggraphExpectedActionFixed(
+        'warning',
+        'Expected operator action (FAIL)',
+        'Pause release decisions, review parity errors, confirm recent session health, then rerun/refresh parity before proceeding.'
+      );
     }
     else {
       $build['status'] = [
         '#markup' => '<div class="messages messages--status"><strong>' . $this->t('PARITY PASS') . '</strong> — ' . $this->t('LangGraph engine currently matches legacy parity checks.') . '</div>',
       ];
+      $build['expected_action'] = $this->renderLanggraphExpectedActionFixed(
+        'status',
+        'Expected operator action (PASS)',
+        'Proceed with normal orchestration and release-cycle decisions; continue routine monitoring on Session and Release Status pages.'
+      );
     }
     $build['next_actions'] = [
       '#theme' => 'item_list',
       '#title' => $this->t('Next actions'),
-      '#items' => [
-        Link::fromTextAndUrl($this->t('Open LangGraph dashboard home'), Url::fromRoute('copilot_agent_tracker.langgraph_dashboard'))->toString(),
-        Link::fromTextAndUrl($this->t('Review session monitoring'), Url::fromRoute('copilot_agent_tracker.langgraph_session'))->toString(),
-      ],
+      '#items' => $parity_ok
+        ? [
+          $this->safeRouteLink('Open LangGraph dashboard home', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('Review release-cycle status', 'copilot_agent_tracker.langgraph_release_status'),
+        ]
+        : [
+          $this->safeRouteLink('Review session monitoring for execution instability', 'copilot_agent_tracker.langgraph_session'),
+          $this->safeRouteLink('Open LangGraph dashboard home to check control state', 'copilot_agent_tracker.langgraph_dashboard'),
+          $this->safeRouteLink('Review release-cycle troubleshooting before approvals', 'copilot_agent_tracker.langgraph_release_troubleshooting'),
+        ],
     ];
 
     $status_label = $parity_ok ? $this->t('✔ PASS') : $this->t('✘ FAIL');
@@ -3828,18 +4092,19 @@ final class DashboardController extends ControllerBase {
    * Route: /admin/reports/copilot-agent-tracker/langgraph/release-status
    */
   public function langGraphReleaseStatus(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Status Panel') . '</h2>',
-    ];
-    $build['reference_note'] = [
-      '#markup' => '<p><strong>Reference:</strong> release status troubleshooting mirrors the main Copilot Agent Tracker operational diagnostics.</p>',
-    ];
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build = $this->buildLanggraphPageShell(
+      'LangGraph Release-cycle Status Panel',
+      'release status troubleshooting mirrors the main Copilot Agent Tracker operational diagnostics.'
+    );
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Show release-cycle automation readiness and recent release-related runtime posture.',
+      'Use this page to confirm release-cycle and publishing are enabled, then verify 24h publishing continuity before coordinated push decisions.',
+      [
+        'Latest tick release-relevant controls: publish_enabled, dry_run, and agent_cap.',
+        'Release-cycle control state from release-cycle-control.json.',
+        '24h count of ticks where publish_enabled=true as continuity signal.',
+      ]
+    );
 
     $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
     if ($content === NULL) {
@@ -3881,12 +4146,19 @@ final class DashboardController extends ControllerBase {
         ? '<div class="messages messages--status"><strong>' . $this->t('Release-cycle Health: OK') . '</strong> — ' . $this->t('Publishing and release-cycle automation are enabled.') . '</div>'
         : '<div class="messages messages--warning"><strong>' . $this->t('Release-cycle Health: ATTENTION') . '</strong> — ' . $this->t('Publishing or release-cycle automation is disabled.') . '</div>',
     ];
+    $build['expected_action'] = $this->renderLanggraphExpectedAction(
+      $publish_enabled && $release_enabled,
+      'Expected operator action (READY TO SHIP)',
+      'Continue release-cycle execution and approvals per normal gate process.',
+      'Expected operator action (HOLD)',
+      'Do not approve coordinated release actions until publishing and release-cycle controls are re-enabled.'
+    );
     $build['next_actions'] = [
       '#theme' => 'item_list',
       '#title' => $this->t('Next actions'),
       '#items' => [
-        Link::fromTextAndUrl($this->t('Adjust release-cycle control'), Url::fromRoute('copilot_agent_tracker.langgraph_dashboard'))->toString(),
-        Link::fromTextAndUrl($this->t('Review parity health'), Url::fromRoute('copilot_agent_tracker.langgraph_parity'))->toString(),
+        $this->safeRouteLink('Adjust release-cycle control', 'copilot_agent_tracker.langgraph_dashboard'),
+        $this->safeRouteLink('Review parity health', 'copilot_agent_tracker.langgraph_parity'),
       ],
     ];
 
@@ -3914,18 +4186,24 @@ final class DashboardController extends ControllerBase {
    * Route: /admin/reports/copilot-agent-tracker/langgraph/release-notes
    */
   public function langGraphReleaseNotes(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Notes') . '</h2>',
-    ];
-    $build['reference_note'] = [
-      '#markup' => '<p><strong>Reference:</strong> this is the release notes view linked from the LangGraph dashboard tabs.</p>',
-    ];
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build = $this->buildLanggraphPageShell(
+      'LangGraph Release-cycle Notes',
+      'this is the release notes view linked from the LangGraph dashboard tabs.'
+    );
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Provide the release evidence and narrative output tied to LangGraph-managed release flow.',
+      'Use this page after release-cycle status checks to validate signoffs, change narrative, and test/security evidence before approvals.',
+      [
+        'Release notes feed produced by the existing release notes view and artifacts.',
+        'Consolidated release candidate/signoff context for operator review.',
+        'A documentation surface for shipped and in-flight release decisions.',
+      ]
+    );
+    $build['expected_action'] = $this->renderLanggraphExpectedActionFixed(
+      'status',
+      'Expected operator action',
+      'Use this page as the final evidence checkpoint before approving or communicating a release.'
+    );
     $build['notes'] = $this->releaseNotes();
 
     return $build;
@@ -3937,18 +4215,19 @@ final class DashboardController extends ControllerBase {
    * Route: /admin/reports/copilot-agent-tracker/langgraph/release-troubleshooting
    */
   public function langGraphReleaseTroubleshooting(): array {
-    $build = [
-      '#type' => 'container',
-      '#cache' => ['max-age' => 0],
-    ];
-
-    $build['title'] = [
-      '#markup' => '<h2>' . $this->t('LangGraph Release-cycle Troubleshooting') . '</h2>',
-    ];
+    $build = $this->buildLanggraphPageShell('LangGraph Release-cycle Troubleshooting');
     $build['intro'] = [
       '#markup' => '<p>Use this page to identify where work is currently sitting by seat, including active item and current action.</p>',
     ];
-    $build['nav'] = $this->renderLanggraphReferenceNav();
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Diagnose release-cycle bottlenecks by seat-level workload and state.',
+      'Use this page when release flow stalls to identify blocked or needs-info seats, and to see active/next work-item positioning per agent.',
+      [
+        'Seat-level table of status, current action, active item, next item, and inbox depth.',
+        'Aggregate counts of blocked, needs-info, and working seats.',
+        'A troubleshooting pivot into per-agent detail pages for targeted intervention.',
+      ]
+    );
 
     if (!$this->database->schema()->tableExists('copilot_agent_tracker_agents')) {
       $build['empty'] = [
@@ -4016,6 +4295,15 @@ final class DashboardController extends ControllerBase {
         !empty($row->last_seen) ? $this->dateFormatter->format((int) $row->last_seen, 'short') : '-',
       ];
     }
+
+    $has_release_blockers = ($blocked > 0) || ($needs_info > 0);
+    $build['expected_action'] = $this->renderLanggraphExpectedAction(
+      !$has_release_blockers,
+      'Expected operator action (NO BLOCKERS)',
+      'Proceed to release notes/evidence review and finalize approvals.',
+      'Expected operator action (BLOCKERS PRESENT)',
+      'Route decisions to the owning seats and clear blocked/needs-info items before shipping.'
+    );
 
     $build['summary'] = [
       '#type' => 'table',

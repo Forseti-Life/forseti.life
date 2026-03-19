@@ -14,7 +14,7 @@ copilot_agent_tracker.architecture:
 
 copilot_agent_tracker.langgraph_dashboard:
   title: 'LangGraph Dashboard'
-  description: 'LangGraph operational home for session, parity, release, and troubleshooting.'
+  description: 'LangGraph system-level management home (overview, session, parity, workflow hub).'
   route_name: copilot_agent_tracker.langgraph_dashboard
   parent: system.admin_reports
   weight: 53
@@ -26,26 +26,40 @@ copilot_agent_tracker.langgraph_session:
   parent: copilot_agent_tracker.langgraph_dashboard
   weight: 1
 
-copilot_agent_tracker.langgraph_feature_progress:
-  title: 'LangGraph Feature Progress'
-  description: 'Feature status and LangGraph operational signals.'
-  route_name: copilot_agent_tracker.langgraph_feature_progress
-  parent: copilot_agent_tracker.langgraph_dashboard
-  weight: 2
-
 copilot_agent_tracker.langgraph_parity:
   title: 'LangGraph Engine / Parity Health'
   description: 'Legacy-vs-LangGraph parity and execution health.'
   route_name: copilot_agent_tracker.langgraph_parity
   parent: copilot_agent_tracker.langgraph_dashboard
+  weight: 2
+
+copilot_agent_tracker.langgraph_feature_progress:
+  title: 'LangGraph Feature Progress'
+  description: 'Feature workflow status and LangGraph operational signals.'
+  route_name: copilot_agent_tracker.langgraph_feature_progress
+  parent: copilot_agent_tracker.langgraph_dashboard
   weight: 3
 
 copilot_agent_tracker.langgraph_release_status:
   title: 'LangGraph Release-cycle Status'
-  description: 'Release-cycle and publishing status under LangGraph orchestration.'
+  description: 'Release workflow status and publishing readiness under LangGraph orchestration.'
   route_name: copilot_agent_tracker.langgraph_release_status
   parent: copilot_agent_tracker.langgraph_dashboard
   weight: 4
+
+copilot_agent_tracker.langgraph_release_notes:
+  title: 'LangGraph Release-cycle Notes'
+  description: 'Release workflow notes and evidence review.'
+  route_name: copilot_agent_tracker.langgraph_release_notes
+  parent: copilot_agent_tracker.langgraph_dashboard
+  weight: 5
+
+copilot_agent_tracker.langgraph_release_troubleshooting:
+  title: 'LangGraph Release-cycle Troubleshooting'
+  description: 'Release workflow troubleshooting and seat-level bottleneck diagnosis.'
+  route_name: copilot_agent_tracker.langgraph_release_troubleshooting
+  parent: copilot_agent_tracker.langgraph_dashboard
+  weight: 6
 
 copilot_agent_tracker.llm_management:
   title: 'LLM Management'
