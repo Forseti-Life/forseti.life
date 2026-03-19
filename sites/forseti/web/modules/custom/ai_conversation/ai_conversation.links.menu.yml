@@ -14,3 +14,10 @@ ai_conversation.usage_report:
   description: 'View GenAI API usage statistics, costs, and performance metrics'
   parent: system.admin_reports
   weight: 10
+
+ai_conversation.suggestion_tracking:
+  title: 'Suggestion Tracking'
+  route_name: ai_conversation.suggestion_tracking
+  description: 'Track community suggestions and their pipeline status'
+  parent: system.admin_reports
+  weight: 11

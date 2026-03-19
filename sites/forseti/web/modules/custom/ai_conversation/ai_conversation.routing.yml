@@ -14,6 +14,14 @@ ai_conversation.usage_dashboard:
   requirements:
     _permission: 'administer site configuration'
 
+ai_conversation.suggestion_tracking:
+  path: '/admin/reports/suggestion-tracking'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\SuggestionTrackingController::page'
+    _title: 'Suggestion Tracking'
+  requirements:
+    _permission: 'administer site configuration'
+
 ai_conversation.model_pricing:
   path: '/admin/reports/genai-pricing'
   defaults:
