@@ -78,7 +78,7 @@ jobs:
           
           echo "Downloading code from repository..."
           git clone --depth 1 --single-branch --branch main --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
-          git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation
+          git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation script/production
           
           echo "🐛 Git clone completed. Checking HEAD commit..."
           git log -1 --oneline
@@ -263,6 +263,58 @@ jobs:
               fi
             else
               echo "ℹ️ No cache clear needed"
+            fi
+
+            # Bedrock readiness verification (enforced when ai_conversation is enabled)
+            echo "Validating AI provider readiness..."
+            AI_READINESS_OUTPUT=$(sudo -u www-data ./vendor/bin/drush php:eval "
+              if (!\\Drupal::moduleHandler()->moduleExists('ai_conversation')) {
+                echo 'SKIP: ai_conversation module not enabled.' . PHP_EOL;
+              }
+              else {
+                \\$config = \\Drupal::config('ai_conversation.settings');
+                \\$model = trim((string) (\\$config->get('aws_model') ?? ''));
+                \\$region = trim((string) (\\$config->get('aws_region') ?? getenv('AWS_DEFAULT_REGION') ?: ''));
+                \\$cfgKey = trim((string) (\\$config->get('aws_access_key_id') ?? ''));
+                \\$cfgSecret = trim((string) (\\$config->get('aws_secret_access_key') ?? ''));
+                \\$envKey = trim((string) (getenv('AWS_ACCESS_KEY_ID') ?: ''));
+                \\$envSecret = trim((string) (getenv('AWS_SECRET_ACCESS_KEY') ?: ''));
+
+                \\$hasConfigCreds = (\\$cfgKey !== '' && \\$cfgSecret !== '');
+                \\$hasEnvCreds = (\\$envKey !== '' && \\$envSecret !== '');
+
+                if (\\$region === '') {
+                  throw new \\RuntimeException('Bedrock region is missing (aws_region or AWS_DEFAULT_REGION).');
+                }
+
+                if (\\$model === '' || strpos(\\$model, 'anthropic.claude') !== 0) {
+                  throw new \\RuntimeException('Bedrock model must be an Anthropic Claude model. Current: ' . (\\$model ?: '[empty]'));
+                }
+
+                if (!\\$hasConfigCreds && !\\$hasEnvCreds) {
+                  throw new \\RuntimeException('Bedrock credentials are missing (config or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY).');
+                }
+
+                \\$service = \\Drupal::service('ai_conversation.ai_api_service');
+                \\$result = \\$service->testConnection();
+                \\$success = is_array(\\$result) && !empty(\\$result['success']);
+                if (!\\$success) {
+                  \\$message = is_array(\\$result)
+                    ? trim((string) ((\\$result['message'] ?? '') . ' ' . (\\$result['details'] ?? '')))
+                    : 'Unexpected Bedrock connection test response.';
+                  throw new \\RuntimeException('Bedrock connectivity test failed: ' . (\\$message ?: 'Unknown error.'));
+                }
+
+                echo 'PASS: Bedrock readiness verified. Model=' . \\$model . ', Region=' . \\$region . PHP_EOL;
+              }
+            " 2>&1) || AI_READINESS_EXIT=$?
+            AI_READINESS_EXIT=${AI_READINESS_EXIT:-0}
+            echo "$AI_READINESS_OUTPUT"
+            if [ $AI_READINESS_EXIT -ne 0 ]; then
+              echo "⚠️ AI provider readiness check failed (exit code: $AI_READINESS_EXIT)"
+              echo "⚠️ Continuing deployment (warning-only mode)"
+            else
+              echo "✅ AI provider readiness check passed"
             fi
             
             # Return to original directory
