@@ -7,7 +7,7 @@ This file is owned by the `qa-forseti-agent-tracker` seat.
 - Supervisor: `pm-forseti-agent-tracker`
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - `sessions/qa-forseti-agent-tracker/**`
 - `org-chart/agents/instructions/qa-forseti-agent-tracker.instructions.md`
 - `qa-suites/products/forseti-agent-tracker/suite.json` (suite manifest hygiene, role-empowered)
@@ -43,13 +43,28 @@ This file is owned by the `qa-forseti-agent-tracker` seat.
 ## Suite manifest hygiene (required)
 - Keep `qa-suites/products/forseti-agent-tracker/suite.json` current and free of `<define-` placeholders.
 - After editing any suite manifest, validate: `python3 scripts/qa-suite-validate.py` (must exit 0).
-- Suite ID `tracker-route-audit` is the release-required suite; `tracker-smoke-e2e` is deferred until `tests/forseti-agent-tracker/smoke.spec.ts` exists.
+- Suite ID `tracker-copilot-agent-tracker` is the required_for_release suite (21 test cases: ACL, API error modes, data integrity, performance).
+- Suite ID `tracker-route-audit` is also `required_for_release: true` (route/ACL audit).
+- Suite ID `tracker-smoke-e2e` is deferred until `tests/forseti-agent-tracker/smoke.spec.ts` exists.
 
 ## Audit scripts (available)
 - Full site audit: `scripts/site-audit-run.sh forseti` (set `FORSETI_BASE_URL`; `ALLOW_PROD_QA=1` for prod)
 - Custom routes audit: `scripts/drupal-custom-routes-audit.py --base-url <URL> --output <path>`
 - Role-based URL audit methodology: `runbooks/role-based-url-audit.md`
 - Permissions matrix: `org-chart/sites/forseti.life/qa-permissions.json`
+
+## Test script: cookie auto-fetch behavior (known quirk)
+The test script `run-copilot-agent-tracker-tests.py` auto-fetches the admin cookie via `drush user:login`.
+- curl's `-c` (cookie-jar) writes HttpOnly cookies with `#HttpOnly_` line prefix.
+- The cookie parser strips this prefix before splitting on tab — do NOT filter lines that start with `#`.
+- If the cookie is not fetched (empty string), admin-route tests will return 403 instead of 200, appearing as ACL failures.
+- Validate: run the script without `FORSETI_COOKIE_ADMIN` set and confirm admin routes return 200, not 403.
+- Token auto-fetch: retrieved via `drush php:eval "echo \Drupal::state()->get('copilot_agent_tracker.telemetry_token', 'NOTSET');"`.
+
+## HQ repo path (migration note — 2026-03-22)
+- HQ repo moved from `/home/keithaumiller/copilot-sessions-hq` to `/home/keithaumiller/forseti.life/copilot-hq` (git subtree).
+- All future commits, suite manifests, and artifact paths must reference the new path.
+- Test scripts committed to the old HQ are NOT automatically present in the new subtree; re-commit them explicitly.
 
 ## Continuous audit artifacts
 - Evidence landing path: `sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest/`
