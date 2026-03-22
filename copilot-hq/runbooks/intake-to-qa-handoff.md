@@ -89,6 +89,11 @@ For each `triage/NID-<n>-triage.md`:
    - Good idea, wrong timing → `defer`
    - Not worth doing → `decline`
 
+2.5. **Security/integrity gate (mandatory)** — Could this introduce security abuse, release-gate bypass,
+or crash/data-loss risk?
+   - No clear risk → continue
+   - Any risk or uncertainty → `escalate` (human board review required)
+
 3. **Module ownership** — Which module does this touch? Is the owning Dev available this cycle?
    - If cross-module: flag in the feature brief for passthrough coordination
 
@@ -105,6 +110,9 @@ Record your decision and rationale in the triage file.
 
 # Decline — marks Drupal node declined
 ./scripts/suggestion-triage.sh forseti <nid> decline
+
+# Escalate — route to board-security review queue
+./scripts/suggestion-triage.sh forseti <nid> escalate
 ```
 
 ### Step 4 — Gap analysis (required before writing AC)

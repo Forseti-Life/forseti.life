@@ -291,7 +291,8 @@ Stage 0 is instant: scope selection from a fully-groomed ready list.
    ```bash
    ./scripts/suggestion-intake.sh forseti
    ```
-2. **Triage** each suggestion (accept/defer/decline) per `runbooks/feature-intake.md`
+2. **Triage** each suggestion (accept/defer/decline/escalate) per `runbooks/feature-intake.md`
+  - Security/integrity/stability-risk suggestions must be `escalate`d for human board review (not accepted directly by PM)
 3. **Write Acceptance Criteria** for each accepted feature (`features/<id>/01-acceptance-criteria.md`)
 4. **Hand off to QA** for test generation (one per accepted feature):
    ```bash

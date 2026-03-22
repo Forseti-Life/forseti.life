@@ -62,6 +62,16 @@ if [ "$STATUS" != "ready" ]; then
   exit 1
 fi
 
+BOARD_REQUIRED="$(grep -im1 "^- Board security review required:" "$FEATURE_BRIEF" | sed 's/.*required:[[:space:]]*//' | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]' || true)"
+if [ "$BOARD_REQUIRED" = "yes" ] || [ "$BOARD_REQUIRED" = "true" ]; then
+  BOARD_APPROVAL="sessions/pm-${SITE}/artifacts/board-security-approvals/${FEATURE_ID}.md"
+  if [ ! -f "$BOARD_APPROVAL" ]; then
+    echo "ERROR: Feature requires board security review approval before scope activation." >&2
+    echo "Missing approval artifact: $BOARD_APPROVAL" >&2
+    exit 1
+  fi
+fi
+
 echo "[pm-scope-activate] Activating: $FEATURE_ID for site: $SITE"
 echo "[pm-scope-activate] All grooming artifacts present ✓"
 

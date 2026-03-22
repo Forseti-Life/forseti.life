@@ -77,12 +77,13 @@ else
   exit 1
 fi
 
-RISK_REPORT_JSON="$(python3 - "$SUGGESTION_JSON" <<'PY'
+RISK_REPORT_JSON="$(python3 - "$SUGGESTION_JSON" "$SITE" <<'PY'
 import json
 import re
 import sys
 
 s = json.loads(sys.argv[1])
+site = (sys.argv[2] or "").strip().lower()
 txt = "\n".join([
   str(s.get("title") or ""),
   str(s.get("summary") or ""),
@@ -93,19 +94,18 @@ signals = []
 rules = [
   ("auth-bypass", [
     r"\bauth(?:entication|orization)?\s+bypass\b",
-    r"\bdisable\s+(?:auth|authentication|authorization|permissions?)\b",
+    r"\b(?:disable|turn\s+off|remove|bypass)\s+(?:auth|authentication|authorization|permissions?)\b",
     r"\bescalat(?:e|ing)\s+privileges?\b",
     r"\bimpersonat(?:e|ion)\b",
   ]),
   ("secrets-credentials", [
-    r"\b(api\s*key|secret\s*key|access\s*token|passwords?|credentials?)\b",
-    r"\bexfiltrat(?:e|ion)\b",
-    r"\bdecrypt\b",
+    r"\b(?:exfiltrat(?:e|ion)|steal|dump|leak|expose)\b.{0,40}\b(?:secrets?|credentials?|tokens?|passwords?|api\s*keys?)\b",
+    r"\b(?:decrypt|print|export)\b.{0,30}\b(?:secrets?|credentials?|tokens?|passwords?)\b",
   ]),
   ("release-integrity-bypass", [
-    r"\bskip\s+(?:qa|tests?|test\s*suite|review|approval)s?\b",
+    r"\b(?:skip|bypass|disable|turn\s+off)\s+(?:qa|tests?|test\s*suite|review|approval|gates?|checks?)\b",
     r"\bbypass\s+(?:release|shipping|gate|approval)s?\b",
-    r"\bauto\s*(?:push|deploy)\s*(?:to\s*)?(?:prod|production|main)?\b",
+    r"\b(?:auto|force)\s*(?:push|deploy)\s*(?:to\s*)?(?:prod|production|main)\b",
     r"\bforce\s+push\b",
     r"\bdisable\s+(?:logging|audit|guardrail|safety)\b",
   ]),
@@ -113,12 +113,19 @@ rules = [
     r"\b(drop\s+table|truncate\s+table|delete\s+database|destroy\s+data)\b",
     r"\brm\s+-rf\b",
     r"\bfork\s+bomb\b",
-    r"\bdenial\s+of\s+service\b|\bdos\b",
-    r"\bcrash\b|\bkernel\s+panic\b|\bout\s+of\s+memory\b",
+    r"\b(?:cause|force|trigger|launch)\b.{0,20}\b(?:denial\s+of\s+service|dos)\b",
+    r"\b(?:cause|force|trigger|intentionally)\b.{0,20}\b(?:crash|kernel\s+panic|out\s+of\s+memory)\b",
   ]),
   ("exploit-primitives", [
-    r"\b(sql\s*injection|xss|cross\s*site\s*scripting|csrf|rce|remote\s+code\s+execution)\b",
-    r"\b(command\s+injection|path\s+traversal|backdoor|malware)\b",
+    r"\b(?:exploit|weaponiz(?:e|ation)|inject|execute\s+arbitrary)\b.{0,35}\b(sql\s*injection|xss|cross\s*site\s*scripting|csrf|rce|remote\s+code\s+execution)\b",
+    r"\b(?:exploit|inject|abuse|plant|install|create)\b.{0,30}\b(command\s+injection|path\s+traversal|backdoor|malware)\b",
+  ]),
+  ("major-architecture-change", [
+    r"\b(?:rewrite|rebuild|replace)\b.{0,30}\b(?:entire|whole|core)\b",
+    r"\b(?:replatform|platform\s+migration|migrate\s+platform)\b",
+    r"\b(?:replace|migrate)\b.{0,35}\b(?:drupal|cms|database\s+engine|mysql|php|apache|runtime)\b",
+    r"\b(?:microservices?|service\s+mesh|event\s+sourcing)\b",
+    r"\b(?:breaking\s+api|api\s+redesign|schema\s+redesign|major\s+architecture\s+change)\b",
   ]),
 ]
 
@@ -129,7 +136,19 @@ for label, patterns in rules:
       break
 
 signals = sorted(set(signals))
-print(json.dumps({"risky": bool(signals), "signals": signals}, ensure_ascii=False))
+
+# High-confidence escalation only:
+# - Escalate if explicit abuse appears in any critical class.
+# - Do not escalate low-signal benign wording (keeps majority of normal requests flowing).
+critical = {"auth-bypass", "release-integrity-bypass", "destructive-stability", "exploit-primitives"}
+critical.add("major-architecture-change")
+risky = any(label in critical for label in signals)
+
+# DungeonCrawler bias: keep flow permissive unless risk is explicit/critical.
+if site == "dungeoncrawler":
+  risky = any(label in critical for label in signals)
+
+print(json.dumps({"risky": bool(risky), "signals": signals}, ensure_ascii=False))
 PY
 )"
 

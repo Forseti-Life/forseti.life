@@ -26,6 +26,7 @@ PM inbox batch item  →  triage/NID-<n>-triage.md
 suggestion-triage.sh accept → features/<feature-id>/feature.md (status: planned)
 suggestion-triage.sh defer  → Drupal node: deferred  (queued next cycle)
 suggestion-triage.sh decline→ Drupal node: declined  (archived)
+suggestion-triage.sh escalate → board security review queue (human review required)
     ↓  [accepted features]
 Gap analysis  →  feature.md ## Gap Analysis + Feature type set
     ↓
@@ -66,13 +67,17 @@ Open the batch inbox item README:
 sessions/pm-forseti/inbox/<date>-suggestion-intake/README.md
 ```
 
-For each suggestion in `triage/NID-<n>-triage.md`, make one of three decisions:
+For each suggestion in `triage/NID-<n>-triage.md`, make one of four decisions:
 
 | Decision | Meaning | Drupal status set |
 |----------|---------|-------------------|
 | `accept` | Include in backlog, create feature brief | `in_progress` |
 | `defer`  | Good idea, wrong timing — next cycle | `deferred` |
 | `decline`| Not aligned with mission or product direction | `declined` |
+| `escalate` | Security/integrity/stability risk needs human board review | `under_review` |
+
+**Security gate is mandatory.** If a suggestion could introduce security abuse, release-integrity bypass,
+or crash/data-destruction risk, PM must choose `escalate` (not `accept`).
 
 Use the triage template at `templates/suggestion-triage.md` to document your rationale.
 
@@ -93,6 +98,9 @@ core systems for scientific, technology-focused, and tolerant people" — defer 
 
 # Decline: archived, won't resurface
 ./scripts/suggestion-triage.sh forseti <nid> decline
+
+# Escalate: board-security review required before any acceptance
+./scripts/suggestion-triage.sh forseti <nid> escalate
 ```
 
 Naming convention for feature IDs: `forseti-<short-kebab-description>`  

@@ -172,7 +172,13 @@ This task does NOT touch the current release. All work here is for ${next_releas
 ./scripts/suggestion-triage.sh ${team_id} <nid> accept <feature-id>
 ./scripts/suggestion-triage.sh ${team_id} <nid> defer
 ./scripts/suggestion-triage.sh ${team_id} <nid> decline
+./scripts/suggestion-triage.sh ${team_id} <nid> escalate
 \`\`\`
+
+Mandatory gate: if a suggestion clearly requests security abuse, release-integrity bypass, intentional crash/data-destruction behavior,
+or a major architecture replatform/rewrite,
+do NOT accept at PM level. Use `escalate` so it is reviewed at human board level first.
+Otherwise continue normal PM triage so the majority of valid product requests can flow.
 
 ### 3. Write Acceptance Criteria for each accepted feature
   features/<feature-id>/01-acceptance-criteria.md  (from templates/01-acceptance-criteria.md)
@@ -197,6 +203,8 @@ A feature is ready when ALL THREE exist:
 - features/<id>/feature.md          (status: ready)
 - features/<id>/01-acceptance-criteria.md
 - features/<id>/03-test-plan.md
+
+Security override: any feature requiring board-security review is ineligible until explicit board approval is documented.
 
 Anything not groomed when Stage 0 of ${next_release_id} starts is automatically deferred.
 

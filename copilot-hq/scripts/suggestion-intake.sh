@@ -118,10 +118,18 @@ readme = f"""# Suggestion Intake Batch — {date_tag}
 For each suggestion below:
 1. Review summary + original message
 2. Update triage decision in `triage/NID-triage.md`
-3. Run: `./scripts/suggestion-triage.sh {site} <nid> <accept|defer|decline> [feature-id]`
+3. Run: `./scripts/suggestion-triage.sh {site} <nid> <accept|defer|decline|escalate> [feature-id]`
    - `accept`  → creates `features/<feature-id>/feature.md`, marks Drupal node `in_progress`
    - `defer`   → marks Drupal node `deferred`, queued for next cycle
    - `decline` → marks Drupal node `declined`
+  - `escalate`→ routes to board-security review queue, keeps node `under_review`
+
+## Mandatory security gate
+
+If a suggestion clearly asks for security abuse, release-gate/integrity bypass, intentionally destructive behavior,
+or a major architecture replatform/rewrite,
+do not accept it at PM level. Use `escalate` for human board review first.
+Normal product improvements should continue through standard PM triage.
 
 ## Quick summary table
 
@@ -167,7 +175,7 @@ for s in suggestions:
     triage_file.write_text(f"""# Triage: NID {s['nid']} — {s['title']}
 
 - **Category:** {cat}
-- **Decision:** [ ] accept  [ ] defer  [ ] decline
+  - **Decision:** [ ] accept  [ ] defer  [ ] decline  [ ] escalate
 - **Feature ID** (if accept): forseti-  
 - **Priority** (if accept): P0 | P1 | P2
 - **PM notes:**
@@ -184,6 +192,13 @@ community-managed versions of core systems for scientific, technology-focused, a
 - [ ] Directly advances mission
 - [ ] Neutral / infrastructure
 - [ ] Does not align (decline)
+
+## Security / integrity gate (required)
+
+- [ ] No security abuse pattern (auth bypass, secret exposure, exploit primitive)
+- [ ] No release-integrity bypass (skip QA/tests/approval, disable logging/guardrails)
+- [ ] No stability-destructive action (data destruction, crash/DoS pattern)
+- [ ] If any box above is uncertain or false → **escalate** for board review
 
 """, encoding="utf-8")
 
