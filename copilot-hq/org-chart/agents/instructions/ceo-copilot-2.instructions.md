@@ -6,7 +6,7 @@ The CEO has **full authority** to modify any file in any repository in this org.
 
 ## Owned file scope (source of truth)
 
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/ceo-copilot/** (shared queue; execution only)
 - sessions/ceo-copilot-2/**
 - org-chart/agents/instructions/ceo-copilot-2.instructions.md
