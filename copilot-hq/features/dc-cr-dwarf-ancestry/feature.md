@@ -3,14 +3,15 @@
 - Work item id: dc-cr-dwarf-ancestry
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
-- Priority: P2 (extends ancestry-system with specific stat block; deferred — CharacterManager::ANCESTRIES data already covers dwarf, full content entity work after heritage-system is shipped)
+- Status: deferred
+- Priority: P2 (extends ancestry-system with specific stat block; blocked on dc-cr-ancestry-system, dc-cr-clan-dagger, and dc-cr-heritage-system shipping first)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 5284–5583
 - Category: game-mechanic
 - Created: 2026-02-28
+- Deferred decision: 2026-03-22 (pm-dungeoncrawler) — defer until dc-cr-heritage-system ships; CharacterManager::ANCESTRIES data already covers the dwarf data layer. Re-evaluate at that release's grooming cycle.
 
 ## Goal
 
