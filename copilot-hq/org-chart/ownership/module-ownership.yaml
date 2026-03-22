@@ -1,0 +1,44 @@
+# Module ownership is defined at the Drupal module level.
+# Websites are the top-level separation for work streams.
+
+websites:
+  infrastructure:
+    pm_owners:
+      - role: product-manager
+        name: "PM (infrastructure / sysadmin + security)"
+    modules: []
+
+  forseti.life:
+    pm_owners:
+      - role: product-manager
+        name: "PM (forseti.life)"
+    modules:
+      - job_hunter
+      - copilot_agent_tracker
+      - ai_conversation
+
+  dungeoncrawler:
+    pm_owners:
+      - role: product-manager
+        name: "PM (dungeoncrawler)"
+    modules:
+      - dungeoncrawler_content
+      - dungeoncrawler_tester
+
+  stlouisintegration.com:
+    pm_owners:
+      - role: product-manager
+        name: "PM (stlouisintegration.com)"
+    modules: []
+
+  theoryofconspiracies.com:
+    pm_owners:
+      - role: product-manager
+        name: "PM (theoryofconspiracies.com)"
+    modules: []
+
+  thetruthperspective.org:
+    pm_owners:
+      - role: product-manager
+        name: "PM (thetruthperspective.org)"
+    modules: []
