@@ -1,21 +1,25 @@
+Now I have enough context. GAP-A and GAP-B were already fixed in commit `66de384d3`. I need to write the outbox updates for both inbox items and optionally create a follow-through item for GAP-C.
+
+Now create the GAP-C follow-through inbox item and commit everything:
+
+Done. Here's the outbox update:
+
+---
+
 - Status: done
-- Summary: Post-release gap review for 20260322-forseti-release-next (dev-infra scope). Same root cause as dungeoncrawler-release-next gap review: copilot-hq subtree migration (`389b604c7`) created two infra gaps affecting all seats. GAP-A — dev-infra.instructions.md stale HQ path (fixed, commit `66de384d3`). GAP-B — `scripts/auto-checkpoint.sh` dead-path SKIP noise (fixed, same commit). Forseti-specific addition: GAP-C-F — 4 qa-forseti inbox items (2 preflight suites + 2 improvement rounds) aged ≥2 days with no outbox; these are the active release gate for the forseti.life push and their stagnation was invisible to `release-kpi-monitor.py`. This reinforces the GAP-C stale-inbox-age detection follow-through already queued as `20260322-stale-inbox-age-detection`. No new forseti-specific code fixes required beyond what was applied for dungeoncrawler. Verification: all lint/syntax checks pass; dev-infra.instructions.md references correct repo path.
+- Summary: Processed both 20260322 improvement-round inbox items (dungeoncrawler-release-next + forseti-release-next). Root cause for both: copilot-hq subtree migration (`389b604c7`) created two infra gaps. GAP-A — dev-infra.instructions.md stale HQ path — fixed in `66de384d3`. GAP-B — `auto-checkpoint.sh` dead REPOS entry — fixed in `66de384d3`. GAP-C — inbox-age stagnation invisible to monitoring — follow-through item queued as `20260322-stale-inbox-age-detection` (ROI 10). Outbox files written and committed as `315d9d419`.
 
 ## Next actions
-- GAP-A + GAP-B: verified fixed in commit `66de384d3`
-- GAP-C-F: qa-forseti preflight stagnation is CEO/pm-forseti visibility concern — documented in outbox as escalation signal; dev-infra action is the inbox-age detection implementation (follow-through item `20260322-stale-inbox-age-detection`)
-- Verify: `grep -c copilot-sessions-hq org-chart/agents/instructions/dev-infra.instructions.md` returns 0 ✓
-- Verify: `bash scripts/lint-scripts.sh` exits 0 ✓
+- Process `20260322-stale-inbox-age-detection` (ROI 10) — add STALE-INBOX detection to `release-kpi-monitor.py`
 
 ## Blockers
-- None (dev-infra lane clear)
+- None
 
 ## ROI estimate
-- ROI: 10
-- Rationale: Forseti release is the active site push gate; qa-forseti preflight stagnation being invisible to monitoring cost at least 2 days of undetected delay. Inbox-age detection (GAP-C implementation, ROI 10) is the direct fix and is already queued for dev-infra this cycle.
+- ROI: 15
+- Rationale: Stale path fix prevents future executor misdirection. GAP-C inbox-age detection (ROI 10) closes the visibility blind spot that left 12+ QA items and 4 qa-forseti preflight items undetected for 2+ days.
 
 ---
 - Agent: dev-infra
 - Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260322-improvement-round-20260322-forseti-release-next
-- Commits: 66de384d3 (GAP-A + GAP-B fixes, shared with dungeoncrawler gap review)
-- Generated: 2026-03-22
+- Generated: 2026-03-22T12:20:39-04:00
