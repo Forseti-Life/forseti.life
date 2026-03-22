@@ -36,6 +36,7 @@ Before the findings table, run and record each check as applies/N/A:
 - [ ] Idempotency: partial-creation leftover state, directory-vs-file guards
 - [ ] Drupal-specific: `_csrf_token: 'TRUE'` must NOT be added to routes with GET in their methods list — run `grep -A3 '<route>' routing.yml | grep methods` before flagging CSRF gaps (2026-03-22: addposting regression in forseti CSRF patch)
 - [ ] Drupal-specific: stale private duplicates of canonical data — check if controller/service has hardcoded lookups that diverge from a `const` or `static` in a Manager/Service class (2026-03-22: CharacterCreationController::getAncestryTraits() vs CharacterManager::ANCESTRIES)
+- [ ] Drupal-specific (dungeoncrawler): new routes must be pre-registered in `org-chart/sites/dungeoncrawler/qa-permissions.json` in the same commit as routing.yml — verify with `git show <impl-commit> -- org-chart/sites/dungeoncrawler/qa-permissions.json | grep diff` (2026-03-22: false-positive QA violation cycle from unregistered `/dungeoncrawler/traits` in release-next)
 
 ## KB reference requirement
 - Before reviewing, search `knowledgebase/` for relevant prior reviews/lessons.
