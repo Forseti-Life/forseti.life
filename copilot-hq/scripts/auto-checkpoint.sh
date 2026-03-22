@@ -5,7 +5,6 @@ set -euo pipefail
 # Only commits when there are changes.
 
 REPOS=(
-  "/home/keithaumiller/copilot-sessions-hq"
   "/home/keithaumiller/forseti.life"
 )
 

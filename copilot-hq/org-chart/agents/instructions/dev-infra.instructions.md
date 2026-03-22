@@ -7,7 +7,7 @@ This file is owned by the `dev-infra` seat.
 - Implement infrastructure changes: automation stability, scalability, reliability, security hardening.
 
 ## Owned file scope
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - scripts/**
 - sessions/dev-infra/**
 - org-chart/agents/instructions/dev-infra.instructions.md
