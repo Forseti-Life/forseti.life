@@ -11,9 +11,13 @@ Run the infrastructure backlog: system administration, stability, scalability, a
 - Operational automation and reliability improvements that keep all agent loops and product sites stable.
 
 ## Owned file scope (HQ)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/pm-infra/**
 - org-chart/agents/instructions/pm-infra.instructions.md
+
+**IMPORTANT — git add in this repo:** `copilot-hq/.gitignore` has `sessions/**`, so new session files (artifacts, outboxes, inbox items) require `git add -f <path>` to be tracked. Modified/already-tracked files use plain `git add`. Always use `git add -f` for new files under `copilot-hq/sessions/`.
+
+**Old repo path (deprecated):** `/home/keithaumiller/copilot-sessions-hq` — this repo no longer exists; all HQ work is in `forseti.life/copilot-hq/`.
 
 ## Owned file scope (forseti.life)
 ### Forseti repo: /home/keithaumiller/forseti.life
@@ -46,26 +50,27 @@ This check prevents subordinates from consuming a full execution cycle on a scop
 At the start of every release cycle, before any delegation:
 1. Run `python3 scripts/qa-suite-validate.py` — confirm all suite manifests validate (must exit 0)
 2. Run `scripts/agent-instructions.sh pm-infra` — confirm own resolved instruction stack is current
-3. Check `sessions/pm-infra/outbox/` for any unresolved `needs-info` or `blocked` items from the prior cycle
-4. Run the `pm-infra-outbox-format` gate inline:
+3. Check `copilot-hq/sessions/pm-infra/outbox/` for any unresolved `needs-info` or `blocked` items from the prior cycle
+4. Run the `pm-infra-outbox-format` gate inline (run from forseti.life repo root):
    ```
-   python3 -c "import pathlib,sys; ob=pathlib.Path('sessions/pm-infra/outbox'); recent=sorted([f for f in ob.glob('*.md') if f.stem>='20260227']); bad=[f for f in recent if not f.read_text(encoding='utf-8').splitlines()[0:1] or not f.read_text(encoding='utf-8').splitlines()[0].startswith('- Status:')]; [print('MALFORMED:',f.name) for f in bad]; sys.exit(1) if bad else print('PASS:', len(recent), 'files')"
+   python3 -c "import pathlib,sys; ob=pathlib.Path('copilot-hq/sessions/pm-infra/outbox'); recent=sorted([f for f in ob.glob('*.md') if f.stem>='20260227']); bad=[f for f in recent if not f.read_text(encoding='utf-8').splitlines()[0:1] or not f.read_text(encoding='utf-8').splitlines()[0].startswith('- Status:')]; [print('MALFORMED:',f.name) for f in bad]; sys.exit(1) if bad else print('PASS:', len(recent), 'files')"
    ```
    If it fails: the executor persistence bug overwrote one or more outbox files with chat text. Recovery:
    - Identify malformed files (listed in gate output).
-   - Rewrite each using `cat > sessions/pm-infra/outbox/<filename>.md << 'EOF' ... EOF` via bash tool.
+   - Find status line: `grep -n "^- Status:" copilot-hq/sessions/pm-infra/outbox/<filename>.md | head -1`
+   - Recover: `sed -n 'N,$p' copilot-hq/sessions/pm-infra/outbox/<filename>.md > /tmp/clean.md && cat /tmp/clean.md > copilot-hq/sessions/pm-infra/outbox/<filename>.md`
    - Re-run the gate to confirm PASS before proceeding.
 If any of the above fail or surface unresolved items, resolve or escalate before delegating.
 
 ## Post-write outbox verification (required after every outbox write)
 Immediately after each outbox file is expected to have been persisted:
-1. Run: `head -1 sessions/pm-infra/outbox/<filename>.md`
+1. Run: `head -1 copilot-hq/sessions/pm-infra/outbox/<filename>.md`
 2. If the first line does NOT start with `- Status:`: the executor persistence bug has struck.
-   - Recovery: rewrite the file using `cat > sessions/pm-infra/outbox/<filename>.md << 'EOF' ... EOF` via bash tool.
+   - Recovery: `grep -n "^- Status:" copilot-hq/sessions/pm-infra/outbox/<filename>.md | head -1` → line N → `sed -n 'N,$p' <file> > /tmp/clean.md && cat /tmp/clean.md > <file>`
    - Re-run `head -1` to confirm the rewrite is correct before proceeding.
 3. At end of each session, re-run the full outbox format gate to confirm all files are clean:
    ```
-   python3 -c "import pathlib,sys; ob=pathlib.Path('sessions/pm-infra/outbox'); recent=sorted([f for f in ob.glob('*.md') if f.stem>='20260227']); bad=[f for f in recent if not f.read_text(encoding='utf-8').splitlines()[0:1] or not f.read_text(encoding='utf-8').splitlines()[0].startswith('- Status:')]; [print('MALFORMED:',f.name) for f in bad]; sys.exit(1) if bad else print('PASS:', len(recent), 'files')"
+   python3 -c "import pathlib,sys; ob=pathlib.Path('copilot-hq/sessions/pm-infra/outbox'); recent=sorted([f for f in ob.glob('*.md') if f.stem>='20260227']); bad=[f for f in recent if not f.read_text(encoding='utf-8').splitlines()[0:1] or not f.read_text(encoding='utf-8').splitlines()[0].startswith('- Status:')]; [print('MALFORMED:',f.name) for f in bad]; sys.exit(1) if bad else print('PASS:', len(recent), 'files')"
    ```
 
 ## Blocker research protocol (required)
