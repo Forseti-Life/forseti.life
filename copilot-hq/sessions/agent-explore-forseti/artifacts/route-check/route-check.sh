@@ -38,6 +38,8 @@ check "user-login"             GET "$FORSETI_URL" "/user/login"          200
 check "games-home (anon)"      GET "$FORSETI_URL" "/games"               403
 check "block-matcher (anon)"   GET "$FORSETI_URL" "/games/block-matcher" 403
 check "api-high-scores (anon)" GET "$FORSETI_URL" "/api/games/high-scores/1" 200
+check "jobhunter (anon)"       GET "$FORSETI_URL" "/jobhunter"               403
+check "jobhunter-home (anon)"  GET "$FORSETI_URL" "/jobhunter/home"          403
 check "forseti-404-check"      GET "$FORSETI_URL" "/nonexistent-route-smoke-test-xyz" 404
 echo ""
 
