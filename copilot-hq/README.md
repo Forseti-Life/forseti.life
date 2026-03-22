@@ -64,6 +64,7 @@ Legacy loops (`ceo-inbox-loop`, `inbox-loop`, `ceo-health-loop`, `2-ceo-opsloop`
 
 ## Production setup essentials
 - Deploy and start runtime using `.github/workflows/deploy.yml` (branch: `master`).
+- Deploy workflow behavior is idempotent: first deploy runs `scripts/setup.sh`; existing deploys run `scripts/verify-hq-runtime.sh --strict` and auto-run `scripts/setup.sh` only if verification fails.
 - Run `./scripts/verify-hq-runtime.sh --strict` after deploy.
 - Select agentic backend via `HQ_AGENTIC_BACKEND`:
 	- `auto` (default): prefer Copilot CLI; fallback to Bedrock assistant script

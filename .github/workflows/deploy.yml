@@ -395,6 +395,11 @@ jobs:
               HQ_DEPLOY_DIR="${HQ_DEPLOY_DIR:-$HOME/copilot-sessions-hq}"
               echo "Deploying copilot-hq subtree to: ${HQ_DEPLOY_DIR}"
 
+              HQ_PREEXISTING=false
+              if [ -d "${HQ_DEPLOY_DIR}/scripts" ] && [ -f "${HQ_DEPLOY_DIR}/scripts/verify-hq-runtime.sh" ]; then
+                HQ_PREEXISTING=true
+              fi
+
               mkdir -p "$HQ_DEPLOY_DIR"
               rsync -azq --delete \
                 --exclude='.git' \
@@ -417,6 +422,22 @@ jobs:
               export HQ_AGENTIC_BACKEND="${HQ_AGENTIC_BACKEND:-auto}"
               export BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$HQ_DEPLOY_DIR/scripts/bedrock-assist.sh}"
 
+              # If-not-exists setup logic:
+              # - first deploy: run setup
+              # - existing deploy: verify; if verify fails, run setup remediation
+              if [ "$HQ_PREEXISTING" = false ]; then
+                echo "First-time HQ deploy detected. Running setup script..."
+                ./scripts/setup.sh
+              else
+                echo "Existing HQ deploy detected. Verifying current setup..."
+                if [ -x "./scripts/verify-hq-runtime.sh" ] && ./scripts/verify-hq-runtime.sh --strict >/dev/null 2>&1; then
+                  echo "✅ Existing HQ setup verified"
+                else
+                  echo "⚠️ Existing HQ setup not fully healthy. Running setup remediation..."
+                  ./scripts/setup.sh
+                fi
+              fi
+
               echo "Ensuring HQ automation is enabled..."
               ./scripts/org-control.sh enable --reason "forseti deploy workflow" --by "github-actions" --no-converge || true
 
@@ -436,8 +457,8 @@ jobs:
               ./scripts/hq-automation-watchdog.sh || true
 
               if [ -x "./scripts/verify-hq-runtime.sh" ]; then
-                echo "Verifying HQ runtime..."
-                ./scripts/verify-hq-runtime.sh || true
+                echo "Verifying HQ runtime (strict)..."
+                ./scripts/verify-hq-runtime.sh --strict
               fi
 
               cd "$TEMP_DIR"
