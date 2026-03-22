@@ -5,6 +5,7 @@ namespace Drupal\dungeoncrawler_content\Service;
 use Drupal\Component\Uuid\UuidInterface;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\dungeoncrawler_content\Service\InventoryManagementService;
 
 /**
  * Manages PF2e character CRUD operations and JSON storage.
@@ -14,6 +15,7 @@ class CharacterManager {
   protected Connection $database;
   protected AccountProxyInterface $currentUser;
   protected UuidInterface $uuid;
+  protected ?InventoryManagementService $inventoryManagement = NULL;
 
   /**
    * PF2e ancestries with base stats.
@@ -1562,10 +1564,11 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     ],
   ];
 
-  public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid) {
+  public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid, ?InventoryManagementService $inventory_management = NULL) {
     $this->database = $database;
     $this->currentUser = $current_user;
     $this->uuid = $uuid;
+    $this->inventoryManagement = $inventory_management;
   }
 
   /**
@@ -1629,6 +1632,7 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
 
     $now = \Drupal::time()->getRequestTime();
     $instanceId = $this->uuid->generate();
+
     $id = $this->database->insert('dc_campaign_characters')
       ->fields([
         'uuid' => $instanceId,
@@ -1653,6 +1657,8 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'changed' => $now,
       ])
       ->execute();
+
+    $this->grantAncestryStartingEquipment((int) $id, $ancestry);
 
     return (int) $id;
   }
@@ -1684,7 +1690,67 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   }
 
   /**
-   * Build a full PF2e character JSON structure.
+   * Grants ancestry-specific starting equipment after character creation.
+   *
+   * Dwarves receive one free Clan Dagger per PF2e rules.
+   * Additional ancestry starting items can be added here as they are implemented.
+   */
+  protected function grantAncestryStartingEquipment(int $character_id, string $ancestry_name): void {
+    if (!$this->inventoryManagement) {
+      \Drupal::logger('dungeoncrawler_content')->warning(
+        'InventoryManagementService not available; skipping ancestry starting equipment grant for character @id.',
+        ['@id' => $character_id]
+      );
+      return;
+    }
+
+    $canonical = self::resolveAncestryCanonicalName($ancestry_name) ?: $ancestry_name;
+
+    if ($canonical !== 'Dwarf') {
+      return;
+    }
+
+    $clan_dagger = [
+      'id' => 'clan-dagger',
+      'name' => 'Clan Dagger',
+      'item_type' => 'weapon',
+      'level' => 0,
+      'bulk' => 'L',
+      'traits' => ['agile', 'dwarf', 'versatile S'],
+      'ancestry_granted' => TRUE,
+      'sell_taboo' => TRUE,
+      'sell_taboo_message' => 'Selling your clan dagger is a social taboo and shameful act. This violates dwarven cultural norms and dishonors your clan. A GM must explicitly authorize this action.',
+      'weapon_stats' => [
+        'category' => 'simple',
+        'group' => 'knife',
+        'damage' => [
+          'dice_count' => 1,
+          'die_size' => 'd4',
+          'damage_type' => 'piercing',
+        ],
+        'weapon_traits' => ['agile', 'dwarf', 'versatile S'],
+      ],
+    ];
+
+    try {
+      $this->inventoryManagement->addItemToInventory(
+        (string) $character_id,
+        'character',
+        $clan_dagger,
+        'carried',
+        1,
+        0
+      );
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('dungeoncrawler_content')->error(
+        'Failed to grant Clan Dagger to Dwarf character @id: @error',
+        ['@id' => $character_id, '@error' => $e->getMessage()]
+      );
+    }
+  }
+
+  /**
    */
   public function buildCharacterJson(string $name, string $ancestry_name, string $class_name, array $options = []): array {
     $ancestry = self::ANCESTRIES[$ancestry_name] ?? self::ANCESTRIES['Human'];

@@ -24,7 +24,7 @@ services:
 
   dungeoncrawler_content.character_manager:
     class: Drupal\dungeoncrawler_content\Service\CharacterManager
-    arguments: ['@database', '@current_user', '@uuid']
+    arguments: ['@database', '@current_user', '@uuid', '@dungeoncrawler_content.inventory_management']
 
   dungeoncrawler_content.character_state:
     class: Drupal\dungeoncrawler_content\Service\CharacterStateService

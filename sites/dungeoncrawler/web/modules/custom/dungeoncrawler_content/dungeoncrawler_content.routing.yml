@@ -866,6 +866,19 @@ dungeoncrawler_content.api.inventory_remove_item:
   options:
     _format: json
 
+dungeoncrawler_content.api.inventory_sell_item:
+  path: '/api/inventory/{owner_type}/{owner_id}/item/{item_instance_id}/sell'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\InventoryManagementController::sellItem'
+  methods: [POST]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+    owner_type: 'character|container'
+    owner_id: '[A-Za-z0-9_-]+'
+    item_instance_id: '[A-Za-z0-9_.]+'
+  options:
+    _format: json
+
 dungeoncrawler_content.api.inventory_transfer:
   path: '/api/inventory/transfer'
   defaults:

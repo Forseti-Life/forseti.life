@@ -371,6 +371,75 @@ class InventoryManagementService {
   }
 
   /**
+   * Attempt to sell an item from inventory, enforcing sell_taboo rules.
+   *
+   * If the item carries sell_taboo: true in its state data, this method
+   * returns a structured taboo-block response unless $gm_override is TRUE.
+   * The sell taboo check only fires here — not in removeItemFromInventory —
+   * so that dropping/losing an item bypasses the taboo consequence.
+   *
+   * @param string $owner_id
+   *   Character or container ID.
+   * @param string $owner_type
+   *   'character' or 'container'.
+   * @param string $item_instance_id
+   *   Item instance ID to sell.
+   * @param bool $gm_override
+   *   When TRUE, bypasses sell_taboo and removes the item regardless.
+   * @param int|null $campaign_id
+   *   Campaign ID (NULL = library record, i.e., campaign_id = 0).
+   *
+   * @return array
+   *   Operation result array. On taboo block without override:
+   *   ['success' => false, 'sell_taboo' => true, 'message' => '...'].
+   *   On success: same as removeItemFromInventory return value.
+   */
+  public function sellItem(
+    string $owner_id,
+    string $owner_type,
+    string $item_instance_id,
+    bool $gm_override = FALSE,
+    ?int $campaign_id = NULL
+  ): array {
+    $this->validateOwner($owner_id, $owner_type);
+
+    // Load item instance to check sell_taboo flag.
+    $row = $this->database->select('dc_campaign_item_instances', 'i')
+      ->fields('i', ['state_data', 'item_id'])
+      ->condition('item_instance_id', $item_instance_id)
+      ->condition('location_ref', $owner_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$row) {
+      throw new \InvalidArgumentException("Item instance not found: {$item_instance_id}");
+    }
+
+    $state = json_decode($row['state_data'] ?? '{}', TRUE) ?: [];
+    $has_taboo = !empty($state['sell_taboo']);
+
+    if ($has_taboo && !$gm_override) {
+      $message = $state['sell_taboo_message']
+        ?? 'This item has a sell taboo. A GM must authorize its sale.';
+      return [
+        'success' => FALSE,
+        'sell_taboo' => TRUE,
+        'item_id' => $row['item_id'] ?? ($state['id'] ?? $item_instance_id),
+        'message' => $message,
+      ];
+    }
+
+    // Taboo waived (no taboo, or GM override) — proceed with removal.
+    return $this->removeItemFromInventory(
+      $owner_id,
+      $owner_type,
+      $item_instance_id,
+      1,
+      $campaign_id
+    );
+  }
+
+  /**
    * Transfer items between two inventories.
    *
    * @param string $source_owner_id

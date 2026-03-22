@@ -40,8 +40,8 @@ class InventoryManagementController extends ControllerBase {
    */
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('dungeoncrawler_content.inventory_management_service'),
-      $container->get('dungeoncrawler_content.character_state_service'),
+      $container->get('dungeoncrawler_content.inventory_management'),
+      $container->get('dungeoncrawler_content.character_state'),
       $container->get('database')
     );
   }
@@ -187,6 +187,65 @@ class InventoryManagementController extends ControllerBase {
         $quantity,
         $campaign_id
       );
+
+      return new JsonResponse($result);
+    }
+    catch (\Exception $e) {
+      return new JsonResponse([
+        'success' => FALSE,
+        'error' => $e->getMessage(),
+      ], 400);
+    }
+  }
+
+  /**
+   * Sell an item from inventory, enforcing sell_taboo rules.
+   *
+   * POST /api/inventory/{ownerType}/{ownerId}/item/{itemInstanceId}/sell
+   *
+   * Request body (optional):
+   * {
+   *   "gm_override": false,
+   *   "campaign_id": null
+   * }
+   *
+   * On sell_taboo block (no GM override):
+   * HTTP 403, { "success": false, "sell_taboo": true, "message": "..." }
+   *
+   * @param string $owner_type
+   *   'character' or 'container'.
+   * @param string $owner_id
+   *   Character or container ID.
+   * @param string $item_instance_id
+   *   Item instance ID.
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The request object.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   *   Operation result.
+   */
+  public function sellItem(
+    string $owner_type,
+    string $owner_id,
+    string $item_instance_id,
+    Request $request
+  ): JsonResponse {
+    try {
+      $data = json_decode($request->getContent(), TRUE) ?: [];
+      $gm_override = !empty($data['gm_override']);
+      $campaign_id = isset($data['campaign_id']) ? (int) $data['campaign_id'] : NULL;
+
+      $result = $this->inventoryService->sellItem(
+        $owner_id,
+        $owner_type,
+        $item_instance_id,
+        $gm_override,
+        $campaign_id
+      );
+
+      if (!$result['success'] && !empty($result['sell_taboo'])) {
+        return new JsonResponse($result, 403);
+      }
 
       return new JsonResponse($result);
     }

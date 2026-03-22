@@ -23,8 +23,8 @@ Defaults:
 Environment:
   HQ_BEDROCK_AGENT_ID            Agent seat context (default: ceo-copilot)
   HQ_BEDROCK_MAX_FILE_LINES      Lines to read from each instructions file (default: 220)
-  HQ_BEDROCK_HISTORY_FILE         Optional transcript file to include recent context
-  HQ_BEDROCK_HISTORY_LINES        Lines to tail from transcript (default: 180)
+  HQ_BEDROCK_HISTORY_FILE         Optional rolling memory file to include recent context
+  HQ_BEDROCK_HISTORY_LINES        Lines to tail from memory file (default: 180)
   HQ_BEDROCK_SYSTEM_PROMPT_NODE_ID  Optional prompt node id override forwarded to bedrock-assist
   HQ_BEDROCK_OPERATION           Operation label (default: hq_freeform_chat)
   BEDROCK_ASSIST_SCRIPT          Override delegate script path (default: ./scripts/bedrock-assist.sh)
@@ -95,7 +95,7 @@ read_history_tail() {
   if [ -n "$path" ] && [ -f "$path" ]; then
     {
       echo ""
-      echo "--- RECENT CONVERSATION TRANSCRIPT ($path) ---"
+      echo "--- RECENT CONVERSATION MEMORY ($path) ---"
       tail -n "$HISTORY_LINES" "$path"
     }
   fi

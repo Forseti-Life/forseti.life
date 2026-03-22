@@ -28,6 +28,8 @@ Environment overrides:
   COPILOT_BEDROCK_FALLBACK  Default: 1 (fallback to Bedrock assistant)
   COPILOT_BEDROCK_SITE      Default: forseti
   COPILOT_BEDROCK_SYSTEM_PROMPT_NODE_ID  Optional prompt node id override
+  COPILOT_BEDROCK_HISTORY_LINES          History lines to inject into Bedrock prompts (default: 220)
+  COPILOT_BEDROCK_HISTORY_MAX_LINES      Max lines retained in local Bedrock memory file (default: 1200)
   COPILOT_BEDROCK_PROMPT_PREFIX          Optional prompt prefix override
   BEDROCK_ASSIST_SCRIPT     Default: ./scripts/hq-bedrock-chat.sh
 USAGE
@@ -50,6 +52,7 @@ BEDROCK_PROMPT_PREFIX="${COPILOT_BEDROCK_PROMPT_PREFIX:-$BEDROCK_PROMPT_PREFIX_D
 SESSION_NAME="${1:-interactive-loop}"
 SESSION_FILE=""
 SESSION_ID=""
+BEDROCK_HISTORY_FILE=""
 LOG_DIR="inbox/responses/copilot-prompt-loop"
 LOG_FILE=""
 CLI_MODE="unknown"
@@ -58,6 +61,15 @@ COPILOT_SUPPORTS_MODEL=0
 COPILOT_SUPPORTS_AGENTIC_CHAT=0
 CHAT_MODEL="${COPILOT_MODEL:-gpt-5.3-codex}"
 SESSION_NAMESPACE=""
+BEDROCK_HISTORY_LINES="${COPILOT_BEDROCK_HISTORY_LINES:-220}"
+BEDROCK_HISTORY_MAX_LINES="${COPILOT_BEDROCK_HISTORY_MAX_LINES:-1200}"
+
+if ! [[ "$BEDROCK_HISTORY_LINES" =~ ^[0-9]+$ ]]; then
+  BEDROCK_HISTORY_LINES=220
+fi
+if ! [[ "$BEDROCK_HISTORY_MAX_LINES" =~ ^[0-9]+$ ]]; then
+  BEDROCK_HISTORY_MAX_LINES=1200
+fi
 
 sanitize_name() {
   printf '%s' "$1" | tr -cs 'A-Za-z0-9._-' '-'
@@ -86,6 +98,8 @@ PY
     fi
   fi
   SESSION_ID="$(head -n1 "$SESSION_FILE" | tr -d ' \t\r\n')"
+  BEDROCK_HISTORY_FILE="$HOME/.copilot/wrappers/${SESSION_NAMESPACE}-${SESSION_NAME}.bedrock-history.log"
+  touch "$BEDROCK_HISTORY_FILE"
 
   mkdir -p "$LOG_DIR"
   LOG_FILE="$LOG_DIR/hq-${SESSION_NAME}.md"
@@ -101,6 +115,23 @@ append_log() {
     echo ""
     echo "$body"
   } >> "$LOG_FILE"
+}
+
+append_bedrock_history() {
+  local role="$1"
+  local body="$2"
+
+  [ -n "$BEDROCK_HISTORY_FILE" ] || return 0
+  {
+    echo ""
+    echo "### ${role} $(date -Iseconds)"
+    echo "$body"
+  } >> "$BEDROCK_HISTORY_FILE"
+
+  local tmpfile
+  tmpfile="$(mktemp)"
+  tail -n "$BEDROCK_HISTORY_MAX_LINES" "$BEDROCK_HISTORY_FILE" > "$tmpfile" || true
+  mv "$tmpfile" "$BEDROCK_HISTORY_FILE"
 }
 
 detect_cli_mode() {
@@ -223,12 +254,14 @@ run_prompt() {
     fi
 
     if [ -n "$BEDROCK_SYSTEM_PROMPT_NODE_ID" ]; then
-      HQ_BEDROCK_HISTORY_FILE="$LOG_FILE" \
+      HQ_BEDROCK_HISTORY_FILE="$BEDROCK_HISTORY_FILE" \
+      HQ_BEDROCK_HISTORY_LINES="$BEDROCK_HISTORY_LINES" \
       BEDROCK_OPERATION="hq_copilot_loop" \
       BEDROCK_SYSTEM_PROMPT_NODE_ID="$BEDROCK_SYSTEM_PROMPT_NODE_ID" \
       "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$bedrock_prompt"
     else
-      HQ_BEDROCK_HISTORY_FILE="$LOG_FILE" \
+      HQ_BEDROCK_HISTORY_FILE="$BEDROCK_HISTORY_FILE" \
+      HQ_BEDROCK_HISTORY_LINES="$BEDROCK_HISTORY_LINES" \
       BEDROCK_OPERATION="hq_copilot_loop" "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$bedrock_prompt"
     fi
     return 0
@@ -244,6 +277,7 @@ echo "Session file: $SESSION_FILE"
 echo "Session id:   $SESSION_ID"
 echo "Namespace:    $SESSION_NAMESPACE"
 echo "Transcript:   $LOG_FILE"
+echo "Memory file:  $BEDROCK_HISTORY_FILE"
 echo "Copilot bin:  ${COPILOT_BIN:-[not-found]}"
 echo "CLI mode:     $CLI_MODE"
 if [ "$CLI_MODE" = "chat" ]; then
@@ -290,6 +324,7 @@ while true; do
       echo "Session id:   $SESSION_ID"
       echo "Namespace:    $SESSION_NAMESPACE"
       echo "Transcript:   $LOG_FILE"
+      echo "Memory file:  $BEDROCK_HISTORY_FILE"
       echo "Copilot bin:  ${COPILOT_BIN:-[not-found]}"
       echo "CLI mode:     $CLI_MODE"
       if [ "$CLI_MODE" = "plugin" ] || [ "$CLI_MODE" = "legacy" ]; then
@@ -349,17 +384,26 @@ while true; do
   esac
 
   append_log "User" "$line"
+  if [ "$CLI_MODE" = "bedrock" ]; then
+    append_bedrock_history "User" "$line"
+  fi
 
   if ! out="$(run_prompt "$line" 2>&1)"; then
     rc=$?
     echo "[copilot exited with code $rc]"
     echo "$out"
     append_log "Copilot (error $rc)" "$out"
+    if [ "$CLI_MODE" = "bedrock" ]; then
+      append_bedrock_history "Assistant (error $rc)" "$out"
+    fi
     continue
   fi
 
   echo "$out"
   append_log "Copilot" "$out"
+  if [ "$CLI_MODE" = "bedrock" ]; then
+    append_bedrock_history "Assistant" "$out"
+  fi
   echo
 
 done

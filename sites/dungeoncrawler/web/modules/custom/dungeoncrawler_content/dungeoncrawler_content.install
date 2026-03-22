@@ -4116,3 +4116,13 @@ function dungeoncrawler_content_update_10028() {
     return t('Content seeder failed: @error', ['@error' => $e->getMessage()]);
   }
 }
+
+/**
+ * Import clan_dagger item into the content registry.
+ */
+function dungeoncrawler_content_update_10029() {
+  /** @var \Drupal\dungeoncrawler_content\Service\ContentRegistry $registry */
+  $registry = \Drupal::service('dungeoncrawler_content.content_registry');
+  $count = $registry->importContentFromJson('item');
+  return t('Imported/refreshed @count item(s) from JSON files (clan_dagger and existing items).', ['@count' => $count]);
+}
