@@ -6,7 +6,7 @@ This file is owned by the `agent-code-review` seat.
 ## Owned file scope (source of truth)
 - Read-only review by default.
 
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/agent-code-review/**
 - org-chart/agents/instructions/agent-code-review.instructions.md
 
@@ -35,6 +35,7 @@ Before the findings table, run and record each check as applies/N/A:
 - [ ] Hardcoded absolute paths or environment-specific values
 - [ ] Idempotency: partial-creation leftover state, directory-vs-file guards
 - [ ] Drupal-specific: config import bypassing hooks/events (prefer `drush config:import` or verify hook dispatch)
+- [ ] Drupal-specific: stale private duplicates of canonical data — check if controller/service has hardcoded lookups that diverge from a `const` or `static` in a Manager/Service class (2026-03-22: CharacterCreationController::getAncestryTraits() vs CharacterManager::ANCESTRIES)
 
 ## KB reference requirement
 - Before reviewing, search `knowledgebase/` for relevant prior reviews/lessons.
