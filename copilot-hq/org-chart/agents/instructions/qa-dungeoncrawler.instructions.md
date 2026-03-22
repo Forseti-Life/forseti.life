@@ -47,6 +47,12 @@ Dynamic QA roles (`dc_playwright_player`, `dc_playwright_admin`) are created at 
 **Authenticated role inheritance (important for qa-permissions.json rules):**
 Drupal's `authenticated` base role permissions are inherited by ALL authenticated users, including `content_editor`, `dc_playwright_player`, and `dc_playwright_admin`. When setting expectations in `qa-permissions.json`, check what the `authenticated` role has — if a permission is on `authenticated`, all authenticated roles get it. Always verify with `drush role:list` before assigning `deny` to an authenticated role.
 
+**New qa-permissions.json rule validation (required before audit run):**
+Before running an audit that includes a newly added `qa-permissions.json` rule:
+1. Run `drush --uri=http://localhost:8080 role:list` and confirm which roles actually have the required permission.
+2. For any `deny` expectation on an authenticated role, verify that role does NOT have the permission (directly or via `authenticated` base role inheritance).
+3. Only then run the audit. This prevents auto-queuing false dev-findings items caused by QA config errors (observed pattern: 2026-03-22 audit `20260322-142611`).
+
 ## Suite manifest hygiene (required)
 - Keep `qa-suites/products/dungeoncrawler/suite.json` current as URLs/features evolve.
 - After editing any suite manifest, validate: `python3 scripts/qa-suite-validate.py`.
