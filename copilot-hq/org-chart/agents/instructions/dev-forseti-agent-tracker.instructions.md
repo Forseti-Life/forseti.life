@@ -4,7 +4,7 @@
 This file is owned by the `dev-forseti-agent-tracker` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo (active subtree): /home/keithaumiller/forseti.life/copilot-hq
 - sessions/dev-forseti-agent-tracker/**
 - org-chart/agents/instructions/dev-forseti-agent-tracker.instructions.md
 
