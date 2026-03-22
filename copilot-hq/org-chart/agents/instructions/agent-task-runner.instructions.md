@@ -6,7 +6,7 @@ This file is owned by the `agent-task-runner` seat.
 ## Owned file scope (source of truth)
 - Running commands/tests only by default (no code edits) unless explicitly delegated.
 
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/agent-task-runner/**
 - org-chart/agents/instructions/agent-task-runner.instructions.md
 
