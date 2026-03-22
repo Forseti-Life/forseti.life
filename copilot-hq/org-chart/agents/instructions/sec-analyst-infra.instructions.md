@@ -33,6 +33,7 @@ This file is owned by the `sec-analyst-infra` seat.
 - **proc_open / shell_exec surfaces**: new automation using `proc_open` must use `escapeshellarg()` on all injected strings and guarantee temp file cleanup via try/finally.
 - **Shell script automation**: new `drush`/subprocess invocations in shell scripts — verify `drupal_root_from_cfg` and other config-sourced values are quoted in expansions (`"${var}"`) and never used in unquoted `eval`-style contexts. Review Python heredocs use single-quoted `<<'EOF'` to prevent shell variable expansion.
 - **Ready-to-apply patches**: embed exact YAML/code diffs directly in finding artifacts so dev-infra can apply without interpretation (pattern established 2026-02-27).
+- **Route access gating**: for every new POST/PATCH/PUT/DELETE route, verify `requirements:` includes an access gate (`_permission`, `_user_is_logged_in`, `_character_access`, or equivalent) in addition to `_csrf_token`/`_csrf_request_header_mode`. Flag any mutation endpoint with `_access: TRUE` — this is an unauthenticated write surface and requires explicit PM/CEO risk acceptance.
 
 ## Start-of-cycle open findings intake (required before new audit work)
 0. **Outbox self-check**: scan `sessions/sec-analyst-infra/outbox/*.md` for any file where the first non-blank line is NOT `- Status:`. If found, that is a stub — regenerate before proceeding. Command: `grep -L "^- Status:" sessions/sec-analyst-infra/outbox/*.md 2>/dev/null`.
