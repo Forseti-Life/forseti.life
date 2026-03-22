@@ -4,7 +4,7 @@
 This file is owned by the `qa-dungeoncrawler` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/qa-dungeoncrawler/**
 - org-chart/agents/instructions/qa-dungeoncrawler.instructions.md
 
@@ -27,18 +27,24 @@ Notes:
 - Dev consumes failing suite evidence and fixes product code; QA adjusts suites only when the test itself is flawed.
 - Escalate to PM only for scope/intent decisions (e.g., whether an ACL outcome is intended).
 
-## Known route namespaces (as of 2026-02-28 preflight)
+## Known route namespaces (as of 2026-03-22 preflight)
 All custom route namespaces discovered from routing YAML files. Keep `qa-permissions.json` rules and `product-teams.json route_regex` aligned with these:
 - `/admin/*` — admin backend (administer site configuration / is_admin)
+- `/admin/reports/copilot-agent-tracker/langgraph-console/*` — copilot_agent_tracker module (administer copilot agent tracker)
 - `/campaigns/*`, `/characters/*` — game content (access dungeoncrawler characters)
 - `/dungeoncrawler/testing/*` — testing dashboard (administer site configuration)
 - `/dungeoncrawler/objects` — content admin list (administer dungeoncrawler content)
+- `/dungeoncrawler/traits` — ancestry trait catalog GET endpoint (access dungeoncrawler characters)
 - `/ai-conversation/*` — AI chat API (use ai conversation permission)
+- `/api/character/{id}/*` — character entity API (custom _character_access; entity-ID routes, ignore in probes)
 - `/home`, `/world`, `/how-to-play`, `/about`, `/credits`, `/hexmap` — public static pages (_access: TRUE)
 - `/architecture/*` — architecture docs (access content)
 - `/user/login` — public
 
 Dynamic QA roles (`dc_playwright_player`, `dc_playwright_admin`) are created at test time via `drush dctr:qa-users-ensure`. These roles are NOT in config/sync YAML — they exist only in the runtime DB and are created by the drush command. If permissions-validation shows them as missing, run the drush command first.
+
+**Authenticated role inheritance (important for qa-permissions.json rules):**
+Drupal's `authenticated` base role permissions are inherited by ALL authenticated users, including `content_editor`, `dc_playwright_player`, and `dc_playwright_admin`. When setting expectations in `qa-permissions.json`, check what the `authenticated` role has — if a permission is on `authenticated`, all authenticated roles get it. Always verify with `drush role:list` before assigning `deny` to an authenticated role.
 
 ## Suite manifest hygiene (required)
 - Keep `qa-suites/products/dungeoncrawler/suite.json` current as URLs/features evolve.

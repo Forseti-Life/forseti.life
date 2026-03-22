@@ -208,6 +208,45 @@
             }
         },
         {
+            "id": "copilot-agent-tracker-langgraph",
+            "notes": "LangGraph console routes under /admin/reports/copilot-agent-tracker/langgraph-console/*. Require 'administer copilot agent tracker'. Covered by admin-area allow for administrator/dc_playwright_admin. Explicit rule for copilot_agent_tracker routes added to prevent recurrence of 20260319-125409 violation pattern. dc_playwright_admin was granted this permission in forseti.life commit 175b7c3b4.",
+            "path_regex": "^/admin/reports/copilot-agent-tracker(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "dungeoncrawler-traits-catalog",
+            "notes": "Ancestry traits catalog GET endpoint. Requires 'access dungeoncrawler characters'. This permission is on the authenticated role, so ALL authenticated users (including content_editor) inherit it. Added 2026-03-22 preflight for release 20260322-dungeoncrawler-release (ancestry-traits dev item).",
+            "path_regex": "^/dungeoncrawler/traits(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "api-character-entity-routes",
+            "notes": "Entity-ID API routes for characters (/api/character/{id}/...). Use custom _character_access check (entity ownership + existence). Probe IDs may not exist in test DB, so 404 is expected even for authorized roles. Set all roles to ignore (similar to auth-required-entity). Covers traits and level-up API endpoints added in 20260320 dev cycle.",
+            "path_regex": "^/api/character/[0-9]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
             "id": "ai-conversation-api",
             "notes": "AI conversation API routes \u2014 require 'use ai conversation' permission. anon/authenticated/content_editor denied (no permission). administrator/dc_playwright_player/dc_playwright_admin have permission but GET probing is not representative: /ai-conversation/send-message is POST-only (GET returns 403/405 regardless of permissions); /ai-conversation/stats requires a node_id param (GET returns 400 \u2014 permission passes but missing param). Set admin/player/admin to 'ignore' \u2014 permission was verified by dev directly (forseti.life commit d5ae178fa; GET /ai-conversation/stats with dc_playwright_player returns 400 confirming permission passes).",
             "path_regex": "^/ai-conversation(/.*)?$",
