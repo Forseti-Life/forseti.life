@@ -43,6 +43,19 @@ None found for trait system specifically. Prior PM decision (commit `576262c5`) 
 - [ ] Trait data is readable by session participants (needed for targeting logic display).
 - [ ] Trait assignment is server-side only (character creation flow and heritage system); clients cannot directly mutate the traits array.
 
+### Route permission expectations (required for qa-permissions.json)
+
+| Route | HTTP method | Permission | anon | authenticated | content_editor | administrator | dc_playwright_player | dc_playwright_admin |
+|---|---|---|---|---|---|---|---|---|
+| `/dungeoncrawler/traits` | `[GET]` | `access dungeoncrawler characters` | deny | allow | allow | allow | allow | allow |
+| `/api/character/{id}/traits` | `[GET]` | `_character_access: TRUE` (own-character access check) | deny | allow (own) | allow (own) | allow | allow | allow |
+| `/api/character/{id}/traits/check` | `[GET]` | `_character_access: TRUE` (own-character access check) | deny | allow (own) | allow (own) | allow | allow | allow |
+
+Notes:
+- `content_editor` inherits the `authenticated` role; since `access dungeoncrawler characters` is granted to `authenticated`, `content_editor` is `allow` on all read-only traits endpoints.
+- `_character_access: TRUE` means the access check further restricts by character ownership; non-admin roles can only access their own character's traits.
+- No CSRF token required — all traits routes are `[GET]` only.
+
 ## Gameplay-rule alignment
 
 - PF2e trait system (Core Rulebook, Chapter 2): traits are descriptors that affect targeting and certain ability interactions. Traits have no inherent passive mechanical benefit; they are referenced by spells/abilities.
