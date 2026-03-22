@@ -392,22 +392,36 @@ jobs:
               echo "=== COPILOT HQ DEPLOYMENT ==="
               HQ_START=$(date +%s)
 
-              HQ_DEPLOY_DIR="${HQ_DEPLOY_DIR:-$HOME/copilot-sessions-hq}"
-              echo "Deploying copilot-hq subtree to: ${HQ_DEPLOY_DIR}"
+              REPO_DEPLOY_DIR="${REPO_DEPLOY_DIR:-$HOME/forseti.life}"
+              HQ_DEPLOY_DIR="${HQ_DEPLOY_DIR:-$REPO_DEPLOY_DIR/copilot-hq}"
+              echo "Syncing full repository to: ${REPO_DEPLOY_DIR}"
+              echo "Using HQ directory: ${HQ_DEPLOY_DIR}"
 
               HQ_PREEXISTING=false
-              if [ -d "${HQ_DEPLOY_DIR}/scripts" ] && [ -f "${HQ_DEPLOY_DIR}/scripts/verify-hq-runtime.sh" ]; then
+              if [ -d "${REPO_DEPLOY_DIR}/.git" ] && [ -d "${HQ_DEPLOY_DIR}/scripts" ] && [ -f "${HQ_DEPLOY_DIR}/scripts/verify-hq-runtime.sh" ]; then
                 HQ_PREEXISTING=true
               fi
 
-              mkdir -p "$HQ_DEPLOY_DIR"
-              rsync -azq --delete \
-                --exclude='.git' \
-                --exclude='*.pyc' \
-                --exclude='__pycache__' \
-                --exclude='.venv' \
-                --exclude='orchestrator/.venv' \
-                copilot-hq/ "$HQ_DEPLOY_DIR/"
+              if [ -d "${REPO_DEPLOY_DIR}/.git" ]; then
+                echo "Existing repository checkout detected, syncing from GitHub..."
+                git -C "$REPO_DEPLOY_DIR" fetch --depth 1 "https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git" main
+                git -C "$REPO_DEPLOY_DIR" checkout -B main FETCH_HEAD
+                git -C "$REPO_DEPLOY_DIR" reset --hard FETCH_HEAD
+              else
+                if [ -e "$REPO_DEPLOY_DIR" ]; then
+                  BACKUP_DIR="${REPO_DEPLOY_DIR}.pre-git-$(date +%s)"
+                  echo "Non-git directory exists at ${REPO_DEPLOY_DIR}; moving to ${BACKUP_DIR}"
+                  mv "$REPO_DEPLOY_DIR" "$BACKUP_DIR"
+                fi
+                mkdir -p "$(dirname "$REPO_DEPLOY_DIR")"
+                git clone --depth 1 --single-branch --branch main "https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git" "$REPO_DEPLOY_DIR"
+                git -C "$REPO_DEPLOY_DIR" remote set-url origin "https://github.com/keithaumiller/forseti.life.git"
+              fi
+
+              if [ ! -d "$HQ_DEPLOY_DIR" ]; then
+                echo "❌ HQ directory missing after repository sync: $HQ_DEPLOY_DIR"
+                exit 1
+              fi
 
               cd "$HQ_DEPLOY_DIR"
               chmod +x scripts/*.sh || true

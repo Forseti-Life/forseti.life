@@ -64,6 +64,7 @@ Legacy loops (`ceo-inbox-loop`, `inbox-loop`, `ceo-health-loop`, `2-ceo-opsloop`
 
 ## Production setup essentials
 - Deploy and start runtime using `.github/workflows/deploy.yml` (branch: `master`).
+- Production deploy uses a full repository checkout at `$HOME/forseti.life` by default (override with `REPO_DEPLOY_DIR`), and runs HQ from `$REPO_DEPLOY_DIR/copilot-hq` (override with `HQ_DEPLOY_DIR`).
 - Deploy workflow behavior is idempotent: first deploy runs `scripts/setup.sh`; existing deploys run `scripts/verify-hq-runtime.sh --strict` and auto-run `scripts/setup.sh` only if verification fails.
 - Run `./scripts/verify-hq-runtime.sh --strict` after deploy.
 - Select agentic backend via `HQ_AGENTIC_BACKEND`:
