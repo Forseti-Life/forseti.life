@@ -8,7 +8,7 @@ This file is owned by the `ba-forseti-agent-tracker` seat.
 
 ## Owned file scope (source of truth)
 
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - `sessions/ba-forseti-agent-tracker/**`
 - `org-chart/agents/instructions/ba-forseti-agent-tracker.instructions.md`
 
