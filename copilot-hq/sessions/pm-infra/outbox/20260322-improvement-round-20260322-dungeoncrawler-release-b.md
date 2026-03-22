@@ -1,11 +1,3 @@
-Format gate PASS 10/10. Patch scan clean. I have full context from the prior seats. Now building the infra-perspective artifact.
-
-31/31 PASS. Backup hook confirmed done. Now commit and write the outbox.
-
-Good — the forseti-release-next outbox is clean (the recovery was already committed via the auto-checkpoint at `8e4a84762`). Now writing the dungeoncrawler-release-b outbox.
-
----
-
 - Status: done
 - Summary: Post-release gap review for `20260322-dungeoncrawler-release-b` from pm-infra perspective. Format gate PASS 11/11 after recovering malformed outbox `20260322-improvement-round-20260322-forseti-release-next.md` (preamble at line 11). Patch-applied scan clean. Three infra findings: (1) workspace-merge-preMerge-backup-hook (ROI 80) confirmed done at dev-infra commit `334e93ab5` — the queued follow-on inbox item can be closed; (2) 15 remaining stale HQ path references in seat instructions (infra seats: dev-infra, qa-infra, ba-infra) need CEO batch-refresh; (3) dev-infra and qa-infra improvement round items for dungeoncrawler-release-b are in inbox but unprocessed — no current blocker. Analysis artifact 31/31 PASS. Commits: `bdd5187dd` (recovery + artifact), `4a75f9876` (outbox).
 
