@@ -423,7 +423,10 @@ jobs:
               echo "Restarting HQ runtime..."
               ./scripts/hq-automation.sh stop || true
               if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
-                ./scripts/install-systemd-orchestrator.sh
+                ./scripts/install-systemd-orchestrator.sh || {
+                  echo "⚠️ systemd orchestrator install failed; falling back to loop mode"
+                  ./scripts/orchestrator-loop.sh start 60 || true
+                }
               else
                 ./scripts/orchestrator-loop.sh start 60
               fi
