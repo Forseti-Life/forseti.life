@@ -23,6 +23,8 @@ Defaults:
 Environment:
   HQ_BEDROCK_AGENT_ID            Agent seat context (default: ceo-copilot)
   HQ_BEDROCK_MAX_FILE_LINES      Lines to read from each instructions file (default: 220)
+  HQ_BEDROCK_HISTORY_FILE         Optional transcript file to include recent context
+  HQ_BEDROCK_HISTORY_LINES        Lines to tail from transcript (default: 180)
   HQ_BEDROCK_SYSTEM_PROMPT_NODE_ID  Optional prompt node id override forwarded to bedrock-assist
   HQ_BEDROCK_OPERATION           Operation label (default: hq_freeform_chat)
   BEDROCK_ASSIST_SCRIPT          Override delegate script path (default: ./scripts/bedrock-assist.sh)
@@ -65,10 +67,16 @@ fi
 
 AGENT_ID="${HQ_BEDROCK_AGENT_ID:-ceo-copilot}"
 MAX_FILE_LINES="${HQ_BEDROCK_MAX_FILE_LINES:-220}"
+HISTORY_FILE="${HQ_BEDROCK_HISTORY_FILE:-}"
+HISTORY_LINES="${HQ_BEDROCK_HISTORY_LINES:-180}"
 OPERATION="${HQ_BEDROCK_OPERATION:-hq_freeform_chat}"
 
 if ! [[ "$MAX_FILE_LINES" =~ ^[0-9]+$ ]]; then
   MAX_FILE_LINES=220
+fi
+
+if ! [[ "$HISTORY_LINES" =~ ^[0-9]+$ ]]; then
+  HISTORY_LINES=180
 fi
 
 safe_read_file() {
@@ -78,6 +86,17 @@ safe_read_file() {
       echo ""
       echo "--- FILE: $path ---"
       sed -n "1,${MAX_FILE_LINES}p" "$path"
+    }
+  fi
+}
+
+read_history_tail() {
+  local path="$1"
+  if [ -n "$path" ] && [ -f "$path" ]; then
+    {
+      echo ""
+      echo "--- RECENT CONVERSATION TRANSCRIPT ($path) ---"
+      tail -n "$HISTORY_LINES" "$path"
     }
   fi
 }
@@ -125,6 +144,7 @@ CONTEXT+="$(safe_read_file "org-chart/DECISION_OWNERSHIP_MATRIX.md")"
 CONTEXT+="$(safe_read_file "org-chart/ownership/file-ownership.md")"
 CONTEXT+="$(safe_read_file "org-chart/roles/ceo.instructions.md")"
 CONTEXT+="$(safe_read_file "org-chart/agents/instructions/${AGENT_ID}.instructions.md")"
+HISTORY_CONTEXT="$(read_history_tail "$HISTORY_FILE")"
 
 if [ -n "$ROLE" ]; then
   CONTEXT+="$(safe_read_file "org-chart/roles/${ROLE}.instructions.md")"
@@ -134,6 +154,10 @@ COMPOSED_PROMPT="$PREFIX"
 if [ -n "$(printf '%s' "$CONTEXT" | tr -d '[:space:]')" ]; then
   COMPOSED_PROMPT+=$'\n\nInternal instructions context follows. Apply this context while answering.\n'
   COMPOSED_PROMPT+="$CONTEXT"
+fi
+if [ -n "$(printf '%s' "$HISTORY_CONTEXT" | tr -d '[:space:]')" ]; then
+  COMPOSED_PROMPT+=$'\n\nUse this recent transcript to preserve short-term conversation continuity.\n'
+  COMPOSED_PROMPT+="$HISTORY_CONTEXT"
 fi
 COMPOSED_PROMPT+=$'\n\nOperator request:\n'
 COMPOSED_PROMPT+="$PROMPT"

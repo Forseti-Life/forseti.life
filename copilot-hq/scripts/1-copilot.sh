@@ -223,10 +223,12 @@ run_prompt() {
     fi
 
     if [ -n "$BEDROCK_SYSTEM_PROMPT_NODE_ID" ]; then
+      HQ_BEDROCK_HISTORY_FILE="$LOG_FILE" \
       BEDROCK_OPERATION="hq_copilot_loop" \
       BEDROCK_SYSTEM_PROMPT_NODE_ID="$BEDROCK_SYSTEM_PROMPT_NODE_ID" \
       "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$bedrock_prompt"
     else
+      HQ_BEDROCK_HISTORY_FILE="$LOG_FILE" \
       BEDROCK_OPERATION="hq_copilot_loop" "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$bedrock_prompt"
     fi
     return 0

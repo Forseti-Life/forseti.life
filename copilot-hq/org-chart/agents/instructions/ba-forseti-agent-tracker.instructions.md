@@ -30,6 +30,12 @@ This file is owned by the `ba-forseti-agent-tracker` seat.
 - [ ] Verification method provided for each acceptance criterion
 - [ ] If escalation trigger identified: classify per DECISION_OWNERSHIP_MATRIX.md and route explicitly
 
+## Route/permission AC checklist (required when AC covers Drupal routes or permissions)
+- [ ] Each route row includes its HTTP methods (e.g., `[GET]`, `[POST]`, `[GET, POST]`)
+- [ ] `_csrf_token: 'TRUE'` is only listed for `[POST]`-only routes — never on `[GET, POST]` or `[GET]` routes
+- [ ] Permission names are verified against the actual `<module>.permissions.yml` before publishing — do NOT infer permission names from route names or prior artifacts
+- [ ] Verify: `grep -r "<permission-name>" web/modules/custom/<module>/` returns at least one routing.yml match
+
 ## Idle behavior
 - Do NOT generate new inbox items. Write recommendations in outbox only.
 - For ROI >= 15 findings: escalate to `pm-forseti-agent-tracker` with `Status: needs-info` and the recommendation inline.

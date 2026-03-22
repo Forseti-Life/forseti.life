@@ -214,7 +214,7 @@ set -e
 
 SANITIZED_OUTPUT="$RAW_OUTPUT"
 if [ "$SUPPRESS_DRUSH_WARNINGS" = "1" ]; then
-  SANITIZED_OUTPUT="$(printf '%s\n' "$RAW_OUTPUT" | sed '/^[[:space:]]*\[warning\][[:space:]]*Drush command terminated abnormally\.?[[:space:]]*$/d')"
+  SANITIZED_OUTPUT="$(printf '%s\n' "$RAW_OUTPUT" | awk 'BEGIN{IGNORECASE=1} index(tolower($0), "drush command terminated abnormally") == 0 { print }')"
 fi
 
 if [ $DRUSH_EXIT -eq 0 ]; then
