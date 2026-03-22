@@ -10,6 +10,7 @@ mkdir -p inbox/responses inbox/commands inbox/processed
 
 # Install pre-commit hook to run lint-scripts.sh on every commit.
 HOOK_FILE=".git/hooks/pre-commit"
+if [ -d ".git/hooks" ]; then
 cat > "$HOOK_FILE" << 'HOOK'
 #!/usr/bin/env bash
 set -euo pipefail
@@ -18,6 +19,9 @@ bash scripts/lint-scripts.sh
 HOOK
 chmod +x "$HOOK_FILE"
 echo "pre-commit hook installed."
+else
+  echo "pre-commit hook skipped (.git/hooks not present)."
+fi
 
 ./scripts/install-cron-auto-checkpoint.sh
 
