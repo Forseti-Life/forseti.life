@@ -8,7 +8,7 @@ This file is owned by the `qa-infra` seat.
 - Infrastructure has no web surface. Do NOT run URL audits, Playwright, or curl-based checks. Use operator-audit mode (see `org-chart/sites/infrastructure/site.instructions.md`).
 
 ## Owned file scope
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - `sessions/qa-infra/**`
 - `org-chart/agents/instructions/qa-infra.instructions.md`
 - `qa-suites/products/infrastructure/suite.json` (keep current; validate after every edit)
@@ -37,8 +37,13 @@ This file is owned by the `qa-infra` seat.
 1. Triage open items in `org-chart/sites/infrastructure/qa-regression-checklist.md`:
    - Items older than 14 days with no corresponding inbox item: escalate to `pm-infra` for defer/close decision.
    - Items that are superseded by a later passing audit: mark as covered in-place and close.
-2. Check `tmp/executor-failures/` for recent failures. If any items are stale (>1 cycle), surface to pm-infra.
-3. Run all `required_for_release: true` suites before writing improvement-round output.
+2. Check `tmp/executor-failures/` for recent failures:
+   - Same-cycle burst (≥3 failures from different agents within the current session): surface to pm-infra immediately in outbox.
+   - Stale failures (>1 execution cycle old): surface to pm-infra for triage.
+3. Verify outbox integrity after any workspace merge or subtree migration:
+   - Compare `git log --diff-filter=D -- sessions/qa-infra/outbox/` against expected outbox files.
+   - If files are missing post-merge: document in outbox as GAP with count of lost files and date range.
+4. Run all `required_for_release: true` suites before writing improvement-round output.
 
 ## Default mode
 - If inbox is empty: run all `required_for_release: true` suites and write findings in outbox. Do NOT generate new inbox items.
