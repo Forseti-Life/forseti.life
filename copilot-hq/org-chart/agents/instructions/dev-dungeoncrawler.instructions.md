@@ -30,8 +30,19 @@ Every QA findings item you receive is one of two types. Check the command.md hea
 2. Read `01-acceptance-criteria.md` fully before writing a line of code.
 3. **Perform impact analysis** (see below) for any major functionality changes.
 4. Implement the feature to satisfy the AC.
-5. Create `features/<feature_id>/02-implementation-notes.md` documenting what you built, files touched, schema changes, and any deviations from the AC (with justification).
-6. Notify QA with specific paths/behaviors implemented, for targeted retest.
+5. Create `features/<feature_id>/02-implementation-notes.md` documenting what you built, files touched, schema changes, and any deviations from the AC (with justification). **Required section:** `## New routes introduced` (see below).
+6. **Pre-QA checklist (new routes):** If you added any new routes, before the first QA audit run notify `qa-dungeoncrawler` with the route paths and expected permission matrix so `qa-permissions.json` can be updated. Missing permission rules generate avoidable QA violations — this is a recurring pattern (2026-03-19 release-b cycle: 8 violations from `copilot_agent_tracker`).
+7. Notify QA with specific paths/behaviors implemented, for targeted retest.
+
+#### Required section in `02-implementation-notes.md`: New routes introduced
+If the feature introduces any routes, include this section:
+```
+## New routes introduced
+| Route | Permission | administrator | dc_playwright_admin |
+|---|---|---|---|
+| /path/to/route | access xyz | allow | allow |
+```
+If no new routes: include `## New routes introduced\nNone.` to confirm this was checked.
 
 ### Type B: REGRESSION REPAIR
 **Signal:** `## REGRESSION FIXES REQUIRED` section (no feature_id), or general QA findings with no NEW FEATURE section.
@@ -64,7 +75,21 @@ Major changes include: new routes, hook implementations, schema migrations, perm
 
 Never overwrite another agent's file without explicit coordination.
 
-## Default mode (while PM organizes)
+## Game data constant access invariant (added 2026-03-22)
+
+`CharacterManager` contains static catalogs (ANCESTRIES, HERITAGES, FEATS, etc.) keyed by **canonical name** (e.g., `'Half-Elf'`), but ancestry and heritage values stored in the database use **machine IDs** (e.g., `"half-elf"`).
+
+**Invariant:** Never access `CharacterManager::ANCESTRIES[$key]`, `HERITAGES[$key]`, or similar catalogs directly using a machine ID or user-provided string.
+
+**Required pattern:** Use the resolver helpers:
+- `CharacterManager::resolveAncestryCanonicalName(string $machine_id): string` — converts machine ID to catalog key
+- Always validate the lookup result is non-null before consuming schema fields (HP, speed, size, traits).
+
+**Why:** Using machine ID directly causes silent null — no exception, no warning, just missing/wrong character data. This bug survived multiple release cycles undetected (discovered 2026-03-20, fixed commit `e97a248b5`).
+
+**Rule:** If you add a new catalog or new catalog access, follow the same resolver pattern and validate non-null.
+
+
 - If your inbox is empty, do NOT generate your own work items.
 - If your inbox is empty, do a short in-scope review/refactor and write concrete recommendations in your outbox.
 - If you need prioritization or acceptance criteria, escalate to `pm-dungeoncrawler` with `Status: needs-info` and an ROI estimate.
