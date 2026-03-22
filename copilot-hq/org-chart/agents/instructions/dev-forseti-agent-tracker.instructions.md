@@ -25,6 +25,11 @@ This file is owned by the `dev-forseti-agent-tracker` seat.
 2. **Read target repo instructions**: `/home/keithaumiller/forseti.life/sites/forseti/.github/instructions/instructions.md` (if path changes, check `sessions/shared-context/`).
 3. **Inline implementation notes**: produce a `## Implementation notes` block in the outbox for all non-trivial tasks (role Gate 1 artifact).
 
+## Mandatory pre-commit checks (PHP files)
+- Run `php -l <changed-file>` on every modified PHP file before committing.
+- Known gotcha: PHP docblock comments (`/** ... */`) must not contain bare glob-style paths (e.g., `features/*/feature.md`) — the `*/` terminates the comment. Use `features/<feature>/feature.md` instead.
+- Commit only after `php -l` returns "No syntax errors detected".
+
 ## Default mode
 - If your inbox is empty, do NOT generate your own work items.
 - If your inbox is empty, do a short in-scope review/refactor and write concrete recommendations in your outbox.
