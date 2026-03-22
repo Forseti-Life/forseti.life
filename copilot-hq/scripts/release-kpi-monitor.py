@@ -662,6 +662,63 @@ def read_latest_outbox_content(team: Team, diag: dict[str, Any], max_chars: int 
         return ""
 
 
+def check_stale_inbox_items(sessions_root: Path, threshold_roi: int = 10, age_seconds: int = 86400) -> list[dict[str, Any]]:
+    """Scan sessions/<agent>/inbox/ for high-ROI items with no outbox counterpart
+    that are older than age_seconds.  Returns a list of dicts with keys:
+      agent, item, roi, age_seconds, age_hours (rounded to 1 decimal).
+    Only items whose roi.txt value >= threshold_roi are considered.
+    An outbox counterpart is any file in sessions/<agent>/outbox/ whose stem
+    starts with the inbox item folder name.
+    """
+    stale: list[dict[str, Any]] = []
+    if not sessions_root.exists():
+        return stale
+    now = int(time.time())
+    for agent_dir in sorted(sessions_root.iterdir()):
+        inbox_dir = agent_dir / "inbox"
+        outbox_dir = agent_dir / "outbox"
+        if not inbox_dir.is_dir():
+            continue
+        outbox_stems: set[str] = set()
+        if outbox_dir.is_dir():
+            for f in outbox_dir.iterdir():
+                if f.is_file():
+                    outbox_stems.add(f.stem)
+        for item_dir in sorted(inbox_dir.iterdir()):
+            if not item_dir.is_dir():
+                continue
+            # Check for outbox counterpart (stem starts with item name)
+            has_outbox = any(s.startswith(item_dir.name) for s in outbox_stems)
+            if has_outbox:
+                continue
+            # Read roi.txt
+            roi_file = item_dir / "roi.txt"
+            if not roi_file.exists():
+                continue
+            try:
+                roi = int(roi_file.read_text(encoding="utf-8").strip())
+            except Exception:
+                continue
+            if roi < threshold_roi:
+                continue
+            # Check age using folder mtime
+            try:
+                mtime = int(item_dir.stat().st_mtime)
+            except Exception:
+                continue
+            age = now - mtime
+            if age < age_seconds:
+                continue
+            stale.append({
+                "agent": agent_dir.name,
+                "item": item_dir.name,
+                "roi": roi,
+                "age_seconds": age,
+                "age_hours": round(age / 3600, 1),
+            })
+    return stale
+
+
 def count_recent_executor_failures(window_seconds: int = 3600) -> tuple[int, list[str]]:
     """Count executor failure records written to tmp/executor-failures/ within the
     given window.  Returns (count, [agent_ids]).  A high count indicates a systemic
@@ -1111,12 +1168,23 @@ def main() -> int:
         out_rows.append(row)
 
     if args.json:
+        _stale = check_stale_inbox_items(ROOT / "sessions")
         print(json.dumps({
             "generated_at": datetime.now().isoformat(),
             "rows": out_rows,
+            "stale_inbox_items": _stale,
+            "stagnation_detected": bool(_stale) or any(
+                r.get("stagnant") or r.get("systemic_executor_failure") or
+                r.get("execution_stalled") or r.get("starved_lane") or r.get("handoff_gap")
+                for r in out_rows if r.get("status") != "no-qa-data"
+            ),
         }, indent=2))
     else:
         print("Release KPI monitor")
+        stale_items = check_stale_inbox_items(ROOT / "sessions")
+        if stale_items:
+            for s in stale_items:
+                print(f"STALE-INBOX: {s['agent']}/{s['item']} (roi={s['roi']}, age={s['age_hours']}h)")
         for r in out_rows:
             if r.get("status") == "no-qa-data":
                 print(f"- {r['team_id']}: no-qa-data")
