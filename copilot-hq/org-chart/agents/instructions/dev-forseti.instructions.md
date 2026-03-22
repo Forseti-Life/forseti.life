@@ -188,12 +188,26 @@ grep -A5 '<route-name>:' job_hunter.routing.yml | grep 'methods:'
 
 **AC spec rule**: Any AC for a CSRF task must include a "HTTP methods" column per route row; any AC listing a `[GET, ...]` route for `_csrf_token` is incorrect and must be flagged to `pm-forseti` before implementation.
 
+## Schema drift diagnostic (drush updatedb silent failure)
+
+When a controller crashes with `Unknown column` but `drush updatedb` reports "no pending updates":
+- The update hook was already marked run (DB restore / partial reinstall) without applying DDL.
+- **Do not file done or escalate until you check the table schema directly**:
+```bash
+cd /home/keithaumiller/forseti.life/sites/forseti
+vendor/bin/drush sqlq "DESCRIBE <table_name>"
+# Compare output against the column names in the controller/query
+```
+- If columns are missing: apply DDL directly (ALTER TABLE) or escalate to CEO for executor SQL run.
+- This catches the `genai-debug` class of 500s before QA sees them.
+
 ## Improvement round inbox delivery discipline
 
 For improvement round inbox items (`<date>-improvement-round-*`):
 - **Write outbox.md as the FIRST artifact**, before any code changes or deep analysis.
 - Do not defer outbox writing to the end of a work session — context compaction will lose it.
 - Pattern: open command.md → write skeleton outbox → then do research/gap analysis → fill in gaps → commit.
+- **Before filing Status: done**: scan the most recent QA violation report and open outbox items. "No blockers" is only valid if QA evidence confirms it. List any known open items with owner and ROI.
 
 ## Post-fix local deploy verification checklist (run after every code change)
 
