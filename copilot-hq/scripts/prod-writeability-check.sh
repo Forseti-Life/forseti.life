@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-DEFAULT_HQ_DIR="${HQ_DEPLOY_DIR:-$HOME/copilot-sessions-hq}"
+DEFAULT_HQ_DIR="${HQ_DEPLOY_DIR:-${REPO_DEPLOY_DIR:-$HOME/forseti.life}/copilot-hq}"
 HQ_DIR="${1:-$DEFAULT_HQ_DIR}"
 
 if [ ! -d "$HQ_DIR" ]; then

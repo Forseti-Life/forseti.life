@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-DEFAULT_HQ_DIR="${HQ_DEPLOY_DIR:-$HOME/copilot-sessions-hq}"
+DEFAULT_HQ_DIR="${HQ_DEPLOY_DIR:-${REPO_DEPLOY_DIR:-$HOME/forseti.life}/copilot-hq}"
 HQ_DIR="${1:-$DEFAULT_HQ_DIR}"
 
 find_hq_dir() {
@@ -12,10 +12,14 @@ find_hq_dir() {
   fi
 
   for d in \
+    "${HQ_DEPLOY_DIR:-}" \
+    "${REPO_DEPLOY_DIR:-$HOME/forseti.life}/copilot-hq" \
+    "$HOME/forseti.life/copilot-hq" \
     "$HOME/copilot-sessions-hq" \
     "/var/www/html/copilot-sessions-hq" \
     "/opt/copilot-sessions-hq"
   do
+    [ -n "$d" ] || continue
     if [ -d "$d" ]; then
       printf '%s\n' "$d"
       return 0
@@ -32,7 +36,7 @@ find_hq_dir() {
 }
 
 if ! HQ_DIR="$(find_hq_dir)"; then
-  echo "ERROR: could not locate copilot-sessions-hq on this host" >&2
+  echo "ERROR: could not locate copilot-hq runtime directory on this host" >&2
   exit 1
 fi
 

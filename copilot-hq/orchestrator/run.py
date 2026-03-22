@@ -668,9 +668,26 @@ def _write_release_notes(release_id: str, slug: str, required: List[Dict[str, An
     rc_dir.mkdir(parents=True, exist_ok=True)
 
     # Git log: recent commits on the forseti.life repo (last 20, no merge commits)
-    site_repo = REPO_ROOT.parent / "forseti.life"
+    # Supports both layouts:
+    # 1) Merged workspace: <repo>/copilot-hq (repo root is REPO_ROOT.parent)
+    # 2) Legacy standalone HQ checkout with sibling forseti.life repo
+    env_repo = os.environ.get("FORSETI_REPO_ROOT", "").strip()
+    site_repo_candidates = [
+        Path(env_repo) if env_repo else None,
+        REPO_ROOT.parent,
+        REPO_ROOT.parent / "forseti.life",
+        REPO_ROOT,
+    ]
+    site_repo = next(
+        (
+            cand
+            for cand in site_repo_candidates
+            if cand is not None and cand.is_dir() and ((cand / ".git").is_dir() or (cand / ".git").is_file())
+        ),
+        None,
+    )
     git_summary = ""
-    if site_repo.is_dir():
+    if site_repo and site_repo.is_dir():
         rc_git, git_out = _run(
             ["git", "-C", str(site_repo), "log", "--oneline", "--no-merges", "-20"],
             timeout=15,

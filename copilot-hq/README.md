@@ -94,6 +94,7 @@ Legacy loops (`ceo-inbox-loop`, `inbox-loop`, `ceo-health-loop`, `2-ceo-opsloop`
 - `./scripts/prod-assumptions-audit.sh [hq_dir]` — host context, runtime assumptions, release-cycle files, cron, and recent logs.
 - `./scripts/prod-writeability-check.sh [hq_dir]` — write-permission checks for HQ runtime directories (current user + optional `www-data`).
 - `./scripts/prod-release-cycle-flow-check.sh [hq_dir]` — validates release-cycle paths/state and runs one dry release-cycle step.
+- If `hq_dir` is omitted, scripts default to `HQ_DEPLOY_DIR` or `${REPO_DEPLOY_DIR:-$HOME/forseti.life}/copilot-hq`.
 
 ## Preparing for public release
 Start with `PUBLIC_REPO_PREP.md` for a staged publication checklist (security scrub, history review, docs/legal, and release steps).
