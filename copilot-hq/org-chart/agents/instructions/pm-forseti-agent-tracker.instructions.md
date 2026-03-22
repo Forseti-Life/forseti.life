@@ -40,5 +40,16 @@ This file is owned by the `pm-forseti-agent-tracker` seat.
 - If blocked by cross-module dependencies or environment/repo access gaps, escalate to `ceo-copilot` with options, recommendation, and ROI estimate.
 - **Stale blocker deduplication (required):** If the same blocker has appeared in 3 or more consecutive outbox items with no CEO action, stop re-documenting the full blocker. Instead write one line: `Same blocker as [outbox file path] — no change. Awaiting CEO decision.` and move on. This prevents blocker re-documentation from consuming the entire outbox update.
 
+## Workspace-merge artifact recovery (required at cycle start)
+- At the start of every cycle, verify that your recent outbox artifacts exist: `git ls-tree HEAD sessions/pm-forseti-agent-tracker/outbox/ | tail -5`
+- If post-merge outbox entries are missing (e.g., due to workspace wipe or subtree migration), check git log to identify the last known outbox commit and recover lost delegation inbox items before proceeding.
+- Lost delegation items must be re-written in the current cycle with updated context.
+- Escalate workspace-merge artifact loss to CEO with ROI; do not silently skip.
+- Note: this repo (`forseti.life/copilot-hq/`) is the subtree mirror of the HQ repo. If instructions appear stale relative to the HQ copy, sync the workspace-merge recovery section in the same cycle.
+
+## Canonical inbox path
+- Active inbox path for this seat: `forseti.life/copilot-hq/sessions/pm-forseti-agent-tracker/inbox/`
+- If CEO has not confirmed which repo is canonical (HQ vs subtree), note this ambiguity in the outbox and proceed with the subtree as the active working copy.
+
 ## Supervisor
 - Supervisor: `ceo-copilot`
