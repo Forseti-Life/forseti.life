@@ -918,11 +918,105 @@ dungeoncrawler_content.api.character_experience:
 dungeoncrawler_content.api.character_level_up:
   path: '/api/character/{character_id}/level-up'
   defaults:
-    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterStateController::levelUp'
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::triggerLevelUp'
   methods: [POST]
   requirements:
     _csrf_request_header_mode: TRUE
     _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_status:
+  path: '/api/character/{character_id}/level-up/status'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::getStatus'
+  methods: [GET]
+  requirements:
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_ability_boosts:
+  path: '/api/character/{character_id}/level-up/ability-boosts'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::submitAbilityBoosts'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_skill_increase:
+  path: '/api/character/{character_id}/level-up/skill-increase'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::submitSkillIncrease'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_feat:
+  path: '/api/character/{character_id}/level-up/feat'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::submitFeat'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_feats:
+  path: '/api/character/{character_id}/level-up/feats'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::getEligibleFeats'
+  methods: [GET]
+  requirements:
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_admin_force:
+  path: '/api/character/{character_id}/level-up/admin-force'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::adminForce'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'administer dungeoncrawler content'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_level_up_admin_reset:
+  path: '/api/character/{character_id}/level-up/admin-reset'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::adminReset'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'administer dungeoncrawler content'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.character_milestone:
+  path: '/api/character/{character_id}/milestone'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterLevelingController::setMilestone'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _permission: 'administer dungeoncrawler content'
     character_id: '\d+'
   options:
     _format: json

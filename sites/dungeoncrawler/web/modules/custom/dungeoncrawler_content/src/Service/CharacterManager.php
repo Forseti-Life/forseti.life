@@ -1175,6 +1175,274 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * PF2e class-specific auto-apply features per level (no player choice required).
+   *
+   * Keys: class_name → level (int) → ['auto_features' => [...]]
+   * Universal advancement (feat slots, ability boosts, skill increases) is computed
+   * by getClassAdvancement() and does NOT live here.
+   */
+  const CLASS_ADVANCEMENT = [
+    'fighter' => [
+      1  => ['auto_features' => [
+        ['id' => 'attack-of-opportunity', 'name' => 'Attack of Opportunity',
+          'description' => 'You react to an opening from a foe. You can use a reaction to make a melee Strike against a triggering creature.'],
+        ['id' => 'fighter-weapon-training', 'name' => 'Fighter Weapon Training',
+          'description' => 'You are trained with all simple and martial weapons, and with all advanced weapons in one weapon group of your choice.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'bravery', 'name' => 'Bravery',
+          'description' => 'You gain a +1 circumstance bonus to Will saves against fear effects and to your Will DC against attempts to Demoralize you.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'fighter-weapon-mastery', 'name' => 'Fighter Weapon Mastery',
+          'description' => 'Your proficiency rank with your chosen weapon group increases to Master.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'battlefield-surveyor', 'name' => 'Battlefield Surveyor',
+          'description' => 'You gain a +2 circumstance bonus to Perception checks for Initiative.'],
+        ['id' => 'weapon-specialization', 'name' => 'Weapon Specialization',
+          'description' => 'You deal additional damage equal to half your weapon proficiency rank (minimum 1) with any weapon you are trained in.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'combat-flexibility', 'name' => 'Combat Flexibility',
+          'description' => 'Once per day when you prepare, you can gain a fighter feat of 8th level or lower that you don\'t already have.'],
+        ['id' => 'juggernaut', 'name' => 'Juggernaut',
+          'description' => 'Your Fortitude saving throw proficiency increases to Master.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'armor-expertise', 'name' => 'Armor Expertise',
+          'description' => 'Your armor proficiency increases to Expert for all armor and unarmored defense.'],
+        ['id' => 'fighter-expertise', 'name' => 'Fighter Expertise',
+          'description' => 'Your class DC and attack rolls with all weapons increase to Expert proficiency.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'weapon-legend', 'name' => 'Weapon Legend',
+          'description' => 'Your proficiency with your chosen weapon group increases to Legendary, and simple/martial weapons increase to Master.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'greater-weapon-specialization', 'name' => 'Greater Weapon Specialization',
+          'description' => 'Your additional damage from Weapon Specialization increases to your full proficiency rank.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'armor-mastery', 'name' => 'Armor Mastery',
+          'description' => 'Your armor proficiency increases to Master for all armor and unarmored defense.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'versatile-legend', 'name' => 'Versatile Legend',
+          'description' => 'Your proficiency with simple and martial weapons increases to Legendary.'],
+      ]],
+    ],
+    'wizard' => [
+      1  => ['auto_features' => [
+        ['id' => 'arcane-spellcasting', 'name' => 'Arcane Spellcasting',
+          'description' => 'You can cast arcane spells using the Cast a Spell activity. Your spellcasting ability modifier is Intelligence.'],
+        ['id' => 'arcane-school', 'name' => 'Arcane School',
+          'description' => 'You specialize in an arcane school of magic, gaining additional spells and abilities.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'expert-spellcaster', 'name' => 'Expert Spellcaster',
+          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs increase to Expert.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'wizard-weapon-expertise', 'name' => 'Wizard Weapon Expertise',
+          'description' => 'Your proficiency rank for your wizard weapons increases to Expert.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'magical-fortitude', 'name' => 'Magical Fortitude',
+          'description' => 'Your Fortitude saving throw proficiency increases to Expert.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'wizard-expertise', 'name' => 'Wizard Expertise',
+          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs increase to Master.'],
+        ['id' => 'spell-penetration', 'name' => 'Spell Penetration',
+          'description' => 'Your spells ignore some amount of spell resistance. Targets take a -2 circumstance penalty to counteract checks against your spells.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'weapon-specialization-wizard', 'name' => 'Weapon Specialization',
+          'description' => 'You deal additional damage equal to half your proficiency rank with weapons you are expert in or better.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'master-spellcaster', 'name' => 'Master Spellcaster',
+          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs increase to Legendary.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'resolve', 'name' => 'Resolve',
+          'description' => 'Your Will saving throw proficiency increases to Master.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'archwizards-spellcraft', 'name' => 'Archwizard\'s Spellcraft',
+          'description' => 'You can cast 10th-rank spells. You gain a single 10th-rank spell slot per day.'],
+      ]],
+      20 => ['auto_features' => [
+        ['id' => 'supreme-spellcaster', 'name' => 'Supreme Spellcaster',
+          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs are now Legendary.'],
+      ]],
+    ],
+    'rogue' => [
+      1  => ['auto_features' => [
+        ['id' => 'sneak-attack', 'name' => 'Sneak Attack',
+          'description' => 'When your target is flat-footed to you, you deal an extra 1d6 precision damage. This increases by 1d6 at levels 5, 11, and 17.'],
+        ['id' => 'surprise-attack', 'name' => 'Surprise Attack',
+          'description' => 'On the first round of combat, if you rolled Deception or Stealth for initiative, creatures that haven\'t acted are flat-footed to you.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'deny-advantage', 'name' => 'Deny Advantage',
+          'description' => 'You aren\'t flat-footed to creatures of equal or lower level.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'sneak-attack-2d6', 'name' => 'Sneak Attack Upgrade (2d6)',
+          'description' => 'Your Sneak Attack increases to 2d6 precision damage.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'evasion', 'name' => 'Evasion',
+          'description' => 'Your Reflex save proficiency increases to Master. When you critically fail a Reflex save, you fail instead.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'debilitating-strike', 'name' => 'Debilitating Strike',
+          'description' => 'When you hit a flat-footed target with a Strike, you can inflict a debilitating condition.'],
+      ]],
+    ],
+    'cleric' => [
+      1  => ['auto_features' => [
+        ['id' => 'divine-spellcasting', 'name' => 'Divine Spellcasting',
+          'description' => 'You can cast divine spells. Your spellcasting ability is Wisdom.'],
+        ['id' => 'divine-font', 'name' => 'Divine Font',
+          'description' => 'You gain additional heal or harm spells per day based on your deity.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'second-doctrine', 'name' => 'Second Doctrine',
+          'description' => 'You gain an additional doctrine benefit based on your divine order.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'third-doctrine', 'name' => 'Third Doctrine',
+          'description' => 'You gain a third doctrine benefit based on your divine order.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'fourth-doctrine', 'name' => 'Fourth Doctrine',
+          'description' => 'You gain a fourth doctrine benefit based on your divine order.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'fifth-doctrine', 'name' => 'Fifth Doctrine',
+          'description' => 'You gain a fifth doctrine benefit based on your divine order.'],
+      ]],
+    ],
+    'ranger' => [
+      1  => ['auto_features' => [
+        ['id' => 'hunt-prey', 'name' => 'Hunt Prey',
+          'description' => 'You can designate a creature as your prey with a free action. You gain a +2 circumstance bonus to Perception checks to locate your prey.'],
+        ['id' => 'hunters-edge', 'name' => 'Hunter\'s Edge',
+          'description' => 'You gain the benefit of one of the following hunter\'s edge options: Flurry, Precision, or Outwit.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'trackless-step', 'name' => 'Trackless Step',
+          'description' => 'When you move through natural environments, you leave no tracks and can\'t be tracked.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'swift-prey', 'name' => 'Swift Prey',
+          'description' => 'You can Hunt Prey as a free action once per turn on your turn.'],
+      ]],
+    ],
+    'bard' => [
+      1  => ['auto_features' => [
+        ['id' => 'occult-spellcasting', 'name' => 'Occult Spellcasting',
+          'description' => 'You can cast occult spells. Your spellcasting ability is Charisma.'],
+        ['id' => 'composition-spells', 'name' => 'Composition Spells',
+          'description' => 'You can cast composition cantrips and spells, which enhance your performances.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'lightning-reflexes', 'name' => 'Lightning Reflexes',
+          'description' => 'Your Reflex saving throw proficiency increases to Expert.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'maestro-muse', 'name' => 'Expert Spellcaster (Bard)',
+          'description' => 'Your spell attack rolls and spell DCs increase to Expert proficiency.'],
+      ]],
+    ],
+    'barbarian' => [
+      1  => ['auto_features' => [
+        ['id' => 'rage', 'name' => 'Rage',
+          'description' => 'You can enter a Rage as a single action. While raging you gain a +2 status bonus to melee damage and take a -1 penalty to AC.'],
+        ['id' => 'instinct', 'name' => 'Instinct',
+          'description' => 'You choose an instinct (animal, dragon, fury, giant, spirit, or superstition) that grants additional abilities while raging.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'deny-advantage-barbarian', 'name' => 'Deny Advantage',
+          'description' => 'You aren\'t flat-footed to creatures of equal or lower level.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'brutality', 'name' => 'Brutality',
+          'description' => 'Your weapon proficiency increases to Expert while raging, and you gain the weapon specialization damage bonus.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'juggernaut-barbarian', 'name' => 'Juggernaut',
+          'description' => 'Your Fortitude saving throw proficiency increases to Master.'],
+      ]],
+    ],
+  ];
+
+  /**
+   * Get the full advancement data for a class at a given level.
+   *
+   * Returns merged universal + class-specific features. Universal advancement
+   * follows PF2e core rules (feats/boosts/skill increases); class-specific
+   * auto_features are defined in CLASS_ADVANCEMENT above.
+   *
+   * @param string $class_name
+   *   Lowercase class name (e.g., 'fighter', 'wizard').
+   * @param int $level
+   *   Target level (2–20; level 1 is handled at character creation).
+   *
+   * @return array
+   *   Keys: hp_bonus, feat_slots, skill_increases, ability_boosts, auto_features.
+   */
+  public static function getClassAdvancement(string $class_name, int $level): array {
+    // Universal PF2e advancement by level (applying to all classes).
+    // Ancestry feats: 1, 5, 9, 13, 17
+    // Skill feats: 2, 4, 6, 8, 10, 12, 14, 16, 18, 20
+    // Class feats: every level 1+
+    // General feats: 3, 7, 11, 15, 19
+    // Skill increases: 3, 7, 11, 15, 19
+    // Ability boosts: 5, 10, 15, 20
+    $class_feat = ['slot_type' => 'class_feat', 'label' => 'Class Feat'];
+    $skill_feat  = ['slot_type' => 'skill_feat',  'label' => 'Skill Feat'];
+    $general_feat = ['slot_type' => 'general_feat', 'label' => 'General Feat'];
+    $ancestry_feat = ['slot_type' => 'ancestry_feat', 'label' => 'Ancestry Feat'];
+
+    $universal = [
+      2  => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      3  => ['feat_slots' => [$class_feat, $general_feat], 'skill_increases' => 1, 'ability_boosts' => 0],
+      4  => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      5  => ['feat_slots' => [$class_feat, $skill_feat, $ancestry_feat], 'skill_increases' => 0, 'ability_boosts' => 4],
+      6  => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      7  => ['feat_slots' => [$class_feat, $general_feat], 'skill_increases' => 1, 'ability_boosts' => 0],
+      8  => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      9  => ['feat_slots' => [$class_feat, $skill_feat, $ancestry_feat], 'skill_increases' => 0, 'ability_boosts' => 0],
+      10 => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 4],
+      11 => ['feat_slots' => [$class_feat, $general_feat], 'skill_increases' => 1, 'ability_boosts' => 0],
+      12 => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      13 => ['feat_slots' => [$class_feat, $skill_feat, $ancestry_feat], 'skill_increases' => 0, 'ability_boosts' => 0],
+      14 => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      15 => ['feat_slots' => [$class_feat, $general_feat], 'skill_increases' => 1, 'ability_boosts' => 4],
+      16 => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      17 => ['feat_slots' => [$class_feat, $skill_feat, $ancestry_feat], 'skill_increases' => 0, 'ability_boosts' => 0],
+      18 => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 0],
+      19 => ['feat_slots' => [$class_feat, $general_feat], 'skill_increases' => 1, 'ability_boosts' => 0],
+      20 => ['feat_slots' => [$class_feat, $skill_feat],  'skill_increases' => 0, 'ability_boosts' => 4],
+    ];
+
+    $lvl_universal = $universal[$level] ?? ['feat_slots' => [$class_feat], 'skill_increases' => 0, 'ability_boosts' => 0];
+    $class_specific = self::CLASS_ADVANCEMENT[$class_name][$level] ?? [];
+
+    return [
+      'hp_bonus' => self::CLASSES[$class_name]['hp'] ?? 8,
+      'feat_slots' => $lvl_universal['feat_slots'],
+      'skill_increases' => $lvl_universal['skill_increases'],
+      'ability_boosts' => $lvl_universal['ability_boosts'],
+      'auto_features' => $class_specific['auto_features'] ?? [],
+    ];
+  }
+
+  /**
    * PF2E starting equipment by class.
    * Each class entry lists the standard starting gear at level 1.
    * Items reference IDs from EquipmentCatalogService::CATALOG.

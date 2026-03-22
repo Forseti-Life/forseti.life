@@ -33,6 +33,10 @@ services:
   dungeoncrawler_content.character_state_service:
     alias: dungeoncrawler_content.character_state
 
+  dungeoncrawler_content.character_leveling:
+    class: Drupal\dungeoncrawler_content\Service\CharacterLevelingService
+    arguments: ['@database']
+
   dungeoncrawler_content.inventory_management:
     class: Drupal\dungeoncrawler_content\Service\InventoryManagementService
     arguments:
