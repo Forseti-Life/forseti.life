@@ -89,6 +89,13 @@ A feature is Stage 0-eligible when ALL THREE exist:
 - `features/<id>/01-acceptance-criteria.md`
 - `features/<id>/03-test-plan.md`
 
+## Dev delivery → feature status update (required)
+When dev-dungeoncrawler delivers implementation for a feature (outbox confirms done + commit hash):
+1. Update `features/<id>/feature.md` status from `ready` → `in_progress`.
+2. Confirm QA activation step is clear: dev outbox should list new routes + `qa-permissions.json` requirements.
+
+**Lesson (2026-03-22, GAP-DS):** `dc-cr-ancestry-traits` was delivered by dev (commits `e97a248b5`, `71aa8d924`) but `feature.md` remained `status: ready` for 2 cycles. No protocol existed for pm-dungeoncrawler to consume dev delivery signal and update feature state.
+
 ## Intake queue alignment (required)
 - Before creating a new per-feature inbox item, check for an existing active item under `sessions/pm-dungeoncrawler/inbox/` for the same `dc-*` work item id.
 - Do not create duplicate queue items for the same feature in the same release cycle unless the prior item is explicitly superseded (document reason in README).
