@@ -75,6 +75,30 @@ When a release is coordinated across Forseti + Dungeoncrawler, you are the relea
 Start-of-cycle (recommended for coordinated releases):
 - `./scripts/coordinated-release-cycle-start.sh <release-id>`
 
+## Coordinated signoff claim — trigger on any Gate 2 report (required)
+**Trigger**: Any inbox item arrives that reports or follows up on a Gate 2 APPROVE for a coordinated release (dungeoncrawler OR forseti), OR any inbox item where `release-signoff-status.sh` would be relevant (follow-up, handoff, post-push, improvement round).
+
+**Action (run at the START of the inbox item, before other work):**
+```bash
+# 1. Find all release IDs with any pending signoff file
+find sessions/pm-forseti/artifacts/release-signoffs sessions/pm-dungeoncrawler/artifacts/release-signoffs \
+  -name "*.md" 2>/dev/null | sed 's|.*/||;s|\.md$||' | sort -u
+
+# 2. For each release-id found:
+./scripts/release-signoff-status.sh <release-id>
+```
+
+- If `pm-dungeoncrawler` has signed but `pm-forseti` has **not**: record your signoff immediately in the same outbox cycle — do NOT wait for a separate inbox item:
+  ```bash
+  ./scripts/release-signoff.sh forseti.life <release-id>
+  ```
+- If `pm-forseti` has signed but `pm-dungeoncrawler` has not: dispatch a passthrough-request inbox item **directly to pm-dungeoncrawler** (ROI ≥ 20). Escalate to CEO only if unresolved after one cycle.
+- Document the `release-signoff-status.sh` output in your outbox as evidence.
+
+**Why this exists**: In `20260322-dungeoncrawler-release-next`, `pm-dungeoncrawler` recorded Gate 2 signoff but `pm-forseti` did not. The coordinated push stalled because pm-forseti had no standing instruction to claim the remaining signoff when a cross-PM Gate 2 was reported. The improvement-round trigger alone is insufficient — the claim must happen on any inbox item where Gate 2 context arrives.
+
+**Ownership**: pm-forseti is the release operator for all coordinated Forseti + Dungeoncrawler releases. Confirming `release-signoff-status.sh` exits `0` before any push is a non-delegable gate obligation.
+
 ## Improvement round standing check (required)
 At the START of every improvement round inbox item, enumerate ALL active coordinated release IDs and check each one:
 ```bash
