@@ -7,13 +7,13 @@ cd "$ROOT_DIR"
 usage() {
   cat <<'USAGE'
 Usage:
-  ./scripts/copilot-prompt-loop.sh [session-name]
+  ./scripts/1-copilot.sh [session-name]
 
 Interactive commands:
   :help        Show this help
   :show        Show current session info
   :session ID  Switch session name
-  :mode MODE   Set mode (chat|suggest|explain) in plugin CLI mode
+  :mode MODE   Set mode (chat|suggest|explain|shell|git|gh)
   :exit        Quit
 
 Environment overrides:
@@ -21,33 +21,36 @@ Environment overrides:
   COPILOT_MODEL             Default: gpt-5.3-codex (chat-capable CLI only)
   COPILOT_REQUIRE_AGENTIC   Default: 1 (set 0 to allow non-agentic fallback)
   COPILOT_REQUIRE_MODEL     Default: 1 (set 0 to allow default model fallback)
-  COPILOT_SESSION_NAMESPACE Default: manual (set to hq only if you explicitly
-                            want this loop to share HQ agent session IDs)
+  COPILOT_SESSION_NAMESPACE Default: manual
   COPILOT_TIMEOUT_SEC       Default: 900
   COPILOT_TIMEOUT_KILL_SEC  Default: 10
-  COPILOT_LOOP_LOG          Default: 1 (set to 0 to disable repo transcript log)
+  COPILOT_LOOP_LOG          Default: 1 (set 0 to disable transcript log)
+  COPILOT_BEDROCK_FALLBACK  Default: 1 (fallback to Bedrock assistant)
+  COPILOT_BEDROCK_SITE      Default: forseti
+  BEDROCK_ASSIST_SCRIPT     Default: ./scripts/bedrock-assist.sh
 USAGE
 }
 
 export PATH="$HOME/.npm-global/bin:$HOME/.local/bin:/usr/local/bin:/usr/bin:/bin:${PATH:-}"
+
 COPILOT_BIN="${COPILOT_BIN:-$(command -v copilot 2>/dev/null || true)}"
 if [ -z "$COPILOT_BIN" ] && [ -x "$HOME/.npm-global/bin/copilot" ]; then
   COPILOT_BIN="$HOME/.npm-global/bin/copilot"
 fi
-if [ -z "$COPILOT_BIN" ]; then
-  echo "ERROR: copilot CLI not found in PATH." >&2
-  echo "Install or expose it first, then re-run this script." >&2
-  exit 1
-fi
+
+BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
+BEDROCK_FALLBACK="${COPILOT_BEDROCK_FALLBACK:-1}"
+BEDROCK_SITE="${COPILOT_BEDROCK_SITE:-forseti}"
 
 SESSION_NAME="${1:-interactive-loop}"
 SESSION_FILE=""
 SESSION_ID=""
 LOG_DIR="inbox/responses/copilot-prompt-loop"
 LOG_FILE=""
-CLI_MODE=""
+CLI_MODE="unknown"
 PROMPT_MODE="chat"
 COPILOT_SUPPORTS_MODEL=0
+COPILOT_SUPPORTS_AGENTIC_CHAT=0
 CHAT_MODEL="${COPILOT_MODEL:-gpt-5.3-codex}"
 SESSION_NAMESPACE=""
 
@@ -96,16 +99,24 @@ append_log() {
 }
 
 detect_cli_mode() {
+  COPILOT_SUPPORTS_MODEL=0
+  COPILOT_SUPPORTS_AGENTIC_CHAT=0
+
+  if [ -z "$COPILOT_BIN" ]; then
+    CLI_MODE="unknown"
+    PROMPT_MODE="chat"
+    return 0
+  fi
+
   local help
   help="$($COPILOT_BIN --help 2>&1 || true)"
 
   if printf '%s' "$help" | grep -q -- '--resume'; then
     CLI_MODE="chat"
     PROMPT_MODE="chat"
+    COPILOT_SUPPORTS_AGENTIC_CHAT=1
     if printf '%s' "$help" | grep -q -- '--model'; then
       COPILOT_SUPPORTS_MODEL=1
-    else
-      COPILOT_SUPPORTS_MODEL=0
     fi
     return 0
   fi
@@ -113,30 +124,43 @@ detect_cli_mode() {
   if printf '%s' "$help" | grep -qE 'what-the-shell|git-assist|gh-assist'; then
     CLI_MODE="legacy"
     PROMPT_MODE="shell"
-    COPILOT_SUPPORTS_MODEL=0
     return 0
   fi
 
   if printf '%s' "$help" | grep -qE 'suggest[[:space:]]+|explain[[:space:]]+'; then
     CLI_MODE="plugin"
     PROMPT_MODE="suggest"
-    COPILOT_SUPPORTS_MODEL=0
     return 0
   fi
 
   CLI_MODE="unknown"
   PROMPT_MODE="chat"
-  COPILOT_SUPPORTS_MODEL=0
+}
+
+enable_bedrock_fallback() {
+  if [ "$BEDROCK_FALLBACK" != "1" ]; then
+    return 1
+  fi
+  if [ ! -x "$BEDROCK_ASSIST_SCRIPT" ]; then
+    return 1
+  fi
+  CLI_MODE="bedrock"
+  PROMPT_MODE="bedrock"
+  return 0
 }
 
 refresh_session "$SESSION_NAME"
 detect_cli_mode
 
-if [ "${COPILOT_REQUIRE_AGENTIC:-1}" = "1" ] && [ "$CLI_MODE" != "chat" ]; then
-  echo "ERROR: agentic mode requires a chat-capable Copilot CLI (supports --resume, -p, --allow-all)." >&2
-  echo "Found mode: $CLI_MODE using $COPILOT_BIN" >&2
-  echo "Set COPILOT_REQUIRE_AGENTIC=0 to allow legacy fallback mode." >&2
-  exit 2
+if [ "${COPILOT_REQUIRE_AGENTIC:-1}" = "1" ] && [ "$COPILOT_SUPPORTS_AGENTIC_CHAT" != "1" ]; then
+  if enable_bedrock_fallback; then
+    echo "WARN: Copilot agentic chat unavailable; using Bedrock fallback ($BEDROCK_SITE)." >&2
+  else
+    echo "ERROR: agentic mode requires a chat-capable Copilot CLI (supports --resume, -p, --allow-all)." >&2
+    echo "Found mode: $CLI_MODE using ${COPILOT_BIN:-[not-found]}" >&2
+    echo "Set COPILOT_REQUIRE_AGENTIC=0 for non-agentic modes, or enable COPILOT_BEDROCK_FALLBACK=1 with an executable BEDROCK_ASSIST_SCRIPT." >&2
+    exit 2
+  fi
 fi
 
 if [ "$CLI_MODE" = "chat" ] && [ "${COPILOT_REQUIRE_MODEL:-1}" = "1" ] && [ "$COPILOT_SUPPORTS_MODEL" != "1" ]; then
@@ -181,7 +205,12 @@ run_prompt() {
     return 0
   fi
 
-  echo "ERROR: unsupported copilot CLI mode; expected chat (--resume) or plugin (suggest/explain)." >&2
+  if [ "$CLI_MODE" = "bedrock" ]; then
+    BEDROCK_OPERATION="hq_copilot_loop" "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$prompt"
+    return 0
+  fi
+
+  echo "ERROR: unsupported copilot CLI mode; expected chat (--resume), plugin/legacy, or bedrock fallback." >&2
   return 1
 }
 
@@ -191,7 +220,7 @@ echo "Session file: $SESSION_FILE"
 echo "Session id:   $SESSION_ID"
 echo "Namespace:    $SESSION_NAMESPACE"
 echo "Transcript:   $LOG_FILE"
-echo "Copilot bin:  $COPILOT_BIN"
+echo "Copilot bin:  ${COPILOT_BIN:-[not-found]}"
 echo "CLI mode:     $CLI_MODE"
 if [ "$CLI_MODE" = "chat" ]; then
   echo "Agentic:      enabled (--allow-all)"
@@ -201,13 +230,12 @@ if [ "$CLI_MODE" = "chat" ]; then
     echo "Model:        default (this copilot binary does not expose --model)"
   fi
 fi
-if [ "$CLI_MODE" = "plugin" ]; then
+if [ "$CLI_MODE" = "plugin" ] || [ "$CLI_MODE" = "legacy" ]; then
   echo "Prompt mode:  $PROMPT_MODE"
-  echo "Note: plugin mode does not support chat session resume; transcript logging remains persistent."
 fi
-if [ "$CLI_MODE" = "legacy" ]; then
-  echo "Prompt mode:  $PROMPT_MODE"
-  echo "Note: legacy mode does not support agentic chat sessions or explicit model selection."
+if [ "$CLI_MODE" = "bedrock" ]; then
+  echo "Backend:      bedrock-assist"
+  echo "Bedrock site: $BEDROCK_SITE"
 fi
 echo "Type :help for commands."
 
@@ -238,21 +266,17 @@ while true; do
       echo "Session id:   $SESSION_ID"
       echo "Namespace:    $SESSION_NAMESPACE"
       echo "Transcript:   $LOG_FILE"
-      echo "Copilot bin:  $COPILOT_BIN"
+      echo "Copilot bin:  ${COPILOT_BIN:-[not-found]}"
       echo "CLI mode:     $CLI_MODE"
-      if [ "$CLI_MODE" = "plugin" ]; then
-        echo "Prompt mode:  $PROMPT_MODE"
-      fi
-      if [ "$CLI_MODE" = "legacy" ]; then
+      if [ "$CLI_MODE" = "plugin" ] || [ "$CLI_MODE" = "legacy" ]; then
         echo "Prompt mode:  $PROMPT_MODE"
       fi
       if [ "$CLI_MODE" = "chat" ]; then
         echo "Agentic:      enabled (--allow-all)"
-        if [ "$COPILOT_SUPPORTS_MODEL" = "1" ]; then
-          echo "Model:        $CHAT_MODEL"
-        else
-          echo "Model:        default (this copilot binary does not expose --model)"
-        fi
+      fi
+      if [ "$CLI_MODE" = "bedrock" ]; then
+        echo "Backend:      bedrock-assist"
+        echo "Bedrock site: $BEDROCK_SITE"
       fi
       continue
       ;;
@@ -263,22 +287,6 @@ while true; do
       echo "Session id:   $SESSION_ID"
       echo "Namespace:    $SESSION_NAMESPACE"
       echo "Transcript:   $LOG_FILE"
-      echo "Copilot bin:  $COPILOT_BIN"
-      echo "CLI mode:     $CLI_MODE"
-      if [ "$CLI_MODE" = "plugin" ]; then
-        echo "Prompt mode:  $PROMPT_MODE"
-      fi
-      if [ "$CLI_MODE" = "legacy" ]; then
-        echo "Prompt mode:  $PROMPT_MODE"
-      fi
-      if [ "$CLI_MODE" = "chat" ]; then
-        echo "Agentic:      enabled (--allow-all)"
-        if [ "$COPILOT_SUPPORTS_MODEL" = "1" ]; then
-          echo "Model:        $CHAT_MODEL"
-        else
-          echo "Model:        default (this copilot binary does not expose --model)"
-        fi
-      fi
       continue
       ;;
     :mode\ *)
@@ -286,7 +294,7 @@ while true; do
       case "$mode_value" in
         chat)
           if [ "$CLI_MODE" != "chat" ]; then
-            echo "chat mode is unavailable with this copilot binary"
+            echo "chat mode is unavailable with this backend"
           else
             PROMPT_MODE="chat"
             echo "Prompt mode set: $PROMPT_MODE"
@@ -294,7 +302,7 @@ while true; do
           ;;
         suggest|explain)
           if [ "$CLI_MODE" != "plugin" ]; then
-            echo "plugin modes are unavailable with this copilot binary"
+            echo "plugin modes are unavailable with this backend"
           else
             PROMPT_MODE="$mode_value"
             echo "Prompt mode set: $PROMPT_MODE"
@@ -302,7 +310,7 @@ while true; do
           ;;
         shell|git|gh)
           if [ "$CLI_MODE" != "legacy" ]; then
-            echo "legacy modes are unavailable with this copilot binary"
+            echo "legacy modes are unavailable with this backend"
           else
             PROMPT_MODE="$mode_value"
             echo "Prompt mode set: $PROMPT_MODE"
@@ -329,4 +337,5 @@ while true; do
   echo "$out"
   append_log "Copilot" "$out"
   echo
+
 done

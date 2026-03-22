@@ -36,17 +36,35 @@ COPILOT_BIN="$(command -v copilot 2>/dev/null || true)"
 if [ -z "$COPILOT_BIN" ] && [ -x "$HOME/.npm-global/bin/copilot" ]; then
   COPILOT_BIN="$HOME/.npm-global/bin/copilot"
 fi
+
+copilot_supports_agentic_chat() {
+  local bin="$1"
+  [ -n "$bin" ] || return 1
+  local help
+  help="$($bin --help 2>&1 || true)"
+  printf '%s' "$help" | grep -q -- '--resume'
+}
+
+COPILOT_CHAT_CAPABLE=0
+if copilot_supports_agentic_chat "$COPILOT_BIN"; then
+  COPILOT_CHAT_CAPABLE=1
+fi
+
 BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
 AGENTIC_BACKEND="${HQ_AGENTIC_BACKEND:-auto}"
 
 resolve_backend() {
   case "$AGENTIC_BACKEND" in
     copilot)
-      if [ -n "$COPILOT_BIN" ]; then
+      if [ "$COPILOT_CHAT_CAPABLE" = "1" ]; then
         echo "copilot"
         return 0
       fi
-      echo "ERROR: HQ_AGENTIC_BACKEND=copilot but copilot CLI not found in PATH." >&2
+      if [ -n "$COPILOT_BIN" ]; then
+        echo "ERROR: HQ_AGENTIC_BACKEND=copilot but installed copilot CLI is not chat-capable (--resume missing)." >&2
+      else
+        echo "ERROR: HQ_AGENTIC_BACKEND=copilot but copilot CLI not found in PATH." >&2
+      fi
       return 1
       ;;
     bedrock)
@@ -58,7 +76,7 @@ resolve_backend() {
       return 1
       ;;
     auto)
-      if [ -n "$COPILOT_BIN" ]; then
+      if [ "$COPILOT_CHAT_CAPABLE" = "1" ]; then
         echo "copilot"
         return 0
       fi
@@ -66,7 +84,7 @@ resolve_backend() {
         echo "bedrock"
         return 0
       fi
-      echo "ERROR: no GenAI backend available (copilot missing, bedrock-assist missing)." >&2
+      echo "ERROR: no GenAI backend available (chat-capable copilot missing/incompatible, bedrock-assist missing)." >&2
       return 1
       ;;
     *)

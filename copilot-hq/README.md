@@ -68,10 +68,11 @@ Legacy loops (`ceo-inbox-loop`, `inbox-loop`, `ceo-health-loop`, `2-ceo-opsloop`
 - Deploy workflow behavior is idempotent: first deploy runs `scripts/setup.sh`; existing deploys run `scripts/verify-hq-runtime.sh --strict` and auto-run `scripts/setup.sh` only if verification fails.
 - Run `./scripts/verify-hq-runtime.sh --strict` after deploy.
 - Select agentic backend via `HQ_AGENTIC_BACKEND`:
-	- `auto` (default): prefer Copilot CLI; fallback to Bedrock assistant script
-	- `copilot`: require Copilot CLI
+	- `auto` (default): prefer chat-capable Copilot CLI (`--resume` support); fallback to Bedrock assistant script when Copilot is missing or incompatible
+	- `copilot`: require chat-capable Copilot CLI (`--resume` support)
 	- `bedrock`: require Bedrock assistant script
 - Ensure `scripts/bedrock-assist.sh` is executable if using Bedrock path.
+- `scripts/1-copilot.sh` supports production fallback via `COPILOT_BEDROCK_FALLBACK=1` (default) when Copilot CLI is missing/incompatible.
 - Validate org state with `./scripts/org-control.sh status --one-line` and runtime state with `./scripts/hq-automation.sh status`.
 
 ## How incidents are handled

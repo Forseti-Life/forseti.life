@@ -31,12 +31,24 @@ copilot_bin="$(command -v copilot 2>/dev/null || true)"
 if [ -z "$copilot_bin" ] && [ -x "$HOME/.npm-global/bin/copilot" ]; then
   copilot_bin="$HOME/.npm-global/bin/copilot"
 fi
+
+copilot_chat_capable=0
+if [ -n "$copilot_bin" ]; then
+  copilot_help="$($copilot_bin --help 2>&1 || true)"
+  if printf '%s' "$copilot_help" | grep -q -- '--resume'; then
+    copilot_chat_capable=1
+  fi
+fi
+
 bedrock_script="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
 
 case "$backend_mode" in
   auto)
-    if [ -n "$copilot_bin" ]; then
-      pass "backend(auto): copilot available"
+    if [ "$copilot_chat_capable" -eq 1 ]; then
+      pass "backend(auto): chat-capable copilot available"
+    elif [ -n "$copilot_bin" ] && [ -x "$bedrock_script" ]; then
+      warn "backend(auto): copilot found but not chat-capable; falling back to bedrock assistant"
+      pass "backend(auto): bedrock assistant available"
     elif [ -x "$bedrock_script" ]; then
       pass "backend(auto): bedrock assistant available"
     else
@@ -45,7 +57,8 @@ case "$backend_mode" in
     ;;
   copilot)
     [ -n "$copilot_bin" ] || fail "backend(copilot): copilot CLI not found"
-    pass "backend(copilot): copilot CLI available"
+    [ "$copilot_chat_capable" -eq 1 ] || fail "backend(copilot): copilot CLI found but not chat-capable (--resume missing)"
+    pass "backend(copilot): chat-capable copilot CLI available"
     ;;
   bedrock)
     [ -x "$bedrock_script" ] || fail "backend(bedrock): assistant script missing or not executable ($bedrock_script)"
