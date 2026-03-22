@@ -234,3 +234,48 @@ scripts/release-signoff-status.sh <release-id>
 | Telemetry publisher | `scripts/publish-forseti-agent-tracker.sh` |
 | Active release state | `tmp/release-cycle-active/` |
 | Org on/off switch | `tmp/org-control.json` / `scripts/is-org-enabled.sh` |
+
+## Pre-merge safety gate (required for workspace snapshot merges)
+
+Workspace snapshot merges can silently delete `sessions/` files for multiple agents,
+requiring 3-5 cycles of manual recovery. Three such events have occurred (commits
+`7b8d1070`, `557f924f`, `389b604c7`). **Always use `scripts/workspace-merge-safe.sh`
+instead of bare `git merge` for any merge that may overwrite session artifacts.**
+
+### Procedure
+
+```bash
+# Instead of: git merge <ref>
+./scripts/workspace-merge-safe.sh <ref>
+
+# Dry-run (backup + integrity check only, no merge):
+./scripts/workspace-merge-safe.sh --dry-run
+```
+
+### What the script does
+
+1. **Backup**: copies `sessions/` to `/tmp/workspace-merge-backup-<timestamp>/sessions/`
+2. **Pre-merge manifest**: records all file paths; lists unprocessed inbox items
+3. **Merge**: runs `git merge --no-edit <ref>`
+4. **Integrity check**: diffs pre/post disk state; outputs `WARNING` + `DELETED:` paths
+   for any sessions/ files removed by the merge
+
+### Exit codes
+
+- `0` — merge succeeded, no sessions/ files deleted (or `--dry-run`)
+- `1` — git merge itself failed; backup preserved at `/tmp/workspace-merge-backup-<ts>/`
+- `2` — merge completed but sessions/ files were deleted; backup preserved, restore command printed
+
+### Recovery (if sessions/ files were lost)
+
+```bash
+# Restore from most recent backup
+cp -r /tmp/workspace-merge-backup-<ts>/sessions/ .
+git add -f sessions/ && git commit -m "restore: recover sessions/ files lost in workspace merge"
+```
+
+### Pre-merge checklist (manual)
+
+- [ ] Confirm all high-ROI inbox items are processed or content copied elsewhere
+- [ ] Run `./scripts/workspace-merge-safe.sh --dry-run` and review unprocessed inbox list
+- [ ] Only proceed with merge if unprocessed item count is acceptable
