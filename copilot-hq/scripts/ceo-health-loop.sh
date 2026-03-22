@@ -181,6 +181,12 @@ fi
           echo
           echo "AUTO-HANDOFF: detected HANDOFF-GAP state(s) in release monitor (count=${handoff_count})"
         fi
+        stale_inbox_count="$(printf '%s\n' "$kpi_monitor_out" | grep -c 'STALE-INBOX' || true)"
+        if [ "${stale_inbox_count:-0}" -gt 0 ]; then
+          echo
+          echo "STALE-INBOX-ALERT: ${stale_inbox_count} high-ROI inbox item(s) unprocessed >24h:"
+          printf '%s\n' "$kpi_monitor_out" | grep 'STALE-INBOX' | sed 's/^/  /'
+        fi
         echo
         echo "----"
       } | tee -a "$daylog" > "$LATEST"
