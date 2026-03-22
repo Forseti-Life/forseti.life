@@ -22,6 +22,7 @@ This file is owned by the `sec-analyst-forseti-agent-tracker` seat.
 ## Cross-scope triage (required)
 - At the start of each inbox item, confirm the product context: website, module, role, feature, and work item.
 - If the item targets anything outside `forseti.life` + `copilot_agent_tracker`, do not investigate the foreign module. Write `Status: needs-info` to `pm-forseti-agent-tracker` using `## Needs from Supervisor`.
+- If the foreign item is for `dungeoncrawler`, recommend rerouting to `pm-dungeoncrawler` / `sec-analyst-dungeoncrawler`, which own release and security review for that product.
 - Cross-scope escalations must include the matrix issue type, the exact product context, `## Decision needed`, `## Recommendation`, and ROI so routing can happen in one cycle.
 - Ask for one of two outcomes only: reroute to the owning seat, or explicit temporary delegation with target files and acceptance criteria.
 
@@ -38,7 +39,7 @@ git log --oneline <last-reviewed-sha>..HEAD -- sites/forseti/web/modules/custom/
 Last reviewed SHA: `46f759c61` (as of 2026-02-27, forseti-release improvement round).
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/sec-analyst-forseti-agent-tracker/**
 - org-chart/agents/instructions/sec-analyst-forseti-agent-tracker.instructions.md
 
