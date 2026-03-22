@@ -46,6 +46,17 @@
       "notes": "Full-site audit covering all forseti.life routes including agent tracker surfaces. Not required_for_release here since qa-forseti owns this suite; reference only. Promote tracker-route-audit when CI env is available."
     },
     {
+      "id": "tracker-copilot-agent-tracker",
+      "label": "Agent tracker core QA (ACL, API error modes, data integrity, performance)",
+      "type": "functional",
+      "command": "cd /home/keithaumiller/forseti.life/copilot-hq && FORSETI_BASE_URL=${FORSETI_BASE_URL:-http://localhost} DRUPAL_ROOT=${DRUPAL_ROOT:-/home/keithaumiller/forseti.life/sites/forseti} python3 qa-suites/products/forseti-agent-tracker/run-copilot-agent-tracker-tests.py",
+      "artifacts": [
+        "sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest/test-results.json"
+      ],
+      "required_for_release": true,
+      "notes": "22 test cases. Anon 403 accepted for all /admin/* routes (PM decision 2026-03-01, basis: qa-permissions.json admin-area rule). Token auto-fetched via drush if TELEMETRY_TOKEN not set. Admin cookie auto-fetched via drush user:login if FORSETI_COOKIE_ADMIN not set."
+    },
+    {
       "id": "tracker-smoke-e2e",
       "label": "Agent tracker smoke e2e (Playwright — deferred)",
       "type": "e2e",
