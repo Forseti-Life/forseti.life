@@ -11,10 +11,20 @@ This file is owned by the `dev-forseti-agent-tracker` seat.
 ### Forseti Drupal: /home/keithaumiller/forseti.life/sites/forseti
 - web/modules/custom/copilot_agent_tracker/**
 
-## Repo access (verified 2026-02-23)
-- HQ repo: readable and writable via absolute path `/home/keithaumiller/copilot-sessions-hq/`
+## Repo access (verified 2026-03-22)
+- Active working copy: `forseti.life/copilot-hq/` (subtree mirror of HQ repo).
 - Forseti Drupal: readable and writable via absolute path `/home/keithaumiller/forseti.life/`. Confirmed accessible with `--allow-all` tool access.
 - Write access: direct via tool calls with `--allow-all`. Apply patches directly; do not embed in outbox prose.
+- Note: HQ repo at `/home/keithaumiller/copilot-sessions-hq/` may be out of sync with the subtree; treat `forseti.life/copilot-hq/` as the active working copy until CEO confirms canonical path.
+
+## Canonical inbox path
+- Active inbox path for this seat: `forseti.life/copilot-hq/sessions/dev-forseti-agent-tracker/inbox/`
+- If CEO has not confirmed which repo is canonical (HQ vs subtree), note the ambiguity in the outbox and proceed with the subtree as the active working copy.
+
+## Workspace-merge artifact recovery (required at cycle start)
+- At the start of every cycle, verify that recent outbox artifacts are present: `git ls-tree HEAD copilot-hq/sessions/dev-forseti-agent-tracker/outbox/ | tail -5`
+- If post-merge outbox entries are missing (workspace wipe or subtree migration), check `git log` to identify the last known outbox commit and recover lost delegation inbox items before proceeding.
+- Escalate workspace-merge artifact loss to `pm-forseti-agent-tracker` with ROI; do not silently skip.
 
 ## Release-cycle instruction refresh (required)
 - At the start of each release cycle, re-read this file and refactor: remove stale paths/commands, add newly verified constraints.
