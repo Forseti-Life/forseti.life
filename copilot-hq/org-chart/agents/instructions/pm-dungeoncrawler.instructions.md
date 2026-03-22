@@ -4,7 +4,7 @@
 This file is owned by the `pm-dungeoncrawler` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/pm-dungeoncrawler/**
 - features/dc-*/**
 - features/dungeoncrawler-*/**

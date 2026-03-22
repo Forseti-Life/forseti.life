@@ -4,7 +4,7 @@
 This file is owned by the `dev-dungeoncrawler` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/dev-dungeoncrawler/**
 - org-chart/agents/instructions/dev-dungeoncrawler.instructions.md
 - features/*/02-implementation-notes.md  ← your artifact in every feature's living doc
@@ -43,6 +43,14 @@ If the feature introduces any routes, include this section:
 | /path/to/route | access xyz | allow | allow |
 ```
 If no new routes: include `## New routes introduced\nNone.` to confirm this was checked.
+
+#### Required: pre-QA permission self-audit (ADDED 2026-03-22 — GAP-DC-02 fix)
+Before notifying QA on any Type A or Type B fix, you MUST run the permission validation locally and confirm 0 violations:
+```bash
+cd /home/keithaumiller/forseti.life/copilot-hq
+python3 scripts/role-permissions-validate.py --site dungeoncrawler --base-url http://localhost:8080
+```
+If violations are found: fix them before handing off to QA. Never rely on QA's site-audit-run to catch permission regressions you could have caught locally. Record the result (`0 violations` or list of fixes) in your outbox under `## Pre-QA permission audit`.
 
 ### Type B: REGRESSION REPAIR
 **Signal:** `## REGRESSION FIXES REQUIRED` section (no feature_id), or general QA findings with no NEW FEATURE section.
@@ -117,13 +125,13 @@ cd /home/keithaumiller/forseti.life/sites/dungeoncrawler && /home/keithaumiller/
 # If any show "Disabled": run drush pm:enable <module> --yes, then drush config:export --yes, then git add + commit config/sync/
 
 # Confirm HQ git state
-cd /home/keithaumiller/copilot-sessions-hq && git --no-pager status
+cd /home/keithaumiller/forseti.life/copilot-hq && git --no-pager status
 
 # Read current-state digest (fastest context load)
 cat sessions/dev-dungeoncrawler/artifacts/current-state.md
 
 # Verify installed systemd unit matches source file (drift = stale QA env)
-diff /home/keithaumiller/copilot-sessions-hq/scripts/systemd/copilot-sessions-hq-site-audit.service \
+diff /home/keithaumiller/forseti.life/copilot-hq/scripts/systemd/copilot-sessions-hq-site-audit.service \
      /home/keithaumiller/.config/systemd/user/copilot-sessions-hq-site-audit.service && echo "OK: units match" || echo "DRIFT: installed unit differs from source"
 ```
 
@@ -131,7 +139,7 @@ If any of these fail at cycle start, record the failure in the outbox and escala
 
 ### Systemd unit drift — escalation rule (ADDED 2026-02-27)
 If the `diff` above shows drift (installed unit ≠ source file):
-1. Copy source over installed: `cp scripts/systemd/copilot-sessions-hq-site-audit.service ~/.config/systemd/user/`
+1. Copy source over installed: `cp /home/keithaumiller/forseti.life/copilot-hq/scripts/systemd/copilot-sessions-hq-site-audit.service ~/.config/systemd/user/`
 2. Escalate to CEO executor to run `systemctl --user daemon-reload` (requires interactive dbus session — headless executor cannot do this)
 3. Mark outbox `Status: blocked` and cite this rule — do not mark blocked without first performing step 1.
 
