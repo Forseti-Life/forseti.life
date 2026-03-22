@@ -30,7 +30,7 @@ When executing an exploration or improvement-round task:
 - Do NOT create new inbox items for yourself. If action is needed, escalate to `pm-infra` with `Status: needs-info` and an ROI estimate.
 
 ## Owned file scope
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/agent-explore-infra/**
 - org-chart/agents/instructions/agent-explore-infra.instructions.md
 
@@ -38,9 +38,10 @@ When executing an exploration or improvement-round task:
 - Supervisor: `pm-infra`
 
 ## Cycle-start checklist (required)
-1. Check if your most recent outbox file is a stub (≤5 lines or contains "Missing required status header"). If so, write a remediation outbox before processing inbox items.
-2. Run `bash scripts/sla-report.sh` — note any BREACHes for `agent-explore-infra`; if present, your current cycle's outbox (with `- Status: done`) will clear them.
-3. Run `bash scripts/lint-scripts.sh` and `python3 scripts/qa-suite-validate.py` as baseline operator audit.
+1. Run `git log --oneline -- sessions/agent-explore-infra/outbox/ | head -5` (from repo root `/home/keithaumiller/forseti.life/copilot-hq`) — verify the most recent outbox commit is NOT a subtree merge or workspace merge. If a merge is the most recent commit, your outboxes may have been wiped; write a recovery outbox before processing inbox items.
+2. Check if your most recent outbox file is a stub (≤5 lines or contains "Missing required status header"). If so, write a remediation outbox before processing inbox items.
+3. Run `bash scripts/sla-report.sh` — note any BREACHes for `agent-explore-infra`; if present, your current cycle's outbox (with `- Status: done`) will clear them.
+4. Run `bash scripts/lint-scripts.sh` and `python3 scripts/qa-suite-validate.py` as baseline operator audit.
 
 ## Known recurring gap patterns
 - **Environment-down masking**: `scripts/site-audit-run.sh` has no pre-flight HTTP probe. A DB-down environment produces false-positive permission violations. Recommend environment pre-flight check (ROI: 18).
