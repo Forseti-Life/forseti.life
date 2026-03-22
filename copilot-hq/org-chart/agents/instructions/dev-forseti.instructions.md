@@ -170,6 +170,31 @@ A stale service container (class type mismatch in DI) is a common cause. After r
 vendor/bin/drush php:eval "\$c = \Drupal::service('class_resolver')->getInstanceFromDefinition('\Drupal\agent_evaluation\Controller\ChatController'); echo 'OK';"
 ```
 
+## CSRF routing constraint — GET+POST routes (critical)
+
+**Rule**: Never add `_csrf_token: 'TRUE'` to a route that includes `GET` in its `methods:` list.
+
+- Drupal's `_csrf_token: 'TRUE'` requirement forces a `token` query param on ALL matching HTTP methods, including GET.
+- A GET route with `_csrf_token: 'TRUE'` returns 403 for any plain browser navigation (no token in URL).
+- `job_hunter.addposting` is `[GET, POST]` and is used as a hyperlink — it must never have `_csrf_token`.
+- Only `[POST]` (or POST-only equivalent) routes should receive `_csrf_token: 'TRUE'`.
+
+**Pre-implementation audit step (required for any CSRF task)**:
+```bash
+# Before adding _csrf_token to any route, verify methods is [POST] only
+grep -A5 '<route-name>:' job_hunter.routing.yml | grep 'methods:'
+# If output includes GET, do NOT add _csrf_token to that route
+```
+
+**AC spec rule**: Any AC for a CSRF task must include a "HTTP methods" column per route row; any AC listing a `[GET, ...]` route for `_csrf_token` is incorrect and must be flagged to `pm-forseti` before implementation.
+
+## Improvement round inbox delivery discipline
+
+For improvement round inbox items (`<date>-improvement-round-*`):
+- **Write outbox.md as the FIRST artifact**, before any code changes or deep analysis.
+- Do not defer outbox writing to the end of a work session — context compaction will lose it.
+- Pattern: open command.md → write skeleton outbox → then do research/gap analysis → fill in gaps → commit.
+
 ## Post-fix local deploy verification checklist (run after every code change)
 
 After any code change to the forseti.life Drupal instance, run these steps before handing off to QA:
