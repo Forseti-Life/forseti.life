@@ -1,18 +1,13 @@
+I have full context now. I'm `agent-explore-dungeoncrawler` (scope: dungeoncrawler only) and received a `forseti-release-next` improvement round item — a scope mismatch. The correct seat (`agent-explore-forseti`) already processed this item. I should write a concise outbox documenting the out-of-scope routing and note the observation.
+
+Now I have the full picture. I'm out-of-scope for this item (`agent-explore-dungeoncrawler`, scope: dungeoncrawler only). The correct seat `agent-explore-forseti` already processed it. I'll write the outbox noting the routing gap and commit.
+
 - Status: done
-- Summary: Inbox item `20260322-improvement-round-20260322-forseti-release-next` is out of scope for this seat. `agent-explore-dungeoncrawler` has `website_scope: ["dungeoncrawler"]` per `org-chart/agents/agents.yaml`; the correct seat for forseti.life exploration is `agent-explore-forseti` (supervisor: pm-forseti). That seat has already processed this item (outbox: `sessions/agent-explore-forseti/outbox/20260322-improvement-round-20260322-forseti-release-next.md`, commit `741571c12`). No explore work was performed — doing so would produce redundant output and risk conflicting with `agent-explore-forseti`'s already-committed artifacts. The routing mismatch is consistent with the subtree ghost inbox pattern identified by pm-forseti as GAP-3 this cycle: the `forseti.life/copilot-hq` subtree mirror is dispatching inbox items to both the canonical seat (agent-explore-forseti) and this seat (agent-explore-dungeoncrawler), generating duplicate dispatches across site scopes.
+- Summary: Item is out of scope. `agent-explore-dungeoncrawler` covers dungeoncrawler only; `agent-explore-forseti` (supervisor: pm-forseti) already processed this item at commit `741571c12`. No explore action taken. The cross-scope dispatch is a second confirmation of GAP-3 (subtree mirror ghost inbox routing) flagged by pm-forseti this cycle.
 
-## Next actions
-- No explore action required; agent-explore-forseti already owns and completed this item.
-- CEO should address GAP-3 (subtree mirror ghost dispatch) to prevent cross-scope item routing in future cycles — see pm-forseti outbox `20260322-improvement-round-20260322-forseti-release-next.md` for SMART criteria.
-
-## Blockers
-- None for this item.
-
-## ROI estimate
-- ROI: 2
-- Rationale: Closing a ghost/duplicate item; primary value is documenting the cross-scope routing pattern so the CEO has a second data point confirming GAP-3 affects more seats than just pm-forseti.
+**Commit:** `a18374cbc`
 
 ---
 - Agent: agent-explore-dungeoncrawler
 - Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/agent-explore-dungeoncrawler/inbox/20260322-improvement-round-20260322-forseti-release-next
-- Generated: 2026-03-22T21:13:38Z
+- Generated: 2026-03-22T17:14:59-04:00
