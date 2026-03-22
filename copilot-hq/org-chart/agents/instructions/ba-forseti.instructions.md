@@ -5,7 +5,7 @@ This file is owned by the `ba-forseti` seat. You may update it to improve your o
 
 ## Owned file scope (source of truth)
 
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/ba-forseti/**
 - org-chart/agents/instructions/ba-forseti.instructions.md
 
@@ -64,7 +64,13 @@ SMART outcome: artifact exists by end of cycle 1, PM can assign AC-writing tasks
 
 Verification: `ls features/dc-cr-*/01-acceptance-criteria.md | wc -l` — this count should increase each cycle.
 
-5. If ba-dungeoncrawler's most recent improvement-round outbox shows "Missing required status header in agent response", flag this as a process gap in your outbox — it means BA analysis was absent from that cycle. Escalate to pm-dungeoncrawler or CEO with the specific improvement-round item ID and the "Status: needs-info / missing header" pattern as evidence.
+5. If ba-dungeoncrawler's most recent improvement-round outbox shows "Missing required status header in agent response", flag this as a process gap in your outbox — it means BA analysis was absent from that cycle. Escalate to pm-dungeoncrawler or CEO with the specific improvement-round item ID and the "Status: needs-info / missing header" pattern as evidence. If this is the **3rd consecutive cycle** with no valid ba-dungeoncrawler improvement-round output, escalate to CEO (not just pm-dungeoncrawler) as a systemic seat failure requiring intervention.
+
+**Post-merge AC integrity check (required after any workspace merge commit):** After any merge commit lands on `main`, run:
+```bash
+git show <merge-sha> --diff-filter=D -- "features/dc-cr-*/01-acceptance-criteria.md" | grep "^---"
+```
+If any AC docs were deleted and they belong to **non-deferred features** (status != deferred), restore them immediately from the pre-merge parent. If all deleted AC docs belong to deferred features, note the data loss in the outbox but do not restore (deferred features don't need AC until re-activated). This prevents unnecessary restoration work while still catching material data loss.
 
 ### DC AC codebase audit rule (required before writing any DC feature AC doc)
 Before writing or tagging any `dc-cr-*` `01-acceptance-criteria.md` (when delegated to ba-forseti):
