@@ -17,24 +17,101 @@ ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
 SITE="${1:-forseti}"
-DRUPAL_ROOT="$(python3 -c "
-import json, pathlib
-p = pathlib.Path('org-chart/products/product-teams.json')
-data = json.loads(p.read_text())
-teams = data.get('teams', data) if isinstance(data, dict) else data
-for t in teams:
-    if t.get('site') == '${SITE}.life' or t.get('id') == '${SITE}':
-        print(t.get('drupal_root',''))
-        break
-" 2>/dev/null)"
+resolve_drupal_root() {
+  local site="$1"
+  local configured_roots
+  configured_roots="$(python3 - "$site" <<'PY'
+import json
+import pathlib
+import sys
 
-# Fallback: hardcoded known paths
-if [ -z "$DRUPAL_ROOT" ]; then
-  case "$SITE" in
-    forseti) DRUPAL_ROOT="/home/keithaumiller/forseti.life/sites/forseti" ;;
-    dungeoncrawler) DRUPAL_ROOT="/home/keithaumiller/forseti.life/sites/dungeoncrawler" ;;
-    *) echo "ERROR: Unknown site '$SITE'. Pass drupal root as second arg." >&2; exit 1 ;;
+site = (sys.argv[1] or '').strip().lower()
+p = pathlib.Path('org-chart/products/product-teams.json')
+if not p.exists():
+    raise SystemExit(0)
+
+data = json.loads(p.read_text(encoding='utf-8'))
+teams = data.get('teams', data) if isinstance(data, dict) else data
+
+def aliases_for(team):
+    vals = set()
+    tid = str(team.get('id') or '').strip().lower()
+    tsite = str(team.get('site') or '').strip().lower()
+    if tid:
+        vals.add(tid)
+    if tsite:
+        vals.add(tsite)
+        vals.add(tsite.replace('.life', ''))
+    for a in (team.get('aliases') or []):
+        a = str(a).strip().lower()
+        if a:
+            vals.add(a)
+    return vals
+
+for t in teams:
+    if site not in aliases_for(t):
+        continue
+
+    roots = []
+    drupal_root = str(t.get('drupal_root') or '').strip()
+    if drupal_root:
+        roots.append(drupal_root)
+
+    site_audit = t.get('site_audit') or {}
+    drupal_web_root = str(site_audit.get('drupal_web_root') or '').strip()
+    if drupal_web_root:
+        if drupal_web_root.endswith('/web'):
+            roots.append(drupal_web_root[:-4])
+        else:
+            roots.append(drupal_web_root)
+
+    for r in roots:
+        print(r)
+    break
+PY
+)"
+
+  local -a candidates=()
+  if [ -n "$configured_roots" ]; then
+    while IFS= read -r line; do
+      [ -n "$line" ] && candidates+=("$line")
+    done <<< "$configured_roots"
+  fi
+
+  case "$site" in
+    forseti)
+      candidates+=(
+        "/var/www/html/forseti"
+        "/home/ubuntu/forseti.life/sites/forseti"
+        "/home/keithaumiller/forseti.life/sites/forseti"
+      )
+      ;;
+    dungeoncrawler)
+      candidates+=(
+        "/var/www/html/dungeoncrawler"
+        "/home/ubuntu/forseti.life/sites/dungeoncrawler"
+        "/home/keithaumiller/forseti.life/sites/dungeoncrawler"
+      )
+      ;;
+    *)
+      ;;
   esac
+
+  local root
+  for root in "${candidates[@]}"; do
+    [ -n "$root" ] || continue
+    if [ -x "$root/vendor/bin/drush" ]; then
+      printf '%s\n' "$root"
+      return 0
+    fi
+  done
+
+  return 1
+}
+
+if ! DRUPAL_ROOT="$(resolve_drupal_root "$SITE")"; then
+  echo "ERROR: could not resolve Drupal root for site '$SITE' (drush not found)." >&2
+  exit 1
 fi
 
 DRUSH="$DRUPAL_ROOT/vendor/bin/drush"

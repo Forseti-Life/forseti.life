@@ -30,13 +30,15 @@ grep -rl "Status: pre-triage" features/dc-*/feature.md
 ```bash
 ./scripts/suggestion-intake.sh dungeoncrawler
 ```
-Note: `suggestion-intake.sh` requires Drush at the dungeoncrawler Drupal root (`/home/keithaumiller/forseti.life/sites/dungeoncrawler/vendor/bin/drush`). If the script exits 1 with "drush not found", the site is not yet deployed — skip community suggestions and proceed with BA-generated pre-triage features only. Document the Drush failure in your outbox.
+Note: `suggestion-intake.sh` resolves Drupal root dynamically from `org-chart/products/product-teams.json` + environment fallbacks (`/var/www/html/...`, `/home/ubuntu/...`, `/home/keithaumiller/...`).
+If it exits 1 with "could not resolve Drupal root" or "drush not found", treat this as an environment/config issue and escalate to `ceo-copilot` with the failing path + host context.
 
 ### 3. Triage each community suggestion
 ```bash
 ./scripts/suggestion-triage.sh dungeoncrawler <nid> accept <feature-id>
 ./scripts/suggestion-triage.sh dungeoncrawler <nid> defer
 ./scripts/suggestion-triage.sh dungeoncrawler <nid> decline
+./scripts/suggestion-triage.sh dungeoncrawler <nid> escalate
 ```
 
 ### 4. Write Acceptance Criteria for each accepted feature
