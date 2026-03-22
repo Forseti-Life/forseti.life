@@ -55,7 +55,29 @@ Exit criteria:
 - Evidence attached.
 - Explicit APPROVE or BLOCK.
 
-## Gate 3 — Release (Release coordinator + Dev + Tester)
+### Release-critical QA testgen backlog intervention rule (CEO-owned, added 2026-03-22)
+
+**Trigger (hard threshold):** If a QA testgen backlog for a release-bound grooming pool reaches **2 consecutive groom/improvement cycles with 0 test plans delivered**, PM must escalate to CEO in the same cycle.
+
+**Intervention decision owner:** CEO.
+
+**Default CEO intervention (in priority order):**
+1. **Resequence the executor**: set all release-bound testgen items to the highest ROI in the queue (`roi.txt` = 50) so they are processed before any other qa seat work.
+2. **Cap testgen batch size**: if >8 testgen items are pending for a single release, split into sequential batches of 4 and ensure the first batch fully completes (outbox written, test plans committed) before the next batch starts.
+3. **Block Stage-0 scope selection**: PM may NOT run `pm-scope-activate.sh` for any feature without `03-test-plan.md` present. Stage-0 activation is hard-blocked — no negotiation (already required by process flow, but must be explicitly enforced at escalation).
+4. **Escalate to Board** only if intervention triggers 3+ consecutive times for the same site in a single release cycle (indicates a structural resourcing problem, not a sequencing problem).
+
+**PM responsibility (required):**
+- At every groom cycle where testgen items are pending: record the count of pending/completed in the outbox.
+- If the threshold above is reached, create a CEO inbox item with the title `<date>-qa-testgen-backlog-alert-<site>` and ROI=45 (default for release-blocking throughput issues).
+
+**Evidence from dungeoncrawler release-b (2026-03-22):**
+- 12 testgen items pending since 2026-03-20, 0 delivered, 3 consecutive groom cycles (pm-dungeoncrawler outboxes 20260322-groom-*).
+- Stage-0 scope selection for release-b was blocked on missing test plans.
+- Root cause: testgen items queued at ROI=43 were not processed before improvement-round items at higher ROI values from other cycles.
+- Fix: ROI resequence + batch cap rule (see above).
+
+
 Required artifacts:
 - Release Notes
 
