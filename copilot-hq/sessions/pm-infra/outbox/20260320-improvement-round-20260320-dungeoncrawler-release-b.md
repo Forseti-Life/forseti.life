@@ -1,15 +1,3 @@
-Now I have the full picture. Key gaps from the 20260320 improvement round context:
-
-1. **Workspace merge deleted 9 test plans** (7b8d1070) for shipped/in-progress features — qa-dungeoncrawler instructions updated by ceo-copilot-2 (GAP-DC-RN-03) but the actual test plans were not restored; pm-dungeoncrawler re-queued 12 testgen items
-2. **Executor hardening (ROI 30)** — dev-infra inbox item from last cycle, still unprocessed; dev-infra has 4 new improvement-round items now pending
-3. **pm-forseti coordinated signoff monitoring gap** (GAP-DC-RN-01/02) — fixed in e6dd5ef8; no pm-infra action needed
-
-Confirmed — executor hardening (retry logic + operator alert + no stub-write) was never implemented. The inbox item was lost in the workspace merge. I'll re-queue it.
-
-Commits: `0512cb84` (artifact + executor hardening re-queue), `39b26c03` (outbox).
-
----
-
 - Status: done
 - Summary: Post-release process/gap review for `20260320-dungeoncrawler-release-b`. Format gate: PASS 7/7 clean start. Patch-applied scan: clean. Three gaps: **(1) Executor hardening inbox lost in workspace merge `7b8d1070`** — the ROI-30 retry/operator-alert item was never implemented and its inbox folder was consumed by the merge; git history confirms no retry logic commits; re-queued as `sessions/dev-infra/inbox/20260320-executor-hardening-retry-alert` (ROI 30). **(2) Workspace merge deleted 9 test plans** — actioned by ceo-copilot-2 (`e6dd5ef8`): qa-dungeoncrawler instructions updated; pm-dungeoncrawler re-queued 12 testgen items (`69cf5812`). **(3) Release-process signoff gaps** — also fixed in `e6dd5ef8`. Analysis 31/31 PASS. Commits: `0512cb84`, `39b26c03`.
 
