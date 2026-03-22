@@ -34,7 +34,7 @@ Before the findings table, run and record each check as applies/N/A:
 - [ ] Silent `|| true` on critical path (consume-forseti-replies, idle-work-generator, etc.)
 - [ ] Hardcoded absolute paths or environment-specific values
 - [ ] Idempotency: partial-creation leftover state, directory-vs-file guards
-- [ ] Drupal-specific: config import bypassing hooks/events (prefer `drush config:import` or verify hook dispatch)
+- [ ] Drupal-specific: `_csrf_token: 'TRUE'` must NOT be added to routes with GET in their methods list — run `grep -A3 '<route>' routing.yml | grep methods` before flagging CSRF gaps (2026-03-22: addposting regression in forseti CSRF patch)
 - [ ] Drupal-specific: stale private duplicates of canonical data — check if controller/service has hardcoded lookups that diverge from a `const` or `static` in a Manager/Service class (2026-03-22: CharacterCreationController::getAncestryTraits() vs CharacterManager::ANCESTRIES)
 
 ## KB reference requirement
