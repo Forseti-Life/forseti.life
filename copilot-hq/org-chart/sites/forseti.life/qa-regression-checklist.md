@@ -24,3 +24,4 @@ This file is a running list of targeted regression checks derived from completed
 - [x] 20260228-fix-500-jobhunter-credentials-and-companyresearch — BATCH CLOSED: dev outbox Status: done; no code changes required (failures already resolved by earlier permission grant); latest audit 20260228-115225 clean.
 - [ ] 20260319-improvement-round-20260315-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260319-improvement-round-20260315-dungeoncrawler-release-b.md)
 - [ ] 20260322-improvement-round-20260322-dungeoncrawler-release-next — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-improvement-round-20260322-dungeoncrawler-release-next.md)
+- [ ] 20260322-recover-impl-copilot-agent-tracker — targeted regression check (see dev outbox: sessions/dev-forseti-agent-tracker/outbox/20260322-recover-impl-copilot-agent-tracker.md)

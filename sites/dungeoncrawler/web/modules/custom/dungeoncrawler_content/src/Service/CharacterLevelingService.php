@@ -106,7 +106,8 @@ class CharacterLevelingService {
     }
 
     // Idempotent: in-progress for the same target level returns current state.
-    if (!empty($lus['inProgress']) && (int) ($lus['transitionTo'] ?? 0) === $level + 1) {
+    // After triggerLevelUp runs, level is already incremented to transitionTo, so compare directly.
+    if (!empty($lus['inProgress']) && (int) ($lus['transitionTo'] ?? 0) === $level) {
       return $this->buildStatusResponse($char_data, $character_id);
     }
 
