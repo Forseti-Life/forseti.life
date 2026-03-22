@@ -1,7 +1,8 @@
 # Open CSRF Findings Registry
 
 **Maintained by:** sec-analyst-infra (ARGUS)
-**Last updated:** 2026-03-19
+**Last updated:** 2026-03-22
+**Spot-check 2026-03-22:** FINDING-2a/2b/2c confirmed STILL OPEN by direct code inspection (forseti ai_conversation line 115, dungeoncrawler ai_conversation line 107, forseti agent_evaluation line 66). FINDING-3 (NEW): 7 dungeoncrawler_content POST routes missing CSRF protection, including 2 fully public routes (`dice_roll`, `rules_check` with `_access: TRUE`). See gap-review artifact for patches.
 **Spot-check 2026-03-19:** FINDING-1 CLOSED (confirmed by code inspection). FINDING-2 (ai_conversation + agent_evaluation MISPLACED) STILL OPEN across forseti and dungeoncrawler — patches were provided but MISPLACED-type was not in scope of the patch-mode execution (which targeted MISSING, not MISPLACED).
 **Source of truth:** run `bash sessions/sec-analyst-infra/artifacts/csrf-scan-tool/csrf-route-scan.sh <repo_root>` to regenerate current status.
 
@@ -13,9 +14,16 @@
 |---|---|---|---|---|---|
 | FINDING-1a | forseti | `job_hunter` | credentials_delete | MISSING | **CLOSED** 2026-03-01 |
 | FINDING-1b | forseti | `job_hunter` | credentials_test | MISSING | **CLOSED** 2026-03-01 |
-| FINDING-2a | forseti | `ai_conversation` | ai_conversation.send_message | MISPLACED (options:) | **OPEN** — patches written |
-| FINDING-2b | dungeoncrawler | `ai_conversation` | ai_conversation.send_message | MISPLACED (options:) | **OPEN** — patches written |
-| FINDING-2c | forseti | `agent_evaluation` | agent_evaluation.send_message | MISPLACED (options:) | **OPEN** — patches written |
+| FINDING-2a | forseti | `ai_conversation` | ai_conversation.send_message | MISPLACED (options:) | **OPEN** — patches written, 4th escalation cycle |
+| FINDING-2b | dungeoncrawler | `ai_conversation` | ai_conversation.send_message | MISPLACED (options:) | **OPEN** — patches written, 4th escalation cycle |
+| FINDING-2c | forseti | `agent_evaluation` | agent_evaluation.send_message | MISPLACED (options:) | **OPEN** — patches written, 4th escalation cycle |
+| FINDING-3a | dungeoncrawler | `dungeoncrawler_content` | api.dice_roll | MISSING + no auth | **OPEN** — HIGH — 2026-03-22 |
+| FINDING-3b | dungeoncrawler | `dungeoncrawler_content` | api.rules_check | MISSING + no auth | **OPEN** — HIGH — 2026-03-22 |
+| FINDING-3c | dungeoncrawler | `dungeoncrawler_content` | api.game_action | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
+| FINDING-3d | dungeoncrawler | `dungeoncrawler_content` | api.game_transition | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
+| FINDING-3e | dungeoncrawler | `dungeoncrawler_content` | campaign_create | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
+| FINDING-3f | dungeoncrawler | `dungeoncrawler_content` | character_step | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
+| FINDING-3g | dungeoncrawler | `dungeoncrawler_content` | game_objects | MISSING | **OPEN** — LOW-MED — 2026-03-22 |
 
 ---
 
@@ -83,6 +91,28 @@ Remove `options:` block entirely.
 ```bash
 bash sessions/sec-analyst-infra/artifacts/csrf-scan-tool/csrf-route-scan.sh /home/keithaumiller/forseti.life
 # Expected: exit 0, zero MISPLACED or MISSING flags for ai_conversation / agent_evaluation
+```
+
+---
+
+## FINDING-3 (OPEN — new 2026-03-22 — HIGH)
+
+**Description:** 7 routes in `dungeoncrawler_content.routing.yml` have POST methods with `_controller` handlers and no CSRF protection. Two routes (`dice_roll`, `rules_check`) additionally have `_access: TRUE` — no authentication required.
+
+**File:** `sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/dungeoncrawler_content.routing.yml`
+**Introduced:** release-next character/ancestry routing surface expansion
+
+**Fix pattern:**
+- JSON API routes: add `_csrf_request_header_mode: TRUE` to `requirements:`
+- Browser routes: add `_csrf_token: 'TRUE'` to `requirements:`
+- `dice_roll` and `rules_check`: also add `_permission: 'access dungeoncrawler characters'`
+
+**Patches:** see `sessions/sec-analyst-infra/artifacts/20260322-improvement-round-20260322-dungeoncrawler-release-next/gap-review.md`
+
+**Verification command:**
+```bash
+python3 sessions/sec-analyst-infra/artifacts/csrf-scan-tool/verify-dungeoncrawler-content.py
+# Exit 0 = all controller POST routes have CSRF; Exit 1 = list unprotected routes
 ```
 
 ---

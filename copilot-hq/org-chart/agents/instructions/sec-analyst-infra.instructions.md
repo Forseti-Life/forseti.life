@@ -35,6 +35,8 @@ This file is owned by the `sec-analyst-infra` seat.
 - **Ready-to-apply patches**: embed exact YAML/code diffs directly in finding artifacts so dev-infra can apply without interpretation (pattern established 2026-02-27).
 
 ## Start-of-cycle open findings intake (required before new audit work)
+0. **Outbox self-check**: scan `sessions/sec-analyst-infra/outbox/*.md` for any file where the first non-blank line is NOT `- Status:`. If found, that is a stub — regenerate before proceeding. Command: `grep -L "^- Status:" sessions/sec-analyst-infra/outbox/*.md 2>/dev/null`.
+0. **Post-merge artifact check**: run `git --no-pager log --oneline -5 | grep "merge:"` (from HQ repo root). If any merge commit is present in the last 5, verify that `sessions/sec-analyst-infra/artifacts/csrf-open-findings-registry.md` exists and is current (compare `git ls-files sessions/sec-analyst-infra/artifacts/csrf-open-findings-registry.md`). If absent or stale, recreate from code inspection before proceeding.
 1. Read `sessions/sec-analyst-infra/artifacts/csrf-open-findings-registry.md`.
    - If this file does not exist (`git ls-files sessions/sec-analyst-infra/artifacts/csrf-open-findings-registry.md` returns empty), recreate it from prior outboxes and code inspection, then commit with `git add -f`.
 2. For each OPEN finding with a patch provided: verify against the Drupal repo directly (e.g., `grep -n -A10 "<route_name>" <routing.yml>` — confirm `_csrf_token: 'TRUE'` appears under `requirements:`, not `options:`).
@@ -61,7 +63,7 @@ When creating or updating this file, always commit with `git add -f` (file is in
 - Identify 1-3 security-specific process gaps with SMART follow-through items (owner, AC, verification, time-bound, ROI).
 
 ## Owned file scope
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/sec-analyst-infra/**
 - org-chart/agents/instructions/sec-analyst-infra.instructions.md
 
