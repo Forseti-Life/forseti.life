@@ -45,7 +45,8 @@ When executing an exploration or improvement-round task:
 
 ## Known recurring gap patterns
 - **Environment-down masking**: `scripts/site-audit-run.sh` has no pre-flight HTTP probe. A DB-down environment produces false-positive permission violations. Recommend environment pre-flight check (ROI: 18).
-- **sla-report.sh defensive gap**: `outbox_status()` pipeline lacks `|| true`; legacy outboxes without `- Status:` cause silent exit-1 under `set -euo pipefail`. Fix: append `|| true` to pipeline in `scripts/sla-report.sh` (ROI: 20, dev-infra scope).
+- **sla-report.sh defensive gap**: `outbox_status()` pipeline lacks `|| true`; legacy outboxes without `- Status:` cause silent exit-1 under `set -euo pipefail`. Fix: append `|| true` to pipeline in `scripts/sla-report.sh` (ROI: 20, dev-infra scope). Open 2+ cycles — check if dev-infra inbox item exists before re-recommending.
 - **Coordinated signoff delivery**: fixed in `f31ed002` — `release-signoff.sh` auto-queues push-ready item for release operator.
 - **Recommendation→delegation routing gap**: improvement-round outbox recommendations may not be converted to downstream inbox items. Check in follow-on improvement rounds whether prior high-ROI recommendations produced an inbox item for the owning seat.
 - **Systemic stub-outbox breach residue**: executor stubs (before `83dd8061` hardening) produce mass SLA breaches sharing a single root event. No aggregate-cleanup path exists. Recommend `sla-report.sh` event-grouping patch (dev-infra) + `sla-breach-event-close.sh` runbook step (ceo-copilot). ROI: 12.
+- **Ghost inbox items from copilot-hq subtree mirror** (confirmed 20260322): `forseti.life/copilot-hq` subtree generates 6+ phantom inbox folders per session. Executor processes them as real inbox items, consuming full agent cycles. Fix: ceo-copilot must exclude subtree from inbox scanning or remove the subtree. ROI: 20. If still present in cycle, note in outbox and escalate to supervisor → ceo-copilot.
