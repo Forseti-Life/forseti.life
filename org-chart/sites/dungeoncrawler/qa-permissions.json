@@ -1,0 +1,224 @@
+{
+    "drupal_root": "/home/keithaumiller/forseti.life/sites/dungeoncrawler",
+    "drush_qa_command_prefix": "dctr",
+    "_schema_notes": [
+        "Rules MAY include an optional 'feature_id' field when the rule was added for a specific groomed feature.",
+        "feature_id links back to features/<feature_id>/ \u2014 the living requirements document for that feature.",
+        "Rules without feature_id are baseline regression/ACL expectations.",
+        "When a QA audit finds a violation on a rule with feature_id, Dev must IMPLEMENT the feature (not just fix a regression).",
+        "Example groomed-feature rule: { 'id': 'my-feature-route', 'feature_id': 'dc-my-feature', 'path_regex': '/my-feature', 'expect': {...} }"
+    ],
+    "roles": [
+        {
+            "id": "anon",
+            "drupal_rid": "anonymous",
+            "cookie_env": ""
+        },
+        {
+            "id": "authenticated",
+            "drupal_rid": "authenticated",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_AUTHENTICATED"
+        },
+        {
+            "id": "content_editor",
+            "drupal_rid": "content_editor",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_CONTENT_EDITOR"
+        },
+        {
+            "id": "administrator",
+            "drupal_rid": "administrator",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_ADMINISTRATOR"
+        },
+        {
+            "id": "dc_playwright_player",
+            "drupal_rid": "dc_playwright_player",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_DC_PLAYWRIGHT_PLAYER"
+        },
+        {
+            "id": "dc_playwright_admin",
+            "drupal_rid": "dc_playwright_admin",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_DC_PLAYWRIGHT_ADMIN"
+        }
+    ],
+    "rules": [
+        {
+            "id": "no-destructive",
+            "path_regex": "/(delete|delete-all|archive|cancel|purge|flush|import|generate|export|logout|save)(?:/|$)",
+            "notes": "Destructive or side-effect routes \u2014 skip entirely. GET requests here may trigger state changes or require test data that doesn't exist. Includes 'save' (form-submission-only endpoints; GET probes always timeout/fail). Assume ACL mirrors non-destructive routes on the same resource. First-match so no other rule fires.",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "no-user-cancel",
+            "path_regex": "^/user/\\d+/cancel(?:/|$)",
+            "notes": "User account cancellation route \u2014 skip entirely. Would cancel the QA test user account.",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "public-browse",
+            "notes": "Campaign/character list pages \u2014 'access dungeoncrawler characters' is required. Release-c commit b4bf6d998 granted this to authenticated (and content_editor inherits it). All roles with this permission or is_admin=true get allow; anon (no permission) gets deny.",
+            "path_regex": "^/(?:campaigns|characters)/?$",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "auth-required-create",
+            "notes": "Creation flows \u2014 no entity ID needed, always routable. /campaigns/create requires 'access dungeoncrawler characters'; /characters/create requires 'create dungeoncrawler characters'. Both granted to authenticated via user.role.authenticated.yml (release-c commit b4bf6d998). authenticated and content_editor both get allow (content_editor inherits authenticated permissions).",
+            "path_regex": "^/(?:campaigns|characters)/(?:create|step)(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "auth-required-non-id-paths",
+            "path_regex": "^/(?:campaigns|characters)/(?:archived|history|settings)(?:/|$)",
+            "notes": "Non-entity-ID sub-paths for campaigns/characters. /campaigns/archived requires 'access dungeoncrawler characters' (commit b4cc4e683). authenticated has this permission (release-c commit b4bf6d998); content_editor inherits from authenticated. anon=deny (no permission).",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "auth-required-entity",
+            "notes": "Entity-ID sub-routes (/campaigns/{id}/..., /characters/{id}/...) \u2014 ignore: route probes use placeholder IDs that may not exist in test DB; ACL is correct when data exists",
+            "path_regex": "^/(?:campaigns|characters)/[0-9]",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "dungeoncrawler-tester-dev-only",
+            "path_regex": "^/admin/config/development/dungeoncrawler-tester(?:/|$)",
+            "notes": "CEO decision 2026-02-28: dungeoncrawler_tester is a dev-only module not enabled in production. The settings route returns 404 in production (module not installed) which is correct behavior. Suppress this route from production audit failures.",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "admin-area",
+            "notes": "Drupal admin backend \u2014 only administrator and dc_playwright_admin have full access; content_editor omitted (partial access, needs finer-grained rules)",
+            "path_regex": "^/admin(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "login-page",
+            "path_regex": "^/user/login(?:/|$)",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "public-pages",
+            "notes": "Static public pages with _access: TRUE \u2014 no permission required, all roles allow. Routes: /home, /world, /how-to-play, /about, /credits, /hexmap.",
+            "path_regex": "^/(?:home|world|how-to-play|about|credits|hexmap)(?:/|$)",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "architecture-pages",
+            "notes": "Architecture documentation pages \u2014 require 'access content' (granted to both anonymous and authenticated roles). All roles allow.",
+            "path_regex": "^/architecture(?:/|$)",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "dungeoncrawler-testing-area",
+            "notes": "Dungeoncrawler testing dashboard and sub-routes (GET-accessible) \u2014 require 'administer site configuration'. administrator and dc_playwright_admin allow; all others deny.",
+            "path_regex": "^/dungeoncrawler/testing(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "dungeoncrawler-objects-admin",
+            "notes": "Dungeoncrawler objects list \u2014 requires 'administer dungeoncrawler content'. administrator and dc_playwright_admin allow (is_admin or equivalent); all others deny.",
+            "path_regex": "^/dungeoncrawler/objects(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "ai-conversation-api",
+            "notes": "AI conversation API routes \u2014 require 'use ai conversation' permission. anon/authenticated/content_editor denied (no permission). administrator/dc_playwright_player/dc_playwright_admin have permission but GET probing is not representative: /ai-conversation/send-message is POST-only (GET returns 403/405 regardless of permissions); /ai-conversation/stats requires a node_id param (GET returns 400 \u2014 permission passes but missing param). Set admin/player/admin to 'ignore' \u2014 permission was verified by dev directly (forseti.life commit d5ae178fa; GET /ai-conversation/stats with dc_playwright_player returns 400 confirming permission passes).",
+            "path_regex": "^/ai-conversation(/.*)?$",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        }
+    ]
+}
