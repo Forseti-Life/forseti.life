@@ -29,7 +29,7 @@ Environment overrides:
   COPILOT_BEDROCK_SITE      Default: forseti
   COPILOT_BEDROCK_SYSTEM_PROMPT_NODE_ID  Optional prompt node id override
   COPILOT_BEDROCK_PROMPT_PREFIX          Optional prompt prefix override
-  BEDROCK_ASSIST_SCRIPT     Default: ./scripts/bedrock-assist.sh
+  BEDROCK_ASSIST_SCRIPT     Default: ./scripts/hq-bedrock-chat.sh
 USAGE
 }
 
@@ -40,7 +40,7 @@ if [ -z "$COPILOT_BIN" ] && [ -x "$HOME/.npm-global/bin/copilot" ]; then
   COPILOT_BIN="$HOME/.npm-global/bin/copilot"
 fi
 
-BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
+BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/hq-bedrock-chat.sh}"
 BEDROCK_FALLBACK="${COPILOT_BEDROCK_FALLBACK:-1}"
 BEDROCK_SITE="${COPILOT_BEDROCK_SITE:-forseti}"
 BEDROCK_SYSTEM_PROMPT_NODE_ID="${COPILOT_BEDROCK_SYSTEM_PROMPT_NODE_ID:-}"
@@ -212,7 +212,9 @@ run_prompt() {
 
   if [ "$CLI_MODE" = "bedrock" ]; then
     local bedrock_prompt
-    if [ -n "$BEDROCK_PROMPT_PREFIX" ]; then
+  if [ "$(basename "$BEDROCK_ASSIST_SCRIPT")" = "hq-bedrock-chat.sh" ]; then
+    bedrock_prompt="$prompt"
+  elif [ -n "$BEDROCK_PROMPT_PREFIX" ]; then
       bedrock_prompt="$BEDROCK_PROMPT_PREFIX"
       bedrock_prompt+=$'\\n\\nOperator request:\\n'
       bedrock_prompt+="$prompt"

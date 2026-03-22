@@ -73,6 +73,7 @@ Legacy loops (`ceo-inbox-loop`, `inbox-loop`, `ceo-health-loop`, `2-ceo-opsloop`
 	- `bedrock`: require Bedrock assistant script
 - Ensure `scripts/bedrock-assist.sh` is executable if using Bedrock path.
 - `scripts/1-copilot.sh` supports production fallback via `COPILOT_BEDROCK_FALLBACK=1` (default) when Copilot CLI is missing/incompatible.
+- `scripts/1-copilot.sh` now defaults Bedrock fallback to `scripts/hq-bedrock-chat.sh`, which injects internal HQ/CEO instructions context before model invocation.
 - Validate org state with `./scripts/org-control.sh status --one-line` and runtime state with `./scripts/hq-automation.sh status`.
 
 ## How incidents are handled
