@@ -273,40 +273,40 @@ jobs:
                 echo 'SKIP: ai_conversation module not enabled.' . PHP_EOL;
               }
               else {
-                \\$config = \\Drupal::config('ai_conversation.settings');
-                \\$model = trim((string) (\\$config->get('aws_model') ?? ''));
-                \\$region = trim((string) (\\$config->get('aws_region') ?? getenv('AWS_DEFAULT_REGION') ?: ''));
-                \\$cfgKey = trim((string) (\\$config->get('aws_access_key_id') ?? ''));
-                \\$cfgSecret = trim((string) (\\$config->get('aws_secret_access_key') ?? ''));
-                \\$envKey = trim((string) (getenv('AWS_ACCESS_KEY_ID') ?: ''));
-                \\$envSecret = trim((string) (getenv('AWS_SECRET_ACCESS_KEY') ?: ''));
+                \$config = \\Drupal::config('ai_conversation.settings');
+                \$model = trim((string) (\$config->get('aws_model') ?? ''));
+                \$region = trim((string) (\$config->get('aws_region') ?? getenv('AWS_DEFAULT_REGION') ?: ''));
+                \$cfgKey = trim((string) (\$config->get('aws_access_key_id') ?? ''));
+                \$cfgSecret = trim((string) (\$config->get('aws_secret_access_key') ?? ''));
+                \$envKey = trim((string) (getenv('AWS_ACCESS_KEY_ID') ?: ''));
+                \$envSecret = trim((string) (getenv('AWS_SECRET_ACCESS_KEY') ?: ''));
 
-                \\$hasConfigCreds = (\\$cfgKey !== '' && \\$cfgSecret !== '');
-                \\$hasEnvCreds = (\\$envKey !== '' && \\$envSecret !== '');
+                \$hasConfigCreds = (\$cfgKey !== '' && \$cfgSecret !== '');
+                \$hasEnvCreds = (\$envKey !== '' && \$envSecret !== '');
 
-                if (\\$region === '') {
+                if (\$region === '') {
                   throw new \\RuntimeException('Bedrock region is missing (aws_region or AWS_DEFAULT_REGION).');
                 }
 
-                if (\\$model === '' || strpos(\\$model, 'anthropic.claude') !== 0) {
-                  throw new \\RuntimeException('Bedrock model must be an Anthropic Claude model. Current: ' . (\\$model ?: '[empty]'));
+                if (\$model === '' || strpos(\$model, 'anthropic.claude') !== 0) {
+                  throw new \\RuntimeException('Bedrock model must be an Anthropic Claude model. Current: ' . (\$model ?: '[empty]'));
                 }
 
-                if (!\\$hasConfigCreds && !\\$hasEnvCreds) {
+                if (!\$hasConfigCreds && !\$hasEnvCreds) {
                   throw new \\RuntimeException('Bedrock credentials are missing (config or AWS_ACCESS_KEY_ID/AWS_SECRET_ACCESS_KEY).');
                 }
 
-                \\$service = \\Drupal::service('ai_conversation.ai_api_service');
-                \\$result = \\$service->testConnection();
-                \\$success = is_array(\\$result) && !empty(\\$result['success']);
-                if (!\\$success) {
-                  \\$message = is_array(\\$result)
-                    ? trim((string) ((\\$result['message'] ?? '') . ' ' . (\\$result['details'] ?? '')))
+                \$service = \\Drupal::service('ai_conversation.ai_api_service');
+                \$result = \$service->testConnection();
+                \$success = is_array(\$result) && !empty(\$result['success']);
+                if (!\$success) {
+                  \$message = is_array(\$result)
+                    ? trim((string) ((\$result['message'] ?? '') . ' ' . (\$result['details'] ?? '')))
                     : 'Unexpected Bedrock connection test response.';
-                  throw new \\RuntimeException('Bedrock connectivity test failed: ' . (\\$message ?: 'Unknown error.'));
+                  throw new \\RuntimeException('Bedrock connectivity test failed: ' . (\$message ?: 'Unknown error.'));
                 }
 
-                echo 'PASS: Bedrock readiness verified. Model=' . \\$model . ', Region=' . \\$region . PHP_EOL;
+                echo 'PASS: Bedrock readiness verified. Model=' . \$model . ', Region=' . \$region . PHP_EOL;
               }
             " 2>&1) || AI_READINESS_EXIT=$?
             AI_READINESS_EXIT=${AI_READINESS_EXIT:-0}
