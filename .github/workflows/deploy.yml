@@ -404,9 +404,12 @@ jobs:
 
               if [ -d "${REPO_DEPLOY_DIR}/.git" ]; then
                 echo "Existing repository checkout detected, syncing from GitHub..."
+                git -C "$REPO_DEPLOY_DIR" reset --hard HEAD
+                git -C "$REPO_DEPLOY_DIR" clean -fd
                 git -C "$REPO_DEPLOY_DIR" fetch --depth 1 "https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git" main
                 git -C "$REPO_DEPLOY_DIR" checkout -B main FETCH_HEAD
                 git -C "$REPO_DEPLOY_DIR" reset --hard FETCH_HEAD
+                git -C "$REPO_DEPLOY_DIR" clean -fd
               else
                 if [ -e "$REPO_DEPLOY_DIR" ]; then
                   BACKUP_DIR="${REPO_DEPLOY_DIR}.pre-git-$(date +%s)"
