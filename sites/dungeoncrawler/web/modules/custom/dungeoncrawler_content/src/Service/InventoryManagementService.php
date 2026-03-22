@@ -216,7 +216,7 @@ class InventoryManagementService {
     }
 
     try {
-      $this->database->startTransaction();
+      $transaction = $this->database->startTransaction();
 
       // Persist item instance for tracking
       $item_instance_id = $this->createItemInstance(
@@ -250,7 +250,6 @@ class InventoryManagementService {
         ]
       );
 
-      $this->database->commit();
 
       return [
         'success' => TRUE,
@@ -260,7 +259,7 @@ class InventoryManagementService {
       ];
     }
     catch (\Exception $e) {
-      $this->database->rollBack();
+      $transaction->rollBack();
       throw $e;
     }
   }
@@ -299,14 +298,13 @@ class InventoryManagementService {
     }
 
     try {
-      $this->database->startTransaction();
+      $transaction = $this->database->startTransaction();
 
       // Get current item
       $item = $this->database->select('dc_campaign_item_instances', 'i')
         ->fields('i')
         ->condition('item_instance_id', $item_instance_id)
         ->condition('location_ref', $owner_id)
-        ->condition('location_type', $this->ownerTypeToLocationType($owner_type))
         ->execute()
         ->fetchAssoc();
 
@@ -356,7 +354,6 @@ class InventoryManagementService {
         ]
       );
 
-      $this->database->commit();
 
       return [
         'success' => TRUE,
@@ -365,7 +362,7 @@ class InventoryManagementService {
       ];
     }
     catch (\Exception $e) {
-      $this->database->rollBack();
+      $transaction->rollBack();
       throw $e;
     }
   }
@@ -557,7 +554,7 @@ class InventoryManagementService {
     );
 
     try {
-      $this->database->startTransaction();
+      $transaction = $this->database->startTransaction();
 
       $source_before = $this->buildStorageSnapshot($source, $campaign_id, $item_instance_id);
       $dest_before = $this->buildStorageSnapshot($dest, $campaign_id);
@@ -622,7 +619,6 @@ class InventoryManagementService {
         ]
       );
 
-      $this->database->commit();
 
       return [
         'success' => TRUE,
@@ -646,7 +642,7 @@ class InventoryManagementService {
       ];
     }
     catch (\Exception $e) {
-      $this->database->rollBack();
+      $transaction->rollBack();
       $this->logInventoryOperation(
         'transfer_transaction_failed',
         $source['owner_id'],
@@ -753,7 +749,7 @@ class InventoryManagementService {
     }
 
     try {
-      $this->database->startTransaction();
+      $transaction = $this->database->startTransaction();
 
       $transferred = 0;
       $failed = [];
@@ -779,7 +775,6 @@ class InventoryManagementService {
         }
       }
 
-      $this->database->commit();
 
       return [
         'success' => empty($failed),
@@ -790,7 +785,7 @@ class InventoryManagementService {
       ];
     }
     catch (\Exception $e) {
-      $this->database->rollBack();
+      $transaction->rollBack();
       throw $e;
     }
   }
@@ -906,7 +901,7 @@ class InventoryManagementService {
     }
 
     try {
-      $this->database->startTransaction();
+      $transaction = $this->database->startTransaction();
 
       // Update location in item instance
       $updated = $this->database->update('dc_campaign_item_instances')
@@ -941,7 +936,6 @@ class InventoryManagementService {
         ]
       );
 
-      $this->database->commit();
 
       return [
         'success' => TRUE,
@@ -950,7 +944,7 @@ class InventoryManagementService {
       ];
     }
     catch (\Exception $e) {
-      $this->database->rollBack();
+      $transaction->rollBack();
       throw $e;
     }
   }
