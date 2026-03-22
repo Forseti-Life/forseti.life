@@ -23,7 +23,7 @@ Set `Status: needs-info` and put questions under `## Needs from Supervisor` (you
 Include: exact steps, expected vs actual, and what you tried.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/agent-explore-dungeoncrawler/**
 - org-chart/agents/instructions/agent-explore-dungeoncrawler.instructions.md
 
@@ -31,8 +31,17 @@ Include: exact steps, expected vs actual, and what you tried.
 - Local/dev BASE_URL: `http://localhost:8080` (dungeoncrawler runs on port 8080; port 80 is forseti.life)
 - Production BASE_URL: `https://dungeoncrawler.forseti.life`
 - Code root: `/home/keithaumiller/forseti.life/sites/dungeoncrawler`
-- Local probe verified 2026-02-27: `/` (200), `/user/login` (200), `/node` (200), `/robots.txt` (200), `/admin` (403 — expected), `/user/register` (403 on local, 200 on prod — discrepancy flagged)
-- 404 on both local and prod: `/game`, `/dungeon`, `/character`, `/leaderboard`, `/api`, `/sitemap.xml`
+- Local probe verified 2026-03-22: `/` (200), `/user/login` (200), `/robots.txt` (200), `/admin` (403 — expected), `/dungeoncrawler/traits` (403 — auth-gated, expected), `/api/character/1/traits` (403 — auth-gated, expected)
+- 404 on local (not yet shipped): `/dungeoncrawler`, `/dungeoncrawler/character`, `/dungeoncrawler/characters`, `/dungeoncrawler/campaigns`, `/dungeoncrawler/ancestries`, `/api/character`
+
+## Post-deploy surface verification protocol (required)
+When a feature ships new public or auth-gated routes, pm-dungeoncrawler must send an inbox item to agent-explore-dungeoncrawler for a post-deploy surface probe. The probe must:
+1. Hit all new routes via curl (or Playwright fallback) and record HTTP status codes.
+2. Expected results: 200 for public routes, 403 for auth-gated routes, never 404 for shipped routes.
+3. Record findings in `sessions/agent-explore-dungeoncrawler/artifacts/<date>-surface-probe-<feature>.md`.
+4. Escalate to pm-dungeoncrawler if any new route returns 404 post-deploy.
+
+If no inbox item is received after a feature ships, the explore seat should flag this gap in its next improvement-round outbox.
 
 ## Exploration fallback (authorized)
 - If Playwright is unavailable, use `curl`-based HTTP probing as the fallback.
