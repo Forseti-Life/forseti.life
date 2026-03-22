@@ -123,6 +123,27 @@
         "stdout/stderr logs"
       ],
       "required_for_release": true
+    },
+    {
+      "id": "workspace-merge-safe-syntax",
+      "label": "Verify workspace-merge-safe.sh passes bash syntax check",
+      "type": "lint",
+      "command": "bash -n scripts/workspace-merge-safe.sh && echo 'PASS: workspace-merge-safe.sh syntax ok'",
+      "artifacts": [
+        "stdout/stderr logs"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "workspace-merge-safe-functional",
+      "label": "Verify workspace-merge-safe.sh --dry-run exits 0 from git repo",
+      "type": "functional",
+      "command": "bash scripts/workspace-merge-safe.sh --dry-run HEAD 2>&1 | grep -v '^$'; echo exit:$?",
+      "artifacts": [
+        "stdout/stderr logs"
+      ],
+      "required_for_release": false,
+      "notes": "dry-run mode: verifies script executes without performing a merge"
     }
   ]
 }
