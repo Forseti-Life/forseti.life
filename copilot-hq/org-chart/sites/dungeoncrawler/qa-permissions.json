@@ -234,6 +234,19 @@
             }
         },
         {
+            "id": "api-inventory-routes",
+            "notes": "Inventory management API endpoints (/api/inventory/{owner_type}/{owner_id}/...). All require 'access dungeoncrawler characters' (authenticated roles have it) or _csrf_request_header_mode (POST-only). Parameterized paths don't surface in route scans; set all roles to ignore. POST routes (add, sell, transfer, location, character_inventory) are inaccessible via GET probe regardless of permission. Added 2026-03-22 preflight for release 20260322-dungeoncrawler-release-next (clan-dagger dev item 5bc95ffe4). Dev explicitly requested qa-permissions.json registration for inventory_sell_item route.",
+            "path_regex": "^/api/inventory(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
             "id": "api-character-entity-routes",
             "notes": "Entity-ID API routes for characters (/api/character/{id}/...). Use custom _character_access check (entity ownership + existence). Probe IDs may not exist in test DB, so 404 is expected even for authorized roles. Set all roles to ignore (similar to auth-required-entity). Covers traits and level-up API endpoints added in 20260320 dev cycle.",
             "path_regex": "^/api/character/[0-9]",
