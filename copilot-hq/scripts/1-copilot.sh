@@ -134,6 +134,15 @@ append_bedrock_history() {
   mv "$tmpfile" "$BEDROCK_HISTORY_FILE"
 }
 
+sanitize_persisted_output() {
+  printf '%s\n' "$1" | awk '
+    /^\[hq-bedrock-chat\]/ { next }
+    /^\[bedrock-assist\]/ { next }
+    /^[[:space:]]*\[warning\][[:space:]]*Drush command terminated abnormally\.?[[:space:]]*$/ { next }
+    { print }
+  '
+}
+
 detect_cli_mode() {
   COPILOT_SUPPORTS_MODEL=0
   COPILOT_SUPPORTS_AGENTIC_CHAT=0
@@ -390,19 +399,28 @@ while true; do
 
   if ! out="$(run_prompt "$line" 2>&1)"; then
     rc=$?
+    persisted_out="$out"
+    if [ "$CLI_MODE" = "bedrock" ]; then
+      persisted_out="$(sanitize_persisted_output "$out")"
+    fi
     echo "[copilot exited with code $rc]"
     echo "$out"
-    append_log "Copilot (error $rc)" "$out"
+    append_log "Copilot (error $rc)" "$persisted_out"
     if [ "$CLI_MODE" = "bedrock" ]; then
-      append_bedrock_history "Assistant (error $rc)" "$out"
+      append_bedrock_history "Assistant (error $rc)" "$persisted_out"
     fi
     continue
   fi
 
-  echo "$out"
-  append_log "Copilot" "$out"
+  persisted_out="$out"
   if [ "$CLI_MODE" = "bedrock" ]; then
-    append_bedrock_history "Assistant" "$out"
+    persisted_out="$(sanitize_persisted_output "$out")"
+  fi
+
+  echo "$out"
+  append_log "Copilot" "$persisted_out"
+  if [ "$CLI_MODE" = "bedrock" ]; then
+    append_bedrock_history "Assistant" "$persisted_out"
   fi
   echo
 
