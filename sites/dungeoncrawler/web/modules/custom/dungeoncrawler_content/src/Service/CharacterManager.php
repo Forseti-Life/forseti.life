@@ -36,6 +36,115 @@ class CharacterManager {
   ];
 
   /**
+   * Canonical creature trait catalog — all valid trait strings.
+   *
+   * Derived from the union of all ANCESTRIES['traits'] arrays.
+   * Trait comparison is case-sensitive; only strings in this list are valid.
+   */
+  const TRAIT_CATALOG = [
+    'Catfolk',
+    'Dwarf',
+    'Elf',
+    'Gnome',
+    'Goblin',
+    'Half-Elf',
+    'Half-Orc',
+    'Halfling',
+    'Human',
+    'Humanoid',
+    'Kobold',
+    'Leshy',
+    'Orc',
+    'Plant',
+    'Ratfolk',
+    'Tengu',
+  ];
+
+  /**
+   * Resolves an ancestry machine ID (e.g. "half-elf") to its canonical name.
+   *
+   * Returns '' if the machine ID does not match any known ancestry.
+   */
+  public static function resolveAncestryCanonicalName(string $machine_id): string {
+    if ($machine_id === '') {
+      return '';
+    }
+    foreach (array_keys(self::ANCESTRIES) as $canonical) {
+      if (strtolower(str_replace(' ', '-', $canonical)) === strtolower($machine_id)) {
+        return $canonical;
+      }
+    }
+    return '';
+  }
+
+  /**
+   * Returns the creature traits for the given ancestry machine ID.
+   *
+   * @param string $ancestry_machine_id
+   *   E.g. "half-elf", "dwarf".
+   *
+   * @return string[]
+   *   Trait strings from ANCESTRIES, or [] if ancestry not found.
+   */
+  public static function getAncestryTraits(string $ancestry_machine_id): array {
+    $canonical = self::resolveAncestryCanonicalName($ancestry_machine_id);
+    if ($canonical === '') {
+      return [];
+    }
+    return self::ANCESTRIES[$canonical]['traits'] ?? [];
+  }
+
+  /**
+   * Checks whether all required traits are present in the character's trait set.
+   *
+   * Comparison is case-sensitive (canonical strings only).
+   *
+   * @param string[] $character_traits
+   *   The character's current traits array.
+   * @param string[] $required_traits
+   *   The traits to check for.
+   *
+   * @return bool
+   *   TRUE if all required traits are present, FALSE otherwise.
+   */
+  public static function hasTraits(array $character_traits, array $required_traits): bool {
+    foreach ($required_traits as $trait) {
+      if (!in_array($trait, $character_traits, TRUE)) {
+        return FALSE;
+      }
+    }
+    return TRUE;
+  }
+
+  /**
+   * Validates a trait string against the canonical catalog.
+   *
+   * @param string $trait
+   *   The trait string to validate.
+   *
+   * @return bool
+   *   TRUE if the trait is in TRAIT_CATALOG (case-sensitive).
+   */
+  public static function isValidTrait(string $trait): bool {
+    return in_array($trait, self::TRAIT_CATALOG, TRUE);
+  }
+
+  /**
+   * Merges new traits into an existing trait set idempotently.
+   *
+   * @param string[] $existing
+   *   Existing trait strings.
+   * @param string[] $new_traits
+   *   Traits to add.
+   *
+   * @return string[]
+   *   Merged trait array with duplicates removed (values reindexed).
+   */
+  public static function mergeTraits(array $existing, array $new_traits): array {
+    return array_values(array_unique(array_merge($existing, $new_traits)));
+  }
+
+  /**
    * Step 2 Option Selection Tree Reference (Ancestry → Heritage IDs → Feat IDs).
    *
    * Purpose:

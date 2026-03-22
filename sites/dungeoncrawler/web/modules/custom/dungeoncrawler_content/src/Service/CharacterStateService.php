@@ -4,6 +4,7 @@ namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Session\AccountProxyInterface;
+use Drupal\dungeoncrawler_content\Service\CharacterManager;
 
 /**
  * Manages character state for real-time gameplay.
@@ -126,6 +127,10 @@ class CharacterStateService {
           'classFeatures' => [],
           'feats' => (is_array($merged_library['feats'] ?? NULL) ? $merged_library['feats'] : []),
         ],
+
+        // Ancestry creature traits — auto-assigned at creation, persisted in character_data.
+        // Falls back to ancestry defaults if traits were not stored (e.g. legacy characters).
+        'traits' => $this->resolveCharacterTraits($merged_library),
 
         'metadata' => [
           'createdAt' => date('c', $record->created),
@@ -995,6 +1000,30 @@ class CharacterStateService {
     $state['defenses']['perception']['featBonus'] = (int) ($effects['derived_adjustments']['perception_bonus'] ?? 0);
 
     return $state;
+  }
+
+  /**
+   * Resolves a character's traits array from stored data or ancestry fallback.
+   *
+   * If the character_data has a stored 'traits' array (set at creation time),
+   * it is returned directly. For legacy characters without stored traits, the
+   * ancestry machine ID is used to derive traits from CharacterManager::ANCESTRIES.
+   *
+   * @param array $library
+   *   The merged character library (default_data merged with character_data).
+   *
+   * @return string[]
+   *   The character's canonical creature trait strings.
+   */
+  private function resolveCharacterTraits(array $library): array {
+    if (!empty($library['traits']) && is_array($library['traits'])) {
+      return $library['traits'];
+    }
+    $ancestry_machine_id = $library['basicInfo']['ancestry'] ?? ($library['ancestry'] ?? '');
+    if ($ancestry_machine_id === '') {
+      return [];
+    }
+    return CharacterManager::getAncestryTraits($ancestry_machine_id);
   }
 
 }

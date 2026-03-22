@@ -2023,13 +2023,19 @@ class CharacterCreationStepForm extends FormBase {
 
     // Auto-populate ancestry-derived fields
     if (!empty($schema_data['ancestry'])) {
-      $ancestry_data = CharacterManager::ANCESTRIES[$schema_data['ancestry']] ?? NULL;
+      $canonical_ancestry = CharacterManager::resolveAncestryCanonicalName($schema_data['ancestry']);
+      $ancestry_data = $canonical_ancestry !== '' ? (CharacterManager::ANCESTRIES[$canonical_ancestry] ?? NULL) : NULL;
       if ($ancestry_data) {
         $schema_data['size'] = $ancestry_data['size'];
         $schema_data['speed'] = $ancestry_data['speed'];
         if (empty($schema_data['languages'])) {
           $schema_data['languages'] = $ancestry_data['languages'];
         }
+        // Auto-assign ancestry creature traits (idempotent — no duplicates).
+        $schema_data['traits'] = CharacterManager::mergeTraits(
+          $schema_data['traits'] ?? [],
+          $ancestry_data['traits'] ?? []
+        );
       }
     }
 
@@ -2038,7 +2044,8 @@ class CharacterCreationStepForm extends FormBase {
     $con_mod = floor(($schema_data['abilities']['con'] - 10) / 2);
     $ancestry_hp = 0;
     if (!empty($schema_data['ancestry'])) {
-      $ancestry_data = CharacterManager::ANCESTRIES[$schema_data['ancestry']] ?? NULL;
+      $canonical_ancestry_hp = CharacterManager::resolveAncestryCanonicalName($schema_data['ancestry']);
+      $ancestry_data = $canonical_ancestry_hp !== '' ? (CharacterManager::ANCESTRIES[$canonical_ancestry_hp] ?? NULL) : NULL;
       if ($ancestry_data) {
         $ancestry_hp = $ancestry_data['hp'];
       }
