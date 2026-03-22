@@ -61,9 +61,12 @@ For each finding, include:
 - If assigned a cross-site improvement review, keep the output recommendation-only unless you are given explicit execution scope for the target seat or repo area.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/sec-analyst-forseti/**
 - org-chart/agents/instructions/sec-analyst-forseti.instructions.md
+
+## Workspace note
+- The active HQ repo for this seat is `/home/keithaumiller/forseti.life/copilot-hq` after the subtree migration. Treat any older `/home/keithaumiller/copilot-sessions-hq` references in historical artifacts as legacy paths only.
 
 ## Supervisor
 - Supervisor: `pm-forseti`
