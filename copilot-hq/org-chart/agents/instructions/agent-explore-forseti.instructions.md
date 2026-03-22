@@ -27,7 +27,7 @@ Set `Status: needs-info` and put questions under `## Needs from Supervisor` (you
 Include: steps, expected vs actual, screenshots/log hints if available.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/agent-explore-forseti/**
 - org-chart/agents/instructions/agent-explore-forseti.instructions.md
 
@@ -36,20 +36,23 @@ Include: steps, expected vs actual, screenshots/log hints if available.
 
 ## Repo and tool fallback procedure
 
-### Environment facts (verified 2026-03-15)
+### Environment facts (verified 2026-03-22)
+- **HQ repo**: `/home/keithaumiller/forseti.life/copilot-hq` (migrated from `copilot-sessions-hq`)
 - **forseti.life** local URL: `http://localhost/` — reachable (Drupal 11)
 - **dungeoncrawler** local URL: `http://localhost:8080/` — reachable (Drupal, separate vhost on port 8080)
   - Code root: `/home/keithaumiller/forseti.life/sites/dungeoncrawler`
   - Web root: `/home/keithaumiller/forseti.life/sites/dungeoncrawler/web`
-  - Module: `dungeoncrawler_content` (routes: `/home`, `/world`, `/how-to-play`, `/about`, `/architecture`, `/credits`, `/hexmap`, `/campaigns/{id}/characters`)
+  - Module: `dungeoncrawler_content` (routes include `/home`, `/world`, `/how-to-play`, `/about`, `/architecture`, `/credits`, `/hexmap`, `/ancestries`, `/dungeoncrawler/traits`, `/characters/create`, `/campaigns/{id}/characters`)
 - Login pages: `http://localhost/user/login` and `http://localhost:8080/user/login` — both accessible anonymously
 - Playwright: NOT installed on this host (requires `npx playwright` install prompt; do not block on this)
 
 ### Reusable route-check script
 - Location: `sessions/agent-explore-forseti/artifacts/route-check/route-check.sh`
+- Full path: `/home/keithaumiller/forseti.life/copilot-hq/sessions/agent-explore-forseti/artifacts/route-check/route-check.sh`
 - Usage: `bash route-check.sh [FORSETI_URL] [DC_URL]`
-- Covers: all forseti.life `forseti_games` routes + all public dungeoncrawler routes
+- Covers: all forseti.life `forseti_games` routes + all public/auth-boundary dungeoncrawler routes
 - Run at the start of every cycle as the Tier 1 exploration baseline
+- **Post-deploy rule**: after every release, compare `*.routing.yml` diff against script and add new public routes
 
 ### Exploration fallback (in priority order)
 1. **curl-based route checks** (no auth needed for public pages): verify HTTP status, page title, key markup.

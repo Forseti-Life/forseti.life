@@ -52,6 +52,8 @@ check "dc-credits"     GET "$DC_URL" "/credits"     200
 check "dc-hexmap"      GET "$DC_URL" "/hexmap"      200
 check "dc-user-login"  GET "$DC_URL" "/user/login"  200
 check "dc-ancestries"  GET "$DC_URL" "/ancestries"  200
+check "dc-traits-catalog (anon)" GET "$DC_URL" "/dungeoncrawler/traits" 403
+check "dc-characters-create (anon)" GET "$DC_URL" "/characters/create" 403
 check "dc-campaigns-chars (anon)" GET "$DC_URL" "/campaigns/1/characters" 403
 check "dc-admin (anon)" GET "$DC_URL" "/admin/content/dungeoncrawler" 403
 check "dc-404-check"   GET "$DC_URL" "/nonexistent-route-smoke-test-xyz" 404
