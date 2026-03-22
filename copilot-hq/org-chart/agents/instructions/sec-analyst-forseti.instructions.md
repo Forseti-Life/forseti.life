@@ -60,6 +60,10 @@ For each finding, include:
 - If your inbox is empty, do NOT create new inbox items. Review one unreviewed file in the current release module and write findings in your outbox + registry.
 - If assigned a cross-site improvement review, keep the output recommendation-only unless you are given explicit execution scope for the target seat or repo area.
 
+## Improvement-round fast-exit check
+- Before treating any `*-release-next` or improvement-round inbox item as a true retrospective, verify there is a matching signoff artifact under `sessions/pm-forseti/artifacts/release-signoffs/` or equivalent PM evidence that the release actually shipped.
+- If no matching signoff exists and PM artifacts show the release is still in grooming/preflight, treat the item as a ghost or premature dispatch: write a recommendation-only update, do not invent shipped-release findings, and point to the authoritative PM/CEO artifact.
+
 ## Owned file scope (source of truth)
 ### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
 - sessions/sec-analyst-forseti/**
