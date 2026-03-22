@@ -27,6 +27,8 @@ Environment overrides:
   COPILOT_LOOP_LOG          Default: 1 (set 0 to disable transcript log)
   COPILOT_BEDROCK_FALLBACK  Default: 1 (fallback to Bedrock assistant)
   COPILOT_BEDROCK_SITE      Default: forseti
+  COPILOT_BEDROCK_SYSTEM_PROMPT_NODE_ID  Optional prompt node id override
+  COPILOT_BEDROCK_PROMPT_PREFIX          Optional prompt prefix override
   BEDROCK_ASSIST_SCRIPT     Default: ./scripts/bedrock-assist.sh
 USAGE
 }
@@ -41,6 +43,9 @@ fi
 BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
 BEDROCK_FALLBACK="${COPILOT_BEDROCK_FALLBACK:-1}"
 BEDROCK_SITE="${COPILOT_BEDROCK_SITE:-forseti}"
+BEDROCK_SYSTEM_PROMPT_NODE_ID="${COPILOT_BEDROCK_SYSTEM_PROMPT_NODE_ID:-}"
+BEDROCK_PROMPT_PREFIX_DEFAULT=$'You are ceo-copilot, the internal Forseti HQ operations assistant.\\nOperate in repo/runtime context, not public website marketing mode.\\nPriorities: production diagnostics, deploy/runtime health, queue triage, script execution guidance, and concrete next actions.\\nKeep responses concise and operator-focused. If context is missing, ask targeted follow-up questions.'
+BEDROCK_PROMPT_PREFIX="${COPILOT_BEDROCK_PROMPT_PREFIX:-$BEDROCK_PROMPT_PREFIX_DEFAULT}"
 
 SESSION_NAME="${1:-interactive-loop}"
 SESSION_FILE=""
@@ -206,7 +211,22 @@ run_prompt() {
   fi
 
   if [ "$CLI_MODE" = "bedrock" ]; then
-    BEDROCK_OPERATION="hq_copilot_loop" "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$prompt"
+    local bedrock_prompt
+    if [ -n "$BEDROCK_PROMPT_PREFIX" ]; then
+      bedrock_prompt="$BEDROCK_PROMPT_PREFIX"
+      bedrock_prompt+=$'\\n\\nOperator request:\\n'
+      bedrock_prompt+="$prompt"
+    else
+      bedrock_prompt="$prompt"
+    fi
+
+    if [ -n "$BEDROCK_SYSTEM_PROMPT_NODE_ID" ]; then
+      BEDROCK_OPERATION="hq_copilot_loop" \
+      BEDROCK_SYSTEM_PROMPT_NODE_ID="$BEDROCK_SYSTEM_PROMPT_NODE_ID" \
+      "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$bedrock_prompt"
+    else
+      BEDROCK_OPERATION="hq_copilot_loop" "$BEDROCK_ASSIST_SCRIPT" "$BEDROCK_SITE" "$bedrock_prompt"
+    fi
     return 0
   fi
 

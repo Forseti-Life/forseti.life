@@ -16,6 +16,7 @@ set -euo pipefail
 #   BEDROCK_MAX_TOKENS               Max response tokens (default 700)
 #   BEDROCK_OPERATION                Usage-tracking operation label (default hq_bedrock_assistant)
 #   BEDROCK_SYSTEM_PROMPT_NODE_ID    System prompt node id (default 10)
+#   BEDROCK_SUPPRESS_DRUSH_WARNINGS  Default 1; suppress benign trailing drush warning noise
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
@@ -36,6 +37,7 @@ Environment:
   BEDROCK_MAX_TOKENS               Max response tokens (default 700)
   BEDROCK_OPERATION                Usage operation label (default hq_bedrock_assistant)
   BEDROCK_SYSTEM_PROMPT_NODE_ID    PromptManager node id (default 10)
+  BEDROCK_SUPPRESS_DRUSH_WARNINGS  Default 1
 USAGE
 }
 
@@ -130,6 +132,7 @@ fi
 MAX_TOKENS="${BEDROCK_MAX_TOKENS:-700}"
 OPERATION="${BEDROCK_OPERATION:-hq_bedrock_assistant}"
 SYSTEM_PROMPT_NODE_ID="${BEDROCK_SYSTEM_PROMPT_NODE_ID:-10}"
+SUPPRESS_DRUSH_WARNINGS="${BEDROCK_SUPPRESS_DRUSH_WARNINGS:-1}"
 
 PHP_CODE=$(cat <<'PHP'
 $prompt = (string) (getenv('BEDROCK_PROMPT') ?: '');
@@ -179,24 +182,55 @@ PHP
 )
 
 echo "[bedrock-assist] site=$SITE drupal_root=$DRUPAL_ROOT max_tokens=$MAX_TOKENS op=$OPERATION" >&2
+run_drush_eval() {
+  if [ "$(id -un)" = "www-data" ]; then
+    BEDROCK_PROMPT="$PROMPT" \
+    BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
+    BEDROCK_OPERATION="$OPERATION" \
+    BEDROCK_SITE="$SITE" \
+    BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
+    "$DRUSH" php:eval "$PHP_CODE" 2>&1
+    return $?
+  fi
 
-if [ "$(id -un)" = "www-data" ]; then
-  BEDROCK_PROMPT="$PROMPT" \
-  BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
-  BEDROCK_OPERATION="$OPERATION" \
-  BEDROCK_SITE="$SITE" \
-  BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
-  "$DRUSH" php:eval "$PHP_CODE"
-else
   if ! command -v sudo >/dev/null 2>&1; then
     echo "ERROR: must run as www-data or with sudo available" >&2
-    exit 2
+    return 2
   fi
+
   sudo -u www-data -E \
     BEDROCK_PROMPT="$PROMPT" \
     BEDROCK_MAX_TOKENS="$MAX_TOKENS" \
     BEDROCK_OPERATION="$OPERATION" \
     BEDROCK_SITE="$SITE" \
     BEDROCK_SYSTEM_PROMPT_NODE_ID="$SYSTEM_PROMPT_NODE_ID" \
-    "$DRUSH" php:eval "$PHP_CODE"
+    "$DRUSH" php:eval "$PHP_CODE" 2>&1
+}
+
+set +e
+RAW_OUTPUT="$(run_drush_eval)"
+DRUSH_EXIT=$?
+set -e
+
+SANITIZED_OUTPUT="$RAW_OUTPUT"
+if [ "$SUPPRESS_DRUSH_WARNINGS" = "1" ]; then
+  SANITIZED_OUTPUT="$(printf '%s\n' "$RAW_OUTPUT" | sed '/^[[:space:]]*\[warning\][[:space:]]*Drush command terminated abnormally\.?[[:space:]]*$/d')"
 fi
+
+if [ $DRUSH_EXIT -eq 0 ]; then
+  printf '%s\n' "$SANITIZED_OUTPUT"
+  exit 0
+fi
+
+if printf '%s\n' "$SANITIZED_OUTPUT" | grep -qiE 'ERROR:|ParseError|Fatal error|Uncaught|Exception|Stack trace'; then
+  printf '%s\n' "$SANITIZED_OUTPUT" >&2
+  exit $DRUSH_EXIT
+fi
+
+if [ -n "$(printf '%s' "$SANITIZED_OUTPUT" | tr -d '[:space:]')" ]; then
+  printf '%s\n' "$SANITIZED_OUTPUT"
+  exit 0
+fi
+
+printf '%s\n' "$RAW_OUTPUT" >&2
+exit $DRUSH_EXIT
