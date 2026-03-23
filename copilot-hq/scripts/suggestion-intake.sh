@@ -242,6 +242,57 @@ for s in suggestions:
 
 (batch_dir / "README.md").write_text(readme, encoding="utf-8")
 
+# Build cross-site keyword map from product-teams.json (teams other than current site)
+import re as _re
+
+def _load_cross_site_keywords(current_site_id):
+    hq_root = pathlib.Path.cwd()
+    product_teams_path = hq_root / "org-chart" / "products" / "product-teams.json"
+    if not product_teams_path.exists():
+        return {}
+    data = json.loads(product_teams_path.read_text(encoding="utf-8"))
+    teams = data.get("teams", []) if isinstance(data, dict) else data
+
+    # Determine the current site's canonical domain so co-hosted teams are excluded
+    current_domain = None
+    for team in teams:
+        if str(team.get("id") or "").strip().lower() == current_site_id.lower():
+            current_domain = str(team.get("site") or "").strip().lower()
+            break
+
+    cross_site = {}  # team_id -> list of keywords (longest first)
+    for team in teams:
+        tid = str(team.get("id") or "").strip().lower()
+        tsite = str(team.get("site") or "").strip().lower()
+        # Skip current site team and any team that lives on the same domain
+        if not tid or tid == current_site_id.lower():
+            continue
+        if current_domain and tsite == current_domain:
+            continue
+        keywords = {tid}
+        if tsite:
+            keywords.add(tsite)
+            keywords.add(tsite.replace(".life", ""))
+        for a in (team.get("aliases") or []):
+            a = str(a).strip().lower()
+            if a and len(a) >= 4:  # skip very short aliases (avoid false positives)
+                keywords.add(a)
+        cross_site[tid] = sorted(keywords, key=len, reverse=True)
+    return cross_site
+
+_cross_site_keywords = _load_cross_site_keywords(site)
+
+def _detect_cross_site_mentions(text, cross_site_map):
+    """Return list of (team_id, keyword) for the first keyword match per team."""
+    text_lower = text.lower()
+    found = []
+    for tid, keywords in cross_site_map.items():
+        for kw in keywords:
+            if _re.search(r'(?<![a-z0-9])' + _re.escape(kw) + r'(?![a-z0-9])', text_lower):
+                found.append((tid, kw))
+                break  # one match per team is sufficient
+    return found
+
 # Write individual triage stubs
 triage_dir = batch_dir / "triage"
 triage_dir.mkdir(exist_ok=True)
@@ -249,11 +300,43 @@ triage_dir.mkdir(exist_ok=True)
 for s in suggestions:
     cat = category_labels.get(s["category"], s["category"])
     triage_file = triage_dir / f"NID-{s['nid']}-triage.md"
-    triage_file.write_text(f"""# Triage: NID {s['nid']} — {s['title']}
+
+    # Detect cross-site mentions in title + summary + original message
+    combined_text = " ".join([
+        s.get("title") or "",
+        s.get("summary") or "",
+        s.get("original_msg") or "",
+    ])
+    cross_site_mentions = _detect_cross_site_mentions(combined_text, _cross_site_keywords)
+
+    if cross_site_mentions:
+        mention_lines = "\n".join(
+            f"  - `{kw}` → belongs to: **{tid}**"
+            for tid, kw in cross_site_mentions
+        )
+        cross_site_warning = f"""## ⚠ CROSS-SITE WARNING
+
+This suggestion references content from a site other than **{site}**. Verify attribution before accepting or routing.
+
+**Detected references to other sites:**
+{mention_lines}
+
+**Action required:**
+- [ ] Confirm this suggestion belongs to **{site}** (not the detected site above)
+- [ ] If misfiled: re-run `./scripts/suggestion-intake.sh <correct-site>` with the correct site, or move this triage item to the correct PM inbox manually
+- [ ] If a cross-site feature request: escalate to the owning PM seat for that site
+
+---
+
+"""
+    else:
+        cross_site_warning = ""
+
+    triage_file.write_text(f"""{cross_site_warning}# Triage: NID {s['nid']} — {s['title']}
 
 - **Category:** {cat}
   - **Decision:** [ ] accept  [ ] defer  [ ] decline  [ ] escalate
-- **Feature ID** (if accept): forseti-  
+- **Feature ID** (if accept): {site}-  
 - **Priority** (if accept): P0 | P1 | P2
 - **PM notes:**
 
