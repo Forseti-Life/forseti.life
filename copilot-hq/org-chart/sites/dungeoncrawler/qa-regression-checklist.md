@@ -26,3 +26,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260320-impl-dc-cr-character-leveling — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260320-impl-dc-cr-character-leveling.md)
 - [ ] 20260322-142611-qa-findings-dungeoncrawler-1 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260322-142611-qa-findings-dungeoncrawler-1.md)
 - [ ] 20260322-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260322-improvement-round-20260322-dungeoncrawler-release-b.md)
+- [ ] 20260322-193507-qa-findings-dungeoncrawler-30 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260322-193507-qa-findings-dungeoncrawler-30.md)

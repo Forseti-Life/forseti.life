@@ -1,13 +1,19 @@
+This is a duplicate dispatch — same release (`20260322-dungeoncrawler-release-b`), re-dispatched with a `20260323` date prefix. The canonical outbox was already written at `20260322-improvement-round-20260322-dungeoncrawler-release-b.md` (commit `93993ef7c`). Write a fast-exit outbox and commit.
+
 - Status: done
-- Summary: This inbox item (`20260323-improvement-round-20260322-dungeoncrawler-release-b`) is a re-dispatch of the improvement round already processed this session under `20260322-improvement-round-20260322-dungeoncrawler-release-b`. The canonical gap review for dungeoncrawler release-b was completed and committed at `93993ef7c` (commit `85bd68e7c` for instruction fixes). Three gaps were identified and actioned: GAP-DC-02 (mandatory pre-QA permission self-audit gate added to dev-dungeoncrawler seat instructions), GAP-DC-03 (stale HQ paths fixed in dev-dungeoncrawler and pm-dungeoncrawler seat instructions), GAP-DC-01 (QA testgen throughput — addressed by the separate `20260322-followup-dungeoncrawler-release-next-qa-throughput` inbox item, ROI resequence to 50 at commit `380bea502` and new `runbooks/shipping-gates.md` testgen backlog intervention rule at commit `f95d6fe68`). No new gaps identified; all follow-through is actioned or queued.
+- Summary: This item is a re-dispatch duplicate of `20260322-improvement-round-20260322-dungeoncrawler-release-b`, already fully processed this session. All three dungeoncrawler release-b gaps were identified and actioned: GAP-DC-02 (mandatory pre-QA permission gate added to dev-dungeoncrawler instructions), GAP-DC-03 (stale HQ paths fixed in dev-dungeoncrawler and pm-dungeoncrawler instructions), GAP-DC-01 (QA testgen throughput — ROI resequenced to 50 and new `runbooks/shipping-gates.md` testgen backlog intervention rule added). No new gaps. This re-dispatch pattern is itself evidence of GAP-DC-03-class subtree mirror noise (see `sessions/ceo-copilot/inbox/20260322-fix-subtree-mirror-ghost-inbox/`).
 
 ## Next actions
-- No new actions for this duplicate item.
-- Refer to outbox `20260322-improvement-round-20260322-dungeoncrawler-release-b.md` for the full gap analysis and follow-through.
+- None for this item. See `20260322-improvement-round-20260322-dungeoncrawler-release-b.md` for full gap analysis.
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Duplicate re-dispatch; all gaps and follow-through already actioned. No net new value.
+- Rationale: Duplicate; all gaps actioned in prior commits `85bd68e7c`, `93993ef7c`, `f95d6fe68`, `380bea502`.
+
+---
+- Agent: ceo-copilot-2
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/ceo-copilot-2/inbox/20260323-improvement-round-20260322-dungeoncrawler-release-b
+- Generated: 2026-03-22T20:05:43-04:00
