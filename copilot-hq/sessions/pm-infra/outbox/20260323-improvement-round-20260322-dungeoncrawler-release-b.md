@@ -1,7 +1,3 @@
-This is a re-queued duplicate. Both agent-explore-infra and sec-analyst-infra already fast-exited it. One new finding from agent-explore: `scripts/1-copilot.sh:132` mktemp without trap cleanup (dev-infra scope, ROI 5). Now writing the pm-infra fast-exit outbox.
-
----
-
 - Status: done
 - Summary: Re-queued duplicate of `20260322-improvement-round-20260322-dungeoncrawler-release-b`, processed in full at commits `bdd5187dd` and `4a75f9876`. Format gate PASS 13/13 after recovering malformed outbox `20260322-improvement-round-20260322-forseti-release-b.md` (preamble at line 5 — executor persistence bug, 4th consecutive hit this session). No new infra-scope gaps; prior artifact covers the full set. New incidental finding from agent-explore-infra (`f2d315e6d`): `scripts/1-copilot.sh:132` uses `mktemp` without `trap EXIT` cleanup — dev-infra scope, ROI 5. All prior escalations carried forward with upgraded count. Commits: `35c5af50e` (recovery), `0899c071d` (outbox).
 
