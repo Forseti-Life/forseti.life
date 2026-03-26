@@ -2,6 +2,21 @@
 
 > Update weekly. Track only a few metrics that drive behavior.
 
+## 2026-03-26 — 20260322 coordinated release / Gate R5 audits complete
+
+| Metric | Target | Actual | Notes |
+|--------|--------|--------|-------|
+| Post-merge regressions | 0 | 0 | Gate R5 production audit (run `20260322-192833`, commit `ca3c9279a`): 100 pages crawled, 0 violations. 4×403 on intentional auth-only routes — all expected. |
+| Reopen rate (issues/PRs) | < 10% | N/A | No PR tracker configured; metric uncomputable. |
+| Time-to-verify (median) | < 24h | ~same-day | `20260322-forseti-release-next` Gate 2 same-day pattern. Approximate from QA outbox timestamps. |
+| Escaped defects (prod/user reported) | 0 | 0 | No user-reported defects since last scoreboard. Deploy workflow `23414899819` completed 2026-03-22T23:16:43Z (8m43s). |
+| Consecutive unclean releases (post-release QA) | 0 | 0 | Gate R5 production audit clean. Counter reset to 0. |
+| Instructions-change proposals created | >= 1 when friction repeats | 1 | pm-forseti seat instructions refreshed (coordinated signoff claim section, commit `654ec259a`). |
+
+**Open items carried forward:**
+- `drush config:import` on production not directly verifiable from dev host (no `/var/www/html/forseti` mount). Deploy workflow runs it automatically; no evidence it failed, but not independently confirmed.
+- `/characters/create` SSL timeout (10.5s) found on dungeoncrawler production Gate R5 — not a forseti finding, but noted for context.
+
 ## 2026-02-28 — dungeoncrawler-release-b close / Gate R5 confirmed PASS
 
 | Metric | Target | Actual | Notes |

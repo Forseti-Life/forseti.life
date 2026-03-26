@@ -154,3 +154,9 @@ Example: BrowserAutomationService Phase 2 added `/jobhunter/settings/credentials
 Pending tooling improvements:
 - `scripts/check-routing-permissions.sh` — Class A pre-commit check (proposed round 1)
 - `scripts/check-config-sync.sh` — Class B pre-QA gate check (proposed round 2, ROI: 9)
+
+## Scoreboard cadence (required)
+- Update `knowledgebase/scoreboards/forseti.life.md` **at every release close** and at least weekly.
+- Update `knowledgebase/scoreboards/dungeoncrawler.md` at every dungeoncrawler release close and at least weekly (when acting as coordinated release operator).
+- If a scoreboard entry is more than 7 days old and a release has shipped since, the first action of the next session is to update it before recording a new PM signoff.
+- Active process gaps (GAP-XX series) must appear in the scoreboard "Guardrails added" or "Active gaps" section within the same release cycle they are identified.
