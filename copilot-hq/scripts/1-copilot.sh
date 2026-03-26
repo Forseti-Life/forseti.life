@@ -130,8 +130,10 @@ append_bedrock_history() {
 
   local tmpfile
   tmpfile="$(mktemp)"
+  trap 'rm -f "$tmpfile"' EXIT
   tail -n "$BEDROCK_HISTORY_MAX_LINES" "$BEDROCK_HISTORY_FILE" > "$tmpfile" || true
   mv "$tmpfile" "$BEDROCK_HISTORY_FILE"
+  trap - EXIT
 }
 
 sanitize_persisted_output() {
