@@ -1,7 +1,8 @@
 # Open CSRF Findings Registry
 
 **Maintained by:** sec-analyst-infra (ARGUS)
-**Last updated:** 2026-03-22
+**Last updated:** 2026-03-26
+**Spot-check 2026-03-26:** FINDING-2a/2c confirmed STILL OPEN (forseti ai_conversation line 115, agent_evaluation line 66). FINDING-4 (NEW): 7 job_hunter routes missing CSRF — application submission steps 3/4/5 (browser-form POST) and addposting (GET/POST combo requiring dev judgment for fix pattern). MEDIUM severity — all require authentication.
 **Spot-check 2026-03-22:** FINDING-2a/2b/2c confirmed STILL OPEN by direct code inspection (forseti ai_conversation line 115, dungeoncrawler ai_conversation line 107, forseti agent_evaluation line 66). FINDING-3 (NEW): 7 dungeoncrawler_content POST routes missing CSRF protection, including 2 fully public routes (`dice_roll`, `rules_check` with `_access: TRUE`). See gap-review artifact for patches.
 **Spot-check 2026-03-19:** FINDING-1 CLOSED (confirmed by code inspection). FINDING-2 (ai_conversation + agent_evaluation MISPLACED) STILL OPEN across forseti and dungeoncrawler — patches were provided but MISPLACED-type was not in scope of the patch-mode execution (which targeted MISSING, not MISPLACED).
 **Source of truth:** run `bash sessions/sec-analyst-infra/artifacts/csrf-scan-tool/csrf-route-scan.sh <repo_root>` to regenerate current status.
@@ -24,6 +25,10 @@
 | FINDING-3e | dungeoncrawler | `dungeoncrawler_content` | campaign_create | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
 | FINDING-3f | dungeoncrawler | `dungeoncrawler_content` | character_step | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
 | FINDING-3g | dungeoncrawler | `dungeoncrawler_content` | game_objects | MISSING | **OPEN** — LOW-MED — 2026-03-22 |
+| FINDING-4a | forseti | `job_hunter` | application_submission_step3/3_short | MISSING | **OPEN** — MEDIUM — 2026-03-26 |
+| FINDING-4b | forseti | `job_hunter` | application_submission_step4/4_short | MISSING | **OPEN** — MEDIUM — 2026-03-26 |
+| FINDING-4c | forseti | `job_hunter` | application_submission_step5/5_short | MISSING | **OPEN** — MEDIUM — 2026-03-26 |
+| FINDING-4d | forseti | `job_hunter` | addposting (GET/POST combo) | MISSING — special case | **OPEN** — MEDIUM — requires dev judgment on fix pattern — 2026-03-26 |
 
 ---
 
@@ -113,6 +118,44 @@ bash sessions/sec-analyst-infra/artifacts/csrf-scan-tool/csrf-route-scan.sh /hom
 ```bash
 python3 sessions/sec-analyst-infra/artifacts/csrf-scan-tool/verify-dungeoncrawler-content.py
 # Exit 0 = all controller POST routes have CSRF; Exit 1 = list unprotected routes
+```
+
+---
+
+## FINDING-4 (OPEN — new 2026-03-26 — MEDIUM)
+
+**Description:** 7 `job_hunter` controller routes accept POST with `_permission` or `_user_is_logged_in` requirements but no CSRF protection. These routes were missed by the GAP-002 patch (`694fc424f`), which targeted 6 other routes.
+
+**File:** `sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml`
+
+**Routes:**
+- `application_submission_step3` / `step3_short` — `/jobhunter/application-submission/{id}/identify-auth-path`
+- `application_submission_step4` / `step4_short` — `/jobhunter/application-submission/{id}/create-account`
+- `application_submission_step5` / `step5_short` — `/jobhunter/application-submission/{id}/submit-application` ← **highest risk**: submits application
+- `addposting` — `/jobhunter/addposting` — GET/POST combo; `_csrf_token: TRUE` was reverted (`60f2a7ab8`) due to GET 403 regression; requires dev-level fix (split route or controller-level CSRF)
+
+**Fix for step3/4/5:** Add `_csrf_token: 'TRUE'` under `requirements:` in each route.
+**Fix for addposting:** Requires dev judgment — split GET/POST into separate routes or apply CSRF at controller level.
+
+**Patches:** see `sessions/sec-analyst-infra/artifacts/20260322-improvement-round-20260322-forseti-release-b/gap-review.md`
+
+**Verification:**
+```bash
+python3 -c "
+import re
+with open('sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml') as f:
+    content = f.read()
+blocks = re.split(r'\n(?=[a-zA-Z][a-zA-Z0-9_.]+:\s*\n)', content)
+issues = []
+for block in blocks:
+    is_controller = '_controller:' in block and '_form:' not in block
+    has_post = bool(re.search(r'methods:.*\[.*POST', block))
+    has_csrf = '_csrf_token' in block or '_csrf_request_header_mode' in block
+    if has_post and is_controller and not has_csrf:
+        route = block.split('\n')[0].rstrip(':')
+        issues.append(route)
+print('FAIL:', issues) if issues else print('PASS')
+"
 ```
 
 ---
