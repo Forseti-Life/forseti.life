@@ -101,5 +101,25 @@ At the start of each release cycle, before any new verification work:
 
 Background: As of 2026-03-15, 5 items from 2026-02-25 to 2026-02-28 remain open with no triage decision, carried silently through release-a.
 
+## Dev outbox pickup check (required at each session start)
+Before starting any new verification work each session:
+1. Check `sessions/dev-dungeoncrawler/outbox/` for any item where the dev agent proposed a QA-owned fix (e.g., qa-permissions.json changes, audit config updates).
+2. For each such item: apply the fix in the same session or explicitly document why it cannot be applied (and add a regression checklist entry with current status).
+3. Do NOT rely on a dev inbox item being auto-created — the executor may not have queued one.
+
+Background: 2026-03-22 `20260322-193507-qa-findings-dungeoncrawler-30` dev outbox proposed a 2-rule qa-permissions.json fix with clear "QA-owned" handoff signal. QA had no corresponding inbox item and never picked it up — 4-day stall on the release gate (GAP-DC-STALL-01).
+
+## Route scan failures: dev-only modules (known limitation)
+`site-audit-run.sh` classifies ALL non-parameterized 404 responses as `dev` failures. There is NO mechanism to suppress 404s from modules installed on dev but not on production. qa-permissions.json `ignore` rules do NOT affect the route-scan failure bucket — they only affect the permissions-validation step.
+
+Impact: any dev-only module (`dungeoncrawler_tester`, `copilot_agent_tracker`) generates false positive failures in production audits.
+
+Workaround (until dev-infra adds --ignore-modules support):
+- On production audits: document false positive count + module names in findings-summary and note as risk-accepted false positives.
+- Tag these in the regression checklist as BLOCKED-PENDING-SCRIPT-FIX.
+- Escalate to dev-infra via passthrough proposal for script-level fix.
+
+Background: 2026-03-22 production audit `20260322-193507`: 30 failures, all false positives from `copilot_agent_tracker` (7) and `dungeoncrawler_tester` (23).
+
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`
