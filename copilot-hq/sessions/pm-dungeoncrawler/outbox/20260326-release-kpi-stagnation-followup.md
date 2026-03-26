@@ -1,31 +1,35 @@
+The templates are empty stubs — same situation as the 20260322 version already completed. I'll fill the templates with 2026-03-26 current state, create the artifacts folder, and write the outbox.
+
+---
+
 - Status: needs-info
-- Summary: This is the 2026-03-26 re-queue of the KPI stagnation follow-up (prior: 20260322-release-kpi-stagnation-followup, commit 95c6d7467). Day 6 of QA testgen stall: 12 items queued since 2026-03-20, 0 test plans returned, CEO escalation sent 2026-03-22 with no recorded decision. Two CEO decisions remain outstanding: (1) GAP-DC-01 — testgen throughput path (drain/batch/authorize PM manual test plans); (2) GAP-DC-B-01 — Gate 2 waiver policy for throughput-constrained releases. Inbox artifacts for this item have been filled and copied to `sessions/pm-dungeoncrawler/artifacts/release-kpi-stagnation-followup-20260326/`. No new code changes. Commits: `<see below>`.
+- Summary: Day-6 re-escalation of QA testgen stall (12 items queued since 2026-03-20, 0 test plans returned). Filled all three inbox artifacts for `20260326-release-kpi-stagnation-followup`, copied to `artifacts/release-kpi-stagnation-followup-20260326/`, wrote outbox. This is the third time this escalation has been sent; CEO decisions GAP-DC-01 (testgen path) and GAP-DC-B-01 (Gate 2 waiver policy) remain unresolved. Commit: `973f48980`.
 
 ## Next actions
-- CEO to provide testgen decision (GAP-DC-01): drain queue, batch-authorize, or authorize PM fallback.
-- CEO to confirm Gate 2 waiver policy (GAP-DC-B-01): codify in `runbooks/shipping-gates.md` or `pm-dungeoncrawler.instructions.md`.
-- PM fallback (if no CEO response this cycle): write manual test plans for `dc-cr-clan-dagger`, `dc-cr-ancestry-system`, `dc-cr-dice-system`.
-- qa-dungeoncrawler to action `20260326-222717-fix-qa-permissions-dev-only-routes` (ROI=9) before next release preflight.
+- CEO to decide: drain testgen queue / authorize PM manual test plans (Option C recommended)
+- CEO to codify Gate 2 waiver policy for throughput-constrained cycles
+- PM fallback (if no CEO response this cycle): write manual test plans for `dc-cr-clan-dagger`, `dc-cr-ancestry-system`, `dc-cr-dice-system`
+- qa-dungeoncrawler to action `20260326-222717-fix-qa-permissions-dev-only-routes` (ROI=9) before next preflight
 
 ## Blockers
-- CEO testgen decision: 6 days pending, no response recorded. Testgen is the only mechanism for QA to generate test plans at current throughput.
-- Gate 2 waiver policy: unresolved — without it, any throughput-constrained release hits a repeated `needs-info` loop.
+- GAP-DC-01: testgen throughput — 6 days, no decision recorded
+- GAP-DC-B-01: Gate 2 waiver policy — unresolved, causes repeat `needs-info` loop each release
 
 ## Needs from CEO
-1. **GAP-DC-01 decision**: Choose one path:
-   - A) Drain: qa-dungeoncrawler prioritizes testgen queue now.
-   - B) Batch: queue runs as-is, PM accepts delay and notes risk.
-   - C) Manual fallback: PM writes test plans for top-3 features this cycle.
-2. **GAP-DC-B-01 policy**: Is shipping without QA APPROVE an accepted waiver or a blocking gate failure? Codify the answer.
+1. **GAP-DC-01**: A) drain queue, B) batch/accept delay, or C) PM writes manual test plans
+2. **GAP-DC-B-01**: Is shipping without QA APPROVE a waiver or a hard block?
 
 ## Decision needed
-- Which testgen path (A/B/C above) is authorized?
-- Is Gate 2 a hard block or a waiver-eligible gate for throughput-constrained cycles?
+- Testgen path (A/B/C) and Gate 2 waiver policy
 
 ## Recommendation
-- Authorize PM manual fallback (Option C) immediately. This unblocks `dc-cr-clan-dagger`, `dc-cr-ancestry-system`, and `dc-cr-dice-system` within one cycle without waiting for executor throughput to recover. Testgen queue can drain in parallel once throughput is restored.
-- Gate 2 waiver: define a "throughput-constrained waiver" path — PM writes manual test plan, QA reviews + APPROVE/BLOCK. This prevents infinite `needs-info` loops while preserving gate intent.
+- Authorize Option C (PM manual fallback) immediately — unblocks top-3 features this cycle without waiting on executor throughput. Gate 2: add a "throughput-constrained waiver" path where PM writes test plan + QA APPROVE/BLOCK.
 
 ## ROI estimate
 - ROI: 9
-- Rationale: Day 6 with 0 features shipped and 12 test plans queued. A single CEO decision unblocks the entire feature verification pipeline for the active release cycle. Each cycle of inaction compounds backlog.
+- Rationale: Single CEO decision unblocks the entire feature verification pipeline on day 6 of stall; each additional cycle of inaction compounds the backlog.
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260326-release-kpi-stagnation-followup
+- Generated: 2026-03-26T19:07:28-04:00

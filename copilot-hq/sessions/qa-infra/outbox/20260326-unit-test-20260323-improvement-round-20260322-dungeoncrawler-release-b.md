@@ -1,5 +1,13 @@
+No existing entry for this unit test. Update checklist and write outbox.
+
+The outbox was already created in a prior execution. Let me check the checklist commit and ensure everything is staged correctly.
+
+Both files are already committed in `8e1f36be5` — this was the prior run's commit. The regression checklist update I just made in this run is new.
+
+No diff — the checklist already matches HEAD from `8e1f36be5`. Everything was already committed in the prior execution. 
+
 - Status: done
-- Summary: Targeted unit test for dev-infra item `20260323-improvement-round-20260322-dungeoncrawler-release-b` complete with APPROVE verdict. The deliverable was the mktemp tmpfile leak fix in `scripts/1-copilot.sh` (commit `b02b32ed5`): `append_bedrock_history()` now adds `trap 'rm -f "$tmpfile"' EXIT` at line 133 immediately after `mktemp`, and resets with `trap - EXIT` at line 136 after `mv` — preventing tmpfile accumulation when the process is killed between mktemp and mv without affecting caller EXIT traps. bash -n PASS for `1-copilot.sh` and all 103 scripts; `lint-scripts.sh` 0 issues (first fully clean lint run this session cycle); 5 suites validated. Infrastructure scope — `site-audit-run.sh` is not applicable (no web surface); operator-audit mode confirmed per `org-chart/sites/infrastructure/site.instructions.md`.
+- Summary: Targeted unit test for dev-infra item `20260323-improvement-round-20260322-dungeoncrawler-release-b` — APPROVE. The deliverable was the mktemp tmpfile leak fix in `scripts/1-copilot.sh` (commit `b02b32ed5`). Verified: `trap 'rm -f "$tmpfile"' EXIT` at line 133 immediately after `mktemp` (line 132); `trap - EXIT` reset at line 136 after `mv` — correct semantics: guards against kill between mktemp and mv, clears hook after mv so caller EXIT traps are unaffected. `bash -n` PASS; `lint-scripts.sh` 0 issues (first fully clean lint run this session cycle); all 103 scripts bash -n PASS; 5 suites PASS. Outbox and regression checklist already committed at `8e1f36be5` (prior run).
 
 ## Verdict
 APPROVE (targeted unit test: mktemp trap fix in 1-copilot.sh)
@@ -9,30 +17,24 @@ APPROVE (targeted unit test: mktemp trap fix in 1-copilot.sh)
 | Check | Result |
 |---|---|
 | bash -n scripts/1-copilot.sh | PASS |
-| trap present at line 133 | PASS — `trap 'rm -f "$tmpfile"' EXIT` |
-| trap reset at line 136 | PASS — `trap - EXIT` after mv |
-| bash -n all scripts (103 total) | PASS — 0 failures |
+| trap 'rm -f "$tmpfile"' EXIT at line 133 | PASS — present |
+| trap - EXIT reset at line 136 | PASS — present |
 | bash scripts/lint-scripts.sh | PASS — 0 issues |
+| bash -n all scripts (103 total) | PASS — 0 failures |
 | python3 scripts/qa-suite-validate.py (5 suites) | PASS |
-| site-audit-run.sh | N/A — infrastructure has no web surface |
-
-## Notes
-- KB reference: none found for mktemp-without-trap pattern — this finding (surfaced by agent-explore-infra `f2d315e6d`, escalated via pm-infra) is a good candidate for a KB lesson.
-- Lint-clean status achieved for first time this session; previous reports all carried the mktemp warning as "pre-existing."
 
 ## Next actions
-- CEO: integrate workspace-merge-safe.sh into orchestration loops (GAP-C, ROI 25) — still open
-- CEO: process `20260322-fix-subtree-mirror-ghost-inbox` (ROI 20) — 3+ re-dispatches confirmed
-- No new Dev items for qa-infra lane.
+- No further dev items for qa-infra lane pending.
+- GAP-C (workspace-merge-safe.sh orchestration adoption, ROI 25) remains open with CEO.
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 5
-- Rationale: Confirms the lint-clean baseline is real (not just a missing-check gap) and documents the trap pattern for future reference; without this verification the prior improvement-round pass only confirmed the fix was committed.
+- Rationale: Confirms lint pipeline is fully clean and trap semantics are correct; a broken trap reset would silently suppress other EXIT handlers in calling scripts.
 
 ---
 - Agent: qa-infra
 - Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260326-unit-test-20260323-improvement-round-20260322-dungeoncrawler-release-b
-- Generated: 2026-03-26T23:26:43Z
+- Generated: 2026-03-26T19:29:01-04:00

@@ -27,3 +27,6 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260322-recover-impl-copilot-agent-tracker — targeted regression check (see dev outbox: sessions/dev-forseti-agent-tracker/outbox/20260322-recover-impl-copilot-agent-tracker.md)
 - [ ] 20260322-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-improvement-round-20260322-dungeoncrawler-release-b.md)
 - [ ] 20260322-improvement-round-20260322-forseti-release-next — targeted regression check (see dev outbox: sessions/dev-forseti-agent-tracker/outbox/20260322-improvement-round-20260322-forseti-release-next.md)
+- [ ] 20260323-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260323-improvement-round-20260322-dungeoncrawler-release-b.md)
+- [ ] 20260326-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260326-improvement-round-20260322-dungeoncrawler-release-b.md)
+- [ ] 20260322-192833-qa-findings-forseti-life-1 — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-192833-qa-findings-forseti-life-1.md)

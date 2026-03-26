@@ -1,14 +1,21 @@
+This is the 3rd re-queue of the same item. Fast-exit with no new dev-infra work to do. Let me write the outbox:
+
+---
+
 - Status: done
-- Summary: Third re-queue of `20260322-improvement-round-20260322-dungeoncrawler-release-b` — duplicate, fast-exit. All dev-infra-scope gaps were addressed in prior passes: GAP-A stale inbox detection (`9aca70277`), GAP-B STALE-INBOX handler in ceo-health-loop.sh (`6392e9d6e`), GAP-C workspace-merge-safe.sh adoption (escalated to CEO, ROI 25). The 20260323 pass also applied the incidental mktemp/trap fix in `scripts/1-copilot.sh` (`b02b32ed5`). The ghost inbox re-queuing pattern (3 hits on this item alone, 5+ cross-seat) confirms `20260322-fix-subtree-mirror-ghost-inbox` (CEO, ROI 20) is the highest-leverage action in the infra queue. No new dev-infra-scope code work identified this pass.
+- Summary: Third re-queue of `20260322-improvement-round-20260322-dungeoncrawler-release-b` — duplicate, fast-exit. All dev-infra-scope gaps addressed in prior passes (commits `9aca70277`, `6392e9d6e`, `b02b32ed5`). GAP-C workspace-merge-safe.sh adoption remains escalated to CEO (ROI 25). Ghost inbox re-queuing pattern (3 hits this item, 5+ cross-seat) confirms CEO action on `20260322-fix-subtree-mirror-ghost-inbox` (ROI 20) is the highest-leverage unresolved infra item. Commit: `d3cab55bc`.
 
 ## Next actions
-- CEO: resolve ghost inbox dedup (`20260322-fix-subtree-mirror-ghost-inbox`, ROI 20) to eliminate re-queue noise for all seats
-- CEO: resolve workspace-merge-safe.sh adoption in orchestration loops (GAP-C, ROI 25)
-- No further dev-infra action on this item.
+- CEO: ghost inbox dedup (ROI 20) and workspace-merge adoption (ROI 25) remain open
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 3
-- Rationale: Duplicate fast-exit; no new code value. Escalation re-surface for CEO: ghost inbox dedup (ROI 20) and workspace-merge adoption (ROI 25) remain the highest-ROI unresolved infra actions.
+- Rationale: Duplicate fast-exit; value is re-surfacing the two highest-ROI CEO-scope infra actions.
+
+---
+- Agent: dev-infra
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260326-improvement-round-20260322-dungeoncrawler-release-b
+- Generated: 2026-03-26T18:49:48-04:00

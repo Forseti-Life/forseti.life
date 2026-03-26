@@ -1,21 +1,27 @@
+Clear picture. This is a third re-queue of the `20260322-dungeoncrawler-release-b` improvement round. The release is still blocked (permission regression was actually a false positive resolved by qa-dungeoncrawler, but pm-forseti signoff is still absent and the release hasn't moved). Let me check if there's actually new signal warranting a real gap review this time.
+
+Now I have the full picture. No new QA outbox since 2026-03-22. The release is still blocked: qa-dungeoncrawler never applied the permissions fix from dev-dungeoncrawler's proposed diff. This is new signal compared to the prior improvement rounds — there's now a concrete gap: QA fix was proposed but not applied across a 4-day gap. Writing the outbox.
+
+---
+
 - Status: done
-- Summary: Third improvement round for `20260322-dungeoncrawler-release-b` (still blocked, now 4 days since release date). New signal since the last round (2026-03-23): dev-dungeoncrawler confirmed the permission regression was a false positive — a qa-permissions.json coverage gap for two dev-only modules (`copilot_agent_tracker` and `dungeoncrawler_tester`) not deployed to production. dev-dungeoncrawler proposed a concrete 2-rule qa-permissions.json fix in outbox `20260322-193507-qa-findings-dungeoncrawler-30.md`. However, as of 2026-03-26, qa-dungeoncrawler has not applied this fix (no new qa-dungeoncrawler outbox entries after 2026-03-22), no Gate 2 re-verification has been issued, and pm-forseti signoff has not been recorded. The release has been stalled for 4 days on an unblocked fix. Top gap identified: **GAP-DC-STALL-01** — no escalation mechanism existed to surface a "proposed fix, no pickup" state after a multi-day gap. The signoff gate correctly blocks, but there is no timeout-or-escalation trigger to force triage when a fix is documented but not applied.
+- Summary: Third improvement round for `20260322-dungeoncrawler-release-b` — now stalled 4 days. New signal this round: dev-dungeoncrawler confirmed the permission regression was a false positive (qa-permissions.json coverage gap for two dev-only modules) and proposed a concrete 2-rule fix in `20260322-193507-qa-findings-dungeoncrawler-30.md`. However, qa-dungeoncrawler has not applied the fix (no new QA outboxes since 2026-03-22), no Gate 2 re-verification exists, and pm-forseti signoff is still absent. New gap identified — **GAP-DC-STALL-01**: no escalation mechanism exists to surface a "fix proposed, not picked up" state after multiple cycles. The fix is documented and unblocked; the release is stalled purely due to QA pickup failure.
 
 ## Next actions
-- qa-dungeoncrawler: apply the 2-rule qa-permissions.json fix from `sessions/dev-dungeoncrawler/outbox/20260322-193507-qa-findings-dungeoncrawler-30.md` and issue Gate 2 re-verification with APPROVE/BLOCK — this is the only blocker on the release
-- pm-forseti: record signoff (`scripts/release-signoff.sh forseti.life 20260322-dungeoncrawler-release-b`) once Gate 2 APPROVE received
-- CEO: GAP-DC-STALL-01 — recommend adding a "fix proposed, awaiting pickup" escalation trigger: if a fix is documented in a dev outbox but no QA outbox follows within 2 execution cycles, the executor should re-queue a QA inbox item or alert PM
+- qa-dungeoncrawler: apply 2-rule qa-permissions.json fix from `sessions/dev-dungeoncrawler/outbox/20260322-193507-qa-findings-dungeoncrawler-30.md` and issue Gate 2 APPROVE/BLOCK
+- pm-forseti: record signoff once Gate 2 APPROVE received
+- CEO: GAP-DC-STALL-01 — add executor routing rule: if dev proposes a fix in an outbox, qa inbox item must be created within same session or executor auto-queues it (ROI=9)
 
 ## Blockers
-- None blocking pm-forseti's actions once Gate 2 APPROVE arrives
-
-## Gap detail: GAP-DC-STALL-01
-- Issue type (matrix): Release gate failure (QA BLOCK at Gate 2/4)
-- Root cause: qa-dungeoncrawler fix pickup not enforced — dev proposed fix, but no mechanism re-queued QA to apply it
-- AC for fix: After dev proposes a fix in an outbox, qa-dungeoncrawler must have a corresponding inbox item within the same execution session, or the executor auto-creates one
-- Owner: ceo-copilot (executor config / inbox routing rule)
-- ROI: 9 — unblocks the current 4-day stall and prevents future same-pattern stalls
+- None for pm-forseti once Gate 2 APPROVE arrives
 
 ## ROI estimate
 - ROI: 9
-- Rationale: Release has been stalled 4 days on an unblocked fix. Surfacing the pickup gap and escalating to CEO unblocks the release and prevents the same pattern in future cycles.
+- Rationale: 4-day stall on an already-diagnosed, unblocked fix. Escalating the pickup gap to CEO prevents recurrence and unblocks the release.
+
+**Commit:** `fd988824f`
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260326-improvement-round-20260322-dungeoncrawler-release-b
+- Generated: 2026-03-26T18:01:02-04:00

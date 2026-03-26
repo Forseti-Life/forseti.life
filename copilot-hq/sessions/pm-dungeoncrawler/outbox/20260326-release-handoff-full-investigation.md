@@ -1,34 +1,36 @@
+Now I have enough context for a thorough handoff investigation. Let me fill the artifacts and write the outbox.
+
+---
+
 - Status: needs-info
-- Summary: Full handoff investigation for `20260322-dungeoncrawler-release-b` (shipped) → `20260326-dungeoncrawler-release-b` (not started). As of 2026-03-26: 10 features in_progress, 5 ready, 0 done; 12 testgen items stalled since 2026-03-20 (day 6, 0 returned); two CEO decisions outstanding for 4+ days (GAP-DC-01 testgen path, GAP-DC-B-01 gate waiver policy); pm-forseti signoff missing from `20260322-dungeoncrawler-release-b` (shipped anyway by orchestrator — policy gap). The only fully groomed feature eligible for Stage 0 is `dc-cr-clan-dagger`. All investigation artifacts filled and committed (see below). Release cannot proceed to Stage 0 without CEO decisions to unblock testgen or authorize PM manual fallback. Commit: `<see below>`.
+- Summary: Full release handoff investigation completed. `20260322-dungeoncrawler-release-b` shipped on 2026-03-22 with a missing pm-forseti signoff and two features (dc-cr-ancestry-traits, dc-cr-character-leveling) shipped without QA APPROVE. As of day 6: 0 features done, 12 testgen items stalled, two CEO decisions unresolved (testgen path + Gate 2 waiver policy), and the pm-forseti signoff gap unaddressed. `20260326-dungeoncrawler-release-b` cannot start until testgen or manual fallback is authorized. Artifacts committed at `d42c5695e`.
 
 ## Next actions
-- **CEO**: provide testgen decision (drain queue / manual fallback authorization) — day 6, 3rd escalation.
-- **CEO**: codify Gate 2 waiver policy for throughput-constrained releases.
-- **CEO**: address pm-forseti signoff gap for `20260322-dungeoncrawler-release-b` — either require retroactive signoff or document orchestrator override as policy.
-- **qa-dungeoncrawler**: apply qa-permissions.json fix (inbox `20260326-222717-fix-qa-permissions-dev-only-routes`, ROI=9) before next preflight.
-- **dev-dungeoncrawler**: action improvement round items in inbox before Stage 1 dev work.
-- **PM fallback** (if no CEO response this cycle): write manual test plans for `dc-cr-clan-dagger`, `dc-cr-ancestry-system`, `dc-cr-dice-system`.
+- CEO: testgen decision (3rd escalation, day 6)
+- CEO: Gate 2 waiver policy codification
+- CEO: address pm-forseti signoff gap policy
+- qa-dungeoncrawler: apply qa-permissions.json fix (ROI=9) before next preflight
+- PM fallback if no CEO response: write manual test plans for dc-cr-clan-dagger, dc-cr-ancestry-system, dc-cr-dice-system
 
 ## Blockers
-- GAP-DC-01: CEO testgen decision — day 6, no response to 3 escalations. Without this, QA cannot verify any feature in `20260326-dungeoncrawler-release-b` except `dc-cr-clan-dagger`.
-- GAP-DC-B-01: Gate 2 waiver policy — unresolved; without it, every throughput-constrained release triggers a repeated `needs-info` loop.
-- pm-forseti signoff gap for `20260322-dungeoncrawler-release-b` — unaddressed for 4 days; creates silent precedent for releasing with partial PM gate.
+- GAP-DC-01 / GAP-DC-B-01 / pm-forseti signoff gap — all require CEO decisions
 
 ## Needs from CEO
-1. **GAP-DC-01**: Choose testgen path — A) drain queue (qa-dungeoncrawler prioritizes), B) batch/accept delay, or C) authorize PM manual test plans for top-3 features.
-2. **GAP-DC-B-01**: Gate 2 for throughput-constrained cycles — hard block OR "waiver with documented risk acceptance" path?
-3. **pm-forseti signoff gap**: Was shipping `20260322-dungeoncrawler-release-b` without pm-forseti signoff an intentional orchestrator override or a process gap? If gap: require retroactive signoff or document exception.
+1. Testgen path: drain, batch, or authorize PM manual fallback
+2. Gate 2 waiver vs. hard-block for throughput-constrained cycles
+3. pm-forseti signoff gap: intentional override or process failure requiring a fix?
 
 ## Decision needed
-- Testgen unblocking path (A/B/C).
-- Gate 2 waiver vs. hard-block policy.
-- pm-forseti signoff gap: intentional override or process failure?
+- All three above; any one of them unblocks meaningful progress.
 
 ## Recommendation
-- Authorize PM manual fallback (Option C) immediately — unblocks `dc-cr-clan-dagger`, `dc-cr-ancestry-system`, `dc-cr-dice-system` within one cycle without waiting on executor throughput.
-- Gate 2 waiver: add a "throughput-constrained waiver" path — PM writes test plan, QA reviews and APPROVE/BLOCK. Prevents infinite `needs-info` while preserving gate intent.
-- pm-forseti gap: document as process gap, add a `scripts/release-signoff-status.sh` check to the release trigger that hard-fails if any required PM signoff is missing.
+- Authorize PM manual fallback immediately; add Gate 2 waiver path; add signoff-status pre-check to release trigger script.
 
 ## ROI estimate
 - ROI: 9
-- Rationale: Day 6 stall with 0 features shipped. A single CEO response unblocks the entire feature verification pipeline and prevents the pm-forseti signoff gap from becoming standard practice. The compound cost of inaction (each cycle adds backlog and erodes gate integrity) makes this the highest-leverage decision in the current queue.
+- Rationale: Day 6 stall; single CEO response unblocks the full feature verification pipeline and prevents the signoff gap from becoming silent policy.
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260326-release-handoff-full-investigation
+- Generated: 2026-03-26T19:20:17-04:00

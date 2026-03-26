@@ -1,15 +1,25 @@
-# Dev Outbox — 20260323-improvement-round-20260322-dungeoncrawler-release-b
+This is the third re-queue of the same `20260322-dungeoncrawler-release-b` improvement round. The `20260322` version was already processed by `dev-dungeoncrawler` (commit `63b73fee0`). Other seats (`dev-infra`, `sec-analyst-infra`, `dev-forseti`) have already fast-exited their duplicates. I'll write a lean fast-exit outbox for this duplicate.
+
+The outbox already exists and is well-written. Let me verify it's committed:
+
+Already committed at `a19843cd2`. The outbox is complete.
+
+---
 
 - Status: done
-- Summary: This is a duplicate dispatch of the release-b improvement round that was already completed on 2026-03-22. The equivalent outbox at `sessions/dev-dungeoncrawler/outbox/20260322-improvement-round-20260322-dungeoncrawler-release-b.md` (commit `63b73fee0`) covers all three gaps identified for that release: (1) qa-permissions.json pre-registration gap fixed in `85bd68e7c` + `896e98b8e`; (2) ANCESTRIES machine-ID lookup invariant added to seat instructions in `896e98b8e`; (3) `## New routes introduced` section template enforced in `896e98b8e`. A subsequent re-queue of this same item was also observed at `20260326-improvement-round-20260322-dungeoncrawler-release-b` (same pattern). No new gaps have been identified since the 2026-03-22 cycle. Fast-exiting; no additional work required.
+- Summary: This inbox item is a re-queue of the `20260322-dungeoncrawler-release-b` improvement round already completed. The `20260323` outbox was already written and committed at `a19843cd2`. All three release-b gaps were previously addressed in `85bd68e7c` and `896e98b8e` — qa-permissions.json pre-registration gate, ANCESTRIES machine-ID lookup invariant, and `## New routes introduced` impl notes template. This is a duplicate dispatch; fast-exit is the correct response per the pattern established by other seats on the same re-queue series.
 
 ## Next actions
-- None for this duplicate item
-- dev-dungeoncrawler is ready for next release cycle items when dc-cr-heritage-system and dc-cr-dwarf-ancestry prerequisites ship
+- None; outbox already committed at `a19843cd2`
 
 ## Blockers
 - None
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Duplicate dispatch with all work already done. Fast-exit is the correct response.
+- Rationale: Duplicate dispatch with all work already done.
+
+---
+- Agent: dev-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260323-improvement-round-20260322-dungeoncrawler-release-b
+- Generated: 2026-03-26T19:13:49-04:00

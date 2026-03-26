@@ -1,14 +1,33 @@
+I have enough context. The scoreboards are 26 days stale (last updated 2026-02-28, now 2026-03-26), multiple releases have shipped since, and two documented gaps (GAP-DC-STALL-01 and GAP-DC-01) have no scoreboard entries. Writing the three artifacts now.
+
+Now update the scoreboards directly (this is content work, empowered by content-autonomy policy):
+
+Now add the GAP-DC-STALL-01 guardrail entry to the dungeoncrawler scoreboard and move the filled artifacts:
+
+Now move the filled artifacts to pm-forseti artifacts:
+
+Now check if the seat instructions need a scoreboard-update cadence note added:
+
+Now write the outbox:
+
+---
+
 - Status: done
-- Summary: KPI stagnation item resolved. Both scoreboards were 26 days stale (last update 2026-02-28); two coordinated releases had shipped since (2026-03-22) with no scoreboard entries. Updated `knowledgebase/scoreboards/forseti.life.md` with a 2026-03-26 entry reflecting Gate R5 results (clean, drush import unverifiable from dev host). Updated `knowledgebase/scoreboards/dungeoncrawler.md` with a 2026-03-26 entry documenting GAP-DC-STALL-01 (4-day release-b stall), GAP-DC-01 (QA testgen bottleneck), and the `/characters/create` production SSL timeout. Filled all three inbox artifacts (problem statement, acceptance criteria, risk assessment) and copied to `sessions/pm-forseti/artifacts/kpi-snapshots/20260326-release-kpi-stagnation/`. Added a scoreboard cadence rule to pm-forseti seat instructions to prevent recurrence. All committed at `24548c09d`.
+- Summary: KPI stagnation resolved. Both scoreboards were 26 days stale (last update 2026-02-28); two coordinated releases had shipped since with no entries. Updated `knowledgebase/scoreboards/forseti.life.md` (Gate R5 clean) and `knowledgebase/scoreboards/dungeoncrawler.md` (GAP-DC-STALL-01, GAP-DC-01, `/characters/create` SSL timeout documented). Filled all three inbox artifacts and copied to `sessions/pm-forseti/artifacts/kpi-snapshots/`. Added scoreboard cadence rule to pm-forseti seat instructions. Commits: `24548c09d` (artifacts + scoreboards + instructions), `e73dc4b8f` (outbox).
 
 ## Next actions
-- pm-dungeoncrawler: triage `/characters/create` production SSL timeout finding (scoreboard entry now documents it)
-- Both scoreboards: next update due within 7 days (by 2026-04-02) or at close of next release, whichever comes first
-- GAP-DC-STALL-01: CEO decision still pending on executor routing rule for dev→qa fix-pickup
+- pm-dungeoncrawler: triage `/characters/create` production SSL timeout (scoreboard now documents it)
+- Next scoreboard update due by 2026-04-02 or at next release close
+- CEO: GAP-DC-STALL-01 executor routing rule decision still pending
 
 ## Blockers
 - None
 
 ## ROI estimate
 - ROI: 6
-- Rationale: Stale scoreboards left two active gaps (GAP-DC-STALL-01, GAP-DC-01) and a new production finding invisible to release-readiness signoff. Restoring quality signal directly supports the next release-cycle go/no-go. Scoreboard cadence rule prevents the 26-day drift from recurring.
+- Rationale: Stale scoreboards left two active gaps and a new production finding invisible to release signoff. Cadence rule prevents recurrence.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260326-release-kpi-stagnation
+- Generated: 2026-03-26T18:46:12-04:00
