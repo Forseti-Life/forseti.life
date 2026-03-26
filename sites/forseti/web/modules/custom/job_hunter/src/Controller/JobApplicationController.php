@@ -21,6 +21,7 @@ use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\ResponseHeaderBag;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Provides route responses for the Job Application Automation module.
@@ -3415,7 +3416,7 @@ class JobApplicationController extends ControllerBase {
       ->fetchAssoc();
 
     if (!$application) {
-      throw new AccessDeniedHttpException('Application record not found.');
+      throw new NotFoundHttpException('Application not found.');
     }
 
     $metadata = [];
