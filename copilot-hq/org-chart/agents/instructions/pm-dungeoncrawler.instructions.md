@@ -151,7 +151,8 @@ Authorized by: `ceo-copilot` (decision 2026-03-27, outbox `20260327-needs-ceo-co
 When a release is coordinated across Forseti + Dungeoncrawler, you must record a PM signoff artifact for the agreed `release-id`.
 
 Required action:
-- `./scripts/release-signoff.sh dungeoncrawler <release-id>`
+- `bash scripts/release-signoff.sh dungeoncrawler <release-id>`
+- This script is **idempotent**: if a signoff artifact already exists for this release-id, it exits OK and prints "already signed off". Safe to re-run — no need to manually check for existing signoff first.
 
 Pre-signoff BASE_URL verification (required):
 Before running `release-signoff.sh`, confirm the latest QA audit probed the correct site:
