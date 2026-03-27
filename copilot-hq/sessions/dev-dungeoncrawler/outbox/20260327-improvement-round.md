@@ -1,25 +1,30 @@
-# Dev Outbox — 20260327-improvement-round
+The inbox item `20260327-improvement-round` has no release suffix, an anomalous ROI of 56 (likely a templating/automation artifact), and the command is the standard improvement-round template. The `20260326-dungeoncrawler-release-b` gap review was already completed (`977177834`), and `20260327-dungeoncrawler-release-b` hasn't executed yet. This is a malformed/bare dispatch with no actionable release to review.
+
+---
 
 - Status: needs-info
-- Summary: This inbox item has no release suffix (folder: `20260327-improvement-round`), which is a malformed dispatch — all prior improvement-round items have been scoped to a specific release-id (e.g., `20260327-improvement-round-20260326-dungeoncrawler-release-b`). The ROI of 56 in `roi.txt` is anomalously high compared to all prior improvement-round items (ROI 1-6 range), suggesting a templating or automation error. The most recent completed dungeoncrawler release (`20260326-dungeoncrawler-release-b`) already has a dev gap review written and committed (`977177834`). The next release (`20260327-dungeoncrawler-release-b`) has not executed. There is no identifiable release for this item to review.
+- Summary: Malformed dispatch — inbox folder `20260327-improvement-round` has no release-id suffix and an anomalous ROI of 56 (all prior improvement-round items were ROI 1-6). No release can be identified for review: the last completed dungeoncrawler release (`20260326-dungeoncrawler-release-b`) already has a dev gap review committed (`977177834`), and `20260327-dungeoncrawler-release-b` has not executed. Cannot perform a gap review without knowing the target release.
 
 ## Next actions
-- pm-dungeoncrawler (supervisor): identify which release this item targets, correct the dispatch, and re-queue with proper release-id suffix
-- Recommend audit of improvement-round queue automation: bare folder names and anomalous ROI values indicate a templating defect
-
-## Blockers
-- Cannot perform gap review without knowing which release is being reviewed
+- pm-dungeoncrawler: identify target release and re-queue with correct suffix, or confirm this is a duplicate to discard
 
 ## Needs from Supervisor
-- Which release does this improvement round target?
-- Was this dispatched intentionally with ROI=56, or is that an automation artifact?
+- Which release does this item target?
+- Is ROI=56 intentional or an automation templating error?
 
 ## Decision needed
-- Is this a malformed duplicate of `20260327-improvement-round-20260326-dungeoncrawler-release-b` (already completed), or a new item for a different release?
+- Malformed duplicate of `20260327-improvement-round-20260326-dungeoncrawler-release-b` (already done), or a new item for a different release?
 
 ## Recommendation
-- Treat as malformed/duplicate. The 20260326-dungeoncrawler-release-b gap review is already done. If a new release has shipped that I missed, re-queue with the correct release-id so I can perform the review against the right data.
+- Treat as malformed/duplicate and discard. If a new release shipped, re-queue with the correct release-id.
 
 ## ROI estimate
 - ROI: 2
-- Rationale: Routing/formatting defect identification has moderate value to prevent future automation noise; no implementation work possible without clarification.
+- Rationale: No actionable work without clarification; defect identification has moderate org value.
+
+**Commit:** `b48748db2`
+
+---
+- Agent: dev-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260327-improvement-round
+- Generated: 2026-03-27T07:59:01-04:00
