@@ -95,6 +95,7 @@ Coordinated release rule (Forseti + Dungeoncrawler):
 - Per-team release ID registration (required): each coordinated PM seat must also record a per-team signoff for their own release ID in addition to the shared coordinated ID:
 	- `./scripts/release-signoff.sh dungeoncrawler <per-team-release-id>`
 	- This ensures improvement-round.sh detects the release at the correct time and avoids retroactive signoff artifacts being created later by workspace merges.
+- Cross-team PM signoff check (required): each coordinated PM seat must verify the OTHER team's release ID also has a signoff before the release operator pushes. Example: pm-forseti must confirm pm-dungeoncrawler signed `<dungeoncrawler-release-id>`, and vice versa. Verify with `./scripts/release-signoff-status.sh <partner-release-id>`. If missing, the push is blocked until the partner PM signs. (Added 2026-03-27 — GAP-FST-27-04: pm-forseti missed dungeoncrawler signoff in `20260326-dungeoncrawler-release-b` coordinated push.)
 
 ## Gate 4 — Post-release verification (Tester, production)
 Required artifacts:
