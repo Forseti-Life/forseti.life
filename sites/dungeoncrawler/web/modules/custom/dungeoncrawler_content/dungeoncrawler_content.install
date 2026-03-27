@@ -4126,3 +4126,80 @@ function dungeoncrawler_content_update_10029() {
   $count = $registry->importContentFromJson('item');
   return t('Imported/refreshed @count item(s) from JSON files (clan_dagger and existing items).', ['@count' => $count]);
 }
+
+/**
+ * Add discrete ancestry fields to ancestry content type and populate nodes.
+ */
+function dungeoncrawler_content_update_10030() {
+  // --- Field storage definitions ---
+  $fields = [
+    'field_ancestry_hp' => ['type' => 'integer', 'cardinality' => 1, 'label' => 'Hit Points'],
+    'field_ancestry_size' => ['type' => 'string', 'cardinality' => 1, 'label' => 'Size', 'settings' => ['max_length' => 20]],
+    'field_ancestry_speed' => ['type' => 'integer', 'cardinality' => 1, 'label' => 'Speed'],
+    'field_ancestry_boosts' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Ability Boosts', 'settings' => ['max_length' => 50]],
+    'field_ancestry_flaws' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Ability Flaws', 'settings' => ['max_length' => 50]],
+    'field_ancestry_languages' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Languages', 'settings' => ['max_length' => 50]],
+    'field_ancestry_senses' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Senses', 'settings' => ['max_length' => 50]],
+  ];
+
+  foreach ($fields as $field_name => $def) {
+    // Create field storage if not exists.
+    if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name)) {
+      $storage_def = [
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'type' => $def['type'],
+        'cardinality' => $def['cardinality'],
+      ];
+      if (!empty($def['settings'])) {
+        $storage_def['settings'] = $def['settings'];
+      }
+      \Drupal\field\Entity\FieldStorageConfig::create($storage_def)->save();
+    }
+    // Create field instance on ancestry bundle if not exists.
+    if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'ancestry', $field_name)) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name' => $field_name,
+        'entity_type' => 'node',
+        'bundle' => 'ancestry',
+        'label' => $def['label'],
+        'required' => FALSE,
+      ])->save();
+    }
+  }
+
+  // --- Populate ancestry nodes from CharacterManager::ANCESTRIES ---
+  $nids = \Drupal::entityQuery('node')
+    ->accessCheck(FALSE)
+    ->condition('type', 'ancestry')
+    ->execute();
+
+  $nodes = \Drupal\node\Entity\Node::loadMultiple($nids);
+  $updated = 0;
+
+  foreach ($nodes as $node) {
+    $title = $node->getTitle();
+    $canonical = \Drupal\dungeoncrawler_content\Service\CharacterManager::resolveAncestryCanonicalName(strtolower(str_replace(' ', '-', $title)));
+    if (empty($canonical)) {
+      // Try direct title lookup.
+      $all = \Drupal\dungeoncrawler_content\Service\CharacterManager::ANCESTRIES;
+      $canonical = isset($all[$title]) ? $title : '';
+    }
+    if (empty($canonical)) {
+      continue;
+    }
+    $data = \Drupal\dungeoncrawler_content\Service\CharacterManager::ANCESTRIES[$canonical];
+
+    $node->set('field_ancestry_hp', (int) ($data['hp'] ?? 0));
+    $node->set('field_ancestry_size', $data['size'] ?? 'Medium');
+    $node->set('field_ancestry_speed', (int) ($data['speed'] ?? 25));
+    $node->set('field_ancestry_boosts', array_map(fn($b) => ['value' => $b], $data['boosts'] ?? []));
+    $node->set('field_ancestry_flaws', array_map(fn($f) => ['value' => $f], array_filter([$data['flaw'] ?? ''])));
+    $node->set('field_ancestry_languages', array_map(fn($l) => ['value' => $l], $data['languages'] ?? []));
+    $node->set('field_ancestry_senses', !empty($data['vision']) ? [['value' => $data['vision']]] : []);
+    $node->save();
+    $updated++;
+  }
+
+  return t('Added 7 ancestry fields and populated @count ancestry nodes.', ['@count' => $updated]);
+}

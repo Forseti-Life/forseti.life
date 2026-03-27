@@ -80,7 +80,19 @@ class CharacterApiController extends ControllerBase {
 
     try {
       $character_id = $data['character_id'] ?? NULL;
-      
+
+      // Validate ancestry ID if provided.
+      $ancestry_val = $data['ancestry'] ?? NULL;
+      if ($ancestry_val !== NULL && $ancestry_val !== '') {
+        $canonical = \Drupal\dungeoncrawler_content\Service\CharacterManager::resolveAncestryCanonicalName($ancestry_val);
+        if ($canonical === '') {
+          return new JsonResponse([
+            'success' => FALSE,
+            'error' => 'Invalid ancestry: ' . $ancestry_val,
+          ], 400);
+        }
+      }
+
       // Prepare character data for storage
       $character_data = [
         'step' => $data['step'] ?? 1,

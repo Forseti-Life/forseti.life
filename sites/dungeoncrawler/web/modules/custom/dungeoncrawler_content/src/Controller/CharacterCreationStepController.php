@@ -359,7 +359,7 @@ class CharacterCreationStepController extends ControllerBase {
     // Simple mapping of form fields to character data
     $field_mappings = [
       1 => ['name', 'concept'],
-      2 => ['ancestry', 'heritage', 'ancestry_feat'],
+      2 => ['ancestry', 'heritage', 'ancestry_feat', 'ancestry_boosts'],
       3 => ['background', 'background_boosts'],
       4 => ['class', 'class_key_ability', 'class_feat', 'subclass'],
       5 => ['free_boosts'],
@@ -420,6 +420,84 @@ class CharacterCreationStepController extends ControllerBase {
 
         if ($selected_class === 'wizard') {
           $character_data['spells']['spellbook_size'] = $spell_slots['spellbook'] ?? 10;
+        }
+      }
+    }
+
+    // Step 2: Apply ancestry stats to character data.
+    if ($step === 2) {
+      $ancestry_id = $character_data['ancestry'] ?? '';
+      if (!empty($ancestry_id)) {
+        $canonical = CharacterManager::resolveAncestryCanonicalName($ancestry_id);
+        $ancestry_data = $canonical ? (CharacterManager::ANCESTRIES[$canonical] ?? []) : [];
+        if (!empty($ancestry_data)) {
+          // Store ancestry stats.
+          $character_data['ancestry_hp'] = (int) ($ancestry_data['hp'] ?? 0);
+          $character_data['ancestry_speed'] = (int) ($ancestry_data['speed'] ?? 25);
+          $character_data['ancestry_size'] = $ancestry_data['size'] ?? 'Medium';
+
+          // Ensure abilities array exists.
+          if (empty($character_data['abilities']) || !is_array($character_data['abilities'])) {
+            $character_data['abilities'] = ['str' => 10, 'dex' => 10, 'con' => 10, 'int' => 10, 'wis' => 10, 'cha' => 10];
+          }
+          $ability_map = ['Strength' => 'str', 'Dexterity' => 'dex', 'Constitution' => 'con', 'Intelligence' => 'int', 'Wisdom' => 'wis', 'Charisma' => 'cha'];
+
+          // Reverse previous ancestry mods if ancestry was re-selected.
+          $prev_ancestry_id = $character_data['_prev_ancestry'] ?? '';
+          if (!empty($prev_ancestry_id) && $prev_ancestry_id !== $ancestry_id) {
+            $prev_canonical = CharacterManager::resolveAncestryCanonicalName($prev_ancestry_id);
+            $prev_data = $prev_canonical ? (CharacterManager::ANCESTRIES[$prev_canonical] ?? []) : [];
+            foreach ($prev_data['boosts'] ?? [] as $boost) {
+              if ($boost !== 'Free') {
+                $key = $ability_map[$boost] ?? '';
+                if ($key) { $character_data['abilities'][$key] = max(0, ($character_data['abilities'][$key] ?? 10) - 2); }
+              }
+            }
+            if (!empty($prev_data['flaw'])) {
+              $key = $ability_map[$prev_data['flaw']] ?? '';
+              if ($key) { $character_data['abilities'][$key] = ($character_data['abilities'][$key] ?? 10) + 2; }
+            }
+            // Also reverse previous free boost selections.
+            foreach ($character_data['_prev_ancestry_free_boosts'] ?? [] as $free_boost) {
+              $key = $ability_map[ucfirst(strtolower($free_boost))] ?? $ability_map[$free_boost] ?? '';
+              if (!$key) {
+                // Try direct short-key lookup.
+                $key = $free_boost;
+                if (!isset($character_data['abilities'][$key])) { continue; }
+              }
+              if ($key && isset($character_data['abilities'][$key])) {
+                $character_data['abilities'][$key] = max(0, $character_data['abilities'][$key] - 2);
+              }
+            }
+          }
+
+          // Apply new ancestry boosts.
+          $free_boost_selections = $this->normalizeSelectionList($form_data['ancestry_boosts'] ?? []);
+          $free_idx = 0;
+          foreach ($ancestry_data['boosts'] ?? [] as $boost) {
+            if ($boost === 'Free') {
+              $chosen = $free_boost_selections[$free_idx] ?? '';
+              if (!empty($chosen)) {
+                // chosen may be short-form (str) or long-form (Strength).
+                $key = $ability_map[$chosen] ?? (array_key_exists($chosen, $character_data['abilities']) ? $chosen : '');
+                if ($key) { $character_data['abilities'][$key] = ($character_data['abilities'][$key] ?? 10) + 2; }
+              }
+              $free_idx++;
+            } else {
+              $key = $ability_map[$boost] ?? '';
+              if ($key) { $character_data['abilities'][$key] = ($character_data['abilities'][$key] ?? 10) + 2; }
+            }
+          }
+
+          // Apply ancestry flaw.
+          if (!empty($ancestry_data['flaw'])) {
+            $key = $ability_map[$ancestry_data['flaw']] ?? '';
+            if ($key) { $character_data['abilities'][$key] = max(0, ($character_data['abilities'][$key] ?? 10) - 2); }
+          }
+
+          // Track for re-selection reversal.
+          $character_data['_prev_ancestry'] = $ancestry_id;
+          $character_data['_prev_ancestry_free_boosts'] = $free_boost_selections;
         }
       }
     }
@@ -540,8 +618,40 @@ class CharacterCreationStepController extends ControllerBase {
         break;
 
       case 2:
-        if (!$requireNonEmpty($merged['ancestry'] ?? '')) {
+        $ancestry_val = trim($merged['ancestry'] ?? '');
+        if (!$requireNonEmpty($ancestry_val)) {
           $errors['ancestry'] = 'Ancestry selection is required.';
+        }
+        else {
+          // Validate ancestry is known.
+          $canonical = CharacterManager::resolveAncestryCanonicalName($ancestry_val);
+          if ($canonical === '') {
+            $errors['ancestry'] = 'Invalid ancestry: ' . $ancestry_val . '.';
+          }
+          else {
+            // Human/free-boost ancestries: validate ancestry_boosts not duplicate.
+            $ancestry_data = CharacterManager::ANCESTRIES[$canonical];
+            $free_count = count(array_filter($ancestry_data['boosts'] ?? [], fn($b) => $b === 'Free'));
+            if ($free_count > 0 && !empty($merged['ancestry_boosts'])) {
+              $chosen = $this->normalizeSelectionList($merged['ancestry_boosts']);
+              if (count($chosen) !== count(array_unique($chosen))) {
+                $errors['ancestry_boosts'] = 'Ability boost selections must be unique.';
+              }
+              // Boost/flaw conflict check.
+              $flaw = $ancestry_data['flaw'] ?? '';
+              if ($flaw) {
+                $map = ['Strength' => 'str', 'Dexterity' => 'dex', 'Constitution' => 'con', 'Intelligence' => 'int', 'Wisdom' => 'wis', 'Charisma' => 'cha'];
+                $flaw_short = $map[$flaw] ?? strtolower(substr($flaw, 0, 3));
+                foreach ($chosen as $boost_choice) {
+                  $boost_short = $map[$boost_choice] ?? $boost_choice;
+                  if ($boost_short === $flaw_short || strtolower($boost_choice) === strtolower($flaw)) {
+                    $errors['ancestry_boosts'] = 'Cannot boost an ability that has a flaw (' . $flaw . ').';
+                    break;
+                  }
+                }
+              }
+            }
+          }
         }
         break;
 
@@ -657,6 +767,10 @@ class CharacterCreationStepController extends ControllerBase {
       'name' => '',
       'concept' => '',
       'ancestry' => '',
+      'ancestry_hp' => 0,
+      'ancestry_speed' => 25,
+      'ancestry_size' => '',
+      'ancestry_boosts' => [],
       'heritage' => '',
       'background' => '',
       'background_boosts' => [],
