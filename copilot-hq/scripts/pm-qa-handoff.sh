@@ -123,23 +123,49 @@ cp "$ACCEPTANCE_CRITERIA" "$ITEM_DIR/01-acceptance-criteria.md"
 # Write ROI (test generation is high value — unblocks Dev knowing what to build to)
 echo "4" > "$ITEM_DIR/roi.txt"
 
-# Mark feature brief as handed off
-python3 - "$FEATURE_BRIEF" <<'PY'
-import pathlib, sys, datetime
+# Mark feature brief as handed off (idempotent: already in_progress is a no-op)
+if ! python3 - "$FEATURE_BRIEF" <<'PY'
+import pathlib, sys, datetime, re, os
+
 p = pathlib.Path(sys.argv[1])
 text = p.read_text(encoding='utf-8')
 today = datetime.date.today().isoformat()
-# Update status line
-text = text.replace('- Status: planned', '- Status: in_progress')
-# Append handoff note to Latest updates
+
+# Detect current status
+m = re.search(r'^- Status:\s*(.+)$', text, re.MULTILINE)
+if not m:
+    print(f"ERROR: no '- Status:' line found in {p}", file=sys.stderr)
+    sys.exit(1)
+
+current_status = m.group(1).strip()
+if current_status == 'in_progress':
+    print(f"OK (idempotent): {p} already has Status: in_progress — no change made")
+    sys.exit(0)
+
+# Replace any existing status with in_progress
+text = re.sub(r'^(- Status:\s*).*$', r'\g<1>in_progress', text, flags=re.MULTILINE, count=1)
+
+# Append handoff note to Latest updates section
 if '## Latest updates' in text:
     text = text.replace(
         '## Latest updates',
-        f'## Latest updates\n\n- {today}: Handed off to QA for test generation (pm-qa-handoff.sh)'
+        f'## Latest updates\n\n- {today}: Handed off to QA for test generation (pm-qa-handoff.sh)',
+        1
     )
+
 p.write_text(text, encoding='utf-8')
-print(f"Updated {p}: status → in_progress, handoff noted")
+print(f"Updated {p}: Status: {current_status} → in_progress, handoff noted")
 PY
+then
+  echo "ERROR: failed to update feature.md status to in_progress: $FEATURE_BRIEF" >&2
+  exit 1
+fi
+
+# Verify the status was written correctly
+if ! grep -q -- '- Status: in_progress' "$FEATURE_BRIEF"; then
+  echo "ERROR: verification failed — 'Status: in_progress' not found in $FEATURE_BRIEF after update" >&2
+  exit 1
+fi
 
 echo "[pm-qa-handoff] QA inbox item written: $ITEM_DIR"
 echo "[pm-qa-handoff] Feature brief updated: status → in_progress"
