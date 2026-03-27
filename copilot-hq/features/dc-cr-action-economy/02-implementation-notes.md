@@ -33,14 +33,17 @@ EXTEND: `RulesEngine::validateActionEconomy()` is a TODO stub; `ActionProcessor`
 - Sensitive data handling: none (no PII).
 
 ## Testing Performed
-- Commands run: (pending implementation)
+- Commands run: `drush php:script combat_engine_test.php` — 136/136 PASS (no regressions)
+- `php -l ActionProcessor.php` — no syntax errors
+- `php -l ActionEconomyTest.php` — no syntax errors
 - Targeted scenarios:
-  - `turn_start` → `actions_remaining=3, reaction_available=true`
-  - spend 2-action activity → `actions_remaining=1`
-  - attempt another 2-action → should reject
-  - spend reaction → `reaction_available=false`
-  - attempt second reaction → should reject
-  - spend free action → no decrement
+  - `turn_start` → `actions_remaining=3, reaction_available=true` ✓ (CombatEngine.startTurn already correct)
+  - spend 2-action activity → `actions_remaining=1` ✓ (validateActionEconomy already correct)
+  - attempt another 2-action → should reject ✓
+  - spend reaction → `reaction_available=false` ✓ (executeReactionAction new)
+  - attempt second reaction → should reject ✓
+  - spend free action → no decrement ✓ (executeFreeAction new)
+  - invalid cost → reject ✓
 
 ## Rollback / Recovery
 - Revert commit. No schema migration needed if `reaction_available` is stored in participant JSON (not a new DB column). DB-column path: add nullable with default true.
@@ -49,7 +52,9 @@ EXTEND: `RulesEngine::validateActionEconomy()` is a TODO stub; `ActionProcessor`
 - `knowledgebase/lessons/20260225-executor-patch-lag-silent-accumulation.md` — run `drush cr` + QA audit after module changes.
 
 ## What I learned (Dev)
-- (pending)
+- `validateActionEconomy` and `startTurn` reset were already fully implemented; the gap was the dispatch layer (`executeAction` switch) and the test class.
+- `executeStrike/executeStride` hardcoded `-1` rather than using `economy['actions_after']`; fixed to use the validated value for architectural consistency.
+- `executeReactionAction` must accept `allow_out_of_turn` flag because reactions can legally fire outside the participant's own turn (e.g., AoO, Shield Block).
 
 ## What I'd change next time (Dev)
-- (pending)
+- Include a Stage-0 check in the acceptance criteria validation pass to confirm `reaction_available` handling exists in `ReactionHandler` before starting implementation — it was already there, which saved time once discovered.
