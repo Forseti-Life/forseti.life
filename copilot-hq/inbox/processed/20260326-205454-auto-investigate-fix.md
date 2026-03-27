@@ -1,3 +1,17 @@
+# Command
+
+- created_at: 2026-03-26T20:54:54-04:00
+- work_item: forseti-auto-investigation
+- topic: auto-investigate-fix
+
+## Command text
+[AUTO-INVESTIGATION] Release KPI stagnation for forseti (forseti.life).
+run_id=20260322-192833, open_issues=1, dev_status=done, unanswered_alerts=7, escalation_depth=0.
+
+Autonomous directives (execute in order):
+  1. Investigate why KPI is stagnant. Check dev outbox, run QA audit, apply any committed fixes.
+
+Dev outbox excerpt:
 This is a legitimately new release cycle (`20260326-dungeoncrawler-release-b`, not the prior `20260322` one). Let me check what happened in this release.
 
 Now I have the full picture. This improvement round is premature — the `20260326-dungeoncrawler-release-b` cycle hasn't shipped. The predecessor (`20260322-dungeoncrawler-release-b`) is still stalled on the QA fix-pickup gap. I'll file a done outbox pointing to the canonical analysis.
@@ -24,5 +38,5 @@ Committed as `8308407ed`.
 
 ---
 - Agent: dev-forseti
-- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260326-improvement-round-20260326-dungeoncrawler-release-b
-- Generated: 2026-03-26T20:23:34-04:00
+- Source inbox: /home/keithaumiller/fo
+...[truncated]

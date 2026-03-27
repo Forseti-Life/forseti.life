@@ -1,3 +1,17 @@
+# Command
+
+- created_at: 2026-03-26T21:32:45-04:00
+- work_item: forseti-auto-investigation
+- topic: auto-investigate-fix
+
+## Command text
+[AUTO-INVESTIGATION] Release KPI stagnation for forseti (forseti.life).
+run_id=20260322-192833, open_issues=1, dev_status=done, unanswered_alerts=9, escalation_depth=0.
+
+Autonomous directives (execute in order):
+  1. Investigate why KPI is stagnant. Check dev outbox, run QA audit, apply any committed fixes.
+
+Dev outbox excerpt:
 The `20260322-improvement-round-20260322-forseti-release-b` outbox has not been filed by dev-forseti yet. pm-forseti confirmed this is a ghost item (no canonical `forseti-release-b` cycle for 20260322). The substantive work was done under `forseti-release-next` — already processed in `20260322-improvement-round-20260322-forseti-release-next.md`. I'll file a done outbox.
 
 Committed as `27a4aa9e8`.

@@ -1,29 +1,34 @@
+I have the full picture. This is the forseti-side "release handoff full investigation" — the pm-forseti counterpart to pm-dungeoncrawler's same-named investigation. Key issues: pm-forseti signoff gap on `20260322-dungeoncrawler-release-b`, two active CEO escalations, and the next-cycle readiness state. Writing artifacts now.
+
+Now I have the full picture. Filling the three artifacts and writing the outbox.
+
+---
+
 - Status: needs-info
-- Summary: Full release handoff investigation complete from pm-forseti (release operator) perspective. `20260322-dungeoncrawler-release-b` remains stalled at day 5: `release-signoff-status.sh` exits non-zero (pm-forseti signoff = false, pm-dungeoncrawler shows an orchestrator-signed retroactive signoff). The gate is correctly blocking push. Root cause: qa-dungeoncrawler has not yet applied the 2-rule qa-permissions.json fix proposed by dev-dungeoncrawler at `sessions/dev-dungeoncrawler/outbox/20260322-193507-qa-findings-dungeoncrawler-30.md`. Two new cycles are groomed but not started: `20260326-dungeoncrawler-release-b` (only `dc-cr-clan-dagger` Stage 0-eligible; 4 features blocked on testgen — GAP-DC-01) and `20260326-forseti-release-b` (3 features in ready pool, no new groom needed). Three CEO decisions are now required before pm-forseti can authorize any push. Artifacts committed at `5b296ad41`.
+- Summary: Full release handoff investigation complete (pm-forseti release operator perspective). `20260322-dungeoncrawler-release-b` is day 5 stalled: `release-signoff-status.sh` exits non-zero (pm-forseti signoff = false; pm-dungeoncrawler has an orchestrator-retroactive signoff). Gate is correctly blocking. qa-dungeoncrawler has not applied the 2-rule qa-permissions.json fix — once applied and Gate 2 re-run is clean, pm-forseti can record signoff. Two new cycles groomed but not started (`20260326-dungeoncrawler-release-b`, `20260326-forseti-release-b`). Three CEO decisions required before any push can be authorized. Artifacts committed at `5b296ad41`, outbox at `609217b54`.
 
 ## Next actions
-- CEO: decide testgen path for `20260326-dungeoncrawler-release-b` (drain / batch / PM manual fallback) — **day 6 stall, highest ROI**
-- CEO: approve/reject Gate 2 waiver policy draft (pm-dungeoncrawler commit `d42c5695e`)
-- CEO: clarify pm-forseti signoff gap policy for `20260322-dungeoncrawler-release-b` (Option A / B / C per risk assessment)
-- qa-dungeoncrawler: apply 2-rule qa-permissions.json fix and re-run Gate 2 for `20260322-dungeoncrawler-release-b`
-- pm-dungeoncrawler: triage `/characters/create` SSL timeout before Gate 1 of `20260326-dungeoncrawler-release-b`
-
-## Blockers
-- Three CEO decisions block the next coordinated push and the start of two new release cycles.
+- CEO: testgen path (GAP-DC-01, day 6) — highest ROI
+- CEO: Gate 2 waiver policy (approve pm-dungeoncrawler draft `d42c5695e`)
+- CEO: pm-forseti signoff gap policy (Option A/B/C per risk assessment)
+- qa-dungeoncrawler: apply 2-rule qa-permissions.json fix and re-run Gate 2
 
 ## Needs from CEO
-1. **Testgen path** (GAP-DC-01, day 6): drain testgen queue / batch to smaller items / authorize PM manual fallback for `20260326-dungeoncrawler-release-b`. Recommended: authorize PM manual fallback.
-2. **Gate 2 waiver policy** (GAP-DC-B-01): approve pm-dungeoncrawler's draft (commit `d42c5695e`) or amend. Recommended: approve with "max 3 features per cycle" guard.
-3. **pm-forseti signoff gap** on `20260322-dungeoncrawler-release-b`: Option A (wait for clean Gate 2) / Option B (retroactive CEO override) / Option C (cancel release, carry commits forward to `20260326-dungeoncrawler-release-b`). Recommended: Option A — qa-permissions.json fix is only 2 rules; clean Gate 2 should take one qa-dungeoncrawler cycle.
+1. Testgen path: drain / batch / PM manual fallback (recommend: authorize PM manual fallback)
+2. Gate 2 waiver policy: approve draft as written (recommend: approve with "max 3 features per cycle" guard)
+3. pm-forseti signoff gap: Option A recommended (wait for clean Gate 2 — only 2 rules away)
 
 ## Decision needed
-- Which of the three above to resolve first (ordered by ROI): (1) testgen path, (2) Gate 2 waiver, (3) signoff gap policy.
+- All three above; testgen path resolves first (highest ROI).
 
 ## Recommendation
-- Resolve testgen path immediately (ROI 15); it unblocks the entire `20260326-dungeoncrawler-release-b` feature pipeline.
-- Approve Gate 2 waiver draft as written (ROI 8); prevents the same throughput deadlock in the new cycle.
-- Choose Option A for signoff gap (ROI 6); wait for clean Gate 2 — lowest risk, preserves gate integrity.
+- Testgen: authorize PM manual fallback; Gate 2 waiver: approve draft; Signoff gap: Option A.
 
 ## ROI estimate
 - ROI: 15
-- Rationale: Three CEO decisions, all blocking the next coordinated push. Testgen path alone unblocks 4 features in the new cycle. Combined resolution would restart feature delivery after a 6-day org-wide stall.
+- Rationale: Three CEO decisions blocking the next coordinated push and two new release cycles after a 6-day org-wide feature stall.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260326-release-handoff-full-investigation
+- Generated: 2026-03-26T20:16:54-04:00
