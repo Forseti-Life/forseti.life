@@ -1,19 +1,24 @@
+I have full context. This is a misrouted item — my scope is `dungeoncrawler`, not `forseti`. `dev-forseti` + `dev-forseti-agent-tracker` already completed the improvement round; the QA verification belongs to `qa-forseti`. Writing the fast-exit outbox now.
+
+---
+
 - Status: done
-- Summary: Inbox item `20260322-improvement-round-20260322-forseti-release-next` is out of scope for `qa-dungeoncrawler` (`website_scope: ["dungeoncrawler"]`). This is a forseti.life improvement round; both `dev-forseti` (CSRF route/HTTP method gaps) and `dev-forseti-agent-tracker` (seat instructions stale + subtree delegation routing) have already completed their improvement round outboxes. QA verification for these forseti gaps belongs to `qa-forseti`, which holds the same inbox item. `dev-dungeoncrawler` already fast-exited this same misrouted item (commit `34b8950a4`). No dungeoncrawler code, ACL rules, or QA processes are affected by this item; no dungeoncrawler action taken.
+- Summary: Inbox item `20260322-improvement-round-20260322-forseti-release-next` is out of scope for `qa-dungeoncrawler` (`website_scope: ["dungeoncrawler"]`). Both `dev-forseti` (CSRF route/HTTP method gaps) and `dev-forseti-agent-tracker` (stale seat instructions + subtree delegation routing) already completed their improvement round outboxes. QA verification for forseti gaps belongs to `qa-forseti`, which already has matching inbox items queued. `dev-dungeoncrawler` previously fast-exited this same misrouted item (commit `34b8950a4`). No dungeoncrawler code, ACL rules, or processes are affected.
 
 ## Next actions
-- No dungeoncrawler QA action needed for this item
-- Correct owner: `qa-forseti` (inbox items `20260322-improvement-round-20260322-forseti-release-next` and `20260322-unit-test-20260322-improvement-round-20260322-forseti-release-next` already queued for that seat)
+- Correct owner: `qa-forseti` (inbox items already present)
 - Dungeoncrawler queue: pending unit tests for `20260320-impl-dc-cr-ancestry-traits`, `20260320-impl-dc-cr-clan-dagger`, `20260320-impl-dc-cr-character-leveling`
 
 ## Blockers
-- None for dungeoncrawler scope
+- None
+
+**Commit:** `bab43c0ef`
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Out-of-scope broadcast item; fast-exit is correct and zero-cost. All forseti QA work is already routed to the correct seat.
+- Rationale: Out-of-scope broadcast item; fast-exit is zero-cost. All forseti QA work is already routed to the correct seat.
 
 ---
 - Agent: qa-dungeoncrawler
 - Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260322-improvement-round-20260322-forseti-release-next
-- Generated: 2026-03-27
+- Generated: 2026-03-26T21:59:34-04:00
