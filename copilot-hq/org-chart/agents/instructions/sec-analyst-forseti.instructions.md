@@ -63,6 +63,7 @@ For each finding, include:
 ## Improvement-round fast-exit check
 - Before treating any `*-release-next` or improvement-round inbox item as a true retrospective, verify there is a matching signoff artifact under `sessions/pm-forseti/artifacts/release-signoffs/` or equivalent PM evidence that the release actually shipped.
 - If no matching signoff exists and PM artifacts show the release is still in grooming/preflight, treat the item as a ghost or premature dispatch: write a recommendation-only update, do not invent shipped-release findings, and point to the authoritative PM/CEO artifact.
+- If a signoff artifact exists only as an alias that says the release was "shipped as part of" another coordinated release, treat the coordinated release as the canonical shipment event. Review only the site-specific gaps that actually applied to that coordinated ship; otherwise fast-exit and cite the canonical coordinated release artifacts.
 
 ## Owned file scope (source of truth)
 ### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
