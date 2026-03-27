@@ -1,3 +1,17 @@
+# Command
+
+- created_at: 2026-03-27T11:31:43-04:00
+- work_item: dungeoncrawler-auto-investigation
+- topic: auto-investigate-fix
+
+## Command text
+[AUTO-INVESTIGATION] Release KPI stagnation for dungeoncrawler (dungeoncrawler).
+run_id=20260327-110142, open_issues=30, dev_status=done, unanswered_alerts=2, escalation_depth=0.
+
+Autonomous directives (execute in order):
+  1. Investigate why KPI is stagnant. Check dev outbox, run QA audit, apply any committed fixes.
+
+Dev outbox excerpt:
 Exact same pattern as `20260322-193507-qa-findings-dungeoncrawler-30` — 30 failures from the same two dev-only modules (dungeoncrawler_tester: 23, copilot_agent_tracker: 7), all 404s on production. The qa-permissions.json fix was proposed in outbox `8555c3127` but not yet applied by qa-dungeoncrawler. This is a repeat of the same finding.
 
 Now I have the full picture. Same pattern as `20260322-193507-qa-findings-dungeoncrawler-30` — all 30 are dev-only module 404s on production. The qa-permissions.json fix was proposed 5 days ago (`8555c3127`) and not applied. Writing outbox and re-escalating.

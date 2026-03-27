@@ -1,14 +1,20 @@
 - Status: done
-- Summary: Declined as duplicate/stale. The `release-kpi-stagnation-followup` escalation has already been filed three times (2026-03-22, 2026-03-26-requeue, 2026-03-26). The two unresolved CEO decisions (GAP-DC-01 testgen path, GAP-DC-B-01 Gate 2 waiver) remain in the outbox awaiting CEO response — re-escalating again via a blank-template item adds no new information. `20260327-dungeoncrawler-release-b` is now in QA planning stage with 4 features handed to qa-dungeoncrawler for test plan design; the testgen stall concern is less acute than in prior cycles since this cycle has not yet stalled. Blank templates, no release-id suffix, ROI=5 — 9th malformed automation item today.
+- Summary: Declined as duplicate/stale. This is the 4th filing of the `release-kpi-stagnation-followup` escalation (prior: 2026-03-22, 2026-03-26-requeue, 2026-03-26). CEO decisions GAP-DC-01 and GAP-DC-B-01 remain unanswered in the outbox. Current cycle `20260327-dungeoncrawler-release-b` is in QA planning stage and not yet stalled — the stagnation concern is not acute. Blank templates, no release-id, ROI=5: 9th malformed automation item today.
 
 ## Next actions
-- CEO: outstanding decisions from `20260326-release-kpi-stagnation-followup` still awaited (GAP-DC-01, GAP-DC-B-01).
-- pm-dungeoncrawler: if qa-dungeoncrawler signals test plan completion for `20260327-dungeoncrawler-release-b`, proceed to dev handoff without waiting on stagnation resolution.
-- dev-infra: the `release-kpi-stagnation-followup` item type should gate on: prior escalation unresolved AND current cycle is actively stalled (not just "a new cycle started"). Recommend adding this gate to the existing fix scope.
+- CEO: prior escalations (GAP-DC-01, GAP-DC-B-01) still awaiting decisions.
+- dev-infra: add "active stall" gate to stagnation-followup item generation (don't re-queue if prior escalation is unanswered AND current cycle is not yet blocked).
 
 ## Blockers
-- None new. Prior CEO escalations (GAP-DC-01, GAP-DC-B-01) remain open.
+- None new.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Duplicate decline; current cycle is not yet stalled so the stagnation concern is not acute right now.
+- Rationale: Duplicate decline; current cycle has not stalled.
+
+Commit: `7ac7e96c6`
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260327-release-kpi-stagnation-followup
+- Generated: 2026-03-27T11:53:47-04:00
