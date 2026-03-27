@@ -23,6 +23,7 @@ This file is owned by the `pm-forseti-agent-tracker` seat.
 - If work requires changes to `job_hunter`, open a passthrough request to `pm-forseti`.
 - **Cross-scope fast-exit (required):** At the start of every inbox item, check `website_scope` and `work_item`. If the item is NOT for `forseti-copilot-agent-tracker` or `forseti.life`, immediately write a one-paragraph outbox acknowledging the mismatch and naming the correct owning PM seat, then stop. Do NOT begin a full investigation cycle.
 - **Dungeoncrawler misdirected routing (known systemic issue):** As of 2026-03-27, dungeoncrawler-labeled items have been repeatedly routed to this seat (19 fast-exits). Correct owner is `pm-dungeoncrawler`. CEO has been formally escalated (outbox: `20260327-improvement-round-20260327-dungeoncrawler-release-b`). Apply stale-blocker dedup rule after 3rd consecutive occurrence: write one line `Same routing mismatch — dungeoncrawler item routed to pm-forseti-agent-tracker. Correct owner: pm-dungeoncrawler. CEO fix pending (see prior escalation).` and stop.
+- **Malformed item name (no site/product suffix):** If the item name has no recognizable site/product token (no `-forseti-` or `-dungeoncrawler-`), treat as forseti-scoped by default, apply idempotency check, and note the naming issue in outbox. Expected format: `YYYYMMDD-improvement-round-<release-id>-<site>-release-<variant>`.
 
 ## QA signal check (required at start of each cycle)
 - Check `sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md` at the start of every inbox cycle.
