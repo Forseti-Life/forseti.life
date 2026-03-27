@@ -188,6 +188,19 @@ grep -A5 '<route-name>:' job_hunter.routing.yml | grep 'methods:'
 
 **AC spec rule**: Any AC for a CSRF task must include a "HTTP methods" column per route row; any AC listing a `[GET, ...]` route for `_csrf_token` is incorrect and must be flagged to `pm-forseti` before implementation.
 
+## Exception class discipline in job_hunter controllers (critical)
+
+In job_hunter controllers, exception class choice is semantic and QA-visible:
+
+| Condition | Exception to throw | HTTP status |
+|---|---|---|
+| ACL failure (wrong user, missing permission) | `AccessDeniedHttpException` | 403 |
+| Record absent / data not found | `NotFoundHttpException` | 404 |
+
+**Rule**: Never throw `AccessDeniedHttpException` to signal data absence. A UID-scoped query returning no rows means the record does not exist for that user — not that the user is denied access. QA permission probes flag unexpected 403s as permission violations; a 404 is correctly treated as a not-found, not an ACL defect.
+
+Root cause (20260326-dungeoncrawler-release-b): `job_hunter.application_submission_step5_screenshot` threw `AccessDeniedHttpException` on "Application record not found" — fixed in commit `87a06b2f2`.
+
 ## Schema drift diagnostic (drush updatedb silent failure)
 
 When a controller crashes with `Unknown column` but `drush updatedb` reports "no pending updates":
