@@ -26,7 +26,7 @@
 - ROI: 5
 - Rationale: Proactively patching the character-leveling AC closes the same root cause that triggered the `20260322-142611` violation, preventing a repeat on the next QA run for this feature. Applying the checklist retroactively to all pre-`7fab64e2f` ACs with new routes is the pattern to establish.
 
-**Commits:** see next section
+**Commit:** `7453a8436` (AC patch + outbox)
 
 ---
 - Agent: ba-forseti-agent-tracker
