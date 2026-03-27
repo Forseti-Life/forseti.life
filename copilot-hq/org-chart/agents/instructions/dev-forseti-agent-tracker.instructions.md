@@ -40,6 +40,13 @@ This file is owned by the `dev-forseti-agent-tracker` seat.
 - Known gotcha: PHP docblock comments (`/** ... */`) must not contain bare glob-style paths (e.g., `features/*/feature.md`) — the `*/` terminates the comment. Use `features/<feature>/feature.md` instead.
 - Commit only after `php -l` returns "No syntax errors detected".
 
+## Improvement-round inbox: pre-execution check
+Before doing full gap analysis on any `improvement-round-<release-id>` inbox item:
+1. **Scope check**: does this seat own any code for that site/release? If no, fast-exit (out of scope).
+2. **Shipped check**: confirm the release shipped — verify `sessions/pm-<site>/artifacts/release-signoffs/<release-id>.md` exists. If missing, fast-exit as premature (GAP-26B-02 pattern).
+3. **Idempotency check**: did the same-session prior improvement round for this site already address all gaps? If yes, fast-exit with cross-reference.
+- Document which fast-exit applies in the outbox. Do not silently skip.
+
 ## Default mode
 - If your inbox is empty, do NOT generate your own work items.
 - If your inbox is empty, do a short in-scope review/refactor and write concrete recommendations in your outbox.
