@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-e2e-flow
 - Website: forseti.life
 - Module: job_hunter
-- Status: ready
+- Status: in_progress
 - Priority: P0 (ROI 1000)
 - Feature type: stabilization
 - PM owner: pm-forseti

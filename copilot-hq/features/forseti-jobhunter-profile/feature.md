@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-profile
 - Website: forseti.life
 - Module: job_hunter
-- Status: ready
+- Status: in_progress
 - Priority: P0
 - Feature type: stabilization
 - PM owner: pm-forseti

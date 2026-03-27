@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-browser-automation
 - Website: forseti.life
 - Module: job_hunter
-- Status: ready
+- Status: in_progress
 - Priority: P1
 - Feature type: needs-testing
 - PM owner: pm-forseti
