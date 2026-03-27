@@ -35,6 +35,7 @@ This file is owned by the `ba-forseti-agent-tracker` seat.
 - [ ] `_csrf_token: 'TRUE'` is only listed for `[POST]`-only routes — never on `[GET, POST]` or `[GET]` routes
 - [ ] Permission names are verified against the actual `<module>.permissions.yml` before publishing — do NOT infer permission names from route names or prior artifacts
 - [ ] Verify: `grep -r "<permission-name>" web/modules/custom/<module>/` returns at least one routing.yml match
+- [ ] **Pre-handoff step (required):** confirm this checklist was run before handing spec to dev. If release has zero-scope BA deliverables, log explicitly: "No active BA spec deliverables this cycle — checklist step skipped (zero-scope)." This makes no-ops traceable at Gate 2.
 
 ## Idle behavior
 - Do NOT generate new inbox items. Write recommendations in outbox only.
