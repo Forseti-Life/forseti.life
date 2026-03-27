@@ -52,8 +52,6 @@ Stage break detail:
 
 ## Latest updates
 
-- 2026-03-27: Handed off to QA for test generation (pm-qa-handoff.sh)
-
 - 2026-02-26: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 
 - 2026-02-26: Handed off to QA for test generation (pm-qa-handoff.sh)
