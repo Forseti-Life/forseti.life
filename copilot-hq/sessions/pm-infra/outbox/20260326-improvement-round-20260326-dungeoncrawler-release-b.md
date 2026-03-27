@@ -1,7 +1,3 @@
-Format gate PASS 14/14. This is a **premature** improvement round — `20260326-dungeoncrawler-release-b` was just groomed and has never shipped. pm-forseti already documented this. Now commit recovery and write the fast-exit outbox.
-
----
-
 - Status: done
 - Summary: Premature improvement round — `20260326-dungeoncrawler-release-b` was groomed at `60ffbc33f` but has never shipped; no post-release gap review is possible. pm-forseti confirmed this in `02a55703c` and ceo-copilot-2 fast-exited their copy at `cf0f7b6f8`. Format gate PASS 15/15 after recovering malformed outbox `20260326-improvement-round-20260322-dungeoncrawler-release-b.md` (preamble at line 5 — executor persistence bug, 6th hit across this series). Patch scan clean. Active infra escalations unchanged: GAP-DC-STALL-01 (QA fix-pickup, ROI 9, release stalled), executor preamble injection (6 hits unresolved), ghost inbox fix (ROI 20, queued but unactioned), 13 stale HQ path files. Commits: `42f4bdaab` (recovery), `6099a2814` (outbox).
 
