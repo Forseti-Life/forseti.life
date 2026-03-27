@@ -10,6 +10,18 @@ cd "$ROOT_DIR"
 DATE_YYYYMMDD="${1:-$(date +%Y%m%d)}"
 TOPIC="${2:-improvement-round}"
 
+# Gate: if TOPIC encodes a specific release-id (improvement-round-YYYYMMDD-*),
+# confirm both PM signoffs are present before queuing any inbox items.
+# Pattern: improvement-round-<YYYYMMDD>-<anything>  → release-id = <YYYYMMDD>-<anything>
+if [[ "$TOPIC" =~ ^improvement-round-([0-9]{8}-.+)$ ]]; then
+  release_id="${BASH_REMATCH[1]}"
+  if ! bash scripts/release-signoff-status.sh "$release_id" >/dev/null 2>&1; then
+    echo "SKIP: release '${release_id}' not fully signed off; improvement-round not queued. Try again after shipment."
+    exit 0
+  fi
+  echo "OK: release '${release_id}' confirmed signed off; proceeding with improvement-round dispatch."
+fi
+
 # Only create review items for configured PM + CEO seats (org-chart), not every
 # directory under sessions/ (which may include archived/escalation thread ids).
 agent_ids="$(
