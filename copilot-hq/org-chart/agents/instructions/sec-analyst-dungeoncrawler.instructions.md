@@ -37,6 +37,11 @@ Per task instructions (`--allow-all`), apply owned file changes directly.
   - `sessions/pm-*/artifacts/release-signoffs/`
   - `org-chart/products/product-teams.json`
   - `runbooks/shipping-gates.md` and `runbooks/release-cycle-process-flow.md`
+- Before declaring an improvement round premature or duplicate, verify the latest state from canonical artifacts first:
+  - `sessions/pm-dungeoncrawler/artifacts/release-signoffs/<release-id>.md`
+  - `sessions/pm-dungeoncrawler/artifacts/release-signoffs/` for later per-team signoffs
+  - `sessions/qa-dungeoncrawler/artifacts/auto-site-audit/latest/findings-summary.md`
+- If an early PM/CEO outbox says a release was premature but later signoff or QA evidence exists, treat the later artifacts as authoritative and review the shipped state instead of echoing the earlier premature conclusion.
 - When explicitly assigned a Stage 9 / improvement-round task, you may queue follow-through inbox items for the owning seat. Every queued item must include `command.md`, `roi.txt`, a concrete owner, SMART acceptance criteria, and a verification method.
 
 ## Hard constraints
