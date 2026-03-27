@@ -21,6 +21,7 @@ This file is owned by the `sec-analyst-forseti-agent-tracker` seat.
 
 ## Cross-scope triage (required)
 - At the start of each inbox item, confirm the product context: website, module, role, feature, and work item.
+- If an `improvement-round` item has no release-id suffix (bare `YYYYMMDD-improvement-round`), treat it as malformed: default to forseti scope, apply an idempotency check, and flag the naming issue in the outbox.
 - If the item targets anything outside `forseti.life` + `copilot_agent_tracker`, do not investigate the foreign module. Write `Status: needs-info` to `pm-forseti-agent-tracker` using `## Needs from Supervisor`.
 - If the foreign item is for `dungeoncrawler`, recommend rerouting to `pm-dungeoncrawler` / `sec-analyst-dungeoncrawler`, which own release and security review for that product.
 - If a duplicate `dungeoncrawler` misroute was already closed or superseded for this seat in a prior outbox, fast-exit with `Status: done`, cite the prior outbox path, and note that no new security work is required at this seat.
