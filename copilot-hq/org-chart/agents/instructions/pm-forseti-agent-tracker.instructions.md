@@ -48,6 +48,12 @@ This file is owned by the `pm-forseti-agent-tracker` seat.
 - If the scoped work already appears in the log, do NOT create the delegation. Document the existing commit hash in the outbox instead.
 - Failure to check this caused phantom duplicate delegations in the 20260322-forseti-release-b cycle (Gap 14).
 
+## Delegation-receipt verification (required after any QA/dev suite delegation)
+- Immediately after writing any QA suite or dev inbox item, run:
+  `git ls-tree HEAD copilot-hq/sessions/<qa-or-dev-seat>/inbox/<item-name>/`
+- If the item is absent (wiped by auto-checkpoint), re-create it in the same cycle before closing the outbox.
+- Do NOT assume a delegation persists without verifying. Gate 2 was never closed for the 20260322-forseti-release-b EXTEND work because the suite delegation was silently wiped and not re-detected until the next gap review (Gap 17).
+
 ## Workspace-merge artifact recovery (required at cycle start)
 - At the start of every cycle, verify that your recent outbox artifacts exist: `git ls-tree HEAD sessions/pm-forseti-agent-tracker/outbox/ | tail -5`
 - If post-merge outbox entries are missing (e.g., due to workspace wipe or subtree migration), check git log to identify the last known outbox commit and recover lost delegation inbox items before proceeding.
