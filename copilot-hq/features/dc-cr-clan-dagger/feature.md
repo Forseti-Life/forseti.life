@@ -3,8 +3,10 @@
 - Work item id: dc-cr-clan-dagger
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
-- Priority: P3 (depends on dc-cr-dwarf-ancestry and dc-cr-equipment-system; defer until equipment-system ships)
+- Status: in_progress
+- Release: 20260326-dungeoncrawler-release-b
+- Dev complete: yes (commits 5bc95ffe4, efc7eef2a — 2026-03-20)
+- Priority: P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
