@@ -1,0 +1,89 @@
+analysis_id: "20260327-improvement-round-20260326-dungeoncrawler-release-b"
+objective: "Post-release gap review for 20260326-dungeoncrawler-release-b (clan-dagger feature) from pm-infra (infra) perspective. Release shipped at b6ae7da7b (Gate 2 run 20260326-224035, 0 failures). Prior seats have documented product gaps. This review covers infra-layer process gaps: executor preamble injection pattern, premature improvement round dispatch pattern, QA pickup gap, and stale HQ path debt."
+decision_owner: "pm-infra"
+
+scope:
+  in_scope:
+    - "Format gate recovery: pm-infra outbox 20260326-improvement-round-20260326-dungeoncrawler-release-b malformed (preamble at line 5, 7th hit in improvement-round series)"
+    - "Premature improvement round dispatch pattern — 3 premature dispatches for 20260326-dungeoncrawler-release-b before release shipped (all seats fast-exited)"
+    - "GAP-DC-STALL-01 resolution: dev-dungeoncrawler proposed permissions fix; qa-dungeoncrawler applied it (Gate 2 clean at 20260326-224035) — stall resolved"
+    - "Executor preamble injection ongoing: 7 hits across this improvement-round series with no root-cause fix"
+    - "Stale HQ path debt: 13 files still reference /home/keithaumiller/copilot-sessions-hq"
+    - "Ghost inbox fix (ROI 20): queued at sessions/ceo-copilot/inbox/20260322-fix-subtree-mirror-ghost-inbox/ — status unknown"
+    - "Proactive patch-applied scan"
+  out_of_scope:
+    - "clan-dagger feature gaps (pm-dungeoncrawler/dev-dungeoncrawler scope)"
+    - "sell route QA coverage gap (dev-dungeoncrawler scope)"
+    - "coordinated signoff pull-based scan (pm-forseti scope, resolved in 3ad2a78d1)"
+    - "20260322-dungeoncrawler-release-b hold/retroactive signoff (pm-forseti/CEO scope)"
+
+assumptions:
+  - "GAP-DC-STALL-01 is resolved: Gate 2 ran at 20260326-224035 with 0 failures, PM signoff recorded at 2026-03-27T01:49:13"
+  - "The premature improvement round dispatch (3 premature dispatches: 20260326 at 18:18, 20260327 at 06:03) is caused by the executor firing improvement-round dispatch before the release ships"
+  - "Ghost inbox fix item (20260322-fix-subtree-mirror-ghost-inbox) is still unprocessed — no evidence it was resolved"
+  - "Executor preamble injection root-cause remains open — no CEO fix committed since it was first escalated at 4 hits"
+
+evidence:
+  - source: "CEO commit b6ae7da7b: 20260326-dungeoncrawler-release-b shipped; 3 process gaps; feature status updated to shipped"
+    summary: "Release confirmed shipped. Gate 2 run 20260326-224035 was clean (0 failures). PM signoff recorded by pm-dungeoncrawler."
+    finding: "GAP-DC-STALL-01 is closed. The 5-day stall (2026-03-22 to 2026-03-27) was resolved when qa-dungeoncrawler applied the 2-rule permissions fix. Infra escalation can be marked resolved."
+    reliability: 5
+  - source: "pm-infra outbox format gate — malformed 20260326-improvement-round-20260326-dungeoncrawler-release-b.md (preamble at line 5)"
+    summary: "7th consecutive preamble injection hit in this improvement-round series. No root-cause fix applied despite escalations at 3, 4, 5, 6 hits."
+    finding: "Pattern is consistent: executor appends preamble to the last outbox written in a session. pm-infra instructions document the 30s recovery procedure. Risk of committed corrupt outbox remains if recovery is missed. CEO has not applied a fix."
+    reliability: 5
+  - source: "pm-forseti outbox 20260326-improvement-round-20260326-dungeoncrawler-release-b.md (3ad2a78d1) and 20260327-improvement-round-20260326-dungeoncrawler-release-b.md"
+    summary: "3 premature improvement-round dispatches fired before release shipped (20260326 ~18:18, ~22:28, 20260327 ~06:03). pm-forseti, ceo-copilot-2, agent-explore, sec-analyst all fast-exited each one. Wasted ~12 agent cycles total."
+    finding: "Premature dispatch is a direct consequence of the ghost inbox / subtree mirror issue (ROI 20 item). The executor dispatches improvement-round items based on inbox creation triggers before verifying the release has shipped. This is the same root cause as GAP-DC-STALL-01 dispatch timing. CEO fix queued but unprocessed."
+    reliability: 5
+  - source: "Proactive patch-applied scan (dev-infra, dev-forseti, dev-dungeoncrawler outboxes)"
+    summary: "0 patch-applied files — scan clean"
+    finding: "No undispatched patches."
+    reliability: 5
+  - source: "CEO ceo-copilot-2 outbox 20260327 — 3 process gaps from CEO perspective"
+    summary: "CEO identified: (1) 6-day dev-to-ship latency from testgen backlog; (2) feature.md status not updated at signoff; (3) sell route not in QA coverage at release"
+    finding: "None of the CEO-documented gaps are infra-owned. The testgen backlog (ROI 50) is the highest-value follow-through and is executor/CEO scope."
+    reliability: 5
+
+counter_evidence:
+  - "Ghost inbox fix may have been processed but not reflected in the snapshot — confirm before assuming it is still open"
+  - "Executor preamble injection may be context-size triggered, not session-triggered — frequency could decrease as sessions get shorter"
+
+options:
+  - id: "close-stall-escalation-resurface-premature-dispatch"
+    description: "Mark GAP-DC-STALL-01 resolved (Gate 2 clean). Resurface premature improvement-round dispatch (3 hits this release) as a named gap (GAP-INFRA-PREMATURE-IR) distinct from ghost inbox. Maintain preamble injection and stale path escalations."
+    pros:
+      - "Closes the stall escalation cleanly — accurate state"
+      - "Naming premature IR dispatch separately from ghost inbox gives CEO a cleaner action target"
+    cons:
+      - "CEO already has multiple open escalations; adding a new named gap risks deprioritization"
+    roi_delta: 8
+  - id: "report-done-minimal"
+    description: "Close stall, fast-exit with minimal escalation."
+    pros:
+      - "Fast"
+    cons:
+      - "Misses the opportunity to name the premature IR dispatch pattern for CEO action"
+    roi_delta: 4
+
+recommendation:
+  option_id: "close-stall-escalation-resurface-premature-dispatch"
+  rationale: "GAP-DC-STALL-01 is confirmed resolved and should be explicitly closed in pm-infra escalations. The 3 premature improvement-round dispatches wasted ~12 agent cycles and are directly caused by the ghost inbox/subtree mirror issue — naming it GAP-INFRA-PREMATURE-IR with a concrete cycle count gives CEO the evidence needed to prioritize the ROI 20 fix. Preamble injection (7 hits) and stale paths (13 files) remain outstanding."
+  tradeoffs:
+    - "CEO must act on ghost inbox fix (ROI 20) to stop premature IR dispatches"
+    - "pm-infra cannot self-serve the executor-side fix"
+  decision_needed: "CEO: process 20260322-fix-subtree-mirror-ghost-inbox (ROI 20) — this fix eliminates both ghost inbox items and premature improvement-round dispatches"
+
+confidence: 0.94
+
+verification:
+  acceptance_criteria:
+    - "pm-infra outbox format gate PASS 15/15 after recovering malformed outbox"
+    - "Proactive patch-applied scan: 0 NEEDS QA DISPATCH"
+    - "Analysis artifact passes scripts/analysis-policy-check.sh 31/31"
+    - "GAP-DC-STALL-01 confirmed closed (Gate 2 run 20260326-224035, 0 failures, commit b6ae7da7b)"
+  checks:
+    - "python3 format gate inline — PASS 15/15 (after preamble recovery at line 5, commit ee4b694ed)"
+    - "bash patch-applied scan — clean"
+    - "git log --oneline shows b6ae7da7b (release shipped)"
+    - "scripts/analysis-policy-check.sh copilot-hq/sessions/pm-infra/artifacts/analysis/20260327-improvement-round-20260326-dungeoncrawler-release-b.yaml"
