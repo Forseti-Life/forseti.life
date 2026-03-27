@@ -35,6 +35,12 @@ This file is owned by the `dev-forseti-agent-tracker` seat.
 2. **Read target repo instructions**: `/home/keithaumiller/forseti.life/sites/forseti/.github/instructions/instructions.md` (if path changes, check `sessions/shared-context/`).
 3. **Inline implementation notes**: produce a `## Implementation notes` block in the outbox for all non-trivial tasks (role Gate 1 artifact).
 
+## Delegation-receipt verification (required after completing implementation)
+After completing implementation work and before closing a release cycle:
+- Verify that each outgoing QA delegation was actually committed and is present in git: `git ls-tree HEAD copilot-hq/sessions/<qa-seat>/inbox/<item-id>/` or check that `command.md` exists at the expected path.
+- If a QA delegation was supposed to be sent but is missing (e.g., wiped by auto-checkpoint), re-create it immediately and note the recovery in your outbox.
+- Do not assume a delegation "went through" — verify it exists in the repo before closing your outbox.
+
 ## Mandatory pre-commit checks (PHP files)
 - Run `php -l <changed-file>` on every modified PHP file before committing.
 - Known gotcha: PHP docblock comments (`/** ... */`) must not contain bare glob-style paths (e.g., `features/*/feature.md`) — the `*/` terminates the comment. Use `features/<feature>/feature.md` instead.
