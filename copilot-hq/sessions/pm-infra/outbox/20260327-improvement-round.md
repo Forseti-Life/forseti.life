@@ -1,5 +1,3 @@
-The inbox item `20260327-improvement-round` has no release-id suffix — it's malformed. All other seats (pm-forseti-agent-tracker, pm-dungeoncrawler) have fast-exited it as a malformed/idempotent item. This is another GAP-PREMATURE-DISPATCH variant — a generic improvement round with no release ID attached.
-
 - Status: done
 - Summary: Malformed inbox item `20260327-improvement-round` fast-exited — no release-id suffix; all other seats had already fast-exited. Format gate recovered `20260327-improvement-round-20260327-forseti-release-b.md` (preamble at line 7, **11th** exec-persist hit); PASS 20/20. Committed at `112bc8eb2`.
 
