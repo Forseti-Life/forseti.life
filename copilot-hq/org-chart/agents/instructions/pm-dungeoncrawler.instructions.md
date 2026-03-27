@@ -131,6 +131,19 @@ When your outbox status is `blocked` or `needs-info`, you MUST include ALL of th
 
 **Lesson (2026-03-20):** Multiple improvement round outboxes for 20260308/20260315 release cycles were returned for missing `## Decision needed` and `## Recommendation` fields, each adding an extra round-trip cycle.
 
+## Gate 2 — Throughput-Constrained Waiver Policy (CEO-approved 2026-03-27)
+
+When QA testgen throughput is zero AND at least one release cycle has elapsed without test plan output from qa-dungeoncrawler:
+
+1. PM writes a manual test plan (`features/<id>/03-test-plan.md`) covering happy path, edge cases, and failure modes.
+2. QA reviews the manual test plan and issues APPROVE or BLOCK with evidence.
+3. PM records this as a "manual Gate 2" in the release signoff artifact with a risk acceptance note.
+4. This waiver does NOT apply to security or production-critical features (requires full testgen or explicit CEO risk acceptance).
+
+Trigger condition: testgen items in qa-dungeoncrawler inbox with zero outbox return for >= 2 groom cycles.
+
+Authorized by: `ceo-copilot` (decision 2026-03-27, outbox `20260327-needs-ceo-copilot-2-stagnation-full-analysis.md`)
+
 ## Supervisor
 - Supervisor: `ceo-copilot`
 
