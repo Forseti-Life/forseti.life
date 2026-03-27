@@ -33,11 +33,16 @@ NEW content type + EXTEND existing data: `CharacterManager::ANCESTRIES` and `::H
 - Sensitive data handling: none.
 
 ## Testing Performed
-- Commands run: (pending implementation)
+- Commands run:
+  - `drush php:eval "print entityQuery...->count()->execute();"` → `6` ✅
+  - `drush php:eval` spot-check: Dwarf hp=10, speed=20, boosts=[Constitution,Wisdom], flaw=Charisma ✅
+  - `curl http://localhost:8080/ancestries?_format=json` → 200, 6 ancestries, all required keys present ✅
+  - `curl http://localhost:8080/ancestries/dwarf?_format=json` → hp:10, speed:20, heritages_count:4 ✅
 - Targeted scenarios:
-  - After install hook: `drush php-eval "print Drupal::entityQuery('node')->condition('type','ancestry')->count()->execute();"` → expect `6`
-  - `GET /ancestries` returns all 6 with correct fields
-  - `GET /ancestries/dwarf` returns `hp:10, speed:20, boosts:[Con,Wis], flaw:Cha`
+  - After update hook 10030: count=6 confirmed
+  - `GET /ancestries` returns all 6 with correct fields (id, name, hp, size, speed, boosts, flaw, languages, senses, traits)
+  - `GET /ancestries/dwarf` returns `hp:10, speed:20, boosts:[Constitution,Wis], flaw:[Charisma]`, heritages array present
+  - Human: `boosts:[Free,Free], flaw:null, hp:8, speed:25` ✅
 
 ## Rollback / Recovery
 - Revert commit + `drush php-script` to delete seeded ancestry nodes if needed.
@@ -46,8 +51,17 @@ NEW content type + EXTEND existing data: `CharacterManager::ANCESTRIES` and `::H
 ## Knowledgebase references
 - `knowledgebase/lessons/20260225-executor-patch-lag-silent-accumulation.md` — run `drush cr` after config install.
 
+## Stage-0 confirmations (per test plan)
+
+1. **Route paths**: `GET /ancestries` → `dungeoncrawler_content.api.ancestries_list`, `GET /ancestries/{id}` → `dungeoncrawler_content.api.ancestry_detail`. Both registered with `_access: TRUE` (public read). Confirmed: routes match expected URL structure ✅
+2. **Storage format**: Ancestry attributes stored as multi-value string fields (`field_ancestry_boosts`, `field_ancestry_flaws`, `field_ancestry_languages`, `field_ancestry_senses`) + single-value int/string fields (`field_ancestry_hp`, `field_ancestry_speed`, `field_ancestry_size`). Human boosts stored as `['Free','Free']`; no flaw entry. Matches AC spec ✅
+3. **Boost/flaw mechanics**: Human free-boost logic in `CharacterCreationStepController::validateStepRequirements` (case 2) validates duplicate selections (`ancestry_boosts must be unique`) and boost/flaw conflicts. Step 2 processing block in `updateStepData` applies Free boost selections from `ancestry_boosts` form field indexed positionally. Edge case: re-selection reversal tracked via `_prev_ancestry` and `_prev_ancestry_free_boosts` in character data ✅
+4. **Human free-boost API shape**: `GET /ancestries/human` returns `boosts:["Free","Free"], flaw:null`. Client must submit `ancestry_boosts` array with 2 distinct ability names. Validation rejects duplicates (422) and boost/flaw conflicts (422). Confirmed contract matches documented shape ✅
+
 ## What I learned (Dev)
-- (pending)
+- The ancestry content type and 6 seed nodes already existed before this ticket (created by update hook 10016). This ticket added the discrete field storage layer on top of the existing title-only nodes.
+- `resolveAncestryCanonicalName()` handles case-insensitive slug resolution (e.g. "dwarf" → "Dwarf"); use it as the single validation gate for ancestry IDs.
+- Field storage + instance must both exist before setting values on nodes; FieldStorageConfig::loadByName check prevents duplicate creation on re-run.
 
 ## What I'd change next time (Dev)
-- (pending)
+- Gate the step 2 processing block on `$canonical !== ''` before looking up in ANCESTRIES — this prevents silent no-ops on invalid ancestry IDs that slip past validation somehow.
