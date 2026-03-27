@@ -39,3 +39,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260327-impl-dc-cr-action-economy — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-action-economy.md)
 - [ ] 20260327-impl-dc-cr-ancestry-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-ancestry-system.md)
 - [ ] 20260327-impl-dc-cr-dice-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-dice-system.md)
+- [ ] 20260327-impl-dc-cr-difficulty-class — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-difficulty-class.md)
