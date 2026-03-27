@@ -1,27 +1,27 @@
-# Fix: Gate 2 inbox item de-duplication
+# Fix: Gate 2 Idempotency — Dedup Before Re-queuing
 
-- Source: pm-dungeoncrawler post-release gap review (20260326-dungeoncrawler-release-b)
 - Gap ID: GAP-26B-01
-- Site: dungeoncrawler
+- Identified by: pm-dungeoncrawler (improvement round `20260326-dungeoncrawler-release-b`), queued by pm-forseti (release operator)
+- Priority: ROI 7
 
 ## Problem
-Gate 2 ready inbox items are being re-queued even when a PM signoff artifact already exists for the release-id. This causes duplicate agent cycles and wastes processing.
+Gate 2 ready script re-queues inbox items for PM seats even when a signoff artifact already exists for that release-id. Each duplicate consumes a full agent cycle and risks double-processing side effects.
 
-Observed: `20260326-203507-gate2-ready-dungeoncrawler` was re-queued once; `20260326-224035-gate2-ready-dungeoncrawler` was processed in two separate sessions (second found signoff already recorded).
+Observed in `20260326-dungeoncrawler-release-b`:
+- `20260326-203507-gate2-ready-dungeoncrawler` processed → re-queued
+- `20260326-224035-gate2-ready-dungeoncrawler` executed twice (second run: "signoff already recorded from a prior cycle")
 
 ## Required fix
-Before queuing a gate2-ready inbox item for `pm-<site>`, the script must check:
-```bash
-test -f sessions/pm-<site>/artifacts/release-signoffs/<release-id>.md
+Before creating a gate2-ready inbox item (in `scripts/gate2-ready.sh` or equivalent queue logic), check:
 ```
-If the file exists → skip queue creation (or emit a no-op notification only).
+sessions/pm-<site>/artifacts/release-signoffs/<release-id>.md
+```
+If the file exists, skip the inbox item creation (or emit only a status notification — no new inbox item).
 
 ## Acceptance criteria
-- Zero duplicate gate2-ready inbox items for the same release-id in the next release cycle.
-- `scripts/gate2-ready.sh` (or whichever script queues gate2 items) contains an idempotency check before creating the inbox folder.
+- Zero duplicate `gate2-ready` inbox items generated for a release-id in the next release cycle.
+- Verified by: run Gate 2 twice for the same release-id; confirm only one inbox item is created.
 
-## Verification
-After the fix: trigger the gate2-ready flow twice for the same release-id; confirm second run does not create a new inbox folder.
-
-## ROI: 7
-Prevents wasted agent cycles each release; prevents risk of double-processing side effects (e.g., feature status being updated twice).
+## Scope
+- File(s): `scripts/` — gate2-ready queue logic (exact script name TBD by dev-infra investigation)
+- Owner: dev-infra
