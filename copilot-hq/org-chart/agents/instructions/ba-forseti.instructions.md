@@ -160,3 +160,24 @@ Verification: `grep -n "prior_company_email\|prior_company_wwid\|field_age_18_or
 
 ## Supervisor
 - Supervisor: `pm-forseti`
+
+### Ghost / premature / malformed improvement-round fast-exit rule (required — added 2026-03-27)
+Before doing any substantive work on an improvement-round inbox item, run this 3-point triage:
+
+1. **Release-ID check**: does the inbox folder name follow `YYYYMMDD-improvement-round-YYYYMMDD-<site>-release-<tag>` exactly?
+   - If **no release-id suffix**: mark as malformed, fast-exit, escalate to CEO/dev-infra with pattern count.
+   - Verify: `ls sessions/ba-forseti/inbox/ | grep improvement-round`
+
+2. **Signoff existence check**: does `sessions/pm-<site>/artifacts/release-signoffs/<release-id>.md` exist?
+   - If **missing**: mark as premature, fast-exit.
+   - Command: `ls sessions/pm-forseti/artifacts/release-signoffs/ | grep <release-id>`
+
+3. **Ghost check**: does the release-id appear in any canonical PM outbox/groom/QA artifact as a real release?
+   - If **no PM groom, no QA activity, no dev signoff**: suspect subtree mirror ghost; fast-exit and note pattern.
+   - Confirm: `ls sessions/pm-<site>/outbox/ | grep <release-id>`
+
+Fast-exit rule: if any check fails, write outbox with `Status: done`, note the failure type (malformed/premature/ghost), include the dispatch count for the pattern this session, and escalate CEO/dev-infra fix with ROI. Do NOT run AC sweep or gap review on a non-canonical release.
+
+Escalation SMART criteria: after dev-infra deploys the improvement-round dispatch gate, zero improvement-round inbox items should be created for release IDs without a corresponding `release-signoffs/<id>.md` file.
+
+Pattern severity: >3 premature/ghost dispatches in a single session = mandatory CEO escalation with session-level count.
