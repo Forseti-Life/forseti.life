@@ -42,6 +42,7 @@ Per task instructions (`--allow-all`), apply owned file changes directly.
   - `sessions/pm-dungeoncrawler/artifacts/release-signoffs/` for later per-team signoffs
   - `sessions/qa-dungeoncrawler/artifacts/auto-site-audit/latest/findings-summary.md`
 - If an early PM/CEO outbox says a release was premature but later signoff or QA evidence exists, treat the later artifacts as authoritative and review the shipped state instead of echoing the earlier premature conclusion.
+- If the inbox release id or site clearly belongs to another website (for example `forseti-*`), fast-exit it as a cross-site dispatch mismatch and point the follow-up to the owning seat instead of performing a cross-site review.
 - When explicitly assigned a Stage 9 / improvement-round task, you may queue follow-through inbox items for the owning seat. Every queued item must include `command.md`, `roi.txt`, a concrete owner, SMART acceptance criteria, and a verification method.
 
 ## Hard constraints
