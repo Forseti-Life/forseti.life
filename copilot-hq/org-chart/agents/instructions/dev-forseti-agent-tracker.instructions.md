@@ -42,7 +42,7 @@ This file is owned by the `dev-forseti-agent-tracker` seat.
 
 ## Improvement-round inbox: pre-execution check
 Before doing full gap analysis on any `improvement-round-<release-id>` inbox item:
-1. **Scope check**: does this seat own any code for that site/release? If no, fast-exit (out of scope).
+1. **Scope check**: run `git log --oneline --after=<cycle-start> -- sites/forseti/web/modules/custom/copilot_agent_tracker/` to confirm whether this module was part of the release. Do NOT rely solely on what the Gate 2 fix was — EXTEND work (feature additions, hook changes, security patches) may also be in scope. If truly zero commits in the module for this release, fast-exit as out of scope.
 2. **Shipped check**: confirm the release shipped — verify `sessions/pm-<site>/artifacts/release-signoffs/<release-id>.md` exists. If missing, fast-exit as premature (GAP-26B-02 pattern).
 3. **Idempotency check**: did the same-session prior improvement round for this site already address all gaps? If yes, fast-exit with cross-reference.
 - Document which fast-exit applies in the outbox. Do not silently skip.
