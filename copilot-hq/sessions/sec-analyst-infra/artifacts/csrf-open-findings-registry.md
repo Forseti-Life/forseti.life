@@ -1,7 +1,8 @@
 # Open CSRF Findings Registry
 
 **Maintained by:** sec-analyst-infra (ARGUS)
-**Last updated:** 2026-03-26
+**Last updated:** 2026-03-27
+**Spot-check 2026-03-27:** FINDING-3h (NEW): `api.inventory_sell_item` POST route added in `5bc95ffe4` without CSRF — brings unprotected dungeoncrawler_content POST route count to 8. FINDING-2b/FINDING-3a–3g confirmed still open. CEO delegation on FINDING-3 still pending (5 days, 3+ dispatch cycles).
 **Spot-check 2026-03-26:** FINDING-2a/2c confirmed STILL OPEN (forseti ai_conversation line 115, agent_evaluation line 66). FINDING-4 (NEW): 7 job_hunter routes missing CSRF — application submission steps 3/4/5 (browser-form POST) and addposting (GET/POST combo requiring dev judgment for fix pattern). MEDIUM severity — all require authentication.
 **Spot-check 2026-03-22:** FINDING-2a/2b/2c confirmed STILL OPEN by direct code inspection (forseti ai_conversation line 115, dungeoncrawler ai_conversation line 107, forseti agent_evaluation line 66). FINDING-3 (NEW): 7 dungeoncrawler_content POST routes missing CSRF protection, including 2 fully public routes (`dice_roll`, `rules_check` with `_access: TRUE`). See gap-review artifact for patches.
 **Spot-check 2026-03-19:** FINDING-1 CLOSED (confirmed by code inspection). FINDING-2 (ai_conversation + agent_evaluation MISPLACED) STILL OPEN across forseti and dungeoncrawler — patches were provided but MISPLACED-type was not in scope of the patch-mode execution (which targeted MISSING, not MISPLACED).
@@ -25,6 +26,7 @@
 | FINDING-3e | dungeoncrawler | `dungeoncrawler_content` | campaign_create | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
 | FINDING-3f | dungeoncrawler | `dungeoncrawler_content` | character_step | MISSING | **OPEN** — MEDIUM — 2026-03-22 |
 | FINDING-3g | dungeoncrawler | `dungeoncrawler_content` | game_objects | MISSING | **OPEN** — LOW-MED — 2026-03-22 |
+| FINDING-3h | dungeoncrawler | `dungeoncrawler_content` | api.inventory_sell_item | MISSING | **OPEN** — MEDIUM — 2026-03-27 |
 | FINDING-4a | forseti | `job_hunter` | application_submission_step3/3_short | MISSING | **OPEN** — MEDIUM — 2026-03-26 |
 | FINDING-4b | forseti | `job_hunter` | application_submission_step4/4_short | MISSING | **OPEN** — MEDIUM — 2026-03-26 |
 | FINDING-4c | forseti | `job_hunter` | application_submission_step5/5_short | MISSING | **OPEN** — MEDIUM — 2026-03-26 |
