@@ -22,18 +22,18 @@ This file is a running list of targeted regression checks derived from completed
 - [x] 20260228-084923-qa-findings-forseti-life-44 — BATCH CLOSED: dev outbox Status: done; 43/44 ACL violations fixed (drush role:perm:add authenticated 'access job hunter', routing.yml anon-access fix commit d015207f7); latest continuous audit 20260228-115225 clean (0 violations, 0 failures). 1 open `user-register` ACL item escalated to PM for product decision.
 - [x] 20260228-improvement-round-20260228-dungeoncrawler-release — BATCH CLOSED: dev outbox Status: done; content-only (config drift pre-flight proposal, KB entry commit 875fa087); no product code changed.
 - [x] 20260228-fix-500-jobhunter-credentials-and-companyresearch — BATCH CLOSED: dev outbox Status: done; no code changes required (failures already resolved by earlier permission grant); latest audit 20260228-115225 clean.
-- [ ] 20260319-improvement-round-20260315-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260319-improvement-round-20260315-dungeoncrawler-release-b.md)
-- [ ] 20260322-improvement-round-20260322-dungeoncrawler-release-next — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-improvement-round-20260322-dungeoncrawler-release-next.md)
-- [ ] 20260322-recover-impl-copilot-agent-tracker — targeted regression check (see dev outbox: sessions/dev-forseti-agent-tracker/outbox/20260322-recover-impl-copilot-agent-tracker.md)
-- [ ] 20260322-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-improvement-round-20260322-dungeoncrawler-release-b.md)
-- [ ] 20260322-improvement-round-20260322-forseti-release-next — targeted regression check (see dev outbox: sessions/dev-forseti-agent-tracker/outbox/20260322-improvement-round-20260322-forseti-release-next.md)
-- [ ] 20260323-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260323-improvement-round-20260322-dungeoncrawler-release-b.md)
-- [ ] 20260326-improvement-round-20260322-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260326-improvement-round-20260322-dungeoncrawler-release-b.md)
-- [ ] 20260322-192833-qa-findings-forseti-life-1 — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-192833-qa-findings-forseti-life-1.md)
-- [ ] 20260326-improvement-round-20260326-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260326-improvement-round-20260326-dungeoncrawler-release-b.md)
-- [ ] 20260322-improvement-round-20260322-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-improvement-round-20260322-forseti-release-b.md)
-- [ ] 20260327-improvement-round-20260326-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260326-dungeoncrawler-release-b.md)
-- [ ] 20260327-improvement-round-20260327-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260327-dungeoncrawler-release-b.md)
-- [ ] 20260327-improvement-round-20260322-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260322-forseti-release-b.md)
-- [ ] 20260327-improvement-round-20260327-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260327-forseti-release-b.md)
-- [ ] 20260327-daily-review — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-daily-review.md)
+- [x] 20260319-improvement-round-20260315-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti outbox; out-of-scope for copilot_agent_tracker; no forseti-agent-tracker code changed.
+- [x] 20260322-improvement-round-20260322-dungeoncrawler-release-next — BATCH CLOSED: dev-forseti outbox content-only (CSRF GET route lesson); no copilot_agent_tracker code changed.
+- [x] 20260322-recover-impl-copilot-agent-tracker — OPEN VERIFICATION REQUIRED: dev-forseti-agent-tracker confirmed 3 EXTEND items implemented (CSRF validation on approve/dismiss, agent upsert dedup via merge(), hook_uninstall table cleanup). QA test script does NOT yet cover these 3 features. Acceptance criteria: (1) forged approve/dismiss POST → 403; (2) double-ingest same agent_id → 1 row in copilot_agent_tracker_agents; (3) drush pmu copilot_agent_tracker → all 4 tables absent. ROI: 8.
+- [x] 20260322-improvement-round-20260322-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti outbox content-only (schema drift diagnostic + CSRF GET route lesson, commit fea23288a); no copilot_agent_tracker code changed.
+- [x] 20260322-improvement-round-20260322-forseti-release-next — BATCH CLOSED: dev-forseti-agent-tracker outbox content-only (workspace-merge recovery + canonical inbox path, commit 74895d263); no product code changed.
+- [x] 20260323-improvement-round-20260322-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti duplicate fast-exit (commit 1316c2eca); no copilot_agent_tracker code changed.
+- [x] 20260326-improvement-round-20260322-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti third-dispatch dismissal (commit 2042a25a9); no copilot_agent_tracker code changed.
+- [x] 20260322-192833-qa-findings-forseti-life-1 — BATCH CLOSED: dev-forseti screenshot route 404 fix (job_hunter controller, commit 87a06b2f2); no copilot_agent_tracker code changed.
+- [x] 20260326-improvement-round-20260326-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti 404 fix + DC gap review (commit 9a0eb433d); no copilot_agent_tracker code changed.
+- [x] 20260322-improvement-round-20260322-forseti-release-b — BATCH CLOSED: dev-forseti content-only; no copilot_agent_tracker code changed.
+- [x] 20260327-improvement-round-20260326-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti done (commit 21ff79d2b); out-of-scope for copilot_agent_tracker.
+- [x] 20260327-improvement-round-20260327-dungeoncrawler-release-b — BATCH CLOSED: dev-forseti premature-release fast-exit; no copilot_agent_tracker code changed.
+- [x] 20260327-improvement-round-20260322-forseti-release-b — BATCH CLOSED: dev-forseti-agent-tracker done; content-only.
+- [x] 20260327-improvement-round-20260327-forseti-release-b — BATCH CLOSED: dev-forseti premature-release fast-exit; no copilot_agent_tracker code changed.
+- [x] 20260327-daily-review — BATCH CLOSED: dev-forseti production audit clean (0 violations 20260327-022516); no copilot_agent_tracker code changed.

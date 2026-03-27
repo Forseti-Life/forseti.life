@@ -76,3 +76,22 @@ The test script `run-copilot-agent-tracker-tests.py` auto-fetches the admin cook
 ## Escalation
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
 - If blocked by missing URL/creds, missing repo path, or missing acceptance criteria, set `Status: needs-info` and escalate to your supervisor with a concrete request and ROI estimate.
+
+## Out-of-scope improvement round fast-exit (required)
+When you receive an improvement round inbox item for a release cycle that is NOT `copilot_agent_tracker`-specific:
+1. Check the `qa-regression-checklist.md` for any open items referencing dev-forseti-agent-tracker outboxes.
+2. Batch-close all items where dev outbox is content-only or product code is out-of-scope.
+3. Flag any item where `copilot_agent_tracker` code was changed — those need a targeted regression run.
+4. Write outbox with `Status: done` and list closed items + any remaining open verification items.
+Do NOT create new inbox items for yourself as part of this triage.
+
+## Regression checklist triage (required on each improvement round)
+- File: `org-chart/sites/forseti.life/qa-regression-checklist.md`
+- On every improvement round inbox item, review all open `[ ]` items and close any that are:
+  - Content-only (seat instructions, documentation, KB entries — no product code changed)
+  - Out-of-scope product (dungeoncrawler, job_hunter, etc. — no copilot_agent_tracker impact)
+- Leave open ONLY items where copilot_agent_tracker routes/ACL/data behavior changed and no QA evidence exists.
+- The `20260322-recover-impl-copilot-agent-tracker` EXTEND items (CSRF approve/dismiss, agent dedup, hook_uninstall) require a targeted test run before they can be closed. Acceptance criteria:
+  - Forged approve/dismiss POST → 403
+  - Double-ingest same agent_id → exactly 1 row in copilot_agent_tracker_agents
+  - `drush pmu copilot_agent_tracker` → all 4 tables absent
