@@ -3,7 +3,7 @@
 - Work item id: dc-cr-clan-dagger
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: shipped
 - Release: 20260326-dungeoncrawler-release-b
 - Dev complete: yes (commits 5bc95ffe4, efc7eef2a — 2026-03-20)
 - Priority: P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev)
