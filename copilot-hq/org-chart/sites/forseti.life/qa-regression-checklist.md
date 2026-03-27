@@ -34,3 +34,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260322-improvement-round-20260322-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260322-improvement-round-20260322-forseti-release-b.md)
 - [ ] 20260327-improvement-round-20260326-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260326-dungeoncrawler-release-b.md)
 - [ ] 20260327-improvement-round-20260327-dungeoncrawler-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260327-dungeoncrawler-release-b.md)
+- [ ] 20260327-improvement-round-20260322-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260327-improvement-round-20260322-forseti-release-b.md)
