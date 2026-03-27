@@ -160,3 +160,15 @@ Pending tooling improvements:
 - Update `knowledgebase/scoreboards/dungeoncrawler.md` at every dungeoncrawler release close and at least weekly (when acting as coordinated release operator).
 - If a scoreboard entry is more than 7 days old and a release has shipped since, the first action of the next session is to update it before recording a new PM signoff.
 - Active process gaps (GAP-XX series) must appear in the scoreboard "Guardrails added" or "Active gaps" section within the same release cycle they are identified.
+
+## Release hold pattern (required when stall > 3 days)
+If a release ID has been at `release-signoff-status = false` for more than 3 days with an identified blocker:
+1. Create a hold artifact at `sessions/pm-forseti/artifacts/release-holds/<release-id>.md` documenting:
+   - Blocker (what is blocking, who owns the fix)
+   - Current gate state (signoff values, script exit code)
+   - Resolution options (A/B/C with recommendation)
+   - Escalation history (CEO items referencing this release)
+2. Reference the hold artifact in the current session outbox.
+3. Do NOT re-derive the same gaps in future sessions — link to the hold artifact instead.
+
+This prevents ghost improvement rounds from re-queuing on a release that is intentionally held.
