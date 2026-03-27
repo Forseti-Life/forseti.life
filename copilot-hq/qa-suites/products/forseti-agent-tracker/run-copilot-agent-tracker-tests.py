@@ -99,7 +99,7 @@ def http_get(path, cookie=None, follow=True):
         return 0, str(e)
 
 
-def http_post(path, data, token=None, content_type="application/json"):
+def http_post(path, data, token=None, content_type="application/json", cookie=None):
     url = BASE_URL + path
     if isinstance(data, str):
         body = data.encode()
@@ -109,6 +109,8 @@ def http_post(path, data, token=None, content_type="application/json"):
     req.add_header("Content-Type", content_type)
     if token:
         req.add_header("X-Copilot-Agent-Tracker-Token", token)
+    if cookie:
+        req.add_header("Cookie", cookie)
     try:
         resp = urllib.request.urlopen(req, timeout=10)
         return resp.status, resp.read().decode(errors="replace")
@@ -251,6 +253,59 @@ check("db-table-events-exists", "DB table copilot_agent_tracker_events exists",
 
 # 17. Telemetry token is non-empty
 check("token-nonempty", "Telemetry token is set (non-empty)", bool(TOKEN), True)
+
+# --- EXTEND test cases ---
+
+# 18. CSRF: forged approve POST without valid token → 403
+code, body = http_post("/admin/reports/waitingonkeith/9999/approve",
+                       data="token=forged-token-xyz",
+                       cookie=COOKIE,
+                       content_type="application/x-www-form-urlencoded")
+check("csrf-forged-approve-403",
+      "CSRF: forged approve POST (no valid token) → 403",
+      code, 403)
+
+# 19. Upsert dedup: same agent_id posted twice → exactly 1 row in agents table
+DEDUP_AGENT = "qa-extend-dedup-test"
+# Remove prior test row if present
+run_drush(["php:eval",
+           f"\\Drupal::database()->delete('copilot_agent_tracker_agents')"
+           f"->condition('agent_id', '{DEDUP_AGENT}')->execute();"])
+http_post("/api/copilot-agent-tracker/event",
+          {"agent_id": DEDUP_AGENT, "summary": "first ingest", "role": "qa"},
+          token=TOKEN)
+http_post("/api/copilot-agent-tracker/event",
+          {"agent_id": DEDUP_AGENT, "summary": "second ingest", "role": "qa"},
+          token=TOKEN)
+rc_dup, out_dup, _ = run_drush(["php:eval",
+    f"echo \\Drupal::database()->query("
+    f"'SELECT COUNT(*) FROM {{copilot_agent_tracker_agents}} WHERE agent_id = :id',"
+    f"[':id' => '{DEDUP_AGENT}'])->fetchField();"])
+row_count = int(out_dup.strip()) if out_dup.strip().isdigit() else -1
+check("upsert-dedup-1-row",
+      "Upsert dedup: double POST with same agent_id → exactly 1 row in agents table",
+      row_count, 1, f"row_count={row_count}")
+
+# 20. hook_uninstall: all 4 tables absent after drush pmu, then re-enable
+TABLES = [
+    "copilot_agent_tracker_agents",
+    "copilot_agent_tracker_events",
+    "copilot_agent_tracker_replies",
+    "copilot_agent_tracker_inbox_resolutions",
+]
+run_drush(["pmu", "copilot_agent_tracker", "-y"])
+check_expr = " ".join(
+    [f"echo \\Drupal::database()->schema()->tableExists('{t}') ? 'Y' : 'N';"
+     for t in TABLES]
+)
+rc_u, out_u, _ = run_drush(["php:eval", check_expr])
+tables_absent = out_u.strip().count("Y") == 0
+check("hook-uninstall-tables-absent",
+      "hook_uninstall: all 4 module tables absent after drush pmu",
+      tables_absent, True, f"drush output: {out_u.strip()}")
+# Re-enable module so subsequent test environments are clean
+run_drush(["pm-enable", "copilot_agent_tracker", "-y"])
+run_drush(["cr"])
 
 # --- Summary ---
 total = len(RESULTS)

@@ -43,7 +43,7 @@ This file is owned by the `qa-forseti-agent-tracker` seat.
 ## Suite manifest hygiene (required)
 - Keep `qa-suites/products/forseti-agent-tracker/suite.json` current and free of `<define-` placeholders.
 - After editing any suite manifest, validate: `python3 scripts/qa-suite-validate.py` (must exit 0).
-- Suite ID `tracker-copilot-agent-tracker` is the required_for_release suite (21 test cases: ACL, API error modes, data integrity, performance).
+- Suite ID `tracker-copilot-agent-tracker` is the required_for_release suite (24 test cases: ACL, API error modes, data integrity, performance, CSRF, upsert dedup, hook_uninstall).
 - Suite ID `tracker-route-audit` is also `required_for_release: true` (route/ACL audit).
 - Suite ID `tracker-smoke-e2e` is deferred until `tests/forseti-agent-tracker/smoke.spec.ts` exists.
 
@@ -91,7 +91,10 @@ Do NOT create new inbox items for yourself as part of this triage.
   - Content-only (seat instructions, documentation, KB entries — no product code changed)
   - Out-of-scope product (dungeoncrawler, job_hunter, etc. — no copilot_agent_tracker impact)
 - Leave open ONLY items where copilot_agent_tracker routes/ACL/data behavior changed and no QA evidence exists.
-- The `20260322-recover-impl-copilot-agent-tracker` EXTEND items (CSRF approve/dismiss, agent dedup, hook_uninstall) require a targeted test run before they can be closed. Acceptance criteria:
-  - Forged approve/dismiss POST → 403
-  - Double-ingest same agent_id → exactly 1 row in copilot_agent_tracker_agents
-  - `drush pmu copilot_agent_tracker` → all 4 tables absent
+- The `20260322-recover-impl-copilot-agent-tracker` EXTEND items VERIFIED 2026-03-27 APPROVE (suite expanded from 21 to 24 cases; 24/24 PASS).
+
+## hook_uninstall test — session invalidation quirk
+- The `hook-uninstall-tables-absent` test case runs `drush pmu copilot_agent_tracker -y` and then `drush pm-enable copilot_agent_tracker -y` + `drush cr`.
+- **WARNING**: module uninstall/reinstall can invalidate existing Drupal sessions. If this test runs mid-suite, admin-cookie auto-fetched at suite start may become stale, causing 500s on dashboard tests.
+- **Mitigation**: the `hook-uninstall-tables-absent` test is the LAST test in the suite. The cookie is refreshed at the next full suite run. If you see 500s on dashboard-admin-200 immediately after a manual pmu/pm-enable, re-run the suite — it will auto-fetch a fresh cookie.
+- After uninstall+reinstall, `drush cr` is called inside the test; the telemetry token is regenerated via hook_install.
