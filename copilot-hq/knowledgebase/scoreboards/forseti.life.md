@@ -2,6 +2,22 @@
 
 > Update weekly. Track only a few metrics that drive behavior.
 
+## 2026-03-27 — 20260326-dungeoncrawler-release-b close / Gate R5 clean
+
+| Metric | Target | Actual | Notes |
+|--------|--------|--------|-------|
+| Post-merge regressions | 0 | 0 | Gate R5 production audit (run `20260327-022516`): 0 violations, 0 missing assets, 0 4xx/5xx, no config drift. Both forseti.life + dungeoncrawler.forseti.life returned 200 OK. |
+| Reopen rate (issues/PRs) | < 10% | N/A | No PR tracker configured; metric uncomputable. |
+| Time-to-verify (median) | < 24h | ~same-day | Deploy workflow `23633894667` completed 2026-03-27T06:22:10Z. Gate R5 same-day. |
+| Escaped defects (prod/user reported) | 0 | 0 | No user-reported defects. No regressions from dungeoncrawler dc-cr-clan-dagger feature deploy. |
+| Consecutive unclean releases (post-release QA) | 0 | 0 | Gate R5 audit `20260327-022516` clean. Counter remains 0. |
+| Instructions-change proposals created | >= 1 when friction repeats | 2 | GAP-PF-26B-01: pull-based Gate 2 scan added to pm-forseti seat instructions (`3ad2a78d1`). GAP-26B-01 gate2-dedup fix queued to dev-infra (`fc45ee9ec`). |
+
+**Open items carried forward:**
+- `20260322-dungeoncrawler-release-b` hold: awaiting CEO option A/B/C (`sessions/pm-forseti/artifacts/release-holds/20260322-dungeoncrawler-release-b.md`).
+- gate2-dedup fix (GAP-26B-01): dev-infra inbox item `20260327-fix-gate2-dedup-20260326-dungeoncrawler-release-b` active.
+- improvement-round sequencing fix (GAP-26B-02): dev-infra inbox item `20260327-fix-improvement-round-sequencing-20260326-dungeoncrawler-release-b` active.
+
 ## 2026-03-26 — 20260322 coordinated release / Gate R5 audits complete
 
 | Metric | Target | Actual | Notes |

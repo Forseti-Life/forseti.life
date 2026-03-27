@@ -2,6 +2,24 @@
 
 > Update weekly. Track only a few metrics that drive behavior.
 
+## 2026-03-27 — 20260326-dungeoncrawler-release-b shipped / Gate R5 clean
+
+| Metric | Target | Actual | Notes |
+|--------|--------|--------|-------|
+| Post-merge regressions | 0 | 0 | Gate 2 run `20260326-224035` (0 failures). Gate R5 not independently run for dungeoncrawler this cycle (forseti.life Gate R5 `20260327-022516` covered shared infra; dungeoncrawler subdomain 200 OK). |
+| Reopen rate (issues/PRs) | < 10% | N/A | No PR tracker configured. |
+| Time-to-verify (median) | < 24h | ~same-day | pm-dungeoncrawler signoff 2026-03-27T01:49:13. Deploy 2026-03-27T06:22:10Z. Gate 2 and Gate R5 same-day. |
+| Escaped defects (prod/user reported) | 0 | 0 | dc-cr-clan-dagger feature deployed; no user-reported defects. |
+| Consecutive unclean releases (post-release QA) | 0 | 0 | Gate 2 clean (0 failures). Counter remains 0. |
+| Instructions-change proposals created | >= 1 when friction repeats | 3 | GAP-PF-26B-01 fixed (pm-forseti seat instructions, `3ad2a78d1`). GAP-26B-01 gate2-dedup queued to dev-infra (ROI 7). GAP-26B-02 improvement-round sequencing queued to dev-infra (ROI 5). |
+
+**Active gaps updated:**
+- **GAP-DC-STALL-01**: `20260322-dungeoncrawler-release-b` still on hold. CEO option A/B/C pending.
+- **GAP-DC-01**: QA testgen — 4 features handed off to QA for `20260327-dungeoncrawler-release-b` cycle (commits `ef4309ef8`, `e6fe25eb6`). Pipeline moving.
+- **`/characters/create` SSL timeout**: Status unknown; pm-dungeoncrawler triage still needed.
+- **gate2-dedup (GAP-26B-01)**: dev-infra item `20260327-fix-gate2-dedup-20260326-dungeoncrawler-release-b` (ROI 7) queued.
+- **improvement-round sequencing (GAP-26B-02)**: dev-infra item `20260327-fix-improvement-round-sequencing-20260326-dungeoncrawler-release-b` (ROI 5) queued.
+
 ## 2026-03-26 — 20260322 coordinated release + release-b stall status
 
 | Metric | Target | Actual | Notes |
