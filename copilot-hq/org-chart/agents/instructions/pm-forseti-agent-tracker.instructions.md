@@ -41,6 +41,12 @@ This file is owned by the `pm-forseti-agent-tracker` seat.
 - If blocked by cross-module dependencies or environment/repo access gaps, escalate to `ceo-copilot` with options, recommendation, and ROI estimate.
 - **Stale blocker deduplication (required):** If the same blocker has appeared in 3 or more consecutive outbox items with no CEO action, stop re-documenting the full blocker. Instead write one line: `Same blocker as [outbox file path] — no change. Awaiting CEO decision.` and move on. This prevents blocker re-documentation from consuming the entire outbox update.
 
+## Module-state pre-check before delegation (required)
+- Before creating any dev delegation item for `copilot_agent_tracker` or any forseti module, run:
+  `git log --oneline --since="30 days ago" -- sites/forseti/web/modules/custom/<module-name>/`
+- If the scoped work already appears in the log, do NOT create the delegation. Document the existing commit hash in the outbox instead.
+- Failure to check this caused phantom duplicate delegations in the 20260322-forseti-release-b cycle (Gap 14).
+
 ## Workspace-merge artifact recovery (required at cycle start)
 - At the start of every cycle, verify that your recent outbox artifacts exist: `git ls-tree HEAD sessions/pm-forseti-agent-tracker/outbox/ | tail -5`
 - If post-merge outbox entries are missing (e.g., due to workspace wipe or subtree migration), check git log to identify the last known outbox commit and recover lost delegation inbox items before proceeding.
