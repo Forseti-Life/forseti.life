@@ -495,6 +495,13 @@ def _queue_pm_gate2_ready_item() -> None:
   for p in (inbox_root.iterdir() if inbox_root.exists() else []):
     if p.is_dir() and needle in p.name and p.name != item_id:
       return
+  # Skip if PM already recorded a release signoff for this release-id (idempotency).
+  if release_id:
+    release_slug = re.sub(r'[^A-Za-z0-9._-]+', '-', release_id.strip()).strip('-')[:80]
+    signoff_path = Path('sessions') / pm_agent_id / 'artifacts' / 'release-signoffs' / f"{release_slug}.md"
+    if signoff_path.exists():
+      print(f"INFO: skip gate2-ready queue — signoff already recorded: {signoff_path}")
+      return
 
   inbox_dir.mkdir(parents=True, exist_ok=True)
   (inbox_dir / 'roi.txt').write_text("150\n", encoding='utf-8')
