@@ -123,5 +123,16 @@ Background: 2026-03-22 production audit `20260322-193507`: 30 failures, all fals
 
 **Incorrect premise trap (observed 2026-03-27):** A queued inbox item (`20260326-222717-fix-qa-permissions-dev-only-routes`) was dispatched based on the premise that adding `ignore` rules to `qa-permissions.json` would suppress these 404 failures. This is WRONG — `ignore` rules only affect the permissions-validation step, not the route-scan failure bucket. If you receive an inbox item asking you to add qa-permissions.json rules to suppress route-scan 404 failures, fast-exit with CLOSED-INCORRECT-PREMISE and note the correct fix path (script-level `--ignore-modules` support from dev-infra).
 
+**Auto-queued dev findings from production audit (observed 2026-03-27):** When a production audit is run with `ALLOW_PROD_QA=1` and the 30 dev-only-module false positives are present, `site-audit-run.sh` auto-queues a `qa-findings-dungeoncrawler-30` inbox item in dev-dungeoncrawler. This item is a false positive — fast-exit it with CLOSED-INCORRECT-PREMISE. The 30 failures are already documented as BLOCKED-PENDING-SCRIPT-FIX; no new dev action is required. Always check the failure breakdown by module before accepting an auto-queued dev findings item as real.
+
+## Production audit role coverage (known limitation)
+When running production audits (`ALLOW_PROD_QA=1`), production role cookies are required for per-role permissions validation. These are NOT auto-acquired (drush OTL only works for local sites). Without production cookies, only `anon` runs — permissions-validation is partial.
+
+Workaround (until production credentials are available):
+- Run production audits anon-only for route coverage/404 checks.
+- Note explicitly in findings-summary: "permissions-validation: anon only — role-based validation not run (no production cookies)".
+- Full role-based permissions validation is covered by the local/dev audit (all 6 roles auto-acquired via drush OTL).
+- Do NOT block a release gate on missing production role coverage alone if local audit is clean.
+
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`
