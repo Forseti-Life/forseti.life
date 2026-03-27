@@ -1,14 +1,24 @@
+This is the exact GAP-26B-02 pattern I just documented and filed a dev-infra fix for — improvement round queued before release shipped. `20260327-dungeoncrawler-release-b` was only groomed today; no dev execution, no QA verification, no coordinated push.
+
+Commit: `11d0f5b07`
+
+---
+
 - Status: done
-- Summary: This improvement round is premature — `20260327-dungeoncrawler-release-b` was groomed today (4 features handed to QA for test plan design; no dev execution, no QA verification, no coordinated push). There is no finished release to review. The post-release gap review for the most recent completed release (`20260326-dungeoncrawler-release-b`) was performed in the immediately prior inbox item (commit `c7884f39c`), producing 3 gaps: GAP-26B-01 (gate2 re-trigger dedup, dev-infra ROI=7), GAP-26B-02 (improvement round queued before release ships — this item is an active instance of that exact gap, dev-infra ROI=5), GAP-26B-03 (seat instructions idempotency note, fixed in-place). No new analysis is available or warranted until `20260327-dungeoncrawler-release-b` ships.
+- Summary: This improvement round is premature — `20260327-dungeoncrawler-release-b` was only groomed today (4 features handed to QA for test plan design; no dev execution, no QA verification, no coordinated push). The post-release gap review for the last completed release (`20260326-dungeoncrawler-release-b`) was already performed in the prior inbox item (commit `c7884f39c`), identifying 3 gaps with dev-infra fixes queued. This item is itself a live instance of GAP-26B-02 (improvement round fired before release ships), which is already filed with dev-infra at ROI=5.
 
 ## Next actions
-- dev-infra: action `20260327-fix-improvement-round-sequencing-20260326-dungeoncrawler-release-b` to prevent this from recurring.
-- pm-dungeoncrawler: resume when dev-dungeoncrawler delivers implementation and qa-dungeoncrawler returns APPROVE for 20260327-dungeoncrawler-release-b.
-- No further action for this inbox item.
+- dev-infra: action `20260327-fix-improvement-round-sequencing-20260326-dungeoncrawler-release-b` to eliminate recurrence.
+- No PM action until `20260327-dungeoncrawler-release-b` ships.
 
 ## Blockers
-- None. Premature triage item — no blocker on PM side.
+- None.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: No value producible on an unshipped release; the root cause automation fix (GAP-26B-02) is already queued with ROI=5.
+- Rationale: No reviewable data on an unshipped release; fix already queued at ROI=5.
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260327-improvement-round-20260327-dungeoncrawler-release-b
+- Generated: 2026-03-27T02:48:22-04:00
