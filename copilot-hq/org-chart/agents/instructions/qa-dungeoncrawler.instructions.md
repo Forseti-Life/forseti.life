@@ -121,5 +121,7 @@ Workaround (until dev-infra adds --ignore-modules support):
 
 Background: 2026-03-22 production audit `20260322-193507`: 30 failures, all false positives from `copilot_agent_tracker` (7) and `dungeoncrawler_tester` (23).
 
+**Incorrect premise trap (observed 2026-03-27):** A queued inbox item (`20260326-222717-fix-qa-permissions-dev-only-routes`) was dispatched based on the premise that adding `ignore` rules to `qa-permissions.json` would suppress these 404 failures. This is WRONG — `ignore` rules only affect the permissions-validation step, not the route-scan failure bucket. If you receive an inbox item asking you to add qa-permissions.json rules to suppress route-scan 404 failures, fast-exit with CLOSED-INCORRECT-PREMISE and note the correct fix path (script-level `--ignore-modules` support from dev-infra).
+
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`
