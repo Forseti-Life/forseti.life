@@ -50,6 +50,27 @@ None found for character leveling specifically. See `COMBAT_ENGINE_ARCHITECTURE.
 - [ ] Anonymous users cannot trigger or view level-up state (session-scoped).
 - [ ] Admin may force-apply a level or reset level-up state for GM tooling purposes.
 
+### Route permission expectations (required for qa-permissions.json)
+
+All player-facing leveling routes use `_character_access: TRUE` (own-character access check). Admin routes use `administer dungeoncrawler content`.
+
+| Route | HTTP method | Access gate | anon | authenticated (own char) | content_editor | administrator | dc_playwright_player | dc_playwright_admin |
+|---|---|---|---|---|---|---|---|---|
+| `/api/character/{id}/level-up` | `[POST]` | `_character_access: TRUE` + `_csrf_request_header_mode: TRUE` | deny | allow (own) | allow (own) | allow | allow (own) | allow |
+| `/api/character/{id}/level-up/status` | `[GET]` | `_character_access: TRUE` | deny | allow (own) | allow (own) | allow | allow (own) | allow |
+| `/api/character/{id}/level-up/ability-boosts` | `[POST]` | `_character_access: TRUE` + `_csrf_request_header_mode: TRUE` | deny | allow (own) | allow (own) | allow | allow (own) | allow |
+| `/api/character/{id}/level-up/skill-increase` | `[POST]` | `_character_access: TRUE` + `_csrf_request_header_mode: TRUE` | deny | allow (own) | allow (own) | allow | allow (own) | allow |
+| `/api/character/{id}/level-up/feat` | `[POST]` | `_character_access: TRUE` + `_csrf_request_header_mode: TRUE` | deny | allow (own) | allow (own) | allow | allow (own) | allow |
+| `/api/character/{id}/level-up/feats` | `[GET]` | `_character_access: TRUE` | deny | allow (own) | allow (own) | allow | allow (own) | allow |
+| `/api/character/{id}/level-up/admin-force` | `[POST]` | `administer dungeoncrawler content` + `_csrf_request_header_mode: TRUE` | deny | deny | deny | allow | deny | allow |
+| `/api/character/{id}/level-up/admin-reset` | `[POST]` | `administer dungeoncrawler content` + `_csrf_request_header_mode: TRUE` | deny | deny | deny | allow | deny | allow |
+
+Notes:
+- `_character_access: TRUE` restricts to character owner; no role-based permission name to verify in `permissions.yml`.
+- `_csrf_request_header_mode: TRUE` is correct for all `[POST]` routes (header-based CSRF, not query-param token).
+- `content_editor` has `authenticated` base role; `_character_access` further restricts to own character only.
+- Admin routes use `administer dungeoncrawler content` — verify with `grep -r "administer dungeoncrawler content" web/modules/custom/dungeoncrawler_content/`.
+
 ## Gameplay-rule alignment
 
 - PF2e Chapter 2: character advancement tables are the authoritative source.
