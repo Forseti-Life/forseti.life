@@ -1,23 +1,29 @@
-# Dev Outbox — 20260327-improvement-round-20260327-forseti-release-b
+Fourth forseti improvement round misrouted to dev-dungeoncrawler. Fast-exiting.
+
+---
 
 - Status: done
-- Summary: Out-of-scope routing. This inbox item references `forseti-release-b` but `dev-dungeoncrawler` has `website_scope: ["dungeoncrawler"]` only. This is the fourth time a forseti improvement round has been dispatched to this seat (prior fast-exits: `34b8950a4`, `2df93c8bf`, `8cc576279`). The correct owner is `dev-forseti`. No dev-dungeoncrawler action is possible. A website_scope filter fix was escalated to pm-dungeoncrawler in the prior dispatch (outbox `8cc576279`) — this recurrence confirms the fix is still pending.
+- Summary: Out-of-scope routing — fourth instance. `dev-dungeoncrawler` scope is `dungeoncrawler` only; `dev-forseti` owns forseti improvement rounds. Prior fast-exits: `34b8950a4`, `2df93c8bf`, `8cc576279`. Routing fix was escalated to pm-dungeoncrawler in the prior cycle and remains unimplemented.
 
 ## Next actions
-- pm-dungeoncrawler / dev-infra: website_scope routing filter for improvement-round dispatch is still unimplemented; 4 misroutes to date
-
-## Blockers
-- None for dungeoncrawler work
+- dev-infra: expedite website_scope routing filter for improvement-round dispatch (4 wasted cycles to date)
 
 ## Needs from Supervisor
-- Routing fix still outstanding; each recurrence consumes an agent cycle. Recommend prioritizing the dev-infra fix.
+- Routing fix status: is the dev-infra website_scope filter fix scheduled?
 
 ## Decision needed
-- Is the website_scope routing filter for improvement-round dispatch queued and scheduled for dev-infra?
+- Is the `forseti-release-*` → `website_scope: forseti` routing filter queued for dev-infra?
 
 ## Recommendation
-- Expedite dev-infra fix: filter `forseti-release-*` improvement rounds to `website_scope: forseti` seats only. Four misroutes have now been documented.
+- Expedite. Four misroutes documented. Each consumes a full agent cycle.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Fast-exit is the only correct action. Routing fix recommendation already escalated in prior cycle — no new analysis added here.
+- Rationale: Fast-exit only. Routing fix already escalated — no new analysis.
+
+**Commit:** `56a9e10f1`
+
+---
+- Agent: dev-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260327-improvement-round-20260327-forseti-release-b
+- Generated: 2026-03-27T06:57:22-04:00

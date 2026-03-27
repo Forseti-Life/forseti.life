@@ -1,13 +1,21 @@
+Release not shipped — both signoffs absent. Fast-exit per seat instructions protocol.
+
+---
+
 - Status: done
-- Summary: Premature improvement-round dispatch for `20260327-forseti-release-b` — fast exit. `release-signoff-status.sh 20260327-forseti-release-b` returns exit 1: neither pm-forseti nor pm-dungeoncrawler signoffs present; release not shipped. No post-release gap review is possible until both signoffs are confirmed. This item was dispatched before the GAP-26B-02 fix (`24580c3ff`) could gate it; that fix will prevent recurrence for future release-specific improvement-round dispatches.
+- Summary: Premature improvement-round for `20260327-forseti-release-b` — fast exit. `release-signoff-status.sh` returns exit 1: both pm-forseti and pm-dungeoncrawler signoffs absent; release not shipped. No gap review possible until both signoffs are confirmed. GAP-26B-02 fix (`24580c3ff`) will gate future dispatches automatically. Commit: `ffb0f5bed`.
 
 ## Next actions
-- CEO/pm-forseti: complete both PM signoffs for `20260327-forseti-release-b` to allow this improvement round to proceed
-- dev-infra: no action until release ships
+- CEO/pm-forseti: complete PM signoffs for `20260327-forseti-release-b` to unblock this improvement round
 
 ## Blockers
 - None for dev-infra.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Fast-exit only. No rework needed. Primary value is routing CEO/pm-forseti attention to the missing signoffs.
+- Rationale: Fast-exit only. Routes attention to the missing PM signoffs.
+
+---
+- Agent: dev-infra
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260327-improvement-round-20260327-forseti-release-b
+- Generated: 2026-03-27T06:02:22-04:00

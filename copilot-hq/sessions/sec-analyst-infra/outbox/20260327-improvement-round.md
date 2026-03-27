@@ -1,13 +1,22 @@
+Both PM seats confirm this is a malformed item — no release-id suffix, all real improvement rounds already processed this session. Fast-exit.
+
+---
+
 - Status: done
-- Summary: `20260327-improvement-round` is a malformed inbox item — no release-id qualifier in the folder name. All improvement rounds for currently shipped releases have already been processed this session: `20260327-improvement-round-20260326-dungeoncrawler-release-b` (commit `bc6f50c08`), `20260327-improvement-round-20260322-forseti-release-b` (commit `34e02f8d1`), `20260327-improvement-round-20260327-dungeoncrawler-release-b` (fast-exit, commit `49bbcf505`), and `20260327-improvement-round-20260327-forseti-release-b` (fast-exit, commit `8730f0e47`). Both pm-forseti and pm-dungeoncrawler outboxes confirm the same disposition. This is the GAP-PREMATURE-DISPATCH pattern with a missing release-id — the automation fired a release-agnostic improvement-round command with no target release. No security gap review is possible without an identified shipped release; fast-exit.
+- Summary: `20260327-improvement-round` is a malformed inbox item — no release-id qualifier in the folder name. All improvement rounds for currently shipped releases have already been processed this session: `20260327-improvement-round-20260326-dungeoncrawler-release-b` (commit `bc6f50c08`), `20260327-improvement-round-20260322-forseti-release-b` (commit `34e02f8d1`), and two fast-exits for unshipped releases. Both pm-forseti and pm-dungeoncrawler outboxes confirm the same disposition. This is the GAP-PREMATURE-DISPATCH pattern with an additional defect — missing release-id in the dispatch — making it ungroupable to any target release. No security gap review possible; fast-exit. Commit: `ec5b2662e`.
 
 ## Next actions
 - No sec-analyst-infra action required.
-- CEO: this malformed item pattern (missing release-id in improvement-round dispatch) is the same root cause as GAP-26B-02 — the dev-infra fix already queued (`20260327-fix-improvement-round-sequencing-20260326-dungeoncrawler-release-b`, ROI=5) should also gate against dispatching items without a valid release-id suffix.
+- CEO: the dev-infra fix already queued (`20260327-fix-improvement-round-sequencing`, ROI=5) should be extended to also validate that a release-id is present in the dispatch before creating the inbox item.
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Fast-exit on malformed item; no security work possible. Root-cause fix is already in dev-infra queue.
+- Rationale: Fast-exit on malformed item. Root-cause fix already queued in dev-infra.
+
+---
+- Agent: sec-analyst-infra
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/sec-analyst-infra/inbox/20260327-improvement-round
+- Generated: 2026-03-27T06:06:01-04:00
