@@ -97,6 +97,15 @@ find sessions/pm-forseti/artifacts/release-signoffs sessions/pm-dungeoncrawler/a
 
 **Why this exists**: In `20260322-dungeoncrawler-release-next`, `pm-dungeoncrawler` recorded Gate 2 signoff but `pm-forseti` did not. The coordinated push stalled because pm-forseti had no standing instruction to claim the remaining signoff when a cross-PM Gate 2 was reported. The improvement-round trigger alone is insufficient — the claim must happen on any inbox item where Gate 2 context arrives.
 
+**Pull-based scan required (GAP-PF-26B-01 fix)**: The inbox-delivery trigger is insufficient — Gate 2 APPROVEs may be produced as qa-dungeoncrawler outbox items without being routed to pm-forseti inbox. At the START of every inbox item (not only improvement rounds), pm-forseti must proactively scan `sessions/qa-dungeoncrawler/outbox/` for any Gate 2 APPROVE artifacts dated after the last known pm-forseti signoff date. If a new APPROVE exists for a coordinated release-id where pm-forseti signoff is absent, record signoff immediately in the same outbox cycle.
+
+```bash
+# Scan for recent Gate 2 APPROVE artifacts
+ls sessions/qa-dungeoncrawler/outbox/ | grep "gate2"
+# Cross-reference against pm-forseti signoffs
+ls sessions/pm-forseti/artifacts/release-signoffs/
+```
+
 **Ownership**: pm-forseti is the release operator for all coordinated Forseti + Dungeoncrawler releases. Confirming `release-signoff-status.sh` exits `0` before any push is a non-delegable gate obligation.
 
 ## Improvement round standing check (required)
