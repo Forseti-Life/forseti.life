@@ -36,3 +36,6 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260327-improvement-round-20260322-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-improvement-round-20260322-forseti-release-b.md)
 - [ ] 20260327-improvement-round-20260327-forseti-release-b — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-improvement-round-20260327-forseti-release-b.md)
 - [ ] 20260327-daily-review — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-daily-review.md)
+- [ ] 20260327-impl-dc-cr-action-economy — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-action-economy.md)
+- [ ] 20260327-impl-dc-cr-ancestry-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-ancestry-system.md)
+- [ ] 20260327-impl-dc-cr-dice-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260327-impl-dc-cr-dice-system.md)

@@ -1,3 +1,17 @@
+# Command
+
+- created_at: 2026-03-27T15:27:20-04:00
+- work_item: dungeoncrawler-auto-investigation
+- topic: auto-investigate-fix
+
+## Command text
+[AUTO-INVESTIGATION] Release KPI stagnation for dungeoncrawler (dungeoncrawler).
+run_id=20260327-110142, open_issues=30, dev_status=done, unanswered_alerts=27, escalation_depth=0.
+
+Autonomous directives (execute in order):
+  1. Investigate why KPI is stagnant. Check dev outbox, run QA audit, apply any committed fixes.
+
+Dev outbox excerpt:
 All stage-0 items confirmed. Now update the implementation notes and write the outbox:
 
 ---
