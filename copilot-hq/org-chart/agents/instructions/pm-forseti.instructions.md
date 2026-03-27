@@ -106,6 +106,8 @@ ls sessions/qa-dungeoncrawler/outbox/ | grep "gate2"
 ls sessions/pm-forseti/artifacts/release-signoffs/
 ```
 
+**Zero-feature-scope releases (GAP-FSB-01 fix)**: When recording a signoff for a forseti release with no forseti-specific feature scope (housekeeping/coordinated release only), the signoff artifact MUST include: "No forseti features scoped — Gate R5 production audit `<audit-id>` is the verification baseline." This makes the audit trail explicit and prevents "ghost signoff" ambiguity on improvement rounds.
+
 **Ownership**: pm-forseti is the release operator for all coordinated Forseti + Dungeoncrawler releases. Confirming `release-signoff-status.sh` exits `0` before any push is a non-delegable gate obligation.
 
 ## Improvement round standing check (required)
