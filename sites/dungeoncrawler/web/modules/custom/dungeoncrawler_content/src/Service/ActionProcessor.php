@@ -52,6 +52,12 @@ class ActionProcessor {
       case 'cast_spell':
         return $this->executeCastSpell($participant_id, $action_data['spell_id'] ?? $action_data['spell_name'] ?? '', $action_data['spell_level'] ?? 1, $action_data['targets'] ?? [], $encounter_id);
 
+      case 'reaction':
+        return $this->executeReactionAction($participant_id, $action_data, $encounter_id);
+
+      case 'free_action':
+        return $this->executeFreeAction($participant_id, $action_data, $encounter_id);
+
       default:
         return ['status' => 'error', 'message' => 'Unsupported action type'];
     }
@@ -115,7 +121,7 @@ class ActionProcessor {
       $damage_result = $this->hpManager->applyDamage($target_id, $damage, $weapon['damage_type'] ?? 'physical', ['action' => 'strike', 'attacker' => $attacker_id], $encounter_id);
     }
 
-    $actions_left = max(0, ((int) $attacker['actions_remaining']) - 1);
+    $actions_left = $economy['actions_after'];
     $this->store->updateParticipant($attacker_id, [
       'actions_remaining' => $actions_left,
       'attacks_this_turn' => $attack_number,
@@ -171,7 +177,7 @@ class ActionProcessor {
     }
 
     $end = $this->lastPathCoordinate($path);
-    $actions_left = max(0, ((int) $actor['actions_remaining']) - 1);
+    $actions_left = $economy['actions_after'];
 
     $this->store->updateParticipant($participant_id, [
       'actions_remaining' => $actions_left,
@@ -415,6 +421,81 @@ class ActionProcessor {
     catch (\Throwable $t) {
       $this->logger->warning('Failed to log combat action: @msg', ['@msg' => $t->getMessage()]);
     }
+  }
+
+  /**
+   * Execute a reaction action (spends reaction_available).
+   *
+   * Validates reaction availability, marks reaction as spent, and logs the action.
+   * The caller is responsible for any triggering-condition checks.
+   */
+  public function executeReactionAction($participant_id, array $action_data, $encounter_id) {
+    $state = $this->loadEncounterState($encounter_id);
+    if ($state['status'] === 'error') {
+      return $state;
+    }
+
+    [$encounter, $participants] = $state['data'];
+    $actor = $this->findParticipant($participants, $participant_id);
+    if (!$actor) {
+      return ['status' => 'error', 'message' => 'Participant not found'];
+    }
+
+    if (!$this->isCurrentTurn($encounter, $participants, $participant_id) && empty($action_data['allow_out_of_turn'])) {
+      return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
+    }
+
+    $economy = $this->rulesEngine->validateActionEconomy($actor, 'reaction');
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
+    }
+
+    $this->store->updateParticipant($participant_id, [
+      'reaction_available' => 0,
+    ]);
+
+    $this->logAction($encounter_id, $participant_id, 'reaction', $action_data['target_id'] ?? NULL, $action_data, [
+      'reaction_spent' => TRUE,
+    ]);
+
+    return [
+      'status' => 'ok',
+      'reaction_available' => FALSE,
+      'actions_remaining' => (int) ($actor['actions_remaining'] ?? 0),
+    ];
+  }
+
+  /**
+   * Execute a free action (no cost; always passes if encounter is active).
+   *
+   * Free actions do not consume action budget and are always available.
+   */
+  public function executeFreeAction($participant_id, array $action_data, $encounter_id) {
+    $state = $this->loadEncounterState($encounter_id);
+    if ($state['status'] === 'error') {
+      return $state;
+    }
+
+    [$encounter, $participants] = $state['data'];
+    $actor = $this->findParticipant($participants, $participant_id);
+    if (!$actor) {
+      return ['status' => 'error', 'message' => 'Participant not found'];
+    }
+
+    $economy = $this->rulesEngine->validateActionEconomy($actor, 'free');
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
+    }
+
+    $this->logAction($encounter_id, $participant_id, 'free_action', $action_data['target_id'] ?? NULL, $action_data, [
+      'free_action' => TRUE,
+    ]);
+
+    return [
+      'status' => 'ok',
+      'actions_remaining' => (int) ($actor['actions_remaining'] ?? 0),
+      'reaction_available' => !empty($actor['reaction_available']),
+    ];
   }
 
 }
