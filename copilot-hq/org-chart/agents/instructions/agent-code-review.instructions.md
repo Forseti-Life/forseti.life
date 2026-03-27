@@ -37,6 +37,8 @@ Before the findings table, run and record each check as applies/N/A:
 - [ ] Drupal-specific: `_csrf_token: 'TRUE'` must NOT be added to routes with GET in their methods list — run `grep -A3 '<route>' routing.yml | grep methods` before flagging CSRF gaps (2026-03-22: addposting regression in forseti CSRF patch)
 - [ ] Drupal-specific: stale private duplicates of canonical data — check if controller/service has hardcoded lookups that diverge from a `const` or `static` in a Manager/Service class (2026-03-22: CharacterCreationController::getAncestryTraits() vs CharacterManager::ANCESTRIES)
 - [ ] Drupal-specific (dungeoncrawler): new routes must be pre-registered in `org-chart/sites/dungeoncrawler/qa-permissions.json` in the same commit as routing.yml — verify with `git show <impl-commit> -- org-chart/sites/dungeoncrawler/qa-permissions.json | grep diff` (2026-03-22: false-positive QA violation cycle from unregistered `/dungeoncrawler/traits` in release-next)
+- [ ] Drupal-specific (dungeoncrawler): every new POST route MUST have `_csrf_request_header_mode: TRUE` in its requirements — verify with `grep -A8 '<new-route-name>:' routing.yml | grep csrf` (2026-03-27: inventory_sell_item shipped without it while all other POST inventory routes had it)
+- [ ] Authorization bypass on optional override params — any `$gm_override`, `$admin_override`, or similar bypass flag accepted from request body MUST be gated on a permission check before use (2026-03-27: gm_override in sellItem() accepted from any authenticated user)
 
 ## KB reference requirement
 - Before reviewing, search `knowledgebase/` for relevant prior reviews/lessons.
