@@ -3,7 +3,7 @@
 - Work item id: dc-cr-heritage-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
