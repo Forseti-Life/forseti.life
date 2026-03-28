@@ -15,13 +15,14 @@
 | dc-cr-encounter-rules | 23 | Depends on dc-cr-difficulty-class (in release-b → ships before this cycle) AND dc-cr-conditions. Scope after conditions. |
 | dc-cr-equipment-system | 22 | Depends on dc-cr-character-class. Must scope in same or later cycle as character-class. |
 | dc-cr-heritage-system | 15 | Depends on dc-cr-ancestry-system (in release-b → ships before this cycle). Natural fit. |
+| dc-cr-skill-system | 17 | No blocking deps. Independent. Note: untrained training-required penalty AC deferred (not concrete). |
 
-**Total ready cases:** 139 test cases across 7 features.
+**Total ready cases:** 156 test cases across 8 features.
 
 ## Dependency sequencing recommendation
 
 If scoping all 7:
-- Independent (safe to scope in any order): background-system, character-class, character-creation, conditions
+- Independent (safe to scope in any order): background-system, character-class, character-creation, conditions, skill-system
 - After release-b ships: heritage-system (needs ancestry-system), encounter-rules (needs difficulty-class + conditions)
 - After character-class ships: equipment-system
 
