@@ -46,6 +46,7 @@ This file is owned by the `qa-forseti-agent-tracker` seat.
 - Suite ID `tracker-copilot-agent-tracker` is the required_for_release suite (24 test cases: ACL, API error modes, data integrity, performance, CSRF, upsert dedup, hook_uninstall).
 - Suite ID `tracker-route-audit` is also `required_for_release: true` (route/ACL audit).
 - Suite ID `tracker-smoke-e2e` is deferred until `tests/forseti-agent-tracker/smoke.spec.ts` exists.
+- **Case count consistency (required after every suite expansion)**: after adding test cases, update the `notes` field of `tracker-copilot-agent-tracker` in `suite.json` to reflect the new count. Verify count matches: `grep -c "^def test_" qa-suites/products/forseti-agent-tracker/run-copilot-agent-tracker-tests.py`.
 
 ## Audit scripts (available)
 - Full site audit: `scripts/site-audit-run.sh forseti` (set `FORSETI_BASE_URL`; `ALLOW_PROD_QA=1` for prod)

@@ -54,7 +54,7 @@
         "sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest/test-results.json"
       ],
       "required_for_release": true,
-      "notes": "22 test cases. Anon 403 accepted for all /admin/* routes (PM decision 2026-03-01, basis: qa-permissions.json admin-area rule). Token auto-fetched via drush if TELEMETRY_TOKEN not set. Admin cookie auto-fetched via drush user:login if FORSETI_COOKIE_ADMIN not set."
+      "notes": "24 test cases (21 core + 3 EXTEND: csrf-forged-approve-403, upsert-dedup-1-row, hook-uninstall-tables-absent). Anon 403 accepted for all /admin/* routes (PM decision 2026-03-01, basis: qa-permissions.json admin-area rule). Token auto-fetched via drush if TELEMETRY_TOKEN not set. Admin cookie auto-fetched via drush user:login if FORSETI_COOKIE_ADMIN not set."
     },
     {
       "id": "tracker-smoke-e2e",
