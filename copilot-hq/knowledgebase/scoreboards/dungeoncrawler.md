@@ -58,3 +58,17 @@
 - **GAP-DC-STALL-01** (2026-03-26): No executor routing rule for "dev proposed fix → QA not consumed." Fix proposed by dev-dungeoncrawler in `sessions/dev-dungeoncrawler/outbox/20260322-193507-qa-findings-dungeoncrawler-30.md`; not applied by qa-dungeoncrawler after 4+ days. CEO escalation active (pm-forseti commit `fd988824f`). If this recurs: escalate immediately rather than waiting a full cycle.
 - **GAP-DC-01** (2026-03-26): QA testgen throughput bottleneck blocking 4 features in `20260326-dungeoncrawler-release-b` cycle. CEO escalation active.
  
+
+## 2026-03-28 — Gate 2 ROI stagnation identified / 20260327-dungeoncrawler-release-b Gate 2 pending
+
+| Metric | Target | Actual | Notes |
+|---|---|---|---|
+| Post-merge regressions | 0 | 0 | 4 features in dev (no merge yet; Gate 2 pending) |
+| Time-to-verify (median) | < 24h | STALLED | Dev completed all 4 features on 2026-03-27; Gate 2 items queued same day. Not yet processed as of 2026-03-28T05:09 due to ROI ordering (Gate 2 items ROI 43-56 vs 15+ competing items ROI 84-300). |
+| Escaped defects | 0 | 0 | No features merged yet |
+| Consecutive unclean releases | 0 | 0 | Prior release clean; pending for current cycle |
+| Instructions-change proposals created | >= 1 | 1 | Gate 2 ROI policy fix — release-blocking Gate 2 items should be ROI ≥ 200. Artifacts: `sessions/pm-dungeoncrawler/artifacts/20260328-release-kpi-stagnation/`. |
+
+**Active gaps:**
+- **GAP-DC-GATE2-ROI-01** (2026-03-28): Gate 2 unit-test items for `20260327-dungeoncrawler-release-b` assigned ROI 43-56 by automation; 15+ competing items have ROI 84-300. Gate 2 stalled. CEO escalation filed — needs ROI update on 4 items: `sessions/qa-dungeoncrawler/inbox/20260327-unit-test-20260327-impl-dc-cr-*/roi.txt`.
+- **pm-forseti signoff still false**: coordinated push blocked until dungeoncrawler Gate 2 clears and both PMs sign off.
