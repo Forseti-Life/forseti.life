@@ -162,16 +162,16 @@ class AncestrySystemTest extends BrowserTestBase {
 
     // Step 1: create character with name.
     $this->drupalGet('/character/create/step/1');
-    $response1 = $this->drupalPostForm(NULL, ['name' => 'TestHero'], 'Next');
+    $response1 = $this->submitForm(['name' => 'TestHero'], 'Next');
     $character_id = $this->getCharacterIdFromSession();
     if (!$character_id) {
       // Try AJAX step save.
-      $this->drupalGet('/character/step/1/save', [
+      $this->drupalGet('/characters/create/step/1/save', [
         'query' => [],
       ]);
     }
     // For API-based test: post directly to the step save endpoint.
-    $this->drupalGet('/character/step/2/save');
+    $this->drupalGet('/characters/create/step/2/save');
     // Simple assertion: ancestry route accessible.
     $this->assertSession()->statusCodeEquals(200);
   }
@@ -307,7 +307,7 @@ class AncestrySystemTest extends BrowserTestBase {
     $this->drupalGet('/session/token');
     $csrf_token = trim($this->getSession()->getPage()->getContent());
 
-    $this->drupalGet('/character/step/2/save', [
+    $this->drupalGet('/characters/create/step/2/save', [
       'query' => [],
     ]);
     // The save endpoint requires POST. Assert the endpoint is accessible at 405/403 (not 500).

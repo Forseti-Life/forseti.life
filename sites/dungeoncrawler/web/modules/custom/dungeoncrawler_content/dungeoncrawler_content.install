@@ -2542,6 +2542,30 @@ function dungeoncrawler_content_schema() {
 function dungeoncrawler_content_install() {
   \Drupal::messenger()->addMessage(t('Dungeon Crawler Content module has been installed.'));
 
+  // Create ancestry content type on fresh installs (mirrors update_10016/10030 for test environments).
+  try {
+    $type = \Drupal\node\Entity\NodeType::load('ancestry');
+    if (!$type) {
+      $type = \Drupal\node\Entity\NodeType::create([
+        'type' => 'ancestry',
+        'name' => 'Ancestry',
+        'description' => 'PF2E ancestry definitions (dwarf, elf, gnome, goblin, halfling, human, etc.).',
+        'settings' => [
+          'node' => [
+            'options' => ['status' => TRUE, 'promote' => FALSE, 'sticky' => FALSE, 'revision' => FALSE],
+            'preview' => DRUPAL_DISABLED,
+            'submitted' => FALSE,
+          ],
+        ],
+      ]);
+      $type->save();
+      \Drupal::logger('dungeoncrawler_content')->notice('hook_install: created ancestry content type.');
+    }
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Ancestry content type creation during install failed: @error', ['@error' => $e->getMessage()]);
+  }
+
   // Seed all content from JSON files (items, creatures, etc.).
   try {
     /** @var \Drupal\dungeoncrawler_content\Service\ContentRegistry $registry */
