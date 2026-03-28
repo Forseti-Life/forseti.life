@@ -286,6 +286,20 @@
             }
         },
         {
+            "id": "api-combat-action",
+            "notes": "POST /api/combat/action — _permission: 'access dungeoncrawler characters' + _csrf_request_header_mode: TRUE. POST-only; GET probe returns 405 (not a permission violation). Ignore all roles. Added preflight 20260328-dungeoncrawler-release-b (dc-cr-action-economy).",
+            "feature_id": "dc-cr-action-economy",
+            "path_regex": "^/api/combat/action(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
             "id": "api-dice-roll",
             "notes": "POST /dice/roll — _access: TRUE, POST-only. GET probe returns 405 (not a permission issue). Ignore all roles. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-dice-system).",
             "path_regex": "^/dice/roll(?:/|$)",
