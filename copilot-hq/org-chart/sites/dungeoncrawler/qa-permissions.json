@@ -260,6 +260,58 @@
             }
         },
         {
+            "id": "api-public-ancestries-list",
+            "notes": "GET /ancestries — list all ancestry nodes. _access: TRUE (no Drupal permission required). All roles allow. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-ancestry-system).",
+            "path_regex": "^/ancestries/?$",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "api-public-ancestries-detail",
+            "notes": "GET /ancestries/{id} — single ancestry detail, slug-based parameterized path (e.g. /ancestries/human). _access: TRUE but probe IDs may not match seeded slugs. Ignore all roles (parameterized; 404 for non-existent slug is not a permission violation). Added preflight 20260327-dungeoncrawler-release-b (dc-cr-ancestry-system).",
+            "path_regex": "^/ancestries/[a-z]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-dice-roll",
+            "notes": "POST /dice/roll — _access: TRUE, POST-only. GET probe returns 405 (not a permission issue). Ignore all roles. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-dice-system).",
+            "path_regex": "^/dice/roll(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-rules-check",
+            "notes": "POST /rules/check — _access: TRUE, POST-only. GET probe returns 405 (not a permission issue). Ignore all roles. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-difficulty-class).",
+            "path_regex": "^/rules/check(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
             "id": "ai-conversation-api",
             "notes": "AI conversation API routes \u2014 require 'use ai conversation' permission. anon/authenticated/content_editor denied (no permission). administrator/dc_playwright_player/dc_playwright_admin have permission but GET probing is not representative: /ai-conversation/send-message is POST-only (GET returns 403/405 regardless of permissions); /ai-conversation/stats requires a node_id param (GET returns 400 \u2014 permission passes but missing param). Set admin/player/admin to 'ignore' \u2014 permission was verified by dev directly (forseti.life commit d5ae178fa; GET /ai-conversation/stats with dc_playwright_player returns 400 confirming permission passes).",
             "path_regex": "^/ai-conversation(/.*)?$",
