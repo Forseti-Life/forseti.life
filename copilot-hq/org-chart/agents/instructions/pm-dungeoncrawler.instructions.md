@@ -154,6 +154,14 @@ Required action:
 - `bash scripts/release-signoff.sh dungeoncrawler <release-id>`
 - This script is **idempotent**: if a signoff artifact already exists for this release-id, it exits OK and prints "already signed off". Safe to re-run — no need to manually check for existing signoff first.
 
+Pre-signoff Gate 2 validation (required — added 2026-03-28):
+Before running `release-signoff.sh`, you MUST verify:
+1. QA Gate 2 APPROVE evidence exists in `sessions/qa-dungeoncrawler/outbox/` for ALL features in the current release scope.
+2. The existing signoff artifact (if any) was NOT pre-populated by the orchestrator with a stale/prior release reference.
+   - Check: `cat sessions/pm-dungeoncrawler/artifacts/release-signoffs/<release-id>.md`
+   - If it reads "Signed by: orchestrator" with a different release ID than the current one: treat it as INVALID. Do not rely on it. Re-run `release-signoff.sh` after Gate 2 completes.
+   - Lesson learned: `knowledgebase/lessons/20260328-orchestrator-premature-signoff-artifact.md`
+
 Pre-signoff BASE_URL verification (required):
 Before running `release-signoff.sh`, confirm the latest QA audit probed the correct site:
 ```bash
