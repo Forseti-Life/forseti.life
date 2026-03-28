@@ -3,7 +3,7 @@
 - Work item id: dc-cr-ancestry-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P0 (required dependency for character creation; enables ancestry feat trees and heritage selection downstream)
 - Release: 20260319-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
