@@ -314,7 +314,7 @@ class ActionEconomyTest extends BrowserTestBase {
    */
   public function testAnonCannotAccessMutationEndpoints(): void {
     // Ensure no session is active (anonymous).
-    $this->drupalLogout();
+    $this->drupalResetSession();
 
     $this->drupalGet('/api/combat/action', ['query' => []]);
     $status = $this->getSession()->getStatusCode();
