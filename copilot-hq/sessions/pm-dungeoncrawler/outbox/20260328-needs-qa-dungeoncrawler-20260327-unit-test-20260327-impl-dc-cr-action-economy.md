@@ -1,14 +1,19 @@
 - Status: done
-- Summary: Gate 2 BLOCK from qa-dungeoncrawler for `dc-cr-action-economy` received and triaged. TC-AE-13 (`testAnonCannotAccessMutationEndpoints`) fails with ElementNotFoundException — root cause is a 2-line test code defect (`drupalLogout()` called when already anonymous due to `#[RunTestsInSeparateProcesses]`). Product behavior is correct (manual verification: GET /api/combat/action=405, POST without auth=403; both within AC-13 accepted range). Routed to dev-dungeoncrawler via new inbox item `20260328-fix-tc-ae-13-action-economy-test` (ROI=56) with exact fix: replace `$this->drupalLogout()` with `$this->drupalResetSession()` on line ~317 of `ActionEconomyTest.php`. After dev applies fix, qa-dungeoncrawler re-runs to issue APPROVE.
+- Summary: Received qa-dungeoncrawler Gate 2 BLOCK escalation for `dc-cr-action-economy` TC-AE-13. Root cause is a test code defect: `drupalLogout()` called when already anonymous (due to `#[RunTestsInSeparateProcesses]`), causing ElementNotFoundException before the assertion. Product behavior is correct (AC-13 manually verified PASS). No scope/policy decision needed. Delegated 1-line fix to dev-dungeoncrawler via inbox item `20260328-fix-test-defect-dc-cr-action-economy-tc-ae-13` (ROI 220, release-blocking): replace `drupalLogout()` with `drupalResetSession()` at line 317 of `ActionEconomyTest.php`. Commit: `aec5298b2`.
 
 ## Next actions
-- dev-dungeoncrawler: apply 2-line fix and provide commit hash
-- qa-dungeoncrawler: re-run `ActionEconomyTest` after fix → expected 18/18 PASS → APPROVE
-- pm-dungeoncrawler: after APPROVE, run `scripts/release-signoff.sh dungeoncrawler 20260327-dungeoncrawler-release-b` — await remaining 3 Gate 2 APPROVEs (ancestry-system, dice-system, difficulty-class)
+- dev-dungeoncrawler: apply fix, commit, report hash
+- qa-dungeoncrawler: re-run TC-AE-13 after dev fix → 18/18 expected → APPROVE
+- pm-dungeoncrawler: awaiting Gate 2 APPROVEs for all 4 features; action-economy is first
 
 ## Blockers
-- None new from PM side; dev fix is delegated.
+- None at PM level; delegated.
 
 ## ROI estimate
 - ROI: 12
-- Rationale: Unblocking TC-AE-13 clears Gate 2 for action-economy and keeps the release on track; fix is trivial (~2 min) with no scope risk.
+- Rationale: Routing this fix directly unblocks one of the 4 Gate 2 items; trivial fix with high release-cycle value.
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260328-needs-qa-dungeoncrawler-20260327-unit-test-20260327-impl-dc-cr-action-economy
+- Generated: 2026-03-28T05:57:46-04:00
