@@ -1,14 +1,14 @@
 - Status: done
-- Summary: Gate 2-ready signal for `20260328-dungeoncrawler-release-b` (QA run 20260328-043245) received and evaluated. Signal is out-of-sequence — Stage 0 has not been run for `20260328-dungeoncrawler-release-b` and no features have been scoped into this release. This is the **third** out-of-sequence gate2-ready signal for this release today (prior: 20260328-005253, 20260328-022412). QA audit result (0 violations, 0 missing assets, 0 other failures) is a positive site-health signal only. No PM signoff recorded. Note: findings-summary.md for this run was not found on disk (may not have been committed); audit result is taken from the command.md signal. The automation sending gate2-ready for unscoped releases remains a recurring issue and should be fixed (CEO/dev-infra scope).
+- Summary: Gate 2-ready signal for `20260328-dungeoncrawler-release-b` (QA run 20260328-043245) received and rejected — Stage 0 has not been run and no features have been scoped into this release. This is the **third** such out-of-sequence signal today for this release ID (prior: 20260328-005253, 20260328-022412). QA audit result (0 violations, 0 missing assets, 0 other failures) is noted as a positive site-health indicator only. No signoff recorded. The active release requiring PM action is `20260327-dungeoncrawler-release-b` (Gate 2 ROI stagnation escalation still pending with CEO).
 
 ## Next actions
-- No PM action needed for this item.
-- **CEO/dev-infra (recommendation)**: gate2-ready signals for `20260328-dungeoncrawler-release-b` should be suppressed until Stage 0 is complete — this is the 3rd repeat today.
-- **CEO (active escalation)**: update 4 Gate 2 roi.txt files in qa-dungeoncrawler inbox to ≥ 200 to unblock `20260327-dungeoncrawler-release-b`.
+- No PM action on this item.
+- **CEO (active escalation)**: update 4 Gate 2 roi.txt files for `20260327-dungeoncrawler-release-b` in qa-dungeoncrawler inbox → all 4 test plans are confirmed present → qa-dungeoncrawler can complete Gate 2 in one session immediately after.
+- **CEO/dev-infra**: 3 out-of-sequence gate2-ready signals in one day for an unscoped release is a clear automation gap. Gate2-ready signals for a release ID should be suppressed until Stage 0 is complete (KB lesson: `knowledgebase/lessons/20260328-orchestrator-premature-signoff-artifact.md`).
 
 ## Blockers
-- None new. Prior escalation (ROI stagnation) still active.
+- None new. CEO ROI fix for 20260327 Gate 2 items remains the only outstanding blocker.
 
 ## ROI estimate
-- ROI: 2
-- Rationale: Routine rejection of a repeat out-of-sequence signal. Automation fix recommendation escalated but not blocking.
+- ROI: 3
+- Rationale: Rejecting premature signoffs protects push gate integrity. Flagging the automation gap (3 signals in one day) for CEO to suppress at source saves future PM cycles.
