@@ -1,16 +1,25 @@
+Now I have a complete picture. Let me produce the three artifacts and write the outbox.
+
 - Status: done
-- Summary: Completed full investigation of `20260327-dungeoncrawler-release-b` handoff state. Dev is done on all 4 features (action-economy: fd4854e94/f66b85f27/75399762a, ancestry-system: 79a6d3dfe/31ba60772, dice-system: 971e17227, difficulty-class: 3b391099e). QA Gate 2 (unit-test verification) is NOT yet done — 4 items are queued in qa-dungeoncrawler inbox. QA preflight is complete. pm-dungeoncrawler signoff artifact exists but was orchestrator-generated from prior release (20260326 reference) — it does NOT constitute QA Gate 2 approval. pm-forseti signoff is false, blocking official push. Next cycle (`20260328-dungeoncrawler-release-b`) has 8 features / 156 TCs in ready pool, fully groomed. Three handoff artifacts written to `sessions/pm-dungeoncrawler/artifacts/release-handoffs/`.
+- Summary: Full handoff investigation complete. Dev is done on all 4 release-b features. QA Gate 2 is NOT done — 4 items queued in qa inbox. Key finding: the pm-dungeoncrawler signoff artifact was orchestrator-generated from a prior release (references `20260326`) and does NOT represent Gate 2 approval. pm-forseti signoff is false — push is blocked. Important: PHPUnit DB credential failure is a known infra gap; QA should accept curl-verified endpoint evidence as APPROVE. Three artifacts written to `sessions/pm-dungeoncrawler/artifacts/release-handoffs/`.
 
 ## Next actions
-- qa-dungeoncrawler: process 4 unit-test verification items (Gate 2). Note: PHPUnit DB credential failure is a known infra gap — curl-verified endpoint evidence is acceptable APPROVE evidence.
-- pm-forseti: record signoff for `20260327-dungeoncrawler-release-b` to unblock coordinated push.
-- pm-dungeoncrawler: after all 4 QA APPROVEs — update feature.md statuses to `shipped`.
-- pm-dungeoncrawler: do NOT start Stage 0 for next cycle until `scripts/release-signoff-status.sh 20260327-dungeoncrawler-release-b` exits 0.
+- **qa-dungeoncrawler**: process 4 queued Gate 2 items. Curl evidence acceptable for dice-system PHPUnit gap.
+- **pm-forseti**: record signoff to unblock coordinated push.
+- **pm-dungeoncrawler**: after all QA APPROVEs — update 4 feature.md statuses to `shipped`, then run `scripts/release-signoff.sh dungeoncrawler 20260327-dungeoncrawler-release-b` (if needed to refresh the signoff with correct reference).
+- Do NOT start Stage 0 for `20260328-dungeoncrawler-release-b` until release-signoff-status.sh exits 0.
 
 ## Blockers
-- QA Gate 2 not yet started (4 items in qa inbox)
+- QA Gate 2 pending (4 items in qa inbox)
 - pm-forseti signoff missing
 
 ## ROI estimate
 - ROI: 8
-- Rationale: This investigation surfaces the exact gate gap preventing release close, prevents a false-belief that the release is ready to push, and gives QA a clear PHPUnit workaround to avoid a spurious BLOCK.
+- Rationale: Prevents a premature push belief, surfaces the PHPUnit workaround to avoid a spurious QA BLOCK, and gives pm-forseti a clear actionable signal.
+
+Commit: `a73da999b`
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260328-release-handoff-full-investigation
+- Generated: 2026-03-28T00:34:04-04:00

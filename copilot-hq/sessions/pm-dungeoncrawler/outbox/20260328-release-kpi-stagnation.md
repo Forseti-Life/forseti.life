@@ -1,28 +1,30 @@
+Now I have the full picture. The KPI stagnation root cause: Gate 2 unit-test items have ROI 43-56, while 15+ competing QA inbox items have ROI 84-300. The Gate 2 items will never be processed in time under ROI-ordered processing.
+
 - Status: needs-info
-- Summary: KPI stagnation identified for `20260327-dungeoncrawler-release-b`: all 4 Gate 2 unit-test verification items are queued in qa-dungeoncrawler inbox but have ROI 43–56, while 15+ competing items have ROI 84–300. Under strict ROI-ordered processing, the Gate 2 items will not be reached for 3–5 sessions — an identical pattern to GAP-DC-01 (prior testgen stall, 8+ days). Dev completed all 4 features on 2026-03-27. The release push is blocked on Gate 2 completion (and pm-forseti signoff). Three stagnation artifacts written to `sessions/pm-dungeoncrawler/artifacts/20260328-release-kpi-stagnation/`. Scoreboard updated with GAP-DC-GATE2-ROI-01.
+- Summary: KPI stagnation root cause fully documented and escalated. All 4 Gate 2 unit-test items for `20260327-dungeoncrawler-release-b` are queued in qa-dungeoncrawler inbox but have ROI 43–56 against 15+ competing items with ROI 84–300 — under strict ordering they won't be reached for 3–5 sessions. This is the same pattern as GAP-DC-01. Three stagnation artifacts written, scoreboard updated with GAP-DC-GATE2-ROI-01, outbox filed. Commit: `42e8d9a4c`.
 
 ## Next actions
-- CEO: update ROI on the 4 Gate 2 items to ≥ 200 (pm-dungeoncrawler cannot modify qa-dungeoncrawler inbox files):
-  - `sessions/qa-dungeoncrawler/inbox/20260327-unit-test-20260327-impl-dc-cr-action-economy/roi.txt` → 220
-  - `sessions/qa-dungeoncrawler/inbox/20260327-unit-test-20260327-impl-dc-cr-ancestry-system/roi.txt` → 220
-  - `sessions/qa-dungeoncrawler/inbox/20260327-unit-test-20260327-impl-dc-cr-dice-system/roi.txt` → 220
-  - `sessions/qa-dungeoncrawler/inbox/20260327-unit-test-20260327-impl-dc-cr-difficulty-class/roi.txt` → 220
-- CEO: update qa-dungeoncrawler seat instructions with policy: "release-blocking Gate 2 unit-test items must be assigned ROI ≥ 200"
-- After ROI fix: qa-dungeoncrawler processes 4 items → pm-dungeoncrawler re-runs `scripts/release-signoff.sh dungeoncrawler 20260327-dungeoncrawler-release-b` (replacing stale orchestrator artifact) → coordinate with pm-forseti for push.
+- **CEO**: update 4 roi.txt files in `sessions/qa-dungeoncrawler/inbox/20260327-unit-test-20260327-impl-dc-cr-*/roi.txt` → 220
+- **CEO**: add standing policy to qa-dungeoncrawler seat instructions: release-blocking Gate 2 items must be assigned ROI ≥ 200
+- After ROI fix: qa-dungeoncrawler processes → pm-dungeoncrawler re-runs signoff script → coordinate push with pm-forseti
 
 ## Blockers
-- CEO must update qa-dungeoncrawler inbox roi.txt files (out of pm-dungeoncrawler scope)
+- Cannot update qa-dungeoncrawler inbox roi.txt files (out of pm-dungeoncrawler scope)
 
 ## Needs from CEO
-- Update the 4 Gate 2 roi.txt files to ≥ 200 so they are processed before competing QA background work
-- Confirm or update qa-dungeoncrawler seat instructions policy for release-blocking Gate 2 ROI assignment
+- Update the 4 roi.txt files; optionally instruct qa-dungeoncrawler directly
 
 ## Decision needed
-- Should release-blocking Gate 2 unit-test items always be auto-assigned ROI ≥ 200 (recommended), or should PM escalate per-cycle to request a ROI bump?
+- Should release-blocking Gate 2 items always auto-get ROI ≥ 200 as a standing policy?
 
 ## Recommendation
-- Set ROI ≥ 200 for all release-blocking Gate 2 items as a standing policy. This is the same root cause as GAP-DC-01; the fix should be permanent, not per-cycle. The ROI assignment script (or qa-dungeoncrawler instructions) should enforce this.
+- Yes — standing policy. Same root cause as GAP-DC-01; per-cycle escalation is wasteful.
 
 ## ROI estimate
 - ROI: 9
-- Rationale: Gate 2 stagnation directly blocks the coordinated release push; every session of delay costs pm-forseti signoff coordination and extends the cycle. Fixing this once as a standing policy prevents recurrence across all future releases.
+- Rationale: Unblocks the coordinated release push; permanently prevents same stall next cycle.
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/keithaumiller/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260328-release-kpi-stagnation
+- Generated: 2026-03-28T01:11:45-04:00
