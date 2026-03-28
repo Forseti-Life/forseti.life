@@ -32,7 +32,8 @@ Every QA findings item you receive is one of two types. Check the command.md hea
 4. Implement the feature to satisfy the AC.
 5. Create `features/<feature_id>/02-implementation-notes.md` documenting what you built, files touched, schema changes, and any deviations from the AC (with justification). **Required section:** `## New routes introduced` (see below).
 6. **Pre-QA checklist (new routes):** If you added any new routes, before the first QA audit run notify `qa-dungeoncrawler` with the route paths and expected permission matrix so `qa-permissions.json` can be updated. Missing permission rules generate avoidable QA violations — this is a recurring pattern (2026-03-19 release-b cycle: 8 violations from `copilot_agent_tracker`).
-7. Notify QA with specific paths/behaviors implemented, for targeted retest.
+7. **Pre-QA checklist (new DB tables):** Every new database table MUST appear in BOTH `hook_schema()` AND `hook_update_N`. BrowserTestBase installs fresh — update hooks never run. Missing from `hook_schema()` = `Table doesn't exist` errors in every functional test. This is a recurring release-b pattern (affected: `dc_character_ancestry_details`, `dc_roll_log`).
+8. Notify QA with specific paths/behaviors implemented, for targeted retest.
 
 #### Required section in `02-implementation-notes.md`: New routes introduced
 If the feature introduces any routes, include this section:
