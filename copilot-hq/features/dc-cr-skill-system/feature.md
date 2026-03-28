@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skill-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P1 (core activity resolution; exploration and social gameplay)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
