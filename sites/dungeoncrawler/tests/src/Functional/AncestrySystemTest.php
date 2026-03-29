@@ -161,7 +161,7 @@ class AncestrySystemTest extends BrowserTestBase {
     $csrf_token = trim($this->getSession()->getPage()->getContent());
 
     // Step 1: create character with name.
-    $this->drupalGet('/character/create/step/1');
+    $this->drupalGet('/characters/create/step/1');
     $response1 = $this->submitForm(['name' => 'TestHero'], 'Next');
     $character_id = $this->getCharacterIdFromSession();
     if (!$character_id) {

@@ -2624,6 +2624,97 @@ function dungeoncrawler_content_install() {
     \Drupal::logger('dungeoncrawler_content')->error('Ancestry content type creation during install failed: @error', ['@error' => $e->getMessage()]);
   }
 
+  // Create ancestry custom fields on fresh installs (mirrors update_10030).
+  try {
+    $ancestry_fields = [
+      'field_ancestry_hp' => ['type' => 'integer', 'cardinality' => 1, 'label' => 'Hit Points'],
+      'field_ancestry_size' => ['type' => 'string', 'cardinality' => 1, 'label' => 'Size', 'settings' => ['max_length' => 20]],
+      'field_ancestry_speed' => ['type' => 'integer', 'cardinality' => 1, 'label' => 'Speed'],
+      'field_ancestry_boosts' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Ability Boosts', 'settings' => ['max_length' => 50]],
+      'field_ancestry_flaws' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Ability Flaws', 'settings' => ['max_length' => 50]],
+      'field_ancestry_languages' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Languages', 'settings' => ['max_length' => 50]],
+      'field_ancestry_senses' => ['type' => 'string', 'cardinality' => \Drupal\Core\Field\FieldStorageDefinitionInterface::CARDINALITY_UNLIMITED, 'label' => 'Senses', 'settings' => ['max_length' => 50]],
+    ];
+    foreach ($ancestry_fields as $field_name => $def) {
+      if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name)) {
+        $storage_def = [
+          'field_name' => $field_name,
+          'entity_type' => 'node',
+          'type' => $def['type'],
+          'cardinality' => $def['cardinality'],
+        ];
+        if (!empty($def['settings'])) {
+          $storage_def['settings'] = $def['settings'];
+        }
+        \Drupal\field\Entity\FieldStorageConfig::create($storage_def)->save();
+      }
+      if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'ancestry', $field_name)) {
+        \Drupal\field\Entity\FieldConfig::create([
+          'field_name' => $field_name,
+          'entity_type' => 'node',
+          'bundle' => 'ancestry',
+          'label' => $def['label'],
+          'required' => FALSE,
+        ])->save();
+      }
+    }
+    \Drupal::logger('dungeoncrawler_content')->notice('hook_install: created ancestry custom fields.');
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Ancestry field creation during install failed: @error', ['@error' => $e->getMessage()]);
+  }
+
+  // Seed 6 core ancestry nodes on fresh installs (mirrors update_10016).
+  try {
+    $core_ancestries = ['Human', 'Elf', 'Dwarf', 'Gnome', 'Goblin', 'Halfling'];
+    $all_ancestries = \Drupal\dungeoncrawler_content\Service\CharacterManager::ANCESTRIES;
+    foreach ($core_ancestries as $ancestry_name) {
+      if (!isset($all_ancestries[$ancestry_name])) {
+        continue;
+      }
+      $existing = \Drupal::entityQuery('node')
+        ->condition('type', 'ancestry')
+        ->condition('title', $ancestry_name)
+        ->accessCheck(FALSE)
+        ->execute();
+      if (!empty($existing)) {
+        continue;
+      }
+      $data = $all_ancestries[$ancestry_name];
+      $node = \Drupal\node\Entity\Node::create([
+        'type'   => 'ancestry',
+        'title'  => $ancestry_name,
+        'status' => 1,
+        'uid'    => 1,
+        'body'   => [
+          'value'  => json_encode([
+            'hp'        => $data['hp'],
+            'size'      => $data['size'],
+            'speed'     => $data['speed'],
+            'boosts'    => $data['boosts'],
+            'flaw'      => $data['flaw'] ?? null,
+            'languages' => $data['languages'],
+            'senses'    => $data['vision'],
+            'traits'    => $data['traits'],
+          ], JSON_PRETTY_PRINT),
+          'format' => 'plain_text',
+        ],
+      ]);
+      $node->set('field_ancestry_hp', (int) ($data['hp'] ?? 0));
+      $node->set('field_ancestry_size', $data['size'] ?? 'Medium');
+      $node->set('field_ancestry_speed', (int) ($data['speed'] ?? 25));
+      $node->set('field_ancestry_boosts', array_map(fn($b) => ['value' => $b], $data['boosts'] ?? []));
+      $node->set('field_ancestry_flaws', array_map(fn($f) => ['value' => $f], array_filter([$data['flaw'] ?? ''])));
+      $node->set('field_ancestry_languages', array_map(fn($l) => ['value' => $l], $data['languages'] ?? []));
+      $node->set('field_ancestry_senses', !empty($data['vision']) ? [['value' => $data['vision']]] : []);
+      $node->save();
+    }
+    \Drupal::logger('dungeoncrawler_content')->notice('hook_install: seeded core ancestry nodes.');
+  }
+  catch (\Exception $e) {
+    \Drupal::logger('dungeoncrawler_content')->error('Ancestry node seeding during install failed: @error', ['@error' => $e->getMessage()]);
+  }
+
   // Seed all content from JSON files (items, creatures, etc.).
   try {
     /** @var \Drupal\dungeoncrawler_content\Service\ContentRegistry $registry */
