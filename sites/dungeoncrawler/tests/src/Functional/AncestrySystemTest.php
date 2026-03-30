@@ -153,7 +153,7 @@ class AncestrySystemTest extends BrowserTestBase {
    * TC-AN-06: Character creation step 2 stores ancestry on character entity.
    */
   public function testCharacterCreationStoresAncestry(): void {
-    $account = $this->drupalCreateUser(['access dungeoncrawler characters', 'access content']);
+    $account = $this->drupalCreateUser(['create dungeoncrawler characters', 'access content']);
     $this->drupalLogin($account);
 
     // Get CSRF token.
