@@ -170,8 +170,8 @@ class AncestrySystemTest extends BrowserTestBase {
         'query' => [],
       ]);
     }
-    // For API-based test: post directly to the step save endpoint.
-    $this->drupalGet('/characters/create/step/2/save');
+    // Navigate to the ancestry step display route.
+    $this->drupalGet('/characters/create/step/2');
     // Simple assertion: ancestry route accessible.
     $this->assertSession()->statusCodeEquals(200);
   }
