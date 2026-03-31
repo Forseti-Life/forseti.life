@@ -1339,6 +1339,13 @@ function dungeoncrawler_content_schema() {
         'default' => 0,
         'description' => 'Last updated timestamp for optimistic locking.',
       ],
+      'version' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Optimistic lock version counter; increments on each save to detect concurrent edits.',
+      ],
     ],
     'primary key' => ['id'],
     'unique keys' => [

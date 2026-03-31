@@ -71,7 +71,7 @@ class CharacterCreationStepForm extends FormBase {
     $character_record = $character_id ? $this->characterManager->loadCharacter((int) $character_id) : NULL;
     $form['character_version'] = [
       '#type' => 'hidden',
-      '#value' => $character_record ? (int) $character_record->version : 0,
+      '#value' => $character_record ? (int) ($character_record->version ?? 0) : 0,
     ];
 
     // Store metadata
