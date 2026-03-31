@@ -35,3 +35,10 @@ The executor/orchestrator script does not parse QA outbox BLOCK signals and gene
 
 ## Prevention
 - After each QA BLOCK outbox, executor must check dev-dungeoncrawler inbox — if empty, create fix routing item before stagnation fires.
+
+## Update: 2026-03-31 — 3rd consecutive occurrence
+- Ancestry cycle 4 BLOCK (2026-03-29T20:29) → cycle 5 item again not auto-routed
+- CEO manually routed `dev-dungeoncrawler/inbox/20260331-fix-ancestry-system-cycle5` (commit TBD)
+- This is now 3 consecutive missed routings on the same feature
+- **Urgency elevated**: cycle 5 is the final cycle per policy; failure requires pm-dungeoncrawler escalation to CEO
+- Fix for executor routing gap is now **critical path** — must be implemented before the next feature reaches Gate 2
