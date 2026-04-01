@@ -27,17 +27,27 @@ Notes:
 - Dev consumes failing suite evidence and fixes product code; QA adjusts suites only when the test itself is flawed.
 - Escalate to PM only for scope/intent decisions (e.g., whether an ACL outcome is intended).
 
-## Known route namespaces (as of 2026-03-22 preflight — release-next)
+## Known route namespaces (as of 2026-03-31 preflight — release-b)
 All custom route namespaces discovered from routing YAML files. Keep `qa-permissions.json` rules and `product-teams.json route_regex` aligned with these:
 - `/admin/*` — admin backend (administer site configuration / is_admin)
 - `/admin/reports/copilot-agent-tracker/langgraph-console/*` — copilot_agent_tracker module (administer copilot agent tracker)
 - `/campaigns/*`, `/characters/*` — game content (access dungeoncrawler characters)
+- `/characters/create/step/{step}` — character creation wizard GET display (create dungeoncrawler characters); `/save` variant POST-only + CSRF
 - `/dungeoncrawler/testing/*` — testing dashboard (administer site configuration)
 - `/dungeoncrawler/objects` — content admin list (administer dungeoncrawler content)
 - `/dungeoncrawler/traits` — ancestry trait catalog GET endpoint (access dungeoncrawler characters)
 - `/ai-conversation/*` — AI chat API (use ai conversation permission)
 - `/api/character/{id}/*` — character entity API (custom _character_access; entity-ID routes, ignore in probes)
+- `/character/{character_id}/skills` — character skills GET (_access: TRUE, parameterized, ignore in probes)
 - `/api/inventory/{owner_type}/{owner_id}/*` — inventory management API (access dungeoncrawler characters; parameterized, ignore in probes)
+- `/api/characters/ability-scores/*` — ability score calculation APIs (POST + CSRF, or GET parameterized; ignore in probes)
+- `/api/combat/*` — combat API (POST-only or parameterized GET; ignore in probes)
+- `/ancestries`, `/ancestries/{id}` — ancestry catalog (_access: TRUE / parameterized; see qa-permissions.json)
+- `/backgrounds`, `/backgrounds/{id}` — backgrounds catalog (_access: TRUE; list=allow all, detail=ignore)
+- `/classes`, `/classes/{id}`, `/classes/{id}/starting-equipment` — class catalog (_access: TRUE; list=allow all, detail=ignore)
+- `/equipment` — equipment catalog (_access: TRUE; allow all)
+- `/dice/roll` — dice roll POST-only (_access: TRUE; ignore in probes)
+- `/rules/check` — rules check POST-only (_access: TRUE; ignore in probes)
 - `/home`, `/world`, `/how-to-play`, `/about`, `/credits`, `/hexmap` — public static pages (_access: TRUE)
 - `/architecture/*` — architecture docs (access content)
 - `/user/login` — public

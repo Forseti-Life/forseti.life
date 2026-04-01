@@ -337,6 +337,58 @@
                 "dc_playwright_player": "ignore",
                 "dc_playwright_admin": "ignore"
             }
+        },
+        {
+            "id": "public-content-catalog",
+            "notes": "Public catalog list endpoints (_access: TRUE, GET-only): /backgrounds, /classes, /equipment. No permission required; all roles allow. Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/(?:backgrounds|classes|equipment)/?$",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "public-content-detail-parameterized",
+            "notes": "Public catalog detail routes (_access: TRUE, parameterized slug): /backgrounds/{id}, /classes/{id}, /classes/{id}/starting-equipment. Probe IDs don't match seeded slugs \u2014 all return 404 (not an ACL violation). Ignore all roles. Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/(?:backgrounds|classes)/[a-z]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-character-skills",
+            "notes": "GET /character/{character_id}/skills \u2014 _access: TRUE, parameterized by character_id (\\d+). No permission required; any authenticated or anonymous user may call it. Parameterized entity-ID route; ignore all roles (probe outcome depends on seeded data, no permission violation possible). Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/character/[0-9]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-characters-ability-scores",
+            "notes": "Character creation ability score API endpoints under /api/characters/ability-scores/. POST routes (calculate, validate-boost) require _csrf_request_header_mode + 'create dungeoncrawler characters'; POST-only GET probes skipped. GET route (available-boosts/{step}) requires 'create dungeoncrawler characters' with step constrained to ancestry|background|class|free \u2014 numeric probe returns 404 (not a permission violation). Ignore all roles. Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/api/characters/ability-scores(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
         }
     ]
 }
