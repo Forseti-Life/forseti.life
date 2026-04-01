@@ -27,7 +27,7 @@ Notes:
 - Dev consumes failing suite evidence and fixes product code; QA adjusts suites only when the test itself is flawed.
 - Escalate to PM only for scope/intent decisions (e.g., whether an ACL outcome is intended).
 
-## Known route namespaces (as of 2026-03-31 preflight — release-b)
+## Known route namespaces (as of 2026-04-01 preflight — release-b 20260401)
 All custom route namespaces discovered from routing YAML files. Keep `qa-permissions.json` rules and `product-teams.json route_regex` aligned with these:
 - `/admin/*` — admin backend (administer site configuration / is_admin)
 - `/admin/reports/copilot-agent-tracker/langgraph-console/*` — copilot_agent_tracker module (administer copilot agent tracker)
@@ -46,6 +46,7 @@ All custom route namespaces discovered from routing YAML files. Keep `qa-permiss
 - `/backgrounds`, `/backgrounds/{id}` — backgrounds catalog (_access: TRUE; list=allow all, detail=ignore)
 - `/classes`, `/classes/{id}`, `/classes/{id}/starting-equipment` — class catalog (_access: TRUE; list=allow all, detail=ignore)
 - `/equipment` — equipment catalog (_access: TRUE; allow all)
+- `/testing` — public testing page (_access: TRUE; allow all — monitor in prod audit, comment notes prod restriction)
 - `/dice/roll` — dice roll POST-only (_access: TRUE; ignore in probes)
 - `/rules/check` — rules check POST-only (_access: TRUE; ignore in probes)
 - `/home`, `/world`, `/how-to-play`, `/about`, `/credits`, `/hexmap` — public static pages (_access: TRUE)

@@ -389,6 +389,19 @@
                 "dc_playwright_player": "ignore",
                 "dc_playwright_admin": "ignore"
             }
+        },
+        {
+            "id": "public-testing-page",
+            "notes": "GET /testing — _access: TRUE (no permission required). Public testing/staging page; returns 200 for all roles including anonymous. Note: the route comment says 'should be restricted in production environments' — monitor in post-release audit. Added preflight 20260401-dungeoncrawler-release-b.",
+            "path_regex": "^/testing/?$",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
         }
     ]
 }
