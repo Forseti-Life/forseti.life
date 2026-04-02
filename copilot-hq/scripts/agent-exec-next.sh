@@ -36,35 +36,17 @@ COPILOT_BIN="$(command -v copilot 2>/dev/null || true)"
 if [ -z "$COPILOT_BIN" ] && [ -x "$HOME/.npm-global/bin/copilot" ]; then
   COPILOT_BIN="$HOME/.npm-global/bin/copilot"
 fi
-
-copilot_supports_agentic_chat() {
-  local bin="$1"
-  [ -n "$bin" ] || return 1
-  local help
-  help="$($bin --help 2>&1 || true)"
-  printf '%s' "$help" | grep -q -- '--resume'
-}
-
-COPILOT_CHAT_CAPABLE=0
-if copilot_supports_agentic_chat "$COPILOT_BIN"; then
-  COPILOT_CHAT_CAPABLE=1
-fi
-
 BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$ROOT_DIR/scripts/bedrock-assist.sh}"
 AGENTIC_BACKEND="${HQ_AGENTIC_BACKEND:-auto}"
 
 resolve_backend() {
   case "$AGENTIC_BACKEND" in
     copilot)
-      if [ "$COPILOT_CHAT_CAPABLE" = "1" ]; then
+      if [ -n "$COPILOT_BIN" ]; then
         echo "copilot"
         return 0
       fi
-      if [ -n "$COPILOT_BIN" ]; then
-        echo "ERROR: HQ_AGENTIC_BACKEND=copilot but installed copilot CLI is not chat-capable (--resume missing)." >&2
-      else
-        echo "ERROR: HQ_AGENTIC_BACKEND=copilot but copilot CLI not found in PATH." >&2
-      fi
+      echo "ERROR: HQ_AGENTIC_BACKEND=copilot but copilot CLI not found in PATH." >&2
       return 1
       ;;
     bedrock)
@@ -76,7 +58,7 @@ resolve_backend() {
       return 1
       ;;
     auto)
-      if [ "$COPILOT_CHAT_CAPABLE" = "1" ]; then
+      if [ -n "$COPILOT_BIN" ]; then
         echo "copilot"
         return 0
       fi
@@ -84,7 +66,7 @@ resolve_backend() {
         echo "bedrock"
         return 0
       fi
-      echo "ERROR: no GenAI backend available (chat-capable copilot missing/incompatible, bedrock-assist missing)." >&2
+      echo "ERROR: no GenAI backend available (copilot missing, bedrock-assist missing)." >&2
       return 1
       ;;
     *)
@@ -485,6 +467,8 @@ PROMPT="You are the agent '${AGENT_ID}'.\n\nYou have access to these repos:\n- H
 PROMPT+="\n\nGit rule (required when you change code):\n- If you modify any tracked repo files, you MUST run: git status, git diff (or summary), then git add + git commit.\n- Include the commit hash(es) in your outbox update.\n- Do NOT push unless explicitly assigned as the release operator."
 
 PROMPT+="\n\nEscalation heading rule: when blocked/needs-info, put your ask under ONE of these headings (pick the closest):\n- ## Needs from Supervisor\n- ## Needs from CEO\n- ## Needs from Board\n(Use Supervisor by default; CEO only if your supervisor is CEO; Board only if you are CEO escalating to the human owner.)"
+
+PROMPT+="\n\nNeeds-info validity rule (CRITICAL): If you set Status: needs-info, the '## Needs from CEO' (or '## Needs from Supervisor') section MUST contain at least one specific, non-N/A item. A needs-info outbox with an empty or N/A-only Needs section is a malformed response — the orchestrator will flag it as a phantom blocker and it will NOT be routed to a supervisor. If you have no actual needs, set Status: done or Status: blocked with a specific blocker. Never use needs-info as a hedge."
 
 PROMPT+="\n\n## ROI estimate\n- ROI: <integer 1-infinity>\n- Rationale: <1-3 sentences>\n\nROI guidance: higher ROI = higher org value/urgency/leverage. Use ROI to prioritize next actions and to justify escalations/delegations. Be reasonable relative to your current queue (avoid inflating everything)."
 

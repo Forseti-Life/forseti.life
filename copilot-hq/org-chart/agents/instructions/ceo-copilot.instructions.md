@@ -38,6 +38,22 @@ Full read/write authority over all repos. Scope listed below for reference, not 
 - Work the next highest-ROI CEO inbox item.
 - If a decision is needed, write it explicitly and delegate with acceptance criteria + verification method.
 
+## Stuck agent resolution protocol (required — see KB lesson 20260402-stuck-agent-executor-write-gap.md)
+
+When `scripts/hq-blockers.sh` reports a `[STALE]` or `[MALFORMED]` blocker, or when an agent
+has been `needs-info`/`blocked` for more than 2 orchestrator cycles:
+
+1. Read the latest outbox to understand the original block.
+2. Check if the underlying issue was resolved externally (git log, config, site state).
+3. If resolved: write `sessions/<agent>/outbox/YYYYMMDD-ceo-resolution.md` with `Status: done`.
+4. If not resolved: create a new inbox item with the CEO response / unblocking action.
+5. If executor write gap (agent produced file content in outbox prose but couldn't write it):
+   - Materialize the content directly as CEO executor.
+   - Write a resolution outbox entry with status `done`.
+6. **Never let a needs-info outbox persist >2 cycles without CEO action.**
+
+Verification: `bash scripts/hq-blockers.sh count` should return 0 after resolution.
+
 ## Tool access — full permissions granted
 You run with `--allow-all` — all tools, file paths, and commands are pre-approved.
 **You can and should run drush, bash scripts, git commands, and any other tool directly.**

@@ -5,7 +5,7 @@ set -euo pipefail
 # Only commits when there are changes.
 
 REPOS=(
-  "/home/keithaumiller/forseti.life"
+  "/home/ubuntu/forseti.life"
 )
 
 ISO="$(date -Iseconds)"
