@@ -25,6 +25,19 @@ fi
 
 ./scripts/install-cron-auto-checkpoint.sh
 
+# Install Copilot CLI user-level instructions for CEO persona auto-load.
+# This enables: "take on the CEO persona" → automatic session context load.
+COPILOT_INSTRUCTIONS_DIR="$HOME/.copilot"
+COPILOT_INSTRUCTIONS_SRC="$ROOT_DIR/org-chart/agents/instructions/copilot-user-startup.instructions.md"
+COPILOT_INSTRUCTIONS_DEST="$COPILOT_INSTRUCTIONS_DIR/copilot-instructions.md"
+mkdir -p "$COPILOT_INSTRUCTIONS_DIR"
+if [ ! -f "$COPILOT_INSTRUCTIONS_DEST" ] || ! diff -q "$COPILOT_INSTRUCTIONS_SRC" "$COPILOT_INSTRUCTIONS_DEST" >/dev/null 2>&1; then
+  cp "$COPILOT_INSTRUCTIONS_SRC" "$COPILOT_INSTRUCTIONS_DEST"
+  echo "Copilot user instructions installed: $COPILOT_INSTRUCTIONS_DEST"
+else
+  echo "Copilot user instructions already up to date."
+fi
+
 echo "HQ setup complete."
 
 # ── Local LLM layer ──────────────────────────────────────────────────────────
