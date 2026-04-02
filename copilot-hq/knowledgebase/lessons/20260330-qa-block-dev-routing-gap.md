@@ -42,3 +42,16 @@ The executor/orchestrator script does not parse QA outbox BLOCK signals and gene
 - This is now 3 consecutive missed routings on the same feature
 - **Urgency elevated**: cycle 5 is the final cycle per policy; failure requires pm-dungeoncrawler escalation to CEO
 - Fix for executor routing gap is now **critical path** — must be implemented before the next feature reaches Gate 2
+
+## Update: 2026-04-02 — 5th consecutive miss, now confirmed as systemic gate-transition routing gap
+- pm-dungeoncrawler signed off on 20260328-dungeoncrawler-release-b at 2026-03-31T20:20
+- No coordinated signoff item was auto-routed to pm-forseti
+- `scripts/release-signoff-status.sh` confirmed: forseti=false, ready-for-push=false
+- CEO manually routed `pm-forseti/inbox/20260402-coordinated-signoff-20260328-dungeoncrawler-release-b` (commit `9438b324f`)
+- Pattern is now confirmed to affect ALL gate transitions, not just QA BLOCK→dev:
+  1. QA BLOCK → Dev fix: not routed (3x)
+  2. Gate 2 APPROVE → PM signoff: not routed (1x)
+  3. pm-dungeoncrawler signoff → pm-forseti coordinated signoff: not routed (1x)
+- The executor loop does not implement any post-gate transition routing logic
+- **Required scope of fix**: entire gate-transition event system in executor loop
+- Rename lesson: this is now a "gate-transition routing gap" not just "QA BLOCK routing gap"
