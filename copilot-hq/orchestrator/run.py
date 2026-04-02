@@ -619,7 +619,13 @@ def _release_cycle_step(log: List[Any]) -> None:
             # Start or advance the release cycle
             if cycle_signed_off and next_release:
                 new_current = next_release
-                new_next = f"{today}-{team_id}-release-b"
+                # Generate a unique next ID — avoid colliding with the just-promoted current.
+                # Cycle through suffixes (-release-b, -release-c, ...) until distinct.
+                _suffixes = ["release-b", "release-c", "release-d", "release-e", "release-f"]
+                new_next = next(
+                    (f"{today}-{team_id}-{s}" for s in _suffixes if f"{today}-{team_id}-{s}" != new_current),
+                    f"{today}-{team_id}-release-b",
+                )
                 action = "advance"
             else:
                 new_current = f"{today}-{team_id}-release"
