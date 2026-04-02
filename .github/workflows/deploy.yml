@@ -16,7 +16,6 @@ on:
       - 'sites/dungeoncrawler/config/sync/**'
       - 'h3-geolocation/**'
       - 'script/production/**'
-      - 'copilot-hq/**'
       - '.github/workflows/deploy.yml'
   workflow_dispatch:
 
@@ -79,7 +78,7 @@ jobs:
           
           echo "Downloading code from repository..."
           git clone --depth 1 --single-branch --branch main --filter=blob:none --sparse https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git .
-          git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation script/production copilot-hq
+          git sparse-checkout set sites/forseti sites/dungeoncrawler h3-geolocation script/production
           
           echo "🐛 Git clone completed. Checking HEAD commit..."
           git log -1 --oneline
@@ -385,107 +384,6 @@ jobs:
             fi
           fi
 
-          # Deploy integrated HQ automation (if exists and changed)
-          if [ -d "copilot-hq" ]; then
-            if echo "$CHANGED_FILES" | grep -q "^copilot-hq/" || [ -z "$CHANGED_FILES" ]; then
-              echo ""
-              echo "=== COPILOT HQ DEPLOYMENT ==="
-              HQ_START=$(date +%s)
-
-              REPO_DEPLOY_DIR="${REPO_DEPLOY_DIR:-$HOME/forseti.life}"
-              HQ_DEPLOY_DIR="${HQ_DEPLOY_DIR:-$REPO_DEPLOY_DIR/copilot-hq}"
-              echo "Syncing full repository to: ${REPO_DEPLOY_DIR}"
-              echo "Using HQ directory: ${HQ_DEPLOY_DIR}"
-
-              HQ_PREEXISTING=false
-              if [ -d "${REPO_DEPLOY_DIR}/.git" ] && [ -d "${HQ_DEPLOY_DIR}/scripts" ] && [ -f "${HQ_DEPLOY_DIR}/scripts/verify-hq-runtime.sh" ]; then
-                HQ_PREEXISTING=true
-              fi
-
-              if [ -d "${REPO_DEPLOY_DIR}/.git" ]; then
-                echo "Existing repository checkout detected, syncing from GitHub..."
-                git -C "$REPO_DEPLOY_DIR" reset --hard HEAD
-                git -C "$REPO_DEPLOY_DIR" clean -fd
-                git -C "$REPO_DEPLOY_DIR" fetch --depth 1 "https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git" main
-                git -C "$REPO_DEPLOY_DIR" checkout -B main FETCH_HEAD
-                git -C "$REPO_DEPLOY_DIR" reset --hard FETCH_HEAD
-                git -C "$REPO_DEPLOY_DIR" clean -fd
-              else
-                if [ -e "$REPO_DEPLOY_DIR" ]; then
-                  BACKUP_DIR="${REPO_DEPLOY_DIR}.pre-git-$(date +%s)"
-                  echo "Non-git directory exists at ${REPO_DEPLOY_DIR}; moving to ${BACKUP_DIR}"
-                  mv "$REPO_DEPLOY_DIR" "$BACKUP_DIR"
-                fi
-                mkdir -p "$(dirname "$REPO_DEPLOY_DIR")"
-                git clone --depth 1 --single-branch --branch main "https://${HUBGIT_PAT}@github.com/keithaumiller/forseti.life.git" "$REPO_DEPLOY_DIR"
-                git -C "$REPO_DEPLOY_DIR" remote set-url origin "https://github.com/keithaumiller/forseti.life.git"
-              fi
-
-              if [ ! -d "$HQ_DEPLOY_DIR" ]; then
-                echo "❌ HQ directory missing after repository sync: $HQ_DEPLOY_DIR"
-                exit 1
-              fi
-
-              cd "$HQ_DEPLOY_DIR"
-              chmod +x scripts/*.sh || true
-
-              if [ -f "orchestrator/requirements.txt" ]; then
-                echo "Installing HQ orchestrator dependencies..."
-                python3 -m venv orchestrator/.venv
-                orchestrator/.venv/bin/pip install --upgrade pip >/dev/null
-                orchestrator/.venv/bin/pip install -r orchestrator/requirements.txt >/dev/null
-              fi
-
-              export HQ_AGENTIC_BACKEND="${HQ_AGENTIC_BACKEND:-auto}"
-              export BEDROCK_ASSIST_SCRIPT="${BEDROCK_ASSIST_SCRIPT:-$HQ_DEPLOY_DIR/scripts/bedrock-assist.sh}"
-
-              # If-not-exists setup logic:
-              # - first deploy: run setup
-              # - existing deploy: verify; if verify fails, run setup remediation
-              if [ "$HQ_PREEXISTING" = false ]; then
-                echo "First-time HQ deploy detected. Running setup script..."
-                ./scripts/setup.sh
-              else
-                echo "Existing HQ deploy detected. Verifying current setup..."
-                if [ -x "./scripts/verify-hq-runtime.sh" ] && ./scripts/verify-hq-runtime.sh --strict >/dev/null 2>&1; then
-                  echo "✅ Existing HQ setup verified"
-                else
-                  echo "⚠️ Existing HQ setup not fully healthy. Running setup remediation..."
-                  ./scripts/setup.sh
-                fi
-              fi
-
-              echo "Ensuring HQ automation is enabled..."
-              ./scripts/org-control.sh enable --reason "forseti deploy workflow" --by "github-actions" --no-converge || true
-
-              echo "Restarting HQ runtime..."
-              ./scripts/hq-automation.sh stop || true
-              if command -v systemctl >/dev/null 2>&1 && systemctl --user show-environment >/dev/null 2>&1; then
-                ./scripts/install-systemd-orchestrator.sh || {
-                  echo "⚠️ systemd orchestrator install failed; falling back to loop mode"
-                  ./scripts/orchestrator-loop.sh start 60 || true
-                }
-              else
-                ./scripts/orchestrator-loop.sh start 60
-              fi
-              ./scripts/publish-forseti-agent-tracker-loop.sh start 60 || true
-              ./scripts/auto-checkpoint-loop.sh start 7200 || true
-              ./scripts/install-cron-hq-automation.sh || true
-              ./scripts/hq-automation-watchdog.sh || true
-
-              if [ -x "./scripts/verify-hq-runtime.sh" ]; then
-                echo "Verifying HQ runtime (strict)..."
-                ./scripts/verify-hq-runtime.sh --strict
-              fi
-
-              cd "$TEMP_DIR"
-              echo "✅ Copilot HQ deployed in $(($(date +%s) - HQ_START))s"
-            else
-              echo ""
-              echo "ℹ️ Copilot HQ unchanged, skipping deployment"
-            fi
-          fi
-          
           # Start Dungeon Crawler deployment in background (if changed)
           DC_ROOT="/var/www/html/dungeoncrawler"
           if [ -d "sites/dungeoncrawler/web/modules/custom" ]; then
