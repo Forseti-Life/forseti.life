@@ -73,10 +73,16 @@ Use this frontmatter block (add `Depends on` when applicable):
 - Depends on: dc-cr-<other-slug>, dc-cr-<other-slug>   ← omit line if no dependencies
 - Source: <Book>, lines NNN–NNN
 - Category: <game-mechanic|creature|spell|item|rule-system|world-building>
+- Schema changes: no   ← set to "yes" if the feature requires new tables, columns, or schema updates
+- Cross-site modules: none   ← list any modules shared with other sites (e.g. ai_conversation, forseti_shared)
 - Created: YYYY-MM-DD
 ```
 
 Rule: populate `Depends on` if the implementation hint references another `dc-*` feature as a required prerequisite. Leave the line out entirely if there are no dependencies (do not write `Depends on: none`).
+
+Rule: `Schema changes: yes` means Dev must run `drush updatedb --status` on production post-deploy and include the output in their impl outbox. QA test plan must include a TC verifying schema is applied in production.
+
+Rule: `Cross-site modules: <module-name>` means Dev must verify and, if needed, propagate fixes to the other site when making changes to that module. List each shared module name explicitly.
 
 Slug convention:
 - Core Rulebook → `dc-cr-<descriptor>`
