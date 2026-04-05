@@ -1,0 +1,407 @@
+{
+    "drupal_root": "/home/ubuntu/forseti.life/sites/dungeoncrawler",
+    "drush_qa_command_prefix": "dctr",
+    "_schema_notes": [
+        "Rules MAY include an optional 'feature_id' field when the rule was added for a specific groomed feature.",
+        "feature_id links back to features/<feature_id>/ \u2014 the living requirements document for that feature.",
+        "Rules without feature_id are baseline regression/ACL expectations.",
+        "When a QA audit finds a violation on a rule with feature_id, Dev must IMPLEMENT the feature (not just fix a regression).",
+        "Example groomed-feature rule: { 'id': 'my-feature-route', 'feature_id': 'dc-my-feature', 'path_regex': '/my-feature', 'expect': {...} }"
+    ],
+    "roles": [
+        {
+            "id": "anon",
+            "drupal_rid": "anonymous",
+            "cookie_env": ""
+        },
+        {
+            "id": "authenticated",
+            "drupal_rid": "authenticated",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_AUTHENTICATED"
+        },
+        {
+            "id": "content_editor",
+            "drupal_rid": "content_editor",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_CONTENT_EDITOR"
+        },
+        {
+            "id": "administrator",
+            "drupal_rid": "administrator",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_ADMINISTRATOR"
+        },
+        {
+            "id": "dc_playwright_player",
+            "drupal_rid": "dc_playwright_player",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_DC_PLAYWRIGHT_PLAYER"
+        },
+        {
+            "id": "dc_playwright_admin",
+            "drupal_rid": "dc_playwright_admin",
+            "cookie_env": "DUNGEONCRAWLER_COOKIE_DC_PLAYWRIGHT_ADMIN"
+        }
+    ],
+    "rules": [
+        {
+            "id": "no-destructive",
+            "path_regex": "/(delete|delete-all|archive|cancel|purge|flush|import|generate|export|logout|save)(?:/|$)",
+            "notes": "Destructive or side-effect routes \u2014 skip entirely. GET requests here may trigger state changes or require test data that doesn't exist. Includes 'save' (form-submission-only endpoints; GET probes always timeout/fail). Assume ACL mirrors non-destructive routes on the same resource. First-match so no other rule fires.",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "no-user-cancel",
+            "path_regex": "^/user/\\d+/cancel(?:/|$)",
+            "notes": "User account cancellation route \u2014 skip entirely. Would cancel the QA test user account.",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "public-browse",
+            "notes": "Campaign/character list pages \u2014 'access dungeoncrawler characters' is required. Release-c commit b4bf6d998 granted this to authenticated (and content_editor inherits it). All roles with this permission or is_admin=true get allow; anon (no permission) gets deny.",
+            "path_regex": "^/(?:campaigns|characters)/?$",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "auth-required-create",
+            "notes": "Creation flows \u2014 no entity ID needed, always routable. /campaigns/create requires 'access dungeoncrawler characters'; /characters/create requires 'create dungeoncrawler characters'. Both granted to authenticated via user.role.authenticated.yml (release-c commit b4bf6d998). authenticated and content_editor both get allow (content_editor inherits authenticated permissions).",
+            "path_regex": "^/(?:campaigns|characters)/(?:create|step)(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "auth-required-non-id-paths",
+            "path_regex": "^/(?:campaigns|characters)/(?:archived|history|settings)(?:/|$)",
+            "notes": "Non-entity-ID sub-paths for campaigns/characters. /campaigns/archived requires 'access dungeoncrawler characters' (commit b4cc4e683). authenticated has this permission (release-c commit b4bf6d998); content_editor inherits from authenticated. anon=deny (no permission).",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "auth-required-entity",
+            "notes": "Entity-ID sub-routes (/campaigns/{id}/..., /characters/{id}/...) \u2014 ignore: route probes use placeholder IDs that may not exist in test DB; ACL is correct when data exists",
+            "path_regex": "^/(?:campaigns|characters)/[0-9]",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "dungeoncrawler-tester-dev-only",
+            "path_regex": "^/admin/config/development/dungeoncrawler-tester(?:/|$)",
+            "notes": "CEO decision 2026-02-28: dungeoncrawler_tester is a dev-only module not enabled in production. The settings route returns 404 in production (module not installed) which is correct behavior. Suppress this route from production audit failures.",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "admin-area",
+            "notes": "Drupal admin backend \u2014 only administrator and dc_playwright_admin have full access; content_editor omitted (partial access, needs finer-grained rules)",
+            "path_regex": "^/admin(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "login-page",
+            "path_regex": "^/user/login(?:/|$)",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "public-pages",
+            "notes": "Static public pages with _access: TRUE \u2014 no permission required, all roles allow. Routes: /home, /world, /how-to-play, /about, /credits, /hexmap.",
+            "path_regex": "^/(?:home|world|how-to-play|about|credits|hexmap)(?:/|$)",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "architecture-pages",
+            "notes": "Architecture documentation pages \u2014 require 'access content' (granted to both anonymous and authenticated roles). All roles allow.",
+            "path_regex": "^/architecture(?:/|$)",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "dungeoncrawler-testing-area",
+            "notes": "Dungeoncrawler testing dashboard and sub-routes (GET-accessible) \u2014 require 'administer site configuration'. administrator and dc_playwright_admin allow; all others deny.",
+            "path_regex": "^/dungeoncrawler/testing(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "dungeoncrawler-objects-admin",
+            "notes": "Dungeoncrawler objects list \u2014 requires 'administer dungeoncrawler content'. administrator and dc_playwright_admin allow (is_admin or equivalent); all others deny.",
+            "path_regex": "^/dungeoncrawler/objects(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "copilot-agent-tracker-langgraph",
+            "notes": "LangGraph console routes under /admin/reports/copilot-agent-tracker/langgraph-console/*. Require 'administer copilot agent tracker'. Covered by admin-area allow for administrator/dc_playwright_admin. Explicit rule for copilot_agent_tracker routes added to prevent recurrence of 20260319-125409 violation pattern. dc_playwright_admin was granted this permission in forseti.life commit 175b7c3b4.",
+            "path_regex": "^/admin/reports/copilot-agent-tracker(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "allow",
+                "dc_playwright_player": "deny",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "dungeoncrawler-traits-catalog",
+            "notes": "Ancestry traits catalog GET endpoint. Requires 'access dungeoncrawler characters'. This permission is on the authenticated role, so ALL authenticated users (including content_editor) inherit it. Added 2026-03-22 preflight for release 20260322-dungeoncrawler-release (ancestry-traits dev item).",
+            "path_regex": "^/dungeoncrawler/traits(?:/|$)",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "api-inventory-routes",
+            "notes": "Inventory management API endpoints (/api/inventory/{owner_type}/{owner_id}/...). All require 'access dungeoncrawler characters' (authenticated roles have it) or _csrf_request_header_mode (POST-only). Parameterized paths don't surface in route scans; set all roles to ignore. POST routes (add, sell, transfer, location, character_inventory) are inaccessible via GET probe regardless of permission. Added 2026-03-22 preflight for release 20260322-dungeoncrawler-release-next (clan-dagger dev item 5bc95ffe4). Dev explicitly requested qa-permissions.json registration for inventory_sell_item route.",
+            "path_regex": "^/api/inventory(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-character-entity-routes",
+            "notes": "Entity-ID API routes for characters (/api/character/{id}/...). Use custom _character_access check (entity ownership + existence). Probe IDs may not exist in test DB, so 404 is expected even for authorized roles. Set all roles to ignore (similar to auth-required-entity). Covers traits and level-up API endpoints added in 20260320 dev cycle.",
+            "path_regex": "^/api/character/[0-9]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-public-ancestries-list",
+            "notes": "GET /ancestries — list all ancestry nodes. _access: TRUE (no Drupal permission required). All roles allow. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-ancestry-system).",
+            "path_regex": "^/ancestries/?$",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "api-public-ancestries-detail",
+            "notes": "GET /ancestries/{id} — single ancestry detail, slug-based parameterized path (e.g. /ancestries/human). _access: TRUE but probe IDs may not match seeded slugs. Ignore all roles (parameterized; 404 for non-existent slug is not a permission violation). Added preflight 20260327-dungeoncrawler-release-b (dc-cr-ancestry-system).",
+            "path_regex": "^/ancestries/[a-z]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-combat-action",
+            "notes": "POST /api/combat/action — _permission: 'access dungeoncrawler characters' + _csrf_request_header_mode: TRUE. POST-only; GET probe returns 405 (not a permission violation). Ignore all roles. Added preflight 20260328-dungeoncrawler-release-b (dc-cr-action-economy).",
+            "feature_id": "dc-cr-action-economy",
+            "path_regex": "^/api/combat/action(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-dice-roll",
+            "notes": "POST /dice/roll — _access: TRUE, POST-only. GET probe returns 405 (not a permission issue). Ignore all roles. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-dice-system).",
+            "path_regex": "^/dice/roll(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-rules-check",
+            "notes": "POST /rules/check — _access: TRUE, POST-only. GET probe returns 405 (not a permission issue). Ignore all roles. Added preflight 20260327-dungeoncrawler-release-b (dc-cr-difficulty-class).",
+            "path_regex": "^/rules/check(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "ai-conversation-api",
+            "notes": "AI conversation API routes \u2014 require 'use ai conversation' permission. anon/authenticated/content_editor denied (no permission). administrator/dc_playwright_player/dc_playwright_admin have permission but GET probing is not representative: /ai-conversation/send-message is POST-only (GET returns 403/405 regardless of permissions); /ai-conversation/stats requires a node_id param (GET returns 400 \u2014 permission passes but missing param). Set admin/player/admin to 'ignore' \u2014 permission was verified by dev directly (forseti.life commit d5ae178fa; GET /ai-conversation/stats with dc_playwright_player returns 400 confirming permission passes).",
+            "path_regex": "^/ai-conversation(/.*)?$",
+            "expect": {
+                "anon": "deny",
+                "authenticated": "deny",
+                "content_editor": "deny",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "public-content-catalog",
+            "notes": "Public catalog list endpoints (_access: TRUE, GET-only): /backgrounds, /classes, /equipment. No permission required; all roles allow. Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/(?:backgrounds|classes|equipment)/?$",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        },
+        {
+            "id": "public-content-detail-parameterized",
+            "notes": "Public catalog detail routes (_access: TRUE, parameterized slug): /backgrounds/{id}, /classes/{id}, /classes/{id}/starting-equipment. Probe IDs don't match seeded slugs \u2014 all return 404 (not an ACL violation). Ignore all roles. Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/(?:backgrounds|classes)/[a-z]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-character-skills",
+            "notes": "GET /character/{character_id}/skills \u2014 _access: TRUE, parameterized by character_id (\\d+). No permission required; any authenticated or anonymous user may call it. Parameterized entity-ID route; ignore all roles (probe outcome depends on seeded data, no permission violation possible). Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/character/[0-9]",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "api-characters-ability-scores",
+            "notes": "Character creation ability score API endpoints under /api/characters/ability-scores/. POST routes (calculate, validate-boost) require _csrf_request_header_mode + 'create dungeoncrawler characters'; POST-only GET probes skipped. GET route (available-boosts/{step}) requires 'create dungeoncrawler characters' with step constrained to ancestry|background|class|free \u2014 numeric probe returns 404 (not a permission violation). Ignore all roles. Added preflight 20260331-dungeoncrawler-release-b.",
+            "path_regex": "^/api/characters/ability-scores(?:/|$)",
+            "expect": {
+                "anon": "ignore",
+                "authenticated": "ignore",
+                "content_editor": "ignore",
+                "administrator": "ignore",
+                "dc_playwright_player": "ignore",
+                "dc_playwright_admin": "ignore"
+            }
+        },
+        {
+            "id": "public-testing-page",
+            "notes": "GET /testing — _access: TRUE (no permission required). Public testing/staging page; returns 200 for all roles including anonymous. Note: the route comment says 'should be restricted in production environments' — monitor in post-release audit. Added preflight 20260401-dungeoncrawler-release-b.",
+            "path_regex": "^/testing/?$",
+            "expect": {
+                "anon": "allow",
+                "authenticated": "allow",
+                "content_editor": "allow",
+                "administrator": "allow",
+                "dc_playwright_player": "allow",
+                "dc_playwright_admin": "allow"
+            }
+        }
+    ]
+}
