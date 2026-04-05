@@ -172,7 +172,7 @@ class ChatController extends ControllerBase {
         'uid' => $this->currentUser->id(),
         'status' => 1,
         'field_ai_model' => [
-          'value' => 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+          'value' => 'us.anthropic.claude-sonnet-4-6'
         ],
         'field_context' => [
           'value' => 'You are a helpful AI assistant for St. Louis Integration, a technology consulting company. Please provide helpful, professional responses to user questions.',
