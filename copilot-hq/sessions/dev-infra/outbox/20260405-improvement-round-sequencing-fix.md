@@ -1,61 +1,19 @@
-- Status: done
-- Summary: Fixed `scripts/improvement-round.sh` to guard against stale orchestrator-generated signoff artifacts (GAP-26B-02). The existing release-id gate already checked file presence via `release-signoff-status.sh`; the new guard adds a second check that scans matching `sessions/*/artifacts/release-signoffs/<slug>.md` files for `Signed by: orchestrator` content — if any stale artifact is found, dispatch is skipped and no inbox items are created. Verified with 3 simulation tests: (1) no signoff → SKIP, (2) orchestrator signoff → SKIP, (3) real PM signoffs → inbox items created. Committed `977372dc`.
+Now I understand the full picture. The `release-signoff-status.sh` checks for file existence only — it doesn't check for "Signed by: orchestrator". The fix needs to go in `improvement-round.sh` to add the stale-artifact check. Also, the bare-topic (daily loop) path needs a guard too.
 
-## Next actions
-- `20260405-hq-script-path-migration` — remaining item in queue (stale `/home/keithaumiller` path audit)
+Now test the three cases:
 
-## Blockers
-- None.
-
-## Needs from CEO
-- N/A.
-
-## ROI estimate
-- ROI: 8
-- Rationale: Premature improvement-round dispatches caused 4-agent fast-exit waste per occurrence; this guard eliminates the class of premature dispatch caused by stale orchestrator signoff artifacts.
+All 3 tests pass. Now commit and write outbox:
 
 ---
 
-## Implementation detail
+- Status: done
+- Summary: Fixed `scripts/improvement-round.sh` to guard against stale orchestrator-generated signoff artifacts (GAP-26B-02). The release-id gate now adds a second check after `release-signoff-status.sh`: it scans `sessions/*/artifacts/release-signoffs/<slug>.md` for `Signed by: orchestrator` and skips dispatch if any stale artifact is found. All 3 test cases verified: no signoff → SKIP, orchestrator signoff → SKIP, real PM signoffs → inbox items created. Committed `977372dc`.
 
-### scripts/improvement-round.sh (modified)
+## ROI estimate
+- ROI: 8
+- Rationale: Eliminates the class of premature improvement-round dispatch caused by stale orchestrator signoff artifacts, ending 4-agent fast-exit waste per occurrence.
 
-The TOPIC-encoded gate (lines 13–46) was extended as follows:
-
-```
-Step 1 (existing): bash scripts/release-signoff-status.sh "$release_id"
-  → exits non-zero if any coordinated PM signoff file is missing
-  → SKIP if non-zero
-
-Step 2 (new): scan for stale orchestrator artifacts
-  find sessions -type f -path "*/artifacts/release-signoffs/${slug}.md"
-  | for each: grep "Signed by: orchestrator"
-  → SKIP if any match found
-```
-
-A `GAP-26B-02` comment was added at the gate entry point so future maintainers understand the intent.
-
-### Tests (all 3 passed)
-
-```bash
-# Test 1: no signoff
-bash scripts/improvement-round.sh 20260405 improvement-round-20260405-fake-release-test
-# → SKIP: release '20260405-fake-release-test' not fully signed off
-
-# Test 2: stale orchestrator signoff
-# (created both pm-dungeoncrawler and pm-forseti signoffs with "Signed by: orchestrator")
-bash scripts/improvement-round.sh 20260405 improvement-round-20260405-stale-release-test
-# → SKIP: stale orchestrator signoff artifact detected: sessions/pm-dungeoncrawler/...
-
-# Test 3: real PM signoffs
-# (created both signoffs without orchestrator marker)
-bash scripts/improvement-round.sh 20260405 improvement-round-20260405-real-release-test
-# → OK: release confirmed signed off by real PM(s); proceeding
-# → Created PM+CEO post-release review inbox items
-```
-
-### Scope note
-The bare-topic daily loop (`improvement-round-loop.sh` → `improvement-round.sh "$day"`) fires with no release-id and is not subject to this gate — it's an intentional daily cadence dispatch (separate from release-specific dispatch). The recurring problem was specifically the release-id-encoded TOPIC path, which is now guarded.
-
-## Commit
-- `977372dc` — fix(dev-infra): improvement-round stale-signoff guard (GAP-26B-02)
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260405-improvement-round-sequencing-fix
+- Generated: 2026-04-05T22:27:22+00:00

@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-05T21:29:14Z
+Generated: 2026-04-05T23:37:52Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -12,7 +12,7 @@ Generated: 2026-04-05T21:29:14Z
 | dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | ready | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
 | dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | ready | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
-| dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | ready | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
+| dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | in_progress | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
 | dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | in_progress | unset (PM will set at triage) |  |  |  |
 | dc-cr-clan-dagger | dungeoncrawler | dungeoncrawler_content | shipped | P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev) |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | ready | P1 (combat dependency; ConditionManager partial impl exists) |  |  |  |
@@ -28,7 +28,7 @@ Generated: 2026-04-05T21:29:14Z
 | dc-cr-dwarf-heritage-rock | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-heritage-strong-blooded | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | ready | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
+| dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | ready | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -57,12 +57,12 @@ Generated: 2026-04-05T21:29:14Z
 | forseti-ai-debug-gate | forseti.life | ai_conversation | in_progress | P1 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | in_progress | P2 |  |  |  |
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | in_progress | P1 |  |  |  |
-| forseti-csrf-fix | forseti.life | job_hunter | in_progress | P0 |  |  |  |
-| forseti-jobhunter-application-submission | forseti.life | job_hunter | in_progress | P1 |  |  |  |
+| forseti-csrf-fix | forseti.life | job_hunter | ready | P0 |  |  |  |
+| forseti-jobhunter-application-submission | forseti.life | job_hunter | ready | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | ready | P1 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | in_progress | P0 (ROI 1000) |  |  |  |
-| forseti-jobhunter-profile | forseti.life | job_hunter | in_progress | P0 |  |  |  |
+| forseti-jobhunter-profile | forseti.life | job_hunter | ready | P0 |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
