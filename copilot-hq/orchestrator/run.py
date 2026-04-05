@@ -426,21 +426,36 @@ def _ceo_inbox_depth() -> int:
     return sum(1 for p in ceo_inbox.iterdir() if p.is_dir())
 
 
+_STAG_ITEM_STALE_SECONDS = 14400  # 4h: re-dispatch if CEO stagnation item sits unresolved this long
+
+
 def _ceo_has_pending_stagnation_item() -> bool:
-    """Return True if there is already an unresolved stagnation item in CEO inbox."""
+    """Return True if there is already an unresolved stagnation item in CEO inbox.
+
+    If the item has been sitting unresolved for > _STAG_ITEM_STALE_SECONDS (4h),
+    treat it as stale and return False so a fresh dispatch can occur.  This
+    prevents a deadlock where a CEO item stuck at in_progress/blocked blocks all
+    future stagnation monitoring.
+    """
     ceo_inbox = REPO_ROOT / "sessions" / _primary_ceo_agent() / "inbox"
     if not ceo_inbox.exists():
         return False
+    now = _now_ts()
     for item_dir in ceo_inbox.iterdir():
         if not item_dir.is_dir() or "stagnation" not in item_dir.name:
             continue
-        # Check if it's been resolved (has a Status: done in the item file)
+        # If item is too old (stale), let a new dispatch happen
+        age = now - int(item_dir.stat().st_mtime)
+        if age > _STAG_ITEM_STALE_SECONDS:
+            print(f"STAGNATION-STALE: item {item_dir.name} age={age}s > {_STAG_ITEM_STALE_SECONDS}s — allowing re-dispatch")
+            continue
+        # Check if it's been resolved (has a Status: done in any item file)
         for md in item_dir.glob("*.md"):
             text = md.read_text(encoding="utf-8", errors="ignore")
             if re.search(r"^-\s+Status:\s*done", text, re.MULTILINE | re.IGNORECASE):
                 break  # this stagnation item is resolved
         else:
-            return True  # unresolved stagnation item found
+            return True  # unresolved, within age window — block re-dispatch
     return False
 
 
