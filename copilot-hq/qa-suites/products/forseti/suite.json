@@ -25,7 +25,7 @@
       "label": "Jobhunter E2E flow (Playwright)",
       "type": "e2e",
       "feature_id": "forseti-jobhunter-e2e-flow",
-      "command": "bash -c 'set -e; DRUSH=/home/ubuntu/forseti.life/sites/forseti/vendor/bin/drush; $DRUSH --uri=http://localhost jhtr:qa-users-ensure --roles=authenticated 2>/dev/null; QA_UID=$($DRUSH --uri=http://localhost user:information qa_tester_authenticated --format=json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(list(d.keys())[0])\"); ULI=$($DRUSH --uri=http://localhost user:login --uid=$QA_UID --no-browser 2>/dev/null | tr -d \"\\n\"); cd /home/ubuntu/forseti.life && ULI_URL=$ULI BASE_URL=http://localhost ARTIFACTS_DIR=sessions/qa-forseti/artifacts/jobhunter-e2e-latest node testing/jobhunter-workflow-step1-6-data-engineer.mjs'",
+      "command": "bash -c 'set -e; DRUSH=/var/www/html/forseti/vendor/bin/drush; $DRUSH --uri=http://localhost jhtr:qa-users-ensure --roles=authenticated 2>/dev/null; QA_UID=$($DRUSH --uri=http://localhost user:information qa_tester_authenticated --format=json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(list(d.keys())[0])\"); ULI=$($DRUSH --uri=http://localhost user:login --uid=$QA_UID --no-browser 2>/dev/null | tr -d \"\\n\"); cd /home/ubuntu/forseti.life && ULI_URL=$ULI BASE_URL=http://localhost ARTIFACTS_DIR=sessions/qa-forseti/artifacts/jobhunter-e2e-latest node testing/jobhunter-workflow-step1-6-data-engineer.mjs'",
       "artifacts": [
         "sessions/qa-forseti/artifacts/jobhunter-e2e-latest/",
         "/home/ubuntu/forseti.life/testing/artifacts/jobhunter-step1-6-data-engineer-report.json"
@@ -41,7 +41,7 @@
   ],
   "_schema_notes": [
     "Suite entries MAY include an optional 'feature_id' field when the suite was added for a specific groomed feature.",
-    "feature_id links back to features/<feature_id>/ — the living requirements document.",
+    "feature_id links back to features/<feature_id>/ \u2014 the living requirements document.",
     "Suites without feature_id are baseline regression tests.",
     "Example groomed-feature suite entry:",
     "{ 'id': 'my-feature-e2e', 'label': '...', 'type': 'e2e', 'feature_id': 'forseti-my-feature', 'command': '...', 'required_for_release': true }"
