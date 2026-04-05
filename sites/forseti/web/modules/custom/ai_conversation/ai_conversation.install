@@ -194,7 +194,7 @@ function _ai_conversation_create_fields() {
       'label' => 'AI Model',
       'description' => 'The AI model to use for this conversation',
       'required' => TRUE,
-      'default_value' => [['value' => 'anthropic.claude-3-5-sonnet-20241022-v2:0']],
+      'default_value' => [['value' => 'us.anthropic.claude-sonnet-4-5-20250929-v1:0']],
       'settings' => ['max_length' => 255],
     ],
     'field_context' => [

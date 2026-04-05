@@ -24,7 +24,7 @@ class AIConversationSettingsForm extends ConfigFormBase {
   const DEFAULT_SUMMARY_FREQUENCY = 10;
   const DEFAULT_MAX_TOKENS_BEFORE_SUMMARY = 6000;
   const DEFAULT_REGION = 'us-west-2';
-  const DEFAULT_MODEL = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+  const DEFAULT_MODEL = 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
   const DEFAULT_SYSTEM_PROMPT_ROWS = 15;
 
   /**

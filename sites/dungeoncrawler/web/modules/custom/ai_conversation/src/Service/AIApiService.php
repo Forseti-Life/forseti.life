@@ -125,13 +125,7 @@ class AIApiService {
       $bedrock = $sdk->createBedrockRuntime();
       
       // Get the AI model from configuration or conversation.
-      $model = $conversation->get('field_ai_model')->value ?: $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
-      
-      // Validate and fix common model ID issues
-      if (strpos($model, 'claude-sonnet-4') !== false) {
-        $model = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
-        $this->logWarning('Invalid model ID detected, using default: @model', ['@model' => $model]);
-      }
+      $model = $conversation->get('field_ai_model')->value ?: $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 
       // Build the optimized conversation context (summary + recent messages).
       $context = $this->buildOptimizedContext($conversation, $message);
@@ -580,7 +574,7 @@ class AIApiService {
       $sdk = new \Aws\Sdk($sdk_config);
       $bedrock = $sdk->createBedrockRuntime();
       
-      $model_id = $options['model_id'] ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+      $model_id = $options['model_id'] ?? 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
       $max_tokens = $options['max_tokens'] ?? 8000;
       
       // 🔍 DEBUG: Log exact max_tokens being sent to Bedrock
@@ -686,11 +680,11 @@ class AIApiService {
       
       // Track failure - exception
       $max_tokens_for_error = $options['max_tokens'] ?? 8000;
-      $context_data_with_config = $context_data + ['max_tokens' => $max_tokens_for_error, 'model_id' => $options['model_id'] ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0'];
+      $context_data_with_config = $context_data + ['max_tokens' => $max_tokens_for_error, 'model_id' => $options['model_id'] ?? 'us.anthropic.claude-sonnet-4-5-20250929-v1:0'];
       $this->trackApiUsage([
         'module' => $module,
         'operation' => $operation,
-        'model_id' => $options['model_id'] ?? 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'model_id' => $options['model_id'] ?? 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
         'input_tokens' => 0,
         'output_tokens' => 0,
         'stop_reason' => 'error',
@@ -951,7 +945,7 @@ class AIApiService {
       $bedrock = $sdk->createBedrockRuntime();
 
       $response = $bedrock->invokeModel([
-        'modelId' => 'anthropic.claude-3-5-sonnet-20240620-v1:0',
+        'modelId' => $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
           'max_tokens' => 20000,
@@ -1094,7 +1088,7 @@ class AIApiService {
       
       $bedrock = $sdk->createBedrockRuntime();
 
-      $model = $config->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
 
       $response = $bedrock->invokeModel([
         'modelId' => $model,

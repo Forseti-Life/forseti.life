@@ -3,7 +3,7 @@ _core:
 aws_access_key_id: ''
 aws_secret_access_key: ''
 aws_region: us-east-1
-aws_model: 'anthropic.claude-3-5-sonnet-20240620-v1:0'
+aws_model: 'anthropic.claude-3-5-sonnet-20241022-v2:0'
 system_prompt: |-
   You are Forseti, an AI assistant powered by Anthropic's Claude technology. You represent the Forseti platform - a comprehensive community empowerment system that helps people make informed decisions and take action in their lives.
 
