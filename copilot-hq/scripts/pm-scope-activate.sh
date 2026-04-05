@@ -62,18 +62,19 @@ if [ "$STATUS" != "ready" ]; then
   exit 1
 fi
 
-# Enforce 20-feature release scope cap
+# Enforce 20-feature release scope cap (per site)
 RELEASE_CAP=20
 ACTIVE_RELEASE_ID=""
 ACTIVE_DIR="tmp/release-cycle-active"
 RELEASE_ID_FILE="${ACTIVE_DIR}/${SITE}.release_id"
 if [ -f "$RELEASE_ID_FILE" ]; then
-  ACTIVE_RELEASE_ID="$(cat "$RELEASE_ID_FILE" | tr -d '[:space:]')"
+  ACTIVE_RELEASE_ID="$(tr -d '[:space:]' < "$RELEASE_ID_FILE")"
 fi
 if [ -n "$ACTIVE_RELEASE_ID" ]; then
-  SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null | wc -l | tr -d '[:space:]')"
+  # Count only features scoped to this site (by Site: field in feature.md)
+  SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null | xargs grep -l "^- Site:.*${SITE}" 2>/dev/null | wc -l | tr -d '[:space:]')"
   if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
-    echo "ERROR: Release scope cap reached ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release $ACTIVE_RELEASE_ID)." >&2
+    echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release $ACTIVE_RELEASE_ID)." >&2
     echo "  Defer this feature to the next release or remove another feature from scope first." >&2
     exit 1
   fi
