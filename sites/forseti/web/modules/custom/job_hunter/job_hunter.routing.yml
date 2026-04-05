@@ -290,6 +290,7 @@ job_hunter.addposting:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::addPostingFromSearch'
   requirements:
     _user_is_logged_in: 'TRUE'
+    # _csrf_token: controller-level CSRF validation implemented in POST handler (addPostingFromSearch validates X-CSRF-Token header / csrf_token body param)
   methods: [GET, POST]
 
 # Target Companies Management
@@ -419,9 +420,20 @@ job_hunter.application_submission_step3:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionIdentifyAuthPath'
     _title: 'Identify Authentication Path'
-  methods: [GET, POST]
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step3_post:
+  path: '/jobhunter/application-submission/{job_id}/identify-auth-path'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionIdentifyAuthPath'
+    _title: 'Identify Authentication Path'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     job_id: '\d+'
 
 job_hunter.application_submission_step3_short:
@@ -429,9 +441,20 @@ job_hunter.application_submission_step3_short:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionIdentifyAuthPath'
     _title: 'Identify Authentication Path'
-  methods: [GET, POST]
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step3_short_post:
+  path: '/application-submission/{job_id}/identify-auth-path'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionIdentifyAuthPath'
+    _title: 'Identify Authentication Path'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     job_id: '\d+'
 
 job_hunter.application_submission_step4:
@@ -439,9 +462,20 @@ job_hunter.application_submission_step4:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionCreateAccount'
     _title: 'Create Account'
-  methods: [GET, POST]
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step4_post:
+  path: '/jobhunter/application-submission/{job_id}/create-account'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionCreateAccount'
+    _title: 'Create Account'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     job_id: '\d+'
 
 job_hunter.application_submission_step4_short:
@@ -449,9 +483,20 @@ job_hunter.application_submission_step4_short:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionCreateAccount'
     _title: 'Create Account'
-  methods: [GET, POST]
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step4_short_post:
+  path: '/application-submission/{job_id}/create-account'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionCreateAccount'
+    _title: 'Create Account'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     job_id: '\d+'
 
 job_hunter.application_submission_step5:
@@ -459,9 +504,20 @@ job_hunter.application_submission_step5:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionSubmitApplication'
     _title: 'Submit Application'
-  methods: [GET, POST]
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step5_post:
+  path: '/jobhunter/application-submission/{job_id}/submit-application'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionSubmitApplication'
+    _title: 'Submit Application'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     job_id: '\d+'
 
 job_hunter.application_submission_step5_short:
@@ -469,9 +525,20 @@ job_hunter.application_submission_step5_short:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionSubmitApplication'
     _title: 'Submit Application'
-  methods: [GET, POST]
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+    job_id: '\d+'
+
+job_hunter.application_submission_step5_short_post:
+  path: '/application-submission/{job_id}/submit-application'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\JobApplicationController::applicationSubmissionSubmitApplication'
+    _title: 'Submit Application'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
     job_id: '\d+'
 
 job_hunter.application_submission_step5_screenshot:

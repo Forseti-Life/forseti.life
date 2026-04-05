@@ -128,14 +128,14 @@
 
       {% if not account_ready %}
         <p style="margin-top: 12px;">{{ 'Credentials are stored but the account has not been confirmed as ready. Click below to confirm or run browser verification.'|t }}</p>
-        <form method="post" action="{{ path('job_hunter.application_submission_step4', {'job_id': job_id}) }}" style="display: inline-block;">
+        <form method="post" action="{{ path('job_hunter.application_submission_step4_post', {'job_id': job_id}) }}" style="display: inline-block;">
           <input type="hidden" name="csrf_token" value="{{ run_step4_csrf_token }}" />
           <input type="hidden" name="step4_action" value="confirm_existing" />
           <button type="submit" class="button button--primary">
             {{ 'Confirm Account Ready'|t }}
           </button>
         </form>
-        <form method="post" action="{{ path('job_hunter.application_submission_step4', {'job_id': job_id}) }}" style="display: inline-block; margin-left: 8px;">
+        <form method="post" action="{{ path('job_hunter.application_submission_step4_post', {'job_id': job_id}) }}" style="display: inline-block; margin-left: 8px;">
           <input type="hidden" name="csrf_token" value="{{ run_step4_csrf_token }}" />
           <input type="hidden" name="step4_action" value="verify_authentication" />
           <button type="submit" class="button button--secondary" title="{{ 'Launch stealth browser, log in, and verify your identity on the ATS'|t }}">
@@ -146,7 +146,7 @@
         <p style="margin-top: 12px;">
           <span class="badge badge--success">{{ 'Account Confirmed & Ready'|t }}</span>
         </p>
-        <form method="post" action="{{ path('job_hunter.application_submission_step4', {'job_id': job_id}) }}" style="margin-top: 8px;">
+        <form method="post" action="{{ path('job_hunter.application_submission_step4_post', {'job_id': job_id}) }}" style="margin-top: 8px;">
           <input type="hidden" name="csrf_token" value="{{ run_step4_csrf_token }}" />
           <input type="hidden" name="step4_action" value="verify_authentication" />
           <button type="submit" class="button button--secondary" title="{{ 'Re-verify authentication via stealth browser'|t }}">
@@ -162,7 +162,7 @@
       <p>{{ 'If your credentials have changed, you can store updated ones below. This will overwrite the existing entry.'|t }}</p>
       <details>
         <summary>{{ 'Show credential update form'|t }}</summary>
-        <form method="post" action="{{ path('job_hunter.application_submission_step4', {'job_id': job_id}) }}" style="margin-top: 12px;">
+        <form method="post" action="{{ path('job_hunter.application_submission_step4_post', {'job_id': job_id}) }}" style="margin-top: 12px;">
           <input type="hidden" name="csrf_token" value="{{ run_step4_csrf_token }}" />
           <input type="hidden" name="step4_action" value="store_credentials" />
           <div style="margin-bottom: 8px;">
@@ -301,7 +301,7 @@
       <h4 style="margin-top: 16px;">{{ '2. Store Your Credentials'|t }}</h4>
       <p>{{ 'After creating your account, enter the username and password you used. These will be encrypted and stored securely.'|t }}</p>
 
-      <form method="post" action="{{ path('job_hunter.application_submission_step4', {'job_id': job_id}) }}">
+      <form method="post" action="{{ path('job_hunter.application_submission_step4_post', {'job_id': job_id}) }}">
         <input type="hidden" name="csrf_token" value="{{ run_step4_csrf_token }}" />
         <input type="hidden" name="step4_action" value="store_credentials" />
         <div style="margin-bottom: 8px;">

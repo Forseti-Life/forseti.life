@@ -132,7 +132,7 @@
           <a href="{{ apply_url }}" target="_blank" rel="noopener" class="button button--secondary" style="display: inline-block; margin-right: 8px;">
             {{ 'Open Job on ATS →'|t }}
           </a>
-          <form method="post" action="{{ path('job_hunter.application_submission_step5', {'job_id': job_id}) }}" style="display: inline-block;">
+          <form method="post" action="{{ path('job_hunter.application_submission_step5_post', {'job_id': job_id}) }}" style="display: inline-block;">
             <input type="hidden" name="csrf_token" value="{{ run_step5_csrf_token }}" />
             <input type="hidden" name="step5_action" value="confirm_job_exists" />
             <button type="submit" class="button button--primary">
@@ -240,7 +240,7 @@
                   {# Step 1: Autofill with Resume — uses the browser automation #}
                   {% if wd_step.key == 'autofill_resume' and wd_step.status != 'pass' and is_current %}
                     {% if has_tailored_resume %}
-                      <form method="post" action="{{ path('job_hunter.application_submission_step5', {'job_id': job_id}) }}" style="display: inline;">
+                      <form method="post" action="{{ path('job_hunter.application_submission_step5_post', {'job_id': job_id}) }}" style="display: inline;">
                         <input type="hidden" name="csrf_token" value="{{ run_step5_csrf_token }}" />
                         <input type="hidden" name="step5_action" value="upload_resume_continue" />
                         <button type="submit" class="button button--primary button--small" style="font-size: 0.8em; padding: 2px 8px;">
@@ -284,7 +284,7 @@
             <p style="font-size: 0.9em; color: #6c757d;">
               🤖 <strong>{{ 'Auto Progression'|t }}</strong> — {{ 'After Autofill completes, the system should continue through Workday steps automatically.'|t }}
             </p>
-            <form method="post" action="{{ path('job_hunter.application_submission_step5', {'job_id': job_id}) }}" style="margin: 8px 0 12px 0;">
+            <form method="post" action="{{ path('job_hunter.application_submission_step5_post', {'job_id': job_id}) }}" style="margin: 8px 0 12px 0;">
               <input type="hidden" name="csrf_token" value="{{ run_step5_csrf_token }}" />
               <input type="hidden" name="step5_action" value="run_wd_wizard_auto" />
               <button type="submit" class="button button--primary">
@@ -350,7 +350,7 @@
         <details style="margin-top: 16px;">
           <summary>{{ 'Record Manual Submission Instead'|t }}</summary>
           <p style="margin-top: 8px;">{{ 'If you completed the entire Workday wizard manually, record it here. This will mark all steps as complete.'|t }}</p>
-          <form method="post" action="{{ path('job_hunter.application_submission_step5', {'job_id': job_id}) }}">
+          <form method="post" action="{{ path('job_hunter.application_submission_step5_post', {'job_id': job_id}) }}">
             <input type="hidden" name="csrf_token" value="{{ run_step5_csrf_token }}" />
             <input type="hidden" name="step5_action" value="mark_manual_submission" />
             <div style="margin-bottom: 8px;">

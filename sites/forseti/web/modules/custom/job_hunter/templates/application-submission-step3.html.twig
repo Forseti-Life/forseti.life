@@ -47,7 +47,7 @@
       <p>{{ 'Step 3 checks do not run automatically on page load. Click the button below to launch the stealth browser and classify the auth path.'|t }}</p>
     {% endif %}
 
-    <form method="post" action="{{ path('job_hunter.application_submission_step3', {'job_id': job_id}) }}">
+    <form method="post" action="{{ path('job_hunter.application_submission_step3_post', {'job_id': job_id}) }}">
       <input type="hidden" name="run_step3" value="1" />
       <input type="hidden" name="csrf_token" value="{{ run_step3_csrf_token }}" />
       <button type="submit" class="button button--primary">
