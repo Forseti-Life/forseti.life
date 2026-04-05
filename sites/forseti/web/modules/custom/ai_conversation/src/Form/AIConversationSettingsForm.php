@@ -27,7 +27,7 @@ class AIConversationSettingsForm extends ConfigFormBase {
   const DEFAULT_SUMMARY_FREQUENCY = 10;
   const DEFAULT_MAX_TOKENS_BEFORE_SUMMARY = 6000;
   const DEFAULT_REGION = 'us-west-2';
-  const DEFAULT_MODEL = 'anthropic.claude-3-5-sonnet-20240620-v1:0';
+  const DEFAULT_MODEL = 'anthropic.claude-3-5-sonnet-20241022-v2:0';
   const DEFAULT_SYSTEM_PROMPT_ROWS = 15;
 
   /**
@@ -515,7 +515,7 @@ class AIConversationSettingsForm extends ConfigFormBase {
       
       // Claude 3.5 Models (Previous generation - Still excellent)
       'anthropic.claude-3-5-sonnet-20241022-v2:0' => 'Claude 3.5 Sonnet v2 — $3/$15 per 1M tokens',
-      'anthropic.claude-3-5-sonnet-20240620-v1:0' => 'Claude 3.5 Sonnet v1 — $3/$15 per 1M tokens (Current Default)',
+      'anthropic.claude-3-5-sonnet-20240620-v1:0' => 'Claude 3.5 Sonnet v1 — $3/$15 per 1M tokens (EOL — do not use)',
       'anthropic.claude-3-5-haiku-20241022-v1:0' => 'Claude 3.5 Haiku — $0.25/$1.25 per 1M tokens (Very Affordable)',
       
       // Claude 3 Models (Stable & Reliable)
