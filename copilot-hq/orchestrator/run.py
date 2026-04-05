@@ -627,6 +627,52 @@ def _release_gate_brief() -> str:
     else:
         lines.append("\n### Feature pipeline: no gaps detected")
 
+    # 5. Quick inbox data quality snapshot (stale locks + missing READMEs/fields)
+    sessions_dir = REPO_ROOT / "sessions"
+    import re as _re2
+    stale_locks = 0
+    missing_readmes = 0
+    missing_fields = 0
+    now_ts = _now_ts()
+    if sessions_dir.exists():
+        for agent_d in sessions_dir.iterdir():
+            ib = agent_d / "inbox"
+            if not ib.exists():
+                continue
+            for lock in ib.glob("**/*.inwork"):
+                try:
+                    if now_ts - lock.stat().st_mtime > _INWORK_STALE_SECS:
+                        stale_locks += 1
+                except Exception:
+                    pass
+            for item_d in ib.iterdir():
+                if item_d.name == "_archived" or not item_d.is_dir():
+                    continue
+                has_r = (item_d / "README.md").exists()
+                has_c = (item_d / "command.md").exists()
+                if not has_r and not has_c:
+                    missing_readmes += 1
+                else:
+                    md_f = (item_d / "README.md") if has_r else (item_d / "command.md")
+                    try:
+                        txt = md_f.read_text(encoding="utf-8", errors="ignore")
+                        if not _re2.search(r"^-\s+Agent:", txt, _re2.M) or \
+                           not _re2.search(r"^-\s+Status:", txt, _re2.M):
+                            missing_fields += 1
+                    except Exception:
+                        pass
+    dq_issues = stale_locks + missing_readmes + missing_fields
+    if dq_issues:
+        lines.append(f"\n### ⚠️ Inbox data quality issues (will auto-remediate next tick)")
+        if stale_locks:
+            lines.append(f"- {stale_locks} stale .inwork lock(s)")
+        if missing_readmes:
+            lines.append(f"- {missing_readmes} item(s) missing README/command.md")
+        if missing_fields:
+            lines.append(f"- {missing_fields} item(s) missing Agent:/Status: fields")
+    else:
+        lines.append("\n### Inbox data quality: ✅ all items conformant")
+
     return "\n".join(lines)
 
 
@@ -1157,6 +1203,109 @@ def _stagnation_check(blocked_count: int, blocked_out: str) -> None:
     print(f"STAGNATION-DISPATCH ({len(signals)} signals): {signals_text} → CEO: {result}")
 
 
+_INBOX_AUDIT_COOLDOWN = 3600          # re-audit at most once per hour
+_INBOX_AUDIT_STATE    = REPO_ROOT / "tmp" / "orchestrator-stagnation" / "inbox_audit_last"
+_INWORK_STALE_SECS    = 7200          # .inwork lock is stale after 2h
+
+
+def _audit_inbox_data_quality() -> Dict[str, Any]:
+    """Scan every agent inbox for data-standard violations and auto-remediate.
+
+    Checks performed every tick (subject to cooldown):
+      1. Stale .inwork locks (>2h) → removed (unlock so item can be retried)
+      2. Items missing README.md and command.md → inject minimal README.md
+      3. READMEs missing '- Agent:' or '- Status:' fields → append the fields
+
+    Returns a summary dict logged into the health_check audit trail.
+    """
+    if not _cooldown_ok(_INBOX_AUDIT_STATE, _INBOX_AUDIT_COOLDOWN):
+        return {}
+
+    sessions_dir = REPO_ROOT / "sessions"
+    if not sessions_dir.exists():
+        return {}
+
+    now = _now_ts()
+    stats: Dict[str, Any] = {
+        "stale_locks_cleared": [],
+        "readmes_injected": [],
+        "fields_patched": [],
+    }
+
+    import re as _re
+
+    for agent_dir in sorted(sessions_dir.iterdir()):
+        if not agent_dir.is_dir():
+            continue
+        agent_id = agent_dir.name
+        inbox = agent_dir / "inbox"
+        if not inbox.exists():
+            continue
+
+        # ── 1. Clear stale .inwork locks ──────────────────────────────────────
+        for lock in inbox.glob("**/*.inwork"):
+            try:
+                age = now - lock.stat().st_mtime
+                if age > _INWORK_STALE_SECS:
+                    lock.unlink()
+                    stats["stale_locks_cleared"].append(f"{agent_id}/{lock.name}")
+            except Exception:
+                pass
+
+        for item_dir in sorted(inbox.iterdir()):
+            if item_dir.name == "_archived" or not item_dir.is_dir():
+                continue
+
+            has_readme  = (item_dir / "README.md").exists()
+            has_command = (item_dir / "command.md").exists()
+
+            # ── 2. Inject minimal README if neither exists ────────────────────
+            if not has_readme and not has_command:
+                roi_val = ""
+                roi_f = item_dir / "roi.txt"
+                if roi_f.exists():
+                    roi_val = roi_f.read_text(encoding="utf-8", errors="ignore").strip()
+                readme_path = item_dir / "README.md"
+                readme_path.write_text(
+                    f"# {item_dir.name}\n\n"
+                    f"- Agent: {agent_id}\n"
+                    f"- Status: pending\n"
+                    + (f"- ROI: {roi_val}\n" if roi_val else ""),
+                    encoding="utf-8",
+                )
+                stats["readmes_injected"].append(f"{agent_id}/{item_dir.name}")
+                has_readme = True
+
+            # ── 3. Patch missing Agent: / Status: fields ──────────────────────
+            md_path = (item_dir / "README.md") if has_readme else (item_dir / "command.md")
+            try:
+                text = md_path.read_text(encoding="utf-8", errors="ignore")
+                missing = []
+                if not _re.search(r"^-\s+Agent:", text, _re.M):
+                    missing.append(f"- Agent: {agent_id}")
+                if not _re.search(r"^-\s+Status:", text, _re.M):
+                    missing.append("- Status: pending")
+                if missing:
+                    md_path.write_text(text.rstrip() + "\n" + "\n".join(missing) + "\n",
+                                       encoding="utf-8")
+                    stats["fields_patched"].append(f"{agent_id}/{item_dir.name}")
+            except Exception:
+                pass
+
+    total_issues = (len(stats["stale_locks_cleared"]) +
+                    len(stats["readmes_injected"]) +
+                    len(stats["fields_patched"]))
+    if total_issues:
+        print(
+            f"INBOX-AUDIT: cleared {len(stats['stale_locks_cleared'])} locks, "
+            f"injected {len(stats['readmes_injected'])} READMEs, "
+            f"patched {len(stats['fields_patched'])} fields"
+        )
+
+    _mark_now(_INBOX_AUDIT_STATE)
+    return stats
+
+
 def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
     """Detect stalled agents (inbox items, no active exec) and auto-remediate."""
     rc, status_out = _run(["bash", "scripts/hq-status.sh"], timeout=180)
@@ -1216,6 +1365,14 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
         _dispatch_feature_gap_remediation()
     except Exception as e:
         print(f"FEATURE-GAP-ERR: {e}")
+
+    # Audit inbox data quality: clear stale locks, inject missing READMEs, patch fields
+    try:
+        audit_stats = _audit_inbox_data_quality()
+        if audit_stats:
+            alert["inbox_audit"] = audit_stats
+    except Exception as e:
+        print(f"INBOX-AUDIT-ERR: {e}")
 
     log.append(alert)
 
