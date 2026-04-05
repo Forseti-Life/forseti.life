@@ -220,17 +220,42 @@ def _active_release_ids() -> List[str]:
 
 
 def _agent_has_release_work(agent_id: str, release_ids: List[str]) -> bool:
-    """Return True if the agent has any inbox item tagged for an active release."""
+    """Return True if the agent has any inbox item tagged for an active release.
+
+    Two matching strategies:
+    1. Inbox item NAME contains the release ID substring (explicit tagging)
+    2. Agent's site team has an active release with >= 1 in_progress feature
+       (implicit: any dev/qa/pm/ba agent for that site is doing release work)
+    """
     if not release_ids:
         return False
     inbox = _agent_inbox_dir(agent_id)
     if not inbox.exists():
         return False
+
+    # Strategy 1: explicit release ID in item name
     for item in inbox.iterdir():
         if item.is_dir() and item.name != "_archived":
             for rid in release_ids:
                 if rid in item.name:
                     return True
+
+    # Strategy 2: agent belongs to a site that has an active release with in_progress features
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
+    for site_kw, website_prefix in _TEAM_WEBSITE_PREFIX.items():
+        # Does agent_id contain this site keyword?
+        if site_kw not in agent_id:
+            continue
+        # Does this site have an active release?
+        rid_file = active_dir / f"{site_kw}.release_id"
+        if not rid_file.exists():
+            continue
+        if rid_file.read_text(encoding="utf-8").strip() not in release_ids:
+            continue
+        # Does this site have any in_progress features?
+        if _count_site_features_in_progress(website_prefix) > 0:
+            return True
+
     return False
 
 

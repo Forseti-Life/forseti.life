@@ -167,12 +167,21 @@ cp "$FEATURE_BRIEF" "$ITEM_DIR/feature.md"
 cp "$TEST_PLAN" "$ITEM_DIR/03-test-plan.md"
 
 # Mark feature in_progress (scoped for this release)
-python3 - "$FEATURE_BRIEF" <<'PY'
+python3 - "$FEATURE_BRIEF" "$ACTIVE_RELEASE_ID" <<'PY'
 import pathlib, sys, datetime
 p = pathlib.Path(sys.argv[1])
+release_id = sys.argv[2] if len(sys.argv) > 2 else ""
 today = datetime.date.today().isoformat()
 text = p.read_text(encoding='utf-8')
 text = text.replace('- Status: ready', '- Status: in_progress')
+# Inject Release: tag after Status line if not already present
+import re as _re
+if '- Release:' not in text and release_id:
+    text = _re.sub(
+        r'(^-\s+Status:\s*in_progress\s*$)',
+        r'\1\n- Release: ' + release_id,
+        text, count=1, flags=_re.MULTILINE | _re.IGNORECASE
+    )
 if '## Latest updates' in text:
     lines = text.split('\n')
     for i, line in enumerate(lines):
