@@ -35,6 +35,20 @@
       "activated_date": "2026-03-28"
     },
     {
+      "id": "dc-cr-character-leveling-e2e",
+      "feature_id": "dc-cr-character-leveling",
+      "label": "Character Leveling and Advancement — E2E (drush ev unit tests)",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "notes": "Stage-0 activated 2026-04-05. Playwright test scripts pending implementation (19 TCs defined in features/dc-cr-character-leveling/03-test-plan.md). Until scripts exist, use drush ev inline PHP for TC-001/007/009/010/013/014 (trigger, idempotency, max-level, milestone, non-existent char, structured error). TC-015 (concurrency) and TC-008 (persistence) require live env + PHPUnit. Routes: 8 level-up routes + 1 milestone route registered in dungeoncrawler_content.routing.yml. Admin routes gate on 'administer dungeoncrawler content'; player routes gate on _character_access:TRUE + _csrf_request_header_mode:TRUE. ACL coverage: api-character-entity-routes rule in qa-permissions.json (ignore on parametrized paths). Requires composer install in /home/ubuntu/forseti.life/sites/dungeoncrawler before any drush commands can run.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-character-leveling/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260402-dungeoncrawler-release-b",
+      "activated_date": "2026-04-05"
+    },
+    {
       "id": "module-test-suite",
       "label": "Module PHPUnit test suite (functional)",
       "type": "unit",
