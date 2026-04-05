@@ -1,0 +1,72 @@
+{
+  "product_id": "forseti-agent-tracker",
+  "product_label": "Forseti — Agent Tracker",
+  "tools": [
+    "python"
+  ],
+  "notes": [
+    "This manifest is the canonical list of automated suites for the Forseti agent tracker surfaces.",
+    "Prefer localhost/dev URLs. If production verification is required, it must be explicitly gated by the relevant tool (and documented in release evidence).",
+    "Cookie env vars: FORSETI_COOKIE_AUTHENTICATED, FORSETI_COOKIE_EDITOR, FORSETI_COOKIE_ADMIN.",
+    "Role matrix expected permissions: org-chart/sites/forseti.life/qa-permissions.json.",
+    "tracker-smoke-e2e is deferred until Playwright test spec exists at tests/forseti-agent-tracker/smoke.spec.ts."
+  ],
+  "suites": [
+    {
+      "id": "tracker-env-preflight",
+      "label": "Agent tracker environment preflight (BASE_URL reachable)",
+      "type": "preflight",
+      "command": "curl -sf --max-time 5 \"${FORSETI_BASE_URL:-http://localhost}/user/login\" -o /dev/null && echo 'PREFLIGHT PASS: BASE_URL reachable' || (echo 'PREFLIGHT FAIL: BASE_URL not reachable — set FORSETI_BASE_URL and ensure Drupal is running' && exit 1)",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": false,
+      "notes": "Run this first. If it fails, all other suites will fail with connection errors. Not required_for_release because it is a gate-check, not a product test."
+    },
+    {
+      "id": "tracker-route-audit",
+      "label": "Agent tracker route/ACL audit (custom module routes)",
+      "type": "audit",
+      "command": "mkdir -p sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest && python3 scripts/drupal-custom-routes-audit.py --drupal-web-root /home/ubuntu/forseti.life/sites/forseti/web --base-url \"${FORSETI_BASE_URL:-http://localhost}\" --path-regex '^/(admin/reports/copilot-agent-tracker|admin/reports/waitingonkeith|api/copilot-agent-tracker)' --out sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest/route-audit.json",
+      "artifacts": [
+        "sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest/route-audit.json"
+      ],
+      "required_for_release": true,
+      "notes": "Validates agent tracker admin routes against live base URL. Requires FORSETI_BASE_URL pointing to a running Drupal instance. Run tracker-env-preflight first. To test admin-only routes, pass --header 'Cookie: <value-of-FORSETI_COOKIE_ADMIN>'."
+    },
+    {
+      "id": "tracker-full-site-audit",
+      "label": "Forseti full-site audit (includes agent tracker surfaces)",
+      "type": "audit",
+      "command": "ALLOW_PROD_QA=${ALLOW_PROD_QA:-0} FORSETI_BASE_URL=${FORSETI_BASE_URL:-http://localhost} scripts/site-audit-run.sh forseti",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/"
+      ],
+      "required_for_release": false,
+      "notes": "Full-site audit covering all forseti.life routes including agent tracker surfaces. Not required_for_release here since qa-forseti owns this suite; reference only. Promote tracker-route-audit when CI env is available."
+    },
+    {
+      "id": "tracker-copilot-agent-tracker",
+      "label": "Agent tracker core QA (ACL, API error modes, data integrity, performance)",
+      "type": "functional",
+      "command": "cd /home/ubuntu/forseti.life/copilot-hq && FORSETI_BASE_URL=${FORSETI_BASE_URL:-http://localhost} DRUPAL_ROOT=${DRUPAL_ROOT:-/home/ubuntu/forseti.life/sites/forseti} python3 qa-suites/products/forseti-agent-tracker/run-copilot-agent-tracker-tests.py",
+      "artifacts": [
+        "sessions/qa-forseti-agent-tracker/artifacts/auto-site-audit/latest/test-results.json"
+      ],
+      "required_for_release": true,
+      "notes": "24 test cases (21 core + 3 EXTEND: csrf-forged-approve-403, upsert-dedup-1-row, hook-uninstall-tables-absent). Anon 403 accepted for all /admin/* routes (PM decision 2026-03-01, basis: qa-permissions.json admin-area rule). Token auto-fetched via drush if TELEMETRY_TOKEN not set. Admin cookie auto-fetched via drush user:login if FORSETI_COOKIE_ADMIN not set."
+    },
+    {
+      "id": "tracker-smoke-e2e",
+      "label": "Agent tracker smoke e2e (Playwright — deferred)",
+      "type": "e2e",
+      "command": "BASE_URL=${FORSETI_BASE_URL:-http://localhost} npx playwright test tests/forseti-agent-tracker/smoke.spec.ts --reporter=html",
+      "artifacts": [
+        "playwright-report/index.html",
+        "playwright-report/results.json"
+      ],
+      "required_for_release": false,
+      "notes": "Deferred: test spec file tests/forseti-agent-tracker/smoke.spec.ts does not yet exist. Promote to required_for_release once spec is created and verified. Scope: dashboard renders for admin, API POST with valid agent_id returns 200, API POST with missing agent_id returns 400."
+    }
+  ]
+}

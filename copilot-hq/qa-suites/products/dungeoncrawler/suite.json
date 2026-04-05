@@ -1,0 +1,55 @@
+{
+  "product_id": "dungeoncrawler",
+  "product_label": "Dungeoncrawler",
+  "tools": [
+    "playwright",
+    "python"
+  ],
+  "notes": [
+    "This manifest is the canonical list of automated suites for Dungeoncrawler.",
+    "If the product also has language-native unit tests (e.g., PHPUnit), they can be included as suites here, but the PASS/FAIL contract must remain consistent."
+  ],
+  "suites": [
+    {
+      "id": "role-url-audit",
+      "label": "Role-based URL/ACL audit",
+      "type": "audit",
+      "command": "ALLOW_PROD_QA=${ALLOW_PROD_QA:-0} DUNGEONCRAWLER_BASE_URL=${DUNGEONCRAWLER_BASE_URL:?set DUNGEONCRAWLER_BASE_URL} scripts/site-audit-run.sh dungeoncrawler",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/auto-site-audit/<ts>/..."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-clan-dagger-e2e",
+      "feature_id": "dc-cr-clan-dagger",
+      "label": "Clan Dagger — Dwarven Starting Equipment (drush ev unit tests)",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "notes": "Verified via drush ev (no Playwright suite yet — drush-ev approach is authoritative until Playwright env is provisioned). Tests cover: TC-001 catalog JSON, TC-002 Dwarf auto-grant, TC-003 item flags, TC-004 sell taboo block, TC-008 non-Dwarf exclusion, TC-009 distinct instances, TC-010 drop no-taboo, TC-011 location change no-taboo, TC-013 graceful fail, TC-014 server-side grant, TC-015 server-side taboo, TC-016 GM override. TC-005/006/007 (combat) deferred: requires dc-cr-encounter-rules completion. TC-012 FAIL: duplicate grant prevention not enforced (see BLOCK note).",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/20260327-004055-unit-test-20260320-impl-dc-cr-clan-dagger/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260326-dungeoncrawler-release-b",
+      "activated_date": "2026-03-28"
+    },
+    {
+      "id": "module-test-suite",
+      "label": "Module PHPUnit test suite (functional)",
+      "type": "unit",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit -c phpunit.xml.dist --testsuite=functional 2>&1",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/phpunit/<ts>/phpunit-output.txt"
+      ],
+      "required_for_release": false,
+      "notes": "Requires a configured Drupal test environment (SIMPLETEST_BASE_URL, database). Run via tests/run-tests.sh for auto-setup. Currently not required_for_release due to env dependency; promote when CI env is available."
+    }
+  ],
+  "_schema_notes": [
+    "Suite entries MAY include an optional 'feature_id' field when the suite was added for a specific groomed feature.",
+    "feature_id links back to features/<feature_id>/ — the living requirements document.",
+    "Suites without feature_id are baseline regression tests.",
+    "Example: { 'id': 'my-feature-e2e', 'feature_id': 'dc-my-feature', 'label': '...', 'type': 'e2e', ... }"
+  ]
+}
