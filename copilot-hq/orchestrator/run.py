@@ -585,6 +585,48 @@ def _release_gate_brief() -> str:
     for o in oldest[:5]:
         lines.append(f"- {o['agent']}: `{o['item']}` ({o['age_m']}m old)")
 
+    # 4. Feature pipeline gap analysis — in_progress features with missing dev/QA coverage
+    active_rids: set = set()
+    if active_dir.exists():
+        for f in active_dir.glob("*.release_id"):
+            rid = f.read_text(encoding="utf-8").strip()
+            if rid:
+                active_rids.add(rid)
+    gaps_found: List[str] = []
+    if active_rids:
+        for fm in sorted((REPO_ROOT / "features").glob("*/feature.md")):
+            try:
+                ftext = fm.read_text(encoding="utf-8", errors="ignore")
+                if not re.search(r"^-\s+Status:\s*in_progress", ftext, re.MULTILINE | re.IGNORECASE):
+                    continue
+                rel_m2 = re.search(r"^-\s+Release:\s*(.+)", ftext, re.MULTILINE | re.IGNORECASE)
+                if not rel_m2 or rel_m2.group(1).strip() not in active_rids:
+                    continue
+                feat_name = fm.parent.name
+                site_m2 = re.search(r"^-\s+Website:\s*(.+)", ftext, re.MULTILINE | re.IGNORECASE)
+                site_raw = site_m2.group(1).strip().lower() if site_m2 else ""
+                site_id = next((k for k in _TEAM_WEBSITE_PREFIX if k in site_raw), None)
+                if not site_id:
+                    continue
+                dev_agent = f"dev-{site_id}"
+                qa_agent  = f"qa-{site_id}"
+                dev_inbox  = _agent_inbox_has_feature(dev_agent, feat_name)
+                dev_out    = _agent_outbox_has_feature(dev_agent, feat_name)
+                qa_inbox   = _agent_inbox_has_feature(qa_agent,  feat_name)
+                qa_out     = _agent_outbox_has_feature(qa_agent,  feat_name)
+                if not dev_inbox and not dev_out and not qa_inbox and not qa_out:
+                    gaps_found.append(f"GAP-A {feat_name}: no dev or QA coverage (impl not started)")
+                elif dev_out and not qa_inbox and not qa_out:
+                    gaps_found.append(f"GAP-B {feat_name}: dev done but no QA testgen/verification")
+            except Exception:
+                pass
+    if gaps_found:
+        lines.append("\n### ⚠️ Feature pipeline gaps (auto-remediation dispatched)")
+        for g in gaps_found:
+            lines.append(f"- {g}")
+    else:
+        lines.append("\n### Feature pipeline: no gaps detected")
+
     return "\n".join(lines)
 
 
@@ -711,7 +753,214 @@ def _count_site_features_in_progress(site_keyword: str) -> int:
     return count
 
 
-def _dispatch_release_close_triggers() -> None:
+_FEATURE_GAP_COOLDOWN    = 4 * 3600   # 4h between gap dispatches per feature
+_FEATURE_GAP_STATE_DIR   = REPO_ROOT / "tmp" / "orchestrator-stagnation"
+
+# Agent role prefixes that own implementation vs verification work
+_IMPL_AGENT_PREFIX  = "dev-"
+_QA_AGENT_PREFIX    = "qa-"
+
+
+def _agent_inbox_has_feature(agent_id: str, feat_name: str) -> bool:
+    """Return True if agent's inbox has any item whose name contains feat_name."""
+    inbox = _agent_inbox_dir(agent_id)
+    if not inbox.exists():
+        return False
+    return any(
+        d.is_dir() and d.name != "_archived" and feat_name in d.name
+        for d in inbox.iterdir()
+    )
+
+
+def _agent_outbox_has_feature(agent_id: str, feat_name: str) -> bool:
+    """Return True if agent's outbox has any artifact whose stem contains feat_name."""
+    outbox = REPO_ROOT / "sessions" / agent_id / "outbox"
+    if not outbox.exists():
+        return False
+    return any(feat_name in f.stem for f in outbox.iterdir() if f.is_file())
+
+
+def _dispatch_feature_gap_remediation() -> None:
+    """Scan every in_progress release feature for pipeline gaps and auto-dispatch fixes.
+
+    Gap types detected and remediated:
+      GAP-A: Feature has no dev inbox item AND no dev outbox artifact
+             → dispatch impl item to dev-<site> at ROI _IMPL_MIN_ROI
+      GAP-B: Dev has outbox artifact (impl done) but QA has no inbox item
+             → dispatch testgen/verification item to qa-<site> at ROI _QA_MIN_ROI
+
+    Only fires for features whose Release: field matches an active release ID.
+    Cooldown: _FEATURE_GAP_COOLDOWN per (feature, gap_type) to avoid spam.
+    """
+    import json as _json
+    from datetime import datetime as _dt
+
+    active_dir  = REPO_ROOT / "tmp" / "release-cycle-active"
+    if not active_dir.exists():
+        return
+
+    state_dir = _FEATURE_GAP_STATE_DIR
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    # Collect active release IDs
+    active_rids: set = set()
+    for f in active_dir.glob("*.release_id"):
+        rid = f.read_text(encoding="utf-8").strip()
+        if rid:
+            active_rids.add(rid)
+    if not active_rids:
+        return
+
+    # Read agents config for agent IDs per team
+    teams_path = REPO_ROOT / "org-chart" / "products" / "product-teams.json"
+    try:
+        teams_data = _json.loads(teams_path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+
+    # Build site → {dev_agent, qa_agent} map
+    site_agents: Dict[str, Dict[str, str]] = {}
+    for t in teams_data.get("teams", []):
+        if not t.get("active"):
+            continue
+        tid = (t.get("id") or "").strip()
+        if not tid:
+            continue
+        site_agents[tid] = {
+            "dev": t.get("dev_agent", f"dev-{tid}"),
+            "qa":  t.get("qa_agent",  f"qa-{tid}"),
+            "pm":  t.get("pm_agent",  f"pm-{tid}"),
+        }
+
+    now = _now_ts()
+    date_prefix = _dt.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+
+    dispatched: List[str] = []
+
+    for fm in sorted((REPO_ROOT / "features").glob("*/feature.md")):
+        text = fm.read_text(encoding="utf-8", errors="ignore")
+
+        # Only in_progress features
+        if not re.search(r"^-\s+Status:\s*in_progress", text, re.MULTILINE | re.IGNORECASE):
+            continue
+
+        # Must have Release: field matching an active release
+        rel_m = re.search(r"^-\s+Release:\s*(.+)", text, re.MULTILINE | re.IGNORECASE)
+        if not rel_m or rel_m.group(1).strip() not in active_rids:
+            continue
+
+        feat_name = fm.parent.name
+        rid = rel_m.group(1).strip()
+
+        # Determine site from Website: field
+        site_m = re.search(r"^-\s+Website:\s*(.+)", text, re.MULTILINE | re.IGNORECASE)
+        site_raw = site_m.group(1).strip().lower() if site_m else ""
+        # Map website value to team ID
+        site_id = next(
+            (k for k in _TEAM_WEBSITE_PREFIX if k in site_raw),
+            None
+        )
+        if not site_id or site_id not in site_agents:
+            continue
+
+        dev_agent = site_agents[site_id]["dev"]
+        qa_agent  = site_agents[site_id]["qa"]
+
+        dev_has_inbox   = _agent_inbox_has_feature(dev_agent, feat_name)
+        dev_has_outbox  = _agent_outbox_has_feature(dev_agent, feat_name)
+        qa_has_inbox    = _agent_inbox_has_feature(qa_agent,  feat_name)
+        qa_has_outbox   = _agent_outbox_has_feature(qa_agent,  feat_name)
+
+        # GAP-A: no dev coverage at all (no inbox, no outbox)
+        if not dev_has_inbox and not dev_has_outbox and not qa_has_inbox and not qa_has_outbox:
+            state_key = state_dir / f"featgap_A_{feat_name}"
+            last = _safe_int(state_key.read_text(encoding="utf-8").strip() if state_key.exists() else "0", 0)
+            if (now - last) >= _FEATURE_GAP_COOLDOWN:
+                item_id  = f"{date_prefix}-impl-{feat_name}"
+                item_dir = REPO_ROOT / "sessions" / dev_agent / "inbox" / item_id
+                if not item_dir.exists():
+                    item_dir.mkdir(parents=True, exist_ok=True)
+                    title_m = re.search(r"^#\s+Feature Brief[:\s]*(.+)", text, re.MULTILINE)
+                    title   = title_m.group(1).strip() if (title_m and title_m.group(1).strip()) else feat_name
+                    (item_dir / "README.md").write_text(
+                        f"# Implementation required: {title}\n\n"
+                        f"- Agent: {dev_agent}\n"
+                        f"- Feature: {feat_name}\n"
+                        f"- Release: {rid}\n"
+                        f"- Status: pending\n"
+                        f"- Created: {_dt.now(timezone.utc).isoformat()}\n"
+                        f"- Dispatched by: orchestrator (GAP-A: no dev coverage found)\n\n"
+                        f"## Context\n"
+                        f"Feature `{feat_name}` is in_progress for release `{rid}` but no "
+                        f"implementation inbox item or outbox artifact was found for {dev_agent}. "
+                        f"This gap was detected automatically by the CEO orchestration loop.\n\n"
+                        f"## Action required\n"
+                        f"1. Review feature brief: `features/{feat_name}/feature.md`\n"
+                        f"2. Implement the feature per the brief\n"
+                        f"3. Run existing tests to ensure no regressions\n"
+                        f"4. Write outbox with implementation notes and commit hash(es)\n"
+                        f"5. Notify {qa_agent} for Gate 2 verification\n\n"
+                        f"## Acceptance criteria\n"
+                        f"- Implementation committed with hash recorded in outbox\n"
+                        f"- No regression failures\n",
+                        encoding="utf-8",
+                    )
+                    import shutil as _shutil
+                    _shutil.copy(fm, item_dir / "feature.md")
+                    (item_dir / "roi.txt").write_text("200", encoding="utf-8")
+                    state_key.write_text(str(now), encoding="utf-8")
+                    msg = f"FEATURE-GAP-A: dispatched impl to {dev_agent} for {feat_name} (release {rid})"
+                    print(msg)
+                    dispatched.append(msg)
+
+        # GAP-B: dev has outbox (impl done) but QA has no inbox item
+        elif dev_has_outbox and not qa_has_inbox and not qa_has_outbox:
+            state_key = state_dir / f"featgap_B_{feat_name}"
+            last = _safe_int(state_key.read_text(encoding="utf-8").strip() if state_key.exists() else "0", 0)
+            if (now - last) >= _FEATURE_GAP_COOLDOWN:
+                item_id  = f"{date_prefix}-testgen-{feat_name}"
+                item_dir = REPO_ROOT / "sessions" / qa_agent / "inbox" / item_id
+                if not item_dir.exists():
+                    item_dir.mkdir(parents=True, exist_ok=True)
+                    title_m = re.search(r"^#\s+Feature Brief[:\s]*(.+)", text, re.MULTILINE)
+                    title   = title_m.group(1).strip() if (title_m and title_m.group(1).strip()) else feat_name
+                    (item_dir / "README.md").write_text(
+                        f"# QA verification required: {title}\n\n"
+                        f"- Agent: {qa_agent}\n"
+                        f"- Feature: {feat_name}\n"
+                        f"- Release: {rid}\n"
+                        f"- Status: pending\n"
+                        f"- Created: {_dt.now(timezone.utc).isoformat()}\n"
+                        f"- Dispatched by: orchestrator (GAP-B: dev outbox found, no QA coverage)\n\n"
+                        f"## Context\n"
+                        f"Feature `{feat_name}` is in_progress for release `{rid}`. "
+                        f"{dev_agent} has an outbox artifact indicating implementation is complete, "
+                        f"but no QA testgen or verification item was found. "
+                        f"This gap was detected automatically by the CEO orchestration loop.\n\n"
+                        f"## Action required\n"
+                        f"1. Review feature brief: `features/{feat_name}/feature.md`\n"
+                        f"2. Review dev implementation outbox in `sessions/{dev_agent}/outbox/`\n"
+                        f"3. Generate or activate the test suite for this feature\n"
+                        f"4. Run tests and produce a Gate 2 APPROVE or BLOCK\n"
+                        f"5. Write outbox with verification report\n\n"
+                        f"## Acceptance criteria\n"
+                        f"- Explicit Gate 2 APPROVE or BLOCK in outbox\n"
+                        f"- Evidence committed and referenced\n",
+                        encoding="utf-8",
+                    )
+                    import shutil as _shutil
+                    _shutil.copy(fm, item_dir / "feature.md")
+                    (item_dir / "roi.txt").write_text("300", encoding="utf-8")
+                    state_key.write_text(str(now), encoding="utf-8")
+                    msg = f"FEATURE-GAP-B: dispatched testgen to {qa_agent} for {feat_name} (release {rid})"
+                    print(msg)
+                    dispatched.append(msg)
+
+    if dispatched:
+        print(f"FEATURE-GAP-REMEDIATION: {len(dispatched)} gap(s) dispatched this tick")
+
+
+
     """Dispatch release-close-now inbox items to PMs when auto-close conditions are met.
 
     Conditions (either triggers close):
@@ -961,6 +1210,12 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
         _dispatch_release_close_triggers()
     except Exception as e:
         print(f"RELEASE-CLOSE-TRIGGER-ERR: {e}")
+
+    # Scan for release feature gaps: in_progress features with no dev/QA inbox coverage
+    try:
+        _dispatch_feature_gap_remediation()
+    except Exception as e:
+        print(f"FEATURE-GAP-ERR: {e}")
 
     log.append(alert)
 
