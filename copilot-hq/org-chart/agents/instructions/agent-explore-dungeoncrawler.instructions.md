@@ -28,10 +28,9 @@ Include: exact steps, expected vs actual, and what you tried.
 - org-chart/agents/instructions/agent-explore-dungeoncrawler.instructions.md
 
 ## Site environment
-- Local/dev BASE_URL: `http://localhost:8080` (dungeoncrawler runs on port 8080; port 80 is forseti.life)
 - Production BASE_URL: `https://dungeoncrawler.forseti.life`
+- This server IS production (Apache 2.4 on ports 80/443). There is no local/dev environment on this host.
 - Code root: `/home/ubuntu/forseti.life/sites/dungeoncrawler`
-- Local probe last verified 2026-03-22 (site not running in current env; curl probes expected to fail until service started)
 - Routes shipped as of 20260328-dungeoncrawler-release-b: `/dungeoncrawler/traits` (403 auth-gated), `/api/character/1/traits` (403 auth-gated), `/dungeoncrawler/difficulty-class` (impl), `/api/dice/` (impl), ancestry-system routes
 - Pending ship in 20260401/20260402-dungeoncrawler-release-b: background-system, character-class, conditions, skill-system (Tier 1 active)
 

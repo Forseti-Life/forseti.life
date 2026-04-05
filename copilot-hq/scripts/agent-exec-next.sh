@@ -834,7 +834,7 @@ notify_qa_unit_test_on_done() {
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).
     2) Ensure this check exists in the regression checklist and keep it evergreen:
        - ${checklist_path:-'(no site checklist path available)'}
-    3) Run the automated URL validation + role-based permission checks for this site (pre-release localhost by default):
+    3) Run the automated URL validation + role-based permission checks for this site (requires ALLOW_PROD_QA=1):
        - scripts/site-audit-run.sh (see runbooks/role-based-url-audit.md)
 
     Deliverable:

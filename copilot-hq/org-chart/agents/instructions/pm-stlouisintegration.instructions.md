@@ -4,7 +4,7 @@
 This file is owned by the `pm-stlouisintegration` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/ubuntu/copilot-sessions-hq
 - sessions/pm-stlouisintegration/**
 - features/stlouisintegration-*/**
 - org-chart/agents/instructions/pm-stlouisintegration.instructions.md

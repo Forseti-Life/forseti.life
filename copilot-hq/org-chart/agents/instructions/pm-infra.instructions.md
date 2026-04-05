@@ -11,16 +11,16 @@ Run the infrastructure backlog: system administration, stability, scalability, a
 - Operational automation and reliability improvements that keep all agent loops and product sites stable.
 
 ## Owned file scope (HQ)
-### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
+### HQ repo: /home/ubuntu/forseti.life/copilot-hq
 - sessions/pm-infra/**
 - org-chart/agents/instructions/pm-infra.instructions.md
 
 **IMPORTANT — git add in this repo:** `copilot-hq/.gitignore` has `sessions/**`, so new session files (artifacts, outboxes, inbox items) require `git add -f <path>` to be tracked. Modified/already-tracked files use plain `git add`. Always use `git add -f` for new files under `copilot-hq/sessions/`.
 
-**Old repo path (deprecated):** `/home/keithaumiller/copilot-sessions-hq` — this repo no longer exists; all HQ work is in `forseti.life/copilot-hq/`.
+**Old repo path (deprecated):** `/home/ubuntu/copilot-sessions-hq` — this repo no longer exists; all HQ work is in `forseti.life/copilot-hq/`.
 
 ## Owned file scope (forseti.life)
-### Forseti repo: /home/keithaumiller/forseti.life
+### Forseti repo: /home/ubuntu/forseti.life
 - Any path outside `sites/**` (docs/scripts/config/tooling)
 
 ## Default operating mode

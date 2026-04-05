@@ -4,7 +4,7 @@
 This file is owned by the `ba-dungeoncrawler` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/ubuntu/copilot-sessions-hq
 - sessions/ba-dungeoncrawler/**
 - org-chart/agents/instructions/ba-dungeoncrawler.instructions.md
 - features/dc-*/feature.md  ← you create pre-triage stubs; PM owns final content

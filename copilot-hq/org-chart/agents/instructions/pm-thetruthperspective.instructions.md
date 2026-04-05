@@ -7,7 +7,7 @@ This file is owned by the `pm-thetruthperspective` seat.
 - Paused (CEO decision 2026-02-22)
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/ubuntu/copilot-sessions-hq
 - sessions/pm-thetruthperspective/**
 - features/thetruthperspective-*/**
 - org-chart/agents/instructions/pm-thetruthperspective.instructions.md

@@ -258,7 +258,7 @@ vendor/bin/drush cr
 vendor/bin/drush watchdog:show --count=10 --severity=3 2>&1 | grep -v "Google Cloud\|Get job"
 
 # 3. Spot-check the fixed route(s) return expected HTTP status (anon)
-curl -s -o /dev/null -w "%{http_code}" http://localhost/<route>  # expect 403 for auth-only routes
+curl -s -o /dev/null -w "%{http_code}" https://forseti.life/<route>  # expect 403 for auth-only routes
 
 # 4. Verify permission is in DB (for permission-grant fixes)
 vendor/bin/drush php:eval "use Drupal\user\Entity\Role; \$r = Role::load('authenticated'); echo in_array('access job hunter', \$r->getPermissions()) ? 'PASS' : 'FAIL';"

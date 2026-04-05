@@ -18,8 +18,9 @@ This file is owned by the `qa-dungeoncrawler` seat.
 	- Write an outbox update summarizing new issues and access-control concerns.
 
 Notes:
-- Local/dev `BASE_URL` (use this for continuous audits): `http://localhost:8080` (default in `scripts/site-audit-run.sh`; override with `DUNGEONCRAWLER_BASE_URL`).
-- Production `BASE_URL` (reference only — do NOT run recursive crawls against prod unless explicitly authorized): `https://dungeoncrawler.forseti.life`.
+- Production `BASE_URL`: `https://dungeoncrawler.forseti.life`. This server IS production — there is no local/dev environment.
+- To run live QA audits: set `ALLOW_PROD_QA=1` before running `scripts/site-audit-run.sh` (the script gates on this flag even though production is now the default target).
+- `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh dungeoncrawler`
 - Role-based URL validation (access verification + error checking): run per-role audits with `--header 'Cookie: ...'` as needed; protocol/examples in `runbooks/role-based-url-audit.md`. Never store cookies in tracked files.
 - Do NOT create new inbox items for yourself.
 - Failures are recorded as PASS/FAIL evidence under audit artifacts (see `findings-summary.md`).
@@ -60,7 +61,7 @@ Drupal's `authenticated` base role permissions are inherited by ALL authenticate
 
 **New qa-permissions.json rule validation (required before audit run):**
 Before running an audit that includes a newly added `qa-permissions.json` rule:
-1. Run `drush --uri=http://localhost:8080 role:list` and confirm which roles actually have the required permission.
+1. Run `drush --uri=https://dungeoncrawler.forseti.life role:list` and confirm which roles actually have the required permission.
 2. For any `deny` expectation on an authenticated role, verify that role does NOT have the permission (directly or via `authenticated` base role inheritance).
 3. Only then run the audit. This prevents auto-queuing false dev-findings items caused by QA config errors (observed pattern: 2026-03-22 audit `20260322-142611`).
 
@@ -159,9 +160,11 @@ If you discover a Gate 2 item in your inbox with ROI < 200:
 
 Root cause: During 20260327-dungeoncrawler-release-b, Gate 2 unit-test items were dispatched at ROI 43–56 while 15+ competing items had ROI 84–300. Under strict ROI ordering they were never reached, causing 3–5 session stagnation requiring manual intervention (GAP-DC-GATE2-ROI-01).
 
-## Env-outage fallback policy (code-level APPROVE)
+## Live test gating policy (ALLOW_PROD_QA required)
 
-When the local dev environment is unreachable (`localhost:8080` HTTP 000) or `vendor/bin/drush` is not installed (composer not run), live e2e tests cannot execute. In this case:
+This server IS production. There is no local dev environment. Live e2e tests run against `https://dungeoncrawler.forseti.life` and require `ALLOW_PROD_QA=1` to execute.
+
+When `ALLOW_PROD_QA=1` is NOT set, live tests cannot run. In this case:
 
 **Code-level APPROVE (provisional)** is allowed when ALL of the following are satisfied:
 1. All routes verified registered in the routing YAML with correct access gates.
@@ -172,9 +175,8 @@ When the local dev environment is unreachable (`localhost:8080` HTTP 000) or `ve
 
 Code-level APPROVE obligations:
 - Label it explicitly "provisional — code-level APPROVE" in the verification report/outbox.
-- State "live e2e BLOCKED — env unreachable" and cite the specific env blocker.
-- Add a regression checklist entry flagging the feature for live retest when env is restored.
-- Escalate to pm-dungeoncrawler with the env blocker to ensure composer install / site-up is scheduled.
+- State "live e2e BLOCKED — ALLOW_PROD_QA=1 not set" and cite the specific reason.
+- Add a regression checklist entry flagging the feature for live retest when ALLOW_PROD_QA=1 is authorized.
 
 Do NOT issue a full unconditional APPROVE when live tests have not run.
 
@@ -192,14 +194,14 @@ If prior APPROVE or BLOCK evidence exists and the feature code has not changed s
 
 Root cause: `dc-cr-ancestry-traits` was re-dispatched in 20260405 cycle despite a complete APPROVE record from 2026-03-27. A full execution slot was consumed with no new value.
 
-## Suite-activate env check (required)
+## Suite-activate live test check (required)
 
-When a suite-activate item arrives and `localhost:8080` is unreachable (HTTP 000):
-1. Immediately write a `Status: needs-info` outbox to `pm-dungeoncrawler` listing: (a) all blocked suite-activate items, (b) the env blocker, (c) ROI of site-up for Gate 2 unblock.
-2. Apply code-level APPROVE (provisional) per env-outage fallback policy for each item where code verification passes.
-3. Flag all provisional APPROVEs for live retest in the regression checklist.
+When a suite-activate item arrives and `ALLOW_PROD_QA=1` is not set (default):
+1. Apply code-level APPROVE (provisional) per the live test gating policy for each item where code verification passes.
+2. Flag all provisional APPROVEs for live retest in the regression checklist.
+3. Note: live tests can run at any time by setting `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh dungeoncrawler`.
 
-Root cause: 13 suite-activate items dispatched 2026-04-05 while localhost:8080 unreachable. All Gate 2 evidence is provisional until env restored (GAP-DC-QA-SITE-UP-01).
+Root cause: 13 suite-activate items dispatched 2026-04-05 while ALLOW_PROD_QA was not set. All Gate 2 evidence was provisional until ALLOW_PROD_QA=1 was established (GAP-DC-QA-SITE-UP-01).
 
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`

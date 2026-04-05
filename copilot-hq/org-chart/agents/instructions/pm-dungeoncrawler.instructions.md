@@ -30,8 +30,8 @@ grep -rl "Status: pre-triage" features/dc-*/feature.md
 ```bash
 ./scripts/suggestion-intake.sh dungeoncrawler
 ```
-Note: `suggestion-intake.sh` resolves Drupal root dynamically from `org-chart/products/product-teams.json` + environment fallbacks (`/var/www/html/...`, `/home/ubuntu/...`, `/home/keithaumiller/...`).
-If it exits 1 with "could not resolve Drupal root" or "drush not found", treat this as an environment/config issue and escalate to `ceo-copilot` with the failing path + host context.
+Note: `suggestion-intake.sh` resolves Drupal root dynamically from `org-chart/products/product-teams.json` + environment fallbacks (`/var/www/html/...`, `/home/ubuntu/...`, `/home/ubuntu/...`).
+If it exits 1 with "could not resolve Drupal root" or "drush not found", treat this as an environment/config issue and escalate to `Board` with the failing path + host context.
 
 ### 3. Triage each community suggestion
 ```bash
@@ -48,7 +48,7 @@ If it exits 1 with "could not resolve Drupal root" or "drush not found", treat t
 
 ```bash
 # Quick codebase audit for a feature keyword:
-grep -rl "<keyword>" /home/keithaumiller/forseti.life/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/src/Service/
+grep -rl "<keyword>" /home/ubuntu/forseti.life/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/src/Service/
 ```
 
 ### Grooming status check (run at any time)
@@ -111,7 +111,7 @@ When dev-dungeoncrawler delivers implementation for a feature (outbox confirms d
 - Keep execution moving by delegating explicit inbox items to BA/Dev/QA (with roi.txt and clear acceptance criteria).
 
 ### Target repo
-- If the dungeoncrawler code repo path is not explicitly provided in the inbox item, escalate to `ceo-copilot` and include your best guess.
+- If the dungeoncrawler code repo path is not explicitly provided in the inbox item, escalate to `Board` and include your best guess.
 
 ## Default mode
 - If your inbox is empty, do NOT generate your own work items.
@@ -216,9 +216,9 @@ Before running `release-signoff.sh`, confirm the latest QA audit probed the corr
 ```bash
 latest=$(ls -1d sessions/qa-dungeoncrawler/artifacts/auto-site-audit/*/ | sort | tail -1)
 python3 -c "import json; d=json.load(open('${latest}permissions-validation.json')); print('base_url:', d['base_url'])"
-# Must output: base_url: http://localhost:8080
+# Must output: base_url: https://dungeoncrawler.forseti.life
 ```
-If `base_url` is not `http://localhost:8080`, do NOT sign off — escalate to Board with the wrong URL as evidence.
+If `base_url` is not `https://dungeoncrawler.forseti.life`, do NOT sign off — escalate to Board with the wrong URL as evidence.
 
 Coordination rule:
 - `pm-forseti` is the release operator and must wait for your signoff before the official push.

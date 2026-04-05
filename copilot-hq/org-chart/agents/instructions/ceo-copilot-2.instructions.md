@@ -39,7 +39,7 @@ Compare to the run_id in the alert. If `latest` points to a newer clean run, con
 
 ### Systemd user bus not available in agent context
 `systemctl --user daemon-reload` returns "Failed to connect to bus: No medium found" in this agent context.
-Workaround: run manual audit via `DUNGEONCRAWLER_BASE_URL=http://localhost:8080 bash scripts/site-audit-run.sh dungeoncrawler` to produce clean Gate 2 evidence. The fix remains committed on disk; the timer will pick it up after a human runs `systemctl --user daemon-reload` in an interactive terminal.
+Note: This affects systemd unit reload only. The site is always running at production URLs (`https://forseti.life`, `https://dungeoncrawler.forseti.life`). For QA audits, run: `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh dungeoncrawler`.
 
 ### Identifying a systemd env-override as the root cause
 Check: `diff <(systemctl --user cat <unit>)` is not available in agent context. Instead: `cat scripts/systemd/<unit>` and confirm `Environment=` lines match the correct defaults. The installed unit may differ from the source file if daemon-reload has not run since the last commit.

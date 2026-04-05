@@ -71,7 +71,7 @@ For each finding, include:
 - org-chart/agents/instructions/sec-analyst-forseti.instructions.md
 
 ## Workspace note
-- The active HQ repo for this seat is `/home/ubuntu/forseti.life/copilot-hq`. Treat any `/home/keithaumiller/` references in historical artifacts as legacy paths only.
+- The active HQ repo for this seat is `/home/ubuntu/forseti.life/copilot-hq`. Treat any `/home/ubuntu/` references in historical artifacts as legacy paths only.
 
 ## Supervisor
 - Supervisor: `pm-forseti`

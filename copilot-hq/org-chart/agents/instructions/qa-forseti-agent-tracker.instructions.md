@@ -16,8 +16,8 @@ This file is owned by the `qa-forseti-agent-tracker` seat.
 - `web/modules/custom/copilot_agent_tracker/**` (test/supporting changes only when explicitly delegated)
 
 ## Environments
-- Local/dev BASE_URL: `http://localhost` (default; set via `FORSETI_BASE_URL`)
-- Production BASE_URL: `https://forseti.life` (reference only; requires `ALLOW_PROD_QA=1`)
+- Production BASE_URL: `https://forseti.life` — this server IS production (no local dev env)
+- Live audits require `ALLOW_PROD_QA=1` (e.g., `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti-life`)
 - Cookie env vars (required for auth-level audits): `FORSETI_COOKIE_AUTHENTICATED`, `FORSETI_COOKIE_EDITOR`, `FORSETI_COOKIE_ADMIN`
 
 ## Key module routes (copilot_agent_tracker)
@@ -64,7 +64,7 @@ The test script `run-copilot-agent-tracker-tests.py` auto-fetches the admin cook
 
 ## HQ repo path (resolved — 2026-04-05)
 - HQ repo is at `/home/ubuntu/forseti.life/copilot-hq` (git subtree, migrated from keithaumiller home).
-- All suite manifests, audit script paths, and artifact paths must reference `/home/ubuntu/` (not `/home/keithaumiller/`).
+- All suite manifests, audit script paths, and artifact paths must reference `/home/ubuntu/` (not `/home/ubuntu/`).
 - CEO applied a bulk path fix to suite.json files on 2026-04-05; this is now canonical.
 
 ## Continuous audit artifacts

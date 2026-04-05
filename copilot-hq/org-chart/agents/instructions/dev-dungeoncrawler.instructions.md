@@ -49,7 +49,7 @@ If no new routes: include `## New routes introduced\nNone.` to confirm this was 
 Before notifying QA on any Type A or Type B fix, you MUST run the permission validation locally and confirm 0 violations:
 ```bash
 cd /home/ubuntu/forseti.life/copilot-hq
-python3 scripts/role-permissions-validate.py --site dungeoncrawler --base-url http://localhost:8080
+python3 scripts/role-permissions-validate.py --site dungeoncrawler --base-url https://dungeoncrawler.forseti.life
 ```
 If violations are found: fix them before handing off to QA. Never rely on QA's site-audit-run to catch permission regressions you could have caught locally. Record the result (`0 violations` or list of fixes) in your outbox under `## Pre-QA permission audit`.
 

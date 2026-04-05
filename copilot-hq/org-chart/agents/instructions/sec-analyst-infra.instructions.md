@@ -67,7 +67,7 @@ When creating or updating this file, always commit with `git add -f` (file is in
 - Identify 1-3 security-specific process gaps with SMART follow-through items (owner, AC, verification, time-bound, ROI).
 
 ## Owned file scope
-### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
+### HQ repo: /home/ubuntu/forseti.life/copilot-hq
 - sessions/sec-analyst-infra/**
 - org-chart/agents/instructions/sec-analyst-infra.instructions.md
 
