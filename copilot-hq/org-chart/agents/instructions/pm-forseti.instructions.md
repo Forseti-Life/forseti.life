@@ -44,7 +44,7 @@ from `/home/ubuntu/forseti.life` (repo root). Existing tracked files use normal 
 
 ## Escalation
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
-- If blocked by ownership conflicts, missing environment/repo access, or ship decisions beyond PM authority, escalate to `ceo-copilot` with options, recommendation, and ROI estimate.
+- If blocked by ownership conflicts, missing environment/repo access, or ship decisions beyond PM authority, escalate to `Board` with options, recommendation, and ROI estimate.
 
 ## Supervisor
 - Supervisor: `ceo-copilot`
@@ -124,7 +124,7 @@ find sessions/pm-forseti/artifacts/release-signoffs sessions/pm-dungeoncrawler/a
   ```bash
   ./scripts/release-signoff.sh forseti.life <release-id>
   ```
-- If `pm-forseti` has signed but `pm-dungeoncrawler` has not: dispatch a passthrough-request inbox item **directly to pm-dungeoncrawler** (ROI ≥ 20). Escalate to CEO only if unresolved after one cycle.
+- If `pm-forseti` has signed but `pm-dungeoncrawler` has not: dispatch a passthrough-request inbox item **directly to pm-dungeoncrawler** (ROI ≥ 20). Escalate to Board only if unresolved after one cycle.
 - Document the `release-signoff-status.sh` output in your outbox as evidence.
 
 **Why this exists**: In `20260322-dungeoncrawler-release-next`, `pm-dungeoncrawler` recorded Gate 2 signoff but `pm-forseti` did not. The coordinated push stalled because pm-forseti had no standing instruction to claim the remaining signoff when a cross-PM Gate 2 was reported. The improvement-round trigger alone is insufficient — the claim must happen on any inbox item where Gate 2 context arrives.
@@ -152,7 +152,7 @@ find sessions/pm-forseti/artifacts/release-signoffs sessions/pm-dungeoncrawler/a
 ./scripts/release-signoff-status.sh <release-id>
 ```
 - If pm-dungeoncrawler has signed but pm-forseti has not: record signoff immediately (`./scripts/release-signoff.sh forseti.life <release-id>`).
-- If pm-forseti has signed but pm-dungeoncrawler has not: dispatch a passthrough-request inbox item **directly to pm-dungeoncrawler** (do not relay through CEO). Use `runbooks/passthrough-request.md` format, ROI ≥ 20. Only escalate to CEO if pm-dungeoncrawler has not responded after one execution cycle.
+- If pm-forseti has signed but pm-dungeoncrawler has not: dispatch a passthrough-request inbox item **directly to pm-dungeoncrawler** (do not relay through CEO). Use `runbooks/passthrough-request.md` format, ROI ≥ 20. Only escalate to Board if pm-dungeoncrawler has not responded after one execution cycle.
 - Do not wait for a dedicated signoff inbox item; signoff is a standing PM gate obligation and can be completed within the improvement round outbox.
 - Cross-PM signoff latency is a recurring throughput bottleneck. Checking ALL active releases (not just the current inbox item's release-id) is required to avoid multi-day signoff delays.
 
@@ -210,8 +210,27 @@ If a release ID has been at `release-signoff-status = false` for more than 3 day
    - Blocker (what is blocking, who owns the fix)
    - Current gate state (signoff values, script exit code)
    - Resolution options (A/B/C with recommendation)
-   - Escalation history (CEO items referencing this release)
+   - Escalation history (Board items referencing this release)
 2. Reference the hold artifact in the current session outbox.
 3. Do NOT re-derive the same gaps in future sessions — link to the hold artifact instead.
 
 This prevents ghost improvement rounds from re-queuing on a release that is intentionally held.
+
+## Gate R5 — Post-push production audit (PM responsibility)
+
+After every coordinated push, pm-forseti (as release operator) must run the production audit:
+
+```bash
+ALLOW_PROD_QA=1 FORSETI_BASE_URL=https://forseti.life bash scripts/site-audit-run.sh forseti-life
+```
+
+Then update the `latest` symlink:
+```bash
+ln -sfn <run_ts> sessions/qa-forseti/artifacts/auto-site-audit/latest
+```
+
+Acceptance: `findings-summary.json` shows `"is_prod": true`, `failures: 0`, `permission_violations: 0`, `missing_assets_404s: 0`.
+
+Record the audit run_ts in your release outbox. If the audit fails: document violations, open dev inbox items for each, and mark the release as **unclean** in the scoreboard.
+
+**Zero-feature releases**: include the audit run_ts as the verification baseline in the signoff artifact (see Zero-feature-scope releases note above).

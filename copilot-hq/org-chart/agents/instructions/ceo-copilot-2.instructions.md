@@ -49,14 +49,3 @@ When `scripts/release-signoff-status.sh <release-id>` shows one PM signed and on
 
 ### Proposal-to-passthrough enforcement
 Before completing any improvement-round inbox item, scan session outboxes and KB proposals for unactioned improvement proposals in this release cycle. For each found: if a passthrough inbox item does not already exist for the implementing seat, create one. Check: `ls sessions/pm-infra/inbox/ | grep <topic-keyword>`.
-
-### Gate R5 production audit (recurring CEO action — every post-push cycle)
-pm-forseti has no `ALLOW_PROD_QA=1` access. CEO must run production audit for every forseti.life post-push:
-```
-ALLOW_PROD_QA=1 FORSETI_BASE_URL=https://forseti.life bash scripts/site-audit-run.sh forseti-life
-```
-Then update the `latest` symlink: `ln -sfn <run_ts> sessions/qa-forseti/artifacts/auto-site-audit/latest`
-
-Acceptance: `findings-summary.json` shows `"is_prod": true` and `failures: 0, violations: 0, 404s: 0`.
-
-Long-term fix (dev-infra scope): add a GH Actions job in forseti.life `.github/workflows/deploy.yml` that calls the audit script post-deploy and commits results to HQ — see KB proposal at `knowledgebase/proposals/` (to be created by dev-infra).

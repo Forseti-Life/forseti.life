@@ -72,13 +72,13 @@ Exit criteria:
 - Evidence attached.
 - Explicit APPROVE or BLOCK.
 
-### Release-critical QA testgen backlog intervention rule (CEO-owned, added 2026-03-22)
+### Release-critical QA testgen backlog intervention rule (PM-owned, added 2026-03-22)
 
-**Trigger (hard threshold):** If a QA testgen backlog for a release-bound grooming pool reaches **2 consecutive groom/improvement cycles with 0 test plans delivered**, PM must escalate to CEO in the same cycle.
+**Trigger (hard threshold):** If a QA testgen backlog for a release-bound grooming pool reaches **2 consecutive groom/improvement cycles with 0 test plans delivered**, PM must intervene directly in the same cycle.
 
-**Intervention decision owner:** CEO.
+**Intervention decision owner:** PM.
 
-**Default CEO intervention (in priority order):**
+**Default PM intervention (in priority order):**
 1. **Resequence the executor**: set all release-bound testgen items to the highest ROI in the queue (`roi.txt` = 50) so they are processed before any other qa seat work.
 2. **Cap testgen batch size**: if >8 testgen items are pending for a single release, split into sequential batches of 4 and ensure the first batch fully completes (outbox written, test plans committed) before the next batch starts.
 3. **Block Stage-0 scope selection**: PM may NOT run `pm-scope-activate.sh` for any feature without `03-test-plan.md` present. Stage-0 activation is hard-blocked — no negotiation (already required by process flow, but must be explicitly enforced at escalation).
@@ -86,7 +86,7 @@ Exit criteria:
 
 **PM responsibility (required):**
 - At every groom cycle where testgen items are pending: record the count of pending/completed in the outbox.
-- If the threshold above is reached, create a CEO inbox item with the title `<date>-qa-testgen-backlog-alert-<site>` and ROI=45 (default for release-blocking throughput issues).
+- If the threshold above is reached, PM acts immediately on steps 1–3 above and documents the intervention in the outbox.
 
 **Evidence from dungeoncrawler release-b (2026-03-22):**
 - 12 testgen items pending since 2026-03-20, 0 delivered, 3 consecutive groom cycles (pm-dungeoncrawler outboxes 20260322-groom-*).
@@ -142,11 +142,11 @@ Exit criteria:
 
 Policy:
 - If post-release is unclean, the next release cycle is remediation-only (no new features).
-- PM escalates to CEO if there are 3 unclean releases in a row for a product/site.
+- PM escalates to Board if there are 3 unclean releases in a row for a product/site.
 
-## Coordinated Release (optional: CEO)
+## Coordinated Release
 Additional rules for shipping:
 - Forseti and Dungeoncrawler pushes happen in the same release window.
-- CEO may review the complete list of features/defects fixed for coordination/risk.
+- Release operator (`pm-forseti`) owns the go/no-go decision for coordinated releases.
 
 Runbook: `runbooks/coordinated-release.md`

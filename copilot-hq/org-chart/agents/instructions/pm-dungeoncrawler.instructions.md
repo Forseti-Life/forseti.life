@@ -4,7 +4,7 @@
 This file is owned by the `pm-dungeoncrawler` seat.
 
 ## Owned file scope (source of truth)
-### HQ repo: /home/keithaumiller/forseti.life/copilot-hq
+### HQ repo: /home/ubuntu/forseti.life/copilot-hq
 - sessions/pm-dungeoncrawler/**
 - features/dc-*/**
 - features/dungeoncrawler-*/**
@@ -120,7 +120,7 @@ When dev-dungeoncrawler delivers implementation for a feature (outbox confirms d
 
 ## Escalation
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
-- If blocked by missing repo path, cross-team ownership, or ship/go-no-go decisions, escalate to `ceo-copilot` with options, recommendation, and ROI estimate.
+- If blocked by missing repo path, cross-team ownership, or ship/go-no-go decisions, escalate to `Board` with options, recommendation, and ROI estimate.
 
 ### Required outbox fields when Status: blocked or needs-info
 When your outbox status is `blocked` or `needs-info`, you MUST include ALL of these sections:
@@ -143,6 +143,39 @@ When QA testgen throughput is zero AND at least one release cycle has elapsed wi
 Trigger condition: testgen items in qa-dungeoncrawler inbox with zero outbox return for >= 2 groom cycles.
 
 Authorized by: `ceo-copilot` (decision 2026-03-27, outbox `20260327-needs-ceo-copilot-2-stagnation-full-analysis.md`)
+
+## Stale in_progress cleanup (required — added 2026-04-05)
+Before activating features into a new release, ALWAYS check and clean up stale in_progress features from prior releases:
+```bash
+python3 -c "
+import pathlib, re
+for d in sorted(pathlib.Path('features').glob('dc-*/')):
+    fm = d/'feature.md'
+    if not fm.exists(): continue
+    lines = fm.read_text().splitlines()
+    status = next((l.split(':',1)[1].strip() for l in lines if l.startswith('- Status:')), '')
+    release = next((l.split(':',1)[1].strip() for l in lines if l.startswith('- Release:')), '')
+    website = next((l.split(':',1)[1].strip() for l in lines if l.startswith('- Website:')), '')
+    if status == 'in_progress' and website == 'dungeoncrawler':
+        print(f'{d.name}: {release}')
+"
+```
+For each stale in_progress feature (wrong release or no QA APPROVE): set `Status: ready` (remove Release line if present) and commit before counting against the 10-feature auto-close threshold.
+
+Lesson: Stale in_progress features from prior releases count toward the 10-feature auto-close threshold and can trigger false auto-closes on a new release before any dev/QA work completes.
+
+## Empty release Gate 2 bypass policy (required — updated 2026-04-05)
+When a release closes with **zero features shipped** (all deferred), `release-signoff.sh` will fail Gate 2 because no QA APPROVE evidence references the release ID.
+
+**PM self-certification (no escalation required):** use the `--empty-release` flag:
+```bash
+bash scripts/release-signoff.sh dungeoncrawler <release-id> --empty-release
+```
+This writes a Gate 2 self-cert to `sessions/qa-dungeoncrawler/outbox/` on PM's behalf and proceeds with signoff. No CEO or QA involvement needed for empty releases.
+
+Do NOT re-activate features into the stale release before running signoff — this triggers another auto-close loop.
+
+Lesson: Empty releases are self-certifiable at PM level. Do not escalate to CEO for Gate 2 waivers.
 
 ## Supervisor
 - Supervisor: `ceo-copilot`
@@ -185,8 +218,8 @@ latest=$(ls -1d sessions/qa-dungeoncrawler/artifacts/auto-site-audit/*/ | sort |
 python3 -c "import json; d=json.load(open('${latest}permissions-validation.json')); print('base_url:', d['base_url'])"
 # Must output: base_url: http://localhost:8080
 ```
-If `base_url` is not `http://localhost:8080`, do NOT sign off — escalate to CEO with the wrong URL as evidence.
+If `base_url` is not `http://localhost:8080`, do NOT sign off — escalate to Board with the wrong URL as evidence.
 
 Coordination rule:
 - `pm-forseti` is the release operator and must wait for your signoff before the official push.
-- If you cannot sign off (missing QA evidence, unclear rollback, open risk), escalate to `ceo-copilot` and block the coordinated release until resolved.
+- If you cannot sign off (missing QA evidence, unclear rollback, open risk), escalate to Board and block the coordinated release until resolved.
