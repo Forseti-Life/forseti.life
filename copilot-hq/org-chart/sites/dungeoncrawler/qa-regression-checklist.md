@@ -61,3 +61,4 @@ This file is a running list of targeted regression checks derived from completed
 - [x] 20260331-fix-ancestry-system-cycle5 — CLOSED-DUPLICATE 2026-04-05 (release-b preflight triage): duplicate of line 54 which is already CLOSED (BLOCK, cycle 5; PM escalation resolved). No additional action needed.
 - [x] 20260331-fix-test-defect-ancestry-tc-an-04-line174 — CLOSED-DUPLICATE 2026-04-05 (release-b preflight triage): duplicate of line 55 which is already CLOSED (APPROVE, cycle 6, 19/19 PASS). Gate 2 already cleared. No additional action needed.
 - [ ] 20260402-improvement-round-20260322-dungeoncrawler-release-next — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260402-improvement-round-20260322-dungeoncrawler-release-next.md)
+- [ ] 20260405-csrf-finding-3-dungeoncrawler-content — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260405-csrf-finding-3-dungeoncrawler-content.md)
