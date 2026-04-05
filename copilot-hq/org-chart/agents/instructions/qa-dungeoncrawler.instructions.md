@@ -147,5 +147,49 @@ Workaround (until production credentials are available):
 - Full role-based permissions validation is covered by the local/dev audit (all 6 roles auto-acquired via drush OTL).
 - Do NOT block a release gate on missing production role coverage alone if local audit is clean.
 
+## ROI standing rules (required — prevents Gate 2 stagnation)
+
+### Gate 2 ROI floor (GAP-DC-GATE2-ROI-01, 2026-03-28)
+Release-blocking Gate 2 unit-test inbox items MUST be assigned ROI ≥ 200 at the time they are created.
+
+If you discover a Gate 2 item in your inbox with ROI < 200:
+- Treat it as the highest-priority item regardless of ROI value.
+- Note the low-ROI discrepancy in your outbox for the orchestrator (CEO) to correct.
+- Do NOT skip or defer it under ROI ordering.
+
+Root cause: During 20260327-dungeoncrawler-release-b, Gate 2 unit-test items were dispatched at ROI 43–56 while 15+ competing items had ROI 84–300. Under strict ROI ordering they were never reached, causing 3–5 session stagnation requiring CEO manual intervention (GAP-DC-GATE2-ROI-01).
+
+## Env-outage fallback policy (code-level APPROVE)
+
+When the local dev environment is unreachable (`localhost:8080` HTTP 000) or `vendor/bin/drush` is not installed (composer not run), live e2e tests cannot execute. In this case:
+
+**Code-level APPROVE (provisional)** is allowed when ALL of the following are satisfied:
+1. All routes verified registered in the routing YAML with correct access gates.
+2. All PHP service/controller/manager classes exist and contain the implementation logic.
+3. The service is registered in `services.yml`.
+4. `qa-suites/products/dungeoncrawler/suite.json` is updated with the suite entry (Stage 0 activated).
+5. The prior-cycle precedent exists (e.g., dc-cr-ancestry-traits APPROVE was code-level only on 2026-03-27).
+
+Code-level APPROVE obligations:
+- Label it explicitly "provisional — code-level APPROVE" in the verification report/outbox.
+- State "live e2e BLOCKED — env unreachable" and cite the specific env blocker.
+- Add a regression checklist entry flagging the feature for live retest when env is restored.
+- Escalate to pm-dungeoncrawler with the env blocker to ensure composer install / site-up is scheduled.
+
+Do NOT issue a full unconditional APPROVE when live tests have not run.
+
+## Duplicate-dispatch detection (required)
+
+Before starting any testgen or Gate 2 verification work, check for prior evidence:
+1. Check `sessions/qa-dungeoncrawler/artifacts/` for a matching verification report.
+2. Check `org-chart/sites/dungeoncrawler/qa-regression-checklist.md` for `[x]` APPROVE/BLOCK entry for the feature.
+3. Check `features/<feature>/03-test-plan.md` header for `Status: shipped` or `Status: verified`.
+
+If prior APPROVE or BLOCK evidence exists and the feature code has not changed since the prior decision:
+- Fast-exit with `Status: done`; cite the prior evidence in your outbox.
+- Do NOT re-run or re-document already-completed work.
+
+Root cause: `dc-cr-ancestry-traits` was re-dispatched in 20260405 cycle despite a complete APPROVE record from 2026-03-27. A full execution slot was consumed with no new value.
+
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`
