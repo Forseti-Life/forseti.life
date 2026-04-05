@@ -31,10 +31,11 @@ use Symfony\Component\Routing\Exception\RouteNotFoundException;
  */
 final class DashboardController extends ControllerBase {
 
-  // LangGraph telemetry file paths (single source of truth for path changes).
-  const LANGGRAPH_TICKS_FILE = '/home/keithaumiller/copilot-sessions-hq/inbox/responses/langgraph-ticks.jsonl';
-  const LANGGRAPH_PARITY_FILE = '/home/keithaumiller/copilot-sessions-hq/inbox/responses/langgraph-parity-latest.json';
-  const LANGGRAPH_FEATURE_PROGRESS_FILE = '/home/keithaumiller/copilot-sessions-hq/dashboards/LANGGRAPH_FEATURE_PROGRESS.md';
+  // LangGraph telemetry file paths — resolved at runtime via COPILOT_HQ_ROOT env.
+  // Use $this->langgraphPath('relative/path') instead of these constants directly.
+  const LANGGRAPH_TICKS_RELATIVE = 'inbox/responses/langgraph-ticks.jsonl';
+  const LANGGRAPH_PARITY_RELATIVE = 'inbox/responses/langgraph-parity-latest.json';
+  const LANGGRAPH_FEATURE_PROGRESS_RELATIVE = 'dashboards/FEATURE_PROGRESS.md';
   const RELEASE_CYCLE_CONTROL_FILE_DEFAULT = '/var/tmp/copilot-sessions-hq/release-cycle-control.json';
   const RELEASE_CYCLE_CONTROL_FILE_LEGACY = '/home/keithaumiller/copilot-sessions-hq/tmp/release-cycle-control.json';
 
@@ -993,6 +994,14 @@ final class DashboardController extends ControllerBase {
       '#markup' => '<div class="messages messages--' . $severity . '"><strong>'
         . $this->t($label) . ':</strong> ' . $this->t($message) . '</div>',
     ];
+  }
+
+  /**
+   * Returns absolute path to a HQ repo file, resolved from COPILOT_HQ_ROOT env.
+   */
+  private function langgraphPath(string $relative): string {
+    $root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/keithaumiller/copilot-sessions-hq'), '/');
+    return $root . '/' . ltrim($relative, '/');
   }
 
   /**
@@ -3728,8 +3737,8 @@ final class DashboardController extends ControllerBase {
     );
     $build['flow_hub'] = $this->renderLanggraphHomeFlowHub();
 
-    $latest_tick = $this->readLastJsonlObject(self::LANGGRAPH_TICKS_FILE);
-    $parity_data = $this->readJsonFile(self::LANGGRAPH_PARITY_FILE);
+    $latest_tick = $this->readLastJsonlObject($this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE));
+    $parity_data = $this->readJsonFile($this->langgraphPath(self::LANGGRAPH_PARITY_RELATIVE));
     $release_control = $this->readReleaseCycleControlState();
 
     $tick_present = !empty($latest_tick);
@@ -3982,9 +3991,10 @@ final class DashboardController extends ControllerBase {
       ]
     );
 
-    $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
+    $ticks_path = $this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE);
+    $content = $this->readFileSafe($ticks_path);
     if ($content === NULL) {
-      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Tick data unavailable — @path could not be read.', ['@path' => self::LANGGRAPH_TICKS_FILE]) . '</p>'];
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Tick data unavailable — @path could not be read.', ['@path' => $ticks_path]) . '</p>'];
       return $this->sanitizeRenderArray($build);
     }
 
@@ -4128,7 +4138,7 @@ final class DashboardController extends ControllerBase {
     );
 
     // Parse markdown table from LANGGRAPH_FEATURE_PROGRESS.md.
-    $md = $this->readFileSafe(self::LANGGRAPH_FEATURE_PROGRESS_FILE);
+    $md = $this->readFileSafe($this->langgraphPath(self::LANGGRAPH_FEATURE_PROGRESS_RELATIVE));
     $feature_rows = [];
     if ($md !== NULL) {
       foreach (explode("\n", $md) as $line) {
@@ -4171,7 +4181,7 @@ final class DashboardController extends ControllerBase {
     $last_tick_ts = $this->t('unknown');
     $engine_mode = $this->t('unknown');
 
-    $ticks_content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
+    $ticks_content = $this->readFileSafe($this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE));
     if ($ticks_content !== NULL) {
       $ticks = $this->parseJsonl($ticks_content);
       if (!empty($ticks)) {
@@ -4182,7 +4192,7 @@ final class DashboardController extends ControllerBase {
     }
 
     $parity_ok = $this->t('unknown');
-    $parity_content = $this->readFileSafe(self::LANGGRAPH_PARITY_FILE);
+    $parity_content = $this->readFileSafe($this->langgraphPath(self::LANGGRAPH_PARITY_RELATIVE));
     if ($parity_content !== NULL) {
       $parity = json_decode($parity_content, TRUE);
       if (is_array($parity)) {
@@ -4256,9 +4266,10 @@ final class DashboardController extends ControllerBase {
       ]
     );
 
-    $content = $this->readFileSafe(self::LANGGRAPH_PARITY_FILE);
+    $parity_path = $this->langgraphPath(self::LANGGRAPH_PARITY_RELATIVE);
+    $content = $this->readFileSafe($parity_path);
     if ($content === NULL) {
-      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Parity data unavailable — @path could not be read.', ['@path' => self::LANGGRAPH_PARITY_FILE]) . '</p>'];
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Parity data unavailable — @path could not be read.', ['@path' => $parity_path]) . '</p>'];
       return $this->sanitizeRenderArray($build);
     }
 
@@ -4359,9 +4370,10 @@ final class DashboardController extends ControllerBase {
       ]
     );
 
-    $content = $this->readFileSafe(self::LANGGRAPH_TICKS_FILE);
+    $ticks_path2 = $this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE);
+    $content = $this->readFileSafe($ticks_path2);
     if ($content === NULL) {
-      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Tick data unavailable — @path could not be read.', ['@path' => self::LANGGRAPH_TICKS_FILE]) . '</p>'];
+      $build['empty'] = ['#markup' => '<p class="messages messages--warning">' . $this->t('Tick data unavailable — @path could not be read.', ['@path' => $ticks_path2]) . '</p>'];
       return $this->sanitizeRenderArray($build);
     }
 
