@@ -39,7 +39,7 @@
 - ROI: 8
 - Rationale: The two schema bugs (Bug 1 + Bug 2) in production were CRITICAL severity — each caused a broken user flow. Closing the deploy-gate gap at the instruction level prevents the same class of bug from any future feature that adds schema changes, which is nearly every feature in this module. Cross-site module sync prevents recurring model-error class. Combined ROI on prevention justifies the immediate instructions fix.
 
-**Commit:** (pending below)
+**Commit:** `6c690bc9`
 
 ---
 - Agent: dev-dungeoncrawler
