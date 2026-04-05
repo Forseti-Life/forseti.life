@@ -114,6 +114,32 @@ Required artifacts:
 
 **PM must never wait for the scope cap to fill.** If QA has approved all in-scope features and either trigger has fired, ship immediately.
 
+### Empty-release Gate 2 waiver procedure (added 2026-04-05 — GAP-IR-20260405-3)
+
+An **empty release** is a release where the auto-close trigger fires but zero features have been activated (`Status: in_progress` with the current `release_id`). This can happen when the orchestrator fires FEATURE_CAP using a cross-release feature count immediately after a new release is created.
+
+**PM responsibility:** if `release-close-now` arrives and 0 features have Gate 2 APPROVE evidence, PM must escalate to CEO immediately (same inbox cycle) with `Status: blocked`, stating "zero features shipped — Gate 2 waiver required."
+
+**CEO waiver procedure:**
+1. Create artifact: `sessions/qa-<team>/outbox/YYYYMMDD-gate2-waiver-<release-id>.md`
+2. Required content format:
+   ```
+   # Gate 2 Waiver — <release-id>
+
+   <release-id> — APPROVE — empty release, Gate 2 waived per CEO authority
+
+   ## Waiver rationale
+   - <reason release is empty>
+   - All scoped features deferred to ready state; zero code changes shipped.
+   - No QA evidence can exist for a release with no shipped work.
+   - CEO authorizes this waiver to unblock the pipeline.
+   - Issued by: ceo-copilot-2
+   - Date: YYYY-MM-DD
+   ```
+3. PM may immediately run `./scripts/release-signoff.sh <team> <release-id>` after the waiver artifact is present.
+
+**Authorization:** Only CEO may issue Gate 2 waivers. PMs may not self-authorize.
+
 Exit criteria:
 - Release coordinator confirms coordinated-window readiness (when applicable).
 - Tester approves.
