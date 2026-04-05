@@ -40,6 +40,27 @@ class HPManager {
     $temp_hp = (int) ($participant['temp_hp'] ?? 0);
     $damage = max(0, (int) $damage);
 
+    // PF2e: Apply damage type resistances/weaknesses if present on participant.
+    // entity_data (JSON) may contain 'resistances' and 'weaknesses' arrays:
+    //   resistances: [{'type':'fire','value':5}, ...]
+    //   weaknesses:  [{'type':'cold_iron','value':5}, ...]
+    $entity_data = !empty($participant['entity_data']) ? json_decode($participant['entity_data'], TRUE) : [];
+    $resistances = $entity_data['resistances'] ?? [];
+    $weaknesses  = $entity_data['weaknesses'] ?? [];
+    $damage_type_str = strtolower((string) $damage_type);
+    foreach ($resistances as $r) {
+      if (strtolower((string) ($r['type'] ?? '')) === $damage_type_str) {
+        $damage = max(0, $damage - (int) ($r['value'] ?? 0));
+        break;
+      }
+    }
+    foreach ($weaknesses as $w) {
+      if (strtolower((string) ($w['type'] ?? '')) === $damage_type_str) {
+        $damage += (int) ($w['value'] ?? 0);
+        break;
+      }
+    }
+
     // PF2e: Temp HP absorbs damage first.
     $temp_absorbed = 0;
     if ($temp_hp > 0 && $damage > 0) {
