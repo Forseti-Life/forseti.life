@@ -55,7 +55,8 @@ class CharacterCreationStepController extends ControllerBase {
     if ($character_id) {
       // Load existing draft
       $character = $this->characterManager->loadCharacter($character_id);
-      if ($character && $character->uid == $this->currentUser()->id()) {
+      $is_admin = $this->currentUser()->hasPermission('administer dungeoncrawler content');
+      if ($character && ($character->uid == $this->currentUser()->id() || $is_admin)) {
         $data = json_decode($character->character_data, TRUE);
         $step = (int) ($data['step'] ?? 1);
         $url = Url::fromRoute('dungeoncrawler_content.character_step', [
@@ -69,7 +70,24 @@ class CharacterCreationStepController extends ControllerBase {
         return new RedirectResponse($url->toString());
       }
     }
-    
+
+    // Enforce single-draft limit: check if user already has an active draft.
+    $existing_draft = $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['id'])
+      ->condition('uid', (int) $this->currentUser()->id())
+      ->condition('status', 0)
+      ->range(0, 1)
+      ->execute()
+      ->fetchField();
+    if ($existing_draft) {
+      $this->messenger()->addError($this->t('You already have an active draft character. Please complete or delete it before starting a new one.'));
+      $query = ['character_id' => $existing_draft];
+      if ($campaign_id) {
+        $query['campaign_id'] = $campaign_id;
+      }
+      return new RedirectResponse(Url::fromRoute('dungeoncrawler_content.character_step', ['step' => 1])->setOption('query', $query)->toString());
+    }
+
     // Start new character at step 1
     $url = Url::fromRoute('dungeoncrawler_content.character_step', ['step' => 1]);
     if ($campaign_id) {
@@ -92,7 +110,8 @@ class CharacterCreationStepController extends ControllerBase {
 
     if ($character_id) {
       $character = $this->characterManager->loadCharacter((int) $character_id);
-      if (!$character || (int) $character->uid !== (int) $this->currentUser()->id()) {
+      $is_admin = $this->currentUser()->hasPermission('administer dungeoncrawler content');
+      if (!$character || ((int) $character->uid !== (int) $this->currentUser()->id() && !$is_admin)) {
         $this->messenger()->addError($this->t('Access denied.'));
         return new RedirectResponse($this->buildCharactersUrl($campaign_id));
       }
@@ -154,7 +173,8 @@ class CharacterCreationStepController extends ControllerBase {
     // Load existing character
     $character = $character_id ? $this->characterManager->loadCharacter($character_id) : NULL;
     
-    if ($character && $character->uid != $this->currentUser()->id()) {
+    if ($character && $character->uid != $this->currentUser()->id()
+      && !$this->currentUser()->hasPermission('administer dungeoncrawler content')) {
       return new JsonResponse([
         'success' => FALSE,
         'message' => $this->t('Access denied.'),
