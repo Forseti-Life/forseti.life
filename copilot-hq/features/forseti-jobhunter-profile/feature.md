@@ -4,7 +4,7 @@
 - Website: forseti.life
 - Module: job_hunter
 - Status: in_progress
-- Release: 20260402-forseti-release-b
+- Release: 20260405-forseti-release-c
 - Priority: P0
 - Feature type: stabilization
 - PM owner: pm-forseti

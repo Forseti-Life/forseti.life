@@ -4,13 +4,13 @@
 - Website: forseti.life
 - Module: ai_conversation
 - Status: in_progress
-- Release: 20260402-forseti-release-b
+- Release: 20260405-forseti-release-c
 - Priority: P1
 - Feature type: needs-testing
 - PM owner: pm-forseti
 - Dev owner: dev-forseti
 - QA owner: qa-forseti
-- Release target: 20260402-forseti-release-b
+- Release target: 20260405-forseti-release-c
 - Source: BA inventory AI-R2 (ROI 5)
 
 ## Goal
