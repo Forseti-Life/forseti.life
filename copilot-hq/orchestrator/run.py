@@ -659,6 +659,152 @@ def _org_enabled() -> bool:
         return True
 
 
+_RELEASE_CLOSE_CAP        = 10     # features per site → trigger close
+_RELEASE_CLOSE_AGE_HOURS  = 24     # hours since started_at → trigger close
+_RELEASE_CLOSE_COOLDOWN   = 3600   # 1h between close dispatches per release
+_RELEASE_CLOSE_STATE_DIR  = REPO_ROOT / "tmp" / "orchestrator-stagnation"
+
+# Canonical website prefix per team ID (matches '- Website:' in feature.md)
+_TEAM_WEBSITE_PREFIX: Dict[str, str] = {
+    "forseti":      "forseti",
+    "dungeoncrawler": "dungeoncrawler",
+}
+
+
+def _count_site_features_in_progress(site_keyword: str) -> int:
+    """Count features whose feature.md has Status: in_progress and Website: <site_keyword>."""
+    count = 0
+    for fm in (REPO_ROOT / "features").glob("*/feature.md"):
+        try:
+            text = fm.read_text(encoding="utf-8", errors="ignore")
+            has_status = bool(re.search(r"^-\s+Status:\s*in_progress", text, re.MULTILINE | re.IGNORECASE))
+            has_site   = bool(re.search(rf"^-\s+Website:.*{re.escape(site_keyword)}", text, re.MULTILINE | re.IGNORECASE))
+            if has_status and has_site:
+                count += 1
+        except Exception:
+            pass
+    return count
+
+
+def _dispatch_release_close_triggers() -> None:
+    """Dispatch release-close-now inbox items to PMs when auto-close conditions are met.
+
+    Conditions (either triggers close):
+      1. ≥ _RELEASE_CLOSE_CAP (10) features in_progress for this site
+      2. ≥ _RELEASE_CLOSE_AGE_HOURS (24h) have elapsed since the release started
+
+    PM receives a high-priority (ROI 999) inbox item instructing them to run
+    Gate 1b, confirm QA, and execute scripts/release-signoff.sh immediately.
+    Cooldown-gated per release to avoid duplicate dispatches.
+    """
+    import json as _json
+
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
+    if not active_dir.exists():
+        return
+
+    state_dir = _RELEASE_CLOSE_STATE_DIR
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    teams_path = REPO_ROOT / "org-chart" / "products" / "product-teams.json"
+    try:
+        teams_data = _json.loads(teams_path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+
+    pm_map: Dict[str, str] = {
+        (t.get("id") or "").strip(): (t.get("pm_agent") or "").strip()
+        for t in teams_data.get("teams", [])
+        if t.get("active") and (t.get("id") or "").strip() and (t.get("pm_agent") or "").strip()
+    }
+
+    now = _now_ts()
+
+    for rid_file in active_dir.glob("*.release_id"):
+        team_id = rid_file.stem  # e.g. "forseti" or "dungeoncrawler"
+        rid = rid_file.read_text(encoding="utf-8").strip()
+        if not rid:
+            continue
+
+        pm_id = pm_map.get(team_id, "")
+        if not pm_id:
+            continue
+
+        # Cooldown check per release
+        state_key = state_dir / f"release_close_{team_id}"
+        last = _safe_int(state_key.read_text(encoding="utf-8").strip() if state_key.exists() else "0", 0)
+        if (now - last) < _RELEASE_CLOSE_COOLDOWN:
+            continue
+
+        # Check if already signed off (no need to dispatch)
+        slug = re.sub(r"[^A-Za-z0-9._-]", "-", rid)[:80]
+        signoff_file = REPO_ROOT / "sessions" / pm_id / "artifacts" / "release-signoffs" / f"{slug}.md"
+        if signoff_file.exists():
+            continue  # already signed, nothing to do
+
+        # Evaluate triggers
+        triggers: List[str] = []
+
+        # Trigger 1: feature count cap
+        site_kw = _TEAM_WEBSITE_PREFIX.get(team_id, team_id)
+        feature_count = _count_site_features_in_progress(site_kw)
+        if feature_count >= _RELEASE_CLOSE_CAP:
+            triggers.append(f"FEATURE_CAP: {feature_count}/{_RELEASE_CLOSE_CAP} features in_progress for {team_id}")
+
+        # Trigger 2: age since started_at
+        started_file = active_dir / f"{team_id}.started_at"
+        if started_file.exists():
+            try:
+                from datetime import datetime as _dt
+                started_str = started_file.read_text(encoding="utf-8").strip()
+                # Parse ISO8601 (with or without timezone)
+                started_str_clean = started_str.replace("+00:00", "").rstrip("Z")
+                started_ts = int(_dt.fromisoformat(started_str_clean).replace(
+                    tzinfo=timezone.utc).timestamp())
+                age_hours = (now - started_ts) / 3600
+                if age_hours >= _RELEASE_CLOSE_AGE_HOURS:
+                    triggers.append(
+                        f"AGE: release {rid} started {age_hours:.1f}h ago (threshold {_RELEASE_CLOSE_AGE_HOURS}h)"
+                    )
+            except Exception:
+                pass
+
+        if not triggers:
+            continue
+
+        # Dispatch close-now item to PM
+        item_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d')}-release-close-now-{slug[:40]}"
+        item_dir = REPO_ROOT / "sessions" / pm_id / "inbox" / item_id
+        if item_dir.exists():
+            continue  # already dispatched
+        item_dir.mkdir(parents=True, exist_ok=True)
+        triggers_text = "\n".join(f"  - {t}" for t in triggers)
+        (item_dir / "README.md").write_text(
+            f"# Release close trigger: {rid}\n\n"
+            f"- Agent: {pm_id}\n"
+            f"- Release: {rid}\n"
+            f"- Status: pending\n"
+            f"- Created: {datetime.now(timezone.utc).isoformat()}\n\n"
+            f"## Auto-close conditions met\n{triggers_text}\n\n"
+            f"## Action required — close this release now\n"
+            f"The release has hit an auto-close trigger. Do not wait to fill more scope.\n"
+            f"20 features is a **maximum cap**, not a target. Ship what is ready.\n\n"
+            f"**Steps:**\n"
+            f"1. Confirm all in-progress features for `{team_id}` have Dev commits and QA APPROVE (Gate 1b + Gate 2)\n"
+            f"2. Any feature not yet QA-approved: defer it (set feature.md Status: ready, remove from this release)\n"
+            f"3. Write Release Notes to `sessions/{pm_id}/artifacts/release-notes/{slug}.md`\n"
+            f"4. Record your signoff: `./scripts/release-signoff.sh {team_id} {rid}`\n"
+            f"5. Notify the partner PM to also sign off (coordinated release)\n\n"
+            f"## Acceptance criteria\n"
+            f"- `sessions/{pm_id}/artifacts/release-signoffs/{slug}.md` exists with `- Status: approved`\n"
+            f"- All features left in scope have Gate 2 APPROVE evidence\n",
+            encoding="utf-8",
+        )
+        (item_dir / "roi.txt").write_text("999", encoding="utf-8")
+        state_key.write_text(str(now), encoding="utf-8")
+        print(f"RELEASE-CLOSE-TRIGGER: dispatched to {pm_id} for {rid} — triggers: {', '.join(triggers)}")
+
+
 def _stagnation_check(blocked_count: int, blocked_out: str) -> None:
     """Dispatch CEO agent for full analysis when any stagnation signal fires."""
     import hashlib as _hashlib
@@ -784,6 +930,12 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
         _dispatch_signoff_reminders()
     except Exception as e:
         print(f"SIGNOFF-REMINDER-ERR: {e}")
+
+    # Check auto-close triggers: ≥10 features or ≥24h since release started
+    try:
+        _dispatch_release_close_triggers()
+    except Exception as e:
+        print(f"RELEASE-CLOSE-TRIGGER-ERR: {e}")
 
     log.append(alert)
 

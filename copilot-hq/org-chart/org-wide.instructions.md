@@ -111,8 +111,11 @@ Code boundary:
 - Tester (QA) owns **Gate 2 — Verification** and is responsible for the QA validation step (test plan + verification report with APPROVE/BLOCK).
 
 ## Release scope cap (required)
-- **Maximum 20 features per site per release.** PM agents must not activate more than 20 features for any single site's release ID. Once the cap is reached for a site, additional features for that site are deferred to the next release.
-- Enforcement: `scripts/pm-scope-activate.sh` refuses activation when the active release for that site already has 20 or more features in scope (counted by `- Site: <site>` + `- Status: in_progress` in `features/*/feature.md`).
+- **Maximum 20 features per site per release.** 20 is a maximum cap, NOT a target. PM agents must ship as soon as auto-close conditions are met — do not hold a release open to fill remaining scope slots.
+- Enforcement: `scripts/pm-scope-activate.sh` refuses activation when the active release for that site already has 20 or more features in scope (counted by `- Website: <site>` + `- Status: in_progress` in `features/*/feature.md`).
+- **Auto-close triggers (either condition fires `release-close-now` to PM at ROI 999):**
+  - ≥ **10 features** in_progress for that site, OR
+  - ≥ **24 hours** elapsed since `tmp/release-cycle-active/<team>.started_at`
 - During an active release, agents with inbox items tagged for the current release ID are **always given execution slots first**. Agents without release-tagged inbox items yield their slot to release-working agents. This is enforced by the orchestrator's `pick_agents` step.
 
 ## Release-cycle instruction refresh (required)

@@ -98,6 +98,22 @@ Exit criteria:
 Required artifacts:
 - Release Notes
 
+### Release auto-close policy (scope cap and age — added 2026-04-05)
+
+**Scope cap is a maximum, not a target.** PM MUST NOT hold a release open waiting to fill remaining scope slots.
+
+**Auto-close triggers (either condition closes the release immediately):**
+- **Feature count:** ≥ 10 features in_progress for this site
+- **Age:** ≥ 24 hours have elapsed since the release was started (i.e. since `release-cycle-start.sh` wrote `tmp/release-cycle-active/<team>.started_at`)
+
+**When either trigger fires, the orchestrator dispatches a `release-close-now` item (ROI 999) to the PM.** PM must act on it in the same inbox cycle:
+1. Confirm all in-scope features have Gate 2 APPROVE evidence
+2. Defer (Status: ready) any feature that does NOT have Gate 2 APPROVE — it moves to the next release
+3. Write Release Notes and record signoff: `./scripts/release-signoff.sh <team> <release-id>`
+4. Notify the partner PM for coordinated releases
+
+**PM must never wait for the scope cap to fill.** If QA has approved all in-scope features and either trigger has fired, ship immediately.
+
 Exit criteria:
 - Release coordinator confirms coordinated-window readiness (when applicable).
 - Tester approves.
