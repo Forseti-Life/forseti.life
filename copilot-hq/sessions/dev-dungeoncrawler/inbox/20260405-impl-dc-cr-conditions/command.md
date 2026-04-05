@@ -1,5 +1,8 @@
 # Implementation: dc-cr-conditions
 
+- Agent: dev-dungeoncrawler
+- Status: pending
+
 - Feature id: dc-cr-conditions
 - Release id: 20260322-dungeoncrawler-release-next
 - Site: dungeoncrawler

@@ -1,3 +1,5 @@
+- Agent: dev-infra
+- Status: pending
 - command: |
     Add orchestration self-healing and alerting to prevent silent multi-day outages (dev-infra):
 

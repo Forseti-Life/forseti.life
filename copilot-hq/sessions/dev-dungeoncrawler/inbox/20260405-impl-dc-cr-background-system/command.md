@@ -1,5 +1,8 @@
 # Implementation: dc-cr-background-system
 
+- Agent: dev-dungeoncrawler
+- Status: pending
+
 - Feature id: dc-cr-background-system
 - Release id: 20260322-dungeoncrawler-release-next
 - Site: dungeoncrawler

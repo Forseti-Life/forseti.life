@@ -1,5 +1,8 @@
 # Implementation: dc-cr-character-class
 
+- Agent: dev-dungeoncrawler
+- Status: pending
+
 - Feature id: dc-cr-character-class
 - Release id: 20260322-dungeoncrawler-release-next
 - Site: dungeoncrawler

@@ -1,3 +1,5 @@
+- Agent: dev-infra
+- Status: pending
 - command: |
     Add a Gate 2 APPROVE evidence guard to scripts/release-signoff.sh.
 

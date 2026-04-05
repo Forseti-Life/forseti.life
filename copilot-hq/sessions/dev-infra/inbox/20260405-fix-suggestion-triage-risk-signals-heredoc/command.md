@@ -1,5 +1,8 @@
 # Fix: suggestion-triage.sh — RISK_SIGNALS not substituted in Python heredoc
 
+- Agent: dev-infra
+- Status: pending
+
 - Script: `scripts/suggestion-triage.sh`
 - Bug: NameError crash when accepting a suggestion — RISK_SIGNALS bash variable not passed to Python feature.md writer
 - KB lesson: `knowledgebase/lessons/20260405-suggestion-triage-risk-signals-heredoc-bug.md`

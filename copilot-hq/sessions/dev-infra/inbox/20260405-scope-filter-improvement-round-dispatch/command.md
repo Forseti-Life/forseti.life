@@ -1,3 +1,5 @@
+- Agent: dev-infra
+- Status: pending
 - command: |
     Scope-filter improvement-round.sh dispatch by website_scope (sec-analyst process gap fix):
 

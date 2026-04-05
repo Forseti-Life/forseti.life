@@ -1,5 +1,8 @@
 # Test Plan Design: dc-home-suggestion-notice
 
+- Agent: qa-dungeoncrawler
+- Status: pending
+
 **From:** pm-dungeoncrawler  
 **To:** qa-dungeoncrawler  
 **Date:** 2026-04-05T16:35:48+00:00  

@@ -777,6 +777,10 @@ _RELEASE_CLOSE_AGE_HOURS  = 24     # hours since started_at → trigger close
 _RELEASE_CLOSE_COOLDOWN   = 3600   # 1h between close dispatches per release
 _RELEASE_CLOSE_STATE_DIR  = REPO_ROOT / "tmp" / "orchestrator-stagnation"
 
+_SCOPE_ACTIVATE_GRACE_MINS = 15    # minutes before nudging PM to scope a new release
+_SCOPE_ACTIVATE_COOLDOWN   = 3600  # 1h between nudges per release
+_SCOPE_ACTIVATE_STATE_DIR  = REPO_ROOT / "tmp" / "orchestrator-stagnation"
+
 # Canonical website prefix per team ID (matches '- Website:' in feature.md)
 _TEAM_WEBSITE_PREFIX: Dict[str, str] = {
     "forseti":      "forseti",
@@ -1006,7 +1010,138 @@ def _dispatch_feature_gap_remediation() -> None:
         print(f"FEATURE-GAP-REMEDIATION: {len(dispatched)} gap(s) dispatched this tick")
 
 
+def _dispatch_scope_activate_nudge() -> None:
+    """Nudge the PM to activate features when a new release has no features after grace period.
 
+    Fires when:
+      - An active release has 0 in_progress features tagged with its release ID
+      - The release has been active for ≥ _SCOPE_ACTIVATE_GRACE_MINS minutes
+
+    Dispatch: ROI 800 scope-activate-now item to pm-<site>
+    Cooldown: _SCOPE_ACTIVATE_COOLDOWN per release slug to avoid spam
+    """
+    import json as _json
+    from datetime import datetime as _dt
+
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
+    if not active_dir.exists():
+        return
+
+    try:
+        teams_data = _json.loads(
+            (REPO_ROOT / "org-chart" / "products" / "product-teams.json").read_text(encoding="utf-8")
+        )
+    except Exception:
+        return
+
+    pm_by_site: Dict[str, str] = {}
+    for t in teams_data.get("teams", []):
+        if t.get("active"):
+            tid = (t.get("id") or "").strip()
+            pm_by_site[tid] = t.get("pm_agent", f"pm-{tid}")
+
+    now = _now_ts()
+    grace_secs = _SCOPE_ACTIVATE_GRACE_MINS * 60
+
+    for rid_file in active_dir.glob("*.release_id"):
+        site = rid_file.stem
+        rid = rid_file.read_text(encoding="utf-8").strip()
+        if not rid:
+            continue
+
+        started_f = active_dir / f"{site}.started_at"
+        if not started_f.exists():
+            continue
+        try:
+            started_ts = _dt.fromisoformat(started_f.read_text(encoding="utf-8").strip()).timestamp()
+        except Exception:
+            continue
+
+        age_secs = now - started_ts
+        if age_secs < grace_secs:
+            continue  # still in grace period
+
+        # Count features tagged with this release
+        feature_count = 0
+        for fm in (REPO_ROOT / "features").glob("*/feature.md"):
+            try:
+                if f"Release: {rid}" in fm.read_text(encoding="utf-8", errors="ignore"):
+                    feature_count += 1
+            except Exception:
+                pass
+
+        if feature_count > 0:
+            continue  # release has features — no nudge needed
+
+        # Check PM signoff already exists (release already closed)
+        pm_id = pm_by_site.get(site, f"pm-{site}")
+        signoff = REPO_ROOT / "sessions" / pm_id / "artifacts" / "release-signoffs" / f"{rid}.md"
+        if signoff.exists():
+            continue
+
+        # Check cooldown
+        state_key = _SCOPE_ACTIVATE_STATE_DIR / f"scope_nudge_{rid}"
+        if not _cooldown_ok(state_key, _SCOPE_ACTIVATE_COOLDOWN):
+            continue
+
+        # Check if PM already has a scope-activate item for this release
+        inbox = REPO_ROOT / "sessions" / pm_id / "inbox"
+        already_dispatched = any(
+            "scope-activate" in d.name and rid in d.name
+            for d in inbox.iterdir()
+            if d.is_dir() and d.name != "_archived"
+        )
+        if already_dispatched:
+            _mark_now(state_key)
+            continue
+
+        # Dispatch nudge
+        date_prefix = _dt.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        item_id = f"{date_prefix}-scope-activate-{rid}"
+        item_dir = inbox / item_id
+        item_dir.mkdir(parents=True, exist_ok=True)
+
+        # Gather ready features for this site
+        ready_feats = []
+        for fm in sorted((REPO_ROOT / "features").glob("*/feature.md")):
+            try:
+                text = fm.read_text(encoding="utf-8", errors="ignore")
+                site_val = next((l.split("Website:")[-1].strip() for l in text.splitlines()
+                                 if l.startswith("- Website:")), "")
+                status_val = next((l.split("Status:")[-1].strip() for l in text.splitlines()
+                                   if l.startswith("- Status:")), "")
+                if site in site_val.lower() and status_val == "ready":
+                    ready_feats.append(fm.parent.name)
+            except Exception:
+                pass
+
+        feats_list = "\n".join(f"- `{f}`" for f in ready_feats[:15]) if ready_feats else "- (check features/ dir)"
+        age_min = int(age_secs / 60)
+
+        readme = (
+            f"# Scope Activate: {rid}\n\n"
+            f"- Agent: {pm_id}\n"
+            f"- Status: pending\n"
+            f"- Release: {rid}\n"
+            f"- Date: {_dt.now(timezone.utc).strftime('%Y-%m-%d')}\n"
+            f"- Dispatched by: orchestrator (release active {age_min}m, 0 features scoped)\n\n"
+            f"## Task\n\n"
+            f"Release `{rid}` has been active for **{age_min} minutes** with zero features scoped.\n"
+            f"Activate features now using:\n\n"
+            f"```bash\nbash scripts/pm-scope-activate.sh <feature_id> {site} {rid}\n```\n\n"
+            f"Cap is **10 features** (auto-close fires at 10 or 24h). "
+            f"Activate your highest-priority `ready` features first.\n\n"
+            f"## Ready features (up to 10)\n{feats_list}\n\n"
+            f"## Done when\n"
+            f"At least 3 features activated; dev/QA inbox items exist for each.\n"
+        )
+        (item_dir / "README.md").write_text(readme, encoding="utf-8")
+        (item_dir / "roi.txt").write_text("800", encoding="utf-8")
+        _mark_now(state_key)
+        print(f"SCOPE-ACTIVATE-NUDGE: {rid} active {age_min}m, 0 features → dispatched to {pm_id}")
+
+
+def _dispatch_release_close_triggers() -> None:
     """Dispatch release-close-now inbox items to PMs when auto-close conditions are met.
 
     Conditions (either triggers close):
@@ -1359,6 +1494,12 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
         _dispatch_release_close_triggers()
     except Exception as e:
         print(f"RELEASE-CLOSE-TRIGGER-ERR: {e}")
+
+    # Nudge PM to scope features when a new release has been empty for 15+ min
+    try:
+        _dispatch_scope_activate_nudge()
+    except Exception as e:
+        print(f"SCOPE-ACTIVATE-NUDGE-ERR: {e}")
 
     # Scan for release feature gaps: in_progress features with no dev/QA inbox coverage
     try:

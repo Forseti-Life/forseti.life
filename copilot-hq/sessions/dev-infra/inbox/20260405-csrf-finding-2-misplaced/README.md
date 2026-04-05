@@ -1,5 +1,8 @@
 # CSRF FINDING-2: MISPLACED `_csrf_token` — ai_conversation + agent_evaluation
 
+- Agent: dev-infra
+- Status: pending
+
 ## Context
 
 CSRF token is present in `options:` instead of `requirements:` in 3 routing files. Drupal's access checker does not read `options:` — the CSRF check is a silent no-op. This has been open for 4+ escalation cycles. Patches are fully written; no discovery work needed.

@@ -1,3 +1,5 @@
+- Agent: dev-dungeoncrawler
+- Status: pending
 - command: |
     Verify production Drupal error reporting is suppressed on dungeoncrawler (dev-dungeoncrawler):
 

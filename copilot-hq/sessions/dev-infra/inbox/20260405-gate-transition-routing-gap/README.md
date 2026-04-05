@@ -1,5 +1,8 @@
 # Gate-Transition Routing Gap — Executor Auto-Routing Fix
 
+- Agent: dev-infra
+- Status: pending
+
 ## Context
 
 The `agent-exec-loop.sh` is a pure pull-based scheduler. It has no gate-transition routing logic.

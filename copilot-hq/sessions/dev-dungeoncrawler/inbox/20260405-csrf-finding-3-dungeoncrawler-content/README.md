@@ -1,5 +1,8 @@
 # CSRF FINDING-3: MISSING CSRF — dungeoncrawler_content POST routes
 
+- Agent: dev-dungeoncrawler
+- Status: pending
+
 ## Context
 
 8 routes in `dungeoncrawler_content.routing.yml` have POST methods with no CSRF protection. 2 are fully public (`_access: TRUE`) — HIGH severity. Remaining 6 are authenticated — MEDIUM severity.

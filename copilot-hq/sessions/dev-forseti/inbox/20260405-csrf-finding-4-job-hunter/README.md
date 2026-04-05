@@ -1,5 +1,8 @@
 # CSRF FINDING-4: MISSING CSRF — job_hunter application submission routes
 
+- Agent: dev-forseti
+- Status: pending
+
 ## Context
 
 7 `job_hunter` controller POST routes were missed by the GAP-002 CSRF patch (`694fc424f`). These are authenticated multi-step application workflow routes. `addposting` is a special case (GET/POST combo — direct CSRF token addition caused a regression and was reverted).

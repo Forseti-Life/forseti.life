@@ -1,3 +1,5 @@
+- Agent: qa-dungeoncrawler
+- Status: pending
 - command: |
     Standing policy: release-blocking Gate 2 items must have ROI ≥ 200.
 

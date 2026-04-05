@@ -1,3 +1,5 @@
+- Agent: dev-infra
+- Status: pending
 - command: |
     Fix improvement-round dispatch to only trigger after a release has actually shipped.
 
