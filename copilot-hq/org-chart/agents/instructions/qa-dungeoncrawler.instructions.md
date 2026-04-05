@@ -184,12 +184,22 @@ Before starting any testgen or Gate 2 verification work, check for prior evidenc
 1. Check `sessions/qa-dungeoncrawler/artifacts/` for a matching verification report.
 2. Check `org-chart/sites/dungeoncrawler/qa-regression-checklist.md` for `[x]` APPROVE/BLOCK entry for the feature.
 3. Check `features/<feature>/03-test-plan.md` header for `Status: shipped` or `Status: verified`.
+4. **For testgen items:** check `features/<feature_id>/03-test-plan.md` — if it exists and is dated after the testgen dispatch date, fast-exit with `Status: done` (superseded by later test plan generation).
 
 If prior APPROVE or BLOCK evidence exists and the feature code has not changed since the prior decision:
 - Fast-exit with `Status: done`; cite the prior evidence in your outbox.
 - Do NOT re-run or re-document already-completed work.
 
 Root cause: `dc-cr-ancestry-traits` was re-dispatched in 20260405 cycle despite a complete APPROVE record from 2026-03-27. A full execution slot was consumed with no new value.
+
+## Suite-activate env check (required)
+
+When a suite-activate item arrives and `localhost:8080` is unreachable (HTTP 000):
+1. Immediately write a `Status: needs-info` outbox to `pm-dungeoncrawler` listing: (a) all blocked suite-activate items, (b) the env blocker, (c) ROI of site-up for Gate 2 unblock.
+2. Apply code-level APPROVE (provisional) per env-outage fallback policy for each item where code verification passes.
+3. Flag all provisional APPROVEs for live retest in the regression checklist.
+
+Root cause: 13 suite-activate items dispatched 2026-04-05 while localhost:8080 unreachable. All Gate 2 evidence is provisional until env restored (GAP-DC-QA-SITE-UP-01).
 
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`

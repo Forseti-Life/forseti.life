@@ -23,10 +23,10 @@
     {
       "id": "dc-cr-clan-dagger-e2e",
       "feature_id": "dc-cr-clan-dagger",
-      "label": "Clan Dagger — Dwarven Starting Equipment (drush ev unit tests)",
+      "label": "Clan Dagger \u2014 Dwarven Starting Equipment (drush ev unit tests)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Verified via drush ev (no Playwright suite yet — drush-ev approach is authoritative until Playwright env is provisioned). Tests cover: TC-001 catalog JSON, TC-002 Dwarf auto-grant, TC-003 item flags, TC-004 sell taboo block, TC-008 non-Dwarf exclusion, TC-009 distinct instances, TC-010 drop no-taboo, TC-011 location change no-taboo, TC-013 graceful fail, TC-014 server-side grant, TC-015 server-side taboo, TC-016 GM override. TC-005/006/007 (combat) deferred: requires dc-cr-encounter-rules completion. TC-012 FAIL: duplicate grant prevention not enforced (see BLOCK note).",
+      "notes": "Verified via drush ev (no Playwright suite yet \u2014 drush-ev approach is authoritative until Playwright env is provisioned). Tests cover: TC-001 catalog JSON, TC-002 Dwarf auto-grant, TC-003 item flags, TC-004 sell taboo block, TC-008 non-Dwarf exclusion, TC-009 distinct instances, TC-010 drop no-taboo, TC-011 location change no-taboo, TC-013 graceful fail, TC-014 server-side grant, TC-015 server-side taboo, TC-016 GM override. TC-005/006/007 (combat) deferred: requires dc-cr-encounter-rules completion. TC-012 FAIL: duplicate grant prevention not enforced (see BLOCK note).",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/20260327-004055-unit-test-20260320-impl-dc-cr-clan-dagger/verification-report.md"
       ],
@@ -37,7 +37,7 @@
     {
       "id": "dc-cr-character-leveling-e2e",
       "feature_id": "dc-cr-character-leveling",
-      "label": "Character Leveling and Advancement — E2E (drush ev unit tests)",
+      "label": "Character Leveling and Advancement \u2014 E2E (drush ev unit tests)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
       "notes": "Stage-0 activated 2026-04-05. Playwright test scripts pending implementation (19 TCs defined in features/dc-cr-character-leveling/03-test-plan.md). Until scripts exist, use drush ev inline PHP for TC-001/007/009/010/013/014 (trigger, idempotency, max-level, milestone, non-existent char, structured error). TC-015 (concurrency) and TC-008 (persistence) require live env + PHPUnit. Routes: 8 level-up routes + 1 milestone route registered in dungeoncrawler_content.routing.yml. Admin routes gate on 'administer dungeoncrawler content'; player routes gate on _character_access:TRUE + _csrf_request_header_mode:TRUE. ACL coverage: api-character-entity-routes rule in qa-permissions.json (ignore on parametrized paths). Requires composer install in /home/ubuntu/forseti.life/sites/dungeoncrawler before any drush commands can run.",
@@ -58,11 +58,144 @@
       ],
       "required_for_release": false,
       "notes": "Requires a configured Drupal test environment (SIMPLETEST_BASE_URL, database). Run via tests/run-tests.sh for auto-setup. Currently not required_for_release due to env dependency; promote when CI env is available."
+    },
+    {
+      "id": "dc-cr-action-economy-phpunit",
+      "label": "PHPUnit tests for dc-cr-action-economy",
+      "type": "unit",
+      "feature_id": "dc-cr-action-economy",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_action_economy 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-action-economy-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-ancestry-system-phpunit",
+      "label": "PHPUnit tests for dc-cr-ancestry-system",
+      "type": "unit",
+      "feature_id": "dc-cr-ancestry-system",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_ancestry_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-ancestry-system-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-background-system-phpunit",
+      "label": "PHPUnit tests for dc-cr-background-system",
+      "type": "unit",
+      "feature_id": "dc-cr-background-system",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_background_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-background-system-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-character-class-phpunit",
+      "label": "PHPUnit tests for dc-cr-character-class",
+      "type": "unit",
+      "feature_id": "dc-cr-character-class",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_character_class 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-character-class-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-character-creation-phpunit",
+      "label": "PHPUnit tests for dc-cr-character-creation",
+      "type": "unit",
+      "feature_id": "dc-cr-character-creation",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_character_creation 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-character-creation-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-conditions-phpunit",
+      "label": "PHPUnit tests for dc-cr-conditions",
+      "type": "unit",
+      "feature_id": "dc-cr-conditions",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_conditions 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-conditions-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-dice-system-phpunit",
+      "label": "PHPUnit tests for dc-cr-dice-system",
+      "type": "unit",
+      "feature_id": "dc-cr-dice-system",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_dice_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-dice-system-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-encounter-rules-phpunit",
+      "label": "PHPUnit tests for dc-cr-encounter-rules",
+      "type": "unit",
+      "feature_id": "dc-cr-encounter-rules",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_encounter_rules 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-encounter-rules-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-heritage-system-phpunit",
+      "label": "PHPUnit tests for dc-cr-heritage-system",
+      "type": "unit",
+      "feature_id": "dc-cr-heritage-system",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_heritage_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-heritage-system-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-skill-system-phpunit",
+      "label": "PHPUnit tests for dc-cr-skill-system",
+      "type": "unit",
+      "feature_id": "dc-cr-skill-system",
+      "command": "./vendor/bin/phpunit --filter=dc_cr_skill_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skill-system-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-home-suggestion-notice-phpunit",
+      "label": "PHPUnit tests for dc-home-suggestion-notice",
+      "type": "unit",
+      "feature_id": "dc-home-suggestion-notice",
+      "command": "./vendor/bin/phpunit --filter=dc_home_suggestion_notice 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-home-suggestion-notice-phpunit/"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "dc-cr-character-creation-e2e",
+      "label": "Playwright E2E: 6-step character creation workflow",
+      "type": "e2e",
+      "feature_id": "dc-cr-character-creation",
+      "command": "npx playwright test tests/e2e/character-creation.spec.ts",
+      "artifacts": [
+        "playwright-report/"
+      ],
+      "required_for_release": true,
+      "notes": "Requires running dev instance at DUNGEONCRAWLER_BASE_URL with seeded ancestry/background/class content. First Playwright-required feature in the dungeoncrawler pipeline."
     }
   ],
   "_schema_notes": [
     "Suite entries MAY include an optional 'feature_id' field when the suite was added for a specific groomed feature.",
-    "feature_id links back to features/<feature_id>/ — the living requirements document.",
+    "feature_id links back to features/<feature_id>/ \u2014 the living requirements document.",
     "Suites without feature_id are baseline regression tests.",
     "Example: { 'id': 'my-feature-e2e', 'feature_id': 'dc-my-feature', 'label': '...', 'type': 'e2e', ... }"
   ]
