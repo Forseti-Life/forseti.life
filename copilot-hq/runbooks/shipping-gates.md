@@ -22,6 +22,7 @@ Required artifacts:
 Exit criteria:
 - Approach matches acceptance criteria.
 - Identified tests to run.
+- **Cross-site module sync check (required):** If this change touches a module present in both forseti and dungeoncrawler (`web/modules/custom/`), confirm the equivalent fix is applied to the other site in the same commit or an immediate follow-on inbox item. Implementation notes must state: "Cross-site sync: applied / not applicable (reason)." (Added 2026-04-05 — GAP-DC-MODULE-DIVERGENCE: Bedrock model fix applied to forseti was not propagated to dungeoncrawler until `error-fixes-batch-1`, causing a live EOL-model error.)
 
 ## Gate 1b — Code Review Finding Dispatch (PM, required before Gate 2)
 
@@ -101,6 +102,7 @@ Exit criteria:
 - Release coordinator confirms coordinated-window readiness (when applicable).
 - Tester approves.
 - Dev confirms deploy steps/rollback and that all changes are committed (commit hash(es) recorded).
+- **Schema deploy gate (required when schema changes exist):** Dev must run `drush --uri=<site-uri> updatedb --status` on each production target and execute any pending updates. Output must appear in release notes or implementation notes. If no schema changes: explicitly state "no schema changes in this release." (Added 2026-04-05 — GAP-DC-SCHEMA-DEPLOY: two CRITICAL production bugs caused by missing `drush updatedb` post-deploy in dungeoncrawler release-next. Fix was applied in dev-dungeoncrawler seat instructions but was absent from the shared gate, leaving all other dev seats exposed to the same failure class.)
 
 Coordinated release rule (Forseti + Dungeoncrawler):
 - All required coordinated PM seats must sign off before the official push:
