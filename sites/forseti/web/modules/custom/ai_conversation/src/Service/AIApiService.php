@@ -125,7 +125,7 @@ class AIApiService {
       $bedrock = $sdk->createBedrockRuntime();
       
       // Get the AI model from configuration or conversation.
-      $model = $conversation->get('field_ai_model')->value ?: $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
+      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
 
       // Build the optimized conversation context (summary + recent messages).
       $context = $this->buildOptimizedContext($conversation, $message);
@@ -574,7 +574,7 @@ class AIApiService {
       $sdk = new \Aws\Sdk($sdk_config);
       $bedrock = $sdk->createBedrockRuntime();
       
-      $model_id = $options['model_id'] ?? \Drupal::config('ai_conversation.settings')->get('aws_model') ?: 'anthropic.claude-3-5-sonnet-20241022-v2:0';
+      $model_id = $options['model_id'] ?? \Drupal::config('ai_conversation.settings')->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
       $max_tokens = $options['max_tokens'] ?? 8000;
       
       // 🔍 DEBUG: Log exact max_tokens being sent to Bedrock
@@ -952,7 +952,7 @@ class AIApiService {
       $bedrock = $sdk->createBedrockRuntime();
 
       $response = $bedrock->invokeModel([
-        'modelId' => $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0',
+        'modelId' => $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6',
         'body' => json_encode([
           'anthropic_version' => 'bedrock-2023-05-31',
           'max_tokens' => 20000,
@@ -1106,7 +1106,7 @@ class AIApiService {
       
       $bedrock = $sdk->createBedrockRuntime();
 
-      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
+      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
 
       $response = $bedrock->invokeModel([
         'modelId' => $model,
