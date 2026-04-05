@@ -598,7 +598,7 @@ class AIApiService {
       $sdk = new \Aws\Sdk($sdk_config);
       $bedrock = $sdk->createBedrockRuntime();
       
-      $model_id = $options['model_id'] ?? 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
+      $model_id = $options['model_id'] ?? \Drupal::config('ai_conversation.settings')->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
       $max_tokens = $options['max_tokens'] ?? 8000;
       
       // 🔍 DEBUG: Log exact max_tokens being sent to Bedrock
@@ -1110,7 +1110,7 @@ class AIApiService {
       
       $bedrock = $sdk->createBedrockRuntime();
 
-      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-5-20250929-v1:0';
+      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
 
       $response = $bedrock->invokeModel([
         'modelId' => $model,
