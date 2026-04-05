@@ -1,44 +1,49 @@
+Let me check the Drupal version and test CSRF token behavior:
+
+The Drupal `CsrfAccessCheck` uses the route path as token seed and requires `?token=` in the URL query string. It applies to ALL request methods. Adding `_csrf_token: 'TRUE'` to GET+POST routes would break GET page loads — exactly like the addposting regression. The correct approach is split routes (GET separate from POST) with the Twig `path()` function auto-appending the token via Drupal's RouteProcessorCsrf.
+
+Now I have the complete picture. Let me implement the fix. The approach:
+1. **routing.yml**: Split each step3/4/5 (6 routes) + addposting into GET-only + POST-only variants. POST variants get `_csrf_token: 'TRUE'`.
+2. **Templates**: Update form actions to use `_post` route names (Drupal URL generator auto-appends `?token=` for CSRF-protected routes).
+
+Good - Drupal's `RouteProcessorCsrf::processOutbound()` auto-appends `?token=` for CSRF-protected routes when using the URL generator. Now let me implement:
+
+Short variants aren't used in templates/controller. Now implementing the full fix:
+
+Now apply all routing.yml changes — split step3/4/5 routes and document addposting:
+
+Now split step3/4/5 routes:
+
+Now update the templates to use the POST route names:
+
+Template updates look correct (step5_screenshot reference is unrelated, it's a GET route). Now run the verification script and clear the cache:
+
+Verification script passes. Now clear Drupal's routing cache:
+
+Now verify GET and POST routing works:
+
+403 for anonymous on authenticated routes is expected and correct — routes resolve, authentication gates apply. Now commit:
+
+Now write the confirmation artifact and outbox:
+
+---
+
 - Status: done
-- Summary: CSRF FINDING-4 applied. Implemented split-route CSRF protection for all six application_submission_step3/4/5 routes (including _short variants): each GET+POST route was split into a GET-only route (page load, no CSRF requirement) and a POST-only `_post` variant with `_csrf_token: 'TRUE'`. Drupal's RouteProcessorCsrf auto-appends `?token=xxx` to form action URLs when `path()` is used for CSRF-protected routes in Twig; three templates updated accordingly. For FINDING-4d (addposting), routing-level CSRF is not safe on a GET+POST route (same regression as the reverted 60f2a7ab8); controller-level CSRF is already implemented (X-CSRF-Token header / POST body validation); YAML comment added documenting this. Verification script exits PASS. Drupal route registry confirms step3/step5 GET routes have no csrf requirement, step3_post/step5_post POST routes have `_csrf_token: 'TRUE'`. Cache cleared.
+- Summary: CSRF FINDING-4 fully applied. Split all six step3/4/5 routes (plus `_short` variants) into GET-only and POST-only pairs. POST-only variants have `_csrf_token: 'TRUE'` — Drupal's URL generator auto-appends `?token=xxx` to form action URLs. Three templates updated to reference `_post` route names. FINDING-4d (addposting) resolved via controller-level CSRF (already implemented; routing-level CSRF on GET+POST would cause the same GET regression as `60f2a7ab8`). Verification script: **PASS**. Cache rebuilt cleanly.
 
 ## Next actions
-- QA verification: run standard QA suite, verify no regression on step page loads (GET) and form submissions (POST with Drupal-auto-appended CSRF token in action URL)
-- Note for qa-forseti: form action URLs for step3/4/5 now include `?token=xxx` (added by Drupal URL generator automatically). Any test driving form submission at these routes must use the URL from the rendered page, not a hardcoded path without the token.
-- addposting CSRF protection is controller-level; if QA has a specific test for addposting POST CSRF, it should validate X-CSRF-Token header rejection on POST without valid token.
+- QA: run standard suite; form submissions now include `?token=xxx` in action URL (auto-appended by Drupal) — verify step page loads (GET) and form POSTs work end-to-end
 
 ## Blockers
-- None.
-
-## Implementation notes
-
-### Approach rationale
-Adding `_csrf_token: 'TRUE'` directly to GET+POST routes causes GET 403 regressions because Drupal's `CsrfAccessCheck::access()` requires `?token=` in the URL query string for ALL request methods (no method exclusion). This is the same issue that caused the addposting revert (`60f2a7ab8`). The split-route pattern resolves this cleanly.
-
-### Controller-level CSRF double-protection
-Steps 4 and 5 validate CSRF in the POST handler via `$request->request->get('csrf_token')` against a controller-specific key. With routing-level CSRF now added, both protections are active (defense-in-depth). Step 3 validates CSRF only when `run_step3=1`; for other POST params, the page re-renders without executing state changes.
-
-### Verification evidence
-- Verification script: PASS (`sessions/dev-forseti/artifacts/csrf-finding-4-applied.txt`)
-- Drupal router confirmed: GET routes have `csrf=none`, POST variants have `csrf=TRUE`
-- Cache rebuild: successful
-- Commit: `dd2dcc76`
-
-## Files changed
-- `sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml` — 6 routes split into 12 GET+POST pairs, addposting comment added (+79 lines)
-- `templates/application-submission-step3.html.twig` — form action → step3_post route
-- `templates/application-submission-step4.html.twig` — 5 form actions → step4_post route
-- `templates/application-submission-step5.html.twig` — 4 form actions → step5_post route
-
-## KB reference
-- No prior lesson found for this pattern.
-- New lesson: Drupal `_csrf_token: 'TRUE'` breaks GET on GET+POST routes. Use split-route pattern (separate GET and POST route entries for same path) when CSRF protection is needed for POST-only on a mixed-method route.
+- None
 
 ## ROI estimate
 - ROI: 12
-- Rationale: Step 5 (submit-application) is the highest-risk route — CSRF attack could force job application submission for a logged-in user. Fix is surgical (routing + template only, no controller changes) and directly closes the sec analyst's open finding.
+- Rationale: Step 5 is the highest-risk route (forces job application submission); fix is surgical (routing + template only)
+
+**Commits:** `dd2dcc76` (code), `1e595dc6` (artifact + outbox)
 
 ---
 - Agent: dev-forseti
-- Source inbox: sessions/dev-forseti/inbox/20260405-csrf-finding-4-job-hunter
-- Commit: dd2dcc76
-- Generated: 2026-04-05T21:37:10Z
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260405-csrf-finding-4-job-hunter
+- Generated: 2026-04-05T21:38:48+00:00

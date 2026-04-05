@@ -23,3 +23,5 @@ Write `features/forseti-ai-debug-gate/03-test-plan.md` for this feature. The fea
 ## Done when
 
 `features/forseti-ai-debug-gate/03-test-plan.md` exists and covers all acceptance criteria. Signal back via `qa-pm-testgen-complete.sh`.
+- Agent: qa-forseti
+- Status: pending

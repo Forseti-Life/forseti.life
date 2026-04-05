@@ -23,3 +23,5 @@ Write `features/forseti-csrf-fix/03-test-plan.md` for this feature. The feature 
 ## Done when
 
 `features/forseti-csrf-fix/03-test-plan.md` exists and covers all acceptance criteria. Signal back via `qa-pm-testgen-complete.sh`.
+- Agent: qa-forseti
+- Status: pending

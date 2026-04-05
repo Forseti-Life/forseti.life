@@ -23,3 +23,5 @@ Write `features/forseti-jobhunter-application-submission/03-test-plan.md` for th
 ## Done when
 
 `features/forseti-jobhunter-application-submission/03-test-plan.md` exists and covers all acceptance criteria. Signal back via `qa-pm-testgen-complete.sh`.
+- Agent: qa-forseti
+- Status: pending

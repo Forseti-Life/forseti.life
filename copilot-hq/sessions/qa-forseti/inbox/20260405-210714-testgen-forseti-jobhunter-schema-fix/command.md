@@ -87,3 +87,5 @@ cd /var/www/html/forseti && vendor/bin/drush updb -y && vendor/bin/drush cr
 vendor/bin/drush php-eval "print_r(\Drupal::database()->schema()->fieldExists('job_hunter_profile', 'age_18_or_older') ? 'COLUMN EXISTS' : 'COLUMN MISSING');"
 # Expected: COLUMN EXISTS
 ```
+- Agent: qa-forseti
+- Status: pending
