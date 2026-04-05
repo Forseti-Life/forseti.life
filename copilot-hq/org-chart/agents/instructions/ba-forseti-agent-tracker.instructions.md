@@ -46,7 +46,7 @@ This file is owned by the `ba-forseti-agent-tracker` seat.
 1. `copilot_agent_tracker` files not yet reviewed (check outbox history first)
 2. `dungeoncrawler` requirements gaps (check `features/dc-*/feature.md` and `features/dc-feature-index.md`)
 3. `job_hunter` requirements gaps
-4. HQ `runbooks/`/`templates/` content review (write to outbox; escalate to CEO via supervisor if action needed)
+4. HQ `runbooks/`/`templates/` content review (write to outbox; escalate to Board via supervisor if action needed)
 
 ## Prior review check (required before idle pivot)
 Before selecting a pivot file: glob `sessions/ba-forseti-agent-tracker/outbox/` and confirm the suggested file does not already appear in outbox history. Do not re-review a file already covered.

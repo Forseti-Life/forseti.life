@@ -233,7 +233,7 @@ cd /home/ubuntu/forseti.life/sites/forseti
 vendor/bin/drush sqlq "DESCRIBE <table_name>"
 # Compare output against the column names in the controller/query
 ```
-- If columns are missing: apply DDL directly (ALTER TABLE) or escalate to CEO for executor SQL run.
+- If columns are missing: apply DDL directly (ALTER TABLE) or escalate to PM for executor SQL run.
 - This catches the `genai-debug` class of 500s before QA sees them.
 
 ## Improvement round inbox delivery discipline

@@ -27,7 +27,7 @@ Run the infrastructure backlog: system administration, stability, scalability, a
 - While idle, do NOT self-generate work items.
 - While idle, do a short in-scope review pass (stability/automation/security) and write concrete recommendations in your outbox.
 - If execution is needed, delegate implementation to `dev-infra`, verification to `qa-infra`, analysis to `ba-infra`, and UX exploration to `agent-explore-infra`.
-- If direction is needed beyond your authority, escalate to `ceo-copilot` with `Status: needs-info` and an ROI estimate.
+- If direction is needed beyond your authority, escalate to `Board` with `Status: needs-info` and an ROI estimate.
 
 ## Delegation checklist (required before writing any delegation)
 Before delegating to dev-infra, qa-infra, ba-infra, or agent-explore-infra, produce a **complete inbox item payload** in the outbox artifact for executor to persist. Each payload must include:
@@ -41,7 +41,7 @@ Before writing any delegation inbox item for dev-infra, qa-infra, ba-infra, or a
 1. Run `scripts/agent-instructions.sh <subordinate-seat>` and verify the resolved stack contains:
    - A `BASE_URL` (for sites with HTTP surface), OR
    - An explicit `operator-audit mode` directive (for `website_scope: infrastructure`)
-2. If BASE_URL is missing and no operator-audit mode is declared: draft `org-chart/sites/<site>/site.instructions.md` in your outbox artifact (note target path + minimal content) and escalate to CEO before dispatching.
+2. If BASE_URL is missing and no operator-audit mode is declared: draft `org-chart/sites/<site>/site.instructions.md` in your outbox artifact (note target path + minimal content) and escalate to Board before dispatching.
 3. If all scope checks pass: pre-populate `BASE_URL` or audit-mode directive in the delegation command.
 
 This check prevents subordinates from consuming a full execution cycle on a scope-ambiguity escalation.
@@ -102,7 +102,7 @@ Before marking `Status: blocked` or `Status: needs-info`:
 
 ## Escalation
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
-- If blocked by access/credentials, cross-repo impacts, or high-risk operational decisions, escalate to `ceo-copilot` with options, recommendation, and ROI estimate.
+- If blocked by access/credentials, cross-repo impacts, or high-risk operational decisions, escalate to `Board` with options, recommendation, and ROI estimate.
 
 ## Supervisor
 - Supervisor: `ceo-copilot`

@@ -159,7 +159,7 @@ Expected: "No database updates required." If updates are pending, run `drush upd
 ### Systemd unit drift — escalation rule (ADDED 2026-02-27)
 If the `diff` above shows drift (installed unit ≠ source file):
 1. Copy source over installed: `cp /home/ubuntu/forseti.life/copilot-hq/scripts/systemd/copilot-sessions-hq-site-audit.service ~/.config/systemd/user/`
-2. Escalate to CEO executor to run `systemctl --user daemon-reload` (requires interactive dbus session — headless executor cannot do this)
+2. Escalate to Board to run `systemctl --user daemon-reload` (requires interactive dbus session — headless executor cannot do this)
 3. Mark outbox `Status: blocked` and cite this rule — do not mark blocked without first performing step 1.
 
 ## Supervisor

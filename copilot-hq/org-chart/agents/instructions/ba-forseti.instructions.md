@@ -64,7 +64,7 @@ SMART outcome: artifact exists by end of cycle 1, PM can assign AC-writing tasks
 
 Verification: `ls features/dc-cr-*/01-acceptance-criteria.md | wc -l` — this count should increase each cycle.
 
-5. If ba-dungeoncrawler's most recent improvement-round outbox shows "Missing required status header in agent response", flag this as a process gap in your outbox — it means BA analysis was absent from that cycle. Escalate to pm-dungeoncrawler or CEO with the specific improvement-round item ID and the "Status: needs-info / missing header" pattern as evidence. If this is the **3rd consecutive cycle** with no valid ba-dungeoncrawler improvement-round output, escalate to CEO (not just pm-dungeoncrawler) as a systemic seat failure requiring intervention.
+5. If ba-dungeoncrawler's most recent improvement-round outbox shows "Missing required status header in agent response", flag this as a process gap in your outbox — it means BA analysis was absent from that cycle. Escalate to pm-dungeoncrawler with the specific improvement-round item ID and the "Status: needs-info / missing header" pattern as evidence. If this is the **3rd consecutive cycle** with no valid ba-dungeoncrawler improvement-round output, escalate to Board as a systemic seat failure requiring intervention.
 
 **Post-merge AC integrity check (required after any workspace merge commit):** After any merge commit lands on `main`, run:
 ```bash
@@ -165,7 +165,7 @@ Verification: `grep -n "prior_company_email\|prior_company_wwid\|field_age_18_or
 Before doing any substantive work on an improvement-round inbox item, run this 3-point triage:
 
 1. **Release-ID check**: does the inbox folder name follow `YYYYMMDD-improvement-round-YYYYMMDD-<site>-release-<tag>` exactly?
-   - If **no release-id suffix**: mark as malformed, fast-exit, escalate to CEO/dev-infra with pattern count.
+   - If **no release-id suffix**: mark as malformed, fast-exit, escalate to PM/dev-infra with pattern count.
    - Verify: `ls sessions/ba-forseti/inbox/ | grep improvement-round`
 
 2. **Signoff existence check**: does `sessions/pm-<site>/artifacts/release-signoffs/<release-id>.md` exist?
@@ -176,7 +176,7 @@ Before doing any substantive work on an improvement-round inbox item, run this 3
    - If **no PM groom, no QA activity, no dev signoff**: suspect subtree mirror ghost; fast-exit and note pattern.
    - Confirm: `ls sessions/pm-<site>/outbox/ | grep <release-id>`
 
-Fast-exit rule: if any check fails, write outbox with `Status: done`, note the failure type (malformed/premature/ghost), include the dispatch count for the pattern this session, and escalate CEO/dev-infra fix with ROI. Do NOT run AC sweep or gap review on a non-canonical release.
+Fast-exit rule: if any check fails, write outbox with `Status: done`, note the failure type (malformed/premature/ghost), include the dispatch count for the pattern this session, and escalate Board/dev-infra fix with ROI. Do NOT run AC sweep or gap review on a non-canonical release.
 
 Escalation SMART criteria: after dev-infra deploys the improvement-round dispatch gate, zero improvement-round inbox items should be created for release IDs without a corresponding `release-signoffs/<id>.md` file.
 
