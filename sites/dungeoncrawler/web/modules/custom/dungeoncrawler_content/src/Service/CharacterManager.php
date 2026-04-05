@@ -209,7 +209,7 @@ class CharacterManager {
    */
   const HERITAGES = [
     'Dwarf' => [
-      ['id' => 'ancient-blooded', 'name' => 'Ancient-Blooded Dwarf', 'benefit' => 'Resistance to magic'],
+      ['id' => 'ancient-blooded', 'name' => 'Ancient-Blooded Dwarf', 'benefit' => 'Resistance to magic', 'granted_abilities' => ['call-on-ancient-blood']],
       ['id' => 'forge', 'name' => 'Forge Dwarf', 'benefit' => 'Fire resistance'],
       ['id' => 'rock', 'name' => 'Rock Dwarf', 'benefit' => 'Extended darkvision'],
       ['id' => 'strong-blooded', 'name' => 'Strong-Blooded Dwarf', 'benefit' => 'Poison resistance'],
@@ -2106,6 +2106,75 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   /**
    * Valid PF2e spell schools used to filter out non-spell data pollution.
    */
+  /**
+   * Heritage-granted reaction abilities catalog.
+   *
+   * Key: reaction ability ID (matches granted_abilities entries in HERITAGES).
+   * Each entry describes the trigger, effect, and type for use by the combat engine.
+   */
+  const HERITAGE_REACTIONS = [
+    'call-on-ancient-blood' => [
+      'id'          => 'call-on-ancient-blood',
+      'name'        => 'Call on Ancient Blood',
+      'action_type' => 'reaction',
+      'heritage'    => 'ancient-blooded',
+      'ancestry'    => 'Dwarf',
+      'trigger'     => 'saving_throw_before_roll_magical',
+      'effect'      => [
+        'type'        => 'circumstance_bonus',
+        'stat'        => 'saving_throw',
+        'value'       => 1,
+        'duration'    => 'end_of_turn',
+        'includes_trigger' => TRUE,
+      ],
+      'description' => 'Your ancestors\' innate resistance to magic surges. You gain a +1 circumstance bonus to saving throws until the end of this turn (including the triggering save).',
+    ],
+  ];
+
+  /**
+   * Returns the granted ability IDs for a given ancestry and heritage ID.
+   *
+   * Usage: CharacterManager::getHeritageGrantedAbilities('Dwarf', 'ancient-blooded')
+   *
+   * @param string $ancestry_canonical
+   *   Canonical ancestry name (e.g., 'Dwarf').
+   * @param string $heritage_id
+   *   Heritage machine ID (e.g., 'ancient-blooded').
+   *
+   * @return string[]
+   *   Array of granted ability IDs, or empty array if none.
+   */
+  public static function getHeritageGrantedAbilities(string $ancestry_canonical, string $heritage_id): array {
+    $heritages = self::HERITAGES[$ancestry_canonical] ?? [];
+    foreach ($heritages as $heritage) {
+      if (($heritage['id'] ?? '') === $heritage_id) {
+        return $heritage['granted_abilities'] ?? [];
+      }
+    }
+    return [];
+  }
+
+  /**
+   * Validates that a heritage_id belongs to the given ancestry.
+   *
+   * @param string $ancestry_canonical
+   *   Canonical ancestry name.
+   * @param string $heritage_id
+   *   Heritage machine ID to validate.
+   *
+   * @return bool
+   *   TRUE if the heritage is valid for this ancestry.
+   */
+  public static function isValidHeritageForAncestry(string $ancestry_canonical, string $heritage_id): bool {
+    $heritages = self::HERITAGES[$ancestry_canonical] ?? [];
+    foreach ($heritages as $heritage) {
+      if (($heritage['id'] ?? '') === $heritage_id) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
   const VALID_SPELL_SCHOOLS = [
     'abjuration', 'conjuration', 'divination', 'enchantment',
     'evocation', 'illusion', 'necromancy', 'transmutation',

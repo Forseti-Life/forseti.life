@@ -498,6 +498,24 @@ class CharacterCreationStepController extends ControllerBase {
           // Track for re-selection reversal.
           $character_data['_prev_ancestry'] = $ancestry_id;
           $character_data['_prev_ancestry_free_boosts'] = $free_boost_selections;
+
+          // Grant heritage abilities: resolve granted_abilities for the selected
+          // heritage (e.g., ancient-blooded grants call-on-ancient-blood).
+          // Re-apply on each step-2 save to handle re-selection; always rebuild
+          // from scratch to avoid stale grants from a previous selection.
+          $selected_heritage = $character_data['heritage'] ?? '';
+          if (!empty($selected_heritage)) {
+            $heritage_abilities = CharacterManager::getHeritageGrantedAbilities($canonical, $selected_heritage);
+          }
+          else {
+            $heritage_abilities = [];
+          }
+          // Preserve existing non-heritage granted abilities (e.g. from class/background).
+          $existing = is_array($character_data['granted_abilities'] ?? NULL) ? $character_data['granted_abilities'] : [];
+          // Strip any previously-granted heritage abilities (identified by presence in HERITAGE_REACTIONS).
+          $heritage_reaction_ids = array_keys(CharacterManager::HERITAGE_REACTIONS);
+          $non_heritage = array_values(array_filter($existing, static fn($id) => !in_array($id, $heritage_reaction_ids, TRUE)));
+          $character_data['granted_abilities'] = array_values(array_unique(array_merge($non_heritage, $heritage_abilities)));
         }
       }
     }
@@ -650,6 +668,12 @@ class CharacterCreationStepController extends ControllerBase {
                   }
                 }
               }
+            }
+            // Heritage ancestry-gate validation: if a heritage is selected,
+            // confirm it belongs to the submitted ancestry.
+            $heritage_val = trim($merged['heritage'] ?? '');
+            if ($heritage_val !== '' && !CharacterManager::isValidHeritageForAncestry($canonical, $heritage_val)) {
+              $errors['heritage'] = 'The selected heritage (' . $heritage_val . ') is not valid for the ' . $canonical . ' ancestry.';
             }
           }
         }
