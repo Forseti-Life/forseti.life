@@ -473,6 +473,181 @@ def _seconds_since_last_release_signoff() -> int:
     return max(0, now - latest) if latest else 99999
 
 
+def _release_gate_brief() -> str:
+    """Return a concise, actionable snapshot of current release gate status.
+
+    Includes: active release IDs, which PMs have/haven't signed, QA preflight
+    items pending, and the oldest unresolved inbox item per agent (top 5).
+    This context is injected into the CEO stagnation brief so the CEO can act
+    immediately without running manual diagnostics.
+    """
+    import json as _json
+
+    lines: List[str] = []
+
+    # 1. Release signoff status for each active release
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
+    active_releases: List[str] = []
+    if active_dir.exists():
+        for f in active_dir.glob("*.release_id"):
+            rid = f.read_text(encoding="utf-8").strip()
+            if rid:
+                active_releases.append(rid)
+
+    if active_releases:
+        lines.append("### Active release gate status")
+        teams_path = REPO_ROOT / "org-chart" / "products" / "product-teams.json"
+        coordinated_teams: List[Dict[str, str]] = []
+        try:
+            teams_data = _json.loads(teams_path.read_text(encoding="utf-8"))
+            for t in teams_data.get("teams", []):
+                if t.get("active") and t.get("coordinated_release_default"):
+                    tid = (t.get("id") or "").strip()
+                    pm = (t.get("pm_agent") or "").strip()
+                    if tid and pm:
+                        coordinated_teams.append({"id": tid, "pm": pm})
+        except Exception:
+            pass
+
+        for rid in active_releases:
+            slug = re.sub(r"[^A-Za-z0-9._-]", "-", rid)[:80]
+            signed: List[str] = []
+            unsigned: List[str] = []
+            for t in coordinated_teams:
+                sf = REPO_ROOT / "sessions" / t["pm"] / "artifacts" / "release-signoffs" / f"{slug}.md"
+                if sf.exists():
+                    signed.append(t["pm"])
+                else:
+                    unsigned.append(t["pm"])
+            lines.append(f"- `{rid}`:")
+            lines.append(f"  - Signed: {', '.join(signed) if signed else 'none'}")
+            lines.append(f"  - **Missing signoff: {', '.join(unsigned) if unsigned else 'none — ready to push!'}**")
+    else:
+        lines.append("### Active releases: none")
+
+    # 2. QA preflight items still in inbox
+    qa_agents = [a for a in _load_agents_yaml_ids() if a.startswith("qa-")]
+    preflight_pending: List[str] = []
+    for qa in qa_agents:
+        inbox = _agent_inbox_dir(qa)
+        if not inbox.exists():
+            continue
+        for item in inbox.iterdir():
+            if item.is_dir() and item.name != "_archived" and "preflight" in item.name:
+                preflight_pending.append(f"{qa}: {item.name}")
+    if preflight_pending:
+        lines.append("\n### QA preflight items still pending")
+        for p in preflight_pending[:10]:
+            lines.append(f"- {p}")
+
+    # 3. Top 5 oldest unresolved inbox items across all agents
+    lines.append("\n### Oldest unresolved inbox items (top 5)")
+    oldest: List[Dict[str, Any]] = []
+    now = _now_ts()
+    for agent_id in _load_agents_yaml_ids():
+        inbox = _agent_inbox_dir(agent_id)
+        if not inbox.exists():
+            continue
+        for item in inbox.iterdir():
+            if not item.is_dir() or item.name == "_archived":
+                continue
+            try:
+                age_m = (now - int(item.stat().st_mtime)) // 60
+                oldest.append({"agent": agent_id, "item": item.name, "age_m": age_m})
+            except Exception:
+                pass
+    oldest.sort(key=lambda x: x["age_m"], reverse=True)
+    for o in oldest[:5]:
+        lines.append(f"- {o['agent']}: `{o['item']}` ({o['age_m']}m old)")
+
+    return "\n".join(lines)
+
+
+_SIGNOFF_REMINDER_STATE = REPO_ROOT / "tmp" / "orchestrator-stagnation" / "signoff_reminder_dispatch"
+_SIGNOFF_REMINDER_COOLDOWN = 3600  # 1 hour between reminders per release
+
+
+def _dispatch_signoff_reminders() -> None:
+    """Auto-create signoff-reminder inbox items for PMs lagging on a release.
+
+    When one or more PMs on a coordinated release have signed off but at least
+    one has not, and the gap has been open for > 30 minutes, route a
+    signoff-reminder directly to the unsigned PM's inbox.  Cooldown-gated per
+    release ID to avoid spam.
+    """
+    import json as _json
+
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
+    if not active_dir.exists():
+        return
+
+    state_dir = _SIGNOFF_REMINDER_STATE.parent
+    state_dir.mkdir(parents=True, exist_ok=True)
+
+    teams_path = REPO_ROOT / "org-chart" / "products" / "product-teams.json"
+    try:
+        teams_data = _json.loads(teams_path.read_text(encoding="utf-8"))
+    except Exception:
+        return
+
+    coordinated_teams = [
+        {"id": (t.get("id") or "").strip(), "pm": (t.get("pm_agent") or "").strip()}
+        for t in teams_data.get("teams", [])
+        if t.get("active") and t.get("coordinated_release_default")
+        and (t.get("id") or "").strip() and (t.get("pm_agent") or "").strip()
+    ]
+
+    for rid_file in active_dir.glob("*.release_id"):
+        rid = rid_file.read_text(encoding="utf-8").strip()
+        if not rid:
+            continue
+        slug = re.sub(r"[^A-Za-z0-9._-]", "-", rid)[:80]
+
+        signed = [t for t in coordinated_teams
+                  if (REPO_ROOT / "sessions" / t["pm"] / "artifacts" / "release-signoffs" / f"{slug}.md").exists()]
+        unsigned = [t for t in coordinated_teams
+                    if not (REPO_ROOT / "sessions" / t["pm"] / "artifacts" / "release-signoffs" / f"{slug}.md").exists()]
+
+        if not signed or not unsigned:
+            continue  # nobody signed yet, or all signed — nothing to remind
+
+        # Cooldown per release
+        state_key = state_dir / f"signoff_reminder_{slug}"
+        last = _safe_int(state_key.read_text(encoding="utf-8").strip() if state_key.exists() else "0", 0)
+        if (_now_ts() - last) < _SIGNOFF_REMINDER_COOLDOWN:
+            continue
+
+        # Dispatch reminder to each unsigned PM
+        for t in unsigned:
+            pm_id = t["pm"]
+            item_id = f"{datetime.now(timezone.utc).strftime('%Y%m%d')}-signoff-reminder-{slug}"
+            item_dir = REPO_ROOT / "sessions" / pm_id / "inbox" / item_id
+            if item_dir.exists():
+                continue  # already dispatched this cycle
+            item_dir.mkdir(parents=True, exist_ok=True)
+            signed_names = ", ".join(s["pm"] for s in signed)
+            (item_dir / "README.md").write_text(
+                f"# Signoff reminder: {rid}\n\n"
+                f"- Agent: {pm_id}\n"
+                f"- Release: {rid}\n"
+                f"- Status: pending\n"
+                f"- Created: {datetime.now(timezone.utc).isoformat()}\n\n"
+                f"## Action required\n"
+                f"The following PMs have already signed off on `{rid}`: {signed_names}.\n"
+                f"Your signoff is the only thing blocking the coordinated push.\n\n"
+                f"Review the release checklist and write your signoff artifact:\n"
+                f"`sessions/{pm_id}/artifacts/release-signoffs/{slug}.md`\n\n"
+                f"## Acceptance criteria\n"
+                f"- File exists at the path above with `- Status: approved`\n"
+                f"- All open blockers for your site are resolved or explicitly deferred\n",
+                encoding="utf-8",
+            )
+            (item_dir / "roi.txt").write_text("500", encoding="utf-8")
+            print(f"SIGNOFF-REMINDER: dispatched to {pm_id} for release {rid}")
+
+        state_key.write_text(str(_now_ts()), encoding="utf-8")
+
+
 def _org_enabled() -> bool:
     ctrl = REPO_ROOT / "tmp" / "org-control.json"
     if not ctrl.exists():
@@ -543,6 +718,7 @@ def _stagnation_check(blocked_count: int, blocked_out: str) -> None:
         return
 
     signals_text = "\n".join(f"  - {s}" for s in signals)
+    gate_brief = _release_gate_brief()
     brief = (
         f"[STAGNATION ALERT] The orchestrator has detected that the org is stuck.\n\n"
         f"## Signals fired ({len(signals)}):\n{signals_text}\n\n"
@@ -550,6 +726,9 @@ def _stagnation_check(blocked_count: int, blocked_out: str) -> None:
         f"Perform a full system analysis. Review all blocked agents, identify the root cause, "
         f"and take **direct action** to unblock — run drush commands, trigger audits, clear stale "
         f"locks, fix permissions, re-enable org. Do not just escalate; act.\n\n"
+        f"For release blockers: check which PMs are missing signoffs and dispatch signoff-reminder "
+        f"inbox items immediately (see cross-site signoff reminder pattern in your seat instructions).\n\n"
+        f"## Release gate snapshot\n{gate_brief}\n\n"
         f"## Blocked agent summary\n{blocked_out or '(none currently blocked)'}\n"
     )
     result = _route_to_ceo_inbox(brief, "stagnation-full-analysis", f"stagnation-{len(signals)}-signals")
@@ -599,6 +778,12 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
         _stagnation_check(blocked_count, blocked_out)
     else:
         _stagnation_check(0, "")
+
+    # Always check for lagging PM signoffs regardless of blocked count
+    try:
+        _dispatch_signoff_reminders()
+    except Exception as e:
+        print(f"SIGNOFF-REMINDER-ERR: {e}")
 
     log.append(alert)
 
