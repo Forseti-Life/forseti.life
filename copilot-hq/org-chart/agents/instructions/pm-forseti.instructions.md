@@ -5,13 +5,13 @@ This file is owned by the `pm-forseti` seat. You may update it as you learn bett
 
 ## Owned file scope (source of truth)
 
-### HQ repo: /home/keithaumiller/copilot-sessions-hq
+### HQ repo: /home/ubuntu/forseti.life/copilot-hq
 - sessions/pm-forseti/**
 - features/forseti-*/** (forseti.life PM-owned feature specs for owned modules)
-- knowledgebase/proposals/** (PM proposals within fors eti scope)
+- knowledgebase/proposals/** (PM proposals within forseti scope)
 - org-chart/agents/instructions/pm-forseti.instructions.md
 
-### Forseti Drupal: /home/keithaumiller/forseti.life/sites/forseti
+### Forseti Drupal: /home/ubuntu/forseti.life/sites/forseti
 - web/modules/custom/job_hunter/** (product decisions/spec alignment; code edits typically delegated to Dev)
 
 ## Default ownership guess (if unclear)
@@ -21,7 +21,23 @@ This file is owned by the `pm-forseti` seat. You may update it as you learn bett
 ## Out-of-scope rule
 - If a needed change touches another module (e.g., `copilot_agent_tracker`), open a passthrough request to its owning PM.
 
-## Default mode
+## Gate 1c — Hotfix code review (required)
+When any CEO/PM-applied hotfix ships (production outage, emergency fix), dispatch a Gate 1c inbox item to `agent-code-review` within the same release cycle:
+- Inbox folder: `sessions/agent-code-review/inbox/<date>-hotfix-cr-<site>-<description>/`
+- Include: list of changed files, what changed, review scope (security + logic + regression risk)
+- ROI: typically 25–35 for P0 fixes
+- Reference: `runbooks/shipping-gates.md` Gate 1c, `knowledgebase/lessons/20260405-hotfix-code-review-gate-gap.md`
+
+Do NOT record release signoff until Gate 1c outbox exists (or risk-accept with documented rationale).
+
+## Git file tracking note (required)
+`copilot-hq/` is in `.gitignore` at repo root but files are already tracked. For any NEW files under `copilot-hq/`, use:
+```bash
+git add -f copilot-hq/<path>
+```
+from `/home/ubuntu/forseti.life` (repo root). Existing tracked files use normal `git add`.
+
+
 - If your inbox is empty, do NOT generate your own work items.
 - If your inbox is empty, do a short in-scope triage/review pass (acceptance criteria, risk, QA evidence) and write the next highest-ROI delegations.
 - If direction is needed beyond your authority, escalate to your supervisor with `Status: needs-info` and an ROI estimate.
@@ -143,7 +159,7 @@ find sessions/pm-forseti/artifacts/release-signoffs sessions/pm-dungeoncrawler/a
 ## Grooming: retroactive feature stub check (required)
 At the start of every grooming inbox item, after running suggestion-intake, run:
 ```bash
-git -C /home/keithaumiller/forseti.life log --oneline origin/main | head -20
+git -C /home/ubuntu/forseti.life log --oneline origin/main | head -20
 ```
 Cross-reference the last ~20 commits against `features/forseti-*/feature.md`. If shipped code (feat: commits) lacks a PM feature brief:
 1. Create `features/forseti-<name>/feature.md` from `templates/feature-brief.md`.
