@@ -89,6 +89,36 @@ class AIApiService {
   }
 
   /**
+   * Returns ordered list of model IDs to try: primary from config, then fallbacks.
+   */
+  private function getModelFallbacks(): array {
+    $primary = $this->configFactory->get('ai_conversation.settings')->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
+    $fallbacks = [
+      'us.anthropic.claude-sonnet-4-6',
+      'us.anthropic.claude-haiku-4-5',
+      'us.anthropic.claude-3-5-haiku-20241022-v1:0',
+    ];
+    return array_values(array_unique(array_merge([$primary], $fallbacks)));
+  }
+
+  /**
+   * Builds a configured Bedrock runtime client using system config only.
+   */
+  private function buildBedrockClient(): \Aws\BedrockRuntime\BedrockRuntimeClient {
+    $config = $this->configFactory->get('ai_conversation.settings');
+    $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
+    $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
+    $aws_region = $config->get('aws_region') ?: 'us-east-1';
+
+    $sdk_config = ['region' => $aws_region, 'version' => 'latest'];
+    if (!empty($aws_access_key) && !empty($aws_secret_key)) {
+      $sdk_config['credentials'] = ['key' => $aws_access_key, 'secret' => $aws_secret_key];
+    }
+
+    return (new \Aws\Sdk($sdk_config))->createBedrockRuntime();
+  }
+
+  /**
    * Send a message to the AI model with rolling summary management.
    */
   public function sendMessage(NodeInterface $conversation, string $message) {
@@ -96,36 +126,12 @@ class AIApiService {
       // Check if we need to update the summary before processing.
       $this->checkAndUpdateSummary($conversation);
 
-      // Get AWS configuration from settings, with fallback to environment variables.
       $config = $this->configFactory->get('ai_conversation.settings');
-      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
-      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
+      $bedrock = $this->buildBedrockClient();
 
-      // Use the AWS SDK with credentials (either from config or environment).
-      $sdk_config = [
-        'region' => $aws_region,
-        'version' => 'latest',
-      ];
-      
-      // Only set explicit credentials if we have them, otherwise let AWS SDK use default credential chain
-      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-        $sdk_config['credentials'] = [
-          'key' => $aws_access_key,
-          'secret' => $aws_secret_key,
-        ];
-        $this->logInfo('Using AWS credentials from configuration');
-      } else {
-        // Let AWS SDK use its default credential chain (env vars, IAM roles, etc.)
-        $this->logInfo('Using AWS SDK default credential chain (environment variables, IAM roles, etc.)');
-      }
-
-      $sdk = new \Aws\Sdk($sdk_config);
-      
-      $bedrock = $sdk->createBedrockRuntime();
-      
-      // Get the AI model from configuration or conversation.
-      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
+      // Try models in order: primary from config, then fallbacks.
+      $models_to_try = $this->getModelFallbacks();
+      $model = $models_to_try[0];
 
       // Build the optimized conversation context (summary + recent messages).
       $context = $this->buildOptimizedContext($conversation, $message);
@@ -167,10 +173,32 @@ class AIApiService {
 
       $start_time = microtime(true);
 
-      $response = $bedrock->invokeModel([
-        'modelId' => $model,
-        'body' => json_encode($request_body)
-      ]);
+      // Try each model in fallback order until one succeeds.
+      $last_exception = NULL;
+      $response = NULL;
+      foreach ($models_to_try as $candidate_model) {
+        try {
+          $this->logInfo('Attempting Bedrock call with model: @model', ['@model' => $candidate_model]);
+          $response = $bedrock->invokeModel([
+            'modelId' => $candidate_model,
+            'body' => json_encode($request_body),
+          ]);
+          $model = $candidate_model;
+          $last_exception = NULL;
+          break;
+        } catch (\Aws\Exception\AwsException $e) {
+          $this->logError('Model @model failed (@code), trying next fallback. Error: @msg', [
+            '@model' => $candidate_model,
+            '@code' => $e->getAwsErrorCode(),
+            '@msg' => $e->getMessage(),
+          ]);
+          $last_exception = $e;
+        }
+      }
+
+      if ($last_exception !== NULL) {
+        throw $last_exception;
+      }
 
       $duration_ms = (int)((microtime(true) - $start_time) * 1000);
 
@@ -557,7 +585,7 @@ class AIApiService {
       $config = $this->configFactory->get('ai_conversation.settings');
       $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
       $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-west-2';
+      $aws_region = $config->get('aws_region') ?: 'us-east-1';
 
       $sdk_config = [
         'region' => $aws_region,
@@ -944,33 +972,40 @@ class AIApiService {
    */
   private function generateSummary(string $context) {
     try {
-      $sdk = new \Aws\Sdk([
-        'region' => 'us-west-2',
-        'version' => 'latest',
-      ]);
-      
-      $bedrock = $sdk->createBedrockRuntime();
+      $bedrock = $this->buildBedrockClient();
+      $models_to_try = $this->getModelFallbacks();
 
-      $response = $bedrock->invokeModel([
-        'modelId' => $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6',
-        'body' => json_encode([
-          'anthropic_version' => 'bedrock-2023-05-31',
-          'max_tokens' => 20000,
-          'messages' => [
-            [
-              'role' => 'user',
-              'content' => $context
-            ]
-          ]
-        ])
+      $request_body = json_encode([
+        'anthropic_version' => 'bedrock-2023-05-31',
+        'max_tokens' => 20000,
+        'messages' => [['role' => 'user', 'content' => $context]],
       ]);
 
-      $result = json_decode($response['body']->getContents(), true);
-      
+      $last_exception = NULL;
+      $result = NULL;
+      foreach ($models_to_try as $candidate_model) {
+        try {
+          $response = $bedrock->invokeModel(['modelId' => $candidate_model, 'body' => $request_body]);
+          $result = json_decode($response['body']->getContents(), true);
+          $last_exception = NULL;
+          break;
+        } catch (\Aws\Exception\AwsException $e) {
+          $this->logError('Summary model @model failed, trying next. Error: @msg', [
+            '@model' => $candidate_model,
+            '@msg' => $e->getMessage(),
+          ]);
+          $last_exception = $e;
+        }
+      }
+
+      if ($last_exception !== NULL) {
+        throw $last_exception;
+      }
+
       if (isset($result['content'][0]['text'])) {
         return $result['content'][0]['text'];
       }
-      
+
       throw new \Exception('Unexpected API response format');
       
     } catch (\Exception $e) {
@@ -1102,11 +1137,9 @@ class AIApiService {
         'secret' => $aws_secret_key,
       ];
 
-      $sdk = new \Aws\Sdk($sdk_config);
-      
-      $bedrock = $sdk->createBedrockRuntime();
-
-      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
+      $bedrock = $this->buildBedrockClient();
+      $models_to_try = $this->getModelFallbacks();
+      $model = $models_to_try[0];
 
       $response = $bedrock->invokeModel([
         'modelId' => $model,
