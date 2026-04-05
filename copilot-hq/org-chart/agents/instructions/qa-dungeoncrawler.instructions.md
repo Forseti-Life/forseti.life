@@ -154,10 +154,10 @@ Release-blocking Gate 2 unit-test inbox items MUST be assigned ROI ≥ 200 at th
 
 If you discover a Gate 2 item in your inbox with ROI < 200:
 - Treat it as the highest-priority item regardless of ROI value.
-- Note the low-ROI discrepancy in your outbox for the orchestrator (CEO) to correct.
+- Note the low-ROI discrepancy in your outbox for PM to correct.
 - Do NOT skip or defer it under ROI ordering.
 
-Root cause: During 20260327-dungeoncrawler-release-b, Gate 2 unit-test items were dispatched at ROI 43–56 while 15+ competing items had ROI 84–300. Under strict ROI ordering they were never reached, causing 3–5 session stagnation requiring CEO manual intervention (GAP-DC-GATE2-ROI-01).
+Root cause: During 20260327-dungeoncrawler-release-b, Gate 2 unit-test items were dispatched at ROI 43–56 while 15+ competing items had ROI 84–300. Under strict ROI ordering they were never reached, causing 3–5 session stagnation requiring manual intervention (GAP-DC-GATE2-ROI-01).
 
 ## Env-outage fallback policy (code-level APPROVE)
 
