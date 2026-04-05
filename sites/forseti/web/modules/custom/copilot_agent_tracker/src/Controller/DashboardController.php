@@ -499,9 +499,17 @@ final class DashboardController extends ControllerBase {
     if (is_readable($orchestrator_log_path)) {
       $log = (string) @file_get_contents($orchestrator_log_path);
       $orchestrator_log_snippet = trim($log);
-      if (str_contains($orchestrator_log_snippet, '"steps"')) {
-        $engine_mode = 'langgraph';
-      }
+    }
+    // Prefer tick-based mode detection (reliable across log format changes).
+    if (is_array($last_tick) && (isset($last_tick['step_results']) || isset($last_tick['dry_run']))) {
+      $engine_mode = 'langgraph';
+    }
+    elseif ($orchestrator_log_snippet !== '' && (
+      str_contains($orchestrator_log_snippet, '"step_results"') ||
+      str_contains($orchestrator_log_snippet, '"dry_run"') ||
+      str_contains($orchestrator_log_snippet, '"steps"')
+    )) {
+      $engine_mode = 'langgraph';
     }
 
     $release_rows = [];

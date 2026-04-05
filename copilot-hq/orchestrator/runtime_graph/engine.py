@@ -32,6 +32,25 @@ class LangGraphDeps:
     kpi_monitor_cmd: List[str]
 
 
+import subprocess as _subprocess
+
+
+def _refresh_feature_progress(hq_root: pathlib.Path) -> None:
+    """Regenerate dashboards/FEATURE_PROGRESS.md from features/*/feature.md. Best-effort."""
+    script = hq_root / "scripts" / "generate-feature-progress.py"
+    if script.exists():
+        try:
+            _subprocess.run(
+                ["python3", str(script)],
+                cwd=str(hq_root),
+                timeout=30,
+                check=False,
+                capture_output=True,
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+
 def _write_tick_telemetry(state: Dict[str, Any]) -> None:
     """Append a tick record to langgraph-ticks.jsonl for the Drupal dashboard."""
     hq_root = pathlib.Path(os.environ.get("COPILOT_HQ_ROOT", str(pathlib.Path(__file__).parent.parent.parent)))
@@ -124,6 +143,9 @@ def _write_tick_telemetry(state: Dict[str, Any]) -> None:
     parity_file = responses_dir / "langgraph-parity-latest.json"
     parity_file.write_text(json.dumps(parity_record, indent=2) + "\n", encoding="utf-8")
 
+    # Refresh FEATURE_PROGRESS.md so the dashboard always reflects current feature state.
+    _refresh_feature_progress(hq_root)
+
 
 def run_tick(
     provider: Any,
@@ -147,6 +169,7 @@ def run_tick(
         "kpi_last_run": int(kpi_last_run),
         "release_cycle_interval": max(0, int(release_cycle_interval)),
         "release_cycle_last_run": int(release_cycle_last_run),
+        "provider": type(provider).__name__,
     }
 
     def consume_replies(s: Dict[str, Any]) -> Dict[str, Any]:
