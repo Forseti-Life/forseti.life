@@ -159,8 +159,21 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'talk',
       'end_turn',
       'delay',
+      'delay_reenter',
       'ready',
       'reaction',
+      'aid',
+      'aid_setup',
+      'crawl',
+      'drop_prone',
+      'escape',
+      'leap',
+      'release',
+      'seek',
+      'sense_motive',
+      'stand',
+      'step',
+      'take_cover',
     ];
   }
 
@@ -435,12 +448,327 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         break;
 
       case 'delay':
-        // Delay: hold position in initiative, re-enter later.
+        // REQ 2193-2195: Store remaining actions, set delayed flag.
+        $delay_remaining = $game_state['turn']['actions_remaining'] ?? 0;
         $game_state['turn']['delayed'] = TRUE;
-        $result = ['delayed' => TRUE];
+        $game_state['turn']['delayed_actions_remaining'] = $delay_remaining;
+        $game_state['turn']['actions_remaining'] = 0;
+        $result = ['delayed' => TRUE, 'remaining_actions' => $delay_remaining];
         $events[] = GameEventLogger::buildEvent('delay', 'encounter', $actor_id, [
+          'remaining_actions' => $delay_remaining,
           'round' => $game_state['round'] ?? NULL,
         ]);
+        break;
+
+      case 'delay_reenter':
+        // REQ 2193: Re-enter initiative after delay, restoring stored actions.
+        if (empty($game_state['turn']['delayed'])) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Not currently delayed.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $reenter_actions = $game_state['turn']['delayed_actions_remaining'] ?? 0;
+        $game_state['turn']['delayed'] = FALSE;
+        $game_state['turn']['actions_remaining'] = $reenter_actions;
+        $result = ['reentered' => TRUE, 'actions_restored' => $reenter_actions];
+        $events[] = GameEventLogger::buildEvent('delay_reenter', 'encounter', $actor_id, [
+          'actions_restored' => $reenter_actions,
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'ready':
+        // REQ 2203-2205: 2-action activity; store trigger action + MAP at time of readying.
+        $ready_action = $params['ready_action'] ?? NULL;
+        $ready_trigger = $params['ready_trigger'] ?? NULL;
+        if (!$ready_action || !$ready_trigger) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'ready_action and ready_trigger are required.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        // REQ 2205: Cannot Ready a free action that already has its own trigger.
+        if (!empty($params['is_triggered_free_action'])) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Cannot Ready a free action that already has a trigger.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $game_state['turn']['ready'] = [
+          'action' => $ready_action,
+          'trigger' => $ready_trigger,
+          'map_at_ready' => $game_state['turn']['attacks_this_turn'] ?? 0,
+        ];
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = ['readied' => TRUE, 'action' => $ready_action, 'trigger' => $ready_trigger];
+        $events[] = GameEventLogger::buildEvent('ready', 'encounter', $actor_id, [
+          'action' => $ready_action,
+          'trigger' => $ready_trigger,
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'stand':
+        // REQ 2213: Remove prone condition. 1 action.
+        $enc_stand = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_stand = $enc_stand ? $this->findEncounterParticipantByEntityId($enc_stand, $actor_id) : NULL;
+        if ($ptcp_stand) {
+          $pid_stand = (int) $ptcp_stand['id'];
+          foreach ($this->conditionManager->getActiveConditions($pid_stand, $encounter_id) as $cid => $crow) {
+            if ($crow['condition_type'] === 'prone') {
+              $this->conditionManager->removeCondition($pid_stand, $cid, $encounter_id);
+              break;
+            }
+          }
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['stood' => TRUE];
+        $events[] = GameEventLogger::buildEvent('stand', 'encounter', $actor_id, ['round' => $game_state['round'] ?? NULL]);
+        break;
+
+      case 'drop_prone':
+        // REQ 2196: Apply prone condition. 1 action.
+        $enc_dp = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_dp = $enc_dp ? $this->findEncounterParticipantByEntityId($enc_dp, $actor_id) : NULL;
+        if ($ptcp_dp) {
+          $pid_dp = (int) $ptcp_dp['id'];
+          $this->conditionManager->applyCondition($pid_dp, 'prone', 1, 'persistent', 'drop_prone', $encounter_id);
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['prone' => TRUE];
+        $events[] = GameEventLogger::buildEvent('drop_prone', 'encounter', $actor_id, ['round' => $game_state['round'] ?? NULL]);
+        break;
+
+      case 'step':
+        // REQ 2214-2215: Move exactly 5 ft without triggering AoO. 1 action.
+        if (empty($params['to_hex'])) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Missing to_hex.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $step_move = $this->processStride($encounter_id, $actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $step_move['mutations'] ?? [];
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $game_state['turn']['last_move_type'] = 'step';
+        $result = ['stepped' => TRUE, 'to_hex' => $params['to_hex']];
+        $events[] = GameEventLogger::buildEvent('step', 'encounter', $actor_id, [
+          'to' => $params['to_hex'],
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'crawl':
+        // REQ 2192: Move 5 ft while prone; requires Speed >= 10. 1 action.
+        if (empty($params['to_hex'])) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Missing to_hex.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $enc_crawl = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_crawl = $enc_crawl ? $this->findEncounterParticipantByEntityId($enc_crawl, $actor_id) : NULL;
+        if (!$ptcp_crawl) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Participant not found.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $pid_crawl = (int) $ptcp_crawl['id'];
+        if (!$this->conditionManager->hasCondition($pid_crawl, 'prone', $encounter_id)) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Must be prone to Crawl.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        if ((int) ($ptcp_crawl['speed'] ?? 25) < 10) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Speed is too low to Crawl (requires Speed >= 10 ft).'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $crawl_move = $this->processStride($encounter_id, $actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $crawl_move['mutations'] ?? [];
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['crawled' => TRUE, 'to_hex' => $params['to_hex']];
+        $events[] = GameEventLogger::buildEvent('crawl', 'encounter', $actor_id, [
+          'to' => $params['to_hex'],
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'leap':
+        // REQ 2201-2202: Jump up to 10 ft (Speed 15+) or 15 ft (Speed 30+). 1 action.
+        if (empty($params['to_hex'])) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Missing to_hex.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        $enc_leap = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_leap = $enc_leap ? $this->findEncounterParticipantByEntityId($enc_leap, $actor_id) : NULL;
+        $leap_speed = (int) ($ptcp_leap['speed'] ?? 25);
+        $max_leap_ft = $leap_speed >= 30 ? 15 : 10;
+        $leap_move = $this->processStride($encounter_id, $actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $leap_move['mutations'] ?? [];
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['leaped' => TRUE, 'to_hex' => $params['to_hex'], 'max_leap_ft' => $max_leap_ft];
+        $events[] = GameEventLogger::buildEvent('leap', 'encounter', $actor_id, [
+          'to' => $params['to_hex'],
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'escape':
+        // REQ 2197-2199: Roll vs grapple DC; attack trait applies MAP. 1 action.
+        $result = $this->processEscape($encounter_id, $actor_id, $params, $game_state);
+        $mutations = $result['mutations'] ?? [];
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $events[] = GameEventLogger::buildEvent('escape', 'encounter', $actor_id, [
+          'degree' => $result['degree'] ?? NULL,
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'seek':
+        // REQ 2207-2210: Secret Perception roll vs each target's Stealth DC. 1 action.
+        $result = $this->processSeek($encounter_id, $actor_id, $params, $game_state);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $events[] = GameEventLogger::buildEvent('seek', 'encounter', $actor_id, [
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'sense_motive':
+        // REQ 2211-2212: Secret Perception vs Deception; track retry cooldown. 1 action.
+        {
+          $sm_bonus = (int) ($params['perception_bonus'] ?? 0);
+          $sm_dc = (int) ($params['deception_dc'] ?? 15);
+          $sm_d20 = $this->numberGenerationService->rollPathfinderDie(20);
+          $sm_total = $sm_d20 + $sm_bonus;
+          $sm_degree = $this->combatCalculator->calculateDegreeOfSuccess($sm_total, $sm_dc, $sm_d20);
+          if (!isset($game_state['sense_motive'])) {
+            $game_state['sense_motive'] = [];
+          }
+          if (!isset($game_state['sense_motive'][$actor_id])) {
+            $game_state['sense_motive'][$actor_id] = [];
+          }
+          // Track last-used round for retry cooldown (REQ 2212).
+          $game_state['sense_motive'][$actor_id][$target_id] = $game_state['round'] ?? 0;
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+          // Secret result: return degree only (not raw d20) to caller.
+          $result = ['sense_motive' => TRUE, 'degree' => $sm_degree];
+          $events[] = GameEventLogger::buildEvent('sense_motive', 'encounter', $actor_id, [
+            'round' => $game_state['round'] ?? NULL,
+          ], NULL, $target_id);
+        }
+        break;
+
+      case 'take_cover':
+        // REQ 2218: Upgrade cover tier (none→standard, standard→greater). 1 action.
+        if (!isset($game_state['entities'])) {
+          $game_state['entities'] = [];
+        }
+        if (!isset($game_state['entities'][$actor_id])) {
+          $game_state['entities'][$actor_id] = [];
+        }
+        $cur_cover = $game_state['entities'][$actor_id]['cover'] ?? 'none';
+        $new_cover = ($cur_cover === 'standard') ? 'greater' : 'standard';
+        $game_state['entities'][$actor_id]['cover'] = $new_cover;
+        $game_state['entities'][$actor_id]['cover_active'] = TRUE;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['cover' => $new_cover, 'cover_active' => TRUE];
+        $events[] = GameEventLogger::buildEvent('take_cover', 'encounter', $actor_id, [
+          'cover' => $new_cover,
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'release':
+        // REQ 2206: Free action; drop held item; does not trigger manipulate-trait reactions.
+        $rel_item = $params['item_id'] ?? NULL;
+        if (!empty($dungeon_data['entities'])) {
+          foreach ($dungeon_data['entities'] as &$rel_ent) {
+            $rel_iid = $rel_ent['entity_instance_id'] ?? ($rel_ent['instance_id'] ?? ($rel_ent['id'] ?? NULL));
+            if ($rel_iid === $actor_id) {
+              if ($rel_item && isset($rel_ent['equipment']['held'][$rel_item])) {
+                unset($rel_ent['equipment']['held'][$rel_item]);
+              }
+              break;
+            }
+          }
+          unset($rel_ent);
+        }
+        // Free action: no standard action deducted.
+        $result = ['released' => TRUE, 'item_id' => $rel_item];
+        $events[] = GameEventLogger::buildEvent('release', 'encounter', $actor_id, [
+          'item_id' => $rel_item,
+          'round' => $game_state['round'] ?? NULL,
+        ]);
+        break;
+
+      case 'aid_setup':
+        // REQ 2190: Prepare Aid for a target ally. 1 action (on a previous turn).
+        if (!isset($game_state['turn']['aid_prepared'])) {
+          $game_state['turn']['aid_prepared'] = [];
+        }
+        $aid_skill = $params['skill'] ?? 'generic';
+        $game_state['turn']['aid_prepared'][$actor_id][$target_id] = $aid_skill;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['aid_prepared' => TRUE, 'target' => $target_id, 'skill' => $aid_skill];
+        $events[] = GameEventLogger::buildEvent('aid_setup', 'encounter', $actor_id, [
+          'target' => $target_id,
+          'round' => $game_state['round'] ?? NULL,
+        ], NULL, $target_id);
+        break;
+
+      case 'aid':
+        // REQ 2190-2191: Reaction; verify aid was prepared, roll check vs DC 20.
+        $result = $this->processAid($actor_id, $target_id, $params, $game_state);
+        $mutations = $result['mutations'] ?? [];
+        $events[] = GameEventLogger::buildEvent('aid', 'encounter', $actor_id, [
+          'target' => $target_id,
+          'degree' => $result['degree'] ?? NULL,
+          'aid_bonus' => $result['aid_bonus'] ?? 0,
+          'round' => $game_state['round'] ?? NULL,
+        ], NULL, $target_id);
         break;
 
       case 'reaction':
@@ -476,7 +804,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     // Check for auto-end-turn (actions depleted + no movement remaining).
-    if ($type !== 'end_turn' && $this->shouldAutoEndTurn($game_state)) {
+    // Delay is intentional initiative exit — do NOT auto-end-turn for it.
+    $no_auto_end_types = ['end_turn', 'delay', 'delay_reenter', 'release', 'aid'];
+    if (!in_array($type, $no_auto_end_types, TRUE) && $this->shouldAutoEndTurn($game_state)) {
       $auto_end = $this->processEndTurn($encounter_id, $actor_id, $game_state, $dungeon_data, $campaign_id);
       $events[] = GameEventLogger::buildEvent('auto_end_turn', 'encounter', $actor_id, [
         'round' => $game_state['round'] ?? NULL,
@@ -882,7 +1212,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       try {
         $this->conditionManager->tickConditions($encounter_id, $actor_id);
       }
-      catch (\Exception $e) {
+      catch (\Throwable $e) {
         $this->logger->warning('Condition tick failed: @error', ['@error' => $e->getMessage()]);
       }
     }
@@ -1205,6 +1535,184 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   // =========================================================================
 
   /**
+   * Processes an Escape attempt (REQ 2197-2199).
+   * Attack trait: applies MAP. Crit success: freed + may Stride 5 ft.
+   * Crit fail: blocks further escape attempts this turn.
+   */
+  protected function processEscape(int $encounter_id, string $actor_id, array $params, array &$game_state): array {
+    $encounter = $this->encounterStore->loadEncounter($encounter_id);
+    if (!$encounter) {
+      return ['error' => 'Encounter not found.', 'mutations' => []];
+    }
+    $participant = $this->findEncounterParticipantByEntityId($encounter, $actor_id);
+    if (!$participant) {
+      return ['error' => 'Participant not found.', 'mutations' => []];
+    }
+    $pid = (int) $participant['id'];
+
+    // REQ 2198: crit fail blocks further escape this turn.
+    if (!empty($game_state['turn']['escape_blocked'][$actor_id])) {
+      return ['error' => 'Cannot attempt Escape again this turn (critical failure).', 'mutations' => []];
+    }
+
+    // Must have grabbed, immobilized, or restrained.
+    $active = $this->conditionManager->getActiveConditions($pid, $encounter_id);
+    $condition_row_id = NULL;
+    foreach ($active as $row_id => $row) {
+      if (in_array($row['condition_type'], ['grabbed', 'immobilized', 'restrained'], TRUE)) {
+        $condition_row_id = $row_id;
+        break;
+      }
+    }
+    if ($condition_row_id === NULL) {
+      return ['error' => 'Must be grabbed, immobilized, or restrained to Escape.', 'mutations' => []];
+    }
+
+    // REQ 2199: attack trait — apply MAP.
+    $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
+    $map = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
+    $d20 = $this->numberGenerationService->rollPathfinderDie(20);
+    $total = $d20 + (int) ($params['skill_bonus'] ?? 0) + $map;
+    $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, (int) ($params['grapple_dc'] ?? 15), $d20);
+
+    // Increment MAP for future attacks.
+    $game_state['turn']['attacks_this_turn'] = $attacks_this_turn + 1;
+
+    if (in_array($degree, ['critical_success', 'success'], TRUE)) {
+      $this->conditionManager->removeCondition($pid, $condition_row_id, $encounter_id);
+    }
+    if ($degree === 'critical_failure') {
+      if (!isset($game_state['turn']['escape_blocked'])) {
+        $game_state['turn']['escape_blocked'] = [];
+      }
+      $game_state['turn']['escape_blocked'][$actor_id] = TRUE;
+    }
+
+    return [
+      'escaped' => in_array($degree, ['critical_success', 'success'], TRUE),
+      'may_stride_5ft' => ($degree === 'critical_success'),
+      'degree' => $degree,
+      'd20' => $d20,
+      'total' => $total,
+      'mutations' => [],
+    ];
+  }
+
+  /**
+   * Processes a Seek action (REQ 2207-2210).
+   * Secret GM-side Perception roll vs each target's Stealth DC.
+   * Updates visibility state in game_state['visibility'][$seeker_id][$target_id].
+   */
+  protected function processSeek(int $encounter_id, string $actor_id, array $params, array &$game_state): array {
+    $perception_bonus = (int) ($params['perception_bonus'] ?? 0);
+    $target_ids = $params['target_ids'] ?? [];
+    $is_imprecise = !empty($params['imprecise_sense']);
+    // stealth_dcs: assoc array of target_id → DC; defaults to 15 if not provided.
+    $stealth_dcs = $params['stealth_dcs'] ?? [];
+
+    if (!isset($game_state['visibility'])) {
+      $game_state['visibility'] = [];
+    }
+    if (!isset($game_state['visibility'][$actor_id])) {
+      $game_state['visibility'][$actor_id] = [];
+    }
+
+    $seek_results = [];
+    foreach ($target_ids as $tid) {
+      $stealth_dc = (int) ($stealth_dcs[$tid] ?? 15);
+      $d20 = $this->numberGenerationService->rollPathfinderDie(20);
+      $total = $d20 + $perception_bonus;
+      $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $stealth_dc, $d20);
+
+      $current = $game_state['visibility'][$actor_id][$tid] ?? 'undetected';
+      $new_visibility = $current;
+
+      // REQ 2208: detection rules.
+      if ($degree === 'critical_success' && in_array($current, ['undetected', 'hidden'], TRUE)) {
+        $new_visibility = 'observed';
+      }
+      elseif ($degree === 'success' && $current === 'undetected') {
+        $new_visibility = 'hidden';
+      }
+      // failure / crit fail: no change.
+
+      // REQ 2210: Imprecise sense cap — cannot exceed hidden.
+      if ($is_imprecise && $new_visibility === 'observed') {
+        $new_visibility = 'hidden';
+      }
+
+      $game_state['visibility'][$actor_id][$tid] = $new_visibility;
+      // Secret: d20/total not included in returned result (GM-only).
+      $seek_results[$tid] = ['degree' => $degree, 'new_visibility' => $new_visibility];
+    }
+
+    return ['sought' => TRUE, 'results' => $seek_results];
+  }
+
+  /**
+   * Processes an Aid reaction (REQ 2190-2191).
+   * Requires prior aid_setup on a previous turn. Rolls vs DC 20.
+   */
+  protected function processAid(string $actor_id, ?string $target_id, array $params, array &$game_state): array {
+    $reaction_available = $game_state['turn']['reaction_available'] ?? TRUE;
+    if (!$reaction_available) {
+      return ['error' => 'Reaction already spent.', 'mutations' => []];
+    }
+
+    $aiding_actor = $params['aiding_actor'] ?? $actor_id;
+    $aid_prepared = $game_state['turn']['aid_prepared'][$aiding_actor][$target_id] ?? NULL;
+    if (!$aid_prepared) {
+      return ['error' => 'Aid has not been prepared for this target.', 'mutations' => []];
+    }
+
+    $skill_bonus = (int) ($params['skill_bonus'] ?? 0);
+    // proficiency_rank: 0=untrained,1=trained,2=expert,3=master,4=legendary.
+    $proficiency_rank = (int) ($params['proficiency_rank'] ?? 0);
+    $d20 = $this->numberGenerationService->rollPathfinderDie(20);
+    $total = $d20 + $skill_bonus;
+    $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, 20, $d20);
+
+    // REQ 2191: Aid bonus by degree and proficiency rank.
+    $aid_bonus = 0;
+    if ($degree === 'critical_success') {
+      if ($proficiency_rank >= 4) {
+        $aid_bonus = 4;
+      }
+      elseif ($proficiency_rank >= 3) {
+        $aid_bonus = 3;
+      }
+      else {
+        $aid_bonus = 2;
+      }
+    }
+    elseif ($degree === 'success') {
+      $aid_bonus = 1;
+    }
+    elseif ($degree === 'critical_failure') {
+      $aid_bonus = -1;
+    }
+
+    // Store aid bonus for the aided actor's next action.
+    if (!isset($game_state['aid_bonuses'])) {
+      $game_state['aid_bonuses'] = [];
+    }
+    if (!isset($game_state['aid_bonuses'][$target_id])) {
+      $game_state['aid_bonuses'][$target_id] = [];
+    }
+    $game_state['aid_bonuses'][$target_id][] = $aid_bonus;
+    $game_state['turn']['reaction_available'] = FALSE;
+
+    return [
+      'aided' => TRUE,
+      'aid_bonus' => $aid_bonus,
+      'degree' => $degree,
+      'd20' => $d20,
+      'total' => $total,
+      'mutations' => [],
+    ];
+  }
+
+  /**
    * Gets the action cost for an intent type.
    */
   protected function getActionCost(string $type, array $params = []): int {
@@ -1212,12 +1720,28 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'strike':
       case 'stride':
       case 'interact':
+      case 'stand':
+      case 'drop_prone':
+      case 'step':
+      case 'crawl':
+      case 'leap':
+      case 'escape':
+      case 'seek':
+      case 'sense_motive':
+      case 'take_cover':
+      case 'aid_setup':
         return 1;
+
+      case 'ready':
+        return 2;
 
       case 'cast_spell':
         return $params['action_cost'] ?? 2;
 
       case 'talk':
+      case 'release':
+      case 'aid':
+      case 'delay_reenter':
         return 0;
 
       default:
