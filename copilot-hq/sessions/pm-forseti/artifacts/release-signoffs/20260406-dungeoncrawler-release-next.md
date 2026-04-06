@@ -5,14 +5,14 @@
 - Date: 2026-04-06T06:23:26Z
 
 ## Forseti site review
-- Forseti in-progress features: 8 (all tagged to `20260406-forseti-release-next` or earlier active releases)
-- No forseti blockers affecting DC release-next
-- QA Gate 2 audit (run `20260405-225321`): PASS — 0 violations (404: 0, permission violations: 0, other 5xx: 0)
+- Forseti in-progress features: 8 (all tagged to active forseti releases)
+- QA Gate 2 audit (run `20260406-055632`): PASS — 0 violations, 0 pending ACL decisions
+- No forseti blockers affecting DC release
 
 ## DC release review
-- Release: `20260406-dungeoncrawler-release-next` (transition/early cycle)
-- pm-dungeoncrawler: already signed off
-- No known forseti blocking conditions for this coordinated DC release
+- DC features in `20260406-dungeoncrawler-release-next`: 1 (`dc-cr-character-creation`)
+- pm-dungeoncrawler signoff: auto-signed by orchestrator (coordinated release `20260406-dungeoncrawler-release` shipped)
+- No forseti-side conflicts with this DC feature
 
 ## Decision
 Approved. No forseti blocking conditions.
