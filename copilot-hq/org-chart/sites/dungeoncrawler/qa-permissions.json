@@ -529,6 +529,48 @@
         "dc_playwright_player": 200,
         "dc_playwright_admin": 200
       }
+    },
+    {
+      "id": "dc-cr-character-class-node-read",
+      "feature_id": "dc-cr-character-class",
+      "path_regex": "^/character_class/[^/]+(?:/|$)",
+      "notes": "GET /character_class/{id} \u2014 public read (anon accessible, TC-CC-03).",
+      "expect": {
+        "anon": 200,
+        "authenticated": 200,
+        "content_editor": 200,
+        "administrator": 200,
+        "dc_playwright_player": 200,
+        "dc_playwright_admin": 200
+      }
+    },
+    {
+      "id": "dc-cr-character-class-application",
+      "feature_id": "dc-cr-character-class",
+      "path_regex": "^/api/character/[^/]+/class(?:/|$)",
+      "notes": "Character class application \u2014 POST-only, auth-required (TC-CC-04). Ignore in GET probe scans.",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "dc-cr-character-class-admin-create",
+      "feature_id": "dc-cr-character-class",
+      "path_regex": "^/node/add/character_class(?:/|$)",
+      "notes": "Admin node creation for character_class content type (TC-CC-14). Admin/content_editor 200; player/anon 403.",
+      "expect": {
+        "anon": 403,
+        "authenticated": 403,
+        "content_editor": 200,
+        "administrator": 200,
+        "dc_playwright_player": 403,
+        "dc_playwright_admin": 200
+      }
     }
   ]
 }

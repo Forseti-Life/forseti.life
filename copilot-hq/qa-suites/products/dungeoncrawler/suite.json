@@ -329,14 +329,95 @@
     },
     {
       "id": "dc-cr-character-class-phpunit",
-      "label": "PHPUnit tests for dc-cr-character-class",
+      "label": "PHPUnit tests for dc-cr-character-class \u2014 content type, 12 core PF2E classes, class selection, HP/proficiency/feature application",
       "type": "unit",
       "feature_id": "dc-cr-character-class",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_character_class 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=CharacterClass",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-character-class-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CC-01",
+          "method": "CharacterClassContentTypeTest::testContentTypeFieldsExist",
+          "description": "character_class content type exists with all required fields"
+        },
+        {
+          "id": "TC-CC-02",
+          "suite": "drush-verify",
+          "method": null,
+          "description": "12 core PF2E classes seeded after install"
+        },
+        {
+          "id": "TC-CC-03",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Character class nodes publicly readable (anon GET /character_class/{id} = 200)"
+        },
+        {
+          "id": "TC-CC-04",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Class application endpoint requires authentication (POST /api/character/{id}/class)"
+        },
+        {
+          "id": "TC-CC-05",
+          "method": "CharacterClassSelectionTest::testClassStoredOnCharacter",
+          "description": "Selecting a class stores it on the character entity"
+        },
+        {
+          "id": "TC-CC-06",
+          "method": "CharacterClassSelectionTest::testHpPerLevelApplied",
+          "description": "Selecting a class sets hp_per_level correctly (fighter=10, wizard=6, cleric=8)"
+        },
+        {
+          "id": "TC-CC-07",
+          "method": "CharacterClassSelectionTest::testProficienciesApplied",
+          "description": "Selecting a class applies class proficiency levels to character proficiency record"
+        },
+        {
+          "id": "TC-CC-08",
+          "method": "CharacterClassSelectionTest::testFirstLevelFeaturesRecorded",
+          "description": "Selecting a class records 1st-level class features on character entity"
+        },
+        {
+          "id": "TC-CC-09",
+          "method": "CharacterClassSelectionTest::testReselectionReplacesPriorClass",
+          "description": "Re-selecting class removes prior HP/proficiencies/features before applying new"
+        },
+        {
+          "id": "TC-CC-10",
+          "method": "CharacterClassSelectionTest::testMissingClassReturnsError",
+          "description": "Saving without class selection returns Class is required validation error"
+        },
+        {
+          "id": "TC-CC-11",
+          "method": "CharacterClassSelectionTest::testKeyAbilityChoiceRequired",
+          "description": "Multi-ability-option classes (e.g., champion) require key ability choice before applying"
+        },
+        {
+          "id": "TC-CC-12",
+          "method": "CharacterClassSelectionTest::testInvalidClassIdReturns400",
+          "description": "Invalid class ID returns 400 with descriptive error"
+        },
+        {
+          "id": "TC-CC-13",
+          "method": "CharacterClassSelectionTest::testCannotModifyOtherPlayersCharacter",
+          "description": "Authenticated player cannot apply class to another player character (403)"
+        },
+        {
+          "id": "TC-CC-14",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Admin can access /node/add/character_class (200); player/anon get 403"
+        },
+        {
+          "id": "TC-CC-15",
+          "method": "CharacterClassDataIntegrityTest::testCharacterClassRetainedAfterModuleUpdate",
+          "description": "Existing character retains class data after module update"
+        }
+      ]
     },
     {
       "id": "dc-cr-character-creation-phpunit",
