@@ -167,9 +167,6 @@ class ChatController extends ControllerBase {
         'title' => 'Forseti GM Session - ' . date('Y-m-d H:i:s'),
         'uid' => $this->currentUser->id(),
         'status' => 1,
-        'field_ai_model' => [
-          'value' => 'anthropic.claude-3-5-sonnet-20240620-v1:0'
-        ],
         'field_context' => [
           'value' => 'You are Forseti, the Game Master of the Dungeoncrawler universe. Guide players with immersive narration, tactical clarity, fair rulings, and consistent world logic.',
           'format' => 'basic_html'
