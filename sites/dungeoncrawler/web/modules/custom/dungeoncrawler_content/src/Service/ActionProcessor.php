@@ -48,6 +48,23 @@ class ActionProcessor {
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#executeaction
    */
   public function executeAction($encounter_id, $participant_id, $action_type, array $action_data) {
+    // Req 2188/2189: Disrupted action — deduct cost but apply no effect.
+    if (!empty($action_data['disrupted'])) {
+      $state = $this->loadEncounterState($encounter_id);
+      if ($state['status'] === 'error') {
+        return $state;
+      }
+      [$encounter, $participants] = $state['data'];
+      $actor = $this->findParticipant($participants, $participant_id);
+      if ($actor) {
+        $action_cost = (int) ($action_data['action_cost'] ?? 1);
+        $actions_after = max(0, (int) ($actor['actions_remaining'] ?? 0) - $action_cost);
+        $this->store->updateParticipant((int) $participant_id, ['actions_remaining' => $actions_after]);
+        $this->logAction((int) $encounter_id, (int) $participant_id, 'disrupted', NULL, $action_data, ['reason' => 'disrupted']);
+        return ['status' => 'ok', 'disrupted' => TRUE, 'actions_remaining' => $actions_after];
+      }
+    }
+
     switch ($action_type) {
       case 'stride':
         return $this->executeStride($participant_id, $action_data['distance'] ?? 0, $action_data['path'] ?? [], $encounter_id);

@@ -168,6 +168,75 @@ class ConditionManager {
    *
    * @return array Associative array keyed by condition row ID.
    */
+  /**
+   * Returns TRUE if the participant has an active instance of $condition_type.
+   *
+   * @param int $participant_id
+   * @param string $condition_type
+   * @param int $encounter_id
+   */
+  public function hasCondition(int $participant_id, string $condition_type, int $encounter_id): bool {
+    foreach ($this->getActiveConditions($participant_id, $encounter_id) as $row) {
+      if ($row['condition_type'] === $condition_type) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Returns the value of the first active instance of $condition_type, or NULL.
+   *
+   * @param int $participant_id
+   * @param string $condition_type
+   * @param int $encounter_id
+   *
+   * @return int|null
+   */
+  public function getConditionValue(int $participant_id, string $condition_type, int $encounter_id): ?int {
+    foreach ($this->getActiveConditions($participant_id, $encounter_id) as $row) {
+      if ($row['condition_type'] === $condition_type) {
+        return (int) $row['value'];
+      }
+    }
+    return NULL;
+  }
+
+  /**
+   * Decrement the value of a valued condition by $amount.
+   *
+   * If the resulting value reaches 0 or below, the condition is removed.
+   * No-op if the participant has no active instance of $condition_type.
+   *
+   * @param int $participant_id
+   * @param string $condition_type
+   * @param int $encounter_id
+   * @param int $amount  How much to decrement (default 1).
+   */
+  public function decrementCondition(int $participant_id, string $condition_type, int $encounter_id, int $amount = 1): void {
+    $now = time();
+    $removed_at_round = $this->getCurrentRound($encounter_id);
+    foreach ($this->getActiveConditions($participant_id, $encounter_id) as $row) {
+      if ($row['condition_type'] !== $condition_type) {
+        continue;
+      }
+      $new_value = (int) $row['value'] - $amount;
+      if ($new_value <= 0) {
+        $this->database->update('combat_conditions')
+          ->fields(['removed_at_round' => $removed_at_round, 'updated' => $now])
+          ->condition('id', $row['id'])
+          ->execute();
+      }
+      else {
+        $this->database->update('combat_conditions')
+          ->fields(['value' => $new_value, 'updated' => $now])
+          ->condition('id', $row['id'])
+          ->execute();
+      }
+      break;
+    }
+  }
+
   public function getActiveConditions(int $participant_id, int $encounter_id): array {
     return $this->database->select('combat_conditions', 'c')
       ->fields('c')

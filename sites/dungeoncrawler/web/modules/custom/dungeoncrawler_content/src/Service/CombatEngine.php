@@ -187,21 +187,55 @@ class CombatEngine {
       return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
     }
 
-    $this->store->updateParticipant((int) $participant_id, [
-      'actions_remaining' => 3,
+    // Req 2185: Adjust base action count for quickened/slowed/stunned conditions.
+    $base_actions = 3;
+    $pid = (int) $participant_id;
+    $eid = (int) $encounter_id;
+
+    if ($this->conditionManager) {
+      // Quickened: +1 action.
+      if ($this->conditionManager->hasCondition($pid, 'quickened', $eid)) {
+        $base_actions += 1;
+      }
+
+      // Slowed X: lose X actions.
+      $slowed_value = $this->conditionManager->getConditionValue($pid, 'slowed', $eid) ?? 0;
+      $base_actions = max(0, $base_actions - $slowed_value);
+
+      // Stunned X: lose X actions at start of turn, decrement condition by actions lost.
+      $stunned_value = $this->conditionManager->getConditionValue($pid, 'stunned', $eid) ?? 0;
+      if ($stunned_value > 0) {
+        $reduce = min($stunned_value, $base_actions);
+        $base_actions = max(0, $base_actions - $reduce);
+        $this->conditionManager->decrementCondition($pid, 'stunned', $eid, $reduce);
+      }
+    }
+
+    $this->store->updateParticipant($pid, [
+      'actions_remaining' => $base_actions,
       'attacks_this_turn' => 0,
       'reaction_available' => 1,
     ]);
 
-    return [
+    $result = [
       'status' => 'ok',
-      'participant_id' => (int) $participant_id,
+      'participant_id' => $pid,
       'turn_state' => 'awaiting_action',
-      'actions_remaining' => 3,
+      'actions_remaining' => $base_actions,
       'reaction_available' => TRUE,
       'attacks_this_turn' => 0,
       'current_round' => (int) ($encounter['current_round'] ?? 1),
     ];
+
+    // Req 2186: Trigger recovery check if participant is dying at start of turn.
+    if ($this->conditionManager) {
+      $dying_value = $this->conditionManager->getConditionValue($pid, 'dying', $eid) ?? 0;
+      if ($dying_value > 0) {
+        $result['recovery_check'] = $this->conditionManager->processDying($pid, $eid);
+      }
+    }
+
+    return $result;
   }
 
   /**
