@@ -741,6 +741,196 @@
           "description": "POST /rules/check accepts {roll, dc, natural_twenty, natural_one} and returns {degree: \"...\"}"
         }
       ]
+    },
+    {
+      "id": "dc-cr-equipment-system-phpunit",
+      "label": "Equipment System \u2014 catalog completeness, GET /equipment filtering, equip-to-stat integration, encumbrance conditions, worn-vs-held, strength requirement enforcement, starting equipment by class",
+      "type": "phpunit",
+      "feature_id": "dc-cr-equipment-system",
+      "command": "./vendor/bin/phpunit --filter=Equipment tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-equipment-system-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-EQ-01",
+          "description": "Weapon catalog meets AC minimums (5 simple + 5 martial weapons)",
+          "suite_type": "unit",
+          "class_method": "ItemCombatDataServiceTest::testWeaponCatalogMeetsMinimumCount",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-02",
+          "description": "Armor catalog meets AC minimums (3 light, 2 medium, 1 heavy)",
+          "suite_type": "unit",
+          "class_method": "ItemCombatDataServiceTest::testArmorCatalogMeetsMinimumCount",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-03",
+          "description": "Adventuring gear catalog meets AC minimum (10 items)",
+          "suite_type": "unit",
+          "class_method": "ItemCombatDataServiceTest::testGearCatalogMeetsMinimumCount",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-04",
+          "description": "Weapon items have required schema fields (name, category, group, damage, bulk, price, traits)",
+          "suite_type": "unit",
+          "class_method": "ItemCombatDataServiceTest::testWeaponItemsHaveRequiredSchema",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-05",
+          "description": "Armor items have required schema fields (name, category, AC_bonus, max_dex_bonus, check_penalty, speed_penalty, bulk, price, strength_req)",
+          "suite_type": "unit",
+          "class_method": "ItemCombatDataServiceTest::testArmorItemsHaveRequiredSchema",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-06",
+          "description": "GET /equipment?type=weapon returns weapons only (anonymous 200)",
+          "suite_type": "functional",
+          "class_method": "EquipmentApiTest::testGetEquipmentFilterWeapons",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-07",
+          "description": "GET /equipment?type=armor returns armors only (anonymous 200)",
+          "suite_type": "functional",
+          "class_method": "EquipmentApiTest::testGetEquipmentFilterArmor",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-08",
+          "description": "GET /equipment?type=gear returns gear only (anonymous 200)",
+          "suite_type": "functional",
+          "class_method": "EquipmentApiTest::testGetEquipmentFilterGear",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-09",
+          "description": "GET /equipment with invalid type returns 400",
+          "suite_type": "functional",
+          "class_method": "EquipmentApiTest::testGetEquipmentInvalidTypeReturns400",
+          "ac_tag": "impl-notes",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-10",
+          "description": "GET /equipment is accessible to anonymous users (role-url-audit: anonymous 200)",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - role-url-audit entry",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-11",
+          "description": "Equipping a weapon updates character attack damage dice (longsword \u2192 1d8 slashing)",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testEquippedWeaponUpdatesDamageDice",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-12",
+          "description": "Equipping Breastplate gives correct AC formula: 10 + Dex(capped at +3) + 4 = 17",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testBreastplateACFormula",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-13",
+          "description": "GET /classes/{id}/starting-equipment returns starting package (anonymous 200)",
+          "suite_type": "functional",
+          "class_method": "EquipmentApiTest::testGetClassStartingEquipment",
+          "ac_tag": "NEW",
+          "status": "active",
+          "dependency": "Requires dc-cr-character-class in same release. Skip with explicit verification report note if character-class not in scope."
+        },
+        {
+          "id": "TC-EQ-14",
+          "description": "Encumbrance: bulk >= (Strength/2)+5 applies Encumbered condition",
+          "suite_type": "unit",
+          "class_method": "InventoryManagementServiceTest::testEncumbranceThresholdAppliesEncumbered",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-15",
+          "description": "Encumbrance: bulk >= Strength+5 applies Immobilized condition",
+          "suite_type": "unit",
+          "class_method": "InventoryManagementServiceTest::testImmobilizedThresholdAppliesImmobilized",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-16",
+          "description": "Worn items apply stat bonuses; carried items do not",
+          "suite_type": "unit",
+          "class_method": "InventoryManagementServiceTest::testWornVsCarriedItemStatBonuses",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-17",
+          "description": "Equipping armor below Strength requirement applies check penalty to Str/Dex skills",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testArmorStrengthRequirementPenalty",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-18",
+          "description": "Only character owner can equip/unequip items (other player gets 403)",
+          "suite_type": "unit",
+          "class_method": "InventoryManagementServiceTest::testUnauthorizedPlayerCannotEquipItems",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-19",
+          "description": "Admin can modify any character inventory for moderation",
+          "suite_type": "unit",
+          "class_method": "InventoryManagementServiceTest::testAdminCanModifyAnyCharacterInventory",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-20",
+          "description": "Equipping an item the character does not own returns explicit error (422 or 404)",
+          "suite_type": "unit",
+          "class_method": "InventoryManagementServiceTest::testEquipItemNotOwnedReturnsExplicitError",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-21",
+          "description": "Inventory state persists correctly across API calls; no phantom items or duplicate entries",
+          "suite_type": "functional",
+          "class_method": "EquipmentApiTest::testInventoryStatePersistsAcrossCalls",
+          "ac_tag": "data-integrity",
+          "status": "active"
+        },
+        {
+          "id": "TC-EQ-22",
+          "description": "QA audit still passes after module deployment (0 violations, GET /equipment accessible)",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "ac_tag": "audit",
+          "status": "active"
+        }
+      ]
     }
   ],
   "_schema_notes": [

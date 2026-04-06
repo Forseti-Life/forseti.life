@@ -586,6 +586,34 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "equipment-catalog-read",
+      "feature_id": "dc-cr-equipment-system",
+      "path_regex": "^/equipment(?:\\?.*)?$",
+      "notes": "GET /equipment - public reference catalog. Anonymous 200. Added for dc-cr-equipment-system suite activation.",
+      "expect": {
+        "anon": "allow",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
+    },
+    {
+      "id": "equipment-equip-mutate",
+      "feature_id": "dc-cr-equipment-system",
+      "path_regex": "^/characters/[a-z0-9_-]+/equipment(?:/[a-z0-9_-]+)?(?:/|\\$)",
+      "notes": "POST /characters/{id}/equipment and DELETE mutations - owner-auth required. GET 405 on these paths (method not allowed). Ignore probe.",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }
