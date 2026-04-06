@@ -28,3 +28,9 @@ Encounter engine: maintains sorted initiative order, tracks HP for all combatant
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Authentication/permission surface: authenticated users only for encounter creation/mutation; `_character_access: TRUE` on character-scoped encounter routes
+- CSRF expectations: all POST/PATCH encounter routes require `_csrf_request_header_mode: TRUE`
+- Input validation: encounter parameters (initiative, actions) validated against PF2E rule constraints; no free-text user input without sanitization
+- PII/logging constraints: no PII logged; encounter id + character id + action type only

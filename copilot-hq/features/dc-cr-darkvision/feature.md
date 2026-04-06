@@ -34,9 +34,14 @@ See `features/dc-cr-darkvision/01-acceptance-criteria.md`.
 
 - 2026-04-06: Handed off to QA for test generation (pm-qa-handoff.sh)
 
+- 2026-04-06: Handed off to QA for test generation (pm-qa-handoff.sh)
+
 - 2026-04-06: Accepted at triage — standalone sense entity, no blocking deps. Status: planned, Priority: medium. AC written. Handed off to QA for test generation.
 
 ## Mission alignment
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Security AC exemption: passive character trait derived from ancestry selection; no dedicated API routes or user input; read-only character property resolved at character load time; no PII exposure

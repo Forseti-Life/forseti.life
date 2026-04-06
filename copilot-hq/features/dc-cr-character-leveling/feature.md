@@ -29,3 +29,9 @@ Level-up API endpoint that reads the character's class advancement table and pre
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE`; admin-force level bypass requires `administer dungeoncrawler content`
+- CSRF expectations: all POST level-up routes require `_csrf_request_header_mode: TRUE`
+- Input validation: level integer validated against `MAX_LEVEL = 20`; invalid inputs return structured 4xx error; no unsanitized user content persisted
+- PII/logging constraints: no PII logged; log character id + level transition only

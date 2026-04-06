@@ -58,3 +58,6 @@ A visible acknowledgment that suggestions are being acted on encourages continue
 - 2026-04-05: Handed off to QA for test generation (pm-qa-handoff.sh)
 
 - 2026-04-05: Created from community_suggestion NID 2 via suggestion-triage.sh (manual recovery — script bug in RISK_SIGNALS heredoc interpolation; Drupal node status updated to in_progress correctly)
+
+## Security acceptance criteria
+- Security AC exemption: display-only UI notice on home page; no routes, no user input, no data mutation; renders static/config-driven content only; no PII exposure

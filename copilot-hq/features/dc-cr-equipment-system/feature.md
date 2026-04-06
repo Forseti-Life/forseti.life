@@ -29,3 +29,9 @@ Content type: `equipment_item` with fields for item type (weapon/armor/shield/ge
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Authentication/permission surface: authenticated users only; inventory mutation requires character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH equipment/inventory routes require `_csrf_request_header_mode: TRUE`
+- Input validation: item quantities and bulk values validated against defined limits; item names sanitized at Drupal field layer
+- PII/logging constraints: no PII logged; item id + character id + transaction type only
