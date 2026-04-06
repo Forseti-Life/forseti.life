@@ -84,7 +84,7 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] fake-no-signoff-release-id-improvement-round — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/fake-no-signoff-release-id-improvement-round.md)
 - [ ] stale-test-release-id-999-improvement-round — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/stale-test-release-id-999-improvement-round.md)
 - [ ] --help-improvement-round — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/--help-improvement-round.md)
-- [ ] 20260406-remove-copilot-agent-tracker-dungeoncrawler — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-remove-copilot-agent-tracker-dungeoncrawler.md)
+- [x] 20260406-remove-copilot-agent-tracker-dungeoncrawler — APPROVE (2026-04-06): Module directory fully removed from dev and prod roots. Audit 20260406-160000: 0 failures (was 7 from this module), 0 violations, 0 missing assets. Site returns 200. Dev commit: f4381f42c. See: sessions/qa-dungeoncrawler/artifacts/verification-reports/20260406-remove-copilot-agent-tracker-dungeoncrawler.md
 - [ ] fake-no-signoff-release-improvement-round — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/fake-no-signoff-release-improvement-round.md)
 - [ ] 20260406-052100-impl-dc-cr-background-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-052100-impl-dc-cr-background-system.md)
 - [ ] 20260406-052100-impl-dc-cr-character-class — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-052100-impl-dc-cr-character-class.md)
