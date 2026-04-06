@@ -177,6 +177,24 @@ Do NOT re-activate features into the stale release before running signoff — th
 
 Lesson: Empty releases are self-certifiable at PM level. Do not escalate to CEO for Gate 2 waivers.
 
+## QA inbox staleness check (required — periodic improvement round)
+During each improvement-round or groom cycle, check the qa-dungeoncrawler inbox for backlog buildup:
+```bash
+ls sessions/qa-dungeoncrawler/inbox/ | wc -l   # alert if >10
+ls -t sessions/qa-dungeoncrawler/inbox/ | tail -1  # oldest item
+```
+If the oldest item is more than 7 days old, escalate to CEO with the item count + oldest item age.
+Stale QA inbox = unprocessed test plans = Gate 2 evidence gaps.
+
+## Pre-dispatch env check (required before suite-activate items)
+Before dispatching any suite-activate item to qa-dungeoncrawler, verify production is reachable:
+```bash
+curl -s -o /dev/null -w "%{http_code}" https://dungeoncrawler.forseti.life/
+# Must be 200. If not 200, escalate to pm-infra/Board immediately — site down is a production incident.
+```
+ALLOW_PROD_QA=1 is authorized for all live audits against `https://dungeoncrawler.forseti.life`.
+This server IS production — there is no localhost:8080 dev environment.
+
 ## Supervisor
 - Supervisor: `ceo-copilot`
 
