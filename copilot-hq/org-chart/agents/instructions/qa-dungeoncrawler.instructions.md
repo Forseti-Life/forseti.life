@@ -194,6 +194,38 @@ If prior APPROVE or BLOCK evidence exists and the feature code has not changed s
 
 Root cause: `dc-cr-ancestry-traits` was re-dispatched in 20260405 cycle despite a complete APPROVE record from 2026-03-27. A full execution slot was consumed with no new value.
 
+## Preflight deduplication (required)
+
+When a preflight inbox item arrives:
+1. Check the last preflight commit: `git log --oneline -10 -- copilot-hq/org-chart/agents/instructions/qa-dungeoncrawler.instructions.md | head -3`
+2. Determine if any QA-scoped changes landed since the last preflight:
+   ```
+   git log --oneline HEAD~5..HEAD -- \
+     copilot-hq/scripts/ \
+     copilot-hq/org-chart/sites/dungeoncrawler/qa-permissions.json \
+     sites/dungeoncrawler/web/modules/custom/
+   ```
+3. If the last preflight completed within the current session AND no QA-scoped commits have landed since:
+   - Fast-exit with `Status: done`; cite the prior preflight commit hash and note `CLOSED-DUPLICATE`.
+   - Do NOT re-run the full preflight checklist.
+4. Exception: if the release ID is new (not previously preflighted), run the full checklist regardless.
+
+Root cause: 7 preflight dispatches landed in ~2 hours on 2026-04-06 across releases (release-b, release-c, release, release-next). 4 processed + 3 pending in inbox with zero QA-scoped config changes between any of them. Each consumed a full execution slot with no marginal value (GAP-QA-PREFLIGHT-DEDUP-01).
+
+## Empty-release preflight fast-exit (required)
+
+When a preflight inbox item arrives, check if the release is empty before running checklist:
+```bash
+# Count in-scope features for the release
+grep -l "$(cat <inbox-item>/command.md | grep 'release_id' | awk '{print $NF}')" \
+  /home/ubuntu/forseti.life/copilot-hq/features/*/feature.md 2>/dev/null | wc -l
+```
+If PM has already self-certified the release as empty (shipping-gates Gate 0 signed off with `--empty-release` flag, or all features show `Status: released`/`Status: deferred`):
+- Fast-exit with `Status: done`; note `CLOSED-NO-SCOPE`.
+- No checklist execution required.
+
+Root cause: preflight dispatched for `20260402-dungeoncrawler-release-c` (0 features shipped, empty-release self-certified by PM). Full preflight slot consumed with no output value (GAP-QA-EMPTY-RELEASE-PREFLIGHT-01).
+
 ## Suite-activate live test check (required)
 
 When a suite-activate item arrives and `ALLOW_PROD_QA=1` is not set (default):
