@@ -515,14 +515,93 @@
     },
     {
       "id": "dc-cr-dice-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-dice-system",
+      "label": "PHPUnit tests for dc-cr-dice-system \u2014 NdX parser, rollPathfinderDie, POST /dice/roll, roll logging, keep-highest/lowest",
       "type": "unit",
       "feature_id": "dc-cr-dice-system",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_dice_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=Dice",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-dice-system-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DS-01",
+          "method": "NumberGenerationServiceTest::testRollPathfinderDieAllTypes",
+          "description": "rollPathfinderDie() returns integer in [1, sides] for all PF2E die types (d4/d6/d8/d10/d12/d20/d100)"
+        },
+        {
+          "id": "TC-DS-02",
+          "method": "NumberGenerationServiceTest::testRollExpressionBasicNdX",
+          "description": "rollExpression(\"NdX\") returns dice array of length N, each in [1,X], total = sum(dice)"
+        },
+        {
+          "id": "TC-DS-03",
+          "method": "NumberGenerationServiceTest::testRollExpressionWithModifier",
+          "description": "rollExpression(\"1d20+5\") returns modifier field; total = sum(dice) + modifier"
+        },
+        {
+          "id": "TC-DS-04",
+          "method": "NumberGenerationServiceTest::testRollExpressionPercentile",
+          "description": "d% maps to two d10s (tens+ones) producing 1-100; matches rollPercentile() semantics"
+        },
+        {
+          "id": "TC-DS-05",
+          "method": "DiceRollControllerTest::testDiceRollEndpointResponseShape",
+          "description": "POST /dice/roll returns HTTP 200 with JSON {dice, modifier, total}; total = sum(dice) + modifier"
+        },
+        {
+          "id": "TC-DS-06",
+          "method": "NumberGenerationServiceTest::testRollLoggingCreatesAuditEntry",
+          "description": "Each roll logged with timestamp, character_id, and roll_type context"
+        },
+        {
+          "id": "TC-DS-07",
+          "method": "NumberGenerationServiceTest::testRollLogAnonymousOmitsCharacterId",
+          "description": "Roll without character_id creates log entry with character_id null/absent"
+        },
+        {
+          "id": "TC-DS-08",
+          "method": "NumberGenerationServiceTest::testUnsupportedDieTypeThrowsError",
+          "description": "Non-PF2E die (d7, d3, d0) returns explicit error, not silent incorrect result"
+        },
+        {
+          "id": "TC-DS-09",
+          "method": "NumberGenerationServiceTest::testExpressionInvalidDiceCountReturnsError",
+          "description": "N=0 or N<0 in expression returns parse error; no roll executed"
+        },
+        {
+          "id": "TC-DS-10",
+          "method": "NumberGenerationServiceTest::testExpressionZeroModifierHandled",
+          "description": "\"2d6+0\" handled gracefully; modifier=0; total = sum(dice)"
+        },
+        {
+          "id": "TC-DS-11",
+          "method": "NumberGenerationServiceTest::testKeepHighestModifier",
+          "description": "\"4d6kh3\" returns 4 rolled dice; kept = 3 highest; total = sum(kept)"
+        },
+        {
+          "id": "TC-DS-12",
+          "method": "NumberGenerationServiceTest::testKeepLowestModifier",
+          "description": "\"4d6kl3\" returns kept = 3 lowest; total = sum(kept)"
+        },
+        {
+          "id": "TC-DS-13",
+          "method": "DiceRollControllerTest::testDiceRollInvalidExpressionReturns400",
+          "description": "POST /dice/roll with invalid expression (\"abc\", \"\", null) returns HTTP 400 with error message"
+        },
+        {
+          "id": "TC-DS-14",
+          "method": "NumberGenerationServiceTest::testRollLogIsInsertOnly",
+          "description": "Roll log entries are insert-only; service throws error on update/delete attempt"
+        },
+        {
+          "id": "TC-DS-15",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "ACL: POST /dice/roll anon vs auth access \u2014 TBD pending PM site-auth-policy confirmation (existing ignore rule covers GET probe)",
+          "notes": "TC-DS-15 is pending PM policy decision on anon access to POST /dice/roll. Existing api-dice-roll ignore rule covers GET probe. Update to anon=200 or anon=403 once policy confirmed."
+        }
+      ]
     },
     {
       "id": "dc-cr-encounter-rules-phpunit",
