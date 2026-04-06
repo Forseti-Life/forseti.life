@@ -666,7 +666,7 @@
         {
           "id": "TC-CWF-01",
           "description": "Initiating character creation produces a draft character entity with state=draft",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testInitiateCreationProducesDraft",
           "ac_tag": "NEW",
           "status": "active"
@@ -674,7 +674,7 @@
         {
           "id": "TC-CWF-02",
           "description": "Workflow step order enforced: step N cannot advance until step N-1 is saved",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testStepOrderEnforced",
           "ac_tag": "NEW",
           "status": "active"
@@ -682,7 +682,7 @@
         {
           "id": "TC-CWF-05",
           "description": "Derived stats (HP, AC, saves, Perception) computed and stored correctly after step 6 finalization",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterDerivedStatsTest::testDerivedStatsComputedAfterFinalize",
           "ac_tag": "NEW",
           "status": "active"
@@ -690,7 +690,7 @@
         {
           "id": "TC-CWF-06",
           "description": "Finalize transitions character from draft to active; character appears on player list post-finalize",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testFinalizeTransitionsDraftToActive",
           "ac_tag": "NEW",
           "status": "active"
@@ -698,7 +698,7 @@
         {
           "id": "TC-CWF-07",
           "description": "Abandoned draft persists and is resumable from last completed step",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testAbandonedDraftIsResumable",
           "ac_tag": "NEW",
           "status": "active"
@@ -706,7 +706,7 @@
         {
           "id": "TC-CWF-09",
           "description": "Ability score assignment validates ancestry/background boost/flaw rules; invalid combination rejected",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterAbilityScoreTest::testBoostFlawValidationRejectsInvalidCombination",
           "ac_tag": "NEW",
           "status": "active"
@@ -714,7 +714,7 @@
         {
           "id": "TC-CWF-10",
           "description": "Empty prerequisite content returns clear error, not empty dropdown",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testEmptyPrerequisiteContentReturnsError",
           "ac_tag": "NEW",
           "status": "active"
@@ -722,7 +722,7 @@
         {
           "id": "TC-CWF-11",
           "description": "Incomplete prior step prevents finalization at step 6; error identifies missing step",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testIncompleteStepBlocksFinalize",
           "ac_tag": "NEW",
           "status": "active"
@@ -730,7 +730,7 @@
         {
           "id": "TC-CWF-12",
           "description": "Derived stat computation with missing inputs does not crash; returns incomplete flag",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterDerivedStatsTest::testPartialInputsReturnIncompleteFlag",
           "ac_tag": "NEW",
           "status": "active"
@@ -738,7 +738,7 @@
         {
           "id": "TC-CWF-16",
           "description": "Draft characters not visible on public character list; only active characters shown",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testDraftNotVisibleOnPublicList",
           "ac_tag": "NEW",
           "status": "active"
@@ -746,7 +746,7 @@
         {
           "id": "TC-CWF-17",
           "description": "At most 1 active draft creation session per character slot; second attempt returns error",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationWorkflowTest::testDraftLimitPerCharacterSlot",
           "ac_tag": "NEW",
           "status": "active"
@@ -754,11 +754,35 @@
         {
           "id": "TC-CWF-18",
           "description": "Module uninstall preserves active characters; draft characters cleanable via drush command",
-          "suite_type": "unit",
+          "suite_type": "functional",
           "class_method": "CharacterCreationRollbackTest::testUninstallPreservesActiveCharacters",
           "ac_tag": "NEW",
           "status": "active",
           "notes": "Dev confirm: drush character:cleanup-drafts command expected \u2014 verify command name at Stage 0"
+        },
+        {
+          "id": "TC-CWF-13",
+          "description": "Anonymous users cannot initiate character creation (redirect/403)",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-14",
+          "description": "Player cannot view another player draft character (403)",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-15",
+          "description": "Admin can view and edit any character draft",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationWorkflowTest::testAdminCanViewAndEditAnyDraft",
+          "ac_tag": "NEW",
+          "status": "active"
         }
       ]
     },
@@ -1334,7 +1358,33 @@
         "playwright-report/"
       ],
       "required_for_release": true,
-      "notes": "Requires running dev instance at DUNGEONCRAWLER_BASE_URL with seeded ancestry/background/class content. First Playwright-required feature in the dungeoncrawler pipeline."
+      "notes": "Requires running dev instance at DUNGEONCRAWLER_BASE_URL with seeded ancestry/background/class content. First Playwright-required feature in the dungeoncrawler pipeline.",
+      "test_cases": [
+        {
+          "id": "TC-CWF-03",
+          "description": "Completing each step saves choice and advances to next step (full 6-step flow)",
+          "suite_type": "e2e",
+          "class_method": "character-creation.spec.ts::testStepProgressionSavesAndAdvances",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-04",
+          "description": "Back-navigation updates choice and flags/clears downstream conflicts",
+          "suite_type": "e2e",
+          "class_method": "character-creation.spec.ts::testBackNavigationClearsConflicts",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-08",
+          "description": "Concurrent session conflict returns clear conflict message; no data corruption",
+          "suite_type": "e2e",
+          "class_method": "character-creation.spec.ts::testConcurrentSessionConflict",
+          "ac_tag": "NEW",
+          "status": "active"
+        }
+      ]
     },
     {
       "id": "dc-cr-difficulty-class-phpunit",
