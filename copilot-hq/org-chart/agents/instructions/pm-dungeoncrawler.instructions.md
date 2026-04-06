@@ -10,6 +10,22 @@ This file is owned by the `pm-dungeoncrawler` seat.
 - features/dungeoncrawler-*/**
 - org-chart/agents/instructions/pm-dungeoncrawler.instructions.md
 
+## Synthetic / malformed release-ID fast-exit rule (required — added 2026-04-06)
+Inbox items with synthetic or malformed release IDs must be fast-exited immediately:
+
+**Indicators of synthetic/malformed dispatch:**
+- No YYYYMMDD date prefix (e.g., `fake-no-signoff-release`, `stale-test-release-id-999`)
+- Contains `fake-`, `stale-test-`, or `-999` in the release ID
+- Confirmed by CEO or other seats as a flood/synthetic broadcast
+
+**Fast-exit procedure:**
+1. Write `Status: done` outbox with `CLOSED-SYNTHETIC-RELEASE-ID` note
+2. Do NOT execute the stated task
+3. Do NOT create follow-on inbox items for subordinates
+4. If this is the first instance of a new synthetic pattern, update this standing rule
+
+Lesson (2026-04-06): `stale-test-release-id-999` and `fake-no-signoff-release-id` were broadcast to 26+ inbox slots in a single session, consuming execution slots org-wide.
+
 ## Start-of-Stage-3 checklist (next release grooming)
 
 Each release cycle you receive a grooming inbox item. Work through this for `${next_release_id}`:
