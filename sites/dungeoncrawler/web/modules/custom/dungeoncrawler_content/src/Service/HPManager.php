@@ -459,4 +459,48 @@ class HPManager {
     }
   }
 
+  /**
+   * Apply fall damage to a participant.
+   *
+   * REQ 2243: damage = floor(feet / 2) bludgeoning; max 1500 ft = 750 damage.
+   * REQ 2244: Soft surface (water/snow): treat fall as 20 ft shorter (30 ft if diving).
+   * REQ 2245: REQ handled externally (Reflex DC 15 for landed-on creature).
+   * REQ 2246: Land prone on any fall damage.
+   *
+   * @param int $participant_id
+   *   DB participant ID.
+   * @param int $feet
+   *   Distance fallen in feet.
+   * @param int $encounter_id
+   *   Encounter ID for condition application.
+   * @param bool $soft_surface
+   *   TRUE if landing on water, snow, or similar.
+   * @param bool $is_dive
+   *   TRUE if creature dove intentionally (reduces by 30 ft instead of 20).
+   *
+   * @return array
+   *   ['damage' => int, 'land_prone' => bool, 'hp_result' => array]
+   */
+  public function applyFallDamage(int $participant_id, int $feet, int $encounter_id = 0, bool $soft_surface = FALSE, bool $is_dive = FALSE): array {
+    if ($soft_surface) {
+      $reduction = $is_dive ? 30 : 20;
+      $feet = max(0, $feet - $reduction);
+    }
+    $feet = min($feet, 1500);
+    $damage = (int) floor($feet / 2);
+
+    if ($damage <= 0) {
+      return ['damage' => 0, 'land_prone' => FALSE, 'hp_result' => NULL];
+    }
+
+    $hp_result = $this->applyDamage($participant_id, $damage, 'bludgeoning', ['source' => 'fall'], $encounter_id);
+
+    // REQ 2246: Land prone on any fall damage.
+    if ($encounter_id) {
+      $this->conditionManager->applyCondition($participant_id, 'prone', 1, 'persistent', 'fall', $encounter_id);
+    }
+
+    return ['damage' => $damage, 'land_prone' => TRUE, 'hp_result' => $hp_result];
+  }
+
 }

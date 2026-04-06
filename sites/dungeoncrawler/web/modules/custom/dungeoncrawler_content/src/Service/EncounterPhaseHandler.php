@@ -95,15 +95,15 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   protected NpcPsychologyService $psychologyService;
 
   /**
-   * Narration engine for per-character perception-filtered narration.
-   *
    * @var \Drupal\dungeoncrawler_content\Service\NarrationEngine|null
    */
   protected ?NarrationEngine $narrationEngine;
 
   /**
-   * Constructs an EncounterPhaseHandler.
+   * @var \Drupal\dungeoncrawler_content\Service\MovementResolverService|null
    */
+  protected ?MovementResolverService $movementResolver;
+
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
@@ -120,7 +120,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     AiGmService $ai_gm_service,
     ConfigFactoryInterface $config_factory,
     NpcPsychologyService $psychology_service = NULL,
-    ?NarrationEngine $narration_engine = NULL
+    ?NarrationEngine $narration_engine = NULL,
+    ?MovementResolverService $movement_resolver = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -138,6 +139,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $this->configFactory = $config_factory;
     $this->psychologyService = $psychology_service ?? new NpcPsychologyService($database, $logger_factory);
     $this->narrationEngine = $narration_engine;
+    $this->movementResolver = $movement_resolver;
   }
 
   /**
@@ -246,7 +248,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     switch ($type) {
 
       case 'strike':
-        $result = $this->processStrike($encounter_id, $actor_id, $target_id, $params, $game_state);
+        $result = $this->processStrike($encounter_id, $actor_id, $target_id, $params, $game_state, $dungeon_data);
         $mutations = $result['mutations'] ?? [];
         $narration = $result['narration'] ?? NULL;
 
@@ -554,10 +556,22 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
       case 'step':
         // REQ 2214-2215: Move exactly 5 ft without triggering AoO. 1 action.
+        // REQ 2251: Cannot Step into difficult terrain.
         if (empty($params['to_hex'])) {
           return [
             'success' => FALSE,
             'result' => ['error' => 'Missing to_hex.'],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
+        // REQ 2251: Reject if destination is difficult terrain.
+        if ($this->movementResolver && $this->movementResolver->isDifficultTerrain($params['to_hex'], $dungeon_data)) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => 'Cannot Step into difficult terrain.'],
             'mutations' => [],
             'events' => [],
             'phase_transition' => NULL,
@@ -1027,7 +1041,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
   /**
    * Processes a strike action via the existing combat system.
    */
-  protected function processStrike(int $encounter_id, string $actor_id, string $target_id, array $params, array &$game_state): array {
+  protected function processStrike(int $encounter_id, string $actor_id, string $target_id, array $params, array &$game_state, array $dungeon_data = []): array {
     try {
       // Load encounter data.
       $encounter = $this->encounterStore->loadEncounter($encounter_id);
@@ -1049,12 +1063,13 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         'is_agile' => !empty($params['is_agile']),
       ];
 
-      // Resolve attack through the combat engine.
+      // Resolve attack through the combat engine, passing dungeon_data for cover/aquatic checks.
       $attack_result = $this->combatEngine->resolveAttack(
         (int) ($attacker_participant['id'] ?? 0),
         (int) ($target_participant['id'] ?? 0),
         $weapon,
-        $encounter_id
+        $encounter_id,
+        $dungeon_data
       );
 
       $updated_encounter = $this->encounterStore->loadEncounter($encounter_id) ?: $encounter;
@@ -1107,11 +1122,59 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
 
   /**
    * Processes a stride action (movement during encounter, costs 1 action).
+   *
+   * REQ 2233-2236: Validates movement type and speed.
+   * REQ 2237: Tracks diagonal count for 1-2-1-2 diagonal rule.
+   * REQ 2247: is_forced flag skips speed validation (forced movement).
+   * REQ 2249-2250: Difficult and greater difficult terrain cost applied.
    */
   protected function processStride(int $encounter_id, string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
     $to_hex = $params['to_hex'] ?? NULL;
     if (!$to_hex) {
       return ['error' => 'Missing to_hex.', 'mutations' => []];
+    }
+
+    $is_forced = !empty($params['is_forced']);
+    $movement_type = $params['movement_type'] ?? 'land';
+
+    // Validate movement cost vs speed if MovementResolverService is available.
+    if ($this->movementResolver && !$is_forced) {
+      // Load participant for speed lookup.
+      $enc = $this->encounterStore->loadEncounter($encounter_id);
+      $ptcp = $enc ? $this->findEncounterParticipantByEntityId($enc, $actor_id) : NULL;
+
+      if ($ptcp) {
+        $speed = $this->movementResolver->getCreatureSpeed($ptcp, $movement_type);
+        if ($speed <= 0) {
+          return ['error' => "No {$movement_type} speed.", 'mutations' => []];
+        }
+
+        // Derive from_hex from participant's current position.
+        $from_q = (int) ($ptcp['position_q'] ?? 0);
+        $from_r = (int) ($ptcp['position_r'] ?? 0);
+        $from_hex_calc = ['q' => $from_q, 'r' => $from_r];
+
+        $diagonal_count = (int) ($game_state['turn']['diagonal_count'] ?? 0);
+        $cost_info = $this->movementResolver->calculateMovementCost(
+          $from_hex_calc,
+          $to_hex,
+          $dungeon_data,
+          $diagonal_count,
+          $movement_type
+        );
+
+        $movement_spent = (int) ($game_state['turn']['movement_spent'] ?? 0);
+        if ($movement_spent + $cost_info['cost'] > $speed) {
+          return [
+            'error' => "Movement cost ({$cost_info['cost']} ft) exceeds remaining speed (" . ($speed - $movement_spent) . " ft).",
+            'mutations' => [],
+          ];
+        }
+
+        // Track movement spent and diagonal count for this turn.
+        $game_state['turn']['movement_spent'] = $movement_spent + $cost_info['cost'];
+        $game_state['turn']['diagonal_count'] = $cost_info['new_diagonal_count'];
+      }
     }
 
     // Update entity position in dungeon_data.
@@ -1148,6 +1211,7 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'stride' => TRUE,
       'from_hex' => $from_hex,
       'to_hex' => $to_hex,
+      'is_forced' => $is_forced,
       'mutations' => [
         ['entity' => $actor_id, 'field' => 'placement.hex', 'from' => $from_hex, 'to' => $to_hex],
       ],

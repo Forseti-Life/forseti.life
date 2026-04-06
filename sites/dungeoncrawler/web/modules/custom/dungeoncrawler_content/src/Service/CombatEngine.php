@@ -7,6 +7,7 @@ use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
 use Drupal\dungeoncrawler_content\Service\HPManager;
 use Drupal\dungeoncrawler_content\Service\CombatCalculator;
 use Drupal\dungeoncrawler_content\Service\ConditionManager;
+use Drupal\dungeoncrawler_content\Service\MovementResolverService;
 
 /**
  * Combat Engine service - Main orchestrator for combat operations.
@@ -52,7 +53,12 @@ class CombatEngine {
    */
   protected $conditionManager;
 
-  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation, CombatCalculator $combat_calculator = NULL, ConditionManager $condition_manager = NULL) {
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\MovementResolverService|null
+   */
+  protected ?MovementResolverService $movementResolver;
+
+  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation, CombatCalculator $combat_calculator = NULL, ConditionManager $condition_manager = NULL, MovementResolverService $movement_resolver = NULL) {
     $this->database = $database;
     $this->stateManager = $state_manager;
     $this->actionProcessor = $action_processor;
@@ -61,6 +67,7 @@ class CombatEngine {
     $this->numberGeneration = $number_generation;
     $this->combatCalculator = $combat_calculator ?? new CombatCalculator();
     $this->conditionManager = $condition_manager;
+    $this->movementResolver = $movement_resolver;
   }
 
   /**
@@ -217,6 +224,40 @@ class CombatEngine {
       'reaction_available' => 1,
     ]);
 
+    // REQ 2237: Reset diagonal movement tracking and movement_spent for new turn.
+    // These live in game_state which is managed by EncounterPhaseHandler;
+    // here we record participant-level attack count reset for mounted MAP merging.
+
+    // REQ 2258: Mounted combat — rider shares MAP with mount.
+    // If this participant is mounted (entity_ref.mounted_on = mount_entity_id),
+    // inherit mount's attacks_this_turn to share the MAP pool.
+    $participant_row = $this->database->select('combat_participants', 'p')
+      ->fields('p', ['entity_ref'])
+      ->condition('id', $pid)
+      ->execute()
+      ->fetchAssoc();
+
+    if ($participant_row) {
+      $entity_data = !empty($participant_row['entity_ref']) ? json_decode($participant_row['entity_ref'], TRUE) : [];
+      $mount_entity_id = $entity_data['mounted_on'] ?? NULL;
+      if ($mount_entity_id) {
+        // Find mount participant in this encounter.
+        $mount_participant = $this->database->select('combat_participants', 'p')
+          ->fields('p', ['attacks_this_turn'])
+          ->condition('entity_id', (string) $mount_entity_id)
+          ->condition('encounter_id', $eid)
+          ->execute()
+          ->fetchAssoc();
+        if ($mount_participant) {
+          // REQ 2258: Share mount's attacks_this_turn as base for MAP calculation.
+          $this->store->updateParticipant($pid, [
+            'attacks_this_turn' => (int) ($mount_participant['attacks_this_turn'] ?? 0),
+          ]);
+          $base_actions = max(0, $base_actions);
+        }
+      }
+    }
+
     $result = [
       'status' => 'ok',
       'participant_id' => $pid,
@@ -254,6 +295,44 @@ class CombatEngine {
       }
       if ($regeneration > 0 && !$regen_bypassed) {
         $result['regeneration'] = $this->hpManager->applyHealing($pid, $regeneration, 'regeneration', $eid);
+      }
+
+      // REQ 2265-2266: Held breath / suffocation tracking.
+      // Decrement air counter if participant is underwater.
+      $is_underwater = !empty($entity_data['is_underwater']);
+      if ($is_underwater) {
+        $air_remaining = (int) ($entity_data['air_remaining'] ?? -1);
+        if ($air_remaining < 0) {
+          // Initialize: 5 + Con mod rounds.
+          $con_mod = (int) ($entity_data['con_mod'] ?? 0);
+          $air_remaining = 5 + $con_mod;
+        }
+
+        // Subtract 1 per turn; -2 if attacked or cast spells last turn; -all if spoke.
+        $air_decrement = (int) ($entity_data['air_decrement_this_turn'] ?? 1);
+        $air_remaining -= $air_decrement;
+        $entity_data['air_remaining'] = $air_remaining;
+        $entity_data['air_decrement_this_turn'] = 1;
+
+        if ($air_remaining <= 0) {
+          // REQ 2266: At 0 air — unconscious, begin suffocating.
+          if ($this->conditionManager) {
+            if (!$this->conditionManager->hasCondition($pid, 'unconscious', $eid)) {
+              $this->conditionManager->applyCondition($pid, 'unconscious', 1, 'persistent', 'suffocation', $eid);
+            }
+          }
+          $result['suffocating'] = TRUE;
+          $result['air_remaining'] = $air_remaining;
+        }
+        else {
+          $result['air_remaining'] = $air_remaining;
+        }
+
+        // Persist updated entity_data.
+        $this->database->update('combat_participants')
+          ->fields(['entity_ref' => json_encode($entity_data)])
+          ->condition('id', $pid)
+          ->execute();
       }
     }
 
@@ -455,10 +534,11 @@ class CombatEngine {
    * @param int $target_id       Defender participant row ID.
    * @param array $weapon        ['attack_bonus'=>int,'damage_dice'=>'1d6','damage_type'=>'slashing','is_agile'=>bool]
    * @param int $encounter_id
+   * @param array $dungeon_data  Optional dungeon data for cover/aquatic checks.
    *
    * @return array ['roll','attack_bonus','map_penalty','total','target_ac','degree','damage_dealt','damage_result','error']
    */
-  public function resolveAttack(int $participant_id, int $target_id, array $weapon, int $encounter_id): array {
+  public function resolveAttack(int $participant_id, int $target_id, array $weapon, int $encounter_id, array $dungeon_data = []): array {
     $attacker = $this->database->select('combat_participants', 'p')
       ->fields('p')
       ->condition('id', $participant_id)
@@ -490,6 +570,96 @@ class CombatEngine {
     $total = $natural_roll + $attack_bonus + $map_penalty;
     $target_ac = (int) ($target['ac'] ?? 10);
 
+    $flanking = FALSE;
+    $cover = ['tier' => 'none', 'ac_bonus' => 0];
+    $aquatic_info = ['is_underwater' => FALSE, 'attack_blocked' => FALSE];
+
+    if ($this->movementResolver) {
+      $attacker_hex = ['q' => (int) ($attacker['position_q'] ?? 0), 'r' => (int) ($attacker['position_r'] ?? 0)];
+      $target_hex   = ['q' => (int) ($target['position_q'] ?? 0),   'r' => (int) ($target['position_r'] ?? 0)];
+
+      // REQ 2253-2254: Flanking — target is flat-footed to flanking melee attacks.
+      $weapon_type = strtolower($weapon['type'] ?? 'melee');
+      if ($weapon_type === 'melee') {
+        $allies = $this->database->select('combat_participants', 'p')
+          ->fields('p', ['id', 'team', 'position_q', 'position_r'])
+          ->condition('encounter_id', $encounter_id)
+          ->condition('is_defeated', 0)
+          ->condition('id', [$participant_id, $target_id], 'NOT IN')
+          ->execute()
+          ->fetchAll(\PDO::FETCH_ASSOC);
+
+        foreach ($allies as $ally) {
+          if (($ally['team'] ?? '') === ($attacker['team'] ?? '')) {
+            $ally_hex = ['q' => (int) $ally['position_q'], 'r' => (int) $ally['position_r']];
+            if ($this->movementResolver->isFlanking($attacker_hex, $target_hex, $ally_hex)) {
+              $flanking = TRUE;
+              break;
+            }
+          }
+        }
+      }
+
+      // REQ 2255-2257: Cover — apply circumstance bonus to target AC.
+      if (!empty($dungeon_data)) {
+        $cover = $this->movementResolver->calculateCover($attacker_hex, $target_hex, $dungeon_data);
+        $target_ac += $cover['ac_bonus'];
+      }
+
+      // REQ 2262-2264: Aquatic combat modifiers.
+      $attacker_aquatic = $this->movementResolver->getAquaticModifiers($attacker, $dungeon_data);
+      $target_aquatic   = $this->movementResolver->getAquaticModifiers($target, $dungeon_data);
+
+      $damage_type_str = strtolower($weapon['damage_type'] ?? '');
+      $is_ranged = $weapon_type !== 'melee';
+
+      // REQ 2263: Ranged bludgeoning/slashing auto-misses if either is underwater.
+      if ($is_ranged && ($attacker_aquatic['is_underwater'] || $target_aquatic['is_underwater'])) {
+        if (in_array($damage_type_str, ['bludgeoning', 'slashing'])) {
+          $aquatic_info['attack_blocked'] = TRUE;
+        }
+      }
+
+      // REQ 2262: Flat-footed if underwater without swim speed.
+      if ($target_aquatic['flat_footed']) {
+        $target_ac -= 2;
+      }
+
+      // REQ 2262: Slashing circumstance penalty underwater.
+      if ($attacker_aquatic['is_underwater'] && $damage_type_str === 'slashing') {
+        $attack_bonus += $attacker_aquatic['slashing_penalty'];
+        $total = $natural_roll + $attack_bonus + $map_penalty;
+      }
+
+      $aquatic_info = array_merge($aquatic_info, [
+        'attacker_underwater' => $attacker_aquatic['is_underwater'],
+        'target_underwater'   => $target_aquatic['is_underwater'],
+      ]);
+    }
+
+    // REQ 2254: Flanked target is flat-footed (–2 circumstance to AC).
+    if ($flanking) {
+      $target_ac -= 2;
+    }
+
+    // Block attack if aquatic rules prevent it.
+    if ($aquatic_info['attack_blocked']) {
+      return [
+        'roll'            => $natural_roll,
+        'attack_bonus'    => $attack_bonus,
+        'map_penalty'     => $map_penalty,
+        'total'           => $total,
+        'target_ac'       => $target_ac,
+        'degree'          => 'failure',
+        'damage_dealt'    => NULL,
+        'damage_result'   => NULL,
+        'flanking'        => $flanking,
+        'cover'           => $cover['tier'],
+        'aquatic_blocked' => TRUE,
+        'error'           => 'Ranged bludgeoning/slashing attacks auto-miss underwater.',
+      ];
+    }
+
     $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $target_ac, $natural_roll);
 
     // Record attack in participant state.
@@ -506,6 +676,26 @@ class CombatEngine {
       $dice_total = array_sum($damage_roll['rolls'] ?? [$damage_roll['total'] ?? 1]);
       $ability_mod = (int) ($weapon['ability_modifier'] ?? $damage_roll['modifier'] ?? 0);
       $damage_type = $weapon['damage_type'] ?? 'untyped';
+
+      // REQ 2264: Fire trait actions automatically fail underwater.
+      if ($aquatic_info['attacker_underwater'] ?? FALSE) {
+        if (in_array(strtolower($damage_type), ['fire']) || !empty($weapon['is_fire_trait'])) {
+          return [
+            'roll'          => $natural_roll,
+            'attack_bonus'  => $attack_bonus,
+            'map_penalty'   => $map_penalty,
+            'total'         => $total,
+            'target_ac'     => $target_ac,
+            'degree'        => 'failure',
+            'damage_dealt'  => NULL,
+            'damage_result' => NULL,
+            'flanking'      => $flanking,
+            'cover'         => $cover['tier'],
+            'error'         => 'Fire trait actions automatically fail underwater.',
+          ];
+        }
+      }
+
       if ($degree === 'critical_success') {
         // PF2E req 2115: double dice only, then add flat bonuses once.
         $damage_dealt = $this->calculator->applyCriticalDamage($damage_roll['rolls'] ?? [], $ability_mod)['doubled_total'];
@@ -513,6 +703,12 @@ class CombatEngine {
       else {
         $damage_dealt = $dice_total + $ability_mod;
       }
+
+      // REQ 2262: Resistance 5 to fire/acid for underwater targets.
+      if (($target_aquatic['is_underwater'] ?? FALSE) && in_array(strtolower($damage_type), ['fire', 'acid'])) {
+        $damage_dealt = max(0, $damage_dealt - 5);
+      }
+
       $damage_result = $this->hpManager->applyDamage($target_id, $damage_dealt, $damage_type, ['attacker' => $participant_id], $encounter_id);
 
       // REQ 2154: Crit hit applies dying 2 when target is defeated (not dead from massive damage).
@@ -536,6 +732,8 @@ class CombatEngine {
       'degree'        => $degree,
       'damage_dealt'  => $damage_dealt,
       'damage_result' => $damage_result,
+      'flanking'      => $flanking,
+      'cover'         => $cover['tier'],
       'error'         => NULL,
     ];
   }
