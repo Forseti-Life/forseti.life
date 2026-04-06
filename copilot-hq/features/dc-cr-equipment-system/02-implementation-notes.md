@@ -54,3 +54,40 @@ EXTEND: `InventoryManagementService` (inventory CRUD, bulk, encumbrance) is comp
 
 ## What I'd change next time (Dev)
 - (pending)
+
+## QA BLOCK regression fixes (2026-04-06) — commit 889d129a3
+
+### BLOCK 1: Encumbrance formula corrected to PF2E spec
+
+**File**: `InventoryManagementService.php` + `InventoryManagementController.php`
+
+Changes:
+- `getInventoryCapacity` character formula: `5 + STR_mod` → `10 + STR_mod` (unencumbered bulk limit)
+- `getEncumbranceStatus` signature changed: `(float $current_bulk, float $str_score)` — thresholds computed from `$str_score` directly
+  - `encumbered_threshold = floor($str_score / 2) + 5`
+  - `immobilized_threshold = $str_score + 5`
+  - Returns `'immobilized'` (was `'overburdened'`)
+- All callers updated to pass `$str_score` (from `CharacterStateService::getState()`)
+
+Verified logic (PHP assertions):
+- STR 10: unencumbered < 10, encumbered [10–14], immobilized ≥ 15 ✓
+- STR 16: unencumbered < 13, encumbered [13–20], immobilized ≥ 21 ✓
+
+### BLOCK 2: STR requirement check penalty flag implemented
+
+**File**: `InventoryManagementService.php` — new `applyArmorStrPenalty()` method
+
+Changes:
+- `changeItemLocation()` calls `applyArmorStrPenalty()` when `new_location` is `worn` or `equipped` for character owner
+- Helper reads item `state_data.armor_stats.str_req`, gets character STR from `CharacterStateService`
+- If `char_str < str_req`: sets `str_penalty_active: true` and `str_penalty_check_penalty: <int>` on `state_data`
+- Equip is NOT blocked — only the flag is set (PF2E rule)
+- Flag is cleared on each equip transition so it reflects current character STR
+
+Downstream integration: when computing STR/DEX skill checks in `CharacterCalculator`, check equipped armor items for `str_penalty_active: true` and add `str_penalty_check_penalty` as penalty. This is a follow-on AC item.
+
+### Verification
+- PHP lint clean ✓
+- `drush cr` success ✓
+- 0 role-permissions violations ✓
+- QA: re-run Gate 2 for dc-cr-equipment-system
