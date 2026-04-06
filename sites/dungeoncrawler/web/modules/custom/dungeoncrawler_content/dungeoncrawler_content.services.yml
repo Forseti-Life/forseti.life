@@ -178,6 +178,7 @@ services:
     class: Drupal\dungeoncrawler_content\Service\RulesEngine
     arguments:
       - '@database'
+      - '@dungeoncrawler_content.calculator'
 
   dungeoncrawler_content.action_processor:
     class: Drupal\dungeoncrawler_content\Service\ActionProcessor

@@ -438,6 +438,68 @@ class Calculator {
    *   ['roll' => int, 'modifier' => int, 'total' => int, 'is_natural_1' => bool,
    *    'is_natural_20' => bool]
    */
+  /**
+   * Roll a flat check (req 2102–2107).
+   *
+   * PF2E flat check: roll d20, succeed if result ≥ DC.
+   * DC ≤ 1 → automatic success. DC ≥ 21 → automatic failure.
+   * Supports fortune (take higher of two rolls) and misfortune (take lower).
+   * Fortune + misfortune together cancel to a single roll.
+   *
+   * @param int $dc
+   *   Difficulty class.
+   * @param array $options
+   *   Optional flags:
+   *   - 'fortune' (bool): roll twice, take higher
+   *   - 'misfortune' (bool): roll twice, take lower
+   *   - 'secret' (bool): mark result as a secret check (omit roll from response)
+   *
+   * @return array
+   *   Keys: 'auto', 'success', 'roll' (null if auto or secret), 'dc', 'secret'
+   */
+  public function rollFlatCheck(int $dc, array $options = []): array {
+    // DC bounds — req 2102.
+    if ($dc <= 1) {
+      return ['auto' => TRUE, 'success' => TRUE, 'roll' => NULL, 'dc' => $dc, 'secret' => FALSE];
+    }
+    if ($dc >= 21) {
+      return ['auto' => TRUE, 'success' => FALSE, 'roll' => NULL, 'dc' => $dc, 'secret' => FALSE];
+    }
+
+    $fortune    = !empty($options['fortune']);
+    $misfortune = !empty($options['misfortune']);
+    $is_secret  = !empty($options['secret']);
+
+    if ($fortune && $misfortune) {
+      // Reqs 2107: cancel each other — single roll.
+      $roll = $this->numberGeneration->rollPathfinderDie(20);
+    }
+    elseif ($fortune) {
+      // Req 2105: take higher.
+      $r1 = $this->numberGeneration->rollPathfinderDie(20);
+      $r2 = $this->numberGeneration->rollPathfinderDie(20);
+      $roll = max($r1, $r2);
+    }
+    elseif ($misfortune) {
+      // Req 2106: take lower.
+      $r1 = $this->numberGeneration->rollPathfinderDie(20);
+      $r2 = $this->numberGeneration->rollPathfinderDie(20);
+      $roll = min($r1, $r2);
+    }
+    else {
+      $roll = $this->numberGeneration->rollPathfinderDie(20);
+    }
+
+    return [
+      'auto'    => FALSE,
+      'success' => $roll >= $dc,
+      // Req 2104: omit roll value for secret checks.
+      'roll'    => $is_secret ? NULL : $roll,
+      'dc'      => $dc,
+      'secret'  => $is_secret,
+    ];
+  }
+
   public function rollSkillCheck($ability_mod, $proficiency = 0, array $bonuses = [], array $penalties = []) {
     $roll = $this->numberGeneration->rollPathfinderDie(20);
     $modifier = (int) $ability_mod + (int) $proficiency

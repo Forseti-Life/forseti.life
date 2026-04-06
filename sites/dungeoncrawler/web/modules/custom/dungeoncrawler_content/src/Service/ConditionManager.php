@@ -568,4 +568,33 @@ class ConditionManager {
     return [NULL, NULL];
   }
 
+  /**
+   * Get fortune/misfortune flags for a participant (req 2105-2107).
+   *
+   * Returns whether active conditions on the participant grant fortune or
+   * misfortune. Callers pass these flags to rollFlatCheck() / rollSkillCheck()
+   * / rollSavingThrow() options.
+   *
+   * @param int|string $participant_id
+   * @param int|string $encounter_id
+   *
+   * @return array
+   *   ['has_fortune' => bool, 'has_misfortune' => bool]
+   */
+  public function getFortuneFlags($participant_id, $encounter_id): array {
+    $conditions = $this->database->select('combat_conditions', 'c')
+      ->fields('c', ['condition_type'])
+      ->condition('participant_id', $participant_id)
+      ->condition('encounter_id', $encounter_id)
+      ->condition('is_active', 1)
+      ->execute()
+      ->fetchCol();
+
+    $types = array_map('strtolower', $conditions ?: []);
+    return [
+      'has_fortune'    => in_array('fortune', $types, TRUE),
+      'has_misfortune' => in_array('misfortune', $types, TRUE),
+    ];
+  }
+
 }

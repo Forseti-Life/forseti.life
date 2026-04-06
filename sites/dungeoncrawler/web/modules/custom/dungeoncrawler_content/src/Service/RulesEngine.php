@@ -12,9 +12,11 @@ use Drupal\Core\Database\Connection;
 class RulesEngine {
 
   protected $database;
+  protected $calculator;
 
-  public function __construct(Connection $database) {
+  public function __construct(Connection $database, ?Calculator $calculator = NULL) {
     $this->database = $database;
+    $this->calculator = $calculator;
   }
 
   /**
@@ -432,6 +434,35 @@ class RulesEngine {
       }
     }
 
+    // PF2E reqs 2103: hidden (DC 11) and concealed (DC 5) target flat checks.
+    if ($this->calculator) {
+      $target_conditions = $this->getActiveConditionTypes((int) $target_id, (int) $encounter_id);
+      if (in_array('hidden', $target_conditions, TRUE)) {
+        $flat = $this->calculator->rollFlatCheck(11);
+        if (!$flat['success']) {
+          return [
+            'is_valid' => FALSE,
+            'reason' => 'Attack misses: flat check failed for hidden target (DC 11).',
+            'modifiers' => $modifiers,
+            'flat_check' => $flat,
+          ];
+        }
+        $modifiers['hidden_flat_check'] = $flat;
+      }
+      elseif (in_array('concealed', $target_conditions, TRUE)) {
+        $flat = $this->calculator->rollFlatCheck(5);
+        if (!$flat['success']) {
+          return [
+            'is_valid' => FALSE,
+            'reason' => 'Attack misses: flat check failed for concealed target (DC 5).',
+            'modifiers' => $modifiers,
+            'flat_check' => $flat,
+          ];
+        }
+        $modifiers['concealed_flat_check'] = $flat;
+      }
+    }
+
     return ['is_valid' => TRUE, 'reason' => '', 'modifiers' => $modifiers];
   }
 
@@ -556,6 +587,29 @@ class RulesEngine {
       return is_array($decoded) ? $decoded : [];
     }
     return is_array($ref) ? $ref : [];
+  }
+
+  /**
+   * Get active condition type strings for a participant.
+   *
+   * @param int $participant_id
+   * @param int $encounter_id
+   *
+   * @return string[]
+   */
+  protected function getActiveConditionTypes(int $participant_id, int $encounter_id): array {
+    if (!$participant_id) {
+      return [];
+    }
+    $query = $this->database->select('combat_conditions', 'cc')
+      ->fields('cc', ['condition_type'])
+      ->condition('participant_id', $participant_id)
+      ->condition('is_active', 1);
+    if ($encounter_id) {
+      $query->condition('encounter_id', $encounter_id);
+    }
+    $result = $query->execute()->fetchCol();
+    return array_map('strtolower', $result ?: []);
   }
 
 }

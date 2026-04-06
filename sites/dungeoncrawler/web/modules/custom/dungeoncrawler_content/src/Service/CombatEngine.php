@@ -340,9 +340,11 @@ class CombatEngine {
     foreach ($conditions as $condition) {
       if ($condition['condition_type'] === 'persistent_damage') {
         $damage = (int) ($condition['value'] ?? 0);
+        $assisted = !empty($condition['assisted']);
         $result = $this->hpManager->applyDamage($participant_id, $damage, 'persistent', ['condition' => 'persistent_damage'], $encounter_id);
-        $flat_check = $this->numberGeneration->rollPathfinderDie(20);
-        $cleared = $flat_check >= 15;
+        // Req 2103: DC 15 to clear; DC 10 when assisted.
+        $flat_result = $this->calculator->rollFlatCheck($assisted ? 10 : 15);
+        $cleared = $flat_result['success'];
 
         if ($cleared) {
           $this->store->removeCondition((int) $condition['id'], $current_round);
@@ -351,7 +353,8 @@ class CombatEngine {
         $effects['persistent_damage'][] = [
           'condition_id' => (int) $condition['id'],
           'damage' => $result,
-          'flat_check' => $flat_check,
+          'flat_check' => $flat_result['roll'],
+          'flat_dc' => $flat_result['dc'],
           'cleared' => $cleared,
         ];
       }
