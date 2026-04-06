@@ -260,6 +260,61 @@
         "Blocked on vendor/ provision (composer install at sites/forseti/ required) before phpunit runs."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-bedrock-static",
+      "label": "ai_conversation Bedrock fix: static checks \u2014 getModelFallbacks() and buildBedrockClient() present, field_ai_model removed, config aws_model set",
+      "type": "static",
+      "feature_id": "ai-conversation-bedrock",
+      "required_for_release": true,
+      "command": "grep -n \"getModelFallbacks\\|buildBedrockClient\" /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation/src/Service/AIApiService.php && ! grep -q \"field_ai_model\" /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation/src/Controller/ChatController.php",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-bedrock/"
+      ],
+      "test_cases": [
+        {
+          "id": "TC-01",
+          "description": "getModelFallbacks() present in AIApiService.php with 3-model fallback chain",
+          "type": "static",
+          "status": "PASS"
+        },
+        {
+          "id": "TC-02",
+          "description": "buildBedrockClient() present in AIApiService.php",
+          "type": "static",
+          "status": "PASS"
+        },
+        {
+          "id": "TC-03",
+          "description": "field_ai_model removed from ChatController.php node creation",
+          "type": "static",
+          "status": "PASS"
+        },
+        {
+          "id": "TC-04",
+          "description": "Production config aws_model=us.anthropic.claude-sonnet-4-6 confirmed",
+          "type": "static",
+          "status": "PASS"
+        },
+        {
+          "id": "TC-05",
+          "description": "Watchdog: 0 Bedrock/AWS/ai_conversation errors since CEO fix (200 recent entries checked)",
+          "type": "monitoring",
+          "status": "PASS"
+        },
+        {
+          "id": "TC-06",
+          "description": "/node/1544/chat returns 403 for anon (expected auth-required)",
+          "type": "acl",
+          "status": "PASS"
+        },
+        {
+          "id": "TC-07",
+          "description": "Symlinks confirmed: stlouisintegration and theoryofconspiracies both point to shared/modules/ai_conversation",
+          "type": "static",
+          "status": "PASS"
+        }
+      ]
     }
   ],
   "_schema_notes": [

@@ -1,7 +1,9 @@
-All AC methods confirmed. No code changes needed.
+All encounter rules methods confirmed on production path.
+
+---
 
 - Status: in_progress
-- Summary: Feature `dc-cr-encounter-rules` is fully implemented. `CombatEngine` has all four required encounter methods: `startEncounter` (line 80), `startTurn` (line 176), `endTurn` (line 210), and `resolveAttack` (line 402). `HPManager::applyDamage` (line 31) handles damage resolution. `Calculator::calculateInitiative` (line 59) handles PF2E perception-based initiative. This is a re-dispatch verification pass; no code changes were made this cycle. Feature remains `in_progress` pending QA Gate 2 sign-off from `qa-dungeoncrawler`.
+- Summary: Feature `dc-cr-encounter-rules` is fully implemented (verified this cycle on production path `/var/www/html/dungeoncrawler`). `CombatEngine` has all required methods: `startEncounter` (80), `startTurn` (176), `endTurn` (210), `resolveAttack` (402). `HPManager::applyDamage` (31) handles damage application. `Calculator::calculateInitiative` (59) provides PF2E initiative rolls. Degree of success logic is present in `CharacterCalculator`. No code changes were made this cycle — implementation was complete as of prior release cycle.
 
 ## Next actions
 - Await QA Gate 2 verification against `features/dc-cr-encounter-rules/03-test-plan.md`
@@ -14,10 +16,10 @@ All AC methods confirmed. No code changes needed.
 - N/A
 
 ## ROI estimate
-- ROI: 18
-- Rationale: Encounter rules are the primary gameplay loop and a release-c critical path feature; clearing QA unblocks combat-dependent downstream systems. No dev work remaining.
+- ROI: 16
+- Rationale: Encounter rules are the primary gameplay loop for dungeoncrawler; all combat features depend on this foundation being correct. Implementation verified — QA Gate 2 is the only remaining gate.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260405-impl-dc-cr-encounter-rules
-- Generated: 2026-04-06T11:48:35+00:00
+- Generated: 2026-04-06T12:57:58+00:00
