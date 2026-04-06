@@ -4558,3 +4558,22 @@ function dungeoncrawler_content_update_10032() {
     '@total' => $updated,
   ]);
 }
+
+/**
+ * Create missing combat_conditions and combat_round_actions tables.
+ */
+function dungeoncrawler_content_update_10033() {
+  $schema = dungeoncrawler_content_schema();
+  $db_schema = \Drupal::database()->schema();
+  $created = [];
+  foreach (['combat_conditions', 'combat_actions'] as $table) {
+    if (!$db_schema->tableExists($table)) {
+      $db_schema->createTable($table, $schema[$table]);
+      $created[] = $table;
+    }
+  }
+  if (empty($created)) {
+    return t('combat_conditions and combat_round_actions already exist; no action taken.');
+  }
+  return t('Created missing tables: @tables.', ['@tables' => implode(', ', $created)]);
+}
