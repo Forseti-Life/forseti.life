@@ -14,7 +14,8 @@ No specific dev outbox for this inbox item. Related: `sessions/dev-dungeoncrawle
 
 ## Source files inspected
 - `EncounterPhaseHandler.php` — getLegalIntents(), processIntent() switch (cases: arrest_fall, avert_gaze, burrow, fly, grab_edge, mount, dismount, point_out, raise_shield, attack_of_opportunity, shield_block)
-- `CombatEngine.php` — resolveAttack() skip_map handling (line 592–601), DB attacks_this_turn update (line 795)
+- `CombatEngine.php` — resolveAttack() skip_map handling (line 592–601), DB attacks_this_turn update (line 795), target AC computation (reads `$target['ac']` flat DB column only)
+- `Calculator.php` — `calculateAC()` signature (defined with `$shield_raised` param; never called in attack resolution path)
 
 ## Test Results
 
@@ -26,6 +27,7 @@ No specific dev outbox for this inbox item. Related: `sessions/dev-dungeoncrawle
 | TC-2219-P: Four-degree outcomes (crit success=no damage, fail=partial, crit fail=full/heavy) | STATIC-PASS | degree determines `$damage_af` via floor/ceil math; falls computed by `$feet_fallen` ✓ |
 | TC-2220-P: Avert Gaze in getLegalIntents; sets avert_gaze_active | STATIC-PASS | 'avert_gaze' in getLegalIntents(); `entity_data_ag['avert_gaze_active'] = TRUE` stored; 1 action ✓ |
 | TC-2220-N: Expires at start of next turn | STATIC-PASS | End-of-turn cleanup in processEndTurn: `$entity_fly['avert_gaze_active'] = FALSE` ✓ |
+| TC-2220-N: +2 circumstance bonus applied to gaze-ability saves | GAP | `avert_gaze_active` flag is stored and cleaned up ✓, but NO service reads the flag to add +2 circumstance bonus to gaze-triggered save rolls. See GAP-2220. |
 | TC-2221-P: Burrow in getLegalIntents; requires burrow_speed > 0 | STATIC-PASS | 'burrow' in getLegalIntents(); `if ($burrow_speed <= 0) → error` ✓ |
 | TC-2221-P: Tags entity as underground; conditional tunnel | STATIC-PASS | `entity_data_b['underground'] = TRUE`; `creates_tunnel` check ✓ |
 | TC-2221-N: No burrow_speed → rejected | STATIC-PASS | burrow_speed check enforced ✓ |
@@ -44,6 +46,7 @@ No specific dev outbox for this inbox item. Related: `sessions/dev-dungeoncrawle
 | TC-2227-N: No shield in hand → rejected | STATIC-PASS | `if (!$shield_rs) → error "No shield in hand."` ✓ |
 | TC-2227-N: Broken shield → rejected | STATIC-PASS | `if (!empty($shield_rs['broken'])) → error "Shield is broken."` ✓ |
 | TC-2227-N: Shield AC bonus expires at start of next turn | STATIC-PASS | End-of-turn cleanup: `$entity_fly['shield_raised'] = FALSE` ✓ |
+| TC-2227-N: Shield AC bonus applies to incoming attacks | GAP | `shield_raised_ac_bonus` stored in entity_ref ✓. BUT `CombatEngine::resolveAttack` reads `$target_ac = (int)($target['ac'] ?? 10)` — a flat DB column. It never reads entity_ref for `shield_raised_ac_bonus`. `Calculator::calculateAC()` has `$shield_raised` param but is never called in the attack resolution path. Raised shield provides zero mechanical AC benefit. See GAP-2227. |
 | TC-2228-P: AoO in getLegalIntents; class feature check | STATIC-PASS | 'attack_of_opportunity' in getLegalIntents(); `if (!in_array('attack_of_opportunity', $class_features)) → error` ✓ |
 | TC-2228-N: Non-fighter (no class feature) → rejected | STATIC-PASS | class_features check enforced ✓ |
 | TC-2229-P: AoO crit + manipulate trigger → disrupt | STATIC-PASS | `if ($aoo_result['degree'] === 'critical_success' && $trigger_type === 'manipulate') → disrupted=TRUE` ✓ |
@@ -58,31 +61,59 @@ No specific dev outbox for this inbox item. Related: `sessions/dev-dungeoncrawle
 
 ## Defects / Gaps
 
-### DEF-2230 (MEDIUM): AoO decrements game_state attacks_this_turn instead of leaving it unchanged
-- **File:** `EncounterPhaseHandler.php`, line 1180
-- **Expected (REQ 2230):** AoO does not count toward MAP. game_state `attacks_this_turn` should be unchanged after AoO.
-- **Actual:** `$game_state['turn']['attacks_this_turn'] = max(0, ($game_state['turn']['attacks_this_turn'] ?? 1) - 1);`
-  - processStrike only updates the DB participant record (via CombatEngine). It does NOT touch `game_state['turn']['attacks_this_turn']`.
-  - The -1 at line 1180 thus decrements an already-unchanged value, net result: attacks_this_turn = N-1 instead of N.
-  - Example: fighter with 1 prior strike (attacks_this_turn=1) takes AoO → game_state becomes 0 → next strike on their turn has no MAP (wrong, should be MAP -5).
-- **Fix:** Remove line 1180 entirely. The comment at line 1179 says "Do NOT decrement" but the code does exactly that.
+### GAP-2220 (MEDIUM): Avert Gaze flag set but +2 circumstance bonus not consumed
+- **File:** `EncounterPhaseHandler.php` sets `entity_data_ag['avert_gaze_active'] = TRUE` in entity_ref; no other service reads it.
+- **Expected (REQ 2220):** While `avert_gaze_active` is TRUE, character gains +2 circumstance bonus to saves against gaze abilities until start of next turn.
+- **Actual:** Flag lifecycle is correct (set on action, cleared at end-of-turn). Zero services read `avert_gaze_active` to apply the +2 bonus when a gaze-triggered save is resolved.
+- **Fix:** In whichever service resolves gaze-ability saves, read `$entity_ref['avert_gaze_active']` and add +2 circumstance to the save total.
+- **Severity:** Medium — blocks functional implementation of gaze-ability saves.
 
 ### GAP-2225 (LOW): Mount missing size and willing checks
 - **File:** `EncounterPhaseHandler.php`, case 'mount'
 - **Expected (REQ 2225):** Target must be willing AND ≥1 size category larger.
 - **Actual:** Only adjacency (dist ≤ 1) is checked. No size comparison, no willing flag check.
 - **Severity:** Low — only affects edge-case rejection; mechanics otherwise work.
-- **Fix:** Load target entity_data, check `size` field comparison; check `is_willing` or `attitude` field.
+- **Fix:** Load target entity_data; check size field comparison; check `is_willing` or `attitude` field.
+
+### GAP-2227 (MEDIUM): Raised shield AC bonus not applied in attack resolution
+- **File:** `EncounterPhaseHandler.php` stores `entity_data_rs['shield_raised_ac_bonus']` in entity_ref; `CombatEngine::resolveAttack` never reads it.
+- **Expected (REQ 2227):** Shield raised grants +2 circumstance bonus to AC until start of next turn.
+- **Actual:** `CombatEngine::resolveAttack` reads `$target_ac = (int)($target['ac'] ?? 10)` from the flat `combat_participants.ac` DB column. Loads `$target_entity_data = json_decode($target['entity_ref'])` but only for detection-state — never for shield AC. `Calculator::calculateAC()` has `$shield_raised` param but is never called in attack resolution.
+- **Fix:** In `CombatEngine::resolveAttack`, after loading `$target_entity_data`, add:
+  ```php
+  if (!empty($target_entity_data['shield_raised'])) {
+      $target_ac += (int) ($target_entity_data['shield_raised_ac_bonus'] ?? 2);
+  }
+  ```
+- **Severity:** Medium — `raise_shield` is a core defensive action; without this fix it provides zero mechanical benefit to AC.
+
+### DEF-2230 (MEDIUM): AoO decrements game_state attacks_this_turn instead of leaving it unchanged
+- **File:** `EncounterPhaseHandler.php`, line 1180
+- **Expected (REQ 2230):** AoO does not count toward MAP. `game_state['turn']['attacks_this_turn']` should be unchanged after AoO.
+- **Actual:** `$game_state['turn']['attacks_this_turn'] = max(0, ($game_state['turn']['attacks_this_turn'] ?? 1) - 1);`
+  - `processStrike` only updates the DB participant record (via CombatEngine). It does NOT touch `game_state['turn']['attacks_this_turn']`.
+  - The -1 at line 1180 thus decrements an already-unchanged value → net result: attacks_this_turn = N-1 instead of N.
+  - Example: fighter with 1 prior strike (attacks_this_turn=1) takes AoO → game_state becomes 0 → next strike has no MAP (wrong, should be MAP -5).
+- **Fix:** Remove line 1180 entirely. Comment at line 1179 says "Do NOT decrement" but the code does exactly that.
 
 ### MINOR-2231-shield-block: Shield Block doesn't re-check broken flag at use time
 - **File:** `EncounterPhaseHandler.php`, case 'shield_block'
-- **Note:** The `raise_shield` case already rejects broken shields. If a shield breaks mid-combat (during the same turn as a prior Shield Block), a second Shield Block attempt would pass the `shield_raised` check (it may still be TRUE) but the shield is now broken. Low severity; edge case.
+- **Note:** `raise_shield` rejects broken shields. If a shield breaks mid-combat via a prior Shield Block on the same turn, a second Shield Block attempt would pass the `shield_raised` check but the shield is now broken. Low severity; edge case.
 
 ## Summary
-12/14 PASS, 1 medium defect (DEF-2230), 1 low gap (GAP-2225), 1 minor gap (shield_block broken re-check).
+10/14 PASS (2 additional medium gaps found in this re-verification pass; prior report counted 12/14).
 
-**Inbox "Expected: NOT implemented" was incorrect** — all 14 specialty actions are implemented with full case handlers, mirroring the same pattern found in 2190–2218.
+**Inbox "Expected: NOT implemented" was incorrect** — all 14 specialty actions are implemented with full case handlers, same pattern as 2190–2218.
 
-The critical finding is DEF-2230: the AoO "do not count toward MAP" implementation has an inverted sign error in EncounterPhaseHandler (line 1180). The MAP suppression is correctly handled in CombatEngine (resolveAttack), but the game_state counter repair in EncounterPhaseHandler is broken — it decrements when it should leave unchanged.
+Newly-found gaps vs prior report:
+- **GAP-2220** (MEDIUM): Avert Gaze flag correct but +2 circumstance bonus never consumed by save resolution
+- **GAP-2227** (MEDIUM): `raise_shield` stores AC bonus in entity_ref but `CombatEngine::resolveAttack` reads flat `combat_participants.ac` column — raised shield provides zero AC benefit in combat
 
-Verdict: **BLOCK** — DEF-2230 corrupts MAP state for the fighter's subsequent turn actions after any AoO.
+Existing defect:
+- **DEF-2230** (MEDIUM): AoO case line 1180 decrements `attacks_this_turn` (comment says "Do NOT"; code does the opposite)
+
+Low/minor:
+- **GAP-2225** (LOW): Mount missing willing + size checks
+- **MINOR-2231**: Shield Block doesn't re-check broken flag (edge case)
+
+Verdict: **BLOCK** — GAP-2227 renders the `raise_shield` action mechanically inert (core defensive mechanic provides zero AC benefit). DEF-2230 corrupts fighter MAP after AoO.
