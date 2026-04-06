@@ -191,6 +191,7 @@ services:
       - '@dungeoncrawler_content.number_generation'
       - '@dungeoncrawler_content.rules_engine'
       - '@dungeoncrawler_content.area_resolver'
+      - '@dungeoncrawler_content.counteract'
 
   dungeoncrawler_content.combat_engine:
     class: Drupal\dungeoncrawler_content\Service\CombatEngine
@@ -527,4 +528,11 @@ services:
     arguments:
       - '@database'
       - '@dungeoncrawler_content.calculator'
+      - '@dungeoncrawler_content.condition_manager'
+
+  dungeoncrawler_content.counteract:
+    class: Drupal\dungeoncrawler_content\Service\CounteractService
+    arguments:
+      - '@dungeoncrawler_content.calculator'
+      - '@dungeoncrawler_content.number_generation'
       - '@dungeoncrawler_content.condition_manager'

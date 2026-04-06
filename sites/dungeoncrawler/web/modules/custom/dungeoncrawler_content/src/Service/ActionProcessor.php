@@ -8,6 +8,7 @@ use Drupal\dungeoncrawler_content\Service\ConditionManager;
 use Drupal\dungeoncrawler_content\Service\HPManager;
 use Drupal\dungeoncrawler_content\Service\RulesEngine;
 use Drupal\dungeoncrawler_content\Service\AreaResolverService;
+use Drupal\dungeoncrawler_content\Service\CounteractService;
 use Psr\Log\LoggerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
@@ -27,8 +28,9 @@ class ActionProcessor {
   protected $numberGeneration;
   protected $rulesEngine;
   protected $areaResolver;
+  protected $counteract;
 
-  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation, RulesEngine $rules_engine, ?AreaResolverService $area_resolver = NULL) {
+  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation, RulesEngine $rules_engine, ?AreaResolverService $area_resolver = NULL, ?CounteractService $counteract = NULL) {
     $this->calculator = $calculator;
     $this->hpManager = $hp_manager;
     $this->conditionManager = $condition_manager;
@@ -37,6 +39,7 @@ class ActionProcessor {
     $this->numberGeneration = $number_generation;
     $this->rulesEngine = $rules_engine;
     $this->areaResolver = $area_resolver;
+    $this->counteract = $counteract;
   }
 
   /**
@@ -54,6 +57,10 @@ class ActionProcessor {
 
       case 'cast_spell':
         return $this->executeCastSpell($participant_id, $action_data['spell_id'] ?? $action_data['spell_name'] ?? '', $action_data['spell_level'] ?? 1, $action_data['targets'] ?? [], $encounter_id);
+
+      case 'counteract':
+      case 'dispel':
+        return $this->executeCounteract($participant_id, $action_data, $encounter_id);
 
       case 'reaction':
         return $this->executeReactionAction($participant_id, $action_data, $encounter_id);
@@ -446,6 +453,59 @@ class ActionProcessor {
       'spell_name' => $spell_name,
       'spell_level' => $spell_level,
       'target_results' => $target_results,
+      'actions_remaining' => $actions_left,
+    ];
+  }
+
+  /**
+   * Execute a counteract or dispel action (reqs 2145–2150).
+   *
+   * Expected action_data keys:
+   *   - 'target_effect': array with 'level', 'type', 'effect_id', optional 'counteract_dc'
+   *   - 'spell_level': (int) the level of the spell used to counteract
+   *   - 'action_cost': (int, default 2) number of actions spent
+   */
+  public function executeCounteract(int $caster_id, array $action_data, int $encounter_id): array {
+    if (!$this->counteract) {
+      return ['status' => 'error', 'message' => 'CounteractService not available'];
+    }
+
+    $state = $this->loadEncounterState($encounter_id);
+    if ($state['status'] === 'error') {
+      return $state;
+    }
+    [$encounter, $participants] = $state['data'];
+
+    $caster = $this->findParticipant($participants, $caster_id);
+    if (!$caster) {
+      return ['status' => 'error', 'message' => 'Caster not found'];
+    }
+    if (!$this->isCurrentTurn($encounter, $participants, $caster_id)) {
+      return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
+    }
+
+    $action_cost = (int) ($action_data['action_cost'] ?? 2);
+    $economy = $this->rulesEngine->validateActionEconomy($caster, $action_cost);
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
+    }
+
+    // Inject spell_level into caster array for CounteractService.
+    $caster_with_spell_level = $caster;
+    $caster_with_spell_level['spell_level'] = (int) ($action_data['spell_level'] ?? $caster['level'] ?? 1);
+
+    $target_effect = $action_data['target_effect'] ?? [];
+    $result = $this->counteract->attemptCounteract($caster_with_spell_level, $target_effect, $encounter_id);
+
+    // Consume actions.
+    $actions_left = max(0, ((int) $caster['actions_remaining']) - $action_cost);
+    $this->store->updateParticipant($caster_id, ['actions_remaining' => $actions_left]);
+
+    $this->logAction($encounter_id, $caster_id, 'counteract', NULL, $action_data, $result);
+
+    return [
+      'status' => 'success',
+      'counteract_result' => $result,
       'actions_remaining' => $actions_left,
     ];
   }
