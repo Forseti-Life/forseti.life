@@ -746,14 +746,154 @@
     },
     {
       "id": "dc-cr-skill-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-skill-system",
-      "type": "unit",
+      "label": "Skill System \u2014 17 skill constants with ability associations, proficiency bonus formula, calculateSkillCheck(), Lore specializations, GET /character/{id}/skills, permissions",
+      "type": "phpunit",
       "feature_id": "dc-cr-skill-system",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_skill_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=Skill tests/src/",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skill-system-phpunit/"
+        "tests/results/dc-cr-skill-system-phpunit.xml"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-SK-01",
+          "description": "SKILLS constant defines all 17 core skills",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testSkillsConstantContainsAll17Skills",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-02",
+          "description": "SKILLS constant maps each skill to correct ability score (Acrobatics=Dex, Athletics=Str, Arcana=Int, etc.)",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testSkillsConstantHasCorrectAbilityMappings",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-03",
+          "description": "Proficiency bonus: Untrained = 0 at any level",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testProficiencyBonusUntrained",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-04",
+          "description": "Proficiency bonus: Trained = level + 2",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testProficiencyBonusTrained",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-05",
+          "description": "Proficiency bonus: Expert = level+4; Master = level+6; Legendary = level+8",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testProficiencyBonusHigherRanks",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-06",
+          "description": "calculateSkillCheck returns roll, total, and degree_of_success",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testCalculateSkillCheckReturnShape",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-07",
+          "description": "calculateSkillCheck: untrained uses ability mod only (proficiency = 0)",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testCalculateSkillCheckUntrained",
+          "ac_tag": "EXTEND",
+          "status": "active",
+          "notes": "Untrained penalty for training-required tasks is deferred \u2014 AC undefined. Update TC if PM adds penalty behavior."
+        },
+        {
+          "id": "TC-SK-08",
+          "description": "calculateSkillCheck: item_bonus stacks additively with proficiency and ability modifier",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testCalculateSkillCheckItemBonusStacks",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-09",
+          "description": "calculateSkillCheck with unknown skill name returns explicit structured error (no unhandled exception)",
+          "suite_type": "unit",
+          "class_method": "CharacterCalculatorTest::testCalculateSkillCheckUnknownSkillReturnsError",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-10",
+          "description": "Lore skill stored with specialization string as key (Sailing Lore \u2192 rank stored, ability=Int)",
+          "suite_type": "unit",
+          "class_method": "CharacterManagerTest::testLoreSkillStoredWithSpecialization",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-11",
+          "description": "Multiple Lore skills on same character stored and retrievable independently (no overwrite)",
+          "suite_type": "unit",
+          "class_method": "CharacterManagerTest::testMultipleLoreSkillsStoredIndependently",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-12",
+          "description": "GET /character/{id}/skills returns skill list with rank and current bonus (auth owner)",
+          "suite_type": "functional",
+          "class_method": "CharacterSkillsApiTest::testGetCharacterSkillsReturnsRankAndBonus",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-13",
+          "description": "GET /character/{id}/skills: anonymous read returns 200 in active game session context",
+          "suite_type": "functional",
+          "class_method": "CharacterSkillsApiTest::testAnonymousCanReadSkillsInGameSession",
+          "ac_tag": "permissions",
+          "status": "active",
+          "notes": "role-url-audit entry uses ignore (parameterized route); access control verified via functional test"
+        },
+        {
+          "id": "TC-SK-14",
+          "description": "Only character owner can modify skill ranks (other player gets 403)",
+          "suite_type": "functional",
+          "class_method": "CharacterSkillsApiTest::testOnlyOwnerCanModifySkillRanks",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-15",
+          "description": "Admin can override skill ranks for QA/debug (success, rank updated)",
+          "suite_type": "functional",
+          "class_method": "CharacterSkillsApiTest::testAdminCanOverrideSkillRank",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-16",
+          "description": "Skill ranks persist in character entity JSON (CharacterStateService pattern, no data loss on reload)",
+          "suite_type": "unit",
+          "class_method": "CharacterManagerTest::testSkillRanksPersistInCharacterJson",
+          "ac_tag": "data-integrity",
+          "status": "active"
+        },
+        {
+          "id": "TC-SK-17",
+          "description": "QA audit still passes after module deployment (0 violations, 0 failures)",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "ac_tag": "audit",
+          "status": "active"
+        }
+      ]
     },
     {
       "id": "dc-home-suggestion-notice-phpunit",
