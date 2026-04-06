@@ -1,4 +1,11 @@
 # ==============================================================================
+# ROUTING NOTES
+# _csrf_token: 'TRUE' is for GET link-based actions only (e.g. archive/delete links).
+# NEVER add _csrf_token to POST routes — Drupal Form API handles CSRF internally
+# via form_token. Adding it to POST routes causes all form submissions to 403.
+# ==============================================================================
+
+# ==============================================================================
 # ADMIN ROUTES
 # ==============================================================================
 
@@ -36,7 +43,6 @@ dungeoncrawler_content.game_objects.post:
   methods: [POST]
   requirements:
     _permission: 'administer dungeoncrawler content'
-    _csrf_token: 'TRUE'
 
 dungeoncrawler_content.gemini_image_interface:
   path: '/admin/content/dungeoncrawler/gemini-image'
@@ -279,7 +285,6 @@ dungeoncrawler_content.campaign_select_character:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::selectCharacter'
   methods: [GET, POST]
   requirements:
-    _csrf_token: 'TRUE'
     _campaign_access: 'TRUE'
     campaign_id: '\d+'
     character_id: '\d+'
@@ -312,7 +317,6 @@ dungeoncrawler_content.character_step.post:
   methods: [POST]
   requirements:
     _permission: 'create dungeoncrawler characters'
-    _csrf_token: 'TRUE'
     step: '\d+'
 
 dungeoncrawler_content.character_save_step:
@@ -321,7 +325,6 @@ dungeoncrawler_content.character_save_step:
     _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterCreationStepController::saveStep'
   methods: [POST]
   requirements:
-    _csrf_token: 'TRUE'
     _permission: 'create dungeoncrawler characters'
     step: '\d+'
 
