@@ -4397,3 +4397,80 @@ function dungeoncrawler_content_update_10030() {
 
   return t('Added 7 ancestry fields and populated @count ancestry nodes.', ['@count' => $updated]);
 }
+
+/**
+ * Add discrete background fields to background content type; seed missing
+ * core backgrounds (Acrobat, Animal Whisperer, Artisan, Barkeep); populate
+ * field data for all background nodes from CharacterManager::BACKGROUNDS.
+ */
+function dungeoncrawler_content_update_10031() {
+  $fields = [
+    'field_bg_fixed_boost'    => ['type' => 'string', 'cardinality' => 1, 'label' => 'Fixed Ability Boost',   'settings' => ['max_length' => 20]],
+    'field_bg_skill_training' => ['type' => 'string', 'cardinality' => 1, 'label' => 'Skill Training',        'settings' => ['max_length' => 64]],
+    'field_bg_lore_skill'     => ['type' => 'string', 'cardinality' => 1, 'label' => 'Lore Skill',            'settings' => ['max_length' => 64]],
+    'field_bg_skill_feat'     => ['type' => 'string', 'cardinality' => 1, 'label' => 'Skill Feat',            'settings' => ['max_length' => 128]],
+  ];
+
+  foreach ($fields as $field_name => $def) {
+    if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name)) {
+      $storage_def = [
+        'field_name'  => $field_name,
+        'entity_type' => 'node',
+        'type'        => $def['type'],
+        'cardinality' => $def['cardinality'],
+        'settings'    => $def['settings'],
+      ];
+      \Drupal\field\Entity\FieldStorageConfig::create($storage_def)->save();
+    }
+    if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'background', $field_name)) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name'  => $field_name,
+        'entity_type' => 'node',
+        'bundle'      => 'background',
+        'label'       => $def['label'],
+        'required'    => FALSE,
+      ])->save();
+    }
+  }
+
+  $backgrounds = \Drupal\dungeoncrawler_content\Service\CharacterManager::BACKGROUNDS;
+  $created = 0;
+  $updated = 0;
+
+  // Index existing background nodes by title for update.
+  $nids = \Drupal::entityQuery('node')
+    ->accessCheck(FALSE)
+    ->condition('type', 'background')
+    ->execute();
+  $nodes = \Drupal\node\Entity\Node::loadMultiple($nids);
+  $existing_by_title = [];
+  foreach ($nodes as $node) {
+    $existing_by_title[strtolower($node->getTitle())] = $node;
+  }
+
+  foreach ($backgrounds as $bg_id => $data) {
+    $title_lower = strtolower($data['name']);
+    if (isset($existing_by_title[$title_lower])) {
+      $node = $existing_by_title[$title_lower];
+    }
+    else {
+      $node = \Drupal\node\Entity\Node::create([
+        'type'   => 'background',
+        'title'  => $data['name'],
+        'status' => 1,
+      ]);
+      $created++;
+    }
+    $node->set('field_bg_fixed_boost',    $data['fixed_boost'] ?? '');
+    $node->set('field_bg_skill_training', $data['skill']       ?? '');
+    $node->set('field_bg_lore_skill',     $data['lore']        ?? '');
+    $node->set('field_bg_skill_feat',     $data['feat']        ?? '');
+    $node->save();
+    $updated++;
+  }
+
+  return t('Added 4 background fields; created @new background nodes, populated @total total.', [
+    '@new'   => $created,
+    '@total' => $updated,
+  ]);
+}

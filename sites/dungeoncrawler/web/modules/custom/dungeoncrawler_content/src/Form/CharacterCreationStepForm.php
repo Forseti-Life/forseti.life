@@ -578,14 +578,22 @@ class CharacterCreationStepForm extends FormBase {
       '#description' => $this->t('Your character\'s former life shaped who they are. This choice grants lasting skills and a foundation for long-term roleplay consistency.'),
     ];
 
-    // Background Ability Boosts (2 free boosts)
+    // Background Ability Boosts: 1 fixed (auto) + 1 free (player choice).
+    $selected_background_for_boosts = $form_state->getValue('background') ?: $character_data['background'] ?? '';
+    $bg_boost_data = !empty($selected_background_for_boosts) ? (CharacterManager::BACKGROUNDS[$selected_background_for_boosts] ?? NULL) : NULL;
+    $has_fixed_boost = $bg_boost_data && isset($bg_boost_data['fixed_boost']);
+    $boost_total = $has_fixed_boost ? 1 : 2;
+    $boost_desc = $has_fixed_boost
+      ? $this->t('Your background automatically applies a fixed boost to <strong>@ability</strong>. Choose one additional free ability boost (must differ from the fixed boost).', ['@ability' => strtoupper($bg_boost_data['fixed_boost'])])
+      : $this->t('Your background grants 2 free ability boosts. Choose any two different abilities to boost.');
+
     $calculation = $this->abilityScoreTracker->calculateAbilityScores($character_data);
     $abilities_data = $this->buildInteractiveAbilityData($calculation, $character_data['background_boosts'] ?? []);
 
     $form['background_boosts_help'] = [
       '#markup' => '<div class="section-instructions background-boosts-section">'
         . '<h3>' . $this->t('Background Ability Boosts') . '</h3>'
-        . '<p>' . $this->t('Your background grants 2 free ability boosts. Choose any two different abilities to boost.') . '</p>'
+        . '<p>' . $boost_desc . '</p>'
         . '</div>',
     ];
 
@@ -594,11 +602,11 @@ class CharacterCreationStepForm extends FormBase {
       '#abilities' => $abilities_data,
       '#mode' => 'interactive',
       '#show_sources' => TRUE,
-      '#boosts_remaining' => 2 - count($character_data['background_boosts'] ?? []),
-      '#boosts_total' => 2,
+      '#boosts_remaining' => $boost_total - count($character_data['background_boosts'] ?? []),
+      '#boosts_total' => $boost_total,
       '#attributes' => [
         'data-step' => 'background',
-        'data-max-boosts' => 2,
+        'data-max-boosts' => $boost_total,
         'data-character-data' => json_encode($character_data),
       ],
     ];
@@ -1357,16 +1365,36 @@ class CharacterCreationStepForm extends FormBase {
         break;
 
       case 3:
-        if (trim((string) $form_state->getValue('background', '')) === '') {
-          $form_state->setErrorByName('background', $this->t('Background selection is required.'));
+        $bg_val = trim((string) $form_state->getValue('background', ''));
+        if ($bg_val === '') {
+          $form_state->setErrorByName('background', $this->t('Background is required.'));
         }
-
-        $background_boosts = self::normalizeList($form_state->getValue('background_boosts', []));
-        if (count($background_boosts) !== 2) {
-          $form_state->setErrorByName('background_boosts', $this->t('Select exactly 2 background boosts.'));
-        }
-        elseif (count(array_unique($background_boosts)) !== 2) {
-          $form_state->setErrorByName('background_boosts', $this->t('Background boosts must be unique.'));
+        else {
+          $bg_data = CharacterManager::BACKGROUNDS[$bg_val] ?? NULL;
+          if ($bg_data === NULL) {
+            $form_state->setErrorByName('background', $this->t('Invalid background selection.'));
+          }
+          else {
+            $background_boosts = self::normalizeList($form_state->getValue('background_boosts', []));
+            if (isset($bg_data['fixed_boost'])) {
+              // New model: 1 free boost required (fixed is auto-applied).
+              if (count($background_boosts) !== 1) {
+                $form_state->setErrorByName('background_boosts', $this->t('Select exactly 1 free ability boost for your background.'));
+              }
+              elseif (strtolower(trim($background_boosts[0])) === strtolower(trim($bg_data['fixed_boost']))) {
+                $form_state->setErrorByName('background_boosts', $this->t('Cannot apply two boosts to the same ability score from a single background.'));
+              }
+            }
+            else {
+              // Legacy model: 2 free boosts.
+              if (count($background_boosts) !== 2) {
+                $form_state->setErrorByName('background_boosts', $this->t('Select exactly 2 background boosts.'));
+              }
+              elseif (count(array_unique($background_boosts)) !== 2) {
+                $form_state->setErrorByName('background_boosts', $this->t('Cannot apply two boosts to the same ability score from a single background.'));
+              }
+            }
+          }
         }
         break;
 

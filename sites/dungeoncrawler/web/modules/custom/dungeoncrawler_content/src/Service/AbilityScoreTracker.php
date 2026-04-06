@@ -277,37 +277,76 @@ class AbilityScoreTracker {
     $boost_log = [];
 
     $background_id = $character_data['background'];
+    $bg_data = CharacterManager::BACKGROUNDS[$background_id] ?? NULL;
     $selected_boosts = $character_data['background_boosts'] ?? [];
 
-    // Validate: Background grants 2 boosts
-    if (count($selected_boosts) > 2) {
-      $errors[] = 'Background can only provide 2 ability boosts';
-    }
+    // New model: fixed_boost (auto) + 1 free boost (player choice, must differ from fixed).
+    // Legacy fallback: if no fixed_boost key, treat both entries in selected_boosts as free.
+    if ($bg_data && isset($bg_data['fixed_boost'])) {
+      $fixed_ability = $this->normalizeAbilityKey($bg_data['fixed_boost']);
 
-    // Validate: No duplicate boosts in this step
-    if (count($selected_boosts) !== count(array_unique($selected_boosts))) {
-      $errors[] = 'Cannot boost the same ability twice from background';
-    }
-
-    foreach ($selected_boosts as $boost) {
-      $ability = $this->normalizeAbilityKey($boost);
-      if (!$ability) {
-        $errors[] = "Invalid ability boost from background: {$boost}";
-        continue;
+      // Apply the fixed boost automatically.
+      if ($fixed_ability) {
+        $old = $scores[$fixed_ability];
+        $scores[$fixed_ability] = $this->applyBoost($scores[$fixed_ability]);
+        $delta = $scores[$fixed_ability] - $old;
+        $sources[$fixed_ability][] = [
+          'type' => 'boost',
+          'value' => $delta,
+          'source' => 'Background (fixed)',
+          'step' => 'background',
+        ];
+        $boost_log[] = $this->formatAbilityChange($fixed_ability, $delta);
       }
 
-      $old_score = $scores[$ability];
-      $scores[$ability] = $this->applyBoost($scores[$ability]);
-      $boost_amount = $scores[$ability] - $old_score;
-
-      $sources[$ability][] = [
-        'type' => 'boost',
-        'value' => $boost_amount,
-        'source' => 'Background',
-        'step' => 'background',
-      ];
-
-      $boost_log[] = $this->formatAbilityChange($ability, $boost_amount);
+      // Apply the player's free boost.
+      if (!empty($selected_boosts)) {
+        $free = $this->normalizeAbilityKey($selected_boosts[0]);
+        if (!$free) {
+          $errors[] = "Invalid free ability boost from background: {$selected_boosts[0]}";
+        }
+        elseif ($free === $fixed_ability) {
+          $errors[] = 'Cannot apply two boosts to the same ability score from a single background.';
+        }
+        else {
+          $old = $scores[$free];
+          $scores[$free] = $this->applyBoost($scores[$free]);
+          $delta = $scores[$free] - $old;
+          $sources[$free][] = [
+            'type' => 'boost',
+            'value' => $delta,
+            'source' => 'Background (free)',
+            'step' => 'background',
+          ];
+          $boost_log[] = $this->formatAbilityChange($free, $delta);
+        }
+      }
+    }
+    else {
+      // Legacy: 2 free boosts (backgrounds without fixed_boost key).
+      if (count($selected_boosts) > 2) {
+        $errors[] = 'Background can only provide 2 ability boosts';
+      }
+      if (count($selected_boosts) !== count(array_unique($selected_boosts))) {
+        $errors[] = 'Cannot apply two boosts to the same ability score from a single background.';
+      }
+      foreach ($selected_boosts as $boost) {
+        $ability = $this->normalizeAbilityKey($boost);
+        if (!$ability) {
+          $errors[] = "Invalid ability boost from background: {$boost}";
+          continue;
+        }
+        $old = $scores[$ability];
+        $scores[$ability] = $this->applyBoost($scores[$ability]);
+        $delta = $scores[$ability] - $old;
+        $sources[$ability][] = [
+          'type' => 'boost',
+          'value' => $delta,
+          'source' => 'Background',
+          'step' => 'background',
+        ];
+        $boost_log[] = $this->formatAbilityChange($ability, $delta);
+      }
     }
 
     $breakdown = 'Background: ';

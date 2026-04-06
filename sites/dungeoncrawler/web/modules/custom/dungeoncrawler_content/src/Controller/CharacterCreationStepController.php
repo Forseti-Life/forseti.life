@@ -701,14 +701,35 @@ class CharacterCreationStepController extends ControllerBase {
 
       case 3:
         if (!$requireNonEmpty($merged['background'] ?? '')) {
-          $errors['background'] = 'Background selection is required.';
+          $errors['background'] = 'Background is required.';
         }
-        $background_boosts = $this->normalizeSelectionList($merged['background_boosts'] ?? []);
-        if (count($background_boosts) !== 2) {
-          $errors['background_boosts'] = 'Select exactly 2 background boosts.';
-        }
-        elseif (count(array_unique($background_boosts)) !== 2) {
-          $errors['background_boosts'] = 'Background boosts must be unique.';
+        else {
+          $bg_id = $merged['background'];
+          $bg_data = CharacterManager::BACKGROUNDS[$bg_id] ?? NULL;
+          if ($bg_data === NULL) {
+            $errors['background'] = 'Invalid background selection.';
+          }
+          else {
+            $background_boosts = $this->normalizeSelectionList($merged['background_boosts'] ?? []);
+            if (isset($bg_data['fixed_boost'])) {
+              // New model: 1 free boost required (fixed is auto-applied).
+              if (count($background_boosts) !== 1) {
+                $errors['background_boosts'] = 'Select exactly 1 free ability boost for your background.';
+              }
+              elseif (strtolower(trim($background_boosts[0])) === strtolower(trim($bg_data['fixed_boost']))) {
+                $errors['background_boosts'] = 'Cannot apply two boosts to the same ability score from a single background.';
+              }
+            }
+            else {
+              // Legacy model: 2 free boosts.
+              if (count($background_boosts) !== 2) {
+                $errors['background_boosts'] = 'Select exactly 2 background boosts.';
+              }
+              elseif (count(array_unique($background_boosts)) !== 2) {
+                $errors['background_boosts'] = 'Cannot apply two boosts to the same ability score from a single background.';
+              }
+            }
+          }
         }
         break;
 
