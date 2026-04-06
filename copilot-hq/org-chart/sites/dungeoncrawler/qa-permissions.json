@@ -614,6 +614,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-character-creation-initiate",
+      "feature_id": "dc-cr-character-creation",
+      "path_regex": "^/api/character/create(?:/|$)",
+      "notes": "POST /api/character/create — initiates character creation draft. Auth required; anonymous gets 302/403. POST-only endpoint: GET probe returns 405 (method not allowed). Ignore all roles.",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

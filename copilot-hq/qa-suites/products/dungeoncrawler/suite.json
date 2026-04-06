@@ -569,14 +569,113 @@
     },
     {
       "id": "dc-cr-character-creation-phpunit",
-      "label": "PHPUnit tests for dc-cr-character-creation",
-      "type": "unit",
+      "label": "Character Creation Workflow \u2014 6-step state machine, draft/active states, derived stat computation, step sequencing, access control, rollback",
+      "type": "phpunit",
       "feature_id": "dc-cr-character-creation",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_character_creation 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=CharacterCreation tests/src/",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-character-creation-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CWF-01",
+          "description": "Initiating character creation produces a draft character entity with state=draft",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testInitiateCreationProducesDraft",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-02",
+          "description": "Workflow step order enforced: step N cannot advance until step N-1 is saved",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testStepOrderEnforced",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-05",
+          "description": "Derived stats (HP, AC, saves, Perception) computed and stored correctly after step 6 finalization",
+          "suite_type": "unit",
+          "class_method": "CharacterDerivedStatsTest::testDerivedStatsComputedAfterFinalize",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-06",
+          "description": "Finalize transitions character from draft to active; character appears on player list post-finalize",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testFinalizeTransitionsDraftToActive",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-07",
+          "description": "Abandoned draft persists and is resumable from last completed step",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testAbandonedDraftIsResumable",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-09",
+          "description": "Ability score assignment validates ancestry/background boost/flaw rules; invalid combination rejected",
+          "suite_type": "unit",
+          "class_method": "CharacterAbilityScoreTest::testBoostFlawValidationRejectsInvalidCombination",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-10",
+          "description": "Empty prerequisite content returns clear error, not empty dropdown",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testEmptyPrerequisiteContentReturnsError",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-11",
+          "description": "Incomplete prior step prevents finalization at step 6; error identifies missing step",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testIncompleteStepBlocksFinalize",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-12",
+          "description": "Derived stat computation with missing inputs does not crash; returns incomplete flag",
+          "suite_type": "unit",
+          "class_method": "CharacterDerivedStatsTest::testPartialInputsReturnIncompleteFlag",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-16",
+          "description": "Draft characters not visible on public character list; only active characters shown",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testDraftNotVisibleOnPublicList",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-17",
+          "description": "At most 1 active draft creation session per character slot; second attempt returns error",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationWorkflowTest::testDraftLimitPerCharacterSlot",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-CWF-18",
+          "description": "Module uninstall preserves active characters; draft characters cleanable via drush command",
+          "suite_type": "unit",
+          "class_method": "CharacterCreationRollbackTest::testUninstallPreservesActiveCharacters",
+          "ac_tag": "NEW",
+          "status": "active",
+          "notes": "Dev confirm: drush character:cleanup-drafts command expected — verify command name at Stage 0"
+        }
+      ]
     },
     {
       "id": "dc-cr-conditions-phpunit",
