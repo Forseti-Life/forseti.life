@@ -216,7 +216,6 @@ dungeoncrawler_content.campaign_create.post:
   methods: [POST]
   requirements:
     _permission: 'access dungeoncrawler characters'
-    _csrf_token: 'TRUE'
 
 dungeoncrawler_content.campaigns_archived:
   path: '/campaigns/archived'
