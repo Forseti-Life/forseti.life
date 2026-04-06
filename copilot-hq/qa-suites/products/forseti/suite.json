@@ -56,7 +56,7 @@
     },
     {
       "id": "forseti-jobhunter-application-submission-unit",
-      "label": "WorkdayWizardService unit tests — TC-01..TC-11 (PHPUnit)",
+      "label": "WorkdayWizardService unit tests \u2014 TC-01..TC-11 (PHPUnit)",
       "type": "unit",
       "feature_id": "forseti-jobhunter-application-submission",
       "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/WorkdayWizardServiceTest.php --testdox",
@@ -72,7 +72,7 @@
     },
     {
       "id": "forseti-jobhunter-browser-automation-unit",
-      "label": "BrowserAutomationService unit tests — TC-02, TC-03, TC-09, TC-11, TC-12 (PHPUnit)",
+      "label": "BrowserAutomationService unit tests \u2014 TC-02, TC-03, TC-09, TC-11, TC-12 (PHPUnit)",
       "type": "unit",
       "feature_id": "forseti-jobhunter-browser-automation",
       "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/BrowserAutomationServiceTest.php --testdox",
@@ -88,7 +88,7 @@
     },
     {
       "id": "forseti-jobhunter-browser-automation-e2e",
-      "label": "BrowserAutomationService E2E — TC-01, TC-06, TC-07, TC-08 (Playwright)",
+      "label": "BrowserAutomationService E2E \u2014 TC-01, TC-06, TC-07, TC-08 (Playwright)",
       "type": "e2e",
       "feature_id": "forseti-jobhunter-browser-automation",
       "command": "bash -c 'set -e; DRUSH=/var/www/html/forseti/vendor/bin/drush; $DRUSH --uri=http://localhost jhtr:qa-users-ensure --roles=authenticated 2>/dev/null; QA_UID=$($DRUSH --uri=http://localhost user:information qa_tester_authenticated --format=json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(list(d.keys())[0])\"); ULI=$($DRUSH --uri=http://localhost user:login --uid=$QA_UID --no-browser 2>/dev/null | tr -d \"\\n\"); cd /home/ubuntu/forseti.life && ULI_URL=$ULI BASE_URL=http://localhost ARTIFACTS_DIR=sessions/qa-forseti/artifacts/jobhunter-browser-automation-e2e-latest node testing/jobhunter-browser-automation.mjs'",
@@ -105,7 +105,7 @@
     },
     {
       "id": "forseti-jobhunter-browser-automation-functional",
-      "label": "BrowserAutomationService functional — TC-04, TC-05, TC-10 (PHPUnit Functional)",
+      "label": "BrowserAutomationService functional \u2014 TC-04, TC-05, TC-10 (PHPUnit Functional)",
       "type": "functional",
       "feature_id": "forseti-jobhunter-browser-automation",
       "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Functional/CredentialsControllerTest.php --testdox",
@@ -121,7 +121,7 @@
     },
     {
       "id": "forseti-jobhunter-profile-e2e",
-      "label": "JobHunter Profile E2E — form render, resume upload, cross-user block, error states (TC-03..TC-07, TC-10..TC-11, TC-13, TC-17)",
+      "label": "JobHunter Profile E2E \u2014 form render, resume upload, cross-user block, error states (TC-03..TC-07, TC-10..TC-11, TC-13, TC-17)",
       "type": "e2e",
       "feature_id": "forseti-jobhunter-profile",
       "command": "bash -c 'set -e; DRUSH=/var/www/html/forseti/vendor/bin/drush; $DRUSH --uri=http://localhost jhtr:qa-users-ensure --roles=authenticated 2>/dev/null; QA_UID=$($DRUSH --uri=http://localhost user:information qa_tester_authenticated --format=json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(list(d.keys())[0])\"); ULI=$($DRUSH --uri=http://localhost user:login --uid=$QA_UID --no-browser 2>/dev/null | tr -d \"\\n\"); cd /home/ubuntu/forseti.life && ULI_URL=$ULI BASE_URL=http://localhost ARTIFACTS_DIR=sessions/qa-forseti/artifacts/jobhunter-profile-e2e-latest node testing/jobhunter-profile.mjs'",
@@ -139,7 +139,7 @@
     },
     {
       "id": "forseti-ai-debug-gate-route-acl",
-      "label": "AI Debug Gate — role-based ACL audit (anon=403, authenticated=403, content_editor=403, administrator=200) on /admin/reports/genai-debug routes",
+      "label": "AI Debug Gate \u2014 role-based ACL audit (anon=403, authenticated=403, content_editor=403, administrator=200) on /admin/reports/genai-debug routes",
       "type": "audit",
       "feature_id": "forseti-ai-debug-gate",
       "command": "bash -c 'ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh'",
@@ -165,10 +165,10 @@
       ],
       "run_notes": [
         "STAGE 0 PENDING: Dev must create JobApplicationRepository.php before TC-03 passes.",
-        "TC-01: grep exit code must be 1 (no matches) — '!' negates to exit 0 on no match.",
+        "TC-01: grep exit code must be 1 (no matches) \u2014 '!' negates to exit 0 on no match.",
         "TC-02: at least one reference to JobApplicationRepository in the controller.",
         "TC-03: repository file exists at the expected path.",
-        "No auth, no server, no infrastructure required — runs entirely via filesystem grep."
+        "No auth, no server, no infrastructure required \u2014 runs entirely via filesystem grep."
       ],
       "required_for_release": true
     },
@@ -192,7 +192,7 @@
     },
     {
       "id": "forseti-csrf-fix-route-acl",
-      "label": "CSRF Fix — static YAML check (all 7 application-submission POST routes have _csrf_token: TRUE) + role-url-audit GET regression (no CSRF regression on GET routes)",
+      "label": "CSRF Fix \u2014 static YAML check (all 7 application-submission POST routes have _csrf_token: TRUE) + role-url-audit GET regression (no CSRF regression on GET routes)",
       "type": "audit",
       "feature_id": "forseti-csrf-fix",
       "command": "bash -c 'set -e; echo \"=== TC-01: Static CSRF check ===\"; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml; for route in step3_post step3_short_post step4_post step4_short_post step5_post step5_short_post step_stub_short_post; do if grep -A10 \"application_submission_${route}:\" \"$ROUTING\" | grep -q \"_csrf_token.*TRUE\"; then echo \"PASS: $route has _csrf_token: TRUE\"; else echo \"FAIL: $route MISSING _csrf_token\" && exit 1; fi; done; echo \"=== TC-01: All 7 routes PASS ===\"; echo \"=== TC-05: GET route audit ===\"; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh'",
@@ -201,9 +201,44 @@
       ],
       "run_notes": [
         "TC-01: Static grep confirms _csrf_token: TRUE on all 7 POST routes in job_hunter.routing.yml.",
-        "TC-05: role-url-audit covers GET routes — confirms no CSRF regression on GET paths.",
+        "TC-05: role-url-audit covers GET routes \u2014 confirms no CSRF regression on GET paths.",
         "STAGE 0 PENDING: Dev must create CsrfApplicationSubmissionTest.php (PHPUnit Functional) for authenticated-POST-with-token=200, authenticated-POST-without-token=403, anon-POST=403, AJAX-flow=200. See features/forseti-csrf-fix/03-test-plan.md TC-02/TC-03/TC-04/TC-06.",
-        "KB: knowledgebase/lessons/20260301-jobhunter-routing-csrf-token-blocks-qa-probe.md — QA POST probes must include valid Drupal session token."
+        "KB: knowledgebase/lessons/20260301-jobhunter-routing-csrf-token-blocks-qa-probe.md \u2014 QA POST probes must include valid Drupal session token."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-debug-gate-static",
+      "label": "AI Debug Gate: static routing YAML check \u2014 all 4 GenAiDebugController routes require 'administer site configuration' (TC-01)",
+      "type": "static",
+      "feature_id": "forseti-ai-debug-gate",
+      "command": "bash -c 'set -e; echo \"TC-01: GenAiDebugController routes require administer site configuration\"; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation/ai_conversation.routing.yml; PERMS=$(grep -A8 \"genai_debug\" \"$ROUTING\" | grep \"_permission:\"); echo \"$PERMS\"; echo \"$PERMS\" | grep -qv \"administer site configuration\" && { echo \"FAIL: weak permission found\"; exit 1; } || echo \"ALL STATIC CHECKS PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-debug-gate-static-latest/"
+      ],
+      "run_notes": [
+        "Checks all 4 routes: genai_debug_list, genai_debug_detail, genai_debug_delete, genai_debug_delete_all.",
+        "All routes confirmed admin-only at grooming time (2026-04-06): path_regex ^/admin/reports/genai-debug.",
+        "POST routes additionally have _csrf_token: TRUE \u2014 no regression expected.",
+        "FAIL condition: any route block shows a permission weaker than 'administer site configuration' or no _permission at all."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-debug-gate-functional",
+      "label": "AI Debug Gate: PHP functional test GenAiDebugAccessTest.php \u2014 admin=200, authenticated=403, anon=403 (TC-06)",
+      "type": "unit",
+      "feature_id": "forseti-ai-debug-gate",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/ai_conversation/tests/src/Functional/GenAiDebugAccessTest.php --testdox",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-debug-gate-functional-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create GenAiDebugAccessTest.php covering admin=200/authenticated=403/anon=403 assertions.",
+        "Test path: web/modules/custom/ai_conversation/tests/src/Functional/GenAiDebugAccessTest.php",
+        "TC-06 asserts: drupalGet /admin/reports/genai-debug as admin -> 200; as authenticated non-admin -> 403; as anon -> 403 or 302.",
+        "Requires vendor/bin/phpunit (infra blocker: vendor/ absent \u2014 same as job_hunter phpunit gap).",
+        "Non-blocking at Gate 2 if TC-01 static check and TC-02/TC-03/TC-05 role-url-audit pass and Dev certifies no route changes."
       ],
       "required_for_release": true
     }
