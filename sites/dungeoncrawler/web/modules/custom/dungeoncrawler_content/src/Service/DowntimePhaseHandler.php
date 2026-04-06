@@ -299,6 +299,26 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
           // REQ 2303: Reset sleep deprivation tracking.
           $entity['state']['hours_since_rest'] = 0;
 
+          // REQ 2167: Reduce doomed by 1 per long rest (remove if reaches 0).
+          if (isset($entity['state']['conditions'])) {
+            foreach ($entity['state']['conditions'] as &$cond) {
+              $cname = $cond['name'] ?? ($cond['type'] ?? '');
+              if ($cname === 'doomed') {
+                $cond['value'] = max(0, (int) ($cond['value'] ?? 1) - 1);
+                if ($cond['value'] <= 0) {
+                  $conditions_removed[] = 'doomed';
+                  $cond['_remove'] = TRUE;
+                }
+                break;
+              }
+            }
+            unset($cond);
+            $entity['state']['conditions'] = array_values(array_filter(
+              $entity['state']['conditions'],
+              fn($c) => empty($c['_remove'])
+            ));
+          }
+
           break;
         }
       }

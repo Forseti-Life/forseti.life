@@ -235,6 +235,28 @@ class CombatEngine {
       }
     }
 
+    // REQ 2177: Fast Healing — restore fast_healing HP at start of each turn.
+    // REQ 2178: Regeneration — same, but prevents permanent death unless bypassed.
+    $participant_row = $this->database->select('combat_participants', 'p')
+      ->fields('p', ['entity_ref'])
+      ->condition('id', $pid)
+      ->execute()
+      ->fetchAssoc();
+    if ($participant_row) {
+      $entity_data = !empty($participant_row['entity_ref']) ? json_decode($participant_row['entity_ref'], TRUE) : [];
+      $fast_healing = (int) ($entity_data['fast_healing'] ?? 0);
+      $regeneration = (int) ($entity_data['regeneration'] ?? 0);
+      $regen_bypassed_by = $entity_data['regeneration_bypassed_by'] ?? NULL;
+      $regen_bypassed = !empty($entity_data['regeneration_bypassed']);
+
+      if ($fast_healing > 0) {
+        $result['fast_healing'] = $this->hpManager->applyHealing($pid, $fast_healing, 'fast_healing', $eid);
+      }
+      if ($regeneration > 0 && !$regen_bypassed) {
+        $result['regeneration'] = $this->hpManager->applyHealing($pid, $regeneration, 'regeneration', $eid);
+      }
+    }
+
     return $result;
   }
 
@@ -492,6 +514,17 @@ class CombatEngine {
         $damage_dealt = $dice_total + $ability_mod;
       }
       $damage_result = $this->hpManager->applyDamage($target_id, $damage_dealt, $damage_type, ['attacker' => $participant_id], $encounter_id);
+
+      // REQ 2154: Crit hit applies dying 2 when target is defeated (not dead from massive damage).
+      // HPManager.applyDamage now applies dying internally, but crit needs dying 2.
+      if (($damage_result['new_status'] ?? '') === 'defeated' && $degree === 'critical_success') {
+        $this->hpManager->applyDyingCondition($target_id, 2, $encounter_id, TRUE);
+      }
+
+      // REQ 2153: Target dropped to 0 HP — shift initiative to just after attacker.
+      if (($damage_result['new_status'] ?? '') === 'defeated') {
+        $this->shiftInitiativeAfterAttacker($encounter_id, $target_id, $participant_id);
+      }
     }
 
     return [
@@ -543,6 +576,32 @@ class CombatEngine {
     }
 
     return ['ended' => FALSE, 'outcome' => NULL, 'victory_condition' => NULL];
+  }
+
+  /**
+   * REQ 2153: Shift target's initiative to just after the attacker's initiative.
+   *
+   * When a character drops to 0 HP mid-combat, they move in the initiative order
+   * to just after the creature that reduced them to 0.
+   */
+  protected function shiftInitiativeAfterAttacker(int $encounter_id, int $target_id, int $attacker_id): void {
+    $attacker = $this->database->select('combat_participants', 'p')
+      ->fields('p', ['initiative'])
+      ->condition('id', $attacker_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$attacker) {
+      return;
+    }
+
+    // Place target at attacker_initiative − 0.5 (stored as integer: attacker_initiative − 1 with tie-break).
+    $new_initiative = max(0, (int) ($attacker['initiative'] ?? 0) - 1);
+
+    $this->database->update('combat_participants')
+      ->fields(['initiative' => $new_initiative])
+      ->condition('id', $target_id)
+      ->execute();
   }
 
 }

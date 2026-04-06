@@ -62,7 +62,8 @@ class ConditionManager {
     'slowed'       => ['is_valued' => TRUE,  'max_value' => 3, 'end_trigger' => 'end_of_turn', 'effects' => []],
     'stunned'      => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => []],
     'stupefied'    => ['is_valued' => TRUE,  'max_value' => 4, 'end_trigger' => 'end_of_turn', 'effects' => ['spell_dc' => -1, 'spell_attack' => -1]],
-    'unconscious'  => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => ['cannot_act' => TRUE, 'flat_footed' => TRUE]],
+    // REQ 2168: unconscious applies −4 status penalty to AC, Perception, Reflex saves.
+    'unconscious'  => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'save',        'effects' => ['cannot_act' => TRUE, 'flat_footed' => TRUE, 'blinded' => TRUE, 'status_penalty' => ['ac' => -4, 'perception' => -4, 'reflex_save' => -4]]],
     'undetected'   => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
     'unnoticed'    => ['is_valued' => FALSE, 'max_value' => 0, 'end_trigger' => 'persistent',  'effects' => []],
     'wounded'      => ['is_valued' => TRUE,  'max_value' => 3, 'end_trigger' => 'persistent',  'effects' => []],
@@ -335,26 +336,43 @@ class ConditionManager {
     $dying_before = (int) $dying_row['value'];
     $roll = mt_rand(1, 20);
 
-    if ($roll === 1) {
-      $outcome = 'critical_failure';
-      $delta = +2;
+    // REQ 2158: Recovery flat check DC = 10 + dying value (not hardcoded 10).
+    $dc = 10 + $dying_before;
+
+    // Standard PF2e degree-of-success for flat checks:
+    // nat 20 OR roll ≥ dc+10 = crit success
+    // roll ≥ dc = success
+    // nat 1 OR roll ≤ dc-10 = crit failure
+    // otherwise = failure
+    if ($roll === 20 || $roll >= $dc + 10) {
+      $outcome = 'critical_success';
+      $delta = -2;
     }
-    elseif ($roll <= 9) {
-      $outcome = 'failure';
-      $delta = +1;
-    }
-    elseif ($roll <= 19) {
+    elseif ($roll >= $dc) {
       $outcome = 'success';
       $delta = -1;
     }
+    elseif ($roll === 1 || $roll <= $dc - 10) {
+      $outcome = 'critical_failure';
+      $delta = +2;
+    }
     else {
-      $outcome = 'critical_success';
-      $delta = -2;
+      $outcome = 'failure';
+      $delta = +1;
     }
 
     $dying_after = max(0, $dying_before + $delta);
     $now = time();
     $current_round = $this->getCurrentRound($encounter_id);
+
+    // REQ 2165/2166: doomed reduces the dying death threshold (dying 4 − doomed = death).
+    $doomed_value = 0;
+    foreach ($conditions as $row) {
+      if ($row['condition_type'] === 'doomed') {
+        $doomed_value = max($doomed_value, (int) ($row['value'] ?? 0));
+      }
+    }
+    $death_threshold = max(1, 4 - $doomed_value);
 
     if ($dying_after <= 0) {
       // Participant stabilizes — remove the dying condition.
@@ -369,7 +387,7 @@ class ConditionManager {
       ];
     }
 
-    if ($dying_after >= 4) {
+    if ($dying_after >= $death_threshold) {
       // Participant dies — remove dying, mark participant dead.
       $this->database->update('combat_conditions')
         ->fields(['removed_at_round' => $current_round, 'updated' => $now])
