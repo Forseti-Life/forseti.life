@@ -1719,7 +1719,7 @@ dungeoncrawler_content.api.dice_roll:
     _controller: '\Drupal\dungeoncrawler_content\Controller\DiceRollController::roll'
   methods: [POST]
   requirements:
-    _permission: 'access dungeoncrawler characters'
+    _access: 'TRUE'
     _csrf_request_header_mode: TRUE
   options:
     _format: json
