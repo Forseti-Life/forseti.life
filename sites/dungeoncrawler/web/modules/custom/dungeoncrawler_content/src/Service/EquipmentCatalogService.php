@@ -23,6 +23,7 @@ class EquipmentCatalogService {
    *
    * Weapons: 5 simple + 5 martial (plus longsword already in JSON catalog)
    * Armor: 3 light + 2 medium + 1 heavy
+   * Shields: buckler, wooden shield, steel shield
    * Gear: 10 adventuring items
    *
    * Fields:
@@ -355,6 +356,49 @@ class EquipmentCatalogService {
         'check_penalty' => -3,
         'speed_penalty' => -10,
         'str_req'       => 18,
+      ],
+    ],
+
+    // =========================================================
+    // SHIELDS
+    // =========================================================
+    'buckler' => [
+      'id'       => 'buckler',
+      'name'     => 'Buckler',
+      'type'     => 'shield',
+      'price_gp' => 1,
+      'bulk'     => 'L',
+      'shield_stats' => [
+        'ac_bonus'  => 1,
+        'hardness'  => 3,
+        'hp'        => 6,
+        'bt'        => 3,
+      ],
+    ],
+    'wooden-shield' => [
+      'id'       => 'wooden-shield',
+      'name'     => 'Wooden Shield',
+      'type'     => 'shield',
+      'price_gp' => 1,
+      'bulk'     => '1',
+      'shield_stats' => [
+        'ac_bonus'  => 2,
+        'hardness'  => 3,
+        'hp'        => 12,
+        'bt'        => 6,
+      ],
+    ],
+    'steel-shield' => [
+      'id'       => 'steel-shield',
+      'name'     => 'Steel Shield',
+      'type'     => 'shield',
+      'price_gp' => 2,
+      'bulk'     => '1',
+      'shield_stats' => [
+        'ac_bonus'  => 2,
+        'hardness'  => 5,
+        'hp'        => 20,
+        'bt'        => 10,
       ],
     ],
 
