@@ -1339,8 +1339,12 @@ class CharacterCreationStepForm extends FormBase {
         $ancestry_val = trim((string) $form_state->getValue('ancestry', ''));
         if ($ancestry_val !== '') {
           $heritage_opts = $this->getHeritageOptions($ancestry_val);
-          if (count($heritage_opts) > 1 && trim((string) $form_state->getValue('heritage', '')) === '') {
+          $submitted_heritage = trim((string) $form_state->getValue('heritage', ''));
+          if (count($heritage_opts) > 1 && $submitted_heritage === '') {
             $form_state->setErrorByName('heritage', $this->t('Heritage selection is required.'));
+          }
+          elseif ($submitted_heritage !== '' && !array_key_exists($submitted_heritage, $heritage_opts)) {
+            $form_state->setErrorByName('heritage', $this->t('Invalid heritage for selected ancestry.'));
           }
           // Validate ancestry feat (enforced here instead of #required on the
           // radios element to avoid browser :invalid pre-styling on page load).
