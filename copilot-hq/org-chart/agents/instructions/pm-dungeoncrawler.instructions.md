@@ -14,8 +14,8 @@ This file is owned by the `pm-dungeoncrawler` seat.
 Inbox items with synthetic or malformed release IDs must be fast-exited immediately:
 
 **Indicators of synthetic/malformed dispatch:**
-- No YYYYMMDD date prefix (e.g., `fake-no-signoff-release`, `stale-test-release-id-999`)
-- Contains `fake-`, `stale-test-`, or `-999` in the release ID
+- No YYYYMMDD date prefix (e.g., `fake-no-signoff-release`, `stale-test-release-id-999`, `--help-improvement-round`)
+- Contains `fake-`, `stale-test-`, `-999`, or starts with `--` (CLI flag artifact) in the release/item ID
 - Confirmed by CEO or other seats as a flood/synthetic broadcast
 
 **Fast-exit procedure:**
