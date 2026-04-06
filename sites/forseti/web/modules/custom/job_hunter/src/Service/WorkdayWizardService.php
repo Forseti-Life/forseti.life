@@ -277,7 +277,7 @@ class WorkdayWizardService {
    *   screenshot_dir: string,
    * }
    */
-  private function buildRunContext(int $job_id, int $uid, string $apply_url_override = '', array $application_fields = ['id', 'apply_url', 'metadata']): array {
+  protected function buildRunContext(int $job_id, int $uid, string $apply_url_override = '', array $application_fields = ['id', 'apply_url', 'metadata']): array {
     $application = $this->loadLatestApplicationRecord($job_id, $uid, $application_fields);
     if (!$application) {
       return ['ok' => FALSE, 'error' => 'No application record found for job ' . $job_id . '.'];

@@ -65,9 +65,13 @@ class WorkdayPlaywrightRunner {
     $hard_cap = $browser_timeout + 15;
     $start    = time();
     $stderr   = '';
+    stream_set_blocking($pipes[1], FALSE);
     stream_set_blocking($pipes[2], FALSE);
 
     while (TRUE) {
+      // Drain stdout to prevent subprocess blocking on a full pipe buffer.
+      fread($pipes[1], 8192);
+
       $chunk = fread($pipes[2], 8192);
       if ($chunk !== FALSE && $chunk !== '') {
         $stderr .= $chunk;
