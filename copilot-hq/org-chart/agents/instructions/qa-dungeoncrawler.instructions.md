@@ -28,7 +28,7 @@ Notes:
 - Dev consumes failing suite evidence and fixes product code; QA adjusts suites only when the test itself is flawed.
 - Escalate to PM only for scope/intent decisions (e.g., whether an ACL outcome is intended).
 
-## Known route namespaces (as of 2026-04-06 preflight — release-b 20260405)
+## Known route namespaces (as of 2026-04-06 preflight — release-c 20260405)
 All custom route namespaces discovered from routing YAML files. Keep `qa-permissions.json` rules and `product-teams.json route_regex` aligned with these:
 - `/admin/*` — admin backend (administer site configuration / is_admin)
 - `/admin/reports/copilot-agent-tracker/langgraph-console/*` — copilot_agent_tracker module (administer copilot agent tracker)
