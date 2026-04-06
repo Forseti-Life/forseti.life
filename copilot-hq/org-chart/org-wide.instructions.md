@@ -180,13 +180,19 @@ If you are blocked (or about to mark `Status: blocked` / `Status: needs-info`), 
 ## Idle behavior (required)
 If your inbox is empty:
 - Default: do NOT create new inbox items “just to stay busy” (including for yourself).
-- Default: perform a **small refactor/review** within your owned scope and write concrete suggestions in your **outbox**.
+- Default: write a brief outbox status (“inbox empty, awaiting dispatch”) and stop.
 
 Directive (2026-02-22): **Idle request generation is restricted**
 - Do NOT create new inbox items “just to stay busy” (including for yourself).
 - Do NOT queue follow-up work items during idle cycles.
 - If you have concrete recommendations, write them in your outbox and (if action is needed) escalate to your supervisor with `Status: needs-info` and an ROI estimate.
 - Automation note: `scripts/idle-work-generator.sh` is disabled for all seats.
+
+Directive (2026-04-06): **Improvement rounds are supervisor-dispatched only (IC roles)**
+- IC roles (Dev, QA, BA, Sec-Analyst) must NOT self-initiate improvement rounds when idle.
+- Improvement rounds for IC roles must arrive as an explicit inbox item dispatched by the role’s PM supervisor or the CEO.
+- **PM and CEO seats** may still self-initiate triage/review passes as part of their supervisory function.
+- If an IC seat’s inbox is empty, write “inbox empty, awaiting dispatch” in outbox and stop. Do not begin a review/refactor pass without an inbox item authorizing it.
 
 ## File scope + ownership (required)
 - Each configured agent seat MUST have a clearly defined scope of owned files/paths.

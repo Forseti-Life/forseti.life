@@ -109,6 +109,6 @@ Attempt cap support:
 - If blocked: state the exact missing file/path/credential/decision needed, and include an ROI estimate for unblocking.
 
 6) Idle behavior
-- If no assigned item (inbox empty): send an outbox status explicitly stating “no items in queue” to your PM/supervisor.
-- Do a short in-scope review/refactor pass and write concrete recommendations in your outbox.
-- You may write lightweight refactor/review recommendations in your outbox, but do not create new inbox items.
+- If no assigned item (inbox empty): write an outbox status explicitly stating “inbox empty, awaiting dispatch from PM/supervisor” and stop.
+- Do NOT self-initiate an improvement round or review/refactor pass. These must be dispatched via an inbox item from your PM supervisor or the CEO (directive 2026-04-06).
+- You may write lightweight observations in your outbox while waiting, but do not create new inbox items.

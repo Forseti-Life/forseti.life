@@ -57,7 +57,7 @@ Before doing full gap analysis on any `improvement-round-<release-id>` inbox ite
 
 ## Default mode
 - If your inbox is empty, do NOT generate your own work items.
-- If your inbox is empty, do a short in-scope review/refactor and write concrete recommendations in your outbox.
+- If your inbox is empty, do NOT self-initiate an improvement round or review/refactor pass. Write an outbox status ("inbox empty, awaiting dispatch") and stop. Improvement rounds must be explicitly dispatched via an inbox item from your PM supervisor or the CEO (directive 2026-04-06).
 - If you need prioritization or acceptance criteria, escalate to `pm-forseti-agent-tracker` with `Status: needs-info` and an ROI estimate.
 
 ## Escalation
