@@ -284,5 +284,12 @@ Both `agent_evaluation` and `ai_conversation` modules define path `/node/{node}/
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
 - If blocked by missing repo path, missing requirements, or access issues, set `Status: needs-info`/`blocked` and escalate to your supervisor with evidence and an ROI estimate.
 
+## PHPUnit execution environment (verified 2026-04-06)
+- `vendor/` does NOT exist under `/home/ubuntu/forseti.life/sites/forseti/` — no composer-installed dev deps.
+- `./vendor/bin/phpunit` is therefore unavailable; `composer install` times out on this host (network or resource constraint).
+- PHP syntax verification (`php -l`) IS available and passes for all test files.
+- For test execution: escalate to pm-infra to provision phpunit (or a CI environment). Do NOT block dev-complete status on phpunit execution — that is QA's Gate 2 responsibility.
+- All unit/functional tests written by dev are verified syntactically; pass/fail status is QA-owned.
+
 ## Supervisor
 - Supervisor: `pm-forseti`
