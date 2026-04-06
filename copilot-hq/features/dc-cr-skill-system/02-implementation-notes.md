@@ -1,8 +1,11 @@
 # Implementation Notes (Dev-owned)
 # Feature: dc-cr-skill-system
 
+## Status
+- Status: done (QA Gate 2 APPROVE — commit 711a7b894)
+
 ## Summary
-Assessment (2026-04-06): All AC items confirmed implemented. One bug fixed: `calculateProficiencyBonus()` was incorrectly adding `level` to the untrained rank (returning `level` instead of `0`). Fixed to return `0` for untrained unconditionally. SKILLS constant (17 skills, correct ability mappings), `calculateSkillCheck()` (d20+ability+proficiency+item, degree-of-success, Lore specializations, unknown skill error), and `GET /character/{id}/skills` endpoint are all complete. Feature ready for QA Gate 2. Commit: see below.
+Assessment (2026-04-06): All AC items confirmed implemented. One bug fixed: `calculateProficiencyBonus()` was incorrectly adding `level` to the untrained rank (returning `level` instead of `0`). Fixed to return `0` for untrained unconditionally. SKILLS constant (17 skills, correct ability mappings), `calculateSkillCheck()` (d20+ability+proficiency+item, degree-of-success, Lore specializations, unknown skill error), and `GET /character/{id}/skills` endpoint are all complete. QA Gate 2 APPROVE: commit `711a7b894`.
 
 ## Impact Analysis
 - `CharacterCalculator.php` — additive changes only (new constant + new method).
