@@ -170,10 +170,12 @@ class InventoryManagementService {
 
     // Calculate bulk and encumbrance
     $current_bulk = $this->calculateCurrentBulk($character_id, 'character', $campaign_id);
-    $capacity = $this->getInventoryCapacity($character_id, 'character');
-    
+    $char_state = $this->characterStateService->getState($character_id);
+    $str_score = (float) ($char_state['abilities']['strength'] ?? 10);
+
     $inventory['totalBulk'] = $current_bulk;
-    $inventory['encumbrance'] = $this->getEncumbranceStatus($current_bulk, $capacity);
+    $inventory['capacity'] = $this->getInventoryCapacity($character_id, 'character');
+    $inventory['encumbrance'] = $this->getEncumbranceStatus($current_bulk, $str_score);
 
     return $inventory;
   }
@@ -917,6 +919,11 @@ class InventoryManagementService {
         throw new \InvalidArgumentException("Item instance not found or not in this inventory");
       }
 
+      // Apply STR requirement penalty when equipping/wearing armor.
+      if ($owner_type === 'character' && in_array($new_location, ['worn', 'equipped'], TRUE)) {
+        $this->applyArmorStrPenalty($owner_id, $item_instance_id);
+      }
+
       // Sync character state if character owner
       if ($owner_type === 'character') {
         $this->syncCharacterStateInventory($owner_id, $campaign_id);
@@ -985,21 +992,75 @@ class InventoryManagementService {
   }
 
   /**
-   * Get encumbrance status based on bulk.
+   * Apply STR requirement check penalty flag when armor is equipped/worn.
+   *
+   * If the character's STR score is below the armor's str_req, sets
+   * str_penalty_active: true on the item instance's state_data. The check
+   * penalty value is stored alongside for downstream skill-check resolution.
+   * Equipping is never blocked — only the flag is applied.
+   *
+   * @param string $character_id
+   *   Character ID.
+   * @param string $item_instance_id
+   *   Item instance ID just moved to worn/equipped.
+   */
+  protected function applyArmorStrPenalty(string $character_id, string $item_instance_id): void {
+    $row = $this->database->select('dc_campaign_item_instances', 'i')
+      ->fields('i', ['state_data'])
+      ->condition('item_instance_id', $item_instance_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$row) {
+      return;
+    }
+
+    $state = json_decode($row->state_data, TRUE) ?? [];
+    $item_type = $state['type'] ?? ($state['item_type'] ?? '');
+    if ($item_type !== 'armor') {
+      return;
+    }
+
+    $str_req = (int) ($state['armor_stats']['str_req'] ?? 0);
+    if ($str_req === 0) {
+      return;
+    }
+
+    $char_state = $this->characterStateService->getState($character_id);
+    $char_str = (int) ($char_state['abilities']['strength'] ?? 10);
+
+    // Remove stale penalty flag regardless, then re-evaluate.
+    unset($state['str_penalty_active'], $state['str_penalty_check_penalty']);
+
+    if ($char_str < $str_req) {
+      $state['str_penalty_active'] = TRUE;
+      $state['str_penalty_check_penalty'] = (int) ($state['armor_stats']['check_penalty'] ?? 0);
+    }
+
+    $this->database->update('dc_campaign_item_instances')
+      ->fields(['state_data' => json_encode($state), 'updated' => time()])
+      ->condition('item_instance_id', $item_instance_id)
+      ->execute();
+  }
+
+  /**
+   * Get encumbrance status based on PF2E rules.
    *
    * @param float $current_bulk
    *   Current total bulk.
-   * @param float $capacity
-   *   Maximum capacity.
+   * @param float $str_score
+   *   Character Strength ability score.
    *
    * @return string
-   *   Encumbrance status: 'unencumbered', 'encumbered', 'overburdened'.
+   *   Encumbrance status: 'unencumbered', 'encumbered', or 'immobilized'.
    */
-  public function getEncumbranceStatus(float $current_bulk, float $capacity): string {
-    if ($current_bulk > $capacity) {
-      return 'overburdened';
+  public function getEncumbranceStatus(float $current_bulk, float $str_score): string {
+    $encumbered_threshold = floor($str_score / 2) + 5;
+    $immobilized_threshold = $str_score + 5;
+    if ($current_bulk >= $immobilized_threshold) {
+      return 'immobilized';
     }
-    if ($current_bulk > ($capacity * 0.75)) {
+    if ($current_bulk >= $encumbered_threshold) {
       return 'encumbered';
     }
     return 'unencumbered';
@@ -1026,8 +1087,8 @@ class InventoryManagementService {
       $str = $state['abilities']['strength'] ?? 10;
       $str_mod = floor(($str - 10) / 2);
 
-      // PF2e base capacity = 5 + STR mod
-      return 5 + $str_mod;
+      // PF2e base capacity = 10 + STR mod (max unencumbered bulk)
+      return 10 + $str_mod;
     }
 
     if ($owner_type === 'room') {

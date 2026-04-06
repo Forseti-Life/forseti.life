@@ -74,7 +74,12 @@ class InventoryManagementController extends ControllerBase {
       // Calculate bulk and encumbrance
       $current_bulk = $this->inventoryService->calculateCurrentBulk($owner_id, $owner_type);
       $capacity = $this->inventoryService->getInventoryCapacity($owner_id, $owner_type);
-      $encumbrance = $this->inventoryService->getEncumbranceStatus($current_bulk, $capacity);
+      $str_score = 10.0;
+      if ($owner_type === 'character') {
+        $char_state = $this->characterStateService->getState($owner_id);
+        $str_score = (float) ($char_state['abilities']['strength'] ?? 10);
+      }
+      $encumbrance = $this->inventoryService->getEncumbranceStatus($current_bulk, $str_score);
 
       return new JsonResponse([
         'success' => TRUE,
@@ -397,7 +402,12 @@ class InventoryManagementController extends ControllerBase {
 
       $current_bulk = $this->inventoryService->calculateCurrentBulk($owner_id, $owner_type, $campaign_id);
       $capacity = $this->inventoryService->getInventoryCapacity($owner_id, $owner_type);
-      $encumbrance = $this->inventoryService->getEncumbranceStatus($current_bulk, $capacity);
+      $str_score = 10.0;
+      if ($owner_type === 'character') {
+        $char_state = $this->characterStateService->getState($owner_id);
+        $str_score = (float) ($char_state['abilities']['strength'] ?? 10);
+      }
+      $encumbrance = $this->inventoryService->getEncumbranceStatus($current_bulk, $str_score);
 
       return new JsonResponse([
         'success' => TRUE,
