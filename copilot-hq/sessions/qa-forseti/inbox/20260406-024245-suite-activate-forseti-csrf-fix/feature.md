@@ -3,8 +3,8 @@
 - Work item id: forseti-csrf-fix
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260406-forseti-release-b
+- Status: ready
+- Release: 20260405-forseti-release-c
 - Priority: P0
 - Feature type: enhancement
 - PM owner: pm-forseti
@@ -51,8 +51,6 @@ Add `_csrf_token: TRUE` to all 7 application-submission POST routes that were ad
 - Reference: `knowledgebase/lessons/20260301-jobhunter-routing-csrf-token-blocks-qa-probe.md` for prior CSRF/QA-probe conflict pattern.
 
 ## Latest updates
-
-- 2026-04-06: Scoped into release — suite activation sent to QA.
 
 - 2026-04-05: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 

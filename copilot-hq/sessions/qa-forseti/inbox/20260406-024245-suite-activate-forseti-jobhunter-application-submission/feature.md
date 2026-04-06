@@ -3,8 +3,8 @@
 - Work item id: forseti-jobhunter-application-submission
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260406-forseti-release-b
+- Status: ready
+- Release: 20260405-forseti-release-c
 - Priority: P1
 - Feature type: needs-testing
 - PM owner: pm-forseti
@@ -50,8 +50,6 @@ Formally track and test the 5-step Workday portal automation workflow shipped in
 - Playwright integration tests may require a special test environment; QA should flag if test plan requires live Playwright (out of scope for Gate 2 functional tests).
 
 ## Latest updates
-
-- 2026-04-06: Scoped into release — suite activation sent to QA.
 
 - 2026-04-05: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 
