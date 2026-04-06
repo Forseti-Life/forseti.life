@@ -87,3 +87,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260406-remove-copilot-agent-tracker-dungeoncrawler — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-remove-copilot-agent-tracker-dungeoncrawler.md)
 - [ ] fake-no-signoff-release-improvement-round — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/fake-no-signoff-release-improvement-round.md)
 - [ ] 20260406-052100-impl-dc-cr-background-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-052100-impl-dc-cr-background-system.md)
+- [ ] 20260406-052100-impl-dc-cr-character-class — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-052100-impl-dc-cr-character-class.md)
