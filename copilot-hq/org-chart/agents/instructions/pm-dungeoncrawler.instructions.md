@@ -97,6 +97,13 @@ Required per-feature inbox item content:
 **Lesson (2026-03-19):** In release-b (20260308 cycle), 4 features were groomed on 2026-03-08 but dev-dungeoncrawler had no implementation inbox items. Features stalled in "ready" state for 11 days.
 
 ### 7. When next Stage 0 starts: activate scoped features
+
+**PRE-CHECK (required before every activation run):**
+```bash
+cat tmp/release-cycle-active/dungeoncrawler.release_id
+```
+Confirm output matches the release you intend to activate features into. If it does not match, update the file or defer activation. Running `pm-scope-activate.sh` with a stale/wrong active release ID stamps features with the wrong `Release:` field — the scope-cap counter will count them as 0 features for the active release (Release: field mis-tagging pattern; see `knowledgebase/lessons/20260406-pm-scope-activate-release-id-timing-gap.md`).
+
 ```bash
 ./scripts/pm-scope-activate.sh dungeoncrawler <feature-id>
 ```
