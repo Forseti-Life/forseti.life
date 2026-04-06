@@ -35,7 +35,9 @@ class RoadmapController extends ControllerBase {
    * Renders the /roadmap page.
    */
   public function page(): array {
-    $is_admin = $this->currentUser()->hasPermission('administer dungeoncrawler content');
+    // Roadmap is read-only for all web users. Status is maintained by the
+    // pm-dungeoncrawler agent via drush dungeoncrawler:roadmap-set-status.
+    $is_admin = FALSE;
 
     // Fetch all requirements ordered for grouping.
     $rows = $this->database->select('dc_requirements', 'r')

@@ -94,22 +94,9 @@
                   <li class="dc-roadmap__req dc-roadmap__req--{{ req.status }}"
                       data-req-id="{{ req.id }}">
                     <span class="dc-roadmap__req-status">
-                      {% if is_admin %}
-                        <select class="dc-roadmap__status-select"
-                                data-req-id="{{ req.id }}"
-                                aria-label="Status for requirement {{ req.id }}">
-                          {% for status_key, status_label in status_labels %}
-                            <option value="{{ status_key }}"
-                                    {% if status_key == req.status %}selected{% endif %}>
-                              {{ status_label }}
-                            </option>
-                          {% endfor %}
-                        </select>
-                      {% else %}
-                        <span class="dc-status-badge dc-status-badge--{{ req.status }}">
-                          {{ req.status_label }}
-                        </span>
-                      {% endif %}
+                      <span class="dc-status-badge dc-status-badge--{{ req.status }}">
+                        {{ req.status_label }}
+                      </span>
                     </span>
                     <span class="dc-roadmap__req-text">
                       {% if req.paragraph_title %}
@@ -132,46 +119,9 @@
   {% if total == 0 %}
     <div class="dc-roadmap__empty">
       <p>No requirements have been imported yet.</p>
-      {% if is_admin %}
-        <p>Run <code>drush dungeoncrawler:import-requirements</code> to populate the roadmap.</p>
-      {% endif %}
+      <p>Run <code>drush dungeoncrawler:import-requirements</code> to populate the roadmap.</p>
     </div>
   {% endif %}
 
 </div>{# /.dc-roadmap #}
 
-{% if is_admin %}
-<script>
-(function () {
-  'use strict';
-  document.querySelectorAll('.dc-roadmap__status-select').forEach(function (sel) {
-    sel.addEventListener('change', function () {
-      var reqId = sel.dataset.reqId;
-      var status = sel.value;
-      var li = sel.closest('li');
-
-      fetch('/roadmap/requirement/' + reqId + '/status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        body: JSON.stringify({ status: status })
-      })
-      .then(function (r) { return r.json(); })
-      .then(function (data) {
-        if (data.error) {
-          alert('Error: ' + data.error);
-          return;
-        }
-        // Update the li class.
-        li.className = li.className.replace(/dc-roadmap__req--\w+/, 'dc-roadmap__req--' + data.status);
-      })
-      .catch(function (err) {
-        console.error('Status update failed', err);
-      });
-    });
-  });
-}());
-</script>
-{% endif %}

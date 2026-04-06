@@ -294,4 +294,106 @@ class RequirementsImportCommands extends DrushCommands {
     return $requirements;
   }
 
+  /**
+   * Update the implementation status of PF2E requirements (PM maintenance tool).
+   *
+   * Used by pm-dungeoncrawler after each release to mark requirements as
+   * implemented. Filters by book, chapter, section, or status combination.
+   *
+   * @param string $new_status
+   *   Target status: pending, in_progress, or implemented.
+   *
+   * @command dungeoncrawler:roadmap-set-status
+   * @aliases dc-roadmap-status
+   * @option book Filter by book_id (e.g. core, apg, b1). Repeatable.
+   * @option chapter Filter by chapter_key (e.g. ch09, s02). Repeatable.
+   * @option section Filter by section name (exact match). Repeatable.
+   * @option from-status Only update requirements currently at this status.
+   * @option dry-run Show what would be updated without making changes.
+   * @usage dungeoncrawler:roadmap-set-status implemented --book=core --chapter=ch09
+   *   Mark all Core ch09 requirements as implemented.
+   * @usage dungeoncrawler:roadmap-set-status implemented --book=apg --from-status=in_progress
+   *   Mark all APG in-progress requirements as implemented.
+   * @usage dungeoncrawler:roadmap-set-status in_progress --book=gmg --dry-run
+   *   Preview which GMG requirements would be updated.
+   */
+  public function roadmapSetStatus(
+    string $new_status,
+    array $options = [
+      'book'        => [],
+      'chapter'     => [],
+      'section'     => [],
+      'from-status' => NULL,
+      'dry-run'     => FALSE,
+    ]
+  ): void {
+    $valid_statuses = ['pending', 'in_progress', 'implemented'];
+    if (!in_array($new_status, $valid_statuses, TRUE)) {
+      $this->logger()->error("Invalid status '{$new_status}'. Must be one of: " . implode(', ', $valid_statuses));
+      return;
+    }
+
+    $query = $this->database->select('dc_requirements', 'r')
+      ->fields('r', ['id', 'book_id', 'chapter_key', 'section', 'req_text', 'status']);
+
+    // Apply filters.
+    if (!empty($options['book'])) {
+      $books = is_array($options['book']) ? $options['book'] : [$options['book']];
+      $query->condition('book_id', $books, 'IN');
+    }
+    if (!empty($options['chapter'])) {
+      $chapters = is_array($options['chapter']) ? $options['chapter'] : [$options['chapter']];
+      $query->condition('chapter_key', $chapters, 'IN');
+    }
+    if (!empty($options['section'])) {
+      $sections = is_array($options['section']) ? $options['section'] : [$options['section']];
+      $query->condition('section', $sections, 'IN');
+    }
+    if (!empty($options['from-status'])) {
+      if (!in_array($options['from-status'], $valid_statuses, TRUE)) {
+        $this->logger()->error("Invalid --from-status value.");
+        return;
+      }
+      $query->condition('status', $options['from-status']);
+    }
+
+    $rows = $query->execute()->fetchAll();
+
+    if (empty($rows)) {
+      $this->logger()->warning('No requirements matched the given filters.');
+      return;
+    }
+
+    // Show preview.
+    $this->logger()->info(count($rows) . " requirement(s) matched.");
+    foreach ($rows as $row) {
+      $this->logger()->info("  [{$row->book_id}/{$row->chapter_key}] {$row->section} — {$row->status} → {$new_status}: " . mb_substr($row->req_text, 0, 80) . '...');
+    }
+
+    if ($options['dry-run']) {
+      $this->logger()->info('Dry-run mode — no changes made.');
+      return;
+    }
+
+    // Confirm if updating more than 50 records interactively.
+    if (count($rows) > 50 && $this->input()->isInteractive()) {
+      if (!$this->io()->confirm(count($rows) . " requirements will be updated. Proceed?")) {
+        $this->logger()->info('Aborted.');
+        return;
+      }
+    }
+
+    $ids = array_column($rows, 'id');
+    $updated = $this->database->update('dc_requirements')
+      ->fields([
+        'status'     => $new_status,
+        'updated_at' => time(),
+        'updated_by' => 0,
+      ])
+      ->condition('id', $ids, 'IN')
+      ->execute();
+
+    $this->logger()->success("Updated {$updated} requirement(s) to status '{$new_status}'.");
+  }
+
 }

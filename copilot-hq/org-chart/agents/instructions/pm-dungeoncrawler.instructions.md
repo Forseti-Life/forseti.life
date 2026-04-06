@@ -233,6 +233,60 @@ curl -s -o /dev/null -w "%{http_code}" https://dungeoncrawler.forseti.life/
 ALLOW_PROD_QA=1 is authorized for all live audits against `https://dungeoncrawler.forseti.life`.
 This server IS production — there is no localhost:8080 dev environment.
 
+## Roadmap maintenance (required — added 2026-04-06)
+
+The requirements roadmap at `https://dungeoncrawler.forseti.life/Roadmap` is PM-owned.
+The web page is **read-only** for all users. Status is updated by PM via drush after each release.
+
+### When to update
+- **After each release signoff:** mark requirements as `implemented` for shipped features.
+- **When a feature enters active dev:** mark related requirements as `in_progress`.
+- **When a feature is deferred/pulled from scope:** revert related requirements to `pending`.
+
+### How to update (drush commands)
+
+**Mark requirements implemented after a feature ships:**
+```bash
+cd /var/www/html/dungeoncrawler
+
+# By book + chapter (most common — after shipping a chapter's worth of work):
+./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life \
+  dungeoncrawler:roadmap-set-status implemented --book=core --chapter=ch09
+
+# By section within a chapter:
+./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life \
+  dungeoncrawler:roadmap-set-status implemented --book=core --chapter=ch09 \
+  --section="Attack Rolls"
+
+# Preview first (always recommended for bulk updates):
+./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life \
+  dungeoncrawler:roadmap-set-status implemented --book=apg --dry-run
+
+# Promote all in-progress APG requirements to implemented:
+./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life \
+  dungeoncrawler:roadmap-set-status implemented --book=apg --from-status=in_progress
+```
+
+**Book IDs for filter:** `core`, `apg`, `gmg`, `gng`, `som`, `gam`, `b1`, `b2`, `b3`
+
+**Chapter keys (core):** `ch01`, `ch02`, `ch03`, `ch04`, `ch05`, `ch06`, `ch07`, `ch09`, `ch10`, `ch11`
+
+**Chapter keys (other books):** prefix with book (`apg-ch01`, `gmg-ch01`, etc.) — or just use `--book` + `--chapter=ch01` combined
+
+### Post-release roadmap update checklist (add to post-release cleanup)
+After `release-signoff.sh` succeeds:
+1. Identify which PF2E rulebook chapters the shipped features implement.
+2. Run `--dry-run` to preview scope.
+3. Run without `--dry-run` to commit.
+4. Note the update in your release notes artifact under a "Roadmap Updated" section.
+
+### Re-import when new reference files are added
+If new reference markdown files are added to `docs/dungeoncrawler/PF2requirements/references/`:
+```bash
+./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life dungeoncrawler:import-requirements
+```
+This is idempotent — existing records (matched by req_hash) are skipped.
+
 ## Supervisor
 - Supervisor: `ceo-copilot`
 
