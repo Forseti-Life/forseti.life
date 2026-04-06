@@ -441,8 +441,8 @@ class Calculator {
   public function rollSkillCheck($ability_mod, $proficiency = 0, array $bonuses = [], array $penalties = []) {
     $roll = $this->numberGeneration->rollPathfinderDie(20);
     $modifier = (int) $ability_mod + (int) $proficiency
-              + array_sum(array_map('intval', $bonuses))
-              - array_sum(array_map('intval', array_map('abs', $penalties)));
+              + BonusResolver::resolve($bonuses)
+              + BonusResolver::resolvePenalties($penalties);
     $total = $roll + $modifier;
 
     return [

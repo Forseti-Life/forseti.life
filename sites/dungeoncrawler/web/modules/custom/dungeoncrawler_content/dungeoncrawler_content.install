@@ -4711,16 +4711,16 @@ function dungeoncrawler_content_update_10035() {
       'settings'    => ['max_length' => 64],
     ])->save();
   }
-  if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'character', $field_name)) {
+  if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'character_class', $field_name)) {
     \Drupal\field\Entity\FieldConfig::create([
       'field_name'  => $field_name,
       'entity_type' => 'node',
-      'bundle'      => 'character',
+      'bundle'      => 'character_class',
       'label'       => 'Research Field',
       'required'    => FALSE,
       'description' => 'Alchemist research field selection: bomber, chirurgeon, or mutagenist.',
     ])->save();
-    $messages[] = 'Created field_char_research_field on character type.';
+    $messages[] = 'Created field_char_research_field on character_class type.';
   }
   else {
     $messages[] = 'field_char_research_field already exists; skipped.';

@@ -120,7 +120,9 @@ class CombatCalculator {
     $proficiency = (int) ($attackData['proficiency_bonus'] ?? 0);
     $level = (int) ($attackData['level'] ?? 0);
     $item = (int) ($attackData['item_bonus'] ?? 0);
-    $other = (int) ($attackData['other_bonuses'] ?? 0);
+    // other_bonuses may be a plain int (legacy) or a structured bonus array.
+    $other_raw = $attackData['other_bonuses'] ?? 0;
+    $other = is_array($other_raw) ? BonusResolver::resolve($other_raw) : (int) $other_raw;
 
     return $ability + $proficiency + $level + $item + $other;
   }
@@ -141,7 +143,9 @@ class CombatCalculator {
     $proficiency = (int) ($casterData['proficiency_bonus'] ?? 0);
     $level = (int) ($casterData['level'] ?? 0);
     $item = (int) ($casterData['item_bonus'] ?? 0);
-    $other = (int) ($casterData['other_bonuses'] ?? 0);
+    // other_bonuses may be a plain int (legacy) or a structured bonus array.
+    $other_raw = $casterData['other_bonuses'] ?? 0;
+    $other = is_array($other_raw) ? BonusResolver::resolve($other_raw) : (int) $other_raw;
 
     return 10 + $ability + $proficiency + $level + $item + $other;
   }
