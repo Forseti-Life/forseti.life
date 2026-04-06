@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-application-submission
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260406-forseti-release-b
 - Priority: P1
 - Feature type: needs-testing
@@ -56,8 +56,6 @@ Formally track and test the 5-step Workday portal automation workflow shipped in
 - PII/logging constraints: ATS credentials (username/password) must not be logged in Drupal watchdog or PHP error logs; credential retrieval via WorkdayWizardService only.
 
 ## Latest updates
-
-- 2026-04-06: Scoped into release — suite activation sent to QA.
 
 - 2026-04-06: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 

@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-controller-refactor
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260405-forseti-release-b
 - Priority: P2
 - Feature type: enhancement
@@ -58,8 +58,6 @@ Phase 1 extraction approved: `JobApplicationRepository` extracts DB queries only
 - PII/logging constraints: No new logging introduced; DB query results (including user data) must not be written to watchdog during repository operations.
 
 ## Latest updates
-
-- 2026-04-06: Scoped into release — suite activation sent to QA.
 
 - 2026-04-06: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 
