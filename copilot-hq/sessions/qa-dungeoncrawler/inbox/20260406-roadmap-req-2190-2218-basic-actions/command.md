@@ -148,3 +148,5 @@ All actions except Stride, Strike, Interact are NOT in `getLegalIntents()`:
 - Crawl, Drop Prone, Escape, Leap, Stand, Step, Take Cover, Seek, Sense Motive, Aid, Release → `unknown action` error
 - Ready → in legal intents list but no case handler in EncounterPhaseHandler
 - Delay → flag set (`delayed=TRUE`) but no re-entry or turn-effect enforcement (2194/2195 fail)
+- Agent: qa-dungeoncrawler
+- Status: pending

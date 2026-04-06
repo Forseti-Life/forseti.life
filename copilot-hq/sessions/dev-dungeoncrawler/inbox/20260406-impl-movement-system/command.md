@@ -185,3 +185,5 @@ Add `forced: true` flag to movement calls. In `MovementResolverService`:
 ```sql
 UPDATE dc_requirements SET status='implemented' WHERE id BETWEEN 2233 AND 2266;
 ```
+- Agent: dev-dungeoncrawler
+- Status: pending

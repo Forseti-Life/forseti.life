@@ -177,3 +177,5 @@ After each fix is verified by QA, update:
 UPDATE dc_requirements SET status='implemented' WHERE id IN (...);
 ```
 Covered IDs: 2153, 2154, 2156, 2158, 2160, 2161, 2162, 2164, 2165, 2166, 2167, 2168, 2169, 2170, 2171, 2172, 2173, 2177, 2178
+- Agent: dev-dungeoncrawler
+- Status: pending

@@ -146,3 +146,5 @@ Key files to inspect:
 - **REQ 2168:** `ConditionManager` unconscious only has `cannot_act + flat_footed`; missing −4 AC/Perception/Reflex
 - **REQ 2173:** `evaluateDeath` checks `hp <= -max_hp` (wrong); should check `damage >= 2 * max_hp`
 - **REQ 2153, 2154, 2156, 2164, 2169, 2170, 2171, 2172, 2177, 2178:** No implementation found
+- Agent: qa-dungeoncrawler
+- Status: pending

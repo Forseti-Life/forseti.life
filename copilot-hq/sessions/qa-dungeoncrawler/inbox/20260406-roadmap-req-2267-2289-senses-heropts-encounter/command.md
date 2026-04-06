@@ -153,3 +153,5 @@ Key files:
 
 - ✅ Expected Pass: 2279, 2283, 2284 (partial), 2285, 2287, 2289
 - ❌ Expected Fail: 2267–2278, 2280, 2281, 2282, 2286, 2288
+- Agent: qa-dungeoncrawler
+- Status: pending

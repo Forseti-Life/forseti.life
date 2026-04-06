@@ -163,3 +163,5 @@ Test each systematically. Key files:
 All 34 requirements — no movement rules validation in `processStride()`.  
 `processStride()` only updates hex position; no distance check, terrain check, or rule enforcement.  
 Document each failure with specific API call and error/incorrect response.
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -136,3 +136,5 @@ Key files:
 - ✅ Expected Pass: 2298 (Search)
 - ❌ Expected Fail: 2290–2297, 2299–2310 (20 requirements)
 - 🐛 Known Bug: 2301 — `processLongRest()` sets HP = max_hp instead of Con_mod × level
+- Agent: qa-dungeoncrawler
+- Status: pending

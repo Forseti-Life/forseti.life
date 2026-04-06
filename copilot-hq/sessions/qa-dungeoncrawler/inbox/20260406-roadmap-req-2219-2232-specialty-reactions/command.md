@@ -90,3 +90,5 @@ Key file: `EncounterPhaseHandler.php` — `getLegalIntents()` and action dispatc
 
 All 14 requirements are expected to FAIL. Document the specific error message for each in QA report.  
 File a consolidated bug report in `/sessions/qa-dungeoncrawler/outbox/` after testing.
+- Agent: qa-dungeoncrawler
+- Status: pending

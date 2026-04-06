@@ -73,3 +73,5 @@ Key files:
 - **REQ 2185:** `startTurn()` always sets actions=3 regardless of quickened/slowed/stunned
 - **REQ 2186:** `startTurn()` does NOT auto-trigger recovery check for dying characters
 - **REQ 2188/2189:** No disrupted action handling found in `ActionProcessor`
+- Agent: qa-dungeoncrawler
+- Status: pending
