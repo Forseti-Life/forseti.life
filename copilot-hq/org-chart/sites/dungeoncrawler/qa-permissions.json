@@ -459,6 +459,34 @@
         "dc_playwright_player": "deny",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-ancestry-system-list",
+      "feature_id": "dc-cr-ancestry-system",
+      "path_regex": "^/ancestries(?:/|$)",
+      "notes": "GET /ancestries \u2014 public read endpoint listing all ancestry nodes. Anon accessible (TC-AN-04, TC-AN-15).",
+      "expect": {
+        "anon": 200,
+        "authenticated": 200,
+        "content_editor": 200,
+        "administrator": 200,
+        "dc_playwright_player": 200,
+        "dc_playwright_admin": 200
+      }
+    },
+    {
+      "id": "dc-cr-ancestry-system-mutation",
+      "feature_id": "dc-cr-ancestry-system",
+      "path_regex": "^/api/character/[^/]+/ancestry(?:/|$)",
+      "notes": "Character ancestry mutation endpoint \u2014 POST-only, auth-required. Anon gets 403/405. Ignore in GET probe scans (POST-only route).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

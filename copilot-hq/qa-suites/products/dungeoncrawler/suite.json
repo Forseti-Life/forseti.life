@@ -151,14 +151,92 @@
     },
     {
       "id": "dc-cr-ancestry-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-ancestry-system",
+      "label": "PHPUnit tests for dc-cr-ancestry-system \u2014 content type, seed data, character creation integration",
       "type": "unit",
       "feature_id": "dc-cr-ancestry-system",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_ancestry_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=AncestrySystemTest",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-ancestry-system-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-AN-01",
+          "method": "AncestrySystemTest::testAncestryContentTypeExists",
+          "description": "Ancestry content type exists with all required fields"
+        },
+        {
+          "id": "TC-AN-02",
+          "method": "AncestrySystemTest::testSixCoreAncestriesSeeded",
+          "description": "6 core ancestry nodes seeded on install (dwarf, elf, gnome, goblin, halfling, human)"
+        },
+        {
+          "id": "TC-AN-03",
+          "method": "AncestrySystemTest::testDwarfAncestryDataMatchesConstants",
+          "description": "Ancestry node data matches CharacterManager::ANCESTRIES constants (dwarf spot-check)"
+        },
+        {
+          "id": "TC-AN-04",
+          "method": "AncestrySystemTest::testGetAncestriesEndpoint",
+          "description": "GET /ancestries returns all 6 ancestries with required fields"
+        },
+        {
+          "id": "TC-AN-05",
+          "method": "AncestrySystemTest::testGetAncestryByIdEndpoint",
+          "description": "GET /ancestries/{id} returns full detail with heritages"
+        },
+        {
+          "id": "TC-AN-06",
+          "method": "AncestrySystemTest::testCharacterCreationStoresAncestry",
+          "description": "Character creation step stores ancestry selection on character entity"
+        },
+        {
+          "id": "TC-AN-07",
+          "method": "AncestrySystemTest::testAncestryAppliesAbilityBoostsAndFlaws",
+          "description": "Ancestry selection applies ability boosts and flaws to character"
+        },
+        {
+          "id": "TC-AN-08",
+          "method": "AncestrySystemTest::testAncestryBaseHitPoints",
+          "description": "Ancestry sets correct base HP for all 6 core ancestries"
+        },
+        {
+          "id": "TC-AN-09",
+          "method": "AncestrySystemTest::testAncestrySpeed",
+          "description": "Ancestry sets correct speed for all 6 core ancestries"
+        },
+        {
+          "id": "TC-AN-10",
+          "method": "AncestrySystemTest::testReSelectingAncestryReplacesExisting",
+          "description": "Re-selecting ancestry replaces previous choice and stats"
+        },
+        {
+          "id": "TC-AN-11",
+          "method": "AncestrySystemTest::testMissingAncestryValidationError",
+          "description": "Saving character without ancestry returns validation error"
+        },
+        {
+          "id": "TC-AN-12",
+          "method": "AncestrySystemTest::testHumanFreeBoostDuplicateRejected",
+          "description": "Human free boost duplicate ability score selection rejected"
+        },
+        {
+          "id": "TC-AN-13",
+          "method": "AncestrySystemTest::testInvalidAncestryIdReturns400",
+          "description": "Invalid ancestry ID returns 400 with descriptive error"
+        },
+        {
+          "id": "TC-AN-14",
+          "method": "AncestrySystemTest::testBoostFlawConflictRejected",
+          "description": "Boosting and flawing the same ability score rejected at validation"
+        },
+        {
+          "id": "TC-AN-15",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Anon can read ancestry content type nodes (public view)"
+        }
+      ]
     },
     {
       "id": "dc-cr-background-system-phpunit",
