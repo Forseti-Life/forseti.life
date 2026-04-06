@@ -50,6 +50,13 @@ dungeoncrawler_content.menu.campaigns:
   menu_name: main
   weight: 20
 
+dungeoncrawler_content.menu.roadmap:
+  title: 'Roadmap'
+  description: 'PF2E requirements implementation tracking roadmap'
+  route_name: dungeoncrawler_content.roadmap
+  menu_name: main
+  weight: 25
+
 dungeoncrawler_content.menu.world:
   title: 'World'
   description: 'Explore the living dungeon lore and world information'
