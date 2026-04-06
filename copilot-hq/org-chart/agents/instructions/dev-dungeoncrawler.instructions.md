@@ -139,8 +139,16 @@ diff /home/ubuntu/forseti.life/copilot-hq/scripts/systemd/copilot-sessions-hq-si
 
 If any of these fail at cycle start, record the failure in the outbox and escalate to `pm-dungeoncrawler` before implementing.
 
-### Production site paths (reference)
-- Production Drupal root: `/var/www/html/dungeoncrawler/`
+### Site paths (reference)
+
+**Dev path** (`/home/ubuntu/forseti.life/sites/dungeoncrawler/`):
+- Dev DB: `dungeoncrawler_dev`
+- Dev drush: `cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life <cmd>`
+- `drush/drush.yml` sets `root: /var/www/html/dungeoncrawler/web` to ensure bootstrap works.
+- **Composer install + autoload fix required** (see KB lesson 2026-04): after `composer install`, `vendor/composer/installed.php` maps `drupal/core` to `vendor/drupal/core` (stub) instead of `web/core`. Fix: update `install_path` to `__DIR__ . '/../../web/core'` and set `Drupal\Core` + `Drupal\Component` PSR-4 paths to `$baseDir . '/web/core/...'` in `autoload_psr4.php` and `autoload_static.php`. Also create `web/autoload.php` returning `require __DIR__ . '/../vendor/autoload.php'`.
+
+**Production path** (`/var/www/html/dungeoncrawler/`):
+- Production DB: `dungeoncrawler`
 - Production drush: `cd /var/www/html/dungeoncrawler && ./vendor/bin/drush --uri=https://dungeoncrawler.forseti.life <cmd>`
 - **IMPORTANT: never use bare `drush` command in /var/www/html/dungeoncrawler** — the system drush resolves to the wrong Drupal root (`/var/www/html/drupal`, thetruthperspective). Always use `./vendor/bin/drush`.
 - **IMPORTANT: never run `drush config:export` on dungeoncrawler** — the config/sync directory contains AWS credentials in plaintext. Config export is prohibited without explicit PM authorization and credential scrubbing. Module enables and other runtime DB changes do not require config export.
