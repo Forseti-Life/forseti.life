@@ -82,18 +82,28 @@ if [[ "$TOPIC" =~ ^improvement-round-([0-9]{8}-.+)$ ]]; then
   fi
 
   # Step 2: reject stale orchestrator-generated signoff artifacts.
-  # A signoff containing "Signed by: orchestrator" is a pre-population artifact,
-  # not a real PM signoff — do not treat it as release confirmation.
+  # GAP-B-01: signoff files use markdown-bold format "**Signed by**: orchestrator"
+  # not plain "Signed by: orchestrator" — the original grep missed this form.
+  # Pattern handles both: plain and **markdown-bold** variants.
   stale_found=0
+  empty_release_found=0
   while IFS= read -r signoff_file; do
-    if [ -f "$signoff_file" ] && grep -q "Signed by: orchestrator" "$signoff_file" 2>/dev/null; then
+    if [ ! -f "$signoff_file" ]; then continue; fi
+    # Detect orchestrator-signed artifact (plain or markdown-bold "Signed by")
+    if grep -qiE '(\*\*)?Signed by(\*\*)?:?\s+orchestrator' "$signoff_file" 2>/dev/null; then
       echo "SKIP: stale orchestrator signoff artifact detected: ${signoff_file}; improvement-round not queued."
       stale_found=1
       break
     fi
+    # Detect empty-release signoff (0 features scoped, no real work shipped)
+    if grep -qiE 'Features scoped to .+: 0 \(' "$signoff_file" 2>/dev/null; then
+      echo "SKIP: empty release detected in ${signoff_file} (0 features scoped); improvement-round not applicable."
+      empty_release_found=1
+      break
+    fi
   done < <(find sessions -type f -path "*/artifacts/release-signoffs/${slug}.md" 2>/dev/null)
 
-  if [ "$stale_found" -eq 1 ]; then
+  if [ "$stale_found" -eq 1 ] || [ "$empty_release_found" -eq 1 ]; then
     exit 0
   fi
 
