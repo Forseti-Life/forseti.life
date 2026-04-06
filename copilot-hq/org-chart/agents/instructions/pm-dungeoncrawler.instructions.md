@@ -35,6 +35,8 @@ Lesson (2026-04-06): `stale-test-release-id-999` and `fake-no-signoff-release-id
 
 Lesson (2026-04-06): **QA unit-test outbox filenames misrouted as signoff release IDs** — 14+ consecutive occurrences. Pattern: orchestrator fires signoff dispatch for ANY QA outbox file matching `*unit-test*` without validating the release ID. The resulting inbox item has `Release id: 20260406-unit-test-20260406-impl-dc-cr-<feature>` which never matches the active release ID. Fast-exit rule applies. Extract real QA signal (APPROVE/BLOCK, commits) from the referenced QA outbox before writing the outbox — do not discard evidence. Escalation to dev-infra required (orchestrator `pick_agents` / signoff-dispatch bug).
 
+Lesson (2026-04-06): **Bare timestamp IDs misrouted as signoff release IDs** — new pattern. A bare `YYYYMMDD-HHMMSS` timestamp (e.g., `20260406-204546`) is generated as the release ID, not the feature or QA outbox name. Still does not match the active release ID. Fast-exit rule applies. This is a third distinct misroute pattern from the same orchestrator dispatch bug.
+
 ## Start-of-Stage-3 checklist (next release grooming)
 
 Each release cycle you receive a grooming inbox item. Work through this for `${next_release_id}`:
