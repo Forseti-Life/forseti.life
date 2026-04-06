@@ -3,6 +3,7 @@
 namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\dungeoncrawler_content\Service\HexUtilityService;
+use Drupal\dungeoncrawler_content\Service\LineOfEffectService;
 
 /**
  * Resolves areas of effect (burst, cone, emanation, line) on the hex grid.
@@ -21,9 +22,11 @@ use Drupal\dungeoncrawler_content\Service\HexUtilityService;
 class AreaResolverService {
 
   protected HexUtilityService $hexUtility;
+  protected ?LineOfEffectService $losService;
 
-  public function __construct(HexUtilityService $hex_utility) {
+  public function __construct(HexUtilityService $hex_utility, ?LineOfEffectService $los_service = NULL) {
     $this->hexUtility = $hex_utility;
+    $this->losService = $los_service;
   }
 
   /**
@@ -253,6 +256,45 @@ class AreaResolverService {
   private function isInArc(float $angle, float $center, float $half_width): bool {
     $diff = fmod($angle - $center + 540.0, 360.0) - 180.0;
     return abs($diff) <= $half_width;
+  }
+
+  /**
+   * Filter a list of participant IDs to those with LoE from $origin.
+   *
+   * When $los_service is not available, returns IDs unfiltered (no-op).
+   * terrain_obstacles must be pre-keyed arrays with is_solid/is_semi_solid.
+   *
+   * @param array $origin
+   *   Origin hex ['q' => int, 'r' => int].
+   * @param array $participant_ids
+   *   Array of participant IDs (int[]).
+   * @param array $participants
+   *   Full participant records (for position lookup).
+   * @param array $terrain_obstacles
+   *   Obstacle array; pass [] if not available.
+   *
+   * @return array
+   *   Filtered participant IDs that have LoE from origin.
+   */
+  public function filterByLoE(array $origin, array $participant_ids, array $participants, array $terrain_obstacles = []): array {
+    if (!$this->losService || empty($terrain_obstacles)) {
+      return $participant_ids;
+    }
+    $pos_map = [];
+    foreach ($participants as $p) {
+      $pos_map[(int) $p['id']] = $this->participantPos($p);
+    }
+    $filtered = [];
+    foreach ($participant_ids as $id) {
+      $pos = $pos_map[(int) $id] ?? NULL;
+      if ($pos === NULL) {
+        continue;
+      }
+      if ($this->losService->hasLineOfEffect($origin, $pos, $terrain_obstacles)) {
+        $filtered[] = $id;
+      }
+    }
+    return $filtered;
   }
 
 }

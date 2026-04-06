@@ -295,6 +295,12 @@ class ActionProcessor {
           $area_ids = $this->areaResolver->resolveLine($caster_pos, $direction, $length, $participants);
           break;
       }
+      // Filter area IDs by LoE from burst origin or caster pos (req 2132).
+      $origin_for_loe = ($area_type === 'burst')
+        ? ['q' => (int) ($spell['area_origin_q'] ?? $caster_pos['q']), 'r' => (int) ($spell['area_origin_r'] ?? $caster_pos['r'])]
+        : $caster_pos;
+      $terrain_obstacles = $spell['terrain_obstacles'] ?? [];
+      $area_ids = $this->areaResolver->filterByLoE($origin_for_loe, $area_ids, $participants, $terrain_obstacles);
       // Rebuild resolved_targets from area participant IDs.
       $resolved_targets = [];
       foreach ($area_ids as $aid) {

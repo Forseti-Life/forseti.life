@@ -3,6 +3,8 @@
 namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\Core\Database\Connection;
+use Drupal\dungeoncrawler_content\Service\Calculator;
+use Drupal\dungeoncrawler_content\Service\LineOfEffectService;
 
 /**
  * Rules Engine service - Validates actions against PF2e rules.
@@ -13,10 +15,12 @@ class RulesEngine {
 
   protected $database;
   protected $calculator;
+  protected $losService;
 
-  public function __construct(Connection $database, ?Calculator $calculator = NULL) {
+  public function __construct(Connection $database, ?Calculator $calculator = NULL, ?LineOfEffectService $los_service = NULL) {
     $this->database = $database;
     $this->calculator = $calculator;
+    $this->losService = $los_service;
   }
 
   /**
@@ -430,6 +434,21 @@ class RulesEngine {
           $increments = (int) ceil($distance / $base_range) - 1;
           $range_penalty = $increments * -2;
           $modifiers['range_penalty'] = $range_penalty;
+        }
+      }
+
+      // Line of effect check (req 2130): attack fails if a solid obstacle
+      // intervenes between attacker and target.
+      if ($this->losService) {
+        $attacker_pos = ['q' => (int) $aq, 'r' => (int) $ar];
+        $target_pos   = ['q' => (int) $tq, 'r' => (int) $tr];
+        $obstacles = $weapon['terrain_obstacles'] ?? [];
+        if (!$this->losService->hasLineOfEffect($attacker_pos, $target_pos, $obstacles)) {
+          return [
+            'is_valid' => FALSE,
+            'reason'   => 'No line of effect to target.',
+            'modifiers' => $modifiers,
+          ];
         }
       }
     }
