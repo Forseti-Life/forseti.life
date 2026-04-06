@@ -61,14 +61,93 @@
     },
     {
       "id": "dc-cr-action-economy-phpunit",
-      "label": "PHPUnit tests for dc-cr-action-economy",
+      "label": "PHPUnit tests for dc-cr-action-economy \u2014 full 1/2/3-action, reaction, free-action budget enforcement",
       "type": "unit",
       "feature_id": "dc-cr-action-economy",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_action_economy 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=ActionEconomyTest",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-action-economy-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-AE-01",
+          "method": "ActionEconomyTest::testTurnStartResetsActionBudget",
+          "description": "Turn start resets actions_remaining to 3 and reaction_available to true"
+        },
+        {
+          "id": "TC-AE-02",
+          "method": "ActionEconomyTest::testOneActionCostDecrement",
+          "description": "1-action cost decrements actions_remaining by 1"
+        },
+        {
+          "id": "TC-AE-03",
+          "method": "ActionEconomyTest::testTwoActionActivityDecrement",
+          "description": "2-action activity decrements actions_remaining by 2"
+        },
+        {
+          "id": "TC-AE-04",
+          "method": "ActionEconomyTest::testThreeActionActivityDecrement",
+          "description": "3-action activity decrements actions_remaining by 3"
+        },
+        {
+          "id": "TC-AE-05",
+          "method": "ActionEconomyTest::testFreeActionNoCost",
+          "description": "Free action does not decrement budget"
+        },
+        {
+          "id": "TC-AE-06",
+          "method": "ActionEconomyTest::testReactionConsumption",
+          "description": "Spending a reaction sets reaction_available to false"
+        },
+        {
+          "id": "TC-AE-07",
+          "method": "ActionEconomyTest::testInsufficientActionsRejected",
+          "description": "Cannot act when actions_remaining insufficient for action cost"
+        },
+        {
+          "id": "TC-AE-08",
+          "method": "ActionEconomyTest::testSpentReactionRejected",
+          "description": "Cannot use reaction if reaction_available is false"
+        },
+        {
+          "id": "TC-AE-09",
+          "method": "ActionEconomyTest::testTwoActionActivityRejectedAtOneRemaining",
+          "description": "2-action activity rejected with only 1 action remaining"
+        },
+        {
+          "id": "TC-AE-10",
+          "method": "ActionEconomyTest::testActionsRemainingFloorAtZero",
+          "description": "actions_remaining cannot go below 0"
+        },
+        {
+          "id": "TC-AE-11",
+          "method": "ActionEconomyTest::testInvalidActionCostRejected",
+          "description": "Invalid action cost (-1, 0, 4, null) rejected at validation"
+        },
+        {
+          "id": "TC-AE-12",
+          "method": "ActionEconomyTest::testSpendActionsOutsideActiveTurnRejected",
+          "description": "Spending actions outside active turn returns error, no mutation"
+        },
+        {
+          "id": "TC-AE-13",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Anon cannot access mutation endpoints (POST /api/combat/action \u2014 403/405)"
+        },
+        {
+          "id": "TC-AE-14",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Authenticated player can access own character action endpoint"
+        },
+        {
+          "id": "TC-AE-15",
+          "method": "ActionEconomyTest::testPlayerCannotSpendOtherCharacterActions",
+          "description": "Player cannot spend another character actions"
+        }
+      ]
     },
     {
       "id": "dc-cr-ancestry-system-phpunit",
