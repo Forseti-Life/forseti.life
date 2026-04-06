@@ -297,10 +297,22 @@ class ActionProcessor {
       $healing_result = NULL;
       $condition_result = NULL;
 
-      if ($damage_dice && in_array($degree, ['success', 'critical_success'])) {
+      if ($damage_dice) {
         $roll = $this->numberGeneration->rollExpression($damage_dice);
         $base_damage = (int) ($roll['total'] ?? 0);
-        $damage = $degree === 'critical_success' ? $base_damage * 2 : $base_damage;
+        if ($degree === 'critical_success') {
+          $damage = $base_damage * 2;
+        }
+        elseif ($degree === 'success') {
+          $damage = $base_damage;
+        }
+        elseif ($degree === 'failure' && $delivery === 'save') {
+          // Basic saving throw: success on save → half damage (PF2E Core p.449 req 2097).
+          $damage = (int) floor($base_damage / 2);
+        }
+        else {
+          $damage = 0;
+        }
         if ($damage > 0) {
           $damage_result = $this->hpManager->applyDamage($target_id, $damage, $damage_type, [
             'action' => 'cast_spell',
@@ -310,10 +322,21 @@ class ActionProcessor {
         }
       }
 
-      if ($healing_dice && in_array($degree, ['success', 'critical_success'])) {
+      if ($healing_dice) {
         $roll = $this->numberGeneration->rollExpression($healing_dice);
         $base_healing = (int) ($roll['total'] ?? 0);
-        $healing = $degree === 'critical_success' ? $base_healing * 2 : $base_healing;
+        if ($degree === 'critical_success') {
+          $healing = $base_healing * 2;
+        }
+        elseif ($degree === 'success') {
+          $healing = $base_healing;
+        }
+        elseif ($degree === 'failure' && $delivery === 'save') {
+          $healing = (int) floor($base_healing / 2);
+        }
+        else {
+          $healing = 0;
+        }
         if ($healing > 0) {
           $healing_result = $this->hpManager->applyHealing($target_id, $healing, [
             'action' => 'cast_spell',
@@ -323,6 +346,7 @@ class ActionProcessor {
         }
       }
 
+      // Conditions apply on full hit (success/crit); not on save success (failure) by default.
       if ($condition_to_apply && in_array($degree, ['success', 'critical_success'])) {
         $cond_name = is_array($condition_to_apply) ? ($condition_to_apply['name'] ?? '') : $condition_to_apply;
         $cond_value = is_array($condition_to_apply) ? (int) ($condition_to_apply['value'] ?? 1) : 1;
