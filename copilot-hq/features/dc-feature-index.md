@@ -4,7 +4,7 @@
 
 **Maintained by:** `ba-dungeoncrawler` — update this file at the end of every scan chunk (same commit as new feature stubs). Include `Category` and `Depends on` for every new row (`Depends on` may be blank if no dependencies).
 
-**Last updated:** 2026-04-05 | Release: `20260405-dungeoncrawler-release-b` | Total: 49
+**Last updated:** 2026-04-06 | Release: `20260406-dungeoncrawler-release-b` | Total: 54
 
 ---
 
@@ -35,7 +35,11 @@
 | dc-cr-dwarf-heritage-rock | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-heritage-system | Rock Dwarf heritage: +2 DC vs. Shove/Trip, forced movement halved |
 | dc-cr-dwarf-heritage-strong-blooded | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-heritage-system, dc-cr-conditions | Strong-Blooded heritage: poison resistance (half level) and accelerated poison stage reduction |
 | dc-cr-dwarven-weapon-familiarity | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-equipment-system | Dwarven Weapon Familiarity feat: trained with battle axe/pick/warhammer; dwarf weapon category downgrade |
+| dc-cr-dwarven-weapon-expertise | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-dwarven-weapon-familiarity, dc-cr-equipment-system | Dwarven Weapon Expertise (Feat 13): extend class expert+ proficiency to battle axe/pick/warhammer and trained dwarven weapons |
 | dc-cr-downtime-mode | rule-system |  | Long-duration downtime activities: Earn Income, Craft, Retrain, etc. |
+| dc-cr-elf-ancestry | game-mechanic | dc-cr-ancestry-system, dc-cr-heritage-system, dc-cr-low-light-vision, dc-cr-languages | Elf stat block: HP 6, speed 30, Dex/Int/Free boosts, Con flaw, Common+Elven+Int-bonus languages |
+| dc-cr-elf-heritage-arctic | game-mechanic | dc-cr-elf-ancestry, dc-cr-heritage-system | Arctic Elf heritage: cold resistance (half level, min 1) and environmental cold severity downgrade |
+| dc-cr-elf-heritage-cavern | game-mechanic | dc-cr-elf-ancestry, dc-cr-heritage-system, dc-cr-darkvision | Cavern Elf heritage: replaces low-light vision with darkvision |
 | dc-cr-encounter-rules | rule-system |  | Full combat loop: initiative, MAP, degree-of-success attack resolution, HP tracking |
 | dc-cr-equipment-system | item |  | Weapons, armor, shields, and adventuring gear with damage/AC/bulk fields |
 | dc-cr-exploration-mode | rule-system |  | Between-encounter mode with ongoing exploration activities that affect initiative |
@@ -47,6 +51,7 @@
 | dc-cr-heritage-system | game-mechanic | dc-cr-ancestry-system | Heritage selection: one heritage per ancestry at level 1, locked after creation |
 | dc-cr-hazards | game-mechanic |  | Trap/haunt/environmental hazard stat blocks with Stealth/Disable DCs and effects |
 | dc-cr-languages | game-mechanic |  | Language tracking with ancestry defaults and Intelligence-based free language slots |
+| dc-cr-low-light-vision | rule-system |  | Low-Light Vision sense: see in dim light as bright light; ignore concealed condition due to dim light; elf default vision |
 | dc-cr-magic-items | item |  | Magic item catalog (weapons/armor/wondrous) with investment, activation, rune system |
 | dc-cr-mountains-stoutness | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-conditions | Mountains Stoutness: +4 HP at level 1, +1 HP/level going forward; +2 max HP for resting recovery |
 | dc-cr-multiclass-archetype | game-mechanic |  | Multiclass archetypes via dedication feats enabling cross-class feature access |
