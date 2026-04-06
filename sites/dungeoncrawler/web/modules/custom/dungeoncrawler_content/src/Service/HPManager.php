@@ -391,6 +391,44 @@ class HPManager {
   }
 
   /**
+   * REQ 2281: Spend ALL Hero Points — stabilize without gaining wounded condition.
+   *
+   * Distinct from REQ 2171 heroicRecovery() (spend 1 HP): this spends every hero point the
+   * character has, removes the dying condition, does NOT add wounded, and keeps HP at 0.
+   * REQ 2282: Also usable for familiars/animal companions (caller must pass their participant_id).
+   */
+  public function heroicRecoveryAllPoints($participant_id, $encounter_id): array {
+    $active = $this->conditionManager->getActiveConditions($participant_id, $encounter_id);
+
+    $dying_removed = FALSE;
+    foreach ($active as $cond) {
+      if ($cond['condition_type'] === 'dying') {
+        $this->conditionManager->removeCondition($participant_id, (int) $cond['id'], $encounter_id);
+        $dying_removed = TRUE;
+      }
+      if ($cond['condition_type'] === 'unconscious') {
+        $this->conditionManager->removeCondition($participant_id, (int) $cond['id'], $encounter_id);
+      }
+    }
+
+    // Ensure character stays at 0 HP (stabilized, not killed).
+    $participant = $this->loadParticipant($participant_id);
+    if ($participant && (int) ($participant['hp'] ?? 0) < 0) {
+      $this->database->update('combat_participants')
+        ->fields(['hp' => 0, 'updated' => time()])
+        ->condition('id', $participant_id)
+        ->execute();
+    }
+
+    return [
+      'heroic_recovery_all_points' => TRUE,
+      'dying_removed'              => $dying_removed,
+      'wounded_added'              => FALSE,
+      'hp'                         => 0,
+    ];
+  }
+
+  /**
    * REQ 2169: Natural recovery — unconscious at 0 HP wakes after 10-min rest.
    * Grants 1 HP and removes unconscious condition.
    */

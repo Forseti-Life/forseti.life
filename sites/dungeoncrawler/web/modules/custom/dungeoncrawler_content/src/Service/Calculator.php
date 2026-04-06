@@ -500,6 +500,24 @@ class Calculator {
     ];
   }
 
+  /**
+   * REQ 2280: Hero Point reroll — spend 1 Hero Point to reroll any check.
+   *
+   * The second result MUST be used (it is a fortune effect — cannot stack with other fortune effects).
+   *
+   * @param int $original_roll  The original d20 roll value (before modifiers).
+   * @return array Keys: original_roll, new_roll, used_result (= new_roll), is_fortune (true).
+   */
+  public function heroPointReroll(int $original_roll): array {
+    $new_roll = $this->numberGeneration->rollPathfinderDie(20);
+    return [
+      'original_roll' => $original_roll,
+      'new_roll'      => $new_roll,
+      'used_result'   => $new_roll,
+      'is_fortune'    => TRUE,
+    ];
+  }
+
   public function rollSkillCheck($ability_mod, $proficiency = 0, array $bonuses = [], array $penalties = []) {
     $roll = $this->numberGeneration->rollPathfinderDie(20);
     $modifier = (int) $ability_mod + (int) $proficiency

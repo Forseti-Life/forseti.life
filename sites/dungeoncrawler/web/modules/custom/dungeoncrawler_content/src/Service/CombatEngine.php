@@ -17,6 +17,29 @@ use Drupal\dungeoncrawler_content\Service\MovementResolverService;
  */
 class CombatEngine {
 
+  // REQ 2276: Detection states per perceiver.
+  const DETECTION_STATE_OBSERVED   = 'observed';
+  const DETECTION_STATE_HIDDEN     = 'hidden';
+  const DETECTION_STATE_UNDETECTED = 'undetected';
+  const DETECTION_STATE_UNNOTICED  = 'unnoticed';
+
+  // REQ 2267: Sense precision levels → detection state cap.
+  const SENSE_PRECISION_PRECISE    = 'precise';
+  const SENSE_PRECISION_IMPRECISE  = 'imprecise';
+  const SENSE_PRECISION_VAGUE      = 'vague';
+
+  // REQ 2268: Default senses for all creatures.
+  const DEFAULT_SENSES = [
+    'vision'  => self::SENSE_PRECISION_PRECISE,
+    'hearing' => self::SENSE_PRECISION_IMPRECISE,
+    'smell'   => self::SENSE_PRECISION_VAGUE,
+  ];
+
+  // REQ 2274: Light levels.
+  const LIGHT_BRIGHT = 'bright';
+  const LIGHT_DIM    = 'dim';
+  const LIGHT_DARK   = 'dark';
+
   /**
    * @var \Drupal\Core\Database\Connection
    */
@@ -150,12 +173,17 @@ class CombatEngine {
       ]);
     }
 
+    // REQ 2286: Each combat round = 6 seconds of in-world time (derived: round × 6).
+    $in_world_seconds = (int) $round_number * 6;
+
     $this->store->updateEncounter((int) $encounter_id, [
       'current_round' => (int) $round_number,
-      'turn_index' => 0,
+      'turn_index'    => 0,
     ]);
 
-    return $this->store->loadEncounter((int) $encounter_id) ?: [];
+    $encounter_state = $this->store->loadEncounter((int) $encounter_id) ?: [];
+    $encounter_state['in_world_seconds'] = $in_world_seconds;
+    return $encounter_state;
   }
 
   /**
@@ -660,6 +688,98 @@ class CombatEngine {
       ];
     }
 
+    // REQ 2274-2278: Detection state and light level checks.
+    $detection_info = ['state' => self::DETECTION_STATE_OBSERVED, 'light_level' => self::LIGHT_BRIGHT, 'flat_check' => NULL];
+    $attacker_entity_data = !empty($attacker['entity_ref']) ? json_decode($attacker['entity_ref'], TRUE) : [];
+    $target_entity_data   = !empty($target['entity_ref'])   ? json_decode($target['entity_ref'],   TRUE) : [];
+    $attacker_entity_id   = $attacker_entity_data['entity_id'] ?? (string) $participant_id;
+
+    if (!empty($dungeon_data)) {
+      $detection_info['light_level'] = $this->resolveLightLevel($dungeon_data, $attacker_hex ?? ['q' => 0, 'r' => 0]);
+    }
+
+    // REQ 2276: Check stored per-perceiver detection state.
+    $stored_state = $this->getDetectionState($target, $attacker_entity_id);
+
+    // REQ 2267-2273: Also resolve sense-based detection cap from light/invisible flags.
+    $sense_state = $this->resolveSensePrecision($attacker_entity_data, $target_entity_data, $detection_info['light_level']);
+
+    // Use the stricter (worse) of stored state and sense-derived state.
+    $state_order = [self::DETECTION_STATE_OBSERVED => 0, self::DETECTION_STATE_HIDDEN => 1, self::DETECTION_STATE_UNDETECTED => 2, self::DETECTION_STATE_UNNOTICED => 3];
+    $effective_state = ($state_order[$sense_state] ?? 0) >= ($state_order[$stored_state] ?? 0) ? $sense_state : $stored_state;
+    $detection_info['state'] = $effective_state;
+
+    // REQ 2276: Undetected/unnoticed target — attacker must guess; auto-miss if wrong position.
+    if ($effective_state === self::DETECTION_STATE_UNDETECTED || $effective_state === self::DETECTION_STATE_UNNOTICED) {
+      return [
+        'roll'          => $natural_roll,
+        'attack_bonus'  => $attack_bonus,
+        'map_penalty'   => $map_penalty,
+        'total'         => $total,
+        'target_ac'     => $target_ac,
+        'degree'        => 'failure',
+        'damage_dealt'  => NULL,
+        'damage_result' => NULL,
+        'flanking'      => $flanking,
+        'cover'         => $cover['tier'] ?? 'none',
+        'detection'     => $detection_info,
+        'error'         => "Cannot target {$effective_state} creature (attacker must guess position).",
+      ];
+    }
+
+    // REQ 2276: Hidden target is flat-footed; attacker rolls DC 11 flat check.
+    if ($effective_state === self::DETECTION_STATE_HIDDEN) {
+      $target_ac -= 2;
+      $hidden_flat = $this->rollFlatCheck(11);
+      $detection_info['flat_check'] = $hidden_flat;
+      if (!$hidden_flat['success']) {
+        return [
+          'roll'          => $natural_roll,
+          'attack_bonus'  => $attack_bonus,
+          'map_penalty'   => $map_penalty,
+          'total'         => $total,
+          'target_ac'     => $target_ac,
+          'degree'        => 'failure',
+          'damage_dealt'  => NULL,
+          'damage_result' => NULL,
+          'flanking'      => $flanking,
+          'cover'         => $cover['tier'] ?? 'none',
+          'detection'     => $detection_info,
+          'error'         => 'Attack misses: DC 11 flat check failed for hidden target.',
+        ];
+      }
+    }
+
+    // REQ 2274/2277: Concealed condition or dim light → DC 5 flat check.
+    // (concealed by condition is handled in RulesEngine.validateAttack; here we handle light-based concealment).
+    if ($detection_info['light_level'] === self::LIGHT_DIM
+      && $effective_state === self::DETECTION_STATE_OBSERVED
+      && empty($attacker_entity_data['low_light_vision'])
+      && empty($attacker_entity_data['darkvision'])
+      && empty($attacker_entity_data['greater_darkvision'])
+    ) {
+      $dim_flat = $this->rollFlatCheck(5);
+      $detection_info['flat_check'] = $dim_flat;
+      if (!$dim_flat['success']) {
+        return [
+          'roll'          => $natural_roll,
+          'attack_bonus'  => $attack_bonus,
+          'map_penalty'   => $map_penalty,
+          'total'         => $total,
+          'target_ac'     => $target_ac,
+          'degree'        => 'failure',
+          'damage_dealt'  => NULL,
+          'damage_result' => NULL,
+          'flanking'      => $flanking,
+          'cover'         => $cover['tier'] ?? 'none',
+          'detection'     => $detection_info,
+          'error'         => 'Attack misses: DC 5 flat check failed (dim light concealment).',
+        ];
+      }
+    }
+
+
+
     $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $target_ac, $natural_roll);
 
     // Record attack in participant state.
@@ -734,6 +854,7 @@ class CombatEngine {
       'damage_result' => $damage_result,
       'flanking'      => $flanking,
       'cover'         => $cover['tier'],
+      'detection'     => $detection_info,
       'error'         => NULL,
     ];
   }
@@ -777,7 +898,174 @@ class CombatEngine {
   }
 
   /**
-   * REQ 2153: Shift target's initiative to just after the attacker's initiative.
+   * REQ 2267/2276: Get the detection state of a target from the attacker's perspective.
+   *
+   * Detection states are stored in the target's entity_ref JSON:
+   * entity_ref['detection_states'][attacker_entity_id] = 'observed'|'hidden'|'undetected'|'unnoticed'
+   *
+   * @param array $target_row         combat_participants row for the target.
+   * @param string $attacker_entity_id Entity ID of the observing creature.
+   * @return string One of: observed, hidden, undetected, unnoticed.
+   */
+  public function getDetectionState(array $target_row, string $attacker_entity_id): string {
+    $entity_data = !empty($target_row['entity_ref']) ? json_decode($target_row['entity_ref'], TRUE) : [];
+    return $entity_data['detection_states'][$attacker_entity_id] ?? self::DETECTION_STATE_OBSERVED;
+  }
+
+  /**
+   * REQ 2276: Persist a detection state update in the target's entity_ref.
+   */
+  public function setDetectionState(int $target_participant_id, string $attacker_entity_id, string $state): void {
+    $row = $this->database->select('combat_participants', 'p')
+      ->fields('p', ['entity_ref'])
+      ->condition('id', $target_participant_id)
+      ->execute()
+      ->fetchAssoc();
+    $entity_data = !empty($row['entity_ref']) ? json_decode($row['entity_ref'], TRUE) : [];
+    $entity_data['detection_states'][$attacker_entity_id] = $state;
+    $this->database->update('combat_participants')
+      ->fields(['entity_ref' => json_encode($entity_data), 'updated' => time()])
+      ->condition('id', $target_participant_id)
+      ->execute();
+  }
+
+  /**
+   * REQ 2274/2275: Determine the effective light level at a hex position.
+   *
+   * dungeon_data['rooms'][room_id]['lighting'] = 'bright'|'dim'|'dark'
+   * dungeon_data['light_sources'] = [['hex'=>['q','r'],'bright_radius'=>ft,'dim_radius'=>ft],...]
+   *
+   * @param array $dungeon_data
+   * @param array $hex  ['q' => int, 'r' => int]
+   * @return string 'bright'|'dim'|'dark'
+   */
+  public function resolveLightLevel(array $dungeon_data, array $hex): string {
+    // Check explicit light sources first.
+    foreach ($dungeon_data['light_sources'] ?? [] as $source) {
+      if (!isset($source['hex'])) {
+        continue;
+      }
+      // REQ 2275: bright radius is given in feet (5 ft = 1 hex); dim = 2× bright radius.
+      $distance_hexes = $this->hexDistance($source['hex'], $hex);
+      $bright_hexes   = (int) ceil(($source['bright_radius'] ?? 0) / 5);
+      $dim_hexes      = (int) ceil(($source['dim_radius'] ?? $bright_hexes * 2) / 5);
+      if ($distance_hexes <= $bright_hexes) {
+        return self::LIGHT_BRIGHT;
+      }
+      if ($distance_hexes <= $dim_hexes) {
+        return self::LIGHT_DIM;
+      }
+    }
+    // Fall back to room ambient lighting.
+    $room_id = $dungeon_data['current_room_id'] ?? NULL;
+    if ($room_id && isset($dungeon_data['rooms'][$room_id]['lighting'])) {
+      return $dungeon_data['rooms'][$room_id]['lighting'];
+    }
+    return self::LIGHT_BRIGHT;
+  }
+
+  /**
+   * Cube-coordinate hex distance helper (delegates to MovementResolverService when available).
+   */
+  protected function hexDistance(array $a, array $b): int {
+    if ($this->movementResolver) {
+      return $this->movementResolver->hexDistance($a, $b);
+    }
+    $dq = (int) $a['q'] - (int) $b['q'];
+    $dr = (int) $a['r'] - (int) $b['r'];
+    $ds = -$dq - $dr;
+    return (int) max(abs($dq), abs($dr), abs($ds));
+  }
+
+  /**
+   * REQ 2267-2273: Resolve the sense-precision a creature has of a target given light/visibility.
+   *
+   * Returns the detection-state cap based on: primary senses, special senses, light level, invisible flag.
+   *
+   * @param array $attacker_entity  entity_ref data decoded for the attacker.
+   * @param array $target_entity    entity_ref data decoded for the target.
+   * @param string $light_level     One of LIGHT_BRIGHT, LIGHT_DIM, LIGHT_DARK.
+   * @return string  Best detection state the attacker can achieve: observed|hidden|undetected|unnoticed.
+   */
+  public function resolveSensePrecision(array $attacker_entity, array $target_entity, string $light_level): string {
+    // REQ 2278: Invisible → automatically undetected to sight-only perceivers.
+    $target_invisible = !empty($target_entity['is_invisible']);
+
+    // Determine best visual precision based on light level and special senses.
+    if (!$target_invisible) {
+      if ($light_level === self::LIGHT_BRIGHT) {
+        $visual_state = self::DETECTION_STATE_OBSERVED;
+      }
+      elseif ($light_level === self::LIGHT_DIM) {
+        // REQ 2271: Low-light vision treats dim as bright.
+        if (!empty($attacker_entity['low_light_vision']) || !empty($attacker_entity['darkvision']) || !empty($attacker_entity['greater_darkvision'])) {
+          $visual_state = self::DETECTION_STATE_OBSERVED;
+        }
+        else {
+          // REQ 2274: Dim light → concealed (vision is imprecise in dim, best is hidden).
+          $visual_state = self::DETECTION_STATE_HIDDEN;
+        }
+      }
+      else {
+        // Darkness.
+        if (!empty($attacker_entity['greater_darkvision'])) {
+          // REQ 2270: Greater darkvision sees through all magical darkness.
+          $visual_state = self::DETECTION_STATE_OBSERVED;
+        }
+        elseif (!empty($attacker_entity['darkvision'])) {
+          // REQ 2269: Darkvision sees normally in darkness.
+          $visual_state = self::DETECTION_STATE_OBSERVED;
+        }
+        else {
+          // No darkvision in complete darkness → cannot see (undetected via vision).
+          $visual_state = self::DETECTION_STATE_UNDETECTED;
+        }
+      }
+    }
+    else {
+      // Target invisible — vision yields undetected.
+      $visual_state = self::DETECTION_STATE_UNDETECTED;
+    }
+
+    // REQ 2272: Tremorsense (imprecise) — detect via vibrations on same surface.
+    // If attacker has tremorsense, best state from tremorsense is hidden.
+    $tremorsense_range = (int) ($attacker_entity['tremorsense_ft'] ?? 0);
+    if ($tremorsense_range > 0) {
+      // Tremorsense = imprecise → best is hidden (not observed).
+      if ($visual_state === self::DETECTION_STATE_UNDETECTED || $visual_state === self::DETECTION_STATE_UNNOTICED) {
+        $visual_state = self::DETECTION_STATE_HIDDEN;
+      }
+    }
+
+    // REQ 2273: Scent (vague) — detect by smell, best state is undetected.
+    $scent_range = (int) ($attacker_entity['scent_ft'] ?? 0);
+    if ($scent_range > 0) {
+      if ($visual_state === self::DETECTION_STATE_UNNOTICED) {
+        $visual_state = self::DETECTION_STATE_UNDETECTED;
+      }
+    }
+
+    return $visual_state;
+  }
+
+  /**
+   * Roll a flat check using the engine's number-generation service.
+   *
+   * REQ 2102: DC ≤ 1 auto-succeeds; DC ≥ 21 auto-fails.
+   */
+  protected function rollFlatCheck(int $dc): array {
+    if ($dc <= 1) {
+      return ['auto' => TRUE, 'success' => TRUE, 'roll' => NULL, 'dc' => $dc];
+    }
+    if ($dc >= 21) {
+      return ['auto' => TRUE, 'success' => FALSE, 'roll' => NULL, 'dc' => $dc];
+    }
+    $roll = $this->numberGeneration->rollPathfinderDie(20);
+    return ['auto' => FALSE, 'success' => $roll >= $dc, 'roll' => $roll, 'dc' => $dc];
+  }
+
+  /**
+   * REQ 2153/2288: Shift target's initiative to just after the attacker's initiative.
    *
    * When a character drops to 0 HP mid-combat, they move in the initiative order
    * to just after the creature that reduced them to 0.
