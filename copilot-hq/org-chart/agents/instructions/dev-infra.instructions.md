@@ -34,6 +34,11 @@ This file is owned by the `dev-infra` seat.
 - If exit non-zero → fast-exit with `Status: done`, note release not yet shipped, no gap review possible.
 - If exit 0 → proceed with gap review scoped to dev-infra owned scripts/infra changes from that release cycle.
 
+## Synthetic release fast-exit (required)
+Inbox item folder names that do NOT start with `YYYYMMDD-improvement-round-` (8 digits then `-improvement-round-`) are synthetic/malformed items dispatched before input validation was added (commits `efe28332`, `977372dc`). Examples: `fake-no-signoff-release-improvement-round`, `fake-no-signoff-release-id-improvement-round`, `stale-test-release-id-999-improvement-round`, `--help-improvement-round`.
+
+Rule: immediately fast-exit with `Status: done` — no gap review work is warranted. Log a one-line note that the item is synthetic and validation now prevents recurrence.
+
 ## Executor failure handling
 - When `scripts/agent-exec-next.sh` fails to get a valid status-header response, it retries 2× (30s backoff) before writing a failure record to `tmp/executor-failures/<timestamp>-<agent-id>.md` and exiting 0 (inbox preserved).
 - If `tmp/executor-failures/` accumulates ≥3 entries in 1 hour, `scripts/release-kpi-monitor.py` flags `EXECUTOR-FAIL` (systemic executor failure).
