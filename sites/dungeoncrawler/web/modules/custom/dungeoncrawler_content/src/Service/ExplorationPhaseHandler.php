@@ -106,6 +106,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'cast_spell',
       'open_door',
       'open_passage',
+      'daily_prepare',
     ];
   }
 
@@ -309,7 +310,22 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         break;
 
       case 'set_activity':
+        // REQ 2292-2300: Set a character's exploration activity (persists each move).
         $activity = $params['activity'] ?? 'search';
+        $legal_activities = [
+          'avoid_notice', 'defend', 'detect_magic', 'follow_expert',
+          'hustle', 'scout', 'investigate', 'repeat_spell', 'search',
+        ];
+        if (!in_array($activity, $legal_activities, TRUE)) {
+          return [
+            'success' => FALSE,
+            'result' => ['error' => "Unknown exploration activity: $activity"],
+            'mutations' => [],
+            'events' => [],
+            'phase_transition' => NULL,
+            'narration' => NULL,
+          ];
+        }
         $game_state['exploration']['character_activities'][$actor_id] = $activity;
         $result = ['activity' => $activity];
         $events[] = GameEventLogger::buildEvent('set_activity', 'exploration', $actor_id, [
@@ -368,6 +384,16 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
             'spell_name' => $params['spell_name'] ?? 'unknown',
             'spell_level' => $params['spell_level'] ?? NULL,
           ],
+        ]);
+        break;
+
+      case 'daily_prepare':
+        // REQ 2304-2305: Daily preparation — prepare spells, channel focus, etc.
+        // Takes 1 hour. Restores focus points and marks daily abilities as ready.
+        $result = $this->processDailyPrepare($actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $result['mutations'] ?? [];
+        $events[] = GameEventLogger::buildEvent('daily_prepare', 'exploration', $actor_id, [
+          'prepared' => $result['prepared'] ?? [],
         ]);
         break;
 
@@ -754,6 +780,95 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
   // =========================================================================
   // Helper methods.
   // =========================================================================
+
+  /**
+   * Calculates travel speed in feet per minute, modified by terrain (REQ 2290-2291).
+   *
+   * Speed = base_speed × terrain_multiplier × 10 (10 min/move action assumed).
+   * Hustle activity: multiplier ×2 but applies fatigue after 30 min.
+   */
+  public function calculateTravelSpeed(int $base_speed, string $terrain = 'normal', string $activity = 'search'): array {
+    $terrain_multipliers = [
+      'normal'   => 1.0,
+      'difficult' => 0.5,
+      'greater_difficult' => 0.25,
+      'rubble'   => 0.5,
+      'crowd'    => 0.5,
+    ];
+    $multiplier = $terrain_multipliers[$terrain] ?? 1.0;
+
+    $hustle = ($activity === 'hustle');
+    if ($hustle) {
+      $multiplier *= 2.0;
+    }
+
+    $feet_per_minute = $base_speed * $multiplier;
+
+    return [
+      'base_speed' => $base_speed,
+      'terrain' => $terrain,
+      'multiplier' => $multiplier,
+      'feet_per_minute' => $feet_per_minute,
+      'hustle' => $hustle,
+      'fatigue_warning' => $hustle ? 'Hustle causes fatigue after 30 minutes.' : NULL,
+    ];
+  }
+
+  /**
+   * Processes daily preparation (REQ 2304-2305).
+   * Takes 1 hour. Restores focus points; marks daily abilities as ready.
+   */
+  protected function processDailyPrepare(string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
+    $prepared = [];
+
+    if (!empty($dungeon_data['entities'])) {
+      foreach ($dungeon_data['entities'] as &$entity) {
+        $iid = $entity['instance_id'] ?? ($entity['id'] ?? NULL);
+        if ($iid === $actor_id) {
+          // Restore focus points to max.
+          if (isset($entity['state']['focus_points'])) {
+            $max_focus = $entity['stats']['focus_points_max'] ?? 3;
+            $entity['state']['focus_points'] = $max_focus;
+            $prepared[] = 'focus_points';
+          }
+
+          // Mark daily abilities as ready.
+          if (isset($entity['state']['daily_abilities'])) {
+            foreach ($entity['state']['daily_abilities'] as &$ability) {
+              $ability['used'] = FALSE;
+            }
+            unset($ability);
+            $prepared[] = 'daily_abilities';
+          }
+
+          // Record prepare time (REQ 2305: takes 1 hour).
+          $entity['state']['last_daily_prepare'] = $game_state['exploration']['time_elapsed_minutes'] ?? 0;
+          $prepared[] = 'spells_prepared';
+          break;
+        }
+      }
+      unset($entity);
+    }
+
+    // Daily prepare takes 1 hour.
+    $this->advanceExplorationTime($game_state, 60);
+
+    try {
+      $this->database->update('dc_campaign_dungeons')
+        ->fields(['dungeon_data' => json_encode($dungeon_data)])
+        ->condition('campaign_id', $campaign_id)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Failed to persist daily prepare: @error', ['@error' => $e->getMessage()]);
+    }
+
+    return [
+      'prepared' => $prepared,
+      'time_cost_minutes' => 60,
+      'mutations' => [],
+    ];
+  }
 
   /**
    * Advances the exploration time tracker.

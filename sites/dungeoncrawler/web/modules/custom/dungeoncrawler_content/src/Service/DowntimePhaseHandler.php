@@ -59,6 +59,7 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
   public function getLegalIntents(): array {
     return [
       'long_rest',
+      'downtime_rest',
       'craft',
       'earn_income',
       'retrain',
@@ -119,10 +120,35 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         $events[] = GameEventLogger::buildEvent('downtime_ended', 'downtime', $actor_id, []);
         break;
 
+      case 'downtime_rest':
+        // REQ 2306: Long-term rest during downtime (8 hours recovers Con×2×level HP).
+        $result = $this->processDowntimeRest($actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $result['mutations'] ?? [];
+        $events[] = GameEventLogger::buildEvent('downtime_rest', 'downtime', $actor_id, [
+          'hp_restored' => $result['hp_restored'] ?? 0,
+        ]);
+        break;
+
+      case 'retrain':
+        // REQ 2307-2310: Retrain a feat, skill, or class choice.
+        $result = $this->processRetrain($actor_id, $params, $game_state);
+        $events[] = GameEventLogger::buildEvent('retrain', 'downtime', $actor_id, [
+          'retrain_type' => $params['retrain_type'] ?? NULL,
+          'from' => $params['retrain_from'] ?? NULL,
+          'to' => $params['retrain_to'] ?? NULL,
+        ]);
+        break;
+
+      case 'advance_day':
+        $result = $this->processAdvanceDay($actor_id, $game_state, $dungeon_data);
+        $events[] = GameEventLogger::buildEvent('advance_day', 'downtime', $actor_id, [
+          'days_elapsed' => $result['days_elapsed'] ?? NULL,
+          'retrain_completed' => $result['retrain_completed'] ?? NULL,
+        ]);
+        break;
+
       case 'craft':
       case 'earn_income':
-      case 'retrain':
-      case 'advance_day':
         // Stubs — to be implemented in a future sprint.
         $result = [
           'stub' => TRUE,
@@ -210,26 +236,31 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
    * Processes a long rest: restore HP, spell slots, remove conditions.
    */
   protected function processLongRest(?string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
-    // Long rest: 8 hours of rest. Per PF2e rules:
-    // - Restore hit points equal to Con modifier × level (minimum 1)
+    // Long rest: 8 hours of rest. Per PF2e rules (REQ 2301):
+    // - Restore HP equal to Con modifier × level (minimum 1 per level)
     // - Regain all spell slots
     // - Remove the wounded condition
     // - Reduce the value of doomed by 1
 
     $hp_restored = 0;
     $conditions_removed = [];
+    $new_hp = NULL;
 
     // Find the character entity and restore HP.
     if ($actor_id && !empty($dungeon_data['entities'])) {
       foreach ($dungeon_data['entities'] as &$entity) {
         $iid = $entity['instance_id'] ?? ($entity['id'] ?? NULL);
         if ($iid === $actor_id) {
-          $current_hp = $entity['state']['hit_points']['current'] ?? 0;
-          $max_hp = $entity['state']['hit_points']['max'] ?? 20;
+          $current_hp = (int) ($entity['state']['hit_points']['current'] ?? 0);
+          $max_hp = (int) ($entity['state']['hit_points']['max'] ?? 20);
 
-          // Restore a portion of HP (Con mod × level, simplified to full HP for now).
-          $entity['state']['hit_points']['current'] = $max_hp;
-          $hp_restored = $max_hp - $current_hp;
+          // REQ 2301: HP regained = Con modifier × level (minimum 1).
+          $con_mod = (int) ($entity['stats']['con_modifier'] ?? 0);
+          $level = max(1, (int) ($entity['stats']['level'] ?? 1));
+          $hp_per_rest = max(1, $con_mod) * $level;
+          $new_hp = min($max_hp, $current_hp + $hp_per_rest);
+          $entity['state']['hit_points']['current'] = $new_hp;
+          $hp_restored = $new_hp - $current_hp;
 
           // Remove wounded condition.
           if (isset($entity['state']['conditions'])) {
@@ -246,6 +277,27 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
             );
             $entity['state']['conditions'] = array_values($entity['state']['conditions']);
           }
+
+          // REQ 2302: Sleeping in medium/heavy armor applies fatigued.
+          if ($this->hasArmorEquipped($entity, ['medium', 'heavy'])) {
+            if (!isset($entity['state']['conditions'])) {
+              $entity['state']['conditions'] = [];
+            }
+            $already_fatigued = FALSE;
+            foreach ($entity['state']['conditions'] as $cond) {
+              if (($cond['name'] ?? ($cond['type'] ?? '')) === 'fatigued') {
+                $already_fatigued = TRUE;
+                break;
+              }
+            }
+            if (!$already_fatigued) {
+              $entity['state']['conditions'][] = ['name' => 'fatigued', 'source' => 'sleeping_in_armor'];
+              $conditions_removed[] = '(fatigued from armor applied)';
+            }
+          }
+
+          // REQ 2303: Reset sleep deprivation tracking.
+          $entity['state']['hours_since_rest'] = 0;
 
           break;
         }
@@ -272,11 +324,168 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
     return [
       'rested' => TRUE,
       'hp_restored' => $hp_restored,
+      'new_hp' => $new_hp,
       'conditions_removed' => $conditions_removed,
       'spell_slots_restored' => TRUE,
       'mutations' => [
-        ['entity' => $actor_id, 'field' => 'hit_points.current', 'to' => 'max'],
+        ['entity' => $actor_id, 'field' => 'hit_points.current', 'to' => $new_hp],
       ],
+    ];
+  }
+
+  /**
+   * Returns TRUE if the entity has medium or heavy armor equipped.
+   */
+  protected function hasArmorEquipped(array $entity, array $armor_categories): bool {
+    $equipped = $entity['equipment']['armor'] ?? ($entity['state']['equipped_armor'] ?? NULL);
+    if (!$equipped) {
+      return FALSE;
+    }
+    $category = $equipped['category'] ?? ($equipped['armor_type'] ?? '');
+    return in_array($category, $armor_categories, TRUE);
+  }
+
+  /**
+   * Processes a downtime long-term rest (REQ 2306).
+   * Restores Con mod × (2 × level) HP.
+   */
+  protected function processDowntimeRest(string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
+    $hp_restored = 0;
+    $new_hp = NULL;
+
+    if (!empty($dungeon_data['entities'])) {
+      foreach ($dungeon_data['entities'] as &$entity) {
+        $iid = $entity['instance_id'] ?? ($entity['id'] ?? NULL);
+        if ($iid === $actor_id) {
+          $current_hp = (int) ($entity['state']['hit_points']['current'] ?? 0);
+          $max_hp = (int) ($entity['state']['hit_points']['max'] ?? 20);
+          $con_mod = (int) ($entity['stats']['con_modifier'] ?? 0);
+          $level = max(1, (int) ($entity['stats']['level'] ?? 1));
+          $hp_restored_calc = max(1, $con_mod) * (2 * $level);
+          $new_hp = min($max_hp, $current_hp + $hp_restored_calc);
+          $entity['state']['hit_points']['current'] = $new_hp;
+          $hp_restored = $new_hp - $current_hp;
+          break;
+        }
+      }
+      unset($entity);
+    }
+
+    if (isset($game_state['downtime'])) {
+      $game_state['downtime']['days_elapsed'] = ($game_state['downtime']['days_elapsed'] ?? 0) + 1;
+    }
+
+    try {
+      $this->database->update('dc_campaign_dungeons')
+        ->fields(['dungeon_data' => json_encode($dungeon_data)])
+        ->condition('campaign_id', $campaign_id)
+        ->execute();
+    }
+    catch (\Exception $e) {
+      $this->logger->error('Failed to persist downtime rest: @error', ['@error' => $e->getMessage()]);
+    }
+
+    return [
+      'downtime_rest' => TRUE,
+      'hp_restored' => $hp_restored,
+      'new_hp' => $new_hp,
+      'mutations' => [
+        ['entity' => $actor_id, 'field' => 'hit_points.current', 'to' => $new_hp],
+      ],
+    ];
+  }
+
+  /**
+   * Processes the retrain action (REQ 2307-2310).
+   */
+  protected function processRetrain(string $actor_id, array $params, array &$game_state): array {
+    $retrain_type = $params['retrain_type'] ?? '';
+    $retrain_from = $params['retrain_from'] ?? '';
+    $retrain_to = $params['retrain_to'] ?? '';
+
+    // REQ 2308: Cannot retrain locked elements.
+    $prohibited = ['ancestry', 'heritage', 'background', 'class', 'ability_score'];
+    if (in_array($retrain_type, $prohibited, TRUE)) {
+      return ['error' => "Cannot retrain '$retrain_type': ancestry, heritage, background, class, and ability scores cannot be retrained."];
+    }
+
+    // REQ 2310: Block if already retraining.
+    if (!empty($game_state['downtime']['retraining'])) {
+      return ['error' => 'Already retraining. Complete or cancel current retraining before starting a new one.'];
+    }
+
+    // REQ 2309: Duration: 7 days standard; 30 days for major class choices.
+    $major_choices = ['druid_order', 'wizard_school', 'sorcerer_bloodline'];
+    $days_required = in_array($retrain_type, $major_choices, TRUE) ? 30 : 7;
+
+    if (!isset($game_state['downtime'])) {
+      $game_state['downtime'] = [];
+    }
+    $game_state['downtime']['retraining'] = [
+      'actor_id' => $actor_id,
+      'type' => $retrain_type,
+      'from' => $retrain_from,
+      'to' => $retrain_to,
+      'days_remaining' => $days_required,
+      'days_required' => $days_required,
+    ];
+
+    return [
+      'retrain_started' => TRUE,
+      'type' => $retrain_type,
+      'from' => $retrain_from,
+      'to' => $retrain_to,
+      'days_required' => $days_required,
+    ];
+  }
+
+  /**
+   * Processes advance_day: decrements active retrain timer and applies on completion.
+   */
+  protected function processAdvanceDay(string $actor_id, array &$game_state, array &$dungeon_data): array {
+    if (!isset($game_state['downtime'])) {
+      $game_state['downtime'] = [];
+    }
+    $game_state['downtime']['days_elapsed'] = ($game_state['downtime']['days_elapsed'] ?? 0) + 1;
+
+    $retrain_result = NULL;
+    if (!empty($game_state['downtime']['retraining'])) {
+      $rt = &$game_state['downtime']['retraining'];
+      $rt['days_remaining']--;
+      if ($rt['days_remaining'] <= 0) {
+        // Apply retrain: update entity feat/skill in dungeon_data.
+        if (!empty($dungeon_data['entities'])) {
+          foreach ($dungeon_data['entities'] as &$entity) {
+            $iid = $entity['instance_id'] ?? ($entity['id'] ?? NULL);
+            if ($iid === ($rt['actor_id'] ?? $actor_id)) {
+              if ($rt['type'] === 'feat') {
+                if (!isset($entity['stats']['feats'])) {
+                  $entity['stats']['feats'] = [];
+                }
+                $entity['stats']['feats'] = array_filter(
+                  $entity['stats']['feats'],
+                  fn($f) => ($f['name'] ?? $f) !== $rt['from']
+                );
+                $entity['stats']['feats'][] = ['name' => $rt['to'], 'source' => 'retrain'];
+              }
+              elseif ($rt['type'] === 'skill') {
+                $entity['stats']['trained_skills'][$rt['to']] = TRUE;
+                unset($entity['stats']['trained_skills'][$rt['from']]);
+              }
+              break;
+            }
+          }
+          unset($entity);
+        }
+        $retrain_result = $rt;
+        unset($game_state['downtime']['retraining']);
+      }
+    }
+
+    return [
+      'advanced' => TRUE,
+      'days_elapsed' => $game_state['downtime']['days_elapsed'],
+      'retrain_completed' => $retrain_result,
     ];
   }
 
