@@ -29,6 +29,15 @@ This file is owned by the `sec-analyst-forseti-agent-tracker` seat.
 - Cross-scope escalations must include the matrix issue type, the exact product context, `## Decision needed`, `## Recommendation`, and ROI so routing can happen in one cycle.
 - Ask for one of two outcomes only: reroute to the owning seat, or explicit temporary delegation with target files and acceptance criteria.
 
+## Synthetic release fast-exit (required)
+Known synthetic/diagnostic release-ids that must ALWAYS fast-exit without security analysis:
+- `fake-no-signoff-release` (GAP-26B-02 — confirmed synthetic, no PM signoff, broadcast to 26+ inboxes)
+- `stale-test-release-id-999` (synthetic test id, no real release)
+- Any inbox item folder name starting with `--` (shell flag injection test artifact, e.g. `--help-improvement-round`)
+- Any release-id that: (a) does not appear in `tmp/release-cycle-active/`, AND (b) has no corresponding PM signoff outbox in `sessions/pm-forseti-agent-tracker/outbox/` or `sessions/pm-forseti/outbox/`, AND (c) is broadcast identically across all agent inboxes with no site scoping.
+
+Fast-exit rule: `Status: done`, cite the prior outbox that first closed the same release-id (if exists), note "synthetic release confirmed — no security analysis warranted", and reference the structural fix at `sessions/dev-infra/inbox/20260405-improvement-round-sequencing-fix`.
+
 ## Commit-triggered review (required before any idle scan)
 Before starting any security review cycle, run:
 ```bash
