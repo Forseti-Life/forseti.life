@@ -3,8 +3,8 @@
 - Work item id: dc-cr-low-light-vision
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: planned
+- Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -31,3 +31,10 @@ Implement as a character-level sense flag (`low_light_vision: true`) stored alon
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- All write endpoints (POST/PATCH heritage/ancestry assignment) require `_csrf_request_header_mode: TRUE`.
+- All read endpoints (GET sense flags, ancestry data) use `_csrf_token: FALSE`.
+- Anonymous users receive 403 on all character write paths.
+- Character data is scoped to the owning user's session; no cross-character data exposure.

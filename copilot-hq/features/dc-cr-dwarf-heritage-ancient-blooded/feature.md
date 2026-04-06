@@ -29,3 +29,10 @@ Create a `heritage` entity: `id: ancient-blooded-dwarf`, `parent_ancestry: dwarf
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Heritage selection POST route (`/dungeoncrawler/character/{id}/heritage`) requires `_csrf_request_header_mode: TRUE`.
+- Heritage assignment validates authenticated user owns the character (no cross-character mutation).
+- Anonymous users receive 403 on all heritage write paths.
+- Heritage ID validated server-side against permitted list for the ancestry before application.
