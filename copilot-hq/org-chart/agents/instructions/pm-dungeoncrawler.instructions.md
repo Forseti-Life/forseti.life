@@ -85,6 +85,21 @@ Required per-feature inbox item content:
 ./scripts/pm-scope-activate.sh dungeoncrawler <feature-id>
 ```
 
+**Required at activation (stamp Release field):**
+When moving a feature from `Status: ready` → `Status: in_progress`, you MUST also set:
+```
+- Release: <current-release-id>
+```
+e.g., `- Release: 20260406-dungeoncrawler-release-b`
+
+Any feature stub missing this field at activation is defective — do not hand off to dev until it is populated.
+
+Verification (run after any activation batch — must return zero results):
+```bash
+grep -r "Release: (set by PM" features/dc-*/feature.md
+# Zero output = clean. Any hits = violation requiring immediate fix before dev handoff.
+```
+
 ## Groomed/ready gate
 A feature is Stage 0-eligible when ALL THREE exist:
 - `features/<id>/feature.md` (status: ready)
