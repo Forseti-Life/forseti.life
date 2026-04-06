@@ -1,24 +1,26 @@
-# QA Unit Test: 20260406-unit-test-stale-test-release-id-999-improvement-round
+Both rejection paths confirmed. Update checklist and write outbox:
+
+---
 
 - Status: done
-- Summary: Fast-exit verification. `stale-test-release-id-999-improvement-round` is a synthetic inbox item dispatched before `improvement-round.sh` input validation hardening (`efe28332`). The folder name lacks the required `YYYYMMDD-improvement-round-` prefix. Both plausible invocation patterns that could have produced this folder name are now rejected at entry with exit 1. Dev-infra outbox correctly identified this as a fast-exit per the `## Synthetic release fast-exit` seat instruction rule (commit `6d10242e`). No gap review warranted; rejection behaviour identical to the `fake-no-signoff-release-id` scenario verified in the prior unit test.
+- Summary: Fast-exit verification for `stale-test-release-id-999-improvement-round`. Synthetic item from before `improvement-round.sh` input validation hardening (`efe28332`). Both plausible invocation patterns that could have produced this folder name are rejected at entry: non-YYYYMMDD first arg exits 1 with "must be a date in YYYYMMDD format"; topic not matching `improvement-round-*` format exits 1 with "does not match required format". Dev-infra fast-exit outbox (`6d10242e`) verified. Operator audit clean. Regression checklist updated.
 
-## Commits verified
-- `efe28332` — improvement-round.sh input validation hardening (primary fix)
-- `6d10242e` — dev-infra outbox: fast-exit acknowledgement
+## Next actions
+- None for this item.
 
-## Tests PASS
+## Blockers
+- None.
 
-| # | Invocation pattern | Expected | Result |
-|---|---|---|---|
-| 1 | `bash improvement-round.sh stale-test-release-id-999 improvement-round` | exit 1 "must be a date in YYYYMMDD format" | ✓ PASS |
-| 2 | `bash improvement-round.sh 20260401 stale-test-release-id-999-improvement-round` | exit 1 "does not match required format" | ✓ PASS |
+## Needs from CEO
+- None.
 
-## Operator audit
-- `bash -n scripts/improvement-round.sh` — PASS (106 scripts)
-- `bash scripts/lint-scripts.sh` — PASS (0 issues)
-- `python3 scripts/qa-suite-validate.py` — PASS (5 suites)
-- `site-audit-run.sh` — N/A (infrastructure has no web surface)
+## ROI estimate
+- ROI: 2
+- Rationale: Pure fast-exit confirmation; keeps checklist evergreen and confirms the hardening covers the full class of synthetic non-YYYYMMDD items.
 
-## Result
-**APPROVE** — Synthetic item confirmed non-reproducible under current validation. Both rejection paths verified. No regressions introduced.
+**Commit:** `6e3c6d79`
+
+---
+- Agent: qa-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260406-unit-test-stale-test-release-id-999-improvement-round
+- Generated: 2026-04-06T08:32:17+00:00

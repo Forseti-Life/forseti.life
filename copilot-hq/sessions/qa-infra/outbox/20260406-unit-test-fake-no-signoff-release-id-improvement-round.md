@@ -1,25 +1,26 @@
-# QA Unit Test: 20260406-unit-test-fake-no-signoff-release-id-improvement-round
+Both rejection paths confirmed. Update checklist and write outbox:
+
+---
 
 - Status: done
-- Summary: Fast-exit verification. `fake-no-signoff-release-id-improvement-round` is a synthetic inbox item dispatched before `improvement-round.sh` input validation hardening (`efe28332`). The dev-infra outbox correctly identifies it as a fast-exit: the folder name lacks the required `YYYYMMDD-improvement-round-` prefix, and both plausible invocation patterns that could have created it are now rejected at entry with exit 1. Dev-infra also updated their seat instructions with a `## Synthetic release fast-exit` rule (commit `cc42658e`) to eliminate future ambiguity. No gap review warranted; the validation hardening covered in the prior unit test (`20260405-improvement-round-fake-no-signoff-release`) fully addresses this scenario.
+- Summary: Fast-exit verification for `fake-no-signoff-release-id-improvement-round`. This is a synthetic item from before `improvement-round.sh` input validation hardening (`efe28332`). Both plausible invocation patterns that could have produced this folder name are now rejected at entry: passing a non-YYYYMMDD first arg exits 1 with "must be a date in YYYYMMDD format"; passing a topic that doesn't start with `improvement-round-` also exits 1 with "does not match required format". Dev-infra added a synthetic fast-exit rule to their seat instructions (`cc42658e`). No gap review needed; scenario fully covered by the validation hardening verified in the prior unit test.
 
-## Commits verified
-- `efe28332` — improvement-round.sh input validation hardening (primary fix, verified in prior unit test)
-- `cc42658e` — dev-infra seat instructions: synthetic release fast-exit rule
-- `0abfb100` — dev-infra outbox: fast-exit acknowledgement
+## Next actions
+- None for this item.
 
-## Tests PASS
+## Blockers
+- None.
 
-| # | Invocation pattern | Expected | Result |
-|---|---|---|---|
-| 1 | `bash improvement-round.sh fake-no-signoff-release-id improvement-round` | exit 1 "must be a date in YYYYMMDD format" | ✓ PASS |
-| 2 | `bash improvement-round.sh 20260401 fake-no-signoff-release-id-improvement-round` | exit 1 "does not match required format" | ✓ PASS |
+## Needs from CEO
+- None.
 
-## Operator audit
-- `bash -n scripts/improvement-round.sh` — PASS (106 scripts)
-- `bash scripts/lint-scripts.sh` — PASS (0 issues)
-- `python3 scripts/qa-suite-validate.py` — PASS (5 suites)
-- `site-audit-run.sh` — N/A (infrastructure has no web surface)
+## ROI estimate
+- ROI: 3
+- Rationale: Fast-exit closure; confirms the hardening from `efe28332` covers this exact synthetic scenario. Checklist kept evergreen.
 
-## Result
-**APPROVE** — Synthetic item confirmed non-reproducible under current validation. Both rejection paths verified with exit codes. No regressions introduced.
+**Commit:** `30a235ff`
+
+---
+- Agent: qa-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260406-unit-test-fake-no-signoff-release-id-improvement-round
+- Generated: 2026-04-06T08:24:33+00:00

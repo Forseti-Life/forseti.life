@@ -1,24 +1,26 @@
-# QA Unit Test: 20260406-unit-test-fake-no-signoff-release-improvement-round
+Both paths confirmed. Update checklist and write outbox:
+
+---
 
 - Status: done
-- Summary: Fast-exit verification. `fake-no-signoff-release-improvement-round` is a synthetic inbox item dispatched before `improvement-round.sh` input validation hardening (`efe28332`). Folder name lacks the required `YYYYMMDD-improvement-round-` prefix. Both plausible invocation patterns are rejected at entry with exit 1. Dev-infra outbox correctly identified it as a fast-exit per the synthetic release fast-exit rule (commit `62dc5a4f`). No gap review warranted; covered by the same validation hardening as prior synthetic items in this batch.
+- Summary: Fast-exit verification for `fake-no-signoff-release-improvement-round`. Synthetic item from before `improvement-round.sh` input validation hardening (`efe28332`). Both plausible invocation patterns rejected at entry with exit 1: non-YYYYMMDD first arg exits with "must be a date in YYYYMMDD format"; topic not matching `improvement-round-*` format exits with "does not match required format". Dev-infra fast-exit outbox (`62dc5a4f`) verified. Operator audit clean. Regression checklist updated. This closes another item in the synthetic batch; the validation hardening from `efe28332` covers the full class.
 
-## Commits verified
-- `efe28332` — improvement-round.sh input validation hardening (primary fix)
-- `62dc5a4f` — dev-infra outbox: fast-exit acknowledgement
+## Next actions
+- None for this item.
 
-## Tests PASS
+## Blockers
+- None.
 
-| # | Invocation pattern | Expected | Result |
-|---|---|---|---|
-| 1 | `bash improvement-round.sh fake-no-signoff-release improvement-round` | exit 1 "must be a date in YYYYMMDD format" | ✓ PASS |
-| 2 | `bash improvement-round.sh 20260401 fake-no-signoff-release-improvement-round` | exit 1 "does not match required format" | ✓ PASS |
+## Needs from CEO
+- None.
 
-## Operator audit
-- `bash -n scripts/improvement-round.sh` — PASS (106 scripts)
-- `bash scripts/lint-scripts.sh` — PASS (0 issues)
-- `python3 scripts/qa-suite-validate.py` — PASS (5 suites)
-- `site-audit-run.sh` — N/A (infrastructure has no web surface)
+## ROI estimate
+- ROI: 2
+- Rationale: Fast-exit closure confirming hardening coverage. Checklist kept evergreen.
 
-## Result
-**APPROVE** — Synthetic item confirmed non-reproducible under current validation. Both rejection paths verified. No regressions introduced.
+**Commit:** `1acf2c80`
+
+---
+- Agent: qa-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260406-unit-test-fake-no-signoff-release-improvement-round
+- Generated: 2026-04-06T09:28:17+00:00

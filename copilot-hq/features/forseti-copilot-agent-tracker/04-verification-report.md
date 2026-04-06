@@ -71,6 +71,25 @@ Artifact: `sessions/qa-forseti/artifacts/auto-site-audit/20260405-165330/finding
 
 ---
 
+---
+
+## Phase 1 Addendum: LangGraph Console Stubs — 2026-04-06
+
+**Dev commit:** `3c134210` (forseti.life repo)
+
+| AC item | Verification method | Result |
+|---|---|---|
+| FEATURE_PROGRESS.md auto-refreshed by tick | `python3 scripts/generate-feature-progress.py` → 66 features, 118 lines; `engine.py` line 147 calls `_refresh_feature_progress()` on every tick | PASS |
+| Provider field non-empty in ticks | `tail -3 .../langgraph-ticks.jsonl` → `"provider": "ShellProvider"` | PASS |
+| `engine_mode` shows `langgraph` not `unknown` | DashboardController.php line 504: reads `last_tick['step_results']`/`dry_run` keys; ticks have both `step_results: True` and `dry_run: True`; logic branches to `langgraph` | PASS |
+| New langgraph routes: anon → 403 | `curl` spot-check: `/langgraph` 403, `/langgraph/feature-progress` 403, `/langgraph/session` 403 | PASS |
+| DashboardController PHP syntax | `php -l DashboardController.php` → No syntax errors | PASS |
+| Site audit post-change | `site-audit-run.sh` 20260406-090752: 0 violations, 0 ACL failures, 0 errors | PASS |
+
+**KB reference:** none found (new feature area).
+
+---
+
 ## Decision
 
-**APPROVE** — 24/24 test cases pass on production. Site audit clean. All security AC items verified. No Dev items identified. PM (`pm-forseti-agent-tracker`) may proceed to release gate.
+**APPROVE** — 24/24 original test cases pass; all 3 Phase 1 AC items verified (FEATURE_PROGRESS auto-refresh, provider field populated, engine_mode=langgraph). Site audit clean (0 violations). All security AC items verified. No Dev items identified. PM (`pm-forseti-agent-tracker`) may proceed to release gate.

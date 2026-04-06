@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-06T07:42:54Z
+Generated: 2026-04-06T09:39:52Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -12,7 +12,7 @@ Generated: 2026-04-06T07:42:54Z
 | dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | in_progress | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
 | dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | in_progress | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
-| dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | in_progress | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
+| dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | ready | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
 | dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | ready | unset (PM will set at triage) |  |  |  |
 | dc-cr-clan-dagger | dungeoncrawler | dungeoncrawler_content | shipped | P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev) |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat dependency; ConditionManager partial impl exists) |  |  |  |
@@ -27,11 +27,11 @@ Generated: 2026-04-06T07:42:54Z
 | dc-cr-dwarf-heritage-forge | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-heritage-rock | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-heritage-strong-blooded | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-dwarven-weapon-expertise | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-dwarven-weapon-expertise | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | ready | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | ready | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -43,7 +43,7 @@ Generated: 2026-04-06T07:42:54Z
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -59,10 +59,10 @@ Generated: 2026-04-06T07:42:54Z
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | ready | P2 |  |  |  |
-| forseti-ai-debug-gate | forseti.life | ai_conversation | in_progress | P1 |  |  |  |
+| forseti-ai-debug-gate | forseti.life | ai_conversation | ready | P1 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | ready | P2 |  |  |  |
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | in_progress | P1 |  |  |  |
-| forseti-csrf-fix | forseti.life | job_hunter | in_progress | P0 |  |  |  |
+| forseti-csrf-fix | forseti.life | job_hunter | ready | P0 |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | in_progress | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | in_progress | P1 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | in_progress | P2 |  |  |  |

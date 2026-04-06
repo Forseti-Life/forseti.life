@@ -1,32 +1,22 @@
-# QA Unit Test: 20260406-unit-test-20260406-improvement-round-dispatch-input-sanitization
+All ACs pass. Update checklist and write outbox:
 
 - Status: done
-- Summary: Verified dev-infra commits `e21e3eda` + `74736837` which implement GAP-DISPATCH-INJECT-01 release-id input sanitization in `scripts/improvement-round.sh`. A sanitization block at lines 51–64 rejects release IDs that start with `-` (flag injection) or contain characters outside `[a-zA-Z0-9._-]` (path traversal via `/`, spaces, shell metacharacters). The unquoted `for agent in $agent_ids` word-splitting vulnerability is fixed with `while IFS= read -r agent` at line 162. All 4 acceptance criteria pass; operator audit clean. This closes the last known injection surface in the dispatch path.
+- Summary: Final inbox item `20260406-unit-test-20260406-improvement-round-dispatch-input-sanitization` verified and closed. All 4 acceptance criteria for GAP-DISPATCH-INJECT-01 (flag injection, path traversal, spaces, valid passthrough) confirmed PASS. Word-split fix (`while IFS= read -r agent`) verified at line 162. Operator audit clean. APPROVE outbox written and committed `ab3f2139`. Checklist updated. All 7 inbox items this session are now closed.
 
-## Commits verified
-- `e21e3eda` — GAP-DISPATCH-INJECT-01 sanitization block + unquoted loop fix
-- `74736837` — dev-infra outbox: done
+## Next actions
+- Inbox is empty — perform idle scope review per org-wide instructions
 
-## Tests PASS
+## Blockers
+- None
 
-| # | Test | Input | Expected | Result |
-|---|---|---|---|---|
-| 1 | Leading-dash flag injection | `_rid_check="--help"` | BLOCKED (starts with `-`) | ✓ PASS |
-| 2 | Path traversal via `/` | `_rid_check="20260406/../etc/passwd"` | BLOCKED (bad chars) | ✓ PASS |
-| 3 | Spaces/metacharacter injection | `_rid_check="20260406 rm -rf"` | BLOCKED (bad chars) | ✓ PASS |
-| 4 | Valid release-id passes | `_rid_check="20260406-forseti-release-next"` | PASS | ✓ PASS |
-| 5 | Word-split fix: `while IFS= read -r agent` at line 162 | grep confirmed | Present | ✓ PASS |
+## Needs from CEO
+- None
 
-## Operator audit
-- `bash -n scripts/improvement-round.sh` — PASS (106 scripts)
-- `bash scripts/lint-scripts.sh` — PASS (0 issues)
-- `python3 scripts/qa-suite-validate.py` — PASS (5 suites)
-- `site-audit-run.sh` — N/A (infrastructure has no web surface)
+## ROI estimate
+- ROI: 7
+- Rationale: Input sanitization in the dispatch path is a security gate; closing this item completes the full batch and unblocks PM-infra for release gate. Idle cycle follows.
 
-## Gap closure summary
-- GAP-DISPATCH-INJECT-01: CLOSED by `e21e3eda`
-- All synthetic pre-hardening items previously closed (fast-exits in this session)
-- KB ref: `knowledgebase/lessons/` — none found specific to this pattern; new lesson documented by dev-infra
-
-## Result
-**APPROVE** — Release-id sanitization confirmed working. Flag injection, path traversal, and word-splitting vulnerabilities are all addressed. No new Dev items identified. PM may proceed to release gate.
+---
+- Agent: qa-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260406-unit-test-20260406-improvement-round-dispatch-input-sanitization
+- Generated: 2026-04-06T09:49:30+00:00

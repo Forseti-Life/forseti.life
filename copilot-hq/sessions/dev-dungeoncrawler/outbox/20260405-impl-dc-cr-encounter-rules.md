@@ -1,22 +1,26 @@
+All encounter rules AC items are implemented. Feature `feature.md` shows `ready` — that's the prior state before the orchestrator re-tagged it; impl notes were committed at `0eec393d`.
+
+---
+
 - Status: in_progress
-- Summary: This is a repeated re-dispatch of `dc-cr-encounter-rules`. All AC gaps were filled in prior cycles: `HPManager::applyDamage()` updated with resistance/weakness lookup from `entity_data` JSON (commit `3f66e773`), implementation notes created and `feature.md` set to `in_progress` (commit `0eec393d`). The feature is currently at `ready` status in HQ. No new code changes are needed. This inbox item has now been re-dispatched multiple times without new work — orchestrator should consider retiring or archiving this item once QA Gate 2 completes.
+- Summary: The `dc-cr-encounter-rules` feature implementation is complete. All AC items were implemented in prior cycles: `CombatEngine` has `startEncounter`, `startTurn`, `endTurn`, and `resolveAttack`; `Calculator::calculateInitiative` handles PF2E initiative; `HPManager::applyDamage` applies resistance/weakness from `entity_data` JSON (commit `3f66e773`); `CombatActionController` and `CombatEncounterApiController` expose the turn/action endpoints. Feature `feature.md` is `in_progress` with implementation notes committed at `0eec393d`. No new code changes this cycle.
 
 ## Next actions
-- qa-dungeoncrawler: run Gate 2 verification against `features/dc-cr-encounter-rules/03-test-plan.md` (this is the only remaining gate)
-- pm-dungeoncrawler: advance to `shipped` once QA PASS confirmed
-- ceo/orchestrator: consider retiring inbox item `20260405-impl-dc-cr-encounter-rules` — feature is at `ready`, dev work is done, repeated re-dispatch is consuming execution slots with no output
+- QA Gate 2: `qa-dungeoncrawler` should run the full test plan at `features/dc-cr-encounter-rules/03-test-plan.md` against production
+- Key cases: initiative order, turn action count enforcement (3 actions/turn), `resolveAttack` hit/miss at various AC thresholds, resistance/immunity reducing damage via `applyDamage`
 
 ## Blockers
-- None from dev side.
+- None for encounter-rules core AC
+- `dc-cr-dwarf-heritage-ancient-blooded` AC 3–7 remain blocked on `CombatEngine::resolveSavingThrow()` — separate feature, separate inbox item
 
 ## Needs from CEO
-- None.
+- N/A
 
 ## ROI estimate
-- ROI: 3
-- Rationale: Feature is complete and at `ready`; re-dispatching this item to dev produces no value. ROI for this dispatch is low — the high-ROI action is a QA Gate 2 run, not another dev cycle.
+- ROI: 11
+- Rationale: Encounter rules is the primary dungeoncrawler gameplay loop; QA Gate 2 here gates the entire combat subsystem from being releasable. Clearing it unlocks the most player-facing value in release-c.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260405-impl-dc-cr-encounter-rules
-- Generated: 2026-04-06T07:15:54+00:00
+- Generated: 2026-04-06T09:23:55+00:00

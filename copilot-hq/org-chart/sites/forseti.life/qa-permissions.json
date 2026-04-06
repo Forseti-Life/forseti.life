@@ -154,6 +154,40 @@
       }
     },
     {
+      "id": "forseti-jobhunter-profile-surface",
+      "feature_id": "forseti-jobhunter-profile",
+      "path_regex": "^/jobhunter/(?:profile|my-profile)(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-profile (TC-01, TC-02, TC-15, TC-16, TC-18). Covers /jobhunter/profile, /jobhunter/profile/edit, /jobhunter/profile/dashboard, /jobhunter/profile/summary, /jobhunter/my-profile, /jobhunter/my-profile/edit. Authenticated=allow (200 at final URL after redirect); anon=deny. Administrator=allow per TC-16 (admin may access profile routes). Must be listed before jobhunter-surface for feature_id linkage.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "ignore",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-resume-download",
+      "feature_id": "forseti-jobhunter-profile",
+      "path_regex": "^/jobhunter/resume/download/",
+      "notes": "Added for feature forseti-jobhunter-profile (TC-08). Ownership-level check: owning user=allow, other authenticated=deny (cross-user denial verified via E2E TC-11, not role-audit). anon=deny. Role-audit only validates anon denial; cross-user ownership is E2E-only.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-resume-delete",
+      "feature_id": "forseti-jobhunter-profile",
+      "path_regex": "^/jobhunter/resume/delete/",
+      "notes": "Added for feature forseti-jobhunter-profile (TC-09). Ownership-level check: owning user=allow, other authenticated=deny (cross-user denial verified via E2E). anon=deny. Role-audit only validates anon denial.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
       "id": "jobhunter-surface",
       "path_regex": "^/jobhunter(?:/|$)",
       "notes": "User-facing jobhunter routes (access job hunter permission). content_editor/administrator are not job seekers \u2014 ignore. jobhunter-admin and jobhunter-api-dev rules take priority (listed first) for admin/API sub-paths.",
@@ -205,6 +239,50 @@
         "authenticated": "allow",
         "content_editor": "ignore",
         "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-submission-index",
+      "feature_id": "forseti-jobhunter-application-submission",
+      "path_regex": "^/jobhunter/application-submission(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-application-submission (TC-04/TC-05). Authenticated users with 'access job hunter' permission: allow. Anonymous: deny.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-submission-job",
+      "feature_id": "forseti-jobhunter-application-submission",
+      "path_regex": "^/jobhunter/application-submission/[^/]+(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-application-submission (TC-04/TC-05). Covers /jobhunter/application-submission/{job_id} and sub-paths.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-submission-short-index",
+      "feature_id": "forseti-jobhunter-application-submission",
+      "path_regex": "^/application-submission(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-application-submission (TC-04/TC-05). Short-URL alias for /jobhunter/application-submission.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-submission-short-job",
+      "feature_id": "forseti-jobhunter-application-submission",
+      "path_regex": "^/application-submission/[^/]+(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-application-submission (TC-04/TC-05). Short-URL alias covering /application-submission/{job_id} and sub-paths.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
       }
     }
   ]

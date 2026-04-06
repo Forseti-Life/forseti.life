@@ -124,11 +124,11 @@ The `jobhunter-e2e` suite command is self-contained — it provisions the test u
 # From: /home/ubuntu/forseti.life/copilot-hq (HQ root)
 # Run the suite command from qa-suites/products/forseti/suite.json directly, or step-by-step:
 
-DRUSH=/usr/local/bin/drush
-$DRUSH --uri=https://forseti.life jhtr:qa-users-ensure --roles=authenticated
-QA_UID=$($DRUSH --uri=https://forseti.life user:information qa_tester_authenticated --format=json \
+DRUSH=/var/www/html/forseti/vendor/bin/drush
+$DRUSH --root=/var/www/html/forseti/web --uri=https://forseti.life jhtr:qa-users-ensure --roles=authenticated
+QA_UID=$($DRUSH --root=/var/www/html/forseti/web --uri=https://forseti.life user:information qa_tester_authenticated --format=json \
   | python3 -c "import json,sys; d=json.load(sys.stdin); print(list(d.keys())[0])")
-ULI=$($DRUSH --uri=https://forseti.life user:login --uid=$QA_UID --no-browser)
+ULI=$($DRUSH --root=/var/www/html/forseti/web --uri=https://forseti.life user:login --uid=$QA_UID --no-browser)
 # Obtain session cookie for smoke check:
 curl -sc /tmp/qa_cookies.txt "$ULI" > /dev/null
 cd /home/ubuntu/forseti.life && \
