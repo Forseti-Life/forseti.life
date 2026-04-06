@@ -33,6 +33,8 @@ If the inbox item's release ID does not exactly match the output, fast-exit imme
 
 Lesson (2026-04-06): `stale-test-release-id-999` and `fake-no-signoff-release-id` were broadcast to 26+ inbox slots. Dev task run IDs (pattern: `YYYYMMDD-HHMMSS-impl-<feature>`) and QA audit run IDs (pattern: `YYYYMMDD-HHMMSS-qa-findings-*`) have been misrouted as signoff IDs — 8+ consecutive occurrences in one session.
 
+Lesson (2026-04-06): **QA unit-test outbox filenames misrouted as signoff release IDs** — 14+ consecutive occurrences. Pattern: orchestrator fires signoff dispatch for ANY QA outbox file matching `*unit-test*` without validating the release ID. The resulting inbox item has `Release id: 20260406-unit-test-20260406-impl-dc-cr-<feature>` which never matches the active release ID. Fast-exit rule applies. Extract real QA signal (APPROVE/BLOCK, commits) from the referenced QA outbox before writing the outbox — do not discard evidence. Escalation to dev-infra required (orchestrator `pick_agents` / signoff-dispatch bug).
+
 ## Start-of-Stage-3 checklist (next release grooming)
 
 Each release cycle you receive a grooming inbox item. Work through this for `${next_release_id}`:
