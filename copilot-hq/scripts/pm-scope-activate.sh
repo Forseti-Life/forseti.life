@@ -71,10 +71,25 @@ if [ -f "$RELEASE_ID_FILE" ]; then
   ACTIVE_RELEASE_ID="$(tr -d '[:space:]' < "$RELEASE_ID_FILE")"
 fi
 if [ -n "$ACTIVE_RELEASE_ID" ]; then
-  # Count only features scoped to this site (by Website: field in feature.md)
-  SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null | wc -l | tr -d '[:space:]')"
+  # GAP-B-02: scope cap count to the CURRENT release only (not all in_progress across releases).
+  # Features from prior release cycles that remain in_progress must not block new activations.
+  # Fallback: if ACTIVE_RELEASE_ID is empty (no active release), count globally (original behavior).
+  SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
+    | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null \
+    | xargs grep -l "^- Release:.*${ACTIVE_RELEASE_ID}" 2>/dev/null \
+    | wc -l | tr -d '[:space:]')"
   if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
-    echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release $ACTIVE_RELEASE_ID)." >&2
+    echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release ${ACTIVE_RELEASE_ID})." >&2
+    echo "  Defer this feature to the next release or remove another feature from scope first." >&2
+    exit 1
+  fi
+else
+  # No active release — fall back to global in_progress count for the site
+  SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
+    | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null \
+    | wc -l | tr -d '[:space:]')"
+  if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
+    echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress)." >&2
     echo "  Defer this feature to the next release or remove another feature from scope first." >&2
     exit 1
   fi
