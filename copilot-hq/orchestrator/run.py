@@ -1730,13 +1730,16 @@ def _write_release_notes(release_id: str, slug: str, required: List[Dict[str, An
 
 
 def _coordinated_push_step(log: List[Any]) -> None:
-    """Auto-deploy when all required coordinated PM signoffs are present for a release ID.
+    """Auto-deploy when all coordinated teams have their current active release signed off.
 
-    Scans each required PM agent's release-signoffs/ dir, finds release IDs present in ALL
-    of them, and for each unseen release ID triggers `gh workflow run deploy.yml` and
-    dispatches a post-push config-import + Gate R5 inbox item to pm-forseti.
+    Each team has its own release ID (e.g. 20260406-dungeoncrawler-release-next vs
+    20260406-forseti-release-next).  The deploy fires when every team's PM has written
+    a signoff for THEIR current active release_id — not when they share the same ID.
 
-    Idempotent: a marker file in tmp/auto-push-dispatched/{slug}.pushed prevents re-triggering.
+    Marker is keyed to the sorted, joined set of all active release IDs to prevent
+    duplicate deploys across ticks.
+
+    Idempotent: a marker file in tmp/auto-push-dispatched/<combined-slug>.pushed blocks re-fire.
     """
     import json as _json
 
@@ -1762,91 +1765,119 @@ def _coordinated_push_step(log: List[Any]) -> None:
     if not required:
         return
 
-    signoffs_by_agent: Dict[str, set] = {}
-    for entry in required:
-        pm_agent = entry["pm_agent"]
-        signoff_dir = REPO_ROOT / "sessions" / pm_agent / "artifacts" / "release-signoffs"
-        ids: set = set()
-        if signoff_dir.is_dir():
-            for f in signoff_dir.iterdir():
-                if f.suffix == ".md" and not f.stem.startswith("_"):
-                    ids.add(f.stem)
-        signoffs_by_agent[pm_agent] = ids
+    active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
 
-    all_sets = [signoffs_by_agent[e["pm_agent"]] for e in required]
-    ready_releases = set.intersection(*all_sets) if all_sets else set()
+    # Build per-team readiness: does each team's PM have a signoff for their active release?
+    team_release_ids: Dict[str, str] = {}  # team_id -> active release_id
+    team_ready: Dict[str, bool] = {}       # team_id -> signoff present
+
+    for entry in required:
+        team_id = entry["team_id"]
+        pm_agent = entry["pm_agent"]
+        release_id_file = active_dir / f"{team_id}.release_id"
+        if not release_id_file.exists():
+            team_ready[team_id] = False
+            continue
+        rid = release_id_file.read_text(encoding="utf-8").strip()
+        if not rid:
+            team_ready[team_id] = False
+            continue
+        team_release_ids[team_id] = rid
+        slug = re.sub(r"[^A-Za-z0-9._-]", "-", rid)[:80]
+        signoff_file = REPO_ROOT / "sessions" / pm_agent / "artifacts" / "release-signoffs" / f"{slug}.md"
+        team_ready[team_id] = signoff_file.exists()
+
+    # All teams must have active releases and PM signoffs
+    if not all(team_ready.get(e["team_id"], False) for e in required):
+        not_ready = [e["team_id"] for e in required if not team_ready.get(e["team_id"], False)]
+        log.append({"step": "coordinated_push", "status": "waiting", "not_ready": not_ready,
+                    "team_releases": team_release_ids})
+        return
+
+    # Build a stable marker key from all active release IDs (sorted for determinism)
+    combined_key = "__".join(
+        re.sub(r"[^A-Za-z0-9._-]", "-", team_release_ids[e["team_id"]])
+        for e in sorted(required, key=lambda x: x["team_id"])
+    )[:120]
 
     pushed_dir = REPO_ROOT / "tmp" / "auto-push-dispatched"
     pushed_dir.mkdir(parents=True, exist_ok=True)
+    marker = pushed_dir / f"{combined_key}.pushed"
 
-    results = []
-    for release_id in sorted(ready_releases):
-        slug = re.sub(r"[^A-Za-z0-9._-]", "-", release_id)[:80]
-        marker = pushed_dir / f"{slug}.pushed"
-        if marker.exists():
-            results.append({"release_id": release_id, "action": "already_pushed"})
-            continue
+    if marker.exists():
+        log.append({"step": "coordinated_push", "status": "already_pushed", "marker": combined_key})
+        return
 
-        # Write marker first to prevent duplicate triggers across ticks
-        marker.write_text(datetime.now(timezone.utc).isoformat() + "\n")
+    # Write marker first to prevent duplicate triggers across ticks
+    marker.write_text(datetime.now(timezone.utc).isoformat() + "\n")
 
-        # Auto-generate release notes from git log + signoff content
-        _write_release_notes(release_id, slug, required)
+    # Use the first (alphabetically) release ID as the canonical label for logs/notes
+    canonical_release_id = sorted(team_release_ids.values())[0]
+    canonical_slug = re.sub(r"[^A-Za-z0-9._-]", "-", canonical_release_id)[:80]
 
-        rc, out = _run(
-            ["gh", "workflow", "run", "deploy.yml",
-             "--repo", "keithaumiller/forseti.life", "--ref", "main"],
-            timeout=60,
+    # Auto-generate release notes from git log + signoff content
+    _write_release_notes(canonical_release_id, canonical_slug, required)
+
+    rc, out = _run(
+        ["gh", "workflow", "run", "deploy.yml",
+         "--repo", "keithaumiller/forseti.life", "--ref", "main"],
+        timeout=60,
+    )
+    print(f"COORDINATED-PUSH: {combined_key} deploy rc={rc}")
+
+    # Dispatch post-push config-import + Gate R5 item to pm-forseti
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    item_id = f"{today}-post-push-{canonical_slug}"
+    inbox_dir = REPO_ROOT / "sessions" / "pm-forseti" / "inbox" / item_id
+    outbox_file = REPO_ROOT / "sessions" / "pm-forseti" / "outbox" / f"{item_id}.md"
+    if not inbox_dir.exists() and not outbox_file.exists():
+        inbox_dir.mkdir(parents=True, exist_ok=True)
+        (inbox_dir / "roi.txt").write_text("9\n")
+        all_ids_text = "\n".join(f"  - {tid}: `{rid}`" for tid, rid in sorted(team_release_ids.items()))
+        (inbox_dir / "command.md").write_text(
+            f"# Post-push steps: coordinated release\n\n"
+            f"The coordinated release deploy was triggered automatically.\n\n"
+            f"## Releases shipped\n{all_ids_text}\n\n"
+            "## 1. Wait for deploy workflow to finish\n"
+            "```bash\ngh run list --repo keithaumiller/forseti.life --workflow deploy.yml --limit 3\n```\n\n"
+            "## 2. Import config on production\n"
+            "```bash\ncd /var/www/html/forseti && vendor/bin/drush config:import -y && vendor/bin/drush cr\n```\n\n"
+            "## 3. Gate R5 — post-release production QA\n"
+            "Trigger a production audit for each product (requires ALLOW_PROD_QA=1):\n"
+            "```bash\nALLOW_PROD_QA=1 bash scripts/site-full-audit.py forseti\n```\n"
+            "Record clean/unclean signal in your outbox.\n\n"
+            f"Canonical release id: `{canonical_release_id}`\n"
         )
-        print(f"COORDINATED-PUSH: {release_id} deploy rc={rc}")
 
-        # Dispatch post-push config-import + Gate R5 item to pm-forseti
-        today = datetime.now(timezone.utc).strftime("%Y%m%d")
-        item_id = f"{today}-post-push-{slug}"
-        inbox_dir = REPO_ROOT / "sessions" / "pm-forseti" / "inbox" / item_id
-        outbox_file = REPO_ROOT / "sessions" / "pm-forseti" / "outbox" / f"{item_id}.md"
-        if not inbox_dir.exists() and not outbox_file.exists():
-            inbox_dir.mkdir(parents=True, exist_ok=True)
-            (inbox_dir / "roi.txt").write_text("9\n")
-            (inbox_dir / "command.md").write_text(
-                f"# Post-push steps: {release_id}\n\n"
-                "The coordinated release deploy was triggered automatically. Complete post-push steps:\n\n"
-                "## 1. Wait for deploy workflow to finish\n"
-                "```bash\ngh run list --repo keithaumiller/forseti.life --workflow deploy.yml --limit 3\n```\n\n"
-                "## 2. Import config on production\n"
-                "```bash\ncd /var/www/html/forseti && vendor/bin/drush config:import -y && vendor/bin/drush cr\n```\n\n"
-                "## 3. Gate R5 — post-release production QA\n"
-                "Trigger a production audit for each product (requires ALLOW_PROD_QA=1):\n"
-                "```bash\nALLOW_PROD_QA=1 bash scripts/site-full-audit.py forseti\n```\n"
-                "Record clean/unclean signal in your outbox.\n\n"
-                f"Release id: `{release_id}`\n"
+    # Ensure _release_cycle_step can advance each team's cycle: write cross-team signoffs
+    # if the other PM's release hasn't been individually signed yet (e.g. Forseti PM signs
+    # dungeoncrawler's release so DC cycle advances on next tick).
+    for entry in required:
+        team_id = entry["team_id"]
+        pm_agent = entry["pm_agent"]
+        rid = team_release_ids.get(team_id, "")
+        if not rid:
+            continue
+        slug = re.sub(r"[^A-Za-z0-9._-]", "-", rid)[:80]
+        signoff_path = REPO_ROOT / "sessions" / pm_agent / "artifacts" / "release-signoffs" / f"{slug}.md"
+        if not signoff_path.exists():
+            signoff_path.parent.mkdir(parents=True, exist_ok=True)
+            signoff_path.write_text(
+                f"# Release Signoff: {rid}\n\n"
+                f"- Status: approved\n"
+                f"- Signed by: orchestrator (coordinated push {combined_key})\n"
+                f"- Timestamp: {datetime.now(timezone.utc).isoformat()}\n\n"
+                f"This release was shipped as part of a coordinated push.\n"
             )
+            print(f"COORDINATED-PUSH: wrote signoff {rid} for {team_id}/{pm_agent}")
 
-        # Write per-team signoffs so _release_cycle_step advances the cycle
-        active_dir = REPO_ROOT / "tmp" / "release-cycle-active"
-        for entry in required:
-            team_id = entry["team_id"]
-            pm_agent = entry["pm_agent"]
-            per_team_release_id_file = active_dir / f"{team_id}.release_id"
-            if per_team_release_id_file.exists():
-                per_team_release_id = per_team_release_id_file.read_text().strip()
-                if per_team_release_id:
-                    per_team_signoff = (
-                        REPO_ROOT / "sessions" / pm_agent / "artifacts" / "release-signoffs"
-                        / f"{re.sub(r'[^A-Za-z0-9._-]', '-', per_team_release_id)[:80]}.md"
-                    )
-                    if not per_team_signoff.exists():
-                        per_team_signoff.write_text(
-                            f"# Release Signoff: {per_team_release_id}\n\n"
-                            f"**Status**: signed-off\n"
-                            f"**Signed by**: orchestrator (coordinated release {release_id} shipped)\n\n"
-                            f"This per-team release was shipped as part of coordinated release `{release_id}`.\n"
-                        )
-                        print(f"COORDINATED-PUSH: wrote per-team signoff {per_team_release_id} for {team_id}")
-
-        results.append({"release_id": release_id, "action": "pushed", "deploy_rc": rc})
-
-    log.append({"step": "coordinated_push", "ready_releases": list(ready_releases), "results": results})
+    log.append({
+        "step": "coordinated_push",
+        "status": "pushed",
+        "marker": combined_key,
+        "team_releases": team_release_ids,
+        "deploy_rc": rc,
+    })
 
 
 def _make_provider(name: str) -> RuntimeProvider:
