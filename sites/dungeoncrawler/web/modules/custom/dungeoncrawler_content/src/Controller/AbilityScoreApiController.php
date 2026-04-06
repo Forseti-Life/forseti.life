@@ -320,13 +320,14 @@ class AbilityScoreApiController extends ControllerBase {
         return $item !== '';
       }));
 
-      // All abilities are available, but already-selected ones are disabled
+      // Abilities already selected are not available for re-selection, but are
+      // NOT disabled — the client must be able to click them to deselect.
       $all_abilities = AbilityScoreTracker::ABILITIES;
       $available = array_diff($all_abilities, $current_selections);
 
       return new JsonResponse([
         'available' => array_values($available),
-        'disabled' => array_values($current_selections),
+        'disabled' => [],
         'max_selections' => $config['max_selections'],
         'current_selections' => count($current_selections),
       ]);
