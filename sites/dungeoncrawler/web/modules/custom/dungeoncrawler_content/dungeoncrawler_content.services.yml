@@ -509,3 +509,8 @@ services:
       - '@logger.factory'
       - '@dungeoncrawler_content.game_event_logger'
       - '@dungeoncrawler_content.ai_session_manager'
+
+  dungeoncrawler_content.crit_specialization:
+    class: Drupal\dungeoncrawler_content\Service\CritSpecializationService
+    arguments:
+      - '@dungeoncrawler_content.condition_manager'

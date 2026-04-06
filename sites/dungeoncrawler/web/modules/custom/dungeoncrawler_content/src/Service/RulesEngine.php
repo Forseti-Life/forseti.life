@@ -314,6 +314,18 @@ class RulesEngine {
       return ['is_immune' => TRUE, 'immunity_type' => $check];
     }
 
+    // PF2E req 2118: critical_hits immunity — downgrade crit_success to success.
+    // Callers should check immunity_type === 'critical_hits' to downgrade degree.
+    if ($check === 'critical_hits' && in_array('critical_hits', $immunity_list, TRUE)) {
+      return ['is_immune' => TRUE, 'immunity_type' => 'critical_hits'];
+    }
+
+    // PF2E req 2119: precision immunity — strip precision damage components.
+    // Callers should check immunity_type === 'precision' to strip precision bonus.
+    if ($check === 'precision' && in_array('precision', $immunity_list, TRUE)) {
+      return ['is_immune' => TRUE, 'immunity_type' => 'precision'];
+    }
+
     // Undead are immune to death effects, disease, poison, unconscious.
     $traits = array_map('strtolower', (array) ($entity_ref['traits'] ?? []));
     if (in_array('undead', $traits, TRUE)) {

@@ -28,7 +28,7 @@ class HPManager {
    *
    * @see /docs/dungeoncrawler/issues/combat-engine-service.md#applydamage
    */
-  public function applyDamage($participant_id, $damage, $damage_type, $source, $encounter_id) {
+  public function applyDamage($participant_id, $damage, $damage_type, $source, $encounter_id, bool $is_nonlethal = FALSE) {
     $participant = $this->loadParticipant($participant_id);
     if (!$participant) {
       return ['final_damage' => 0, 'new_hp' => 0, 'new_status' => 'not_found'];
@@ -54,11 +54,16 @@ class HPManager {
         break;
       }
     }
+    // PF2E req 2114: after resistances, damage > 0 must be at least 1.
+    $original_damage = $damage;
     foreach ($weaknesses as $w) {
       if (strtolower((string) ($w['type'] ?? '')) === $damage_type_str) {
         $damage += (int) ($w['value'] ?? 0);
         break;
       }
+    }
+    if ($original_damage > 0 && $damage < 1) {
+      $damage = 1;
     }
 
     // PF2e: Temp HP absorbs damage first.
@@ -102,7 +107,13 @@ class HPManager {
       ->execute();
 
     if ($is_defeated) {
-      $this->conditionManager->applyCondition($participant_id, 'dying', 1, ['type' => 'encounter', 'remaining' => NULL], $source, $encounter_id);
+      // PF2E req 2120/2121: nonlethal damage at 0 HP → unconscious, not dying.
+      if ($is_nonlethal) {
+        $this->conditionManager->applyCondition($participant_id, 'unconscious', 1, ['type' => 'encounter', 'remaining' => NULL], $source, $encounter_id);
+      }
+      else {
+        $this->conditionManager->applyCondition($participant_id, 'dying', 1, ['type' => 'encounter', 'remaining' => NULL], $source, $encounter_id);
+      }
     }
 
     $death_state = $this->checkDeathCondition($participant_id, $encounter_id, $new_hp, $max_hp);

@@ -444,12 +444,16 @@ class CombatEngine {
 
     if ($degree === 'critical_success' || $degree === 'success') {
       $damage_roll = $this->numberGeneration->rollNotation($weapon['damage_dice'] ?? '1d4');
-      $base_damage = array_sum($damage_roll['rolls'] ?? [$damage_roll['total'] ?? 1]);
-      if (isset($damage_roll['modifier'])) {
-        $base_damage += (int) $damage_roll['modifier'];
-      }
-      $damage_dealt = ($degree === 'critical_success') ? $base_damage * 2 : $base_damage;
+      $dice_total = array_sum($damage_roll['rolls'] ?? [$damage_roll['total'] ?? 1]);
+      $ability_mod = (int) ($weapon['ability_modifier'] ?? $damage_roll['modifier'] ?? 0);
       $damage_type = $weapon['damage_type'] ?? 'untyped';
+      if ($degree === 'critical_success') {
+        // PF2E req 2115: double dice only, then add flat bonuses once.
+        $damage_dealt = $this->calculator->applyCriticalDamage($damage_roll['rolls'] ?? [], $ability_mod)['doubled_total'];
+      }
+      else {
+        $damage_dealt = $dice_total + $ability_mod;
+      }
       $damage_result = $this->hpManager->applyDamage($target_id, $damage_dealt, $damage_type, ['attacker' => $participant_id], $encounter_id);
     }
 

@@ -99,13 +99,17 @@ class ActionProcessor {
     $map_penalty = $this->calculator->calculateMultipleAttackPenalty($attack_number, $is_agile);
 
     $base_attack_bonus = (int) ($weapon['attack_bonus'] ?? 0);
+    $is_nonlethal = !empty($weapon['is_nonlethal']);
     $attacker_mod = $this->conditionManager->getConditionModifiers($attacker_id, 'attack', $encounter_id);
     $target_ac_mod = $this->conditionManager->getConditionModifiers($target_id, 'ac', $encounter_id);
+
+    // PF2E req 2120: nonlethal attacks take a -2 circumstance penalty.
+    $nonlethal_penalty = $is_nonlethal ? -2 : 0;
 
     $roll_natural = isset($weapon['natural_roll'])
       ? max(1, min(20, (int) $weapon['natural_roll']))
       : $this->numberGeneration->rollPathfinderDie(20);
-    $attack_total = $roll_natural + $base_attack_bonus + $attacker_mod + $map_penalty;
+    $attack_total = $roll_natural + $base_attack_bonus + $attacker_mod + $map_penalty + $nonlethal_penalty;
 
     $target_ac = (int) ($target['ac'] ?? 10) + $target_ac_mod;
     $degree = $this->calculator->calculateDegreeOfSuccess($attack_total, $target_ac, $roll_natural);
@@ -116,12 +120,15 @@ class ActionProcessor {
       $damage = $base_damage;
     }
     elseif ($degree === 'critical_success') {
+      // PF2E req 2115: for pre-computed damage (no dice roll), double the base.
+      // When weapon provides pre-rolled dice, those dice double; flat mods add once.
+      // Since ActionProcessor uses $weapon['damage'] as a combined total, apply 2x.
       $damage = $base_damage * 2;
     }
 
     $damage_result = NULL;
     if ($damage > 0) {
-      $damage_result = $this->hpManager->applyDamage($target_id, $damage, $weapon['damage_type'] ?? 'physical', ['action' => 'strike', 'attacker' => $attacker_id], $encounter_id);
+      $damage_result = $this->hpManager->applyDamage($target_id, $damage, $weapon['damage_type'] ?? 'physical', ['action' => 'strike', 'attacker' => $attacker_id], $encounter_id, $is_nonlethal);
     }
 
     $actions_left = $economy['actions_after'];

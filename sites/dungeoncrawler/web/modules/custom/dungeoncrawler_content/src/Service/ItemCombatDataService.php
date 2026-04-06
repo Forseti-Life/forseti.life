@@ -135,6 +135,30 @@ class ItemCombatDataService {
              self::GROUP_DEFAULTS[$item_id] ?? 
              'unknown';
 
+    $normalized_traits = $this->normalizeTraits($traits);
+
+    // PF2E reqs 2111/2112: determine Str modifier application mode.
+    $has_thrown = FALSE;
+    $has_propulsive = FALSE;
+    foreach ($normalized_traits as $t) {
+      $t_lower = strtolower($t);
+      if (str_starts_with($t_lower, 'thrown')) {
+        $has_thrown = TRUE;
+      }
+      if ($t_lower === 'propulsive') {
+        $has_propulsive = TRUE;
+      }
+    }
+    if ($has_thrown) {
+      $damage_str_mode = 'full';
+    }
+    elseif ($has_propulsive) {
+      $damage_str_mode = 'half_positive';
+    }
+    else {
+      $damage_str_mode = 'none';
+    }
+
     return [
       'name' => $result['name'] ?? ucfirst(str_replace('_', ' ', $item_id)),
       'damage' => $damage_parts['dice'] ?? '1d4',
@@ -142,8 +166,9 @@ class ItemCombatDataService {
       'category' => $category,
       'group' => $group,
       'hands' => (int) ($schema_data['hands'] ?? 1),
-      'traits' => $this->normalizeTraits($traits),
+      'traits' => $normalized_traits,
       'range' => $range,
+      'damage_str_mode' => $damage_str_mode,
     ];
   }
 
