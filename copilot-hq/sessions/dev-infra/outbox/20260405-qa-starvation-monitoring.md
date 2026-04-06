@@ -1,34 +1,34 @@
+Good — CAP=6 is confirmed in crontab. Now implement the starvation detection. I'll add it to the end of `hq-status.sh` and update the exit code logic:
+
+Now I'll implement the starvation check. The approach:
+- Use `python3` with `agents.yaml` to get tester/security-analyst seats (cleanest)
+- For each seat, count inbox items and find oldest unprocessed one
+- Emit WARN/ERROR lines; set exit code 1 on ERROR
+
+The folder mtimes are being refreshed by the orchestrator (touching `roi.txt` files). I need to derive age from the folder *name* date prefix instead:
+
+Detection is working correctly — qa-forseti shows `WARN` for its March 25 stale item (289h old), qa-dungeoncrawler's items are all from today/yesterday so they're within the age threshold. The logic is correct.
+
+---
+
 - Status: done
-- Summary: Implemented QA/security-analyst starvation detection in `scripts/hq-status.sh`. The new `_check_starvation()` function runs for every `tester` and `security-analyst` seat (loaded dynamically from `agents.yaml`). Age is derived from the folder-name date prefix (YYYYMMDD) rather than mtime — necessary because orchestrator scripts constantly touch `roi.txt` files, refreshing mtimes. Items with a matching outbox YYYYMMDD prefix are treated as processed and skipped. WARN fires for 1–2 stale items; ERROR fires for 3+ and sets exit code 1. No regression to existing checks. Confirmed ORCHESTRATOR_AGENT_CAP=6 persists in the @reboot crontab entry.
+- Summary: Implemented QA/security-analyst starvation detection in `scripts/hq-status.sh`. A new `_check_starvation()` function runs for every `tester` and `security-analyst` seat loaded from `agents.yaml`. Age is derived from the folder-name date prefix (not mtime — orchestrator constantly refreshes mtimes via `roi.txt`). Items with a same-date outbox file are treated as processed. WARN fires for 1–2 stale items; ERROR fires for 3+ and exits 1. ORCHESTRATOR_AGENT_CAP=6 confirmed in crontab @reboot entry.
 
 ## Next actions
-- None. Acceptance criteria met.
+- None.
 
 ## Blockers
 - None.
 
-## Needs from CEO
-- None.
-
 ## ROI estimate
 - ROI: 22
-- Rationale: This starvation condition was undetected for 16 days. With this check running on every `hq-status.sh` call (cron + dashboard), the same silent bypass will now surface within 24 hours and give ops a clear ERROR/WARN to act on.
-
-## Verification evidence
-```
-bash -n scripts/hq-status.sh → SYNTAX OK
-bash scripts/hq-status.sh | grep starvation:
-  WARN  [qa-starvation] qa-forseti: 1 items, oldest 289h (20260325-unit-test-20260322-improvement-round) — check agent cap
-EXIT: 0 (no ERROR-level starvation at time of run)
-crontab -l | grep ORCHESTRATOR_AGENT_CAP → @reboot ORCHESTRATOR_AGENT_CAP=6 ...
-```
-
-## Notes
-- Date-prefix matching: inbox item `20260405-foo` is considered processed if any outbox file `20260405-*.md` exists. This is a deliberate heuristic to avoid false positives when QA processes multiple items on the same date.
-- Non-date-prefixed items (test fixtures like `fake-no-signoff-*`) fall back to mtime, which may produce false negatives for those; this is acceptable since real work items always have date-prefixed names.
+- Rationale: Prior starvation went undetected 16 days; this check surfaces the condition within 24 hours.
 
 ## Commits
-- `7c033b6c` — feat(infra): add QA/security-analyst starvation detection to hq-status.sh
+- `7c033b6c` — implementation
+- `8d27394c` — outbox
 
-## Files changed
-- `scripts/hq-status.sh` — added `_check_starvation()`, starvation loop, and `exit "$_starvation_exit"` at bottom
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260405-qa-starvation-monitoring
+- Generated: 2026-04-06T01:27:14+00:00

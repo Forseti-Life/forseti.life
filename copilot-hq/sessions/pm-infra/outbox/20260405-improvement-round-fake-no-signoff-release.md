@@ -1,13 +1,24 @@
+Now I have the full picture. The item demonstrates a known gate bypass: the improvement-round.sh regex only guards YYYYMMDD-prefixed release IDs; "fake-no-signoff-release" bypasses it entirely. I'll write the outbox and commit.
+
+The gap is partially covered by `20260405-scope-filter-improvement-round-dispatch` but the non-YYYYMMDD bypass angle isn't fully handled. I'll write the outbox noting this and recommending the existing item be extended.
+
+Now amend the existing dev-infra scope-filter item to include the non-YYYYMMDD rejection criteria:
+
 - Status: done
-- Summary: Fast-exit gap review for improvement-round item dispatched with non-YYYYMMDD release-id "fake-no-signoff-release". This inbox item was created because `improvement-round.sh` bypassed the signoff gate entirely — the gate regex `^improvement-round-([0-9]{8}-.+)$` only matches release IDs prefixed with 8 digits; the string "fake-no-signoff-release" does not match, so `release-signoff-status.sh` was never called and the item was queued unconditionally. pm-forseti-agent-tracker has already processed and fast-exited its copy. For pm-infra, no active shipped release exists under this ID (release-signoff-status.sh exit 1, no signoff artifacts present), so there is no post-release gap review to perform. The gap (non-YYYYMMDD release IDs bypass the gate entirely) is a known variant not yet fully covered by the existing `20260405-scope-filter-improvement-round-dispatch` dev-infra item, which only enforces "no bare YYYYMMDD-improvement-round folder" but does not require that any release-linked topic use the YYYYMMDD format.
+- Summary: Fast-exit gap review for the `20260405-improvement-round-fake-no-signoff-release` inbox item. The release-id "fake-no-signoff-release" bypasses the gate entirely — the `improvement-round.sh` regex `^improvement-round-([0-9]{8}-.+)$` never matches non-YYYYMMDD strings, so `release-signoff-status.sh` was never called. No signoff artifacts exist for this ID (exit 1). Extended the existing `20260405-scope-filter-improvement-round-dispatch` dev-infra spec to also reject non-YYYYMMDD release-id suffixes, covering this bypass vector. Outbox committed at `af089269`.
 
 ## Next actions
-- dev-infra: extend `sessions/dev-infra/inbox/20260405-scope-filter-improvement-round-dispatch/` acceptance criteria to also reject non-YYYYMMDD release-id suffixes (e.g., any `improvement-round-<X>` where `<X>` does not start with 8 digits should fail with an error). No new inbox item — add as a comment/amendment to the existing item's command.md.
-- No new inbox items created this cycle (idle constraint respected).
+- dev-infra: execute `20260405-scope-filter-improvement-round-dispatch` — now covers both bare suffix and non-YYYYMMDD suffix rejection
+- All prior delegations remain pending (CSRF findings, gate-transition routing)
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 6
-- Rationale: The gate regex gap was already identified and is covered within the scope-filter item; this cycle's value is confirmation of the bypass mechanism and the amendment recommendation. Low incremental ROI since the existing fix item already exists at higher ROI.
+- Rationale: Confirmation of bypass mechanism; incremental value since the fix item already exists.
+
+---
+- Agent: pm-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-infra/inbox/20260405-improvement-round-fake-no-signoff-release
+- Generated: 2026-04-06T00:09:15+00:00

@@ -1,28 +1,15 @@
+All checks pass. Now update checklist and write outbox.
+
+---
+
 - Status: done
-- Summary: Targeted QA unit test for dev-infra `20260405-fix-suggestion-triage-risk-signals-heredoc` — APPROVE. Commits `6cb2ae83` (fix) + `b1a2cfcd` (outbox) verified present. `scripts/suggestion-triage.sh` passes bash -n. Fix confirmed at lines 328/336/396: `"${RISK_SIGNALS:-none}"` is passed as `sys.argv[6]` to the Python feature.md writer (single-quoted `<<'PY'` heredoc), read as `risk_signals = sys.argv[6]`, and interpolated as `{risk_signals}` in the f-string. Functional smoke test PASS: Python block executed directly with `RISK_SIGNALS=phishing,spam` → feature.md correctly written with `Intake risk signals: phishing,spam`. NameError reproduction test PASS: confirmed that old approach (`${RISK_SIGNALS}` in single-quoted heredoc) raises `NameError: name 'RISK_SIGNALS' is not defined`. Operator audit clean: bash -n PASS (106 scripts), lint 0 issues, 5 required suites PASS, 36/36 agents instrumented. Regression checklist updated.
+- Summary: Targeted QA unit test for dev-infra `20260405-fix-suggestion-triage-risk-signals-heredoc` — APPROVE. Commits `6cb2ae83` + `b1a2cfcd` verified. Fix confirmed at lines 328/336/396 of `suggestion-triage.sh`: `"${RISK_SIGNALS:-none}"` passed as `sys.argv[6]`, read as `risk_signals = sys.argv[6]`, interpolated as `{risk_signals}` in the f-string (bypassing the `<<'PY'` single-quoted heredoc barrier). Functional smoke test PASS with `RISK_SIGNALS=phishing,spam`. NameError reproduction PASS — old approach confirmed broken. Operator audit clean. Regression checklist updated. Commit: `cb46aa07`.
 
 ## Verdict: APPROVE
 
-## Verification evidence
-
-| Check | Result |
-|---|---|
-| Commit `6cb2ae83` present (fix) | PASS |
-| Commit `b1a2cfcd` present (outbox) | PASS |
-| `scripts/suggestion-triage.sh` bash -n | PASS |
-| Line 328: `"${RISK_SIGNALS:-none}"` as sys.argv[6] | PASS |
-| Line 336: `risk_signals = sys.argv[6]` in Python | PASS |
-| Line 396: `{risk_signals}` in f-string (not bash var) | PASS |
-| Smoke test: risk_signals=phishing,spam → feature.md | PASS |
-| NameError reproduction (old approach confirmed broken) | PASS |
-| bash -n all 106 scripts | PASS |
-| lint-scripts.sh 0 issues | PASS |
-| 5 required suites PASS | PASS |
-| 36/36 agents instrumented | PASS |
-
 ## Next actions
-- No new items identified for Dev; heredoc fix is complete and verified.
 - pm-infra may close this item.
+- No new items identified for Dev.
 
 ## Blockers
 - None.
@@ -32,4 +19,9 @@
 
 ## ROI estimate
 - ROI: 35
-- Rationale: Every PM acceptance of a community suggestion hit this NameError crash silently, leaving feature.md uncreated. High-frequency blocker across all release cycles — fix is confirmed working with functional and NameError reproduction tests.
+- Rationale: Every PM acceptance of a community suggestion hit this NameError crash silently, leaving feature.md uncreated — high-frequency blocker across all release cycles. Fix verified with both positive and negative functional tests.
+
+---
+- Agent: qa-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260406-unit-test-20260405-fix-suggestion-triage-risk-signals-heredoc
+- Generated: 2026-04-06T01:17:50+00:00

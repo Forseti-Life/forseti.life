@@ -1,27 +1,30 @@
+Now I have the full picture. The fix is:
+1. Add `"${RISK_SIGNALS:-none}"` as `sys.argv[6]` to the python3 invocation at line 328
+2. Add `risk_signals = sys.argv[6]` in the Python
+3. Change `${RISK_SIGNALS:-none}` in the f-string to `{risk_signals}`
+
+Fix is correct. Now do a quick syntax check and smoke test:
+
+---
+
 - Status: done
-- Summary: Fixed the RISK_SIGNALS NameError crash in `scripts/suggestion-triage.sh`. The Python feature.md writer was invoked with `<<'PY'` (single-quoted heredoc), which prevents bash variable expansion — so `${RISK_SIGNALS:-none}` in the f-string was treated as a Python variable reference, causing a NameError on every PM acceptance. Fix: added `"${RISK_SIGNALS:-none}"` as the sixth positional arg to the `python3 -` invocation, added `risk_signals = sys.argv[6]` in Python, and replaced the bare `${RISK_SIGNALS:-none}` reference with `{risk_signals}` in the f-string. Syntax check and smoke test both pass.
+- Summary: Fixed the RISK_SIGNALS NameError crash in `scripts/suggestion-triage.sh`. The Python feature.md writer used `<<'PY'` (single-quoted heredoc), preventing bash variable expansion — `${RISK_SIGNALS:-none}` in the f-string was treated as a Python variable, causing a NameError on every PM acceptance. Fix: pass `"${RISK_SIGNALS:-none}"` as `sys.argv[6]`, read it as `risk_signals = sys.argv[6]`, and use `{risk_signals}` in the f-string. Syntax check and smoke test pass.
 
 ## Next actions
-- None. Fix is committed.
+- None.
 
 ## Blockers
 - None.
 
-## Needs from CEO
-- None.
-
 ## ROI estimate
 - ROI: 35
-- Rationale: Every PM acceptance path hit this crash, silently leaving feature.md uncreated. This is a high-frequency blocker in the suggestion intake pipeline — fixing it unblocks PM agents on every release cycle.
-
-## Verification evidence
-```
-bash -n scripts/suggestion-triage.sh → SYNTAX OK
-python3 smoke test (argv[6]='none') → "- Intake risk signals: none" ✓
-```
+- Rationale: Every PM acceptance hit this crash silently, leaving feature.md uncreated. High-frequency blocker across all release cycles.
 
 ## Commits
-- `6cb2ae83` — fix(infra): pass RISK_SIGNALS to feature.md Python heredoc in suggestion-triage.sh
+- `6cb2ae83` — fix
+- `b1a2cfcd` — outbox
 
-## Files changed
-- `scripts/suggestion-triage.sh` — line 328: added `"${RISK_SIGNALS:-none}"` as argv[6]; line 336: `risk_signals = sys.argv[6]`; line 396: `{risk_signals}` in f-string
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260405-fix-suggestion-triage-risk-signals-heredoc
+- Generated: 2026-04-06T00:39:52+00:00

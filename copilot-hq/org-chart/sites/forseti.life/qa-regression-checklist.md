@@ -42,3 +42,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260405-langgraph-console-stubs-phase1 — OPEN: DashboardController.php engine_mode detection changed (commit 3c134210); verify /admin/reports/copilot-agent-tracker/langgraph shows engine_mode=langgraph (not unknown); verify provider column non-empty; verify feature-progress page renders rows.
 - [ ] 20260405-csrf-finding-4-job-hunter — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260405-csrf-finding-4-job-hunter.md)
 - [ ] 20260405-203759-implement-forseti-csrf-fix — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260405-203759-implement-forseti-csrf-fix.md)
+- [ ] 20260405-improvement-round-fake-no-signoff-release — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260405-improvement-round-fake-no-signoff-release.md)

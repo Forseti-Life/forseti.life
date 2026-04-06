@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-05T23:37:52Z
+Generated: 2026-04-06T01:34:49Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -54,7 +54,7 @@ Generated: 2026-04-05T23:37:52Z
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | in_progress | P2 |  |  |  |
-| forseti-ai-debug-gate | forseti.life | ai_conversation | in_progress | P1 |  |  |  |
+| forseti-ai-debug-gate | forseti.life | ai_conversation | ready | P1 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | in_progress | P2 |  |  |  |
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | in_progress | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | ready | P0 |  |  |  |
