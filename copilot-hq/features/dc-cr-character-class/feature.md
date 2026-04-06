@@ -4,7 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: in_progress
-- Release: 20260406-dungeoncrawler-release-b
+- Release: 20260406-dungeoncrawler-release-next
 - Priority: high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

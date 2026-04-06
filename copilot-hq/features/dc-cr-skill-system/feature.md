@@ -4,7 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: in_progress
-- Release: 20260406-dungeoncrawler-release-b
+- Release: 20260406-dungeoncrawler-release-next
 - Priority: P1 (core activity resolution; exploration and social gameplay)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
