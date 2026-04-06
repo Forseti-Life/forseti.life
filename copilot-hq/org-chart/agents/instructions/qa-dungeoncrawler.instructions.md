@@ -198,14 +198,21 @@ Root cause: `dc-cr-ancestry-traits` was re-dispatched in 20260405 cycle despite 
 
 When any inbox item arrives, validate the release ID before executing:
 
-1. A valid release ID must match the pattern: `YYYYMMDD-<site>-release[-suffix]` (e.g., `20260406-dungeoncrawler-release-b`).
-2. If the release ID is absent, does not start with a date (`YYYYMMDD`), or contains synthetic markers (e.g., `stale-*`, `*-test-*`, `*-fake-*`, `*-999`, `release-id-999`):
-   - Fast-exit with `Status: done` and note `CLOSED-SYNTHETIC-RELEASE-ID`.
+1. Check the **inbox item folder name** first. A valid improvement-round or preflight inbox folder must start with `YYYYMMDD-`. If it starts with `--` (CLI flag injection), is missing a date prefix, or contains synthetic markers, fast-exit immediately — do NOT parse command.md.
+2. A valid release ID (inside command.md) must match: `YYYYMMDD-<site>-release[-suffix]` (e.g., `20260406-dungeoncrawler-release-b`).
+3. Fast-exit with `Status: done` and note `CLOSED-SYNTHETIC-RELEASE-ID` when ANY of these apply:
+   - Inbox folder name starts with `--` (CLI arg injection, e.g., `--help-improvement-round`)
+   - Folder name or release ID is absent, lacks a `YYYYMMDD` prefix
+   - Contains synthetic markers: `stale-*`, `*-test-*`, `*-fake-*`, `*-999`, `release-id-999`
    - Do NOT run preflight, suite-activate, or any verification steps.
-   - Reference: CEO-confirmed pattern; see `sessions/ba-forseti-agent-tracker/outbox/stale-test-release-id-999-improvement-round.md`.
-3. Confirm: `grep "Release id" <inbox>/command.md` and verify format before investing any execution.
+4. Reference: CEO-confirmed pattern; see `sessions/ba-forseti-agent-tracker/outbox/stale-test-release-id-999-improvement-round.md` and `sessions/agent-code-review/outbox/--help-improvement-round.md`.
 
-Root cause: `stale-test-release-id-999` was broadcast to 26 inboxes as a synthetic flood dispatch on 2026-04-06. No PM signoff, no canonical release artifacts. Other seats (BA, dev-forseti-agent-tracker) applied same fast-exit. CEO confirmed malformed pattern. Dev-infra fix tracked via `sessions/dev-infra/inbox/20260405-improvement-round-sequencing-fix` (ROI 89).
+Root cause: Multiple synthetic flood dispatches observed 2026-04-06:
+- `stale-test-release-id-999` — no date prefix, broadcast to 26 inboxes
+- `--help-improvement-round` — CLI arg injection (`improvement-round.sh --help` used `--help` as DATE arg), broadcast to multiple inboxes
+- `fake-no-signoff-release-id` / `fake-no-signoff-release` — no PM signoff
+
+Dev-infra fix (DATE arg validation `^[0-9]{8}$` + signoff gate) tracked via `sessions/dev-infra/inbox/20260405-improvement-round-sequencing-fix` (ROI 94).
 
 ## Preflight deduplication (required)
 
