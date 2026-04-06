@@ -75,6 +75,7 @@ Use this frontmatter block (add `Depends on` when applicable):
 - Category: <game-mechanic|creature|spell|item|rule-system|world-building>
 - Schema changes: no   ← set to "yes" if the feature requires new tables, columns, or schema updates
 - Cross-site modules: none   ← list any modules shared with other sites (e.g. ai_conversation, forseti_shared)
+- Release: (set by PM at activation)   ← PM must populate with release_id when Status changes to in_progress
 - Created: YYYY-MM-DD
 ```
 
@@ -83,6 +84,8 @@ Rule: populate `Depends on` if the implementation hint references another `dc-*`
 Rule: `Schema changes: yes` means Dev must run `drush updatedb --status` on production post-deploy and include the output in their impl outbox. QA test plan must include a TC verifying schema is applied in production.
 
 Rule: `Cross-site modules: <module-name>` means Dev must verify and, if needed, propagate fixes to the other site when making changes to that module. List each shared module name explicitly.
+
+Rule: `Release: (set by PM at activation)` is a placeholder at stub-creation time. PM MUST replace it with the actual `release_id` (e.g., `20260405-dungeoncrawler-release-b`) when changing `Status` from `ready` to `in_progress`. This field enables orchestrator-level scoping of in_progress feature counts to the current release; leaving it blank or as placeholder is a QA-detectable defect.
 
 Slug convention:
 - Core Rulebook → `dc-cr-<descriptor>`
