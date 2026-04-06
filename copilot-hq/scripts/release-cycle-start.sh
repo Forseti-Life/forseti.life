@@ -130,6 +130,15 @@ if [ -n "$_recent_outbox" ]; then
   fi
 fi
 
+# GAP-AGE-PREFLIGHT-01: suppress preflight when no features are activated for this release.
+# Count features with Status: in_progress AND Release: <release_id> — if zero, skip dispatch.
+_pf_feat_count=$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
+  | xargs grep -l "^- Release:.*${release_id}" 2>/dev/null | wc -l | tr -d '[:space:]')
+if [ "${_pf_feat_count:-0}" -eq 0 ]; then
+  echo "PREFLIGHT-SUPPRESSED: no features activated for release ${release_id}; skipping preflight dispatch."
+  exit 0
+fi
+
 mkdir -p "$inbox_dir" 2>/dev/null || true
 printf '%s\n' "9" >"$inbox_dir/roi.txt" 2>/dev/null || true
 
