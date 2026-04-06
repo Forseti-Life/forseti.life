@@ -157,9 +157,10 @@ ai_conversation.api_send_message:
   path: '/api/ai-conversation/{conversation_id}/message'
   defaults:
     _controller: '\Drupal\ai_conversation\Controller\ApiController::sendMessage'
+  methods: [POST]
   requirements:
     _permission: 'use ai conversation'
-    _method: 'POST'
+    _csrf_request_header_mode: TRUE
     _format: 'json'
     conversation_id: \d+
 

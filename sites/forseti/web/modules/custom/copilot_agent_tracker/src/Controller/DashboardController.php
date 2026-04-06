@@ -37,7 +37,7 @@ final class DashboardController extends ControllerBase {
   const LANGGRAPH_PARITY_RELATIVE = 'inbox/responses/langgraph-parity-latest.json';
   const LANGGRAPH_FEATURE_PROGRESS_RELATIVE = 'dashboards/FEATURE_PROGRESS.md';
   const RELEASE_CYCLE_CONTROL_FILE_DEFAULT = '/var/tmp/copilot-sessions-hq/release-cycle-control.json';
-  const RELEASE_CYCLE_CONTROL_FILE_LEGACY = '/home/keithaumiller/copilot-sessions-hq/tmp/release-cycle-control.json';
+  const RELEASE_CYCLE_CONTROL_FILE_LEGACY = '/home/ubuntu/forseti.life/copilot-hq/tmp/release-cycle-control.json';
 
   public function __construct(
     private readonly Connection $database,
@@ -459,7 +459,7 @@ final class DashboardController extends ControllerBase {
    * Builds LangGraph troubleshooting panels from HQ runtime artifacts.
    */
   private function buildLanggraphTroubleshootingPanels(): array {
-    $hq_root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/keithaumiller/copilot-sessions-hq'), '/');
+    $hq_root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
 
     $ticks_path = $hq_root . '/inbox/responses/langgraph-ticks.jsonl';
     $parity_path = $hq_root . '/inbox/responses/langgraph-parity-latest.json';
@@ -1008,7 +1008,7 @@ final class DashboardController extends ControllerBase {
    * Returns absolute path to a HQ repo file, resolved from COPILOT_HQ_ROOT env.
    */
   private function langgraphPath(string $relative): string {
-    $root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/keithaumiller/copilot-sessions-hq'), '/');
+    $root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
     return $root . '/' . ltrim($relative, '/');
   }
 
@@ -1448,12 +1448,12 @@ final class DashboardController extends ControllerBase {
   private function inferReleaseIdFromQaPreflightArtifacts(): string {
     $paths = [];
 
-    $inbox = glob('/home/keithaumiller/copilot-sessions-hq/sessions/qa-*/inbox/*release-preflight-test-suite-*') ?: [];
+    $inbox = glob($this->langgraphPath('sessions/qa-*/inbox/*release-preflight-test-suite-*')) ?: [];
     foreach ($inbox as $p) {
       $paths[] = $p;
     }
 
-    $outbox = glob('/home/keithaumiller/copilot-sessions-hq/sessions/qa-*/outbox/*release-preflight-test-suite-*.md') ?: [];
+    $outbox = glob($this->langgraphPath('sessions/qa-*/outbox/*release-preflight-test-suite-*.md')) ?: [];
     foreach ($outbox as $p) {
       $paths[] = $p;
     }
@@ -1492,7 +1492,7 @@ final class DashboardController extends ControllerBase {
    * Fallback release-id inference from PM release-signoff artifacts in HQ.
    */
   private function inferReleaseIdFromSignoffs(): string {
-    $pattern = '/home/keithaumiller/copilot-sessions-hq/sessions/pm-*/artifacts/release-signoffs/*.md';
+    $pattern = $this->langgraphPath('sessions/pm-*/artifacts/release-signoffs/*.md');
     $files = glob($pattern) ?: [];
     if (!$files) {
       return '';
