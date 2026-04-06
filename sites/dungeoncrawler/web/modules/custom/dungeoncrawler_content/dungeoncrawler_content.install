@@ -4691,3 +4691,66 @@ function dungeoncrawler_content_update_10034() {
   $db_schema->createTable('dc_requirements', $schema);
   return t('Created dc_requirements table.');
 }
+
+/**
+ * Populate Alchemist class advancement features (nid=29) and add research field.
+ *
+ * Implements hook_update_N().
+ */
+function dungeoncrawler_content_update_10035() {
+  $messages = [];
+
+  // 1. Create field_char_research_field on character content type.
+  $field_name = 'field_char_research_field';
+  if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name)) {
+    \Drupal\field\Entity\FieldStorageConfig::create([
+      'field_name'  => $field_name,
+      'entity_type' => 'node',
+      'type'        => 'string',
+      'cardinality' => 1,
+      'settings'    => ['max_length' => 64],
+    ])->save();
+  }
+  if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'character', $field_name)) {
+    \Drupal\field\Entity\FieldConfig::create([
+      'field_name'  => $field_name,
+      'entity_type' => 'node',
+      'bundle'      => 'character',
+      'label'       => 'Research Field',
+      'required'    => FALSE,
+      'description' => 'Alchemist research field selection: bomber, chirurgeon, or mutagenist.',
+    ])->save();
+    $messages[] = 'Created field_char_research_field on character type.';
+  }
+  else {
+    $messages[] = 'field_char_research_field already exists; skipped.';
+  }
+
+  // 2. Populate Alchemist nid=29 field_class_features from CLASS_ADVANCEMENT.
+  $alchemist_advancement = \Drupal\dungeoncrawler_content\Service\CharacterManager::CLASS_ADVANCEMENT['alchemist'] ?? [];
+  if (empty($alchemist_advancement)) {
+    $messages[] = 'ERROR: Alchemist CLASS_ADVANCEMENT is empty — no features set.';
+    return implode(' | ', $messages);
+  }
+
+  $features = [];
+  foreach ($alchemist_advancement as $level => $level_data) {
+    foreach ($level_data['auto_features'] as $feat) {
+      $features[] = array_merge($feat, ['level' => $level]);
+    }
+  }
+
+  // Load node 29 (Alchemist class node).
+  $node = \Drupal::entityTypeManager()->getStorage('node')->load(29);
+  if (!$node) {
+    $messages[] = 'ERROR: Could not load Alchemist node (nid=29).';
+    return implode(' | ', $messages);
+  }
+
+  $node->set('field_class_features', json_encode($features));
+  $node->save();
+  $count = count($features);
+  $messages[] = "Populated Alchemist nid=29 field_class_features with {$count} feature entries.";
+
+  return implode(' | ', $messages);
+}

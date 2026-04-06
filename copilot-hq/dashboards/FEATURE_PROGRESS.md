@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-06T17:35:00Z
+Generated: 2026-04-06T19:41:44Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -41,7 +41,7 @@ Generated: 2026-04-06T17:35:00Z
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
+| dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |

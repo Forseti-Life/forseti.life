@@ -100,6 +100,7 @@ Required per-feature inbox item content:
 - Feature id, AC file path, test plan path, release id
 - Rollback approach
 - Acceptance criteria (reference `01-acceptance-criteria.md`)
+- **Rulebook reference** — include the path to the applicable PF2E reference file(s) from `/home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references/` so sub-agents (dev, QA, BA) can look up exact rule text without guessing. See [Rulebook Reference Policy](#rulebook-reference-policy) below.
 
 **Lesson (2026-03-19):** In release-b (20260308 cycle), 4 features were groomed on 2026-03-08 but dev-dungeoncrawler had no implementation inbox items. Features stalled in "ready" state for 11 days.
 
@@ -148,6 +149,40 @@ When dev-dungeoncrawler delivers implementation for a feature (outbox confirms d
 - Do not create duplicate queue items for the same feature in the same release cycle unless the prior item is explicitly superseded (document reason in README).
 - Use `sessions/pm-dungeoncrawler/artifacts/20260228-pathfinder-tracker.md` as the canonical backlog+release tracker.
 - Keep tracker columns/checklists current when statuses change (`Done`, `Groomed`, `AC`, `Test plan`, `Release`, `Execution rank`).
+
+## Rulebook Reference Policy
+
+**Every inbox item dispatched to dev-dungeoncrawler, qa-dungeoncrawler, or ba-dungeoncrawler MUST include a `## Rulebook References` section** listing the applicable PF2E reference file(s). Sub-agents must not need to guess where to find the authoritative rule text.
+
+### Reference file location
+All PF2E reference markdown files live at:
+```
+/home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references/
+```
+
+### Naming convention
+`<book>-<chapter/section>-<topic>.md` — examples:
+- `core-ch09-playing-the-game.md` — Ch 9: attack rolls, MAP, conditions, HP, dying, actions, movement
+- `core-ch03-classes.md` — Ch 3: all core classes (Alchemist, Fighter, Wizard, etc.)
+- `core-ch04-skills.md`, `core-ch05-feats.md`, `core-ch06-equipment.md`, `core-ch07-spells.md`
+- `apg-ch02-classes.md` — APG class options
+- `apg-ch03-archetypes.md` — archetypes
+- `b1-s02-monsters-az.md`, `b2-s01-monsters-az.md`, `b3-s02-monsters-az.md` — bestiary monsters
+- `gmg-ch01-gamemastery-basics.md`, `gmg-ch02-tools.md`, etc.
+- `som-ch01-essentials-of-magic.md`, `som-ch02-classes.md`, etc.
+
+Full list: `ls /home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references/`
+
+### Required section format in every inbox item
+```markdown
+## Rulebook References
+- `/home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references/core-ch09-playing-the-game.md` — Attack Rolls (p.446), MAP rules
+- `/home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references/core-ch03-classes.md` — Alchemist class features
+```
+
+If no reference file covers the exact topic, note that and cite the best available file.
+
+---
 
 ## Current focus (RPG)
 - Define and organize RPG feature requests for the dungeoncrawler game.

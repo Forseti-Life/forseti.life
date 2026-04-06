@@ -59,7 +59,7 @@ class Calculator {
   public function calculateInitiative($perception_modifier, array $bonuses = []) {
     $roll = $this->numberGeneration->rollPathfinderDie(20);
     $modifier = (int) $perception_modifier;
-    $bonus_sum = array_sum(array_map('intval', $bonuses));
+    $bonus_sum = BonusResolver::resolve($bonuses);
     $total = $roll + $modifier + $bonus_sum;
 
     return [
@@ -137,8 +137,8 @@ class Calculator {
            + (int) $ability_mod
            + (int) $item_bonus
            - abs((int) $map)
-           + array_sum(array_map('intval', $bonuses))
-           - array_sum(array_map('intval', array_map('abs', $penalties)));
+           + BonusResolver::resolve($bonuses)
+           + BonusResolver::resolvePenalties($penalties);
 
     return $total;
   }
@@ -408,7 +408,7 @@ class Calculator {
   public function rollSavingThrow($ability_mod, $proficiency = 0, $item_bonus = 0, array $other_bonuses = []) {
     $roll = $this->numberGeneration->rollPathfinderDie(20);
     $modifier = (int) $ability_mod + (int) $proficiency + (int) $item_bonus
-              + array_sum(array_map('intval', $other_bonuses));
+              + BonusResolver::resolve($other_bonuses);
     $total = $roll + $modifier;
 
     return [
