@@ -616,14 +616,133 @@
     },
     {
       "id": "dc-cr-heritage-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-heritage-system",
-      "type": "unit",
+      "label": "Heritage System \u2014 required enforcement, ancestry-filtered dropdown, server-side mismatch validation, AJAX reset, dropdown counts per ancestry, permissions",
+      "type": "phpunit",
       "feature_id": "dc-cr-heritage-system",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_heritage_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=Heritage tests/src/",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/dc-cr-heritage-system-phpunit/"
+        "tests/results/dc-cr-heritage-system-phpunit.xml"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-HS-01",
+          "description": "CharacterManager::HERITAGES contains correct count per ancestry (Dwarf=4, Elf=4, Gnome=4, Goblin=4, Halfling=4, Human=1; total=21)",
+          "suite_type": "unit",
+          "class_method": "CharacterManagerTest::testHeritageCountPerAncestry",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-02",
+          "description": "Heritage field is required; empty submission fails with inline error (not 500)",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationFormTest::testHeritageRequiredValidation",
+          "ac_tag": "EXTEND",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-03",
+          "description": "Server-side: mismatched heritage/ancestry returns 400 \"Invalid heritage for selected ancestry.\"",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationFormTest::testHeritageMismatchReturns400",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-04",
+          "description": "Valid heritage/ancestry combination saves successfully; heritage retrievable via GET /character/{id}",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationFormTest::testValidHeritageSavesSuccessfully",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-05",
+          "description": "Heritage id stored is from approved HERITAGES list (id stored, not display name)",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationFormTest::testHeritageStoredAsId",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-06",
+          "description": "Character summary displays heritage name (not raw id)",
+          "suite_type": "playwright",
+          "class_method": "CharacterCreationFlow::testCharacterSummaryDisplaysHeritageName",
+          "ac_tag": "TEST-ONLY",
+          "status": "active",
+          "notes": "Requires Playwright infrastructure. Manual verification with evidence if Playwright not available at Stage 0."
+        },
+        {
+          "id": "TC-HS-07",
+          "description": "AJAX: heritage dropdown repopulates when ancestry changes (Dwarf\u2192Elf: Dwarf options replaced by 4 Elf options)",
+          "suite_type": "playwright",
+          "class_method": "CharacterCreationFlow::testAjaxHeritageDropdownRepopulatesOnAncestryChange",
+          "ac_tag": "EXTEND",
+          "status": "active",
+          "notes": "Requires Playwright infrastructure. Manual verification with evidence if Playwright not available at Stage 0."
+        },
+        {
+          "id": "TC-HS-08",
+          "description": "AJAX: changing ancestry resets previously selected heritage value (stale value does not persist)",
+          "suite_type": "playwright",
+          "class_method": "CharacterCreationFlow::testAjaxHeritageClearsOnAncestryChange",
+          "ac_tag": "EXTEND",
+          "status": "active",
+          "notes": "Requires Playwright infrastructure. Manual verification with evidence if Playwright not available at Stage 0."
+        },
+        {
+          "id": "TC-HS-09",
+          "description": "Human ancestry shows exactly one heritage option (Versatile Heritage)",
+          "suite_type": "unit+playwright",
+          "class_method": "CharacterManagerTest::testHumanHasOneHeritage + CharacterCreationFlow::testHumanAncestryShowsOneHeritageOption",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-10",
+          "description": "Valid selection allows progression to next wizard step (Halfling+gutsy \u2192 step 2)",
+          "suite_type": "playwright",
+          "class_method": "CharacterCreationFlow::testValidHeritageAllowsWizardProgression",
+          "ac_tag": "TEST-ONLY",
+          "status": "active",
+          "notes": "Requires Playwright infrastructure."
+        },
+        {
+          "id": "TC-HS-11",
+          "description": "Back-navigation clears stale heritage from previous ancestry; user must re-select",
+          "suite_type": "playwright",
+          "class_method": "CharacterCreationFlow::testBackNavigationClearsHeritageField",
+          "ac_tag": "NEW",
+          "status": "active",
+          "notes": "Requires Playwright infrastructure. Manual verification with evidence if Playwright not available at Stage 0."
+        },
+        {
+          "id": "TC-HS-12",
+          "description": "Anonymous user cannot access character creation form (403 or redirect to login)",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - role-url-audit entry",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-13",
+          "description": "Authenticated user and admin can complete heritage selection (no 403)",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationFormTest::testAuthenticatedUserCanSelectHeritage",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-14",
+          "description": "Player cannot change another player heritage after creation (character ownership regression)",
+          "suite_type": "functional",
+          "class_method": "CharacterCreationFormTest::testPlayerCannotChangeOtherPlayerHeritage",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        }
+      ]
     },
     {
       "id": "dc-cr-skill-system-phpunit",
