@@ -57,3 +57,24 @@ All NEW. `CharacterManager::CLASSES` constant exists with full class data (name,
 
 ## What I'd change next time (Dev)
 - Map Expert/Trained proficiency strings to save bonus differentials (+4 vs +2) in the saves computation block to fully implement class proficiency differentiation at character creation.
+
+## Completion pass — 2026-04-06 (dev-dungeoncrawler, commit 268f13349)
+
+### Gaps found vs AC
+1. `character_class` content type had no custom Drupal fields (data was PHP-constant-only).
+2. Step 4 in controller `updateStepData` did not store `class_proficiencies` from CLASSES constant.
+3. Step 4 in controller did not store 1st-level `class_features` from `CLASS_ADVANCEMENT`.
+4. Validation error message was "Class selection is required." (AC requires "Class is required.").
+5. Controller step 4 validation had no key_ability multi-option check with "You must choose a key ability for this class." message.
+
+### Changes made
+- `CharacterCreationStepController::updateStepData()` step 4: store `class_proficiencies` and `class_features` (L1 auto_features from CLASS_ADVANCEMENT) on character data at step save time.
+- `CharacterCreationStepController` step 4 validation: exact error messages per AC ("Class is required.", "You must choose a key ability for this class.", invalid class ID error).
+- `CharacterCreationStepForm` step 4: error message updated to "Class is required."
+- `update_10032`: added 4 fields (field_class_hp_per_level, field_class_key_ability, field_class_proficiencies, field_class_features) to character_class content type; populated all 16 nodes from CLASSES/CLASS_ADVANCEMENT constants.
+
+### Verification results
+- 16 character_class nodes (12 core + 4 extended), all fields populated ✓
+- Fighter: HP/level=10, L1 features=2 (Attack of Opportunity, Fighter Weapon Training) ✓
+- Champion: key_ability="Strength or Dexterity" (multi-option trigger confirmed) ✓
+- Site returns HTTP 200 ✓
