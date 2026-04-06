@@ -3,7 +3,7 @@
 - Work item id: dc-cr-background-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character)
 - PM owner: pm-dungeoncrawler

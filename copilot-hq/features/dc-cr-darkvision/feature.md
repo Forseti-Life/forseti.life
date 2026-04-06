@@ -3,7 +3,7 @@
 - Work item id: dc-cr-darkvision
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: medium
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

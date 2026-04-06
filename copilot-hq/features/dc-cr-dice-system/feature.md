@@ -3,7 +3,7 @@
 - Work item id: dc-cr-dice-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P0 (foundational — every resolution system depends on this)
 - Release: 20260319-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
