@@ -240,14 +240,92 @@
     },
     {
       "id": "dc-cr-background-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-background-system",
+      "label": "PHPUnit tests for dc-cr-background-system \u2014 content type, seed data, boost/skill/feat application",
       "type": "unit",
       "feature_id": "dc-cr-background-system",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_background_system 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=BackgroundSystemTest",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-background-system-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-BG-01",
+          "method": "BackgroundSystemTest::testBackgroundContentTypeExists",
+          "description": "Background content type exists with all required fields"
+        },
+        {
+          "id": "TC-BG-02",
+          "method": "BackgroundSystemTest::testFiveCoreBackgroundsSeeded",
+          "description": "At least 5 core backgrounds seeded (Acolyte, Acrobat, Animal Whisperer, Artisan, Barkeep)"
+        },
+        {
+          "id": "TC-BG-03",
+          "method": "BackgroundSystemTest::testAcolyteBackgroundData",
+          "description": "Background node data matches CharacterManager::BACKGROUNDS constants (Acolyte spot-check)"
+        },
+        {
+          "id": "TC-BG-04",
+          "method": "BackgroundSystemTest::testCharacterCreationStoresBackground",
+          "description": "Character creation step stores background selection on character entity"
+        },
+        {
+          "id": "TC-BG-05",
+          "method": "BackgroundSystemTest::testBackgroundAppliesAbilityBoosts",
+          "description": "Background applies fixed and free ability boosts to character"
+        },
+        {
+          "id": "TC-BG-06",
+          "method": "BackgroundSystemTest::testBackgroundGrantsSkillTraining",
+          "description": "Background grants skill training and Lore skill to character"
+        },
+        {
+          "id": "TC-BG-07",
+          "method": "BackgroundSystemTest::testBackgroundGrantsSkillFeat",
+          "description": "Background records granted skill feat on character entity"
+        },
+        {
+          "id": "TC-BG-08",
+          "method": "BackgroundSystemTest::testDuplicateBoostRejected",
+          "description": "Fixed+free boost targeting same ability score rejected with explicit message"
+        },
+        {
+          "id": "TC-BG-09",
+          "method": "BackgroundSystemTest::testReSelectingBackgroundReplacesPrior",
+          "description": "Re-selecting background removes prior boosts/skills/feat before applying new"
+        },
+        {
+          "id": "TC-BG-10",
+          "method": "BackgroundSystemTest::testMissingBackgroundValidationError",
+          "description": "Saving without background returns validation error"
+        },
+        {
+          "id": "TC-BG-11",
+          "method": "BackgroundSystemTest::testInvalidBackgroundIdReturns400",
+          "description": "Invalid background ID returns 400 with descriptive error"
+        },
+        {
+          "id": "TC-BG-12",
+          "method": "BackgroundSystemTest::testFreeBoostConflictCaughtBeforeWrite",
+          "description": "Free boost conflict caught before any data written (no partial write)"
+        },
+        {
+          "id": "TC-BG-13",
+          "suite": "role-url-audit",
+          "method": null,
+          "description": "Anon can read background nodes (public view)"
+        },
+        {
+          "id": "TC-BG-14",
+          "method": "BackgroundSystemTest::testPlayerCannotModifyOtherCharacterBackground",
+          "description": "Authenticated player cannot modify another player character background"
+        },
+        {
+          "id": "TC-BG-15",
+          "method": "BackgroundSystemTest::testAdminCanCrudBackgroundNodes",
+          "description": "Admin can create, edit, and delete background content type nodes"
+        }
+      ]
     },
     {
       "id": "dc-cr-character-class-phpunit",
