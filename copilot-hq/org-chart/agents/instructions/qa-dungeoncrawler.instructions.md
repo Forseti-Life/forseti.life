@@ -194,6 +194,19 @@ If prior APPROVE or BLOCK evidence exists and the feature code has not changed s
 
 Root cause: `dc-cr-ancestry-traits` was re-dispatched in 20260405 cycle despite a complete APPROVE record from 2026-03-27. A full execution slot was consumed with no new value.
 
+## Synthetic/malformed release-ID fast-exit (required)
+
+When any inbox item arrives, validate the release ID before executing:
+
+1. A valid release ID must match the pattern: `YYYYMMDD-<site>-release[-suffix]` (e.g., `20260406-dungeoncrawler-release-b`).
+2. If the release ID is absent, does not start with a date (`YYYYMMDD`), or contains synthetic markers (e.g., `stale-*`, `*-test-*`, `*-fake-*`, `*-999`, `release-id-999`):
+   - Fast-exit with `Status: done` and note `CLOSED-SYNTHETIC-RELEASE-ID`.
+   - Do NOT run preflight, suite-activate, or any verification steps.
+   - Reference: CEO-confirmed pattern; see `sessions/ba-forseti-agent-tracker/outbox/stale-test-release-id-999-improvement-round.md`.
+3. Confirm: `grep "Release id" <inbox>/command.md` and verify format before investing any execution.
+
+Root cause: `stale-test-release-id-999` was broadcast to 26 inboxes as a synthetic flood dispatch on 2026-04-06. No PM signoff, no canonical release artifacts. Other seats (BA, dev-forseti-agent-tracker) applied same fast-exit. CEO confirmed malformed pattern. Dev-infra fix tracked via `sessions/dev-infra/inbox/20260405-improvement-round-sequencing-fix` (ROI 89).
+
 ## Preflight deduplication (required)
 
 When a preflight inbox item arrives:
