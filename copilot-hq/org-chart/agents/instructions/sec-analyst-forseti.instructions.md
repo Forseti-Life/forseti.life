@@ -65,6 +65,12 @@ For each finding, include:
 - If no matching signoff exists and PM artifacts show the release is still in grooming/preflight, treat the item as a ghost or premature dispatch: write a recommendation-only update, do not invent shipped-release findings, and point to the authoritative PM/CEO artifact.
 - If a signoff artifact exists only as an alias that says the release was "shipped as part of" another coordinated release, treat the coordinated release as the canonical shipment event. Review only the site-specific gaps that actually applied to that coordinated ship; otherwise fast-exit and cite the canonical coordinated release artifacts.
 
+## Synthetic release-ID fast-exit (flood pattern)
+- If an inbox item name contains `fake`, `test`, `999`, or any other non-datestamped synthetic token in place of a real release ID (expected pattern: `YYYYMMDD-<site>-release-<suffix>`), fast-exit immediately without running signoff checks or security analysis.
+- Confirm by: (1) inbox folder name lacks `YYYYMMDD-` prefix, OR (2) `ls sessions/pm-forseti/artifacts/release-signoffs/` returns no matching entry, OR (3) `grep -r "<release-id>"` in sessions/ returns only other seats' fast-exit outboxes.
+- Write a fast-exit outbox citing the flood pattern and referencing the structural fix (`20260405-scope-filter-improvement-round-dispatch` in dev-infra inbox or successor).
+- Do NOT create new inbox items for flood items.
+
 ## Owned file scope (source of truth)
 ### HQ repo: /home/ubuntu/forseti.life/copilot-hq
 - sessions/sec-analyst-forseti/**
