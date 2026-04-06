@@ -3,8 +3,8 @@
 - Work item id: dc-cr-darkvision
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
-- Priority: unset (PM will set at triage)
+- Status: in_progress
+- Priority: medium
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -25,6 +25,16 @@ Implement Darkvision as a reusable character sense. Characters with Darkvision s
 ## Implementation hint
 
 Create a `sense` entity: `id: darkvision`, `type: vision`, `effect: no_concealment_from_darkness, no_flat_footed_from_darkness, black_and_white_in_darkness`. Ancestry data model references senses by id (e.g., `dwarf.senses: [darkvision]`). The visibility/lighting system must check character senses before applying the Concealed condition or flat-footed from low light. Distinct from Low-Light Vision (sees in dim light as bright, still blind in darkness) — both should be separate sense entities. No dependency on a specific ancestry; this is a shared mechanic.
+
+## Acceptance Criteria
+
+See `features/dc-cr-darkvision/01-acceptance-criteria.md`.
+
+## Latest updates
+
+- 2026-04-06: Handed off to QA for test generation (pm-qa-handoff.sh)
+
+- 2026-04-06: Accepted at triage — standalone sense entity, no blocking deps. Status: planned, Priority: medium. AC written. Handed off to QA for test generation.
 
 ## Mission alignment
 

@@ -3,7 +3,8 @@
 - Work item id: dc-cr-unburdened-iron
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: pre-triage
+- Status: deferred
+- Defer reason: Depends on dc-cr-dwarf-ancestry (deferred); re-evaluate when dwarf ancestry is activated
 - Priority: unset (PM will set at triage)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
