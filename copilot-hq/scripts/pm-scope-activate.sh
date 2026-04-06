@@ -90,6 +90,39 @@ if [ "$BOARD_REQUIRED" = "yes" ] || [ "$BOARD_REQUIRED" = "true" ]; then
   fi
 fi
 
+# Security acceptance criteria gate (GAP-CR-1 / 20260405)
+# Features must have either:
+#   a) A "## Security acceptance criteria" section (case-insensitive, non-empty), OR
+#   b) A "- Security AC exemption: <reason>" field in feature.md (for no-security-surface features)
+SEC_EXEMPTION="$(grep -im1 "^- Security AC exemption:" "$FEATURE_BRIEF" | sed 's/.*exemption:[[:space:]]*//' | tr -d '[:space:]' || true)"
+if [ -z "$SEC_EXEMPTION" ]; then
+  # No exemption — require the section to exist and be non-empty
+  SEC_SECTION_LINE="$(grep -im1 "^## Security acceptance criteria" "$FEATURE_BRIEF" || true)"
+  if [ -z "$SEC_SECTION_LINE" ]; then
+    echo "ERROR: feature.md is missing a '## Security acceptance criteria' section." >&2
+    echo "" >&2
+    echo "  Every feature must document its security surface before scope activation." >&2
+    echo "  Add the following to ${FEATURE_BRIEF}:" >&2
+    echo "" >&2
+    echo "  ## Security acceptance criteria" >&2
+    echo "  - Authentication/permission surface: <who can access>" >&2
+    echo "  - CSRF expectations: <which routes need CSRF token>" >&2
+    echo "  - Input validation: <what is validated and where>" >&2
+    echo "  - PII/logging constraints: <what must not be logged>" >&2
+    echo "" >&2
+    echo "  If this feature has NO security surface (e.g. pure content/display only), add:" >&2
+    echo "  - Security AC exemption: <brief reason, e.g. 'static content, no routes, no user input'>" >&2
+    exit 1
+  fi
+  # Section exists — verify it has at least one non-blank, non-header line after it
+  SEC_CONTENT="$(awk '/^## Security acceptance criteria/{found=1;next} found && /^## /{exit} found{print}' "$FEATURE_BRIEF" | grep -v "^[[:space:]]*$" | head -1 || true)"
+  if [ -z "$SEC_CONTENT" ]; then
+    echo "ERROR: '## Security acceptance criteria' section in ${FEATURE_BRIEF} is empty." >&2
+    echo "  Add at least one acceptance criterion (authentication surface, CSRF, input validation, PII/logging)." >&2
+    exit 1
+  fi
+fi
+
 echo "[pm-scope-activate] Activating: $FEATURE_ID for site: $SITE"
 echo "[pm-scope-activate] All grooming artifacts present ✓"
 
