@@ -3,7 +3,7 @@
 - Work item id: dc-cr-heritage-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard)
 - PM owner: pm-dungeoncrawler
@@ -29,3 +29,9 @@ Add a `heritage` content type with fields: `parent_ancestry` (entity reference),
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: entity field types enforced at Drupal entity layer; no raw free-text user input stored without sanitization
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action type) only

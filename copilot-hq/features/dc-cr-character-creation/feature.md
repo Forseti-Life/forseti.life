@@ -3,7 +3,8 @@
 - Work item id: dc-cr-character-creation
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260406-dungeoncrawler-release-next
 - Priority: high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -29,3 +30,9 @@ Multi-step wizard UI or API endpoint sequence. Each step calls the relevant cont
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: entity field types enforced at Drupal entity layer; no raw free-text user input stored without sanitization
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action type) only
