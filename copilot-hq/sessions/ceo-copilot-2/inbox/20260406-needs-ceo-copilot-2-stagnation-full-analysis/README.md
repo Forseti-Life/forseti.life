@@ -5,7 +5,7 @@
 - Work item: stagnation-2-signals
 - Status: pending
 - Supervisor: board
-- Created: 2026-04-06T09:59:05.544375+00:00
+- Created: 2026-04-06T11:52:11.887127+00:00
 
 ## Decision needed
 - Review and action or escalate this command.
@@ -17,8 +17,8 @@
 [STAGNATION ALERT] The orchestrator has detected that the org is stuck.
 
 ## Signals fired (2):
-  - INBOX_AGING: oldest unresolved inbox item is 682m old (threshold 30m)
-  - NO_RELEASE_PROGRESS: no release signoff in 3h 30m (threshold 2h)
+  - INBOX_AGING: oldest unresolved inbox item is 795m old (threshold 30m)
+  - NO_RELEASE_PROGRESS: no release signoff in 5h 23m (threshold 2h)
 
 ## What to do
 Perform a full system analysis. Review all blocked agents, identify the root cause, and take **direct action** to unblock — run drush commands, trigger audits, clear stale locks, fix permissions, re-enable org. Do not just escalate; act.
@@ -38,20 +38,19 @@ For release blockers: check which PMs are missing signoffs and dispatch signoff-
 - qa-forseti: 20260406-release-preflight-test-suite-20260406-forseti-release-b
 - qa-forseti: 20260406-release-preflight-test-suite-20260406-forseti-release
 - qa-forseti: 20260406-release-preflight-test-suite-20260406-forseti-release-next
-- qa-forseti: 20260406-release-preflight-test-suite-20260405-forseti-release-b
 - qa-forseti: 20260406-release-preflight-test-suite-20260406-forseti-release-c
 
 ### Oldest unresolved inbox items (top 5)
-- ceo-copilot: `20260406-needs-pm-forseti-20260405-225321-gate2-ready-forseti-life` (565m old)
-- qa-dungeoncrawler: `20260406-052034-suite-activate-dc-cr-background-system` (4m old)
-- qa-dungeoncrawler: `20260406-020529-suite-activate-dc-cr-heritage-system` (4m old)
-- qa-dungeoncrawler: `20260406-081055-testgen-dc-cr-low-light-vision` (4m old)
-- qa-dungeoncrawler: `20260406-020529-suite-activate-dc-cr-dice-system` (4m old)
+- ceo-copilot: `20260406-needs-pm-forseti-20260405-225321-gate2-ready-forseti-life` (679m old)
+- qa-dungeoncrawler: `20260406-052034-suite-activate-dc-cr-background-system` (1m old)
+- qa-dungeoncrawler: `20260406-081055-testgen-dc-cr-low-light-vision` (1m old)
+- qa-dungeoncrawler: `20260406-unit-test-20260405-error-fixes-batch-1` (1m old)
+- qa-dungeoncrawler: `20260406-035339-suite-activate-dc-cr-ancestry-system` (1m old)
 
 ### Feature pipeline: no gaps detected
 
 ### ⚠️ Inbox data quality issues (will auto-remediate next tick)
-- 9 item(s) missing Agent:/Status: fields
+- 2 item(s) missing Agent:/Status: fields
 
 ## Blocked agent summary
 (none currently blocked)

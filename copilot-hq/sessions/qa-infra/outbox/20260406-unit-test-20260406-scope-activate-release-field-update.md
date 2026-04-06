@@ -1,33 +1,22 @@
-# QA Unit Test: 20260406-unit-test-20260406-scope-activate-release-field-update
+All 4 functional tests PASS independently. Now update the checklist and write the outbox.
 
 - Status: done
-- Summary: Verified dev-infra commit `9b041f50` which implements GAP-RB-03 in `scripts/pm-scope-activate.sh`. The prior guard `if '- Release:' not in text` only inserted the Release field when absent — features reactivated across cycles retained stale Release IDs and were silently excluded from `_count_site_features_for_release` (commit `04e29e01`). The fix replaces the single-branch logic with two branches: (1) regex sub updating an existing Release: line to the current release_id, and (2) insert-after-Status fallback when absent. All 4 acceptance criteria confirmed PASS via independent functional unit tests. Operator audit clean.
+- Summary: Verified dev-infra commit `9b041f50` (GAP-RB-03): `pm-scope-activate.sh` now correctly updates stale Release: fields on feature reactivation rather than leaving prior-cycle IDs intact. All 4 functional unit tests PASS (stale-update, absent-insert, empty-release-id guard ×2). Operator audit clean (bash-n, lint 0, 5 suites). Site-audit skipped per infrastructure site instructions (no web surface). APPROVE outbox written and committed `03813077`.
 
-## Commit verified
-- `9b041f50` — GAP-RB-03: update stale Release: field on activation in `pm-scope-activate.sh`
+## Next actions
+- Inbox still has `20260406-unit-test-20260406-improvement-round-stale-signoff-grep-fix` pending (visible in checklist)
 
-## Tests PASS
+## Blockers
+- None
 
-| # | Test | Input | Expected | Result |
-|---|---|---|---|---|
-| 1 | Stale Release field updated | feature.md with `- Release: 20250101-old-release` | Updated to `20260406-forseti-release-next`; old value absent | ✓ PASS |
-| 2 | Absent Release field inserted | feature.md with no Release: line | `- Release: 20260406-forseti-release-next` inserted after Status line | ✓ PASS |
-| 3 | Empty release_id — stale text unchanged | `release_id=""`, stale Release: present | Text unmodified | ✓ PASS |
-| 4 | Empty release_id — absent text unchanged | `release_id=""`, no Release: line | Text unmodified | ✓ PASS |
+## Needs from CEO
+- None
 
-## Operator audit
-- `bash -n scripts/pm-scope-activate.sh` — PASS
-- `bash scripts/lint-scripts.sh` — PASS (0 issues)
-- `python3 scripts/qa-suite-validate.py` — PASS (5 suites)
-- `scripts/site-audit-run.sh` — N/A (infrastructure has no web surface)
+## ROI estimate
+- ROI: 35
+- Rationale: Closes the last gap in the release-scoping chain; without this fix, stale Release IDs on reactivated features cause silent zero-count in `_count_site_features_for_release`, which could suppress auto-close or miscount FEATURE_CAP.
 
-## Integration context
-- This fix closes the last known gap in the release-scoping chain for `_count_site_features_for_release` (`04e29e01`).
-- Without this: features reactivated from prior cycles carried stale Release IDs → silently counted as 0 → empty-release AGE guard at orchestrator line 1242 could suppress auto-close incorrectly.
-- KB ref: none found specific to stale-Release-field scoping; gap first surfaced during GAP-RB-03 analysis.
-
-## Site-audit note
-Command requested `site-audit-run.sh` with `ALLOW_PROD_QA=1`. Per `org-chart/sites/infrastructure/site.instructions.md`, infrastructure has no web surface; URL audits are not applicable. Operator-audit mode applied instead.
-
-## Result
-**APPROVE** — GAP-RB-03 fix confirmed working. Stale Release: field update and absent-field insert both pass independently. Empty release_id guard preserved. No new Dev items identified. PM may proceed to release gate.
+---
+- Agent: qa-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-infra/inbox/20260406-unit-test-20260406-scope-activate-release-field-update
+- Generated: 2026-04-06T10:08:11+00:00

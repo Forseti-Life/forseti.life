@@ -46,3 +46,5 @@ grep -n "getModelFallbacks\|buildBedrockClient" \
 ## ROI
 
 This is a post-production-outage fix verification. High priority — must confirm before next scheduled push.
+- Agent: qa-forseti
+- Status: pending

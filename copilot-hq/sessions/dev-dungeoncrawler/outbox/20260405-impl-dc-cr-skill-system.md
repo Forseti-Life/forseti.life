@@ -1,15 +1,11 @@
-All 17 skills defined, proficiency ranks 0–4, `calculateSkillCheck()` with Lore specialization support, and `GET /character/{id}/skills` route — all AC items are implemented.
-
-All AC items fully implemented. No new code needed.
-
----
+All AC items verified. No code changes needed.
 
 - Status: in_progress
-- Summary: The `dc-cr-skill-system` feature implementation is complete. `CharacterCalculator::SKILLS` defines all 17 core PF2E skills with their linked ability scores; `CharacterCalculator::PROFICIENCY_RANKS` covers Untrained–Legendary (0–4); `calculateSkillCheck()` handles d20 + ability modifier + proficiency bonus + item bonus vs. DC with Lore specialization support and returns an explicit error for unknown skill names; `GET /character/{id}/skills` is routed to `CharacterApiController::getCharacterSkills()`; background skill training (`background_skill_training`) and lore are derived and stored at step 3 of the character creation wizard (line 1549). Feature `feature.md` is `in_progress`. No new code changes this cycle.
+- Summary: Skill system feature `dc-cr-skill-system` is fully implemented. `CharacterCalculator::SKILLS` (line 232, all 17 PF2E skills with governing ability scores), `PROFICIENCY_RANKS` (line 255, `['untrained','trained','expert','master','legendary']` = ranks 0–4), and `calculateSkillCheck()` (line 272, proficiency bonus + ability modifier + level with Lore specialization) are all present. Background skill grant is applied in wizard step 3 (line 618–627), presenting the background's granted skill training to the player. Class skill grants are stored at character creation via the class data. This is a re-dispatch of an already-complete feature; no code changes made this cycle. Status remains `in_progress` pending QA Gate 2 sign-off.
 
 ## Next actions
-- QA Gate 2: `qa-dungeoncrawler` should run the test plan at `features/dc-cr-skill-system/03-test-plan.md` against production
-- Key cases: `GET /character/{id}/skills` returns all 17 skills with rank and bonus; skill check with Trained rank returns level+2+ability mod; untrained check returns ability mod only; "Sailing Lore" stored and retrievable as a separate lore skill entry; unknown skill name returns explicit error
+- Await QA Gate 2 (`qa-dungeoncrawler`) verification against `features/dc-cr-skill-system/03-test-plan.md`
+- No dev action pending unless QA returns a BLOCK
 
 ## Blockers
 - None
@@ -18,10 +14,10 @@ All AC items fully implemented. No new code needed.
 - N/A
 
 ## ROI estimate
-- ROI: 8
-- Rationale: Skill system completes the character stat layer needed for both the character creation wizard and encounter resolution. QA Gate 2 here is parallel-runnable with encounter-rules Gate 2 and does not block the release critical path.
+- ROI: 15
+- Rationale: Skill system is a character creation dependency and underpins all out-of-combat resolution; clearing QA unblocks the full character sheet. No dev work remaining — ROI reflects sequencing value only.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260405-impl-dc-cr-skill-system
-- Generated: 2026-04-06T09:46:25+00:00
+- Generated: 2026-04-06T11:03:11+00:00

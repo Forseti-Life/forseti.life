@@ -155,6 +155,42 @@
       "required_for_release": true
     },
     {
+      "id": "forseti-jobhunter-controller-refactor-static",
+      "label": "Controller refactor: static grep checks \u2014 no direct DB calls in controller, repository injected, repository file exists (TC-01, TC-02, TC-03)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-controller-refactor",
+      "command": "bash -c 'set -e; echo \"TC-01: no direct DB calls in controller\"; ! grep -qn \"\\\\\\\\Drupal::database()\\|db_query\\|db_select\\|db_insert\\|db_update\\|db_delete\" /var/www/html/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; echo \"TC-02: repository injected in controller\"; grep -qn \"JobApplicationRepository\" /var/www/html/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; echo \"TC-03: repository file exists\"; test -f /var/www/html/forseti/web/modules/custom/job_hunter/src/Repository/JobApplicationRepository.php; echo \"ALL STATIC CHECKS PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/jobhunter-controller-refactor-static-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create JobApplicationRepository.php before TC-03 passes.",
+        "TC-01: grep exit code must be 1 (no matches) — '!' negates to exit 0 on no match.",
+        "TC-02: at least one reference to JobApplicationRepository in the controller.",
+        "TC-03: repository file exists at the expected path.",
+        "No auth, no server, no infrastructure required — runs entirely via filesystem grep."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-controller-refactor-unit",
+      "label": "Controller refactor: JobApplicationRepository unit tests \u2014 paginated list, status update, DB exception handling (TC-06, TC-07, TC-08)",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-controller-refactor",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/JobApplicationRepositoryTest.php --testdox",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/jobhunter-controller-refactor-unit-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create JobApplicationRepositoryTest.php before this suite is runnable.",
+        "TC-06: getApplicationList() paginated results match seeded data; empty page returns empty array.",
+        "TC-07: updateApplicationStatus() persists new status; exactly one row updated; no duplicates. Use job_seeker_id (profile PK) not raw UID per KB lesson 20260220.",
+        "TC-08: DB connection failure propagates typed exception (not silently swallowed). Dev must document exception type in 02-implementation-notes.md.",
+        "TC-04 and TC-05 (route smoke tests) are covered by existing role-url-audit suite and qa-permissions.json jobhunter-surface + application-submission-short rules. No new permission rules needed."
+      ],
+      "required_for_release": true
+    },
+    {
       "id": "forseti-csrf-fix-route-acl",
       "label": "CSRF Fix — static YAML check (all 7 application-submission POST routes have _csrf_token: TRUE) + role-url-audit GET regression (no CSRF regression on GET routes)",
       "type": "audit",

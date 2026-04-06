@@ -1,26 +1,23 @@
-All encounter rules AC items are implemented. Feature `feature.md` shows `ready` — that's the prior state before the orchestrator re-tagged it; impl notes were committed at `0eec393d`.
-
----
+All AC methods confirmed. No code changes needed.
 
 - Status: in_progress
-- Summary: The `dc-cr-encounter-rules` feature implementation is complete. All AC items were implemented in prior cycles: `CombatEngine` has `startEncounter`, `startTurn`, `endTurn`, and `resolveAttack`; `Calculator::calculateInitiative` handles PF2E initiative; `HPManager::applyDamage` applies resistance/weakness from `entity_data` JSON (commit `3f66e773`); `CombatActionController` and `CombatEncounterApiController` expose the turn/action endpoints. Feature `feature.md` is `in_progress` with implementation notes committed at `0eec393d`. No new code changes this cycle.
+- Summary: Feature `dc-cr-encounter-rules` is fully implemented. `CombatEngine` has all four required encounter methods: `startEncounter` (line 80), `startTurn` (line 176), `endTurn` (line 210), and `resolveAttack` (line 402). `HPManager::applyDamage` (line 31) handles damage resolution. `Calculator::calculateInitiative` (line 59) handles PF2E perception-based initiative. This is a re-dispatch verification pass; no code changes were made this cycle. Feature remains `in_progress` pending QA Gate 2 sign-off from `qa-dungeoncrawler`.
 
 ## Next actions
-- QA Gate 2: `qa-dungeoncrawler` should run the full test plan at `features/dc-cr-encounter-rules/03-test-plan.md` against production
-- Key cases: initiative order, turn action count enforcement (3 actions/turn), `resolveAttack` hit/miss at various AC thresholds, resistance/immunity reducing damage via `applyDamage`
+- Await QA Gate 2 verification against `features/dc-cr-encounter-rules/03-test-plan.md`
+- No dev action pending unless QA returns a BLOCK
 
 ## Blockers
-- None for encounter-rules core AC
-- `dc-cr-dwarf-heritage-ancient-blooded` AC 3–7 remain blocked on `CombatEngine::resolveSavingThrow()` — separate feature, separate inbox item
+- None
 
 ## Needs from CEO
 - N/A
 
 ## ROI estimate
-- ROI: 11
-- Rationale: Encounter rules is the primary dungeoncrawler gameplay loop; QA Gate 2 here gates the entire combat subsystem from being releasable. Clearing it unlocks the most player-facing value in release-c.
+- ROI: 18
+- Rationale: Encounter rules are the primary gameplay loop and a release-c critical path feature; clearing QA unblocks combat-dependent downstream systems. No dev work remaining.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260405-impl-dc-cr-encounter-rules
-- Generated: 2026-04-06T09:23:55+00:00
+- Generated: 2026-04-06T11:48:35+00:00

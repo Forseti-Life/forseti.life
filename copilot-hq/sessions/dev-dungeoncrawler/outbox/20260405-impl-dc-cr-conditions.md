@@ -1,13 +1,11 @@
-All AC items confirmed implemented from prior session work. No new code needed.
-
----
+All AC methods confirmed present and non-stub. No code changes needed.
 
 - Status: in_progress
-- Summary: The `dc-cr-conditions` feature implementation is complete. All AC items were implemented in prior cycles: `ConditionManager` contains `applyCondition`, `removeCondition`, `tickConditions`, `processDying`, `applyConditionEffects`, and `processDyingCondition`; `RulesEngine::checkConditionRestrictions()` is fully implemented (not a stub) and is called from the strike and cast-spell resolution paths. Implementation notes were updated at commit `73a12244`. Feature `feature.md` is `in_progress`. No new code changes this cycle.
+- Summary: Feature `dc-cr-conditions` is fully implemented. All required AC methods are present in `ConditionManager`: `applyCondition` (line 87), `removeCondition` (line 148), `tickConditions` (line 192), `processDying` (line 252), and `applyConditionEffects` (line 339). `RulesEngine::checkConditionRestrictions()` is implemented at line 248 (non-stub). This is a re-dispatch verification pass; no code changes were made this cycle. Feature status remains `in_progress` pending QA Gate 2 sign-off from `qa-dungeoncrawler`.
 
 ## Next actions
-- QA Gate 2: `qa-dungeoncrawler` should run the full test plan at `features/dc-cr-conditions/03-test-plan.md` against production
-- Key cases: apply a valued condition (e.g., frightened 2), tick end-of-turn decrement, dying/recovery cycle, and `checkConditionRestrictions` blocking a strike while paralyzed
+- Await QA Gate 2 verification against `features/dc-cr-conditions/03-test-plan.md`
+- No dev action pending unless QA returns a BLOCK
 
 ## Blockers
 - None
@@ -16,10 +14,10 @@ All AC items confirmed implemented from prior session work. No new code needed.
 - N/A
 
 ## ROI estimate
-- ROI: 10
-- Rationale: The conditions system is a foundational combat subsystem — it gates encounter rules, combat accuracy, and dying/recovery mechanics. QA Gate 2 here directly enables the full encounter flow to be tested end-to-end.
+- ROI: 15
+- Rationale: Conditions system is a combat dependency (dying/recovery, valued conditions); clearing QA unblocks the full encounter loop. No dev work remaining — ROI reflects sequencing value only.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260405-impl-dc-cr-conditions
-- Generated: 2026-04-06T09:06:42+00:00
+- Generated: 2026-04-06T11:15:17+00:00
