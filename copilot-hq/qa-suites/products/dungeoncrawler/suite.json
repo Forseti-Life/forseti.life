@@ -432,14 +432,86 @@
     },
     {
       "id": "dc-cr-conditions-phpunit",
-      "label": "PHPUnit tests for dc-cr-conditions",
+      "label": "PHPUnit tests for dc-cr-conditions \u2014 condition catalog, tick/decrement, dying/recovery rules, restriction enforcement",
       "type": "unit",
       "feature_id": "dc-cr-conditions",
-      "command": "./vendor/bin/phpunit --filter=dc_cr_conditions 2>/dev/null || ./vendor/bin/phpunit tests/src/",
+      "command": "./vendor/bin/phpunit --filter=Condition",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-conditions-phpunit/"
       ],
-      "required_for_release": true
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-COND-01",
+          "method": "ConditionManagerTest::testCatalogEntryHasRequiredFields",
+          "description": "Condition catalog entry has all required fields (name, is_valued, max_value, effects, end_trigger)"
+        },
+        {
+          "id": "TC-COND-02",
+          "method": "ConditionManagerTest::testCatalogContainsCoreConditions",
+          "description": "Condition catalog includes all ~26+ core PF2E condition types (blinded, dying, frightened, paralyzed, etc.)"
+        },
+        {
+          "id": "TC-COND-03",
+          "method": "ConditionManagerTest::testApplyConditionValidatesTypeInCatalog",
+          "description": "applyCondition() validates condition type exists in catalog before inserting"
+        },
+        {
+          "id": "TC-COND-04",
+          "method": "ConditionManagerTest::testApplyUnknownConditionTypeReturnsError",
+          "description": "applyCondition() rejects unknown condition type with descriptive error; no DB insert"
+        },
+        {
+          "id": "TC-COND-05",
+          "method": "ConditionManagerTest::testTickConditionsDecrementsValuedCondition",
+          "description": "tickConditions() decrements valued condition (frightened) by 1 at end of participant turn"
+        },
+        {
+          "id": "TC-COND-06",
+          "method": "ConditionManagerTest::testTickConditionsRemovesAtZero",
+          "description": "tickConditions() removes valued condition when decremented to 0 (frightened 1 \u2192 removed)"
+        },
+        {
+          "id": "TC-COND-07",
+          "method": "ConditionManagerTest::testTickConditionsIgnoresNonValuedConditions",
+          "description": "tickConditions() does not decrement non-valued conditions (blinded remains after tick)"
+        },
+        {
+          "id": "TC-COND-08",
+          "method": "ConditionManagerTest::testProcessDyingSuccessDecreasesByOne",
+          "description": "processDying(): success on flat DC 10 reduces dying value by 1"
+        },
+        {
+          "id": "TC-COND-09",
+          "method": "ConditionManagerTest::testProcessDyingCriticalSuccessRemovesDying",
+          "description": "processDying(): critical success reduces dying by 2 and removes dying condition"
+        },
+        {
+          "id": "TC-COND-10",
+          "method": "ConditionManagerTest::testProcessDyingFailureIncreasesByOne",
+          "description": "processDying(): failure increases dying value by 1"
+        },
+        {
+          "id": "TC-COND-11",
+          "method": "ConditionManagerTest::testProcessDyingCriticalFailureIncreasesByTwo",
+          "description": "processDying(): critical failure increases dying value by 2"
+        },
+        {
+          "id": "TC-COND-12",
+          "method": "ConditionManagerTest::testDyingFourTransitionsToDeadStatus",
+          "description": "processDying(): dying 4 transitions participant to dead status and removes from active encounter"
+        },
+        {
+          "id": "TC-COND-13",
+          "method": "RulesEngineTest::testParalyzedRestrictionCannotAct",
+          "description": "checkConditionRestrictions(): paralyzed returns cannot_act=true restriction"
+        },
+        {
+          "id": "TC-COND-14",
+          "method": "RulesEngineTest::testUnconsciousRestrictionCannotAct",
+          "description": "checkConditionRestrictions(): unconscious returns cannot_act=true restriction"
+        }
+      ]
     },
     {
       "id": "dc-cr-dice-system-phpunit",

@@ -571,6 +571,20 @@
         "dc_playwright_player": 403,
         "dc_playwright_admin": 200
       }
+    },
+    {
+      "id": "dc-cr-conditions-apply",
+      "feature_id": "dc-cr-conditions",
+      "path_regex": "^/api/encounter/[^/]+/participant/[^/]+/condition(?:/|$)",
+      "notes": "Condition apply/remove endpoint \u2014 POST-only, encounter-context (auth-required). Ignore in GET probe scans.",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }
