@@ -9,7 +9,11 @@
     requiring CEO routing fixes each cycle.
 
     Also fix: enforce release-id suffix requirement in inbox item creation (bare
-    `YYYYMMDD-improvement-round` folder names should fail with an error).
+    `YYYYMMDD-improvement-round` folder names should fail with an error). Additionally,
+    reject non-YYYYMMDD release-id suffixes: any TOPIC matching `improvement-round-<X>`
+    where `<X>` does not start with 8 digits (e.g. "fake-no-signoff-release") must also
+    fail with a descriptive error — these bypass the signoff gate entirely since the gate
+    regex `^improvement-round-([0-9]{8}-.+)$` never matches them.
 
     Work:
     1. Read `org-chart/agents/agents.yaml` to get each agent's `website_scope`.
@@ -25,6 +29,8 @@
     - `ls sessions/sec-analyst-forseti-agent-tracker/inbox/ | grep -i dungeoncrawler` returns
       empty for next 2 release cycles.
     - `ls sessions/*/inbox/ | grep -E '^[0-9]{8}-improvement-round$'` returns empty.
+    - `bash scripts/improvement-round.sh 20260405 improvement-round-fake-test` exits nonzero with error
+      "release-id must start with YYYYMMDD" (validates non-YYYYMMDD suffix rejection).
     - Script dry-run shows sec-analyst-forseti-agent-tracker only receives forseti.life items.
 
     Verification:
