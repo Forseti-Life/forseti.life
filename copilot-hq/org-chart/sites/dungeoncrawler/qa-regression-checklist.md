@@ -109,3 +109,5 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260406-impl-afflictions — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-impl-afflictions.md)
 
 - [ ] 20260406-roadmap-req-646-alchemist-combat-roles — DEFERRED (2026-04-06): node__field_alchemical_type table does not exist, alchemical_item content type has 0 nodes. TC-646-P and TC-646-N cannot run until dc-cr-alchemical-items is implemented. Activate when dc-cr-alchemical-items reaches in_progress.
+
+- [x] 20260406-roadmap-req-647-alchemist-key-ability — APPROVE (2026-04-06): TC-647-P: Alchemist key ability = Intelligence — PASS. TC-647-N: key ability is a valid ability score and not a physical stat — PASS. Req 647 (dc-cr-character-class) confirmed satisfied.
