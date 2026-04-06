@@ -106,3 +106,6 @@ This file is a running list of targeted regression checks derived from completed
 - [x] 20260406-roadmap-req-644-alchemist-class-exists — APPROVE (2026-04-06): TC-644-P: Alchemist character_class node exists (nid=29), HP per level=8, key_ability=Intelligence — all PASS. TC-644-N: Non-existent class FakeClass_DoesNotExist returns FALSE — PASS. Req 644 (dc-cr-character-class feature) confirmed satisfied. See: sessions/qa-dungeoncrawler/artifacts/verification-reports/20260406-roadmap-req-644-alchemist-class-exists.md
 
 - [ ] 20260406-roadmap-req-645-alchemist-identity — DEFERRED (2026-04-06): field_class_spell_slots table does not exist (dc-cr-alchemical-items not implemented). TC-645-P and TC-645-N cannot run until that feature reaches in_progress. Activate when dc-cr-alchemical-items is in_progress.
+- [ ] 20260406-impl-afflictions — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-impl-afflictions.md)
+
+- [ ] 20260406-roadmap-req-646-alchemist-combat-roles — DEFERRED (2026-04-06): node__field_alchemical_type table does not exist, alchemical_item content type has 0 nodes. TC-646-P and TC-646-N cannot run until dc-cr-alchemical-items is implemented. Activate when dc-cr-alchemical-items reaches in_progress.
