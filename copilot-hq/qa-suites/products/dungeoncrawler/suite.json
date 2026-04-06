@@ -679,10 +679,10 @@
     },
     {
       "id": "dc-cr-conditions-phpunit",
-      "label": "PHPUnit tests for dc-cr-conditions \u2014 condition catalog, tick/decrement, dying/recovery rules, restriction enforcement",
-      "type": "unit",
+      "label": "Conditions System \u2014 condition catalog, tick/decrement, dying/recovery rules, restriction enforcement, permissions",
+      "type": "phpunit",
       "feature_id": "dc-cr-conditions",
-      "command": "./vendor/bin/phpunit --filter=Condition",
+      "command": "./vendor/bin/phpunit --filter=Condition tests/src/",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-conditions-phpunit/"
       ],
@@ -690,73 +690,115 @@
       "test_cases": [
         {
           "id": "TC-COND-01",
-          "method": "ConditionManagerTest::testCatalogEntryHasRequiredFields",
-          "description": "Condition catalog entry has all required fields (name, is_valued, max_value, effects, end_trigger)"
+          "description": "Condition catalog entry has all required fields (name, is_valued, max_value, effects, end_trigger)",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testCatalogEntryHasRequiredFields",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-02",
-          "method": "ConditionManagerTest::testCatalogContainsCoreConditions",
-          "description": "Condition catalog includes all ~26+ core PF2E condition types (blinded, dying, frightened, paralyzed, etc.)"
+          "description": "Condition catalog includes all ~26+ core PF2E condition types (blinded, dying, frightened, paralyzed, etc.)",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testCatalogContainsCoreConditions",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-03",
-          "method": "ConditionManagerTest::testApplyConditionValidatesTypeInCatalog",
-          "description": "applyCondition() validates condition type exists in catalog before inserting"
+          "description": "applyCondition() validates condition type exists in catalog before inserting",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testApplyConditionValidatesTypeInCatalog",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-COND-04",
-          "method": "ConditionManagerTest::testApplyUnknownConditionTypeReturnsError",
-          "description": "applyCondition() rejects unknown condition type with descriptive error; no DB insert"
+          "description": "applyCondition() rejects unknown condition type with descriptive error; no DB insert",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testApplyUnknownConditionTypeReturnsError",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-05",
-          "method": "ConditionManagerTest::testTickConditionsDecrementsValuedCondition",
-          "description": "tickConditions() decrements valued condition (frightened) by 1 at end of participant turn"
+          "description": "tickConditions() decrements valued condition (frightened) by 1 at end of participant turn",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testTickConditionsDecrementsValuedCondition",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-06",
-          "method": "ConditionManagerTest::testTickConditionsRemovesAtZero",
-          "description": "tickConditions() removes valued condition when decremented to 0 (frightened 1 \u2192 removed)"
+          "description": "tickConditions() removes valued condition when decremented to 0 (frightened 1 removed)",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testTickConditionsRemovesAtZero",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-07",
-          "method": "ConditionManagerTest::testTickConditionsIgnoresNonValuedConditions",
-          "description": "tickConditions() does not decrement non-valued conditions (blinded remains after tick)"
+          "description": "tickConditions() does not decrement non-valued conditions (blinded remains after tick)",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testTickConditionsIgnoresNonValuedConditions",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-08",
-          "method": "ConditionManagerTest::testProcessDyingSuccessDecreasesByOne",
-          "description": "processDying(): success on flat DC 10 reduces dying value by 1"
+          "description": "processDying(): success on flat DC 10 reduces dying value by 1",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testProcessDyingSuccessDecreasesByOne",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-09",
-          "method": "ConditionManagerTest::testProcessDyingCriticalSuccessRemovesDying",
-          "description": "processDying(): critical success reduces dying by 2 and removes dying condition"
+          "description": "processDying(): critical success reduces dying by 2 and removes dying condition",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testProcessDyingCriticalSuccessRemovesDying",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-10",
-          "method": "ConditionManagerTest::testProcessDyingFailureIncreasesByOne",
-          "description": "processDying(): failure increases dying value by 1"
+          "description": "processDying(): failure increases dying value by 1",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testProcessDyingFailureIncreasesByOne",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-11",
-          "method": "ConditionManagerTest::testProcessDyingCriticalFailureIncreasesByTwo",
-          "description": "processDying(): critical failure increases dying value by 2"
+          "description": "processDying(): critical failure increases dying value by 2",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testProcessDyingCriticalFailureIncreasesByTwo",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-12",
-          "method": "ConditionManagerTest::testDyingFourTransitionsToDeadStatus",
-          "description": "processDying(): dying 4 transitions participant to dead status and removes from active encounter"
+          "description": "processDying(): dying 4 transitions participant to dead status and removes from active encounter",
+          "suite_type": "unit",
+          "class_method": "ConditionManagerTest::testDyingFourTransitionsToDeadStatus",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-COND-13",
-          "method": "RulesEngineTest::testParalyzedRestrictionCannotAct",
-          "description": "checkConditionRestrictions(): paralyzed returns cannot_act=true restriction"
+          "description": "checkConditionRestrictions(): paralyzed returns cannot_act=true restriction",
+          "suite_type": "unit",
+          "class_method": "RulesEngineTest::testParalyzedRestrictionCannotAct",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-COND-14",
-          "method": "RulesEngineTest::testUnconsciousRestrictionCannotAct",
-          "description": "checkConditionRestrictions(): unconscious returns cannot_act=true restriction"
+          "description": "checkConditionRestrictions(): unconscious returns cannot_act=true restriction",
+          "suite_type": "unit",
+          "class_method": "RulesEngineTest::testUnconsciousRestrictionCannotAct",
+          "ac_tag": "EXTEND",
+          "status": "active"
         }
       ]
     },
