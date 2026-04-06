@@ -222,90 +222,167 @@
     },
     {
       "id": "dc-cr-ancestry-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-ancestry-system \u2014 content type, seed data, character creation integration",
-      "type": "unit",
+      "label": "Ancestry System \u2014 content type fields, seed data, API endpoints, character creation integration, ability boosts/flaws/HP/speed, permissions, data integrity",
+      "type": "phpunit",
       "feature_id": "dc-cr-ancestry-system",
-      "command": "./vendor/bin/phpunit --filter=AncestrySystemTest",
+      "command": "./vendor/bin/phpunit --filter=AncestrySystem tests/src/",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/dc-cr-ancestry-system-phpunit/"
+        "tests/results/dc-cr-ancestry-system-phpunit.xml"
       ],
       "required_for_release": true,
       "test_cases": [
         {
           "id": "TC-AN-01",
-          "method": "AncestrySystemTest::testAncestryContentTypeExists",
-          "description": "Ancestry content type exists with all required fields"
+          "description": "Ancestry content type exists with all required fields",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testAncestryContentTypeExists",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-02",
-          "method": "AncestrySystemTest::testSixCoreAncestriesSeeded",
-          "description": "6 core ancestry nodes seeded on install (dwarf, elf, gnome, goblin, halfling, human)"
+          "description": "6 core ancestry nodes seeded on install (dwarf, elf, gnome, goblin, halfling, human)",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testSixCoreAncestriesSeeded",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AN-03",
-          "method": "AncestrySystemTest::testDwarfAncestryDataMatchesConstants",
-          "description": "Ancestry node data matches CharacterManager::ANCESTRIES constants (dwarf spot-check)"
+          "description": "Ancestry node data matches CharacterManager::ANCESTRIES constants \u2014 dwarf spot-check",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testDwarfAncestryDataMatchesConstants",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AN-04",
-          "method": "AncestrySystemTest::testGetAncestriesEndpoint",
-          "description": "GET /ancestries returns all 6 ancestries with required fields"
+          "description": "GET /ancestries returns all 6 ancestries with required fields; anon/auth/admin 200",
+          "suite_type": "functional+role-url-audit",
+          "class_method": "AncestrySystemTest::testGetAncestriesEndpoint",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-05",
-          "method": "AncestrySystemTest::testGetAncestryByIdEndpoint",
-          "description": "GET /ancestries/{id} returns full detail with heritages"
+          "description": "GET /ancestries/{id} returns full detail including heritages array; anon 200",
+          "suite_type": "functional+role-url-audit",
+          "class_method": "AncestrySystemTest::testGetAncestryByIdEndpoint",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-06",
-          "method": "AncestrySystemTest::testCharacterCreationStoresAncestry",
-          "description": "Character creation step stores ancestry selection on character entity"
+          "description": "Character creation step stores ancestry selection on character entity; persists after save",
+          "suite_type": "functional",
+          "class_method": "AncestrySystemTest::testCharacterCreationStoresAncestry",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-07",
-          "method": "AncestrySystemTest::testAncestryAppliesAbilityBoostsAndFlaws",
-          "description": "Ancestry selection applies ability boosts and flaws to character"
+          "description": "Selecting ancestry applies ability boosts and flaws to character",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testAncestryAppliesAbilityBoostsAndFlaws",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-08",
-          "method": "AncestrySystemTest::testAncestryBaseHitPoints",
-          "description": "Ancestry sets correct base HP for all 6 core ancestries"
+          "description": "Ancestry sets correct base HP for all 6 core ancestries",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testAncestryBaseHitPoints",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-09",
-          "method": "AncestrySystemTest::testAncestrySpeed",
-          "description": "Ancestry sets correct speed for all 6 core ancestries"
+          "description": "Ancestry sets correct speed for all 6 ancestries",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testAncestrySpeed",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-10",
-          "method": "AncestrySystemTest::testReSelectingAncestryReplacesExisting",
-          "description": "Re-selecting ancestry replaces previous choice and stats"
+          "description": "Re-selecting ancestry replaces previous choice and recalculates stats",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testReSelectingAncestryReplacesExisting",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-11",
-          "method": "AncestrySystemTest::testMissingAncestryValidationError",
-          "description": "Saving character without ancestry returns validation error"
+          "description": "Saving character without ancestry returns validation error: \"Ancestry is required\"",
+          "suite_type": "functional",
+          "class_method": "AncestrySystemTest::testMissingAncestryValidationError",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-12",
-          "method": "AncestrySystemTest::testHumanFreeBoostDuplicateRejected",
-          "description": "Human free boost duplicate ability score selection rejected"
+          "description": "Human free boost: duplicate ability score selection rejected at validation",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testHumanFreeBoostDuplicateRejected",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-13",
-          "method": "AncestrySystemTest::testInvalidAncestryIdReturns400",
-          "description": "Invalid ancestry ID returns 400 with descriptive error"
+          "description": "Invalid ancestry ID returns 400 with descriptive error",
+          "suite_type": "functional",
+          "class_method": "AncestrySystemTest::testInvalidAncestryIdReturns400",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-14",
-          "method": "AncestrySystemTest::testBoostFlawConflictRejected",
-          "description": "Boosting and flawing the same ability score rejected at validation"
+          "description": "Boost and flaw targeting same ability score rejected at validation; no partial state",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testBoostFlawConflictRejected",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AN-15",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Anon can read ancestry content type nodes (public view)"
+          "description": "Anonymous can read ancestry nodes \u2014 role-url-audit GET /ancestries anon 200",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - dc-cr-ancestry-system-list rule",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-AN-16",
+          "description": "Authenticated player cannot modify another player ancestry selection (403)",
+          "suite_type": "functional",
+          "class_method": "AncestrySystemTest::testPlayerCannotModifyOtherCharacterAncestry",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-AN-17",
+          "description": "Admin can create, edit, delete ancestry nodes (CRUD all HTTP 200/201/204)",
+          "suite_type": "functional",
+          "class_method": "AncestrySystemTest::testAdminCRUDAncestryNodes",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-AN-18",
+          "description": "Existing character ancestry preserved after module update hook (no data corruption)",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testExistingCharacterAncestryPreservedOnUpdate",
+          "ac_tag": "data-integrity",
+          "status": "active"
+        },
+        {
+          "id": "TC-AN-19",
+          "description": "Rollback: module uninstall leaves character nodes intact (ancestry null/empty, no cascade delete)",
+          "suite_type": "unit",
+          "class_method": "AncestrySystemTest::testModuleUninstallLeavesCharactersIntact",
+          "ac_tag": "data-integrity",
+          "status": "active",
+          "notes": "Confirm with Dev: ancestry stored as string/JSON in character (not hard entity reference) to avoid cascade-delete on uninstall."
         }
       ]
     },
