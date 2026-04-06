@@ -49,3 +49,24 @@ All NEW. `CharacterManager::BACKGROUNDS` constant exists with full background da
 
 ## What I'd change next time (Dev)
 - Add a `tableExists()` guard to every `_update_N()` that calls `addField()` on any schema-defined table.
+
+## Completion pass — 2026-04-06 (dev-dungeoncrawler, commit ebf67c518)
+
+### Gaps found vs AC
+1. `BACKGROUNDS` constant had no `fixed_boost` key; model was 2 free boosts instead of 1 fixed + 1 free.
+2. 4 AC-required backgrounds missing: Acrobat, Animal Whisperer, Artisan, Barkeep.
+3. Error messages did not match AC exactly ("Background selection is required." / "Background boosts must be unique.").
+4. Background content type had no custom Drupal fields (data was PHP-constant-only).
+
+### Changes made
+- `CharacterManager::BACKGROUNDS`: added `fixed_boost` to all 9 backgrounds; added 4 new backgrounds (13 total).
+- `AbilityScoreTracker::applyBackgroundBoosts()`: refactored to apply fixed boost automatically + 1 free player boost; duplicate-boost error now matches AC exactly.
+- `CharacterCreationStepController` step 3: updated to enforce 1 free boost for fixed-boost backgrounds; exact error messages per AC.
+- `CharacterCreationStepForm` step 3: UI updated to show fixed boost and ask for 1 free boost.
+- `update_10031`: added fields (field_bg_fixed_boost, field_bg_skill_training, field_bg_lore_skill, field_bg_skill_feat) to background content type; seeded 4 missing nodes; populated all 13.
+
+### Verification results
+- Background nodes: 13 (includes all 5 AC-required: Acolyte, Acrobat, Animal Whisperer, Artisan, Barkeep) ✓
+- All custom fields populated on all 13 nodes ✓
+- Duplicate boost error message exact match per AC ✓
+- Site returns HTTP 200 post-update ✓
