@@ -93,6 +93,18 @@ class CharacterApiController extends ControllerBase {
         }
       }
 
+      // Validate heritage matches ancestry if both are provided.
+      $heritage_val = $data['heritage'] ?? NULL;
+      if ($heritage_val !== NULL && $heritage_val !== '' && $ancestry_val !== NULL && $ancestry_val !== '') {
+        $canonical_for_heritage = \Drupal\dungeoncrawler_content\Service\CharacterManager::resolveAncestryCanonicalName($ancestry_val);
+        if ($canonical_for_heritage !== '' && !\Drupal\dungeoncrawler_content\Service\CharacterManager::isValidHeritageForAncestry($canonical_for_heritage, $heritage_val)) {
+          return new JsonResponse([
+            'success' => FALSE,
+            'error' => 'Invalid heritage for selected ancestry.',
+          ], 400);
+        }
+      }
+
       // Prepare character data for storage
       $character_data = [
         'step' => $data['step'] ?? 1,
