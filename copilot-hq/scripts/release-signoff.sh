@@ -221,3 +221,30 @@ As release operator, proceed with the official push:
 (inbox_dir / 'command.md').write_text(cmd, encoding='utf-8')
 print(f"INFO: ALL PMs signed — queued push-ready item for pm-forseti: {item_id}")
 PY
+
+# ── Board email notification ──────────────────────────────────────────────────
+# Load board.conf if present (provides BOARD_EMAIL, HQ_FROM_EMAIL, HQ_SITE_NAME)
+BOARD_CONF="${ROOT_DIR}/org-chart/board.conf"
+if [ -f "$BOARD_CONF" ]; then
+  # shellcheck source=../org-chart/board.conf
+  source "$BOARD_CONF"
+fi
+BOARD_EMAIL="${BOARD_EMAIL:-keith.aumiller@stlouisintegration.com}"
+HQ_FROM_EMAIL="${HQ_FROM_EMAIL:-hq-noreply@forseti.life}"
+HQ_SITE_NAME="${HQ_SITE_NAME:-forseti.life HQ}"
+
+_release_notify_body="Release ${release_id} has been signed off by all PMs and is ready to push to production.
+
+Release ID: ${release_id}
+Status: All PM signoffs recorded — push-ready item queued for pm-forseti.
+
+To check release status:
+  bash ${ROOT_DIR}/scripts/release-signoff-status.sh ${release_id}
+
+This notification was sent automatically by release-signoff.sh."
+
+printf "To: %s\nFrom: %s\nSubject: [%s] Release ready to push: %s\nContent-Type: text/plain\n\n%s\n" \
+  "$BOARD_EMAIL" "$HQ_FROM_EMAIL" "$HQ_SITE_NAME" "$release_id" "$_release_notify_body" \
+  | /usr/sbin/sendmail -t \
+  && echo "INFO: Board notification sent to ${BOARD_EMAIL}" \
+  || echo "WARN: Board notification email failed (sendmail returned non-zero)"
