@@ -3261,6 +3261,13 @@ function dungeoncrawler_content_update_10011() {
   $table_name = 'combat_encounters';
 
   try {
+    // Create table if it doesn't exist (may have been added to schema after initial install).
+    if (!$schema_handler->tableExists($table_name)) {
+      $schema_handler->createTable($table_name, $schema[$table_name]);
+      \Drupal::logger('dungeoncrawler_content')->notice('Created @table table.', ['@table' => $table_name]);
+      return t('Created combat_encounters table (map_id included in schema).');
+    }
+
     // Add map_id column if it doesn't exist.
     if (!$schema_handler->fieldExists($table_name, 'map_id')) {
       $spec = [
@@ -3399,6 +3406,13 @@ function dungeoncrawler_content_update_10014() {
  */
 function dungeoncrawler_content_update_10015() {
   $schema = \Drupal::database()->schema();
+  // Create table if it doesn't exist (may have been added to schema after initial install).
+  if (!$schema->tableExists('combat_participants')) {
+    $full_schema = dungeoncrawler_content_schema();
+    $schema->createTable('combat_participants', $full_schema['combat_participants']);
+    \Drupal::logger('dungeoncrawler_content')->notice('Created combat_participants table (reaction_available included in schema).');
+    return t('Created combat_participants table (reaction_available included).');
+  }
   if (!$schema->fieldExists('combat_participants', 'reaction_available')) {
     $schema->addField('combat_participants', 'reaction_available', [
       'type' => 'int',
