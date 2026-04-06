@@ -2,12 +2,15 @@
 
 namespace Drupal\dungeoncrawler_content\Controller;
 
+use Drupal\Component\Datetime\TimeInterface;
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
 use Drupal\Core\Url;
 use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Drupal\dungeoncrawler_content\Service\FeatEffectManager;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -20,11 +23,15 @@ class CharacterViewController extends ControllerBase {
   protected CharacterManager $characterManager;
   protected FeatEffectManager $featEffectManager;
   protected GeneratedImageRepository $imageRepository;
+  protected Connection $database;
+  protected TimeInterface $time;
 
-  public function __construct(CharacterManager $character_manager, FeatEffectManager $feat_effect_manager, GeneratedImageRepository $image_repository) {
+  public function __construct(CharacterManager $character_manager, FeatEffectManager $feat_effect_manager, GeneratedImageRepository $image_repository, Connection $database, TimeInterface $time) {
     $this->characterManager = $character_manager;
     $this->featEffectManager = $feat_effect_manager;
     $this->imageRepository = $image_repository;
+    $this->database = $database;
+    $this->time = $time;
   }
 
   public static function create(ContainerInterface $container) {
@@ -32,6 +39,8 @@ class CharacterViewController extends ControllerBase {
       $container->get('dungeoncrawler_content.character_manager'),
       $container->get('dungeoncrawler_content.feat_effect_manager'),
       $container->get('dungeoncrawler_content.generated_image_repository'),
+      $container->get('database'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -507,6 +516,69 @@ class CharacterViewController extends ControllerBase {
   public function viewTitle(int $character_id): string {
     $record = $this->characterManager->loadCharacter($character_id);
     return $record ? $record->name : 'Character Not Found';
+  }
+
+  /**
+   * Archive a character directly without a confirmation form.
+   */
+  public function archiveCharacter(int $character_id): RedirectResponse {
+    $character = $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['id', 'name', 'uid', 'status', 'character_data', 'campaign_id'])
+      ->condition('id', $character_id)
+      ->execute()
+      ->fetchObject() ?: NULL;
+
+    if (!$character) {
+      throw new NotFoundHttpException();
+    }
+
+    $current_user = $this->currentUser();
+    if (
+      (int) $character->uid !== (int) $current_user->id()
+      && !$current_user->hasPermission('administer dungeoncrawler content')
+    ) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $destination = \Drupal::request()->query->get('destination');
+    if ($destination) {
+      $redirect_url = Url::fromUserInput($destination)->toString();
+    }
+    elseif ((int) ($character->campaign_id ?? 0) > 0) {
+      $redirect_url = Url::fromRoute('dungeoncrawler_content.characters', ['campaign_id' => (int) $character->campaign_id])->toString();
+    }
+    else {
+      $redirect_url = Url::fromRoute('dungeoncrawler_content.campaigns')->toString();
+    }
+
+    if ((int) $character->status === 2) {
+      $this->messenger()->addStatus($this->t('%name is already archived.', ['%name' => $character->name]));
+      return new RedirectResponse($redirect_url);
+    }
+
+    $character_data = json_decode((string) ($character->character_data ?? '{}'), TRUE);
+    if (!is_array($character_data)) {
+      $character_data = [];
+    }
+    $character_data['_archive_meta'] = [
+      'previous_status' => (int) $character->status,
+      'archived_at' => $this->time->getRequestTime(),
+    ];
+
+    $this->database->update('dc_campaign_characters')
+      ->fields([
+        'status' => 2,
+        'character_data' => json_encode($character_data, JSON_UNESCAPED_UNICODE),
+        'changed' => $this->time->getRequestTime(),
+      ])
+      ->condition('id', $character_id)
+      ->execute();
+
+    $this->messenger()->addStatus($this->t('%name archived. It is now hidden from your character roster.', [
+      '%name' => $character->name,
+    ]));
+
+    return new RedirectResponse($redirect_url);
   }
 
 }

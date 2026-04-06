@@ -239,7 +239,7 @@ dungeoncrawler_content.campaign_delete:
 dungeoncrawler_content.campaign_archive:
   path: '/campaigns/{campaign_id}/archive'
   defaults:
-    _form: '\Drupal\dungeoncrawler_content\Form\CampaignArchiveForm'
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CampaignController::archiveCampaign'
     _title: 'Archive Campaign'
   requirements:
     _campaign_access: 'TRUE'
@@ -360,7 +360,7 @@ dungeoncrawler_content.character_edit:
 dungeoncrawler_content.character_archive:
   path: '/characters/{character_id}/archive'
   defaults:
-    _form: '\Drupal\dungeoncrawler_content\Form\CharacterArchiveForm'
+    _controller: '\Drupal\dungeoncrawler_content\Controller\CharacterViewController::archiveCharacter'
     _title: 'Archive Character'
   requirements:
     _character_access: 'TRUE'

@@ -2,6 +2,8 @@
 
 namespace Drupal\dungeoncrawler_content\Controller;
 
+use Drupal\Component\Datetime\TimeInterface;
+use Drupal\Core\Cache\Cache;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -11,6 +13,7 @@ use Drupal\dungeoncrawler_content\Service\CharacterManager;
 use Drupal\dungeoncrawler_content\Service\GeneratedImageRepository;
 use Drupal\dungeoncrawler_content\Service\QuestTrackerService;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -24,13 +27,15 @@ class CampaignController extends ControllerBase {
   protected FormBuilderInterface $formBuilderService;
   protected QuestTrackerService $questTracker;
   protected GeneratedImageRepository $imageRepository;
+  protected TimeInterface $time;
 
-  public function __construct(Connection $database, CharacterManager $character_manager, FormBuilderInterface $form_builder, QuestTrackerService $quest_tracker, GeneratedImageRepository $image_repository) {
+  public function __construct(Connection $database, CharacterManager $character_manager, FormBuilderInterface $form_builder, QuestTrackerService $quest_tracker, GeneratedImageRepository $image_repository, TimeInterface $time) {
     $this->database = $database;
     $this->characterManager = $character_manager;
     $this->formBuilderService = $form_builder;
     $this->questTracker = $quest_tracker;
     $this->imageRepository = $image_repository;
+    $this->time = $time;
   }
 
   /**
@@ -43,6 +48,7 @@ class CampaignController extends ControllerBase {
       $container->get('form_builder'),
       $container->get('dungeoncrawler_content.quest_tracker'),
       $container->get('dungeoncrawler_content.generated_image_repository'),
+      $container->get('datetime.time'),
     );
   }
 
@@ -727,6 +733,65 @@ class CampaignController extends ControllerBase {
     if ($quest_id) {
       $this->questTracker->startQuest($campaign_id, $quest_id, $character_id);
     }
+  }
+
+  /**
+   * Archive a campaign directly without a confirmation form.
+   */
+  public function archiveCampaign(int $campaign_id): RedirectResponse {
+    $campaign = $this->database->select('dc_campaigns', 'c')
+      ->fields('c', ['id', 'name', 'uid', 'status', 'campaign_data'])
+      ->condition('id', $campaign_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$campaign) {
+      throw new NotFoundHttpException();
+    }
+
+    $current_user = $this->currentUser();
+    if (
+      (int) $campaign->uid !== (int) $current_user->id()
+      && !$current_user->hasPermission('administer dungeoncrawler content')
+    ) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $destination = \Drupal::request()->query->get('destination');
+    $redirect_url = $destination
+      ? Url::fromUserInput($destination)->toString()
+      : Url::fromRoute('dungeoncrawler_content.campaigns')->toString();
+
+    if ((string) $campaign->status === 'archived') {
+      $this->messenger()->addStatus($this->t('%name is already archived.', ['%name' => $campaign->name]));
+      return new RedirectResponse($redirect_url);
+    }
+
+    $campaign_data = json_decode((string) ($campaign->campaign_data ?? '{}'), TRUE);
+    if (!is_array($campaign_data)) {
+      $campaign_data = [];
+    }
+    $campaign_data['_archive_meta'] = [
+      'previous_status' => (string) $campaign->status,
+      'archived_at' => $this->time->getRequestTime(),
+    ];
+
+    $this->database->update('dc_campaigns')
+      ->fields([
+        'status' => 'archived',
+        'campaign_data' => json_encode($campaign_data, JSON_UNESCAPED_UNICODE),
+        'changed' => $this->time->getRequestTime(),
+      ])
+      ->condition('id', $campaign_id)
+      ->execute();
+
+    Cache::invalidateTags(['dc_campaigns', 'dc_campaign:' . $campaign_id]);
+
+    $this->messenger()->addStatus($this->t('%name archived. It is now hidden from your campaigns list.', [
+      '%name' => $campaign->name,
+    ]));
+
+    return new RedirectResponse($redirect_url);
   }
 
 }
