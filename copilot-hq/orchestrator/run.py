@@ -803,6 +803,26 @@ def _count_site_features_in_progress(site_keyword: str) -> int:
     return count
 
 
+def _count_site_features_for_release(site_keyword: str, release_id: str) -> int:
+    """Count features scoped to a specific release_id with Status: in_progress and Website: <site_keyword>.
+
+    Only counts features that explicitly declare the matching Release: field.
+    Features without a Release: field are excluded (they belong to an untracked release).
+    """
+    count = 0
+    for fm in (REPO_ROOT / "features").glob("*/feature.md"):
+        try:
+            text = fm.read_text(encoding="utf-8", errors="ignore")
+            has_status  = bool(re.search(r"^-\s+Status:\s*in_progress", text, re.MULTILINE | re.IGNORECASE))
+            has_site    = bool(re.search(rf"^-\s+Website:.*{re.escape(site_keyword)}", text, re.MULTILINE | re.IGNORECASE))
+            has_release = bool(re.search(rf"^-\s+Release:\s*{re.escape(release_id)}\s*$", text, re.MULTILINE | re.IGNORECASE))
+            if has_status and has_site and has_release:
+                count += 1
+        except Exception:
+            pass
+    return count
+
+
 _FEATURE_GAP_COOLDOWN    = 4 * 3600   # 4h between gap dispatches per feature
 _FEATURE_GAP_STATE_DIR   = REPO_ROOT / "tmp" / "orchestrator-stagnation"
 
@@ -1200,13 +1220,13 @@ def _dispatch_release_close_triggers() -> None:
         # Evaluate triggers
         triggers: List[str] = []
 
-        # Trigger 1: feature count cap
+        # Trigger 1: feature count cap (scoped to current release_id)
         site_kw = _TEAM_WEBSITE_PREFIX.get(team_id, team_id)
-        feature_count = _count_site_features_in_progress(site_kw)
+        feature_count = _count_site_features_for_release(site_kw, rid)
         if feature_count >= _RELEASE_CLOSE_CAP:
-            triggers.append(f"FEATURE_CAP: {feature_count}/{_RELEASE_CLOSE_CAP} features in_progress for {team_id}")
+            triggers.append(f"FEATURE_CAP: {feature_count}/{_RELEASE_CLOSE_CAP} features in_progress for {team_id} release {rid}")
 
-        # Trigger 2: age since started_at
+        # Trigger 2: age since started_at (skip if zero features in this release — avoids empty-release deadlock)
         started_file = active_dir / f"{team_id}.started_at"
         if started_file.exists():
             try:
@@ -1217,7 +1237,9 @@ def _dispatch_release_close_triggers() -> None:
                 started_ts = int(_dt.fromisoformat(started_str_clean).replace(
                     tzinfo=timezone.utc).timestamp())
                 age_hours = (now - started_ts) / 3600
-                if age_hours >= _RELEASE_CLOSE_AGE_HOURS:
+                # Guard: do not fire AGE trigger on an empty release (zero release-scoped features)
+                release_feature_count = _count_site_features_for_release(site_kw, rid)
+                if age_hours >= _RELEASE_CLOSE_AGE_HOURS and release_feature_count > 0:
                     triggers.append(
                         f"AGE: release {rid} started {age_hours:.1f}h ago (threshold {_RELEASE_CLOSE_AGE_HOURS}h)"
                     )
