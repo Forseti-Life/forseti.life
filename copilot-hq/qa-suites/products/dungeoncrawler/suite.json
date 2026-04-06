@@ -1110,7 +1110,7 @@
         {
           "id": "TC-HS-06",
           "description": "Character summary displays heritage name (not raw id)",
-          "suite_type": "playwright",
+          "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testCharacterSummaryDisplaysHeritageName",
           "ac_tag": "TEST-ONLY",
           "status": "active",
@@ -1119,7 +1119,7 @@
         {
           "id": "TC-HS-07",
           "description": "AJAX: heritage dropdown repopulates when ancestry changes (Dwarf\u2192Elf: Dwarf options replaced by 4 Elf options)",
-          "suite_type": "playwright",
+          "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testAjaxHeritageDropdownRepopulatesOnAncestryChange",
           "ac_tag": "EXTEND",
           "status": "active",
@@ -1128,7 +1128,7 @@
         {
           "id": "TC-HS-08",
           "description": "AJAX: changing ancestry resets previously selected heritage value (stale value does not persist)",
-          "suite_type": "playwright",
+          "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testAjaxHeritageClearsOnAncestryChange",
           "ac_tag": "EXTEND",
           "status": "active",
@@ -1136,16 +1136,24 @@
         },
         {
           "id": "TC-HS-09",
-          "description": "Human ancestry shows exactly one heritage option (Versatile Heritage)",
-          "suite_type": "unit+playwright",
-          "class_method": "CharacterManagerTest::testHumanHasOneHeritage + CharacterCreationFlow::testHumanAncestryShowsOneHeritageOption",
+          "description": "Human ancestry shows exactly one heritage option (Versatile Heritage) (unit: data layer count)",
+          "suite_type": "unit",
+          "class_method": "CharacterManagerTest::testHumanHasOneHeritage",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-HS-09b",
+          "description": "Human ancestry shows exactly one heritage option (Versatile Heritage) (e2e: dropdown renders one option)",
+          "suite_type": "e2e",
+          "class_method": "CharacterCreationFlow::testHumanAncestryShowsOneHeritageOption",
           "ac_tag": "TEST-ONLY",
           "status": "active"
         },
         {
           "id": "TC-HS-10",
           "description": "Valid selection allows progression to next wizard step (Halfling+gutsy \u2192 step 2)",
-          "suite_type": "playwright",
+          "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testValidHeritageAllowsWizardProgression",
           "ac_tag": "TEST-ONLY",
           "status": "active",
@@ -1154,7 +1162,7 @@
         {
           "id": "TC-HS-11",
           "description": "Back-navigation clears stale heritage from previous ancestry; user must re-select",
-          "suite_type": "playwright",
+          "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testBackNavigationClearsHeritageField",
           "ac_tag": "NEW",
           "status": "active",
@@ -1163,8 +1171,8 @@
         {
           "id": "TC-HS-12",
           "description": "Anonymous user cannot access character creation form (403 or redirect to login)",
-          "suite_type": "role-url-audit",
-          "class_method": "n/a - role-url-audit entry",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
           "ac_tag": "TEST-ONLY",
           "status": "active"
         },

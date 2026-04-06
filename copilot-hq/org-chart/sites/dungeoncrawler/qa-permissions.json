@@ -614,6 +614,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-heritage-system-character-create-form",
+      "feature_id": "dc-cr-heritage-system",
+      "path_regex": "^/dungeoncrawler/character/create(?:/|$)",
+      "notes": "GET /dungeoncrawler/character/create \u2014 character creation form. Auth required; anonymous redirected to login (302) or 403. Covered by TC-HS-12.",
+      "expect": {
+        "anon": 302,
+        "authenticated": 200,
+        "content_editor": "ignore",
+        "administrator": 200,
+        "dc_playwright_player": 200,
+        "dc_playwright_admin": 200
+      }
     }
   ]
 }
