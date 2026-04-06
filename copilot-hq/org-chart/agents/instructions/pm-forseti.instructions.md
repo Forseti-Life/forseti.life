@@ -50,6 +50,34 @@ from `/home/ubuntu/forseti.life` (repo root). Existing tracked files use normal 
 - Supervisor: `ceo-copilot`
 - You are responsible for ensuring BA/Dev/QA are not working the same files concurrently.
 
+## Pre-scope-activation gate (required — GAP-SG-20260406 fix)
+Before running `pm-scope-activate.sh` for any feature candidate, verify the test plan exists:
+```bash
+ls features/<feature-id>/03-test-plan.md
+```
+- If `03-test-plan.md` is absent: do NOT activate. Leave `Status: ready` and defer to the next cycle.
+- The grooming "ready" definition requires all 3 artifacts: `feature.md` + `01-acceptance-criteria.md` + `03-test-plan.md`.
+- Features activated without a test plan inflate the in_progress count and can trigger premature auto-close.
+
+Reference: `knowledgebase/lessons/20260406-stale-groom-feature-scope-inflation.md`
+
+## DC config drift — post-push check (required — post-push gap fix)
+After any push that includes changes to DC (dungeoncrawler) configs applied via `drush config:set` or CEO/hotfix (DB-only changes), the sync dir must be updated to match. Run on `/var/www/html/dungeoncrawler`:
+```bash
+vendor/bin/drush config:status 2>&1 | grep "Different"
+```
+If any rows show "Different": update the sync dir YAML directly to match DB values (or run `config:export` if safe). Verify `config:status` returns empty after the fix.
+
+Rationale: CEO/hotfix model upgrades (e.g., Bedrock model ID) are applied to DB only. Without sync dir update, the "Different" drift persists across future audits and creates noise in post-push verification.
+
+## Cross-PM signoff escalation (required — GAP-STO-20260406 fix)
+After dispatching a passthrough-request to pm-dungeoncrawler for a co-signoff:
+- If pm-dungeoncrawler has not co-signed after **1 follow-up cycle** (2 total dispatches): escalate to CEO directly (not another pm-dungeoncrawler reminder).
+- Do NOT send more than 2 total signoff reminders to pm-dungeoncrawler without CEO awareness.
+- Escalation payload: release-id, current `release-signoff-status.sh` output, recommended action (CEO waive or intervene).
+
+Reference: `knowledgebase/proposals/20260406-orchestrator-signoff-timeout.md`
+
 ## Start-of-Stage-3 checklist (next release grooming — runs in parallel with Dev execution)
 
 When the current release enters Stage 3 (Dev execution), PM begins grooming the NEXT release.
