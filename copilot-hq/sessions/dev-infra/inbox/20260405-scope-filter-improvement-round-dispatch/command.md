@@ -14,6 +14,11 @@
     where `<X>` does not start with 8 digits (e.g. "fake-no-signoff-release") must also
     fail with a descriptive error — these bypass the signoff gate entirely since the gate
     regex `^improvement-round-([0-9]{8}-.+)$` never matches them.
+    Also reject inbox folders with no YYYYMMDD date prefix at all (e.g.
+    "fake-no-signoff-release-id-improvement-round") — the orchestrator currently processes
+    these as legitimate work items with no validation. Add a pre-dispatch folder name
+    format check: inbox item folders created by this script MUST match
+    `^[0-9]{8}-improvement-round-.+$` or be rejected at creation time.
 
     Work:
     1. Read `org-chart/agents/agents.yaml` to get each agent's `website_scope`.
