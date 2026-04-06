@@ -1,9 +1,9 @@
 - Status: done
-- Summary: pm-forseti signoff for `20260406-dungeoncrawler-release-next` created and committed (`00caaf7e`). Forseti state reviewed: 8 features in_progress, QA Gate 2 PASS (0 violations, run `20260405-225321`). No forseti blockers. Both PMs now signed — `release-signoff-status.sh` exits 0, push unblocked.
+- Summary: pm-forseti signoff for `20260406-dungeoncrawler-release-next` created and committed (`04e76fbd`). Forseti state reviewed: 8 features in_progress, QA audit run `20260406-055632` PASS (0 violations, 0 pending ACL decisions). No forseti blockers. DC release has 1 scoped feature (`dc-cr-character-creation`); pm-dungeoncrawler was auto-signed by orchestrator on coordinated DC push. `release-signoff-status.sh` now exits 0 — ready for official push.
 
 ## Next actions
-- Coordinated push for `20260406-dungeoncrawler-release-next` is unblocked
-- Continue monitoring `20260406-forseti-release-next` dev completions (forseti-jobhunter-application-submission P1, forseti-jobhunter-controller-refactor P2)
+- Coordinated push for `20260406-dungeoncrawler-release-next` is unblocked — push operator may proceed
+- Continue monitoring `20260406-forseti-release-next` dev completions (8 features in_progress)
 
 ## Blockers
 - None
@@ -12,5 +12,5 @@
 - N/A
 
 ## ROI estimate
-- ROI: 25
-- Rationale: Unblocks a coordinated DC push; fast action with no forseti risk since this is a transition cycle release.
+- ROI: 28
+- Rationale: Unblocks coordinated DC push; fast sign-off with clean forseti QA audit as evidence.
