@@ -101,3 +101,6 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260406-impl-save-half-damage — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-impl-save-half-damage.md)
 - [ ] 20260406-impl-damage-rules — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-impl-damage-rules.md)
 - [ ] 20260406-impl-alchemist-class-advancement — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-impl-alchemist-class-advancement.md)
+- [ ] 20260406-impl-flat-check-system — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260406-impl-flat-check-system.md)
+
+- [x] 20260406-roadmap-req-644-alchemist-class-exists — APPROVE (2026-04-06): TC-644-P: Alchemist character_class node exists (nid=29), HP per level=8, key_ability=Intelligence — all PASS. TC-644-N: Non-existent class FakeClass_DoesNotExist returns FALSE — PASS. Req 644 (dc-cr-character-class feature) confirmed satisfied. See: sessions/qa-dungeoncrawler/artifacts/verification-reports/20260406-roadmap-req-644-alchemist-class-exists.md
