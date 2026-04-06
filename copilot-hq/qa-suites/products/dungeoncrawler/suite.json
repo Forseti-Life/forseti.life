@@ -61,91 +61,160 @@
     },
     {
       "id": "dc-cr-action-economy-phpunit",
-      "label": "PHPUnit tests for dc-cr-action-economy \u2014 full 1/2/3-action, reaction, free-action budget enforcement",
-      "type": "unit",
+      "label": "Action Economy \u2014 full 1/2/3-action, reaction, free-action budget enforcement, permissions, data integrity",
+      "type": "phpunit",
       "feature_id": "dc-cr-action-economy",
-      "command": "./vendor/bin/phpunit --filter=ActionEconomyTest",
+      "command": "./vendor/bin/phpunit --filter=ActionEconomy tests/src/",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/dc-cr-action-economy-phpunit/"
+        "tests/results/dc-cr-action-economy-phpunit.xml"
       ],
       "required_for_release": true,
       "test_cases": [
         {
           "id": "TC-AE-01",
-          "method": "ActionEconomyTest::testTurnStartResetsActionBudget",
-          "description": "Turn start resets actions_remaining to 3 and reaction_available to true"
+          "description": "Turn start resets actions_remaining to 3 and reaction_available to true",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testTurnStartResetsActionBudget",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-02",
-          "method": "ActionEconomyTest::testOneActionCostDecrement",
-          "description": "1-action cost decrements actions_remaining by 1"
+          "description": "1-action cost decrements actions_remaining by 1",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testOneActionCostDecrement",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-03",
-          "method": "ActionEconomyTest::testTwoActionActivityDecrement",
-          "description": "2-action activity decrements actions_remaining by 2"
+          "description": "2-action activity decrements actions_remaining by 2",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testTwoActionActivityDecrement",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-04",
-          "method": "ActionEconomyTest::testThreeActionActivityDecrement",
-          "description": "3-action activity decrements actions_remaining by 3"
+          "description": "3-action activity decrements actions_remaining by 3",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testThreeActionActivityDecrement",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-05",
-          "method": "ActionEconomyTest::testFreeActionNoCost",
-          "description": "Free action does not decrement budget"
+          "description": "Free action does not decrement budget; succeeds at 0 remaining actions",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testFreeActionNoCost",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-06",
-          "method": "ActionEconomyTest::testReactionConsumption",
-          "description": "Spending a reaction sets reaction_available to false"
+          "description": "Spending a reaction sets reaction_available to false",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testReactionConsumption",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AE-07",
-          "method": "ActionEconomyTest::testInsufficientActionsRejected",
-          "description": "Cannot act when actions_remaining insufficient for action cost"
+          "description": "Cannot act when actions_remaining < action_cost; rejection with \"Not enough actions\"",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testInsufficientActionsRejected",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-08",
-          "method": "ActionEconomyTest::testSpentReactionRejected",
-          "description": "Cannot use reaction if reaction_available is false"
+          "description": "Cannot use reaction if reaction_available is false; rejection with \"Reaction already used this turn\"",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testSpentReactionRejected",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-AE-09",
-          "method": "ActionEconomyTest::testTwoActionActivityRejectedAtOneRemaining",
-          "description": "2-action activity rejected with only 1 action remaining"
+          "description": "2-action activity rejected with only 1 action remaining; explicit error",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testTwoActionActivityRejectedAtOneRemaining",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-10",
-          "method": "ActionEconomyTest::testActionsRemainingFloorAtZero",
-          "description": "actions_remaining cannot go below 0"
+          "description": "actions_remaining cannot go below 0 (floor guard against double-decrements)",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testActionsRemainingFloorAtZero",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-11",
-          "method": "ActionEconomyTest::testInvalidActionCostRejected",
-          "description": "Invalid action cost (-1, 0, 4, null) rejected at validation"
+          "description": "Invalid action cost (-1, 0, 4, null, bogus string) rejected at validation; budget unchanged",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testInvalidActionCostRejected",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-12",
-          "method": "ActionEconomyTest::testSpendActionsOutsideActiveTurnRejected",
-          "description": "Spending actions outside active turn returns error, no mutation"
+          "description": "Spending actions outside active turn returns error; no state mutation",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testSpendActionsOutsideActiveTurnRejected",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-AE-13",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Anon cannot access mutation endpoints (POST /api/combat/action \u2014 403/405)"
+          "description": "Anonymous cannot access mutation endpoints (POST /api/combat/action \u2192 403/405)",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - api-combat-action rule (ignore probe, POST-only)",
+          "ac_tag": "permissions",
+          "status": "active"
         },
         {
           "id": "TC-AE-14",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Authenticated player can access own character action endpoint"
+          "description": "Authenticated player can spend own character actions (200)",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - api-combat-action rule",
+          "ac_tag": "permissions",
+          "status": "active"
         },
         {
           "id": "TC-AE-15",
-          "method": "ActionEconomyTest::testPlayerCannotSpendOtherCharacterActions",
-          "description": "Player cannot spend another character actions"
+          "description": "Player cannot spend another character actions (403 or authorization exception)",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testPlayerCannotSpendOtherCharacterActions",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-AE-16",
+          "description": "Admin can reset/override turn state for GM tooling (HTTP 200, state reset to defaults)",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testAdminCanOverrideTurnState",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-AE-17",
+          "description": "Data integrity: existing participants receive default action state on module install/update",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testMigrationDefaultActionState",
+          "ac_tag": "data-integrity",
+          "status": "active",
+          "notes": "Requires update hook test. If hook not yet written, flag to Dev and test manually at Stage 0."
+        },
+        {
+          "id": "TC-AE-18",
+          "description": "Rollback: disabling module does not corrupt character nodes (fields null/empty, node still loadable)",
+          "suite_type": "unit",
+          "class_method": "ActionEconomyTest::testModuleDisableDoesNotCorruptNodes",
+          "ac_tag": "data-integrity",
+          "status": "active",
+          "notes": "Module uninstall in PHPUnit: use Drupal::service(module_installer)->uninstall(); confirm achievability with Dev."
         }
       ]
     },
