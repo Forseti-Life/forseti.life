@@ -325,7 +325,8 @@
         "administrator": "ignore",
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
-      }
+      },
+      "feature_id": "dc-cr-difficulty-class"
     },
     {
       "id": "ai-conversation-api",

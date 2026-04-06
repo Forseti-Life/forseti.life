@@ -658,6 +658,89 @@
       ],
       "required_for_release": true,
       "notes": "Requires running dev instance at DUNGEONCRAWLER_BASE_URL with seeded ancestry/background/class content. First Playwright-required feature in the dungeoncrawler pipeline."
+    },
+    {
+      "id": "dc-cr-difficulty-class-phpunit",
+      "label": "PHPUnit tests for dc-cr-difficulty-class \u2014 determineDegreOfSuccess, natural 20/1 bumps, Simple DC table, task DC guidelines, POST /rules/check",
+      "type": "unit",
+      "feature_id": "dc-cr-difficulty-class",
+      "command": "./vendor/bin/phpunit --filter=CombatCalculator",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-difficulty-class-phpunit/"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DC-01",
+          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessCriticalSuccess",
+          "description": "roll >= DC+10 returns critical_success"
+        },
+        {
+          "id": "TC-DC-02",
+          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessSuccess",
+          "description": "roll >= DC (but < DC+10) returns success"
+        },
+        {
+          "id": "TC-DC-03",
+          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessCriticalFailure",
+          "description": "roll <= DC-10 returns critical_failure"
+        },
+        {
+          "id": "TC-DC-04",
+          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessFailure",
+          "description": "DC-9 <= roll < DC returns failure"
+        },
+        {
+          "id": "TC-DC-05",
+          "method": "CombatCalculatorTest::testNaturalTwentyBumpsDegreeUp",
+          "description": "Natural 20 bumps degree one step up (failure->success, success->critical_success, critical_failure->failure)"
+        },
+        {
+          "id": "TC-DC-06",
+          "method": "CombatCalculatorTest::testNaturalOneBumpsDegreeDown",
+          "description": "Natural 1 bumps degree one step down (success->failure, critical_success->success, failure->critical_failure)"
+        },
+        {
+          "id": "TC-DC-07",
+          "method": "CombatCalculatorTest::testNaturalTwentyAtMaxStaysCriticalSuccess",
+          "description": "Natural 20 on critical_success stays at critical_success (no bump beyond max)"
+        },
+        {
+          "id": "TC-DC-08",
+          "method": "CombatCalculatorTest::testNaturalOneAtMinStaysCriticalFailure",
+          "description": "Natural 1 on critical_failure stays at critical_failure (no bump below min)"
+        },
+        {
+          "id": "TC-DC-09",
+          "method": "CombatCalculatorTest::testGetSimpleDCAllLevels",
+          "description": "getSimpleDC() returns correct PF2E CRB DC for levels 1-20 (spot-check: level 1=15, level 10=27, level 20=40)"
+        },
+        {
+          "id": "TC-DC-10",
+          "method": "CombatCalculatorTest::testGetSimpleDCInvalidLevelReturnsError",
+          "description": "getSimpleDC() level 0 or negative throws error with clear message"
+        },
+        {
+          "id": "TC-DC-11",
+          "method": "CombatCalculatorTest::testGetSimpleDCCapAtLevelTwenty",
+          "description": "getSimpleDC() levels > 20 are capped to level-20 DC (no error)"
+        },
+        {
+          "id": "TC-DC-12",
+          "method": "CombatCalculatorTest::testGetTaskDCAllTiers",
+          "description": "getTaskDC() returns monotonically increasing DC for all 6 tiers (trivial/low/moderate/high/extreme/incredible)"
+        },
+        {
+          "id": "TC-DC-13",
+          "method": "CombatCalculatorTest::testGetTaskDCUnknownDifficultyReturnsError",
+          "description": "getTaskDC() unknown difficulty string returns explicit error listing valid tier names"
+        },
+        {
+          "id": "TC-DC-14",
+          "method": "RulesCheckControllerTest::testRulesCheckEndpointResponseShape",
+          "description": "POST /rules/check accepts {roll, dc, natural_twenty, natural_one} and returns {degree: \"...\"}"
+        }
+      ]
     }
   ],
   "_schema_notes": [
