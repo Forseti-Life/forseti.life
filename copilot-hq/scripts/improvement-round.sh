@@ -48,6 +48,23 @@ if [[ "$TOPIC" =~ ^improvement-round-(.+)$ ]]; then
   fi
 fi
 
+# ── GAP-DISPATCH-INJECT-01: release-id character sanitization ────────────────
+# Reject release IDs that are empty, start with '-', or contain characters
+# outside [a-zA-Z0-9._-]. This prevents flag injection (e.g. --help as an ID
+# creating '--help-improvement-round' inbox folders) and path traversal via '/'
+# or shell metacharacter injection via spaces, semicolons, etc.
+if [[ "$TOPIC" =~ ^improvement-round-([0-9]{8}-.+)$ ]]; then
+  _rid_check="${BASH_REMATCH[1]}"
+  if [[ -z "$_rid_check" ]] || [[ "$_rid_check" == -* ]]; then
+    echo "WARN: Invalid release_id '${_rid_check}' — starts with '-' or is empty; skipping improvement-round dispatch" >&2
+    exit 1
+  fi
+  if ! [[ "$_rid_check" =~ ^[a-zA-Z0-9._-]+$ ]]; then
+    echo "WARN: Invalid release_id '${_rid_check}' — contains characters outside [a-zA-Z0-9._-]; skipping improvement-round dispatch" >&2
+    exit 1
+  fi
+fi
+
 # Gate: if TOPIC encodes a specific release-id (improvement-round-YYYYMMDD-*),
 # confirm both PM signoffs are present AND none are stale orchestrator artifacts
 # before queuing any inbox items.
@@ -142,7 +159,8 @@ if [ "$DRY_RUN" = true ]; then
 fi
 
 # ── Dispatch ──────────────────────────────────────────────────────────────────
-for agent in $agent_ids; do
+while IFS= read -r agent; do
+  [ -z "$agent" ] && continue
   inbox_dir="sessions/${agent}/inbox/${FOLDER_NAME}"
 
   # Don't duplicate.
@@ -163,6 +181,6 @@ for agent in $agent_ids; do
     Output must follow the required outbox template and include SMART outcomes for proposed process fixes.
 MD
 
-done
+done <<< "$agent_ids"
 
 echo "Created post-release review inbox items for ${FOLDER_NAME} (site filter: '${RELEASE_SITE:-<none>}')" 
