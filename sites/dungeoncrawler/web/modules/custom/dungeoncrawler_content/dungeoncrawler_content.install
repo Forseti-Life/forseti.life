@@ -4754,3 +4754,55 @@ function dungeoncrawler_content_update_10035() {
 
   return implode(' | ', $messages);
 }
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create combat_afflictions table for multi-stage affliction tracking
+ * (reqs 2135–2144: poison, disease, curse, virulent).
+ */
+function dungeoncrawler_content_update_10036() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('combat_afflictions')) {
+    return 'combat_afflictions table already exists — skipped.';
+  }
+
+  $table_definition = [
+    'description' => 'Tracks active afflictions (poison, disease, curse) per participant per encounter.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ],
+      'encounter_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'participant_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'affliction_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'poison'],
+      'affliction_name' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => ''],
+      'affliction_level' => ['type' => 'int', 'not null' => TRUE, 'default' => 1],
+      'save_type' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'Fortitude'],
+      'save_dc' => ['type' => 'int', 'not null' => TRUE, 'default' => 15],
+      'current_stage' => ['type' => 'int', 'not null' => TRUE, 'default' => 1],
+      'max_stage' => ['type' => 'int', 'not null' => TRUE, 'default' => 3],
+      'onset' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'onset_elapsed' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'max_duration' => ['type' => 'int', 'not null' => FALSE],
+      'duration_elapsed' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'is_virulent' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'consecutive_successes' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'stages_json' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'active'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'encounter_participant' => ['encounter_id', 'participant_id'],
+      'status' => ['status'],
+    ],
+  ];
+
+  $schema->createTable('combat_afflictions', $table_definition);
+  return 'Created combat_afflictions table.';
+}
