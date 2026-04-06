@@ -42,6 +42,12 @@ This file is owned by the `pm-forseti-agent-tracker` seat.
 - If blocked by cross-module dependencies or environment/repo access gaps, escalate to `Board` with options, recommendation, and ROI estimate.
 - **Stale blocker deduplication (required):** If the same blocker has appeared in 3 or more consecutive outbox items with no Board action, stop re-documenting the full blocker. Instead write one line: `Same blocker as [outbox file path] — no change. Awaiting Board decision.` and move on. This prevents blocker re-documentation from consuming the entire outbox update.
 
+## Post-release gap review procedure (required)
+- At the end of each release cycle, run: `git log --oneline --since="72 hours ago" -- features/forseti-copilot-agent-tracker/`
+- Check feature.md for stale `Release:` field — update to active release ID if behind.
+- Identify top 1-3 gaps (security AC lag, untracked HQ files, stale metadata) and queue follow-through inbox items for owning seats.
+- Always verify: (a) security AC section present in feature.md, (b) release ID current, (c) all policy edits committed or flagged as untracked.
+
 ## Module-state pre-check before delegation (required)
 - Before creating any dev delegation item for `copilot_agent_tracker` or any forseti module, run:
   `git log --oneline --since="30 days ago" -- sites/forseti/web/modules/custom/<module-name>/`
