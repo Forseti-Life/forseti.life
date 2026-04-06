@@ -1171,4 +1171,10 @@ fi
 # Completion-based anti-staleness: bump other agents' queued ROI by +1.
 bump_other_agents_queued_roi "$AGENT_ID" || true
 
+# Gate transition routing: detect QA BLOCK/APPROVE signals and create follow-on
+# inbox items. Must run after archive so the outbox file is readable.
+if [ -x "$ROOT_DIR/scripts/route-gate-transitions.sh" ]; then
+  "$ROOT_DIR/scripts/route-gate-transitions.sh" "$AGENT_ID" "$next" 2>/dev/null || true
+fi
+
 echo "${AGENT_ID}: processed ${next}"
