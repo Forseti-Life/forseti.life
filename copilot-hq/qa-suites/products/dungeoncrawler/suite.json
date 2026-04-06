@@ -1253,10 +1253,10 @@
     },
     {
       "id": "dc-cr-difficulty-class-phpunit",
-      "label": "PHPUnit tests for dc-cr-difficulty-class \u2014 determineDegreOfSuccess, natural 20/1 bumps, Simple DC table, task DC guidelines, POST /rules/check",
-      "type": "unit",
+      "label": "Difficulty Class \u2014 determineDegreOfSuccess, natural 20/1 bumps, Simple DC table, task DC guidelines, POST /rules/check",
+      "type": "phpunit",
       "feature_id": "dc-cr-difficulty-class",
-      "command": "./vendor/bin/phpunit --filter=CombatCalculator",
+      "command": "./vendor/bin/phpunit --filter=CombatCalculator tests/src/",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-difficulty-class-phpunit/"
       ],
@@ -1264,73 +1264,115 @@
       "test_cases": [
         {
           "id": "TC-DC-01",
-          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessCriticalSuccess",
-          "description": "roll >= DC+10 returns critical_success"
+          "description": "roll >= DC+10 returns critical_success",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testDetermineDegreOfSuccessCriticalSuccess",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-02",
-          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessSuccess",
-          "description": "roll >= DC (but < DC+10) returns success"
+          "description": "roll >= DC (but < DC+10) returns success",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testDetermineDegreOfSuccessSuccess",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-03",
-          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessCriticalFailure",
-          "description": "roll <= DC-10 returns critical_failure"
+          "description": "roll <= DC-10 returns critical_failure",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testDetermineDegreOfSuccessCriticalFailure",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-04",
-          "method": "CombatCalculatorTest::testDetermineDegreOfSuccessFailure",
-          "description": "DC-9 <= roll < DC returns failure"
+          "description": "DC-9 <= roll < DC returns failure",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testDetermineDegreOfSuccessFailure",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-05",
-          "method": "CombatCalculatorTest::testNaturalTwentyBumpsDegreeUp",
-          "description": "Natural 20 bumps degree one step up (failure->success, success->critical_success, critical_failure->failure)"
+          "description": "Natural 20 bumps degree one step up (failure->success, success->critical_success, critical_failure->failure)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testNaturalTwentyBumpsDegreeUp",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-06",
-          "method": "CombatCalculatorTest::testNaturalOneBumpsDegreeDown",
-          "description": "Natural 1 bumps degree one step down (success->failure, critical_success->success, failure->critical_failure)"
+          "description": "Natural 1 bumps degree one step down (success->failure, critical_success->success, failure->critical_failure)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testNaturalOneBumpsDegreeDown",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-07",
-          "method": "CombatCalculatorTest::testNaturalTwentyAtMaxStaysCriticalSuccess",
-          "description": "Natural 20 on critical_success stays at critical_success (no bump beyond max)"
+          "description": "Natural 20 on critical_success stays at critical_success (no bump beyond max)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testNaturalTwentyAtMaxStaysCriticalSuccess",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-08",
-          "method": "CombatCalculatorTest::testNaturalOneAtMinStaysCriticalFailure",
-          "description": "Natural 1 on critical_failure stays at critical_failure (no bump below min)"
+          "description": "Natural 1 on critical_failure stays at critical_failure (no bump below min)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testNaturalOneAtMinStaysCriticalFailure",
+          "ac_tag": "EXTEND",
+          "status": "active"
         },
         {
           "id": "TC-DC-09",
-          "method": "CombatCalculatorTest::testGetSimpleDCAllLevels",
-          "description": "getSimpleDC() returns correct PF2E CRB DC for levels 1-20 (spot-check: level 1=15, level 10=27, level 20=40)"
+          "description": "getSimpleDC() returns correct PF2E CRB DC for levels 1-20 (spot-check: level 1=15, level 10=27, level 20=40)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testGetSimpleDCAllLevels",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-DC-10",
-          "method": "CombatCalculatorTest::testGetSimpleDCInvalidLevelReturnsError",
-          "description": "getSimpleDC() level 0 or negative throws error with clear message"
+          "description": "getSimpleDC() level 0 or negative throws error with clear message",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testGetSimpleDCInvalidLevelReturnsError",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-DC-11",
-          "method": "CombatCalculatorTest::testGetSimpleDCCapAtLevelTwenty",
-          "description": "getSimpleDC() levels > 20 are capped to level-20 DC (no error)"
+          "description": "getSimpleDC() levels > 20 are capped to level-20 DC (no error)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testGetSimpleDCCapAtLevelTwenty",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-DC-12",
-          "method": "CombatCalculatorTest::testGetTaskDCAllTiers",
-          "description": "getTaskDC() returns monotonically increasing DC for all 6 tiers (trivial/low/moderate/high/extreme/incredible)"
+          "description": "getTaskDC() returns monotonically increasing DC for all 6 tiers (trivial/low/moderate/high/extreme/incredible)",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testGetTaskDCAllTiers",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-DC-13",
-          "method": "CombatCalculatorTest::testGetTaskDCUnknownDifficultyReturnsError",
-          "description": "getTaskDC() unknown difficulty string returns explicit error listing valid tier names"
+          "description": "getTaskDC() unknown difficulty string returns explicit error listing valid tier names",
+          "suite_type": "unit",
+          "class_method": "CombatCalculatorTest::testGetTaskDCUnknownDifficultyReturnsError",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-DC-14",
-          "method": "RulesCheckControllerTest::testRulesCheckEndpointResponseShape",
-          "description": "POST /rules/check accepts {roll, dc, natural_twenty, natural_one} and returns {degree: \"...\"}"
+          "description": "POST /rules/check accepts {roll, dc, natural_twenty, natural_one} and returns {degree: \"...\"}",
+          "suite_type": "functional",
+          "class_method": "RulesCheckControllerTest::testRulesCheckEndpointResponseShape",
+          "ac_tag": "NEW",
+          "status": "active"
         }
       ]
     },
