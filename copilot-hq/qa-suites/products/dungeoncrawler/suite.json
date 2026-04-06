@@ -522,9 +522,9 @@
     {
       "id": "dc-cr-character-class-phpunit",
       "label": "PHPUnit tests for dc-cr-character-class \u2014 content type, 12 core PF2E classes, class selection, HP/proficiency/feature application",
-      "type": "unit",
+      "type": "phpunit",
       "feature_id": "dc-cr-character-class",
-      "command": "./vendor/bin/phpunit --filter=CharacterClass",
+      "command": "./vendor/bin/phpunit --filter=CharacterClass tests/src/",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-character-class-phpunit/"
       ],
@@ -532,82 +532,123 @@
       "test_cases": [
         {
           "id": "TC-CC-01",
-          "method": "CharacterClassContentTypeTest::testContentTypeFieldsExist",
-          "description": "character_class content type exists with all required fields"
+          "description": "character_class content type exists with all required fields",
+          "suite_type": "functional",
+          "class_method": "CharacterClassContentTypeTest::testContentTypeFieldsExist",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-02",
-          "suite": "drush-verify",
-          "method": null,
-          "description": "12 core PF2E classes seeded after install"
+          "description": "12 core PF2E classes seeded after install",
+          "suite_type": "drush",
+          "class_method": "drush-verify",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-03",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Character class nodes publicly readable (anon GET /character_class/{id} = 200)"
+          "description": "Character class nodes publicly readable (anon GET /character_class/{id} = 200)",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-04",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Class application endpoint requires authentication (POST /api/character/{id}/class)"
+          "description": "Class application endpoint requires authentication (POST /api/character/{id}/class)",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-05",
-          "method": "CharacterClassSelectionTest::testClassStoredOnCharacter",
-          "description": "Selecting a class stores it on the character entity"
+          "description": "Selecting a class stores it on the character entity",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testClassStoredOnCharacter",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-06",
-          "method": "CharacterClassSelectionTest::testHpPerLevelApplied",
-          "description": "Selecting a class sets hp_per_level correctly (fighter=10, wizard=6, cleric=8)"
+          "description": "Selecting a class sets hp_per_level correctly (fighter=10, wizard=6, cleric=8)",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testHpPerLevelApplied",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-07",
-          "method": "CharacterClassSelectionTest::testProficienciesApplied",
-          "description": "Selecting a class applies class proficiency levels to character proficiency record"
+          "description": "Selecting a class applies class proficiency levels to character proficiency record",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testProficienciesApplied",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-08",
-          "method": "CharacterClassSelectionTest::testFirstLevelFeaturesRecorded",
-          "description": "Selecting a class records 1st-level class features on character entity"
+          "description": "Selecting a class records 1st-level class features on character entity",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testFirstLevelFeaturesRecorded",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-09",
-          "method": "CharacterClassSelectionTest::testReselectionReplacesPriorClass",
-          "description": "Re-selecting class removes prior HP/proficiencies/features before applying new"
+          "description": "Re-selecting class removes prior HP/proficiencies/features before applying new",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testReselectionReplacesPriorClass",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-10",
-          "method": "CharacterClassSelectionTest::testMissingClassReturnsError",
-          "description": "Saving without class selection returns Class is required validation error"
+          "description": "Saving without class selection returns Class is required validation error",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testMissingClassReturnsError",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-11",
-          "method": "CharacterClassSelectionTest::testKeyAbilityChoiceRequired",
-          "description": "Multi-ability-option classes (e.g., champion) require key ability choice before applying"
+          "description": "Multi-ability-option classes (e.g., champion) require key ability choice before applying",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testKeyAbilityChoiceRequired",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-12",
-          "method": "CharacterClassSelectionTest::testInvalidClassIdReturns400",
-          "description": "Invalid class ID returns 400 with descriptive error"
+          "description": "Invalid class ID returns 400 with descriptive error",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testInvalidClassIdReturns400",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-13",
-          "method": "CharacterClassSelectionTest::testCannotModifyOtherPlayersCharacter",
-          "description": "Authenticated player cannot apply class to another player character (403)"
+          "description": "Authenticated player cannot apply class to another player character (403)",
+          "suite_type": "functional",
+          "class_method": "CharacterClassSelectionTest::testCannotModifyOtherPlayersCharacter",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-14",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Admin can access /node/add/character_class (200); player/anon get 403"
+          "description": "Admin can access /node/add/character_class (200); player/anon get 403",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-CC-15",
-          "method": "CharacterClassDataIntegrityTest::testCharacterClassRetainedAfterModuleUpdate",
-          "description": "Existing character retains class data after module update"
+          "description": "Existing character retains class data after module update",
+          "suite_type": "functional",
+          "class_method": "CharacterClassDataIntegrityTest::testCharacterClassRetainedAfterModuleUpdate",
+          "ac_tag": "NEW",
+          "status": "active"
         }
       ]
     },
