@@ -199,6 +199,14 @@ When you receive this item, act immediately in the same outbox cycle:
 
 Even without a `release-close-now` trigger, you MUST sign off as soon as ALL in-scope features have Gate 2 APPROVE — do not wait for the feature count to grow.
 
+### Post-release cleanup (required immediately after signoff — added 2026-04-06)
+After `release-signoff.sh` succeeds for any release:
+1. **Set all shipped features to `status: shipped`** in feature.md and remove the `Release:` line.
+2. **Write release notes** to `sessions/pm-dungeoncrawler/artifacts/release-notes/<release-id>.md` if not already written. Include: features shipped, features deferred, commit hashes, and one-line summary.
+3. **Trigger post-release gap review immediately** — do not wait. The orchestrator may send an improvement-round inbox item; if not, add a note to your outbox summarizing the top 1-3 gaps and any follow-through items.
+
+Lesson (2026-04-06): Release `20260322-dungeoncrawler-release-next` shipped 2026-03-22 but the post-release gap review inbox item was not created until 2026-04-02 (11 days later). Stale in_progress features from that release were never cleaned up, contributing to a release-c false auto-close. Post-release cleanup must happen in the same outbox cycle as signoff.
+
 Required action:
 - `bash scripts/release-signoff.sh dungeoncrawler <release-id>`
 - This script is **idempotent**: if a signoff artifact already exists for this release-id, it exits OK and prints "already signed off". Safe to re-run — no need to manually check for existing signoff first.
