@@ -582,13 +582,6 @@ class AIApiService {
       $model_id = $options['model_id'] ?? $this->getModelFallbacks()[0];
       $max_tokens = $options['max_tokens'] ?? 8000;
       
-      // 🔍 DEBUG: Log exact max_tokens being sent to Bedrock
-      $this->logInfo('📤 Sending to Bedrock: max_tokens=@max_tokens, model=@model, prompt_chars=@prompt_chars', [
-        '@max_tokens' => $max_tokens,
-        '@model' => $model_id,
-        '@prompt_chars' => strlen($prompt),
-      ]);
-      
       $request_body = [
         'anthropic_version' => 'bedrock-2023-05-31',
         'max_tokens' => $max_tokens,
@@ -613,15 +606,6 @@ class AIApiService {
 
       $duration_ms = (int)((microtime(TRUE) - $start_time) * 1000);
       $result = json_decode($response['body']->getContents(), TRUE);
-      
-      // 🔍 DEBUG: Log the full response metadata from Bedrock
-      $usage = $result['usage'] ?? [];
-      $this->logInfo('📥 Bedrock Response: input_tokens_actual=@input, output_tokens_actual=@output, stop_reason=@stop, duration_ms=@duration', [
-        '@input' => $usage['inputTokens'] ?? 'N/A',
-        '@output' => $usage['outputTokens'] ?? 'N/A',
-        '@stop' => $result['stop_reason'] ?? 'unknown',
-        '@duration' => $duration_ms,
-      ]);
       
       if (isset($result['content'][0]['text'])) {
         $ai_response = $result['content'][0]['text'];
