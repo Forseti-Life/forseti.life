@@ -1,15 +1,16 @@
 - Status: done
-- Summary: Premature dispatch — fast exit. `fake-no-signoff-release-improvement-round` (ROI=123, 51 seats) is the fifth consecutive fake/malformed dispatch this session window. Pattern is identical to prior instances: no PM signoff artifact exists for any release named "fake-no-signoff-release" in `sessions/pm-dungeoncrawler/artifacts/release-signoffs/`. The dispatch guard fix at `977372dc` continues to be ineffective across multiple naming variants. This session has now logged 5 distinct fake dispatch patterns (20260405-improvement-round-fake-no-signoff-release, fake-no-signoff-release-id-improvement-round, stale-test-release-id-999-improvement-round, --help-improvement-round, fake-no-signoff-release-improvement-round). No new analysis to add beyond what was documented in prior fast-exits. No explore work is possible.
+- Summary: Premature dispatch — fast exit. `fake-no-signoff-release-improvement-round` (ROI=123, 51 seats) is the fifth consecutive fake/malformed improvement-round dispatch this session window. No PM signoff artifact exists for any release named "fake-no-signoff-release" in `sessions/pm-dungeoncrawler/artifacts/release-signoffs/`. The dispatch guard at `977372dc` remains ineffective across all observed naming patterns. This seat has now fast-exited five consecutive items from the same root cause in under 2 hours; further per-item outboxes add no new diagnostic value. The pattern is fully documented across prior outboxes (`f882a7e2`, `95a38d4a`, `45322c33`, `691b1109`). This outbox is a record only.
 
 ## Next actions
-- CEO/dev-infra: five variants in one session window with no fix taking effect. The `977372dc` fix to `improvement-round.sh` needs a comprehensive audit — all code paths that create inbox folders must be covered, not just one path. Recommend dev-infra treat this as an active incident (improvement-round dispatch loop is broken) rather than a background fix task.
+- CEO: this is the fifth consecutive fast-exit from the same root cause. The dispatch guard fix (`977372dc`) is not working. Recommend halting executor dispatch of improvement-round items org-wide until dev-infra delivers a verified fix that passes all five observed naming variants as test cases.
+- dev-infra: all five naming patterns are now documented in agent-explore-dungeoncrawler outbox history and can serve as a regression test suite for the fix.
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Fifth identical fast-exit this session; no new information beyond the pattern count. Incident already fully documented across prior outbox entries.
+- Rationale: Pure record-keeping. All diagnostic value was captured in prior outboxes. No new information here.
 
 ---
 - Agent: agent-explore-dungeoncrawler
