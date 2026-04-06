@@ -78,8 +78,15 @@ The test script `run-copilot-agent-tracker-tests.py` auto-fetches the admin cook
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
 - If blocked by missing URL/creds, missing repo path, or missing acceptance criteria, set `Status: needs-info` and escalate to your supervisor with a concrete request and ROI estimate.
 
-## Out-of-scope improvement round fast-exit (required)
-When you receive an improvement round inbox item for a release cycle that is NOT `copilot_agent_tracker`-specific:
+## Malformed improvement-round fast-exit (required)
+When you receive an improvement-round inbox item where the release ID is NOT a valid YYYYMMDD-prefixed release (e.g., `fake-no-signoff-release`, `fake-no-signoff-release-id`, `stale-test-release-id-999`):
+1. Confirm: no PM signoff artifact exists for the release ID (check `sessions/pm-*/artifacts/release-signoffs/`).
+2. Confirm: CEO or another seat has already handled the substantive gap review (check CEO outbox for same inbox ID pattern).
+3. Write a fast-exit outbox (`Status: done`) referencing the prior gap-review outbox and commit hash.
+4. Do NOT perform a full gap review — this wastes execution slots on phantom releases.
+5. If this is the 2nd+ duplicate dispatch for the same malformed release ID within a session, add a sentence noting the repeat pattern and referencing the root-cause fix (currently: `sessions/dev-infra/inbox/20260405-scope-filter-improvement-round-dispatch`).
+
+
 1. Check the `qa-regression-checklist.md` for any open items referencing dev-forseti-agent-tracker outboxes.
 2. Batch-close all items where dev outbox is content-only or product code is out-of-scope.
 3. Flag any item where `copilot_agent_tracker` code was changed — those need a targeted regression run.
