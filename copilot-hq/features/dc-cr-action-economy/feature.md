@@ -3,7 +3,7 @@
 - Work item id: dc-cr-action-economy
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Priority: P0 (foundation for all encounter-mode gameplay; all class features, spells, and skill actions depend on this)
 - Release: 
 - PM owner: pm-dungeoncrawler
