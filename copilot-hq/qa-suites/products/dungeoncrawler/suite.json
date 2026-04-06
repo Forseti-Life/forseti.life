@@ -389,9 +389,9 @@
     {
       "id": "dc-cr-background-system-phpunit",
       "label": "PHPUnit tests for dc-cr-background-system \u2014 content type, seed data, boost/skill/feat application",
-      "type": "unit",
+      "type": "phpunit",
       "feature_id": "dc-cr-background-system",
-      "command": "./vendor/bin/phpunit --filter=BackgroundSystemTest",
+      "command": "./vendor/bin/phpunit --filter=BackgroundSystemTest tests/src/",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/dc-cr-background-system-phpunit/"
       ],
@@ -399,79 +399,123 @@
       "test_cases": [
         {
           "id": "TC-BG-01",
-          "method": "BackgroundSystemTest::testBackgroundContentTypeExists",
-          "description": "Background content type exists with all required fields"
+          "description": "Background content type exists with all required fields",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testBackgroundContentTypeExists",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-02",
-          "method": "BackgroundSystemTest::testFiveCoreBackgroundsSeeded",
-          "description": "At least 5 core backgrounds seeded (Acolyte, Acrobat, Animal Whisperer, Artisan, Barkeep)"
+          "description": "At least 5 core backgrounds seeded (Acolyte, Acrobat, Animal Whisperer, Artisan, Barkeep)",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testFiveCoreBackgroundsSeeded",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-03",
-          "method": "BackgroundSystemTest::testAcolyteBackgroundData",
-          "description": "Background node data matches CharacterManager::BACKGROUNDS constants (Acolyte spot-check)"
+          "description": "Background node data matches CharacterManager::BACKGROUNDS constants (Acolyte spot-check)",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testAcolyteBackgroundData",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-04",
-          "method": "BackgroundSystemTest::testCharacterCreationStoresBackground",
-          "description": "Character creation step stores background selection on character entity"
+          "description": "Character creation step stores background selection on character entity",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testCharacterCreationStoresBackground",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-05",
-          "method": "BackgroundSystemTest::testBackgroundAppliesAbilityBoosts",
-          "description": "Background applies fixed and free ability boosts to character"
+          "description": "Background applies fixed and free ability boosts to character",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testBackgroundAppliesAbilityBoosts",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-06",
-          "method": "BackgroundSystemTest::testBackgroundGrantsSkillTraining",
-          "description": "Background grants skill training and Lore skill to character"
+          "description": "Background grants skill training and Lore skill to character",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testBackgroundGrantsSkillTraining",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-07",
-          "method": "BackgroundSystemTest::testBackgroundGrantsSkillFeat",
-          "description": "Background records granted skill feat on character entity"
+          "description": "Background records granted skill feat on character entity",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testBackgroundGrantsSkillFeat",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-08",
-          "method": "BackgroundSystemTest::testDuplicateBoostRejected",
-          "description": "Fixed+free boost targeting same ability score rejected with explicit message"
+          "description": "Fixed+free boost targeting same ability score rejected with explicit message",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testDuplicateBoostRejected",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-09",
-          "method": "BackgroundSystemTest::testReSelectingBackgroundReplacesPrior",
-          "description": "Re-selecting background removes prior boosts/skills/feat before applying new"
+          "description": "Re-selecting background removes prior boosts/skills/feat before applying new",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testReSelectingBackgroundReplacesPrior",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-10",
-          "method": "BackgroundSystemTest::testMissingBackgroundValidationError",
-          "description": "Saving without background returns validation error"
+          "description": "Saving without background returns validation error",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testMissingBackgroundValidationError",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-11",
-          "method": "BackgroundSystemTest::testInvalidBackgroundIdReturns400",
-          "description": "Invalid background ID returns 400 with descriptive error"
+          "description": "Invalid background ID returns 400 with descriptive error",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testInvalidBackgroundIdReturns400",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-12",
-          "method": "BackgroundSystemTest::testFreeBoostConflictCaughtBeforeWrite",
-          "description": "Free boost conflict caught before any data written (no partial write)"
+          "description": "Free boost conflict caught before any data written (no partial write)",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testFreeBoostConflictCaughtBeforeWrite",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-13",
-          "suite": "role-url-audit",
-          "method": null,
-          "description": "Anon can read background nodes (public view)"
+          "description": "Anon can read background nodes (public view)",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-14",
-          "method": "BackgroundSystemTest::testPlayerCannotModifyOtherCharacterBackground",
-          "description": "Authenticated player cannot modify another player character background"
+          "description": "Authenticated player cannot modify another player character background",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testPlayerCannotModifyOtherCharacterBackground",
+          "ac_tag": "NEW",
+          "status": "active"
         },
         {
           "id": "TC-BG-15",
-          "method": "BackgroundSystemTest::testAdminCanCrudBackgroundNodes",
-          "description": "Admin can create, edit, and delete background content type nodes"
+          "description": "Admin can create, edit, and delete background content type nodes",
+          "suite_type": "functional",
+          "class_method": "BackgroundSystemTest::testAdminCanCrudBackgroundNodes",
+          "ac_tag": "NEW",
+          "status": "active"
         }
       ]
     },
@@ -673,7 +717,7 @@
           "class_method": "CharacterCreationRollbackTest::testUninstallPreservesActiveCharacters",
           "ac_tag": "NEW",
           "status": "active",
-          "notes": "Dev confirm: drush character:cleanup-drafts command expected — verify command name at Stage 0"
+          "notes": "Dev confirm: drush character:cleanup-drafts command expected \u2014 verify command name at Stage 0"
         }
       ]
     },
@@ -927,7 +971,7 @@
         },
         {
           "id": "TC-DS-15",
-          "description": "ACL: POST /dice/roll anon vs auth access — TBD pending PM site-auth-policy confirmation",
+          "description": "ACL: POST /dice/roll anon vs auth access \u2014 TBD pending PM site-auth-policy confirmation",
           "suite_type": "audit",
           "class_method": null,
           "ac_tag": "NEW",

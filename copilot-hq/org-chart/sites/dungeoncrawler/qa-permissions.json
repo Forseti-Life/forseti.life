@@ -518,20 +518,6 @@
       }
     },
     {
-      "id": "dc-cr-background-system-read",
-      "feature_id": "dc-cr-background-system",
-      "path_regex": "^/backgrounds(?:/|$)",
-      "notes": "GET /backgrounds \u2014 public read endpoint for background content. Anon accessible (TC-BG-13). Mirrors ancestry-system pattern.",
-      "expect": {
-        "anon": 200,
-        "authenticated": 200,
-        "content_editor": 200,
-        "administrator": 200,
-        "dc_playwright_player": 200,
-        "dc_playwright_admin": 200
-      }
-    },
-    {
       "id": "dc-cr-character-class-node-read",
       "feature_id": "dc-cr-character-class",
       "path_regex": "^/character_class/[^/]+(?:/|$)",
@@ -619,7 +605,7 @@
       "id": "dc-cr-character-creation-initiate",
       "feature_id": "dc-cr-character-creation",
       "path_regex": "^/api/character/create(?:/|$)",
-      "notes": "POST /api/character/create — initiates character creation draft. Auth required; anonymous gets 302/403. POST-only endpoint: GET probe returns 405 (method not allowed). Ignore all roles.",
+      "notes": "POST /api/character/create \u2014 initiates character creation draft. Auth required; anonymous gets 302/403. POST-only endpoint: GET probe returns 405 (method not allowed). Ignore all roles.",
       "expect": {
         "anon": "ignore",
         "authenticated": "ignore",
