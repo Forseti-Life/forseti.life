@@ -66,6 +66,19 @@ When creating or updating this file, always commit with `git add -f` (file is in
 - Do NOT replicate the release execution retrospective already produced by CEO/PM seats.
 - Identify 1-3 security-specific process gaps with SMART follow-through items (owner, AC, verification, time-bound, ROI).
 
+## Synthetic/malformed dispatch fast-exit rule (added 2026-04-06)
+Before executing any improvement-round item, run the 3-check pre-execution gate. If ANY check fails, write a fast-exit outbox immediately:
+1. **Signoff check**: `bash scripts/release-signoff-status.sh <release-id>` — if `ready for official push: false`, fast-exit.
+2. **Date-prefix check**: release-ID folder name must match `^[0-9]{8}-`. If no YYYYMMDD prefix, fast-exit.
+3. **Duplicate check**: `ls sessions/sec-analyst-infra/outbox/ | grep <release-id>` — if prior outbox exists for this release-id, fast-exit referencing the prior outbox.
+
+Known synthetic release IDs seen this session (fast-exit on any recurrence):
+- `fake-no-signoff-release` (variants: with/without `-id`, with/without date prefix)
+- `stale-test-release-id-999`
+- `--help` (CLI flag injection — also a MEDIUM security finding; see `--help-improvement-round.md`)
+
+When fast-exiting due to a synthetic dispatch, reference: `sessions/dev-infra/inbox/20260405-scope-filter-improvement-round-dispatch` (ROI 89) as the root-cause fix item.
+
 ## Owned file scope
 ### HQ repo: /home/ubuntu/forseti.life/copilot-hq
 - sessions/sec-analyst-infra/**
