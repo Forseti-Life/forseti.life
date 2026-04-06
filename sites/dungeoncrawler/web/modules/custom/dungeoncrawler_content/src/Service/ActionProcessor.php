@@ -7,6 +7,7 @@ use Drupal\dungeoncrawler_content\Service\CombatEncounterStore;
 use Drupal\dungeoncrawler_content\Service\ConditionManager;
 use Drupal\dungeoncrawler_content\Service\HPManager;
 use Drupal\dungeoncrawler_content\Service\RulesEngine;
+use Drupal\dungeoncrawler_content\Service\AreaResolverService;
 use Psr\Log\LoggerInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 
@@ -25,8 +26,9 @@ class ActionProcessor {
   protected $store;
   protected $numberGeneration;
   protected $rulesEngine;
+  protected $areaResolver;
 
-  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation, RulesEngine $rules_engine) {
+  public function __construct(CombatCalculator $calculator, HPManager $hp_manager, ConditionManager $condition_manager, LoggerChannelFactoryInterface $logger_factory, CombatEncounterStore $store, NumberGenerationService $number_generation, RulesEngine $rules_engine, ?AreaResolverService $area_resolver = NULL) {
     $this->calculator = $calculator;
     $this->hpManager = $hp_manager;
     $this->conditionManager = $condition_manager;
@@ -34,6 +36,7 @@ class ActionProcessor {
     $this->store = $store;
     $this->numberGeneration = $number_generation;
     $this->rulesEngine = $rules_engine;
+    $this->areaResolver = $area_resolver;
   }
 
   /**
@@ -251,6 +254,47 @@ class ActionProcessor {
       $t = is_array($tid) ? $this->findParticipant($participants, (int) ($tid['id'] ?? $tid['target_id'] ?? 0)) : $this->findParticipant($participants, (int) $tid);
       if ($t) {
         $resolved_targets[] = $t;
+      }
+    }
+
+    // Area of effect: override targets when spell has an area_type (reqs 2125–2128).
+    $area_type = $spell['area_type'] ?? NULL;
+    if ($area_type && $this->areaResolver) {
+      $caster_pos = ['q' => (int) ($caster['position_q'] ?? 0), 'r' => (int) ($caster['position_r'] ?? 0)];
+      $area_ids = [];
+      switch ($area_type) {
+        case 'burst':
+          $origin_q = (int) ($spell['area_origin_q'] ?? $caster_pos['q']);
+          $origin_r = (int) ($spell['area_origin_r'] ?? $caster_pos['r']);
+          $radius = (int) ($spell['area_radius'] ?? $spell['area_length'] ?? 1);
+          $area_ids = $this->areaResolver->resolveBurst($origin_q, $origin_r, $radius, $participants);
+          break;
+
+        case 'cone':
+          $direction = (string) ($spell['area_direction'] ?? 'NE');
+          $length = (int) ($spell['area_length'] ?? 1);
+          $area_ids = $this->areaResolver->resolveCone($caster_pos, $direction, $length, $participants);
+          break;
+
+        case 'emanation':
+          $radius = (int) ($spell['area_radius'] ?? $spell['area_length'] ?? 1);
+          $include_origin = (bool) ($spell['area_include_origin'] ?? FALSE);
+          $area_ids = $this->areaResolver->resolveEmanation($caster_pos, $radius, $participants, $include_origin);
+          break;
+
+        case 'line':
+          $direction = (string) ($spell['area_direction'] ?? 'NE');
+          $length = (int) ($spell['area_length'] ?? 1);
+          $area_ids = $this->areaResolver->resolveLine($caster_pos, $direction, $length, $participants);
+          break;
+      }
+      // Rebuild resolved_targets from area participant IDs.
+      $resolved_targets = [];
+      foreach ($area_ids as $aid) {
+        $t = $this->findParticipant($participants, (int) $aid);
+        if ($t) {
+          $resolved_targets[] = $t;
+        }
       }
     }
 

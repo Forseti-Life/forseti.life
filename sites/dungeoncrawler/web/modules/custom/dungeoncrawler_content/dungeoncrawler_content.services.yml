@@ -190,6 +190,7 @@ services:
       - '@dungeoncrawler_content.combat_encounter_store'
       - '@dungeoncrawler_content.number_generation'
       - '@dungeoncrawler_content.rules_engine'
+      - '@dungeoncrawler_content.area_resolver'
 
   dungeoncrawler_content.combat_engine:
     class: Drupal\dungeoncrawler_content\Service\CombatEngine
@@ -350,6 +351,11 @@ services:
 
   dungeoncrawler_content.hex_utility:
     class: Drupal\dungeoncrawler_content\Service\HexUtilityService
+
+  dungeoncrawler_content.area_resolver:
+    class: Drupal\dungeoncrawler_content\Service\AreaResolverService
+    arguments:
+      - '@dungeoncrawler_content.hex_utility'
 
   dungeoncrawler_content.terrain_generator:
     class: Drupal\dungeoncrawler_content\Service\TerrainGeneratorService
