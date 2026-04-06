@@ -207,14 +207,23 @@ release_id = sys.argv[2] if len(sys.argv) > 2 else ""
 today = datetime.date.today().isoformat()
 text = p.read_text(encoding='utf-8')
 text = text.replace('- Status: ready', '- Status: in_progress')
-# Inject Release: tag after Status line if not already present
+# GAP-RB-03: update or insert Release: field to current release ID
 import re as _re
-if '- Release:' not in text and release_id:
-    text = _re.sub(
-        r'(^-\s+Status:\s*in_progress\s*$)',
-        r'\1\n- Release: ' + release_id,
-        text, count=1, flags=_re.MULTILINE | _re.IGNORECASE
-    )
+if release_id:
+    if _re.search(r'^-\s+Release:\s*', text, flags=_re.MULTILINE | _re.IGNORECASE):
+        # Update existing (possibly stale) Release: field
+        text = _re.sub(
+            r'^(-\s+Release:\s*).*$',
+            r'\g<1>' + release_id,
+            text, count=1, flags=_re.MULTILINE | _re.IGNORECASE
+        )
+    else:
+        # Insert Release: after Status: in_progress line
+        text = _re.sub(
+            r'(^-\s+Status:\s*in_progress\s*$)',
+            r'\1\n- Release: ' + release_id,
+            text, count=1, flags=_re.MULTILINE | _re.IGNORECASE
+        )
 if '## Latest updates' in text:
     lines = text.split('\n')
     for i, line in enumerate(lines):
