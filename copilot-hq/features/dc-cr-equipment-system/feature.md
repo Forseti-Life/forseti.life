@@ -3,7 +3,7 @@
 - Work item id: dc-cr-equipment-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: P1 (combat and character creation dependency; InventoryManagementService partial impl exists)
 - PM owner: pm-dungeoncrawler
