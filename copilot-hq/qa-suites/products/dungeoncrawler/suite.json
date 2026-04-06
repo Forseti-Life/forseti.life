@@ -1338,8 +1338,8 @@
         {
           "id": "TC-SK-17",
           "description": "QA audit still passes after module deployment (0 violations, 0 failures)",
-          "suite_type": "role-url-audit",
-          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "suite_type": "acl",
+          "class_method": "role-url-audit",
           "ac_tag": "audit",
           "status": "active"
         }
