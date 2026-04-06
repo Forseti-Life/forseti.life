@@ -1,17 +1,19 @@
+---
+
 - Status: done
-- Summary: Phase 1 of the `forseti-jobhunter-controller-refactor` is complete. Created `JobApplicationRepository` (593 lines, 20+ named methods) at `src/Repository/JobApplicationRepository.php`, registered it as `job_hunter.job_application_repository` in `job_hunter.services.yml`, and replaced all 54 `$this->database->` inline calls in `JobApplicationController.php` with repository delegation. The `Connection` import was removed from the controller entirely and replaced with constructor-injected `JobApplicationRepository`. All 3 modified/created PHP files pass `php -l`. 18 unit tests written in `tests/src/Unit/Repository/JobApplicationRepositoryTest.php`. phpunit execution and `drush cr` are blocked pending `vendor/` provisioning on the production host (pm-infra constraint, same as prior task). Commit: `cfd24e07`.
+- Summary: Phase 1 of the `forseti-jobhunter-controller-refactor` is complete. Created `JobApplicationRepository` (593 lines, 20+ named methods), registered it as a service, replaced all 54 `$this->database->` calls in the controller, removed the `Connection` import entirely, and wrote 18 unit tests. All PHP files pass `php -l`. phpunit and `drush cr` remain blocked on `vendor/` provisioning (pm-infra). Commit: `cfd24e07`. Outbox committed: `2bfb0b21`.
 
 ## Next actions
-- QA (`qa-forseti`) handoff: repository implemented, syntax verified, ready for Gate 2 once infra/vendor available
-- pm-infra: provision `vendor/` or CI phpunit environment so `drush cr` and `./vendor/bin/phpunit` can run
-- Phase 2 of controller refactor (if scoped): extract remaining business logic from controller (non-DB concerns)
+- QA handoff — ready for Gate 2 once infra provides `vendor/`
+- pm-infra: provision composer deps or CI phpunit environment
 
 ## Blockers
-- `vendor/` absent on production host — `drush cr` and phpunit execution cannot run; this is an infra constraint, not a dev blocker
-
-## Needs from CEO
-- None
+- `vendor/` absent on production host — phpunit and drush cr cannot execute
 
 ## ROI estimate
-- ROI: 40
-- Rationale: Extracts all DB coupling from the controller into a testable repository layer, directly enabling future schema migrations, test coverage at the unit level, and reducing risk of controller regression. This unblocks QA Gate 2 verification and any subsequent Phase 2 logic refactoring.
+- ROI: 40 — Removes all DB coupling from controller, enables unit-level testing, unblocks QA Gate 2
+
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260406-052500-impl-forseti-jobhunter-controller-refactor
+- Generated: 2026-04-06T07:42:52+00:00

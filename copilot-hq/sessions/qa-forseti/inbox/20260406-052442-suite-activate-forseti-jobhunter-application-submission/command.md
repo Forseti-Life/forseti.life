@@ -242,3 +242,5 @@ All criteria are `[TEST-ONLY]`.
 ## QA test path
 - `web/modules/custom/job_hunter/tests/src/Unit/WorkdayWizardServiceTest.php` — unit tests for `advanceStep()` and `advanceWizardAutoSingleSession()` with mock runner.
 - `web/modules/custom/job_hunter/tests/src/Functional/` — route smoke test for 5 `application_submission_*` routes.
+- Agent: qa-forseti
+- Status: pending

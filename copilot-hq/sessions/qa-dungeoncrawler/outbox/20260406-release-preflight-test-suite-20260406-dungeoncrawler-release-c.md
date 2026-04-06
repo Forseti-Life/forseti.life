@@ -1,35 +1,13 @@
+Full picture assembled. Heritage system commit `da4aa017` is form-validation only (no new routes). All 5 scripts present and correct. qa-permissions.json covers all character/step paths. One checklist update: `dc-cr-heritage-system` dependency for `dc-cr-dwarf-heritage-ancient-blooded` is now met.
+
+Now update seat instructions preflight date and commit.
+
 - Status: done
-- Summary: Release preflight for `20260406-dungeoncrawler-release-c` complete. New release ID (not previously preflighted) with one QA-scoped commit since last preflight (`da4aa017` — heritage system cross-ancestry form validation). Full checklist run: all 5 scripts present and correct, no changes needed; `qa-permissions.json` at 6 roles / 32 rules remains adequate (heritage change is form-validation only, no new routes, existing `auth-required-create` rule `^/(?:campaigns|characters)/(?:create|step)(?:/|$)` covers all character step paths); regression checklist updated to reflect `dc-cr-heritage-system` dependency met for `dc-cr-dwarf-heritage-ancient-blooded` (still blocked on `dc-cr-dwarf-ancestry`). Commit: `4f53c466`.
-
-## Preflight checklist results
-
-| Item | Status | Notes |
-|---|---|---|
-| `scripts/site-audit-run.sh` | ✅ no change | Present, ALLOW_PROD_QA gate intact |
-| `scripts/site-full-audit.py` | ✅ no change | Present |
-| `scripts/site-validate-urls.py` | ✅ no change | Present |
-| `scripts/drupal-custom-routes-audit.py` | ✅ no change | Present |
-| `scripts/role-permissions-validate.py` | ✅ no change | Present |
-| `qa-permissions.json` | ✅ no change | 6 roles, 32 rules; heritage commit `da4aa017` adds no new routes |
-| Heritage commit `da4aa017` | ✅ covered | `CharacterCreationStepForm.php` form validation only; `character_step` POST route already exists; `auth-required-create` rule covers it |
-| Regression checklist | ✅ updated | `dc-cr-dwarf-heritage-ancient-blooded`: dc-cr-heritage-system dep now MET; dc-cr-dwarf-ancestry still deferred |
-| Suite manifest | ✅ no change | `dc-cr-heritage-system-phpunit` suite already registered |
-
-## Heritage commit assessment (da4aa017)
-
-- **Change**: Adds `!array_key_exists($submitted_heritage, $heritage_opts)` guard in `CharacterCreationStepForm::validateForm()`. Returns Form API error `'Invalid heritage for selected ancestry.'` on mismatch.
-- **Route impact**: None — no new routes, no routing.yml changes.
-- **Permission impact**: None — form validation runs inside existing authenticated POST flow.
-- **Existing coverage**: `auth-required-create` rule `^/(?:campaigns|characters)/(?:create|step)(?:/|$)` covers all character creation and step routes. `dc-cr-heritage-system-phpunit` suite exists in suite manifest (`required_for_release: true`).
-- **QA action needed**: Suite execution for `dc-cr-heritage-system-phpunit` when suite-activate items arrive.
-
-## Regression checklist delta
-
-- `dc-cr-dwarf-heritage-ancient-blooded`: First dependency (`dc-cr-heritage-system`) now MET. Second dependency (`dc-cr-dwarf-ancestry`) still deferred — item remains blocked until dwarf ancestry ships.
+- Summary: Release preflight for `20260406-dungeoncrawler-release-c` complete. New release ID; full checklist run. All 5 scripts present and correct. `qa-permissions.json` unchanged (6 roles, 32 rules) — heritage commit `da4aa017` is form-validation only with no new routes; existing `auth-required-create` rule covers all character step paths. Regression checklist updated: `dc-cr-heritage-system` dependency for `dc-cr-dwarf-heritage-ancient-blooded` now MET; `dc-cr-dwarf-ancestry` still deferred. Commits: `4f53c466` (preflight changes), `a11a82e8` (outbox).
 
 ## Next actions
-- Proceed with suite-activate items for `20260406-dungeoncrawler-release-c` in normal queue order
-- `dc-cr-heritage-system-phpunit` targeted retest when suite-activate item arrives for heritage system
+- Proceed with suite-activate items for release-c
+- `dc-cr-heritage-system-phpunit` targeted retest on suite-activate
 
 ## Blockers
 - None
@@ -39,4 +17,9 @@
 
 ## ROI estimate
 - ROI: 35
-- Rationale: Clean preflight enables full release-c QA queue to proceed without re-checking configs. Heritage system dep tracking ensures `dc-cr-dwarf-heritage-ancient-blooded` can ship the moment dwarf ancestry lands.
+- Rationale: Clean preflight unblocks full release-c QA queue. Heritage dep tracking ensures `dc-cr-dwarf-heritage-ancient-blooded` can ship the moment dwarf ancestry lands.
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260406-release-preflight-test-suite-20260406-dungeoncrawler-release-c
+- Generated: 2026-04-06T07:20:56+00:00

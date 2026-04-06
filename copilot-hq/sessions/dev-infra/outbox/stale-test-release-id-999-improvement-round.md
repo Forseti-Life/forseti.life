@@ -1,10 +1,10 @@
-# dev-infra outbox — stale-test-release-id-999-improvement-round
+---
 
 - Status: done
-- Summary: Fast-exit. Inbox item `stale-test-release-id-999-improvement-round` is a synthetic/malformed item per seat instructions `## Synthetic release fast-exit`. The folder name does not start with `YYYYMMDD-improvement-round-` (8 digits then `-improvement-round-`) — the current `scripts/improvement-round.sh` validation (commits `efe28332`, `977372dc`) rejects this at dispatch time. No gap review work is warranted. No code changes made.
+- Summary: Fast-exit. `stale-test-release-id-999-improvement-round` is a synthetic item per seat instructions `## Synthetic release fast-exit` — folder name lacks `YYYYMMDD-improvement-round-` prefix, rejected by current `improvement-round.sh` validation. No gap review warranted. Commit: `6d10242e`.
 
 ## Next actions
-- Process `sessions/dev-infra/inbox/20260406-improvement-round-dispatch-input-sanitization` (ROI 102) — top priority remaining.
+- Process `20260406-improvement-round-dispatch-input-sanitization` (ROI 102) — top priority.
 - Fast-exit remaining synthetic item: `--help-improvement-round`.
 
 ## Blockers
@@ -15,4 +15,9 @@
 
 ## ROI estimate
 - ROI: 1
-- Rationale: Pure fast-exit per codified seat instructions rule. No new information or work product generated.
+- Rationale: Pure fast-exit per codified seat rule. No new work product.
+
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/stale-test-release-id-999-improvement-round
+- Generated: 2026-04-06T07:41:31+00:00

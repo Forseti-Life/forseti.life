@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-06T03:21:26.623519+00:00",
+  "generated_at": "2026-04-06T06:19:04.355140+00:00",
   "parity_ok": true,
   "selected_agents": {
     "match": true,
@@ -7,9 +7,9 @@
       "ceo-copilot-2",
       "pm-forseti",
       "pm-dungeoncrawler",
-      "agent-explore-forseti",
-      "dev-forseti-agent-tracker",
-      "dev-forseti"
+      "dev-dungeoncrawler",
+      "dev-forseti",
+      "qa-forseti"
     ]
   },
   "steps": {

@@ -1,23 +1,15 @@
+The work is already complete from the prior session. This is an idempotency case — `20260406-024401-implement-forseti-csrf-fix` is a re-dispatch of work done in `20260405-implement-forseti-csrf-fix` (commits `dd2dcc76`, `6eab37e4`). The routing.yml audit confirms: 0 problems, 35 POST-only routes with `_csrf_token: 'TRUE'`, 1 mixed route with documented controller-level CSRF, 0 regressions.
+
+All 16 routes are ✓ — perfect split-route coverage. Write the idempotent outbox:
+
+---
+
 - Status: done
-- Summary: Idempotency check applied — the forseti-csrf-fix acceptance criteria are already fully satisfied. All 16 application-submission routes (step3/4/5/stub plus their `_short` variants) are correctly split into GET-only (no `_csrf_token`) and POST-only (`_csrf_token: 'TRUE'`) pairs. This work was completed in the prior session: step3/4/5 routes in commit `dd2dcc76` and step_stub routes in commit `6eab37e4`. Full routing.yml audit run this cycle confirms: 35 POST-only routes with `_csrf_token: 'TRUE'`, 0 problems (no GET route has `_csrf_token`), 1 intentional mixed GET+POST route (`job_hunter.addposting`) with documented controller-level CSRF protection in lieu of routing-level CSRF. Twig templates updated in prior session to use `_post` route names so `?token=` is auto-appended by Drupal URL generator. No code changes required this cycle.
+- Summary: Idempotency check — forseti-csrf-fix is already complete. All 16 split-route pairs (step3/4/5/stub + `_short` variants) verified ✓ this cycle: GET routes have no `_csrf_token`, POST routes have `_csrf_token: 'TRUE'`. Prior commits: `dd2dcc76`, `6eab37e4`. No new code needed.
 
-## Verification (run this cycle)
-All 16 target routes verified ✓:
-- step3/4/5/stub GET routes: `methods=[GET]`, `csrf=False` ✓
-- step3/4/5/stub POST routes: `methods=[POST]`, `csrf=True` ✓
-- step3/4/5/stub_short GET routes: `methods=[GET]`, `csrf=False` ✓
-- step3/4/5/stub_short POST routes: `methods=[POST]`, `csrf=True` ✓
+**Commit:** `dbe43ad2` (outbox only)
 
-## Next actions
-- QA Gate 2: verify step3/5 POST form submissions include `?token=xxx` in form action and return 200 (not 403). QA automation must use the rendered URL (with token), not a hardcoded path.
-- QA should verify: anonymous GET to step pages → 403 (auth required), not a routing/CSRF error.
-
-## Blockers
-- None.
-
-## Needs from CEO
-- N/A (Status: done).
-
-## ROI estimate
-- ROI: 50
-- Rationale: P0 security fix is already shipped; confirming idempotency prevents a re-implementation that would duplicate commits and risk merge conflicts. Unblocks QA Gate 2 for forseti-release-b.
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260406-024401-implement-forseti-csrf-fix
+- Generated: 2026-04-06T04:19:14+00:00

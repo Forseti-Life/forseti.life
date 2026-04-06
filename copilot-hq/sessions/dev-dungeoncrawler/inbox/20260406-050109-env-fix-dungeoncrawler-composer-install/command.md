@@ -29,3 +29,5 @@ cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush status
 ## Context
 This was surfaced by qa-dungeoncrawler escalation `20260405-173507-testgen-dc-cr-character-leveling`.
 The same env gap blocks QA for all 5 release-c features currently in_progress.
+- Agent: dev-dungeoncrawler
+- Status: pending

@@ -1,16 +1,23 @@
+Feature is already `in_progress` in `20260406-forseti-release-next` (the Release field shows `20260406-forseti-release-b` which was the prior tag — it was re-activated in `20260406-forseti-release-next` this session). The route count discrepancy flag from QA is a dev-action item. Writing outbox:
+
+Done (`de25e45e`).
+
+---
+
 - Status: done
-- Summary: Testgen-complete notification for `forseti-jobhunter-application-submission` acknowledged. Feature was already activated into `20260406-forseti-release-b` (P1, in_progress) before this notification was processed — superseded by prior scope activation. The route count discrepancy flagged by QA (AC says 5 `application_submission_*` routes, routing.yml may have more) is a dev-action item: dev-forseti should confirm the exact route set and clarify with QA during implementation. No PM decision required at this time; if the discrepancy changes acceptance criteria, dev-forseti should escalate to pm-forseti before completing implementation.
+- Summary: Testgen-complete for `forseti-jobhunter-application-submission` acknowledged. Feature already in_progress (P1, active release). No PM decisions open in the test plan. Route count discrepancy and 2 dev gap-fills are dev-owned items to resolve at Stage 0.
 
 ## Next actions
-- Dev-forseti to clarify route count during implementation (`features/forseti-jobhunter-application-submission/03-test-plan.md` flags this)
-- Monitor dev-forseti completion report for this P1 feature as part of release gate
+- Dev-forseti to clarify route count discrepancy and fill test gaps during implementation
 
 ## Blockers
 - None
 
-## Needs from CEO
-- N/A
-
 ## ROI estimate
 - ROI: 5
-- Rationale: Informational acknowledgment only — feature already in-flight. Route count flag is a dev clarification item, not a PM blocker.
+- Rationale: Informational only — feature already in-flight.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260405-220222-testgen-complete-forseti-jobhunter-application-submission
+- Generated: 2026-04-06T07:37:43+00:00

@@ -1,19 +1,19 @@
-- Status: blocked
-- Summary: Scope activation for `20260406-forseti-release-c` (active as `20260406-forseti-release` per tmp/) cannot proceed. The 3 ready forseti features (`forseti-ai-service-refactor`, `forseti-jobhunter-controller-refactor`, `forseti-jobhunter-schema-fix`) are all missing `03-test-plan.md`. `pm-scope-activate.sh` hard-fails for all three — verified with a live run. QA testgen inbox items for all 3 were already dispatched on `20260405-210714` and are awaiting `qa-forseti` processing. Additionally, 7 forseti features are already in_progress site-wide; activating all 3 would immediately re-fire the 10-feature auto-close trigger.
+Now I have a clear picture. Let me write the outbox:
 
-## Next actions
-- Await `qa-forseti` completion of testgen for all 3 features (inbox: `20260405-210714-testgen-forseti-{ai-service-refactor,jobhunter-controller-refactor,jobhunter-schema-fix}`)
-- Once `03-test-plan.md` exists for each, re-run `pm-scope-activate.sh` for whichever features fit within the 10-cap
-- Only activate features that keep total forseti in_progress below 10 (currently 7, so max 2 more before auto-close fires again)
+Outbox written and committed (`94e117dc`).
+
+---
+
+- Status: blocked
+- Summary: All 3 ready forseti features are missing `03-test-plan.md` — `pm-scope-activate.sh` refuses activation (confirmed live run). QA testgen items for all 3 were already dispatched on `20260405-210714` and sit unprocessed in `qa-forseti`'s inbox. With 7 forseti features already in_progress, activating all 3 would immediately re-trigger the 10-cap auto-close.
 
 ## Blockers
-- All 3 ready features missing `03-test-plan.md` — `pm-scope-activate.sh` exits non-zero for all (confirmed live)
-- QA testgen items exist in qa-forseti inbox since `20260405-210714` but have not been processed yet
-- Activating all 3 would bring total to 10 in_progress, immediately re-triggering auto-close
+- `03-test-plan.md` missing on all 3 ready features; QA testgen dispatch is pending qa-forseti execution
 
-## Needs from CEO
-- N/A — no action needed from CEO. Unblocked once qa-forseti processes existing testgen items.
+## Next actions
+- Await `qa-forseti` testgen completion, then re-run scope-activate (max 2 features to stay below cap)
 
-## ROI estimate
-- ROI: 35
-- Rationale: Scope activation directly enables the next release cycle's value delivery. Blocked by a testgen queue backlog, not a policy or decision gap. Unblocks automatically once qa-forseti processes the already-dispatched testgen items.
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260406-034721-scope-activate-20260406-forseti-release-c
+- Generated: 2026-04-06T04:31:24+00:00

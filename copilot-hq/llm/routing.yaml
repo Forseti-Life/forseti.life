@@ -1,0 +1,46 @@
+# LLM Routing Configuration
+# Controls which model each agent uses for inference.
+#
+# Resolution order (first match wins):
+#   1. agents.<agent-id>   — per-agent override (only needed when differing from role default)
+#   2. roles.<role>        — role-based default
+#   3. default             — org-wide fallback
+#
+# Use model IDs from model-manifest.yaml, or "copilot" to force Copilot CLI.
+# If a local model is assigned but the model file is not present on disk,
+# the runner automatically falls back to the Copilot CLI.
+
+version: "1"
+
+# Org-wide fallback if no role or agent match.
+default: copilot
+
+# Role-based defaults.
+# Roles that require high judgment, creative reasoning, or architectural decisions
+# stay on Copilot. Roles doing structured/checklist work route to local models.
+#
+#   ceo, product-manager, software-developer → Copilot CLI
+#   tester                                   → phi-3-mini  (QA, task-runner, code-review base)
+#   business-analyst                         → mistral-7b-instruct
+#   security-analyst                         → mistral-7b-instruct
+roles:
+  ceo: copilot
+  product-manager: copilot
+  software-developer: copilot
+  tester: phi-3-mini
+  business-analyst: mistral-7b-instruct
+  security-analyst: mistral-7b-instruct
+
+# Agent-specific overrides.
+# Only list agents that need a DIFFERENT model than their role default above.
+# (qa-*, ba-*, sec-analyst-*, dev-*, pm-*, ceo-* are all handled by role defaults.)
+agents:
+  # Code review: specialized code model overrides tester → phi-3-mini
+  agent-code-review: deepseek-coder
+
+  # Explore agents: summarization/reading, not implementation
+  # Overrides software-developer → copilot since these don't need frontier reasoning
+  agent-explore: phi-3-mini
+  agent-explore-forseti: phi-3-mini
+  agent-explore-dungeoncrawler: phi-3-mini
+  agent-explore-infra: phi-3-mini

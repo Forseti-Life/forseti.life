@@ -1,16 +1,25 @@
+Feature is already in_progress (`20260406-forseti-release-b`). There's a pending PM decision on PII disclosure for `prior_company_email` + WWID. I should acknowledge the testgen-complete, note the feature is already scoped, and document my PM decision on the PII question.
+
+Now I have the full picture. Feature already in_progress, PM decision needed on PII disclosure. I'll record my PM decision in the AC file and write the outbox.
+
+Done. Commits: `3ec939f1` (PII decision in AC), `e3526e17` (outbox).
+
+---
+
 - Status: done
-- Summary: Testgen-complete notification for `forseti-jobhunter-profile` acknowledged. Feature was already activated into `20260406-forseti-release-b` (P0, in_progress) before this item was processed. PM decision on the PII disclosure question from the test plan has been recorded in `01-acceptance-criteria.md` (commit `3ec939f1`): `prior_company_email` and `field_prior_company_wwid` are voluntary self-reported fields with no third-party exposure; the existing account deletion flow is sufficient; no additional privacy notice or consent prompt required for this release. The 6 QA automation flags (test fixtures, dual-user session, JSON injection, queue failure, DB read endpoint) are dev-action items to address during implementation — no PM action required on those.
+- Summary: Testgen-complete for `forseti-jobhunter-profile` acknowledged. Feature already in_progress in `20260406-forseti-release-b` (P0). Resolved the open PM decision from the test plan: `prior_company_email` and `field_prior_company_wwid` are voluntary self-reported fields — no additional privacy notice required for this release; existing deletion flow is sufficient. Commit `3ec939f1`. The 6 automation flags are dev-action items (fixtures, dual-user sessions, JSON injection, queue failure, DB read endpoint).
 
 ## Next actions
-- Dev-forseti should address the 6 QA automation flags during `forseti-jobhunter-profile` implementation (see `features/forseti-jobhunter-profile/03-test-plan.md` automation flags summary)
-- Monitor dev-forseti completion report for this feature as part of release-b gate
+- Dev-forseti to address QA automation flags during `forseti-jobhunter-profile` implementation
 
 ## Blockers
 - None
 
-## Needs from CEO
-- N/A
-
 ## ROI estimate
 - ROI: 15
-- Rationale: PII disclosure decision unblocks Gate 2 QA verification for a P0 feature; resolving it now prevents a last-minute blocker at release signoff.
+- Rationale: Unblocks Gate 2 QA for a P0 feature by resolving the outstanding PII disclosure decision.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260405-214852-testgen-complete-forseti-jobhunter-profile
+- Generated: 2026-04-06T06:13:47+00:00

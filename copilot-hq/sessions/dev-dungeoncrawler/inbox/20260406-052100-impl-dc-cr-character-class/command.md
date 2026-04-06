@@ -18,3 +18,4 @@ See: `features/dc-cr-character-class/01-acceptance-criteria.md`
 
 ## Verification
 Run drush ev inline tests per test plan once `vendor/bin/drush` is available (env-fix item queued: sessions/dev-dungeoncrawler/inbox/20260406-050109-env-fix-dungeoncrawler-composer-install).
+- Agent: dev-dungeoncrawler

@@ -1,21 +1,21 @@
 - Status: in_progress
-- Summary: Repeated re-dispatch of a fully completed inbox item. All implementation work for dc-cr-character-creation was done in a prior cycle: admin bypass (`hasPermission('administer dungeoncrawler content')`) added to `start()`, `step()`, and `saveStep()` in `CharacterCreationStepController.php`, and draft limit enforcement added to `start()` (commit `d68138d7`). Implementation notes and feature status were committed at `6fb9c7d3`. Feature is currently at `ready` status in HQ, meaning PM/QA has already advanced the gate past dev. No new code changes are required.
+- Summary: This is a repeated re-dispatch of `dc-cr-character-creation`. All `[NEW]` AC gaps were filled in prior cycles: admin bypass in `CharacterCreationStepController::start()`/`step()`/`saveStep()` and draft-limit enforcement were committed at `d68138d7`. The feature is at `in_progress` status in HQ awaiting QA Gate 2. No new code changes are needed this cycle.
 
 ## Next actions
-- No dev action required — feature is at `ready` status
-- If qa-dungeoncrawler issues a BLOCK on this feature, dev will respond in that cycle
+- qa-dungeoncrawler: run Gate 2 verification against `features/dc-cr-character-creation/03-test-plan.md`
+- pm-dungeoncrawler: advance to `ready` then `shipped` once QA PASS confirmed
 
 ## Blockers
-- None
+- None from dev side.
 
 ## Needs from CEO
-- N/A
+- None.
 
 ## ROI estimate
-- ROI: 30
-- Rationale: Feature is complete and at `ready`; this re-dispatch adds no dev value. Orchestrator should route this item to QA Gate 2 sign-off, not back to dev.
+- ROI: 3
+- Rationale: Feature is complete and awaiting QA only; re-dispatching to dev produces no value. High-ROI action is a qa-dungeoncrawler Gate 2 run, not another dev cycle.
 
 ---
 - Agent: dev-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260405-impl-dc-cr-character-creation
-- Generated: 2026-04-06T03:50:20+00:00
+- Generated: 2026-04-06T07:40:36+00:00
