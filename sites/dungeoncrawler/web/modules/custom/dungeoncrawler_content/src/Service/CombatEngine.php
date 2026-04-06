@@ -589,9 +589,17 @@ class CombatEngine {
       return ['error' => "Target participant {$target_id} not found in encounter {$encounter_id}"];
     }
 
-    $attacks_this_turn = (int) ($attacker['attacks_this_turn'] ?? 0) + 1;
-    $is_agile = !empty($weapon['is_agile']);
-    $map_penalty = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, $is_agile);
+    // REQ 2230: AoO (skip_map) does not count toward MAP — use existing count, no penalty.
+    $skip_map = !empty($weapon['skip_map']);
+    if ($skip_map) {
+      $attacks_this_turn = (int) ($attacker['attacks_this_turn'] ?? 0);
+      $map_penalty = 0;
+    }
+    else {
+      $attacks_this_turn = (int) ($attacker['attacks_this_turn'] ?? 0) + 1;
+      $is_agile = !empty($weapon['is_agile']);
+      $map_penalty = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, $is_agile);
+    }
 
     $natural_roll = $this->numberGeneration->rollPathfinderDie(20);
     $attack_bonus = (int) ($weapon['attack_bonus'] ?? 0);
@@ -783,10 +791,12 @@ class CombatEngine {
     $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $target_ac, $natural_roll);
 
     // Record attack in participant state.
-    $this->store->updateParticipant($participant_id, [
-      'attacks_this_turn' => $attacks_this_turn,
-      'actions_remaining' => max(0, (int) ($attacker['actions_remaining'] ?? 3) - 1),
-    ]);
+    // REQ 2230: AoO (skip_map) is a reaction — do not consume actions or MAP count.
+    $updates = ['attacks_this_turn' => $attacks_this_turn];
+    if (!$skip_map) {
+      $updates['actions_remaining'] = max(0, (int) ($attacker['actions_remaining'] ?? 3) - 1);
+    }
+    $this->store->updateParticipant($participant_id, $updates);
 
     $damage_dealt = NULL;
     $damage_result = NULL;

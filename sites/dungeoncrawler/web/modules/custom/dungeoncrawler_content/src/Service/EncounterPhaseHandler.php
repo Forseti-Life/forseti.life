@@ -176,6 +176,26 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'stand',
       'step',
       'take_cover',
+      // REQ 2221-2223: Specialty movement.
+      'burrow',
+      'fly',
+      // REQ 2225: Mount/dismount.
+      'mount',
+      'dismount',
+      // REQ 2227: Raise a Shield.
+      'raise_shield',
+      // REQ 2220: Avert Gaze.
+      'avert_gaze',
+      // REQ 2226: Point Out.
+      'point_out',
+      // REQ 2219: Arrest a Fall (reaction).
+      'arrest_fall',
+      // REQ 2224: Grab an Edge (reaction).
+      'grab_edge',
+      // REQ 2231-2232: Shield Block (reaction).
+      'shield_block',
+      // REQ 2228-2230: Attack of Opportunity (fighter reaction).
+      'attack_of_opportunity',
     ];
   }
 
@@ -806,7 +826,377 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         ], NULL, $target_id);
         break;
 
-      default:
+      // -----------------------------------------------------------------------
+      // REQ 2221: Burrow — move using burrow speed; tags entity as underground.
+      // -----------------------------------------------------------------------
+      case 'burrow': {
+        $enc_b = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_b = $enc_b ? $this->findEncounterParticipantByEntityId($enc_b, $actor_id) : NULL;
+        if (!$ptcp_b) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_data_b = !empty($ptcp_b['entity_ref']) ? json_decode($ptcp_b['entity_ref'], TRUE) : [];
+        $burrow_speed = (int) ($entity_data_b['burrow_speed'] ?? 0);
+        if ($burrow_speed <= 0) {
+          return ['success' => FALSE, 'result' => ['error' => 'No burrow Speed.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $params['movement_type'] = 'burrow';
+        $burrow_result = $this->processStride($encounter_id, $actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $burrow_result['mutations'] ?? [];
+        // Tag underground unless ability specifies tunnel creation.
+        $entity_data_b['underground'] = TRUE;
+        if (!empty($entity_data_b['creates_tunnel'])) {
+          $entity_data_b['tunnel_hex'] = $params['to_hex'] ?? NULL;
+        }
+        $this->encounterStore->updateParticipant((int) $ptcp_b['id'], ['entity_ref' => json_encode($entity_data_b)]);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['burrowed' => TRUE, 'to_hex' => $params['to_hex'] ?? NULL];
+        $events[] = GameEventLogger::buildEvent('burrow', 'encounter', $actor_id, ['round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2222-2223: Fly — move using fly speed; tags airborne; hover at 0.
+      // -----------------------------------------------------------------------
+      case 'fly': {
+        $enc_f = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_f = $enc_f ? $this->findEncounterParticipantByEntityId($enc_f, $actor_id) : NULL;
+        if (!$ptcp_f) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_data_f = !empty($ptcp_f['entity_ref']) ? json_decode($ptcp_f['entity_ref'], TRUE) : [];
+        $fly_speed = (int) ($entity_data_f['fly_speed'] ?? 0);
+        if ($fly_speed <= 0) {
+          return ['success' => FALSE, 'result' => ['error' => 'No fly Speed.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $fly_distance = (int) ($params['distance'] ?? 0);
+        // REQ 2223: Fly 0 = hover (stay airborne, costs 1 action).
+        if ($fly_distance === 0) {
+          $entity_data_f['airborne'] = TRUE;
+          $entity_data_f['fly_used_this_turn'] = TRUE;
+          $this->encounterStore->updateParticipant((int) $ptcp_f['id'], ['entity_ref' => json_encode($entity_data_f)]);
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+          $result = ['hovered' => TRUE];
+          $events[] = GameEventLogger::buildEvent('fly', 'encounter', $actor_id, ['hover' => TRUE, 'round' => $game_state['round'] ?? NULL]);
+          break;
+        }
+        // REQ 2222: Upward movement costs 2× (difficult terrain rule).
+        if (!empty($params['upward'])) {
+          $params['movement_type'] = 'fly';
+          // Upward: double the hex cost — pass movement_cost_multiplier for MovementResolverService.
+          $params['upward_movement'] = TRUE;
+        }
+        $params['movement_type'] = 'fly';
+        $fly_result = $this->processStride($encounter_id, $actor_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $fly_result['mutations'] ?? [];
+        $entity_data_f['airborne'] = TRUE;
+        $entity_data_f['fly_used_this_turn'] = TRUE;
+        $this->encounterStore->updateParticipant((int) $ptcp_f['id'], ['entity_ref' => json_encode($entity_data_f)]);
+        $game_state['turn']['fly_used'] = TRUE;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['flew' => TRUE, 'to_hex' => $params['to_hex'] ?? NULL];
+        $events[] = GameEventLogger::buildEvent('fly', 'encounter', $actor_id, ['to' => $params['to_hex'] ?? NULL, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2225: Mount — ride adjacent willing larger creature. Dismount = 1 action.
+      // -----------------------------------------------------------------------
+      case 'mount': {
+        $enc_m = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_m = $enc_m ? $this->findEncounterParticipantByEntityId($enc_m, $actor_id) : NULL;
+        $mount_ptcp = $enc_m && $target_id ? $this->findEncounterParticipantByEntityId($enc_m, $target_id) : NULL;
+        if (!$ptcp_m || !$mount_ptcp) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant or mount not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // Must be adjacent (1-hex distance).
+        $dist_m = $this->movementResolver ? $this->movementResolver->hexDistance(
+          ['q' => (int) ($ptcp_m['position_q'] ?? 0), 'r' => (int) ($ptcp_m['position_r'] ?? 0)],
+          ['q' => (int) ($mount_ptcp['position_q'] ?? 0), 'r' => (int) ($mount_ptcp['position_r'] ?? 0)]
+        ) : 1;
+        if ($dist_m > 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Mount must be adjacent.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $actor_entity_m = !empty($ptcp_m['entity_ref']) ? json_decode($ptcp_m['entity_ref'], TRUE) : [];
+        $actor_entity_m['mounted_on'] = $target_id;
+        $this->encounterStore->updateParticipant((int) $ptcp_m['id'], ['entity_ref' => json_encode($actor_entity_m)]);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['mounted' => TRUE, 'mount_id' => $target_id];
+        $events[] = GameEventLogger::buildEvent('mount', 'encounter', $actor_id, ['mount' => $target_id, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      case 'dismount': {
+        $enc_dm = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_dm = $enc_dm ? $this->findEncounterParticipantByEntityId($enc_dm, $actor_id) : NULL;
+        if (!$ptcp_dm) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $actor_entity_dm = !empty($ptcp_dm['entity_ref']) ? json_decode($ptcp_dm['entity_ref'], TRUE) : [];
+        $actor_entity_dm['mounted_on'] = NULL;
+        // Move actor to adjacent hex if provided.
+        $dismount_to = $params['to_hex'] ?? NULL;
+        $update_dm = ['entity_ref' => json_encode($actor_entity_dm)];
+        if ($dismount_to) {
+          $update_dm['position_q'] = (int) ($dismount_to['q'] ?? $ptcp_dm['position_q'] ?? 0);
+          $update_dm['position_r'] = (int) ($dismount_to['r'] ?? $ptcp_dm['position_r'] ?? 0);
+        }
+        $this->encounterStore->updateParticipant((int) $ptcp_dm['id'], $update_dm);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['dismounted' => TRUE];
+        $events[] = GameEventLogger::buildEvent('dismount', 'encounter', $actor_id, ['round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2227: Raise a Shield — 1 action; shield AC bonus active until start of next turn.
+      // -----------------------------------------------------------------------
+      case 'raise_shield': {
+        $enc_rs = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_rs = $enc_rs ? $this->findEncounterParticipantByEntityId($enc_rs, $actor_id) : NULL;
+        if (!$ptcp_rs) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_data_rs = !empty($ptcp_rs['entity_ref']) ? json_decode($ptcp_rs['entity_ref'], TRUE) : [];
+        // Verify entity has a shield in held items.
+        $shield_rs = $this->findHeldShield($entity_data_rs);
+        if (!$shield_rs) {
+          return ['success' => FALSE, 'result' => ['error' => 'No shield in hand.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        if (!empty($shield_rs['broken'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Shield is broken.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_data_rs['shield_raised'] = TRUE;
+        $entity_data_rs['shield_raised_ac_bonus'] = (int) ($shield_rs['ac_bonus'] ?? 0);
+        $this->encounterStore->updateParticipant((int) $ptcp_rs['id'], ['entity_ref' => json_encode($entity_data_rs)]);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['shield_raised' => TRUE, 'ac_bonus' => $entity_data_rs['shield_raised_ac_bonus']];
+        $events[] = GameEventLogger::buildEvent('raise_shield', 'encounter', $actor_id, ['ac_bonus' => $entity_data_rs['shield_raised_ac_bonus'], 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2220: Avert Gaze — 1 action; +2 circumstance vs gaze effects this turn.
+      // -----------------------------------------------------------------------
+      case 'avert_gaze': {
+        $enc_ag = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_ag = $enc_ag ? $this->findEncounterParticipantByEntityId($enc_ag, $actor_id) : NULL;
+        if (!$ptcp_ag) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_data_ag = !empty($ptcp_ag['entity_ref']) ? json_decode($ptcp_ag['entity_ref'], TRUE) : [];
+        $entity_data_ag['avert_gaze_active'] = TRUE;
+        $this->encounterStore->updateParticipant((int) $ptcp_ag['id'], ['entity_ref' => json_encode($entity_data_ag)]);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['avert_gaze' => TRUE];
+        $events[] = GameEventLogger::buildEvent('avert_gaze', 'encounter', $actor_id, ['round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2226: Point Out — 1 action; reveal undetected target's location to allies.
+      // -----------------------------------------------------------------------
+      case 'point_out': {
+        if (!$target_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'target required for point_out.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $enc_po = $this->encounterStore->loadEncounter($encounter_id);
+        if ($enc_po) {
+          foreach ($enc_po['participants'] ?? [] as $ally_ptcp) {
+            $ally_eid = $ally_ptcp['entity_id'] ?? '';
+            if ($ally_eid === $actor_id) {
+              continue;
+            }
+            // For each ally: upgrade target detection state from undetected → hidden.
+            $ally_entity_data = !empty($ally_ptcp['entity_ref']) ? json_decode($ally_ptcp['entity_ref'], TRUE) : [];
+            $ally_attacker_id = $ally_entity_data['entity_id'] ?? $ally_eid;
+            // Load the target's detection states.
+            $target_ptcp = $this->findEncounterParticipantByEntityId($enc_po, $target_id);
+            if ($target_ptcp) {
+              $target_entity_data = !empty($target_ptcp['entity_ref']) ? json_decode($target_ptcp['entity_ref'], TRUE) : [];
+              $current_state = $target_entity_data['detection_states'][$ally_attacker_id] ?? 'observed';
+              if ($current_state === 'undetected' || $current_state === 'unnoticed') {
+                $target_entity_data['detection_states'][$ally_attacker_id] = 'hidden';
+                $this->encounterStore->updateParticipant((int) $target_ptcp['id'], ['entity_ref' => json_encode($target_entity_data)]);
+              }
+            }
+          }
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['pointed_out' => TRUE, 'target' => $target_id];
+        $events[] = GameEventLogger::buildEvent('point_out', 'encounter', $actor_id, ['target' => $target_id, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2219: Arrest a Fall (reaction) — requires fly speed; Acrobatics DC 15.
+      // -----------------------------------------------------------------------
+      case 'arrest_fall': {
+        if (empty($game_state['turn']['reaction_available'] ?? TRUE) === FALSE && ($game_state['turn']['reaction_available'] ?? TRUE) === FALSE) {
+          return ['success' => FALSE, 'result' => ['error' => 'Reaction already spent.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $enc_af = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_af = $enc_af ? $this->findEncounterParticipantByEntityId($enc_af, $actor_id) : NULL;
+        if (!$ptcp_af) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_af = !empty($ptcp_af['entity_ref']) ? json_decode($ptcp_af['entity_ref'], TRUE) : [];
+        if (empty($entity_af['fly_speed'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Arrest a Fall requires fly Speed.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $acrobatics_bonus = (int) ($params['acrobatics_bonus'] ?? 0);
+        $d20_af = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_af = $d20_af + $acrobatics_bonus;
+        $degree_af = $this->combatCalculator->calculateDegreeOfSuccess($total_af, 15, $d20_af);
+        $feet_fallen = (int) ($params['feet_fallen'] ?? 0);
+        $damage_af = 0;
+        if ($degree_af === 'failure') {
+          // Normal fall damage.
+          $damage_af = (int) floor($feet_fallen / 2);
+        }
+        elseif ($degree_af === 'critical_failure') {
+          // 10 bludgeoning per 20 ft fallen so far.
+          $damage_af = (int) ceil($feet_fallen / 20) * 10;
+        }
+        $game_state['turn']['reaction_available'] = FALSE;
+        $result = ['arrest_fall' => TRUE, 'degree' => $degree_af, 'fall_damage' => $damage_af, 'roll' => $d20_af, 'total' => $total_af];
+        $events[] = GameEventLogger::buildEvent('arrest_fall', 'encounter', $actor_id, ['degree' => $degree_af, 'fall_damage' => $damage_af, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2224: Grab an Edge (reaction) — Reflex DC 15 when falling past handhold.
+      // -----------------------------------------------------------------------
+      case 'grab_edge': {
+        if (($game_state['turn']['reaction_available'] ?? TRUE) === FALSE) {
+          return ['success' => FALSE, 'result' => ['error' => 'Reaction already spent.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $reflex_bonus = (int) ($params['reflex_bonus'] ?? 0);
+        $d20_ge = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_ge = $d20_ge + $reflex_bonus;
+        $degree_ge = $this->combatCalculator->calculateDegreeOfSuccess($total_ge, 15, $d20_ge);
+        $grabbed = in_array($degree_ge, ['critical_success', 'success'], TRUE);
+        if ($grabbed) {
+          // Mark entity clinging to edge.
+          $enc_ge = $this->encounterStore->loadEncounter($encounter_id);
+          $ptcp_ge = $enc_ge ? $this->findEncounterParticipantByEntityId($enc_ge, $actor_id) : NULL;
+          if ($ptcp_ge) {
+            $entity_ge = !empty($ptcp_ge['entity_ref']) ? json_decode($ptcp_ge['entity_ref'], TRUE) : [];
+            $entity_ge['clinging'] = TRUE;
+            $this->encounterStore->updateParticipant((int) $ptcp_ge['id'], ['entity_ref' => json_encode($entity_ge)]);
+          }
+        }
+        $game_state['turn']['reaction_available'] = FALSE;
+        $result = ['grab_edge' => TRUE, 'degree' => $degree_ge, 'grabbed' => $grabbed, 'roll' => $d20_ge, 'total' => $total_ge];
+        $events[] = GameEventLogger::buildEvent('grab_edge', 'encounter', $actor_id, ['degree' => $degree_ge, 'grabbed' => $grabbed, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2231-2232: Shield Block (reaction) — reduce damage by hardness; split remainder.
+      // -----------------------------------------------------------------------
+      case 'shield_block': {
+        if (($game_state['turn']['reaction_available'] ?? TRUE) === FALSE) {
+          return ['success' => FALSE, 'result' => ['error' => 'Reaction already spent.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $enc_sb = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_sb = $enc_sb ? $this->findEncounterParticipantByEntityId($enc_sb, $actor_id) : NULL;
+        if (!$ptcp_sb) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_sb = !empty($ptcp_sb['entity_ref']) ? json_decode($ptcp_sb['entity_ref'], TRUE) : [];
+        // REQ 2232: Shield must have been raised.
+        if (empty($entity_sb['shield_raised'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Shield must be raised to use Shield Block.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $shield_sb = $this->findHeldShield($entity_sb);
+        if (!$shield_sb) {
+          return ['success' => FALSE, 'result' => ['error' => 'No shield in hand.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $incoming_damage = (int) ($params['incoming_damage'] ?? 0);
+        $hardness = (int) ($shield_sb['hardness'] ?? 0);
+        $reduced = max(0, $incoming_damage - $hardness);
+        $shield_takes = (int) floor($reduced / 2);
+        $entity_takes = $reduced - $shield_takes;
+        // Apply entity damage.
+        if ($entity_takes > 0 && $this->hpManager) {
+          $pid_sb = (int) $ptcp_sb['id'];
+          $this->hpManager->applyDamage($pid_sb, $entity_takes, 'physical', ['source' => 'shield_block_residual'], $encounter_id);
+        }
+        // Apply shield damage.
+        $shield_sb['hp'] = max(0, (int) ($shield_sb['hp'] ?? $shield_sb['max_hp'] ?? 10) - $shield_takes);
+        if ($shield_sb['hp'] <= 0) {
+          $shield_sb['broken'] = TRUE;
+          $entity_sb['shield_raised'] = FALSE;
+        }
+        // Update shield in held items.
+        $entity_sb = $this->updateHeldShield($entity_sb, $shield_sb);
+        $this->encounterStore->updateParticipant((int) $ptcp_sb['id'], ['entity_ref' => json_encode($entity_sb)]);
+        $game_state['turn']['reaction_available'] = FALSE;
+        $result = [
+          'shield_block' => TRUE,
+          'incoming_damage' => $incoming_damage,
+          'hardness' => $hardness,
+          'entity_damage' => $entity_takes,
+          'shield_damage' => $shield_takes,
+          'shield_broken' => $shield_sb['broken'] ?? FALSE,
+        ];
+        $events[] = GameEventLogger::buildEvent('shield_block', 'encounter', $actor_id, [
+          'entity_damage' => $entity_takes,
+          'shield_damage' => $shield_takes,
+          'shield_broken' => $shield_sb['broken'] ?? FALSE,
+          'round' => $game_state['round'] ?? NULL,
+        ], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2228-2230: Attack of Opportunity (fighter class reaction).
+      // -----------------------------------------------------------------------
+      case 'attack_of_opportunity': {
+        if (($game_state['turn']['reaction_available'] ?? TRUE) === FALSE) {
+          return ['success' => FALSE, 'result' => ['error' => 'Reaction already spent.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // REQ 2228: Only available with 'attack_of_opportunity' class feature.
+        $enc_aoo = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_aoo = $enc_aoo ? $this->findEncounterParticipantByEntityId($enc_aoo, $actor_id) : NULL;
+        if (!$ptcp_aoo) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_aoo = !empty($ptcp_aoo['entity_ref']) ? json_decode($ptcp_aoo['entity_ref'], TRUE) : [];
+        $class_features = $entity_aoo['class_features'] ?? [];
+        if (!in_array('attack_of_opportunity', (array) $class_features, TRUE)) {
+          return ['success' => FALSE, 'result' => ['error' => 'Character does not have Attack of Opportunity class feature.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        if (!$target_id) {
+          return ['success' => FALSE, 'result' => ['error' => 'target required for Attack of Opportunity.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // REQ 2230: AoO does NOT count toward or apply MAP; pass skip_map flag.
+        $aoo_weapon = $params['weapon'] ?? [];
+        $aoo_weapon['skip_map_count'] = TRUE;
+        // Resolve as a melee Strike without consuming actions or MAP.
+        $aoo_result = $this->processStrike($encounter_id, $actor_id, $target_id, ['weapon' => $aoo_weapon, 'skip_map' => TRUE], $game_state);
+        // REQ 2230: Do NOT decrement attacks_this_turn.
+        $game_state['turn']['attacks_this_turn'] = max(0, ($game_state['turn']['attacks_this_turn'] ?? 1) - 1);
+        // REQ 2229: Crit + manipulate trigger → disrupt the triggering action.
+        $trigger_type = $params['trigger_type'] ?? '';
+        $disrupted = FALSE;
+        if (($aoo_result['degree'] ?? '') === 'critical_success' && $trigger_type === 'manipulate') {
+          $disrupted = TRUE;
+        }
+        $game_state['turn']['reaction_available'] = FALSE;
+        $result = array_merge($aoo_result, ['attack_of_opportunity' => TRUE, 'disrupted' => $disrupted]);
+        $events[] = GameEventLogger::buildEvent('attack_of_opportunity', 'encounter', $actor_id, [
+          'target' => $target_id,
+          'degree' => $aoo_result['degree'] ?? NULL,
+          'damage' => $aoo_result['damage'] ?? NULL,
+          'disrupted' => $disrupted,
+          'round' => $game_state['round'] ?? NULL,
+        ], NULL, $target_id);
+        break;
+      }
+
+
         return [
           'success' => FALSE,
           'result' => ['error' => "Unknown encounter action: $type"],
@@ -1062,6 +1452,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         'damage_type' => (string) ($params['damage_type'] ?? 'physical'),
         'is_agile' => !empty($params['is_agile']),
       ];
+      // REQ 2230: AoO skip_map flag — do not count this attack toward MAP.
+      if (!empty($params['skip_map'])) {
+        $weapon['skip_map'] = TRUE;
+      }
 
       // Resolve attack through the combat engine, passing dungeon_data for cover/aquatic checks.
       $attack_result = $this->combatEngine->resolveAttack(
@@ -1118,6 +1512,44 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     return NULL;
+  }
+
+  /**
+   * REQ 2227/2231: Find a held shield in entity_ref equipment.
+   *
+   * Checks entity_ref['equipment']['held'] for any item with type 'shield'.
+   * Returns the first found shield array, or NULL if none.
+   */
+  protected function findHeldShield(array $entity_data): ?array {
+    $held = $entity_data['equipment']['held'] ?? [];
+    foreach ($held as $item) {
+      if (is_array($item) && ($item['type'] ?? '') === 'shield') {
+        return $item;
+      }
+    }
+    // Also check legacy flat shield slot.
+    if (!empty($entity_data['shield']) && ($entity_data['shield']['type'] ?? '') === 'shield') {
+      return $entity_data['shield'];
+    }
+    return NULL;
+  }
+
+  /**
+   * REQ 2231: Write an updated shield back into entity_data['equipment']['held'].
+   */
+  protected function updateHeldShield(array $entity_data, array $updated_shield): array {
+    $held = $entity_data['equipment']['held'] ?? [];
+    foreach ($held as $key => $item) {
+      if (is_array($item) && ($item['type'] ?? '') === 'shield') {
+        $entity_data['equipment']['held'][$key] = $updated_shield;
+        return $entity_data;
+      }
+    }
+    // Legacy flat shield slot.
+    if (isset($entity_data['shield'])) {
+      $entity_data['shield'] = $updated_shield;
+    }
+    return $entity_data;
   }
 
   /**
@@ -1278,6 +1710,35 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       }
       catch (\Throwable $e) {
         $this->logger->warning('Condition tick failed: @error', ['@error' => $e->getMessage()]);
+      }
+    }
+
+    // REQ 2222: Airborne entity that did NOT use a Fly action this turn begins falling.
+    if ($actor_id) {
+      try {
+        $enc_fly_check = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_fly_check = $enc_fly_check ? $this->findEncounterParticipantByEntityId($enc_fly_check, $actor_id) : NULL;
+        if ($ptcp_fly_check) {
+          $entity_fly = !empty($ptcp_fly_check['entity_ref']) ? json_decode($ptcp_fly_check['entity_ref'], TRUE) : [];
+          if (!empty($entity_fly['airborne']) && empty($entity_fly['fly_used_this_turn'])) {
+            // Trigger fall — apply fall damage (default 10 ft if elevation not tracked).
+            $fall_feet = (int) ($entity_fly['elevation_ft'] ?? 10);
+            if ($this->hpManager && $fall_feet > 0) {
+              $this->hpManager->applyFallDamage((int) $ptcp_fly_check['id'], $fall_feet, $encounter_id);
+            }
+            $entity_fly['airborne'] = FALSE;
+          }
+          // Clear fly_used_this_turn for next turn.
+          $entity_fly['fly_used_this_turn'] = FALSE;
+          // Clear shield_raised (expires at start of next turn, cleared here).
+          $entity_fly['shield_raised'] = FALSE;
+          // Clear avert_gaze_active (expires at start of next turn).
+          $entity_fly['avert_gaze_active'] = FALSE;
+          $this->encounterStore->updateParticipant((int) $ptcp_fly_check['id'], ['entity_ref' => json_encode($entity_fly)]);
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('End-of-turn entity state clear failed: @error', ['@error' => $e->getMessage()]);
       }
     }
 
@@ -1794,6 +2255,13 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'sense_motive':
       case 'take_cover':
       case 'aid_setup':
+      case 'burrow':
+      case 'fly':
+      case 'mount':
+      case 'dismount':
+      case 'raise_shield':
+      case 'avert_gaze':
+      case 'point_out':
         return 1;
 
       case 'ready':
@@ -1806,6 +2274,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'release':
       case 'aid':
       case 'delay_reenter':
+      // Reactions: no action cost (they use the reaction resource, not action slots).
+      case 'arrest_fall':
+      case 'grab_edge':
+      case 'shield_block':
+      case 'attack_of_opportunity':
         return 0;
 
       default:
