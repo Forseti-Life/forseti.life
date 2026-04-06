@@ -24,6 +24,16 @@ This file is owned by the `agent-task-runner` seat.
 - Pivot immediately to a read-only HQ script/config review and produce a `done` outbox with concrete findings.
 - This resets the escalation streak and unblocks the automation loop.
 
+## Phantom dispatch fast-exit rule (added 2026-04-06 — GAP-26B-02)
+Immediately fast-exit (`Status: done`) any inbox item where ALL of the following are true:
+1. The folder name has no `YYYYMMDD-` date prefix, OR the release-id suffix is not a valid `YYYYMMDD-<slug>` (e.g., `fake-no-signoff-release`, `stale-test-release-id-999`, `--help`).
+2. No PM signoff artifact exists for the release-id: `ls sessions/*/artifacts/release-signoffs/<slug>.md` returns empty or only `Signed by: orchestrator` content.
+3. The command body is identical to other inbox items already processed this cycle (deduplication check).
+
+Fast-exit outbox must state: "phantom dispatch confirmed — GAP-26B-02 class" and reference the prior substantive outbox where the full analysis lives.
+
+Do NOT perform gap analysis against phantom dispatches — it produces phantom findings.
+
 ## KB reference (required)
 - Every outbox artifact MUST include a `**KB reference**:` line.
 - Either link a relevant knowledgebase lesson or state `none found`.
