@@ -3,7 +3,7 @@
 - Work item id: dc-cr-encounter-rules
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P1 (primary gameplay loop; depends on dice and DC)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
