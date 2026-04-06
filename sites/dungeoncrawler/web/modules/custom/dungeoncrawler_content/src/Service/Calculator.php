@@ -534,4 +534,24 @@ class Calculator {
     ];
   }
 
+  /**
+   * DEF-2145: Proxy calculateDegreeOfSuccess to CombatCalculator.
+   *
+   * CounteractService and AfflictionManager call this method directly on
+   * Calculator. Delegates to CombatCalculator to avoid duplicating logic.
+   *
+   * @param int $result
+   *   The total roll + bonus value.
+   * @param int $dc
+   *   The difficulty class.
+   * @param int|null $naturalRoll
+   *   The raw die face (for nat-1 / nat-20 adjustments), or NULL.
+   *
+   * @return string
+   *   'critical_success', 'success', 'failure', or 'critical_failure'.
+   */
+  public function calculateDegreeOfSuccess(int $result, int $dc, ?int $naturalRoll = NULL): string {
+    return $this->combatCalculator->calculateDegreeOfSuccess($result, $dc, $naturalRoll);
+  }
+
 }
