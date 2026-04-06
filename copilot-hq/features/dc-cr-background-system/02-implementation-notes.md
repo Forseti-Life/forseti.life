@@ -30,21 +30,22 @@ All NEW. `CharacterManager::BACKGROUNDS` constant exists with full background da
 - Sensitive data handling: none.
 
 ## Testing Performed
-- Commands run: (pending implementation)
-- Targeted scenarios:
-  - Count check (>= 5)
-  - Background selection in creation form stores `background.name` and boosts on character JSON
-  - Duplicate boost validation rejects fixed+free pointing to same ability
+- `drush updatedb --yes` — all 20 hooks (10011–10030) applied cleanly
+- `drush cr` — success
+- `drush php-eval "print \Drupal::entityQuery('node')->condition('type','background')->accessCheck(FALSE)->count()->execute();"` → 9 (AC requires >= 5) PASS
+- `drush updatedb:status` → "No database updates required" PASS
+- Background step in CharacterCreationStepForm: dropdown populated from `getBackgroundOptions()`, boosts selector present, validation at case 3 enforces required selection, unique boosts, and exact count of 2
+- Fix required: `update_10011` and `update_10015` assumed `combat_encounters` and `combat_participants` tables existed; they were defined in schema but never materialized. Added `tableExists()` guards to create tables before attempting field adds.
 
 ## Rollback / Recovery
-- Revert commit. Character nodes retain background string; no corruption on rollback.
+- Revert commit `664d0eb3`. Background nodes remain in DB; uninstalling the module via drush would remove the node type. Character JSON stores background as string — no foreign key corruption on rollback.
 
 ## Knowledgebase references
 - `knowledgebase/lessons/20260225-executor-patch-lag-silent-accumulation.md` — run `drush cr` after config install.
-- Dependency note: dc-cr-character-creation depends on this feature being done first.
+- New lesson: update hooks that `addField` to tables defined in `schema()` must first check `tableExists()` and create the table if missing — the DB may not have been initialized on the first install pass.
 
 ## What I learned (Dev)
-- (pending)
+- Schema-defined tables are NOT automatically created when the module is already installed. Only `hook_install()` creates them. Subsequent `_update_N()` hooks must defensively create tables if missing.
 
 ## What I'd change next time (Dev)
-- (pending)
+- Add a `tableExists()` guard to every `_update_N()` that calls `addField()` on any schema-defined table.
