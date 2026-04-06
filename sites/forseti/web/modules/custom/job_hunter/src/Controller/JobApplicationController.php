@@ -4,8 +4,8 @@ namespace Drupal\job_hunter\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Access\CsrfTokenGenerator;
-use Drupal\Core\Database\Connection;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
+use Drupal\job_hunter\Repository\JobApplicationRepository;
 use Drupal\Core\Link;
 use Drupal\Core\Queue\QueueFactory;
 use Drupal\Core\Session\AccountInterface;
@@ -44,11 +44,11 @@ class JobApplicationController extends ControllerBase {
   protected RequestStack $requestStack;
 
   /**
-   * The database connection.
+   * The job application repository.
    *
-   * @var \Drupal\Core\Database\Connection
+   * @var \Drupal\job_hunter\Repository\JobApplicationRepository
    */
-  protected Connection $database;
+  protected JobApplicationRepository $repository;
 
   /**
    * The queue factory.
@@ -85,8 +85,8 @@ class JobApplicationController extends ControllerBase {
    *   The job discovery service.
    * @param \Symfony\Component\HttpFoundation\RequestStack $request_stack
    *   The request stack.
-   * @param \Drupal\Core\Database\Connection $database
-   *   The database connection.
+   * @param \Drupal\job_hunter\Repository\JobApplicationRepository $repository
+   *   The job application repository.
    * @param \Drupal\Core\Queue\QueueFactory $queue_factory
    *   The queue factory.
    * @param \Drupal\job_hunter\Service\SearchAggregatorService $search_aggregator
@@ -101,7 +101,7 @@ class JobApplicationController extends ControllerBase {
   public function __construct(
     JobDiscoveryService $job_discovery_service,
     RequestStack $request_stack,
-    Connection $database,
+    JobApplicationRepository $repository,
     QueueFactory $queue_factory,
     SearchAggregatorService $search_aggregator,
     EntityTypeManagerInterface $entity_type_manager,
@@ -110,7 +110,7 @@ class JobApplicationController extends ControllerBase {
   ) {
     $this->jobDiscoveryService = $job_discovery_service;
     $this->requestStack = $request_stack;
-    $this->database = $database;
+    $this->repository = $repository;
     $this->queueFactory = $queue_factory;
     $this->searchAggregator = $search_aggregator;
     $this->entityTypeManager = $entity_type_manager;
@@ -125,7 +125,7 @@ class JobApplicationController extends ControllerBase {
     return new static(
       $container->get('job_hunter.job_discovery_service'),
       $container->get('request_stack'),
-      $container->get('database'),
+      $container->get('job_hunter.job_application_repository'),
       $container->get('queue'),
       $container->get('job_hunter.search_aggregator'),
       $container->get('entity_type.manager'),
@@ -490,16 +490,7 @@ class JobApplicationController extends ControllerBase {
    * @todo Implement user-specific saved jobs filtering in the query.
    */
   private function getSavedJobsCount(AccountInterface $user) {
-    try {
-      $count = $this->database->select('jobhunter_job_requirements', 'j')
-        ->countQuery()
-        ->execute()
-        ->fetchField();
-      return (int) $count;
-    }
-    catch (\Exception $e) {
-      return 0;
-    }
+    return $this->repository->countJobRequirements();
   }
 
   /**
@@ -512,21 +503,8 @@ class JobApplicationController extends ControllerBase {
    *   A renderable array for the target companies management page.
    */
   public function manageTargetCompanies() {
-    $database = $this->database;
-    
-    // Query companies from jobhunter_companies table.
-    $query = $database->select('jobhunter_companies', 'c')
-      ->fields('c')
-      ->orderBy('name', 'ASC');
-    $companies = $query->execute()->fetchAll();
-    
-    // Count jobs per company.
-    $job_query = $database->select('jobhunter_job_requirements', 'j')
-      ->fields('j', ['company_id'])
-      ->condition('status', 'active')
-      ->groupBy('company_id');
-    $job_query->addExpression('COUNT(*)', 'job_count');
-    $job_results = $job_query->execute()->fetchAllKeyed(0, 1);
+    $companies = $this->repository->getAllCompanies();
+    $job_results = $this->repository->getActiveJobCountsByCompany();
     
     // Calculate statistics.
     $total_companies = count($companies);
@@ -717,13 +695,7 @@ class JobApplicationController extends ControllerBase {
    *   Array of company names with job counts [company_name => count].
    */
   private function getCompaniesFromJobPostings() {
-    $database = $this->database;
-    
-    // Get all job requirements with extracted JSON
-    $query = $database->select("jobhunter_job_requirements", "j")
-      ->fields("j", ["id", "extracted_json", "company_id"])
-      ->condition("status", "active");
-    $jobs = $query->execute()->fetchAll();
+    $jobs = $this->repository->getActiveJobsForCompanyExtraction();
     
     $companies = [];
     
@@ -732,11 +704,7 @@ class JobApplicationController extends ControllerBase {
       
       // First, try to get company from company_id
       if ($job->company_id) {
-        $company = $database->select("jobhunter_companies", "c")
-          ->fields("c", ["name"])
-          ->condition("id", $job->company_id)
-          ->execute()
-          ->fetchField();
+        $company = $this->repository->getCompanyName((int) $job->company_id);
         if ($company) {
           $company_name = $company;
         }
@@ -882,12 +850,7 @@ class JobApplicationController extends ControllerBase {
       }
 
       // User-specific save mapping.
-      $existing_mapping = $this->database->select('jobhunter_saved_jobs', 'sj')
-        ->fields('sj', ['id'])
-        ->condition('sj.uid', $uid)
-        ->condition('sj.job_id', $target_job_id)
-        ->execute()
-        ->fetchField();
+      $existing_mapping = $this->repository->findSavedJobMappingId($uid, $target_job_id);
 
       if ($existing_mapping) {
         if ($is_ajax) {
@@ -901,14 +864,7 @@ class JobApplicationController extends ControllerBase {
         return new RedirectResponse('/jobhunter/my-jobs');
       }
 
-      $this->database->insert('jobhunter_saved_jobs')
-        ->fields([
-          'uid' => $uid,
-          'job_id' => $target_job_id,
-          'created' => time(),
-          'updated' => time(),
-        ])
-        ->execute();
+      $this->repository->insertSavedJob($uid, $target_job_id);
 
       if ($is_ajax) {
         return new JsonResponse([
@@ -953,11 +909,7 @@ class JobApplicationController extends ControllerBase {
     }
 
     if (preg_match('/^staging_(\d+)$/', $encoded, $matches)) {
-      $imported_job_id = (int) $this->database->select('jobhunter_job_search_results', 's')
-        ->fields('s', ['imported_to_job_id'])
-        ->condition('s.id', (int) $matches[1])
-        ->execute()
-        ->fetchField();
+      $imported_job_id = $this->repository->getImportedJobIdFromStaging((int) $matches[1]);
       if ($imported_job_id > 0) {
         return $imported_job_id;
       }
@@ -989,19 +941,7 @@ class JobApplicationController extends ControllerBase {
    *   Matching Forseti job ID or NULL.
    */
   private function findJobIdByExternalId(string $external_id): ?int {
-    if ($external_id === '') {
-      return NULL;
-    }
-
-    $job_id = (int) $this->database->select('jobhunter_job_requirements', 'j')
-      ->fields('j', ['id'])
-      ->condition('j.external_job_id', $external_id)
-      ->orderBy('j.id', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    return $job_id > 0 ? $job_id : NULL;
+    return $this->repository->findJobIdByExternalId($external_id);
   }
 
   /**
@@ -1090,9 +1030,7 @@ class JobApplicationController extends ControllerBase {
       $fields['job_description'] = (string) $job_data['description'];
     }
 
-    return (int) $this->database->insert('jobhunter_job_requirements')
-      ->fields($fields)
-      ->execute();
+    return $this->repository->insertJobRequirement($fields);
   }
 
   /**
@@ -1180,17 +1118,7 @@ class JobApplicationController extends ControllerBase {
    *   TRUE if the user has a profile, FALSE otherwise.
    */
   private function userHasCompletedProfile(): bool {
-    try {
-      $profile = $this->database->select('jobhunter_job_seeker', 'js')
-        ->fields('js', ['consolidated_profile_json'])
-        ->condition('uid', (int) $this->currentUser()->id())
-        ->execute()
-        ->fetchField();
-      return !empty($profile);
-    }
-    catch (\Exception $e) {
-      return FALSE;
-    }
+    return $this->repository->hasCompletedProfile((int) $this->currentUser()->id());
   }
 
   /**
@@ -1250,11 +1178,7 @@ class JobApplicationController extends ControllerBase {
       $job_id = (int) $job->id;
       if ($this->isItemInTailoringQueue($uid, $job_id)) {
         // Sync the DB so subsequent loads are correct without re-scanning.
-        $this->database->update('jobhunter_tailored_resumes')
-          ->fields(['tailoring_status' => 'queued', 'updated' => time()])
-          ->condition('uid', $uid)
-          ->condition('job_id', $job_id)
-          ->execute();
+        $this->repository->updateTailoredResume($uid, $job_id, ['tailoring_status' => 'queued', 'updated' => time()]);
         return 'tailoring_processing';
       }
     }
@@ -1283,11 +1207,7 @@ class JobApplicationController extends ControllerBase {
    *   TRUE if a matching item is in the active queue.
    */
   private function isItemInTailoringQueue(int $uid, int $job_id): bool {
-    $rows = $this->database->select('queue', 'q')
-      ->fields('q', ['data'])
-      ->condition('name', 'job_hunter_resume_tailoring')
-      ->execute()
-      ->fetchAll();
+    $rows = $this->repository->getQueueDataItems('job_hunter_resume_tailoring');
 
     foreach ($rows as $row) {
       $item = @unserialize($row->data, ['allowed_classes' => FALSE]);
@@ -1317,22 +1237,14 @@ class JobApplicationController extends ControllerBase {
 
     try {
       // Verify ownership via jobhunter_saved_jobs before updating status.
-      $owned = $this->database->select('jobhunter_saved_jobs', 'sj')
-        ->fields('sj', ['job_id'])
-        ->condition('sj.uid', (int) $this->currentUser()->id())
-        ->condition('sj.job_id', $job_id)
-        ->execute()
-        ->fetchField();
+      $owned = $this->repository->findSavedJobMappingId((int) $this->currentUser()->id(), $job_id);
 
       if (!$owned) {
         $this->messenger()->addError($this->t('Job not found.'));
         return new RedirectResponse($return_to);
       }
 
-      $this->database->update('jobhunter_job_requirements')
-        ->fields(['status' => 'archived'])
-        ->condition('id', $job_id)
-        ->execute();
+      $this->repository->updateJobRequirement($job_id, ['status' => 'archived']);
 
       $this->messenger()->addMessage($this->t('Job archived.'));
     }
@@ -1362,22 +1274,14 @@ class JobApplicationController extends ControllerBase {
     }
 
     try {
-      $owned = $this->database->select('jobhunter_saved_jobs', 'sj')
-        ->fields('sj', ['job_id'])
-        ->condition('sj.uid', (int) $this->currentUser()->id())
-        ->condition('sj.job_id', $job_id)
-        ->execute()
-        ->fetchField();
+      $owned = $this->repository->findSavedJobMappingId((int) $this->currentUser()->id(), $job_id);
 
       if (!$owned) {
         $this->messenger()->addError($this->t('Job not found.'));
         return new RedirectResponse($return_to);
       }
 
-      $this->database->update('jobhunter_job_requirements')
-        ->fields(['status' => 'active'])
-        ->condition('id', $job_id)
-        ->execute();
+      $this->repository->updateJobRequirement($job_id, ['status' => 'active']);
 
       $this->messenger()->addMessage($this->t('Job restored to My Jobs.'));
     }
@@ -1442,23 +1346,14 @@ class JobApplicationController extends ControllerBase {
     }
 
     try {
-      $saved_mapping_exists = (bool) $this->database->select('jobhunter_saved_jobs', 'sj')
-        ->fields('sj', ['id'])
-        ->condition('sj.uid', (int) $this->currentUser()->id())
-        ->condition('sj.job_id', $job_id)
-        ->execute()
-        ->fetchField();
+      $saved_mapping_exists = (bool) $this->repository->findSavedJobMappingId((int) $this->currentUser()->id(), $job_id);
 
       if (!$saved_mapping_exists) {
         $this->messenger()->addError($this->t('Job not found in your saved jobs.'));
         return new RedirectResponse($return_to);
       }
 
-      $query = $this->database->select('jobhunter_job_requirements', 'j')
-        ->fields('j', ['id', 'status', 'applied_on_date'])
-        ->condition('j.id', $job_id);
-
-      $job = $query->execute()->fetchObject();
+      $job = $this->repository->getJobById($job_id, ['id', 'status', 'applied_on_date']);
       if (!$job) {
         $this->messenger()->addError($this->t('Job not found or access denied.'));
         return new RedirectResponse($return_to);
@@ -1474,10 +1369,7 @@ class JobApplicationController extends ControllerBase {
         'updated' => time(),
       ];
 
-      $this->database->update('jobhunter_job_requirements')
-        ->fields($update_fields)
-        ->condition('id', $job_id)
-        ->execute();
+      $this->repository->updateJobRequirement($job_id, $update_fields);
 
       if ($have_applied) {
         $this->messenger()->addStatus($this->t('Marked as applied.'));
@@ -1863,14 +1755,7 @@ class JobApplicationController extends ControllerBase {
       }
     }
 
-    $existing_application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', (int) $selected_job->id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
+    $existing_application = $this->repository->findLatestApplicationByJobAndUser($uid, (int) $selected_job->id, ['id', 'apply_url', 'ats_platform', 'metadata']);
 
     $metadata_base = [];
     if (!empty($existing_application['metadata'])) {
@@ -1993,31 +1878,26 @@ class JobApplicationController extends ControllerBase {
       }
 
       if ($existing_application) {
-        $this->database->update('jobhunter_applications')
-          ->fields([
-            'apply_url' => $effective_url !== '' ? $effective_url : $resolved_url,
-            'ats_platform' => $effective_ats,
-            'metadata' => json_encode($metadata_base),
-            'changed' => $now,
-          ])
-          ->condition('id', (int) $existing_application['id'])
-          ->execute();
+        $this->repository->updateApplication((int) $existing_application['id'], [
+          'apply_url' => $effective_url !== '' ? $effective_url : $resolved_url,
+          'ats_platform' => $effective_ats,
+          'metadata' => json_encode($metadata_base),
+          'changed' => $now,
+        ]);
       }
       else {
-        $this->database->insert('jobhunter_applications')
-          ->fields([
-            'uid' => $uid,
-            'job_id' => (int) $selected_job->id,
-            'submission_status' => 'not_started',
-            'submission_method' => 'pending',
-            'apply_url' => $effective_url !== '' ? $effective_url : $resolved_url,
-            'ats_platform' => $effective_ats,
-            'attempt_count' => 0,
-            'metadata' => json_encode($metadata_base),
-            'created' => $now,
-            'changed' => $now,
-          ])
-          ->execute();
+        $this->repository->insertApplication([
+          'uid' => $uid,
+          'job_id' => (int) $selected_job->id,
+          'submission_status' => 'not_started',
+          'submission_method' => 'pending',
+          'apply_url' => $effective_url !== '' ? $effective_url : $resolved_url,
+          'ats_platform' => $effective_ats,
+          'attempt_count' => 0,
+          'metadata' => json_encode($metadata_base),
+          'created' => $now,
+          'changed' => $now,
+        ]);
       }
 
       if ($run_step2_requested) {
@@ -2133,14 +2013,7 @@ class JobApplicationController extends ControllerBase {
     }
 
     // ── Load existing application row + metadata ────────────────────────────
-    $existing_application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', (int) $selected_job->id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
+    $existing_application = $this->repository->findLatestApplicationByJobAndUser($uid, (int) $selected_job->id, ['id', 'apply_url', 'ats_platform', 'metadata']);
 
     $apply_url = (string) ($existing_application['apply_url'] ?? '');
 
@@ -2201,30 +2074,25 @@ class JobApplicationController extends ControllerBase {
         $detected_ats = $this->detectAtsPlatformFromUrl((string) $meta['auth_url']);
 
         if ($existing_application) {
-          $this->database->update('jobhunter_applications')
-            ->fields([
-              'ats_platform' => $detected_ats,
-              'metadata' => json_encode($meta),
-              'changed'  => $now,
-            ])
-            ->condition('id', (int) $existing_application['id'])
-            ->execute();
+          $this->repository->updateApplication((int) $existing_application['id'], [
+            'ats_platform' => $detected_ats,
+            'metadata' => json_encode($meta),
+            'changed'  => $now,
+          ]);
         }
         else {
-          $this->database->insert('jobhunter_applications')
-            ->fields([
-              'uid'              => $uid,
-              'job_id'           => (int) $selected_job->id,
-              'submission_status'=> 'not_started',
-              'submission_method'=> 'pending',
-              'apply_url'        => $apply_url,
-              'ats_platform'     => $detected_ats,
-              'attempt_count'    => 0,
-              'metadata'         => json_encode($meta),
-              'created'          => $now,
-              'changed'          => $now,
-            ])
-            ->execute();
+          $this->repository->insertApplication([
+            'uid'              => $uid,
+            'job_id'           => (int) $selected_job->id,
+            'submission_status'=> 'not_started',
+            'submission_method'=> 'pending',
+            'apply_url'        => $apply_url,
+            'ats_platform'     => $detected_ats,
+            'attempt_count'    => 0,
+            'metadata'         => json_encode($meta),
+            'created'          => $now,
+            'changed'          => $now,
+          ]);
         }
       }
       catch (\Throwable $e) {
@@ -2296,11 +2164,7 @@ class JobApplicationController extends ControllerBase {
     $company_id = (int) ($selected_job->company_id ?? 0);
 
     // ── Load user profile (email, phone, name) from jobhunter_job_seeker ──
-    $seeker = $this->database->select('jobhunter_job_seeker', 'js')
-      ->fields('js', ['contact_email', 'contact_phone', 'full_name'])
-      ->condition('js.uid', $uid)
-      ->execute()
-      ->fetchAssoc();
+    $seeker = $this->repository->getJobSeekerProfile($uid, ['contact_email', 'contact_phone', 'full_name']) ?? [];
 
     $user_email = (string) ($seeker['contact_email'] ?? '');
     $user_phone = (string) ($seeker['contact_phone'] ?? '');
@@ -2315,14 +2179,7 @@ class JobApplicationController extends ControllerBase {
     }
 
     // ── Load existing application row + metadata ──────────────────────────
-    $existing_application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', (int) $selected_job->id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
+    $existing_application = $this->repository->findLatestApplicationByJobAndUser($uid, (int) $selected_job->id, ['id', 'apply_url', 'ats_platform', 'metadata']);
 
     $apply_url = (string) ($existing_application['apply_url'] ?? '');
     $ats_platform = (string) ($existing_application['ats_platform'] ?? 'unknown');
@@ -2346,10 +2203,7 @@ class JobApplicationController extends ControllerBase {
         $ats_platform = $detected;
         // Persist the corrected platform to the DB row.
         if ($existing_application) {
-          $this->database->update('jobhunter_applications')
-            ->fields(['ats_platform' => $ats_platform])
-            ->condition('id', (int) $existing_application['id'])
-            ->execute();
+          $this->repository->updateApplication((int) $existing_application['id'], ['ats_platform' => $ats_platform]);
         }
       }
     }
@@ -2526,29 +2380,24 @@ class JobApplicationController extends ControllerBase {
 
       try {
         if ($existing_application) {
-          $this->database->update('jobhunter_applications')
-            ->fields([
-              'metadata' => json_encode($meta),
-              'changed'  => $now,
-            ])
-            ->condition('id', (int) $existing_application['id'])
-            ->execute();
+          $this->repository->updateApplication((int) $existing_application['id'], [
+            'metadata' => json_encode($meta),
+            'changed'  => $now,
+          ]);
         }
         else {
-          $this->database->insert('jobhunter_applications')
-            ->fields([
-              'uid'              => $uid,
-              'job_id'           => (int) $selected_job->id,
-              'submission_status'=> 'not_started',
-              'submission_method'=> 'pending',
-              'apply_url'        => $apply_url,
-              'ats_platform'     => $ats_platform,
-              'attempt_count'    => 0,
-              'metadata'         => json_encode($meta),
-              'created'          => $now,
-              'changed'          => $now,
-            ])
-            ->execute();
+          $this->repository->insertApplication([
+            'uid'              => $uid,
+            'job_id'           => (int) $selected_job->id,
+            'submission_status'=> 'not_started',
+            'submission_method'=> 'pending',
+            'apply_url'        => $apply_url,
+            'ats_platform'     => $ats_platform,
+            'attempt_count'    => 0,
+            'metadata'         => json_encode($meta),
+            'created'          => $now,
+            'changed'          => $now,
+          ]);
         }
         $step4_cache = $meta['step4_cache'];
       }
@@ -2670,14 +2519,7 @@ class JobApplicationController extends ControllerBase {
     $company_id = (int) ($selected_job->company_id ?? 0);
 
     // ── Load application row + metadata ───────────────────────────────────
-    $existing_application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id', 'apply_url', 'ats_platform', 'metadata', 'submission_status', 'confirmation_reference', 'confirmation_ref', 'attempt_count'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', (int) $selected_job->id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
+    $existing_application = $this->repository->findLatestApplicationByJobAndUser($uid, (int) $selected_job->id, ['id', 'apply_url', 'ats_platform', 'metadata', 'submission_status', 'confirmation_reference', 'confirmation_ref', 'attempt_count']);
 
     $apply_url        = (string) ($existing_application['apply_url'] ?? '');
     $ats_platform     = (string) ($existing_application['ats_platform'] ?? 'unknown');
@@ -2691,13 +2533,7 @@ class JobApplicationController extends ControllerBase {
     $last_attempt_at = '';
     if ($existing_application) {
       try {
-        $last_attempt = $this->database->select('jobhunter_application_attempts', 'att')
-          ->fields('att', ['outcome', 'error_message', 'attempted_at'])
-          ->condition('att.application_id', (int) $existing_application['id'])
-          ->orderBy('attempted_at', 'DESC')
-          ->range(0, 1)
-          ->execute()
-          ->fetchAssoc();
+        $last_attempt = $this->repository->getLastAttempt((int) $existing_application['id']);
         if ($last_attempt) {
           $last_outcome    = (string) ($last_attempt['outcome'] ?? '');
           $last_error      = (string) ($last_attempt['error_message'] ?? '');
@@ -2726,10 +2562,7 @@ class JobApplicationController extends ControllerBase {
       if ($detected !== 'custom') {
         $ats_platform = $detected;
         if ($existing_application) {
-          $this->database->update('jobhunter_applications')
-            ->fields(['ats_platform' => $ats_platform])
-            ->condition('id', (int) $existing_application['id'])
-            ->execute();
+          $this->repository->updateApplication((int) $existing_application['id'], ['ats_platform' => $ats_platform]);
         }
       }
     }
@@ -2849,14 +2682,11 @@ class JobApplicationController extends ControllerBase {
 
         // Update the application row directly.
         if ($existing_application) {
-          $this->database->update('jobhunter_applications')
-            ->fields([
-              'submission_status' => 'manual_completed',
-              'confirmation_ref' => $manual_confirmation !== '' ? $manual_confirmation : 'Manual submission at ' . $now,
-              'changed' => $now,
-            ])
-            ->condition('id', (int) $existing_application['id'])
-            ->execute();
+          $this->repository->updateApplication((int) $existing_application['id'], [
+            'submission_status' => 'manual_completed',
+            'confirmation_ref' => $manual_confirmation !== '' ? $manual_confirmation : 'Manual submission at ' . $now,
+            'changed' => $now,
+          ]);
         }
 
         $this->messenger()->addStatus($this->t('Application marked as manually submitted.'));
@@ -2886,13 +2716,10 @@ class JobApplicationController extends ControllerBase {
 
             // Update application row.
             if ($existing_application) {
-              $this->database->update('jobhunter_applications')
-                ->fields([
-                  'submission_status' => 'resume_uploaded',
-                  'changed' => $now,
-                ])
-                ->condition('id', (int) $existing_application['id'])
-                ->execute();
+              $this->repository->updateApplication((int) $existing_application['id'], [
+                'submission_status' => 'resume_uploaded',
+                'changed' => $now,
+              ]);
               $submission_status = 'resume_uploaded';
             }
 
@@ -2940,10 +2767,7 @@ class JobApplicationController extends ControllerBase {
               $submission_started = TRUE;
               $submission_completed = TRUE;
               if ($existing_application) {
-                $this->database->update('jobhunter_applications')
-                  ->fields(['submission_status' => 'submitted', 'changed' => $now])
-                  ->condition('id', (int) $existing_application['id'])
-                  ->execute();
+                $this->repository->updateApplication((int) $existing_application['id'], ['submission_status' => 'submitted', 'changed' => $now]);
                 $submission_status = 'submitted';
               }
             }
@@ -3039,10 +2863,7 @@ class JobApplicationController extends ControllerBase {
               $submission_attempted = TRUE;
               $submission_completed = TRUE;
               if ($existing_application) {
-                $this->database->update('jobhunter_applications')
-                  ->fields(['submission_status' => 'submitted', 'changed' => $now])
-                  ->condition('id', (int) $existing_application['id'])
-                  ->execute();
+                $this->repository->updateApplication((int) $existing_application['id'], ['submission_status' => 'submitted', 'changed' => $now]);
                 $submission_status = 'submitted';
               }
             }
@@ -3099,10 +2920,7 @@ class JobApplicationController extends ControllerBase {
               $submission_attempted = TRUE;
               $submission_completed = TRUE;
               if ($existing_application) {
-                $this->database->update('jobhunter_applications')
-                  ->fields(['submission_status' => 'submitted', 'changed' => $now])
-                  ->condition('id', (int) $existing_application['id'])
-                  ->execute();
+                $this->repository->updateApplication((int) $existing_application['id'], ['submission_status' => 'submitted', 'changed' => $now]);
                 $submission_status = 'submitted';
               }
             }
@@ -3151,13 +2969,10 @@ class JobApplicationController extends ControllerBase {
               'message' => 'Application submitted via Workday wizard flow.',
             ];
             if ($existing_application) {
-              $this->database->update('jobhunter_applications')
-                ->fields([
-                  'submission_status' => 'submitted',
-                  'changed' => $now,
-                ])
-                ->condition('id', (int) $existing_application['id'])
-                ->execute();
+              $this->repository->updateApplication((int) $existing_application['id'], [
+                'submission_status' => 'submitted',
+                'changed' => $now,
+              ]);
               $submission_status = 'submitted';
             }
           }
@@ -3235,13 +3050,10 @@ class JobApplicationController extends ControllerBase {
 
       try {
         if ($existing_application) {
-          $this->database->update('jobhunter_applications')
-            ->fields([
-              'metadata' => json_encode($meta),
-              'changed'  => $now,
-            ])
-            ->condition('id', (int) $existing_application['id'])
-            ->execute();
+          $this->repository->updateApplication((int) $existing_application['id'], [
+            'metadata' => json_encode($meta),
+            'changed'  => $now,
+          ]);
         }
         $step5_cache = $meta['step5_cache'];
       }
@@ -3263,15 +3075,7 @@ class JobApplicationController extends ControllerBase {
     $has_tailored_resume = FALSE;
     $resume_pdf_basename = '';
     try {
-      $resume_uri = $this->database->select('jobhunter_tailored_resumes', 't')
-        ->fields('t', ['pdf_path'])
-        ->condition('uid', $uid)
-        ->condition('job_id', (int) $selected_job->id)
-        ->isNotNull('pdf_path')
-        ->orderBy('created', 'DESC')
-        ->range(0, 1)
-        ->execute()
-        ->fetchField();
+      $resume_uri = $this->repository->getResumeUri($uid, (int) $selected_job->id);
       if ($resume_uri) {
         $real_path = \Drupal::service('file_system')->realpath($resume_uri);
         if ($real_path && file_exists($real_path)) {
@@ -3406,14 +3210,7 @@ class JobApplicationController extends ControllerBase {
       throw new AccessDeniedHttpException('Authentication required.');
     }
 
-    $application = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['metadata'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', $job_id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
+    $application = $this->repository->findLatestApplicationByJobAndUser($uid, $job_id, ['metadata']);
 
     if (!$application) {
       throw new NotFoundHttpException('Application not found.');
@@ -3559,89 +3356,21 @@ class JobApplicationController extends ControllerBase {
    * Gets summary counts for a user's application submissions.
    */
   private function getApplicationSubmissionSummary(int $uid, ?int $job_id = NULL): array {
-    if (!$this->database->schema()->tableExists('jobhunter_applications')) {
-      return ['total' => 0, 'submitted' => 0, 'processing' => 0, 'manual_required' => 0, 'failed' => 0];
-    }
-
-    $base = $this->database->select('jobhunter_applications', 'a')
-      ->condition('a.uid', $uid);
-    if ($job_id !== NULL) {
-      $base->condition('a.job_id', $job_id);
-    }
-
-    $total = (int) (clone $base)->countQuery()->execute()->fetchField();
-    $submitted = (int) (clone $base)->condition('a.submission_status', 'submitted')->countQuery()->execute()->fetchField();
-    $processing = (int) (clone $base)->condition('a.submission_status', ['pending', 'processing', 'queued'], 'IN')->countQuery()->execute()->fetchField();
-    $manual_required = (int) (clone $base)->condition('a.submission_status', 'manual_required')->countQuery()->execute()->fetchField();
-    $failed = (int) (clone $base)->condition('a.submission_status', 'failed')->countQuery()->execute()->fetchField();
-
-    return [
-      'total' => $total,
-      'submitted' => $submitted,
-      'processing' => $processing,
-      'manual_required' => $manual_required,
-      'failed' => $failed,
-    ];
+    return $this->repository->getApplicationSubmissionSummary($uid, $job_id);
   }
 
   /**
    * Gets recent applications with optional fields when available.
    */
   private function getRecentApplicationSubmissions(int $uid, int $limit = 25, ?int $job_id = NULL): array {
-    $schema = $this->database->schema();
-    if (!$schema->tableExists('jobhunter_applications')) {
-      return [];
-    }
-    $query = $this->database->select('jobhunter_applications', 'a')
-      ->condition('a.uid', $uid)
-      ->orderBy('a.created', 'DESC')
-      ->range(0, $limit);
-    if ($job_id !== NULL) {
-      $query->condition('a.job_id', $job_id);
-    }
-
-    $fields = ['id', 'job_id', 'submission_status'];
-    foreach (['attempt_count', 'ats_platform', 'apply_url', 'selected_apply_option', 'metadata', 'confirmation_reference', 'confirmation_ref'] as $optional_field) {
-      if ($schema->fieldExists('jobhunter_applications', $optional_field)) {
-        $fields[] = $optional_field;
-      }
-    }
-    $query->fields('a', $fields);
-
-    if ($schema->tableExists('jobhunter_job_requirements') && $schema->fieldExists('jobhunter_job_requirements', 'job_title')) {
-      $query->leftJoin('jobhunter_job_requirements', 'j', 'a.job_id = j.id');
-      $query->addField('j', 'job_title');
-    }
-
-    return $query->execute()->fetchAll(\PDO::FETCH_ASSOC);
+    return $this->repository->getRecentApplicationSubmissions($uid, $limit, $job_id);
   }
 
   /**
    * Get latest attempt rows keyed by application_id.
    */
   private function getLatestAttemptsByApplicationIds(array $application_ids): array {
-    $application_ids = array_values(array_filter(array_map('intval', $application_ids)));
-    if (empty($application_ids) || !$this->database->schema()->tableExists('jobhunter_application_attempts')) {
-      return [];
-    }
-
-    $rows = $this->database->select('jobhunter_application_attempts', 'at')
-      ->fields('at', ['id', 'application_id', 'attempted_at', 'outcome', 'error_message'])
-      ->condition('at.application_id', $application_ids, 'IN')
-      ->orderBy('at.application_id', 'ASC')
-      ->orderBy('at.id', 'DESC')
-      ->execute()
-      ->fetchAll(\PDO::FETCH_ASSOC);
-
-    $latest = [];
-    foreach ($rows as $row) {
-      $application_id = (int) ($row['application_id'] ?? 0);
-      if ($application_id > 0 && !isset($latest[$application_id])) {
-        $latest[$application_id] = $row;
-      }
-    }
-
-    return $latest;
+    return $this->repository->getLatestAttemptsByApplicationIds($application_ids);
   }
 
   /**
@@ -4030,87 +3759,7 @@ class JobApplicationController extends ControllerBase {
   }
 
   private function loadSelectedJobContext(int $uid, int $job_id): ?object {
-    $has_saved = (bool) $this->database->select('jobhunter_saved_jobs', 'sj')
-      ->fields('sj', ['id'])
-      ->condition('sj.uid', $uid)
-      ->condition('sj.job_id', $job_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    $has_application = (bool) $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['id'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', $job_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    if (!$has_saved && !$has_application) {
-      return NULL;
-    }
-
-    $job = $this->database->select('jobhunter_job_requirements', 'j')
-      ->fields('j')
-      ->condition('j.id', $job_id)
-      ->range(0, 1)
-      ->execute()
-      ->fetchObject();
-
-    if (!$job) {
-      return NULL;
-    }
-
-    $tailored = $this->database->select('jobhunter_tailored_resumes', 't')
-      ->fields('t', ['tailoring_status', 'pdf_generated', 'pdf_path'])
-      ->condition('t.uid', $uid)
-      ->condition('t.job_id', $job_id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc() ?: [];
-
-    $application_status = $this->database->select('jobhunter_applications', 'a')
-      ->fields('a', ['submission_status'])
-      ->condition('a.uid', $uid)
-      ->condition('a.job_id', $job_id)
-      ->orderBy('created', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchField();
-
-    $job->tailoring_status = (string) ($tailored['tailoring_status'] ?? '');
-    $job->pdf_generated = (int) ($tailored['pdf_generated'] ?? 0);
-    $job->pdf_path = (string) ($tailored['pdf_path'] ?? '');
-    $job->application_status = (string) ($application_status ?: '');
-
-    if (!empty($job->extracted_json) && is_string($job->extracted_json)) {
-      $decoded = json_decode($job->extracted_json, TRUE);
-      if (is_array($decoded)) {
-        $job->extracted_data = $decoded;
-      }
-    }
-
-    if (empty($job->job_title) && !empty($job->extracted_data['position']['title'])) {
-      $job->job_title = (string) $job->extracted_data['position']['title'];
-    }
-    if (empty($job->company_name) && !empty($job->extracted_data['company']['name'])) {
-      $job->company_name = (string) $job->extracted_data['company']['name'];
-    }
-
-    // If company_name is still empty, look it up from jobhunter_companies via company_id.
-    if (empty($job->company_name) && !empty($job->company_id)) {
-      $company_name_lookup = $this->database->select('jobhunter_companies', 'c')
-        ->fields('c', ['name'])
-        ->condition('c.id', (int) $job->company_id)
-        ->execute()
-        ->fetchField();
-      if ($company_name_lookup) {
-        $job->company_name = (string) $company_name_lookup;
-      }
-    }
-
-    return $job;
+    return $this->repository->loadJobContext($uid, $job_id);
   }
 
   /**
