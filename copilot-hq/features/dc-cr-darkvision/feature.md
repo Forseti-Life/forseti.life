@@ -32,6 +32,8 @@ See `features/dc-cr-darkvision/01-acceptance-criteria.md`.
 
 ## Latest updates
 
+- 2026-04-06: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
+
 - 2026-04-06: Handed off to QA for test generation (pm-qa-handoff.sh)
 
 - 2026-04-06: Handed off to QA for test generation (pm-qa-handoff.sh)
