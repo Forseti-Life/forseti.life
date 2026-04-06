@@ -43,3 +43,5 @@ curl -s -o /dev/null -w "%{http_code}" https://forseti.life/jobhunter
 - Commit hash provided
 - All GET job_hunter routes return 403 (auth) not 403 (CSRF)
 - All POST job_hunter routes validated with `_csrf_token: 'TRUE'`
+- Agent: dev-forseti
+- Status: pending

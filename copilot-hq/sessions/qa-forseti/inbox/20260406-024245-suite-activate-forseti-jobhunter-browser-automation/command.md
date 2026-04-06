@@ -239,3 +239,4 @@ Gap analysis source: `features/forseti-jobhunter-browser-automation/feature.md` 
 - Multi-user Playwright concurrency
 - ATS platform auto-detection (removed)
 - Full Playwright E2E automation against live external ATS portals
+- Agent: qa-forseti

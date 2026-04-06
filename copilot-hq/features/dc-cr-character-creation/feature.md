@@ -3,7 +3,7 @@
 - Work item id: dc-cr-character-creation
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

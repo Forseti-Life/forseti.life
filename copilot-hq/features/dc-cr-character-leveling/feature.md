@@ -3,8 +3,7 @@
 - Work item id: dc-cr-character-leveling
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260402-dungeoncrawler-release-b
+- Status: ready
 - Defer reason: 20260228-dungeoncrawler-release-next focuses on core MVP (dice, DC, encounter, conditions, character creation, class, background, skill, equipment); this feature is secondary priority and will be re-evaluated next grooming cycle.
 - Priority: unset (PM will set at triage)
 - PM owner: pm-dungeoncrawler

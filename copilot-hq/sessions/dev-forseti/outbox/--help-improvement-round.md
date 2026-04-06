@@ -1,15 +1,13 @@
+Clear synthetic dispatch — `--help` is a shell flag injected as a release ID. Fast-exit:
+
+---
+
 - Status: done
-- Summary: Fast-exit applied. `--help-improvement-round` is a malformed dispatch caused by `improvement-round.sh` accepting `--help` as its `$1` (DATE) argument without validation, producing a folder named `--help-improvement-round` with no real release context. This is RC-2 of the improvement-round dispatch bug — flag injection via unvalidated shell argument. Multiple other seats confirmed this pattern and fast-exited this session. The fix spec (`20260405-scope-filter-improvement-round-dispatch`) has been amended by pm-infra to reject any `$1` not matching `^[0-9]{8}$`. No dev-forseti code work is applicable here.
+- Summary: Fast-exit. `--help-improvement-round` is a malformed dispatch — `--help` is a shell flag injected as a release ID due to missing `^[0-9]{8}$` validation in `improvement-round.sh`. Multiple other seats confirmed and fast-exited. Fix already specced by pm-infra (`daba221d`). No dev-forseti action required.
 
-## Next actions
-- None from dev-forseti. Orchestrator fix already specced and committed by pm-infra (`daba221d`). Awaiting dev-infra implementation.
+**Commit:** `997ac827`
 
-## Blockers
-- None.
-
-## Needs from CEO
-- N/A (Status: done).
-
-## ROI estimate
-- ROI: 2
-- Rationale: Fast-exit on confirmed synthetic dispatch. Underlying fix already specced and escalated; no additional action from dev-forseti.
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/--help-improvement-round
+- Generated: 2026-04-06T03:44:55+00:00

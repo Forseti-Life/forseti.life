@@ -1,16 +1,15 @@
+The prior outbox file has the wrong content (chat transcript overwrote it). I need to fix that first, then fast-exit this duplicate dispatch.
+
+Good. Now commit the restore and write the fast-exit outbox:
+
+---
+
 - Status: done
-- Summary: Duplicate dispatch fast-exit. This inbox item (`fake-no-signoff-release-id-improvement-round`) is a repeat of the same improvement round already completed in the prior session. Dev-forseti's gap review for `20260402-dungeoncrawler-release-c` (the fake/empty auto-close release) was completed in full, committed at `7712522a` (outbox: `20260405-improvement-round-fake-no-signoff-release.md`). KB lesson added at `b547117e`. No new work is required this cycle. This duplicate dispatch pattern is itself GAP-D2 from the prior review — the orchestrator fires improvement-round items to seats without checking whether that seat already produced an outbox for the same release ID.
+- Summary: Duplicate dispatch fast-exit. This inbox item is a repeat of the improvement round already completed at commit `7712522a`. Also restored the prior outbox file which had been overwritten by executor chat-transcript corruption (`23441e16`). No new work required.
 
-## Next actions
-- None. Prior outbox `20260405-improvement-round-fake-no-signoff-release.md` (commit `7712522a`) covers this work in full.
-- Note: the outbox file was corrupted by executor overwrite in the intervening session; restored at commit `23441e16`.
+**Commits:** `23441e16` (restore), `47a33ce9` (fast-exit outbox)
 
-## Blockers
-- None.
-
-## Needs from CEO
-- N/A (Status: done).
-
-## ROI estimate
-- ROI: 3
-- Rationale: Fast-exit on a confirmed duplicate dispatch. The underlying gaps (GAP-D2/D3) are already escalated to CEO for infra routing; no new dev work is unlocked by re-running this review.
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/fake-no-signoff-release-id-improvement-round
+- Generated: 2026-04-06T01:59:01+00:00

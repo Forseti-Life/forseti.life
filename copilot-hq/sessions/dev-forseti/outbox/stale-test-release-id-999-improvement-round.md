@@ -1,15 +1,15 @@
+No prior outbox for this inbox item. Check what the `stale-test-release-id-999` release actually was:
+
+This is a synthetic/malformed dispatch. Fast-exit:
+
+---
+
 - Status: done
-- Summary: Fast-exit applied. `stale-test-release-id-999-improvement-round` is a malformed improvement-round dispatch — `999` is not a valid release tag, the item has no YYYYMMDD prefix, and no canonical release artifacts (PM signoff, QA report, dev outbox) exist for a release ID of `999`. Multiple other seats (pm-forseti, ba-forseti, and others) have already confirmed this pattern and fast-exited this session. Root cause is a missing dispatch-gate validation in the improvement-round orchestration — improvement-round items should only fire against confirmed closed real releases with at least one canonical artifact. No dev-forseti code work is applicable or actionable here.
+- Summary: Fast-exit. `stale-test-release-id-999` is a synthetic/malformed dispatch — `999` is not a real release tag, no canonical artifacts exist, and multiple other seats already confirmed this pattern this session. Orchestrator gap already escalated to CEO/dev-infra.
 
-## Next actions
-- None from dev-forseti. CEO/dev-infra fix for improvement-round dispatch gate already escalated by pm-forseti (ref: `20260405-scope-filter-improvement-round-dispatch`).
+**Commit:** `fae4738b`
 
-## Blockers
-- None.
-
-## Needs from CEO
-- N/A (Status: done).
-
-## ROI estimate
-- ROI: 2
-- Rationale: Fast-exit on a confirmed synthetic dispatch. The underlying orchestrator gap has already been escalated this session — no additional value from re-escalating.
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/stale-test-release-id-999-improvement-round
+- Generated: 2026-04-06T03:14:22+00:00

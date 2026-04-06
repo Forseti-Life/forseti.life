@@ -232,3 +232,5 @@ PM decision: GenAiDebugController remains in production code; all routes must re
   - Admin: 200 on at least one debug route.
   - Authenticated non-admin: 403.
   - Anonymous: 403.
+- Agent: qa-forseti
+- Status: pending

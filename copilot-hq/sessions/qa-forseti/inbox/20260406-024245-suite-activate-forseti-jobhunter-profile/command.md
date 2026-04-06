@@ -283,3 +283,5 @@ The following 6 fields were added to `UserProfileForm` for use by the Workday wi
 - Manual: authenticate as test user, upload PDF, submit form, verify DB row in `jobhunter_job_seeker`.
 - Cross-user check: log in as user B, attempt to access user A's profile edit URL, confirm 403.
 - New fields: authenticate, navigate to `/jobhunter/profile/edit`, set each new field, save, reload — verify values are restored from JSON.
+- Agent: qa-forseti
+- Status: pending

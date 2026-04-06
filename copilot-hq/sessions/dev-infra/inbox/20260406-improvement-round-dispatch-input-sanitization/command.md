@@ -34,3 +34,5 @@
     ROI: 15 — unquoted/unsanitized release IDs in shell scripts are a latent correctness and
     security risk. The `--help` incident demonstrates the validation gap is reachable in
     normal dispatch operation.
+- Agent: dev-infra
+- Status: pending

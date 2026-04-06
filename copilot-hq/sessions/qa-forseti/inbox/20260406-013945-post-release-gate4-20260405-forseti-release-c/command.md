@@ -30,3 +30,5 @@ ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti.life
 
 - forseti-csrf-fix (P0 security) is included in this release — verify CSRF token behavior on /jobhunter POST routes
 - Config drift (core.extension Different, field_ai_model Only in sync dir) is a KNOWN pre-existing issue from CEO Bedrock hotfix — do NOT flag as new regression
+- Agent: qa-forseti
+- Status: pending

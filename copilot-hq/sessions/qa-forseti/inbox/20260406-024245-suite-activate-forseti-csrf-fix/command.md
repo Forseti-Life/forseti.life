@@ -230,3 +230,5 @@ All criteria are `[EXTEND]` (existing routing entry; extend with CSRF declaratio
   - Authenticated POST with valid token: expect 200.
   - Authenticated POST without token: expect 403.
   - Cover at minimum routes: `step3`, `step5` (representative of short and full variants).
+- Agent: qa-forseti
+- Status: pending

@@ -43,3 +43,7 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260405-csrf-finding-4-job-hunter — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260405-csrf-finding-4-job-hunter.md)
 - [ ] 20260405-203759-implement-forseti-csrf-fix — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260405-203759-implement-forseti-csrf-fix.md)
 - [ ] 20260405-improvement-round-fake-no-signoff-release — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260405-improvement-round-fake-no-signoff-release.md)
+- [ ] fake-no-signoff-release-id-improvement-round — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/fake-no-signoff-release-id-improvement-round.md)
+- [ ] stale-test-release-id-999-improvement-round — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/stale-test-release-id-999-improvement-round.md)
+- [x] 20260322-improvement-round — BATCH CLOSED: dev-forseti outbox Status: done; content-only (generic hallucinated process suggestions, no commits, no product code changed); site audit 20260405-225321 clean (0 violations, 0 ACL failures, 0 drift).
+- [ ] --help-improvement-round — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/--help-improvement-round.md)
