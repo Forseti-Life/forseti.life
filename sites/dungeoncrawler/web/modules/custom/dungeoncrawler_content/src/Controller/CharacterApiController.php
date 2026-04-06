@@ -105,6 +105,17 @@ class CharacterApiController extends ControllerBase {
         }
       }
 
+      // Validate class ID if provided.
+      $class_val = $data['class'] ?? NULL;
+      if ($class_val !== NULL && $class_val !== '') {
+        if (!isset(\Drupal\dungeoncrawler_content\Service\CharacterManager::CLASSES[$class_val])) {
+          return new JsonResponse([
+            'success' => FALSE,
+            'error' => 'Invalid class: ' . $class_val,
+          ], 400);
+        }
+      }
+
       // Prepare character data for storage
       $character_data = [
         'step' => $data['step'] ?? 1,

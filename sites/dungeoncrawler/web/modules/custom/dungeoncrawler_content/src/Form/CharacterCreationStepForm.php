@@ -1375,6 +1375,19 @@ class CharacterCreationStepForm extends FormBase {
           $form_state->setErrorByName('class', $this->t('Class selection is required.'));
         }
 
+        // Validate key ability choice for classes with multiple options.
+        $class_val_for_ka = trim((string) $form_state->getValue('class', ''));
+        if ($class_val_for_ka !== '') {
+          $class_data_for_ka = CharacterManager::CLASSES[$class_val_for_ka] ?? NULL;
+          if ($class_data_for_ka) {
+            $ka_raw = $class_data_for_ka['key_ability'] ?? '';
+            $ka_opts = array_map('trim', explode(' or ', strtolower($ka_raw)));
+            if (count($ka_opts) > 1 && trim((string) $form_state->getValue('class_key_ability', '')) === '') {
+              $form_state->setErrorByName('class_key_ability', $this->t('You must choose a key ability for this class.'));
+            }
+          }
+        }
+
         // Validate subclass (bloodline/patron) for flexible-tradition casters.
         $class_val = trim((string) $form_state->getValue('class', ''));
         if (in_array($class_val, ['sorcerer', 'witch'], TRUE)) {
@@ -1560,6 +1573,11 @@ class CharacterCreationStepForm extends FormBase {
     // Step 4: Build structured spellcasting data for caster classes.
     if ((int) $step === 4) {
       $selected_class = $character_data['class'] ?? '';
+
+      // Store class proficiency levels from the CLASSES constant.
+      if ($selected_class !== '' && isset(CharacterManager::CLASSES[$selected_class]['proficiencies'])) {
+        $character_data['class_proficiencies'] = CharacterManager::CLASSES[$selected_class]['proficiencies'];
+      }
       $tradition = $this->characterManager->resolveClassTradition($selected_class, $character_data);
 
       if ($tradition) {
