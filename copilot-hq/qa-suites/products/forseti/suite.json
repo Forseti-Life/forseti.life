@@ -241,6 +241,25 @@
         "Non-blocking at Gate 2 if TC-01 static check and TC-02/TC-03/TC-05 role-url-audit pass and Dev certifies no route changes."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-csrf-fix-functional",
+      "label": "CSRF Fix - PHPUnit Functional: authenticated POST with token=200, without token=403, anon POST=403, AJAX flow=200 (TC-02/03/04/06)",
+      "type": "functional",
+      "feature_id": "forseti-csrf-fix",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit --group forseti_csrf_fix web/modules/custom/job_hunter/tests/src/Functional/CsrfApplicationSubmissionTest.php",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-csrf-fix/phpunit-functional.xml"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create CsrfApplicationSubmissionTest.php at web/modules/custom/job_hunter/tests/src/Functional/.",
+        "TC-02: authenticated POST with valid X-CSRF-Token => HTTP 200",
+        "TC-03: authenticated POST without X-CSRF-Token => HTTP 403",
+        "TC-04: anonymous POST => HTTP 403",
+        "TC-06: AJAX POST with X-CSRF-Token + X-Requested-With headers => HTTP 200, no watchdog errors",
+        "Blocked on vendor/ provision (composer install at sites/forseti/ required) before phpunit runs."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
