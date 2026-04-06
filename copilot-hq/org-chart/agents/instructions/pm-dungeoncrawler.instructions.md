@@ -17,6 +17,7 @@ Inbox items with synthetic or malformed release IDs must be fast-exited immediat
 - No YYYYMMDD date prefix (e.g., `fake-no-signoff-release`, `stale-test-release-id-999`, `--help-improvement-round`)
 - Contains `fake-`, `stale-test-`, `-999`, or starts with `--` (CLI flag artifact) in the release/item ID
 - Confirmed by CEO or other seats as a flood/synthetic broadcast
+- **Release signoff items where the release ID does not match `tmp/release-cycle-active/dungeoncrawler.release_id`** — these are dev task run IDs or QA audit run IDs misrouted as signoff requests (e.g., `20260406-052100-impl-dc-cr-background-system`, `20260406-141228-qa-findings-dungeoncrawler-7`). Valid signoff IDs always match the active release ID exactly.
 
 **Fast-exit procedure:**
 1. Write `Status: done` outbox with `CLOSED-SYNTHETIC-RELEASE-ID` note
@@ -24,7 +25,13 @@ Inbox items with synthetic or malformed release IDs must be fast-exited immediat
 3. Do NOT create follow-on inbox items for subordinates
 4. If this is the first instance of a new synthetic pattern, update this standing rule
 
-Lesson (2026-04-06): `stale-test-release-id-999` and `fake-no-signoff-release-id` were broadcast to 26+ inbox slots in a single session, consuming execution slots org-wide.
+**Signoff ID pre-check (required before every `release-signoff.sh` call):**
+```bash
+cat /home/ubuntu/forseti.life/copilot-hq/tmp/release-cycle-active/dungeoncrawler.release_id
+```
+If the inbox item's release ID does not exactly match the output, fast-exit immediately.
+
+Lesson (2026-04-06): `stale-test-release-id-999` and `fake-no-signoff-release-id` were broadcast to 26+ inbox slots. Dev task run IDs (pattern: `YYYYMMDD-HHMMSS-impl-<feature>`) and QA audit run IDs (pattern: `YYYYMMDD-HHMMSS-qa-findings-*`) have been misrouted as signoff IDs — 8+ consecutive occurrences in one session.
 
 ## Start-of-Stage-3 checklist (next release grooming)
 
