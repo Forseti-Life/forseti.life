@@ -1,0 +1,177 @@
+{#
+/**
+ * @file
+ * Template for the PF2E requirements implementation roadmap page.
+ *
+ * Available variables:
+ * - books: Array of book data with chapters, sections, and requirements.
+ * - totals: { pending, in_progress, implemented }
+ * - total: Total requirement count.
+ * - impl_pct: Percentage implemented (0–100).
+ * - prog_pct: Percentage in progress (0–100).
+ * - is_admin: Whether the current user can update statuses.
+ * - status_labels: Map of status => human label.
+ */
+#}
+<div class="dc-roadmap">
+
+  {# ── Page header ──────────────────────────────────────────────────────── #}
+  <div class="dc-roadmap__header">
+    <h1 class="dc-roadmap__title">PF2E Implementation Roadmap</h1>
+    <p class="dc-roadmap__subtitle">
+      Tracking {{ total }} requirements extracted from 9 Pathfinder 2E rulebooks.
+    </p>
+
+    {# Overall progress bar #}
+    <div class="dc-roadmap__progress-wrap">
+      <div class="dc-roadmap__progress-bar" title="{{ impl_pct }}% implemented, {{ prog_pct }}% in progress">
+        <div class="dc-roadmap__progress-fill dc-roadmap__progress-fill--implemented"
+             style="width: {{ impl_pct }}%"></div>
+        <div class="dc-roadmap__progress-fill dc-roadmap__progress-fill--in-progress"
+             style="width: {{ prog_pct }}%; left: {{ impl_pct }}%"></div>
+      </div>
+      <div class="dc-roadmap__progress-legend">
+        <span class="dc-status-badge dc-status-badge--implemented">✅ {{ totals.implemented }} Implemented ({{ impl_pct }}%)</span>
+        <span class="dc-status-badge dc-status-badge--in_progress">🔄 {{ totals.in_progress }} In Progress ({{ prog_pct }}%)</span>
+        <span class="dc-status-badge dc-status-badge--pending">❌ {{ totals.pending }} Not Started</span>
+      </div>
+    </div>
+  </div>
+
+  {# ── Per-book summary strip ────────────────────────────────────────────── #}
+  <div class="dc-roadmap__book-summary">
+    {% for book in books %}
+      {% set book_total = book.counts.pending + book.counts.in_progress + book.counts.implemented %}
+      {% set book_pct = book_total > 0 ? ((book.counts.implemented / book_total) * 100)|round : 0 %}
+      <div class="dc-roadmap__book-chip">
+        <span class="dc-roadmap__book-chip-name">{{ book.title }}</span>
+        <div class="dc-roadmap__book-chip-bar" title="{{ book_pct }}% implemented">
+          <div class="dc-roadmap__book-chip-fill" style="width: {{ book_pct }}%"></div>
+        </div>
+        <span class="dc-roadmap__book-chip-pct">{{ book_pct }}%</span>
+      </div>
+    {% endfor %}
+  </div>
+
+  {# ── Books ─────────────────────────────────────────────────────────────── #}
+  {% for book in books %}
+    {% set book_total = book.counts.pending + book.counts.in_progress + book.counts.implemented %}
+    {% set book_pct   = book_total > 0 ? ((book.counts.implemented / book_total) * 100)|round : 0 %}
+
+    <details class="dc-roadmap__book" id="book-{{ book.id }}">
+      <summary class="dc-roadmap__book-summary-row">
+        <span class="dc-roadmap__book-name">{{ book.title }}</span>
+        <span class="dc-roadmap__book-stats">
+          <span class="dc-status-badge dc-status-badge--implemented">{{ book.counts.implemented }}</span>
+          <span class="dc-status-badge dc-status-badge--in_progress">{{ book.counts.in_progress }}</span>
+          <span class="dc-status-badge dc-status-badge--pending">{{ book.counts.pending }}</span>
+          <span class="dc-roadmap__book-pct">{{ book_pct }}%</span>
+        </span>
+      </summary>
+
+      {# ── Chapters ──────────────────────────────────────────────────────── #}
+      {% for chapter in book.chapters %}
+        {% set ch_total = chapter.counts.pending + chapter.counts.in_progress + chapter.counts.implemented %}
+        {% set ch_pct   = ch_total > 0 ? ((chapter.counts.implemented / ch_total) * 100)|round : 0 %}
+
+        <details class="dc-roadmap__chapter" id="chapter-{{ book.id }}-{{ chapter.key }}">
+          <summary class="dc-roadmap__chapter-summary">
+            <span class="dc-roadmap__chapter-title">{{ chapter.title }}</span>
+            <span class="dc-roadmap__chapter-stats">
+              <span class="dc-status-badge dc-status-badge--implemented">{{ chapter.counts.implemented }}</span>
+              <span class="dc-status-badge dc-status-badge--in_progress">{{ chapter.counts.in_progress }}</span>
+              <span class="dc-status-badge dc-status-badge--pending">{{ chapter.counts.pending }}</span>
+              <span class="dc-roadmap__chapter-pct">{{ ch_pct }}%</span>
+            </span>
+          </summary>
+
+          {# ── Sections ────────────────────────────────────────────────── #}
+          {% for section_name, reqs in chapter.sections %}
+            <div class="dc-roadmap__section">
+              <h4 class="dc-roadmap__section-title">{{ section_name }}</h4>
+              <ul class="dc-roadmap__req-list">
+                {% for req in reqs %}
+                  <li class="dc-roadmap__req dc-roadmap__req--{{ req.status }}"
+                      data-req-id="{{ req.id }}">
+                    <span class="dc-roadmap__req-status">
+                      {% if is_admin %}
+                        <select class="dc-roadmap__status-select"
+                                data-req-id="{{ req.id }}"
+                                aria-label="Status for requirement {{ req.id }}">
+                          {% for status_key, status_label in status_labels %}
+                            <option value="{{ status_key }}"
+                                    {% if status_key == req.status %}selected{% endif %}>
+                              {{ status_label }}
+                            </option>
+                          {% endfor %}
+                        </select>
+                      {% else %}
+                        <span class="dc-status-badge dc-status-badge--{{ req.status }}">
+                          {{ req.status_label }}
+                        </span>
+                      {% endif %}
+                    </span>
+                    <span class="dc-roadmap__req-text">
+                      {% if req.paragraph_title %}
+                        <em class="dc-roadmap__req-para">{{ req.paragraph_title }}:</em>
+                      {% endif %}
+                      {{ req.req_text }}
+                    </span>
+                  </li>
+                {% endfor %}
+              </ul>
+            </div>
+          {% endfor %}
+
+        </details>
+      {% endfor %}
+
+    </details>
+  {% endfor %}
+
+  {% if total == 0 %}
+    <div class="dc-roadmap__empty">
+      <p>No requirements have been imported yet.</p>
+      {% if is_admin %}
+        <p>Run <code>drush dungeoncrawler:import-requirements</code> to populate the roadmap.</p>
+      {% endif %}
+    </div>
+  {% endif %}
+
+</div>{# /.dc-roadmap #}
+
+{% if is_admin %}
+<script>
+(function () {
+  'use strict';
+  document.querySelectorAll('.dc-roadmap__status-select').forEach(function (sel) {
+    sel.addEventListener('change', function () {
+      var reqId = sel.dataset.reqId;
+      var status = sel.value;
+      var li = sel.closest('li');
+
+      fetch('/roadmap/requirement/' + reqId + '/status', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({ status: status })
+      })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.error) {
+          alert('Error: ' + data.error);
+          return;
+        }
+        // Update the li class.
+        li.className = li.className.replace(/dc-roadmap__req--\w+/, 'dc-roadmap__req--' + data.status);
+      })
+      .catch(function (err) {
+        console.error('Status update failed', err);
+      });
+    });
+  });
+}());
+</script>
+{% endif %}

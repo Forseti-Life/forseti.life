@@ -257,5 +257,18 @@ function dungeoncrawler_content_theme(array $existing, string $type, string $the
       'template' => 'architecture-overview',
       'path' => $path . '/templates',
     ],
+    'dungeoncrawler_roadmap' => [
+      'variables' => [
+        'books'          => [],
+        'totals'         => [],
+        'total'          => 0,
+        'impl_pct'       => 0,
+        'prog_pct'       => 0,
+        'is_admin'       => FALSE,
+        'status_labels'  => [],
+      ],
+      'template' => 'dungeoncrawler-roadmap',
+      'path' => $path . '/templates',
+    ],
   ];
 }

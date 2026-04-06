@@ -1940,3 +1940,27 @@ dungeoncrawler_content.api.combat_encounter_statistics:
     encounter_id: '\d+'
   options:
     _format: json
+
+# ==============================================================================
+# ROADMAP ROUTES
+# ==============================================================================
+
+dungeoncrawler_content.roadmap:
+  path: '/roadmap'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoadmapController::page'
+    _title: 'Implementation Roadmap'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+
+dungeoncrawler_content.roadmap_status:
+  path: '/roadmap/requirement/{req_id}/status'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\RoadmapController::updateStatus'
+  methods: [POST]
+  requirements:
+    _permission: 'administer dungeoncrawler content'
+    req_id: '\d+'
+  options:
+    _format: json

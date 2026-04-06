@@ -165,3 +165,10 @@ architecture:
       css/architecture.css: {}
   dependencies:
     - core/drupal
+
+dungeoncrawler_roadmap:
+  css:
+    theme:
+      css/roadmap.css: {}
+  dependencies:
+    - core/drupal

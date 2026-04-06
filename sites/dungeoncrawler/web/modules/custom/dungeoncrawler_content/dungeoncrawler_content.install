@@ -4577,3 +4577,117 @@ function dungeoncrawler_content_update_10033() {
   }
   return t('Created missing tables: @tables.', ['@tables' => implode(', ', $created)]);
 }
+
+/**
+ * Create dc_requirements table for PF2E requirements roadmap tracking.
+ */
+function dungeoncrawler_content_update_10034() {
+  $db_schema = \Drupal::database()->schema();
+  if ($db_schema->tableExists('dc_requirements')) {
+    return t('dc_requirements table already exists; no action taken.');
+  }
+  $schema = [
+    'description' => 'PF2E requirements extracted from rulebooks for implementation tracking.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'book_id' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Short book identifier: core, apg, gmg, gng, som, gam, b1, b2, b3.',
+      ],
+      'book_title' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Human-readable book title.',
+      ],
+      'chapter_key' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Chapter/section key derived from filename, e.g. ch09, s02.',
+      ],
+      'chapter_title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Human-readable chapter or section title.',
+      ],
+      'section' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Section heading from ## SECTION: in the reference file.',
+      ],
+      'paragraph_title' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Paragraph heading from ### Paragraph — in the reference file.',
+      ],
+      'req_text' => [
+        'type' => 'text',
+        'size' => 'medium',
+        'not null' => TRUE,
+        'description' => 'The requirement text (stripped of leading "- REQ: " prefix).',
+      ],
+      'req_hash' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'SHA-256 hash of source_file + req_text for deduplication.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'pending',
+        'description' => 'Implementation status: pending, in_progress, implemented.',
+      ],
+      'source_file' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Source markdown filename (basename).',
+      ],
+      'updated_at' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of last status change.',
+      ],
+      'updated_by' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'UID of last user to change status.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'req_hash' => ['req_hash'],
+    ],
+    'indexes' => [
+      'book_chapter' => ['book_id', 'chapter_key'],
+      'status' => ['status'],
+    ],
+  ];
+  $db_schema->createTable('dc_requirements', $schema);
+  return t('Created dc_requirements table.');
+}

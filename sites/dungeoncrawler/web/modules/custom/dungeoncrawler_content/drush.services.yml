@@ -21,3 +21,10 @@ services:
       - '@dungeoncrawler_content.content_seeder'
     tags:
       - { name: drush.command }
+
+  dungeoncrawler_content.commands.requirements_import:
+    class: Drupal\dungeoncrawler_content\Commands\RequirementsImportCommands
+    arguments:
+      - '@database'
+    tags:
+      - { name: drush.command }

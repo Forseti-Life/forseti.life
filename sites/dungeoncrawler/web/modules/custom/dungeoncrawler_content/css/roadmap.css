@@ -1,0 +1,324 @@
+/* ============================================================
+   DungeonCrawler — Requirements Roadmap Styles
+   ============================================================ */
+
+.dc-roadmap {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  font-family: inherit;
+}
+
+/* ── Header ─────────────────────────────────────────────────── */
+.dc-roadmap__header {
+  margin-bottom: 2rem;
+}
+
+.dc-roadmap__title {
+  font-size: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.dc-roadmap__subtitle {
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+/* ── Progress bar ───────────────────────────────────────────── */
+.dc-roadmap__progress-wrap {
+  margin: 1rem 0;
+}
+
+.dc-roadmap__progress-bar {
+  position: relative;
+  height: 20px;
+  background: #e0e0e0;
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.dc-roadmap__progress-fill {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  transition: width 0.4s ease;
+}
+
+.dc-roadmap__progress-fill--implemented {
+  background: #2e7d32;
+  left: 0;
+}
+
+.dc-roadmap__progress-fill--in-progress {
+  background: #1565c0;
+}
+
+.dc-roadmap__progress-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  font-size: 0.875rem;
+}
+
+/* ── Book summary strip ─────────────────────────────────────── */
+.dc-roadmap__book-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 2rem;
+}
+
+.dc-roadmap__book-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f5f5f5;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.8rem;
+}
+
+.dc-roadmap__book-chip-name {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dc-roadmap__book-chip-bar {
+  width: 60px;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.dc-roadmap__book-chip-fill {
+  height: 100%;
+  background: #2e7d32;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.dc-roadmap__book-chip-pct {
+  font-size: 0.75rem;
+  color: #444;
+}
+
+/* ── Status badges ──────────────────────────────────────────── */
+.dc-status-badge {
+  display: inline-block;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.dc-status-badge--implemented {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #a5d6a7;
+}
+
+.dc-status-badge--in_progress {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+}
+
+.dc-status-badge--pending {
+  background: #fafafa;
+  color: #616161;
+  border: 1px solid #bdbdbd;
+}
+
+/* ── Book accordion ─────────────────────────────────────────── */
+.dc-roadmap__book {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  overflow: hidden;
+}
+
+.dc-roadmap__book > summary,
+.dc-roadmap__book-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
+  background: #37474f;
+  color: #fff;
+  list-style: none;
+  user-select: none;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.dc-roadmap__book > summary:hover,
+.dc-roadmap__book-summary-row:hover {
+  background: #455a64;
+}
+
+.dc-roadmap__book > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dc-roadmap__book-name {
+  flex: 1;
+}
+
+.dc-roadmap__book-stats {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+
+.dc-roadmap__book-pct {
+  font-size: 0.85rem;
+  opacity: 0.9;
+  margin-left: 0.4rem;
+}
+
+/* ── Chapter accordion ──────────────────────────────────────── */
+.dc-roadmap__chapter {
+  border-top: 1px solid #e0e0e0;
+}
+
+.dc-roadmap__chapter > summary,
+.dc-roadmap__chapter-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.55rem 1.2rem;
+  cursor: pointer;
+  background: #eceff1;
+  list-style: none;
+  user-select: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.dc-roadmap__chapter > summary:hover,
+.dc-roadmap__chapter-summary:hover {
+  background: #cfd8dc;
+}
+
+.dc-roadmap__chapter > summary::-webkit-details-marker {
+  display: none;
+}
+
+.dc-roadmap__chapter-title {
+  flex: 1;
+}
+
+.dc-roadmap__chapter-stats {
+  display: flex;
+  gap: 0.3rem;
+  align-items: center;
+}
+
+.dc-roadmap__chapter-pct {
+  font-size: 0.8rem;
+  color: #555;
+  margin-left: 0.3rem;
+}
+
+/* ── Sections ───────────────────────────────────────────────── */
+.dc-roadmap__section {
+  padding: 0.6rem 1.5rem 0.6rem 2rem;
+  border-top: 1px solid #f0f0f0;
+}
+
+.dc-roadmap__section-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #455a64;
+  margin: 0.3rem 0;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Requirements ───────────────────────────────────────────── */
+.dc-roadmap__req-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.dc-roadmap__req {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f5f5f5;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.dc-roadmap__req:last-child {
+  border-bottom: none;
+}
+
+.dc-roadmap__req--implemented {
+  opacity: 0.65;
+}
+
+.dc-roadmap__req-status {
+  flex-shrink: 0;
+  min-width: 130px;
+}
+
+.dc-roadmap__status-select {
+  font-size: 0.8rem;
+  padding: 0.15rem 0.3rem;
+  border-radius: 4px;
+  border: 1px solid #bbb;
+  background: #fafafa;
+  cursor: pointer;
+}
+
+.dc-roadmap__req-text {
+  flex: 1;
+  color: #333;
+}
+
+.dc-roadmap__req-para {
+  color: #888;
+  font-style: italic;
+  font-size: 0.82rem;
+  margin-right: 0.3rem;
+}
+
+/* ── Empty state ────────────────────────────────────────────── */
+.dc-roadmap__empty {
+  text-align: center;
+  padding: 3rem;
+  color: #666;
+  background: #fafafa;
+  border: 1px dashed #ccc;
+  border-radius: 8px;
+}
+
+.dc-roadmap__empty code {
+  background: #f0f0f0;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: monospace;
+}
+
+/* ── Responsive ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .dc-roadmap__req {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+  .dc-roadmap__req-status {
+    min-width: unset;
+  }
+  .dc-roadmap__progress-legend {
+    flex-direction: column;
+    gap: 0.3rem;
+  }
+}
