@@ -578,27 +578,8 @@ class AIApiService {
       }
       
       // No cache hit - proceed with API call
-      $config = $this->configFactory->get('ai_conversation.settings');
-      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
-      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-      $aws_region = $config->get('aws_region') ?: 'us-east-1';
-
-      $sdk_config = [
-        'region' => $aws_region,
-        'version' => 'latest',
-      ];
-      
-      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-        $sdk_config['credentials'] = [
-          'key' => $aws_access_key,
-          'secret' => $aws_secret_key,
-        ];
-      }
-
-      $sdk = new \Aws\Sdk($sdk_config);
-      $bedrock = $sdk->createBedrockRuntime();
-      
-      $model_id = $options['model_id'] ?? \Drupal::config('ai_conversation.settings')->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
+      $bedrock = $this->buildBedrockClient();
+      $model_id = $options['model_id'] ?? $this->getModelFallbacks()[0];
       $max_tokens = $options['max_tokens'] ?? 8000;
       
       // 🔍 DEBUG: Log exact max_tokens being sent to Bedrock
@@ -1089,28 +1070,9 @@ class AIApiService {
    */
   public function testConnection() {
     try {
-      $config = $this->configFactory->get('ai_conversation.settings');
-      $aws_access_key = $config->get('aws_access_key_id') ?: getenv('AWS_ACCESS_KEY_ID');
-      $aws_secret_key = $config->get('aws_secret_access_key') ?: getenv('AWS_SECRET_ACCESS_KEY');
-      $aws_region = $config->get('aws_region') ?: getenv('AWS_DEFAULT_REGION') ?: 'us-east-1';
-
-      $sdk_config = [
-        'region' => $aws_region,
-        'version' => 'latest',
-      ];
-
-      if (!empty($aws_access_key) && !empty($aws_secret_key)) {
-        $sdk_config['credentials'] = [
-          'key' => $aws_access_key,
-          'secret' => $aws_secret_key,
-        ];
-      }
-
-      $sdk = new \Aws\Sdk($sdk_config);
-      
-      $bedrock = $sdk->createBedrockRuntime();
-
-      $model = $config->get('aws_model') ?: 'us.anthropic.claude-sonnet-4-6';
+      $bedrock = $this->buildBedrockClient();
+      $models_to_try = $this->getModelFallbacks();
+      $model = $models_to_try[0];
 
       $response = $bedrock->invokeModel([
         'modelId' => $model,
@@ -1129,7 +1091,7 @@ class AIApiService {
       $result = json_decode($response['body']->getContents(), true);
       
       if (isset($result['content'][0]['text'])) {
-        return ['success' => TRUE, 'message' => 'AWS Bedrock connection successful'];
+        return ['success' => TRUE, 'message' => 'AWS Bedrock connection successful', 'model' => $model];
       } else {
         return ['success' => FALSE, 'message' => 'Unexpected API response'];
       }
