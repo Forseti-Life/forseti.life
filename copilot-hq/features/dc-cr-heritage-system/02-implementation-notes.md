@@ -1,6 +1,9 @@
 # Implementation Notes (Dev-owned)
 # Feature: dc-cr-heritage-system
 
+## Status
+- Status: done (QA APPROVE — commit 287d1c745)
+
 ## Summary
 EXTEND: Heritage data exists in `CharacterManager::HERITAGES` (28 heritages across 6 ancestries). UI in `CharacterCreationStepForm` has an AJAX dropdown with `getHeritageOptions()` and `updateHeritageOptions()`. Heritage is currently marked Optional. Gaps: (1) heritage field must be made required, (2) server-side validation that the submitted heritage id matches the chosen ancestry is missing. First slice fixes both in `CharacterCreationStepForm.php`.
 
