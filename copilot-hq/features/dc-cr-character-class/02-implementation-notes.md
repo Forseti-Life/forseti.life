@@ -31,22 +31,29 @@ All NEW. `CharacterManager::CLASSES` constant exists with full class data (name,
 - Sensitive data handling: none.
 
 ## Testing Performed
-- Commands run: (pending implementation)
-- Targeted scenarios:
-  - Count check (12)
-  - Fighter: hp_per_level=10; Wizard: hp_per_level=6
-  - Champion key_ability = [Str, Dex] (two options — player must choose one)
-  - Selection stores class on character JSON with correct HP/proficiency values
+- Commands run: `drush cr` (cache rebuild clean), `drush php:eval` class count verification (16 nodes; 12 core PF2E + 4 extended)
+- Targeted scenarios verified:
+  - 12 core PF2E classes present in CharacterManager::CLASSES (all OK)
+  - Fighter proficiencies: Expert perception, Expert fortitude, Trained reflex, Trained will
+  - Champion key_ability option count = 2 (Strength, Dexterity) → triggers key ability radios
+  - Invalid class ID 'paladin' not found in CLASSES → API returns 400 correctly
+
+## Commits (2026-04-06)
+- `30e62db8` — dc-cr-character-class: implement 3 missing AC gaps
+  - `CharacterApiController`: invalid class ID → HTTP 400
+  - `CharacterCreationStepForm` validateForm case 4: explicit `class_key_ability` validation with "You must choose a key ability for this class."
+  - `CharacterCreationStepForm` submitForm step 4: store `class_proficiencies` from CLASSES constant into character JSON
 
 ## Rollback / Recovery
-- Revert commit. Existing characters unaffected (class stored as string, not node reference by default).
+- Revert commit `30e62db8`. No schema changes; character JSON additions are backward-compatible.
 
 ## Knowledgebase references
 - `knowledgebase/lessons/20260225-executor-patch-lag-silent-accumulation.md` — run `drush cr` after config install.
 - Dependency note: dc-cr-character-creation must not start until ancestry, background, AND class are all merged.
 
 ## What I learned (Dev)
-- (pending)
+- `#required => TRUE` on AJAX-wrapped radios may not produce the AC-specified error message; always add explicit validateForm() enforcement for specific message requirements.
+- Class proficiencies (Expert/Trained strings) are stored in `class_proficiencies` in character JSON; the `saves` block uses a flat formula — do not conflate proficiency strings with derived save integers.
 
 ## What I'd change next time (Dev)
-- (pending)
+- Map Expert/Trained proficiency strings to save bonus differentials (+4 vs +2) in the saves computation block to fully implement class proficiency differentiation at character creation.
