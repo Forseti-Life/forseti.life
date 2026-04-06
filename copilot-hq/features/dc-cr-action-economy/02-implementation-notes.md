@@ -56,5 +56,13 @@ EXTEND: `RulesEngine::validateActionEconomy()` is a TODO stub; `ActionProcessor`
 - `executeStrike/executeStride` hardcoded `-1` rather than using `economy['actions_after']`; fixed to use the validated value for architectural consistency.
 - `executeReactionAction` must accept `allow_out_of_turn` flag because reactions can legally fire outside the participant's own turn (e.g., AoO, Shield Block).
 
+## 2026-04-06 addendum — activity dispatch gap closed
+
+Gap from original AC analysis: `executeAction` switch had no `activity` case, so generic 2/3-action activities (non-spell) could not be dispatched through the service layer. Fixed by adding `case 'activity':` → `executeActivity()` in ActionProcessor.php. Commit: `27a42744`.
+
+- `executeActivity($participant_id, $action_data, $encounter_id)`: reads `action_data['action_cost']` (int 1/2/3, default 1), calls `validateActionEconomy`, decrements `actions_remaining`, logs the action.
+- All AC criteria now covered: turn reset ✓, decrement by cost ✓, floor-at-zero ✓, reaction guard ✓, free-action no-decrement ✓, out-of-turn rejection ✓, invalid cost rejection ✓.
+- Drush `cr` clean after commit.
+
 ## What I'd change next time (Dev)
 - Include a Stage-0 check in the acceptance criteria validation pass to confirm `reaction_available` handling exists in `ReactionHandler` before starting implementation — it was already there, which saved time once discovered.
