@@ -1,25 +1,25 @@
 # Feature Progress
 
-Generated: 2026-04-06T13:48:30Z
+Generated: 2026-04-06T15:49:59Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
-| dc-cr-action-economy | dungeoncrawler | dungeoncrawler_content | in_progress | P0 (foundation for all encounter-mode gameplay; all class features, spells, and skill actions depend on this) |  |  |  |
+| dc-cr-action-economy | dungeoncrawler | dungeoncrawler_content | done | P0 (foundation for all encounter-mode gameplay; all class features, spells, and skill actions depend on this) |  |  |  |
 | dc-cr-alchemical-items | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-ancestry-feat-schedule | dungeoncrawler | dungeoncrawler_content | deferred | P3 (depends on dc-cr-character-leveling which is deferred; ancestry feat slots blocked until leveling system exists) |  |  |  |
-| dc-cr-ancestry-system | dungeoncrawler | dungeoncrawler_content | ready | P0 (required dependency for character creation; enables ancestry feat trees and heritage selection downstream) |  |  |  |
+| dc-cr-ancestry-system | dungeoncrawler | dungeoncrawler_content | in_progress | P0 (required dependency for character creation; enables ancestry feat trees and heritage selection downstream) |  |  |  |
 | dc-cr-ancestry-traits | dungeoncrawler | dungeoncrawler_content | ready | P2 (spell/ability targeting prerequisite; deferred from current release — no spellcasting in scope yet) |  |  |  |
 | dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | in_progress | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
-| dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | in_progress | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
-| dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | in_progress | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
+| dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | done | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
+| dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | done | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
+| dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | done | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
 | dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | ready | unset (PM will set at triage) |  |  |  |
 | dc-cr-clan-dagger | dungeoncrawler | dungeoncrawler_content | shipped | P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev) |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat dependency; ConditionManager partial impl exists) |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | ready | medium |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | in_progress | P0 (foundational — every resolution system depends on this) |  |  |  |
-| dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | ready | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
+| dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | in_progress | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
 | dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-ancestry | dungeoncrawler | dungeoncrawler_content | deferred | P2 (extends ancestry-system with specific stat block; blocked on dc-cr-ancestry-system, dc-cr-clan-dagger, and dc-cr-heritage-system shipping first) |  |  |  |
 | dc-cr-dwarf-heritage-ancient-blooded | dungeoncrawler | dungeoncrawler_content | ready | P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle) |  |  |  |
@@ -29,11 +29,11 @@ Generated: 2026-04-06T13:48:30Z
 | dc-cr-dwarf-heritage-strong-blooded | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-expertise | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
-| dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | ready | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
-| dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | ready | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
+| dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
+| dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -43,7 +43,7 @@ Generated: 2026-04-06T13:48:30Z
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -52,7 +52,7 @@ Generated: 2026-04-06T13:48:30Z
 | dc-cr-rock-runner | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-session-structure | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-skill-feats | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-skill-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (core activity resolution; exploration and social gameplay) |  |  |  |
+| dc-cr-skill-system | dungeoncrawler | dungeoncrawler_content | done | P1 (core activity resolution; exploration and social gameplay) |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |

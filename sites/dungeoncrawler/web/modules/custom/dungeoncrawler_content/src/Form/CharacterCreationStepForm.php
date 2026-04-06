@@ -1400,7 +1400,7 @@ class CharacterCreationStepForm extends FormBase {
 
       case 4:
         if (trim((string) $form_state->getValue('class', '')) === '') {
-          $form_state->setErrorByName('class', $this->t('Class selection is required.'));
+          $form_state->setErrorByName('class', $this->t('Class is required.'));
         }
 
         // Validate key ability choice for classes with multiple options.

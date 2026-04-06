@@ -400,9 +400,22 @@ class CharacterCreationStepController extends ControllerBase {
       }
     }
 
-    // Step 4: Build structured spellcasting data for caster classes.
+    // Step 4: Store class proficiencies and 1st-level class features; build spellcasting for casters.
     if ($step === 4) {
       $selected_class = $character_data['class'] ?? '';
+
+      // Store class proficiencies from CLASSES constant.
+      if (!empty($selected_class) && isset(CharacterManager::CLASSES[$selected_class]['proficiencies'])) {
+        $character_data['class_proficiencies'] = CharacterManager::CLASSES[$selected_class]['proficiencies'];
+      }
+
+      // Store 1st-level class features from CLASS_ADVANCEMENT.
+      if (!empty($selected_class) && isset(CharacterManager::CLASS_ADVANCEMENT[$selected_class][1]['auto_features'])) {
+        $character_data['class_features'] = CharacterManager::CLASS_ADVANCEMENT[$selected_class][1]['auto_features'];
+      }
+      else {
+        $character_data['class_features'] = [];
+      }
       $tradition = $this->characterManager->resolveClassTradition($selected_class, $character_data);
 
       if ($tradition) {
@@ -735,7 +748,21 @@ class CharacterCreationStepController extends ControllerBase {
 
       case 4:
         if (!$requireNonEmpty($merged['class'] ?? '')) {
-          $errors['class'] = 'Class selection is required.';
+          $errors['class'] = 'Class is required.';
+        }
+        else {
+          $selected_class_id = $merged['class'];
+          if (!isset(CharacterManager::CLASSES[$selected_class_id])) {
+            $errors['class'] = 'Invalid class: ' . $selected_class_id . '.';
+          }
+          else {
+            $class_data = CharacterManager::CLASSES[$selected_class_id];
+            $ka_raw = $class_data['key_ability'] ?? '';
+            $ka_opts = array_map('trim', explode(' or ', strtolower($ka_raw)));
+            if (count($ka_opts) > 1 && empty($merged['class_key_ability'])) {
+              $errors['class_key_ability'] = 'You must choose a key ability for this class.';
+            }
+          }
         }
         break;
 

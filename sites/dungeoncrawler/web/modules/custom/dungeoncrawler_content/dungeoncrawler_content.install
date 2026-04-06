@@ -4474,3 +4474,87 @@ function dungeoncrawler_content_update_10031() {
     '@total' => $updated,
   ]);
 }
+
+/**
+ * Add discrete fields to character_class content type and populate all 16
+ * class nodes from CharacterManager::CLASSES; also seed any missing core
+ * PF2E classes.
+ */
+function dungeoncrawler_content_update_10032() {
+  $fields = [
+    'field_class_hp_per_level'   => ['type' => 'integer', 'cardinality' => 1,   'label' => 'HP per Level'],
+    'field_class_key_ability'    => ['type' => 'string',  'cardinality' => 1,   'label' => 'Key Ability',   'settings' => ['max_length' => 64]],
+    'field_class_proficiencies'  => ['type' => 'string_long', 'cardinality' => 1, 'label' => 'Proficiencies (JSON)'],
+    'field_class_features'       => ['type' => 'string_long', 'cardinality' => 1, 'label' => 'Level 1 Features (JSON)'],
+  ];
+
+  foreach ($fields as $field_name => $def) {
+    if (!\Drupal\field\Entity\FieldStorageConfig::loadByName('node', $field_name)) {
+      $storage_def = [
+        'field_name'  => $field_name,
+        'entity_type' => 'node',
+        'type'        => $def['type'],
+        'cardinality' => $def['cardinality'],
+      ];
+      if (!empty($def['settings'])) {
+        $storage_def['settings'] = $def['settings'];
+      }
+      \Drupal\field\Entity\FieldStorageConfig::create($storage_def)->save();
+    }
+    if (!\Drupal\field\Entity\FieldConfig::loadByName('node', 'character_class', $field_name)) {
+      \Drupal\field\Entity\FieldConfig::create([
+        'field_name'  => $field_name,
+        'entity_type' => 'node',
+        'bundle'      => 'character_class',
+        'label'       => $def['label'],
+        'required'    => FALSE,
+      ])->save();
+    }
+  }
+
+  $classes = \Drupal\dungeoncrawler_content\Service\CharacterManager::CLASSES;
+  $advancement = \Drupal\dungeoncrawler_content\Service\CharacterManager::CLASS_ADVANCEMENT;
+
+  // Index existing nodes by lowercased title.
+  $nids = \Drupal::entityQuery('node')
+    ->accessCheck(FALSE)
+    ->condition('type', 'character_class')
+    ->execute();
+  $nodes = \Drupal\node\Entity\Node::loadMultiple($nids);
+  $existing = [];
+  foreach ($nodes as $n) {
+    $existing[strtolower($n->getTitle())] = $n;
+  }
+
+  $created = 0;
+  $updated = 0;
+
+  foreach ($classes as $class_id => $data) {
+    $title_lower = strtolower($data['name']);
+    if (isset($existing[$title_lower])) {
+      $node = $existing[$title_lower];
+    }
+    else {
+      $node = \Drupal\node\Entity\Node::create([
+        'type'   => 'character_class',
+        'title'  => $data['name'],
+        'status' => 1,
+      ]);
+      $created++;
+    }
+
+    $l1_features = $advancement[$class_id][1]['auto_features'] ?? [];
+
+    $node->set('field_class_hp_per_level',  (int) ($data['hp'] ?? 8));
+    $node->set('field_class_key_ability',   $data['key_ability'] ?? '');
+    $node->set('field_class_proficiencies', json_encode($data['proficiencies'] ?? []));
+    $node->set('field_class_features',      json_encode($l1_features));
+    $node->save();
+    $updated++;
+  }
+
+  return t('Added 4 character_class fields; created @new nodes, populated @total total.', [
+    '@new'   => $created,
+    '@total' => $updated,
+  ]);
+}
