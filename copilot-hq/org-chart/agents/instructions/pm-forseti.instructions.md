@@ -216,6 +216,29 @@ If a release ID has been at `release-signoff-status = false` for more than 3 day
 
 This prevents ghost improvement rounds from re-queuing on a release that is intentionally held.
 
+## Security AC requirement (all features — required)
+Every feature spec (`features/forseti-*/feature.md` and `features/forseti-*/01-acceptance-criteria.md`) MUST include a Security Acceptance Criteria section. This is not optional for specific modules — it applies to all features regardless of module or scope. Minimum required items:
+- Authentication/authorization check (who can access, what permissions are required)
+- Input validation (if the feature accepts user input)
+- No sensitive data exposed in responses
+- CSRF protection for any state-changing POST endpoints
+
+Do NOT create a feature spec without this section. Check existing specs for compliance at each grooming cycle.
+
+Reference: `knowledgebase/lessons/20260406-security-ac-required-all-features.md` (if created).
+
+## config:import warning (required — check before running)
+Before running `drush config:import`, always check for webform orphan configs:
+```bash
+cd /var/www/html/<site> && vendor/bin/drush config:status 2>&1 | grep "webform"
+```
+If webform configs appear in sync dir but Webform module is NOT installed on production: **do NOT run full `config:import`** — it will abort.
+Instead, use targeted `drush config:set <name> <key> <value>` for the specific config values that need changing.
+
+Long-term fix: delegate to dev-forseti to delete stale `webform.*` configs from the sync dir.
+
+Reference: `knowledgebase/lessons/20260406-config-import-webform-orphan-blocker.md`
+
 ## Gate R5 — Post-push production audit (PM responsibility)
 
 After every coordinated push, pm-forseti (as release operator) must run the production audit:
