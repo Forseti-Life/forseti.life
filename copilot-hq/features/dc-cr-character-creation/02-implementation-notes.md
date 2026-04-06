@@ -6,7 +6,7 @@
 - CSRF routing KB: `_csrf_token: TRUE` on GET+POST causes GET 403 — always use split-route pattern for browser routes (applied to character_step in prior CSRF FINDING-3 work).
 
 ## Status
-- Status: in_progress (code done; awaiting QA Gate 2)
+- Status: done (QA Gate 2 APPROVE — commit 97472be41)
 
 ## What already existed
 The character creation workflow was already substantially implemented before this inbox item was dispatched:
@@ -68,9 +68,9 @@ Both passed.
 | TC-CWF-12: Anonymous → login redirect | ✅ Drupal | _permission requirement on route |
 | TC-CWF-13: Player 403 on others' draft | ✅ code | uid check in step()/saveStep() |
 | TC-CWF-14: Admin access to any draft | ✅ code | THIS CYCLE — admin bypass added |
-| TC-CWF-15: Derived stat crash-safety | needs QA | partial result / incomplete flag |
+| TC-CWF-15: Derived stat crash-safety | ✅ QA | CharacterCalculator uses fallback defaults (classHp=8, con=10, ancestryHp=0) — returns partial result, no crash |
 | TC-CWF-16: Draft not on public list | ✅ code | status=0 filtered in CharacterViewController |
 | TC-CWF-17: 1 active draft per slot | ✅ code | THIS CYCLE — draft limit enforced |
 | TC-CWF-18: Rollback preserves active chars | ✅ code | status=1 records unaffected |
-| TC-CWF-19: Prereq seeding check | n/a | PHP catalogs; 0 node count expected |
-| TC-CWF-20: QA audit passes | needs QA | qa-dungeoncrawler Gate 2 |
+| TC-CWF-19: Prereq seeding check | n/a | PHP catalogs; 6 ancestries / 13 backgrounds / 16 classes seeded |
+| TC-CWF-20: QA audit passes | ✅ QA APPROVE | commit 97472be41 — Gate 2 APPROVE |
