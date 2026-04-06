@@ -44,6 +44,7 @@ Per task instructions (`--allow-all`), apply owned file changes directly.
 - If an early PM/CEO outbox says a release was premature but later signoff or QA evidence exists, treat the later artifacts as authoritative and review the shipped state instead of echoing the earlier premature conclusion.
 - If the inbox release id or site clearly belongs to another website (for example `forseti-*`), fast-exit it as a cross-site dispatch mismatch and point the follow-up to the owning seat instead of performing a cross-site review.
 - If an `improvement-round` inbox item has no release-id suffix at all, treat it as malformed queue data, fast-exit it, and ask the owning automation flow to include the release-id in the folder name next time.
+- If the folder name contains a release-id suffix that does not match any entry in `sessions/pm-dungeoncrawler/artifacts/release-signoffs/`, treat it as malformed queue data with a fake/placeholder release ID. Fast-exit; do NOT attempt to guess or substitute a real release. Valid release ID format: `YYYYMMDD-<site>-release[-variant]`.
 - If a generic `daily-review` item contains the post-release improvement-round template but no release-id or site target, treat it as malformed automation output rather than guessing a release to review.
 - When explicitly assigned a Stage 9 / improvement-round task, you may queue follow-through inbox items for the owning seat. Every queued item must include `command.md`, `roi.txt`, a concrete owner, SMART acceptance criteria, and a verification method.
 
