@@ -161,11 +161,14 @@ class CharacterCalculator {
    * TODO: Implement proficiency calculation
    */
   public function calculateProficiencyBonus(string $rank, int $level): int {
+    // Untrained: no proficiency bonus, no level contribution.
+    if (strtolower($rank) === 'untrained') {
+      return 0;
+    }
     $rankBonuses = [
-      'untrained' => 0,
-      'trained' => 2,
-      'expert' => 4,
-      'master' => 6,
+      'trained'   => 2,
+      'expert'    => 4,
+      'master'    => 6,
       'legendary' => 8,
     ];
     return ($rankBonuses[strtolower($rank)] ?? 0) + max(0, $level);
