@@ -19,6 +19,10 @@
     these as legitimate work items with no validation. Add a pre-dispatch folder name
     format check: inbox item folders created by this script MUST match
     `^[0-9]{8}-improvement-round-.+$` or be rejected at creation time.
+    Also validate $1 (DATE_YYYYMMDD arg): if $1 does not match `^[0-9]{8}$`, the script
+    must fail immediately with a descriptive error. Currently any string — including shell
+    flags like "--help" — is accepted as $1, resulting in malformed folder names like
+    "--help-improvement-round" that bypass all gate logic and land as real inbox items.
 
     Work:
     1. Read `org-chart/agents/agents.yaml` to get each agent's `website_scope`.
@@ -28,7 +32,10 @@
     3. Enforce non-empty release-id suffix: any inbox item folder name matching
        `^[0-9]{8}-improvement-round$` (no suffix) should fail at creation time with a
        descriptive error.
-    4. Update `scripts/README.md` if it exists to document the scope-filter behavior.
+    4. Validate $1 (DATE arg): reject any value that does not match `^[0-9]{8}$` (e.g.
+       "--help", "fake", empty string) with: "Error: first argument must be a date in
+       YYYYMMDD format". Use `[[ "$1" =~ ^[0-9]{8}$ ]] || { echo ...; exit 1; }` pattern.
+    5. Update `scripts/README.md` if it exists to document the scope-filter behavior.
 
     Acceptance criteria:
     - `ls sessions/sec-analyst-forseti-agent-tracker/inbox/ | grep -i dungeoncrawler` returns
@@ -36,6 +43,8 @@
     - `ls sessions/*/inbox/ | grep -E '^[0-9]{8}-improvement-round$'` returns empty.
     - `bash scripts/improvement-round.sh 20260405 improvement-round-fake-test` exits nonzero with error
       "release-id must start with YYYYMMDD" (validates non-YYYYMMDD suffix rejection).
+    - `bash scripts/improvement-round.sh --help improvement-round` exits nonzero with error
+      "first argument must be a date in YYYYMMDD format" (validates $1 flag injection rejection).
     - Script dry-run shows sec-analyst-forseti-agent-tracker only receives forseti.life items.
 
     Verification:
