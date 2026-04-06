@@ -58,6 +58,9 @@ class ActionProcessor {
       case 'free_action':
         return $this->executeFreeAction($participant_id, $action_data, $encounter_id);
 
+      case 'activity':
+        return $this->executeActivity($participant_id, $action_data, $encounter_id);
+
       default:
         return ['status' => 'error', 'message' => 'Unsupported action type'];
     }
@@ -494,6 +497,55 @@ class ActionProcessor {
     return [
       'status' => 'ok',
       'actions_remaining' => (int) ($actor['actions_remaining'] ?? 0),
+      'reaction_available' => !empty($actor['reaction_available']),
+    ];
+  }
+
+  /**
+   * Execute a generic activity (1-, 2-, or 3-action).
+   *
+   * Allows dispatching non-spell activities with a configurable action cost.
+   * The cost is read from $action_data['action_cost'] (int 1, 2, or 3; default 1).
+   *
+   * @param int $participant_id
+   * @param array $action_data Keys: action_cost (int), activity_name (string, optional).
+   * @param int $encounter_id
+   */
+  public function executeActivity($participant_id, array $action_data, $encounter_id) {
+    $state = $this->loadEncounterState($encounter_id);
+    if ($state['status'] === 'error') {
+      return $state;
+    }
+
+    [$encounter, $participants] = $state['data'];
+    $actor = $this->findParticipant($participants, $participant_id);
+    if (!$actor) {
+      return ['status' => 'error', 'message' => 'Participant not found'];
+    }
+
+    if (!$this->isCurrentTurn($encounter, $participants, $participant_id)) {
+      return ['status' => 'error', 'message' => 'Not this participant\'s turn'];
+    }
+
+    $action_cost = isset($action_data['action_cost']) ? $action_data['action_cost'] : 1;
+    $economy = $this->rulesEngine->validateActionEconomy($actor, $action_cost);
+    if (!$economy['is_valid']) {
+      return ['status' => 'error', 'message' => $economy['reason']];
+    }
+
+    $actions_left = $economy['actions_after'];
+    $this->store->updateParticipant($participant_id, [
+      'actions_remaining' => $actions_left,
+    ]);
+
+    $this->logAction($encounter_id, $participant_id, 'activity', $action_data['target_id'] ?? NULL, $action_data, [
+      'action_cost' => $action_cost,
+      'activity_name' => $action_data['activity_name'] ?? '',
+    ]);
+
+    return [
+      'status' => 'ok',
+      'actions_remaining' => $actions_left,
       'reaction_available' => !empty($actor['reaction_available']),
     ];
   }
