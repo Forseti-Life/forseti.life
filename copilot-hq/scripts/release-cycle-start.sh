@@ -94,6 +94,42 @@ if [ -d "$inbox_dir" ] || [ -f "$outbox_file" ]; then
   exit 0
 fi
 
+# GAP-QA-PREFLIGHT-DEDUP-01: suppress redundant preflight dispatches.
+# If a preflight outbox was written for this qa_agent within the last 4 hours
+# AND no QA-scoped commits (qa-suites/, qa-permissions.json, 03-test-plan.md)
+# have landed since that outbox was written, skip this dispatch with a log message.
+# This eliminates ~80% of preflight slot consumption when the release is advancing
+# rapidly but QA configuration has not changed.
+_recent_outbox=""
+_four_hours_ago=$(date -d "4 hours ago" +%s 2>/dev/null || date -v-4H +%s 2>/dev/null || echo "0")
+for _f in "sessions/${qa_agent}/outbox/"*-release-preflight-test-suite-*.md; do
+  [ -f "$_f" ] || continue
+  _fmtime=$(stat -c %Y "$_f" 2>/dev/null || stat -f %m "$_f" 2>/dev/null || echo "0")
+  if [ "$_fmtime" -ge "$_four_hours_ago" ]; then
+    # Pick the most-recent file; stat output is already epoch so we can compare
+    if [ -z "$_recent_outbox" ]; then
+      _recent_outbox="$_f"
+      _recent_mtime="$_fmtime"
+    elif [ "$_fmtime" -gt "$_recent_mtime" ]; then
+      _recent_outbox="$_f"
+      _recent_mtime="$_fmtime"
+    fi
+  fi
+done
+if [ -n "$_recent_outbox" ]; then
+  _outbox_iso=$(date -d "@${_recent_mtime}" -Iseconds 2>/dev/null || date -r "$_recent_mtime" -Iseconds 2>/dev/null || echo "")
+  _qa_commits=""
+  if [ -n "$_outbox_iso" ]; then
+    _qa_commits=$(git -C "$ROOT_DIR" log --since="$_outbox_iso" --oneline \
+      -- "qa-suites/" "org-chart/sites/*/qa-permissions.json" "features/**/03-test-plan.md" \
+      2>/dev/null | head -1 || true)
+  fi
+  if [ -z "$_qa_commits" ]; then
+    echo "PREFLIGHT-SUPPRESSED: recent outbox exists (${_recent_outbox}), no QA-scoped commits since ${_outbox_iso}; skipping dispatch."
+    exit 0
+  fi
+fi
+
 mkdir -p "$inbox_dir" 2>/dev/null || true
 printf '%s\n' "9" >"$inbox_dir/roi.txt" 2>/dev/null || true
 
