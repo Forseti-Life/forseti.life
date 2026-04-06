@@ -84,6 +84,18 @@ When the command body explicitly scopes work to "PM/CEO" or "release operator" r
 
 Verification: `git log --oneline -10 | grep "ceo-copilot\|pm-infra"` to confirm if the correct owner already completed the review.
 
+## Misdirected dispatch escalation trigger (required)
+If ba-infra receives 3 or more consecutive PM/CEO-scoped improvement-round dispatches without a dispatch pre-filtering fix being implemented, ba-infra MUST escalate to pm-infra with `Status: needs-info` (not just a note in the outbox).
+
+Escalation payload required:
+- Count of consecutive misdirected dispatches (cite outbox file names as evidence)
+- Request: pm-infra to escalate to CEO for role-scope pre-filtering in the improvement-round dispatch template
+- ROI estimate for the fix
+
+Count tracking: review `sessions/ba-infra/outbox/` for fast-exit files citing "PM/CEO-scoped command" to determine the consecutive count.
+
+Threshold: 3+ consecutive misdirected = escalate. Reset counter when a correctly-scoped infra BA item is received.
+
 ## Improvement round behavior (when no active infra work exists)
 When running an improvement round and the release-cycle intake check confirms no active infra BA work:
 1. Review seat instructions for any remaining concrete gap (missing rule, stale path, missing verification command).
