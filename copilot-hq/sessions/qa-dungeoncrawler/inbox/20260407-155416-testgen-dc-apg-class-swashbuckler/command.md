@@ -136,3 +136,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Confident Finisher fails: half precise strike damage = flat numeric value, no dice rolled
 - [ ] Vivacious Speed with panache at L3 = +10; without panache = +5 (half, rounded to nearest 5)
 - [ ] Exemplary Finisher triggers only on a hit, not a miss or failure
+- Agent: qa-dungeoncrawler
+- Status: pending

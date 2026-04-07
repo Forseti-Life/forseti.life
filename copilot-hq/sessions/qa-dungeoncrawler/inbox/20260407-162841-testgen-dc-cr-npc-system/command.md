@@ -79,3 +79,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - Roadmap: Core Rulebook
 - Chapter: Chapter 10: Game Mastering
 - DB sections: core/ch10/NPC Social Mechanics
+- Agent: qa-dungeoncrawler
+- Status: pending

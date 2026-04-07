@@ -169,3 +169,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Group Aid: 4-creature limit; applies to all 4 simultaneously; preparation action required the prior turn
 - [ ] Water Sprint: no swimming check required; Stride action extended across water; fails if no solid ground at end
 - [ ] No Cause for Alarm: Frightened reduction applies to all eligible creatures in emanation simultaneously; 1-hour immunity per creature
+- Agent: qa-dungeoncrawler
+- Status: pending

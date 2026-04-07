@@ -77,3 +77,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 - Roadmap: Core Rulebook
 - Chapter: Chapter 3: Classes (Familiar rules)
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -138,3 +138,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] If Devise a Stratagem result is stored but no qualifying Strike is made this turn, stored result is discarded
 - [ ] Empiricism's lead-requirement waiver applies only to Devise a Stratagem action cost (not to other lead-dependent effects)
 - [ ] Pointed Question requires the target to have made a statement this encounter (GM check; flagged in UI)
+- Agent: qa-dungeoncrawler
+- Status: pending

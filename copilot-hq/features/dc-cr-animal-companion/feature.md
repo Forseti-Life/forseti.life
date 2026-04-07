@@ -31,7 +31,10 @@ Content type: `animal_companion` with fields for companion type (bear, horse, wo
 
 ## Security acceptance criteria
 
-- Security AC exemption: Companion data is character-scoped; stat advancement is server-validated; no PII.
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: entity field types enforced at Drupal entity layer; mutations server-validated against allowed values
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action type) only
 
 ## Roadmap section
 

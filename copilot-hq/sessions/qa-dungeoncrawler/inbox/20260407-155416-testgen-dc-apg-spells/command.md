@@ -147,3 +147,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Blood Vendetta on a construct or undead: blocked at cast time (cannot bleed check)
 - [ ] Final Sacrifice on a temporary-control minion: fail silently and end control effect without explosion
 - [ ] Déjà Vu's replay: if target has no valid actions to repeat (e.g., all targets dead), each replaced action triggers Stupefied 1
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -27,7 +27,10 @@ Field on the character entity: `languages[]` (list of string identifiers). Conte
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic content stored per character; no new routes, no user-facing input beyond character creation form already in scope
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: entity field types enforced at Drupal entity layer; mutations server-validated against allowed values
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action type) only
 
 ## Mission alignment
 

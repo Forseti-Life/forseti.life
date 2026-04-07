@@ -176,3 +176,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Grouped initiative: if one creature in a group delays, they are removed from the group and placed individually
 - [ ] Secret check mode: GM can override the hidden result and reveal it at any time
 - [ ] Rarity allowlist: GM approval grants full access; revocation of access mid-campaign flags dependent character features
+- Agent: qa-dungeoncrawler
+- Status: pending

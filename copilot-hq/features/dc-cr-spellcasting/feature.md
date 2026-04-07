@@ -31,7 +31,10 @@ Character entity fields: `spell_slots{}` keyed by level (1–10), `spellcasting_
 
 ## Security acceptance criteria
 
-- Security AC exemption: Spell slot state is session-scoped character data; no PII; all mutations server-validated.
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: entity field types enforced at Drupal entity layer; mutations server-validated against allowed values
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action type) only
 
 ## Roadmap section
 

@@ -165,3 +165,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Free Archetype: if a character already has a feat in the free archetype slot from a class feature, the free archetype slot remains unaffected
 - [ ] ABP migration: characters with existing item bonuses get a migration warning; prior rune effects noted
 - [ ] Proficiency Without Level: NPC DCs also updated (critical — half-value application would break difficulty)
+- Agent: qa-dungeoncrawler
+- Status: pending

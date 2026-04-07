@@ -51,4 +51,8 @@ See `features/dc-cr-darkvision/01-acceptance-criteria.md`.
 - [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
-- Security AC exemption: passive character trait derived from ancestry selection; no dedicated API routes or user input; read-only character property resolved at character load time; no PII exposure
+
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: entity field types enforced at Drupal entity layer; mutations server-validated against allowed values
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action type) only

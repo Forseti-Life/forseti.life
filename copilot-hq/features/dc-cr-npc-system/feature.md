@@ -32,7 +32,10 @@ Content type: `npc` with fields for name, role (ally/contact/merchant/villain/ne
 
 ## Security acceptance criteria
 
-- Security AC exemption: NPC data is campaign-scoped by GM; no access across campaigns without explicit sharing; standard auth on all CRUD.
+- Authentication/permission surface: NPC data is campaign-scoped by GM; cross-campaign access blocked; `_campaign_gm_access: TRUE` on GM-only routes
+- CSRF expectations: all POST/PATCH NPC routes require `_csrf_request_header_mode: TRUE`
+- Input validation: NPC names/descriptions sanitized at Drupal field layer; attitude enum validated server-side
+- PII/logging constraints: no PII logged; campaign id + NPC id + action type only
 
 ## Roadmap section
 

@@ -75,3 +75,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 - Roadmap: Core Rulebook
 - Chapter: Chapter 3: Classes (Animal Companion rules)
+- Agent: qa-dungeoncrawler
+- Status: pending

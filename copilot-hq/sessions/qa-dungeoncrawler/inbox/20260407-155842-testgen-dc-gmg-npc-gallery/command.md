@@ -82,3 +82,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 - [ ] Elite + Weak applied simultaneously: disallowed (mutually exclusive templates)
 - [ ] Custom-renamed NPC: rename persists in session log and encounter history; does not affect stat block identity
+- Agent: qa-dungeoncrawler
+- Status: pending

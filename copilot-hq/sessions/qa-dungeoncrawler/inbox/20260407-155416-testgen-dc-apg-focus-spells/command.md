@@ -113,3 +113,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Phase Familiar: incorporeal state is brief (one hit negated) and does not persist between uses
 - [ ] Evil Eye cast, then Cackle to extend it: valid — Cackle is not casting a second hex, it extends a current one (counts as hex use for one-hex-per-turn)
 - [ ] Warden spells refocus: Refocus in nature counts toward general focus pool (same FP pool, different refocus activity)
+- Agent: qa-dungeoncrawler
+- Status: pending

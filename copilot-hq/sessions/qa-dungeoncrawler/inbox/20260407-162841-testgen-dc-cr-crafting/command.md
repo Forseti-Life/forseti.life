@@ -84,3 +84,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - Roadmap: Core Rulebook
 - Chapter: Chapter 4: Skills (Crafting skill) / Chapter 9: Downtime
 - Depends on: dc-cr-downtime-mode
+- Agent: qa-dungeoncrawler
+- Status: pending

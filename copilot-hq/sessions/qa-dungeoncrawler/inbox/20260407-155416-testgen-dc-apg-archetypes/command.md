@@ -124,3 +124,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Assassin Mark for Death: weapon trait interaction — if weapon already has deadly trait, increase die size (not add new deadly)
 - [ ] Cavalier: requires a mount to be present; mount system must be implemented or flagged as dependency
 - [ ] Ritualist: character does not need class spellcasting to perform rituals; ritual-casting modifier uses chosen skill
+- Agent: qa-dungeoncrawler
+- Status: pending

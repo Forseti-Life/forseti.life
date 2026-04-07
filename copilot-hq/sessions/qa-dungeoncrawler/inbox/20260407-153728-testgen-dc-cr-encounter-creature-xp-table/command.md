@@ -87,3 +87,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic XP calculation; no new routes or user-facing input beyond existing encounter phase handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

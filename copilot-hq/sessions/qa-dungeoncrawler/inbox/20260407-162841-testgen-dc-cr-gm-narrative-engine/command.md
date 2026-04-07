@@ -80,3 +80,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - Roadmap: Core Rulebook
 - Chapter: Chapter 10: Game Mastering (AI GM tools)
 - Depends on: dc-cr-npc-system, dc-cr-session-structure, dc-gmg-running-guide
+- Agent: qa-dungeoncrawler
+- Status: pending

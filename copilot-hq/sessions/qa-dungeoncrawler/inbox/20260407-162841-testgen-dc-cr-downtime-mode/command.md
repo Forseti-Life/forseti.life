@@ -79,3 +79,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 - Roadmap: Core Rulebook
 - Chapter: Chapter 9: Playing the Game (Downtime)
+- Agent: qa-dungeoncrawler
+- Status: pending

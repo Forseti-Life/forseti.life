@@ -135,3 +135,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Mastermind Recall Knowledge flat-footed: applies to ALL attacks against the target this turn (not just investigator)
 - [ ] Genie subtype: if subtype not selected at creation, flag as incomplete character (required choice)
 - [ ] Staff Nexus cantrip in makeshift staff: does not cost a charge to cast (cantrips are free)
+- Agent: qa-dungeoncrawler
+- Status: pending

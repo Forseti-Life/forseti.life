@@ -85,3 +85,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic snare crafting and placement logic; no new routes or user-facing input beyond existing exploration and encounter handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

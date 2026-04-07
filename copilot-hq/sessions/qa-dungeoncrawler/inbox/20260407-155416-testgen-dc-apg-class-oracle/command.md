@@ -128,3 +128,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Remove curse targeting an oracle: fails silently (curse is class feature, not a removable affliction)
 - [ ] Two revelation spells at L1: first is always mystery's initial revelation (no choice), second is domain spell choice
 - [ ] When refocusing at moderate, curse resets to minor (not basic) — verify state machine
+- Agent: qa-dungeoncrawler
+- Status: pending

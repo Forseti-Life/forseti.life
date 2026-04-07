@@ -14,27 +14,26 @@
 - DB sections: core/ch04/Medicine (Wis)
 - Depends on: dc-cr-skill-system, dc-cr-conditions, dc-cr-encounter-rules
 
-## Description
-Implement Medicine (Wis) skill action handlers (REQs 1691–1704). High priority —
-Administer First Aid and Treat Wounds are core survival actions.
+## Goal
 
-Note: HPManager::stabilizeCharacter() exists but is wired to Hero Point heroic-recovery,
-NOT to a Medicine skill check. The first-aid action handler is absent.
+Implement Medicine (Wis) skill action handlers: Administer First Aid, Treat Disease, Treat Poison, and Treat Wounds — including all degree-of-success outcomes, healer's tools requirement, the 1-hour re-treat immunity window, and the dying/bleeding stabilization integration. Covers `core/ch04/Medicine (Wis)`.
 
-- **Administer First Aid** (2 actions, trained, healer's tools): Stabilize (DC 15 Flat Check
-  removed; Medicine vs DC 15) or Stop Bleeding (DC varies); degrees affect outcome
-- **Treat Disease** (downtime, trained, healer's tools): Medicine vs disease DC; sets
-  save bonus for upcoming disease save
-- **Treat Poison** (1 action, trained, healer's tools): Medicine vs poison DC; gives
-  bonus to immediate saving throw against poison
-- **Treat Wounds** (exploration, trained, healer's tools, 10 min): Medicine vs DC 15 (or
-  20 master, 30 legendary); restores HP on success; 1-hour re-treat restriction
+## Source reference
+
+> "You can patch up wounds, administer antidotes, and sometimes even lift the veil of death." (Chapter 4: Skills — Medicine)
+
+## Implementation hint
+
+**Administer First Aid** (2-action, manipulate, healer's tools, adjacent): one ailment per use; Stabilize: Medicine vs DC 15 + dying value; Stop Bleeding: Medicine vs appropriate DC, crit fail triggers immediate bleed damage. Note: `HPManager::stabilizeCharacter()` exists but is wired to Hero Point heroic-recovery — redirect to Medicine skill check. **Treat Disease** (downtime, trained, healer's tools, 8 hrs): Medicine vs disease DC; applies bonus/penalty to next disease save only. **Treat Poison** (1-action, trained, healer's tools): one attempt per creature per poison save; Medicine vs poison DC; bonus applies to immediate save. **Treat Wounds** (exploration, trained, healer's tools, 10 min): DC 15 / 2d8 HP (base); DC 20 / +10 HP (expert); DC 30 / +30 HP (master); DC 40 / +50 HP (legendary); crit success removes wounded condition + heals; success heals + removes wounded; crit fail deals 1d8 damage; extended 1-hour treatment doubles HP healed; 1-hour immunity window per patient (track `last_treated_at` on character).
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
-
-## Roadmap section
-- Book: core, Chapter: ch04
-- REQs: 1691, 1692, 1693, 1694, 1695, 1696, 1697, 1698, 1699, 1700, 1701, 1702, 1703, 1704
-- See `runbooks/roadmap-audit.md` for audit process.
+- Authentication/permission surface: authenticated users only; character ownership enforced via `_character_access: TRUE` on all character-scoped routes
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: HP restoration amounts server-computed from dice roll + proficiency tier; immunity window enforced server-side
+- PII/logging constraints: no PII logged; gameplay action logs (character id, action key, target id, degree of success) only

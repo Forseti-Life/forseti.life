@@ -131,3 +131,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Terrifying Ammunition failure state: Frightened reduction specifically blocked (normal recovery via mental checks still works for other conditions)
 - [ ] Winged Rune dismissal: fly speed removed immediately; falling rules apply normally if in the air
 - [ ] Rod of Cancellation: permanent cancellation — not temporary or counteractable (GM adjudication flag for edge cases)
+- Agent: qa-dungeoncrawler
+- Status: pending

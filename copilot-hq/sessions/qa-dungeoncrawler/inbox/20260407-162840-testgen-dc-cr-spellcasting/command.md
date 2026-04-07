@@ -92,3 +92,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 - Roadmap: Core Rulebook
 - Chapter: Chapter 7: Spells
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -32,7 +32,10 @@ Content types: `session` (single play instance, with start/end timestamps, parti
 
 ## Security acceptance criteria
 
-- Security AC exemption: Session and campaign data is user-scoped; campaign invites validate registered accounts; no cross-campaign data leakage.
+- Authentication/permission surface: authenticated users only; campaign membership enforced; campaign invites validate registered user email only
+- CSRF expectations: all POST/PATCH session/campaign routes require `_csrf_request_header_mode: TRUE`
+- Input validation: campaign names and descriptions sanitized at Drupal field layer; session state fields validated against enums
+- PII/logging constraints: no PII logged; session/campaign ids and participant user ids only
 
 ## Roadmap section
 

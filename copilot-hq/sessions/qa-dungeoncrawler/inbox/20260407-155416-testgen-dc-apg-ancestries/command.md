@@ -150,3 +150,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Kobold Spellscale: only grants 1 cantrip slot; does not create a full spell list or progression
 - [ ] Tengu Skyborn: fall immunity (not just reduction); fall damage = 0 regardless of height
 - [ ] Two characters with versatile heritages of different types have independent heritage feat lists
+- Agent: qa-dungeoncrawler
+- Status: pending

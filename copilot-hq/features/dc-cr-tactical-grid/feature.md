@@ -31,7 +31,10 @@ Grid model: 2D coordinate system (x, y) where each unit = 1 square = 5 feet. Cre
 
 ## Security acceptance criteria
 
-- Security AC exemption: Grid state is session-scoped combat data; no PII; grid positions are server-validated to prevent spoofing.
+- Authentication/permission surface: grid state is session-scoped; only session participants may read/write; `_session_participant_access: TRUE` enforced
+- CSRF expectations: all POST/PATCH grid position routes require `_csrf_request_header_mode: TRUE`
+- Input validation: coordinates validated as integers within grid bounds server-side; not client-asserted
+- PII/logging constraints: no PII logged; session id + character id + position only
 
 ## Roadmap section
 

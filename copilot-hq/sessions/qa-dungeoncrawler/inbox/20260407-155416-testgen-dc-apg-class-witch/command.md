@@ -135,3 +135,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Two warlocks present: spell transfer via Learn a Spell only — no direct familiar-to-familiar preparation
 - [ ] Cackle on a hex cantrip: extends the cantrip's duration (if the cantrip is sustained); does not break one-hex-per-turn rule
 - [ ] Evil Eye ends early on Will save success: immediate termination, no partial duration
+- Agent: qa-dungeoncrawler
+- Status: pending

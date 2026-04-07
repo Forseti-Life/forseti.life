@@ -108,3 +108,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 - [ ] Hazard triggered before being detected: initiative is rolled for the hazard; PC awareness state depends on Perception vs. Stealth result at trigger point
 - [ ] Hazard reset: if a character stands in the reset area when reset triggers, hazard re-activates and may retrigger
 - [ ] NPC used as ally: NPC stat block should remain editable for temporary boosts (companion NPC HP tracking)
+- Agent: qa-dungeoncrawler
+- Status: pending
