@@ -198,3 +198,11 @@ This file is a running list of targeted regression checks derived from completed
 - Added 2 permission rules to `qa-permissions.json` (53 total): `dc-cr-character-leveling-player-routes`, `dc-cr-character-leveling-admin-routes` (both ignore-probe — parameterized ownership/permission routes)
 - Regression note: all 8 level-up routes use `_character_access:TRUE` or `administer dungeoncrawler content`; probe-ignore is correct (404 on numeric probe ≠ permission gap)
 - Suite validator: PASS (0 violations)
+
+## dc-cr-darkvision suite activation (2026-04-07)
+- Added `dc-cr-darkvision-phpunit` to `qa-suites/products/dungeoncrawler/suite.json` (20 total suites): 15 TCs (TC-DV-01–TC-DV-15) covering sense entity structure/effects, Low-Light Vision distinction, ancestry senses reference, encounter visibility bypasses (Concealed + flat_footed), baseline behavior unchanged, non-darkness sources not suppressed, bright-light no-op, null-senses crash guard, ancestry-swap integrity, character sheet API senses field, ACL audit entries
+- Added 2 permission rules to `qa-permissions.json` (55 total): `dc-cr-darkvision-sense-catalog` (ignore until Dev confirms public catalog path), `dc-cr-darkvision-admin-ui` (placeholder — path TBD by Dev)
+- OPEN ITEM: TC-DV-15 admin UI route path TBD — qa-permissions.json rule has placeholder `path_regex`; must be updated when Dev confirms sense entity admin route
+- OPEN ITEM: confirm with Dev whether `AncestryController` plain-string `vision` field is migrated or coexists (regression risk #3)
+- Regression watch: ConditionManager coupling, CharacterViewController senses render path, HexMap lighting integration, dc-cr-conditions coupling
+- Suite validator: PASS (0 violations)

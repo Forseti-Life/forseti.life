@@ -1992,6 +1992,159 @@
           "feature_id": "dc-cr-ancestry-traits"
         }
       ]
+    },
+    {
+      "id": "dc-cr-darkvision-phpunit",
+      "feature_id": "dc-cr-darkvision",
+      "label": "Darkvision Sense Entity \u2014 sense entity structure, effects, Low-Light Vision distinction, ancestry senses reference, encounter visibility bypasses, null-senses crash guard, ancestry swap integrity, character sheet API, ACL",
+      "type": "phpunit",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit --filter='SenseEntityTest|VisibilitySystemTest|SenseIntegrationTest|AncestryDataTest|CharacterViewControllerTest' tests/src/",
+      "notes": "PHPUnit unit + functional approach (authoritative until Playwright env provisioned). Regression risk: ConditionManager coupling (concealed/flat_footed must route through applyCondition()), CharacterViewController senses render path (currently feat-based only), AncestryController plain-string vision field migration, HexMap lighting integration, dc-cr-conditions coupling. TC-DV-15 admin route path is TBD \u2014 sense entity admin UI path must be confirmed by Dev before adding qa-permissions.json rule. TC-DV-14 (anon char sheet visibility) documented as ignore in route-scan; verify via functional test.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-darkvision/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-07",
+      "test_cases": [
+        {
+          "id": "TC-DV-01",
+          "description": "Darkvision sense entity exists with id='darkvision', type='vision'; no exception on load",
+          "suite_type": "unit",
+          "class_method": "SenseEntityTest::testDarkvisionEntityExistsWithCorrectIdAndType",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-02",
+          "description": "Darkvision effects definition: suppress_concealed_in_darkness=true, suppress_flat_footed_in_darkness=true, vision_in_darkness='black_and_white'",
+          "suite_type": "unit",
+          "class_method": "SenseEntityTest::testDarkvisionEffectsDefinition",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-03",
+          "description": "Low-Light Vision is a distinct sense entity from Darkvision: separate objects; low-light-vision has sees_dim_as_bright=true, blind_in_darkness=true; darkvision effects absent",
+          "suite_type": "unit",
+          "class_method": "SenseEntityTest::testLowLightVisionIsDistinctFromDarkvision",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-04",
+          "description": "Dwarf ancestry has darkvision in senses field \u2014 senses is array containing entry with id='darkvision'; no duplication",
+          "suite_type": "functional",
+          "class_method": "AncestryDataTest::testDwarfAncestryReferencesDarkvision",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-05",
+          "description": "Multiple ancestries (e.g. Dwarf + Goblin) reference same darkvision sense entity without duplication in data store",
+          "suite_type": "functional",
+          "class_method": "AncestryDataTest::testMultipleAncestriesCanReferenceSameSenseEntity",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-06",
+          "description": "Encounter visibility: character with darkvision does NOT get Concealed in darkness",
+          "suite_type": "unit",
+          "class_method": "VisibilitySystemTest::testDarkvisionCharacterNotConcealedInDarkness",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-07",
+          "description": "Encounter visibility: character with darkvision does NOT get flat-footed from darkness (may still receive from other sources)",
+          "suite_type": "unit",
+          "class_method": "VisibilitySystemTest::testDarkvisionCharacterNotFlatFootedInDarkness",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-08",
+          "description": "Encounter visibility: character WITHOUT darkvision still gets Concealed in darkness (baseline behavior unchanged)",
+          "suite_type": "unit",
+          "class_method": "VisibilitySystemTest::testCharacterWithoutDarkvisionConcealedInDarkness",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-09",
+          "description": "Darkvision does NOT suppress Concealed from non-darkness sources (fog, invisibility) \u2014 lighting=normal, source=fog \u2192 concealed applied",
+          "suite_type": "unit",
+          "class_method": "VisibilitySystemTest::testDarkvisionDoesNotSuppressConcealedFromFog",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-10",
+          "description": "Darkvision has no effect in bright light \u2014 same behavior as character without darkvision; no Concealed, no flat_footed",
+          "suite_type": "unit",
+          "class_method": "VisibilitySystemTest::testDarkvisionNoEffectInBrightLight",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-11",
+          "description": "Null/missing senses field on character does not crash encounter visibility check \u2014 treated as no special senses; Concealed applied as baseline",
+          "suite_type": "unit",
+          "class_method": "VisibilitySystemTest::testNullSensesFieldDoesNotCrashVisibilityCheck",
+          "ac_tag": "TEST-ONLY",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-12",
+          "description": "Ancestry swap to Dwarf adds darkvision without corrupting prior character state (skills, HP, conditions all unchanged)",
+          "suite_type": "unit",
+          "class_method": "SenseIntegrationTest::testAncestrySwapAddsDarkvisionWithoutCorruption",
+          "ac_tag": "TEST-ONLY",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-13",
+          "description": "Character sheet API includes perception.senses array with 'darkvision' for Dwarf character (authenticated owner GET)",
+          "suite_type": "functional",
+          "class_method": "CharacterViewControllerTest::testCharacterSheetIncludesSensesForDwarf",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision"
+        },
+        {
+          "id": "TC-DV-14",
+          "description": "Anonymous user can view darkvision on public character sheet \u2014 GET /character/{id} returns perception.senses field; ignore in route-scan (parameterized), verify via functional test",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - role-url-audit entry (parameterized; ignore; verify via CharacterViewControllerTest functional test)",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-darkvision",
+          "notes": "If character sheet is not public-facing, document explicit access policy and skip; confirm with Dev."
+        },
+        {
+          "id": "TC-DV-15",
+          "description": "Admin can add/edit sense entities via Drupal admin UI \u2014 sense entity admin route: admin 200, authenticated player 403, anon 403",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - role-url-audit entry (route path TBD by Dev; add qa-permissions.json rule at Stage 0 once path confirmed)",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-darkvision",
+          "notes": "TC-DV-15 blocked on Dev confirming sense entity admin route path. Add qa-permissions.json rule when path is known."
+        }
+      ]
     }
   ],
   "_schema_notes": [

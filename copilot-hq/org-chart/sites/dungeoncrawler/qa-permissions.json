@@ -750,6 +750,34 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-darkvision-sense-catalog",
+      "feature_id": "dc-cr-darkvision",
+      "path_regex": "^/dungeoncrawler/senses(?:/|$)",
+      "notes": "GET /dungeoncrawler/senses \u2014 sense entity catalog (if Dev creates a public catalog endpoint). Expected: anon=allow, authenticated=allow. Path TBD by Dev; update path_regex at Stage 0 confirmation. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-darkvision). If no public catalog endpoint is created, set all roles to ignore.",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "dc-cr-darkvision-admin-ui",
+      "feature_id": "dc-cr-darkvision",
+      "path_regex": "PLACEHOLDER_TBD_by_Dev",
+      "notes": "Sense entity admin UI route \u2014 path TBD by Dev (TC-DV-15). Expected: anon=403, authenticated player=403, administrator=200. THIS RULE IS A PLACEHOLDER \u2014 update path_regex when Dev confirms the sense entity admin route path at Stage 0. Do not run audit with this placeholder active. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-darkvision).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }
