@@ -1047,6 +1047,19 @@ class CombatEngine {
       }
     }
 
+    // REQ 2278: Hearing (imprecise sense) — when target is invisible/undetected
+    // via sight, hearing provides imprecise detection → best state is hidden.
+    // All creatures have hearing by default (no special sense flag needed).
+    if ($visual_state === self::DETECTION_STATE_UNDETECTED || $visual_state === self::DETECTION_STATE_UNNOTICED) {
+      // Hearing is blocked by deafened condition or if target is silenced.
+      $attacker_deafened = !empty($attacker_entity['deafened']);
+      $target_silenced   = !empty($target_entity['silenced']);
+      if (!$attacker_deafened && !$target_silenced) {
+        // Hearing = imprecise → best cap is hidden.
+        $visual_state = self::DETECTION_STATE_HIDDEN;
+      }
+    }
+
     // REQ 2273: Scent (vague) — detect by smell, best state is undetected.
     $scent_range = (int) ($attacker_entity['scent_ft'] ?? 0);
     if ($scent_range > 0) {

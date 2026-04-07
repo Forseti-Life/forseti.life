@@ -196,6 +196,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'shield_block',
       // REQ 2228-2230: Attack of Opportunity (fighter reaction).
       'attack_of_opportunity',
+      // REQ 2280: Hero Point reroll (free action during attack).
+      'hero_point_reroll',
+      // REQ 2281: Spend all Hero Points to stabilize (removes dying, no wounded).
+      'heroic_recovery_all_points',
     ];
   }
 
@@ -825,6 +829,63 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'round' => $game_state['round'] ?? NULL,
         ], NULL, $target_id);
         break;
+
+      // -----------------------------------------------------------------------
+      // REQ 2280: Hero Point Reroll — spend 1 hero point to reroll an attack.
+      // Free action; must be declared before the attack result is used.
+      // -----------------------------------------------------------------------
+      case 'hero_point_reroll': {
+        $original_roll = (int) ($params['original_roll'] ?? 0);
+        $reroll = $this->calculator->heroPointReroll($original_roll);
+        // Deduct 1 hero point from entity_ref.
+        $enc_hpr = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_hpr = $enc_hpr ? $this->findEncounterParticipantByEntityId($enc_hpr, $actor_id) : NULL;
+        if ($ptcp_hpr) {
+          $edata_hpr = !empty($ptcp_hpr['entity_ref']) ? json_decode($ptcp_hpr['entity_ref'], TRUE) : [];
+          $hero_points = max(0, (int) ($edata_hpr['hero_points'] ?? 0) - 1);
+          $edata_hpr['hero_points'] = $hero_points;
+          $this->encounterStore->updateParticipant((int) $ptcp_hpr['id'], ['entity_ref' => json_encode($edata_hpr)]);
+        }
+        $result = $reroll + ['hero_points_spent' => 1];
+        $events[] = GameEventLogger::buildEvent('hero_point_reroll', 'encounter', $actor_id, [
+          'original_roll' => $original_roll,
+          'new_roll'      => $reroll['new_roll'],
+          'round'         => $game_state['round'] ?? NULL,
+        ], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 2281: Heroic Recovery (spend all Hero Points) — removes dying,
+      // does NOT add wounded, keeps HP at 0. Reaction; costs no actions.
+      // -----------------------------------------------------------------------
+      case 'heroic_recovery_all_points': {
+        $ptcp_id_hrap = $actor_id;
+        if (is_string($ptcp_id_hrap)) {
+          // Resolve actor entity_id → participant DB id.
+          $enc_hrap = $this->encounterStore->loadEncounter($encounter_id);
+          $ptcp_hrap = $enc_hrap ? $this->findEncounterParticipantByEntityId($enc_hrap, $actor_id) : NULL;
+          $ptcp_id_hrap = $ptcp_hrap ? (int) $ptcp_hrap['id'] : NULL;
+        }
+        if (!$ptcp_id_hrap) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // Clear hero_points in entity_ref (spend all).
+        $enc_hrap2 = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_hrap2 = $enc_hrap2 ? $this->findEncounterParticipantByEntityId($enc_hrap2, $actor_id) : NULL;
+        if ($ptcp_hrap2) {
+          $edata_hrap = !empty($ptcp_hrap2['entity_ref']) ? json_decode($ptcp_hrap2['entity_ref'], TRUE) : [];
+          $edata_hrap['hero_points'] = 0;
+          $this->encounterStore->updateParticipant((int) $ptcp_hrap2['id'], ['entity_ref' => json_encode($edata_hrap)]);
+        }
+        $hrap_result = $this->hpManager->heroicRecoveryAllPoints($ptcp_id_hrap, $encounter_id);
+        $result = $hrap_result;
+        $events[] = GameEventLogger::buildEvent('heroic_recovery_all_points', 'encounter', $actor_id, [
+          'dying_removed' => $hrap_result['dying_removed'] ?? FALSE,
+          'round'         => $game_state['round'] ?? NULL,
+        ]);
+        break;
+      }
 
       // -----------------------------------------------------------------------
       // REQ 2221: Burrow — move using burrow speed; tags entity as underground.
@@ -2279,6 +2340,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'grab_edge':
       case 'shield_block':
       case 'attack_of_opportunity':
+      // REQ 2280: Hero point reroll is a free action (costs 0 actions).
+      case 'hero_point_reroll':
+      // REQ 2281: Heroic recovery (spend all HP) is a reaction (costs 0 actions).
+      case 'heroic_recovery_all_points':
         return 0;
 
       default:
