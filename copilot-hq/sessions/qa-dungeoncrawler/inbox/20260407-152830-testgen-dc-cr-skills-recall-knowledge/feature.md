@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-recall-knowledge
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: planned
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
