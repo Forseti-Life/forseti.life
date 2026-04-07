@@ -1,21 +1,21 @@
 # Feature Progress
 
-Generated: 2026-04-07T15:51:48Z
+Generated: 2026-04-07T16:02:10Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
-| dc-apg-ancestries | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-apg-archetypes | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
-| dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
-| dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
-| dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
-| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
-| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
+| dc-apg-ancestries | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-archetypes | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
@@ -36,9 +36,9 @@ Generated: 2026-04-07T15:51:48Z
 | dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
-| dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
+| dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
@@ -118,10 +118,10 @@ Generated: 2026-04-07T15:51:48Z
 | dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
-| dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
+| dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | in_progress | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |

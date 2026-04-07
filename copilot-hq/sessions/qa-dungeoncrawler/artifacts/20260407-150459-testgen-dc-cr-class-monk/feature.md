@@ -1,9 +1,9 @@
-# Feature Brief: Ranger Class Mechanics
+# Feature Brief: Monk Class Mechanics
 
-- Work item id: dc-cr-class-ranger
+- Work item id: dc-cr-class-monk
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: planned
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -11,11 +11,11 @@
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch03
 - Category: class
 - Created: 2026-04-07
-- DB sections: core/ch03/Ranger
-- Depends on: dc-cr-character-class, dc-cr-character-creation
+- DB sections: core/ch03/Monk
+- Depends on: dc-cr-character-class, dc-cr-focus-spells
 
 ## Description
-Implement the Ranger class mechanics: Hunt Prey action, Hunter's Edge (Flurfer/Outwit/Precision), ranger class feats, and all class feature unlocks. Covers core/ch03 Ranger section (~68 requirements). No spellcasting dependency for base class.
+Implement the Monk class mechanics: Flurry of Blows, ki spells (focus spells), stance system, unarmed strikes, and all class feature unlocks. Covers core/ch03 Monk section (~68 requirements). Partial focus spell dependency.
 
 ## Security acceptance criteria
 
