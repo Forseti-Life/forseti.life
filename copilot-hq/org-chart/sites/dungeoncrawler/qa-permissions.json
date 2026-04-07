@@ -820,6 +820,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-low-light-vision-senses-read",
+      "feature_id": "dc-cr-low-light-vision",
+      "path_regex": "^/dungeoncrawler/character/[^/]+/senses(?:/|$)",
+      "notes": "GET senses endpoint. Route /dungeoncrawler/character/{id}/senses does NOT exist in current routing.yml \u2014 probe-ignore until Dev implements. When live: _csrf_token:FALSE (GET read-only), _character_access:TRUE, anon\u2192302/403, authenticated owner\u2192200. PM/Dev to decide whether this is a dedicated endpoint or alias of /api/character/{id}/state. If exposed via state endpoint, remove this rule and map TC-LLV-011/012 to state endpoint rule. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-low-light-vision).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

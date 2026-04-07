@@ -2639,6 +2639,162 @@
           "feature_id": "dc-cr-elf-heritage-cavern"
         }
       ]
+    },
+    {
+      "id": "dc-cr-low-light-vision-e2e",
+      "feature_id": "dc-cr-low-light-vision",
+      "label": "Low-Light Vision \u2014 sense flag on character entity, Elf ancestry grants structured LLV (not plain string), dim-light concealment bypass, normal-vision baseline intact, darkvision wins when both set, LLV vs DV distinct effects, persist/reload, ancestry-switch clears/re-applies, non-existent character 404, client direct-write blocked, cross-character read blocked, E2E character sheet; TC-LLV-011/012 (new /senses route) implementation-dependent",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). Pattern follows dc-cr-darkvision. IMPLEMENTATION-DEPENDENT: TC-LLV-011 and TC-LLV-012 require the /dungeoncrawler/character/{id}/senses GET route which does NOT exist in current routing.yml \u2014 probe-ignore until Dev implements. PM/Dev to decide: dedicated /senses endpoint vs filtered alias of /api/character/{id}/state. NOTE TO DEV: AncestryController currently maps ANCESTRIES['vision'] as plain string; must wire to FeatEffectManager::addSense('low-light-vision',...) at character load. HexMapController does not yet check character senses before applying concealment \u2014 LLV dim-light bypass requires new check in encounter resolution path. TC-LLV-005/006 assume dc-cr-darkvision is implemented; if darkvision deferred, defer those TCs. Regression coupling: dc-cr-darkvision, dc-cr-elf-ancestry (TC-EA-004 assertion update), dc-cr-elf-heritage-cavern (sense replacement), ConditionManager.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-low-light-vision/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-07",
+      "test_cases": [
+        {
+          "id": "TC-LLV-001",
+          "description": "FeatEffectManager processes low-light-vision sense; CharacterStateService includes LLV in senses array when ancestry grants it",
+          "suite_type": "unit",
+          "class_method": "LowLightVisionTest::testLowLightVisionFlagExistsOnCharacterEntity",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-002",
+          "description": "Elf ancestry grants structured LLV sense (id=low-light-vision) at character load \u2014 NOT the plain string 'low-light vision' from ANCESTRIES",
+          "suite_type": "unit",
+          "class_method": "LowLightVisionTest::testElfAncestryGrantsStructuredLowLightVisionSense",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision",
+          "notes": "Key distinction: AncestryController must call FeatEffectManager::addSense() rather than storing plain display string. Directly unblocks TC-EA-004 assertion update."
+        },
+        {
+          "id": "TC-LLV-003",
+          "description": "LLV character in dim-light zone: Concealed condition NOT applied (dim-light concealment bypass active)",
+          "suite_type": "unit",
+          "class_method": "LowLightVisionTest::testDimLightConcealmentSuppressedByLowLightVision",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-004",
+          "description": "Normal-vision character (no sense flags) in dim-light zone receives Concealed condition \u2014 baseline unchanged",
+          "suite_type": "unit",
+          "class_method": "LowLightVisionTest::testNormalVisionCharacterGetsConcealedInDimLight",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-005",
+          "description": "Both darkvision+LLV set (data error): darkvision wins; no conflict error; LLV not double-applied",
+          "suite_type": "unit",
+          "class_method": "LowLightVisionTest::testBothFlagsSetDarkvisionWins",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision",
+          "notes": "Assumes dc-cr-darkvision is implemented. If darkvision deferred, mark pending-dev-confirmation."
+        },
+        {
+          "id": "TC-LLV-006",
+          "description": "LLV and darkvision are distinct: LLV suppresses dim-light concealment only; DV suppresses dim+dark; no cross-contamination",
+          "suite_type": "unit",
+          "class_method": "LowLightVisionTest::testLowLightVisionDistinctFromDarkvision",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision",
+          "notes": "Assumes dc-cr-darkvision is implemented. If darkvision deferred, mark pending-dev-confirmation."
+        },
+        {
+          "id": "TC-LLV-007",
+          "description": "LLV sense flag persists across save/reload \u2014 senses array contains low-light-vision after persist/load cycle",
+          "suite_type": "functional",
+          "class_method": "LowLightVisionTest::testLowLightVisionFlagPersistsAcrossSaveReload",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-008",
+          "description": "Ancestry switch during creation: Elf\u2192Dwarf clears LLV and applies darkvision; no stale LLV flag on final character",
+          "suite_type": "functional",
+          "class_method": "LowLightVisionTest::testAncestrySwitchClearsAndReappliesSense",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-009",
+          "description": "GET senses for non-existent character ID returns structured 404 JSON; never 500",
+          "suite_type": "functional",
+          "class_method": "LowLightVisionTest::testNonExistentCharacterSensesReturnsStructuredError",
+          "ac_tag": "failure-mode",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-010",
+          "description": "Client cannot directly POST/PATCH low_light_vision flag \u2014 returns 403 or 405; sense flags unchanged",
+          "suite_type": "functional",
+          "class_method": "LowLightVisionTest::testClientCannotDirectlyMutateSenseFlags",
+          "ac_tag": "failure-mode",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-011",
+          "description": "Anonymous GET /dungeoncrawler/character/{id}/senses returns 302 or 403",
+          "suite_type": "acl",
+          "class_method": "LowLightVisionTest::testAnonDeniedSensesEndpoint",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-low-light-vision",
+          "notes": "Implementation-dependent: /dungeoncrawler/character/{id}/senses route does not exist in routing.yml. Activate at Stage 0 when Dev confirms dedicated route is implemented. If senses exposed via /api/character/{id}/state, map to that route instead."
+        },
+        {
+          "id": "TC-LLV-012",
+          "description": "Authenticated user owning character: GET /dungeoncrawler/character/{id}/senses returns 200 with senses JSON",
+          "suite_type": "acl",
+          "class_method": "LowLightVisionTest::testAuthUserAllowedSensesEndpoint",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-low-light-vision",
+          "notes": "Same route caveat as TC-LLV-011."
+        },
+        {
+          "id": "TC-LLV-013",
+          "description": "Cross-character senses read blocked: authenticated user A cannot GET senses for character owned by user B (403 or 404)",
+          "suite_type": "functional",
+          "class_method": "LowLightVisionTest::testCrossCharacterSensesReadBlocked",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-014",
+          "description": "E2E: Elf character sheet displays 'Low-Light Vision' in senses section (not darkvision, not empty)",
+          "suite_type": "e2e",
+          "class_method": "tests/e2e/low-light-vision.spec.js",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-low-light-vision"
+        },
+        {
+          "id": "TC-LLV-ACL-01",
+          "description": "GET /dungeoncrawler/character/{id}/senses \u2014 anon: 302/403; authenticated owner: 200. Add rule dc-cr-low-light-vision-senses-read ONLY when dedicated /senses route is confirmed in routing.yml (currently probe-ignore).",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - probe-ignore until /dungeoncrawler/character/{id}/senses GET route confirmed in routing.yml",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-low-light-vision"
+        }
+      ]
     }
   ],
   "_schema_notes": [
