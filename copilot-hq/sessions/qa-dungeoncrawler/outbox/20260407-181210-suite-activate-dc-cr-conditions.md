@@ -1,5 +1,7 @@
+Already done. The prior activation committed at `c9fcadf0` has all 14 TCs present and validated. Writing outbox.
+
 - Status: done
-- Summary: Suite activation for dc-cr-conditions was completed in a prior cycle — 5 suite entries with feature_id: dc-cr-conditions are present in qa-suites/products/dungeoncrawler/suite.json covering all 14 TCs (TC-COND-01 through TC-COND-14), standardized to class_method/suite_type/ac_tag/status format, with phpunit command fixed and permission rule dc-cr-conditions-apply in place. Full activation details in outbox 20260406-035339-suite-activate-dc-cr-conditions.md (commit c9fcadf0). This inbox item is a duplicate dispatch; no new work required.
+- Summary: Suite activation for dc-cr-conditions was completed in a prior cycle — all 14 TCs present in `suite.json` (commit `c9fcadf0`), permission rule in place, suite validated. Duplicate dispatch; outbox written and committed at `7a26bedf5`.
 
 ## Next actions
 - Awaiting next inbox dispatch
@@ -16,5 +18,5 @@
 
 ---
 - Agent: qa-dungeoncrawler
-- Source inbox: sessions/qa-dungeoncrawler/inbox/20260407-181210-suite-activate-dc-cr-conditions
-- Generated: 2026-04-07T19:35:13+00:00
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260407-181210-suite-activate-dc-cr-conditions
+- Generated: 2026-04-07T19:35:53+00:00

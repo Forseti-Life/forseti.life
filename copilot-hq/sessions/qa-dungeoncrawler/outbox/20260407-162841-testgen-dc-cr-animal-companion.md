@@ -1,5 +1,9 @@
+Duplicate dispatch — 69-line test plan, `status: ready`, PM completion artifact present.
+
+This item was already fully handled in the prior session (commit `b78fb5e80`). The outbox exists and the inbox was cleaned.
+
 - Status: done
-- Summary: `dc-cr-animal-companion` was fully groomed in a prior batch. `feature.md` shows `status: ready` and `03-test-plan.md` exists with 69 lines covering all 5 ACs: companion content type fields (companion_id, character_id, species, size, speeds, senses, HP, AC, saves, attacks, advancement level young/mature/nimble/savage) and initialization at "young" for Ranger/Druid/Beastmaster (AC-001); advancement chain young→mature→nimble/savage with Mature stat recalculation against the Mature Animal Companion table (AC-002); Command an Animal 1-action DC check granting 2 actions, and un-commanded repeating-behavior fallback (AC-003); full combat stat presence distinguishing companion from familiar, and HP-0 unconscious (not permanent death) state (AC-004); species-specific base stats (bear/bird/cat/wolf/etc.), Flier movement triggering aerial rules (elevation, plunging strike) (AC-005); and security exemption (character-scoped, server-validated). PM completion signaled via artifact `20260407-182202-testgen-complete-dc-cr-animal-companion`. No new work needed.
+- Summary: `dc-cr-animal-companion` testgen was already completed in the previous session. `features/dc-cr-animal-companion/03-test-plan.md` exists (69 lines), `feature.md` shows `status: ready`, and PM completion artifact `20260407-182202-testgen-complete-dc-cr-animal-companion` is present. Outbox written and committed at `b78fb5e80` — no additional work required.
 
 ## Next actions
 - Awaiting next inbox dispatch
@@ -12,9 +16,9 @@
 
 ## ROI estimate
 - ROI: 2
-- Rationale: Duplicate dispatch cleanup — confirms prior grooming stable; no new value produced.
+- Rationale: Duplicate dispatch confirmation; all signals already present, no new work needed.
 
 ---
 - Agent: qa-dungeoncrawler
-- Source inbox: sessions/qa-dungeoncrawler/inbox/20260407-162841-testgen-dc-cr-animal-companion
-- Generated: 2026-04-07T19:14:00+00:00
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260407-162841-testgen-dc-cr-animal-companion
+- Generated: 2026-04-07T19:16:14+00:00

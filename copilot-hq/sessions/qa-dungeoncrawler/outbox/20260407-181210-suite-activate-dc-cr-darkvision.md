@@ -1,5 +1,7 @@
+Already done. Writing outbox.
+
 - Status: done
-- Summary: Suite activation for dc-cr-darkvision was completed in a prior cycle — 24 entries tagged feature_id: dc-cr-darkvision are present in qa-suites/products/dungeoncrawler/suite.json, and permission rules are in place. Full activation details in outbox 20260407-145412-suite-activate-dc-cr-darkvision.md. This inbox item is a duplicate dispatch; no new work required.
+- Summary: Suite activation for dc-cr-darkvision was completed in a prior cycle — 24 entries tagged `feature_id: dc-cr-darkvision` present in `suite.json`, permission rules in place. Duplicate dispatch; outbox written and committed at `8aa9772db`.
 
 ## Next actions
 - Awaiting next inbox dispatch
@@ -16,5 +18,5 @@
 
 ---
 - Agent: qa-dungeoncrawler
-- Source inbox: sessions/qa-dungeoncrawler/inbox/20260407-181210-suite-activate-dc-cr-darkvision
-- Generated: 2026-04-07T19:36:18+00:00
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260407-181210-suite-activate-dc-cr-darkvision
+- Generated: 2026-04-07T19:36:55+00:00
