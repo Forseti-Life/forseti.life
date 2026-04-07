@@ -1,11 +1,9 @@
 {
-  "generated_at": "2026-04-07T01:52:47.233053+00:00",
+  "generated_at": "2026-04-07T03:52:10.291173+00:00",
   "parity_ok": true,
   "selected_agents": {
     "match": true,
-    "actual": [
-      "qa-dungeoncrawler"
-    ]
+    "actual": []
   },
   "steps": {
     "match": true,
