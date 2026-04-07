@@ -3,7 +3,7 @@
 - Work item id: dc-gmg-running-guide
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: ready
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

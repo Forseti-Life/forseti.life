@@ -3,7 +3,7 @@
 - Work item id: dc-cr-animal-companion
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: ready
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

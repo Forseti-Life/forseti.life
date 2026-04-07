@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T17:52:56Z
+Generated: 2026-04-07T17:59:13Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -80,7 +80,7 @@ Generated: 2026-04-07T17:52:56Z
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | in_progress | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
 | dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
