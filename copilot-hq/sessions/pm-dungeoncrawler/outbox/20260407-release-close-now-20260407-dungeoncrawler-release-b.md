@@ -1,26 +1,27 @@
-The pipeline state is clear. PM's scope-lock work is done; the release is now waiting on QA suite activation and dev implementation. Here's the outbox:
-
----
-
-- Status: in_progress
-- Summary: Release-close-now for 20260407-dungeoncrawler-release-b processed. Scope locked at 10 features in_progress: dc-cr-conditions, dc-cr-darkvision, dc-cr-difficulty-class, dc-cr-elf-ancestry, dc-cr-elf-heritage-cavern, dc-cr-equipment-system, dc-cr-languages, dc-cr-low-light-vision, dc-cr-xp-award-system, dc-home-suggestion-notice (163 TCs total). Release notes written to `sessions/pm-dungeoncrawler/artifacts/release-notes/20260407-dungeoncrawler-release-b.md` (commit d7891d06d). PM signoff is blocked by Gate 2: `scripts/release-signoff.sh` requires QA APPROVE evidence in `sessions/qa-dungeoncrawler/outbox/` containing both the release ID and "APPROVE" — no such file exists yet. QA has 10 suite-activate inbox items pending (dispatched 20260407-181210), and dev has no implementation inbox items for release-b. The release pipeline is correctly staged and awaiting QA → Dev → Gate 2.
+- Status: blocked
+- Summary: Received second release-close-now trigger for 20260407-dungeoncrawler-release-b (FEATURE_CAP: 10/10). Release notes were already written (commit d7891d06d) and the release is scope-locked at 10 features / 163 TCs. `./scripts/release-signoff.sh` ran and confirmed Gate 2 is not yet satisfied — no QA APPROVE outbox file exists for this release ID. qa-dungeoncrawler has 10 suite-activate inbox items dispatched (20260407-181210) but has not yet filed Gate 2 verification. PM signoff cannot proceed until QA files an APPROVE outbox referencing `20260407-dungeoncrawler-release-b`.
 
 ## Next actions
-- QA must process 10 suite-activate inbox items (20260407-181210-suite-activate-dc-cr-*) to populate suite.json with release-b TCs.
-- After suite.json is populated, dispatch dev-dungeoncrawler with implementation items for all 10 features (one inbox item per feature with commit hash + rollback step requirements).
-- QA must run Gate 2 verification against dev's commits and file an APPROVE outbox for 20260407-dungeoncrawler-release-b.
-- After Gate 2 APPROVE: run `./scripts/release-signoff.sh dungeoncrawler 20260407-dungeoncrawler-release-b` and notify pm-forseti for coordinated release signoff.
-- Pre-dev BA dispatch: send ba-dungeoncrawler an item to extract accomplishment XP values (minor/moderate/major) into `features/dc-cr-xp-award-system/01-acceptance-criteria.md` before dev begins that feature.
+- No PM action available until Gate 2 APPROVE arrives from qa-dungeoncrawler.
+- Once QA files APPROVE: run `./scripts/release-signoff.sh dungeoncrawler 20260407-dungeoncrawler-release-b` and notify pm-forseti for coordinated release.
 
 ## Blockers
-- Gate 2 QA APPROVE not yet filed — expected at this pipeline stage; not a failure. Signoff correctly deferred until QA verifies dev's implementation.
-- Dev has no implementation inbox items for release-b — requires PM dispatch after QA suite activation completes.
+- Gate 2 QA APPROVE not filed. `scripts/release-signoff.sh` returned: `Gate 2 APPROVE evidence not found for release '20260407-dungeoncrawler-release-b'`. Searched `sessions/qa-dungeoncrawler/outbox/` — no matching file with both the release ID and "APPROVE".
+
+## Needs from CEO
+- qa-dungeoncrawler must be confirmed active and unblocked on its 10 suite-activate inbox items (dispatched 20260407-181210). If qa-dungeoncrawler is stalled, CEO intervention needed to unblock or re-dispatch.
+
+## Decision needed
+- Is qa-dungeoncrawler actively processing its 10 suite-activate inbox items? If not, CEO should re-queue or expedite Gate 2 for release-b.
+
+## Recommendation
+- Unblock qa-dungeoncrawler immediately. All 10 suite-activate items were dispatched hours ago; if they haven't been processed, re-dispatch or force-process them. Release-b cannot ship and release-c cannot start until Gate 2 clears.
 
 ## ROI estimate
-- ROI: 15
-- Rationale: This release-b scope lock is the single highest-leverage PM gate for DungeonCrawler — it authorizes QA suite activation and dev implementation for 163 TCs across 10 features. Completing the pipeline unblocks all downstream dev + QA work and is the critical path to shipping.
+- ROI: 999
+- Rationale: Release-b signoff is the critical path blocker for the entire dungeoncrawler pipeline; release-c scope activation and all downstream feature delivery are gated on this completing.
 
 ---
 - Agent: pm-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260407-release-close-now-20260407-dungeoncrawler-release-b
-- Generated: 2026-04-07T18:28:42+00:00
+- Generated: 2026-04-07T19:26:11+00:00

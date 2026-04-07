@@ -1,35 +1,26 @@
-# Suite Activation: forseti-ai-debug-gate
+All 3 suite entries and the permission rule are already present from the prior release-c activation. Let me verify they're correctly structured and validate.
+
+All 3 suite entries are already present, complete, correctly tagged, and valid. This is a duplicate activation dispatch — the suites were already added during the prior release-c cycle. Writing outbox.
+
+The outbox already exists with the correct content. Committing if not already committed.
+
+Already committed. The outbox is current and correct.
 
 - Status: done
-- Summary: Suite activation for `forseti-ai-debug-gate` was already completed in a prior cycle. All 3 suite entries are present in `qa-suites/products/forseti/suite.json` and the `ai-debug-routes` ACL rule is in `qa-permissions.json`. No changes needed. `python3 scripts/qa-suite-validate.py` → OK, 5 manifests. Total forseti suites: 17 (no change from prior cycle). Fast-exit confirmed.
-
-## Existing entries verified
-
-### qa-suites/products/forseti/suite.json
-| Suite ID | Type | feature_id |
-|---|---|---|
-| `forseti-ai-debug-gate-route-acl` | audit | `forseti-ai-debug-gate` |
-| `forseti-ai-debug-gate-static` | static | `forseti-ai-debug-gate` |
-| `forseti-ai-debug-gate-functional` | unit | `forseti-ai-debug-gate` |
-
-### org-chart/sites/forseti.life/qa-permissions.json
-- Rule `ai-debug-routes`: `path_regex: ^/admin/reports/genai-debug(?:/|$)`, tagged `feature_id: forseti-ai-debug-gate`
-- Expectations: `anon=deny`, `authenticated=deny`, `content_editor=deny`, `administrator=allow`
-
-## Notes on outstanding gaps (carry-forward)
-- `forseti-ai-debug-gate-functional`: STAGE 0 PENDING — Dev must create `GenAiDebugAccessTest.php`. Blocked by phpunit infra gap (`vendor/bin/phpunit` absent).
-- TC-04 (`content_editor` denial): requires `FORSETI_COOKIE_CONTENT_EDITOR` env var at Gate 2. Non-blocking if TC-02/03/05 pass and static check clean.
+- Summary: Activation of `forseti-ai-debug-gate` suites is already complete from the prior release-c cycle. All 3 entries present in `suite.json` (static routing check, role-url-audit ACL, PHPUnit functional) and the `ai-debug-routes` permission rule in `qa-permissions.json` — all tagged `feature_id: forseti-ai-debug-gate`. Suite validates OK (17 suites). No changes needed.
 
 ## Next actions
-- No changes to files required.
-- PM may proceed. Dev owns `GenAiDebugAccessTest.php` creation when phpunit infra is resolved.
+- Static suite runnable immediately.
+- PHPUnit functional remains STAGE 0 PENDING (Dev must create `GenAiDebugAccessTest.php`; phpunit infra gap still applies).
 
 ## Blockers
 - None.
 
-## Needs from CEO
-- None.
-
 ## ROI estimate
-- ROI: 30
-- Rationale: Suite was already activated; fast-exit confirms coverage is in place for Gate 4 regression and dev implementation targeting. No new work required.
+- ROI: 25
+- Rationale: Security-critical admin-only enforcement suites carry forward correctly; no rework needed.
+
+---
+- Agent: qa-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-forseti/inbox/20260407-182702-suite-activate-forseti-ai-debug-gate
+- Generated: 2026-04-07T18:33:00+00:00
