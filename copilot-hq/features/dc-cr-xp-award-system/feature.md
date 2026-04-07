@@ -14,27 +14,29 @@
 - DB sections: core/ch10/Experience Points and Advancement
 - Depends on: dc-cr-encounter-creature-xp-table, dc-cr-character-leveling
 
-## Description
-Implement PF2e XP-based character advancement (REQs 2332–2335, 2337–2339).
+## Goal
 
-**PM Decision 2026-03-08**: CharacterLevelingService currently uses milestone-only
-leveling. XP system was explicitly removed. This feature is DEFERRED until that
-decision is revisited.
+Implement the full XP award system: per-creature XP (indexed by level delta), objective/milestone XP bonuses, automatic distribution to party, and level-up trigger at 1000 XP (plus milestone leveling as an alternative mode).
 
-When activated, covers:
-- 1,000 XP threshold to level; subtract 1,000 on level-up (REQ 2332)
-- Party-wide equal XP from encounters and accomplishments (REQ 2333)
-- Trivial encounter = 0 XP (REQ 2334)
-- Fast/Standard/Slow advancement variants: 800/1000/1200 XP (REQ 2335)
-- Accomplishment XP categories: minor/moderate/major (REQ 2337)
-- Accomplishment → Hero Point for instrumental PC (REQ 2338)
-- Creature XP from Table 10-2; Hazard XP from Table 10-14 (REQ 2339)
+## Source reference
 
-Note: REQ 2336 (story/milestone leveling) is already PARTIAL via milestoneReady flag.
+> "The GM assigns XP at the end of an encounter or session to all participants." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+
+## Implementation hint
+
+`XPAwardService::awardCreatureXP(encounter_id)` → sums XP per creature using delta table; `awardObjectiveXP(session_id, objective_id)` → fixed values (major=80, minor=40, trivial=10) from content entity. Distribution: divide total evenly among all participating characters. Level trigger: `CharacterProgressionService::checkLevelUp(character)` fires when `xp >= 1000`; awards level, resets XP to 0. Milestone mode: `session.xp_mode = 'milestone'`; GM manually triggers `LevelUpService::grantLevel(character)` without XP tracking. `XPLog` entity stores each award event for audit trail (session id + character id + source + amount).
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic logic; no new routes or user-facing input beyond existing character creation and encounter phase forms
+- Authentication/permission surface: XP awards are GM-triggered (session/encounter ownership required); direct level-up route requires `_gm_access: TRUE`
+- CSRF expectations: all POST/PATCH xp-award routes require `_csrf_request_header_mode: TRUE`
+- Input validation: XP award amounts sourced from server-side tables or content entities; no client-supplied raw XP values; milestone level grant requires GM auth
+- PII/logging constraints: no PII logged; session id + character id + xp source + amount only
 
 ## Roadmap section
 - Book: core, Chapter: ch10

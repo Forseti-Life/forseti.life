@@ -3,7 +3,7 @@
 - Work item id: dc-cr-equipment-ch06
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -14,12 +14,29 @@
 - DB sections: core/ch06/Adventuring Gear, core/ch06/Alchemical Gear (1st-Level Access), core/ch06/Animals and Mounts, core/ch06/Armor, core/ch06/Carrying and Item Rules, core/ch06/Class Starting Kits (Reference), core/ch06/Currency and Economy, core/ch06/Formulas, core/ch06/Magical Gear (1st-Level Access), core/ch06/Services and Economy, core/ch06/Shields, core/ch06/Weapons
 - Depends on: dc-cr-equipment-system
 
-## Description
-Implement remaining core ch06 equipment rules: full weapons table, armor table, shields, adventuring gear catalog, carrying and bulk rules, class starting kits. Covers core/ch06 gaps not yet in dc-cr-equipment-system. Notable sections: Weapons (50 reqs), Carrying and Item Rules (32 reqs), Armor (16 reqs), Adventuring Gear (28 reqs), Shields (7 reqs).
+## Goal
+
+Implement the equipment catalog content type and data for all Chapter 6 items: weapons (with damage dice, traits, range), armor (with AC bonus, Dex cap, penalties, strength req), shields (hardness/HP/BT), and general gear, with bulk and pricing.
+
+## Source reference
+
+> "Weapons, armor, and other equipment can be found in Chapter 6." (Chapter 6: Equipment, PF2E Core Rulebook)
+
+## Implementation hint
+
+Item content type: `name`, `price{gp,sp,cp}`, `bulk`, `hands`, `level`, `traits[]`, `item_type` enum (weapon/armor/shield/consumable/held/worn/other). Weapon extra fields: `damage_dice`, `damage_type`, `range`, `reload`. Armor extra: `ac_bonus`, `dex_cap`, `check_penalty`, `speed_penalty`, `strength_req`. Shield extra: `hardness`, `hp`, `break_threshold`. `EquipmentService::equip(character, item_id, slot)` validates slot/proficiency compatibility. Character entity gains `equipment{slots}` mapping. `BulkCalculator` reads item bulk from entity.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic equipment system logic; no new routes or user-facing input beyond existing character creation and inventory management forms
+- Authentication/permission surface: authenticated users only; equip/unequip requires character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH equipment routes require `_csrf_request_header_mode: TRUE`
+- Input validation: item id validated against equipment catalog; slot type validated against item_type; strength requirement enforced server-side on equip
+- PII/logging constraints: no PII logged; character id + item id + slot + action type only
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

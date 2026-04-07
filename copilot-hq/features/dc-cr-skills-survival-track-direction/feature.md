@@ -14,26 +14,29 @@
 - DB sections: core/ch04/Survival (Wis)
 - Depends on: dc-cr-skill-system, dc-cr-exploration-mode
 
-## Description
-Implement Survival (Wis) action handlers and the Subsist general skill action
-(REQs 1572–1573, 1595–1598, 1739–1746).
+## Goal
 
-- **Subsist** (downtime, untrained): Nature (wilderness) or Society (urban) vs DC 15
-  (higher in harsh environments; +2 DC per additional creature fed).
-  Crit Success = full provisions for group; Success = self fed; Fail = meager;
-  Crit Fail = starvation begins.
-- **Sense Direction** (exploration, untrained, 1 min): Survival vs DC 15 (trackless) or 10
-  (open terrain); gives compass direction or landmark orientation
-- **Track** (exploration, trained): Survival vs DC based on trail freshness + terrain;
-  follow tracks at half Speed; losing trail resets
-- **Cover Tracks** (exploration, trained): Survival vs trackers' Survival; on success
-  trackers take DC penalty to follow
-- REQs 1572–1573 define the general skill action framework (untrained vs trained gating);
-  covered here as Subsist is the primary untrained general action.
+Implement all Survival skill actions: Sense Direction (Untrained), Subsist (Untrained, downtime), Track (Trained), and Cover Tracks (Trained), with exploration-mode integration for overland travel.
+
+## Source reference
+
+> "Survival measures your ability to live in the wild and find your way in the natural world." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`SurvivalActionResolver`: Sense Direction: DC 15 in familiar terrain, 20 in wilderness, +5 without sky visibility; returns compass direction result. Subsist: downtime activity; DC 15 for wilderness, 20 for most environments; success = fed for 1 week; crit success = others too; failure = fatigued next day. Track: DC set by creature's Survival/nature of terrain; success while moving at half-speed; requires 1 hour per hex. Cover Tracks: imposes −4 to Track DCs following you; requires Survival ≥ trained. All exploration-mode paced activities tracked in session state.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Survival actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/survival routes require `_csrf_request_header_mode: TRUE`
+- Input validation: terrain type validated against allowed enum; Track target id validated as valid footprint trail entity
+- PII/logging constraints: no PII logged; character id + action id + terrain + outcome only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

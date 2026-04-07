@@ -14,19 +14,29 @@
 - DB sections: core/ch04/Performance (Cha)
 - Depends on: dc-cr-skill-system
 
-## Description
-Implement Performance (Cha) skill actions (REQs 1716–1720).
+## Goal
 
-- **Perform** (1 action, auditory or visual trait by medium): Performance vs audience DC;
-  degrees affect audience reaction; used in encounter (bardic performance) and exploration
-- Trait system: Performance actions have `auditory` or `visual` trait depending on medium
-  (singing=auditory, dance=visual, etc.)
-- Audience DC table: unfamiliar crowd=15, local=20, regional=30 (approximate)
-- Earn Income via Performance: coordination with dc-cr-skills-lore-earn-income
+Implement the Performance skill's Perform action (Untrained, Earn Income for street performers) and its integration with Bard Composition Spell DCs where Performance modifier is used.
+
+## Source reference
+
+> "Performance measures how skilled you are at captivating an audience with various forms of entertainment." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`PerformanceActionResolver`: Perform: standard action or downtime activity; DC set by audience size/sophistication or GM-assigned; success = entertain audience; used primarily for Earn Income downtime (same table as Lore). `EarnIncomeService` accepts `skill: 'performance'` for entertainers. Bard integration: some Composition Spell save DCs use `10 + Performance modifier` instead of spell DC; `BardSpellResolver` checks `spell.uses_performance_dc` flag and substitutes modifier. Perform for different audiences: busking (DC 15), tavern (DC 20), noble court (DC 30+).
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Performance actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/performance routes require `_csrf_request_header_mode: TRUE`
+- Input validation: audience DC sourced from server-side tables or GM-authored value with range validation; income GP delta computed server-side
+- PII/logging constraints: no PII logged; character id + performance type + audience id + gp delta only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -14,25 +14,29 @@
 - DB sections: core/ch04/Occultism (Int), core/ch04/Religion (Wis)
 - Depends on: dc-cr-skill-system, dc-cr-creature-identification, dc-cr-dc-rarity-spell-adjustment
 
-## Description
-Implement the Recall Knowledge skill action as a proper 1-action encounter handler
-(REQs 1591–1594, 2329). Currently `recall_knowledge` is registered in
-CanonicalActionRegistryService but routes to generic applyCharacterStateChanges
-with no DC resolution or skill routing logic.
+## Goal
 
-Required:
-1. Wire recall_knowledge into EncounterPhaseHandler::processIntent() as a 1-action
-   secret skill check
-2. Route to correct skill based on topic (Arcana/Nature/Occultism/Religion/Society/
-   Crafting/Medicine/Lore — see dc-cr-creature-identification for creature routing)
-3. DC resolution: simple DC (GM-set by obscurity); level-based for creatures/hazards;
-   rarity adjustment applied (see dc-cr-dc-rarity-spell-adjustment)
-4. Degree-of-success outcomes: crit=info+bonus detail, success=info,
-   fail=nothing, crit fail=false information
+Implement the Recall Knowledge action across all applicable skills (Arcana/Nature/Occultism/Religion/Society/Crafting/Lore), routing creature/topic type to the correct skill and resolving against a DC set by creature level or topic rarity.
+
+## Source reference
+
+> "You attempt a skill check to recall a bit of knowledge about a topic." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`RecallKnowledgeResolver::resolve(character, target_id, skill_hint)` → determines correct skill from target type (e.g., construct → Arcana, undead → Religion, dragon → Arcana/Nature), resolves check vs DC = 10 + creature level or 15 + item level, returns `knowledge_tier` (crit success = all abilities/immunities/weaknesses, success = most, failure = name only, crit fail = wrong info). Untrained allowed for most except specialized topics. Result cached on encounter entity to prevent re-rolling until new information obtained.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Recall Knowledge requires character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/recall-knowledge routes require `_csrf_request_header_mode: TRUE`
+- Input validation: target id validated as valid creature/item/topic entity; skill id validated against allowed set for target type; DC sourced server-side from target level
+- PII/logging constraints: no PII logged; character id + target id + skill id + knowledge tier only
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

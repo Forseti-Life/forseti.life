@@ -14,22 +14,29 @@
 - DB sections: apg/ch02/Core Class Expansions
 - Depends on: dc-cr-class-alchemist, dc-cr-class-barbarian, dc-cr-class-bard, dc-cr-class-champion, dc-cr-class-cleric, dc-cr-class-druid, dc-cr-class-fighter, dc-cr-class-monk, dc-cr-class-ranger, dc-cr-class-rogue, dc-cr-class-sorcerer, dc-cr-class-wizard
 
-## Description
-Implement APG Chapter 2 expanded options for the 12 core classes (REQs 191–221).
-These are new class features, research fields, instincts, and feats added in the APG
-that extend existing class services.
+## Goal
 
-Scope by class:
-- **Alchemist**: Toxicologist research field (REQs 191–196)
-- **Barbarian**: Superstition instinct (REQs 197–200+)
-- Other core classes: additional feats, archetypes, and features as catalogued in
-  REQs 191–221
+Load all APG class expansions: new subclasses for existing CRB classes (Barbarian Instincts, Ranger Hunter's Edges, Alchemist Research Fields, Sorcerer Bloodlines, etc.) as additional enum values and class feat entries for those classes.
 
-Depends on all 12 core class features being implemented first.
+## Source reference
+
+> "The Advanced Player's Guide expands existing classes with new subclass options and feats." (Advanced Player's Guide, Class Expansions)
+
+## Implementation hint
+
+For each CRB class that gains APG subclass options: add new enum values to the appropriate enum field on the character entity. Barbarian: +Dragon/Fury/Spirit/Superstition Instincts. Alchemist: +Toxicologist Research Field. Ranger: +Outwit Hunter's Edge. Sorcerer: +Imperial Bloodline. Each new subclass also comes with class feats tagged to that subclass via `prerequisite: {class_feature: 'instinct_X'}`. Load all as feat entities. No new services required — existing class systems handle the new subclass values via enum extension.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; subclass selection requires character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH class subclass routes require `_csrf_request_header_mode: TRUE`
+- Input validation: all new subclass enum values validated server-side; prerequisite feat chains validated for new class feats
+- PII/logging constraints: no PII logged; character id + class id + subclass id only
 
 ## Roadmap section
 - Book: apg, Chapter: ch02

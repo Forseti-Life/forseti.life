@@ -14,12 +14,29 @@
 - DB sections: apg/ch04/General Feats Overview, apg/ch04/Non-Skill General Feats, apg/ch04/Skill Feats — Acrobatics, apg/ch04/Skill Feats — Athletics, apg/ch04/Skill Feats — Crafting, apg/ch04/Skill Feats — Deception, apg/ch04/Skill Feats — Diplomacy, apg/ch04/Skill Feats — Intimidation, apg/ch04/Skill Feats — Lore (Warfare), apg/ch04/Skill Feats — Medicine, apg/ch04/Skill Feats — Multi-Skill (Varying), apg/ch04/Skill Feats — Nature, apg/ch04/Skill Feats — Occultism, apg/ch04/Skill Feats — Performance, apg/ch04/Skill Feats — Religion, apg/ch04/Skill Feats — Society, apg/ch04/Skill Feats — Stealth, apg/ch04/Skill Feats — Survival, apg/ch04/Skill Feats — Thievery
 - Depends on: dc-cr-skill-system, dc-cr-general-feats, dc-cr-skill-feats
 
-## Description
-Implement APG general feats (non-skill) and APG skill feat expansions for all 18 skills. Covers apg/ch04. Depends on base skill system and general feat infrastructure.
+## Goal
+
+Load all APG feats (~200+ ancestry, general, and skill feats) into the feat catalog using the existing feat content type, extending the pools available to all characters during feat selection.
+
+## Source reference
+
+> "The Advanced Player's Guide includes hundreds of new feats for characters of all types." (Advanced Player's Guide, Feats Chapter)
+
+## Implementation hint
+
+APG feats use the same `feat` content type schema as Chapter 5 CRB feats. Load each as a Drupal feat entity with `source: apg`. New feats include: APG ancestry feats for both CRB and APG ancestries, new general feats, new skill feats, and new archetype feats. `FeatManager::getAvailableFeats(character, slot_type)` already filters by character ancestry/level/prerequisites — APG feats will automatically appear when their prerequisites are met. No new services needed; purely a data load. Verify no duplicate feat names with CRB entries before import.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; feat selection requires character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH feat-selection routes require `_csrf_request_header_mode: TRUE`
+- Input validation: APG feat ids validated against catalog; prerequisite validation enforced server-side; no duplicate feat id conflicts with CRB
+- PII/logging constraints: no PII logged; character id + feat id + slot type only
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

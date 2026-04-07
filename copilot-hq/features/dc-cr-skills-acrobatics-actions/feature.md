@@ -14,26 +14,29 @@
 - DB sections: core/ch04/Acrobatics (Dex)
 - Depends on: dc-cr-skill-system, dc-cr-skills-calculator-hardening
 
-## Description
-Implement all Acrobatics (Dex) skill action handlers in EncounterPhaseHandler and
-ExplorationPhaseHandler. Trained-only gating and armor check penalty via
-dc-cr-skills-calculator-hardening.
+## Goal
 
-Actions (REQs 1603–1614):
-- **Balance** (1 action, trained): Acrobatics vs terrain DC; degrees (crit=no penalty,
-  success=pass, fail=fall prone + stop, crit fail=fall prone + damage)
-- **Tumble Through** (1 action): move through enemy space; Acrobatics vs enemy Reflex DC;
-  fail = movement stops; triggers AoO
-- **Maneuver in Flight** (1 action, trained, requires flight): maneuver; DC 15+level;
-  fail = Reflex or fall
-- **Squeeze** (exploration, trained): move through tiny space at half Speed; DC varies;
-  crit success = no penalty
+Implement all Acrobatics skill actions: Balance (Trained), Tumble Through (Trained), Maneuver in Flight (Trained), and Squeeze (Untrained), with full degree-of-success outcomes for each.
 
-Also: Escape can use Acrobatics (already partially wired; full wiring and enforcement).
+## Source reference
+
+> "Acrobatics measures your ability to perform tasks requiring coordination and grace." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`AcrobaticsActionResolver` handles 4 actions. Balance: DC = terrain hazard DC (10 for normal uneven, 20+ for narrow/unstable); crit success = move normally, success = move at half, failure = flat-footed/hampered, crit fail = fall prone. Tumble Through: DC = target Reflex DC; success = move through enemy space; failure = movement ends. Maneuver in Flight: DC by maneuver type, requires flight speed. Squeeze: DC 20 for tight spaces (smaller than Small); slower movement, flat-footed. Each action calls `SkillActionResolver::resolve(action, character, context)` → `DegreeOfSuccess` enum.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: skill action logic; no new routes or user-facing input beyond existing encounter/exploration phase handlers
+- Authentication/permission surface: authenticated users only; acrobatics actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/acrobatics routes require `_csrf_request_header_mode: TRUE`
+- Input validation: terrain DC values sourced from server-side tables; target id for Tumble Through validated as encounter participant
+- PII/logging constraints: no PII logged; character id + action id + roll result + DC only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

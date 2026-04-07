@@ -8,20 +8,29 @@
 - Release: none
 - Dependencies: dc-cr-encounter-rules, dc-cr-spellcasting
 
-## Description
-Implement the missing DC system components in CombatCalculator:
-1. Spell-level DC table (REQ 2320): level 1→15 through 10→39
-2. Rarity DC adjustment constants (REQ 2322): Uncommon +2, Rare +5, Unique +10
-3. DC Adjustment modifier table (REQ 2321): −10/−5/−2/0/+2/+5/+10 applied to a base DC
-4. Identify Magic / Learn a Spell DC calculation (REQ 2328): level-based + rarity adjustment
+## Goal
 
-Currently CombatCalculator has SIMPLE_DC and TASK_DC but no spell DC table and no
-rarity adjustment constant. These are needed by recall knowledge, identify magic,
-learn a spell, and all spell-related DC checks.
+Implement the DC adjustment modifiers for rarity (Common +0, Uncommon +2, Rare +5, Unique +10) and spell level (same-rank +0, 1 higher +2, 2 higher +5) as additive modifiers applied on top of base DC-by-level tables.
+
+## Source reference
+
+> "Some tasks are harder or easier based on their rarity or the level of the spell involved." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+
+## Implementation hint
+
+`DCModifierService::getRarityAdjustment(rarity)` returns enum→integer map: common=0, uncommon=2, rare=5, unique=10. `DCModifierService::getSpellRankAdjustment(spell_level, caster_level)` returns delta based on level difference table. These are composed in `DCCalculator::compute(base_dc, rarity, spell_level_delta)` = base_dc + rarity_adj + spell_level_adj. Remove any hardcoded TASK_DC constants from codebase; replace with `DCCalculator.compute()` calls passing server-authoritative base DC from `DCByLevelTable::get(level)`.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic logic; no new routes or user-facing input beyond existing character creation and encounter phase forms
+- Authentication/permission surface: DC computation is server-side only; no client-supplied DC modifiers accepted
+- CSRF expectations: DC lookup endpoints are GET-only; no DC override POST routes exposed
+- Input validation: rarity enum validated server-side; spell level delta computed from entity data, not client input; all DC values returned from server tables
+- PII/logging constraints: no PII logged; DC lookups are ephemeral computation results, not stored
 
 ## Roadmap section
 - Book: core, Chapter: ch10

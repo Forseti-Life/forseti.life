@@ -14,25 +14,29 @@
 - DB sections: core/ch04/Lore (Int)
 - Depends on: dc-cr-skill-system, dc-cr-economy, dc-cr-dc-rarity-spell-adjustment
 
-## Description
-Complete Lore skill and Earn Income downtime action (REQs 1684–1687, 1579–1582, 2326).
+## Goal
 
-**Lore (complete)** (REQs 1685–1687):
-- Breadth enforcement: Lore is narrow topic only (no "all knowledge" subtopics)
-- Best-modifier selection: when character has multiple Lore subtypes, caller must
-  iterate to find best applicable modifier (wire into CharacterCalculator)
-- Earn Income via Lore: Lore specialization can be used for Earn Income at downtime
+Implement the Lore skill's Earn Income downtime activity and Recall Knowledge action, where Lore topics are character-specific narrow specialties and Earn Income lets characters generate GP over days of work.
 
-**Earn Income** (downtime, trained — REQs 1579–1582, 2326):
-- DowntimePhaseHandler currently has a stub; wire full logic
-- Task level cap = character level
-- DC = task level via Table 10-5 (Earn Income DC — REQ 2326)
-- Income rate table: task level × degree of success (PF2e Table 4-2)
-- Applicable skills: Arcana, Crafting, Lore, Occultism, Performance, Religion, Society
+## Source reference
+
+> "Lore represents a swathe of specialized knowledge that you've picked up during your life." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+Lore is a family of skills, not a single one; character entity has `lore_topics[]` list (e.g., 'Sailing Lore', 'Scribing Lore'). Earn Income: downtime activity; DC by level (from table); check against Lore, Crafting, or Performance; success = GP per day at that DC's income tier (from table); critical success = next tier; failure = half; critical failure = 0. `EarnIncomeService::resolve(character, lore_topic, days, settlement_level)` → `{gp_earned, income_tier}`. Recall Knowledge: uses Lore topic as the skill; DC set by creature level or topic difficulty.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Earn Income and Recall Knowledge require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/lore routes require `_csrf_request_header_mode: TRUE`
+- Input validation: lore topic validated against character's lore list; income DC sourced from server-side level table; days worked validated as positive integer
+- PII/logging constraints: no PII logged; character id + lore topic + gp delta + dc only
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

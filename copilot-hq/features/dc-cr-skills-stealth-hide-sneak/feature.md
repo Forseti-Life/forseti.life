@@ -14,25 +14,29 @@
 - DB sections: core/ch04/Stealth (Dex)
 - Depends on: dc-cr-skill-system, dc-cr-skills-calculator-hardening
 
-## Description
-Implement Stealth (Dex) action handlers (REQs 1721–1730). High priority — detection
-state infrastructure (Observed/Hidden/Undetected/Unnoticed) is FULLY implemented per
-QA REQ 1715 PASS. Action handlers can build on this immediately with no new data model.
+## Goal
 
-- **Hide** (1 action): Stealth vs Perception DC of all observers; on success becomes
-  Hidden; must have cover or concealment to attempt; post-action detection state set
-- **Sneak** (1 action): Stealth vs Perception DC; move up to half Speed while Hidden;
-  become Observed if no cover/concealment at end of movement
-- **Conceal an Object** (1 action): Stealth vs Perception DC of onlookers; on success
-  object is not noticed
-- **Move Quietly** (exploration): Stealth vs Perception DCs of potential observers;
-  rolled once per relevant threat
-- REQ 1723: post-action detection state reset based on cover/concealment availability
-  (already modeled in entity_ref.detection_states + game_state.visibility)
+Implement all Stealth skill actions: Hide (Trained, become Hidden), Sneak (Trained, move while maintaining Hidden), Conceal an Object (Trained), and Create a Diversion (cross-reference with Deception), with integration into Rogue Sneak Attack trigger.
+
+## Source reference
+
+> "Stealth allows you to avoid detection by others." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`StealthActionResolver`: Hide: Stealth vs all observers' Perception; success = character becomes Hidden to those who failed; Hidden means attacker doesn't know exact square (−2 to attack, can't use flat-footed bonus yet). Sneak: move half Speed while Hidden; Stealth vs Perception at end of movement; failure = Observed. Conceal Object: opposed Stealth vs Perception; success = object hidden on person. Create a Diversion: delegates to `DeceptionActionResolver::createDiversion()`. Rogue integration: `EncounterEngine::resolveStrike(attacker, target)` checks if target is Hidden or Undetected to attacker for Sneak Attack bonus trigger.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Stealth actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/stealth routes require `_csrf_request_header_mode: TRUE`
+- Input validation: observer ids validated as encounter participants; hidden state stored server-side, not client-supplied
+- PII/logging constraints: no PII logged; character id + observer id + hidden state + outcome only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

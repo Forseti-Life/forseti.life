@@ -14,22 +14,29 @@
 - DB sections: core/ch04/Nature (Wis)
 - Depends on: dc-cr-skill-system, dc-cr-npc-system
 
-## Description
-Implement Nature (Wis) action handlers (REQs 1705–1714). Core action is
-Command an Animal, plus Recall Knowledge for Nature-applicable types.
+## Goal
 
-- **Command an Animal** (1 action, auditory, concentrate, trained): Nature vs animal
-  Will DC; animal attitude system (hostile/unfriendly/indifferent/friendly/helpful);
-  crit success=friendly attitude shift; success=performs action; fail=no effect;
-  crit fail=attitude decreases
-- Animal action set: the commanded animal must have defined legal actions
-  (Move, Strike, specific trained actions)
-- Recall Knowledge (Nature): Animals, Beasts, Fungi, Plants, Spirits, Elementals —
-  coordination with dc-cr-creature-identification
+Implement the Nature skill's Command an Animal action (Trained) and Identify Magic (Trained, primal magic only), with integration into animal companion management for ranger/druid characters.
+
+## Source reference
+
+> "Nature measures your understanding of the natural world." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`NatureActionResolver`: Command an Animal: standard action; DC = 15 + animal's level (or Will DC if trained/smart); success = animal follows command for 1 minute; crit success = no check needed for that command type again; failure = no response; crit failure = hostile. Animal companion integration: if animal is character's companion, base DC is 10 (reduced). Identify Magic (Primal): 10-minute activity; identifies primal spell/item properties; DC = 20 + item/spell level. Recall Knowledge (Nature): DC by creature type (beast/plant/fungus/animal).
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Command an Animal requires encounter or companion ownership
+- CSRF expectations: all POST/PATCH skill/nature routes require `_csrf_request_header_mode: TRUE`
+- Input validation: animal target id validated as encounter participant or character's companion; magic item id validated as valid entity for identification
+- PII/logging constraints: no PII logged; character id + animal id + command type + outcome only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

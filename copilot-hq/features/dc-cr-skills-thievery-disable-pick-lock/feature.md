@@ -14,23 +14,29 @@
 - DB sections: core/ch04/Thievery (Dex)
 - Depends on: dc-cr-skill-system, dc-cr-hazards
 
-## Description
-Implement Thievery (Dex) skill action handlers (REQs 1747–1756). High priority —
-Disable a Device and Pick a Lock are core dungeon interactions used constantly.
-Stealth detection infrastructure (PASS REQ 1715) gives Head start for Palm Object/Steal.
+## Goal
 
-- **Palm Object** (1 action, trained): Thievery vs Perception DC of observers; item
-  concealed if success; Steal variant for worn/carried items
-- **Steal** (1 action, trained): Thievery vs Perception DC; must be undetected or at
-  least hidden; grabbed item removed from target inventory
-- **Disable a Device** (2 actions, trained, thieves' tools): Thievery vs device DC;
-  degrees; crit fail triggers trap if applicable; coordination with dc-cr-hazards
-- **Pick a Lock** (2 actions, trained, thieves' tools or lockpick): Thievery vs lock DC;
-  multiple successes for complex locks; broken pick on crit fail
+Implement all Thievery skill actions: Disable Device (Trained), Pick a Lock (Trained), Palm an Object (Trained), and Steal (Trained), with DC tables by complexity/lock grade and integration with the trap/hazard system.
+
+## Source reference
+
+> "Thievery measures your ability to perform tasks requiring quick fingers and sleight of hand." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`ThieveryActionResolver`: Disable Device: DC set by hazard complexity (Simple 15, Average 20, Good 25, Superior 30); requires thieves' tools; each success reduces hazard's remaining disable counts. Pick a Lock: DC by lock grade (Poor 15, Average 20, Good 25, Superior 30, Masterwork 40); 2 actions per attempt; requires thieves' tools; crit failure = jam (DC +5). Palm an Object: Thievery vs Perception; success = pocketed without notice. Steal: Thievery vs Perception; more difficult if target is in combat or guarded. Lock and hazard DCs loaded from server-side entity fields.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Thievery actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/thievery routes require `_csrf_request_header_mode: TRUE`
+- Input validation: target lock/hazard id validated as valid scene entity; tool requirement enforced server-side; DC sourced from entity complexity field
+- PII/logging constraints: no PII logged; character id + target id + action id + outcome only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

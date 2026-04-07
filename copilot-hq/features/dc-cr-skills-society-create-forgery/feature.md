@@ -14,19 +14,29 @@
 - DB sections: core/ch04/Society (Int)
 - Depends on: dc-cr-skill-system
 
-## Description
-Implement Society (Int) action handlers (REQs 1731–1738).
+## Goal
 
-- **Create Forgery** (downtime, trained, forger's kit): Society vs Perception of examiner;
-  passive scrutiny on receipt; active scrutiny when examined
-- Degrees: crit success=passes all scrutiny; success=passes casual; fail=obvious fake;
-  crit fail=reveals forger
-- Also covers Recall Knowledge (Society): Humanoids, local history, legal knowledge —
-  coordination with dc-cr-creature-identification
+Implement the Society skill's Create a Forgery (Trained), Decipher Writing (Trained, mundane texts), Recall Knowledge (Society, Untrained), and Subsist (Untrained, in settlements), with time-to-create and opposed detection mechanics for forgeries.
+
+## Source reference
+
+> "Society measures your understanding of people, history, and the complicated patterns of civilized life." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`SocietyActionResolver`: Create a Forgery: 1-minute activity (or longer for complex documents); produces a forgery entity with `forgery_quality` score = Society check result; when inspected, target makes Perception check vs that DC; success = detects forgery. Decipher Writing (mundane): DC 10 for simple texts, 20 for legal/academic, 30+ for ciphers. Recall Knowledge (Society): DC by cultural/historical topic. Subsist: downtime activity in settlement, DC 15; success = fed for a week at society level. Society also governs knowing NPC contacts and organizational hierarchies.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Create Forgery and Subsist require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/society routes require `_csrf_request_header_mode: TRUE`
+- Input validation: forgery target document type validated; forgery quality score is server-computed roll result, not client-supplied; Subsist settlement id validated
+- PII/logging constraints: no PII logged; character id + action id + document id + quality score only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

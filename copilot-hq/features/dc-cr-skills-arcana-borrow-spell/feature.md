@@ -14,19 +14,29 @@
 - DB sections: core/ch04/Arcana (Int)
 - Depends on: dc-cr-skill-system, dc-cr-spellcasting
 
-## Description
-Implement Borrow an Arcane Spell action (REQs 1616–1618). Requires access to a
-spellbook containing the spell; Arcana trained; exploration activity (10 min).
-DC = spell's level via spell-level DC table. On success, add spell to daily
-prepared list for that preparation. Dependencies on spellcasting system.
+## Goal
 
-Also covers Recall Knowledge for Arcana-applicable creature types
-(Constructs, Dragons, Elementals, Magical Beasts) — coordinated with
-dc-cr-creature-identification.
+Implement the Arcana skill's Borrow an Arcane Spell action (Trained, for wizards borrowing from another's spellbook), Decipher Writing (Trained), Identify Magic (Trained, arcane), and Learn a Spell (Trained, add to spellbook).
+
+## Source reference
+
+> "Arcana measures how much you know about arcane magic and creatures." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`ArcanaActionResolver`: Borrow an Arcane Spell: requires another character's spellbook in possession; Arcana DC = 20 + spell level; success = can prepare borrowed spell today only (not added to own spellbook). Learn a Spell: 10-minute activity, Arcana DC = 20 + spell level, costs `level × 10gp` materials; success = spell added to spellbook permanently. Identify Magic (Arcane): DC = 20 + item/spell level, 10-minute activity. Decipher Writing: DC by text complexity (10 simple, 20 scholarly, 30+ magical script). All results stored in encounter/session context.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Borrow and Learn Spell require character ownership; borrowed spell access validated against source character's spellbook
+- CSRF expectations: all POST/PATCH skill/arcana routes require `_csrf_request_header_mode: TRUE`
+- Input validation: spell id validated as arcane spell; gold cost validated and deducted server-side; borrowed spell grant is session-scoped only (not permanent)
+- PII/logging constraints: no PII logged; character id + spell id + source character id (if borrowing) + outcome only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

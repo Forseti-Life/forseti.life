@@ -14,35 +14,29 @@
 - DB sections: core/ch10/Environment
 - Depends on: dc-cr-encounter-rules, dc-cr-skill-system
 
-## Description
-Extend TerrainGeneratorService and phase handlers with full PF2e environment and
-terrain rules (REQs 2350–2372).
+## Goal
 
-Current state: difficult_terrain and greater_difficult multipliers exist in
-ExplorationPhaseHandler::calculateTravelSpeed(). Fall damage in HPManager. No other
-environmental mechanics implemented.
+Implement terrain and environmental hazard rules: difficult terrain (costs +1 ft/ft movement), greater difficult terrain (+2 ft/ft), hazardous terrain (damage on entry), flanking (opposite-sides = flat-footed), and common terrain types.
 
-Required:
-1. **Terrain sub-types** (REQs 2353–2361): bog (shallow/deep/magical), ice (+ uneven_ground),
-   snow (shallow/deep), sand (packed/loose/deep), rubble (dense=uneven_ground),
-   undergrowth (light/heavy/thorns), slope (gentle/steep with Climb trigger),
-   narrow surface (Balance check + flat-footed), uneven ground (Balance + fall risk)
-2. **Skill check triggers** (REQs 2351, 2359–2361): Athletics checks on steep slopes;
-   Acrobatics Balance checks on narrow/uneven surfaces; flat-footed + fall risk on hit
-3. **Temperature** (REQ 2352): cold/heat environmental damage accumulation per hour;
-   fatigue threshold
-4. **Wind system** (REQs 2366–2369): circumstance penalty to Perception (auditory);
-   ranged attack penalty by wind strength; Maneuver in Flight check; ground Athletics check;
-   powerful wind = ranged impossible
-5. **Avalanche, burial, collapse** (REQs 2362–2365): avalanche damage + Reflex save;
-   burial condition (restrained + damage/min + suffocation); rescue dig mechanic;
-   structural collapse
-6. **Underwater** (REQs 2370–2372): visibility model by water clarity; current as terrain
-   modifier; current displacement per turn
+## Source reference
+
+> "Difficult terrain is any terrain that impedes movement, requiring you to spend 2 feet of movement for every 1 foot traveled." (Chapter 9: Playing the Game, PF2E Core Rulebook)
+
+## Implementation hint
+
+`TerrainSystem`: Encounter map entity stores `terrain_type` per square (enum: normal/difficult/greater_difficult/hazardous/water/ice/rubble). Movement cost: `MovementCostCalculator::cost(from, to)` returns feet spent. Flanking: `EncounterEngine::isFlanked(attacker, defender, all_participants)` checks if attacker + any ally are on directly opposite sides of defender (diagonals count). Hazardous terrain: triggers `DamageEvent` on entry with damage type/amount from terrain entity. Cover rules: creatures in adjacent squares grant cover (+2 AC) when used as obstacle.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic logic; no new routes or user-facing input beyond existing character creation and encounter phase forms
+- Authentication/permission surface: terrain state is GM-scoped (encounter ownership required to modify); player movement queries are read-only GET
+- CSRF expectations: all POST/PATCH terrain update routes require `_csrf_request_header_mode: TRUE`
+- Input validation: terrain type validated against allowed enum; flanking computed server-side from position data; hazardous terrain damage type/amount sourced from entity, not client
+- PII/logging constraints: no PII logged; encounter id + position + terrain type only
 
 ## Roadmap section
 - Book: core, Chapter: ch10

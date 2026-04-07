@@ -14,12 +14,29 @@
 - DB sections: gmg/ch01/Adjudicating Rules, gmg/ch01/Adjudicating Rules (Extended), gmg/ch01/Adventure Design, gmg/ch01/Campaign Structure, gmg/ch01/Chapter Scope and GM Priorities, gmg/ch01/Drawing Maps, gmg/ch01/Encounter Design, gmg/ch01/General Advice, gmg/ch01/Narrative Collaboration, gmg/ch01/Narrative Collaboration (Extended), gmg/ch01/Rarity in Your Game, gmg/ch01/Resolving Problems, gmg/ch01/Resolving Problems (Extended), gmg/ch01/Running Downtime, gmg/ch01/Running Encounters, gmg/ch01/Running Exploration, gmg/ch01/Special Circumstances
 - Depends on: dc-cr-gm-tools, dc-cr-encounter-rules, dc-cr-exploration-mode, dc-cr-downtime-mode
 
-## Description
-Implement GM support features from GMG chapter 1: running encounters (initiative tie-breaking, start-of-combat rules), running exploration (travel speed, exploration activities), running downtime (daily income, long-term projects), encounter design tools, adventure design, campaign structure guides, rarity rules for GMs, adjudicating rules section. Covers gmg/ch01 (~150 reqs). Mostly content/reference, low automation surface.
+## Goal
+
+Implement the GMG's GM reference guide content as searchable in-app GM tools: encounter difficulty budget tables, exploration mode pacing guidance, downtime activity summaries, social encounter DC tables, and XP award guidelines.
+
+## Source reference
+
+> "This chapter provides guidance and tools for running a Pathfinder game." (Gamemastery Guide, Chapter 1)
+
+## Implementation hint
+
+Running Guide content is primarily documentation + quick-reference tables surfaced as searchable Drupal content nodes of type `gm_reference`. Key tables to implement as structured data (not flat text): encounter difficulty budget (party level → XP thresholds), treasure by level, NPC attitude DCs, downtime activity DC table by level. `GMReferenceService::search(query)` returns ranked reference nodes. Tables are rendered as structured `<table>` components, not prose, for quick scanning. Integrates with encounter builder (click-through from budget table to encounter creation).
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic GM tooling logic; no new routes or user-facing input beyond existing GM campaign management forms
+- Authentication/permission surface: GM reference content is read-only for authenticated GMs; no PII or character data involved
+- CSRF expectations: no write routes for reference content; admin update of reference content requires `_admin_access: TRUE` and CSRF token
+- Input validation: search query sanitized; reference content is static GM tool data, no user-modifiable fields
+- PII/logging constraints: no PII logged; search query + returned node ids only
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

@@ -14,26 +14,29 @@
 - DB sections: core/ch10/Resting and Daily Preparations
 - Depends on: dc-cr-encounter-rules, dc-cr-conditions
 
-## Description
-Extend DowntimePhaseHandler long_rest/downtime_rest with watch scheduling and
-food/water deprivation tracking (REQs 2346–2349).
+## Goal
 
-Current state: processLongRest() restores HP and spell slots. No watch tracking,
-no food/water counters, no deprivation damage.
+Implement rest mechanics (8-hour recovery of HP and spell slots), long rest (24-hour full recovery), watch rotation tracking, and starvation/thirst condition escalation for characters without food or water.
 
-Required:
-1. **Watch schedule** (REQ 2346): compute watch duration by party size (3 PCs = one 8-hour
-   watch; 4+ PCs = shorter proportional watches); track which PCs are on watch
-2. **Starvation tracking** (REQ 2349): game_state tracks `food_days` counter; without food:
-   immediate fatigued condition; after Con_mod+1 days: 1 damage/day, unhealable until fed
-3. **Thirst tracking** (REQ 2348): game_state tracks `water_hours` counter; without water:
-   immediate fatigued condition; after Con_mod+1 days: 1d4 damage/hour, unhealable until quenched
-4. **AdvanceDay hook**: DowntimePhaseHandler::processAdvanceDay() must decrement food/water
-   counters and apply fatigue/damage as thresholds are crossed
+## Source reference
+
+> "When you take a full night's rest of at least 8 hours, you regain your spell slots and a certain number of Hit Points." (Chapter 9: Playing the Game, PF2E Core Rulebook)
+
+## Implementation hint
+
+`RestService::rest(session_id, watch_assignments[])` resolves 8-hour rest: each character recovers `character.level × (CON_modifier + 1)` HP (min 1/level); all spell slots reset; Focus Points reset to 1; daily prep triggered (formula items, invested items). Watch assignments: array of character ids for each watch period; watcher makes Perception check for random encounters. `StarvationTracker`: tracks `days_without_food` and `days_without_water` per character; applies stacking `Enfeebled` condition (Enfeebled 1 per missed day; remove 1 per day fed). Long rest (24hrs): recovers `doubled` HP per level.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic logic; no new routes or user-facing input beyond existing character creation and encounter phase forms
+- Authentication/permission surface: rest is session-scoped (session ownership required); character HP recovery is server-computed, not client-supplied
+- CSRF expectations: all POST rest routes require `_csrf_request_header_mode: TRUE`
+- Input validation: watch assignment character ids validated as session participants; HP recovery computed server-side from character stats; starvation counters validated as non-negative integers
+- PII/logging constraints: no PII logged; session id + character ids + HP delta + starvation counter only
 
 ## Roadmap section
 - Book: core, Chapter: ch10

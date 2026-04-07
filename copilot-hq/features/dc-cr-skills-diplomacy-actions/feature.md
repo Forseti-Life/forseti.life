@@ -14,29 +14,29 @@
 - DB sections: core/ch04/Diplomacy (Cha), core/ch04/Intimidation (Cha)
 - Depends on: dc-cr-skill-system, dc-cr-gm-narrative-engine
 
-## Description
-Implement Diplomacy and Intimidation skill action handlers (REQs 1669–1683, 2327, 2330).
+## Goal
 
-**Diplomacy** (REQs 1669–1677):
-- Gather Information (exploration, secret, ~2 hr): ExplorationPhaseHandler handler;
-  DC by availability (simple); crit fail = false info; NPC social DCs adjusted by
-  attitude (friendly −2, helpful −5, unfriendly +2, hostile +5, opposed=incredibly hard)
-- Make an Impression (exploration, ≥1 min, vs Will DC): rolls vs NPC Will DC;
-  shifts NPC attitude on degrees (crit=+2 steps, success=+1, crit fail=−1 step)
-- Request (requires Friendly/Helpful): attitude requirement enforcement
-- Five NPC attitudes: Helpful → Friendly → Indifferent → Unfriendly → Hostile
+Implement all Diplomacy skill actions: Gather Information (Untrained, 2-hour downtime), Make an Impression (Untrained, scene-level social encounter), and Request (Trained), with NPC attitude state machine (Unfriendly/Indifferent/Friendly/Helpful).
 
-**Intimidation** (REQs 1678–1683):
-- Coerce (exploration, ≥1 min, vs Will DC): compliance window ≤1 day;
-  crit fail = 1-week immunity from this character
-- Demoralize (1 action, 30 ft, shared language): frightened 1/2 on success/crit;
-  10-min immunity after attempt
+## Source reference
 
-Covers REQ 2327 (Gather Information DC) and REQ 2330 (NPC social DC by attitude).
+> "Diplomacy involves making requests and negotiations using the power of your words." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+NPC entity gains `attitude` enum (hostile/unfriendly/indifferent/friendly/helpful). Make an Impression: 1-minute activity, Diplomacy vs NPC Will DC (10 + WIS mod + level); success = shift attitude up 1, crit success = up 2. Request: targets Friendly/Helpful NPCs; DC = 15 + NPC level (DC raised for difficult requests); failure may shift attitude down. Gather Information: downtime activity; DC set by rarity of information (10–30); returns rumor/information node IDs. `DiplomacyResolver` stores NPC attitude changes in the scene/encounter context.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; Diplomacy actions against NPCs require session/encounter ownership
+- CSRF expectations: all POST/PATCH skill/diplomacy routes require `_csrf_request_header_mode: TRUE`
+- Input validation: NPC target id validated as valid scene entity; attitude shifts bounded to valid enum values; information DC sourced server-side
+- PII/logging constraints: no PII logged; character id + NPC id + attitude shift + action id only
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

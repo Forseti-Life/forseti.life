@@ -14,22 +14,29 @@
 - DB sections: core/ch04/Deception (Cha)
 - Depends on: dc-cr-skill-system, dc-cr-conditions
 
-## Description
-Implement Deception (Cha) skill action handlers (REQs 1658–1668).
+## Goal
 
-- **Create a Diversion** (1 action): Deception vs Perception of all observers; on success,
-  character becomes Hidden from all who fail
-- **Impersonate** (exploration, trained): Deception vs Perception of observers; requires
-  disguise; crit fail reveals true identity
-- **Lie** (secret check vs Sense Motive): failure gives target +4 circumstance bonus
-  to resist future lies this conversation; delayed recheck on contradicting evidence
-- **Feint** (1 action, mental, trained, melee range): Deception vs target Perception DC;
-  crit success=flat-footed whole turn, success=flat-footed vs next attack,
-  crit fail=attacker becomes flat-footed
+Implement all Deception skill actions: Create a Diversion (Trained), Feint (Trained), Impersonate (Untrained), and Lie (Untrained), with opposed-check resolution against NPC Perception or Sense Motive.
+
+## Source reference
+
+> "Deception allows you to convince others of falsehoods." (Chapter 4: Skills, PF2E Core Rulebook)
+
+## Implementation hint
+
+`DeceptionActionResolver`: Create a Diversion: single action, Deception vs Perception of all observers, success = Hidden until next action; Feint: single action in melee, Deception vs Perception, success = target flat-footed until your next turn; Impersonate: Deception vs Perception (trained NPCs may use Sense Motive) with +4 circumstance bonus if wearing appropriate gear; Lie: Deception vs Sense Motive, context-dependent penalties. All store result in encounter state for downstream condition tracking.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Authentication/permission surface: authenticated users only; deception actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH skill/deception routes require `_csrf_request_header_mode: TRUE`
+- Input validation: target ids validated as encounter participants; impersonation target identity validated as known NPC
+- PII/logging constraints: no PII logged; character id + action id + target ids + outcome only
 
 ## Roadmap section
 - Book: core, Chapter: ch04

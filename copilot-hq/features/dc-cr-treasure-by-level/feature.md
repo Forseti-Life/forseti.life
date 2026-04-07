@@ -14,25 +14,29 @@
 - DB sections: core/ch10/Treasure
 - Depends on: dc-cr-economy, dc-cr-equipment-ch06
 
-## Description
-Implement PF2e per-level treasure tables in ContentGenerator (REQs 2340–2342, 2345).
-Currently generateTreasureHoard() uses generic dice-rolled currency amounts with no
-reference to PF2e Table 10-9 (level-appropriate currency + permanent item levels).
+## Goal
 
-Covers:
-- Per-level treasure table levels 1–20: correct gp total, permanent item levels,
-  consumable item levels (REQ 2340)
-- Currency breakdown: coins, gems, art objects, lower-level items at half price (REQ 2341)
-- Party-size treasure adjustment (REQ 2342)
-- New/replacement character starting wealth by level (REQ 2345)
+Implement the treasure-by-party-level table as a GM tool for loot assignment: permanent items and consumables distributed by level, total GP budget per encounter, and integration with the encounter builder's loot recommendations.
 
-Also covers selling rules (REQ 2343 — standard at half price, gems/art at full)
-and downtime-only buy/sell restriction (REQ 2344), in coordination with
-dc-cr-economy and dc-cr-equipment-ch06.
+## Source reference
+
+> "When you place treasure, use the Treasure by Party Level table to determine the appropriate number and level of items." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+
+## Implementation hint
+
+`TreasureByLevelService::getLootRecommendation(party_level, encounter_difficulty)` returns `{permanent_items[{count, item_level}], consumable_items[{count, item_level}], gp_remainder}`. Data sourced from static server-side table (party levels 1–20 × encounter difficulty levels). `EncounterBuilder::suggestLoot(encounter_id)` calls this service and returns item-level suggestions. GM can assign specific items from the catalog at or below suggested levels. The GP remainder is direct currency reward. Overland hex exploration: weekly loot budget from table for random treasure placement.
+
+## Mission alignment
+
+- [x] Aligns with democratized community game experience
+- [x] Does not add surveillance or restrict community access
 
 ## Security acceptance criteria
 
-- Security AC exemption: game-mechanic logic; no new routes or user-facing input beyond existing character creation and encounter phase forms
+- Authentication/permission surface: treasure recommendation is GM-only (encounter/session ownership required); player characters cannot query loot budget directly
+- CSRF expectations: all POST/PATCH treasure-assignment routes require `_csrf_request_header_mode: TRUE`
+- Input validation: party level and encounter difficulty validated as integer within range; item assignment validated against catalog
+- PII/logging constraints: no PII logged; encounter id + item ids + gp amount only
 
 ## Roadmap section
 - Book: core, Chapter: ch10
