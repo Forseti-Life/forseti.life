@@ -1,0 +1,35 @@
+# Feature Brief: Diplomacy and Intimidation Skill Actions
+
+- Website: dungeoncrawler
+- Type: new
+- Module: dungeoncrawler_content
+- Priority: P2
+- Status: planned
+- Release: none
+- Dependencies: dc-cr-skill-system, dc-cr-gm-narrative-engine
+
+## Description
+Implement Diplomacy and Intimidation skill action handlers (REQs 1669–1683, 2327, 2330).
+
+**Diplomacy** (REQs 1669–1677):
+- Gather Information (exploration, secret, ~2 hr): ExplorationPhaseHandler handler;
+  DC by availability (simple); crit fail = false info; NPC social DCs adjusted by
+  attitude (friendly −2, helpful −5, unfriendly +2, hostile +5, opposed=incredibly hard)
+- Make an Impression (exploration, ≥1 min, vs Will DC): rolls vs NPC Will DC;
+  shifts NPC attitude on degrees (crit=+2 steps, success=+1, crit fail=−1 step)
+- Request (requires Friendly/Helpful): attitude requirement enforcement
+- Five NPC attitudes: Helpful → Friendly → Indifferent → Unfriendly → Hostile
+
+**Intimidation** (REQs 1678–1683):
+- Coerce (exploration, ≥1 min, vs Will DC): compliance window ≤1 day;
+  crit fail = 1-week immunity from this character
+- Demoralize (1 action, 30 ft, shared language): frightened 1/2 on success/crit;
+  10-min immunity after attempt
+
+Covers REQ 2327 (Gather Information DC) and REQ 2330 (NPC social DC by attitude).
+
+## Roadmap section
+- Book: core, Chapter: ch04, ch10
+- REQs: 1669, 1670, 1671, 1672, 1673, 1674, 1675, 1676, 1677,
+         1678, 1679, 1680, 1681, 1682, 1683, 2327, 2330
+- See `runbooks/roadmap-audit.md` for audit process.

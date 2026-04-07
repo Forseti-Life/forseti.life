@@ -1,0 +1,26 @@
+# Feature Brief: Encounter Creature XP Table
+
+- Website: dungeoncrawler
+- Type: extend
+- Module: dungeoncrawler_content
+- Priority: P1
+- Status: planned
+- Release: none
+- Dependencies: dc-cr-encounter-rules
+
+## Description
+Implement the PF2e level-difference XP table for creature encounter budgets. Currently `EncounterGeneratorService` hardcodes creature `xp_value` fields and does not compute XP dynamically from party_level − creature_level. Covers REQs 2314–2317.
+
+Table to implement (party_level − creature_level → XP):
+party-4=10, party-3=15, party-2=20, party-1=30, same=40, +1=60, +2=80, +3=120, +4=160.
+Creatures >4 levels below = trivial (0 XP); >4 above = too dangerous (excluded).
+
+Also covers: per-PC budget adjustment by Character Adjustment value (REQ 2312), and
+level-variance guard in EncounterGeneratorService (REQ 2315).
+
+Note: REQ 2317 (double XP for lagging PCs) deferred pending XP award system decision.
+
+## Roadmap section
+- Book: core, Chapter: ch10
+- REQs: 2312, 2314, 2315, 2316, 2317
+- See `runbooks/roadmap-audit.md` for audit process.

@@ -1,0 +1,34 @@
+# Feature Brief: Athletics Skill Actions
+
+- Website: dungeoncrawler
+- Type: new
+- Module: dungeoncrawler_content
+- Priority: P1
+- Status: planned
+- Release: none
+- Dependencies: dc-cr-skill-system, dc-cr-skills-calculator-hardening, dc-cr-conditions
+
+## Description
+Implement all Athletics (Str) skill action handlers (REQs 1620–1642). High priority —
+Grapple, Trip, Shove, Disarm are core combat actions; Climb/Swim are core exploration.
+REQ 1641 (falling damage handler) is HIGH severity and may be partially broken
+(grab_edge wired but applyFallingDamage method absent).
+
+Combat actions (EPH):
+- **Climb** (1 action): Athletics vs terrain Climb DC; speed = half if failed
+- **Force Open** (1 action): Athletics vs Hardness/Fortitude; degrees
+- **Grapple** (1 action, reach): Athletics vs Fortitude; grabbed/restrained conditions
+- **High/Long Jump** (2 actions): Stride + Athletics vs DC (DC 30 for 10-ft high jump)
+- **Shove** (1 action, reach): Athletics vs Fortitude; pushed 5 ft (10 on crit)
+- **Trip** (1 action, reach): Athletics vs Reflex; prone on success
+- **Disarm** (1 action, reach, trained): Athletics vs Reflex; drop item
+
+Exploration actions (ExPH): Swim (Speed or half), Climb (wall)
+
+Falling damage fix (REQ 1641): wire applyFallingDamage to grab_edge reaction;
+add fallDamage method to HPManager if absent.
+
+## Roadmap section
+- Book: core, Chapter: ch04
+- REQs: 1620–1642 (23 REQs)
+- See `runbooks/roadmap-audit.md` for audit process.

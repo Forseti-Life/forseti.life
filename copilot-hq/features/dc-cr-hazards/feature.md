@@ -3,9 +3,8 @@
 - Work item id: dc-cr-hazards
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
-- Defer reason: 20260228-dungeoncrawler-release-next focuses on core MVP (dice, DC, encounter, conditions, character creation, class, background, skill, equipment); this feature is secondary priority and will be re-evaluated next grooming cycle.
-- Priority: unset (PM will set at triage)
+- Status: planned
+- Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -13,9 +12,28 @@
 - Category: game-mechanic
 - Created: 2026-02-26
 
+## Roadmap section
+- Book: core, Chapter: ch10
+- REQs: 2373–2396
+- See `runbooks/roadmap-audit.md` for audit process.
+
 ## Goal
 
-Implement hazards as dungeon/environment threats that are distinct from monsters: traps, haunts, and environmental dangers that have their own stat blocks (Stealth DC to detect, Disable DC to disarm, Attack/Save DCs for triggered effects). Hazards have levels, XP values, and may be simple (one-time trigger) or complex (initiative-tracked). They are essential for dungeoncrawler dungeon design.
+Implement full PF2e hazard system (REQs 2373–2396). Current state: stealth_dc and
+disable_dc schema exist in ContentRegistry; RoomStateService hides traps until detected.
+Everything else is absent. Full scope required:
+1. **Hazard stat block** (REQ 2389): AC, saving throw modifiers, Hardness, HP, Broken Threshold
+2. **Simple vs complex type** (REQs 2379–2382): simple=one reaction; complex joins initiative with
+   routine array per round
+3. **Passive/active triggers** (REQs 2377–2378): passive fires on undetected entry; active on interact
+4. **Detection** (REQs 2374–2376): auto-secret Perception vs stealth_dc on room entry; min-proficiency
+   enforcement; detect_magic reveals magical hazards
+5. **Disable action** (REQs 2384–2388): 2-action skill check vs disable_dc; crit fail triggers;
+   multi-success for complex; proficiency minimum; requires detected flag
+6. **Hazard HP** (REQs 2390–2392): BT/0-HP states; hitting triggers unless destroyed outright
+7. **Magical hazards** (REQs 2393–2394): spell_level, counteract_dc fields
+8. **Hazard XP** (REQs 2395–2396): award on overcome; Table 10-14 level-relative XP
+9. **Reset condition** (REQ 2383): auto-reset or manual reset steps field
 
 ## Source reference
 
