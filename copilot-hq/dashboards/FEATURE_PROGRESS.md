@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T17:06:14Z
+Generated: 2026-04-07T17:14:56Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -95,7 +95,7 @@ Generated: 2026-04-07T17:06:14Z
 | dc-cr-skills-acrobatics-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-skills-arcana-borrow-spell | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-skills-athletics-actions | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
-| dc-cr-skills-calculator-hardening | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
+| dc-cr-skills-calculator-hardening | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-skills-crafting-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-skills-deception-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-skills-diplomacy-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
