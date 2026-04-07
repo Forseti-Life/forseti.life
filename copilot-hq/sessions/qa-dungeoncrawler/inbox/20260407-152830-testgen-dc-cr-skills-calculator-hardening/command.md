@@ -81,3 +81,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 ## Security acceptance criteria
 - Security AC exemption: internal calculator service hardening; no new routes or user-facing input beyond existing character creation and leveling forms
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -3,7 +3,8 @@
 - Work item id: dc-cr-dwarf-heritage-ancient-blooded
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260406-dungeoncrawler-release-b
 - Priority: P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

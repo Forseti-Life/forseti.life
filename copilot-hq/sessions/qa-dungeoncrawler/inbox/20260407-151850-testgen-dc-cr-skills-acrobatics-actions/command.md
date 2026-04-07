@@ -100,3 +100,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 ## Security acceptance criteria
 
 - Security AC exemption: skill action logic; no new routes or user-facing input beyond existing encounter/exploration phase handlers
+- Agent: qa-dungeoncrawler
+- Status: pending
