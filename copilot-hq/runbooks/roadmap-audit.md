@@ -66,7 +66,57 @@ ORDER BY book_id, chapter_key;
 
 ---
 
-## The Audit Process (Two Tracks)
+## Working Discipline: One Feature at a Time
+
+**Do not attempt to batch or parallelize audit work.** Each section must be fully resolved
+before moving to the next. "Resolved" means one of:
+- Audit tracker row updated to `implemented` or `covered` with `feature_id` set
+- A blocker recorded with an explicit reason and a follow-up item dispatched
+
+**Why:** Bulk passes look complete but leave unresolved handoffs, missing feature_ids, and
+dependency gaps that are invisible until the next audit cycle. Serial work produces a complete,
+verifiable artifact row by row.
+
+**Working order within a chapter:**
+1. Query the DB for all sections in the chapter (use the Bulk Status Query below)
+2. Load them into the SQL audit tracker as `pending` rows
+3. Work top-to-bottom through the tracker — one row at a time
+4. Do not start a new row until the current row's status is updated in the tracker
+5. At natural break points (end of chapter, end of session), commit the tracker artifact
+
+---
+
+## Dependency Mapping
+
+Feature dependencies must be tracked whenever they are discovered — not deferred to later.
+The canonical dependency map is **`features/dc-feature-index.md`** (the `Depends on` column).
+
+**When a dependency is identified during audit:**
+1. Add `- Depends on: <feature-id>, <feature-id>` to the feature stub's header fields
+2. Update the feature index `Depends on` column for that row
+3. If the blocking feature does not yet have a stub, create it first (or note it as a blocker
+   in the audit tracker with `status = blocked` and `notes = "blocked on <feature-id>"`)
+
+**Dependency detection triggers:**
+- Track B Step 1: when checking if an existing feature covers this section, also note what
+  that feature depends on — if its dependencies are unplanned, create stubs for them now
+- Track B Step 3: when creating a new stub, ask: "can this be built without any other feature
+  being live first?" If not, identify and record the blocking features
+- Common dependency patterns in DungeonCrawler:
+  - Any class feature → depends on `dc-cr-character-class`, `dc-cr-character-leveling`
+  - Any heritage/ancestry feat → depends on the ancestry feature + `dc-cr-ancestry-feat-schedule`
+  - Any spellcasting feature → depends on `dc-cr-spellcasting`
+  - Any equipment-based feature → depends on `dc-cr-equipment-system`
+  - Any skill action → depends on `dc-cr-skill-system`
+
+**Dependency status values in audit tracker:**
+- `covered` — feature has a stub and dependencies are mapped
+- `blocked` — feature cannot be stubbed yet; blocking feature identified in `notes`
+
+The feature index is maintained by `ba-dungeoncrawler` but PM must flag any new dependencies
+discovered during audit for BA to formally record at the end of the cycle.
+
+---
 
 ### Track A — Code Verification (QA-first)
 **Use when**: The relevant engine/service is known to be at least partially implemented.
@@ -121,6 +171,7 @@ Examples: `apg/ch02` (APG classes — no class-specific services exist),
    - Category: game-mechanic  # or: ui | content | infra
    - Created: <YYYY-MM-DD>
    - DB sections: core/ch03/Alchemist, core/ch03/Alchemist-Feats  # book/chapter/section rows this covers
+   - Depends on:              # comma-separated feature ids; blank if none
    ```
    See any existing `features/dc-*/feature.md` for a complete example.
    The `DB sections` field is required — it is the only record linking this feature to specific
@@ -230,7 +281,7 @@ CREATE TABLE roadmap_audit (
     section TEXT,
     req_count INTEGER,
     track TEXT,           -- 'A' (QA-first) or 'B' (feature-pipeline)
-    status TEXT DEFAULT 'pending',  -- pending / qa_dispatched / qa_done / dev_dispatched / implemented / covered
+    status TEXT DEFAULT 'pending',  -- pending / qa_dispatched / qa_done / dev_dispatched / implemented / covered / blocked
     feature_id TEXT,      -- dc-cr-* feature file if Track B (required when status=covered)
     notes TEXT
 );
