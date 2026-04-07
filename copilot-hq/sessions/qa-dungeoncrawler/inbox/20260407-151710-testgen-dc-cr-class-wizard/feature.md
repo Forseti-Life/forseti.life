@@ -1,9 +1,9 @@
-# Feature Brief: Sorcerer Class Mechanics
+# Feature Brief: Wizard Class Mechanics
 
-- Work item id: dc-cr-class-sorcerer
+- Work item id: dc-cr-class-wizard
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: planned
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -11,11 +11,11 @@
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch03
 - Category: class
 - Created: 2026-04-07
-- DB sections: core/ch03/Sorcerer
+- DB sections: core/ch03/Wizard
 - Depends on: dc-cr-character-class, dc-cr-spellcasting
 
 ## Description
-Implement the Sorcerer class mechanics: bloodline selection (Imperial/Aberrant/Angelic/Demonic/Draconic/Elemental/Fey/Genie/Hag/Imperial/Nymph/Undead), bloodline spell, spontaneous spellcasting (tradition per bloodline), and all class feature unlocks. Covers core/ch03 Sorcerer section (~47 requirements). Requires full spellcasting.
+Implement the Wizard class mechanics: arcane school selection, arcane prepared spellcasting, arcane thesis, spellbook, and all class feature unlocks. Covers core/ch03 Wizard section (~46 requirements). Requires full spellcasting system.
 
 ## Security acceptance criteria
 

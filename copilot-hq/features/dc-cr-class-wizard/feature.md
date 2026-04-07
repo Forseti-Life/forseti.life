@@ -3,7 +3,7 @@
 - Work item id: dc-cr-class-wizard
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement the Wizard class mechanics: arcane school selection, arcane prepared spellcasting, arcane thesis, spellbook, and all class feature unlocks. Covers core/ch03 Wizard section (~46 requirements). Requires full spellcasting system.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic class logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.
