@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T17:14:56Z
+Generated: 2026-04-07T17:22:22Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -70,7 +70,7 @@ Generated: 2026-04-07T17:14:56Z
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
@@ -103,7 +103,7 @@ Generated: 2026-04-07T17:14:56Z
 | dc-cr-skills-medicine-actions | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-skills-nature-command-animal | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-skills-performance-perform | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-skills-recall-knowledge | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
+| dc-cr-skills-recall-knowledge | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-skills-stealth-hide-sneak | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
