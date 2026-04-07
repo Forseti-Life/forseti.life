@@ -1,5 +1,5 @@
 - Status: done
-- Summary: Suite activation for dc-cr-difficulty-class was completed in a prior cycle — 3 suite entries tagged feature_id: dc-cr-difficulty-class are present in qa-suites/products/dungeoncrawler/suite.json covering all 14 TCs (TC-DC-01 through TC-DC-14), with phpunit type and correct command format. Full activation details in outbox 20260406-035339-suite-activate-dc-cr-difficulty-class.md (commit 32fdabcc). This inbox item is a duplicate dispatch; no new work required.
+- Summary: Suite activation for dc-cr-difficulty-class was completed in a prior cycle — 3 entries tagged feature_id: dc-cr-difficulty-class are present in qa-suites/products/dungeoncrawler/suite.json (14 TCs, phpunit runner, TC-DC-01 through TC-DC-14), and the api-rules-check permission rule is tagged. Full activation details in outbox 20260406-035339-suite-activate-dc-cr-difficulty-class.md (commit 1166a6ff). This inbox item is a duplicate dispatch; no new work required.
 
 ## Next actions
 - Awaiting next inbox dispatch
