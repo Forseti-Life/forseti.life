@@ -1,7 +1,7 @@
 # Runbook: DungeonCrawler Roadmap Requirements Audit
 
 **Owned by**: `pm-dungeoncrawler`  
-**Supervised by**: `ceo-copilot`  
+**Supervised by**: CEO  
 **Triggered by**: CEO or Board request, or post-release improvement round  
 
 ---
@@ -35,17 +35,20 @@ GROUP BY book_id, chapter_key
 ORDER BY book_id, chapter_key;
 ```
 
-**Current totals (2026-04-07 baseline):**
+**Current totals (2026-04-07 baseline — updated post-audit-pass3):**
+
+> ⚠️ These numbers go stale. Always re-query before starting an audit cycle:
+> `sudo mysql dungeoncrawler -e "SELECT status, COUNT(*) FROM dc_requirements GROUP BY status;"`
 
 | book | chapter | pending | implemented |
 |------|---------|---------|-------------|
 | core | ch03 (Classes) | 904 | 3 |
-| core | ch04 (Skills) | 198 | 0 |
+| core | ch04 (Skills) | 188 | 10 |
 | core | ch05 (Feats) | 24 | 0 |
 | core | ch06 (Equipment) | 161 | 0 |
 | core | ch07 (Spells) | 135 | 0 |
-| core | ch09 (Playing the Game) | 4 | 238 |
-| core | ch10 (Game Mastering) | 87 | 0 |
+| core | ch09 (Playing the Game) | 1 | 241 |
+| core | ch10 (Game Mastering) | 80 | 7 |
 | core | ch11 (Crafting & Treasure) | 154 | 0 |
 | apg | ch01–ch06 | 595 | 0 |
 | gmg | ch01–ch04 | 150 | 0 |
@@ -53,7 +56,7 @@ ORDER BY book_id, chapter_key;
 | som | ch01–ch05 | 30 | 0 |
 | gam | s01–s06 | 36 | 0 |
 | b1–b3 | all | 54 | 0 |
-| **TOTAL** | | **~2556** | **241** |
+| **TOTAL** | | **~2536** | **261** |
 
 ---
 
@@ -73,6 +76,12 @@ Examples: `core/ch09` (combat rules — CombatEngine, HPManager, etc.),
 4. **PASS** → run `drush dungeoncrawler:roadmap-set-status implemented --book=X --chapter=Y --section="Z"`
 5. **BLOCK** → find or create `features/dc-*/` file, dispatch dev inbox item
 
+**Track A → Track B transition (partial chapters):**
+For chapters where some reqs are implemented and others are not (e.g., `core/ch04` Skills,
+`core/ch10` GM tools): run Track A first to identify and mark all already-implemented reqs,
+then treat remaining BLOCK items as Track B work — create/link feature files for each gap
+and dispatch dev items. Do not batch the whole chapter as Track B just because it has gaps.
+
 ### Track B — Feature Pipeline (Dev-first)
 **Use when**: No relevant service exists for the chapter's content.
 
@@ -84,6 +93,23 @@ Examples: `apg/ch02` (APG classes — no class-specific services exist),
 1. Check if a `features/dc-*` file already covers this area
 2. If a feature exists with `status: ready/in_progress/done` → link that feature, skip creation
 3. If no feature exists → create `features/dc-*/feature.md` stub (PM-owned, PM creates)
+
+   **Required fields for a new feature stub:**
+   ```
+   - Work item id: dc-<product>-<short-name>
+   - Website: dungeoncrawler
+   - Module: dungeoncrawler_content
+   - Status: planned          # planned | ready | in_progress | done | deferred
+   - Priority: P<N>
+   - PM owner: pm-dungeoncrawler
+   - Dev owner: dev-dungeoncrawler
+   - QA owner: qa-dungeoncrawler
+   - Source: <PF2E book reference>
+   - Category: game-mechanic  # or: ui | content | infra
+   - Created: <YYYY-MM-DD>
+   ```
+   See any existing `features/dc-*/feature.md` for a complete example.
+
 4. Dispatch BA inbox item for requirements analysis + acceptance criteria
 5. Dispatch dev inbox item after BA delivers AC + test plan
 6. After dev ships and QA approves → mark implemented via drush
@@ -138,6 +164,11 @@ GROUP BY section ORDER BY section;
 
 ## Drush Update Commands (after QA PASS)
 
+> **Path note:** `/var/www/html/dungeoncrawler` is the deployed production Drupal root
+> (where drush commands should run to affect the live DB). The development source is at
+> `/home/ubuntu/forseti.life/sites/dungeoncrawler/`. Use the production path for all
+> `roadmap-set-status` drush commands; use the source path for code reading/editing.
+
 ```bash
 cd /var/www/html/dungeoncrawler
 
@@ -183,6 +214,7 @@ sudo mysql dungeoncrawler -e \
 
 ## Completion Criteria
 
+### Per-section complete
 A chapter/section is fully audited when:
 ```sql
 SELECT COUNT(*) FROM dc_requirements
@@ -193,6 +225,34 @@ WHERE book_id='core' AND chapter_key='ch03' AND section='Alchemist' AND status='
 AND either:
 - `status='implemented'` in `dc_requirements` (QA-verified), OR
 - A `features/dc-*/feature.md` exists for the topic (in pipeline)
+
+### Whole-roadmap audit complete
+The full roadmap audit is complete when **every section** satisfies the per-section criteria above.
+Verify with:
+```sql
+-- Returns 0 when audit is complete (no pending reqs without a feature file):
+SELECT r.book_id, r.chapter_key, r.section, COUNT(*) as uncovered_pending
+FROM dc_requirements r
+WHERE r.status = 'pending'
+GROUP BY r.book_id, r.chapter_key, r.section
+HAVING uncovered_pending > 0
+ORDER BY r.book_id, r.chapter_key;
+```
+Note: A non-zero count here is acceptable **only if** a `features/dc-*/feature.md` file explicitly
+covers those reqs. PM must confirm coverage manually for any returned rows.
+
+The PM outbox for the audit cycle should record:
+- Total implemented count (from DB)
+- Total pending count (from DB)
+- Count of feature files covering pending reqs
+- Any explicitly deferred sections (with Board/CEO decision reference)
+
+### Audit cycle triggers
+A new audit pass should be run when any of the following occur:
+- A release cycle closes (post-release improvement round)
+- A new book's requirements are imported into `dc_requirements`
+- The CEO requests a coverage gap check
+- QA auto-site audit returns new BLOCK findings with no mapped feature file
 
 ---
 
