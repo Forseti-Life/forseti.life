@@ -1,12 +1,18 @@
 # Feature Brief: Barbarian Class Mechanics
 
+- Work item id: dc-cr-class-barbarian
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P1
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-character-class, dc-cr-character-creation, dc-cr-conditions
+- Priority: P1
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch03
+- Category: class
+- Created: 2026-04-07
+- DB sections: core/ch03/Barbarian
+- Depends on: dc-cr-character-class, dc-cr-character-creation, dc-cr-conditions
 
 ## Description
 Implement the Barbarian class mechanics: Rage action (temp HP, damage bonus, AC penalty, concentrate restriction), Instinct selection (Animal/Spirit/personal), anathema tracking, and all class feature unlocks per advancement table (Brutality, Juggernaut, Weapon Specialization, etc.). Covers core/ch03 Barbarian section (~120 requirements). No spellcasting dependency.

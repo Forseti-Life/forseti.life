@@ -1,12 +1,18 @@
 # Feature Brief: GMG Chapter 4 — Subsystems
 
+- Work item id: dc-gmg-subsystems
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-encounter-rules, dc-cr-exploration-mode, dc-cr-downtime-mode
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Gamemastery Guide, gmg/ch03-ch04
+- Category: gm-tools
+- Created: 2026-04-07
+- DB sections: gmg/ch03/Baseline Requirements, gmg/ch03/Integration Notes, gmg/ch04/Baseline Requirements, gmg/ch04/Integration Notes
+- Depends on: dc-cr-encounter-rules, dc-cr-exploration-mode, dc-cr-downtime-mode
 
 ## Description
 Implement GMG chapter 4 subsystem framework and variant rules (REQs 2732–2737).

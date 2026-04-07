@@ -1,12 +1,18 @@
 # Feature Brief: Monk Class Mechanics
 
+- Work item id: dc-cr-class-monk
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-character-class, dc-cr-focus-spells
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch03
+- Category: class
+- Created: 2026-04-07
+- DB sections: core/ch03/Monk
+- Depends on: dc-cr-character-class, dc-cr-focus-spells
 
 ## Description
 Implement the Monk class mechanics: Flurry of Blows, ki spells (focus spells), stance system, unarmed strikes, and all class feature unlocks. Covers core/ch03 Monk section (~68 requirements). Partial focus spell dependency.

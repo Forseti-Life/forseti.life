@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T12:47:16Z
+Generated: 2026-04-07T12:52:43Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -115,14 +115,14 @@ Generated: 2026-04-07T12:47:16Z
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-gam-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
-| dc-gng-lost-omens | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | ready | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | ready | P1 |  |  |  |

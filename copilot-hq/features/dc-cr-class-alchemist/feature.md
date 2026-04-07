@@ -1,12 +1,18 @@
 # Feature Brief: Alchemist Class Mechanics
 
+- Work item id: dc-cr-class-alchemist
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-character-class, dc-cr-character-creation, dc-cr-equipment-system
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch03
+- Category: class
+- Created: 2026-04-07
+- DB sections: core/ch03/Alchemist
+- Depends on: dc-cr-character-class, dc-cr-character-creation, dc-cr-equipment-system
 
 ## Description
 Implement the Alchemist class mechanics: infused reagents, advanced alchemy, quick alchemy, formula book, research fields (Bomber/Chirurgeon/Mutagenist), and all class feature unlocks per the advancement table (levels 1-20). Covers core/ch03 Alchemist section (~115 requirements).
