@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-06T23:59:53Z
+Generated: 2026-04-07T01:51:46Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -13,7 +13,7 @@ Generated: 2026-04-06T23:59:53Z
 | dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | done | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
 | dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | done | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
 | dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | done | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
-| dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | ready | unset (PM will set at triage) |  |  |  |
+| dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | ready | P3 (complex; depends on feats system not yet in scope; deferred to release after next) |  |  |  |
 | dc-cr-clan-dagger | dungeoncrawler | dungeoncrawler_content | shipped | P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev) |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat dependency; ConditionManager partial impl exists) |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -42,7 +42,7 @@ Generated: 2026-04-06T23:59:53Z
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
-| dc-cr-languages | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-languages | dungeoncrawler | dungeoncrawler_content | in_progress | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
 | dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |

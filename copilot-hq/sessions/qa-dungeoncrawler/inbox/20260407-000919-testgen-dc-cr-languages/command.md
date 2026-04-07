@@ -97,3 +97,5 @@ See full process: `runbooks/intake-to-qa-handoff.md`
 
 - KB search: none found (no prior language system lessons in `knowledgebase/lessons/`).
 - Note: elf-ancestry and elf-heritage-cavern are blocked on this feature being shipped. Expedite.
+- Agent: qa-dungeoncrawler
+- Status: pending
