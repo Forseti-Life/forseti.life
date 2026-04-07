@@ -4,37 +4,33 @@
 agents:
   # Executive
   - id: ceo-copilot
+    name: "Copilot (CEO) — DEPRECATED"
+    role: ceo
+    supervisor: board
+    website_scope: ["*"]
+    paused: true
+    notes: "DEPRECATED. Canonical CEO seat is ceo-copilot-2. Instructions stub only — do not dispatch work here."
+
+  - id: ceo-copilot-2
     name: "Copilot (CEO)"
     role: ceo
     supervisor: board
     website_scope: ["*"]
-    paused: true
-    notes: "Paused to prevent CEO queue collisions; ceo-copilot-2 is the active CEO seat."
-    owns:
-      - "Coordination policy"
-      - "Conflict resolution"
-      - "Master tracking"
-
-  - id: ceo-copilot-2
-    name: "Copilot (CEO) — Thread 2"
-    role: ceo
-    supervisor: board
-    website_scope: ["*"]
-    notes: "Primary active CEO seat."
+    notes: "Canonical active CEO seat. All supervisor references point here."
 
   - id: ceo-copilot-3
-    name: "Copilot (CEO) — Thread 3"
+    name: "Copilot (CEO) — Thread 3 — DEPRECATED"
     role: ceo
     supervisor: board
     website_scope: ["*"]
     paused: true
-    notes: "Paused to prevent CEO queue collisions; ceo-copilot-2 is the active CEO seat."
+    notes: "DEPRECATED. Canonical CEO seat is ceo-copilot-2. Instructions stub only — do not dispatch work here."
 
   # Product Management (module-level ownership per website)
   - id: pm-infra
     name: "PM (infrastructure)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["infrastructure"]
     notes: "Owns system administration + security backlog; scope is cross-site infrastructure and anything outside website directories."
 
@@ -73,21 +69,21 @@ agents:
   - id: pm-forseti
     name: "PM (forseti.life)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["forseti.life"]
     module_ownership: ["job_hunter"]
 
   - id: pm-dungeoncrawler
     name: "PM (dungeoncrawler)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["dungeoncrawler"]
     module_ownership: ["dungeoncrawler_content", "dungeoncrawler_tester"]
 
   - id: pm-stlouisintegration
     name: "PM (stlouisintegration.com)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["stlouisintegration.com"]
     module_ownership: []
     paused: true
@@ -96,7 +92,7 @@ agents:
   - id: pm-theoryofconspiracies
     name: "PM (theoryofconspiracies.com)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["theoryofconspiracies.com"]
     module_ownership: []
     paused: true
@@ -105,7 +101,7 @@ agents:
   - id: pm-thetruthperspective
     name: "PM (thetruthperspective.org)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["thetruthperspective.org"]
     module_ownership: []
     paused: true
@@ -178,7 +174,7 @@ agents:
   - id: agent-explore
     name: "Explore Agent (DEPRECATED TEMPLATE — HQ only)"
     role: software-developer
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["infrastructure"]
     paused: true
     notes: "Deprecated template seat kept for legacy artifacts only. Keep paused. Use per-team explore seats (agent-explore-forseti, agent-explore-dungeoncrawler, agent-explore-infra). If ever unpaused, limit work to HQ/infrastructure file-review + queue follow-ups; no product UX exploration."
@@ -200,14 +196,14 @@ agents:
   - id: agent-code-review
     name: "Code Review Agent (org-wide capability)"
     role: tester
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["*"]
     notes: "Org-wide capability seat (not product-specific). Used by CEO across all products to scan diffs for high-impact issues (bugs/security/logic), not style."
 
   - id: agent-task-runner
     name: "Task Runner Agent (org-wide capability)"
     role: tester
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["*"]
     notes: "Org-wide capability seat (not product-specific). Used by CEO across all products to run builds/tests/lints with concise success output and full failure logs."
 
@@ -215,7 +211,7 @@ agents:
   - id: sec-analyst
     name: "Security Analyst (DEPRECATED TEMPLATE — HQ only)"
     role: security-analyst
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["infrastructure"]
     paused: true
     owns:
@@ -249,7 +245,7 @@ agents:
   - id: pm-forseti-agent-tracker
     name: "PM (forseti.life / agent tracker)"
     role: product-manager
-    supervisor: ceo-copilot
+    supervisor: ceo-copilot-2
     website_scope: ["forseti.life"]
     module_ownership: ["copilot_agent_tracker"]
 
