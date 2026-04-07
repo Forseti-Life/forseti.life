@@ -150,3 +150,30 @@ This file is a running list of targeted regression checks derived from completed
 - [x] 20260406-unit-test-impl-flat-check-system — APPROVE (2026-04-06): Calculator::rollFlatCheck(dc, options) all 12 TCs pass live. DC≤1 auto-success, DC≥21 auto-fail, fortune=higher-of-2, misfortune=lower-of-2, cancel=single-roll, secret=roll-null. Persistent damage uses Calculator.rollFlatCheck(15/10). Hidden(DC11)/concealed(DC5) flat checks in RulesEngine.validateAttack confirmed. getFortuneFlags() present in ConditionManager. Follow-on: skill/save callers not yet wired to fortune flags. See: sessions/qa-dungeoncrawler/artifacts/verification-reports/20260406-unit-test-impl-flat-check-system.md
 - [ ] 20260407-roadmap-status-csrf-fix — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260407-roadmap-status-csrf-fix.md)
 - [ ] 20260406-roadmap-req-2267-2289-senses-heropts-encounter — BLOCK (2026-04-07): 18/23 PASS. Inbox 'Expected FAIL: 2267-2278, 2280-2282, 2286, 2288' severely understated — nearly all are implemented. Key PASS: full 4-state detection machine (observed/hidden/undetected/unnoticed)✓; resolveSensePrecision with darkvision/greater-darkvision/low-light-vision/tremorsense/scent/invisible✓; resolveLightLevel with hex-level light sources + room fallback✓; concealment DC5 flat check in dim light✓; hidden flat-footed+DC11✓; undetected auto-miss✓; in_world_seconds=round×6 (REQ 2286)✓; shiftInitiativeAfterAttacker (REQ 2288)✓; heroPointReroll logic in Calculator✓. GAP-2280 (MEDIUM): heroPointReroll() is a dead letter — no getLegalIntents() entry, no EPH case handler. GAP-2281 (MEDIUM): spend-all-hero-points stabilize path missing. GAP-2278 (MEDIUM): hearing sense not modeled for invisible creature detection. Low gaps: GAP-2270 (no magical-darkness flag distinction), GAP-2272 (tremorsense doesn't check airborne), GAP-2273 (scent wind modifier absent), GAP-2279 (no session-end HP reset), GAP-2282 (no familiar system), GAP-2284 (PC tie auto-sorted), GAP-2286 (in_world_seconds stored but not consumed by effects). See: sessions/qa-dungeoncrawler/artifacts/verification-reports/20260406-roadmap-req-2267-2289-senses-heropts-encounter.md
+- [ ] 20260407-fix-from-qa-block-dungeoncrawler — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260407-fix-from-qa-block-dungeoncrawler.md)
+
+## 2290–2310 Exploration Mode + Downtime Mode (2026-04-07)
+
+### PASS
+- REQ 2298: processSearch() — Perception vs search_dc, reveals hidden entities
+- REQ 2301: processLongRest HP = max(1, con_mod) × level (not full HP)
+- REQ 2302: hasArmorEquipped(['medium','heavy']) → fatigued condition on rest
+- REQ 2306: processDowntimeRest HP = max(1, con_mod) × (2 × level)
+- REQ 2307: processRetrain() + processAdvanceDay() — 7-day timer with entity mutation on completion
+- REQ 2308: prohibited array blocks ancestry/heritage/background/class/ability_score retrain
+- REQ 2309: druid_order/wizard_school/sorcerer_bloodline → 30 days
+- REQ 2310: retraining lock blocks new retrain if active retrain in game_state['downtime']['retraining']
+
+### BLOCK findings
+- GAP-2290 (MEDIUM): calculateTravelSpeed() not called from processMove() — all movement is distance-free
+- DEF-2291 (LOW): greater_difficult multiplier 0.25 (¼), should be 0.333 (⅓)
+- GAP-2292 (MEDIUM): avoid_notice/defend stored in character_activities but no speed halving or initiative substitution wired
+- GAP-2296 (LOW): Hustle speed doubling exists, Con mod fatigue timer absent
+- GAP-2303 (LOW): hours_since_rest reset on rest but never incremented; no >16h fatigue trigger
+- GAP-2304 (LOW): daily_prepare missing rest prerequisite and item investment
+- GAP-2305 (LOW): last_daily_prepare recorded but no 24h cooldown enforcement
+
+### Regression watches
+- processMove() — ensure calculateTravelSpeed() is called when wired
+- CombatEngine::startEncounter() — watch for character_activities Stealth initiative substitution
+- advanceExplorationTime() — watch for hours_since_rest increment when added
