@@ -8,6 +8,7 @@ use Drupal\dungeoncrawler_content\Service\HPManager;
 use Drupal\dungeoncrawler_content\Service\CombatCalculator;
 use Drupal\dungeoncrawler_content\Service\ConditionManager;
 use Drupal\dungeoncrawler_content\Service\MovementResolverService;
+use Drupal\dungeoncrawler_content\Service\AfflictionManager;
 
 /**
  * Combat Engine service - Main orchestrator for combat operations.
@@ -81,7 +82,12 @@ class CombatEngine {
    */
   protected ?MovementResolverService $movementResolver;
 
-  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation, CombatCalculator $combat_calculator = NULL, ConditionManager $condition_manager = NULL, MovementResolverService $movement_resolver = NULL) {
+  /**
+   * @var \Drupal\dungeoncrawler_content\Service\AfflictionManager|null
+   */
+  protected ?AfflictionManager $afflictionManager;
+
+  public function __construct(Connection $database, StateManager $state_manager, ActionProcessor $action_processor, CombatEncounterStore $store, HPManager $hp_manager, NumberGenerationService $number_generation, CombatCalculator $combat_calculator = NULL, ConditionManager $condition_manager = NULL, MovementResolverService $movement_resolver = NULL, AfflictionManager $affliction_manager = NULL) {
     $this->database = $database;
     $this->stateManager = $state_manager;
     $this->actionProcessor = $action_processor;
@@ -91,6 +97,7 @@ class CombatEngine {
     $this->combatCalculator = $combat_calculator ?? new CombatCalculator();
     $this->conditionManager = $condition_manager;
     $this->movementResolver = $movement_resolver;
+    $this->afflictionManager = $affliction_manager;
   }
 
   /**
@@ -546,6 +553,24 @@ class CombatEngine {
     // Tick valued end_of_turn conditions (frightened, clumsy, etc.) via ConditionManager.
     if ($this->conditionManager) {
       $effects['ticked_conditions'] = $this->conditionManager->tickConditions($participant_id, $encounter_id);
+    }
+
+    // GAP-AFFLICTION-1: Trigger per-turn saving throws for active afflictions (poison, disease, etc.).
+    $effects['periodic_save_results'] = [];
+    if ($this->afflictionManager) {
+      $active_afflictions = $this->afflictionManager->getActiveAfflictions($participant_id, $encounter_id);
+      foreach ($active_afflictions as $affliction) {
+        $save_result = $this->afflictionManager->processPeriodicSave(
+          $participant_id,
+          (int) $affliction['id'],
+          $encounter_id
+        );
+        $effects['periodic_save_results'][] = [
+          'affliction_id'   => (int) $affliction['id'],
+          'affliction_name' => $affliction['affliction_name'] ?? 'unknown',
+          'save_result'     => $save_result,
+        ];
+      }
     }
 
     return $effects;

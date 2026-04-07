@@ -246,7 +246,7 @@ class AfflictionManager {
    * @return array
    *   ['changed' => bool, 'new_stage' => int, 'reason' => string]
    */
-  public function handleReExposure(int $participant_id, int $affliction_id, array $affliction_def, string $save_degree): array {
+  public function handleReExposure(int $participant_id, int $affliction_id, array $affliction_def, string $save_degree, int $encounter_id = 0): array {
     $type = strtolower($affliction_def['type'] ?? 'poison');
 
     // Req 2143: disease and curse — no change on re-exposure.
@@ -279,7 +279,7 @@ class AfflictionManager {
       ->execute();
 
     $stages_def = json_decode($row['stages_json'], TRUE) ?? [];
-    $this->applyStageConditions($participant_id, ['stages' => $stages_def], $new_stage, $encounter_id ?? 0);
+    $this->applyStageConditions($participant_id, ['stages' => $stages_def], $new_stage, $encounter_id);
 
     return ['changed' => TRUE, 'new_stage' => $new_stage, 'reason' => 'poison re-exposure advanced stage'];
   }

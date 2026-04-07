@@ -206,6 +206,7 @@ services:
       - '@dungeoncrawler_content.combat_calculator'
       - '@dungeoncrawler_content.condition_manager'
       - '@dungeoncrawler_content.movement_resolver'
+      - '@dungeoncrawler_content.affliction_manager'
 
   dungeoncrawler_content.encounter_ai_provider.stub:
     class: Drupal\dungeoncrawler_content\Service\StubEncounterAiProvider
