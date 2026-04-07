@@ -2795,6 +2795,150 @@
           "feature_id": "dc-cr-low-light-vision"
         }
       ]
+    },
+    {
+      "id": "dc-home-suggestion-notice-e2e",
+      "feature_id": "dc-home-suggestion-notice",
+      "label": "Home page suggestion notice \u2014 HTTP 200 anon+auth, notice text in HTML response (anon+auth), no new routes; manual gate for layout and JS-error checks (static content, low risk)",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit tests/src/Functional/HomePageTest.php",
+      "notes": "Static content addition only \u2014 no new routes, no schema changes. /home ACL already covered by public-pages rule in qa-permissions.json (anon: allow); no new permission rule needed. MANUAL-ONLY: TC-HSN-005 (layout check) and TC-HSN-006 (JS errors) cannot be expressed as PHPUnit or curl automation \u2014 they require browser/Playwright. PM should risk-accept at Gate 2 or add Playwright coverage at Stage 0. Low risk: this is a plain text block with no JS components. Rollback: revert block/template config + drush cr.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-home-suggestion-notice/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-07",
+      "test_cases": [
+        {
+          "id": "TC-HSN-001",
+          "description": "GET /home as anonymous returns HTTP 200 \u2014 verify existing public-pages rule still passes post-implementation",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - covered by public-pages rule in qa-permissions.json; regression check only",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-002",
+          "description": "GET /home as authenticated/dc_playwright_player/administrator returns HTTP 200",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - covered by public-pages rule; regression check for all auth roles",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-003",
+          "description": "Home page HTML contains notice text 'We are actively implementing player suggestions' \u2014 anonymous GET /home",
+          "suite_type": "functional",
+          "class_method": "HomePageTest::testHomePageSuggestionNoticeAnon",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-004",
+          "description": "Home page HTML contains notice text \u2014 authenticated user GET /home",
+          "suite_type": "functional",
+          "class_method": "HomePageTest::testHomePageSuggestionNoticeAuthenticated",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-005",
+          "description": "MANUAL: Home page layout not broken on desktop and mobile after notice addition \u2014 no overflow, wrapping, or element displacement",
+          "suite_type": "manual",
+          "class_method": "n/a - manual browser spot-check; cannot automate without Playwright",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice",
+          "notes": "Manual Gate 2 check. PM to risk-accept or add Playwright coverage at Stage 0. Low risk: static content only, no JS components expected."
+        },
+        {
+          "id": "TC-HSN-006",
+          "description": "MANUAL: No JS console errors on /home page load after notice addition",
+          "suite_type": "manual",
+          "class_method": "n/a - manual browser DevTools check; requires Playwright for automation",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice",
+          "notes": "Manual Gate 2 check. PM to risk-accept or add Playwright coverage at Stage 0. Low risk: no new JS components introduced by static text block."
+        }
+      ]
+    },
+    {
+      "id": "dc-home-suggestion-notice-e2e",
+      "feature_id": "dc-home-suggestion-notice",
+      "label": "Home page suggestion notice \u2014 anon HTTP 200, auth HTTP 200, notice text in HTML (anon + auth); TC-HSN-005/006 are manual-only (layout + JS console, no Playwright yet)",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit tests/src/Functional/HomePageTest.php",
+      "notes": "Content-only feature (static notice block/template). PHPUnit functional for text content assertions; role-url-audit for HTTP 200 coverage. /home already covered by public-pages rule in qa-permissions.json \u2014 no new permission rule needed. TC-HSN-005 (layout) and TC-HSN-006 (JS console) are manual spot-checks only; PM to risk-accept at Gate 2 or add Playwright suite. Run drush cr after any template/block change before executing tests. Regression coupling: existing public-pages route rule, home page template.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-home-suggestion-notice/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-07",
+      "test_cases": [
+        {
+          "id": "TC-HSN-001",
+          "description": "GET /home as anonymous returns HTTP 200 (covered by public-pages rule; verify not regressed post-implementation)",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - covered by public-pages rule in qa-permissions.json",
+          "ac_tag": "regression",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-002",
+          "description": "GET /home as authenticated/dc_playwright_player/administrator returns HTTP 200",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - covered by public-pages rule in qa-permissions.json",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-003",
+          "description": "Home page HTML (anonymous) contains notice text 'We are actively implementing player suggestions'",
+          "suite_type": "functional",
+          "class_method": "HomePageTest::testHomePageSuggestionNoticeAnon",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-004",
+          "description": "Home page HTML (authenticated dc_playwright_player) contains notice text",
+          "suite_type": "functional",
+          "class_method": "HomePageTest::testHomePageSuggestionNoticeAuthenticated",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-home-suggestion-notice"
+        },
+        {
+          "id": "TC-HSN-005",
+          "description": "Home page layout not broken on desktop/mobile \u2014 MANUAL ONLY (cannot automate without Playwright; static content, low risk)",
+          "suite_type": "manual",
+          "class_method": "n/a - manual browser spot-check",
+          "ac_tag": "layout",
+          "status": "manual-only",
+          "feature_id": "dc-home-suggestion-notice",
+          "notes": "Load /home in browser; visually confirm no layout overflow, text wrapping, or element displacement. PM to risk-accept at Gate 2 or add Playwright suite."
+        },
+        {
+          "id": "TC-HSN-006",
+          "description": "No JS errors on home page load \u2014 MANUAL ONLY (requires browser DevTools or Playwright)",
+          "suite_type": "manual",
+          "class_method": "n/a - manual browser DevTools check",
+          "ac_tag": "regression",
+          "status": "manual-only",
+          "feature_id": "dc-home-suggestion-notice",
+          "notes": "Open DevTools console; load /home; confirm zero JS errors. Low risk for static content addition. PM to risk-accept at Gate 2."
+        }
+      ]
     }
   ],
   "_schema_notes": [
