@@ -3,7 +3,7 @@
 - Work item id: dc-cr-encounter-creature-xp-table
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: ready
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
