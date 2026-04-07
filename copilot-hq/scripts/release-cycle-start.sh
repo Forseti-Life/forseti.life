@@ -130,14 +130,22 @@ if [ -n "$_recent_outbox" ]; then
   fi
 fi
 
+# Always write state files first — before any early exits.
+# BUG-FIX: state must be persisted before conditional dispatches so the orchestrator
+# release_cycle step sees the new release_id on the next tick regardless of whether
+# a QA preflight item is dispatched (GAP-AGE-PREFLIGHT-01 exit was skipping this).
+mkdir -p tmp/release-cycle-active 2>/dev/null || true
+printf '%s\n' "$release_id"      > "tmp/release-cycle-active/${team_id}.release_id"
+printf '%s\n' "$next_release_id" > "tmp/release-cycle-active/${team_id}.next_release_id"
+printf '%s\n' "$(date -Iseconds)" > "tmp/release-cycle-active/${team_id}.started_at"
+
 # GAP-AGE-PREFLIGHT-01: suppress preflight when no features are activated for this release.
 # Count features with Status: in_progress AND Release: <release_id> — if zero, skip dispatch.
 _pf_feat_count=$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
-  | xargs grep -l "^- Release:.*${release_id}" 2>/dev/null | wc -l | tr -d '[:space:]')
+  | xargs grep -l "^- Release:.*${release_id}" 2>/dev/null | wc -l | tr -d '[:space:]' || echo 0)
 if [ "${_pf_feat_count:-0}" -eq 0 ]; then
   echo "PREFLIGHT-SUPPRESSED: no features activated for release ${release_id}; skipping preflight dispatch."
-  exit 0
-fi
+else
 
 mkdir -p "$inbox_dir" 2>/dev/null || true
 printf '%s\n' "9" >"$inbox_dir/roi.txt" 2>/dev/null || true
@@ -174,10 +182,7 @@ cat >"$inbox_dir/command.md" <<MD
     Then proceed with normal QA verification work for release-bound items.
 MD
 
-mkdir -p tmp/release-cycle-active 2>/dev/null || true
-printf '%s\n' "$release_id"      > "tmp/release-cycle-active/${team_id}.release_id"
-printf '%s\n' "$next_release_id" > "tmp/release-cycle-active/${team_id}.next_release_id"
-printf '%s\n' "$(date -Iseconds)" > "tmp/release-cycle-active/${team_id}.started_at"
+fi  # end PREFLIGHT-SUPPRESSED gate
 
 # Create PM grooming task for the next release (parallel to Dev execution this cycle)
 if [ -n "$pm_agent" ]; then
