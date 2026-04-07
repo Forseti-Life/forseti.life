@@ -792,6 +792,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-dwarf-heritage-ancient-blooded-reaction",
+      "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+      "path_regex": "^/api/character/\\d+/reaction(?:/|$)",
+      "notes": "Reaction use endpoint (path TBD by Dev \u2014 pattern inferred from feature scope). Uses _character_access:TRUE + _csrf_request_header_mode:TRUE. Parameterized: probe-ignore. Owner and GM (administrator) allowed; non-owner authenticated player forbidden. ACL verified in unit tests (TC-AB-015). Added preflight 20260407-dungeoncrawler-release-b (dc-cr-dwarf-heritage-ancient-blooded). Update path_regex when Dev confirms exact route in routing.yml.",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }
