@@ -806,6 +806,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-elf-heritage-cavern-update",
+      "feature_id": "dc-cr-elf-heritage-cavern",
+      "path_regex": "^/dungeoncrawler/character/[^/]+/heritage(?:/|$)",
+      "notes": "POST heritage update endpoint. Route /dungeoncrawler/character/{id}/heritage does NOT exist in current routing.yml \u2014 this rule is probe-ignore until Dev implements the route. When implemented: _csrf_request_header_mode:TRUE + _character_access:TRUE. Anon\u2192403, authenticated owner\u2192200, authenticated non-owner\u2192403. ACL verified in unit tests (TC-EC-011) and TC-EC-009 once route is live. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-elf-heritage-cavern).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

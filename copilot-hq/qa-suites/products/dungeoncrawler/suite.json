@@ -2495,6 +2495,150 @@
           "feature_id": "dc-cr-elf-ancestry"
         }
       ]
+    },
+    {
+      "id": "dc-cr-elf-heritage-cavern-e2e",
+      "feature_id": "dc-cr-elf-heritage-cavern",
+      "label": "Cavern Elf Heritage \u2014 catalog entry (Elf-only), LLV\u2192Darkvision sense replacement at creation, sense identical to dc-cr-darkvision baseline, non-Elf rejection, one-heritage-per-character, persist/reload stability, invalid heritage error, cross-character ownership guard, anon deny ACL, E2E browser flow; TC-EC-08/09 implementation-dependent (post-creation heritage route not yet confirmed)",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). IMPLEMENTATION-DEPENDENT: TC-EC-008 (heritage removal revert) and TC-EC-009 (anon POST to dedicated heritage route) require the /dungeoncrawler/character/{id}/heritage POST route \u2014 this route does NOT exist in current routing.yml. PM/Dev must confirm at Stage 0 whether post-creation heritage update is in scope. If creation-only: defer TC-EC-008/009. NOTE TO DEV: FeatEffectManager has no 'cavern' case and no removeSense() helper \u2014 both must be added. Sense replacement: (a) addSense darkvision, (b) remove low-light-vision from effects.senses. Security: POST route must have _csrf_request_header_mode:TRUE and character-ownership validation. Regression coupling: dc-cr-darkvision, dc-cr-heritage-system, dc-cr-elf-ancestry.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-elf-heritage-cavern/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-07",
+      "test_cases": [
+        {
+          "id": "TC-EC-001",
+          "description": "Cavern Elf heritage exists in CharacterManager::HERITAGES['Elf'] catalog (id=cavern, name=Cavern Elf); absent from non-Elf catalogs",
+          "suite_type": "unit",
+          "class_method": "CharacterManagerTest::testCavernElfHeritageInCatalog",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-002",
+          "description": "Selecting Cavern Elf: char_data['senses'] contains darkvision; does NOT contain low-light-vision",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testSenseReplacementOnHeritageSelection",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-003",
+          "description": "Full creation POST (Elf + Cavern Elf): character persisted with darkvision sense, low-light-vision absent; HTTP 200",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testSenseReplacementAppliedAtCreation",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-004",
+          "description": "Cavern Elf darkvision structure identical to dc-cr-darkvision baseline (Dwarf darkvision); no new darkvision logic introduced",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testCavernElfDarkvisionMatchesDwarfDarkvision",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-005",
+          "description": "Cavern Elf restricted to Elf ancestry \u2014 attempt Dwarf + heritage=cavern returns validation error, not 500",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testCavernElfRestrictedToElfAncestry",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-006",
+          "description": "One heritage per character enforced \u2014 submitting two heritages simultaneously returns validation error, not silent override",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testOneHeritagePerCharacterEnforced",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-007",
+          "description": "Cavern Elf character persists darkvision present / low-light-vision absent across save/reload cycle",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testCavernElfSensePersistence",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-008",
+          "description": "Removing Cavern Elf heritage reverts senses to low-light-vision (Elf ancestry default); darkvision removed",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testHeritageRemovalRevertsVision",
+          "ac_tag": "edge-case",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-elf-heritage-cavern",
+          "notes": "Implementation-dependent: requires post-creation heritage update/rebuild flow. If heritage is creation-only (no /dungeoncrawler/character/{id}/heritage POST route), defer. PM/Dev to confirm at Stage 0."
+        },
+        {
+          "id": "TC-EC-009",
+          "description": "Anonymous POST to /dungeoncrawler/character/{id}/heritage returns 403 or 302",
+          "suite_type": "acl",
+          "class_method": "CavernElfHeritageTest::testAnonHeritagePostBlocked",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-elf-heritage-cavern",
+          "notes": "Implementation-dependent: only applicable if /dungeoncrawler/character/{id}/heritage POST route is implemented. Route not present in current routing.yml. PM/Dev to confirm at Stage 0; if creation-only, map to TC-EC-012."
+        },
+        {
+          "id": "TC-EC-010",
+          "description": "Invalid/non-existent heritage ID on Elf character returns validation error; never HTTP 500",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testInvalidHeritageIdReturnsValidationError",
+          "ac_tag": "failure-mode",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-011",
+          "description": "Cross-character ownership guard: authenticated user A cannot set heritage on character owned by user B (403 or ownership error)",
+          "suite_type": "functional",
+          "class_method": "CavernElfHeritageTest::testCrossCharacterHeritageMutationBlocked",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-012",
+          "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (covered by dc-cr-heritage-system-character-create-form rule; verify not regressed)",
+          "suite_type": "acl",
+          "class_method": "CavernElfHeritageTest::testAnonDeniedCharacterCreate",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-013",
+          "description": "E2E: login \u2192 character create \u2192 Elf ancestry \u2192 Cavern Elf heritage \u2192 complete \u2192 character sheet shows Darkvision, not Low-Light Vision",
+          "suite_type": "e2e",
+          "class_method": "tests/e2e/cavern-elf-heritage.spec.js",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        },
+        {
+          "id": "TC-EC-ACL-01",
+          "description": "POST /dungeoncrawler/character/{id}/heritage \u2014 anon: 403; authenticated (owner): 200. Add rule dc-cr-elf-heritage-cavern-update ONLY when route is confirmed implemented (currently absent from routing.yml; probe-ignore until then).",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - probe-ignore until /dungeoncrawler/character/{id}/heritage POST route confirmed in routing.yml",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-elf-heritage-cavern"
+        }
+      ]
     }
   ],
   "_schema_notes": [
