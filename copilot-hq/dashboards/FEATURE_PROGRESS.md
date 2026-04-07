@@ -1,11 +1,12 @@
 # Feature Progress
 
-Generated: 2026-04-07T09:59:02Z
+Generated: 2026-04-07T11:52:19Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
 | dc-apg-ancestries | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-apg-archetypes | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
@@ -43,7 +44,10 @@ Generated: 2026-04-07T09:59:02Z
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat dependency; ConditionManager partial impl exists) |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | ready | medium |  |  |  |
+| dc-cr-dc-rarity-spell-adjustment | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
+| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
 | dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | in_progress | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
 | dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -59,7 +63,9 @@ Generated: 2026-04-07T09:59:02Z
 | dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | done | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
+| dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
@@ -69,7 +75,7 @@ Generated: 2026-04-07T09:59:02Z
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
-| dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | ready | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
 | dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -78,23 +84,43 @@ Generated: 2026-04-07T09:59:02Z
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-npc-system | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-rest-watch-starvation | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-cr-rituals | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-rock-runner | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-rune-system | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-session-structure | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-skill-feats | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-skill-system | dungeoncrawler | dungeoncrawler_content | done | P1 (core activity resolution; exploration and social gameplay) |  |  |  |
+| dc-cr-skills-acrobatics-actions | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-arcana-borrow-spell | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
+| dc-cr-skills-athletics-actions | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
+| dc-cr-skills-calculator-hardening | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
+| dc-cr-skills-crafting-actions | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-deception-actions | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-diplomacy-actions | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-lore-earn-income | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-medicine-actions | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
+| dc-cr-skills-nature-command-animal | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-performance-perform | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
+| dc-cr-skills-recall-knowledge | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
+| dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
+| dc-cr-skills-stealth-hide-sneak | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
+| dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
+| dc-cr-skills-thievery-disable-pick-lock | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
 | dc-cr-snares | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
+| dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-gam-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |
 | dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
+| dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | planned | P3 |  |  |  |
 | dc-gng-lost-omens | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | ready | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
