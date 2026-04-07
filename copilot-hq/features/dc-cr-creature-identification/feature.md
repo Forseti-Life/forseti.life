@@ -1,12 +1,18 @@
 # Feature Brief: Creature Identification (Recall Knowledge Routing)
 
+- Work item id: dc-cr-creature-identification
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-dc-rarity-spell-adjustment
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch10
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: core/ch10/Creature Identification
+- Depends on: dc-cr-skill-system, dc-cr-dc-rarity-spell-adjustment
 
 ## Description
 Implement creature-trait → Recall Knowledge skill routing (REQ 2331). The

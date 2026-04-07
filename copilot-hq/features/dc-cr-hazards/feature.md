@@ -11,6 +11,7 @@
 - Source: PF2E Core Rulebook (Fourth Printing), lines 1–300
 - Category: game-mechanic
 - Created: 2026-02-26
+- DB sections: core/ch10/Hazards
 
 ## Roadmap section
 - Book: core, Chapter: ch10

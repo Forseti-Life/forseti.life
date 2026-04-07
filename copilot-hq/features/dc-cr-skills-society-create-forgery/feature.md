@@ -1,12 +1,18 @@
 # Feature Brief: Society — Create Forgery
 
+- Work item id: dc-cr-skills-society-create-forgery
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Society (Int)
+- Depends on: dc-cr-skill-system
 
 ## Description
 Implement Society (Int) action handlers (REQs 1731–1738).

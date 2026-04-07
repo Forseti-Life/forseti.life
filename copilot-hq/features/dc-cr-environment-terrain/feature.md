@@ -1,12 +1,18 @@
 # Feature Brief: Environment and Terrain System
 
+- Work item id: dc-cr-environment-terrain
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-encounter-rules, dc-cr-skill-system
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch10
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: core/ch10/Environment
+- Depends on: dc-cr-encounter-rules, dc-cr-skill-system
 
 ## Description
 Extend TerrainGeneratorService and phase handlers with full PF2e environment and

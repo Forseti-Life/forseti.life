@@ -1,12 +1,18 @@
 # Feature Brief: Athletics Skill Actions
 
+- Work item id: dc-cr-skills-athletics-actions
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P1
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-skills-calculator-hardening, dc-cr-conditions
+- Priority: P1
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Athletics (Str)
+- Depends on: dc-cr-skill-system, dc-cr-skills-calculator-hardening, dc-cr-conditions
 
 ## Description
 Implement all Athletics (Str) skill action handlers (REQs 1620–1642). High priority —

@@ -1,12 +1,18 @@
 # Feature Brief: Resting, Watch Schedule, and Starvation/Thirst
 
+- Work item id: dc-cr-rest-watch-starvation
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-encounter-rules, dc-cr-conditions
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch10
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: core/ch10/Resting and Daily Preparations
+- Depends on: dc-cr-encounter-rules, dc-cr-conditions
 
 ## Description
 Extend DowntimePhaseHandler long_rest/downtime_rest with watch scheduling and

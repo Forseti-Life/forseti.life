@@ -1,12 +1,18 @@
 # Feature Brief: Thievery Skill Actions
 
+- Work item id: dc-cr-skills-thievery-disable-pick-lock
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P1
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-hazards
+- Priority: P1
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Thievery (Dex)
+- Depends on: dc-cr-skill-system, dc-cr-hazards
 
 ## Description
 Implement Thievery (Dex) skill action handlers (REQs 1747–1756). High priority —

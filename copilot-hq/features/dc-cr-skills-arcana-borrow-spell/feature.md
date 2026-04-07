@@ -1,12 +1,18 @@
 # Feature Brief: Arcana — Borrow an Arcane Spell
 
+- Work item id: dc-cr-skills-arcana-borrow-spell
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-spellcasting
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Arcana (Int)
+- Depends on: dc-cr-skill-system, dc-cr-spellcasting
 
 ## Description
 Implement Borrow an Arcane Spell action (REQs 1616–1618). Requires access to a

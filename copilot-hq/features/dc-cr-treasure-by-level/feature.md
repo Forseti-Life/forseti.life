@@ -1,12 +1,18 @@
 # Feature Brief: Treasure by Level Table
 
+- Work item id: dc-cr-treasure-by-level
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-economy, dc-cr-equipment-ch06
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch10
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: core/ch10/Treasure
+- Depends on: dc-cr-economy, dc-cr-equipment-ch06
 
 ## Description
 Implement PF2e per-level treasure tables in ContentGenerator (REQs 2340–2342, 2345).

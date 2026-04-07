@@ -12,6 +12,7 @@
 - Source: PF2E Core Rulebook (Fourth Printing), lines 1–300
 - Category: game-mechanic
 - Created: 2026-02-26
+- DB sections: core/ch04/Chapter Overview, core/ch04/Skill Table (4-1 Summary), core/ch04/General Skill Actions, core/ch04/Intimidation (Cha)
 
 ## Goal
 

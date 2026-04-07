@@ -1,12 +1,18 @@
 # Feature Brief: Recall Knowledge Skill Action
 
+- Work item id: dc-cr-skills-recall-knowledge
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P1
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-creature-identification, dc-cr-dc-rarity-spell-adjustment
+- Priority: P1
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Occultism (Int), core/ch04/Religion (Wis)
+- Depends on: dc-cr-skill-system, dc-cr-creature-identification, dc-cr-dc-rarity-spell-adjustment
 
 ## Description
 Implement the Recall Knowledge skill action as a proper 1-action encounter handler

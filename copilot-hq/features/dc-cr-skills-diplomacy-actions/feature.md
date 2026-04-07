@@ -1,12 +1,18 @@
 # Feature Brief: Diplomacy and Intimidation Skill Actions
 
+- Work item id: dc-cr-skills-diplomacy-actions
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-gm-narrative-engine
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Diplomacy (Cha), core/ch04/Intimidation (Cha)
+- Depends on: dc-cr-skill-system, dc-cr-gm-narrative-engine
 
 ## Description
 Implement Diplomacy and Intimidation skill action handlers (REQs 1669–1683, 2327, 2330).

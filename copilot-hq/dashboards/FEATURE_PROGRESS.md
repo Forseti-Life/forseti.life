@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T12:38:11Z
+Generated: 2026-04-07T12:47:16Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -77,6 +77,7 @@ Generated: 2026-04-07T12:38:11Z
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | deferred | unset (PM will set at triage) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
+| dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | planned | P1 |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | ready | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
 | dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | planned | P2 |  |  |  |

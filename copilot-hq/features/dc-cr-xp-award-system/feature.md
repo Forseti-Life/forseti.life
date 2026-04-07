@@ -1,12 +1,18 @@
 # Feature Brief: XP Award System
 
+- Work item id: dc-cr-xp-award-system
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
+- Status: planned
 - Priority: P3
-- Status: deferred
-- Release: none
-- Dependencies: dc-cr-encounter-creature-xp-table, dc-cr-character-leveling
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch10
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: core/ch10/Experience Points and Advancement
+- Depends on: dc-cr-encounter-creature-xp-table, dc-cr-character-leveling
 
 ## Description
 Implement PF2e XP-based character advancement (REQs 2332–2335, 2337–2339).

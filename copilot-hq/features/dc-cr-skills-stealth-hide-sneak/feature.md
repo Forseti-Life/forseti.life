@@ -1,12 +1,18 @@
 # Feature Brief: Stealth — Hide, Sneak, Conceal Object
 
+- Work item id: dc-cr-skills-stealth-hide-sneak
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P1
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-skills-calculator-hardening
+- Priority: P1
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Stealth (Dex)
+- Depends on: dc-cr-skill-system, dc-cr-skills-calculator-hardening
 
 ## Description
 Implement Stealth (Dex) action handlers (REQs 1721–1730). High priority — detection

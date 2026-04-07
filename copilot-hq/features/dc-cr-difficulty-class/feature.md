@@ -12,6 +12,7 @@
 - Source: PF2E Core Rulebook (Fourth Printing), lines 1–300
 - Category: rule-system
 - Created: 2026-02-26
+- DB sections: core/ch10/Setting DCs
 
 ## Goal
 

@@ -12,6 +12,7 @@
 - Source: PF2E Core Rulebook (Fourth Printing), lines 301–600
 - Category: game-mechanic
 - Created: 2026-02-27
+- DB sections: core/ch10/NPC Social Mechanics
 
 ## Goal
 

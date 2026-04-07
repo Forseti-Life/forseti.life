@@ -1,12 +1,18 @@
 # Feature Brief: Crafting Skill Actions
 
+- Work item id: dc-cr-skills-crafting-actions
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-equipment-ch06, dc-cr-economy
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Crafting (Int)
+- Depends on: dc-cr-skill-system, dc-cr-equipment-ch06, dc-cr-economy
 
 ## Description
 Implement Crafting skill action handlers (REQs 1644–1656, 2325) in

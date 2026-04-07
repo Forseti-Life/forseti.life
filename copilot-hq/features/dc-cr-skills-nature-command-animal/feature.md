@@ -1,12 +1,18 @@
 # Feature Brief: Nature — Command an Animal
 
+- Work item id: dc-cr-skills-nature-command-animal
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-npc-system
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Nature (Wis)
+- Depends on: dc-cr-skill-system, dc-cr-npc-system
 
 ## Description
 Implement Nature (Wis) action handlers (REQs 1705–1714). Core action is

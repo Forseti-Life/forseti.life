@@ -1,12 +1,18 @@
 # Feature Brief: Lore and Earn Income Skill Actions
 
+- Work item id: dc-cr-skills-lore-earn-income
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-skill-system, dc-cr-economy, dc-cr-dc-rarity-spell-adjustment
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Core Rulebook (Fourth Printing), core/ch04
+- Category: skill-action
+- Created: 2026-04-07
+- DB sections: core/ch04/Lore (Int)
+- Depends on: dc-cr-skill-system, dc-cr-economy, dc-cr-dc-rarity-spell-adjustment
 
 ## Description
 Complete Lore skill and Earn Income downtime action (REQs 1684–1687, 1579–1582, 2326).
