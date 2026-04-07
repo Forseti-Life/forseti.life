@@ -1,0 +1,22 @@
+# Feature Brief: GMG Chapter 4 — Subsystems
+
+- Website: dungeoncrawler
+- Type: new
+- Module: dungeoncrawler_content
+- Priority: P3
+- Status: planned
+- Release: none
+- Dependencies: dc-cr-encounter-rules, dc-cr-exploration-mode, dc-cr-downtime-mode
+
+## Description
+Implement GMG chapter 4 subsystem framework and variant rules (REQs 2732–2737).
+GMG ch04 covers pluggable subsystem mechanics: chases, influence, research,
+infiltration, hexploration, vehicle rules, and extended downtime activities.
+These are GM-configurable overlays with explicit setup, turn flow, and resolution
+states. Baseline integration requirements: variant rules feature-flagged with
+compatibility checks; subsystem framework supports pluggable mechanics.
+
+## Roadmap section
+- Book: gmg, Chapter: ch04
+- REQs: 2732, 2733, 2734, 2735, 2736, 2737
+- See `runbooks/roadmap-audit.md` for audit process.

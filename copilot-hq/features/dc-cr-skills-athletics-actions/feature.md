@@ -28,7 +28,10 @@ Exploration actions (ExPH): Swim (Speed or half), Climb (wall)
 Falling damage fix (REQ 1641): wire applyFallingDamage to grab_edge reaction;
 add fallDamage method to HPManager if absent.
 
+**Escape action** (REQ 1601): Escape is a basic action that uses Athletics (or
+Acrobatics) instead of its default unarmed modifier when the character chooses.
+
 ## Roadmap section
 - Book: core, Chapter: ch04
-- REQs: 1620–1642 (23 REQs)
+- REQs: 1601, 1620–1642 (24 REQs)
 - See `runbooks/roadmap-audit.md` for audit process.
