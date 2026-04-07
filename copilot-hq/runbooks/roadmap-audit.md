@@ -74,15 +74,19 @@ ORDER BY book_id, chapter_key;
 Examples: `core/ch09` (combat rules — CombatEngine, HPManager, etc.),
 `core/ch03` individual classes where a class-specific service may exist.
 
+**How to determine Track A vs B:** Default to Track B unless you have direct knowledge (from prior
+release work, a BA service map, or the PM Context table below) that a relevant service exists.
+When uncertain, dispatch a BA service-discovery item first:
+`"Does a service exist in dungeoncrawler_content/src/Service/ for <chapter topic>? List service names."`
+BA returns yes/no → proceed with Track A or B accordingly.
+
 **Steps:**
-1. Check if the relevant service(s) exist in
+1. Confirm the relevant service(s) exist in
    `/home/ubuntu/forseti.life/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/src/Service/`
-2. If yes → dispatch a QA inbox item (see **QA Batch Format** below)
+2. Dispatch a QA inbox item (see **QA Batch Format** below)
 3. QA returns PASS or BLOCK per requirement group
-4. **PASS** → QA outbox **must include** a PM handoff line:
-   `PM action required: run drush roadmap-set-status implemented --book=X --chapter=Y --section="Z"`
-   PM creates a self-inbox item upon reading this outbox, runs drush, and confirms in their own outbox.
-5. **BLOCK** → find or create `features/dc-*/` file (with `DB sections` field set), dispatch dev inbox item
+4. **PASS** → QA outbox includes the PM handoff line (see QA Batch Format); PM runs drush and confirms.
+5. **BLOCK** → find or create `features/dc-*/` file (with `DB sections` field set), record in audit tracker as `covered` with `feature_id` set, dispatch dev inbox item
 
 **Track A → Track B transition (partial chapters):**
 For chapters where some reqs are implemented and others are not (e.g., `core/ch04` Skills,
@@ -99,7 +103,8 @@ Examples: `apg/ch02` (APG classes — no class-specific services exist),
 
 **Steps:**
 1. Check if a `features/dc-*` file already covers this area
-2. If a feature exists with `status: ready/in_progress/done` → link that feature, skip creation
+2. If a feature exists with `status: ready/in_progress/done` → record in the audit tracker:
+   set `status = covered`, `feature_id = <work-item-id>`. No new stub needed.
 3. If no feature exists → create `features/dc-*/feature.md` stub (PM-owned, PM creates)
 
    **Required fields for a new feature stub:**
@@ -147,10 +152,21 @@ Dispatch to `sessions/qa-dungeoncrawler/inbox/<date>-roadmap-req-<book>-<chapter
     - Return PASS (with service name + method) or BLOCK (with gap ID + description)
     
     Rulebook reference: /home/ubuntu/forseti.life/docs/dungeoncrawler/PF2requirements/references/<file>.md
+    (To find the right file: ls the references/ directory and match by book/chapter name.)
     
-    On completion, PM will:
-    - Mark PASS reqs implemented via drush
-    - Create feature pipeline items for BLOCK reqs
+    Your outbox must end with one of these two blocks — no exceptions:
+    
+    ALL PASS:
+    ---
+    PM action required: run drush roadmap-set-status implemented \
+      --book=<book> --chapter=<chapter> --section="<section>"
+    ---
+    
+    ANY BLOCK:
+    ---
+    PM action required: create feature pipeline item for gap <gap-id> covering <section>
+    Gap description: <what is missing>
+    ---
 - Agent: qa-dungeoncrawler
 - Status: pending
 - roi: <N>
@@ -227,12 +243,18 @@ sudo mysql dungeoncrawler -e \
   > /tmp/pending_reqs.txt
 ```
 
-**At cycle end**, export and commit:
+**At cycle end**, export and commit the tracker. The session SQL tool does not write files
+directly — query it and paste results into a file manually, or use the bash tool to dump:
 ```bash
-# Export tracker to artifact
-sqlite3 /tmp/roadmap_audit.db "SELECT * FROM roadmap_audit;" > \
-  sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<YYYYMMDD>.tsv
-git add -f sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<YYYYMMDD>.tsv
+# The session SQL tracker lives in the Copilot session DB; export via the SQL tool:
+# Run: SELECT * FROM roadmap_audit ORDER BY book_id, chapter_key, section;
+# Copy output to:
+mkdir -p /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/artifacts
+# Save as: sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<YYYYMMDD>.tsv
+
+cd /home/ubuntu/forseti.life
+git add -f copilot-hq/sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<YYYYMMDD>.tsv
+git commit -m "audit: roadmap coverage artifact <YYYYMMDD>"
 ```
 
 The committed artifact is the **evidence of coverage** for every section claimed as "in the pipeline."
@@ -243,16 +265,19 @@ Without it, coverage claims are unverifiable.
 ## Completion Criteria
 
 ### Per-section complete
-A chapter/section is fully audited when:
+A section is fully audited when every `dc_requirements` row for it is in one of these states:
+- `status = 'implemented'` — QA-verified in code
+- `status = 'pending'` AND the audit tracker has `status = 'covered'` with `feature_id` set — planned
+
+To check whether any rows in a section are neither implemented nor covered in the tracker:
 ```sql
+-- dc_requirements side: any still pending?
 SELECT COUNT(*) FROM dc_requirements
 WHERE book_id='core' AND chapter_key='ch03' AND section='Alchemist' AND status='pending';
--- Must return 0
 ```
-
-AND either:
-- `status='implemented'` in `dc_requirements` (QA-verified), OR
-- A `features/dc-*/feature.md` exists for the topic (in pipeline)
+A non-zero result is **acceptable** only when the audit tracker shows all of those rows as
+`covered` with a valid `feature_id`. Zero means fully implemented — done.
+A non-zero result with no tracker entry is an **open gap**.
 
 ### Whole-roadmap audit complete
 The full roadmap audit is complete when **every section** satisfies the per-section criteria above.
