@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Sorcerer class with bloodline selection (determines spell tradition and list), spontaneous casting with spell slots, signature spells (heighten freely), bloodline powers as focus spells, and bloodline spell additions.
+Implement Sorcerer class mechanics — Bloodline (8 options), bloodline-determined spell list/tradition, spontaneous casting with Spell Slots, Signature Spells, and Bloodline Powers — so players can explore diverse magical heritages with flexible spell heightening.
 
 ## Source reference
 
-> "Sorcerers are spellcasters who use their innate understanding of magic to gain incredible power." (Chapter 3: Classes, PF2E Core Rulebook)
+> "A sorcerer's bloodline determines their spellcasting tradition and adds spells to their spell repertoire; Signature Spells can be freely heightened to any level for which the sorcerer has spell slots."
 
 ## Implementation hint
 
-Character entity gains `sorcerer_bloodline` enum; bloodline determines `spell_tradition` (arcane/divine/occult/primal). `SpellRepertoire` = known spells list; `spell_slots[level]` = spontaneous slots. Bloodline Spells: specific spells automatically added to repertoire at fixed levels. Bloodline Powers: focus spells from bloodline; `focus_point_pool` = number of bloodline power feats. Signature Spells: player selects one spell per spell level; these can be heightened freely when cast. `SpontaneousCaster::castSpell(character, spell_id, slot_level)` checks slot availability and signature status.
+`Bloodline` is an enum (Aberrant/Angelic/Diabolic/Draconic/Fey/Hag/Imperial/Undead) stored on the Sorcerer entity; each bloodline maps to a tradition (arcane/divine/occult/primal), a list of bloodline spells added automatically, and 2 focus spells (bloodline powers). `SpontaneousCastingService` manages the spell repertoire and slot expenditure; Signature Spells are flagged on repertoire entries and bypass the normal heightening restriction. Bloodline spells are added to the repertoire at specific levels automatically during level-up processing; implement as a bloodline-keyed static spell table.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Character entity gains `sorcerer_bloodline` enum; bloodline determines `spell_tr
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; sorcerer casting requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/sorcerer routes require `_csrf_request_header_mode: TRUE`
-- Input validation: bloodline enum validated server-side; slot level validated against available spontaneous slots; signature spell heightening validated server-side
-- PII/logging constraints: no PII logged; character id + spell id + slot level + bloodline id only
+- Authentication/permission surface: Character-scoped write; bloodline selection immutable post creation; repertoire additions during level-up validated against allowed spell lists.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Bloodline enum restricted to valid 8 values; spell IDs for repertoire must belong to the bloodline's tradition; Signature Spell count capped server-side.
+- PII/logging constraints: no PII logged; log character_id, bloodline, spell_cast_id, heightened_rank; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

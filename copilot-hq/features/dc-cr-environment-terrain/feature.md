@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement terrain and environmental hazard rules: difficult terrain (costs +1 ft/ft movement), greater difficult terrain (+2 ft/ft), hazardous terrain (damage on entry), flanking (opposite-sides = flat-footed), and common terrain types.
+Implement environment and terrain rules — difficult terrain movement costs, greater difficult terrain, hazardous terrain damage on entry, flanking detection, and terrain type definitions — as the spatial modifier layer for encounter and exploration phases.
 
 ## Source reference
 
-> "Difficult terrain is any terrain that impedes movement, requiring you to spend 2 feet of movement for every 1 foot traveled." (Chapter 9: Playing the Game, PF2E Core Rulebook)
+> "Difficult terrain costs 1 extra foot of movement for every foot moved; greater difficult terrain costs 2 extra feet per foot. Moving into a square of hazardous terrain deals damage as described."
 
 ## Implementation hint
 
-`TerrainSystem`: Encounter map entity stores `terrain_type` per square (enum: normal/difficult/greater_difficult/hazardous/water/ice/rubble). Movement cost: `MovementCostCalculator::cost(from, to)` returns feet spent. Flanking: `EncounterEngine::isFlanked(attacker, defender, all_participants)` checks if attacker + any ally are on directly opposite sides of defender (diagonals count). Hazardous terrain: triggers `DamageEvent` on entry with damage type/amount from terrain entity. Cover rules: creatures in adjacent squares grant cover (+2 AC) when used as obstacle.
+Terrain type is stored on each grid cell in the `EncounterMap` entity as an enum (Normal/Difficult/GreaterDifficult/Hazardous/Impassable plus subtypes). The `MovementResolver` reads terrain costs and deducts from remaining movement points: difficult=×2 cost, greater difficult=×3 cost. Hazardous terrain triggers a `HazardousDamageEvent` on entry with damage type and amount from the terrain definition. Flanking is computed in `FlankingDetector`: check if two allied attackers occupy opposite sides of the target (diagonal counts); if so, apply the `flat-footed` condition to the target for those attacks.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement terrain and environmental hazard rules: difficult terrain (costs +1 ft
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: terrain state is GM-scoped (encounter ownership required to modify); player movement queries are read-only GET
-- CSRF expectations: all POST/PATCH terrain update routes require `_csrf_request_header_mode: TRUE`
-- Input validation: terrain type validated against allowed enum; flanking computed server-side from position data; hazardous terrain damage type/amount sourced from entity, not client
-- PII/logging constraints: no PII logged; encounter id + position + terrain type only
+- Authentication/permission surface: Character-scoped write; terrain maps set by GM; movement validation server-authoritative.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Grid coordinates must be within map bounds; terrain type must be a valid terrain enum; hazardous damage values loaded from server-side terrain definitions.
+- PII/logging constraints: no PII logged; log character_id, movement_path, terrain_events_triggered; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

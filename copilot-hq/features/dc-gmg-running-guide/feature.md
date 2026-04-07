@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the GMG's GM reference guide content as searchable in-app GM tools: encounter difficulty budget tables, exploration mode pacing guidance, downtime activity summaries, social encounter DC tables, and XP award guidelines.
+Surface GMG "Running the Game" reference material — encounter building guidelines, difficulty budget tables, exploration pacing, downtime tables, and social encounter rules — as searchable, linked GM tools within the DungeonCrawler interface.
 
 ## Source reference
 
-> "This chapter provides guidance and tools for running a Pathfinder game." (Gamemastery Guide, Chapter 1)
+> "The GM chapter provides guidance on building encounters, running exploration, handling downtime, and adjudicating social situations; these tools help GMs create balanced, engaging sessions."
 
 ## Implementation hint
 
-Running Guide content is primarily documentation + quick-reference tables surfaced as searchable Drupal content nodes of type `gm_reference`. Key tables to implement as structured data (not flat text): encounter difficulty budget (party level → XP thresholds), treasure by level, NPC attitude DCs, downtime activity DC table by level. `GMReferenceService::search(query)` returns ranked reference nodes. Tables are rendered as structured `<table>` components, not prose, for quick scanning. Integrates with encounter builder (click-through from budget table to encounter creation).
+Model Running Guide content as a `GmReferenceContent` entity with fields: title, section, content_markdown, tags[], source_book (gmg). Implement a `GmReferenceSearchService` supporting full-text search and tag filtering; index content by section tags (encounter_building, exploration, downtime, social). Surface key tables (encounter budget, XP thresholds) as structured data linked to the encounter builder and XP award system rather than plain text. Add a GM-facing sidebar panel in the session interface that surfaces contextually relevant GM guidance based on the current game phase.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Running Guide content is primarily documentation + quick-reference tables surfac
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: GM reference content is read-only for authenticated GMs; no PII or character data involved
-- CSRF expectations: no write routes for reference content; admin update of reference content requires `_admin_access: TRUE` and CSRF token
-- Input validation: search query sanitized; reference content is static GM tool data, no user-modifiable fields
-- PII/logging constraints: no PII logged; search query + returned node ids only
+- Authentication/permission surface: GM-only access to Running Guide content in-session; content is read-only for all users.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Search queries sanitized for SQL injection; tag filters validated against known tag enum; content markdown sanitized with allowlisted HTML subset.
+- PII/logging constraints: no PII logged; log gm_id, search_query, section_accessed; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

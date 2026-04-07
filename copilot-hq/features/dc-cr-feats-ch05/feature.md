@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the feat system with content type (name, type, level, prerequisites, traits, effect), character feat slot allocation by type (Ancestry/Class/General/Skill feats at appropriate levels), and prerequisite validation on selection.
+Implement the feat catalog and character feat slot system — covering Ancestry, General, Skill, and Class feats — with prerequisite validation, feat type assignment, and level-gated slot schedules for all feat categories.
 
 ## Source reference
 
-> "You gain feats at 1st level and beyond. Feats represent abilities outside the normal scope of your training." (Chapter 5: Feats, PF2E Core Rulebook)
+> "Characters receive General feats at levels 3, 7, 11, 15, and 19; Skill feats at every even level starting at 2; and Ancestry feats at levels 1, 5, 9, 13, and 17."
 
 ## Implementation hint
 
-Feat content entity: `name`, `feat_type` enum (ancestry/class/general/skill/archetype), `level`, `prerequisites[]` (feat ids + level/ability requirements), `traits[]`, `effect_text`. `FeatManager::selectFeat(character, feat_id, slot_type)` validates: slot type matches feat type, character level ≥ feat level, all prerequisites met. Character entity gains `feats[slot_type][slot_index]` structure. Ancestry feats: slots at L1/5/9/13/17. General feats: L3/7/11/15/19. Skill feats: every even level. `PrerequisiteValidator` checks chained feat requirements recursively.
+Define a `Feat` entity with fields: id, name, feat_type (ancestry/class/general/skill/archetype), level, prerequisites[], traits[], source_book, effect_text. Store prerequisites as a JSON array of prerequisite expressions (e.g., `[{"skill": "Athletics", "rank": "trained"}]`); implement a `PrerequisiteValidator` that evaluates these against the current character state. Character feat slots are computed dynamically from level using the feat schedule tables (not stored as entities); a `FeatSlotCalculator` returns available slots by type and level. Implement a bulk import for ~400+ CRB feats.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Feat content entity: `name`, `feat_type` enum (ancestry/class/general/skill/arch
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; feat selection requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH feat-selection routes require `_csrf_request_header_mode: TRUE`
-- Input validation: feat id validated against feat catalog; prerequisite validation server-side only (no client-bypass); slot type and level gating enforced server-side
-- PII/logging constraints: no PII logged; character id + feat id + slot type + slot index only
+- Authentication/permission surface: Character-scoped write; feat selection validated server-side against prerequisites and feat type eligibility.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Feat ID must reference a valid feat entity; feat type must match the slot type being filled; all prerequisite conditions validated server-side.
+- PII/logging constraints: no PII logged; log character_id, feat_id, feat_type, character_level; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load the ~30 APG archetypes into the feat system, each with a Dedication feat (entry prereq) and archetype follow-on feats, covering class archetypes (replaces class features), multiclass archetypes, and basic archetypes.
+Implement the APG archetype system — Dedication feats, follow-on archetype feats, and the three archetype types (Class/Multiclass/Basic) — enabling alternate class feat pathways and multiclass dipping within the existing feat slot system.
 
 ## Source reference
 
-> "Archetypes allow you to take on additional character roles or modify your existing class." (Advanced Player's Guide, Archetypes Chapter)
+> "Archetypes allow you to spend class feats to gain abilities outside your class; a Dedication feat grants basic access, and subsequent feats expand those abilities."
 
 ## Implementation hint
 
-Each archetype is a group of feat entities tagged with `archetype_id` FK and `dedication: true` on the entry feat. `ArchetypeManager::getDedicationFeat(archetype_id)` returns the entry requirement. `FeatManager::selectFeat(character, feat_id)` already handles archetype feats via the existing prerequisite chain — no new service needed. APG archetypes include: Archer, Bastion, Bounty Hunter, Cavalier, Dandy, Marshal, Pirate, Poisoner, Ritualist, Sentinel, Viking, and more. Load all as Drupal feat entities with correct prerequisites, traits, and archetype_id grouping.
+Archetypes are modeled as a `ArchetypeEntity` with fields: name, archetype_type enum (class/multiclass/basic), dedication_feat_id, follow_on_feats[], prerequisites[]. `DedicationFeatValidator` checks the archetype prerequisites before allowing selection; a character may only have one multiclass archetype Dedication unless they have the relevant feat. `ArchetypeFeatSlotService` marks class feat slots consumed by archetype feats; the character may not take more than half their class feats from archetypes (for multiclass) without the relevant unlock. APG adds ~30 archetypes; implement as a bulk data import extending the feat catalog.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Each archetype is a group of feat entities tagged with `archetype_id` FK and `de
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; archetype feat selection requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH feat-selection routes require `_csrf_request_header_mode: TRUE`
-- Input validation: dedication feat prerequisite chain enforced server-side; archetype feat selection blocked without dedication feat taken first
-- PII/logging constraints: no PII logged; character id + feat id + archetype id only
+- Authentication/permission surface: Character-scoped write; Dedication feat prerequisites enforced server-side; archetype feat ratio cap enforced server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Archetype ID must reference a valid archetype entity; Dedication feat prerequisites validated against current character state; feat type (class/archetype) validated before slot assignment.
+- PII/logging constraints: no PII logged; log character_id, archetype_id, dedication_feat_id, follow_on_feats_selected[]; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

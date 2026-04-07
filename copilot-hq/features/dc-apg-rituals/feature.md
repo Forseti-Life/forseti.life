@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load all APG rituals into the ritual catalog using the existing ritual content type, extending the ritual pool available for GMs and high-level characters to cast multi-caster, long-duration spells.
+Extend the ritual catalog with APG ritual entries — using the same ritual schema as CRB rituals — enabling multi-caster, multi-day magical workings for expanded lore and story-driven spell effects.
 
 ## Source reference
 
-> "Rituals are special spells that take much longer to cast and often require multiple participants." (Advanced Player's Guide, Spells Chapter)
+> "Rituals are special spells that can be cast by anyone with the proper knowledge; they have a casting time of at least 1 hour, a Cost in rare materials, and use Primary and Secondary casters."
 
 ## Implementation hint
 
-APG rituals use the same ritual schema as CRB: `spell_type: ritual`, `cast_time` (hours/days), `primary_check`, `secondary_checks[]`, `secondary_casters_min`, `cost`, `effect` by degree of success. Load each as a Drupal spell entity with `source: apg`. `RitualService::castRitual(primary_caster, secondary_casters[], ritual_id)` already handles the check resolution and outcome — APG rituals slot in without new logic. Examples: Animate Object, Commune, Field of Razors, Freedom, Planar Ally. No schema changes needed.
+APG rituals use the same `RitualEntity` schema: name, rank, cast_time_hours, primary_check (skill + DC), secondary_casters (count + check), cost_gp, traditions[], effect_text, heightened. Implement a `RitualCastingService` that: validates primary caster level ≥ ritual rank, assembles secondary casters, resolves primary + secondary checks, and computes the outcome by success tier. APG adds new ritual entries as a bulk data import extending the CRB ritual catalog; validate against the existing schema before insertion. Rituals are available to any character meeting the level and tradition requirements, not class-restricted.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ APG rituals use the same ritual schema as CRB: `spell_type: ritual`, `cast_time`
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; ritual initiation requires session ownership and primary caster character ownership
-- CSRF expectations: all POST/PATCH ritual-casting routes require `_csrf_request_header_mode: TRUE`
-- Input validation: ritual id validated against catalog; secondary caster ids validated as session participants; material cost deducted server-side atomically
-- PII/logging constraints: no PII logged; session id + ritual id + caster ids + outcome only
+- Authentication/permission surface: GM-approved ritual initiation; primary caster character-scoped; secondary caster assignments validated against available party members.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Ritual ID must reference a valid ritual entity; secondary caster count must match ritual requirements; cost_gp deducted server-authoritative from party pool.
+- PII/logging constraints: no PII logged; log session_id, ritual_id, primary_caster_id, secondary_casters[], primary_check_result, outcome; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

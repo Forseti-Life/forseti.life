@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement all Thievery skill actions: Disable Device (Trained), Pick a Lock (Trained), Palm an Object (Trained), and Steal (Trained), with DC tables by complexity/lock grade and integration with the trap/hazard system.
+Implement Thievery (Dex) skill action handlers — Disable Device, Pick a Lock, Palm an Object, and Steal — with DC-by-complexity tables for locks and traps and trained-only enforcement across all actions.
 
 ## Source reference
 
-> "Thievery measures your ability to perform tasks requiring quick fingers and sleight of hand." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Pick a Lock: You try to open a lock using Thievery. The DC to pick a lock is based on the lock's quality: Simple DC 15, Average DC 20, Good DC 25, Superior DC 30."
 
 ## Implementation hint
 
-`ThieveryActionResolver`: Disable Device: DC set by hazard complexity (Simple 15, Average 20, Good 25, Superior 30); requires thieves' tools; each success reduces hazard's remaining disable counts. Pick a Lock: DC by lock grade (Poor 15, Average 20, Good 25, Superior 30, Masterwork 40); 2 actions per attempt; requires thieves' tools; crit failure = jam (DC +5). Palm an Object: Thievery vs Perception; success = pocketed without notice. Steal: Thievery vs Perception; more difficult if target is in combat or guarded. Lock and hazard DCs loaded from server-side entity fields.
+Define a `LockComplexity` enum (Simple/Average/Good/Superior) with associated DCs (15/20/25/30); `PickALockAction` validates trained proficiency, resolves the Thievery check, and on success sets the lock entity's `locked` flag to false. `DisableDeviceAction` follows the same pattern with trap-specific DC tables from the hazard entity's `disable_dc` field. `StealAction` resolves Thievery vs observer Perception DC; set a `concealed_object_id` on the character on success. All four actions require Trained proficiency; enforce at the action handler level before roll resolution.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement all Thievery skill actions: Disable Device (Trained), Pick a Lock (Tra
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Thievery actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/thievery routes require `_csrf_request_header_mode: TRUE`
-- Input validation: target lock/hazard id validated as valid scene entity; tool requirement enforced server-side; DC sourced from entity complexity field
-- PII/logging constraints: no PII logged; character id + target id + action id + outcome only
+- Authentication/permission surface: Character-scoped write; lock/trap state changes are server-authoritative; Trained check enforced server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Lock/trap entity ID must be a valid game entity; Thievery DC from server-side table only; all four actions require Trained proficiency enforced before roll.
+- PII/logging constraints: no PII logged; log character_id, action_type, target_entity_id, dc, outcome; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

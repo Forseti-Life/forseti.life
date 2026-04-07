@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the GMG structured subsystems as playable mini-games: Chases (obstacle track), Influence (social HP pool), Research (knowledge accumulation), Infiltration (security threshold), and Reputation (faction standing).
+Implement the five GMG structured subsystems — Chases, Influence, Research, Infiltration, and Reputation — as modular mini-game engines with their own initiative, turn structure, and win/fail conditions, enabling complex non-combat scenarios.
 
 ## Source reference
 
-> "Subsystems are specialized frameworks for running specific types of dramatic scenes." (Gamemastery Guide, Chapter 2)
+> "Subsystems are structured systems for non-combat challenges; Chases use an obstacle track, Influence uses an NPC influence pool, Research uses a knowledge accumulation clock, and Infiltration uses security points."
 
 ## Implementation hint
 
-Each subsystem is a Drupal content type: `subsystem` with `subsystem_type` enum. Chase: `obstacles[]` each with `skill_options[]` and `DC`; participants take turns rolling vs obstacle; failure = chase points lost. Influence: `npc_influence_pool` + `influence_thresholds`; party talks to NPCs, rolls skills to chip away at pool. Research: `research_topic` + `knowledge_segments[]`; accumulate research points to unlock clues. Infiltration: `security_level` (total points to breach); party distributes infiltration actions. Reputation: faction entity with `standing` integer (−5 to +5); actions shift standing. `SubsystemEngine::processTurn(subsystem_id, participant_id, action)` is the shared entry point.
+Define a `SubsystemSession` entity with a `subsystem_type` enum (chase/influence/research/infiltration/reputation) and a generic `progress_state` JSON field storing the current track/pool/threshold values. Each subsystem type has its own `SubsystemEngine` class implementing a shared `ISubsystemEngine` interface with methods: `initiate()`, `takeTurn(character, action)`, `checkWinCondition()`, `checkFailCondition()`. Chase uses an `ObstacleTrack` with obstacles as ordered entities; Influence tracks `npc_influence_pools`; Research uses a `ClueReveal` accumulator; Infiltration uses a `SecurityPoints` threshold. All subsystems integrate with the initiative tracker for turn order.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Each subsystem is a Drupal content type: `subsystem` with `subsystem_type` enum.
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: subsystem GM setup requires session ownership; participant actions require character ownership
-- CSRF expectations: all POST/PATCH subsystem routes require `_csrf_request_header_mode: TRUE`
-- Input validation: subsystem entity ids validated; skill rolls and DC outcomes computed server-side; standing adjustments bounded to valid range (−5 to +5)
-- PII/logging constraints: no PII logged; session id + subsystem id + participant id + action type + outcome only
+- Authentication/permission surface: GM-scoped write for subsystem initiation; player actions within subsystems scoped to their character turn.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Subsystem type must be a valid enum; action choices validated against available subsystem actions for the current phase; progress state mutated server-side only.
+- PII/logging constraints: no PII logged; log gm_id, session_id, subsystem_type, character_id, action_taken, progress_state_delta; no PII logged.
 
 ## Roadmap section
 - Book: gmg, Chapter: ch04

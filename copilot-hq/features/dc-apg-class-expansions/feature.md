@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load all APG class expansions: new subclasses for existing CRB classes (Barbarian Instincts, Ranger Hunter's Edges, Alchemist Research Fields, Sorcerer Bloodlines, etc.) as additional enum values and class feat entries for those classes.
+Extend existing CRB class subclass enums with APG additions — new Barbarian Instincts (Dragon/Fury/Spirit/Superstition), new Ranger Hunter's Edges, new Alchemist Research Fields, and other class expansions — enabling richer build diversity for existing classes.
 
 ## Source reference
 
-> "The Advanced Player's Guide expands existing classes with new subclass options and feats." (Advanced Player's Guide, Class Expansions)
+> "The Advanced Player's Guide expands existing classes with new subclass options; Barbarians gain new instincts, Rangers new hunter's edges, and Alchemists new research fields."
 
 ## Implementation hint
 
-For each CRB class that gains APG subclass options: add new enum values to the appropriate enum field on the character entity. Barbarian: +Dragon/Fury/Spirit/Superstition Instincts. Alchemist: +Toxicologist Research Field. Ranger: +Outwit Hunter's Edge. Sorcerer: +Imperial Bloodline. Each new subclass also comes with class feats tagged to that subclass via `prerequisite: {class_feature: 'instinct_X'}`. Load all as feat entities. No new services required — existing class systems handle the new subclass values via enum extension.
+For each CRB class with APG subclass expansions, extend the relevant enum: `BarbarianInstinct` gets (Dragon/Fury/Spirit/Superstition), `HunterEdge` gets new entries, `AlchemistResearchField` gets new entries. Each new subclass entry needs its own feature object following the same pattern as existing subclasses (e.g., `DragonInstinct` has a `dragon_type` sub-selection and specific `RageEffect`). Add the new subclass options to character creation selectors via the existing subclass selection flow. Validate that prerequisite feats and abilities for new subclasses don't conflict with existing entries.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ For each CRB class that gains APG subclass options: add new enum values to the a
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; subclass selection requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class subclass routes require `_csrf_request_header_mode: TRUE`
-- Input validation: all new subclass enum values validated server-side; prerequisite feat chains validated for new class feats
-- PII/logging constraints: no PII logged; character id + class id + subclass id only
+- Authentication/permission surface: Character-scoped write; subclass selection immutable post creation; new subclass options validated against the extended enum server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Instinct/edge/field enum values restricted to valid extended lists; Dragon Instinct requires a dragon type sub-selection from a valid dragon type list; all new subclass abilities level-gated server-side.
+- PII/logging constraints: no PII logged; log character_id, class_type, subclass_selected, expansion_source; no PII logged.
 
 ## Roadmap section
 - Book: apg, Chapter: ch02

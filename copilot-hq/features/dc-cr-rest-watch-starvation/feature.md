@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement rest mechanics (8-hour recovery of HP and spell slots), long rest (24-hour full recovery), watch rotation tracking, and starvation/thirst condition escalation for characters without food or water.
+Implement the rest, watch rotation, and starvation/thirst subsystem — recovering HP and spell slots on 8-hour rest, tracking days without food/water with stacking Enfeebled penalties, and managing watch assignments for encounter interruption during rest.
 
 ## Source reference
 
-> "When you take a full night's rest of at least 8 hours, you regain your spell slots and a certain number of Hit Points." (Chapter 9: Playing the Game, PF2E Core Rulebook)
+> "After you rest for 8 hours, you recover Hit Points equal to your Constitution modifier × your level (minimum 1 per level), recover 1 Focus Point, and regain your spell slots."
 
 ## Implementation hint
 
-`RestService::rest(session_id, watch_assignments[])` resolves 8-hour rest: each character recovers `character.level × (CON_modifier + 1)` HP (min 1/level); all spell slots reset; Focus Points reset to 1; daily prep triggered (formula items, invested items). Watch assignments: array of character ids for each watch period; watcher makes Perception check for random encounters. `StarvationTracker`: tracks `days_without_food` and `days_without_water` per character; applies stacking `Enfeebled` condition (Enfeebled 1 per missed day; remove 1 per day fed). Long rest (24hrs): recovers `doubled` HP per level.
+`RestService.executeRest(party)` runs when GM advances to rest phase: for each character compute HP recovery as `max(1, con_mod) × level`, set Focus Points to max(current+1, focus_pool_max), and reset spell slots. Watch rotation is stored as a `WatchAssignment` entity with character assignments per watch period; if an encounter is triggered during rest, pause rest for assigned watchers. Starvation tracks `days_without_food` and `days_without_water` as integers on the character; apply `Enfeebled N` (stacking) after threshold days (1 without water, 3 without food) using `ConditionManager.applyOrWorsen(Enfeebled)`.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement rest mechanics (8-hour recovery of HP and spell slots), long rest (24-
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: rest is session-scoped (session ownership required); character HP recovery is server-computed, not client-supplied
-- CSRF expectations: all POST rest routes require `_csrf_request_header_mode: TRUE`
-- Input validation: watch assignment character ids validated as session participants; HP recovery computed server-side from character stats; starvation counters validated as non-negative integers
-- PII/logging constraints: no PII logged; session id + character ids + HP delta + starvation counter only
+- Authentication/permission surface: Rest phase transitions GM-controlled; HP and spell slot recovery computed server-side only.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Watch assignment character IDs must be valid party members; rest duration must be ≥ 8 hours; starvation thresholds enforced server-side.
+- PII/logging constraints: no PII logged; log session_id, rest_phase, hp_recovered_per_character[], watch_assignments[]; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

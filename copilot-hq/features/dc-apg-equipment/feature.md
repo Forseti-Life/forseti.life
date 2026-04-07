@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load all APG equipment entries (new weapons, armor, alchemical items, magic items, and siege weapons) into the equipment catalog using the existing Item content type schema from dc-cr-equipment-ch06.
+Extend the equipment catalog with APG-sourced weapons, armor, alchemical items, and magical items — using the same item schema as dc-cr-equipment-ch06 — adding APG entries to the character equipment selection without disrupting CRB catalog functionality.
 
 ## Source reference
 
-> "The Advanced Player's Guide introduces new weapons, alchemical items, and magical equipment." (Advanced Player's Guide, Equipment Chapter)
+> "The Advanced Player's Guide adds new equipment options including weapons, alchemical items, and magic items that expand character options."
 
 ## Implementation hint
 
-APG equipment uses the same `item` content type schema as Chapter 6 CRB equipment. Load each APG item as a Drupal item entity with `source: apg`. New item categories include: new martial/exotic weapons (gnome flickmace, tengu gale blade, etc.), new alchemical bombs and elixirs, new magical weapons/armor with property runes, and advanced siege weapons. `EquipmentService::getAvailableItems(source_filter)` already supports source filtering for character creation. No schema changes needed; purely a data load extending the existing catalog.
+APG equipment uses the same `Item`/`WeaponItem`/`ArmorItem` polymorphic schema as CRB equipment; add a `source_book: apg` discriminator field for filtering. Implement a bulk import pipeline from APG equipment JSON data mirroring the CRB import; validate each entry against the existing item schema before insertion. New alchemical items follow the `AlchemicalItem` entity type already established for the Alchemist class. Ensure the character equipment selector and item search API correctly return APG items when `source_book` filter is set to `all` or `apg`.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ APG equipment uses the same `item` content type schema as Chapter 6 CRB equipmen
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; equip/purchase requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH equipment routes require `_csrf_request_header_mode: TRUE`
-- Input validation: APG item ids validated against catalog with `source: apg` tag; equip slot compatibility enforced server-side
-- PII/logging constraints: no PII logged; character id + item id + action type only
+- Authentication/permission surface: Equipment catalog is admin-write only; character equipment changes scoped to owning player or GM.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Source book field must be [crb, apg, gmg, etc.]; item schema validation on import; all APG-specific traits must be registered in TraitRegistry before import.
+- PII/logging constraints: no PII logged; log import_batch_id, items_imported, validation_errors[]; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

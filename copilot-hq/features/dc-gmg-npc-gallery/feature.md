@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the GMG NPC Gallery as a pre-built NPC stat block library (Bandit, Guard, Mage, Noble, Merchant, etc.) that GMs can import directly into encounters without manual stat block entry.
+Implement the GMG NPC Gallery as a pre-built stat block template library — covering standard NPC roles (Bandit, Guard, Merchant, Noble, Mage, etc.) — enabling GMs to rapidly populate encounters and social scenes with appropriately leveled adversaries.
 
 ## Source reference
 
-> "The NPC Gallery provides ready-made NPCs with complete stat blocks for common roles." (Gamemastery Guide, Chapter 5)
+> "The NPC Gallery provides a range of pre-built stat blocks for common NPCs; GMs can use these directly or as templates, adjusting for specific story needs."
 
 ## Implementation hint
 
-NPC Gallery entity shares the same `creature` content type as monsters but is tagged with `source: gmg_npc_gallery`. `NPCGalleryService::listByRole(role_enum)` returns pre-built stat blocks. `EncounterBuilder::importNPC(npc_template_id, encounter_id)` clones the stat block into an encounter-scoped creature instance (separate from template). GM can customize after import (name, HP, equipment). Gallery covers roles: bandit, guard, merchant, noble, mage, spy, soldier, scholar, acolyte, thug. Stat blocks include level, HP, AC, attacks, skills, saves.
+NPC Gallery entries share the `CreatureStatBlock` schema from the creature system; add a `npc_gallery_role` field (enum: Bandit/Guard/Merchant/Noble/Mage/etc.) and `source: gmg` tag for filtering. Implement a `NpcGalleryBrowser` API endpoint returning paginated NPC templates filterable by role, level, and CR. `InstantiateNpcAction` (GM-only) clones a gallery template into a live `NpcEntity` on the current session map, allowing per-instance name/HP overrides. Link NPC templates to the encounter builder via the existing `AddCreatureToEncounter` workflow.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ NPC Gallery entity shares the same `creature` content type as monsters but is ta
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: NPC gallery browsing is read-only for authenticated GMs; import into encounter requires session ownership
-- CSRF expectations: all POST/PATCH NPC import routes require `_csrf_request_header_mode: TRUE`
-- Input validation: NPC template id validated against gallery catalog; cloned instance fields validated on import; custom modifications validated against stat block schema
-- PII/logging constraints: no PII logged; encounter id + npc template id + customized fields only
+- Authentication/permission surface: GM-scoped write for NPC instantiation; NPC gallery is read-only for all users; per-instance overrides are GM-only.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: NPC role must be a valid gallery role enum; level override must be within ±2 of template level; HP overrides must be positive integers.
+- PII/logging constraints: no PII logged; log gm_id, session_id, npc_template_id, instantiated_npc_id; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

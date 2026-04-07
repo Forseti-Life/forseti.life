@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Lore skill's Earn Income downtime activity and Recall Knowledge action, where Lore topics are character-specific narrow specialties and Earn Income lets characters generate GP over days of work.
+Implement Lore skill actions — Recall Knowledge (Lore-specific) and Earn Income (downtime) — as the primary mechanism for knowledge checks within a character's specific lore topic and the main downtime gold-earning activity.
 
 ## Source reference
 
-> "Lore represents a swathe of specialized knowledge that you've picked up during your life." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Earn Income: You use a skill — most often Crafting, Lore, or Performance — to earn money during downtime. The DC and income earned are based on your level and the task difficulty."
 
 ## Implementation hint
 
-Lore is a family of skills, not a single one; character entity has `lore_topics[]` list (e.g., 'Sailing Lore', 'Scribing Lore'). Earn Income: downtime activity; DC by level (from table); check against Lore, Crafting, or Performance; success = GP per day at that DC's income tier (from table); critical success = next tier; failure = half; critical failure = 0. `EarnIncomeService::resolve(character, lore_topic, days, settlement_level)` → `{gp_earned, income_tier}`. Recall Knowledge: uses Lore topic as the skill; DC set by creature level or topic difficulty.
+Lore skills are dynamic sub-skills keyed by topic (e.g., "Academia Lore", "Underworld Lore"); store as `lore_skills[]` array on the character with individual proficiency ranks. `RecallKnowledgeLore` routes the check to the relevant lore topic modifier; the DC is set by creature level or item rarity table. `EarnIncomeAction` is a downtime activity; resolve with a Lore (or Crafting/Performance) check vs a level-keyed DC table, returning GP per day of downtime invested. Store earned income as a pending payout resolved at downtime end.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Lore is a family of skills, not a single one; character entity has `lore_topics[
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Earn Income and Recall Knowledge require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/lore routes require `_csrf_request_header_mode: TRUE`
-- Input validation: lore topic validated against character's lore list; income DC sourced from server-side level table; days worked validated as positive integer
-- PII/logging constraints: no PII logged; character id + lore topic + gp delta + dc only
+- Authentication/permission surface: Character-scoped write; Earn Income gold awards must be server-computed from the DC table, not client-submitted.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Lore topic must be a registered lore skill on the character; downtime days must be a positive integer; DC lookups use server-side level/rarity tables.
+- PII/logging constraints: no PII logged; log character_id, lore_topic, dc_attempted, gp_earned; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Performance skill's Perform action (Untrained, Earn Income for street performers) and its integration with Bard Composition Spell DCs where Performance modifier is used.
+Implement Performance (Cha) skill actions — Perform and Earn Income — including Bard Composition Spell modifier integration and street performance downtime income resolution.
 
 ## Source reference
 
-> "Performance measures how skilled you are at captivating an audience with various forms of entertainment." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Perform: You use your talents to put on a show; attempt a Performance check, with the DC set by the audience or event. You can also Earn Income using the Performance skill."
 
 ## Implementation hint
 
-`PerformanceActionResolver`: Perform: standard action or downtime activity; DC set by audience size/sophistication or GM-assigned; success = entertain audience; used primarily for Earn Income downtime (same table as Lore). `EarnIncomeService` accepts `skill: 'performance'` for entertainers. Bard integration: some Composition Spell save DCs use `10 + Performance modifier` instead of spell DC; `BardSpellResolver` checks `spell.uses_performance_dc` flag and substitutes modifier. Perform for different audiences: busking (DC 15), tavern (DC 20), noble court (DC 30+).
+`PerformAction` is an encounter/exploration activity that resolves a Performance check vs audience DC (set by GM or event type); outcome feeds into NPC attitude reactions or crowd size modifiers. `EarnIncomePerformance` routes through the shared `EarnIncomeService` using the Performance modifier; the GP-per-day table is keyed by character level and check result tier. For Bard integration: `CompositionSpellService` (from `dc-cr-class-bard`) injects Performance modifier into the composition spell DC calculation; link via a shared `PerformanceModifierProvider` interface. No separate performance "stat" exists beyond the Cha-based skill.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the Performance skill's Perform action (Untrained, Earn Income for str
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Performance actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/performance routes require `_csrf_request_header_mode: TRUE`
-- Input validation: audience DC sourced from server-side tables or GM-authored value with range validation; income GP delta computed server-side
-- PII/logging constraints: no PII logged; character id + performance type + audience id + gp delta only
+- Authentication/permission surface: Character-scoped write; Earn Income gold awards computed server-side from the DC table.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Perform DC must be a positive integer (GM-set or event enum); Earn Income downtime days must be a positive integer; Bard composition DC validated against caster's Performance modifier.
+- PII/logging constraints: no PII logged; log character_id, action_type, dc_attempted, gp_earned; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the XP-per-creature table (indexed by creature level minus party level) and encounter difficulty budgeter, with automatic XP award to all party members at encounter end.
+Implement the dynamic creature XP table for encounter building — computing XP per creature from the party-level delta, supporting per-PC budget adjustments, and enforcing level-variance guards in EncounterGeneratorService.
 
 ## Source reference
 
-> "After the encounter ends, you get XP based on the level of the creatures you defeated." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+> "The XP a creature is worth is based on the difference between its level and the party's level: a creature 4 levels below awards 10 XP, equal level awards 40 XP, and 4 levels above awards 160 XP."
 
 ## Implementation hint
 
-Static XP delta table: party−4=10, −3=15, −2=20, −1=30, 0=40, +1=60, +2=80, +3=120, +4=160. `EncounterXPService::calculateCreatureXP(creature_level, party_level)` returns XP per creature. Encounter total XP = sum of all creature XPs. Encounter difficulty thresholds (budget): Trivial ≤40, Low ≤60, Moderate ≤80, Severe ≤120, Extreme ≤160. `EncounterResolve::awardXP(encounter_id)` distributes encounter total evenly to all participating party members. Level up triggers at `character.xp >= 1000` (resets to 0).
+Implement `CreatureXpCalculator.compute(creature_level, party_level)` using the canonical delta table (−4=10, −3=15, −2=20, −1=30, 0=40, +1=60, +2=80, +3=120, +4=160); return 0 for delta < −4 (trivial) and refuse encounters with delta > +4 (too dangerous). Replace all hardcoded `xp_value` fields in `EncounterGeneratorService` with calls to this calculator. Add `CharacterAdjustment` support: for each PC above/below 4, add/subtract a fixed XP amount from the budget. Implement level-variance guard: reject encounters where any single creature exceeds the per-encounter budget cap.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Static XP delta table: party−4=10, −3=15, −2=20, −1=30, 0=40, +1=60, +2=
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: XP award is GM-triggered (encounter ownership required); level-up confirmation requires character ownership
-- CSRF expectations: all POST/PATCH xp-award routes require `_csrf_request_header_mode: TRUE`
-- Input validation: creature level and party level validated as integers within PF2E range (−1 to 25); XP delta sourced from server-side table only; no client-supplied XP values
-- PII/logging constraints: no PII logged; encounter id + character id + xp delta + level-up flag only
+- Authentication/permission surface: GM-scoped write for encounter creation; XP values computed server-side only, never submitted by client.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Creature level must be an integer 1–25; party level must be 1–20; PC count must be 1–8; XP budget cap enforced server-side.
+- PII/logging constraints: no PII logged; log gm_id, encounter_id, creature_ids[], party_level, total_xp; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

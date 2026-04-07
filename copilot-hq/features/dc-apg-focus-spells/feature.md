@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load all APG focus spells (Oracle Revelation Spells, Witch Hexes, and new class focus spells for Champion, Cleric, Druid, etc.) into the spell catalog, tagged as focus spells with their owning class or archetype.
+Extend the focus spell catalog with APG Oracle Revelation Spells, Witch Hexes, and new Champion/Druid/Cleric focus spells — while enforcing the focus point maximum cap (max 3) across all combined focus spell sources.
 
 ## Source reference
 
-> "Focus spells are special spells tied to a specific class or archetype, powered by focus points." (Advanced Player's Guide, Spells Chapter)
+> "Your focus pool's maximum number of Focus Points is equal to the number of focus spell sources you have, to a maximum of 3; you regain 1 Focus Point each time you Refocus."
 
 ## Implementation hint
 
-APG focus spells use the same `spell` content type as CRB spells with `is_focus_spell: true` and `focus_class_source` FK (links to class entity). Oracle Revelation Spells: 9 mysteries × 3–4 spells each, tagged `oracle_mystery_id`. Witch Hexes: patron-dependent, tagged `witch_patron_id`. Champion focus spells: by cause (paladin/liberator/redeemer). Load all as Drupal spell entities with `source: apg` and `spell_type: focus`. `FocusSpellManager::getAvailableSpells(character)` filters by class and source — APG spells appear automatically once character has the granting class feature.
+APG focus spells use the same `FocusSpell` entity schema as CRB focus spells; add `source_book: apg` tag. `FocusPoolService.computeMax(character)` counts distinct focus spell sources (class, archetype, dedication, etc.) and caps at 3; this must be re-evaluated each time a new focus spell source is added. Implement a `FocusSpellSource` join table (character_id, source_description, granted_spell_id) replacing any inline count. APG Revelation Spells integrate with `CurseboundConditionManager` (dc-apg-class-oracle); APG hexes integrate with the Witch's `FamiliarSpellStorage`. Add all new focus spells to the focus spell bulk import pipeline.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ APG focus spells use the same `spell` content type as CRB spells with `is_focus_
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; focus spell casting requires character ownership and valid focus point pool
-- CSRF expectations: all POST/PATCH spell-casting routes require `_csrf_request_header_mode: TRUE`
-- Input validation: focus spell id validated against class source; focus point deduction validated against pool; mystery/patron id validated for oracle/witch routing
-- PII/logging constraints: no PII logged; character id + spell id + focus point delta + class source only
+- Authentication/permission surface: Character-scoped write; focus pool maximum enforced server-side; focus point expenditure server-authoritative.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Focus spell IDs must reference valid focus spell entities; focus pool maximum validated against source count (capped at 3); Refocus action validates ≥ 0 focus points before increment.
+- PII/logging constraints: no PII logged; log character_id, focus_spell_cast, focus_points_before, focus_points_after; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

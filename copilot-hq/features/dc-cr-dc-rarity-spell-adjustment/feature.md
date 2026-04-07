@@ -10,15 +10,15 @@
 
 ## Goal
 
-Implement the DC adjustment modifiers for rarity (Common +0, Uncommon +2, Rare +5, Unique +10) and spell level (same-rank +0, 1 higher +2, 2 higher +5) as additive modifiers applied on top of base DC-by-level tables.
+Implement DC rarity and spell-rank adjustment modifiers — applying Common/Uncommon/Rare/Unique and spell-rank-above-caster adjustments on top of the base DC-by-level table — as a centralized DC calculation utility consumed by Identify Magic, Recall Knowledge, and other skill actions.
 
 ## Source reference
 
-> "Some tasks are harder or easier based on their rarity or the level of the spell involved." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+> "When setting a DC, apply a rarity adjustment: Common +0, Uncommon +2, Rare +5, Unique +10; and for spells, add +2 for each rank above the standard level."
 
 ## Implementation hint
 
-`DCModifierService::getRarityAdjustment(rarity)` returns enum→integer map: common=0, uncommon=2, rare=5, unique=10. `DCModifierService::getSpellRankAdjustment(spell_level, caster_level)` returns delta based on level difference table. These are composed in `DCCalculator::compute(base_dc, rarity, spell_level_delta)` = base_dc + rarity_adj + spell_level_adj. Remove any hardcoded TASK_DC constants from codebase; replace with `DCCalculator.compute()` calls passing server-authoritative base DC from `DCByLevelTable::get(level)`.
+Implement `DcAdjustmentService.compute(base_dc, rarity, spell_rank_delta)` as a pure function: `base_dc + RARITY_ADJUSTMENT[rarity] + max(0, spell_rank_delta × 2)`. The `RARITY_ADJUSTMENT` map is: Common=0, Uncommon=2, Rare=5, Unique=10. Integrate this service into `RecallKnowledgeService`, `IdentifyMagicService`, and `LearnASpellService` as a dependency; remove any inline DC calculations in those services. Add a unit test fixture for each rarity tier and for each rank delta to ensure the service is consistently applied.
 
 ## Mission alignment
 
@@ -27,10 +27,10 @@ Implement the DC adjustment modifiers for rarity (Common +0, Uncommon +2, Rare +
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: DC computation is server-side only; no client-supplied DC modifiers accepted
-- CSRF expectations: DC lookup endpoints are GET-only; no DC override POST routes exposed
-- Input validation: rarity enum validated server-side; spell level delta computed from entity data, not client input; all DC values returned from server tables
-- PII/logging constraints: no PII logged; DC lookups are ephemeral computation results, not stored
+- Authentication/permission surface: DC calculations are server-side only; no client-submitted DC values accepted.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Rarity must be a valid rarity enum; spell_rank_delta must be a non-negative integer; base_dc must be a positive integer from the level DC table.
+- PII/logging constraints: no PII logged; log action_type, entity_id, computed_dc, rarity, rank_delta; no PII logged; no character_id needed as this is a pure utility.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

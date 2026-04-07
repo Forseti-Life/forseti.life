@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Bard class with Muse (Enigma/Maestro/Polymath), Composition Spells as occult cantrips (Inspire Courage, Inspire Heroics, Inspire Defense), spontaneous occult spellcasting, signature spells, and occult breadth.
+Implement Bard class mechanics — Muse, Composition Spells (Inspire Courage/Heroics/Defense), Occult spontaneous casting, and Signature Spells — so players can provide aura-style performance buffs while maintaining a full spellcasting progression.
 
 ## Source reference
 
-> "Bards tap into the power of occult magic, and their performances echo with supernatural force." (Chapter 3: Classes, PF2E Core Rulebook)
+> "Composition spells are a special type of spell requiring Performance to cast; Inspire Courage is a cantrip that grants a +1 status bonus to attack rolls, damage rolls, and saves against fear to all allies within 60 feet."
 
 ## Implementation hint
 
-Muse stored as `bard_muse` enum. Composition spells are a special category: cost 1 action, function as cantrips (auto-heighten to half level), not held in memory slots; add to `character.composition_spells[]`. Inspire Courage/Heroics/Defense: create an aura condition on all allies in 60 ft; `BardAuraManager::applyCompositionEffect(character, spell_id, encounter_participants)`. Spontaneous casting: `spell_repertoire[]` list + `spell_slots[by_level]` array; Signature Spells can be heightened freely. Occult Breadth: +1 spell slot of each level.
+Composition spells use the Bard's Performance modifier as the spellcasting modifier and are always heightened to half caster level; implement as a `CompositionSpellCaster` subclass of `SpontaneousCaster`. `Muse` is a required selection at character creation that unlocks signature spells and a specific composition cantrip. `SignatureSpell` entities are stored on the character and allow free heightening of those specific spell IDs. `OccultBreadth` grants an extra spell slot at level−1 rank; compute in the spell slot allocation routine.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Muse stored as `bard_muse` enum. Composition spells are a special category: cost
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; composition spell targeting requires encounter ownership
-- CSRF expectations: all POST/PATCH class/bard routes require `_csrf_request_header_mode: TRUE`
-- Input validation: muse enum validated server-side; composition spell ids validated against bard spell list; aura target ids validated as encounter participants
-- PII/logging constraints: no PII logged; character id + spell id + target ids only
+- Authentication/permission surface: Character-scoped write; composition spell activation gated to encounter/exploration phase for the owning character.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Muse enum restricted to [Enigma, Maestro, Polymath]; signature spell IDs must be from the character's known repertoire; composition spells validate Performance skill proficiency.
+- PII/logging constraints: no PII logged; log character_id, composition_spell_cast, heightened_rank; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

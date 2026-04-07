@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the treasure-by-party-level table as a GM tool for loot assignment: permanent items and consumables distributed by level, total GP budget per encounter, and integration with the encounter builder's loot recommendations.
+Implement the treasure-by-level system — per-encounter GP budgets, permanent/consumable item distribution tables by party level, and a GM loot assignment tool — enabling level-appropriate reward distribution integrated with the encounter builder.
 
 ## Source reference
 
-> "When you place treasure, use the Treasure by Party Level table to determine the appropriate number and level of items." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+> "Treasure by level provides a guideline for how much treasure to award per level; a party of 4 should receive a total of permanent items and consumables roughly equal to the values in the Treasure by Level table."
 
 ## Implementation hint
 
-`TreasureByLevelService::getLootRecommendation(party_level, encounter_difficulty)` returns `{permanent_items[{count, item_level}], consumable_items[{count, item_level}], gp_remainder}`. Data sourced from static server-side table (party levels 1–20 × encounter difficulty levels). `EncounterBuilder::suggestLoot(encounter_id)` calls this service and returns item-level suggestions. GM can assign specific items from the catalog at or below suggested levels. The GP remainder is direct currency reward. Overland hex exploration: weekly loot budget from table for random treasure placement.
+Implement `TreasureByLevelTable` as a static lookup (party_level → {total_gp, permanent_items_by_level[], consumable_items_by_level[]}) derived from CRB Table 10-9. `EncounterTreasureBudget` computes per-encounter share: total_level_budget / estimated_encounters_per_level (default 8). The GM loot tool presents a `LootAssignmentForm` with suggested item levels; GM selects actual items from the catalog or enters custom GP value. On commit, `LootDistributionService` adds items/currency to character inventories proportionally or as a party pool.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the treasure-by-party-level table as a GM tool for loot assignment: pe
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: treasure recommendation is GM-only (encounter/session ownership required); player characters cannot query loot budget directly
-- CSRF expectations: all POST/PATCH treasure-assignment routes require `_csrf_request_header_mode: TRUE`
-- Input validation: party level and encounter difficulty validated as integer within range; item assignment validated against catalog
-- PII/logging constraints: no PII logged; encounter id + item ids + gp amount only
+- Authentication/permission surface: GM-only write for loot assignment; players get read access to their own inventory additions; party pool requires GM approval before distribution.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Party level must be 1–20; item levels in loot assignment validated against item catalog; GP values must be positive integers.
+- PII/logging constraints: no PII logged; log gm_id, encounter_id, loot_items[], gp_awarded, distribution_method; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

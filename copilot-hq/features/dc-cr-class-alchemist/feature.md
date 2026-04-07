@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Alchemist class with all 20 levels of class features: infused reagents pool, advanced alchemy (daily prep crafting), quick alchemy (1-action in-combat crafting), formula book, and research fields (Bomber, Chirurgeon, Mutagenist).
+Implement Alchemist class mechanics — Infused Reagents, Advanced Alchemy, Quick Alchemy, Formula Book, and Research Fields — so players can craft and deploy alchemical items as a core class identity.
 
 ## Source reference
 
-> "The alchemist uses their knowledge of the alchemical sciences to alter the world around them." (Chapter 3: Classes, PF2E Core Rulebook)
+> "Alchemists are defined by their research field and the reagents they infuse each day; with Advanced Alchemy during daily preparations, they craft a number of alchemical items equal to their level plus their Intelligence modifier."
 
 ## Implementation hint
 
-Character entity gains `infused_reagents` field (value = level + INT modifier). Daily prep phase: call `AlchemistService::advancedAlchemy(character, formulas, reagents_spent)` → produces infused items list. In-combat: `quickAlchemy(character, formula_id)` spends 1 reagent, returns item instantly usable until end of turn. Research field is an enum stored on character; it determines bonus formula options and a free daily advanced alchemy item. Formula book is a character asset list; `learnFormula(character, item_id)` adds to it after Crafting check.
+Model `infused_reagents_pool` as a per-day integer on the character record (computed from level + Int mod). `AdvancedAlchemyService` consumes reagents during daily prep to create `AlchemicalItem` entities tagged as infused (expire on next daily prep). `QuickAlchemyAction` deducts 1 reagent and creates a single infused item as a 1-action activity in encounter phase. The Formula Book is a `FormulaCollection` entity linking character to known item formulas; validate that Quick Alchemy targets only known formulas.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Character entity gains `infused_reagents` field (value = level + INT modifier). 
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; alchemist actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/alchemist routes require `_csrf_request_header_mode: TRUE`
-- Input validation: research field enum validated server-side; infused reagent counts validated against pool; formula id validated against character's formula book
-- PII/logging constraints: no PII logged; character id + action type + item id + reagent delta only
+- Authentication/permission surface: Character-scoped write; only the owning player or GM may modify reagent pool and formula book entries.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Reagent spend must be a positive integer ≤ current pool; formula IDs validated against known formula list; Research Field enum restricted to [Bomber, Chirurgeon, Mutagenist].
+- PII/logging constraints: no PII logged; log character_id, action_type, reagents_spent; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

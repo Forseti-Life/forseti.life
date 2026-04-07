@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Wizard class with arcane spellbook (prepared casting from written spells), arcane school subclass (grants extra spell slot + school spells), arcane thesis (4 research paths), and Drain Bonded Item.
+Implement Wizard class mechanics — Arcane Spellbook, Arcane School (with extra slot and school spells), Arcane Thesis (4 options), and Drain Bonded Item — so players can experience the broadest arcane spell access with deep customization of magical specialization.
 
 ## Source reference
 
-> "Wizards study arcane magic, gaining incredible power through years of study and practice." (Chapter 3: Classes, PF2E Core Rulebook)
+> "A wizard prepares spells each morning from their spellbook; they can add new spells to the spellbook by using Learn a Spell, spending 10 gp × the spell's rank in materials."
 
 ## Implementation hint
 
-Spellbook: `character.spellbook_spells[]` list; `WizardService::learnSpell(character, spell_id)` adds after Crafting/Arcana check + material cost (level × 10gp). Prepared slots: `prepared_spells[level][slot]` must reference a spellbook spell. Arcane School: `wizard_school` enum; grants `school_slot` (extra slot per level) and 2 school focus spells. Arcane Thesis: `arcane_thesis` enum (experimental_spellshaping/improved_familiar_attunement/spell_blending/spell_substitution) — each modifies daily prep behavior. Drain Bonded Item: once/day, recall a spell just cast; tracked as boolean reset on daily prep.
+The Spellbook is a `SpellbookEntity` linked to the Wizard with a many-to-many to known spells; `PrepareSpellsService` populates daily prepared slots from the spellbook (one entry per slot except cantrips). Arcane School grants an extra spell slot at the school's rank and adds 2 school spells (focus spells) to the focus pool; implement school as an enum strategy. Arcane Thesis (Spell Blending, Spell Substitution, Improved Familiar Attunement, Experimental Spellshaping) each modify how prepared slots work; implement as plug-in modifiers on `PrepareSpellsService`. `DrainBondedItem` is a free action that recovers one expended spell slot per day; track `bonded_item_drained` as a boolean reset on daily prep.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Spellbook: `character.spellbook_spells[]` list; `WizardService::learnSpell(chara
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; spellbook access and Drain Bonded Item require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/wizard routes require `_csrf_request_header_mode: TRUE`
-- Input validation: spellbook spell ids validated as arcane spells; prepared slot entries validated against spellbook contents; Drain Bonded Item validates spell was cast this encounter
-- PII/logging constraints: no PII logged; character id + spell id + slot level only
+- Authentication/permission surface: Character-scoped write; spellbook entries only modifiable by owning player or GM; Learn a Spell deducts gold server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Spell IDs must be from the arcane tradition list; school enum restricted to 8 valid schools; Arcane Thesis enum restricted to 4 valid options; gold deduction validated against character wealth.
+- PII/logging constraints: no PII logged; log character_id, spell_learned, gold_spent, school; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

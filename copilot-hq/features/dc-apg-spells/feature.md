@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load all APG non-focus spells (~100+ arcane/divine/occult/primal spells) into the spell catalog using the existing spell content type, extending the spell lists available across all spellcasting classes.
+Extend the spell catalog with 100+ APG non-focus spells across all four traditions — using the same spell schema as dc-cr-spells-ch07 — expanding the available spell pool for all spellcasting classes.
 
 ## Source reference
 
-> "The Advanced Player's Guide introduces a wide variety of new spells across all four magical traditions." (Advanced Player's Guide, Spells Chapter)
+> "The Advanced Player's Guide adds over 100 new spells spanning all four magical traditions, with new options for all spellcasting classes."
 
 ## Implementation hint
 
-APG spells use the same `spell` content type schema as CRB Chapter 7 spells. Load each with `source: apg` and `spell_type: spell`. New spells include: cantrips (Detect Magic improvements), level 1–10 spells across arcane/divine/occult/primal traditions. Some spells are tradition-exclusive. `SpellListService::getAvailableSpells(character, tradition)` already filters by tradition — APG spells appear automatically. Key new spells: Befuddle, Clinging Ice, Daydreamer's Curse, Dragon Breath, Eat Fire, etc. Verify no name conflicts with CRB spell entries.
+APG spells use the same `Spell` entity schema as CRB spells (id, name, rank, traditions[], cast_time, components, range, area, targets, duration, save_type, effect_text, heightened_entries[]); add `source_book: apg` tag. Implement as a bulk data import extending the CRB spell catalog; validate all APG spells against the existing spell schema before insertion. Some APG spells are tradition-exclusive (e.g., divine-only or occult-only); ensure the traditions array is correctly populated and the spell list filter in character spell selection respects tradition exclusivity. After import, verify the spell selector surfaces APG spells when `source_filter` includes `apg`.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ APG spells use the same `spell` content type schema as CRB Chapter 7 spells. Loa
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; spells added to repertoire/spellbook require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH spell-catalog and spell-learn routes require `_csrf_request_header_mode: TRUE`
-- Input validation: APG spell ids validated against catalog with `source: apg`; tradition list validated server-side; no duplicate spell id conflicts with CRB
-- PII/logging constraints: no PII logged; character id + spell id + tradition + source only
+- Authentication/permission surface: Spell catalog is admin-write; spell casting actions scoped to owning character; spell selection gated by character tradition.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Traditions array values must be valid tradition enums; spell rank must be 1–10; source_book must be a valid value; heightened_entries rank deltas must be positive integers.
+- PII/logging constraints: no PII logged; log import_batch_id, spells_imported, validation_errors[]; no PII logged; cast logging follows dc-cr-spells-ch07 pattern.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

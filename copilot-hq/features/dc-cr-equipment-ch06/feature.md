@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the equipment catalog content type and data for all Chapter 6 items: weapons (with damage dice, traits, range), armor (with AC bonus, Dex cap, penalties, strength req), shields (hardness/HP/BT), and general gear, with bulk and pricing.
+Implement the core equipment catalog — weapons, armor, shields, and general items — with full PF2E item data model including price, bulk, damage dice, AC bonuses, traits, and rarity, serving as the foundational item database for all character and encounter features.
 
 ## Source reference
 
-> "Weapons, armor, and other equipment can be found in Chapter 6." (Chapter 6: Equipment, PF2E Core Rulebook)
+> "Equipment in Pathfinder has a Price in gold pieces, a Bulk value, and in the case of weapons a damage die and damage type; armor adds an AC bonus with Dexterity cap, check penalty, and speed penalty."
 
 ## Implementation hint
 
-Item content type: `name`, `price{gp,sp,cp}`, `bulk`, `hands`, `level`, `traits[]`, `item_type` enum (weapon/armor/shield/consumable/held/worn/other). Weapon extra fields: `damage_dice`, `damage_type`, `range`, `reload`. Armor extra: `ac_bonus`, `dex_cap`, `check_penalty`, `speed_penalty`, `strength_req`. Shield extra: `hardness`, `hp`, `break_threshold`. `EquipmentService::equip(character, item_id, slot)` validates slot/proficiency compatibility. Character entity gains `equipment{slots}` mapping. `BulkCalculator` reads item bulk from entity.
+Define an `Item` base entity with fields: id, name, price_cp, bulk, rarity, traits[], source_book, level. Extend with `WeaponItem` (damage_dice, damage_type, weapon_group, range, reload, hands) and `ArmorItem` (ac_bonus, dex_cap, check_penalty, speed_penalty, str_requirement, armor_group) and `ShieldItem` (hardness, hp, bt). Use a discriminator column for polymorphic queries. Traits are stored as a normalized `ItemTrait` table with a many-to-many join; validate trait values against a `TraitRegistry`. Implement a bulk import pipeline for the ~500 CRB equipment entries using a structured JSON source.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Item content type: `name`, `price{gp,sp,cp}`, `bulk`, `hands`, `level`, `traits[
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; equip/unequip requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH equipment routes require `_csrf_request_header_mode: TRUE`
-- Input validation: item id validated against equipment catalog; slot type validated against item_type; strength requirement enforced server-side on equip
-- PII/logging constraints: no PII logged; character id + item id + slot + action type only
+- Authentication/permission surface: Equipment catalog is read-only for players; GM/admin-only write access for catalog management; character equipment changes scoped to owning player.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Item IDs validated against catalog on equip; price validated as positive integer; trait values validated against TraitRegistry enum.
+- PII/logging constraints: no PII logged; log character_id, item_id, action (equip/unequip/purchase); no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Society skill's Create a Forgery (Trained), Decipher Writing (Trained, mundane texts), Recall Knowledge (Society, Untrained), and Subsist (Untrained, in settlements), with time-to-create and opposed detection mechanics for forgeries.
+Implement Society (Int) skill action handlers — Create Forgery, Decipher Writing (mundane), Recall Knowledge (Society), and Subsist (settlements) — supporting social infiltration, downtime income, and urban navigation.
 
 ## Source reference
 
-> "Society measures your understanding of people, history, and the complicated patterns of civilized life." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Create Forgery: You create a forged document. The GM rolls a secret Society check against the Perception DC of anyone who examines the document; only on a critical failure does the examiner detect the forgery."
 
 ## Implementation hint
 
-`SocietyActionResolver`: Create a Forgery: 1-minute activity (or longer for complex documents); produces a forgery entity with `forgery_quality` score = Society check result; when inspected, target makes Perception check vs that DC; success = detects forgery. Decipher Writing (mundane): DC 10 for simple texts, 20 for legal/academic, 30+ for ciphers. Recall Knowledge (Society): DC by cultural/historical topic. Subsist: downtime activity in settlement, DC 15; success = fed for a week at society level. Society also governs knowing NPC contacts and organizational hierarchies.
+`CreateForgeryAction` is a downtime activity; roll Society secretly (GM-side) and store the result as an opaque `ForgeryEntity` with the roll baked in; when an NPC examines the document, compare the stored roll vs that NPC's Perception DC server-side. `DecipherWritingSociety` handles mundane (non-magical) texts with Society; magical texts require Arcana/Nature/Occultism/Religion. `SubsistUrban` routes through shared `SubsistService` using Society in settlement contexts (vs Survival in wilderness). Recall Knowledge (Society) covers governments, people, and history; DC by subject rarity/level table.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the Society skill's Create a Forgery (Trained), Decipher Writing (Trai
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Create Forgery and Subsist require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/society routes require `_csrf_request_header_mode: TRUE`
-- Input validation: forgery target document type validated; forgery quality score is server-computed roll result, not client-supplied; Subsist settlement id validated
-- PII/logging constraints: no PII logged; character id + action id + document id + quality score only
+- Authentication/permission surface: Character-scoped write; forgery check result is stored server-side and never exposed to the forger; examiner check resolved server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Forgery subject must reference a valid document/NPC entity type; Subsist environment must be [urban, settlement]; DC lookups use server-side tables only.
+- PII/logging constraints: no PII logged; log character_id, action_type, target_type, outcome; no PII logged; forgery roll result never logged to player-accessible log.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the spell catalog content type for all Chapter 7 spells, with fields for tradition, level, cast time, components, range, area, targets, duration, save, and heightened effects, plus the cantrip auto-heightening rule.
+Implement the spell catalog — covering all CRB spells (levels 1–10) with full metadata (traditions, cast time, components, range, area, targets, save, duration, heightened effects) and cantrip auto-heightening — as the foundational spell database for all spellcasting features.
 
 ## Source reference
 
-> "Spells make up a large part of the game, providing a wealth of options for adventurers." (Chapter 7: Spells, PF2E Core Rulebook)
+> "Cantrips are spells that don't expend spell slots; a cantrip is automatically heightened to half your level rounded up, so a 5th-level caster casts cantrips as 3rd-rank spells."
 
 ## Implementation hint
 
-Spell entity: `name`, `level` (1–10, 0 for cantrip), `traditions[]` (arcane/divine/occult/primal), `cast_time` (1_action/2_action/reaction/1_minute/etc), `components[]` (verbal/somatic/material/focus), `range`, `area`, `targets`, `duration`, `save_type` (basic/fortitude/reflex/will/none), `effect_text`, `heightened_effects[level → delta_text]`. Cantrips: `is_cantrip = true`; `SpellResolver::getEffectiveLevel(spell, caster_level)` returns `ceil(caster_level / 2)`. `SpellCastingService::cast(character, spell_id, slot_level, targets)` routes to `SpellResolver` which applies heightening, resolves saves, applies conditions.
+Define a `Spell` entity with fields: id, name, rank (1-10 for spells, 0 for cantrips), traditions[], cast_time, components[] (verbal/somatic/material/focus), range, area, targets, duration, save_type, effect_text, heightened_entries[]. `HeightenedEntry` is a sub-entity with rank_delta and modified_fields (JSON diff). `CantripHeighteningService` auto-computes the effective rank as `ceil(caster_level / 2)`. Implement a bulk import for ~400 CRB spells from structured JSON; ensure traditions is an array to support multi-tradition spells.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Spell entity: `name`, `level` (1–10, 0 for cantrip), `traditions[]` (arcane/di
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; spell casting requires character ownership and valid encounter context
-- CSRF expectations: all POST/PATCH spell-casting routes require `_csrf_request_header_mode: TRUE`
-- Input validation: spell id validated against spell catalog; slot level validated against available spell slots; target ids validated as encounter participants; save type resolved server-side from spell entity
-- PII/logging constraints: no PII logged; character id + spell id + slot level + target ids + outcome only
+- Authentication/permission surface: Spell catalog is read-only for all users; spell casting actions scoped to owning character's turn.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Spell ID must reference a valid spell; heightened rank must not exceed caster's max rank; traditions array must contain only valid tradition values.
+- PII/logging constraints: no PII logged; log character_id, spell_id, heightened_rank, target_ids; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

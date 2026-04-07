@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Champion class with cause (Paladin/Liberator/Redeemer), champion's reaction (Retributive Strike/Liberating Step/Glimpse of Redemption), divine ally, lay on hands, devotion spells, and code of conduct enforcement.
+Implement Champion class mechanics — Champion's Code, Divine Ally, Champion's Reaction, Lay on Hands, and Devotion Spells — so players experience deity-bound holy warfare with cause-specific defensive reactions.
 
 ## Source reference
 
-> "Champions are paragons of their deity's ideals, combining powerful martial ability with divine gifts." (Chapter 3: Classes, PF2E Core Rulebook)
+> "A champion's cause determines which champion's reaction they can use: paladins use Retributive Strike, liberators use Liberating Step, and redeemers use Glimpse of Redemption."
 
 ## Implementation hint
 
-Character entity gains `champion_cause` enum (paladin/liberator/redeemer) and `deity_id` FK. Champion's reaction computed server-side based on cause: Retributive Strike fires on adjacent ally hit (damage = 2 + level), Liberating Step on adjacent ally grabbed/immobilized, Glimpse on adjacent ally targeted. Lay on Hands: 1 action, touch range, heals `1d6 per level` HP (scales with level), tracked as Focus Spell with focus point pool. Divine ally: entity field `divine_ally_type` (blade/shield/steed); blade ally adds rune-like damage.
+Store `cause` (Paladin/Liberator/Redeemer) and `deity_id` as required fields on the Champion class entity; `cause` determines which `ChampionReactionHandler` subclass is active. `LayOnHandsAction` heals as a 1-action focus spell spending 1 Focus Point; gate it behind the focus pool system from `dc-cr-spellcasting`. Divine Ally is a subtype selection (Blade/Shield/Steed) each granting passive modifiers; implement as a strategy pattern on the champion entity. Validate anathema violations by cross-referencing deity anathema list on any action that could trigger it.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Character entity gains `champion_cause` enum (paladin/liberator/redeemer) and `d
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; champion reaction requires encounter ownership and adjacent creature validation
-- CSRF expectations: all POST/PATCH class/champion routes require `_csrf_request_header_mode: TRUE`
-- Input validation: cause enum and deity FK validated server-side; reaction trigger target id validated as valid encounter participant
-- PII/logging constraints: no PII logged; character id + action type + target id only
+- Authentication/permission surface: Character-scoped write; deity selection immutable after character creation unless GM override.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Cause enum restricted to [Paladin, Liberator, Redeemer]; deity_id must reference a valid deity record; alignment check enforced server-side.
+- PII/logging constraints: no PII logged; log character_id, reaction_type, target_id; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

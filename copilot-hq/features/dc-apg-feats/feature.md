@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load all APG feats (~200+ ancestry, general, and skill feats) into the feat catalog using the existing feat content type, extending the pools available to all characters during feat selection.
+Extend the feat catalog with ~200 APG feats — covering APG ancestry feats, general feats, and skill feats — using the same feat schema as dc-cr-feats-ch05 and enabling APG ancestries and expanded build options for all characters.
 
 ## Source reference
 
-> "The Advanced Player's Guide includes hundreds of new feats for characters of all types." (Advanced Player's Guide, Feats Chapter)
+> "The Advanced Player's Guide adds hundreds of new feats across all categories, including ancestry feats for the six new ancestries and new general and skill feats available to all characters."
 
 ## Implementation hint
 
-APG feats use the same `feat` content type schema as Chapter 5 CRB feats. Load each as a Drupal feat entity with `source: apg`. New feats include: APG ancestry feats for both CRB and APG ancestries, new general feats, new skill feats, and new archetype feats. `FeatManager::getAvailableFeats(character, slot_type)` already filters by character ancestry/level/prerequisites — APG feats will automatically appear when their prerequisites are met. No new services needed; purely a data load. Verify no duplicate feat names with CRB entries before import.
+APG feats use the same `Feat` entity schema as CRB feats; add `source_book: apg` for filtering. Import all ~200 feats via the bulk import pipeline; validate prerequisites and feat types against the `PrerequisiteValidator` before insertion. APG ancestry feats must reference valid APG ancestry IDs (from dc-apg-ancestries); validate foreign key integrity during import. After import, verify the `FeatSlotCalculator` correctly includes APG feats in the selection pool for the relevant feat slot types.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ APG feats use the same `feat` content type schema as Chapter 5 CRB feats. Load e
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; feat selection requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH feat-selection routes require `_csrf_request_header_mode: TRUE`
-- Input validation: APG feat ids validated against catalog; prerequisite validation enforced server-side; no duplicate feat id conflicts with CRB
-- PII/logging constraints: no PII logged; character id + feat id + slot type only
+- Authentication/permission surface: Feat catalog is admin-write only; character feat selections scoped to owning player; prerequisites enforced server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Source book field must be valid; prerequisite expressions validated against PrerequisiteValidator schema; ancestry feat references must point to valid APG ancestry entities.
+- PII/logging constraints: no PII logged; log import_batch_id, feats_imported, validation_errors[]; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

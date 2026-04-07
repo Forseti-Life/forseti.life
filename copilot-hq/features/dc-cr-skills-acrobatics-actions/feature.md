@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement all Acrobatics skill actions: Balance (Trained), Tumble Through (Trained), Maneuver in Flight (Trained), and Squeeze (Untrained), with full degree-of-success outcomes for each.
+Implement all Acrobatics (Dex) skill action handlers — Balance, Tumble Through, Maneuver in Flight, Squeeze — with proper trained/untrained gating, armor check penalties, and full degree-of-success outcome logic.
 
 ## Source reference
 
-> "Acrobatics measures your ability to perform tasks requiring coordination and grace." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Balance: You move across a narrow surface or uneven ground. The DC is set by the GM based on the surface; on a critical success you're unaffected, on a failure you fall prone and stop moving."
 
 ## Implementation hint
 
-`AcrobaticsActionResolver` handles 4 actions. Balance: DC = terrain hazard DC (10 for normal uneven, 20+ for narrow/unstable); crit success = move normally, success = move at half, failure = flat-footed/hampered, crit fail = fall prone. Tumble Through: DC = target Reflex DC; success = move through enemy space; failure = movement ends. Maneuver in Flight: DC by maneuver type, requires flight speed. Squeeze: DC 20 for tight spaces (smaller than Small); slower movement, flat-footed. Each action calls `SkillActionResolver::resolve(action, character, context)` → `DegreeOfSuccess` enum.
+Route all four actions through a shared `AcrobaticsActionHandler` that injects the character's Acrobatics modifier (from `SkillsCalculatorService`) and applies `armor_check_penalty` before the roll. Each action maps to a `DegreeOfSuccessResolver` with four outcome handlers (crit success/success/failure/crit failure); define outcome enums per action in a constants file. `TumbleThrough` integrates with `AOOTriggerService`; `ManeuverInFlight` requires flight speed > 0 on the character movement record. `Squeeze` is an exploration-phase activity; flag it as incompatible with encounter-phase combat.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement all Acrobatics skill actions: Balance (Trained), Tumble Through (Train
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; acrobatics actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/acrobatics routes require `_csrf_request_header_mode: TRUE`
-- Input validation: terrain DC values sourced from server-side tables; target id for Tumble Through validated as encounter participant
-- PII/logging constraints: no PII logged; character id + action id + roll result + DC only
+- Authentication/permission surface: Character-scoped write; skill check rolls only valid during the owning character's turn or designated exploration phase.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Action type must be a valid Acrobatics action enum; terrain DC overrides must be positive integers; character must have flight speed for ManeuverInFlight.
+- PII/logging constraints: no PII logged; log character_id, action_type, dc_attempted, outcome; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

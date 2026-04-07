@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Nature skill's Command an Animal action (Trained) and Identify Magic (Trained, primal magic only), with integration into animal companion management for ranger/druid characters.
+Implement Nature (Wis) skill action handlers — Command an Animal, Identify Magic (primal), Recall Knowledge (Nature), and Treat Wounds — with animal companion integration and appropriate trained-only gating.
 
 ## Source reference
 
-> "Nature measures your understanding of the natural world." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Command an Animal: You issue a command to an animal using Nature. Attempt a Nature check against the animal's Will DC; on a success, the animal follows your command until the end of its next turn."
 
 ## Implementation hint
 
-`NatureActionResolver`: Command an Animal: standard action; DC = 15 + animal's level (or Will DC if trained/smart); success = animal follows command for 1 minute; crit success = no check needed for that command type again; failure = no response; crit failure = hostile. Animal companion integration: if animal is character's companion, base DC is 10 (reduced). Identify Magic (Primal): 10-minute activity; identifies primal spell/item properties; DC = 20 + item/spell level. Recall Knowledge (Nature): DC by creature type (beast/plant/fungus/animal).
+`CommandAnAnimalAction` rolls Nature vs the animal's Will DC; on success the animal entity executes a specified action (Move/Strike/Aid) on its next turn as directed. For animal companions, this action is replaced by the companion's built-in action economy (free command once per turn). `IdentifyMagicNature` resolves against primal spell/item DCs only; cross-check the item/spell tradition and reject non-primal targets with an appropriate error. `TreatWoundsNature` is identical in mechanics to Medicine's Treat Wounds but uses the Nature modifier; both route through `TreatWoundsService` with the modifier as a parameter.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the Nature skill's Command an Animal action (Trained) and Identify Mag
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Command an Animal requires encounter or companion ownership
-- CSRF expectations: all POST/PATCH skill/nature routes require `_csrf_request_header_mode: TRUE`
-- Input validation: animal target id validated as encounter participant or character's companion; magic item id validated as valid entity for identification
-- PII/logging constraints: no PII logged; character id + animal id + command type + outcome only
+- Authentication/permission surface: Character-scoped write; animal companion commands only valid for the owning character; Treat Wounds healing is server-computed.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Animal command target must be a valid animal entity; command action must be from [Move, Strike, Aid, Other]; Treat Wounds target must be a living entity with less than max HP.
+- PII/logging constraints: no PII logged; log character_id, action_type, target_id, outcome; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

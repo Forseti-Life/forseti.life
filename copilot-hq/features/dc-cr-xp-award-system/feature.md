@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the full XP award system: per-creature XP (indexed by level delta), objective/milestone XP bonuses, automatic distribution to party, and level-up trigger at 1000 XP (plus milestone leveling as an alternative mode).
+Implement the XP award system — awarding XP from creature defeats, quest objectives, exploration achievements, and narrative milestones — with party-wide distribution, level-up triggering at 1000 XP, and an optional milestone leveling mode.
 
 ## Source reference
 
-> "The GM assigns XP at the end of an encounter or session to all participants." (Chapter 10: Game Mastering, PF2E Core Rulebook)
+> "At the end of a session or encounter, the GM awards XP to the entire party; when a character's XP total reaches 1,000, they level up and their XP resets to 0."
 
 ## Implementation hint
 
-`XPAwardService::awardCreatureXP(encounter_id)` → sums XP per creature using delta table; `awardObjectiveXP(session_id, objective_id)` → fixed values (major=80, minor=40, trivial=10) from content entity. Distribution: divide total evenly among all participating characters. Level trigger: `CharacterProgressionService::checkLevelUp(character)` fires when `xp >= 1000`; awards level, resets XP to 0. Milestone mode: `session.xp_mode = 'milestone'`; GM manually triggers `LevelUpService::grantLevel(character)` without XP tracking. `XPLog` entity stores each award event for audit trail (session id + character id + source + amount).
+`XpAwardService.award(session, source_type, xp_amount)` distributes XP evenly across all participating characters; source types are: creature_defeat (uses XP table from `dc-cr-encounter-creature-xp-table`), quest_objective, exploration, narrative. Persist each award as a `XpAwardEvent` entity (character_id, source_type, amount, timestamp) for audit. On each award, check if any character's total ≥ 1000; if so trigger `LevelUpService.stageLevelUp(character_id)` and reset XP to 0. Milestone mode is a campaign-level flag; when enabled, bypass XP tracking and trigger level-up directly on GM command.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the full XP award system: per-creature XP (indexed by level delta), ob
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: XP awards are GM-triggered (session/encounter ownership required); direct level-up route requires `_gm_access: TRUE`
-- CSRF expectations: all POST/PATCH xp-award routes require `_csrf_request_header_mode: TRUE`
-- Input validation: XP award amounts sourced from server-side tables or content entities; no client-supplied raw XP values; milestone level grant requires GM auth
-- PII/logging constraints: no PII logged; session id + character id + xp source + amount only
+- Authentication/permission surface: GM-scoped write for XP awards and milestone level-ups; players read their own XP total.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: XP amount must be a positive integer; source_type must be a valid enum; character IDs in party must be valid active characters.
+- PII/logging constraints: no PII logged; log gm_id, session_id, source_type, xp_amount, character_ids[], level_up_triggered; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

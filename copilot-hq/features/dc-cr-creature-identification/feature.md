@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Identify a Creature special use of Recall Knowledge, routing creature type to the correct skill, returning revealed abilities by success tier, and enforcing the 'no retry until new information' rule.
+Implement creature identification via Recall Knowledge — resolving checks against creature-level DCs and returning structured reveal data (name, traits, key abilities, immunities, weaknesses) across four success tiers.
 
 ## Source reference
 
-> "You can attempt to identify a creature with the corresponding skill." (Chapter 9: Playing the Game, PF2E Core Rulebook)
+> "You can attempt a Recall Knowledge check against a creature's DC to identify it; on a critical success you recall every ability, on a success you recall most, on a failure you recall nothing or wrong information."
 
 ## Implementation hint
 
-Creature type → skill mapping: Aberration/Construct/Dragon/Elemental/Giant/Humanoid → Arcana; Animal/Beast/Fungus/Plant → Nature; Astral/Ethereal/Fey/Fiend/Spirit → Occultism; Undead/Celestial/Daemon/Demon/Devil → Religion. DC = 10 + creature level + rarity modifier. `CreatureIdentificationService::identify(character, creature_id, skill)` resolves check → `IdentificationResult{name, traits, abilities_revealed[]}` where revealed set expands with success tier. Result cached on encounter entity; retry blocked unless new information clue entity added by GM.
+`CreatureIdentificationService` wraps `RecallKnowledgeService` with a creature-specific outcome resolver: crit success returns a full `CreatureStatBlock` reveal (all abilities, immunities, weaknesses, resistances); success returns a partial reveal (name, traits, 1–2 abilities); failure returns nothing or a `MisleadingInfo` object; crit failure always returns misleading info. Track per-(character, creature) identification attempts in a `CreatureIdAttempt` table with a `revealed_info_level` field; block re-attempts at same level until new information triggers a reset. The DC is `BASE_DC_BY_LEVEL[creature_level] + RARITY_ADJUSTMENT[creature_rarity]`.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Creature type → skill mapping: Aberration/Construct/Dragon/Elemental/Giant/Hum
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; creature identification requires encounter participant validation
-- CSRF expectations: all POST/PATCH creature/identification routes require `_csrf_request_header_mode: TRUE`
-- Input validation: creature id validated as active encounter participant; skill id validated against allowed mapping for creature type; DC sourced server-side from creature entity
-- PII/logging constraints: no PII logged; character id + creature id + skill id + identification tier only
+- Authentication/permission surface: Character-scoped read; full stat block reveals server-authoritative; GM always sees full stat block regardless of roll.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Creature entity ID must be a valid encounter entity; skill used must be appropriate to the creature knowledge_category; re-attempt blocking enforced server-side.
+- PII/logging constraints: no PII logged; log character_id, creature_id, skill_used, outcome, revealed_info_level; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch10

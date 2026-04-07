@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Witch class with Patron (determines spell list and Hex Cantrips), mandatory Familiar (delivers touch spells), Lesson system (gain new hexes), and prepared spellcasting where spells are learned through the Familiar's teachings.
+Implement Witch class mechanics — Patron (determining spell list), mandatory Familiar (delivers touch spells), Hex Cantrips and Lessons (expanding focus spell pool), and prepared spellcasting through familiar teachings — enabling a familiar-dependent, hex-focused arcane/occult/primal caster.
 
 ## Source reference
 
-> "Witches learn magic from a mysterious patron, channeling their power through a familiar." (Advanced Player's Guide, Witch Class)
+> "A witch's patron teaches spells through their familiar; during daily preparations the witch can prepare any spell in their familiar's spell storage, which is determined by the patron."
 
 ## Implementation hint
 
-Character entity gains `witch_patron` enum (determines `spell_tradition` and starting Hex Cantrips). Familiar is mandatory: `character.familiar_id` FK set at class selection. Hex Cantrips are focus spells from patron; `HexManager::cast(character, hex_id)` costs 1 Focus Point. Lesson system: witches gain Lessons as class feats; each grants a new Hex (focus spell). Prepared casting: spells known added to character spellbook via familiar teaching (narrative) — mechanically same as Wizard's prepared casting but uses `witch_spellbook`. Touch spell delivery: `FamiliarDelivery::deliver(character, spell_id, target_id)` allows familiar to deliver touch spell in familiar's turn.
+`Patron` is a required selection stored on the Witch entity; each Patron maps to a spell tradition and list of lesson-granted hexes. Familiar is mandatory (not optional as for Wizards); `FamiliarEntity` stores the witch's spell storage — on daily prep, `PrepareSpellsService` reads from the familiar's storage rather than a spellbook. Hexes are focus spells gained via Lessons (feat selection); `LessonSystem` grants a hex cantrip plus a non-hex spell added to familiar storage. `HexCantrip` casting uses the focus pool; `RefocusAction` restores 1 Focus Point. Familiar must be alive and accessible for daily spell prep; if familiar is dead, implement familiar re-summoning rules (1 week ritual).
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Character entity gains `witch_patron` enum (determines `spell_tradition` and sta
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Witch class actions and familiar delivery require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/witch routes require `_csrf_request_header_mode: TRUE`
-- Input validation: patron enum validated server-side; Hex ids validated against patron's allowed hexes; familiar delivery target validated as encounter participant
-- PII/logging constraints: no PII logged; character id + hex id + familiar id + target id only
+- Authentication/permission surface: Character-scoped write; Patron and familiar selections immutable post creation; familiar HP managed server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Patron enum restricted to valid Witch Patron options; Lesson feat IDs validated against Witch feat list; familiar re-summoning ritual deducts materials server-side.
+- PII/logging constraints: no PII logged; log character_id, patron, lesson_feats[], hex_cast_id, focus_points_remaining; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

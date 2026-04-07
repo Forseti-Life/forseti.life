@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Arcana skill's Borrow an Arcane Spell action (Trained, for wizards borrowing from another's spellbook), Decipher Writing (Trained), Identify Magic (Trained, arcane), and Learn a Spell (Trained, add to spellbook).
+Implement Arcana (Int) skill action handlers — Borrow an Arcane Spell, Decipher Writing, Identify Magic (arcane), Learn a Spell, and Recall Knowledge — supporting wizard spell acquisition workflows and arcane knowledge checks.
 
 ## Source reference
 
-> "Arcana measures how much you know about arcane magic and creatures." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Borrow an Arcane Spell: If you're an arcane prepared caster, you can attempt to prepare a spell from another arcane caster's spellbook or scroll; the DC is 15 + the spell's rank."
 
 ## Implementation hint
 
-`ArcanaActionResolver`: Borrow an Arcane Spell: requires another character's spellbook in possession; Arcana DC = 20 + spell level; success = can prepare borrowed spell today only (not added to own spellbook). Learn a Spell: 10-minute activity, Arcana DC = 20 + spell level, costs `level × 10gp` materials; success = spell added to spellbook permanently. Identify Magic (Arcane): DC = 20 + item/spell level, 10-minute activity. Decipher Writing: DC by text complexity (10 simple, 20 scholarly, 30+ magical script). All results stored in encounter/session context.
+`BorrowAnArcaneSpellAction` is a daily-prep-phase activity; validate that the character is an arcane prepared caster, then resolve Arcana vs (15 + spell_rank). On success, add the spell to available prepared slots for that day without adding it permanently to the spellbook. `LearnASpellAction` permanently adds a spell to the character's spellbook/repertoire; deduct `10 × spell_rank` gp in materials and require an Arcana check (DC = 15 + spell_rank); gold deduction is server-authoritative. `DecipherWritingArcana` is an exploration activity resolving vs the text's complexity DC, revealing the text content as a `RevealedContent` entity.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the Arcana skill's Borrow an Arcane Spell action (Trained, for wizards
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Borrow and Learn Spell require character ownership; borrowed spell access validated against source character's spellbook
-- CSRF expectations: all POST/PATCH skill/arcana routes require `_csrf_request_header_mode: TRUE`
-- Input validation: spell id validated as arcane spell; gold cost validated and deducted server-side; borrowed spell grant is session-scoped only (not permanent)
-- PII/logging constraints: no PII logged; character id + spell id + source character id (if borrowing) + outcome only
+- Authentication/permission surface: Character-scoped write; arcane caster class type validated server-side before Borrow; gold deduction server-authoritative.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Spell ID must be from the arcane tradition list; spell rank must be ≤ character's max spell rank; source spellbook/scroll entity must be a valid accessible item.
+- PII/logging constraints: no PII logged; log character_id, action_type, spell_id, dc_attempted, gp_spent; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

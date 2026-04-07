@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement all Deception skill actions: Create a Diversion (Trained), Feint (Trained), Impersonate (Untrained), and Lie (Untrained), with opposed-check resolution against NPC Perception or Sense Motive.
+Implement all Deception (Cha) skill action handlers — Create a Diversion, Feint, Impersonate, Lie — with opposed-check resolution against target Perception/Sense Motive and appropriate duration and condition tracking.
 
 ## Source reference
 
-> "Deception allows you to convince others of falsehoods." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Feint: With a gesture, a trick, or a ruse, you throw your opponent off guard. Make a Deception check against your target's Perception DC. On a success, the target is flat-footed against your melee attacks until the end of your current turn."
 
 ## Implementation hint
 
-`DeceptionActionResolver`: Create a Diversion: single action, Deception vs Perception of all observers, success = Hidden until next action; Feint: single action in melee, Deception vs Perception, success = target flat-footed until your next turn; Impersonate: Deception vs Perception (trained NPCs may use Sense Motive) with +4 circumstance bonus if wearing appropriate gear; Lie: Deception vs Sense Motive, context-dependent penalties. All store result in encounter state for downstream condition tracking.
+`FeintAction` resolves as a Deception check vs the target's Perception DC; apply `flat-footed` condition to the target scoped to the current attacker's turn end. `CreateADiversionAction` uses Deception vs Perception DC of all observers; on success sets the caster as `Hidden` (transition from Observed to Hidden state in the visibility system). `ImpersonateAction` is an exploration/downtime activity; store an `impersonation_subject_id` and duration flag on the character. `LieAction` resolves Deception vs Perception DC; outcome determines NPC belief state update.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement all Deception skill actions: Create a Diversion (Trained), Feint (Trai
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; deception actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/deception routes require `_csrf_request_header_mode: TRUE`
-- Input validation: target ids validated as encounter participants; impersonation target identity validated as known NPC
-- PII/logging constraints: no PII logged; character id + action id + target ids + outcome only
+- Authentication/permission surface: Character-scoped write; condition application (flat-footed, hidden) must be server-authoritative.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Feint target must be a valid encounter entity within melee reach; Impersonate subject must be a valid character/NPC reference; Lie narrative text sanitized with HTML strip.
+- PII/logging constraints: no PII logged; log character_id, action_type, target_id, outcome; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Swashbuckler class with Panache (condition gained by stylish actions, consumed by Finisher attacks), Precise Strike (+d6 per 5 levels on Finishers), Style subclass (Battledancer/Braggart/Fencer/Gymnast/Wit), and Opportune Riposte reaction.
+Implement Swashbuckler class mechanics — Panache condition, Style-specific Panache gain triggers, Finisher attacks that consume Panache for bonus damage, and Precise Strike scaling — enabling a high-risk, high-reward flair-based combat playstyle.
 
 ## Source reference
 
-> "Swashbucklers combine nimble footwork with flashy attacks, gaining power through Panache." (Advanced Player's Guide, Swashbuckler Class)
+> "Panache is a condition gained by performing stylish deeds; when you have Panache, you can use a Finisher to deal extra damage and trigger special effects, but you lose the Panache condition."
 
 ## Implementation hint
 
-Panache: condition stored on character entity; gained by performing style-specific stylish actions (Tumble Through, Demoralize, Feint, Tumble Through/high Acrobatics DC, Bon Mot respectively by style). Panache enables Finisher actions. `PanacheManager::grant(character)` and `consume(character)`. Finisher: Strike action that consumes Panache; adds `1d6` Precise Strike damage per 5 levels; on hit deals full damage even on miss (half on regular miss for some). Precise Strike: precision damage added only when Panache consumed. Opportune Riposte: reaction trigger = enemy critically fails a Strike vs you; make a Strike.
+`Panache` is a boolean condition on the character managed by `PanacheConditionManager`; gained by Style-specific trigger actions and consumed on any Finisher attack. Style (Battledancer/Braggart/Fencer/Gymnast/Wit) is a required selection determining which actions grant Panache (e.g., Tumble Through for Gymnast, Bon Mot for Wit). `FinisherAction` wraps any Strike: validate Panache is active, execute the strike with `PreciseStrike` damage (+1d6 per 5 levels), apply Finisher-specific bonus effect, then consume Panache. `OpportuneRiposte` triggers as a reaction when an enemy critically fails a Strike against the character; implement via the reaction hook system.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Panache: condition stored on character entity; gained by performing style-specif
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Swashbuckler class actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/swashbuckler routes require `_csrf_request_header_mode: TRUE`
-- Input validation: Panache grant conditions validated server-side by style enum; Finisher validates Panache present before consuming; Precise Strike dice count computed from level
-- PII/logging constraints: no PII logged; character id + action type + panache state + target id only
+- Authentication/permission surface: Character-scoped write; Panache state managed server-side; Finisher only executable when Panache is true (server-validated).
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Style enum restricted to [Battledancer, Braggart, Fencer, Gymnast, Wit]; Finisher target must be a valid encounter entity; Panache gain triggers validated against Style selection server-side.
+- PII/logging constraints: no PII logged; log character_id, panache_gained_by, finisher_target_id, precise_strike_damage; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

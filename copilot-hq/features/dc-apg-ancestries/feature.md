@@ -16,15 +16,15 @@
 
 ## Goal
 
-Load the 6 APG ancestries (Catfolk, Kobold, Leshy, Orc, Ratfolk, Tengu) into the character creation system, each with HP, Size, Speed, ability boosts/flaws, starting languages, traits, 5+ heritage options, and ancestry feat chains through level 17.
+Add the 6 APG ancestries — Catfolk, Kobold, Leshy, Orc, Ratfolk, Tengu — to the character creation system with full heritage options, ancestry feat trees, ability boosts/flaws, and language selections matching the existing dc-cr ancestry schema.
 
 ## Source reference
 
-> "The Advanced Player's Guide introduces six new ancestries: catfolk, kobold, leshy, orc, ratfolk, and tengu." (Advanced Player's Guide, Ancestry Chapter)
+> "The Advanced Player's Guide introduces six new ancestries, each with unique ability boosts, heritage options, and ancestry feats that expand character creation options."
 
 ## Implementation hint
 
-Create one `ancestry` content entity per new ancestry using the same schema as CRB ancestries (dc-cr-dwarf-ancestry). Key values: Catfolk HP 8 DEX+CHA, Kobold HP 6 DEX+CHA flaw STR, Leshy HP 8 CON+WIS, Orc HP 10 STR flaw INT, Ratfolk HP 6 DEX+INT, Tengu HP 6 DEX+WIS. Each has 5+ heritages (`heritage` child entities) and 8+ ancestry feats per level bracket (1/5/9/13/17). `CharacterCreation::getAncestryOptions()` returns combined CRB + APG list. Depends on dc-cr-ancestry-system and dc-cr-heritage-system being shipped.
+Each APG ancestry uses the same `AncestryEntity` schema as CRB ancestries: hp, size, speed, ability_boosts[], ability_flaws[], languages[], traits[], heritages[], ancestry_feats[]. Implement a bulk import for all 6 ancestries from structured JSON; validate against the existing ancestry schema before import. Heritage options (5+ per ancestry) are child entities with additional traits or abilities; ancestry feats (levels 1–17) extend the `FeatCatalog` with ancestry-scoped entries. Add APG ancestry options to the character creation ancestry selector without disrupting existing CRB ancestry selection.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Create one `ancestry` content entity per new ancestry using the same schema as C
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; ancestry selection requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH character ancestry routes require `_csrf_request_header_mode: TRUE`
-- Input validation: ancestry and heritage ids validated against full catalog (CRB + APG); ability boost/flaw application computed server-side
-- PII/logging constraints: no PII logged; character id + ancestry id + heritage id only
+- Authentication/permission surface: Character-scoped write; ancestry selection immutable post character creation; ancestry feat selections validated against character ancestry.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Ancestry ID must reference a valid ancestry entity; heritage selection must belong to the chosen ancestry; ability boost/flaw choices validated against ancestry's designated boosts.
+- PII/logging constraints: no PII logged; log character_id, ancestry_id, heritage_id, feats_selected[]; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

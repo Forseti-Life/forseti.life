@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Recall Knowledge action across all applicable skills (Arcana/Nature/Occultism/Religion/Society/Crafting/Lore), routing creature/topic type to the correct skill and resolving against a DC set by creature level or topic rarity.
+Implement the generic Recall Knowledge action resolving across all relevant skills (Arcana/Nature/Occultism/Religion/Society/Crafting/Lore) based on creature or item type, with degree-of-success outcome tables revealing traits, immunities, weaknesses, and abilities.
 
 ## Source reference
 
-> "You attempt a skill check to recall a bit of knowledge about a topic." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Recall Knowledge: You attempt to recall a bit of knowledge about the subject. The GM sets the DC, which is typically based on the subject's rarity and level; on a success you recall accurate information."
 
 ## Implementation hint
 
-`RecallKnowledgeResolver::resolve(character, target_id, skill_hint)` → determines correct skill from target type (e.g., construct → Arcana, undead → Religion, dragon → Arcana/Nature), resolves check vs DC = 10 + creature level or 15 + item level, returns `knowledge_tier` (crit success = all abilities/immunities/weaknesses, success = most, failure = name only, crit fail = wrong info). Untrained allowed for most except specialized topics. Result cached on encounter entity to prevent re-rolling until new information obtained.
+`RecallKnowledgeService` accepts a target entity (creature/item/location) and derives the applicable skill list from the target's `knowledge_category` field (e.g., dragon → Arcana, undead → Religion, construct → Crafting). The DC is computed from `BASE_DC_BY_LEVEL[target_level] + RARITY_ADJUSTMENT[target_rarity]`. On success, return a `KnowledgeReveal` object containing traits and a subset of abilities; on crit success return all abilities; on failure return false info or nothing; on crit failure return misleading info. Track per-character attempts to block re-tries until new information is discovered.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the Recall Knowledge action across all applicable skills (Arcana/Natur
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Recall Knowledge requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/recall-knowledge routes require `_csrf_request_header_mode: TRUE`
-- Input validation: target id validated as valid creature/item/topic entity; skill id validated against allowed set for target type; DC sourced server-side from target level
-- PII/logging constraints: no PII logged; character id + target id + skill id + knowledge tier only
+- Authentication/permission surface: Character-scoped read; knowledge reveals are server-authoritative and must not be client-controlled.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Target entity ID must be a valid creature, item, or location; skill used must be a valid skill for the target type; re-attempt blocking validated server-side.
+- PII/logging constraints: no PII logged; log character_id, target_entity_id, skill_used, outcome; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

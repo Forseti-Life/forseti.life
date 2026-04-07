@@ -10,15 +10,15 @@
 
 ## Goal
 
-Implement the currency and bulk encumbrance systems: GP/SP/CP with standard exchange rates, Bulk weight tracking (L/1-n/—), carrying limits (5 + STR mod Bulk), and item pricing from the equipment catalog.
+Implement the PF2E currency and Bulk encumbrance system — GP/SP/CP exchange rates, the Bulk item weight system, encumbrance thresholds, and starting gold by class — as the foundational economic layer for all item and equipment features.
 
 ## Source reference
 
-> "Coins are divided into four denominations: platinum (pp), gold (gp), silver (sp), and copper (cp)." (Chapter 6: Equipment, PF2E Core Rulebook)
+> "Bulk measures how much gear you're carrying. You can carry Bulk equal to 5 + your Strength modifier before becoming Encumbered; you are over your limit at 10 + your Strength modifier."
 
 ## Implementation hint
 
-Character entity gains `currency{pp,gp,sp,cp}` fields. All economic transactions go through `EconomyService::transferCurrency(character, delta{pp,gp,sp,cp})` which validates non-negative balance. Bulk tracking: each carried item has `bulk` field (L=0.1, integer, or 0 for negligible); `BulkCalculator::total(character)` sums all; encumbered when > 5 + STR mod, over-encumbered when > 10 + STR mod (speed reduced, penalties applied). Currency auto-exchanges (10cp = 1sp, 10sp = 1gp, 10gp = 1pp). Starting gold distributed at character creation by class.
+Model currency as a single integer `copper_pieces` on the character record; expose GP/SP/CP as computed display fields (1 GP = 10 SP = 100 CP). The Bulk system uses a `BulkCalculator` that sums item bulk values: L items count as 10 per full Bulk, negligible (`—`) items don't count; the carrying limit is `(5 + str_mod) × 10` in tenth-Bulk units. Apply the `Encumbered` condition automatically when bulk exceeds the limit; apply `Over Limit` when bulk exceeds `(10 + str_mod)`. Starting gold is a static table keyed by class, applied once at character creation.
 
 ## Mission alignment
 
@@ -27,10 +27,10 @@ Character entity gains `currency{pp,gp,sp,cp}` fields. All economic transactions
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; currency mutations require character ownership (`_character_access: TRUE`); shop transactions require session context
-- CSRF expectations: all POST/PATCH economy/currency routes require `_csrf_request_header_mode: TRUE`
-- Input validation: currency delta validated as non-negative result after transaction; bulk calculation is server-side computed; no client-supplied bulk totals accepted
-- PII/logging constraints: no PII logged; character id + currency delta + transaction type + source id only
+- Authentication/permission surface: Character-scoped write; currency changes (buy/sell/loot) must be server-authoritative; negative balance prevented server-side.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Currency transaction amounts must be positive integers; item bulk values validated against item catalog; Strength modifier derived from character attributes, not client input.
+- PII/logging constraints: no PII logged; log character_id, transaction_type, amount_cp, source_entity_id; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

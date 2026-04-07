@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement all Stealth skill actions: Hide (Trained, become Hidden), Sneak (Trained, move while maintaining Hidden), Conceal an Object (Trained), and Create a Diversion (cross-reference with Deception), with integration into Rogue Sneak Attack trigger.
+Implement Stealth (Dex) skill action handlers — Hide, Sneak, Conceal an Object, and Create a Diversion integration — with full Hidden/Undetected visibility state machine and Rogue Sneak Attack trigger integration.
 
 ## Source reference
 
-> "Stealth allows you to avoid detection by others." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Hide: You attempt to hide from creatures that can see you, using a Stealth check against each opponent's Perception DC; on a success, you become Hidden to that creature until you do something to make yourself known."
 
 ## Implementation hint
 
-`StealthActionResolver`: Hide: Stealth vs all observers' Perception; success = character becomes Hidden to those who failed; Hidden means attacker doesn't know exact square (−2 to attack, can't use flat-footed bonus yet). Sneak: move half Speed while Hidden; Stealth vs Perception at end of movement; failure = Observed. Conceal Object: opposed Stealth vs Perception; success = object hidden on person. Create a Diversion: delegates to `DeceptionActionResolver::createDiversion()`. Rogue integration: `EncounterEngine::resolveStrike(attacker, target)` checks if target is Hidden or Undetected to attacker for Sneak Attack bonus trigger.
+The visibility state machine has states: Observed → Hidden → Undetected → Unnoticed; `HideAction` transitions Observed→Hidden vs each observer's Perception DC. `SneakAction` is a move action maintaining Hidden status; requires a Stealth check vs observer Perception DC on each move into observation range. Track visibility state per (character, observer) pair in a `VisibilityMatrix` entity updated on each Hide/Sneak resolution. Integrate with `SnackAttackTriggerService` in `dc-cr-class-rogue`: Sneak Attack fires when target is Hidden or Undetected relative to the attacker; query VisibilityMatrix before strike resolution.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement all Stealth skill actions: Hide (Trained, become Hidden), Sneak (Train
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Stealth actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/stealth routes require `_csrf_request_header_mode: TRUE`
-- Input validation: observer ids validated as encounter participants; hidden state stored server-side, not client-supplied
-- PII/logging constraints: no PII logged; character id + observer id + hidden state + outcome only
+- Authentication/permission surface: Character-scoped write; visibility state changes are server-authoritative and broadcast to GM; only GM can see true Undetected characters.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Hide/Sneak DCs computed from observer Perception + situational modifiers; armor check penalty applied from Stealth skill; observer list derived from encounter entities, not client input.
+- PII/logging constraints: no PII logged; log character_id, action_type, observer_id, visibility_state; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

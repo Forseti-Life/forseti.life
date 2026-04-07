@@ -10,15 +10,15 @@
 
 ## Goal
 
-Implement the three knowledge-acquisition skill actions: Decipher Writing (skill-based, reading obscure/magical texts), Identify Magic (10-minute activity, determines spell or item properties), and Learn a Spell (adds spell to repertoire/spellbook at material cost).
+Implement three related skill actions — Decipher Writing, Identify Magic, and Learn a Spell — as a unified knowledge-acquisition subsystem covering mundane text comprehension, magical property identification, and permanent spell acquisition.
 
 ## Source reference
 
-> "You can attempt to decipher or identify magic from writing or an item using the appropriate skill." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Identify Magic: Once you discover a spell or magic item, you can attempt a check to determine its properties; the DC is usually 15 + the spell or item's rank."
 
 ## Implementation hint
 
-`KnowledgeActionResolver`: Decipher Writing: skill varies (Arcana for arcane, Occultism for occult, Religion for divine, Nature for primal); DC = 10 simple / 20 scholarly / 30 magical / 40 esoteric; action = 10 minutes. Identify Magic: same skill routing; DC = 20 + spell/item level; reveals school, traits, activation, and effects on crit success vs fewer details on success. Learn a Spell: same skill routing; DC = 20 + spell level; material cost = level × 10gp; success adds spell to repertoire/spellbook permanently; crit success costs half; failure costs half materials; crit failure costs all materials.
+Implement a shared `KnowledgeAcquisitionService` with three distinct action handlers. `DecipherWritingAction` accepts a `TextEntity` (mundane or magical tag) and routes to the appropriate skill (Society for mundane, tradition-appropriate for magical). `IdentifyMagicAction` is a 10-minute activity resolving vs (15 + item/spell rank) using the tradition-appropriate skill; on success populate the `item.identified_properties` field. `LearnASpellAction` requires a successful Identify Magic first, then deducts `10 × spell_rank` gp and adds the spell to the character's repertoire or spellbook. These three actions share a DC calculation utility and should use consistent error messages.
 
 ## Mission alignment
 
@@ -27,10 +27,10 @@ Implement the three knowledge-acquisition skill actions: Decipher Writing (skill
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Learn a Spell requires character ownership; material cost deducted server-side atomically
-- CSRF expectations: all POST/PATCH knowledge-action routes require `_csrf_request_header_mode: TRUE`
-- Input validation: item/spell id validated as valid entity; material gold deducted atomically with spell grant; skill id validated against correct tradition routing
-- PII/logging constraints: no PII logged; character id + spell/item id + gold delta + knowledge tier only
+- Authentication/permission surface: Character-scoped write; gold deduction for Learn a Spell is server-authoritative; identified properties exposed only after successful Identify Magic check.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Text/item/spell entity IDs must be valid; skill used must match the item/spell tradition; gold deduction validated against character wealth.
+- PII/logging constraints: no PII logged; log character_id, action_type, target_id, dc, gp_spent, outcome; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04

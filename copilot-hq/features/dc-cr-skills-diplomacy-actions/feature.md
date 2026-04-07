@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement all Diplomacy skill actions: Gather Information (Untrained, 2-hour downtime), Make an Impression (Untrained, scene-level social encounter), and Request (Trained), with NPC attitude state machine (Unfriendly/Indifferent/Friendly/Helpful).
+Implement all Diplomacy (Cha) skill action handlers — Gather Information, Make an Impression, Request — with NPC attitude state machine (Hostile/Unfriendly/Indifferent/Friendly/Helpful) and appropriate downtime/encounter phase gating.
 
 ## Source reference
 
-> "Diplomacy involves making requests and negotiations using the power of your words." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Make an Impression: With at least 1 minute of conversation, you attempt to make a good impression on someone. Attempt a Diplomacy check against the target's Will DC; on a success, the target's attitude toward you improves by one step."
 
 ## Implementation hint
 
-NPC entity gains `attitude` enum (hostile/unfriendly/indifferent/friendly/helpful). Make an Impression: 1-minute activity, Diplomacy vs NPC Will DC (10 + WIS mod + level); success = shift attitude up 1, crit success = up 2. Request: targets Friendly/Helpful NPCs; DC = 15 + NPC level (DC raised for difficult requests); failure may shift attitude down. Gather Information: downtime activity; DC set by rarity of information (10–30); returns rumor/information node IDs. `DiplomacyResolver` stores NPC attitude changes in the scene/encounter context.
+NPC attitude is a 5-step enum stored on the `NpcRelationship` entity keyed by (character_id, npc_id); `MakeAnImpressionAction` is a 1-minute activity that rolls Diplomacy vs Will DC and calls `AttitudeStateMachine.advance()` or `retreat()`. `GatherInformationAction` is a 2-hour downtime activity; resolve as Diplomacy vs settlement DC and return a structured `InformationReveal` result. `RequestAction` requires Friendly or Helpful attitude as a prerequisite; validate attitude tier before roll resolution. All three actions are gated to social/downtime/exploration phase only.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ NPC entity gains `attitude` enum (hostile/unfriendly/indifferent/friendly/helpfu
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Diplomacy actions against NPCs require session/encounter ownership
-- CSRF expectations: all POST/PATCH skill/diplomacy routes require `_csrf_request_header_mode: TRUE`
-- Input validation: NPC target id validated as valid scene entity; attitude shifts bounded to valid enum values; information DC sourced server-side
-- PII/logging constraints: no PII logged; character id + NPC id + attitude shift + action id only
+- Authentication/permission surface: Character-scoped write; NPC attitude state changes are GM-overridable; attitude updates broadcast to GM view.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: NPC ID must reference a valid NPC entity; attitude tier changes clamped to valid enum range; downtime duration must be ≥ minimum for the action.
+- PII/logging constraints: no PII logged; log character_id, npc_id, action_type, attitude_change; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

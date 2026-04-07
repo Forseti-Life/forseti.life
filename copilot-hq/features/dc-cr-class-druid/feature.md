@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Druid class with Order (Animal/Leaf/Storm/Wild), primal prepared spellcasting, Wild Shape (polymorph form shifts), order spells, druidic language, and wild empathy.
+Implement Druid class mechanics — Order (Animal/Leaf/Storm/Wild), primal prepared spellcasting, Wild Shape, Order Spells, Anathema, and Wild Empathy — so players can express nature-themed martial and magical roles gated by druidic code.
 
 ## Source reference
 
-> "Druids call upon the living magic of plants, animals, and the physical world to cast spells." (Chapter 3: Classes, PF2E Core Rulebook)
+> "A druid's order determines their order spell and the focus spells they gain; Wild Druids gain Wild Shape at 1st level, allowing them to cast that spell once per hour without expending a spell slot."
 
 ## Implementation hint
 
-Character entity gains `druid_order` enum. Wild Shape: `WildShapeManager::transform(character, form_id)` validates form availability (level-gated), applies form stat block overlay (size/speed/attack changes), stores `active_form_id`. Order Animal: grants `animal_companion_id` FK at L1. Order Wild: Wild Shape from L1; unlocks more powerful forms earlier. Order Storm: bonus storm spells + electrical/sonic immunity at higher levels. Order Leaf: familiar at L1 + leshy familiar option. Primal spell list. Druidic Language: add `languages: [druidic]` at char creation. Wild Empathy: `Diplomacy` vs creature DC for animals.
+`DruidOrder` is a required enum (Animal/Leaf/Storm/Wild) stored on the Druid entity; each order loads a specific set of order spells into the focus pool and may modify class feature availability (Wild gets Wild Shape at level 1). `WildShapeAction` casts the Polymorph spell variant consuming 1 Focus Point; the available Wild Shape forms expand with level. Anathema violations (e.g., using metal armor for leaf order) should be flagged at the gear-equip validation layer. `WildEmpathy` unlocks a free Diplomacy-equivalent check against animals and plant creatures using the Nature modifier.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Character entity gains `druid_order` enum. Wild Shape: `WildShapeManager::transf
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Wild Shape and order actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/druid routes require `_csrf_request_header_mode: TRUE`
-- Input validation: form id validated against available forms for character level and order; order enum validated server-side
-- PII/logging constraints: no PII logged; character id + action type + form id only
+- Authentication/permission surface: Character-scoped write; Order selection immutable post creation; Wild Shape form selection validated against unlocked forms by level.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Order enum restricted to [Animal, Leaf, Storm, Wild]; Wild Shape form IDs validated against level-gated form list; anathema rules enforced server-side.
+- PII/logging constraints: no PII logged; log character_id, order_type, wild_shape_form; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

@@ -10,15 +10,15 @@
 
 ## Goal
 
-Implement the rune system: fundamental runes (Striking/Resilient for weapon/armor potency and damage step-up), property runes (add traits and effects), rune etching/transfer, and potency rune requirement for property rune slots.
+Implement the rune etching and transfer system — fundamental runes (Striking/Resilient tiers) for weapons and armor, property rune slots gated by potency, and the Etch a Rune downtime action — enabling the primary weapon and armor power scaling path.
 
 ## Source reference
 
-> "Runes allow you to invest magical power in a weapon or suit of armor." (Chapter 11: Crafting and Treasure, PF2E Core Rulebook)
+> "A weapon potency rune adds an item bonus to attack rolls and determines the number of property rune slots; you must have a +1 potency rune before adding any property runes to a weapon."
 
 ## Implementation hint
 
-Weapon entity gains `potency_rune` (0/+1/+2/+3), `striking_rune` enum (none/striking/greater/major), `property_runes[]` (up to `potency_rune` count slots). Armor: `potency_rune`, `resilient_rune` enum (none/resilient/greater/major), `property_runes[]`. `RuneManager::etchRune(item, rune_id)` validates potency requirement, Crafting check if required. `RuneManager::transferRune(from_item, to_item, rune_id)` moves rune atomically. Rune effect resolver: on weapon strike or damage calculation, `RuneEffectApplicator::apply(item, attack_result)` adds bonus damage dice or trait.
+Model runes as child entities of `WeaponItem`/`ArmorItem` with fields: rune_type (fundamental/property), rune_name, tier (1/2/3 for Striking/Resilient). The property rune slot count is derived from the potency rune tier: +1=1 slot, +2=2 slots, +3=3 slots. `EtchaRuneService` validates potency prerequisite, deducts the rune item from inventory (or gp for the rune material cost), applies a Craft check vs rune level DC, and on success attaches the rune entity to the target item. `TransferRuneService` moves a rune from one item to another; requires a Craft check and an empty matching slot on the destination.
 
 ## Mission alignment
 
@@ -27,10 +27,10 @@ Weapon entity gains `potency_rune` (0/+1/+2/+3), `striking_rune` enum (none/stri
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; rune etching/transfer requires character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH rune-system routes require `_csrf_request_header_mode: TRUE`
-- Input validation: potency slot count validated server-side before property rune addition; rune entity ids validated against rune catalog; transfer validates item ownership
-- PII/logging constraints: no PII logged; character id + item id + rune id + action type only
+- Authentication/permission surface: Character-scoped write; rune attachment/detachment server-authoritative; potency prerequisite enforced before property rune etch.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Rune entity ID must reference a valid rune item in character inventory; target item must be a valid weapon or armor; property rune slot count validated against potency tier server-side.
+- PII/logging constraints: no PII logged; log character_id, rune_id, target_item_id, action (etch/transfer), craft_check_result; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

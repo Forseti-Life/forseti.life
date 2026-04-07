@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Monk class with Flurry of Blows (reduced MAP), Powerful Fist, ki tradition (no-spell vs ki-spell variant), stance system (Tiger/Wolf/Dragon/Mountain/Ironblood), Stunning Fist, and all 20 levels of advancement.
+Implement Monk class mechanics — Powerful Fist, Flurry of Blows, Ki tradition, Stances, and Stunning Fist — so players can execute a fast unarmed martial arts playstyle with stance-based combat enhancements.
 
 ## Source reference
 
-> "Monks are warriors who use both their physical and spiritual power in their pursuit of personal perfection." (Chapter 3: Classes, PF2E Core Rulebook)
+> "Flurry of Blows lets you make two unarmed Strikes as a single action, applying the Multiple Attack Penalty as if only one of those attacks had the penalty (−4/−8 instead of −5/−10)."
 
 ## Implementation hint
 
-Flurry of Blows: 2 strikes action with MAP only −4/−8 instead of −5/−10; both must be unarmed or monk weapons. Powerful Fist: unarmed strike deals 1d6 B, not 1d4; agile, finesse traits. Stances are conditions applied to character; each grants modified strike or special action. Ki tradition: if character has ki feats, add `ki_point_pool` field. `StanceManager::enterStance(character, stance_id)` deactivates current stance and applies new one. Stunning Fist: if Strike hits, target must save vs Fortitude (DC = class DC) or be stunned 1.
+`FlurryOfBlowsAction` generates two `StrikeResolver` calls in sequence with a MAP override of -4/-8; validate that both targets use unarmed attack. Stances are mutually exclusive buff entities applied to the character; implement a `StanceManager` that clears the current stance on entering a new one. Ki spells are optional (character has `ki_tradition` flag); gate Ki Strike and Stunning Fist behind focus pool. `PowerfulFistUpgrade` upgrades unarmed damage die at specific levels (1d6→1d8→1d10); compute dynamically from character level rather than storing a separate field.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Flurry of Blows: 2 strikes action with MAP only −4/−8 instead of −5/−10;
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; stance changes and ki actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/monk routes require `_csrf_request_header_mode: TRUE`
-- Input validation: stance id validated against monk stance enum; ki point expenditure validated against pool; Flurry of Blows validates both strike targets are unarmed/monk weapons
-- PII/logging constraints: no PII logged; character id + action type + stance id only
+- Authentication/permission surface: Character-scoped write; stance changes and flurry only valid during encounter phase for that character's turn.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Stance ID must be a valid monk stance enum; strike targets must be valid encounter entities; Ki spell targets validated against spell range.
+- PII/logging constraints: no PII logged; log character_id, stance_entered, action_type; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Ranger class with Hunt Prey (target designation with +2 Perception/Tracking bonuses and concealment ignore), Hunter's Edge subclasses (Flurry: −2 MAP, Precision: +1d8 first hit, Outwit: +2 AC), and all 20-level advancement.
+Implement Ranger class mechanics — Hunt Prey, Hunter's Edge (Flurry/Precision/Outwit), Animal Companion, Trackless Step, and Evasion — so players can designate and systematically eliminate targets with specialized combat and exploration advantages.
 
 ## Source reference
 
-> "Rangers are skilled hunters who track their quarry with unparalleled expertise." (Chapter 3: Classes, PF2E Core Rulebook)
+> "When you use Hunt Prey to designate a target, you gain a +2 circumstance bonus to Perception checks to Seek your prey and to Survival checks to Track your prey."
 
 ## Implementation hint
 
-Hunt Prey: single action, designates one target as `hunted_prey_id` on character entity; bonuses computed dynamically in check resolution when attacker = ranger and target = hunted prey. Hunter's Edge: `hunter_edge` enum field on character. Flurry: if Edge = flurry and attacking hunted prey, MAP = −2/−4. Precision: if Edge = precision, first hit vs hunted prey adds `1d8` (scales to 2d8 at L11, 3d8 at L19). Outwit: +2 circumstance bonus to AC/Reflex vs hunted prey attacks. Trackless Step: leaves no tracks in non-urban environments; server returns `tracking_dc = null`.
+`HuntPreyAction` sets a `hunted_prey_id` on the character with a duration of until next daily prep or until a new prey is designated (only 1 at a time). `HunterEdgeService` applies the correct modifier based on edge selection: Flurry overrides MAP to -2 on second attack vs prey, Precision adds +1d8 on first hit vs prey per level tier, Outwit grants +2 AC vs prey. Animal Companion follows the same companion entity model as other classes; sync companion actions with ranger turn. Trackless Step suppresses ranger tracks in exploration mode.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Hunt Prey: single action, designates one target as `hunted_prey_id` on character
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; Hunt Prey and all ranger actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH class/ranger routes require `_csrf_request_header_mode: TRUE`
-- Input validation: hunted prey target id validated as valid encounter participant; Hunter's Edge enum validated server-side
-- PII/logging constraints: no PII logged; character id + target id + action type only
+- Authentication/permission surface: Character-scoped write; Hunt Prey designation only valid during the owning character's turn.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Prey target must be a valid encounter creature entity; Hunter's Edge enum restricted to [Flurry, Precision, Outwit]; level-based damage tier computed server-side.
+- PII/logging constraints: no PII logged; log character_id, prey_target_id, hunter_edge; no PII logged.
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

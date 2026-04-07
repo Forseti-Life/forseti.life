@@ -16,15 +16,15 @@
 
 ## Goal
 
-Implement the Crafting skill actions: Craft (Trained, downtime item creation), Identify Magic (Trained, determine item properties), Recall Knowledge (Untrained), and Repair (Trained), with full DC/cost tables.
+Implement Crafting (Int) skill action handlers — Craft (downtime), Identify Magic, Recall Knowledge, and Repair — as the primary item creation and maintenance mechanic including multi-day downtime resolution.
 
 ## Source reference
 
-> "Crafting measures your skill at creating, repairing, and modifying items." (Chapter 4: Skills, PF2E Core Rulebook)
+> "Craft: You can create an item from raw materials. You must have the formula for the item, access to the appropriate tools, and spend 4 days of downtime; after that initial period you can attempt a Crafting check against the item's DC."
 
 ## Implementation hint
 
-`CraftingActionResolver`: Craft (downtime): validates character has formula; resolves vs item DC (by level); success = item completed after `days_needed = 4 + item_level`; characters may expend extra days for gold reduction (at half raw material rate). Repair: Crafting vs DC 10 + item level; restores BT/HP of damaged item. Identify Magic: 10-minute activity, DC = 20 + spell/item level. Recall Knowledge: DC by item type. `CraftingService::craft(character, formula_id, days, raw_material_gold)` is the primary entry point; handles material cost deduction + item grant atomically.
+`CraftAction` is a multi-phase downtime activity: validate formula ownership and material cost, deduct half item price in materials upfront, run daily downtime ticks, resolve the Crafting check on day 4, and compute final material savings (or extra cost on failure). Store in-progress craft jobs as `CraftingJob` entities with status (in_progress/complete/failed) queryable by the character. `RepairAction` is a 1-hour exploration activity; roll Crafting vs item-level DC, healing item HP by degree of success. `IdentifyMagicCrafting` follows the same pattern as other Identify Magic variants using the Crafting modifier.
 
 ## Mission alignment
 
@@ -33,10 +33,10 @@ Implement the Crafting skill actions: Craft (Trained, downtime item creation), I
 
 ## Security acceptance criteria
 
-- Authentication/permission surface: authenticated users only; crafting actions require character ownership (`_character_access: TRUE`)
-- CSRF expectations: all POST/PATCH skill/crafting routes require `_csrf_request_header_mode: TRUE`
-- Input validation: formula id validated against character's formula book; material gold deduction and item grant atomic (no partial state); item id for Repair validated as character-owned damaged item
-- PII/logging constraints: no PII logged; character id + item id + gold delta + outcome only
+- Authentication/permission surface: Character-scoped write; material deduction and gold savings computed server-side; formula ownership validated before craft begins.
+- CSRF expectations: all POST/PATCH routes require `_csrf_request_header_mode: TRUE`
+- Input validation: Item ID must reference a valid craftable item with an existing formula; downtime days must be positive integers; material cost validated against character wealth.
+- PII/logging constraints: no PII logged; log character_id, item_id, days_spent, outcome, gp_spent; no PII logged.
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10
