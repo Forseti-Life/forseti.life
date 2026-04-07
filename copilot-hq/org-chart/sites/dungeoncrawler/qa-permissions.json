@@ -834,6 +834,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-languages-catalog-read",
+      "feature_id": "dc-cr-languages",
+      "path_regex": "^/languages(?:/|$)",
+      "notes": "GET language catalog endpoint \u2014 publicly accessible (anonymous allow). HTTP GET only; no CSRF token required. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-languages). Route does not yet exist; probe-ignore until Dev implements.",
+      "expect": {
+        "anon": "allow",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }

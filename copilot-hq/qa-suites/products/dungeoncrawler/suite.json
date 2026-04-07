@@ -2869,74 +2869,146 @@
       ]
     },
     {
-      "id": "dc-home-suggestion-notice-e2e",
-      "feature_id": "dc-home-suggestion-notice",
-      "label": "Home page suggestion notice \u2014 anon HTTP 200, auth HTTP 200, notice text in HTML (anon + auth); TC-HSN-005/006 are manual-only (layout + JS console, no Playwright yet)",
+      "id": "dc-cr-languages-e2e",
+      "feature_id": "dc-cr-languages",
+      "label": "Languages System \u2014 catalog min 10 entries (GET /languages anon 200), languages[] field on character entity, ancestry default-language assignment, INT-mod bonus slots (cap enforcement, dedup, unknown-ID rejection, no-ancestry empty array), patch-other-fields no-clobber, admin taxonomy route, non-owner write blocked",
       "type": "e2e",
-      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit tests/src/Functional/HomePageTest.php",
-      "notes": "Content-only feature (static notice block/template). PHPUnit functional for text content assertions; role-url-audit for HTTP 200 coverage. /home already covered by public-pages rule in qa-permissions.json \u2014 no new permission rule needed. TC-HSN-005 (layout) and TC-HSN-006 (JS console) are manual spot-checks only; PM to risk-accept at Gate 2 or add Playwright suite. Run drush cr after any template/block change before executing tests. Regression coupling: existing public-pages route rule, home page template.",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit tests/src/Functional/LanguagesSystemTest.php",
+      "notes": "All 14 TCs are active (no deferred). Two items cannot be fully automated: (1) TC-LANG-013 admin CRUD \u2014 route access covered; full CRUD requires Playwright admin session. (2) schema rollback (Data Integrity #2) must be a manual DBA test. NOTE TO DEV: This is a greenfield feature \u2014 language taxonomy, languages[] field, ancestry default_languages config, and INT-modifier slot allocation all need to be created. INT-mod slot pattern should be consistent with ancestry feat slot gating. Unblocks TC-EA-008/011-013 (elf ancestry deferred TCs) and analogous TCs in future ancestries. New routes: GET /languages (anon allow) added to qa-permissions.json. TC-LANG-013 admin taxonomy path must be confirmed at Stage 0 (depends on implementation: taxonomy vs config entity).",
       "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-home-suggestion-notice/verification-report.md"
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-languages/verification-report.md"
       ],
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-07",
       "test_cases": [
         {
-          "id": "TC-HSN-001",
-          "description": "GET /home as anonymous returns HTTP 200 (covered by public-pages rule; verify not regressed post-implementation)",
+          "id": "TC-LANG-001",
+          "description": "GET /languages returns HTTP 200 with catalog containing min 10 entries: Common, Elvish, Dwarvish, Gnomish, Halfling, Orcish, Sylvan, Undercommon, Draconic, Jotun",
           "suite_type": "role-url-audit",
-          "class_method": "n/a - covered by public-pages rule in qa-permissions.json",
-          "ac_tag": "regression",
+          "class_method": "LanguagesSystemTest::testLanguageCatalogMinimumEntries",
+          "ac_tag": "happy-path",
           "status": "active",
-          "feature_id": "dc-home-suggestion-notice"
+          "feature_id": "dc-cr-languages"
         },
         {
-          "id": "TC-HSN-002",
-          "description": "GET /home as authenticated/dc_playwright_player/administrator returns HTTP 200",
+          "id": "TC-LANG-002",
+          "description": "GET /languages: each entry has name, typical_speakers (description), script fields populated",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testLanguageCatalogEntryFields",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-003",
+          "description": "GET /languages is publicly accessible (anonymous, no auth) \u2014 HTTP 200, not 403/redirect",
           "suite_type": "role-url-audit",
-          "class_method": "n/a - covered by public-pages rule in qa-permissions.json",
-          "ac_tag": "happy-path",
+          "class_method": "LanguagesSystemTest::testLanguagesCatalogPubliclyAccessible",
+          "ac_tag": "permissions",
           "status": "active",
-          "feature_id": "dc-home-suggestion-notice"
+          "feature_id": "dc-cr-languages"
         },
         {
-          "id": "TC-HSN-003",
-          "description": "Home page HTML (anonymous) contains notice text 'We are actively implementing player suggestions'",
+          "id": "TC-LANG-004",
+          "description": "GET /characters/{id} response body contains 'languages' key with array value",
           "suite_type": "functional",
-          "class_method": "HomePageTest::testHomePageSuggestionNoticeAnon",
+          "class_method": "LanguagesSystemTest::testCharacterEntityHasLanguagesField",
           "ac_tag": "happy-path",
           "status": "active",
-          "feature_id": "dc-home-suggestion-notice"
+          "feature_id": "dc-cr-languages"
         },
         {
-          "id": "TC-HSN-004",
-          "description": "Home page HTML (authenticated dc_playwright_player) contains notice text",
+          "id": "TC-LANG-005",
+          "description": "Elf character creation auto-assigns Common + Elvish; ancestry default_languages populated for all core ancestries",
           "suite_type": "functional",
-          "class_method": "HomePageTest::testHomePageSuggestionNoticeAuthenticated",
+          "class_method": "LanguagesSystemTest::testAncestryDefaultLanguagesAutoAssigned",
           "ac_tag": "happy-path",
           "status": "active",
-          "feature_id": "dc-home-suggestion-notice"
+          "feature_id": "dc-cr-languages",
+          "notes": "Note to PM: requires default_languages config in ancestry data for ALL core ancestries, not just Elf. Confirm scope at Stage 0."
         },
         {
-          "id": "TC-HSN-005",
-          "description": "Home page layout not broken on desktop/mobile \u2014 MANUAL ONLY (cannot automate without Playwright; static content, low risk)",
-          "suite_type": "manual",
-          "class_method": "n/a - manual browser spot-check",
-          "ac_tag": "layout",
-          "status": "manual-only",
-          "feature_id": "dc-home-suggestion-notice",
-          "notes": "Load /home in browser; visually confirm no layout overflow, text wrapping, or element displacement. PM to risk-accept at Gate 2 or add Playwright suite."
+          "id": "TC-LANG-006",
+          "description": "INT mod +2 (INT 14): 2 bonus language slots accepted; character has ancestry defaults + 2 bonus languages",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testIntModifierGrantsBonusLanguageSlots",
+          "ac_tag": "happy-path",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
         },
         {
-          "id": "TC-HSN-006",
-          "description": "No JS errors on home page load \u2014 MANUAL ONLY (requires browser DevTools or Playwright)",
-          "suite_type": "manual",
-          "class_method": "n/a - manual browser DevTools check",
-          "ac_tag": "regression",
-          "status": "manual-only",
-          "feature_id": "dc-home-suggestion-notice",
-          "notes": "Open DevTools console; load /home; confirm zero JS errors. Low risk for static content addition. PM to risk-accept at Gate 2."
+          "id": "TC-LANG-007",
+          "description": "INT mod 0 (INT 10): no bonus slots; bonus language in request body rejected or ignored; character has ancestry defaults only",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testZeroIntModNoBonus",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-008",
+          "description": "INT mod +4 (INT 18): cap enforced at 4 bonus slots; submitting 5 returns HTTP 400 or accepts only 4",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testIntModifierCapEnforced",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-009",
+          "description": "Duplicate language submission (e.g., Elvish already granted by ancestry, submitted again as bonus): deduplicated silently; languages[] contains Elvish once",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testDuplicateLanguageDeduplicated",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-010",
+          "description": "Unknown language ID in creation request returns HTTP 400 with field-level error; not 500",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testUnknownLanguageIdRejected",
+          "ac_tag": "failure-mode",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-011",
+          "description": "Character created with no ancestry specified: languages defaults to empty array []; no error",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testNoAncestryLanguagesDefaultsEmpty",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-012",
+          "description": "PATCH a non-language field (e.g., character name): languages[] unchanged after patch",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testPatchOtherFieldDoesNotClearLanguages",
+          "ac_tag": "edge-case",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
+        },
+        {
+          "id": "TC-LANG-013",
+          "description": "Admin GET /admin/structure/taxonomy/manage/language (or equivalent) returns HTTP 200 \u2014 admin can manage language taxonomy",
+          "suite_type": "role-url-audit",
+          "class_method": "LanguagesSystemTest::testAdminLanguageTaxonomyRouteAccessible",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-languages",
+          "notes": "Exact admin path depends on implementation (taxonomy vs config entity). Confirm at Stage 0. Full CRUD via admin UI requires Playwright admin session if auth cookies available."
+        },
+        {
+          "id": "TC-LANG-014",
+          "description": "Authenticated non-owner PATCH of character languages returns HTTP 403",
+          "suite_type": "functional",
+          "class_method": "LanguagesSystemTest::testNonOwnerCannotWriteCharacterLanguages",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-languages"
         }
       ]
     }
