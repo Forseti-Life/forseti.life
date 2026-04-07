@@ -37,6 +37,8 @@ Lesson (2026-04-06): **QA unit-test outbox filenames misrouted as signoff releas
 
 Lesson (2026-04-06): **Bare timestamp IDs misrouted as signoff release IDs** — new pattern. A bare `YYYYMMDD-HHMMSS` timestamp (e.g., `20260406-204546`) is generated as the release ID, not the feature or QA outbox name. Still does not match the active release ID. Fast-exit rule applies. This is a third distinct misroute pattern from the same orchestrator dispatch bug.
 
+Lesson (2026-04-07): **Bare `impl-` dev task IDs misrouted as signoff release IDs** — fourth distinct pattern. Pattern: `YYYYMMDD-impl-<feature>` (e.g., `20260406-impl-senses-detection-hero-points`) used as release ID — no `unit-test` segment, no timestamp, just `YYYYMMDD-impl-`. Still does not match the active release ID. Fast-exit rule applies. Extract real QA signal from referenced QA outbox before discarding.
+
 ## Start-of-Stage-3 checklist (next release grooming)
 
 Each release cycle you receive a grooming inbox item. Work through this for `${next_release_id}`:
