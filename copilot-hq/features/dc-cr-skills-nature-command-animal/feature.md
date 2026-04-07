@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-nature-command-animal
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -26,6 +26,10 @@ Command an Animal, plus Recall Knowledge for Nature-applicable types.
   (Move, Strike, specific trained actions)
 - Recall Knowledge (Nature): Animals, Beasts, Fungi, Plants, Spirits, Elementals —
   coordination with dc-cr-creature-identification
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

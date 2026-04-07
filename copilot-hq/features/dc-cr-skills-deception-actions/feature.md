@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-deception-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -26,6 +26,10 @@ Implement Deception (Cha) skill action handlers (REQs 1658–1668).
 - **Feint** (1 action, mental, trained, melee range): Deception vs target Perception DC;
   crit success=flat-footed whole turn, success=flat-footed vs next attack,
   crit fail=attacker becomes flat-footed
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-lore-earn-income
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -29,6 +29,10 @@ Complete Lore skill and Earn Income downtime action (REQs 1684–1687, 1579–15
 - DC = task level via Table 10-5 (Earn Income DC — REQ 2326)
 - Income rate table: task level × degree of success (PF2e Table 4-2)
 - Applicable skills: Arcana, Crafting, Lore, Occultism, Performance, Religion, Society
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

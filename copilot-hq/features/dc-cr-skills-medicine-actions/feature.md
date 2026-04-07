@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-medicine-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -29,6 +29,10 @@ NOT to a Medicine skill check. The first-aid action handler is absent.
   bonus to immediate saving throw against poison
 - **Treat Wounds** (exploration, trained, healer's tools, 10 min): Medicine vs DC 15 (or
   20 master, 30 legendary); restores HP on success; 1-hour re-treat restriction
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

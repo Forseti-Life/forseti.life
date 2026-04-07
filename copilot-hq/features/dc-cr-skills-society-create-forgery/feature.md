@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-society-create-forgery
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -23,6 +23,10 @@ Implement Society (Int) action handlers (REQs 1731–1738).
   crit fail=reveals forger
 - Also covers Recall Knowledge (Society): Humanoids, local history, legal knowledge —
   coordination with dc-cr-creature-identification
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

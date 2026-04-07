@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-survival-track-direction
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -30,6 +30,10 @@ Implement Survival (Wis) action handlers and the Subsist general skill action
   trackers take DC penalty to follow
 - REQs 1572–1573 define the general skill action framework (untrained vs trained gating);
   covered here as Subsist is the primary untrained general action.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

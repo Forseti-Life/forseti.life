@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-athletics-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -36,6 +36,10 @@ add fallDamage method to HPManager if absent.
 
 **Escape action** (REQ 1601): Escape is a basic action that uses Athletics (or
 Acrobatics) instead of its default unarmed modifier when the character chooses.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

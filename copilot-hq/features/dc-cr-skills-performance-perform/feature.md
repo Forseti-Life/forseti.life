@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-performance-perform
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -23,6 +23,10 @@ Implement Performance (Cha) skill actions (REQs 1716–1720).
   (singing=auditory, dance=visual, etc.)
 - Audience DC table: unfamiliar crowd=15, local=20, regional=30 (approximate)
 - Earn Income via Performance: coordination with dc-cr-skills-lore-earn-income
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-arcana-borrow-spell
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -23,6 +23,10 @@ prepared list for that preparation. Dependencies on spellcasting system.
 Also covers Recall Knowledge for Arcana-applicable creature types
 (Constructs, Dragons, Elementals, Magical Beasts) — coordinated with
 dc-cr-creature-identification.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

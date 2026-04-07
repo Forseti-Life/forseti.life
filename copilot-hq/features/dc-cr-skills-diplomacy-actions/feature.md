@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-diplomacy-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -33,6 +33,10 @@ Implement Diplomacy and Intimidation skill action handlers (REQs 1669–1683, 23
   10-min immunity after attempt
 
 Covers REQ 2327 (Gather Information DC) and REQ 2330 (NPC social DC by attitude).
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10

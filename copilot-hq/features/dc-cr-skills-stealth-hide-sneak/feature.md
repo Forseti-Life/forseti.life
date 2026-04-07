@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-stealth-hide-sneak
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -29,6 +29,10 @@ QA REQ 1715 PASS. Action handlers can build on this immediately with no new data
   rolled once per relevant threat
 - REQ 1723: post-action detection state reset based on cover/concealment availability
   (already modeled in entity_ref.detection_states + game_state.visibility)
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-thievery-disable-pick-lock
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -27,6 +27,10 @@ Stealth detection infrastructure (PASS REQ 1715) gives Head start for Palm Objec
   degrees; crit fail triggers trap if applicable; coordination with dc-cr-hazards
 - **Pick a Lock** (2 actions, trained, thieves' tools or lockpick): Thievery vs lock DC;
   multiple successes for complex locks; broken pick on crit fail
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04

@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-crafting-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -31,6 +31,10 @@ Table 10-5 with rarity adjustment.
 
 **Craft DC** (REQ 2325): item level → Table 10-5; rarity adjustment applied.
 Coordinates with dc-cr-dc-rarity-spell-adjustment for DC calculations.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic skill action logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: core, Chapter: ch04, ch10
