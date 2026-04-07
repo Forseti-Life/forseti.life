@@ -39,6 +39,8 @@ Lesson (2026-04-06): **Bare timestamp IDs misrouted as signoff release IDs** —
 
 Lesson (2026-04-07): **Bare `impl-` dev task IDs misrouted as signoff release IDs** — fourth distinct pattern. Pattern: `YYYYMMDD-impl-<feature>` (e.g., `20260406-impl-senses-detection-hero-points`) used as release ID — no `unit-test` segment, no timestamp, just `YYYYMMDD-impl-`. Still does not match the active release ID. Fast-exit rule applies. Extract real QA signal from referenced QA outbox before discarding.
 
+Lesson (2026-04-07): **Bare `fix-` dev task IDs misrouted as signoff release IDs** — fifth distinct pattern. Pattern: `YYYYMMDD-fix-<feature>` (e.g., `20260406-fix-def-2145-calculator-proxy`) used as release ID — no `unit-test` segment, no `impl-` segment. Still does not match the active release ID. Fast-exit rule applies. Extract real QA signal from referenced QA outbox before discarding.
+
 ## Start-of-Stage-3 checklist (next release grooming)
 
 Each release cycle you receive a grooming inbox item. Work through this for `${next_release_id}`:
