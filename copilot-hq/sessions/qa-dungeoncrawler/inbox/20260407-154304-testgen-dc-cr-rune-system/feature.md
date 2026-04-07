@@ -4,7 +4,7 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: in_progress
+- Status: planned
 - Release: none
 - Dependencies: dc-cr-equipment-system, dc-cr-magic-system
 

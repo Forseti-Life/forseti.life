@@ -3,7 +3,7 @@
 - Work item id: dc-cr-dwarf-ancestry
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2 (extends ancestry-system with specific stat block; all deps now satisfied — ancestry-system ✓, clan-dagger shipped ✓, heritage-system ✓)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
