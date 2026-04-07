@@ -3,7 +3,7 @@
 - Work item id: dc-apg-archetypes
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement the 26 APG archetypes (Acrobat, Archaeologist, Archer, Assassin, Bastion, Beastmaster, Blessed One, Bounty Hunter, Cavalier, Celebrity, Dandy, Dragon Disciple, Dual-Weapon Warrior, Duelist, Eldritch Archer, Familiar Master, Gladiator, Herbalist, Horizon Walker, Linguist, Loremaster, Marshal, Martial Artist, Mauler, Medic, Pirate, Poisoner, Ritualist, Scout, Scroll Trickster, Scrounger, Sentinel, Shadowdancer, Snarecrafter, Talisman Dabbler, Vigilante, Viking, Weapon Improviser). Each archetype = a set of archetype feats that any class can take. Covers apg/ch03. Depends on dc-cr-multiclass-archetype system.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

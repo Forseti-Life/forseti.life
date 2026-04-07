@@ -3,7 +3,7 @@
 - Work item id: dc-gmg-subsystems
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -21,6 +21,10 @@ infiltration, hexploration, vehicle rules, and extended downtime activities.
 These are GM-configurable overlays with explicit setup, turn flow, and resolution
 states. Baseline integration requirements: variant rules feature-flagged with
 compatibility checks; subsystem framework supports pluggable mechanics.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic GM tooling logic; no new routes or user-facing input beyond existing GM campaign management forms
 
 ## Roadmap section
 - Book: gmg, Chapter: ch04

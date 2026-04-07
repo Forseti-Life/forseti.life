@@ -3,7 +3,7 @@
 - Work item id: dc-apg-ancestries
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement APG ancestry groups: Catfolk, Kobold, Orc, Ratfolk, Tengu (new ancestries), plus versatile heritages (Aasimar, Changeling, Dhampir, Duskwalker, Tiefling). Covers apg/ch02 ancestry sections.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

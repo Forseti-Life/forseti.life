@@ -3,7 +3,7 @@
 - Work item id: dc-gmg-hazards
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement the GMG hazards system: complex vs. simple hazards, hazard stats (Stealth DC, Disable DC, Reset), trap and environmental hazard types, haunts. Covers gmg/ch02 hazard sections.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic GM tooling logic; no new routes or user-facing input beyond existing GM campaign management forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

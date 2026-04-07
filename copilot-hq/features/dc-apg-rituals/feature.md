@@ -3,7 +3,7 @@
 - Work item id: dc-apg-rituals
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement new rituals introduced in the Advanced Player's Guide. Covers apg/ch05 Rituals section. Depends on dc-cr-rituals system.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

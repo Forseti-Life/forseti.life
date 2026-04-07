@@ -3,7 +3,7 @@
 - Work item id: dc-gmg-npc-gallery
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement or link the GMG NPC gallery: prebuilt NPC stat block templates with adjustable variants (Elite/Weak). Covers gmg/ch03 NPC gallery sections. Dependency on NPC/creature system.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic GM tooling logic; no new routes or user-facing input beyond existing GM campaign management forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

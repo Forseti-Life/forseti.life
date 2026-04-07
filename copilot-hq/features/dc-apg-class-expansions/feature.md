@@ -3,7 +3,7 @@
 - Work item id: dc-apg-class-expansions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -26,6 +26,10 @@ Scope by class:
   REQs 191–221
 
 Depends on all 12 core class features being implemented first.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - Book: apg, Chapter: ch02

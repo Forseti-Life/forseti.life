@@ -3,7 +3,7 @@
 - Work item id: dc-apg-equipment
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement APG new weapons, adventuring gear, alchemical items, consumable magic items, and permanent magic items introduced in the Advanced Player's Guide. Covers apg/ch05 (equipment sections). Depends on equipment and magic item systems.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.

@@ -3,7 +3,7 @@
 - Work item id: dc-apg-class-investigator
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: planned
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -16,6 +16,10 @@
 
 ## Description
 Implement APG Investigator class: pursue a lead, devise a stratagem, methodologies (Alchemical Sciences/Empiricism/Forensic Medicine/Psychological), strategic strike, and all class feature unlocks. Covers apg/ch01 Investigator section.
+
+## Security acceptance criteria
+
+- Security AC exemption: game-mechanic character data logic; no new routes or user-facing input beyond existing character creation and leveling forms
 
 ## Roadmap section
 - See `runbooks/roadmap-audit.md` for audit process.
