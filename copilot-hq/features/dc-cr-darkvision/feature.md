@@ -3,7 +3,7 @@
 - Work item id: dc-cr-darkvision
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: medium
 - PM owner: pm-dungeoncrawler

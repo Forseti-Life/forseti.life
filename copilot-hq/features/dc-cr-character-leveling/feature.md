@@ -3,7 +3,7 @@
 - Work item id: dc-cr-character-leveling
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: P3 (complex; depends on feats system not yet in scope; deferred to release after next)
 - PM owner: pm-dungeoncrawler

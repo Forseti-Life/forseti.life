@@ -3,7 +3,7 @@
 - Work item id: dc-cr-conditions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 
 - Priority: P1 (combat dependency; ConditionManager partial impl exists)
 - PM owner: pm-dungeoncrawler

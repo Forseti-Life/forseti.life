@@ -3,7 +3,7 @@
 - Work item id: dc-cr-ancestry-traits
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: P2 (spell/ability targeting prerequisite; deferred from current release — no spellcasting in scope yet)
 - PM owner: pm-dungeoncrawler

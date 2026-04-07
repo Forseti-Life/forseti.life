@@ -3,7 +3,7 @@
 - Work item id: dc-home-suggestion-notice
 - Website: dungeoncrawler.life
 - Module: dungeoncrawler_content (home page / front page block)
-- Status: in_progress
+- Status: ready
 - Release: 20260406-dungeoncrawler-release-b
 - Priority: P2
 - PM owner: pm-dungeoncrawler
