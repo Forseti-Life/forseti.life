@@ -385,6 +385,80 @@ A new audit pass should be run when any of the following occur:
 
 ---
 
+---
+
+## Release Queue Process (Post-Audit)
+
+After the audit is complete (all sections mapped to feature stubs), the ongoing CEO/PM
+task is to keep the **release ready pool** stocked. This process runs continuously —
+pick one feature at a time, never batch.
+
+### How to queue the next roadmap feature
+
+**Entry point:** `https://dungeoncrawler.forseti.life/Roadmap`
+
+1. **Find the first ❌ Not Started item** on the roadmap page (reading top-to-bottom).
+   This is the highest-priority unstarted requirement.
+
+2. **Identify the feature stub** that covers it:
+   - Check the audit tracker: `SELECT feature_id FROM roadmap_audit WHERE section = '<section>';`
+   - Or grep: `grep -r "DB sections:.*<section>" features/dc-*/feature.md`
+
+3. **Check grooming status** of the feature stub:
+   ```bash
+   ls features/<feature-id>/
+   # Need: feature.md + 01-acceptance-criteria.md + 03-test-plan.md
+   grep "^- Status:" features/<feature-id>/feature.md
+   ```
+
+4. **Dispatch based on status** — roadmap features follow the same suggestion process flow:
+
+   | Feature status | Artifacts present | Action |
+   |---|---|---|
+   | `planned` | none | PM inbox: write AC, then run `pm-qa-handoff.sh` |
+   | `planned` | AC only | Run: `bash scripts/pm-qa-handoff.sh dungeoncrawler <feature-id>` |
+   | `ready` | AC + test plan | Run: `bash scripts/pm-scope-activate.sh dungeoncrawler <feature-id>` |
+   | `in_progress` | all | Already in release — move to next item |
+   | `deferred` | varies | Note dependency blocker; skip to next Not Started item |
+
+   **The pipeline is identical to the community suggestion flow:**
+   ```
+   feature.md (accepted) → PM writes AC → pm-qa-handoff.sh → QA writes test plan
+     → qa-pm-testgen-complete.sh → pm-scope-activate.sh → in_progress
+   ```
+   Roadmap features are pre-accepted (the feature stub = the triage decision). Skip
+   `suggestion-intake.sh` / `suggestion-triage.sh` — go straight to AC.
+
+5. **PM inbox task format** (when feature is `planned` with no AC):
+   ```
+   sessions/pm-dungeoncrawler/inbox/<date>-groom-<feature-id>
+   ```
+   Contents must instruct PM to:
+   - Read the feature brief + live roadmap requirements for the section
+   - Write `features/<feature-id>/01-acceptance-criteria.md`
+   - Ensure `## Security acceptance criteria` is in `feature.md`
+   - Run `bash scripts/pm-qa-handoff.sh dungeoncrawler <feature-id>`
+   - Write outbox confirming completion
+
+6. **Commit and push** the new inbox item (sessions/** requires `git add -f`).
+
+### Working discipline (same as audit)
+- One feature at a time. Dispatch the groom task, commit, then move to the next.
+- Do not pre-groom multiple features speculatively.
+- Dependencies: if the feature is blocked (dep not yet `done`), skip to the next Not
+  Started item that has all deps satisfied.
+
+### Dependency check before dispatching
+Before dispatching, verify deps are done:
+```bash
+grep "^- Depends on:" features/<feature-id>/feature.md
+# Then for each dep: grep "^- Status:" features/<dep-id>/feature.md
+```
+If a dep is not `done` or `shipped`, note the blocker in the groom task and still
+dispatch — PM can groom now and scope-activate later when deps ship.
+
+---
+
 ## Related runbooks and references
 - `runbooks/pf2e-requirements-extraction.md` — how BA extracts requirements from source books
 - `runbooks/intake-to-qa-handoff.md` — feature pipeline (Track B) detail
