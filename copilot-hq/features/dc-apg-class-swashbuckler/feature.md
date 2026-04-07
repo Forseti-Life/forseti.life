@@ -1,12 +1,18 @@
 # Feature Brief: Swashbuckler Class Mechanics (APG)
 
+- Work item id: dc-apg-class-swashbuckler
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-character-class, dc-cr-encounter-rules
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Advanced Player's Guide, Chapter 2 (Swashbuckler)
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: apg/ch02/Swashbuckler
+- Depends on: dc-cr-character-class, dc-cr-character-leveling, dc-cr-encounter-rules
 
 ## Description
 Implement APG Swashbuckler class: panache mechanic, stylish tricks, finishing moves, swashbuckler styles (Braggart/Gymnast/Wit/Battledancer/Fencer), and all class feature unlocks. No spellcasting dependency.

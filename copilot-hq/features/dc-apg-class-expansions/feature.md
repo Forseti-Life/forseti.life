@@ -1,15 +1,18 @@
 # Feature Brief: APG Core Class Expansions
 
+- Work item id: dc-apg-class-expansions
 - Website: dungeoncrawler
-- Type: extend
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-class-alchemist, dc-cr-class-barbarian, dc-cr-class-bard,
-                dc-cr-class-champion, dc-cr-class-cleric, dc-cr-class-druid,
-                dc-cr-class-fighter, dc-cr-class-monk, dc-cr-class-ranger,
-                dc-cr-class-rogue, dc-cr-class-sorcerer, dc-cr-class-wizard
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Advanced Player's Guide, Chapter 2 (Core Class Expansions)
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: apg/ch02/Core Class Expansions
+- Depends on: dc-cr-class-alchemist, dc-cr-class-barbarian, dc-cr-class-bard, dc-cr-class-champion, dc-cr-class-cleric, dc-cr-class-druid, dc-cr-class-fighter, dc-cr-class-monk, dc-cr-class-ranger, dc-cr-class-rogue, dc-cr-class-sorcerer, dc-cr-class-wizard
 
 ## Description
 Implement APG Chapter 2 expanded options for the 12 core classes (REQs 191–221).

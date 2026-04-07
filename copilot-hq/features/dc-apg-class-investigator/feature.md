@@ -1,12 +1,18 @@
 # Feature Brief: Investigator Class Mechanics (APG)
 
+- Work item id: dc-apg-class-investigator
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P2
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-character-class, dc-cr-skill-system
+- Priority: P2
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Advanced Player's Guide, Chapter 2 (Investigator)
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: apg/ch02/Investigator
+- Depends on: dc-cr-character-class, dc-cr-character-leveling, dc-cr-skill-system
 
 ## Description
 Implement APG Investigator class: pursue a lead, devise a stratagem, methodologies (Alchemical Sciences/Empiricism/Forensic Medicine/Psychological), strategic strike, and all class feature unlocks. Covers apg/ch01 Investigator section.

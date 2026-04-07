@@ -1,12 +1,18 @@
 # Feature Brief: APG Focus Spells
 
+- Work item id: dc-apg-focus-spells
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-focus-spells, dc-apg-class-oracle, dc-apg-class-witch
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: apg/ch05
+- Category: spells
+- Created: 2026-04-06
+- DB sections: apg/ch05/Focus Spells (APG)
+- Depends on: dc-cr-focus-spells, dc-apg-class-oracle, dc-apg-class-witch
 
 ## Description
 Implement the APG focus spells for the new APG classes and archetypes. Covers apg/ch05 Focus Spells section (~28 reqs). Depends on dc-cr-focus-spells system.

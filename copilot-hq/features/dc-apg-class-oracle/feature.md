@@ -1,12 +1,18 @@
 # Feature Brief: Oracle Class Mechanics (APG)
 
+- Work item id: dc-apg-class-oracle
 - Website: dungeoncrawler
-- Type: new
 - Module: dungeoncrawler_content
-- Priority: P3
 - Status: planned
-- Release: none
-- Dependencies: dc-cr-character-class, dc-cr-spellcasting, dc-cr-focus-spells
+- Priority: P3
+- PM owner: pm-dungeoncrawler
+- Dev owner: dev-dungeoncrawler
+- QA owner: qa-dungeoncrawler
+- Source: PF2E Advanced Player's Guide, Chapter 2 (Oracle)
+- Category: game-mechanic
+- Created: 2026-04-07
+- DB sections: apg/ch02/Oracle
+- Depends on: dc-cr-character-class, dc-cr-character-leveling, dc-cr-spellcasting, dc-cr-focus-spells
 
 ## Description
 Implement APG Oracle class: mystery selection (Ancestors/Battle/Bones/Flames/Lore/Lunar/Stone/Tempest/Time/Vitality/Void), divine curse, revelation spells, and all class feature unlocks. Requires focus spell and spellcasting systems.
