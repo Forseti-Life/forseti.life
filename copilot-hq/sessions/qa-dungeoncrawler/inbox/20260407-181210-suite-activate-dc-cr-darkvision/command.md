@@ -316,3 +316,5 @@ All criteria below are `[NEW]` — no existing sense entity system found. Dev bu
 
 ## Knowledgebase check
 - Related lessons/playbooks: none found for sense entities in dungeoncrawler. Check `knowledgebase/lessons/` for general Drupal entity reference patterns.
+- Agent: qa-dungeoncrawler
+- Status: pending

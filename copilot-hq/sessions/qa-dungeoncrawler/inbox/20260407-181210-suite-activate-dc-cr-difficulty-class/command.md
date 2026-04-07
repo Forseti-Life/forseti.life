@@ -305,3 +305,5 @@ Feature type: **enhancement** (complete stubbed degree-of-success; add Simple DC
 | Simple DC table | `tests/src/Unit/Service/CombatCalculatorTest.php` (extend) |
 | Task DC guidelines | `tests/src/Unit/Service/CombatCalculatorTest.php` (extend) |
 | `POST /rules/check` endpoint | `tests/src/Functional/RulesCheckControllerTest.php` (new) |
+- Agent: qa-dungeoncrawler
+- Status: pending

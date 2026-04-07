@@ -286,3 +286,5 @@ None found. Pattern follows dc-cr-darkvision sense-flag assignment.
 - [ ] Heritage POST validates that the authenticated user owns the character (no cross-character heritage mutation).
 - [ ] Heritage ID is validated server-side against the ancestry's permitted heritage list before application.
 - [ ] Anonymous heritage POST returns 403.
+- Agent: qa-dungeoncrawler
+- Status: pending

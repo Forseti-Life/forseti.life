@@ -346,3 +346,5 @@ Feature type: **enhancement** (inventory layer complete; verify and complete equ
 | Starting equipment by class | `tests/src/Functional/EquipmentApiTest.php` (new) |
 | Equip → AC/damage integration | `tests/src/Unit/Service/CharacterCalculatorTest.php` |
 | Encumbrance condition | `tests/src/Unit/Service/InventoryManagementServiceTest.php` (extend) |
+- Agent: qa-dungeoncrawler
+- Status: pending

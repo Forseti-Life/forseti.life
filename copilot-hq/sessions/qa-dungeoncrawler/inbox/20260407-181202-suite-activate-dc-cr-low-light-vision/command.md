@@ -294,3 +294,5 @@ None found specifically for low-light-vision. Pattern follows dc-cr-darkvision i
 - [ ] Any write path that modifies sense flags (heritage/ancestry assignment) MUST use `_csrf_request_header_mode: TRUE` on the POST route.
 - [ ] Characters can only read sense flags for characters they have session access to (no cross-character data exposure).
 - [ ] Sense flag write endpoint returns 403 for anonymous users.
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -363,3 +363,5 @@ Feature type: **enhancement** (DB layer complete; add condition catalog, effect 
 | `processDying` recovery loop | `tests/src/Unit/Service/ConditionManagerTest.php` (extend) |
 | `checkConditionRestrictions` | `tests/src/Unit/Service/RulesEngineTest.php` (extend) |
 | Valued condition stacking | `tests/src/Unit/Service/ConditionManagerTest.php` (extend) |
+- Agent: qa-dungeoncrawler
+- Status: pending

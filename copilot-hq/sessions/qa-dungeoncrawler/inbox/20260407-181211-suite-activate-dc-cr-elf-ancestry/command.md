@@ -338,3 +338,5 @@ None found for elf ancestry specifically. Pattern follows dwarf ancestry impleme
 - [ ] Ancestry selection POST is validated server-side; client-supplied ancestry ID is checked against the catalog before application.
 - [ ] No elf ancestry data (boosts, flaw, traits) can be applied by anonymous users — 403 on all write paths.
 - [ ] Additional language selection is validated server-side; arbitrary language strings from client are rejected.
+- Agent: qa-dungeoncrawler
+- Status: pending
