@@ -315,6 +315,77 @@
           "status": "PASS"
         }
       ]
+    },
+    {
+      "id": "forseti-jobhunter-schema-fix-functional",
+      "label": "Job Hunter schema fix: age_18_or_older column exists, read/write round-trip, no data loss (drush CLI)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-schema-fix",
+      "command": "bash -c 'DRUSH=/var/www/html/forseti/vendor/bin/drush; echo \"TC-01 column exists:\"; $DRUSH --uri=http://localhost php-eval \"print_r(\\Drupal::database()->schema()->fieldExists('job_hunter_profile', 'age_18_or_older') ? 'COLUMN EXISTS' : 'COLUMN MISSING');\" && echo \"TC-02 updb clean:\"; $DRUSH --uri=http://localhost updb -y 2>&1 && echo \"TC-03 write:\"; $DRUSH --uri=http://localhost php-eval \"\\Drupal::database()->update('job_hunter_profile')->fields(['age_18_or_older'=>1])->condition('uid',1)->execute(); print_r('WRITE OK');\" && echo \"TC-04 read:\"; $DRUSH --uri=http://localhost php-eval \"\\=\\Drupal::database()->select('job_hunter_profile','p')->fields('p',['age_18_or_older'])->condition('p.uid',1)->execute()->fetchField(); print_r('VALUE: '.var_export(\\,TRUE));\" && echo \"TC-05 nulls intact:\"; $DRUSH --uri=http://localhost php-eval \"\\=\\Drupal::database()->select('job_hunter_profile','p')->isNull('p.age_18_or_older')->countQuery()->execute()->fetchField(); print_r('NULL rows: '.\\);\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/jobhunter-schema-fix-functional-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must implement job_hunter_install hook adding age_18_or_older column before TC-01 passes.",
+        "TC-01: drush php-eval confirms column exists in job_hunter_profile table.",
+        "TC-02: drush updb -y applies update hook without errors.",
+        "TC-03/TC-04: boolean write/read round-trip on uid=1 profile row.",
+        "TC-05: NULL rows remain uncoerced after schema update.",
+        "TC-06 (row count preservation) is manual pre/post count check; include in release notes.",
+        "TC-07 (rollback) is manual-only; cannot be safely automated against production \u2014 accept risk with documented rollback steps.",
+        "TC-08 (no ACL regressions) covered by existing role-url-audit suite (no new routes added)."
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-01",
+          "description": "age_18_or_older column exists in job_hunter_profile table after drush updb",
+          "type": "functional",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-02",
+          "description": "drush updb -y exits 0 with no PHP errors; update hook applied successfully",
+          "type": "functional",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-03",
+          "description": "Boolean TRUE write to age_18_or_older field succeeds without DB exception",
+          "type": "functional",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-04",
+          "description": "Read of age_18_or_older after write returns correct persisted value (1)",
+          "type": "functional",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-05",
+          "description": "Existing NULL rows in age_18_or_older remain NULL after schema update (no data coercion)",
+          "type": "functional",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-06",
+          "description": "Total profile row count unchanged before and after drush updb (manual check)",
+          "type": "manual",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-07",
+          "description": "Rollback: reverting update hook and re-running drush updb exits cleanly (manual-only, production risk accepted)",
+          "type": "manual",
+          "status": "PENDING"
+        },
+        {
+          "id": "TC-08",
+          "description": "role-url-audit produces 0 new violations after schema fix (covered by existing role-url-audit suite)",
+          "type": "audit",
+          "status": "COVERED_BY_EXISTING"
+        }
+      ]
     }
   ],
   "_schema_notes": [
