@@ -3,9 +3,8 @@
 - Work item id: dc-cr-gm-narrative-engine
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
-- Defer reason: 20260228-dungeoncrawler-release-next focuses on core MVP (dice, DC, encounter, conditions, character creation, class, background, skill, equipment); this feature is secondary priority and will be re-evaluated next grooming cycle.
-- Priority: unset (PM will set at triage)
+- Status: in_progress
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -29,3 +28,11 @@ AI prompt pipeline: system prompt includes active adventure context (current sce
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Security AC exemption: AI context payloads must not include PII; AI calls are rate-limited per session to prevent API abuse.
+
+## Roadmap section
+
+- Roadmap: Core Rulebook

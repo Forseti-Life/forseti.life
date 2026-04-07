@@ -3,7 +3,7 @@
 - Work item id: dc-cr-elf-heritage-arctic
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
+- Status: done
 - Priority: unset (PM will set at triage)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

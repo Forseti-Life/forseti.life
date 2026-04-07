@@ -3,9 +3,8 @@
 - Work item id: dc-cr-downtime-mode
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
-- Defer reason: 20260228-dungeoncrawler-release-next focuses on core MVP (dice, DC, encounter, conditions, character creation, class, background, skill, equipment); this feature is secondary priority and will be re-evaluated next grooming cycle.
-- Priority: unset (PM will set at triage)
+- Status: in_progress
+- Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -29,3 +28,11 @@ Session state mode: downtime. Downtime activities content type with fields for d
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Security AC exemption: Downtime modifies gold and character build; all mutations are server-validated and atomic to prevent duplication.
+
+## Roadmap section
+
+- Roadmap: Core Rulebook

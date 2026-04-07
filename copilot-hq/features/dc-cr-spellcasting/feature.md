@@ -3,9 +3,8 @@
 - Work item id: dc-cr-spellcasting
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
-- Defer reason: 20260228-dungeoncrawler-release-next focuses on core MVP (dice, DC, encounter, conditions, character creation, class, background, skill, equipment); this feature is secondary priority and will be re-evaluated next grooming cycle.
-- Priority: unset (PM will set at triage)
+- Status: in_progress
+- Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -29,3 +28,11 @@ Character entity fields: `spell_slots{}` keyed by level (1–10), `spellcasting_
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Security AC exemption: Spell slot state is session-scoped character data; no PII; all mutations server-validated.
+
+## Roadmap section
+
+- Roadmap: Core Rulebook

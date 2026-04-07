@@ -3,9 +3,8 @@
 - Work item id: dc-cr-session-structure
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
-- Defer reason: 20260228-dungeoncrawler-release-next focuses on core MVP (dice, DC, encounter, conditions, character creation, class, background, skill, equipment); this feature is secondary priority and will be re-evaluated next grooming cycle.
-- Priority: unset (PM will set at triage)
+- Status: in_progress
+- Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
@@ -30,3 +29,11 @@ Content types: `session` (single play instance, with start/end timestamps, parti
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Security AC exemption: Session and campaign data is user-scoped; campaign invites validate registered accounts; no cross-campaign data leakage.
+
+## Roadmap section
+
+- Roadmap: Core Rulebook
