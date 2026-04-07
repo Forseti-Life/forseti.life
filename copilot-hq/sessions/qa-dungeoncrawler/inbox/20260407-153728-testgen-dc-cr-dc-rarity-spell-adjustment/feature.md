@@ -4,7 +4,7 @@
 - Type: extend
 - Module: dungeoncrawler_content
 - Priority: P1
-- Status: in_progress
+- Status: planned
 - Release: none
 - Dependencies: dc-cr-encounter-rules, dc-cr-spellcasting
 
