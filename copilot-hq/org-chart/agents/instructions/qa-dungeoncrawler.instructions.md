@@ -38,6 +38,7 @@ All custom route namespaces discovered from routing YAML files. Keep `qa-permiss
 - `/dungeoncrawler/objects` — content admin list (administer dungeoncrawler content)
 - `/dungeoncrawler/traits` — ancestry trait catalog GET endpoint (access dungeoncrawler characters)
 - `/ai-conversation/*` — AI chat API (use ai conversation permission)
+- `/node/{node}/chat`, `/node/{node}/trigger-summary` — AI conversation node UI routes (use ai conversation + node.view; parameterized, ignore in probes)
 - `/api/character/{id}/*` — character entity API (custom _character_access; entity-ID routes, ignore in probes)
 - `/character/{character_id}/skills` — character skills GET (_access: TRUE, parameterized, ignore in probes)
 - `/api/inventory/{owner_type}/{owner_id}/*` — inventory management API (access dungeoncrawler characters; parameterized, ignore in probes)
