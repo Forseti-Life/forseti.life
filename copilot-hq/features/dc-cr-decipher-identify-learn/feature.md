@@ -4,7 +4,7 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: in_progress
+- Status: ready
 - Release: none
 - Dependencies: dc-cr-skill-system, dc-cr-dc-rarity-spell-adjustment, dc-cr-spellcasting
 
