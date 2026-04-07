@@ -13,8 +13,14 @@ This runbook defines the process for systematically auditing ALL requirements on
 (i.e., `pending` in the DB) without an active plan.
 
 Every requirement must end up in one of two states:
-- **`implemented`** — code exists and QA has verified it
-- **In the feature pipeline** — a `features/dc-*/` feature file exists and is in the release cycle
+- **`implemented`** — code exists and QA has verified it; `dc_requirements.status = 'implemented'`
+- **In the feature pipeline** — a `features/dc-*/` feature file exists AND `dc_requirements.feature_id` is set to that feature's work-item-id
+
+> ⚠️ **Coverage is only machine-verifiable if `feature_id` is set in the DB.** Without it, "in the
+> pipeline" is PM assertion only and cannot be queried. See the open dev task:
+> `dc_requirements` needs a `feature_id VARCHAR(64)` column — once added, the completion check
+> becomes: `SELECT * FROM dc_requirements WHERE status='pending' AND feature_id IS NULL`
+> Until that column exists, the SQL audit tracker (below) is the only per-cycle coverage record.
 
 ---
 
@@ -73,8 +79,10 @@ Examples: `core/ch09` (combat rules — CombatEngine, HPManager, etc.),
    `/home/ubuntu/forseti.life/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/src/Service/`
 2. If yes → dispatch a QA inbox item (see **QA Batch Format** below)
 3. QA returns PASS or BLOCK per requirement group
-4. **PASS** → run `drush dungeoncrawler:roadmap-set-status implemented --book=X --chapter=Y --section="Z"`
-5. **BLOCK** → find or create `features/dc-*/` file, dispatch dev inbox item
+4. **PASS** → QA outbox **must include** a PM handoff line:
+   `PM action required: run drush roadmap-set-status implemented --book=X --chapter=Y --section="Z"`
+   PM creates a self-inbox item upon reading this outbox, runs drush, and confirms in their own outbox.
+5. **BLOCK** → find or create `features/dc-*/` file (with `DB sections` field set), dispatch dev inbox item
 
 **Track A → Track B transition (partial chapters):**
 For chapters where some reqs are implemented and others are not (e.g., `core/ch04` Skills,
@@ -107,12 +115,18 @@ Examples: `apg/ch02` (APG classes — no class-specific services exist),
    - Source: <PF2E book reference>
    - Category: game-mechanic  # or: ui | content | infra
    - Created: <YYYY-MM-DD>
+   - DB sections: core/ch03/Alchemist, core/ch03/Alchemist-Feats  # book/chapter/section rows this covers
    ```
    See any existing `features/dc-*/feature.md` for a complete example.
+   The `DB sections` field is required — it is the only record linking this feature to specific
+   `dc_requirements` rows until a `feature_id` column is added to the DB.
 
 4. Dispatch BA inbox item for requirements analysis + acceptance criteria
 5. Dispatch dev inbox item after BA delivers AC + test plan
-6. After dev ships and QA approves → mark implemented via drush
+6. **After dev ships and QA approves:** QA outbox must include a PM handoff line:
+   `PM action required: run drush roadmap-set-status implemented --book=X --chapter=Y --section="Z"`
+   PM creates a self-inbox item, runs drush, confirms in outbox. PM owns this step — do not leave it
+   to dev or QA to assume PM will notice.
 
 ---
 
@@ -185,9 +199,12 @@ cd /var/www/html/dungeoncrawler
 
 ---
 
-## SQL Audit Tracker (session-local)
+## SQL Audit Tracker (mandatory — must be committed as artifact)
 
-Use the session SQL tool to track dispatch/return status so nothing is missed:
+**This is not optional.** Every audit cycle must produce a committed coverage artifact so the
+next cycle can verify what was claimed, not re-scan from scratch.
+
+**At cycle start**, create and populate the tracker:
 
 ```sql
 CREATE TABLE roadmap_audit (
@@ -197,8 +214,8 @@ CREATE TABLE roadmap_audit (
     section TEXT,
     req_count INTEGER,
     track TEXT,           -- 'A' (QA-first) or 'B' (feature-pipeline)
-    status TEXT DEFAULT 'pending',  -- pending / qa_dispatched / qa_done / dev_dispatched / implemented
-    feature_id TEXT,      -- dc-cr-* feature file if Track B
+    status TEXT DEFAULT 'pending',  -- pending / qa_dispatched / qa_done / dev_dispatched / implemented / covered
+    feature_id TEXT,      -- dc-cr-* feature file if Track B (required when status=covered)
     notes TEXT
 );
 ```
@@ -209,6 +226,17 @@ sudo mysql dungeoncrawler -e \
   "SELECT book_id, chapter_key, section, COUNT(*) FROM dc_requirements WHERE status='pending' GROUP BY book_id, chapter_key, section ORDER BY book_id, chapter_key, section;" \
   > /tmp/pending_reqs.txt
 ```
+
+**At cycle end**, export and commit:
+```bash
+# Export tracker to artifact
+sqlite3 /tmp/roadmap_audit.db "SELECT * FROM roadmap_audit;" > \
+  sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<YYYYMMDD>.tsv
+git add -f sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<YYYYMMDD>.tsv
+```
+
+The committed artifact is the **evidence of coverage** for every section claimed as "in the pipeline."
+Without it, coverage claims are unverifiable.
 
 ---
 
@@ -228,24 +256,28 @@ AND either:
 
 ### Whole-roadmap audit complete
 The full roadmap audit is complete when **every section** satisfies the per-section criteria above.
-Verify with:
-```sql
--- Returns 0 when audit is complete (no pending reqs without a feature file):
-SELECT r.book_id, r.chapter_key, r.section, COUNT(*) as uncovered_pending
-FROM dc_requirements r
-WHERE r.status = 'pending'
-GROUP BY r.book_id, r.chapter_key, r.section
-HAVING uncovered_pending > 0
-ORDER BY r.book_id, r.chapter_key;
-```
-Note: A non-zero count here is acceptable **only if** a `features/dc-*/feature.md` file explicitly
-covers those reqs. PM must confirm coverage manually for any returned rows.
 
-The PM outbox for the audit cycle should record:
+**Once `feature_id` column exists in `dc_requirements`** (open dev task), the definitive check is:
+```sql
+-- Returns 0 rows when all pending reqs have a feature mapped
+SELECT book_id, chapter_key, section, COUNT(*) as uncovered
+FROM dc_requirements
+WHERE status = 'pending' AND (feature_id IS NULL OR feature_id = '')
+GROUP BY book_id, chapter_key, section
+ORDER BY book_id, chapter_key;
+```
+
+**Until `feature_id` column is added**, coverage must be verified against the committed audit
+tracker artifact (`sessions/pm-dungeoncrawler/artifacts/roadmap-audit-<date>.tsv`):
+- Every row must have `status = implemented` OR (`status = covered` AND `feature_id` is set)
+- Any row with `status = pending` at cycle end is an uncovered gap
+
+The PM outbox for the audit cycle must record:
 - Total implemented count (from DB)
 - Total pending count (from DB)
-- Count of feature files covering pending reqs
+- Count of sections mapped to feature files (from audit tracker)
 - Any explicitly deferred sections (with Board/CEO decision reference)
+- Link to committed audit tracker artifact
 
 ### Audit cycle triggers
 A new audit pass should be run when any of the following occur:
@@ -265,7 +297,7 @@ A new audit pass should be run when any of the following occur:
 | core/ch05 | General feats — no feat engine yet | B |
 | core/ch06 | Equipment — `InventoryManagementService` partial | A then B for gaps |
 | core/ch07 | Spells — no spellcasting service | B |
-| core/ch09 | Combat/encounter rules — CombatEngine ~95% | A (4 reqs remaining) |
+| core/ch09 | Combat/encounter rules — CombatEngine ~95% | A (1 req remaining: REQ 2093) |
 | core/ch10 | GM tools — `AiGmService` partial | A then B |
 | core/ch11 | Crafting/treasure — no crafting service | B |
 | apg | APG classes/archetypes/spells — no APG-specific services | B |
