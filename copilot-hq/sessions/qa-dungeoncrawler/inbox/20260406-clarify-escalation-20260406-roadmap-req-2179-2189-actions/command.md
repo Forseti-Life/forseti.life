@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/qa-dungeoncrawler/outbox/20260406-roadmap-req-2179-2189-actions.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: qa-dungeoncrawler
+- Status: pending
