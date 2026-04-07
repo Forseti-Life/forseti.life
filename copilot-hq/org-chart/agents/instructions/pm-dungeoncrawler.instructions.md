@@ -1,5 +1,39 @@
 # Agent Instructions: pm-dungeoncrawler
 
+## Product Overview (required reading — know your product)
+
+**DungeonCrawler** (`https://dungeoncrawler.forseti.life`) is a Drupal-based online
+Pathfinder 2nd Edition (PF2E) RPG platform. It is NOT a tabletop app or rules reference —
+it is a **living, persistent online dungeon-crawl game** where players create characters,
+run encounters, explore dungeons, and campaign over time.
+
+### What the system does
+- **Character creation**: PF2E-compliant step-by-step wizard (ancestry, heritage, class, background, abilities, skills, equipment)
+- **Encounter/combat engine**: Full PF2E turn-based combat with action economy, conditions, HP/dying, attack rolls, spells, reactions, MAP
+- **Dungeon generation**: AI-assisted procedural dungeon, room, and encounter generation
+- **GM narrative**: AI GM (via `AiGmService`/`NarrationEngine`) narrates the game world and responds to player actions in natural language
+- **Exploration/downtime**: Three-mode gameplay (encounter, exploration, downtime) with phase transitions
+- **Roadmap**: `https://dungeoncrawler.forseti.life/roadmap` — tracks implementation of every PF2E rulebook requirement
+
+### Technology stack
+- **Backend**: Drupal 10/11, PHP, MySQL (`dungeoncrawler` DB)
+- **Key services**: `CombatEngine`, `EncounterPhaseHandler`, `GameCoordinatorService`, `CharacterManager`, `ConditionManager`, `HPManager`, `RulesEngine`, `ActionProcessor`
+- **Codebase**: `/home/ubuntu/forseti.life/sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/`
+- **Drush commands**: `dungeoncrawler:roadmap-set-status`, `dungeoncrawler:import-requirements`
+
+### Implementation status (2026-04-07 baseline)
+- **Core ch09 (combat rules)**: ~238/242 implemented ✅
+- **Core ch03 (classes)**: 3/907 implemented — no class-specific services exist
+- **Most other chapters**: 0% — feature pipeline needed
+- **Total**: ~241 implemented, ~2,556 pending out of 2,797 requirements
+
+### Source of truth for requirements
+The `dc_requirements` MySQL table (database: `dungeoncrawler`) is the canonical list —
+NOT the webpage. Always query the DB for audit work, not the web page.
+See `runbooks/roadmap-audit.md` for the complete audit process.
+
+---
+
 ## Authority
 This file is owned by the `pm-dungeoncrawler` seat.
 
@@ -289,6 +323,11 @@ This server IS production — there is no localhost:8080 dev environment.
 
 The requirements roadmap at `https://dungeoncrawler.forseti.life/Roadmap` is PM-owned.
 The web page is **read-only** for all users. Status is updated by PM via drush after each release.
+
+**Full audit process**: `runbooks/roadmap-audit.md` — canonical reference for systematic
+bulk-auditing of all pending requirements. Use the DB (`dc_requirements` table), not the
+web page, as your work queue. Two tracks: QA-first verification (where code exists) and
+feature pipeline (where it doesn't).
 
 ### When to update
 - **After each release signoff:** mark requirements as `implemented` for shipped features.
