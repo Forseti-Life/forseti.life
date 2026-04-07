@@ -3,7 +3,7 @@
 - Work item id: dc-cr-low-light-vision
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -12,7 +12,7 @@
 - Category: rule-system
 - Schema changes: no
 - Cross-site modules: none
-- Release: 20260406-dungeoncrawler-release-b
+- Release: 20260407-dungeoncrawler-release-b
 - Created: 2026-04-06
 
 ## Goal

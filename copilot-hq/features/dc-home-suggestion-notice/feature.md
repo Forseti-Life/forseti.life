@@ -3,8 +3,8 @@
 - Work item id: dc-home-suggestion-notice
 - Website: dungeoncrawler.life
 - Module: dungeoncrawler_content (home page / front page block)
-- Status: ready
-- Release: 20260406-dungeoncrawler-release-b
+- Status: in_progress
+- Release: 20260407-dungeoncrawler-release-b
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -55,6 +55,8 @@ A visible acknowledgment that suggestions are being acted on encourages continue
 - Intake risk signals: none
 
 ## Latest updates
+
+- 2026-04-07: Scoped into release — suite activation sent to QA.
 
 - 2026-04-07: Scoped into release — suite activation sent to QA.
 

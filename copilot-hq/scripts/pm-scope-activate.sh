@@ -77,7 +77,7 @@ if [ -n "$ACTIVE_RELEASE_ID" ]; then
   SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
     | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null \
     | xargs grep -l "^- Release:.*${ACTIVE_RELEASE_ID}" 2>/dev/null \
-    | wc -l | tr -d '[:space:]')"
+    | wc -l | tr -d '[:space:]' || echo 0)"
   if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
     echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress for release ${ACTIVE_RELEASE_ID})." >&2
     echo "  Defer this feature to the next release or remove another feature from scope first." >&2
@@ -87,7 +87,7 @@ else
   # No active release — fall back to global in_progress count for the site
   SCOPED_COUNT="$(grep -rl "^- Status: in_progress" features/ 2>/dev/null \
     | xargs grep -l "^- Website:.*${SITE}" 2>/dev/null \
-    | wc -l | tr -d '[:space:]')"
+    | wc -l | tr -d '[:space:]' || echo 0)"
   if [ "${SCOPED_COUNT:-0}" -ge "$RELEASE_CAP" ]; then
     echo "ERROR: Release scope cap reached for site '${SITE}' ($SCOPED_COUNT/$RELEASE_CAP features in_progress)." >&2
     echo "  Defer this feature to the next release or remove another feature from scope first." >&2
