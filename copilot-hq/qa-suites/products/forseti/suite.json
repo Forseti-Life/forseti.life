@@ -386,6 +386,61 @@
           "status": "COVERED_BY_EXISTING"
         }
       ]
+    },
+    {
+      "id": "forseti-ai-service-refactor-static",
+      "label": "AI Service Refactor: static checks \u2014 AIConversationStorageService exists, AIApiService has 0 direct DB calls, DI confirmed (TC-01..TC-03)",
+      "type": "static",
+      "feature_id": "forseti-ai-service-refactor",
+      "command": "bash -c 'set -e; ROOT=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation; echo \"TC-01: AIConversationStorageService exists\"; ls $ROOT/src/Service/AIConversationStorageService.php; echo \"TC-02: AIApiService has no direct DB calls\"; MATCHES=$(grep -c \"\\\\Drupal::database()\\|db_query\\|db_select\\|db_insert\\|db_update\\|db_delete\" $ROOT/src/Service/AIApiService.php || true); echo \"Matches: $MATCHES\"; [ \"$MATCHES\" -eq 0 ] || { echo \"FAIL: direct DB calls remain in AIApiService\"; exit 1; }; echo \"TC-03: AIConversationStorageService injected into AIApiService\"; grep -q \"AIConversationStorageService\" $ROOT/src/Service/AIApiService.php || { echo \"FAIL: AIConversationStorageService not referenced in AIApiService\"; exit 1; }; echo \"ALL STATIC CHECKS PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-service-refactor-static-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create AIConversationStorageService.php and complete DB extraction from AIApiService.",
+        "TC-01: File existence check at src/Service/AIConversationStorageService.php.",
+        "TC-02: 0 direct \\Drupal::database() or db_* calls remaining in AIApiService.php. At grooming time: 3 matches exist.",
+        "TC-03: AIConversationStorageService must be injected (DI) into AIApiService constructor.",
+        "FAIL condition: TC-01 file missing, TC-02 count > 0, TC-03 no reference found."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-service-refactor-functional",
+      "label": "AI Service Refactor: behavioral parity \u2014 conversation history loads, new record persists, caller smoke check (TC-04..TC-05, TC-07)",
+      "type": "unit",
+      "feature_id": "forseti-ai-service-refactor",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/ai_conversation/tests/src/Functional/AIServiceRefactorTest.php --testdox",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-service-refactor-functional-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create tests/src/Functional/AIServiceRefactorTest.php.",
+        "TC-04: Existing conversation history loads correctly after refactor (no data loss).",
+        "TC-05: New conversation record created and persisted via AIConversationStorageService.",
+        "TC-07 smoke check (/talk-with-forseti returns 200 for authenticated) partially covered by role-url-audit; full Functional test goes here.",
+        "Requires vendor/bin/phpunit (infra blocker: same composer install gap as other phpunit suites).",
+        "Dev must also create tests/src/Functional/ directory before this suite is runnable."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-service-refactor-unit",
+      "label": "AI Service Refactor: typed exception on DB failure \u2014 mocked DB write throws typed exception, not raw PDO (TC-06)",
+      "type": "unit",
+      "feature_id": "forseti-ai-service-refactor",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/ai_conversation/tests/src/Unit/AIConversationStorageServiceTest.php --testdox",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-service-refactor-unit-latest/"
+      ],
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create tests/src/Unit/AIConversationStorageServiceTest.php.",
+        "TC-06: Mock Drupal\\Core\\Database\\Connection to throw on insert(); assert typed exception thrown (not raw \\PDOException).",
+        "Dev must create tests/src/Unit/ directory before this suite is runnable.",
+        "Requires vendor/bin/phpunit (infra blocker: composer install gap).",
+        "TC-07/TC-08 (ACL smoke check) covered by existing role-url-audit suite via talk-with-forseti-short rule."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
