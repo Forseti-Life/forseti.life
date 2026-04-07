@@ -722,6 +722,34 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-character-leveling-player-routes",
+      "feature_id": "dc-cr-character-leveling",
+      "path_regex": "^/api/character/\\d+/level-up(?:/|$)",
+      "notes": "Level-up player routes: POST /level-up, GET /level-up/status, POST /level-up/ability-boosts, POST /level-up/skill-increase, POST /level-up/feat, GET /level-up/feats. All use _character_access:TRUE (ownership check). Parameterized: probe ID unlikely to exist in test DB, so 404 is expected (not a permission violation). Ignore all roles \u2014 ownership check not probeable via numeric probe. ACL verified in unit tests (TC-LV-ACL-01). Added preflight 20260407-dungeoncrawler-release-b (dc-cr-character-leveling).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "dc-cr-character-leveling-admin-routes",
+      "feature_id": "dc-cr-character-leveling",
+      "path_regex": "^/api/character/\\d+/level-up/admin-(?:force|reset)(?:/|$)",
+      "notes": "Level-up admin routes: POST /level-up/admin-force, POST /level-up/admin-reset. Gate: 'administer dungeoncrawler content' + _csrf_request_header_mode:TRUE. Parameterized: ignore all roles (probe ID won't exist; POST-only \u2192 GET probe returns 405). ACL verified in unit tests (TC-LV-ACL-02): anon\u2192403, player\u2192403, admin\u2192200. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-character-leveling).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

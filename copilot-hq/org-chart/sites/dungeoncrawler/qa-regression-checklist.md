@@ -192,3 +192,9 @@ This file is a running list of targeted regression checks derived from completed
 - Added 3 permission rules to `qa-permissions.json` (51 total): `dc-cr-ancestry-traits-catalog`, `dc-cr-ancestry-traits-api-read`, `dc-cr-ancestry-traits-api-check`
 - Regression note: `/dungeoncrawler/traits` anon→deny confirmed; character entity routes use `_character_access:TRUE` → probe-ignore (not a permission gap)
 - Suite validator: PASS (0 violations)
+
+## dc-cr-character-leveling suite activation (2026-04-07)
+- Enhanced existing `dc-cr-character-leveling-e2e` suite entry in `suite.json`: added 17 TCs (TC-LV-001 through TC-LV-015 + 2 ACL entries) covering level-up trigger, advancement table response, class feature auto-apply, ability boosts at level 5, skill increases, feat selection, idempotency, persistence, max-level rejection, milestone enforcement, skip-level rejection, error handling, and concurrency
+- Added 2 permission rules to `qa-permissions.json` (53 total): `dc-cr-character-leveling-player-routes`, `dc-cr-character-leveling-admin-routes` (both ignore-probe — parameterized ownership/permission routes)
+- Regression note: all 8 level-up routes use `_character_access:TRUE` or `administer dungeoncrawler content`; probe-ignore is correct (404 on numeric probe ≠ permission gap)
+- Suite validator: PASS (0 violations)
