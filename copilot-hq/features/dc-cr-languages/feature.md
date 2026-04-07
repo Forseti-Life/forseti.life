@@ -3,7 +3,7 @@
 - Work item id: dc-cr-languages
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
