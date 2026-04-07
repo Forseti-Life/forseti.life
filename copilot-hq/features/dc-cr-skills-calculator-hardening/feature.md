@@ -4,7 +4,7 @@
 - Type: extend
 - Module: dungeoncrawler_content
 - Priority: P1
-- Status: in_progress
+- Status: ready
 - Release: none
 - Dependencies: dc-cr-skill-system, dc-cr-character-leveling
 

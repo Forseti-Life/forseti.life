@@ -13,6 +13,10 @@
 - Category: rule-system
 - Created: 2026-02-26
 
+## Goal
+
+Implement the Crafting downtime activity that lets characters spend time and gold to create equipment, alchemical items, and magical gear. Covers the full resolution loop: formula lookup, skill check vs item DC, days-to-complete calculation, material cost deduction, and item grant on success or partial loss on failure.
+
 ## Source reference
 
 > "Award treasure, from magic weapons to alchemical compounds and transforming statues. The rules for activating and wearing alchemical and magical items are found here as well." (Chapter 11: Crafting & Treasure)
@@ -28,7 +32,10 @@ Crafting downtime activity (extends dc-cr-downtime-mode): inputs (target item, d
 
 ## Security acceptance criteria
 
-- Security AC exemption: Crafting modifies gold and inventory; gold deduction and item grant are atomic server operations to prevent duplication.
+- Authentication/permission surface: authenticated users only; crafting actions require character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH crafting routes require `_csrf_request_header_mode: TRUE`
+- Input validation: item ID validated against formula book; gold deduction and item grant are atomic server operations to prevent duplication
+- PII/logging constraints: no PII logged; character id + item id + gold delta + outcome only
 
 ## Roadmap section
 

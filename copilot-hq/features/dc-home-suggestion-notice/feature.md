@@ -27,7 +27,11 @@ Add a short, visible statement on the Dungeoncrawler home page informing players
 
 See `features/dc-home-suggestion-notice/01-acceptance-criteria.md`.
 
-## Mission Alignment
+## Implementation hint
+
+Add a Drupal block or field on the front page node containing a short static message (e.g., "We're actively implementing your suggestions — keep them coming!"). Configure block visibility to front page only. No dynamic content required; a hardcoded text field or site-wide announcement block is sufficient. Can be toggled on/off via admin without a code deploy using Drupal block visibility settings.
+
+## Mission alignment
 
 This feature directly advances community trust and participation:
 > "Democratize and decentralize internet services by building community-managed versions of core systems
@@ -63,4 +67,7 @@ A visible acknowledgment that suggestions are being acted on encourages continue
 - 2026-04-05: Created from community_suggestion NID 2 via suggestion-triage.sh (manual recovery — script bug in RISK_SIGNALS heredoc interpolation; Drupal node status updated to in_progress correctly)
 
 ## Security acceptance criteria
-- Security AC exemption: display-only UI notice on home page; no routes, no user input, no data mutation; renders static/config-driven content only; no PII exposure
+- Authentication/permission surface: display-only UI notice on home page; admin-only update route requires `_admin_access: TRUE`
+- CSRF expectations: all POST/PATCH notice update routes require `_csrf_request_header_mode: TRUE`
+- Input validation: notice text sanitized at Drupal field layer; no raw HTML accepted
+- PII/logging constraints: no PII logged; notice renders static/config-driven content only

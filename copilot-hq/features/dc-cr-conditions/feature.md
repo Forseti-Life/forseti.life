@@ -29,3 +29,10 @@ Content type: `condition` with fields for name, value (for valued conditions lik
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: authenticated users only; condition mutations require character or encounter ownership
+- CSRF expectations: all POST/PATCH condition routes require `_csrf_request_header_mode: TRUE`
+- Input validation: condition keys validated against allowed enum; valued conditions (frightened 1–4) validated as integers within range
+- PII/logging constraints: no PII logged; character id + condition key + value only

@@ -30,3 +30,10 @@ DC lookup table by level (1–20) and task difficulty (Trivial/Low/Moderate/High
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: DC computation is server-side read-only; no user-editable DC fields exposed
+- CSRF expectations: DC lookup endpoints are GET-only; any POST storing custom DCs requires `_csrf_request_header_mode: TRUE`
+- Input validation: rarity adjustments and level-based DC tables are server-side constants; no free-text DC overrides accepted
+- PII/logging constraints: no PII logged; DC lookups are ephemeral and not stored

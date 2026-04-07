@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T17:03:00Z
+Generated: 2026-04-07T17:06:14Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -107,7 +107,7 @@ Generated: 2026-04-07T17:03:00Z
 | dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-skills-stealth-hide-sneak | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-skills-survival-track-direction | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-skills-thievery-disable-pick-lock | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
+| dc-cr-skills-thievery-disable-pick-lock | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-snares | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
 | dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |

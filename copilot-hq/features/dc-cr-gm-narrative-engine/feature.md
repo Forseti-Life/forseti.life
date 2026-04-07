@@ -13,6 +13,10 @@
 - Category: rule-system
 - Created: 2026-02-27
 
+## Goal
+
+Implement the AI-powered Game Master narrative engine that describes scenes, responds to player actions with story outcomes, portrays NPCs, and maintains narrative continuity across an adventure session. This is the storytelling layer that makes dungeoncrawler feel like a real GM-run game, distinct from the mechanical encounter-budget tooling.
+
 Implement the AI GM's narrative engine: the system that describes scenes, responds to player character actions with story outcomes, portrays NPCs, and maintains narrative continuity across an adventure. This is distinct from `dc-cr-gm-tools` (which handles mechanical encounter budgets and loot tables). The narrative engine handles storytelling — scene framing, outcome description, NPC dialogue, and tone adaptation based on the group's preferences. It is the core of what makes dungeoncrawler feel like a real GM-run game.
 
 ## Source reference
@@ -31,7 +35,10 @@ AI prompt pipeline: system prompt includes active adventure context (current sce
 
 ## Security acceptance criteria
 
-- Security AC exemption: AI context payloads must not include PII; AI calls are rate-limited per session to prevent API abuse.
+- Authentication/permission surface: AI narrative calls scoped to authenticated session owner; session context tokens validated server-side
+- CSRF expectations: all POST routes for narrative generation require `_csrf_request_header_mode: TRUE`
+- Input validation: player action inputs sanitized before injection into AI prompt; max token limits enforced; adventure context payloads must not include PII
+- PII/logging constraints: AI context payloads must not include PII; AI calls are rate-limited per session to prevent API abuse; prompt/response logs retain session id + adventure id only
 
 ## Roadmap section
 

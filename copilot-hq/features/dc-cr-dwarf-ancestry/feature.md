@@ -30,3 +30,10 @@ Create a `ancestry` content entity for Dwarf with: `hp_grant: 10`, `size: medium
 
 - [x] Aligns with democratized community game experience
 - [x] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+
+- Authentication/permission surface: authenticated users only; ancestry and heritage selection requires character ownership (`_character_access: TRUE`)
+- CSRF expectations: all POST/PATCH character ancestry/heritage routes require `_csrf_request_header_mode: TRUE`
+- Input validation: heritage and ancestry feat selections validated against allowed enum for dwarf; heritage mutations server-validated
+- PII/logging constraints: no PII logged; character id + ancestry id + heritage id only
