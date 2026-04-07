@@ -153,8 +153,10 @@ Examples: `apg/ch02` (APG classes — no class-specific services exist),
 
 **Steps:**
 1. Check if a `features/dc-*` file already covers this area
-2. If a feature exists with `status: ready/in_progress/done` → record in the audit tracker:
-   set `status = covered`, `feature_id = <work-item-id>`. No new stub needed.
+2. If a feature exists → **before** marking it covered, verify it has all required fields.
+   Many pre-existing stubs are missing `Work item id`, `DB sections`, and `Depends on`.
+   If any required field is missing, add them now (same commit as the audit tracker update).
+   Then record in the audit tracker: `status = covered`, `feature_id = <work-item-id>`.
 3. If no feature exists → create `features/dc-*/feature.md` stub (PM-owned, PM creates)
 
    **Required fields for a new feature stub:**
