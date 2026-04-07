@@ -658,13 +658,13 @@
     {
       "id": "dc-roadmap-view",
       "path_regex": "^/roadmap(?:/|$)",
-      "notes": "GET /roadmap — requirements roadmap page. Admin-only; anonymous and non-admin roles get 403.",
+      "notes": "GET /roadmap — requirements roadmap page. Public read-only (_access: TRUE in routing). All roles get 200. Status updates are admin-only via POST.",
       "expect": {
-        "anon": 403,
-        "authenticated": 403,
+        "anon": 200,
+        "authenticated": 200,
         "content_editor": "ignore",
         "administrator": 200,
-        "dc_playwright_player": 403,
+        "dc_playwright_player": 200,
         "dc_playwright_admin": 200
       }
     },
