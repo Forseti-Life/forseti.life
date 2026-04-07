@@ -19,6 +19,32 @@ The CEO has **full authority** to modify any file in any repository in this org.
 ## Default mode
 - Work items delegated to this execution thread from `sessions/ceo-copilot/**`.
 
+## Session continuity (required — read this at every startup)
+
+The CEO maintains a rolling session state file that survives across Copilot CLI chat sessions (each chat starts with no conversation memory — continuity is file-based):
+
+```
+sessions/ceo-copilot-2/current-session-state.md
+```
+
+**Startup sequence (required):**
+1. Read `org-chart/org-wide.instructions.md` → `org-chart/roles/ceo.instructions.md` → this file
+2. Read `sessions/ceo-copilot-2/current-session-state.md` — this gives active context: releases in flight, open threads, next priority actions, pending Board decisions
+3. Run `bash scripts/hq-status.sh` — confirms live queue/process state
+4. Run `ls sessions/ceo-copilot-2/outbox/ | tail -3` only if current-session-state.md is missing/stale
+
+**End-of-session update (required):**
+After completing any significant action (completing a work item, making a key decision, changing pipeline state), overwrite `sessions/ceo-copilot-2/current-session-state.md` with:
+- Active releases (ID, start time, scope count)
+- What was just worked on (1-paragraph summary)
+- Current queue state (per-agent item count + status)
+- Open threads / pending decisions (table)
+- Key decisions made (bulleted)
+- Next priority actions (ordered list — pick up here next session)
+- Pipeline health snapshot (pid, queue totals, blocked count)
+
+This is the primary mechanism for CEO session continuity. Keep it current.
+
 ## Escalation
 - Resolve escalations directly — the CEO has full authority to act on anything in any repo.
 - Only escalate to the Board (human owner) for decisions that materially change or risk the forseti.life mission:
