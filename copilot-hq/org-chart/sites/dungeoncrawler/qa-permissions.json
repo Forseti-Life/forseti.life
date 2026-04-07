@@ -628,6 +628,32 @@
         "dc_playwright_player": 200,
         "dc_playwright_admin": 200
       }
+    },
+    {
+      "id": "dc-roadmap-view",
+      "path_regex": "^/roadmap(?:/|$)",
+      "notes": "GET /roadmap \u2014 requirements roadmap page. Admin-only; anonymous and non-admin roles get 403.",
+      "expect": {
+        "anon": 403,
+        "authenticated": 403,
+        "content_editor": "ignore",
+        "administrator": 200,
+        "dc_playwright_player": 403,
+        "dc_playwright_admin": 200
+      }
+    },
+    {
+      "id": "dc-roadmap-status-post",
+      "path_regex": "^/roadmap/requirement/\\d+/status(?:/|$)",
+      "notes": "POST /roadmap/requirement/{req_id}/status \u2014 JSON API to update requirement status. Admin-only; anonymous and non-admin roles get 403. GET probe returns 405 (method not allowed).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

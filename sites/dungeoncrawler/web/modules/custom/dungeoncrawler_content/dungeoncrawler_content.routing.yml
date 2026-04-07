@@ -1961,6 +1961,7 @@ dungeoncrawler_content.roadmap_status:
   methods: [POST]
   requirements:
     _permission: 'administer dungeoncrawler content'
+    _csrf_request_header_mode: 'TRUE'
     req_id: '\d+'
   options:
     _format: json
