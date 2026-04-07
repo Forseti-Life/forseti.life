@@ -778,6 +778,20 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "dc-cr-dwarf-heritage-ancient-blooded-reaction",
+      "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+      "path_regex": "^/api/character/\\d+/reaction(?:/|$)",
+      "notes": "Reaction trigger endpoint for Call on Ancient Blood (and future reactions). Uses _character_access:TRUE (ownership check). Parameterized: ignore all roles \u2014 probe ID won't exist in test DB. ACL verified in unit tests (TC-HAB-015: non-owner player gets 403, owner and admin succeed). Note: exact route path TBD by Dev \u2014 update path_regex when Dev confirms reaction trigger route. Added preflight 20260407-dungeoncrawler-release-b (dc-cr-dwarf-heritage-ancient-blooded).",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }

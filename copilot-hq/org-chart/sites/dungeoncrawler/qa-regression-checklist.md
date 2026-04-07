@@ -206,3 +206,11 @@ This file is a running list of targeted regression checks derived from completed
 - OPEN ITEM: confirm with Dev whether `AncestryController` plain-string `vision` field is migrated or coexists (regression risk #3)
 - Regression watch: ConditionManager coupling, CharacterViewController senses render path, HexMap lighting integration, dc-cr-conditions coupling
 - Suite validator: PASS (0 violations)
+
+## dc-cr-dwarf-heritage-ancient-blooded suite activation (2026-04-07)
+- Added `dc-cr-dwarf-heritage-ancient-blooded-e2e` to `suite.json` (21 total suites): 15 TCs (TC-HAB-001–TC-HAB-015) covering heritage availability, reaction grant, reaction prompt (magical save), +1 circumstance bonus application/expiry, reaction consumption (once-per-turn), non-dwarf exclusion, server-side ancestry rejection, circumstance stacking rule, non-magical trigger exclusion, heritage lock post-creation, reaction authorization
+- Added 1 permission rule to `qa-permissions.json` (56 total): `dc-cr-dwarf-heritage-ancient-blooded-reaction` (ignore-all; reaction route path TBD by Dev)
+- 4 TCs in `pending-dev-confirmation` status: TC-HAB-003/005/006 (reaction prompt API + turn tracking), TC-HAB-010 (circumstance stacking location), TC-HAB-011 (magical source_type classification), TC-HAB-015 (GM role definition)
+- OPEN PM CLARIFICATION ITEMS: CQ-001 (reaction prompt API surface), CQ-002 (turn tracking/expiry), CQ-003 (stacking in ConditionManager vs feature-local), CQ-004 (magical source_type), CQ-005 (GM role for reaction override)
+- Regression watch: ConditionManager circumstance bonus integration, dc-cr-conditions coupling, dc-cr-heritage-system lock enforcement
+- Suite validator: PASS (0 violations)

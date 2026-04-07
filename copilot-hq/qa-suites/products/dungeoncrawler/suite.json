@@ -2145,6 +2145,163 @@
           "notes": "TC-DV-15 blocked on Dev confirming sense entity admin route path. Add qa-permissions.json rule when path is known."
         }
       ]
+    },
+    {
+      "id": "dc-cr-dwarf-heritage-ancient-blooded-e2e",
+      "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+      "label": "Dwarf Heritage Ancient-Blooded \u2014 heritage availability/selection, call-on-ancient-blood reaction grant, reaction prompt on magical save, +1 circumstance bonus application and expiry, reaction consumption, non-magical trigger exclusion, circumstance stacking rule, non-dwarf exclusion, heritage lock post-creation, reaction authorization",
+      "type": "e2e",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). This is the first concrete heritage implementation \u2014 TC-001/TC-002 are templates for all future heritage features. OPEN CLARIFICATION ITEMS (PM-owned): CQ-001 reaction prompt API surface (payload field vs separate endpoint vs state machine), CQ-002 turn-duration tracking for bonus expiry, CQ-003 circumstance-stacking enforcement location (ConditionManager vs feature-local), CQ-004 magical-vs-non-magical source_type classification in combat engine, CQ-005 GM role definition for reaction override. TC-011 (magical trigger) and TC-010 (circumstance stacking) are highest-risk; require Dev implementation notes before deterministic assertions can be written. Heritage selection uses dc-cr-heritage-system routes (character creation flow); reaction trigger uses encounter/combat API routes.",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-dwarf-heritage-ancient-blooded/verification-report.md"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-07",
+      "test_cases": [
+        {
+          "id": "TC-HAB-001",
+          "description": "ancient-blooded-dwarf heritage appears in selectable options for Dwarf character at heritage selection step in character creation",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testAncientBloodedAvailableForDwarf",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-002",
+          "description": "Selecting Ancient-Blooded heritage grants call-on-ancient-blood reaction in character abilities list",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testSelectionGrantsCallOnAncientBloodReaction",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-003",
+          "description": "Reaction prompt fires before rolling a magical saving throw when reaction_available=true (prompt appears before roll resolution)",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testReactionPromptBeforeMagicalSavingThrow",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+          "notes": "CQ-001: reaction prompt API surface TBD \u2014 payload field, separate prompt action, or state machine transition. Update class_method when Dev confirms."
+        },
+        {
+          "id": "TC-HAB-004",
+          "description": "Using reaction applies +1 circumstance bonus to triggering save; circumstance_bonus=1 on roll; reaction_available set to false",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testReactionAppliesPlusOneCircumstanceBonus",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-005",
+          "description": "+1 circumstance bonus persists for subsequent saves in the same turn (second magical save also gets +1)",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testBonusPersistsForRemainderOfTurn",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+          "notes": "CQ-002: how is 'same turn' tracked in the API? What field/event signals end of turn for expiry?"
+        },
+        {
+          "id": "TC-HAB-006",
+          "description": "+1 circumstance bonus expires at end of turn; reaction_available resets to true at start of next turn",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testBonusExpiresAtEndOfTurn",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+          "notes": "CQ-002: requires observable end-of-turn event in API/state payload. Dev must expose this."
+        },
+        {
+          "id": "TC-HAB-007",
+          "description": "reaction_available=false after use; second magical save in same turn does not prompt reaction again (once-per-turn)",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testReactionAvailableFalseAfterUse",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-008",
+          "description": "ancient-blooded-dwarf NOT available for non-Dwarf character (e.g. Elf) \u2014 filtered from heritage options",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testAncientBloodedNotAvailableForNonDwarf",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-009",
+          "description": "Spent reaction (reaction_available=false) returns HTTP 422 with 'Reaction already used this turn' on direct API call",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testSpentReactionReturns422",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-010",
+          "description": "Circumstance bonus does NOT stack \u2014 when +1 circumstance (Ancient Blood) + +2 circumstance (other source) active, total=max(1,2)=2, not 3",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testCircumstanceBonusDoesNotStack",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+          "notes": "CQ-003: is non-stacking rule already in ConditionManager (dc-cr-conditions) or must Ancient-Blooded implement it? Dev confirms in implementation notes."
+        },
+        {
+          "id": "TC-HAB-011",
+          "description": "Reaction does NOT trigger for non-magical saving throws (physical trap, mundane hazard) \u2014 no reaction prompt, save proceeds normally",
+          "suite_type": "functional",
+          "class_method": "HeritageDwarfAncientBloodedTest::testReactionNotTriggeredForNonMagicalSave",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+          "notes": "CQ-004: how is 'magical effect' classified in the combat engine? source_type field needed. Highest-risk TC \u2014 Dev must document this in implementation notes."
+        },
+        {
+          "id": "TC-HAB-012",
+          "description": "Server-side rejection of Ancient-Blooded assignment to non-Dwarf character via API (ancestry mismatch \u2192 HTTP 422/400)",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testNonDwarfAssignmentRejectedServerSide",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-013",
+          "description": "Spent reaction attempt returns informative error message 'Reaction already used this turn' (cross-reference TC-HAB-009; verifies message text)",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testSpentReactionErrorMessageText",
+          "ac_tag": "NEW",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-014",
+          "description": "Heritage locked after character creation \u2014 POST heritage change on completed character returns HTTP 422/403",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testHeritageLockedPostCreation",
+          "ac_tag": "permissions",
+          "status": "active",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded"
+        },
+        {
+          "id": "TC-HAB-015",
+          "description": "Reaction usage scoped to character owner + GM/admin \u2014 non-owner player gets 403; owner and administrator succeed",
+          "suite_type": "unit",
+          "class_method": "HeritageDwarfAncientBloodedTest::testReactionUsageAuthorization",
+          "ac_tag": "permissions",
+          "status": "pending-dev-confirmation",
+          "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
+          "notes": "CQ-005: which Drupal role(s) constitute 'GM' for reaction override? Same open question as dc-cr-clan-dagger CQ-005."
+        }
+      ]
     }
   ],
   "_schema_notes": [
