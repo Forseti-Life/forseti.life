@@ -1286,27 +1286,69 @@ class CharacterManager {
       'key_ability' => 'Charisma',
       'proficiencies' => [
         'perception' => 'Trained',
-        'fortitude' => 'Trained',
-        'reflex' => 'Trained',
-        'will' => 'Expert',
+        'fortitude'  => 'Trained',
+        'reflex'     => 'Trained',
+        'will'       => 'Expert',
       ],
       'skills' => 'Choose 3 + Intelligence modifier',
       'weapons' => 'Trained in simple weapons',
-      'spellcasting' => 'Divine spellcasting, Charisma',
       'trained_skills' => 3,
+      // ── Spellcasting ────────────────────────────────────────────────────────
+      'spellcasting' => 'Divine spontaneous spellcasting, Charisma',
+      'spontaneous'  => TRUE,
+      // All material components replaced by somatic components for oracle spells.
+      'somatic_only' => TRUE,
+      'repertoire_start' => [
+        'cantrips' => 5,
+        'first'    => 2,
+      ],
+      // Cantrips auto-heighten to half class level rounded up.
+      'cantrip_heightening' => 'half_level_round_up',
+      // Signature Spells: one per accessible spell level, cast at any available level.
+      'signature_spells' => [
+        'unlocks_at_level' => 3,
+        'count_per_spell_level' => 1,
+        'note' => 'Each signature spell can be cast at any of your available spell levels.',
+      ],
+      // ── Mystery ─────────────────────────────────────────────────────────────
       'mystery' => [
         'required' => TRUE,
         'options'  => ['ancestors', 'battle', 'bones', 'cosmos', 'flames', 'life', 'lore', 'tempest'],
-        'note'     => 'Grants initial/advanced/greater revelation spells and unique 4-stage curse. See ORACLE_MYSTERIES.',
+        'note'     => 'Chosen at L1; cannot change. Grants initial/advanced/greater revelation spells and unique 4-stage curse. See ORACLE_MYSTERIES.',
       ],
+      // ── Revelation Spells ───────────────────────────────────────────────────
+      'revelation_spells_at_l1' => [
+        'count' => 2,
+        // First revelation is always the mystery's initial_revelation (no player choice).
+        'initial_fixed'   => TRUE,
+        // Second is chosen from the mystery's associated domain spells (player choice).
+        'second_is_domain_choice' => TRUE,
+        'note' => 'First = mystery initial_revelation (fixed); second = domain spell choice from mystery.',
+      ],
+      // ── Focus Pool ──────────────────────────────────────────────────────────
       'focus_pool' => [
         'start'  => 2,
         'cap'    => 3,
-        'note'   => 'Oracle starts with 2 Focus Points (unique). Revelation spells carry Cursebound trait; casting one advances the curse stage.',
+        'note'   => 'Oracle starts with 2 Focus Points (unique — not the default 1). See FOCUS_POOLS[oracle].',
       ],
+      // ── Oracular Curse ──────────────────────────────────────────────────────
       'cursebound' => [
         'rule'   => 'Every revelation spell carries the Cursebound trait. Casting any one advances the oracle curse tracker by one stage.',
+        'traits' => ['Curse', 'Divine', 'Necromancy'],
         'stages' => 4,
+        // Stage 0 (basic) is always active from character creation.
+        'basic_always_active' => TRUE,
+        'state_machine' => [
+          'basic_to_minor'       => 'Cast any cursebound (revelation) spell while at basic.',
+          'minor_to_moderate'    => 'Cast any cursebound (revelation) spell while at minor.',
+          'moderate_to_overwhelmed' => 'Cast any cursebound (revelation) spell while at moderate.',
+          'overwhelmed'          => 'Cannot cast or sustain any revelation spell until next daily preparations.',
+          'refocus_at_moderate'  => 'Refocusing while at moderate (or overwhelmed) resets curse to minor and restores 1 Focus Point.',
+          'daily_reset'          => 'Resting 8 hours and completing daily preparations returns curse to basic.',
+        ],
+        // The curse cannot be removed, mitigated, or suppressed by spells or items.
+        'irremovable' => TRUE,
+        'irremovable_note' => 'Remove curse and similar effects have no effect on the oracular curse; it is a class feature, not a removable affliction.',
       ],
     ],
     'swashbuckler' => [
@@ -5163,6 +5205,64 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       17 => ['auto_features' => [
         ['id' => 'strategic-strike-5d6', 'name' => 'Strategic Strike (5d6)',
           'description' => 'Your Strategic Strike precision damage increases to 5d6.'],
+      ]],
+    ],
+    'oracle' => [
+      1  => ['auto_features' => [
+        ['id' => 'oracle-divine-spellcasting', 'name' => 'Divine Spontaneous Spellcasting',
+          'description' => 'You cast divine spells spontaneously using Charisma. All material components are replaced by somatic components. Repertoire starts with 5 cantrips + 2 first-level spells. Cantrips auto-heighten to half your level rounded up.'],
+        ['id' => 'oracle-mystery', 'name' => 'Mystery',
+          'description' => 'Choose your mystery (Ancestors, Battle, Bones, Cosmos, Flames, Life, Lore, or Tempest). This choice is permanent and defines your revelation spells and the unique 4-stage oracular curse you carry.'],
+        ['id' => 'oracle-revelation-spells', 'name' => 'Revelation Spells (2)',
+          'description' => 'You learn 2 revelation focus spells at L1: the mystery\'s initial revelation spell (fixed, no choice) and one domain spell from your mystery\'s associated domains (player choice). All revelation spells have the Cursebound trait.'],
+        ['id' => 'oracle-oracular-curse', 'name' => 'Oracular Curse',
+          'description' => 'You carry a 4-stage oracular curse (traits: curse, divine, necromancy). Basic stage is always active. Casting any cursebound spell advances the curse one stage (basic→minor→moderate→overwhelmed). Overwhelmed prevents all revelation spell casting until next daily prep. Refocusing while at moderate resets the curse to minor and restores 1 FP. Daily preparations reset curse to basic. The curse cannot be removed or suppressed by any spell or item.'],
+        ['id' => 'oracle-focus-pool', 'name' => 'Focus Pool (2 FP)',
+          'description' => 'Oracle begins with 2 Focus Points (unique — not the standard 1). Refocus activity takes 10 minutes. Additional revelation feats may expand the pool up to the cap of 3.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'oracle-signature-spells', 'name' => 'Signature Spells',
+          'description' => 'You select one spell per accessible spell level from your repertoire as a signature spell. Signature spells can be cast at any available spell level without being separately learned at each level.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'oracle-lightning-reflexes', 'name' => 'Lightning Reflexes',
+          'description' => 'Your Reflex saving throw proficiency increases to Expert.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'oracle-weapon-expertise', 'name' => 'Weapon Expertise',
+          'description' => 'Your proficiency with simple weapons and unarmed attacks increases to Expert.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'oracle-magical-fortitude', 'name' => 'Magical Fortitude',
+          'description' => 'Your Fortitude saving throw proficiency increases to Expert.'],
+        ['id' => 'oracle-alertness', 'name' => 'Alertness',
+          'description' => 'Your Perception proficiency increases to Expert.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'oracle-major-curse', 'name' => 'Major Curse',
+          'description' => 'You unlock the major stage of your oracular curse. Casting a revelation spell at moderate now advances to major (instead of directly to overwhelmed); casting at major triggers overwhelmed.'],
+        ['id' => 'oracle-expert-spellcaster', 'name' => 'Expert Spellcaster',
+          'description' => 'Your spell attack roll and spell DC proficiency for divine spells increase to Expert.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'oracle-medium-armor-expertise', 'name' => 'Medium Armor Expertise',
+          'description' => 'Your armor proficiency for light and medium armor increases to Expert.'],
+        ['id' => 'oracle-weapon-specialization', 'name' => 'Weapon Specialization',
+          'description' => 'You deal additional damage equal to half your proficiency rank with weapons you are an expert in or better.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'oracle-extreme-curse', 'name' => 'Extreme Curse',
+          'description' => 'You unlock the extreme stage of your oracular curse. Casting a revelation spell at major now advances to extreme (instead of directly to overwhelmed); casting at extreme triggers overwhelmed.'],
+        ['id' => 'oracle-master-spellcaster', 'name' => 'Master Spellcaster',
+          'description' => 'Your spell attack roll and spell DC proficiency increase to Master.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'oracle-resolve', 'name' => 'Resolve',
+          'description' => 'Your Will saving throw proficiency increases to Master.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'oracle-legendary-spellcaster', 'name' => 'Legendary Spellcaster',
+          'description' => 'Your spell attack roll and spell DC proficiency increase to Legendary.'],
       ]],
     ],
   ];
