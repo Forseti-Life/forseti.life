@@ -696,7 +696,7 @@ class CompanyController extends ControllerBase {
     // Build Apply button HTML — AJAX-powered, no page refresh.
     $apply_url_route = Url::fromRoute('job_hunter.job_apply', ['job_id' => $job_id])->toString();
     $status_url_route = Url::fromRoute('job_hunter.application_status', ['job_id' => $job_id])->toString();
-    $csrf_token = \Drupal::csrfToken()->get('job_apply_' . $job_id);
+    $csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/apply');
 
     if ($existing_application) {
       $app_status = $existing_application['submission_status'];
@@ -1381,7 +1381,7 @@ class CompanyController extends ControllerBase {
     $token = $request->headers->get('X-CSRF-Token')
       ?: $request->request->get('csrf_token')
       ?: $request->query->get('csrf_token');
-    if (!\Drupal::csrfToken()->validate($token, 'job_apply_' . $job_id)) {
+    if (!\Drupal::csrfToken()->validate($token, 'jobhunter/jobs/' . (int) $job_id . '/apply')) {
       if ($redirect_mode) {
         $this->messenger()->addError($this->t('Invalid security token. Please refresh the page and try again.'));
         return new RedirectResponse($return_to ?: '/jobhunter/my-jobs');

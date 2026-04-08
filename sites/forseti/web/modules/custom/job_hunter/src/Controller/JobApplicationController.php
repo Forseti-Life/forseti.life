@@ -1085,7 +1085,7 @@ class JobApplicationController extends ControllerBase {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       // Resolve display platform: prefer via (friendly name), fall back to source_platform.
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
-      $job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $job->id);
+      $job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $job->id . '/applied');
     }
 
     $content = [
@@ -1508,7 +1508,7 @@ class JobApplicationController extends ControllerBase {
 
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
-      $job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $job->id);
+      $job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $job->id . '/applied');
 
       if ($job_id !== NULL && (int) $job->id === (int) $job_id) {
         $selected_job = $job;
@@ -1528,7 +1528,7 @@ class JobApplicationController extends ControllerBase {
       if ($selected_job) {
         $selected_job->workflow_status = $this->deriveWorkflowStatus($selected_job, $has_profile);
         $selected_job->display_platform = !empty($selected_job->via) ? $selected_job->via : (!empty($selected_job->source_platform) ? $selected_job->source_platform : '');
-        $selected_job->apply_csrf_token = \Drupal::csrfToken()->get('job_apply_' . (int) $selected_job->id);
+        $selected_job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $selected_job->id . '/applied');
         $selected_workflow_status = (string) $selected_job->workflow_status;
 
         if ($selected_job->workflow_status === 'application_pending') {
@@ -1583,7 +1583,7 @@ class JobApplicationController extends ControllerBase {
         'last_attempt_outcome' => (string) ($last_attempt['outcome'] ?? ''),
         'last_attempt_error' => (string) ($last_attempt['error_message'] ?? ''),
         'last_attempt_at' => (string) ($last_attempt['attempted_at'] ?? ''),
-        'apply_csrf_token' => \Drupal::csrfToken()->get('job_apply_' . $application_job_id),
+        'apply_csrf_token' => \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $application_job_id . '/applied'),
       ];
     }
 
@@ -1616,7 +1616,7 @@ class JobApplicationController extends ControllerBase {
           'last_attempt_error' => '',
           'last_attempt_at' => '',
           'account_readiness_at' => '',
-          'apply_csrf_token' => \Drupal::csrfToken()->get('job_apply_' . (int) $selected_job->id),
+          'apply_csrf_token' => \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $selected_job->id . '/applied'),
         ];
       }
       catch (\Exception $e) {
