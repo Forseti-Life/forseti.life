@@ -3,7 +3,7 @@
 namespace Drupal\copilot_agent_tracker\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
-use Drupal\Core\Database\Connection;
+use Drupal\copilot_agent_tracker\Repository\DashboardRepository;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBuilderInterface;
 use Drupal\Core\Link;
@@ -40,7 +40,7 @@ final class DashboardController extends ControllerBase {
   const RELEASE_CYCLE_CONTROL_FILE_LEGACY = '/home/ubuntu/forseti.life/copilot-hq/tmp/release-cycle-control.json';
 
   public function __construct(
-    private readonly Connection $database,
+    private readonly DashboardRepository $repository,
     private readonly DateFormatterInterface $dateFormatter,
     private readonly StateInterface $state,
     private readonly FormBuilderInterface $dashboardFormBuilder,
@@ -50,7 +50,7 @@ final class DashboardController extends ControllerBase {
 
   public static function create(ContainerInterface $container): static {
     return new static(
-      $container->get('database'),
+      $container->get('copilot_agent_tracker.dashboard_repository'),
       $container->get('date.formatter'),
       $container->get('state'),
       $container->get('form_builder'),
@@ -65,7 +65,7 @@ final class DashboardController extends ControllerBase {
   public function dashboard(): array {
     $token = (string) $this->state->get('copilot_agent_tracker.telemetry_token', '');
 
-    if (!$this->database->schema()->tableExists('copilot_agent_tracker_agents')) {
+    if (!$this->repository->agentsTableExists()) {
       $this->messenger()->addWarning($this->t('Copilot Agent Tracker database tables are missing. Run database updates (for example: drush updb) to create required tables.'));
       return [
         '#type' => 'container',
@@ -86,17 +86,9 @@ final class DashboardController extends ControllerBase {
       'role' => (string) ($request?->query->get('role') ?? ''),
     ];
 
-    $rows = $this->database->select('copilot_agent_tracker_agents', 'a')
-      ->fields('a', ['agent_id', 'role', 'website', 'module', 'status', 'current_action', 'last_seen', 'metadata'])
-      ->orderBy('website', 'ASC')
-      ->orderBy('module', 'ASC')
-      ->orderBy('role', 'ASC')
-      ->orderBy('last_seen', 'DESC')
-      ->execute()
-      ->fetchAllAssoc('agent_id');
+    $rows = $this->repository->getAllAgentsOrdered();
 
     $products = [];
-    $roles = [];
     foreach ($rows as $row) {
       $website = (string) ($row->website ?? '');
       $module = (string) ($row->module ?? '');
