@@ -3,10 +3,13 @@
 namespace Drupal\job_hunter\Plugin\QueueWorker;
 
 use Drupal\Core\Plugin\ContainerFactoryPluginInterface;
+use Drupal\Core\Queue\DelayedRequeueException;
 use Drupal\Core\Queue\QueueWorkerBase;
-use Drupal\Core\Queue\SuspendQueueException;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Drupal\job_hunter\Traits\QueueWorkerBaseTrait;
+use GuzzleHttp\Exception\ClientException;
+use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\ServerException;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /**
@@ -53,19 +56,39 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
    * {@inheritdoc}
    */
   public function processItem($data) {
+    // Validate required fields — permanent failure if malformed.
+    foreach (['uid', 'job_id', 'profile_json', 'job_data'] as $field) {
+      if (empty($data[$field])) {
+        $this->logError('Queue: Resume tailoring discarded — missing required field "@field" in queue item data (job @job_id)', [
+          '@field' => $field,
+          '@job_id' => $data['job_id'] ?? 'unknown',
+        ]);
+        return;
+      }
+    }
+
     $uid = $data['uid'];
     $job_id = $data['job_id'];
     $profile_json = $data['profile_json'];
     $job_data = $data['job_data'];
+    $retry_count = (int) ($data['retry_count'] ?? 0);
+
+    // Respect exponential backoff — if this is a retried item that should not
+    // be processed yet, re-delay it and release back to the queue.
+    $process_after = (int) ($data['process_after'] ?? 0);
+    if ($process_after > time()) {
+      throw new DelayedRequeueException($process_after - time(), "Backoff delay not yet elapsed for job {$job_id}");
+    }
 
     // Get logging context (username, company, job_title)
     $context = $this->getLoggingContext($uid, $job_data);
     
-    $this->logInfo('🔄 Queue: Starting resume tailoring for @username → "@title" at @company (job @job_id)', [
+    $this->logInfo('🔄 Queue: Starting resume tailoring for @username → "@title" at @company (job @job_id, attempt @attempt)', [
       '@username' => $context['username'],
       '@title' => $context['job_title'],
       '@company' => $context['company'],
       '@job_id' => $job_id,
+      '@attempt' => $retry_count + 1,
     ]);
     
     // Parse job extracted data for payload
@@ -100,9 +123,9 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
       $tailored_result = $this->callGenAiTailoringService($genai_payload, $uid, $job_id);
 
       if (!$tailored_result || !isset($tailored_result['tailored_resume_json'])) {
-        // Suspend queue - GenAI call may have succeeded but JSON parsing failed
-        // This allows manual cache clearing and intelligent retry
-        throw new SuspendQueueException('Failed to generate tailored resume from AI service. Check logs for JSON parsing errors. Clear cache if prompt needs adjustment.');
+        // AI service returned an unusable result — treat as transient (JSON parse
+        // failure or truncated response) so retry logic applies.
+        throw new \RuntimeException("GenAI returned no usable result for job {$job_id}. JSON parse may have failed; see prior log entries.");
       }
 
       // Save the tailored resume
@@ -124,17 +147,126 @@ class ResumeTailoringWorker extends QueueWorkerBase implements ContainerFactoryP
 
     }
     catch (\Exception $e) {
-      // Use centralized exception handling
-      $this->handleQueueException(
-        $e,
-        $connection,
-        'jobhunter_tailored_resumes',
-        $uid,
-        $job_id,
-        $context,
-        'Resume tailoring'
-      );
+      $this->handleQueueExceptionWithRetry($e, $connection, $data, $retry_count, $context, $uid, $job_id);
     }
+  }
+
+  /**
+   * Classify an exception as 'transient' or 'permanent' for retry decisions.
+   *
+   * Transient: HTTP 5xx, connection timeout, rate limit (429).
+   * Permanent: HTTP 4xx auth errors, malformed data, or unknown errors.
+   *
+   * @param \Exception $e
+   *   The caught exception.
+   *
+   * @return string
+   *   'transient' or 'permanent'.
+   */
+  private function classifyException(\Exception $e): string {
+    // Guzzle HTTP server errors (5xx) are always transient.
+    if ($e instanceof ServerException) {
+      return 'transient';
+    }
+    // Network/connection errors are always transient.
+    if ($e instanceof ConnectException) {
+      return 'transient';
+    }
+    // Guzzle HTTP client errors: 429 rate-limit is transient; other 4xx are permanent.
+    if ($e instanceof ClientException) {
+      $code = $e->getResponse() ? $e->getResponse()->getStatusCode() : 0;
+      return ($code === 429) ? 'transient' : 'permanent';
+    }
+
+    // Fall back to message inspection for non-Guzzle exceptions.
+    $message = strtolower($e->getMessage());
+    $transient_patterns = ['timeout', 'timed out', 'connection', '503', '502', '500', '429', 'rate limit', 'throttl', 'unavailable', 'no usable result'];
+    foreach ($transient_patterns as $pattern) {
+      if (strpos($message, $pattern) !== FALSE) {
+        return 'transient';
+      }
+    }
+
+    $permanent_patterns = ['unauthorized', '401', '403', 'forbidden', 'missing required'];
+    foreach ($permanent_patterns as $pattern) {
+      if (strpos($message, $pattern) !== FALSE) {
+        return 'permanent';
+      }
+    }
+
+    // Default: transient (allows retry for unknown errors).
+    return 'transient';
+  }
+
+  /**
+   * Handle queue exception with retry/backoff logic.
+   *
+   * Transient failures with remaining retries are re-queued with exponential
+   * backoff. Permanent failures (or exhausted retries) discard the item and
+   * record 'failed' status. No exception is re-thrown so the item is consumed.
+   *
+   * @param \Exception $e
+   *   The caught exception.
+   * @param \Drupal\Core\Database\Connection $connection
+   *   The database connection.
+   * @param array $data
+   *   The original queue item data.
+   * @param int $retry_count
+   *   Current retry attempt count (0-based).
+   * @param array $context
+   *   Logging context (username, company, job_title).
+   * @param int $uid
+   *   The user ID.
+   * @param int $job_id
+   *   The job ID.
+   */
+  private function handleQueueExceptionWithRetry(\Exception $e, $connection, array $data, int $retry_count, array $context, int $uid, int $job_id): void {
+    $error_type = $this->classifyException($e);
+
+    $this->logError('❌ Queue: Resume tailoring @error_type failure for @username → job @job_id (attempt @attempt/3): @error', [
+      '@error_type' => $error_type,
+      '@username' => $context['username'] ?? 'unknown',
+      '@job_id' => $job_id,
+      '@attempt' => $retry_count + 1,
+      '@error' => $e->getMessage(),
+    ]);
+
+    $max_retries = 3;
+
+    if ($error_type === 'transient' && $retry_count < $max_retries) {
+      // Exponential backoff: 30s, 60s, 120s for attempts 1/2/3.
+      $backoff_seconds = (int) pow(2, $retry_count) * 30;
+
+      $retry_data = array_merge($data, [
+        'retry_count' => $retry_count + 1,
+        'process_after' => time() + $backoff_seconds,
+      ]);
+
+      \Drupal::queue('job_hunter_resume_tailoring')->createItem($retry_data);
+
+      $this->logError('⏳ Queue: Scheduled retry @retry/@max for job @job_id in @backoff seconds', [
+        '@retry' => $retry_count + 1,
+        '@max' => $max_retries,
+        '@job_id' => $job_id,
+        '@backoff' => $backoff_seconds,
+      ]);
+
+      // Reset DB status to pending so the item does not appear stuck as 'processing'.
+      $this->updateDatabaseStatus($connection, 'jobhunter_tailored_resumes', $uid, $job_id, 'pending');
+    }
+    else {
+      $reason = ($error_type === 'transient') ? "max retries exhausted ({$max_retries}/{$max_retries})" : "permanent failure ({$error_type})";
+
+      $this->logError('🚫 Queue: Resume tailoring discarded for job @job_id — @reason', [
+        '@job_id' => $job_id,
+        '@reason' => $reason,
+      ]);
+
+      $this->updateDatabaseStatus($connection, 'jobhunter_tailored_resumes', $uid, $job_id, 'failed', [
+        'error_message' => substr($e->getMessage(), 0, 500),
+      ]);
+    }
+    // Do NOT re-throw — item is consumed (deleted) from the queue.
   }
 
   /**
