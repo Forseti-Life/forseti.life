@@ -428,12 +428,23 @@ class RulesEngine {
       }
 
       // Ranged attacks: range increment penalty (-2 per increment beyond first).
+      // REQ 2093: Maximum effective range = 6× the range increment; attacks beyond that are invalid.
       if ($weapon_type === 'ranged') {
         $base_range = (int) ($weapon['range_increment'] ?? $weapon_range);
-        if ($base_range > 0 && $distance > $base_range) {
-          $increments = (int) ceil($distance / $base_range) - 1;
-          $range_penalty = $increments * -2;
-          $modifiers['range_penalty'] = $range_penalty;
+        if ($base_range > 0) {
+          $max_effective_range = $base_range * 6;
+          if ($distance > $max_effective_range) {
+            return [
+              'is_valid' => FALSE,
+              'reason'   => "Target is beyond maximum effective range (distance: {$distance}, max: {$max_effective_range}).",
+              'modifiers' => $modifiers,
+            ];
+          }
+          if ($distance > $base_range) {
+            $increments = (int) ceil($distance / $base_range) - 1;
+            $range_penalty = $increments * -2;
+            $modifiers['range_penalty'] = $range_penalty;
+          }
         }
       }
 
