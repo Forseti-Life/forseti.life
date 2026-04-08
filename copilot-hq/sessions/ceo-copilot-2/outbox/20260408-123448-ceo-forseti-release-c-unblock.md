@@ -42,3 +42,14 @@ None. All actions within CEO authority.
 1. **dev-infra:** `post-coordinated-push.sh` must update `next_release_id` after advancing `release_id` (prevent stale-state bounce bug recurring)
 2. **dev-infra:** Audit other dead legacy dispatch functions (`_dispatch_signoff_reminders`, `_dispatch_release_close_triggers`, `_dispatch_scope_activate_nudge`, `_dispatch_feature_gap_remediation`) — determine which to wire into LangGraph tick
 3. **KB lesson:** Document "legacy tick vs LangGraph tick" pattern so future contributors don't wire new dispatch functions into the dead code path
+
+## Addendum — deploy.yml Re-enabled + Deploy Triggered
+
+- **Root cause of deploy stall:** `deploy.yml` workflow was `disabled_manually` (disabled 2026-04-02). No pushes or workflow_dispatch calls could fire it.
+- **CEO action:** Re-enabled workflow via `gh workflow enable deploy.yml`; triggered `workflow_dispatch` → run `24135783047` (in progress at time of outbox update)
+- **forseti.release_id** advanced from `release-b` → `release-c` (was not advanced after coordinated push because deploy was stalled and pm-forseti had the post-push blocked)
+- **Final state:**
+  - forseti: release-c active, next=release-d ✅
+  - dungeoncrawler: release-c active, next=release-d ✅
+  - deploy.yml: re-enabled, run 24135783047 in progress
+  - Both teams: signed off, ready for orchestrator to advance to release-d on next tick
