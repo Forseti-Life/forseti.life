@@ -1869,131 +1869,6 @@
       ]
     },
     {
-      "id": "dc-cr-ancestry-traits-e2e",
-      "feature_id": "dc-cr-ancestry-traits",
-      "label": "Ancestry Traits \u2014 catalog coverage, auto-assign on character creation, hasTraits/isValidTrait logic, duplicate idempotency, case-sensitivity, mixed-heritage union, unknown-trait rejection, persistence",
-      "type": "e2e",
-      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev 'require_once DRUPAL_ROOT . \"/../tests/ancestry_traits_e2e.php\"; ancestry_traits_run_all();'",
-      "notes": "Drush ev approach (authoritative until Playwright env provisioned). Covers TC-001 through TC-010 from the test plan. Routes under test: GET /dungeoncrawler/traits (catalog), GET /api/character/{id}/traits (read), GET /api/character/{id}/traits/check (hasTraits). Character creation auto-assignment verified via CharacterManager::ANCESTRIES + getAncestryTraits(). Case-sensitivity: 'humanoid' != 'Humanoid' per PM decision commit 576262c5.",
-      "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/20260407-suite-activate-dc-cr-ancestry-traits/verification-report.md"
-      ],
-      "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-07",
-      "test_cases": [
-        {
-          "id": "TC-AT-001",
-          "description": "Ancestry catalog defines creature traits \u2014 Dwarf\u2192[\"Dwarf\",\"Humanoid\"], Human\u2192[\"Human\",\"Humanoid\"], Elf\u2192[\"Elf\",\"Humanoid\"]; all core ancestries have non-empty traits array",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testAncestryCatalogDefinesTraits",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-002",
-          "description": "Dwarf character creation auto-assigns traits \u2014 character.traits contains 'Dwarf' and 'Humanoid' after creation with no additional player action",
-          "suite_type": "functional",
-          "class_method": "CharacterTraitsControllerTest::testDwarfCreationAutoAssignsTraits",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-003",
-          "description": "Trait persistence \u2014 traits array unchanged after session reload (save/reload round-trip)",
-          "suite_type": "functional",
-          "class_method": "CharacterTraitsControllerTest::testTraitPersistenceAcrossReload",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-004",
-          "description": "hasTraits returns true \u2014 Dwarf character with hasTraits(['Humanoid']) \u2192 true",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testHasTraitsReturnsTrueForMatch",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-005",
-          "description": "hasTraits returns false \u2014 Dwarf character with hasTraits(['Elf']) \u2192 false",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testHasTraitsReturnsFalseForNonMatch",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-006",
-          "description": "Traits queryable via API \u2014 GET /api/character/{id}/traits returns 200 with traits field populated for character owner",
-          "suite_type": "functional",
-          "class_method": "CharacterTraitsControllerTest::testTraitsQueryableViaApi",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-007",
-          "description": "Mixed-heritage union \u2014 Half-Elf traits are union of Human+Elf traits with no duplicates (e.g. ['Human','Elf','Humanoid'] each exactly once)",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testMixedHeritageTraitUnion",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits",
-          "notes": "Skip with explicit note in verification report if Half-Elf not in initial ancestry catalog \u2014 flag to PM for scope decision."
-        },
-        {
-          "id": "TC-AT-008",
-          "description": "Duplicate trait assignment is idempotent \u2014 assigning 'Humanoid' twice results in exactly one 'Humanoid' entry in traits array",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testDuplicateTraitIdempotent",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-009",
-          "description": "Unknown trait rejected \u2014 POST unknown/non-catalog trait returns 4xx with error body containing trait name",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testUnknownTraitRejected",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-010",
-          "description": "Case-sensitivity \u2014 hasTraits(['humanoid']) (lowercase) \u2192 false; hasTraits(['Humanoid']) (Title Case) \u2192 true; canonical form is Title Case per PM decision commit 576262c5",
-          "suite_type": "unit",
-          "class_method": "CharacterTraitsControllerTest::testTraitComparisonCaseSensitive",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-ACL-01",
-          "description": "GET /dungeoncrawler/traits \u2014 anon\u2192403, authenticated\u2192200 (requires 'access dungeoncrawler characters')",
-          "suite_type": "role-url-audit",
-          "class_method": "n/a - role-url-audit entry",
-          "ac_tag": "permissions",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        },
-        {
-          "id": "TC-AT-ACL-02",
-          "description": "GET /api/character/{id}/traits \u2014 anon\u2192403; authenticated owner\u2192200; non-owner player\u2192403 (_character_access ownership check)",
-          "suite_type": "role-url-audit",
-          "class_method": "n/a - role-url-audit entry (parameterized; numeric probe will 404 on non-existent IDs)",
-          "ac_tag": "permissions",
-          "status": "active",
-          "feature_id": "dc-cr-ancestry-traits"
-        }
-      ]
-    },
-    {
       "id": "dc-cr-darkvision-phpunit",
       "feature_id": "dc-cr-darkvision",
       "label": "Darkvision Sense Entity \u2014 sense entity structure, effects, Low-Light Vision distinction, ancestry senses reference, encounter visibility bypasses, null-senses crash guard, ancestry swap integrity, character sheet API, ACL",
@@ -6435,6 +6310,103 @@
           "description": "System: all scaling spells use stored heighten parameter tables (not hardcoded rank checks); adding new heighten rank requires only data entry",
           "suite": "playwright/character-creation",
           "ac": "System-1 (heighten parameter tables)"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-ancestry-traits-e2e",
+      "label": "Ancestry Traits \u2014 auto-assign on character creation, hasTraits logic, persistence, ACL (read-only by players), trait dedup, case-sensitivity, rejection of unknown/direct-mutation attempts",
+      "type": "e2e",
+      "feature_id": "dc-cr-ancestry-traits",
+      "command": "npx playwright test tests/dc-cr-ancestry-traits/ --reporter=json --output=test-results/dc-cr-ancestry-traits/",
+      "artifacts": [
+        "test-results/dc-cr-ancestry-traits/results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-ANT-001",
+          "description": "Ancestry catalog defines creature traits per ancestry; Dwarf \u2192 [Dwarf, Humanoid], Human \u2192 [Human, Humanoid], Elf \u2192 [Elf, Humanoid]",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-catalog-defines-traits"
+        },
+        {
+          "id": "TC-ANT-002",
+          "description": "Dwarf character creation auto-assigns traits [Dwarf, Humanoid] without additional player action; confirmed via GET character state",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-auto-assign-on-creation"
+        },
+        {
+          "id": "TC-ANT-003",
+          "description": "Traits persist across session reload; traits array not cleared after navigate-away and re-fetch",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-traits-persist"
+        },
+        {
+          "id": "TC-ANT-004",
+          "description": "hasTraits(dwarf_id, [Humanoid]) returns true when character has that trait",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-hasTraits-true"
+        },
+        {
+          "id": "TC-ANT-005",
+          "description": "hasTraits(dwarf_id, [Elf]) returns false when character does not have that trait",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-hasTraits-false"
+        },
+        {
+          "id": "TC-ANT-006",
+          "description": "Character state API exposes traits field; player 200, admin 200, anon 403",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-traits-queryable-via-api"
+        },
+        {
+          "id": "TC-ANT-007",
+          "description": "Mixed-heritage (Half-Elf) receives union of Human+Elf traits with no duplicates \u2014 skip and flag to PM if Half-Elf not in catalog",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-mixed-heritage-union"
+        },
+        {
+          "id": "TC-ANT-008",
+          "description": "Duplicate trait assignment is idempotent; assigning Humanoid twice yields exactly one Humanoid entry",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-duplicate-idempotent"
+        },
+        {
+          "id": "TC-ANT-009",
+          "description": "Unknown/non-catalog trait string rejected with HTTP 4xx and error message containing Unknown trait: X",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-unknown-trait-rejected"
+        },
+        {
+          "id": "TC-ANT-010",
+          "description": "Trait comparison is case-sensitive; hasTraits([humanoid]) returns false when canonical is Humanoid (PM decision commit 576262c5)",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-case-sensitive"
+        },
+        {
+          "id": "TC-ANT-011",
+          "description": "GET traits for non-existent character returns HTTP 404 structured error, not 500",
+          "suite": "playwright/character-creation",
+          "ac": "FailureMode-nonexistent-character"
+        },
+        {
+          "id": "TC-ANT-012",
+          "description": "Invalid (non-catalog) trait rejected at storage with non-200 or explicit error; trait not silently persisted",
+          "suite": "playwright/character-creation",
+          "ac": "FailureMode-invalid-trait-not-silently-ignored"
+        },
+        {
+          "id": "TC-ANT-013",
+          "description": "Trait data readable by session participants: player 200, admin 200, anon 403",
+          "suite": "playwright/character-creation",
+          "ac": "ACL-traits-readable-by-participants"
+        },
+        {
+          "id": "TC-ANT-014",
+          "description": "Direct client-side PATCH/POST to traits array rejected with 403 or 405; traits unchanged after attempt",
+          "suite": "playwright/character-creation",
+          "ac": "ACL-no-direct-client-mutation"
         }
       ]
     }
