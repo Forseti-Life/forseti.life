@@ -2102,6 +2102,1482 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * APG new spells by tradition and level.
+   *
+   * Structure mirrors SPELLS: tradition → level-key → array of spell entries.
+   * Traditions: 'arcane', 'divine', 'occult', 'primal'.
+   * Level keys match SPELLS convention: 'cantrips', '1st' … '9th'.
+   *
+   * Each entry carries:
+   *   id, name, level, school, cast, traditions (array),
+   *   [range|area|targets], [duration], [save], [components], traits,
+   *   description,
+   *   [heightened_scaling] — keyed on "+N" or absolute rank for graduated effects.
+   *
+   * Multi-tradition spells are stored once per tradition key so that
+   * tradition-based lookups work without join logic.
+   *
+   * Complex-mechanic spells carry extra metadata fields per AC:
+   *   animate_dead: summon_level_cap_table
+   *   blood_vendetta: trigger, eligible_caster_note, save_outcomes
+   *   deja_vu: state_machine (record_turn / replay_turn), stupefied_fallback
+   *   final_sacrifice: minion_killed_note, evil_trait_condition, cold_water_override
+   *   heat_metal: target_types, persistent_fire_bound, release_escape_note
+   *   mad_monkeys: modes (flagrant_burglary / raucous_din / tumultuous_gymnastics),
+   *                calm_emotions_overlay, mode_is_fixed_at_cast
+   */
+  const APG_SPELLS = [
+
+    // =========================================================================
+    // ARCANE
+    // =========================================================================
+    'arcane' => [
+
+      '1st' => [
+
+        // ------------------------------------------------------------------
+        // Animate Dead (Arcane/Divine/Occult — stored in each tradition key)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'animate-dead',
+          'name'        => 'Animate Dead',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Necromancy', 'Summoning'],
+          'description' => 'You animate a corpse to fight for you. Choose one common undead creature whose level is equal to or lower than the level allowed for this spell\'s rank. The summoned undead obeys your commands but disappears when the spell ends or you stop sustaining it. No damage roll; no saving throw — summon only.',
+          'summon_level_cap_table' => [
+            1 => -1, 2 => 1, 3 => 2, 4 => 3, 5 => 5,
+            6 => 7, 7 => 9, 8 => 11, 9 => 13, 10 => 15,
+          ],
+          'edge_case' => 'If no valid undead of the correct level is available, the spell fails gracefully with an error message rather than summoning nothing silently.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Blood Vendetta (Arcane/Occult/Primal — reaction)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'blood-vendetta',
+          'name'        => 'Blood Vendetta',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => 'Reaction',
+          'components'  => ['Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'varies (persistent damage)',
+          'traditions'  => ['arcane', 'occult', 'primal'],
+          'traits'      => ['Arcane', 'Curse', 'Necromancy'],
+          'trigger'     => 'A creature deals piercing, slashing, or bleed damage to you',
+          'save'        => 'Will',
+          'eligible_caster_note' => 'Caster must be able to bleed (constructs and undead are ineligible; cast automatically fails if ineligible).',
+          'description' => 'You curse the attacker with sympathetic bleeding. Base effect: 2d6 persistent bleed damage (Will save). Critical Success: Unaffected. Success: Half persistent bleed damage. Failure: Full 2d6 persistent bleed + Weakness 1 to piercing and slashing while bleeding persists. Critical Failure: Same as Failure but double persistent bleed damage.',
+          'save_outcomes' => [
+            'critical_success' => 'Unaffected.',
+            'success'          => 'Half persistent bleed damage only.',
+            'failure'          => 'Full persistent bleed + Weakness 1 to piercing/slashing while bleeding lasts.',
+            'critical_failure' => 'Double persistent bleed + Weakness 1 to piercing/slashing while bleeding lasts.',
+          ],
+          'heightened_scaling' => [
+            '+2' => '+2d6 persistent bleed damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Pummeling Rubble (Arcane/Primal)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'pummeling-rubble',
+          'name'        => 'Pummeling Rubble',
+          'level'       => 1,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '15-foot cone',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Earth', 'Evocation'],
+          'save'        => 'Reflex',
+          'description' => 'A spray of rocks and debris deals 2d4 bludgeoning damage in a 15-foot cone (Reflex save). Critical Success: Unaffected. Success: Half damage. Failure: Full damage + pushed 5 feet directly away from caster. Critical Failure: Double damage + pushed 10 feet directly away from caster. Forced movement respects normal blocking constraints.',
+          'save_outcomes' => [
+            'critical_success' => 'Unaffected.',
+            'success'          => 'Half damage.',
+            'failure'          => 'Full 2d4 bludgeoning + pushed 5 feet away.',
+            'critical_failure' => 'Double 2d4 bludgeoning + pushed 10 feet away.',
+          ],
+          'heightened_scaling' => [
+            '+1' => '+2d4 bludgeoning damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Vomit Swarm (Arcane/Occult/Primal)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'vomit-swarm',
+          'name'        => 'Vomit Swarm',
+          'level'       => 1,
+          'school'      => 'Conjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'occult', 'primal'],
+          'traits'      => ['Arcane', 'Conjuration'],
+          'save'        => 'Reflex (basic)',
+          'description' => 'You vomit a swarm of insects, worms, or other vermin in a 30-foot cone, dealing 2d8 piercing damage (basic Reflex save). Creatures that fail or critically fail the save also become Sickened 1. The swarm manifestation is visual/flavor only; no persistent summon entity remains.',
+          'sickened_on_fail' => TRUE,
+          'heightened_scaling' => [
+            '+1' => '+1d8 piercing damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Goblin Pox (Arcane/Primal — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'goblin-pox',
+          'name'        => 'Goblin Pox',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => 'touch',
+          'duration'    => 'varies',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Disease', 'Necromancy'],
+          'save'        => 'Fortitude',
+          'description' => 'You afflict the touched creature with goblin pox. On a failed save the target becomes sickened 1 for 1 round; on a critical failure it becomes sickened 2 for 1 minute and is slowed 1 while sickened.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Summon Construct (Arcane — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'summon-construct',
+          'name'        => 'Summon Construct',
+          'level'       => 1,
+          'school'      => 'Conjuration',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane'],
+          'traits'      => ['Arcane', 'Conjuration', 'Summoning'],
+          'description' => 'You conjure a construct to fight for you. It must be common and its level no higher than your spell rank minus 1 (or equal to your spell rank on a critical success). The construct obeys your commands and vanishes when the spell ends.',
+        ],
+
+      ], // end arcane 1st
+
+      '2nd' => [
+
+        // ------------------------------------------------------------------
+        // Final Sacrifice (Arcane/Divine)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'final-sacrifice',
+          'name'        => 'Final Sacrifice',
+          'level'       => 2,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'area'        => '20-foot burst centered on minion',
+          'traditions'  => ['arcane', 'divine'],
+          'traits'      => ['Arcane', 'Evocation', 'Fire'],
+          'save'        => 'Reflex (basic)',
+          'description' => 'You detonate a minion you summon or permanently control, killing it instantly and dealing 6d6 fire damage (basic Reflex save) to creatures within 20 feet of where it stood. Minion is slain as a mandatory cost; cannot be cast on a temporarily-controlled minion (fails silently without triggering the explosion). If the minion has the cold or water trait, damage type becomes cold. Casting on a non-mindless creature applies the Evil trait to this spell instance in the session log.',
+          'minion_killed_note'    => 'Minion is slain as part of casting; not a secondary effect.',
+          'cold_water_override'   => 'If minion has Cold or Water trait: fire damage becomes cold damage.',
+          'evil_trait_condition'  => 'Applied to session log metadata when target minion is not mindless.',
+          'temp_control_fails'    => TRUE,
+          'heightened_scaling' => [
+            '+1' => '+2d6 fire (or cold) damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Heat Metal (Arcane/Primal)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'heat-metal',
+          'name'        => 'Heat Metal',
+          'level'       => 2,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Evocation', 'Fire'],
+          'save'        => 'Reflex',
+          'description' => 'You superheat a metal object or creature made of metal. Unattended items: no saving throw; heat is environmental — GM adjudicates secondary effects. Worn/carried items or metal creatures: 4d6 fire + 2d4 persistent fire (Reflex save). Critical Success: Unaffected. Success: Half initial + no persistent fire. Failure: Full initial + full persistent. Critical Failure: Double initial + double persistent. Held item: wielder may Release after the roll to improve their degree of success by one step. Persistent fire is bound to the item — any creature holding or wearing the heated item takes damage until it is extinguished.',
+          'target_types' => [
+            'unattended'    => 'No save; GM adjudicates environmental effects.',
+            'worn_carried'  => '4d6 fire + 2d4 persistent fire; Reflex save.',
+            'metal_creature'=> '4d6 fire + 2d4 persistent fire; Reflex save.',
+          ],
+          'release_escape_note' => 'Wielder may Release held item after roll to improve degree of success by one step.',
+          'persistent_fire_bound' => TRUE,
+          'save_outcomes' => [
+            'critical_success' => 'Unaffected.',
+            'success'          => 'Half initial fire; no persistent fire.',
+            'failure'          => 'Full 4d6 fire + full 2d4 persistent fire.',
+            'critical_failure' => 'Double initial fire + double persistent fire.',
+          ],
+          'heightened_scaling' => [
+            '+1' => '+2d6 initial fire + +1d4 persistent fire',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Enthrall (Arcane/Divine/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'enthrall',
+          'name'        => 'Enthrall',
+          'level'       => 2,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '120 feet',
+          'area'        => '60-foot burst',
+          'duration'    => 'sustained',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Auditory', 'Emotion', 'Enchantment', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'You captivate creatures in the area with your speech or performance. Each creature must attempt a Will save. Failure: Fascinated for the duration. Critical Failure: Fascinated and cannot take actions to move away from you. On a success, the creature is temporarily immune to your Enthrall for 24 hours.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Humanoid Form (Arcane/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'humanoid-form',
+          'name'        => 'Humanoid Form',
+          'level'       => 2,
+          'school'      => 'Transmutation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'duration'    => '1 hour',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Arcane', 'Occult', 'Polymorph', 'Transmutation'],
+          'description' => 'You transform yourself into any Medium or Small humanoid ancestry. You gain that ancestry\'s low-light vision or darkvision (if any) but do not gain any other ancestry feats, abilities, or special senses. Your size, reach, and natural attacks change to match a typical member of that ancestry.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Summon Elemental (Arcane/Primal — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'summon-elemental',
+          'name'        => 'Summon Elemental',
+          'level'       => 2,
+          'school'      => 'Conjuration',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Conjuration', 'Summoning'],
+          'description' => 'You conjure an elemental (air, earth, fire, or water) of a level equal to your spell rank minus 1. The elemental obeys your commands for the duration and vanishes when the spell ends.',
+        ],
+
+      ], // end arcane 2nd
+
+      '3rd' => [
+
+        // ------------------------------------------------------------------
+        // Déjà Vu (Occult only — in occult key below; arcane/occult)
+        // Listed here for arcane tradition coverage
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'deja-vu',
+          'name'        => 'Déjà Vu',
+          'level'       => 3,
+          'school'      => 'Divination',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '100 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['occult'],
+          'traits'      => ['Divination', 'Occult', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'On a failed Will save, the target is afflicted with a temporal echo. The engine records the exact action order and targets from the target\'s NEXT turn. On the FOLLOWING turn, the target is forced to repeat that sequence exactly (same targets, same movement direction). For each action that cannot be legally repeated: the target may substitute a legal action and gains Stupefied 1 until end of that turn. No direct damage. If the target has no valid actions to replay (all targets dead, etc.), each replaced action triggers Stupefied 1.',
+          'state_machine' => [
+            'record_turn'  => 'Round N+1: record target\'s action order and targets/directions.',
+            'replay_turn'  => 'Round N+2: target must replay recorded actions; illegal actions trigger Stupefied 1.',
+          ],
+          'stupefied_fallback' => 'Each action that cannot be legally repeated grants Stupefied 1 until end of the turn that action was replaced.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Mad Monkeys (Primal/Occult — also in primal key below)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'mad-monkeys',
+          'name'        => 'Mad Monkeys',
+          'level'       => 3,
+          'school'      => 'Conjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '10-foot burst',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['occult', 'primal'],
+          'traits'      => ['Conjuration', 'Occult', 'Primal'],
+          'description' => 'You summon a chaotic swarm of monkeys that fill a 10-foot burst. On Sustain you may reposition the area 5 feet. Choose ONE mode at cast time; mode is fixed for the duration.',
+          'mode_is_fixed_at_cast' => TRUE,
+          'calm_emotions_overlay' => 'Calm Emotions suppresses monkey mischief effects while both effects overlap.',
+          'modes' => [
+            'flagrant_burglary' => [
+              'description'     => 'Monkeys attempt one Steal action per round against one creature in the area.',
+              'thievery_mod'    => 'spell_dc_minus_10',
+              'stolen_items'    => 'Drop in a chosen square when the spell ends.',
+            ],
+            'raucous_din' => [
+              'description'     => 'Fortitude save each round for each creature in area.',
+              'save_outcomes'   => [
+                'critical_success' => 'Unaffected; 10-minute immunity to this mode.',
+                'success'          => 'Unaffected.',
+                'failure'          => 'Deafened for 1 round.',
+                'critical_failure' => 'Deafened for 1 minute.',
+              ],
+            ],
+            'tumultuous_gymnastics' => [
+              'description'     => 'Reflex save each round for each creature in area.',
+              'save_outcomes'   => [
+                'critical_success' => 'Unaffected; 10-minute immunity to this mode.',
+                'success'          => 'Unaffected.',
+                'failure'          => 'DC 5 flat check to perform manipulate actions for 1 round; fail flat = lose that action.',
+                'critical_failure' => 'Same flat check required until spell ends, even if the creature leaves the area.',
+              ],
+            ],
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Agonizing Despair (Arcane/Divine/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'agonizing-despair',
+          'name'        => 'Agonizing Despair',
+          'level'       => 3,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 round',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Emotion', 'Enchantment', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'You fill the target with crushing despair. Critical Failure: the target takes 7d6 mental damage and is Stunned 1. Failure: 7d6 mental damage and Slowed 1 for 1 round. Success: 3d6 mental damage. Critical Success: Unaffected.',
+          'heightened_scaling' => [
+            '+1' => '+2d6 mental damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Howling Blizzard (Arcane/Primal — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'howling-blizzard',
+          'name'        => 'Howling Blizzard',
+          'level'       => 3,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Cold', 'Evocation', 'Water'],
+          'save'        => 'Reflex',
+          'description' => 'You unleash a blast of freezing wind and snow. Creatures in the area take 5d8 cold damage (Reflex save). Failure: also slowed 1 until the end of their next turn.',
+          'heightened_scaling' => [
+            '+1' => '+2d8 cold damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Bind Undead (Arcane/Divine/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'bind-undead',
+          'name'        => 'Bind Undead',
+          'level'       => 3,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 mindless undead of up to 6th level',
+          'duration'    => '1 day',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Necromancy'],
+          'description' => 'You take control of a mindless undead creature. It obeys your spoken commands for 1 day. On a success you may issue any legal command; on a critical success the duration extends to 1 week.',
+        ],
+
+      ], // end arcane 3rd
+
+      '4th' => [
+
+        // ------------------------------------------------------------------
+        // Shadow Blast (Arcane/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'shadow-blast',
+          'name'        => 'Shadow Blast',
+          'level'       => 4,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '60-foot line or 30-foot cone',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Arcane', 'Cold', 'Darkness', 'Evocation', 'Shadow'],
+          'save'        => 'Reflex (basic)',
+          'description' => 'You channel shadow into a line or cone, dealing 8d6 cold damage to creatures in the area (basic Reflex save). On a critical failure the target is Blinded for 1 round.',
+          'heightened_scaling' => [
+            '+1' => '+2d6 cold damage',
+          ],
+        ],
+
+        // ------------------------------------------------------------------
+        // Shape Stone (Arcane/Primal — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'shape-stone',
+          'name'        => 'Shape Stone',
+          'level'       => 4,
+          'school'      => 'Transmutation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => 'touch',
+          'duration'    => 'permanent',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Earth', 'Transmutation'],
+          'description' => 'You reshape up to 10 cubic feet of stone into any shape. Creatures inside the stone when it reshapes must succeed at a Reflex save or become Grabbed.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Spiritual Anamnesis (Divine/Occult — APG) — stored in divine below
+        // ------------------------------------------------------------------
+
+      ], // end arcane 4th
+
+      '5th' => [
+
+        // ------------------------------------------------------------------
+        // Warp Mind (Arcane/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'warp-mind',
+          'name'        => 'Warp Mind',
+          'level'       => 5,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Arcane', 'Emotion', 'Enchantment', 'Incapacitation', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'You scramble a creature\'s mind. Critical Failure: Confused permanently (until cured). Failure: Confused for 1 minute. Success: Confused for 1 round. Critical Success: Unaffected.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Pillars of Sand (Arcane/Primal — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'pillars-of-sand',
+          'name'        => 'Pillars of Sand',
+          'level'       => 5,
+          'school'      => 'Conjuration',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '60 feet',
+          'duration'    => '1 minute',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Conjuration', 'Earth'],
+          'description' => 'You conjure up to four pillars of sand (each 5 feet wide and up to 20 feet tall) in unoccupied squares within range. Creatures in those squares are pushed to adjacent squares. The pillars can be used for cover or to block movement; they crumble at the end of the duration.',
+        ],
+
+      ], // end arcane 5th
+
+      '6th' => [
+
+        // ------------------------------------------------------------------
+        // Vampiric Exsanguination (Arcane/Divine/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'vampiric-exsanguination',
+          'name'        => 'Vampiric Exsanguination',
+          'level'       => 6,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Negative', 'Necromancy'],
+          'save'        => 'Fortitude',
+          'description' => 'You drain the life force from all creatures in a cone. Each takes 12d6 negative damage (Fortitude save); you regain HP equal to half the total damage dealt (before saves). Critical Success: No damage. Success: Half damage. Failure: Full damage. Critical Failure: Double damage.',
+          'healing_note' => 'Caster regains HP equal to half total damage dealt to all targets (summed before individual saves).',
+          'heightened_scaling' => [
+            '+1' => '+2d6 negative damage',
+          ],
+        ],
+
+      ], // end arcane 6th
+
+      '7th' => [
+
+        // ------------------------------------------------------------------
+        // Executioner's Eyes (Arcane/Divine/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'executioners-eyes',
+          'name'        => "Executioner's Eyes",
+          'level'       => 7,
+          'school'      => 'Divination',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '60 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 round',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Curse', 'Divination', 'Fortune', 'Misfortune'],
+          'save'        => 'Will',
+          'description' => 'You curse a creature with the sight of its own death. Until the start of your next turn, any attack roll that would kill or reduce the target to 0 HP automatically becomes a critical hit regardless of the natural die result (once only). Failure: Target is Frightened 2 for 1 minute as well.',
+        ],
+
+      ], // end arcane 7th
+
+      '8th' => [
+
+        // ------------------------------------------------------------------
+        // Devour Life (Arcane/Divine/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'devour-life',
+          'name'        => 'Devour Life',
+          'level'       => 8,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 living creature',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Arcane', 'Necromancy', 'Negative'],
+          'save'        => 'Fortitude',
+          'description' => 'You devour a creature\'s life essence. The target takes 10d6+40 negative damage (Fortitude save); you gain temporary HP equal to half the damage dealt (lost after 1 minute). Critical Success: Half damage. Success: Full damage. Failure: Full damage and drained 2. Critical Failure: Double damage and drained 4.',
+          'healing_note' => 'Caster gains temporary HP equal to half the damage dealt to the target.',
+        ],
+
+        // ------------------------------------------------------------------
+        // Horrid Wilting (Arcane/Primal — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'horrid-wilting',
+          'name'        => 'Horrid Wilting',
+          'level'       => 8,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '500 feet',
+          'area'        => '60-foot burst',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Arcane', 'Necromancy', 'Negative'],
+          'save'        => 'Fortitude',
+          'description' => 'You evaporate moisture from all living creatures in the area. Each takes 10d10 negative damage (basic Fortitude save). Plants and water-based creatures take double damage.',
+        ],
+
+      ], // end arcane 8th
+
+      '9th' => [
+
+        // ------------------------------------------------------------------
+        // Cannibalize Magic (Arcane/Occult — APG)
+        // ------------------------------------------------------------------
+        [
+          'id'          => 'cannibalize-magic',
+          'name'        => 'Cannibalize Magic',
+          'level'       => 9,
+          'school'      => 'Abjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature with an active spell effect',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Arcane', 'Abjuration'],
+          'save'        => 'Will',
+          'description' => 'You devour one of the target\'s active spell effects (your choice or the highest-level one on a failed save). If successful you gain a number of temporary Focus Points equal to the spell\'s level ÷ 3 (minimum 1, maximum 3), usable until the end of your next turn.',
+        ],
+
+      ], // end arcane 9th
+
+    ], // end arcane
+
+    // =========================================================================
+    // DIVINE
+    // =========================================================================
+    'divine' => [
+
+      '1st' => [
+
+        // Animate Dead — divine tradition
+        [
+          'id'          => 'animate-dead',
+          'name'        => 'Animate Dead',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Divine', 'Necromancy', 'Summoning'],
+          'description' => 'You animate a corpse to fight for you. Summoned undead level is capped by spell rank (see summon_level_cap_table). No damage roll; no saving throw.',
+          'summon_level_cap_table' => [
+            1 => -1, 2 => 1, 3 => 2, 4 => 3, 5 => 5,
+            6 => 7, 7 => 9, 8 => 11, 9 => 13, 10 => 15,
+          ],
+        ],
+
+        // Heal (already CRB; not duplicated)
+
+      ], // end divine 1st
+
+      '2nd' => [
+
+        // Final Sacrifice — divine tradition
+        [
+          'id'          => 'final-sacrifice',
+          'name'        => 'Final Sacrifice',
+          'level'       => 2,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'area'        => '20-foot burst centered on minion',
+          'traditions'  => ['arcane', 'divine'],
+          'traits'      => ['Divine', 'Evocation', 'Fire'],
+          'save'        => 'Reflex (basic)',
+          'description' => 'You detonate a summoned or permanently controlled minion, dealing 6d6 fire damage. Cold/water minion: damage becomes cold. Evil trait applied to session log if minion is not mindless. Fails silently on temporary-control minions.',
+          'cold_water_override'  => TRUE,
+          'evil_trait_condition' => 'Non-mindless minion: evil trait logged.',
+          'temp_control_fails'   => TRUE,
+          'heightened_scaling' => ['+1' => '+2d6 fire (or cold) damage'],
+        ],
+
+        // Enthrall — divine tradition
+        [
+          'id'          => 'enthrall',
+          'name'        => 'Enthrall',
+          'level'       => 2,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '120 feet',
+          'area'        => '60-foot burst',
+          'duration'    => 'sustained',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Auditory', 'Divine', 'Emotion', 'Enchantment', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'You captivate creatures in the area. Failure: Fascinated. Critical Failure: Fascinated and cannot take actions to move away from you.',
+        ],
+
+      ], // end divine 2nd
+
+      '3rd' => [
+
+        // Agonizing Despair — divine tradition
+        [
+          'id'          => 'agonizing-despair',
+          'name'        => 'Agonizing Despair',
+          'level'       => 3,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 round',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Divine', 'Emotion', 'Enchantment', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'Crushing despair overwhelms the target. See arcane entry for full save outcomes.',
+          'heightened_scaling' => ['+1' => '+2d6 mental damage'],
+        ],
+
+        // Bind Undead — divine tradition
+        [
+          'id'          => 'bind-undead',
+          'name'        => 'Bind Undead',
+          'level'       => 3,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 mindless undead of up to 6th level',
+          'duration'    => '1 day',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Divine', 'Necromancy'],
+          'description' => 'You take control of a mindless undead for 1 day.',
+        ],
+
+        // Chilling Darkness (Divine/Occult — APG)
+        [
+          'id'          => 'chilling-darkness',
+          'name'        => 'Chilling Darkness',
+          'level'       => 3,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['divine', 'occult'],
+          'traits'      => ['Cold', 'Darkness', 'Divine', 'Evil', 'Evocation'],
+          'save'        => 'Reflex',
+          'description' => 'You blast a target with cold infused with unholy darkness, dealing 5d6 cold + 5d6 evil damage (Reflex save). On a failure the target is Blinded for 1 round. Critical Failure: Blinded for 1 minute.',
+          'heightened_scaling' => ['+1' => '+1d6 cold + 1d6 evil damage'],
+        ],
+
+      ], // end divine 3rd
+
+      '4th' => [
+
+        // Spiritual Anamnesis (Divine/Occult — APG)
+        [
+          'id'          => 'spiritual-anamnesis',
+          'name'        => 'Spiritual Anamnesis',
+          'level'       => 4,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 round',
+          'traditions'  => ['divine', 'occult'],
+          'traits'      => ['Divine', 'Enchantment', 'Mental'],
+          'save'        => 'Will',
+          'description' => 'You flood the target\'s mind with the memories of every sin it has committed. Critical Failure: Target is Stunned 3 and takes 8d6 mental damage. Failure: Stunned 1 and 4d6 mental damage. Success: 2d6 mental damage. Critical Success: Unaffected.',
+        ],
+
+      ], // end divine 4th
+
+      '6th' => [
+
+        // Vampiric Exsanguination — divine tradition
+        [
+          'id'          => 'vampiric-exsanguination',
+          'name'        => 'Vampiric Exsanguination',
+          'level'       => 6,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Divine', 'Negative', 'Necromancy'],
+          'save'        => 'Fortitude',
+          'description' => 'You drain life from all creatures in a cone for 12d6 negative damage (Fortitude save). You regain HP equal to half the total damage dealt.',
+          'heightened_scaling' => ['+1' => '+2d6 negative damage'],
+        ],
+
+        // Spirit Blast (Divine/Occult — APG)
+        [
+          'id'          => 'spirit-blast',
+          'name'        => 'Spirit Blast',
+          'level'       => 6,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['divine', 'occult'],
+          'traits'      => ['Divine', 'Force', 'Necromancy'],
+          'save'        => 'Fortitude',
+          'description' => 'You blast the target\'s spirit with raw spiritual force, dealing 16d6 force damage regardless of resistances or immunities (Fortitude save). Constructs and undead take the full damage despite not having spirits in the usual sense.',
+          'heightened_scaling' => ['+1' => '+2d6 force damage'],
+        ],
+
+      ], // end divine 6th
+
+      '7th' => [
+
+        // Executioner's Eyes — divine tradition
+        [
+          'id'          => 'executioners-eyes',
+          'name'        => "Executioner's Eyes",
+          'level'       => 7,
+          'school'      => 'Divination',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '60 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 round',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Curse', 'Divine', 'Divination', 'Fortune', 'Misfortune'],
+          'save'        => 'Will',
+          'description' => 'A killing-blow vision curses the target. The next attack that would kill the target becomes a critical hit. Failure: Frightened 2 for 1 minute.',
+        ],
+
+      ], // end divine 7th
+
+      '8th' => [
+
+        // Devour Life — divine tradition
+        [
+          'id'          => 'devour-life',
+          'name'        => 'Devour Life',
+          'level'       => 8,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 living creature',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Divine', 'Necromancy', 'Negative'],
+          'save'        => 'Fortitude',
+          'description' => 'Devour the target\'s life essence for 10d6+40 negative damage; gain temporary HP equal to half damage dealt.',
+        ],
+
+      ], // end divine 8th
+
+    ], // end divine
+
+    // =========================================================================
+    // OCCULT
+    // =========================================================================
+    'occult' => [
+
+      '1st' => [
+
+        // Animate Dead — occult tradition
+        [
+          'id'          => 'animate-dead',
+          'name'        => 'Animate Dead',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Necromancy', 'Occult', 'Summoning'],
+          'description' => 'Animate one common undead; level capped by spell rank.',
+          'summon_level_cap_table' => [
+            1 => -1, 2 => 1, 3 => 2, 4 => 3, 5 => 5,
+            6 => 7, 7 => 9, 8 => 11, 9 => 13, 10 => 15,
+          ],
+        ],
+
+        // Blood Vendetta — occult tradition
+        [
+          'id'          => 'blood-vendetta',
+          'name'        => 'Blood Vendetta',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => 'Reaction',
+          'components'  => ['Verbal'],
+          'range'       => '30 feet',
+          'traditions'  => ['arcane', 'occult', 'primal'],
+          'traits'      => ['Curse', 'Necromancy', 'Occult'],
+          'trigger'     => 'Incoming piercing, slashing, or bleed damage to caster',
+          'save'        => 'Will',
+          'eligible_caster_note' => 'Caster must be able to bleed.',
+          'description' => '2d6 persistent bleed on attacker (Will save). See arcane entry for full save outcomes.',
+          'heightened_scaling' => ['+2' => '+2d6 persistent bleed'],
+        ],
+
+        // Vomit Swarm — occult tradition
+        [
+          'id'          => 'vomit-swarm',
+          'name'        => 'Vomit Swarm',
+          'level'       => 1,
+          'school'      => 'Conjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'occult', 'primal'],
+          'traits'      => ['Conjuration', 'Occult'],
+          'save'        => 'Reflex (basic)',
+          'description' => '2d8 piercing in 30-foot cone; fail/crit-fail = Sickened 1.',
+          'sickened_on_fail' => TRUE,
+          'heightened_scaling' => ['+1' => '+1d8 piercing'],
+        ],
+
+      ], // end occult 1st
+
+      '2nd' => [
+
+        // Enthrall — occult tradition
+        [
+          'id'          => 'enthrall',
+          'name'        => 'Enthrall',
+          'level'       => 2,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '120 feet',
+          'area'        => '60-foot burst',
+          'duration'    => 'sustained',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Auditory', 'Emotion', 'Enchantment', 'Mental', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Fascinate creatures in area.',
+        ],
+
+        // Humanoid Form — occult tradition
+        [
+          'id'          => 'humanoid-form',
+          'name'        => 'Humanoid Form',
+          'level'       => 2,
+          'school'      => 'Transmutation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'duration'    => '1 hour',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Occult', 'Polymorph', 'Transmutation'],
+          'description' => 'Transform into any Medium/Small humanoid. Gain special senses; no ancestry abilities.',
+        ],
+
+      ], // end occult 2nd
+
+      '3rd' => [
+
+        // Déjà Vu — occult only
+        [
+          'id'          => 'deja-vu',
+          'name'        => 'Déjà Vu',
+          'level'       => 3,
+          'school'      => 'Divination',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '100 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['occult'],
+          'traits'      => ['Divination', 'Mental', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Failed Will save: engine records the target\'s next-turn actions. The following turn the target must replay them identically. Illegal actions trigger Stupefied 1 per action replaced. No damage.',
+          'state_machine' => [
+            'record_turn' => 'Round N+1: record target\'s action sequence.',
+            'replay_turn' => 'Round N+2: target replays; illegal actions trigger Stupefied 1.',
+          ],
+          'stupefied_fallback' => 'Each legally-unresolvable action: Stupefied 1 until end of that turn.',
+        ],
+
+        // Agonizing Despair — occult tradition
+        [
+          'id'          => 'agonizing-despair',
+          'name'        => 'Agonizing Despair',
+          'level'       => 3,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Emotion', 'Enchantment', 'Mental', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Crushing despair. Critical Failure: Stunned 1 + 7d6 mental. Failure: Slowed 1 + 7d6 mental. Success: 3d6 mental. Critical Success: Unaffected.',
+          'heightened_scaling' => ['+1' => '+2d6 mental damage'],
+        ],
+
+        // Bind Undead — occult tradition
+        [
+          'id'          => 'bind-undead',
+          'name'        => 'Bind Undead',
+          'level'       => 3,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 mindless undead of up to 6th level',
+          'duration'    => '1 day',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Necromancy', 'Occult'],
+          'description' => 'Control a mindless undead for 1 day.',
+        ],
+
+        // Chilling Darkness — occult tradition
+        [
+          'id'          => 'chilling-darkness',
+          'name'        => 'Chilling Darkness',
+          'level'       => 3,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['divine', 'occult'],
+          'traits'      => ['Cold', 'Darkness', 'Evil', 'Evocation', 'Occult'],
+          'save'        => 'Reflex',
+          'description' => '5d6 cold + 5d6 evil; Blinded 1 round on failure, 1 minute on crit failure.',
+          'heightened_scaling' => ['+1' => '+1d6 cold + 1d6 evil'],
+        ],
+
+        // Mad Monkeys — occult tradition
+        [
+          'id'          => 'mad-monkeys',
+          'name'        => 'Mad Monkeys',
+          'level'       => 3,
+          'school'      => 'Conjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '10-foot burst',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['occult', 'primal'],
+          'traits'      => ['Conjuration', 'Occult'],
+          'description' => 'Chaotic monkey swarm; mode fixed at cast. See arcane entry for full mode definitions.',
+          'mode_is_fixed_at_cast' => TRUE,
+          'calm_emotions_overlay' => TRUE,
+          'modes'       => ['flagrant_burglary', 'raucous_din', 'tumultuous_gymnastics'],
+        ],
+
+      ], // end occult 3rd
+
+      '4th' => [
+
+        // Shadow Blast — occult tradition
+        [
+          'id'          => 'shadow-blast',
+          'name'        => 'Shadow Blast',
+          'level'       => 4,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '60-foot line or 30-foot cone',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Cold', 'Darkness', 'Evocation', 'Occult', 'Shadow'],
+          'save'        => 'Reflex (basic)',
+          'description' => '8d6 cold in line/cone; Blinded 1 round on critical failure.',
+          'heightened_scaling' => ['+1' => '+2d6 cold damage'],
+        ],
+
+        // Spiritual Anamnesis — occult tradition
+        [
+          'id'          => 'spiritual-anamnesis',
+          'name'        => 'Spiritual Anamnesis',
+          'level'       => 4,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['divine', 'occult'],
+          'traits'      => ['Enchantment', 'Mental', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Flood target with sinful memories. Crit Fail: Stunned 3 + 8d6 mental. Fail: Stunned 1 + 4d6. Success: 2d6.',
+        ],
+
+        // Never Mind (Occult only — APG)
+        [
+          'id'          => 'never-mind',
+          'name'        => 'Never Mind',
+          'level'       => 4,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 minute',
+          'traditions'  => ['occult'],
+          'traits'      => ['Enchantment', 'Mental', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'You plant a seed of doubt. Failure: the target forgets any single piece of information it learned within the last minute (your choice). Critical Failure: it forgets any single piece of information it has ever learned that you specify. Critical Success: Unaffected and immune for 24 hours.',
+        ],
+
+      ], // end occult 4th
+
+      '5th' => [
+
+        // Warp Mind — occult tradition
+        [
+          'id'          => 'warp-mind',
+          'name'        => 'Warp Mind',
+          'level'       => 5,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Emotion', 'Enchantment', 'Incapacitation', 'Mental', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Scramble target\'s mind. Crit Fail: permanently Confused. Fail: Confused 1 minute. Success: Confused 1 round.',
+        ],
+
+        // Dreaming Potential (Occult only — APG)
+        [
+          'id'          => 'dreaming-potential',
+          'name'        => 'Dreaming Potential',
+          'level'       => 5,
+          'school'      => 'Enchantment',
+          'cast'        => '10 minutes',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => 'touch',
+          'targets'     => '1 sleeping or willing creature',
+          'duration'    => 'until the next daily preparations',
+          'traditions'  => ['occult'],
+          'traits'      => ['Dream', 'Enchantment', 'Mental', 'Occult'],
+          'description' => 'You guide the target through enlightening dreams. Until the next daily preparations, the target gains one skill feat they meet the prerequisites for (chosen at cast time). They retain any knowledge needed to use the feat temporarily.',
+        ],
+
+      ], // end occult 5th
+
+      '6th' => [
+
+        // Vampiric Exsanguination — occult tradition
+        [
+          'id'          => 'vampiric-exsanguination',
+          'name'        => 'Vampiric Exsanguination',
+          'level'       => 6,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Necromancy', 'Negative', 'Occult'],
+          'save'        => 'Fortitude',
+          'description' => '12d6 negative in cone; caster regains half total damage dealt.',
+          'heightened_scaling' => ['+1' => '+2d6 negative'],
+        ],
+
+        // Spirit Blast — occult tradition
+        [
+          'id'          => 'spirit-blast',
+          'name'        => 'Spirit Blast',
+          'level'       => 6,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature',
+          'traditions'  => ['divine', 'occult'],
+          'traits'      => ['Force', 'Necromancy', 'Occult'],
+          'save'        => 'Fortitude',
+          'description' => '16d6 force damage bypassing all resistances; affects constructs and undead.',
+          'heightened_scaling' => ['+1' => '+2d6 force'],
+        ],
+
+      ], // end occult 6th
+
+      '7th' => [
+
+        // Executioner's Eyes — occult tradition
+        [
+          'id'          => 'executioners-eyes',
+          'name'        => "Executioner's Eyes",
+          'level'       => 7,
+          'school'      => 'Divination',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '60 feet',
+          'targets'     => '1 creature',
+          'duration'    => '1 round',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Curse', 'Divination', 'Fortune', 'Misfortune', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Death-vision curse. Next lethal attack is a critical hit. Failure: Frightened 2 for 1 minute.',
+        ],
+
+      ], // end occult 7th
+
+      '8th' => [
+
+        // Devour Life — occult tradition
+        [
+          'id'          => 'devour-life',
+          'name'        => 'Devour Life',
+          'level'       => 8,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 living creature',
+          'traditions'  => ['arcane', 'divine', 'occult'],
+          'traits'      => ['Necromancy', 'Negative', 'Occult'],
+          'save'        => 'Fortitude',
+          'description' => '10d6+40 negative; gain temp HP equal to half damage.',
+        ],
+
+      ], // end occult 8th
+
+      '9th' => [
+
+        // Cannibalize Magic — occult tradition
+        [
+          'id'          => 'cannibalize-magic',
+          'name'        => 'Cannibalize Magic',
+          'level'       => 9,
+          'school'      => 'Abjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'targets'     => '1 creature with an active spell effect',
+          'traditions'  => ['arcane', 'occult'],
+          'traits'      => ['Abjuration', 'Occult'],
+          'save'        => 'Will',
+          'description' => 'Devour one active spell from target; gain temporary Focus Points equal to spell level ÷ 3 (min 1, max 3).',
+        ],
+
+        // Unfathomable Song (Occult only — APG)
+        [
+          'id'          => 'unfathomable-song',
+          'name'        => 'Unfathomable Song',
+          'level'       => 9,
+          'school'      => 'Enchantment',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '60-foot emanation',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['occult'],
+          'traits'      => ['Auditory', 'Enchantment', 'Fear', 'Mental', 'Occult'],
+          'save'        => 'Will (each round)',
+          'description' => 'You utter alien syllables that ravage the minds of those who hear them. Each round, each creature in range must attempt a Will save. Critical Failure: Confused for 1 round and takes 10d6 mental damage. Failure: 5d6 mental damage and Frightened 2. Success: Frightened 1. Critical Success: Unaffected (immune for 24 hours).',
+        ],
+
+        // Summon Entity (Occult only — APG)
+        [
+          'id'          => 'summon-entity',
+          'name'        => 'Summon Entity',
+          'level'       => 9,
+          'school'      => 'Conjuration',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['occult'],
+          'traits'      => ['Conjuration', 'Occult', 'Summoning'],
+          'description' => 'You summon a powerful entity (aberration, monitor, or similar) of up to level 16 to fight for you. It obeys your commands and vanishes when the spell ends.',
+        ],
+
+      ], // end occult 9th
+
+    ], // end occult
+
+    // =========================================================================
+    // PRIMAL
+    // =========================================================================
+    'primal' => [
+
+      '1st' => [
+
+        // Blood Vendetta — primal tradition
+        [
+          'id'          => 'blood-vendetta',
+          'name'        => 'Blood Vendetta',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => 'Reaction',
+          'components'  => ['Verbal'],
+          'range'       => '30 feet',
+          'traditions'  => ['arcane', 'occult', 'primal'],
+          'traits'      => ['Curse', 'Necromancy', 'Primal'],
+          'trigger'     => 'Incoming piercing, slashing, or bleed damage to caster',
+          'save'        => 'Will',
+          'eligible_caster_note' => 'Caster must be able to bleed.',
+          'description' => '2d6 persistent bleed on attacker (Will save).',
+          'heightened_scaling' => ['+2' => '+2d6 persistent bleed'],
+        ],
+
+        // Pummeling Rubble — primal tradition
+        [
+          'id'          => 'pummeling-rubble',
+          'name'        => 'Pummeling Rubble',
+          'level'       => 1,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '15-foot cone',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Earth', 'Evocation', 'Primal'],
+          'save'        => 'Reflex',
+          'description' => '2d4 bludgeoning cone; failure = pushed 5 ft, crit failure = pushed 10 ft.',
+          'heightened_scaling' => ['+1' => '+2d4 bludgeoning'],
+        ],
+
+        // Vomit Swarm — primal tradition
+        [
+          'id'          => 'vomit-swarm',
+          'name'        => 'Vomit Swarm',
+          'level'       => 1,
+          'school'      => 'Conjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'occult', 'primal'],
+          'traits'      => ['Conjuration', 'Primal'],
+          'save'        => 'Reflex (basic)',
+          'description' => '2d8 piercing; fail/crit-fail = Sickened 1.',
+          'sickened_on_fail' => TRUE,
+          'heightened_scaling' => ['+1' => '+1d8 piercing'],
+        ],
+
+        // Goblin Pox — primal tradition
+        [
+          'id'          => 'goblin-pox',
+          'name'        => 'Goblin Pox',
+          'level'       => 1,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => 'touch',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Disease', 'Necromancy', 'Primal'],
+          'save'        => 'Fortitude',
+          'description' => 'Disease touch. Fail: Sickened 1 for 1 round. Crit Fail: Sickened 2 + Slowed 1 for 1 minute.',
+        ],
+
+      ], // end primal 1st
+
+      '2nd' => [
+
+        // Heat Metal — primal tradition
+        [
+          'id'          => 'heat-metal',
+          'name'        => 'Heat Metal',
+          'level'       => 2,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Evocation', 'Fire', 'Primal'],
+          'save'        => 'Reflex',
+          'description' => 'Superheat metal. 4d6 fire + 2d4 persistent fire (Reflex save) for worn/carried items or metal creatures. Release escape available. See arcane entry for full detail.',
+          'heightened_scaling' => ['+1' => '+2d6 fire + +1d4 persistent fire'],
+        ],
+
+        // Summon Elemental — primal tradition
+        [
+          'id'          => 'summon-elemental',
+          'name'        => 'Summon Elemental',
+          'level'       => 2,
+          'school'      => 'Conjuration',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '30 feet',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Conjuration', 'Primal', 'Summoning'],
+          'description' => 'Summon an elemental of level = spell rank − 1.',
+        ],
+
+      ], // end primal 2nd
+
+      '3rd' => [
+
+        // Mad Monkeys — primal tradition
+        [
+          'id'          => 'mad-monkeys',
+          'name'        => 'Mad Monkeys',
+          'level'       => 3,
+          'school'      => 'Conjuration',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '10-foot burst',
+          'duration'    => 'sustained up to 1 minute',
+          'traditions'  => ['occult', 'primal'],
+          'traits'      => ['Conjuration', 'Primal'],
+          'description' => 'Monkey swarm; mode fixed at cast. See arcane entry for full mode definitions.',
+          'mode_is_fixed_at_cast' => TRUE,
+          'calm_emotions_overlay' => TRUE,
+          'modes'       => ['flagrant_burglary', 'raucous_din', 'tumultuous_gymnastics'],
+        ],
+
+        // Howling Blizzard — primal tradition
+        [
+          'id'          => 'howling-blizzard',
+          'name'        => 'Howling Blizzard',
+          'level'       => 3,
+          'school'      => 'Evocation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'area'        => '30-foot cone',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Cold', 'Evocation', 'Primal', 'Water'],
+          'save'        => 'Reflex',
+          'description' => '5d8 cold in 30-foot cone; failure = slowed 1 until end of next turn.',
+          'heightened_scaling' => ['+1' => '+2d8 cold'],
+        ],
+
+      ], // end primal 3rd
+
+      '4th' => [
+
+        // Shape Stone — primal tradition
+        [
+          'id'          => 'shape-stone',
+          'name'        => 'Shape Stone',
+          'level'       => 4,
+          'school'      => 'Transmutation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => 'touch',
+          'duration'    => 'permanent',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Earth', 'Primal', 'Transmutation'],
+          'description' => 'Reshape up to 10 cubic feet of stone. Creatures inside must Reflex save or be Grabbed.',
+        ],
+
+      ], // end primal 4th
+
+      '5th' => [
+
+        // Pillars of Sand — primal tradition
+        [
+          'id'          => 'pillars-of-sand',
+          'name'        => 'Pillars of Sand',
+          'level'       => 5,
+          'school'      => 'Conjuration',
+          'cast'        => '3 actions',
+          'components'  => ['Material', 'Somatic', 'Verbal'],
+          'range'       => '60 feet',
+          'duration'    => '1 minute',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Conjuration', 'Earth', 'Primal'],
+          'description' => 'Conjure up to 4 sand pillars (5-ft wide, 20-ft tall); creatures in squares are pushed adjacent.',
+        ],
+
+        // Mantle of the Magma Heart (Primal only — APG)
+        [
+          'id'          => 'mantle-of-the-magma-heart',
+          'name'        => 'Mantle of the Magma Heart',
+          'level'       => 5,
+          'school'      => 'Transmutation',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'duration'    => '1 minute',
+          'traditions'  => ['primal'],
+          'traits'      => ['Fire', 'Primal', 'Transmutation'],
+          'description' => 'You take on traits of living magma. You gain fire resistance 10, your unarmed strikes deal an additional 2d6 fire damage, and any creature that hits you with an unarmed or natural attack takes 2d6 fire damage. On a critical success at cast time, the resistance becomes 15.',
+        ],
+
+      ], // end primal 5th
+
+      '8th' => [
+
+        // Horrid Wilting — primal tradition
+        [
+          'id'          => 'horrid-wilting',
+          'name'        => 'Horrid Wilting',
+          'level'       => 8,
+          'school'      => 'Necromancy',
+          'cast'        => '2 actions',
+          'components'  => ['Somatic', 'Verbal'],
+          'range'       => '500 feet',
+          'area'        => '60-foot burst',
+          'traditions'  => ['arcane', 'primal'],
+          'traits'      => ['Necromancy', 'Negative', 'Primal'],
+          'save'        => 'Fortitude',
+          'description' => '10d10 negative in 60-foot burst; basic Fortitude. Plants and water-based creatures take double damage.',
+        ],
+
+      ], // end primal 8th
+
+    ], // end primal
+
+  ];
+
+  /**
    * PF2e General Feats (Level 1).
    * Available to all characters at 1st level.
    */
