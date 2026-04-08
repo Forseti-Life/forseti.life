@@ -266,3 +266,11 @@ agents:
     role: tester
     supervisor: pm-forseti-agent-tracker
     website_scope: ["forseti.life"]
+
+  # Architect — hands-on technical builder (human-directed, no org operations)
+  - id: architect-copilot
+    name: "Architect (Copilot)"
+    role: architect
+    supervisor: board
+    website_scope: ["*"]
+    notes: "Human-directed technical builder. Full read/write authority across all repos. Not responsible for release management, orchestration, or org operations. Persona trigger: 'take on the Architect persona' or similar."
