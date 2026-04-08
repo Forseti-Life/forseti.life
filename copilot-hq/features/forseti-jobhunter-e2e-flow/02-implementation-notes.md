@@ -106,3 +106,28 @@ cat sessions/qa-forseti/artifacts/jobhunter-e2e-latest/*.json | python3 -c \
 - E2E test script is non-destructive: reads and submits through the UI, does not directly modify the DB.
 - If the test reveals a regression: `git revert <commit>` on forseti.life, then `vendor/bin/drush cr`.
 - QA user cleanup: `drush --uri=http://localhost user:cancel qa_tester_authenticated` if needed.
+
+---
+
+## Update — 2026-04-08 (release-c implementation, dev-forseti)
+
+### Gap fixed: applied-toggle-form missing from my-jobs template
+
+**Problem:** The Playwright E2E test (`markAppliedDataEngineer`) expects `form.applied-toggle-form` with `input[name="have_applied"]`, `input[name="applied_on_date"]`, and `button[type="submit"]` in each job table row. The controller and POST route (`/jobhunter/my-jobs/{job_id}/applied`) were already implemented (commit `24ca314ec`), but the Twig template never rendered the form.
+
+**Fix:** Added `form.applied-toggle-form` to all rows in `my-jobs.html.twig` as a secondary operation. Form action: `/jobhunter/my-jobs/{{ job.id }}/applied?token={{ job.apply_csrf_token }}`. The form shows the current applied state (checkbox pre-checked for `status == 'applied'`) and applies to all workflow states so users can record manual external applications at any stage.
+
+**Commit:** `1f84c8539`
+
+**Status after fix:** REQ-04.2 (mark applied, persist date/status) is now addressable by the Playwright E2E test. QA Gate 2 can proceed.
+
+### AC coverage summary (post-fix)
+| REQ | Description | Status |
+|---|---|---|
+| REQ-04.1 | Step flow 1–6 navigable | ✓ Playwright script + phase-buttons in dashboard |
+| REQ-02.6 | Job save to list | ✓ Existing save flow |
+| REQ-04.2 | Mark applied, persist date/status | ✓ Fixed (this commit) |
+| REQ-06.1 | Queues run without intervention | ✓ Existing queue infrastructure |
+| REQ-08.5 | Stage break — no external account creation | ✓ No external POSTs in flow |
+| REQ-02.7 | Duplicate job handling | ✓ Existing deduplication |
+| REQ-08.7 | User-friendly errors | ✓ Drupal messenger pattern used throughout |
