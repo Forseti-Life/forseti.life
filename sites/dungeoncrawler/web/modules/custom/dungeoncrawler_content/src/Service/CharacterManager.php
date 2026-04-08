@@ -1359,13 +1359,130 @@ class CharacterManager {
       'key_ability' => 'Dexterity',
       'proficiencies' => [
         'perception' => 'Expert',
+        // Fortitude upgrades to Expert at L3.
         'fortitude' => 'Trained',
         'reflex' => 'Expert',
         'will' => 'Expert',
+        'class_dc' => 'Trained',
       ],
+      'armor_proficiency' => ['light', 'unarmored'],
       'skills' => 'Choose 5 + Intelligence modifier',
       'weapons' => 'Trained in simple and martial weapons',
       'trained_skills' => 5,
+      // ── Panache ─────────────────────────────────────────────────────────────
+      'panache' => [
+        'type'   => 'binary',
+        'note'   => 'In or out; persists until encounter ends or a Finisher is used.',
+        // Panache is consumed immediately when a Finisher is performed (before outcome resolves).
+        'consumed_on_finisher' => TRUE,
+        'speed_bonus_without_panache' => [
+          // Half the Vivacious Speed bonus, rounded down to nearest 5 ft.
+          // At L1-L2, Vivacious Speed is not yet active; base +5 status bonus applies.
+          'L1'  => 0,
+          'L3'  => 5,
+          'L7'  => 7,  // half of 15, rounded down to nearest 5 = 5; PF2e spec says 7→5
+          'L11' => 10,
+          'L15' => 12, // half of 25 = 12 → nearest 5 = 10
+          'L19' => 15,
+          'note' => 'Without panache: gain half the Vivacious Speed bonus, rounded down to nearest 5 ft.',
+        ],
+        'speed_bonus_with_panache' => [
+          // L1-L2: basic +5 status bonus. Replaces with Vivacious Speed at L3+.
+          'L1'  => 5,
+          'L3'  => 10,
+          'L7'  => 15,
+          'L11' => 20,
+          'L15' => 25,
+          'L19' => 30,
+          'note' => 'Status bonus to all movement speeds while panache is active.',
+        ],
+        'circumstance_bonus' => [
+          'value'  => 1,
+          'note'   => '+1 circumstance bonus to checks that would earn panache per selected style.',
+        ],
+        // Finishers require panache; other Strikes with a qualifying weapon grant flat precision.
+        'enables_finishers' => TRUE,
+        'panache_earn_rule' => 'Succeed at the style\'s associated skill check vs. relevant DC.',
+        'gm_award_dc' => 'Very Hard',
+        'gm_award_note' => 'GM may award panache for particularly daring non-standard actions.',
+        'no_attack_after_finisher' => TRUE,
+        'no_attack_after_finisher_note' => 'No additional attack-trait actions may be taken that turn after a Finisher.',
+      ],
+      // ── Swashbuckler Styles ─────────────────────────────────────────────────
+      'style' => [
+        'selection' => 'L1 choice; permanent',
+        'options' => [
+          'battledancer' => [
+            'trained_skill' => 'Performance',
+            'bonus_feat'    => 'Fascinating Performance',
+            'panache_via'   => 'Performance vs. foe Will DC',
+          ],
+          'braggart' => [
+            'trained_skill' => 'Intimidation',
+            'panache_via'   => 'Demoralize (success)',
+          ],
+          'fencer' => [
+            'trained_skill' => 'Deception',
+            'panache_via'   => 'Feint or Create a Diversion (success)',
+          ],
+          'gymnast' => [
+            'trained_skill' => 'Athletics',
+            'panache_via'   => 'Grapple, Shove, or Trip (success)',
+          ],
+          'wit' => [
+            'trained_skill' => 'Diplomacy',
+            'bonus_feat'    => 'Bon Mot',
+            'panache_via'   => 'Bon Mot (success)',
+          ],
+        ],
+        'note' => 'Style grants Trained proficiency in its associated skill and (for battledancer/wit) a bonus skill feat.',
+      ],
+      // ── Precise Strike ──────────────────────────────────────────────────────
+      'precise_strike' => [
+        'requires_panache' => TRUE,
+        'requires_weapon'  => 'agile or finesse melee, OR agile/finesse unarmed attack',
+        // Non-Finisher Strike: flat precision damage (not rolled dice).
+        'flat_bonus_by_level' => [1 => 2, 5 => 3, 9 => 4, 13 => 5, 17 => 6],
+        // Finisher Strike: precision dice.
+        'finisher_dice_by_level' => [1 => '2d6', 5 => '3d6', 9 => '4d6', 13 => '5d6', 17 => '6d6'],
+        'note' => 'Precise Strike bonus type switches: flat precision on normal Strikes, rolled dice on Finishers.',
+      ],
+      // ── Finisher Actions ────────────────────────────────────────────────────
+      'finishers' => [
+        'require_panache' => TRUE,
+        'panache_consumed_immediately' => TRUE,
+        'failure_note'    => 'Some Finishers have a Failure effect (partial damage). Critical failures do NOT trigger failure effects.',
+        'list' => [
+          'confident-finisher' => [
+            'id'          => 'confident-finisher',
+            'name'        => 'Confident Finisher',
+            'actions'     => 1,
+            'level'       => 1,
+            'traits'      => ['Finisher', 'Swashbuckler'],
+            'description' => 'You make a precise Strike against a foe. On a success, you deal the full Finisher precise strike damage (rolled dice). On a failure, you deal half that damage as a flat numeric value (not rolled). Critical failure: no damage.',
+          ],
+        ],
+      ],
+      // ── Opportune Riposte (L3) ───────────────────────────────────────────────
+      'opportune_riposte' => [
+        'type'        => 'Reaction',
+        'level_gained' => 3,
+        'trigger'     => 'A foe critically fails a Strike against you.',
+        'effect'      => 'Make a melee Strike against the foe, OR Disarm the weapon that missed.',
+      ],
+      // ── Exemplary Finisher (L9) ──────────────────────────────────────────────
+      'exemplary_finisher' => [
+        'level_gained'     => 9,
+        'trigger'          => 'A Finisher Strike hits.',
+        'effect'           => 'Apply a style-specific bonus effect determined by your selected Swashbuckler Style.',
+        'style_effects' => [
+          'battledancer' => 'The target is fascinated by you until the start of your next turn.',
+          'braggart'     => 'The target is frightened 1.',
+          'fencer'       => 'The target is flat-footed against your next attack before end of your next turn.',
+          'gymnast'      => 'The target is grabbed or shoved (your choice) without a roll required.',
+          'wit'          => 'The target takes a –2 penalty to all skills until the end of its next turn.',
+        ],
+      ],
     ],
     'witch' => [
       'id' => 'witch',
@@ -5263,6 +5380,80 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       19 => ['auto_features' => [
         ['id' => 'oracle-legendary-spellcaster', 'name' => 'Legendary Spellcaster',
           'description' => 'Your spell attack roll and spell DC proficiency increase to Legendary.'],
+      ]],
+    ],
+    'swashbuckler' => [
+      1  => ['auto_features' => [
+        ['id' => 'swashbuckler-panache', 'name' => 'Panache',
+          'description' => 'You can enter a state of panache by succeeding at your style\'s associated skill check. Panache grants a +5-foot status bonus to all movement speeds and +1 circumstance bonus to checks that would earn panache per your style. Panache enables use of Finisher actions. Panache is lost immediately when a Finisher is performed (before outcome resolves). No additional attack-trait actions may be taken that turn after a Finisher. GM may award panache for particularly daring non-standard actions vs. Very Hard DC.'],
+        ['id' => 'swashbuckler-style', 'name' => 'Swashbuckler Style',
+          'description' => 'Choose one style at L1 (permanent): Battledancer (Performance skill, Fascinating Performance feat, panache via Performance vs. foe Will DC), Braggart (Intimidation skill, panache via Demoralize), Fencer (Deception skill, panache via Feint or Create a Diversion), Gymnast (Athletics skill, panache via Grapple/Shove/Trip), or Wit (Diplomacy skill, Bon Mot feat, panache via Bon Mot). Style grants Trained proficiency in its associated skill.'],
+        ['id' => 'precise-strike-flat-2', 'name' => 'Precise Strike (+2 flat)',
+          'description' => 'While you have panache and Strike with an agile or finesse melee weapon (or agile/finesse unarmed), you deal +2 flat precision damage on non-Finisher Strikes. On Finisher Strikes, you instead deal 2d6 additional precision damage. Precise Strike damage does not stack with other precision damage; only the highest applies.'],
+        ['id' => 'confident-finisher', 'name' => 'Confident Finisher',
+          'description' => '1-action Finisher. Requires panache (consumed immediately on use). Make a precise Strike; on success, deal the full Finisher precise strike damage (rolled dice). On failure, deal half as a flat numeric value (no dice). Critical failure: no damage.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'swashbuckler-fortitude-expert', 'name' => 'Fortitude Expertise',
+          'description' => 'Your Fortitude saving throw proficiency increases to Expert.'],
+        ['id' => 'vivacious-speed-10', 'name' => 'Vivacious Speed (+10 ft)',
+          'description' => 'While you have panache, you gain a +10-foot status bonus to all movement speeds (replaces the basic +5). Without panache, you still gain half this bonus (+5 ft, rounded down to nearest 5 ft) passively.'],
+        ['id' => 'opportune-riposte', 'name' => 'Opportune Riposte',
+          'description' => 'Reaction. Trigger: a foe critically fails a Strike against you. Effect: make a melee Strike against the foe OR Disarm the weapon that missed.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'precise-strike-flat-3', 'name' => 'Precise Strike (+3 flat / 3d6)',
+          'description' => 'Precise Strike increases: +3 flat precision on non-Finisher Strikes; 3d6 precision on Finisher Strikes.'],
+        ['id' => 'swashbuckler-weapon-expertise', 'name' => 'Weapon Expertise',
+          'description' => 'Your proficiency with simple weapons, martial weapons, and unarmed attacks increases to Expert.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'vivacious-speed-15', 'name' => 'Vivacious Speed (+15 ft)',
+          'description' => 'Panache speed bonus increases to +15 ft. Without panache: +7 ft → rounded to +5 ft (nearest 5).'],
+        ['id' => 'swashbuckler-armor-expertise', 'name' => 'Armor Expertise',
+          'description' => 'Your proficiency with light armor and unarmored defense increases to Expert.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'precise-strike-flat-4', 'name' => 'Precise Strike (+4 flat / 4d6)',
+          'description' => 'Precise Strike increases: +4 flat precision on non-Finisher Strikes; 4d6 precision on Finisher Strikes.'],
+        ['id' => 'exemplary-finisher', 'name' => 'Exemplary Finisher',
+          'description' => 'When a Finisher Strike hits, apply a style-specific bonus effect: Battledancer — target is fascinated until start of your next turn; Braggart — target is frightened 1; Fencer — target is flat-footed against your next attack before end of your next turn; Gymnast — target is grabbed or shoved (your choice) without a roll; Wit — target takes −2 penalty to all skills until end of its next turn.'],
+        ['id' => 'swashbuckler-lightning-reflexes', 'name' => 'Lightning Reflexes',
+          'description' => 'Your Reflex saving throw proficiency increases to Master.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'swashbuckler-perception-master', 'name' => 'Perception Master',
+          'description' => 'Your Perception proficiency increases to Master.'],
+        ['id' => 'swashbuckler-weapon-mastery', 'name' => 'Weapon Mastery',
+          'description' => 'Your proficiency with simple and martial weapons and unarmed attacks increases to Master.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'vivacious-speed-20', 'name' => 'Vivacious Speed (+20 ft)',
+          'description' => 'Panache speed bonus increases to +20 ft. Without panache: +10 ft.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'precise-strike-flat-5', 'name' => 'Precise Strike (+5 flat / 5d6)',
+          'description' => 'Precise Strike increases: +5 flat precision on non-Finisher Strikes; 5d6 precision on Finisher Strikes.'],
+        ['id' => 'swashbuckler-armor-mastery', 'name' => 'Armor Mastery',
+          'description' => 'Your proficiency with light armor and unarmored defense increases to Master.'],
+        ['id' => 'swashbuckler-weapon-specialization', 'name' => 'Greater Weapon Specialization',
+          'description' => 'You deal additional damage equal to your proficiency rank with weapons you are expert in or better.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'vivacious-speed-25', 'name' => 'Vivacious Speed (+25 ft)',
+          'description' => 'Panache speed bonus increases to +25 ft. Without panache: +12 ft → rounded to +10 ft.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'precise-strike-flat-6', 'name' => 'Precise Strike (+6 flat / 6d6)',
+          'description' => 'Precise Strike increases: +6 flat precision on non-Finisher Strikes; 6d6 precision on Finisher Strikes.'],
+        ['id' => 'swashbuckler-resolve', 'name' => 'Resolve',
+          'description' => 'Your Will saving throw proficiency increases to Master.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'vivacious-speed-30', 'name' => 'Vivacious Speed (+30 ft)',
+          'description' => 'Panache speed bonus increases to +30 ft. Without panache: +15 ft.'],
+        ['id' => 'swashbuckler-evasion', 'name' => 'Evasion',
+          'description' => 'When you succeed at a Reflex save, you get a critical success instead.'],
       ]],
     ],
   ];
