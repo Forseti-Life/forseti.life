@@ -1480,7 +1480,6 @@ class UserProfileForm extends FormBase {
     $this->logInfo('📁 refreshStep2Callback called - Auto-register and parse');
     
     $uid = \Drupal::currentUser()->id();
-    $connection = \Drupal::database();
     
     // Make uploaded file permanent
     $resume_file = $form_state->getValue('field_resume_file');
@@ -1507,34 +1506,19 @@ class UserProfileForm extends FormBase {
         $job_seeker_id = (int) $job_seeker_profile->id;
         
         // Check if already registered
-        $existing = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-          ->condition('job_seeker_id', $job_seeker_id)
-          ->condition('file_id', $file->id())
-          ->countQuery()
-          ->execute()
-          ->fetchField();
-        
-        if ($existing == 0) {
+        if (!$this->userProfileRepository->resumeFileRegistered($job_seeker_id, $file->id())) {
           // Check if this is the first resume
-          $existing_count = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-            ->condition('job_seeker_id', $job_seeker_id)
-            ->countQuery()
-            ->execute()
-            ->fetchField();
+          $existing_count = $this->userProfileRepository->countResumesForJobSeeker($job_seeker_id);
           
           $is_primary = ($existing_count == 0) ? 1 : 0;
           
           // Register resume
-          $resume_id = $connection->insert('jobhunter_job_seeker_resumes')
-            ->fields([
-              'job_seeker_id' => $job_seeker_id,
-              'file_id' => $file->id(),
-              'resume_name' => pathinfo($file->getFilename(), PATHINFO_FILENAME),
-              'is_primary' => $is_primary,
-              'created' => time(),
-              'changed' => time(),
-            ])
-            ->execute();
+          $resume_id = $this->userProfileRepository->createResumeRecord(
+            $job_seeker_id,
+            $file->id(),
+            pathinfo($file->getFilename(), PATHINFO_FILENAME),
+            $is_primary
+          );
           
           $this->logInfo('📁 Auto-registered resume: @filename (resume_id: @id)', [
             '@filename' => $file->getFilename(),
@@ -1547,10 +1531,7 @@ class UserProfileForm extends FormBase {
             
             if (!empty($extracted_text)) {
               // Store extracted text
-              $connection->update('jobhunter_job_seeker_resumes')
-                ->fields(['extracted_text' => $extracted_text])
-                ->condition('id', $resume_id)
-                ->execute();
+              $this->userProfileRepository->updateResumeExtractedText($resume_id, $extracted_text);
               
               $this->logInfo('📁 Auto-extracted @chars characters from: @filename', [
                 '@chars' => strlen($extracted_text),
@@ -1561,18 +1542,15 @@ class UserProfileForm extends FormBase {
               $timestamp = \Drupal::time()->getRequestTime();
 
               // Create placeholder record with 'queued' status
-              $connection->insert('jobhunter_resume_parsed_data')
-                ->fields([
-                  'uid' => $uid,
-                  'resume_file_id' => $file->id(),
-                  'resume_path' => $file->getFileUri(),
-                  'parsed_data' => json_encode(['status' => 'queued']),
-                  'status' => 'queued',
-                  'error_message' => NULL,
-                  'created' => $timestamp,
-                  'changed' => $timestamp,
-                ])
-                ->execute();
+              $this->userProfileRepository->insertParsedDataRecord(
+                $uid,
+                $file->id(),
+                $file->getFileUri(),
+                json_encode(['status' => 'queued']),
+                'queued',
+                NULL,
+                $timestamp
+              );
 
               // Queue the GenAI parsing job
               $queue = \Drupal::queue('job_hunter_genai_parsing');
@@ -1789,10 +1767,9 @@ class UserProfileForm extends FormBase {
 
     try {
       $uid = \Drupal::currentUser()->id();
-      $connection = \Drupal::database();
       
       // Load resume record
-      $resume_record = $this->loadResumeRecord($resume_id, $uid, $connection);
+      $resume_record = $this->loadResumeRecord($resume_id, $uid);
       
       // Load file and validate
       $file = $this->loadAndValidateFile($resume_record['file_id']);
@@ -1806,7 +1783,7 @@ class UserProfileForm extends FormBase {
       }
       
       // Store extracted text
-      $this->storeExtractedText($connection, $resume_record['id'], $extracted_text, $filename);
+      $this->storeExtractedText($resume_record['id'], $extracted_text, $filename);
       
       \Drupal::messenger()->addStatus($this->t('Text extracted successfully from "@filename" (@chars characters).', [
         '@filename' => $filename,
@@ -1835,10 +1812,9 @@ class UserProfileForm extends FormBase {
 
     try {
       $uid = \Drupal::currentUser()->id();
-      $connection = \Drupal::database();
       
       // Load resume record
-      $resume_record = $this->loadResumeRecord($resume_id, $uid, $connection);
+      $resume_record = $this->loadResumeRecord($resume_id, $uid);
       
       // Verify text has been extracted
       if (empty($resume_record['extracted_text'])) {
@@ -1858,7 +1834,7 @@ class UserProfileForm extends FormBase {
       }
       
       // Store parsed data
-      $this->storeParsedResults($connection, $uid, $resume_record['file_id'], $file_uri, $parsed_data, false, $filename);
+      $this->storeParsedResults($uid, $resume_record['file_id'], $file_uri, $parsed_data, $filename);
       
       \Drupal::messenger()->addStatus($this->t('Resume JSON parsed successfully from "@filename".', [
         '@filename' => $filename,
@@ -1886,21 +1862,13 @@ class UserProfileForm extends FormBase {
 
     try {
       $uid = \Drupal::currentUser()->id();
-      $connection = \Drupal::database();
       
       // First, get the file_id from the resume record
-      $resume_record = $this->loadResumeRecord($resume_id, $uid, $connection);
+      $resume_record = $this->loadResumeRecord($resume_id, $uid);
       $file_id = $resume_record['file_id'];
       
       // Get the latest parsed data using the file_id
-      $parsed_record = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-        ->fields('rpd', ['parsed_data'])
-        ->condition('uid', $uid)
-        ->condition('resume_file_id', $file_id)
-        ->orderBy('changed', 'DESC')
-        ->range(0, 1)
-        ->execute()
-        ->fetchAssoc();
+      $parsed_record = $this->userProfileRepository->getLatestParsedDataByFileId($uid, $file_id);
       
       if (empty($parsed_record) || empty($parsed_record['parsed_data'])) {
         throw new \Exception('No parsed data found for this resume.');
@@ -2020,12 +1988,11 @@ class UserProfileForm extends FormBase {
 
     try {
       $uid = \Drupal::currentUser()->id();
-      $connection = \Drupal::database();
       
       // ===================================================================
       // STEP 1: Load Resume Record from Database
       // ===================================================================
-      $resume_record = $this->loadResumeRecord($resume_id, $uid, $connection);
+      $resume_record = $this->loadResumeRecord($resume_id, $uid);
       
       // ===================================================================
       // STEP 2: Load File Entity and Validate Physical File
@@ -2045,7 +2012,7 @@ class UserProfileForm extends FormBase {
       // ===================================================================
       // STEP 4: Store Extracted Text in Resume Table
       // ===================================================================
-      $this->storeExtractedText($connection, $resume_record['id'], $extracted_text, $filename);
+      $this->storeExtractedText($resume_record['id'], $extracted_text, $filename);
       
       // ===================================================================
       // STEP 5: Parse Resume with GenAI Service (Bedrock)
@@ -2056,18 +2023,15 @@ class UserProfileForm extends FormBase {
       // STEP 6: Store Individual Resume Parsed Data
       // ===================================================================
       $timestamp = \Drupal::time()->getRequestTime();
-      $connection->insert('jobhunter_resume_parsed_data')
-        ->fields([
-          'uid' => $uid,
-          'resume_file_id' => $resume_record['file_id'],
-          'resume_path' => $file_uri,
-          'parsed_data' => json_encode($parsed_data),
-          'status' => 'complete',
-          'error_message' => NULL,
-          'created' => $timestamp,
-          'changed' => $timestamp,
-        ])
-        ->execute();
+      $this->userProfileRepository->insertParsedDataRecord(
+        $uid,
+        $resume_record['file_id'],
+        $file_uri,
+        json_encode($parsed_data),
+        'complete',
+        NULL,
+        $timestamp
+      );
       
       $this->logInfo('📝 Stored parsed data for resume: @filename', ['@filename' => $filename]);
       
@@ -2719,17 +2683,12 @@ class UserProfileForm extends FormBase {
       }
     }
 
-    $connection = \Drupal::database();
     $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
     $job_seeker_ids = array_values(array_unique(array_filter([
       (int) $uid,
       (int) ($job_seeker_profile->id ?? 0),
     ])));
-    $rows = $connection->select('jobhunter_job_seeker_resumes', 'r')
-      ->fields('r', ['id', 'file_id', 'extracted_text'])
-      ->condition('job_seeker_id', $job_seeker_ids, 'IN')
-      ->execute()
-      ->fetchAll();
+    $rows = $this->userProfileRepository->getResumeRowsForJobSeeker($job_seeker_ids);
 
     $all_text = '';
     foreach ($rows as $row) {
@@ -2739,10 +2698,7 @@ class UserProfileForm extends FormBase {
         if ($file) {
           $text = $this->extractTextFromFile($file);
           if (is_string($text) && $text !== '') {
-            $connection->update('jobhunter_job_seeker_resumes')
-              ->fields(['extracted_text' => $text])
-              ->condition('id', (int) $row->id)
-              ->execute();
+            $this->userProfileRepository->updateResumeExtractedText((int) $row->id, $text);
           }
         }
       }
@@ -2800,10 +2756,7 @@ class UserProfileForm extends FormBase {
         $consolidated['contact_info']['websites'] = $sites;
 
         try {
-          $connection->update('jobhunter_job_seeker')
-            ->fields(['consolidated_profile_json' => json_encode($consolidated)])
-            ->condition('uid', $uid)
-            ->execute();
+          $this->userProfileRepository->saveConsolidatedProfileJson($uid, json_encode($consolidated));
         } catch (\Exception $e) {
           // Non-fatal; derived values still returned for this request.
         }
@@ -3863,24 +3816,13 @@ class UserProfileForm extends FormBase {
   /**
    * STEP 1 Helper: Load resume record from database.
    */
-  private function loadResumeRecord($resume_id, $uid, $connection) {
+  private function loadResumeRecord($resume_id, $uid): array {
     $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
     $job_seeker_ids = array_values(array_unique(array_filter([
       (int) $uid,
       (int) ($job_seeker_profile->id ?? 0),
     ])));
-    $resume_record = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-      ->fields('jsr', ['id', 'file_id', 'resume_name', 'extracted_text'])
-      ->condition('id', $resume_id)
-      ->condition('job_seeker_id', $job_seeker_ids, 'IN')
-      ->execute()
-      ->fetchAssoc();
-
-    if (empty($resume_record)) {
-      throw new \Exception("Resume record not found (ID: {$resume_id})");
-    }
-    
-    return $resume_record;
+    return $this->userProfileRepository->loadResumeRecord((int) $resume_id, $job_seeker_ids);
   }
 
   /**
@@ -3905,11 +3847,8 @@ class UserProfileForm extends FormBase {
   /**
    * STEP 4 Helper: Store extracted text in resume table.
    */
-  private function storeExtractedText($connection, $resume_id, $extracted_text, $filename) {
-    $connection->update('jobhunter_job_seeker_resumes')
-      ->fields(['extracted_text' => $extracted_text])
-      ->condition('id', $resume_id)
-      ->execute();
+  private function storeExtractedText($resume_id, $extracted_text, $filename) {
+    $this->userProfileRepository->updateResumeExtractedText((int) $resume_id, $extracted_text);
 
     $this->logInfo('✅ STEP 4: Stored @chars characters of extracted text for: @filename', [
       '@chars' => strlen($extracted_text),
@@ -4538,14 +4477,8 @@ PROMPT;
    */
   private function buildConsolidatedJsonAndApplyToProfile($uid, array $latest_parsed_data) {
     try {
-      $connection = \Drupal::database();
-      
       // Get current profile
-      $profile = $connection->select('jobhunter_job_seeker', 'js')
-        ->fields('js', ['consolidated_profile_json'])
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchAssoc();
+      $profile = $this->userProfileRepository->getConsolidatedProfileJsonRow($uid);
       
       if (!$profile) {
         \Drupal::logger('job_hunter')->warning('Cannot build consolidated JSON: no job seeker profile found for uid @uid', ['@uid' => $uid]);
@@ -4604,13 +4537,10 @@ PROMPT;
       $consolidated['extraction_metadata']['consolidated_at'] = date('c');
       
       // Store updated consolidated JSON
-      $connection->update('jobhunter_job_seeker')
-        ->fields([
-          'consolidated_profile_json' => json_encode($consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES),
-          'changed' => time(),
-        ])
-        ->condition('uid', $uid)
-        ->execute();
+      $this->userProfileRepository->saveConsolidatedProfileJson(
+        $uid,
+        json_encode($consolidated, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES)
+      );
       
       if ($additions > 0) {
         $this->logInfo('📊 Updated consolidated JSON for uid @uid: @count new items added', [
@@ -4904,13 +4834,7 @@ PROMPT;
    */
   private function normalizeResumeParsedDataStatuses(int $uid): void {
     try {
-      $connection = \Drupal::database();
-      // Legacy rows may have used 'completed' instead of 'complete'.
-      $connection->update('jobhunter_resume_parsed_data')
-        ->fields(['status' => 'complete', 'changed' => \Drupal::time()->getRequestTime()])
-        ->condition('uid', $uid)
-        ->condition('status', 'completed')
-        ->execute();
+      $this->userProfileRepository->normalizeParsedDataStatuses($uid);
     }
     catch (\Exception $e) {
       // Non-fatal: UI can still fall back to tolerant checks.
@@ -4934,35 +4858,19 @@ PROMPT;
    */
   private function ensureResumeConsolidationUpToDate(int $uid): void {
     try {
-      $connection = \Drupal::database();
-
-      $pending = (int) $connection->select('jobhunter_resume_parsed_data', 'rpd')
-        ->condition('uid', $uid)
-        ->condition('status', ['queued', 'processing'], 'IN')
-        ->countQuery()
-        ->execute()
-        ->fetchField();
+      $pending = $this->userProfileRepository->countPendingParsedRecords($uid);
 
       if ($pending > 0) {
         return;
       }
 
-      $complete_rows = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-        ->fields('rpd', ['resume_file_id'])
-        ->condition('uid', $uid)
-        ->condition('status', 'complete')
-        ->execute()
-        ->fetchCol();
+      $complete_rows = $this->userProfileRepository->getCompleteParsedFileIds($uid);
 
       if (empty($complete_rows)) {
         return;
       }
 
-      $profile = $connection->select('jobhunter_job_seeker', 'js')
-        ->fields('js', ['consolidated_profile_json'])
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchAssoc();
+      $profile = $this->userProfileRepository->getConsolidatedProfileJsonRow($uid);
 
       $consolidated = [];
       if (!empty($profile['consolidated_profile_json'])) {
@@ -5172,21 +5080,8 @@ PROMPT;
    */
   private function applyConsolidatedToProfileFields($uid, array $consolidated) {
     try {
-      $connection = \Drupal::database();
-      
       // Get current profile fields
-      $profile = $connection->select('jobhunter_job_seeker', 'js')
-        ->fields('js', [
-          'professional_summary',
-          'skills',
-          'experience_years',
-          'education_level',
-          'certifications',
-          'job_titles',
-        ])
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchAssoc();
+      $profile = $this->userProfileRepository->getProfileFieldsForConsolidation((int) $uid);
       
       if (!$profile) {
         return;
@@ -5246,11 +5141,7 @@ PROMPT;
       // Apply updates if we have any
       if (!empty($update_fields)) {
         $update_fields['changed'] = time();
-        
-        $connection->update('jobhunter_job_seeker')
-          ->fields($update_fields)
-          ->condition('uid', $uid)
-          ->execute();
+        $this->userProfileRepository->updateProfileFields((int) $uid, $update_fields);
         
         $fields_updated = implode(', ', array_keys($update_fields));
         $this->logInfo('✅ Applied consolidated data to profile for uid @uid: @fields', [
@@ -5273,54 +5164,19 @@ PROMPT;
   /**
    * STEP 6 Helper: Store parsed results in database.
    */
-  private function storeParsedResults($connection, $uid, $file_id, $file_uri, $parsed_data, $is_development, $filename) {
-    $existing = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-      ->fields('rpd', ['id'])
-      ->condition('uid', $uid)
-      ->condition('resume_file_id', $file_id)
-      ->execute()
-      ->fetchField();
-
+  private function storeParsedResults($uid, $file_id, $file_uri, $parsed_data, $filename) {
     $timestamp = \Drupal::time()->getRequestTime();
-    // Parsed data exists at this point, so status is complete.
-    $status = 'complete';
+    $this->userProfileRepository->upsertParsedDataRecord(
+      (int) $uid,
+      (int) $file_id,
+      $file_uri,
+      json_encode($parsed_data),
+      $timestamp
+    );
 
-    if ($existing) {
-      // Update existing record
-      $connection->update('jobhunter_resume_parsed_data')
-        ->fields([
-          'resume_path' => $file_uri,
-          'parsed_data' => json_encode($parsed_data),
-          'status' => $status,
-          'error_message' => NULL,
-          'changed' => $timestamp,
-        ])
-        ->condition('id', $existing)
-        ->execute();
-
-      $this->logInfo('✅ STEP 6: Updated parsed data record for: @filename', [
-        '@filename' => $filename,
-      ]);
-    }
-    else {
-      // Insert new record
-      $connection->insert('jobhunter_resume_parsed_data')
-        ->fields([
-          'uid' => $uid,
-          'resume_file_id' => $file_id,
-          'resume_path' => $file_uri,
-          'parsed_data' => json_encode($parsed_data),
-          'status' => $status,
-          'error_message' => NULL,
-          'created' => $timestamp,
-          'changed' => $timestamp,
-        ])
-        ->execute();
-
-      $this->logInfo('✅ STEP 6: Created new parsed data record for: @filename', [
-        '@filename' => $filename,
-      ]);
-    }
+    $this->logInfo('✅ STEP 6: Stored parsed data record for: @filename', [
+      '@filename' => $filename,
+    ]);
   }
 
   /**
