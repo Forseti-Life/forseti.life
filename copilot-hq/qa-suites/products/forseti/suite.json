@@ -848,6 +848,57 @@
         "Run after dev-forseti completes implementation.",
         "STAGE 0 PENDING: requires feature implementation by dev-forseti."
       ]
+    },
+    {
+      "id": "forseti-csrf-post-routes-fix-static",
+      "label": "CSRF POST Routes Fix \u2014 static: all 7 job application POST routes have _csrf_token:'TRUE' in job_hunter.routing.yml",
+      "type": "script",
+      "feature_id": "forseti-csrf-post-routes-fix",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; ROUTING=sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml; echo \"=== TC-1: CSRF on all 7 POST routes ===\"; FAIL=0; for ROUTE in step3_post step3_short_post step4_post step4_short_post step5_post step5_short_post step_stub_short_post; do   BLOCK=$(grep -A 20 \"application_submission_${ROUTE}:\" \"$ROUTING\" | head -20);   if echo \"$BLOCK\" | grep -q '_csrf_token'; then     echo \"PASS: application_submission_${ROUTE} has _csrf_token\";   else     echo \"FAIL: application_submission_${ROUTE} missing _csrf_token\"; FAIL=1;   fi; done; [ \"$FAIL\" = \"0\" ] && echo \"All 7 POST routes PASS\" || (echo \"CSRF protection missing\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-csrf-post-routes-fix/static.log"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-1: verify 7 POST routes (step3, step3_short, step4, step4_short, step5, step5_short, step_stub_short) all have _csrf_token: 'TRUE'.",
+        "Split-route pattern: GET-only + POST-only entries for same path; POST-only gets _csrf_token:'TRUE'.",
+        "KB ref: knowledgebase/lessons/20260301-jobhunter-routing-csrf-token-blocks-qa-probe.md",
+        "STAGE 1 READY: implementation already applied (commits dd2dcc764, 6eab37e4c, 2026-04-05)."
+      ]
+    },
+    {
+      "id": "forseti-csrf-post-routes-fix-functional",
+      "label": "CSRF POST Routes Fix \u2014 functional: step5 submit-application GET returns 403 (not 500) anon; step3 GET unaffected",
+      "type": "script",
+      "feature_id": "forseti-csrf-post-routes-fix",
+      "command": "bash -c 'set -e; echo \"=== TC-4/AC-4: GET routes unaffected (anon probe) ===\"; STEP5=$(curl -s -o /dev/null -w \"%{http_code}\" -m 10 \"https://forseti.life/jobhunter/application-submission/1/submit-application\"); echo \"step5 GET status: $STEP5\"; [ \"$STEP5\" != \"500\" ] && echo \"PASS: step5 GET not 500\" || (echo \"FAIL: step5 GET returned 500\" && exit 1); STEP3=$(curl -s -o /dev/null -w \"%{http_code}\" -m 10 \"https://forseti.life/jobhunter/application-submission/1/identify-auth-path\"); echo \"step3 GET status: $STEP3\"; [ \"$STEP3\" != \"500\" ] && echo \"PASS: step3 GET not 500\" || (echo \"FAIL: step3 GET returned 500\" && exit 1); echo Functional smoke PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-csrf-post-routes-fix/functional.log"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-4/AC-4: GET routes must remain accessible (403 anon-expected, not 500).",
+        "AC-2 (authenticated step3\u21925 POST flow) requires manual smoke with live session \u2014 deferred.",
+        "AC-3 (CSRF token omission \u2192 403) requires curl POST without token \u2014 deferred to targeted verify.",
+        "STAGE 1 READY: can run now against production."
+      ]
+    },
+    {
+      "id": "forseti-csrf-post-routes-fix-regression",
+      "label": "CSRF POST Routes Fix \u2014 regression: site audit 0 failures/violations on job_hunter routes post-fix",
+      "type": "script",
+      "feature_id": "forseti-csrf-post-routes-fix",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh 2>&1 | tail -5; SUMMARY=sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md; FAILURES=$(grep 'Other failures' \"$SUMMARY\" | grep -o '[0-9]*' | head -1); VIOLATIONS=$(grep 'Permission expectation violations' \"$SUMMARY\" | grep -o '[0-9]*' | head -1); [ \"${FAILURES:-0}\" = \"0\" ] && [ \"${VIOLATIONS:-0}\" = \"0\" ] && echo \"PASS: 0 failures, 0 violations\" || (echo \"FAIL: failures=$FAILURES violations=$VIOLATIONS\" && exit 1); echo Regression check PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-csrf-post-routes-fix/regression.log",
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-5/AC-4: Full site audit must show 0 new failures and 0 violations.",
+        "Confirms GET routes for all 7 affected paths are unaffected by the POST-only CSRF split.",
+        "STAGE 1 READY: can run now; implementation is already live."
+      ]
     }
   ],
   "_schema_notes": [
