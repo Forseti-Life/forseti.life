@@ -3,8 +3,8 @@
 - Work item id: dc-apg-class-swashbuckler
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260408-dungeoncrawler-release-h
+- Status: ready
+- Release: 
 20260408-dungeoncrawler-release-h
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
