@@ -200,6 +200,16 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'hero_point_reroll',
       // REQ 2281: Spend all Hero Points to stabilize (removes dying, no wounded).
       'heroic_recovery_all_points',
+      // REQ 1619–1659: Athletics skill actions.
+      'climb',
+      'force_open',
+      'grapple',
+      'high_jump',
+      'long_jump',
+      'shove',
+      'swim',
+      'trip',
+      'disarm',
     ];
   }
 
@@ -344,6 +354,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $mutations = $result['mutations'] ?? [];
 
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+
+        // Track stride distance for High Jump / Long Jump prerequisite checks.
+        $game_state['turn']['last_stride_ft'] = (int) ($params['distance_ft'] ?? 25);
 
         $events[] = GameEventLogger::buildEvent('stride', 'encounter', $actor_id, [
           'from' => $params['from_hex'] ?? NULL,
@@ -884,6 +897,409 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'dying_removed' => $hrap_result['dying_removed'] ?? FALSE,
           'round'         => $game_state['round'] ?? NULL,
         ]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // -----------------------------------------------------------------------
+      // REQ 1619–1620: Climb [1 action, Move] — Athletics vs climb DC.
+      // -----------------------------------------------------------------------
+      case 'climb': {
+        $enc_cl = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_cl = $enc_cl ? $this->findEncounterParticipantByEntityId($enc_cl, $actor_id) : NULL;
+        if (!$ptcp_cl) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_cl = !empty($ptcp_cl['entity_ref']) ? json_decode($ptcp_cl['entity_ref'], TRUE) : [];
+        $has_climb_speed = !empty($entity_cl['climb_speed']) && (int) $entity_cl['climb_speed'] > 0;
+        $land_speed = (int) ($entity_cl['speed'] ?? 25);
+        $athletics_cl = (int) ($params['athletics_bonus'] ?? 0);
+        $climb_dc = (int) ($params['climb_dc'] ?? 15);
+        $d20_cl = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_cl = $d20_cl + $athletics_cl;
+        $degree_cl = $this->combatCalculator->calculateDegreeOfSuccess($total_cl, $climb_dc, $d20_cl);
+
+        $feet_moved = 0;
+        $fell = FALSE;
+        if ($degree_cl === 'critical_success') {
+          $feet_moved = max(10, (int) round($land_speed / 2));
+        }
+        elseif ($degree_cl === 'success') {
+          $feet_moved = max(5, (int) round($land_speed / 4));
+        }
+        elseif ($degree_cl === 'critical_failure') {
+          // Character falls and lands prone.
+          $feet_fallen = (int) ($params['height_ft'] ?? 10);
+          $soft_surface = !empty($params['soft_surface']);
+          if ($ptcp_cl && $this->hpManager) {
+            $this->hpManager->applyFallDamage((int) $ptcp_cl['id'], $feet_fallen, $encounter_id, $soft_surface);
+          }
+          $fell = TRUE;
+        }
+
+        // Flat-footed during climb unless character has a climb Speed.
+        if (!$has_climb_speed && !$fell) {
+          $this->conditionManager->applyCondition((int) $ptcp_cl['id'], 'flat_footed', 0, ['type' => 'encounter', 'remaining' => 1], 'climb', $encounter_id);
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['climbed' => !$fell, 'degree' => $degree_cl, 'feet_moved' => $feet_moved, 'fell' => $fell, 'd20' => $d20_cl, 'total' => $total_cl];
+        $events[] = GameEventLogger::buildEvent('climb', 'encounter', $actor_id, ['degree' => $degree_cl, 'fell' => $fell, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1621–1625: Force Open [1 action, Attack] — Athletics vs Fortitude DC.
+      // -----------------------------------------------------------------------
+      case 'force_open': {
+        $has_crowbar = !empty($params['has_crowbar']);
+        $athletics_fo = (int) ($params['athletics_bonus'] ?? 0);
+        $item_penalty = $has_crowbar ? 0 : -2;
+        $fo_dc = (int) ($params['object_dc'] ?? 20);
+        $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
+        $map_fo = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
+        $d20_fo = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_fo = $d20_fo + $athletics_fo + $item_penalty + $map_fo;
+        $degree_fo = $this->combatCalculator->calculateDegreeOfSuccess($total_fo, $fo_dc, $d20_fo);
+
+        $jammed = FALSE;
+        $broken = FALSE;
+        $opened = FALSE;
+        if ($degree_fo === 'critical_success') {
+          $opened = TRUE;
+        }
+        elseif ($degree_fo === 'success') {
+          $opened = TRUE;
+          $broken = TRUE;
+        }
+        elseif ($degree_fo === 'critical_failure') {
+          $jammed = TRUE;
+          // Track jammed penalty for future attempts.
+          if (!isset($game_state['force_open_jammed'])) {
+            $game_state['force_open_jammed'] = [];
+          }
+          $target_obj = $params['object_id'] ?? $target_id;
+          $game_state['force_open_jammed'][$target_obj] = ($game_state['force_open_jammed'][$target_obj] ?? 0) - 2;
+        }
+
+        $game_state['turn']['attacks_this_turn'] = $attacks_this_turn + 1;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['opened' => $opened, 'broken' => $broken, 'jammed' => $jammed, 'degree' => $degree_fo, 'd20' => $d20_fo, 'total' => $total_fo];
+        $events[] = GameEventLogger::buildEvent('force_open', 'encounter', $actor_id, ['degree' => $degree_fo, 'opened' => $opened, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1626–1631: Grapple [1 action, Attack] — Athletics vs Fortitude DC.
+      // -----------------------------------------------------------------------
+      case 'grapple': {
+        $result = $this->processGrapple($encounter_id, $actor_id, $target_id, $params, $game_state);
+        $mutations = $result['mutations'] ?? [];
+        $game_state['turn']['attacks_this_turn'] = ($game_state['turn']['attacks_this_turn'] ?? 0) + 1;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $events[] = GameEventLogger::buildEvent('grapple', 'encounter', $actor_id, ['degree' => $result['degree'] ?? NULL, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1632–1636: High Jump [2 actions] — Stride ≥10 ft + Athletics vs DC.
+      // -----------------------------------------------------------------------
+      case 'high_jump': {
+        // Requires a prior Stride of ≥10 ft this turn.
+        $prior_stride_ft = (int) ($game_state['turn']['last_stride_ft'] ?? 0);
+        if ($prior_stride_ft < 10) {
+          // Auto-fail — no prone applied.
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+          $result = ['jumped' => FALSE, 'auto_fail' => TRUE, 'reason' => 'No prior Stride of ≥10 ft'];
+          $events[] = GameEventLogger::buildEvent('high_jump', 'encounter', $actor_id, ['auto_fail' => TRUE, 'round' => $game_state['round'] ?? NULL]);
+          break;
+        }
+
+        $dc_hj = (int) ($params['dc'] ?? 30);
+        $athletics_hj = (int) ($params['athletics_bonus'] ?? 0);
+        $d20_hj = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_hj = $d20_hj + $athletics_hj;
+        $degree_hj = $this->combatCalculator->calculateDegreeOfSuccess($total_hj, $dc_hj, $d20_hj);
+
+        $height_ft = 0;
+        $fell_prone = FALSE;
+        if ($degree_hj === 'critical_success') {
+          $height_ft = 8;
+        }
+        elseif ($degree_hj === 'success') {
+          $height_ft = 5;
+        }
+        elseif ($degree_hj === 'failure') {
+          // Normal Leap.
+          $height_ft = 0;
+        }
+        elseif ($degree_hj === 'critical_failure') {
+          $fell_prone = TRUE;
+          $enc_hj = $this->encounterStore->loadEncounter($encounter_id);
+          $ptcp_hj = $enc_hj ? $this->findEncounterParticipantByEntityId($enc_hj, $actor_id) : NULL;
+          if ($ptcp_hj) {
+            $this->conditionManager->applyCondition((int) $ptcp_hj['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'high_jump', $encounter_id);
+          }
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = ['jumped' => !$fell_prone, 'height_ft' => $height_ft, 'degree' => $degree_hj, 'fell_prone' => $fell_prone, 'd20' => $d20_hj, 'total' => $total_hj];
+        $events[] = GameEventLogger::buildEvent('high_jump', 'encounter', $actor_id, ['degree' => $degree_hj, 'height_ft' => $height_ft, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1637–1640: Long Jump [2 actions] — Stride ≥10 ft + Athletics vs DC.
+      // -----------------------------------------------------------------------
+      case 'long_jump': {
+        $prior_stride_ft = (int) ($game_state['turn']['last_stride_ft'] ?? 0);
+        if ($prior_stride_ft < 10) {
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+          $result = ['jumped' => FALSE, 'auto_fail' => TRUE, 'reason' => 'No prior Stride of ≥10 ft'];
+          $events[] = GameEventLogger::buildEvent('long_jump', 'encounter', $actor_id, ['auto_fail' => TRUE, 'round' => $game_state['round'] ?? NULL]);
+          break;
+        }
+
+        $target_ft = (int) ($params['target_ft'] ?? 10);
+        $enc_lj = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_lj = $enc_lj ? $this->findEncounterParticipantByEntityId($enc_lj, $actor_id) : NULL;
+        $entity_lj = $ptcp_lj && !empty($ptcp_lj['entity_ref']) ? json_decode($ptcp_lj['entity_ref'], TRUE) : [];
+        $speed_lj = (int) ($entity_lj['speed'] ?? $ptcp_lj['speed'] ?? 25);
+
+        // Cap at character Speed.
+        if ($target_ft > $speed_lj) {
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+          $result = ['jumped' => FALSE, 'auto_fail' => TRUE, 'reason' => 'Target distance exceeds Speed'];
+          $events[] = GameEventLogger::buildEvent('long_jump', 'encounter', $actor_id, ['auto_fail' => TRUE, 'reason' => 'speed_cap', 'round' => $game_state['round'] ?? NULL]);
+          break;
+        }
+
+        $dc_lj = $target_ft; // DC = distance in feet.
+        $athletics_lj = (int) ($params['athletics_bonus'] ?? 0);
+        $d20_lj = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_lj = $d20_lj + $athletics_lj;
+        $degree_lj = $this->combatCalculator->calculateDegreeOfSuccess($total_lj, $dc_lj, $d20_lj);
+
+        $distance_ft = 0;
+        $fell_prone = FALSE;
+        if (in_array($degree_lj, ['critical_success', 'success'], TRUE)) {
+          $distance_ft = $target_ft;
+        }
+        elseif ($degree_lj === 'failure') {
+          // Normal Leap.
+          $distance_ft = 0;
+        }
+        elseif ($degree_lj === 'critical_failure') {
+          // Normal Leap + prone.
+          $fell_prone = TRUE;
+          if ($ptcp_lj) {
+            $this->conditionManager->applyCondition((int) $ptcp_lj['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'long_jump', $encounter_id);
+          }
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = ['jumped' => !$fell_prone || $distance_ft > 0, 'distance_ft' => $distance_ft, 'degree' => $degree_lj, 'fell_prone' => $fell_prone, 'd20' => $d20_lj, 'total' => $total_lj];
+        $events[] = GameEventLogger::buildEvent('long_jump', 'encounter', $actor_id, ['degree' => $degree_lj, 'distance_ft' => $distance_ft, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1641–1644: Shove [1 action, Attack] — Athletics vs Fortitude DC.
+      // -----------------------------------------------------------------------
+      case 'shove': {
+        $athletics_sh = (int) ($params['athletics_bonus'] ?? 0);
+        $sh_dc = (int) ($params['fortitude_dc'] ?? 15);
+        $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
+        $map_sh = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
+        $d20_sh = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_sh = $d20_sh + $athletics_sh + $map_sh;
+        $degree_sh = $this->combatCalculator->calculateDegreeOfSuccess($total_sh, $sh_dc, $d20_sh);
+
+        $push_ft = 0;
+        $attacker_prone = FALSE;
+        if ($degree_sh === 'critical_success') {
+          $push_ft = 10;
+        }
+        elseif ($degree_sh === 'success') {
+          $push_ft = 5;
+        }
+        elseif ($degree_sh === 'critical_failure') {
+          // Attacker falls prone.
+          $enc_sh = $this->encounterStore->loadEncounter($encounter_id);
+          $ptcp_sh = $enc_sh ? $this->findEncounterParticipantByEntityId($enc_sh, $actor_id) : NULL;
+          if ($ptcp_sh) {
+            $this->conditionManager->applyCondition((int) $ptcp_sh['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'shove', $encounter_id);
+          }
+          $attacker_prone = TRUE;
+        }
+
+        // REQ 1643: Forced movement does NOT trigger movement reactions.
+        $game_state['turn']['attacks_this_turn'] = $attacks_this_turn + 1;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['shoved' => $push_ft > 0, 'push_ft' => $push_ft, 'degree' => $degree_sh, 'forced_movement' => TRUE, 'attacker_prone' => $attacker_prone, 'd20' => $d20_sh, 'total' => $total_sh];
+        $events[] = GameEventLogger::buildEvent('shove', 'encounter', $actor_id, ['degree' => $degree_sh, 'push_ft' => $push_ft, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1645–1649: Swim [1 action, Move] — no check in calm water.
+      // -----------------------------------------------------------------------
+      case 'swim': {
+        $enc_sw = $this->encounterStore->loadEncounter($encounter_id);
+        $ptcp_sw = $enc_sw ? $this->findEncounterParticipantByEntityId($enc_sw, $actor_id) : NULL;
+        if (!$ptcp_sw) {
+          return ['success' => FALSE, 'result' => ['error' => 'Participant not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $entity_sw = !empty($ptcp_sw['entity_ref']) ? json_decode($ptcp_sw['entity_ref'], TRUE) : [];
+
+        $is_calm = !empty($params['calm_water']);
+        $athletics_sw = (int) ($params['athletics_bonus'] ?? 0);
+        $swim_dc = (int) ($params['swim_dc'] ?? 15);
+        $land_speed_sw = (int) ($entity_sw['speed'] ?? 25);
+        $has_swim_speed = !empty($entity_sw['swim_speed']) && (int) $entity_sw['swim_speed'] > 0;
+
+        $degree_sw = 'success';
+        $d20_sw = 0;
+        $total_sw = 0;
+        if (!$is_calm) {
+          $d20_sw = $this->numberGenerationService->rollPathfinderDie(20);
+          $total_sw = $d20_sw + $athletics_sw;
+          $degree_sw = $this->combatCalculator->calculateDegreeOfSuccess($total_sw, $swim_dc, $d20_sw);
+        }
+
+        $feet_moved = 0;
+        $breath_lost = FALSE;
+        if ($degree_sw === 'critical_success') {
+          $feet_moved = max(10, (int) round($land_speed_sw / 2));
+        }
+        elseif ($degree_sw === 'success') {
+          $feet_moved = max(5, (int) round($land_speed_sw / 4));
+        }
+        elseif ($degree_sw === 'critical_failure') {
+          // Costs 1 round of held breath.
+          $breath_lost = TRUE;
+          $held_breath = max(0, (int) ($game_state['entities'][$actor_id]['held_breath_rounds'] ?? 0) - 1);
+          if (!isset($game_state['entities'][$actor_id])) {
+            $game_state['entities'][$actor_id] = [];
+          }
+          $game_state['entities'][$actor_id]['held_breath_rounds'] = $held_breath;
+        }
+
+        // REQ 1647: Air-breathing characters must hold breath; track submerged state.
+        if (empty($entity_sw['water_breathing']) && !$has_swim_speed) {
+          if (!isset($game_state['entities'][$actor_id])) {
+            $game_state['entities'][$actor_id] = [];
+          }
+          $game_state['entities'][$actor_id]['submerged'] = TRUE;
+        }
+
+        // Track swim action for end-of-turn sink rule (REQ 1648).
+        if (!isset($game_state['turn']['swim_actions'])) {
+          $game_state['turn']['swim_actions'] = [];
+        }
+        $game_state['turn']['swim_actions'][$actor_id] = ($game_state['turn']['swim_actions'][$actor_id] ?? 0) + 1;
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['swam' => $feet_moved > 0, 'degree' => $degree_sw, 'feet_moved' => $feet_moved, 'breath_lost' => $breath_lost, 'd20' => $d20_sw, 'total' => $total_sw];
+        $events[] = GameEventLogger::buildEvent('swim', 'encounter', $actor_id, ['degree' => $degree_sw, 'feet_moved' => $feet_moved, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1650–1654: Trip [1 action, Attack] — Athletics vs Reflex DC.
+      // -----------------------------------------------------------------------
+      case 'trip': {
+        $athletics_tr = (int) ($params['athletics_bonus'] ?? 0);
+        $tr_dc = (int) ($params['reflex_dc'] ?? 15);
+        $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
+        $map_tr = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
+        $d20_tr = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_tr = $d20_tr + $athletics_tr + $map_tr;
+        $degree_tr = $this->combatCalculator->calculateDegreeOfSuccess($total_tr, $tr_dc, $d20_tr);
+
+        $enc_tr = $this->encounterStore->loadEncounter($encounter_id);
+        $target_ptcp_tr = $enc_tr ? $this->findEncounterParticipantByEntityId($enc_tr, $target_id) : NULL;
+        $actor_ptcp_tr = $enc_tr ? $this->findEncounterParticipantByEntityId($enc_tr, $actor_id) : NULL;
+
+        $damage_tr = 0;
+        $attacker_prone = FALSE;
+        if ($degree_tr === 'critical_success') {
+          // 1d6 bludgeoning + prone to target.
+          $damage_tr = $this->numberGenerationService->rollPathfinderDie(6);
+          if ($target_ptcp_tr) {
+            $this->hpManager->applyDamage((int) $target_ptcp_tr['id'], $damage_tr, 'bludgeoning', 'trip', $encounter_id);
+            $this->conditionManager->applyCondition((int) $target_ptcp_tr['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'trip', $encounter_id);
+          }
+        }
+        elseif ($degree_tr === 'success') {
+          // Prone only.
+          if ($target_ptcp_tr) {
+            $this->conditionManager->applyCondition((int) $target_ptcp_tr['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'trip', $encounter_id);
+          }
+        }
+        elseif ($degree_tr === 'critical_failure') {
+          // Attacker falls prone.
+          if ($actor_ptcp_tr) {
+            $this->conditionManager->applyCondition((int) $actor_ptcp_tr['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'trip', $encounter_id);
+          }
+          $attacker_prone = TRUE;
+        }
+
+        $game_state['turn']['attacks_this_turn'] = $attacks_this_turn + 1;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['tripped' => in_array($degree_tr, ['critical_success', 'success'], TRUE), 'degree' => $degree_tr, 'damage' => $damage_tr, 'attacker_prone' => $attacker_prone, 'd20' => $d20_tr, 'total' => $total_tr];
+        $events[] = GameEventLogger::buildEvent('trip', 'encounter', $actor_id, ['degree' => $degree_tr, 'damage' => $damage_tr, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1655–1659: Disarm [1 action, Attack, Trained] — Athletics vs Reflex DC.
+      // -----------------------------------------------------------------------
+      case 'disarm': {
+        // REQ 1655: Trained Athletics required.
+        $proficiency_rank = (int) ($params['athletics_proficiency_rank'] ?? 0);
+        if ($proficiency_rank < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Disarm requires Trained Athletics.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $athletics_di = (int) ($params['athletics_bonus'] ?? 0);
+        $di_dc = (int) ($params['reflex_dc'] ?? 15);
+        $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
+        $map_di = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
+        $d20_di = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_di = $d20_di + $athletics_di + $map_di;
+        $degree_di = $this->combatCalculator->calculateDegreeOfSuccess($total_di, $di_dc, $d20_di);
+
+        $enc_di = $this->encounterStore->loadEncounter($encounter_id);
+        $actor_ptcp_di = $enc_di ? $this->findEncounterParticipantByEntityId($enc_di, $actor_id) : NULL;
+
+        $item_dropped = FALSE;
+        $grip_weakened = FALSE;
+        $attacker_flat_footed = FALSE;
+
+        if ($degree_di === 'critical_success') {
+          $item_dropped = TRUE;
+        }
+        elseif ($degree_di === 'success') {
+          // Grip weakened until start of target's next turn.
+          $grip_weakened = TRUE;
+          if (!isset($game_state['grip_weakened'])) {
+            $game_state['grip_weakened'] = [];
+          }
+          $game_state['grip_weakened'][$target_id] = ($game_state['round'] ?? 0) + 1;
+        }
+        elseif ($degree_di === 'critical_failure') {
+          // Attacker becomes flat-footed.
+          if ($actor_ptcp_di) {
+            $this->conditionManager->applyCondition((int) $actor_ptcp_di['id'], 'flat_footed', 0, ['type' => 'encounter', 'remaining' => 1], 'disarm', $encounter_id);
+          }
+          $attacker_flat_footed = TRUE;
+        }
+
+        $game_state['turn']['attacks_this_turn'] = $attacks_this_turn + 1;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['disarmed' => $item_dropped, 'grip_weakened' => $grip_weakened, 'degree' => $degree_di, 'attacker_flat_footed' => $attacker_flat_footed, 'd20' => $d20_di, 'total' => $total_di];
+        $events[] = GameEventLogger::buildEvent('disarm', 'encounter', $actor_id, ['degree' => $degree_di, 'item_dropped' => $item_dropped, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
         break;
       }
 
@@ -1803,6 +2219,34 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       }
     }
 
+    // REQ 1648: Submerged character who did NOT Swim this turn sinks 10 ft at turn end.
+    // Not applied on the turn they first entered water (swim_entered_water_this_turn flag).
+    if ($actor_id) {
+      try {
+        $swim_actions = $game_state['turn']['swim_actions'][$actor_id] ?? 0;
+        $entered_this_turn = !empty($game_state['turn']['entered_water'][$actor_id]);
+        $submerged = !empty($game_state['entities'][$actor_id]['submerged']);
+        if ($submerged && !$entered_this_turn && $swim_actions === 0) {
+          // Sink 10 ft — record in game state; environment effects handled by GM/AI.
+          if (!isset($game_state['entities'][$actor_id])) {
+            $game_state['entities'][$actor_id] = [];
+          }
+          $game_state['entities'][$actor_id]['depth_ft'] = ((int) ($game_state['entities'][$actor_id]['depth_ft'] ?? 0)) + 10;
+        }
+        // Clear per-turn water entry flag.
+        if (isset($game_state['turn']['entered_water'][$actor_id])) {
+          unset($game_state['turn']['entered_water'][$actor_id]);
+        }
+        // Clear per-turn swim action counter.
+        if (isset($game_state['turn']['swim_actions'][$actor_id])) {
+          unset($game_state['turn']['swim_actions'][$actor_id]);
+        }
+      }
+      catch (\Throwable $e) {
+        $this->logger->warning('Swim end-of-turn check failed: @error', ['@error' => $e->getMessage()]);
+      }
+    }
+
     // Advance to next non-defeated combatant.
     $next_index = $current_index + 1;
     $wrapped = FALSE;
@@ -2155,10 +2599,13 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     // REQ 2199: attack trait — apply MAP.
+    // REQ 1619: Athletics modifier accepted as alternative to unarmed modifier.
     $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
     $map = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
     $d20 = $this->numberGenerationService->rollPathfinderDie(20);
-    $total = $d20 + (int) ($params['skill_bonus'] ?? 0) + $map;
+    // Prefer athletics_bonus if provided; fall back to skill_bonus (unarmed).
+    $modifier = isset($params['athletics_bonus']) ? (int) $params['athletics_bonus'] : (int) ($params['skill_bonus'] ?? 0);
+    $total = $d20 + $modifier + $map;
     $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, (int) ($params['grapple_dc'] ?? 15), $d20);
 
     // Increment MAP for future attacks.
@@ -2323,9 +2770,22 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'raise_shield':
       case 'avert_gaze':
       case 'point_out':
+      // REQ 1619–1659: Athletics single-action skill actions.
+      case 'climb':
+      case 'force_open':
+      case 'grapple':
+      case 'shove':
+      case 'swim':
+      case 'trip':
+      case 'disarm':
         return 1;
 
       case 'ready':
+        return 2;
+
+      // REQ 1632–1636, 1637–1640: High Jump / Long Jump are 2-action activities.
+      case 'high_jump':
+      case 'long_jump':
         return 2;
 
       case 'cast_spell':
@@ -2739,6 +3199,122 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     }
 
     return $entity_id;
+  }
+
+  /**
+   * Processes a Grapple action (REQ 1626–1631).
+   * 1 action, Attack trait; size limit = target no more than 1 size larger.
+   */
+  protected function processGrapple(int $encounter_id, string $actor_id, ?string $target_id, array $params, array &$game_state): array {
+    $enc = $this->encounterStore->loadEncounter($encounter_id);
+    if (!$enc) {
+      return ['error' => 'Encounter not found.', 'mutations' => []];
+    }
+    $actor_ptcp = $this->findEncounterParticipantByEntityId($enc, $actor_id);
+    if (!$actor_ptcp) {
+      return ['error' => 'Actor not found.', 'mutations' => []];
+    }
+
+    // REQ 1626: Requires one free hand (or already grappling target).
+    $has_free_hand = !empty($params['has_free_hand']);
+    $already_grappling = !empty($params['already_grappling']);
+    if (!$has_free_hand && !$already_grappling) {
+      return ['error' => 'Grapple requires a free hand.', 'mutations' => []];
+    }
+
+    // REQ 1626: Size limit — target no more than one size larger.
+    $size_order = ['tiny' => 0, 'small' => 1, 'medium' => 2, 'large' => 3, 'huge' => 4, 'gargantuan' => 5];
+    $actor_size = strtolower($params['actor_size'] ?? 'medium');
+    $target_size = strtolower($params['target_size'] ?? 'medium');
+    $actor_rank = $size_order[$actor_size] ?? 2;
+    $target_rank = $size_order[$target_size] ?? 2;
+    if ($target_rank > $actor_rank + 1) {
+      return ['error' => 'Target is too large to Grapple.', 'size_blocked' => TRUE, 'mutations' => []];
+    }
+
+    $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
+    $map = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
+    $athletics_bonus = (int) ($params['athletics_bonus'] ?? 0);
+    $fortitude_dc = (int) ($params['fortitude_dc'] ?? 15);
+    $d20 = $this->numberGenerationService->rollPathfinderDie(20);
+    $total = $d20 + $athletics_bonus + $map;
+    $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $fortitude_dc, $d20);
+
+    $target_ptcp = $target_id ? $this->findEncounterParticipantByEntityId($enc, $target_id) : NULL;
+
+    $condition_applied = NULL;
+    $grappler_grabbed = FALSE;
+    $grappler_prone = FALSE;
+
+    if ($degree === 'critical_success') {
+      // Restrained.
+      if ($target_ptcp) {
+        $this->conditionManager->applyCondition((int) $target_ptcp['id'], 'restrained', 0, ['type' => 'encounter', 'remaining' => 1], 'grapple', $encounter_id);
+      }
+      $condition_applied = 'restrained';
+    }
+    elseif ($degree === 'success') {
+      // Grabbed.
+      if ($target_ptcp) {
+        $this->conditionManager->applyCondition((int) $target_ptcp['id'], 'grabbed', 0, ['type' => 'encounter', 'remaining' => 1], 'grapple', $encounter_id);
+      }
+      $condition_applied = 'grabbed';
+    }
+    elseif ($degree === 'failure') {
+      // Release existing grapple.
+      if ($target_ptcp) {
+        $active = $this->conditionManager->getActiveConditions((int) $target_ptcp['id'], $encounter_id);
+        foreach ($active as $row_id => $row) {
+          if (in_array($row['condition_type'], ['grabbed', 'restrained'], TRUE) && ($row['source'] ?? '') === 'grapple') {
+            $this->conditionManager->removeCondition((int) $target_ptcp['id'], $row_id, $encounter_id);
+            break;
+          }
+        }
+      }
+    }
+    elseif ($degree === 'critical_failure') {
+      // Target may grab grappler or knock prone; default: grappler grabbed.
+      if (!empty($params['target_grabs_back'])) {
+        $grappler_grabbed = TRUE;
+        $this->conditionManager->applyCondition((int) $actor_ptcp['id'], 'grabbed', 0, ['type' => 'encounter', 'remaining' => 1], 'grapple_retaliation', $encounter_id);
+      }
+      else {
+        $grappler_prone = TRUE;
+        $this->conditionManager->applyCondition((int) $actor_ptcp['id'], 'prone', 0, ['type' => 'encounter', 'remaining' => NULL], 'grapple_retaliation', $encounter_id);
+      }
+    }
+
+    return [
+      'grappled' => in_array($degree, ['critical_success', 'success'], TRUE),
+      'condition_applied' => $condition_applied,
+      'grappler_grabbed' => $grappler_grabbed,
+      'grappler_prone' => $grappler_prone,
+      'degree' => $degree,
+      'd20' => $d20,
+      'total' => $total,
+      'mutations' => [],
+    ];
+  }
+
+  /**
+   * Calculates falling damage.
+   * REQ 1641: Half of distance in feet as bludgeoning damage.
+   * REQ 1642: Soft surfaces reduce effective distance by up to 20 ft.
+   *
+   * @param int $feet_fallen
+   *   Total distance fallen in feet.
+   * @param bool|int $soft_surface
+   *   Whether landing on a soft surface; if int, treated as max reduction depth (default 20).
+   *
+   * @return int
+   *   Bludgeoning damage.
+   */
+  protected function calculateFallingDamage(int $feet_fallen, bool|int $soft_surface = FALSE): int {
+    if ($soft_surface !== FALSE) {
+      $reduction = is_int($soft_surface) ? min($soft_surface, 20) : 20;
+      $feet_fallen = max(0, $feet_fallen - $reduction);
+    }
+    return (int) floor($feet_fallen / 2);
   }
 
 }
