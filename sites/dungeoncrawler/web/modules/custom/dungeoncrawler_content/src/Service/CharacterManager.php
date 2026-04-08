@@ -3962,6 +3962,587 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * APG Archetypes (Chapter 3).
+   *
+   * Structure per archetype:
+   *   id, name, type (martial|skill|magic), dedication (feat entry),
+   *   rule (system-level rules applied at selection time),
+   *   feats[] (non-dedication archetype feats)
+   *
+   * Archetype system rules enforced at selection time:
+   *   1) Dedication feat is L2+ and requires a class feat slot.
+   *   2) Cannot select a second Dedication from the same archetype until
+   *      2 other feats from that archetype are taken ("2-before-another").
+   *   3) Proficiency grants from Dedication feats are capped at the
+   *      character's current class maximums.
+   */
+  const ARCHETYPES = [
+
+    // ─── Martial / Combat ────────────────────────────────────────────────────
+
+    'acrobat' => [
+      'id' => 'acrobat', 'name' => 'Acrobat', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'acrobat-dedication', 'name' => 'Acrobat Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Acrobatics',
+        'benefit' => 'Become Expert in Acrobatics (or increase by one step).',
+        'grants' => ['acrobatics_proficiency' => 'expert'],
+      ],
+      'feats' => [
+        ['id' => 'acrobat-tumble-through-crit', 'name' => 'Tumbling Strike', 'level' => 4,
+         'benefit' => 'Crit Tumble Through ignores difficult terrain for the move.',
+         'special' => ['crit_tumble_through_ignores_difficult_terrain' => TRUE]],
+        ['id' => 'acrobat-master-acrobatics', 'name' => 'Master Acrobatics', 'level' => 7,
+         'benefit' => 'Become Master in Acrobatics.',
+         'grants' => ['acrobatics_proficiency' => 'master']],
+        ['id' => 'acrobat-legendary-acrobatics', 'name' => 'Legendary Acrobatics', 'level' => 15,
+         'benefit' => 'Become Legendary in Acrobatics.',
+         'grants' => ['acrobatics_proficiency' => 'legendary']],
+      ],
+    ],
+
+    'archer' => [
+      'id' => 'archer', 'name' => 'Archer', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'archer-dedication', 'name' => 'Archer Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        'benefit' => 'Become Trained in all simple and martial bows.',
+        'grants' => ['weapon_training' => ['bows_simple', 'bows_martial']],
+        'special' => [
+          // Bow proficiency scales at the same levels as class weapon proficiency.
+          'bow_proficiency_scales_with_class' => TRUE,
+          // When Expert in a bow, gain its crit specialization.
+          'expert_bow_crit_specialization' => TRUE,
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'assassin' => [
+      'id' => 'assassin', 'name' => 'Assassin', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'assassin-dedication', 'name' => 'Assassin Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Stealth',
+        'benefit' => 'Gain Mark for Death (3-action); +2 circumstance to Seek/Feint vs. mark; agile/finesse/unarmed attacks vs. mark gain backstabber + deadly d6 (or upgrade existing deadly die).',
+        'grants' => [
+          'mark_for_death' => [
+            'action_cost' => 3,
+            'max_marks'   => 1,
+          ],
+        ],
+        'special' => [
+          'mark_bonus_seek_feint'       => ['type' => 'circumstance', 'value' => 2],
+          'mark_weapon_bonus'           => [
+            'apply_to_traits' => ['agile', 'finesse', 'unarmed'],
+            'grants_backstabber' => TRUE,
+            'grants_deadly'      => 'd6',
+            'deadly_upgrade_if_existing' => TRUE,
+          ],
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'bastion' => [
+      'id' => 'bastion', 'name' => 'Bastion', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'bastion-dedication', 'name' => 'Bastion Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in light or heavy armor',
+        'benefit' => 'Gain the Reactive Shield fighter feat; satisfies Reactive Shield prerequisites.',
+        'grants' => ['feat' => 'reactive-shield'],
+        'special' => ['satisfies_reactive_shield_prereqs' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'cavalier' => [
+      'id' => 'cavalier', 'name' => 'Cavalier', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'cavalier-dedication', 'name' => 'Cavalier Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        'benefit' => 'Gain mount training; mount-based combat bonuses per feat chain.',
+        'special' => [
+          // Requires a mount to be present at time of mounted actions.
+          'requires_mount'       => TRUE,
+          'mount_dependency_flag' => 'mount_system_required',
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'dragon-disciple' => [
+      'id' => 'dragon-disciple', 'name' => 'Dragon Disciple', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'dragon-disciple-dedication', 'name' => 'Dragon Disciple Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Sorcerer with draconic bloodline, or ability to cast spells',
+        'benefit' => 'Begin draconic transformation chain; breath weapon and physical dragon traits gained via feats.',
+        'special' => ['draconic_transformation_chain' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'dual-weapon-warrior' => [
+      'id' => 'dual-weapon-warrior', 'name' => 'Dual-Weapon Warrior', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'dual-weapon-warrior-dedication', 'name' => 'Dual-Weapon Warrior Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in all simple and martial weapons',
+        'benefit' => 'Gain dual weapon attack benefits; two-weapon fighting bonuses.',
+        'special' => ['dual_weapon_fighting' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'duelist' => [
+      'id' => 'duelist', 'name' => 'Duelist', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'duelist-dedication', 'name' => 'Duelist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Expert in a one-handed melee weapon',
+        'benefit' => 'Precise dueling bonuses with one-handed weapons.',
+        'special' => ['one_handed_weapon_focus' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'eldritch-archer' => [
+      'id' => 'eldritch-archer', 'name' => 'Eldritch Archer', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'eldritch-archer-dedication', 'name' => 'Eldritch Archer Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Expert in a bow; ability to cast spells',
+        'benefit' => 'Imbue arrows with spells; ranged spell delivery options.',
+        'special' => ['ranged_spell_delivery' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'gladiator' => [
+      'id' => 'gladiator', 'name' => 'Gladiator', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'gladiator-dedication', 'name' => 'Gladiator Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Performance',
+        'benefit' => 'Crowd-fighting bonuses; demoralize enhancements.',
+        'special' => ['demoralize_enhancement' => TRUE, 'crowd_fighting_bonuses' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'marshal' => [
+      'id' => 'marshal', 'name' => 'Marshal', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'marshal-dedication', 'name' => 'Marshal Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Diplomacy or Intimidation',
+        'benefit' => '1-action aura (10-ft emanation): choose on activation — allies gain +1 circumstance to attack rolls OR +1 status bonus to saves.',
+        'grants' => [
+          'marshal_aura' => [
+            'action_cost'  => 1,
+            'range'        => '10-ft emanation',
+            'choice_on_activation' => ['attack_circumstance_bonus' => 1, 'save_status_bonus' => 1],
+          ],
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'martial-artist' => [
+      'id' => 'martial-artist', 'name' => 'Martial Artist', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'martial-artist-dedication', 'name' => 'Martial Artist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in unarmed attacks',
+        'benefit' => 'Unarmed attack proficiency bump; ki spell options via feats.',
+        'grants' => ['unarmed_proficiency_bump' => 1],
+        'special' => ['ki_spell_options' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'mauler' => [
+      'id' => 'mauler', 'name' => 'Mauler', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'mauler-dedication', 'name' => 'Mauler Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in all simple and martial weapons',
+        'benefit' => 'Two-handed weapon focus; damage-focused feat chain.',
+        'special' => ['two_handed_weapon_focus' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'sentinel' => [
+      'id' => 'sentinel', 'name' => 'Sentinel', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'sentinel-dedication', 'name' => 'Sentinel Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        'benefit' => 'Become Trained in all armor including heavy; access heavy armor without prerequisites.',
+        'grants' => ['armor_training' => ['light', 'medium', 'heavy']],
+      ],
+      'feats' => [],
+    ],
+
+    'viking' => [
+      'id' => 'viking', 'name' => 'Viking', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'viking-dedication', 'name' => 'Viking Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in a shield',
+        'benefit' => 'Shield-focused abilities; brutal strike enhancements.',
+        'special' => ['shield_focus' => TRUE, 'brutal_strike_enhancement' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'weapon-improviser' => [
+      'id' => 'weapon-improviser', 'name' => 'Weapon Improviser', 'type' => 'martial',
+      'dedication' => [
+        'id' => 'weapon-improviser-dedication', 'name' => 'Weapon Improviser Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        'benefit' => 'Improvised weapon proficiency; improvised weapons gain additional traits.',
+        'grants' => ['improvised_weapon_proficiency' => 'trained'],
+        'special' => ['improvised_weapon_trait_bonus' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    // ─── Skill / Social ───────────────────────────────────────────────────────
+
+    'archaeologist' => [
+      'id' => 'archaeologist', 'name' => 'Archaeologist', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'archaeologist-dedication', 'name' => 'Archaeologist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Society and Thievery',
+        'benefit' => 'Become Expert in Society and Expert in Thievery; +1 circumstance to Recall Knowledge on ancient or historical subjects.',
+        'grants' => [
+          'society_proficiency'  => 'expert',
+          'thievery_proficiency' => 'expert',
+        ],
+        'special' => [
+          'recall_knowledge_bonus' => [
+            'type'   => 'circumstance',
+            'value'  => 1,
+            'filter' => ['ancient', 'historical'],
+          ],
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'bounty-hunter' => [
+      'id' => 'bounty-hunter', 'name' => 'Bounty Hunter', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'bounty-hunter-dedication', 'name' => 'Bounty Hunter Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Survival',
+        'benefit' => 'Gain Hunt Prey (Ranger feature restricted to known creatures); +2 circumstance to Gather Information about prey.',
+        'grants' => ['feat' => 'hunt-prey'],
+        'special' => [
+          'hunt_prey_target_must_be_known' => TRUE,
+          'gather_information_prey_bonus'  => ['type' => 'circumstance', 'value' => 2],
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'celebrity' => [
+      'id' => 'celebrity', 'name' => 'Celebrity', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'celebrity-dedication', 'name' => 'Celebrity Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Expert in Performance',
+        'benefit' => 'Fame/recognition mechanics; Perform-based social benefits.',
+        'special' => ['performance_social_benefits' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'dandy' => [
+      'id' => 'dandy', 'name' => 'Dandy', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'dandy-dedication', 'name' => 'Dandy Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Society',
+        'benefit' => 'Social manipulation; bonuses to Make an Impression.',
+        'special' => ['make_an_impression_bonus' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'horizon-walker' => [
+      'id' => 'horizon-walker', 'name' => 'Horizon Walker', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'horizon-walker-dedication', 'name' => 'Horizon Walker Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Survival',
+        'benefit' => 'Terrain movement bonuses; Trackless Step options via feats.',
+        'special' => ['terrain_movement_bonuses' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'linguist' => [
+      'id' => 'linguist', 'name' => 'Linguist', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'linguist-dedication', 'name' => 'Linguist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Society',
+        'benefit' => 'Gain 2 bonus languages; accelerated language learning.',
+        'grants' => ['bonus_languages' => 2],
+        'special' => ['accelerated_language_learning' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'loremaster' => [
+      'id' => 'loremaster', 'name' => 'Loremaster', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'loremaster-dedication', 'name' => 'Loremaster Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in two or more Lore skills',
+        'benefit' => 'Recall Knowledge bonuses; secret lore access via feats.',
+        'special' => ['recall_knowledge_bonuses' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'pirate' => [
+      'id' => 'pirate', 'name' => 'Pirate', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'pirate-dedication', 'name' => 'Pirate Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Athletics and Intimidation',
+        'benefit' => 'Ship combat bonuses; nautical action access.',
+        'special' => ['nautical_actions' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'scout' => [
+      'id' => 'scout', 'name' => 'Scout', 'type' => 'skill',
+      'dedication' => [
+        'id' => 'scout-dedication', 'name' => 'Scout Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Stealth and Survival',
+        'benefit' => '+2 circumstance to initiative when using Stealth; Avoid Notice enhancements.',
+        'grants' => [
+          'initiative_stealth_bonus' => ['type' => 'circumstance', 'value' => 2],
+        ],
+        'special' => ['avoid_notice_enhancement' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    // ─── Magic / Hybrid ───────────────────────────────────────────────────────
+
+    'beastmaster' => [
+      'id' => 'beastmaster', 'name' => 'Beastmaster', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'beastmaster-dedication', 'name' => 'Beastmaster Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        'benefit' => 'Gain a young animal companion; stackable with existing companion. Gain Call Companion 1-action (switch active companion; available only with ≥2 companions). Cha-based primal focus pool (1 FP); Refocus by tending companion.',
+        'grants' => [
+          'animal_companion' => ['type' => 'young'],
+          'focus_pool'       => ['size' => 1, 'tradition' => 'primal', 'ability' => 'cha'],
+        ],
+        'special' => [
+          'call_companion' => [
+            'action_cost'       => 1,
+            'requires_companions' => 2,
+          ],
+          'refocus_method' => 'tend_companion',
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'blessed-one' => [
+      'id' => 'blessed-one', 'name' => 'Blessed One', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'blessed-one-dedication', 'name' => 'Blessed One Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        // Available to ALL classes — not gated behind divine spellcasting.
+        'all_classes' => TRUE,
+        'benefit' => 'Gain Lay on Hands (divine devotion spell); creates focus pool of 1 FP. Refocus via 10-min meditation.',
+        'grants' => [
+          'devotion_spell' => 'lay-on-hands',
+          'focus_pool'     => ['size' => 1, 'tradition' => 'divine'],
+        ],
+        'special' => ['refocus_method' => '10_min_meditation'],
+      ],
+      'feats' => [],
+    ],
+
+    'familiar-master' => [
+      'id' => 'familiar-master', 'name' => 'Familiar Master', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'familiar-master-dedication', 'name' => 'Familiar Master Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => '',
+        'benefit' => 'Gain a familiar even without a class that normally grants one; uses standard familiar rules.',
+        'grants' => ['familiar' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'herbalist' => [
+      'id' => 'herbalist', 'name' => 'Herbalist', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'herbalist-dedication', 'name' => 'Herbalist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Nature',
+        'benefit' => 'Advanced healing items; herbal preparation actions.',
+        'special' => ['herbal_preparation' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'medic' => [
+      'id' => 'medic', 'name' => 'Medic', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'medic-dedication', 'name' => 'Medic Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Medicine',
+        'benefit' => 'Battle Medicine improvements; expanded healing feat chain.',
+        'special' => ['battle_medicine_enhancement' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'poisoner' => [
+      'id' => 'poisoner', 'name' => 'Poisoner', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'poisoner-dedication', 'name' => 'Poisoner Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Crafting',
+        'benefit' => 'Poison application improvements; poison DC scaling.',
+        'special' => ['poison_dc_scaling' => TRUE, 'poison_application_improvement' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'ritualist' => [
+      'id' => 'ritualist', 'name' => 'Ritualist', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'ritualist-dedication', 'name' => 'Ritualist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in one of the skills used for rituals',
+        'benefit' => 'Cast rituals without class spellcasting; ritual casting modifier uses a chosen skill.',
+        'special' => [
+          // Character does not need class spellcasting to perform rituals.
+          'no_spellcasting_required' => TRUE,
+          'ritual_modifier_skill'    => 'player_choice',
+        ],
+      ],
+      'feats' => [],
+    ],
+
+    'scroll-trickster' => [
+      'id' => 'scroll-trickster', 'name' => 'Scroll Trickster', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'scroll-trickster-dedication', 'name' => 'Scroll Trickster Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Arcana, Nature, Occultism, or Religion',
+        'benefit' => 'Use Magic Item for scrolls without tradition match; improvised spellcasting.',
+        'special' => ['scroll_tradition_mismatch_allowed' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'scrounger' => [
+      'id' => 'scrounger', 'name' => 'Scrounger', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'scrounger-dedication', 'name' => 'Scrounger Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Crafting',
+        'benefit' => 'Improvised item creation from found materials; Craft without kits.',
+        'special' => ['craft_without_kit' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'shadowdancer' => [
+      'id' => 'shadowdancer', 'name' => 'Shadowdancer', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'shadowdancer-dedication', 'name' => 'Shadowdancer Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Master in Stealth, trained in Performance and Acrobatics',
+        'benefit' => 'Shadow jump/teleport options; shadow-based stealth bonuses.',
+        'special' => ['shadow_teleport' => TRUE, 'shadow_stealth_bonus' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'snarecrafter' => [
+      'id' => 'snarecrafter', 'name' => 'Snarecrafter', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'snarecrafter-dedication', 'name' => 'Snarecrafter Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Crafting',
+        'benefit' => 'Snare crafting time reduction; snare feat access.',
+        'special' => ['snare_craft_time_reduction' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'talisman-dabbler' => [
+      'id' => 'talisman-dabbler', 'name' => 'Talisman Dabbler', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'talisman-dabbler-dedication', 'name' => 'Talisman Dabbler Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Occultism or Arcana',
+        'benefit' => 'Attach talismans faster; affix without proficiency restrictions.',
+        'special' => ['talisman_affix_without_proficiency' => TRUE, 'talisman_attach_speed' => TRUE],
+      ],
+      'feats' => [],
+    ],
+
+    'vigilante' => [
+      'id' => 'vigilante', 'name' => 'Vigilante', 'type' => 'magic',
+      'dedication' => [
+        'id' => 'vigilante-dedication', 'name' => 'Vigilante Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication'],
+        'prerequisites' => 'Trained in Deception',
+        'benefit' => 'Dual identity mechanics (social/vigilante personas); Perception-based identity protection.',
+        'special' => [
+          'dual_identity'              => TRUE,
+          'identity_protection'        => ['check' => 'Perception', 'mode' => 'opposed'],
+          'social_persona_maintained'  => TRUE,
+        ],
+      ],
+      'feats' => [],
+    ],
+
+  ];
+
+  /**
+   * Archetype system rules (enforced at character creation / feat selection).
+   *
+   * These are referenced by the character builder when evaluating feat choices.
+   */
+  const ARCHETYPE_RULES = [
+    // Dedication feats are class feats selected at L2+.
+    'dedication_min_level'         => 2,
+    'dedication_uses_class_feat'   => TRUE,
+    // Must take 2 feats from an archetype before a second Dedication from it.
+    'two_before_another_dedication' => TRUE,
+    // Proficiency grants from Dedication feats are capped at class maximums.
+    'proficiency_capped_by_class'  => TRUE,
+  ];
+
+  /**
    * PF2e General Feats (Level 1).
    * Available to all characters at 1st level.
    */
