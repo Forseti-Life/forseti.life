@@ -586,6 +586,26 @@
                 "STAGE 0 PENDING: Dev must complete refactor; Playwright infra gap must be resolved."
             ],
             "required_for_release": true
+        },
+        {
+            "id": "forseti-jobhunter-profile-refactor-static",
+            "label": "Profile refactor \u2014 TC-01..TC-06: subform files exist, UserProfileForm delegates, CSRF intact on delete_resume, line count reduced, PHP lint clean",
+            "type": "unit",
+            "feature_id": "forseti-jobhunter-profile-refactor",
+            "command": "bash -c 'set -e; BASE=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter; echo \"TC-01 EducationHistorySubform exists:\"; ls \"$BASE/src/Form/Subform/EducationHistorySubform.php\" && echo PASS || (echo FAIL && exit 1); echo \"TC-02 ResumeUploadSubform exists:\"; ls \"$BASE/src/Form/Subform/ResumeUploadSubform.php\" && echo PASS || (echo FAIL && exit 1); echo \"TC-03 delegation refs:\"; COUNT=$(grep -c \"EducationHistorySubform\\\\|ResumeUploadSubform\" \"$BASE/src/Form/UserProfileForm.php\"); [ \"$COUNT\" -ge 2 ] && echo \"PASS: $COUNT refs\" || (echo \"FAIL: only $COUNT refs\" && exit 1); echo \"TC-04 CSRF intact on delete_resume:\"; grep -A6 \"job_hunter.delete_resume:\" \"$BASE/job_hunter.routing.yml\" | grep -q \"methods: \\[POST\\]\" && grep -A6 \"job_hunter.delete_resume:\" \"$BASE/job_hunter.routing.yml\" | grep -q \"_csrf_token.*TRUE\" && echo PASS || (echo \"FAIL: CSRF regressed\" && exit 1); echo \"TC-05 line count reduced below 7425:\"; LC=$(wc -l < \"$BASE/src/Form/UserProfileForm.php\"); [ \"$LC\" -lt 7425 ] && echo \"PASS: $LC lines\" || (echo \"FAIL: $LC lines (not reduced)\" && exit 1); echo \"TC-06 PHP lint:\"; php -l \"$BASE/src/Form/UserProfileForm.php\" && php -l \"$BASE/src/Form/Subform/EducationHistorySubform.php\" && php -l \"$BASE/src/Form/Subform/ResumeUploadSubform.php\"'",
+            "artifacts": [
+                "sessions/qa-forseti/artifacts/forseti-jobhunter-profile-refactor/static-checks.log"
+            ],
+            "run_notes": [
+                "TC-01..TC-06: pure static checks \u2014 all runnable once Dev creates Subform/ directory and subform classes.",
+                "STAGE 0 PENDING: Dev must create src/Form/Subform/EducationHistorySubform.php and ResumeUploadSubform.php.",
+                "TC-04 CSRF regression is the highest-priority check: delete_resume must retain methods:[POST] + _csrf_token:'TRUE' (release-c fix 871cda11f must hold).",
+                "TC-05 line count: baseline is 7425. Any result >= 7425 after refactor is a FAIL.",
+                "TC-07 (profile page render / form interaction) deferred \u2014 Playwright/Node absent on host. PM risk-acceptance required at ship time.",
+                "TC-08 regression: re-run existing forseti-jobhunter-profile-e2e suite entry.",
+                "TC-09 regression: re-run ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh."
+            ],
+            "required_for_release": true
         }
     ],
     "_schema_notes": [
