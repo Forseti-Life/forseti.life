@@ -396,4 +396,93 @@ class RequirementsImportCommands extends DrushCommands {
     $this->logger()->success("Updated {$updated} requirement(s) to status '{$new_status}'.");
   }
 
+  /**
+   * Set the feature_id coverage tag on matching requirements.
+   *
+   * Provides machine-verifiable linkage between requirements and the feature
+   * files that plan to implement them. Filters by book/chapter/section.
+   * Leave feature-id blank to clear the mapping.
+   *
+   * @command dungeoncrawler:roadmap-set-feature
+   * @aliases dc-roadmap-feature
+   * @option book Filter by book_id (e.g. core, apg, b1). Repeatable.
+   * @option chapter Filter by chapter_key (e.g. ch09, s02). Repeatable.
+   * @option section Filter by section name (exact match). Repeatable.
+   * @option feature-id Feature work-item ID to set (e.g. dc-cr-class-alchemist). Required.
+   * @option dry-run Show what would be updated without making changes.
+   * @usage dungeoncrawler:roadmap-set-feature --book=core --chapter=ch09 --section="Range and Reach" --feature-id=dc-cr-encounter-rules
+   *   Tag all Core ch09 Range and Reach requirements with the encounter-rules feature.
+   * @usage dungeoncrawler:roadmap-set-feature --book=core --chapter=ch03 --section="Alchemist" --feature-id=dc-cr-class-alchemist
+   *   Tag all Core ch03 Alchemist requirements with the alchemist feature.
+   */
+  public function roadmapSetFeature(
+    array $options = [
+      'book'       => [],
+      'chapter'    => [],
+      'section'    => [],
+      'feature-id' => '',
+      'dry-run'    => FALSE,
+    ]
+  ): void {
+    $feature_id = trim($options['feature-id'] ?? '');
+
+    if ($feature_id === '' && !$options['dry-run']) {
+      $this->logger()->error('--feature-id is required (or pass empty string to clear). Use --dry-run to preview.');
+      return;
+    }
+
+    // Require at least one filter to prevent accidental bulk overwrites.
+    if (empty($options['book']) && empty($options['chapter']) && empty($options['section'])) {
+      $this->logger()->error('At least one of --book, --chapter, or --section is required.');
+      return;
+    }
+
+    $query = $this->database->select('dc_requirements', 'r')
+      ->fields('r', ['id', 'book_id', 'chapter_key', 'section', 'feature_id']);
+
+    if (!empty($options['book'])) {
+      $books = is_array($options['book']) ? $options['book'] : [$options['book']];
+      $query->condition('book_id', $books, 'IN');
+    }
+    if (!empty($options['chapter'])) {
+      $chapters = is_array($options['chapter']) ? $options['chapter'] : [$options['chapter']];
+      $query->condition('chapter_key', $chapters, 'IN');
+    }
+    if (!empty($options['section'])) {
+      $sections = is_array($options['section']) ? $options['section'] : [$options['section']];
+      $query->condition('section', $sections, 'IN');
+    }
+
+    $rows = $query->execute()->fetchAll();
+
+    if (empty($rows)) {
+      $this->logger()->warning('No requirements matched the given filters.');
+      return;
+    }
+
+    $this->logger()->info(count($rows) . " requirement(s) matched.");
+    foreach ($rows as $row) {
+      $old = $row->feature_id ?: '(none)';
+      $new = $feature_id ?: '(cleared)';
+      $this->logger()->info("  [{$row->book_id}/{$row->chapter_key}] {$row->section} — feature_id: {$old} → {$new}");
+    }
+
+    if ($options['dry-run']) {
+      $this->logger()->info('Dry-run mode — no changes made.');
+      return;
+    }
+
+    $ids = array_column($rows, 'id');
+    $updated = $this->database->update('dc_requirements')
+      ->fields([
+        'feature_id' => $feature_id,
+        'updated_at' => time(),
+        'updated_by' => 0,
+      ])
+      ->condition('id', $ids, 'IN')
+      ->execute();
+
+    $this->logger()->success("Set feature_id='{$feature_id}' on {$updated} requirement(s).");
+  }
+
 }

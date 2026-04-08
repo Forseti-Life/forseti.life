@@ -537,16 +537,77 @@ final class LangGraphConsoleStubController extends ControllerBase {
   }
 
   /**
-   * Admin page.
+   * Admin page — configuration and platform controls.
    */
   public function admin(): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+
+    $hq_root    = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
+    $ticks_path = $this->hqPath(self::TICKS_RELATIVE);
+    $par_path   = $this->hqPath(self::PARITY_RELATIVE);
+    $dry_run    = isset($tick['dry_run']) ? (bool) $tick['dry_run'] : NULL;
+    $pub_en     = isset($tick['publish_enabled']) ? (bool) $tick['publish_enabled'] : NULL;
+    $agent_cap  = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : NULL;
+    $provider   = (string) ($tick['provider'] ?? '—');
+    $ts         = (string) ($tick['ts'] ?? '');
+    $par_ts     = (string) ($parity['generated_at'] ?? '');
+
+    // Tick file stats.
+    $tick_lines = 0;
+    if (is_readable($ticks_path)) {
+      $lines = @file($ticks_path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
+      $tick_lines = is_array($lines) ? count($lines) : 0;
+    }
+
+    $config_rows = [
+      [$this->t('COPILOT_HQ_ROOT'), $hq_root, $this->t('Runtime env var (falls back to /home/ubuntu/forseti.life/copilot-hq)')],
+      [$this->t('Provider'), $provider, $this->t('Agent execution provider')],
+      [$this->t('Agent cap'), $agent_cap !== NULL ? (string) $agent_cap : '—', $this->t('Max agents executed per tick')],
+      [$this->t('Mode'), $dry_run === NULL ? '—' : ($dry_run ? 'dry-run' : 'live'), $this->t('dry_run=true means no writes')],
+      [$this->t('Publish enabled'), $pub_en === NULL ? '—' : ($pub_en ? 'yes' : 'no'), $this->t('Controls bash scripts/publish-forseti-agent-tracker.sh')],
+    ];
+
+    $file_rows = [
+      [$this->t('Ticks JSONL'), $ticks_path, is_readable($ticks_path) ? $this->t('@n lines', ['@n' => $tick_lines]) : $this->t('not readable')],
+      [$this->t('Parity JSON'), $par_path, is_readable($par_path) ? $this->t('readable') : $this->t('not readable')],
+      [$this->t('Feature Progress'), $this->hqPath(self::FEATURE_PROGRESS), is_readable($this->hqPath(self::FEATURE_PROGRESS)) ? $this->t('readable') : $this->t('not readable')],
+      [$this->t('Last tick timestamp'), $this->fmtTs($ts), ''],
+      [$this->t('Last parity check'), $this->fmtTs($par_ts), ''],
+    ];
+
     $sections = $this->sectionMap();
-    $page = $sections['admin'];
-    return $this->buildPage(
-      (string) $page['title'],
-      (string) $page['description'],
-      $this->buildSectionRows('admin', (array) $page['subsections'])
-    );
+    $nav = $this->buildSectionRows('admin', (array) $sections['admin']['subsections']);
+
+    return [
+      '#type'  => 'container',
+      '#cache' => ['max-age' => 0],
+      'title'  => ['#markup' => '<h2>' . $this->t('Admin') . '</h2>'],
+
+      'config_header' => ['#markup' => '<h3>' . $this->t('Runtime Configuration') . '</h3>'],
+      'config_table'  => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Setting'), $this->t('Value'), $this->t('Notes')],
+        '#rows'   => $config_rows,
+      ],
+
+      'files_header' => ['#markup' => '<h3>' . $this->t('Data Files') . '</h3>'],
+      'files_table'  => [
+        '#type'   => 'table',
+        '#header' => [$this->t('File'), $this->t('Path'), $this->t('Status')],
+        '#rows'   => $file_rows,
+      ],
+
+      'nav' => [
+        '#type'  => 'details',
+        '#title' => $this->t('Subsections'),
+        '#open'  => FALSE,
+        'table'  => [
+          '#type'   => 'table',
+          '#header' => [$this->t('Subsection'), $this->t('Frame'), $this->t('Status')],
+          '#rows'   => $nav,
+        ],
+      ],
+    ];
   }
 
   /**
@@ -586,6 +647,14 @@ final class LangGraphConsoleStubController extends ControllerBase {
       'observe/runtime-metrics' => $this->subObserveRuntimeMetrics($sub_info, $back),
       'observe/drift-anomalies' => $this->subObserveDriftAnomalies($sub_info, $back),
       'observe/alerts-incidents' => $this->subObserveAlertsIncidents($sub_info, $back),
+      'build/state-schema'    => $this->subBuildStateSchema($sub_info, $back),
+      'build/nodes-routing'   => $this->subBuildNodesRouting($sub_info, $back),
+      'test/path-scenarios'   => $this->subTestPathScenarios($sub_info, $back),
+      'test/eval-scorecards'  => $this->subTestEvalScorecards($sub_info, $back),
+      'release/graph-versions' => $this->subReleaseGraphVersions($sub_info, $back),
+      'release/promotion-flow' => $this->subReleasePromotionFlow($sub_info, $back),
+      'admin/identity-rbac'   => $this->subAdminConfig($sub_info, $back),
+      'admin/audit-change-log' => $this->subAdminAuditLog($sub_info, $back),
       default                 => $this->buildStubSubsection($section_info, $sub_info, $back),
     };
   }
@@ -954,6 +1023,331 @@ final class LangGraphConsoleStubController extends ControllerBase {
       ],
       'back' => $back,
     ];
+  }
+
+  // -------------------------------------------------------------------------
+  // Build subsections (live from engine.py)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subBuildStateSchema(array $sub, array $back): array {
+    // LangGraphDeps fields — static from dataclass definition in engine.py.
+    $fields = [
+      ['run_cmd',                'RunFn',               'Callable — execute a shell command and return (rc, output)'],
+      ['dispatch_commands_step', 'DispatchFn',          'Callable — process and dispatch pending inbox commands'],
+      ['release_cycle_step',     'ReleaseCycleFn',      'Callable — advance release cycle state for each team'],
+      ['coordinated_push_step',  'CoordinatedPushFn',   'Callable — coordinate multi-team git push when all ready'],
+      ['prioritized_agents',     'PrioritizedAgentsFn', 'Callable — return ordered list of agents to run this tick'],
+      ['health_check_step',      'HealthCheckFn',       'Callable — remediate idle/blocked agents'],
+      ['now_ts',                 'NowTsFn',             'Callable — return current Unix timestamp (int)'],
+      ['kpi_monitor_cmd',        'List[str]',           'Shell command to run KPI monitoring script'],
+    ];
+    $rows = array_map(fn($f) => $f, $fields);
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Source: orchestrator/runtime_graph/engine.py — @dataclass(frozen=True) LangGraphDeps') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Field'), $this->t('Type'), $this->t('Description')],
+        '#rows'   => $rows,
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subBuildNodesRouting(array $sub, array $back): array {
+    $nodes = $this->parseEngineNodes();
+    $edges = $this->parseEngineEdges();
+
+    $node_rows = array_map(fn($n, $i) => [(string) ($i + 1), $n], $nodes, array_keys($nodes));
+    $edge_rows = array_map(fn($e) => [$e['from'], '→', $e['to']], $edges);
+
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note'   => ['#markup' => '<p><em>' . $this->t('Parsed from orchestrator/runtime_graph/engine.py at request time.') . '</em></p>'],
+      'n_head' => ['#markup' => '<h4>' . $this->t('Nodes') . '</h4>'],
+      'n_tbl'  => [
+        '#type'   => 'table',
+        '#header' => [$this->t('#'), $this->t('Node name')],
+        '#rows'   => $node_rows,
+        '#empty'  => $this->t('Could not parse.'),
+      ],
+      'e_head' => ['#markup' => '<h4>' . $this->t('Edges (sequential pipeline)') . '</h4>'],
+      'e_tbl'  => [
+        '#type'   => 'table',
+        '#header' => [$this->t('From'), $this->t(''), $this->t('To')],
+        '#rows'   => $edge_rows,
+        '#empty'  => $this->t('Could not parse.'),
+      ],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Test subsections (feature progress data)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subTestPathScenarios(array $sub, array $back): array {
+    $stats = $this->featureProgressStats();
+    $by_status = $stats['by_status'] ?? [];
+    $total = array_sum($by_status);
+    $done  = (int) ($by_status['done'] ?? 0) + (int) ($by_status['shipped'] ?? 0);
+    $ip    = (int) ($by_status['in_progress'] ?? 0);
+    $ready = (int) ($by_status['ready'] ?? 0);
+
+    $rows = [
+      [$this->t('Total features tracked'), (string) $total],
+      [$this->t('Done / shipped'), (string) $done . ' (' . ($total > 0 ? round($done / $total * 100) : 0) . '%)'],
+      [$this->t('In progress'), (string) $ip],
+      [$this->t('Ready (groomed, not started)'), (string) $ready],
+      [$this->t('Deferred'), (string) ($by_status['deferred'] ?? 0)],
+    ];
+
+    // Show P0/P1 features in progress for forseti.life.
+    $p1_rows = [];
+    $features_dir = $this->hqPath('features');
+    foreach (glob("$features_dir/forseti-*/feature.md") ?: [] as $path) {
+      $content = (string) @file_get_contents($path);
+      if (preg_match('/^- Status:\s*(in_progress|ready)/m', $content) &&
+          preg_match('/^- Priority:\s*(P0|P1)/m', $content)) {
+        preg_match('/^# Feature Brief: (.+)$/m', $content, $m_name);
+        preg_match('/^- Status:\s*(.+)$/m', $content, $m_status);
+        preg_match('/^- Priority:\s*(.+)$/m', $content, $m_pri);
+        $p1_rows[] = [
+          trim($m_name[1] ?? basename(dirname($path))),
+          trim($m_status[1] ?? '?'),
+          trim($m_pri[1] ?? '?'),
+        ];
+      }
+    }
+
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'summary' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows'   => $rows,
+      ],
+      'p1_head' => ['#markup' => '<h4>' . $this->t('Active P0/P1 Features (forseti.life)') . '</h4>'],
+      'p1_tbl'  => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Feature'), $this->t('Status'), $this->t('Priority')],
+        '#rows'   => $p1_rows,
+        '#empty'  => $this->t('None active.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subTestEvalScorecards(array $sub, array $back): array {
+    $stats = $this->featureProgressStats();
+    $by_site = $stats['by_site'] ?? [];
+    $rows = array_map(
+      fn($site, $count) => [(string) $site, (string) $count],
+      array_keys($by_site),
+      array_values($by_site)
+    );
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Eval scorecards (hallucination, task-success, tool-accuracy) require agent_evaluation module. Feature breakdown by site shown below.') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Website'), $this->t('Features tracked')],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No data.'),
+      ],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Release subsections (live release state)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subReleaseGraphVersions(array $sub, array $back): array {
+    $hq = $this->hqPath('tmp/release-cycle-active');
+    $rows = [];
+    foreach (['forseti', 'dungeoncrawler'] as $team) {
+      $r_id  = is_readable("$hq/$team.release_id") ? trim((string) file_get_contents("$hq/$team.release_id")) : '—';
+      $n_id  = is_readable("$hq/$team.next_release_id") ? trim((string) file_get_contents("$hq/$team.next_release_id")) : '—';
+      $start = is_readable("$hq/$team.started_at") ? trim((string) file_get_contents("$hq/$team.started_at")) : '';
+      $rows[] = [$team, $r_id, $n_id, $this->fmtTs($start)];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Active release IDs from tmp/release-cycle-active/ (runtime state, gitignored).') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Team'), $this->t('Current Release ID'), $this->t('Next Release ID'), $this->t('Started')],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No release state.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subReleasePromotionFlow(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $push  = (array) ($tick['step_results']['coordinated_push'] ?? []);
+    $teams = (array) ($tick['step_results']['release_cycle']['teams'] ?? []);
+    $rows  = [];
+    foreach ($teams as $t) {
+      $rc    = isset($t['rc']) ? (int) $t['rc'] : 0;
+      $rows[] = [
+        (string) ($t['team'] ?? '?'),
+        (string) ($t['action'] ?? '—'),
+        (string) ($t['current'] ?? '—'),
+        ['data' => ['#markup' => $this->rcBadge($rc)]],
+      ];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'push_status' => ['#markup' => '<p><strong>' . $this->t('Coordinated push: @s', ['@s' => (string) ($push['status'] ?? '—')]) . '</strong></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Team'), $this->t('Action'), $this->t('Release'), $this->t('RC')],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No release cycle data.'),
+      ],
+      'notice' => ['#markup' => '<div class="messages messages--warning">' . $this->t('Manual promotion, canary controls, and rollback tooling require Board approval. See roadmap release-h.') . '</div>'],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Admin subsections (config data)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subAdminConfig(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $rows = [
+      [$this->t('COPILOT_HQ_ROOT'), rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/')],
+      [$this->t('Provider'), (string) ($tick['provider'] ?? '—')],
+      [$this->t('Agent cap'), isset($tick['agent_cap']) ? (string) $tick['agent_cap'] : '—'],
+      [$this->t('Mode'), isset($tick['dry_run']) ? ((bool) $tick['dry_run'] ? 'dry-run' : 'live') : '—'],
+      [$this->t('Publish enabled'), isset($tick['publish_enabled']) ? ((bool) $tick['publish_enabled'] ? 'yes' : 'no') : '—'],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Setting'), $this->t('Value')],
+        '#rows'   => $rows,
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subAdminAuditLog(array $sub, array $back): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+    $rows = [
+      [$this->t('Last tick'), $this->fmtTs((string) ($tick['ts'] ?? '')), 'orchestrator', 'auto'],
+      [$this->t('Last parity check'), $this->fmtTs((string) ($parity['generated_at'] ?? '')), 'parity', 'auto'],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'note' => ['#markup' => '<p><em>' . $this->t('Full immutable audit log (Release-h scope) not yet implemented. Showing last automatic events.') . '</em></p>'],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [$this->t('Event'), $this->t('Timestamp'), $this->t('Source'), $this->t('Actor')],
+        '#rows'   => $rows,
+      ],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Engine.py parsing helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Parse add_node() calls from engine.py.
+   *
+   * @return list<string>
+   */
+  private function parseEngineNodes(): array {
+    $path = $this->hqPath('orchestrator/runtime_graph/engine.py');
+    if (!is_readable($path)) {
+      return [];
+    }
+    $content = (string) file_get_contents($path);
+    preg_match_all('/graph\.add_node\(\s*["\']([^"\']+)["\']/', $content, $m);
+    return $m[1] ?? [];
+  }
+
+  /**
+   * Parse add_edge() calls from engine.py.
+   *
+   * @return list<array{from: string, to: string}>
+   */
+  private function parseEngineEdges(): array {
+    $path = $this->hqPath('orchestrator/runtime_graph/engine.py');
+    if (!is_readable($path)) {
+      return [];
+    }
+    $content = (string) file_get_contents($path);
+    preg_match_all('/graph\.add_edge\(\s*["\']([^"\']+)["\'],\s*["\']([^"\']+)["\']/', $content, $m);
+    $edges = [];
+    for ($i = 0; $i < count($m[1]); $i++) {
+      $edges[] = ['from' => $m[1][$i], 'to' => $m[2][$i]];
+    }
+    return $edges;
+  }
+
+  // -------------------------------------------------------------------------
+  // FEATURE_PROGRESS.md parsing helper
+  // -------------------------------------------------------------------------
+
+  /**
+   * Parse FEATURE_PROGRESS.md and return aggregated stats.
+   *
+   * @return array{by_status: array<string,int>, by_site: array<string,int>, by_priority: array<string,int>}
+   */
+  private function featureProgressStats(): array {
+    $path = $this->hqPath(self::FEATURE_PROGRESS);
+    if (!is_readable($path)) {
+      return ['by_status' => [], 'by_site' => [], 'by_priority' => []];
+    }
+    $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+
+    $by_status   = [];
+    $by_site     = [];
+    $by_priority = [];
+    $in_table    = FALSE;
+
+    foreach ($lines as $line) {
+      $line = trim($line);
+      // Detect markdown table header with expected columns.
+      if (str_contains($line, '| Work item |') || str_contains($line, '|-----------|')) {
+        $in_table = TRUE;
+        continue;
+      }
+      if (!$in_table || !str_starts_with($line, '|')) {
+        if ($in_table && $line === '') {
+          $in_table = FALSE;
+        }
+        continue;
+      }
+      $cols = array_map('trim', explode('|', $line));
+      // Remove empty leading/trailing from pipe split.
+      $cols = array_values(array_filter($cols, fn($c) => $c !== ''));
+      // | Work item | Website | Module | Status | Priority | PM | Dev | QA |
+      //      0           1        2        3        4        5    6    7
+      if (count($cols) < 5) {
+        continue;
+      }
+      $status   = strtolower((string) $cols[3]);
+      $site     = (string) $cols[1];
+      $priority = (string) $cols[4];
+      // Normalise priority to just first token (P0, P1, etc.).
+      if (preg_match('/^(P\d|high|medium|low|unset)/i', $priority, $pm)) {
+        $priority = strtolower($pm[1]);
+      }
+      else {
+        $priority = 'other';
+      }
+      $by_status[$status]   = ($by_status[$status] ?? 0) + 1;
+      $by_site[$site]       = ($by_site[$site] ?? 0) + 1;
+      $by_priority[$priority] = ($by_priority[$priority] ?? 0) + 1;
+    }
+
+    // Sort by count desc.
+    arsort($by_status);
+    arsort($by_site);
+    arsort($by_priority);
+
+    return ['by_status' => $by_status, 'by_site' => $by_site, 'by_priority' => $by_priority];
   }
 
   /**
