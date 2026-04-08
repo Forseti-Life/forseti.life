@@ -210,6 +210,9 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'swim',
       'trip',
       'disarm',
+      // REQ 1688–1694: Medicine skill actions (encounter-phase).
+      'administer_first_aid',
+      'treat_poison',
     ];
   }
 
@@ -1300,6 +1303,95 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
         $result = ['disarmed' => $item_dropped, 'grip_weakened' => $grip_weakened, 'degree' => $degree_di, 'attacker_flat_footed' => $attacker_flat_footed, 'd20' => $d20_di, 'total' => $total_di];
         $events[] = GameEventLogger::buildEvent('disarm', 'encounter', $actor_id, ['degree' => $degree_di, 'item_dropped' => $item_dropped, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1688–1692: Administer First Aid [2 actions, Manipulation, Trained]
+      // -----------------------------------------------------------------------
+      case 'administer_first_aid': {
+        $enc_afa = $this->encounterStore->loadEncounter($encounter_id);
+        $actor_ptcp_afa = $enc_afa ? $this->findEncounterParticipantByEntityId($enc_afa, $actor_id) : NULL;
+        $target_ptcp_afa = ($enc_afa && $target_id) ? $this->findEncounterParticipantByEntityId($enc_afa, $target_id) : NULL;
+
+        // REQ 1688: Trained Medicine required.
+        $med_rank_afa = (int) ($params['medicine_proficiency_rank'] ?? 0);
+        if ($med_rank_afa < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Administer First Aid requires Trained Medicine.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // REQ 1688: Healer's tools required (improvised = -2 penalty).
+        if (empty($params['has_healers_tools'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Administer First Aid requires healer\'s tools.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $tools_penalty_afa = !empty($params['is_improvised_tools']) ? -2 : 0;
+
+        // REQ 1692: Once per round per condition per target.
+        $mode_afa = $params['mode'] ?? 'stabilize';
+        if (!in_array($mode_afa, ['stabilize', 'stop_bleeding'], TRUE)) {
+          return ['success' => FALSE, 'result' => ['error' => "Unknown First Aid mode '{$mode_afa}'. Use 'stabilize' or 'stop_bleeding'."], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $fa_used_key = $target_id . ':' . $mode_afa;
+        $current_round_afa = $game_state['round'] ?? 0;
+        if (isset($game_state['first_aid_used'][$fa_used_key]) && $game_state['first_aid_used'][$fa_used_key] === $current_round_afa) {
+          return ['success' => FALSE, 'result' => ['error' => 'Cannot Administer First Aid on the same condition and target twice in the same round.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $med_bonus_afa = (int) ($params['medicine_bonus'] ?? 0);
+        $d20_afa = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_afa = $d20_afa + $med_bonus_afa + $tools_penalty_afa;
+
+        $afa_result = $this->processAdministerFirstAid(
+          $target_ptcp_afa,
+          $actor_ptcp_afa,
+          $mode_afa,
+          $total_afa,
+          $d20_afa,
+          $params,
+          $encounter_id
+        );
+
+        $game_state['first_aid_used'][$fa_used_key] = $current_round_afa;
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = array_merge($afa_result, ['d20' => $d20_afa, 'total' => $total_afa, 'mode' => $mode_afa, 'tools_penalty' => $tools_penalty_afa]);
+        $events[] = GameEventLogger::buildEvent('administer_first_aid', 'encounter', $actor_id, ['mode' => $mode_afa, 'degree' => $afa_result['degree'] ?? NULL, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1695–1698: Treat Poison [1 action, Manipulation, Trained]
+      // -----------------------------------------------------------------------
+      case 'treat_poison': {
+        // REQ 1695: Trained Medicine required.
+        $med_rank_tp = (int) ($params['medicine_proficiency_rank'] ?? 0);
+        if ($med_rank_tp < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Treat Poison requires Trained Medicine.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        // REQ 1695: Healer's tools required.
+        if (empty($params['has_healers_tools'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Treat Poison requires healer\'s tools.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        // REQ 1697: One attempt per creature per poison save.
+        $poison_key_tp = ($target_id ?? $actor_id) . ':poison';
+        if (!empty($game_state['poison_treated'][$poison_key_tp])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Can only treat one poison per save for this target.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $med_bonus_tp = (int) ($params['medicine_bonus'] ?? 0);
+        $poison_dc_tp = (int) ($params['poison_dc'] ?? 15);
+        $d20_tp = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_tp = $d20_tp + $med_bonus_tp;
+        $degree_tp = $this->combatCalculator->calculateDegreeOfSuccess($total_tp, $poison_dc_tp, $d20_tp);
+
+        $treated_tp = in_array($degree_tp, ['critical_success', 'success'], TRUE);
+        if ($treated_tp) {
+          // REQ 1696: Next poison save is one degree better.
+          $game_state['poison_treated'][$poison_key_tp] = TRUE;
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['treated' => $treated_tp, 'degree' => $degree_tp, 'd20' => $d20_tp, 'total' => $total_tp, 'dc' => $poison_dc_tp];
+        $events[] = GameEventLogger::buildEvent('treat_poison', 'encounter', $actor_id, ['degree' => $degree_tp, 'treated' => $treated_tp, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
         break;
       }
 
@@ -2778,6 +2870,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'swim':
       case 'trip':
       case 'disarm':
+      // REQ 1695: Treat Poison costs 1 action.
+      case 'treat_poison':
         return 1;
 
       case 'ready':
@@ -2786,6 +2880,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       // REQ 1632–1636, 1637–1640: High Jump / Long Jump are 2-action activities.
       case 'high_jump':
       case 'long_jump':
+      // REQ 1688: Administer First Aid costs 2 actions.
+      case 'administer_first_aid':
         return 2;
 
       case 'cast_spell':
@@ -3294,6 +3390,83 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'total' => $total,
       'mutations' => [],
     ];
+  }
+
+  /**
+   * Processes the Administer First Aid skill action result.
+   *
+   * REQ 1688–1693: Two modes — stabilize (removes dying) and stop_bleeding.
+   * DC is 15 + dying value for stabilize; bleeding DC for stop bleeding.
+   * Called AFTER the d20 roll and total are computed by the caller.
+   *
+   * @param array|null $target_ptcp   Encounter participant row for the target.
+   * @param array|null $actor_ptcp    Encounter participant row for the actor.
+   * @param string $mode              'stabilize' or 'stop_bleeding'.
+   * @param int $total                Final roll total (d20 + medicine + penalties).
+   * @param int $d20                  Raw d20 result (for crit detection).
+   * @param array $params             Intent params (bleeding_dc, etc.).
+   * @param int $encounter_id         Current encounter ID.
+   *
+   * @return array
+   *   Keys: degree, stabilized, bleeding_stopped, error (optional).
+   */
+  protected function processAdministerFirstAid(?array $target_ptcp, ?array $actor_ptcp, string $mode, int $total, int $d20, array $params, int $encounter_id): array {
+    if (!$target_ptcp) {
+      return ['error' => 'Target participant not found.', 'degree' => NULL];
+    }
+    $target_pid = (int) $target_ptcp['id'];
+
+    if ($mode === 'stabilize') {
+      // REQ 1690: Target must be dying.
+      $dying_value = $this->conditionManager->getConditionValue($target_pid, 'dying', $encounter_id);
+      if ($dying_value === NULL || $dying_value <= 0) {
+        return ['error' => 'Target is not dying; cannot stabilize.', 'degree' => NULL, 'stabilized' => FALSE];
+      }
+
+      // DC = 15 + dying value.
+      $dc = 15 + $dying_value;
+      $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+      if ($degree === 'critical_success' || $degree === 'success') {
+        // REQ 1688/1689: Remove dying condition; wounded +1 applied inside stabilizeCharacter.
+        $this->hpManager->stabilizeCharacter($target_pid, $encounter_id);
+        return ['degree' => $degree, 'stabilized' => TRUE, 'dc' => $dc, 'bleeding_stopped' => FALSE];
+      }
+      elseif ($degree === 'failure') {
+        // REQ 1691: Failure — dying decreases by 1 (partial improvement, no stabilize).
+        $this->conditionManager->decrementCondition($target_pid, 'dying', $encounter_id, 1);
+        return ['degree' => $degree, 'stabilized' => FALSE, 'dc' => $dc, 'bleeding_stopped' => FALSE];
+      }
+      else {
+        // REQ 1691: Critical failure — dying advances by 1.
+        $current_dying = $this->conditionManager->getConditionValue($target_pid, 'dying', $encounter_id) ?? $dying_value;
+        $this->conditionManager->applyCondition($target_pid, 'dying', $current_dying + 1, ['type' => 'persistent', 'remaining' => NULL], 'first_aid_crit_fail', $encounter_id);
+        return ['degree' => $degree, 'stabilized' => FALSE, 'dc' => $dc, 'bleeding_stopped' => FALSE];
+      }
+    }
+
+    // stop_bleeding mode.
+    $bleeding_dc = (int) ($params['bleeding_dc'] ?? 15);
+    $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, $bleeding_dc, $d20);
+
+    if ($degree === 'critical_success' || $degree === 'success') {
+      // REQ 1693: Remove persistent bleeding condition.
+      $active_conds = $this->conditionManager->getActiveConditions($target_pid, $encounter_id);
+      foreach ($active_conds as $cond) {
+        if ($cond['condition_type'] === 'persistent_bleed' || $cond['condition_type'] === 'bleeding') {
+          $this->conditionManager->removeCondition($target_pid, (int) $cond['id'], $encounter_id);
+        }
+      }
+      return ['degree' => $degree, 'stabilized' => FALSE, 'dc' => $bleeding_dc, 'bleeding_stopped' => TRUE];
+    }
+    elseif ($degree === 'critical_failure') {
+      // REQ 1693: Crit fail triggers immediate bleed damage (1d4 default).
+      $bleed_damage = $this->numberGenerationService->rollPathfinderDie(4);
+      $this->hpManager->applyDamage($target_pid, $bleed_damage, 'bleed', ['source' => 'first_aid_crit_fail'], $encounter_id);
+      return ['degree' => $degree, 'stabilized' => FALSE, 'dc' => $bleeding_dc, 'bleeding_stopped' => FALSE, 'bleed_damage' => $bleed_damage];
+    }
+
+    return ['degree' => $degree, 'stabilized' => FALSE, 'dc' => $bleeding_dc, 'bleeding_stopped' => FALSE];
   }
 
   /**

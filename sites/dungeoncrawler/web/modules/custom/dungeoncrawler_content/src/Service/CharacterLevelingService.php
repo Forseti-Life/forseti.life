@@ -307,6 +307,21 @@ class CharacterLevelingService {
     }
 
     $new_rank = ucfirst(self::RANK_ORDER[$rank_idx + 1]);
+
+    // Level ceiling enforcement (REQ 1555-1556).
+    // Expert → Master requires level ≥ 7; Master → Legendary requires level ≥ 15.
+    $char_level = (int) ($char_data['basicInfo']['level'] ?? $char_data['level'] ?? 1);
+    if ($new_rank === 'Master' && $char_level < 7) {
+      throw new \InvalidArgumentException(
+        "Cannot increase '{$skill}' to Master: requires level 7 (current level {$char_level})", 400
+      );
+    }
+    if ($new_rank === 'Legendary' && $char_level < 15) {
+      throw new \InvalidArgumentException(
+        "Cannot increase '{$skill}' to Legendary: requires level 15 (current level {$char_level})", 400
+      );
+    }
+
     $char_data['skills'] = $char_data['skills'] ?? [];
     $char_data['skills'][$skill] = $new_rank;
 

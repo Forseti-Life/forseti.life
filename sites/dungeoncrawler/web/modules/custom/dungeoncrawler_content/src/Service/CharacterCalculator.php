@@ -229,6 +229,13 @@ class CharacterCalculator {
   }
 
   /**
+   * Skills that incur an armor check penalty (STR/DEX-based physical skills).
+   * PF2e CRB p. 275: armor check penalty applies unless the action has the
+   * attack trait, in which case the penalty is already baked into MAP math.
+   */
+  const ARMOR_CHECK_PENALTY_SKILLS = ['acrobatics', 'athletics', 'stealth', 'thievery'];
+
+  /**
    * PF2E core skills with their governing ability score.
    * Key: skill id (lowercase), value: ability score key.
    */
@@ -261,6 +268,7 @@ class CharacterCalculator {
    * Calculate a skill check result.
    *
    * Formula: d20 + ability_modifier + proficiency_bonus + item_bonus
+   *           [+ armor_check_penalty if applicable]
    *
    * @param array $characterData  Character data (abilities[], level, skills[]).
    * @param string $skillName     Lowercase skill name (e.g. 'athletics').
@@ -268,11 +276,17 @@ class CharacterCalculator {
    * @param int $dc               Difficulty class.
    * @param int $itemBonus        Item or circumstance bonus (default 0).
    * @param object|null $numberGen NumberGenerationService; NULL = PHP rand (tests).
+   * @param array $options        Optional flags:
+   *   - 'trained_only' (bool): block untrained characters (returns blocked=TRUE).
+   *   - 'is_attack_trait' (bool): suppress armor check penalty (attack-trait
+   *     actions such as Grapple, Trip, Disarm already include the penalty via
+   *     MAP math per PF2e CRB p. 275).
    *
-   * @return array With keys: roll, ability_modifier, proficiency_bonus, item_bonus,
-   *               total, dc, degree, skill, rank, error.
+   * @return array With keys: roll, ability_modifier, proficiency_bonus,
+   *               item_bonus, armor_check_penalty, total, dc, degree, skill,
+   *               rank, error, blocked.
    */
-  public function calculateSkillCheck(array $characterData, string $skillName, int $dc, int $itemBonus = 0, $numberGen = NULL): array {
+  public function calculateSkillCheck(array $characterData, string $skillName, int $dc, int $itemBonus = 0, $numberGen = NULL, array $options = []): array {
     $skillKey = strtolower(trim($skillName));
 
     // Resolve governing ability: Lore specializations use intelligence.
@@ -282,7 +296,7 @@ class CharacterCalculator {
         $abilityKey = 'intelligence';
       }
       else {
-        return ['error' => "Unknown skill: {$skillName}. Valid skills: " . implode(', ', array_keys(self::SKILLS))];
+        return ['error' => "Unknown skill: {$skillName}. Valid skills: " . implode(', ', array_keys(self::SKILLS)), 'blocked' => FALSE];
       }
     }
 
@@ -300,7 +314,7 @@ class CharacterCalculator {
       $stored = $skills[$skillKey];
       $rank = is_numeric($stored)
         ? (self::PROFICIENCY_RANKS[(int) $stored] ?? 'untrained')
-        : (string) $stored;
+        : strtolower((string) $stored);
     }
     // Check lore_skills array for specializations.
     if ($skillKey !== 'lore' && isset($characterData['lore_skills'])) {
@@ -313,9 +327,27 @@ class CharacterCalculator {
       }
     }
 
+    // Trained-only gating (REQ 1554): block untrained characters.
+    if (!empty($options['trained_only']) && $rank === 'untrained') {
+      return [
+        'error'   => "This action requires training in {$skillName}. Character is untrained.",
+        'blocked' => TRUE,
+        'skill'   => $skillKey,
+        'rank'    => $rank,
+      ];
+    }
+
+    // Armor check penalty (REQ 1600): applies to STR/DEX physical skills
+    // unless the action has the attack trait (attack-trait actions use MAP).
+    $armorCheckPenalty = 0;
+    $isAttackTrait = !empty($options['is_attack_trait']);
+    if (!$isAttackTrait && in_array($skillKey, self::ARMOR_CHECK_PENALTY_SKILLS, TRUE)) {
+      $armorCheckPenalty = (int) ($characterData['armor_check_penalty'] ?? 0);
+    }
+
     $profBonus = $this->calculateProficiencyBonus($rank, $level);
     $roll = $numberGen ? $numberGen->rollPathfinderDie(20) : rand(1, 20);
-    $total = $roll + $abilityMod + $profBonus + $itemBonus;
+    $total = $roll + $abilityMod + $profBonus + $itemBonus + $armorCheckPenalty;
 
     $baseDegree = $this->skillBaseDegree($total, $dc);
     if ($roll === 20) {
@@ -329,16 +361,18 @@ class CharacterCalculator {
     }
 
     return [
-      'roll'              => $roll,
-      'ability_modifier'  => $abilityMod,
-      'proficiency_bonus' => $profBonus,
-      'item_bonus'        => $itemBonus,
-      'total'             => $total,
-      'dc'                => $dc,
-      'degree'            => $degree,
-      'skill'             => $skillKey,
-      'rank'              => $rank,
-      'error'             => NULL,
+      'roll'                => $roll,
+      'ability_modifier'    => $abilityMod,
+      'proficiency_bonus'   => $profBonus,
+      'item_bonus'          => $itemBonus,
+      'armor_check_penalty' => $armorCheckPenalty,
+      'total'               => $total,
+      'dc'                  => $dc,
+      'degree'              => $degree,
+      'skill'               => $skillKey,
+      'rank'                => $rank,
+      'error'               => NULL,
+      'blocked'             => FALSE,
     ];
   }
 

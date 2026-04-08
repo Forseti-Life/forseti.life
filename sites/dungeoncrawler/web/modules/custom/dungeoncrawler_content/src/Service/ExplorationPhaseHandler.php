@@ -107,6 +107,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'open_door',
       'open_passage',
       'daily_prepare',
+      'treat_wounds',
+      'treat_disease',
     ];
   }
 
@@ -396,6 +398,36 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           'prepared' => $result['prepared'] ?? [],
         ]);
         break;
+
+      // -----------------------------------------------------------------------
+      // REQ 1553–1563: Treat Wounds [Exploration, 10 min, Trained, healer's tools]
+      // -----------------------------------------------------------------------
+      case 'treat_wounds': {
+        $result = $this->processTreatWounds($actor_id, $target_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $result['mutations'] ?? [];
+        $this->advanceExplorationTime($game_state, 10);
+        $events[] = GameEventLogger::buildEvent('treat_wounds', 'exploration', $actor_id, [
+          'target' => $target_id,
+          'degree' => $result['degree'] ?? NULL,
+          'healed' => $result['healed'] ?? 0,
+        ], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1563–1568: Treat Disease [Downtime, 8 hrs, Trained, healer's tools]
+      // -----------------------------------------------------------------------
+      case 'treat_disease': {
+        $result = $this->processTreatDisease($actor_id, $target_id, $params, $game_state, $dungeon_data, $campaign_id);
+        $mutations = $result['mutations'] ?? [];
+        // 8 hours of effort is tracked; downtime phase handles the rest period.
+        $events[] = GameEventLogger::buildEvent('treat_disease', 'exploration', $actor_id, [
+          'target' => $target_id,
+          'degree' => $result['degree'] ?? NULL,
+          'upgraded' => $result['upgraded'] ?? FALSE,
+        ], NULL, $target_id);
+        break;
+      }
 
       default:
         return [
@@ -1126,6 +1158,170 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       $this->logger->warning('NarrationEngine queue failed: @err', ['@err' => $e->getMessage()]);
       return [];
     }
+  }
+
+  /**
+   * Processes Treat Wounds exploration activity.
+   *
+   * REQ 1553–1562: 10-min activity, Trained Medicine + healer's tools.
+   * DC/HP restored table: Trained DC 15/2d8, Expert DC 20/2d8+10,
+   * Master DC 30/2d8+30, Legendary DC 40/2d8+50.
+   * Crit success = double HP. Crit fail = 1d8 damage.
+   * 1-hour immunity per target tracked on dungeon_data entity state.
+   *
+   * @return array
+   *   Keys: degree, healed, damage, dc, error (optional), mutations.
+   */
+  protected function processTreatWounds(string $actor_id, ?string $target_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
+    $med_rank = (int) ($params['medicine_proficiency_rank'] ?? 0);
+    if ($med_rank < 1) {
+      return ['error' => 'Treat Wounds requires Trained Medicine.', 'degree' => NULL, 'healed' => 0, 'mutations' => []];
+    }
+    if (empty($params['has_healers_tools'])) {
+      return ['error' => 'Treat Wounds requires healer\'s tools.', 'degree' => NULL, 'healed' => 0, 'mutations' => []];
+    }
+
+    $effective_target = $target_id ?? $actor_id;
+
+    // REQ 1562: 1-hour immunity per target.
+    $now_minutes = $game_state['exploration']['time_elapsed_minutes'] ?? 0;
+    foreach ($dungeon_data['entities'] ?? [] as &$entity) {
+      if (($entity['entity_id'] ?? $entity['id'] ?? '') === $effective_target) {
+        $last_treated = $entity['state']['last_treated_wounds_at'] ?? NULL;
+        if ($last_treated !== NULL && ($now_minutes - $last_treated) < 60) {
+          $remaining = 60 - ($now_minutes - $last_treated);
+          return ['error' => "Target cannot benefit from Treat Wounds for {$remaining} more minutes.", 'degree' => NULL, 'healed' => 0, 'mutations' => []];
+        }
+        break;
+      }
+    }
+    unset($entity);
+
+    // DC and healing table (rank: 1=Trained, 2=Expert, 3=Master, 4=Legendary).
+    $dc_table   = [1 => 15, 2 => 20, 3 => 30, 4 => 40];
+    $hp_bonus   = [1 => 0,  2 => 10, 3 => 30, 4 => 50];
+    $rank_key   = min(4, max(1, $med_rank));
+    $dc         = (int) ($params['override_dc'] ?? $dc_table[$rank_key]);
+    $med_bonus  = (int) ($params['medicine_bonus'] ?? 0);
+    $item_bonus = !empty($params['is_improvised_tools']) ? -2 : 0;
+
+    $d20   = $this->numberGenerationService->rollPathfinderDie(20);
+    $d8a   = $this->numberGenerationService->rollPathfinderDie(8);
+    $d8b   = $this->numberGenerationService->rollPathfinderDie(8);
+    $total = $d20 + $med_bonus + $item_bonus;
+
+    // Degree of success (inline — ExplorationPhaseHandler has no combatCalculator).
+    if ($d20 === 20 || $total >= $dc + 10) {
+      $degree = 'critical_success';
+    }
+    elseif ($d20 === 1 || $total < $dc - 9) {
+      $degree = 'critical_failure';
+    }
+    elseif ($total >= $dc) {
+      $degree = 'success';
+    }
+    else {
+      $degree = 'failure';
+    }
+
+    $healed = 0;
+    $damage = 0;
+    $mutations = [];
+
+    if ($degree === 'critical_success') {
+      $healed = (($d8a + $d8b) + $hp_bonus[$rank_key]) * 2;
+    }
+    elseif ($degree === 'success') {
+      $healed = ($d8a + $d8b) + $hp_bonus[$rank_key];
+    }
+    elseif ($degree === 'critical_failure') {
+      // REQ 1561: 1d8 damage instead of healing.
+      $damage = $this->numberGenerationService->rollPathfinderDie(8);
+    }
+
+    // Record immunity timestamp on entity state.
+    foreach ($dungeon_data['entities'] as &$entity) {
+      if (($entity['entity_id'] ?? $entity['id'] ?? '') === $effective_target) {
+        $entity['state']['last_treated_wounds_at'] = $now_minutes;
+        $mutations[] = ['type' => 'entity_state', 'entity_id' => $effective_target, 'state' => $entity['state']];
+        break;
+      }
+    }
+    unset($entity);
+
+    return [
+      'degree'   => $degree,
+      'healed'   => $healed,
+      'damage'   => $damage,
+      'dc'       => $dc,
+      'd20'      => $d20,
+      'total'    => $total,
+      'mutations' => $mutations,
+    ];
+  }
+
+  /**
+   * Processes Treat Disease downtime activity.
+   *
+   * REQ 1563–1568: Requires Trained Medicine + healer's tools.
+   * On success/crit-success, target's next disease save is one degree better.
+   * Can only be applied once per disease per rest period per target.
+   *
+   * @return array
+   *   Keys: degree, upgraded (bool), dc, error (optional), mutations.
+   */
+  protected function processTreatDisease(string $actor_id, ?string $target_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
+    $med_rank = (int) ($params['medicine_proficiency_rank'] ?? 0);
+    if ($med_rank < 1) {
+      return ['error' => 'Treat Disease requires Trained Medicine.', 'degree' => NULL, 'upgraded' => FALSE, 'mutations' => []];
+    }
+    if (empty($params['has_healers_tools'])) {
+      return ['error' => 'Treat Disease requires healer\'s tools.', 'degree' => NULL, 'upgraded' => FALSE, 'mutations' => []];
+    }
+
+    $effective_target = $target_id ?? $actor_id;
+    $disease_id = $params['disease_id'] ?? 'disease';
+
+    // REQ 1567: Once per disease per rest period per target.
+    $disease_key = $effective_target . ':' . $disease_id;
+    if (!empty($game_state['disease_treated'][$disease_key])) {
+      return ['error' => 'Already treated this disease for this target during this rest period.', 'degree' => NULL, 'upgraded' => FALSE, 'mutations' => []];
+    }
+
+    $dc         = (int) ($params['disease_dc'] ?? 15);
+    $med_bonus  = (int) ($params['medicine_bonus'] ?? 0);
+    $item_bonus = !empty($params['is_improvised_tools']) ? -2 : 0;
+
+    $d20   = $this->numberGenerationService->rollPathfinderDie(20);
+    $total = $d20 + $med_bonus + $item_bonus;
+
+    if ($d20 === 20 || $total >= $dc + 10) {
+      $degree = 'critical_success';
+    }
+    elseif ($d20 === 1 || $total < $dc - 9) {
+      $degree = 'critical_failure';
+    }
+    elseif ($total >= $dc) {
+      $degree = 'success';
+    }
+    else {
+      $degree = 'failure';
+    }
+
+    $upgraded = in_array($degree, ['critical_success', 'success'], TRUE);
+    if ($upgraded) {
+      // REQ 1565: Next disease save gets one degree better (checked by save handler).
+      $game_state['disease_treated'][$disease_key] = TRUE;
+    }
+
+    return [
+      'degree'   => $degree,
+      'upgraded' => $upgraded,
+      'dc'       => $dc,
+      'd20'      => $d20,
+      'total'    => $total,
+      'mutations' => [],
+    ];
   }
 
 }
