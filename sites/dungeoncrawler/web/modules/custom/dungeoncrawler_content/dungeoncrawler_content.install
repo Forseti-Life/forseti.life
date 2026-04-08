@@ -2598,6 +2598,93 @@ function dungeoncrawler_content_schema() {
     ],
   ];
 
+  // DC-RG-01: dc_sessions (added via update_10037; mirrored here for fresh installs).
+  $schema['dc_sessions'] = [
+    'description' => 'Individual play sessions (one-shot or campaign chapter).',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'uuid' => ['type' => 'varchar', 'length' => 36, 'not null' => TRUE, 'default' => '', 'description' => 'Session UUID.'],
+      'campaign_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => FALSE, 'default' => NULL, 'description' => 'Owning campaign (NULL for one-shot sessions).'],
+      'mode' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'one-shot', 'description' => 'Session mode: one-shot or campaign-chapter.'],
+      'gm_uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'description' => 'GM user ID.'],
+      'player_uids' => ['type' => 'text', 'size' => 'normal', 'not null' => TRUE, 'description' => 'JSON array of player user IDs.'],
+      'narrative_state' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON: starting narrative state, session summary, and NPC tracking.'],
+      'character_state_snapshot' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE, 'description' => 'JSON map of character_id to state committed at session end.'],
+      'session_xp' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0, 'description' => 'Total XP granted to the party during this session.'],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'active', 'description' => 'Session status: active or ended.'],
+      'started_at' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Unix timestamp when session started.'],
+      'ended_at' => ['type' => 'int', 'not null' => FALSE, 'default' => NULL, 'description' => 'Unix timestamp when session ended (NULL while active).'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uuid' => ['uuid']],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'gm_uid' => ['gm_uid'],
+      'status' => ['status'],
+      'campaign_status' => ['campaign_id', 'status'],
+    ],
+  ];
+
+  // DC-RG-01: combat_afflictions (added via update_10036; mirrored here for fresh installs).
+  $schema['combat_afflictions'] = [
+    'description' => 'Tracks active afflictions (poison, disease, curse) per participant per encounter.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'encounter_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'participant_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'affliction_type' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'poison'],
+      'affliction_name' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => ''],
+      'affliction_level' => ['type' => 'int', 'not null' => TRUE, 'default' => 1],
+      'save_type' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'Fortitude'],
+      'save_dc' => ['type' => 'int', 'not null' => TRUE, 'default' => 15],
+      'current_stage' => ['type' => 'int', 'not null' => TRUE, 'default' => 1],
+      'max_stage' => ['type' => 'int', 'not null' => TRUE, 'default' => 3],
+      'onset' => ['type' => 'varchar', 'length' => 64, 'not null' => FALSE],
+      'onset_elapsed' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'max_duration' => ['type' => 'int', 'not null' => FALSE],
+      'duration_elapsed' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'is_virulent' => ['type' => 'int', 'size' => 'tiny', 'not null' => TRUE, 'default' => 0],
+      'consecutive_successes' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'stages_json' => ['type' => 'text', 'size' => 'big', 'not null' => TRUE],
+      'status' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => 'active'],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'encounter_participant' => ['encounter_id', 'participant_id'],
+      'status' => ['status'],
+    ],
+  ];
+
+  // DC-RF-01 / DC-RG-01: dc_requirements (update_10034 + feature_id from update_10038).
+  $schema['dc_requirements'] = [
+    'description' => 'PF2E requirements extracted from rulebooks for implementation tracking.',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE, 'description' => 'Primary key.'],
+      'book_id' => ['type' => 'varchar', 'length' => 16, 'not null' => TRUE, 'default' => ''],
+      'book_title' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => ''],
+      'chapter_key' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => ''],
+      'chapter_title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
+      'section' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
+      'paragraph_title' => ['type' => 'varchar', 'length' => 255, 'not null' => TRUE, 'default' => ''],
+      'req_text' => ['type' => 'text', 'size' => 'medium', 'not null' => TRUE],
+      'req_hash' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => ''],
+      'status' => ['type' => 'varchar', 'length' => 32, 'not null' => TRUE, 'default' => 'pending'],
+      'source_file' => ['type' => 'varchar', 'length' => 128, 'not null' => TRUE, 'default' => ''],
+      'updated_at' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'updated_by' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'feature_id' => ['type' => 'varchar', 'length' => 64, 'not null' => TRUE, 'default' => '', 'description' => 'Feature identifier linking requirement to a roadmap feature.'],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['req_hash' => ['req_hash']],
+    'indexes' => [
+      'book_chapter' => ['book_id', 'chapter_key'],
+      'status' => ['status'],
+      'idx_feature_id' => ['feature_id'],
+    ],
+  ];
+
   return $schema;
 }
 
