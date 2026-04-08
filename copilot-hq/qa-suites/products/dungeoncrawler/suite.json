@@ -7377,6 +7377,203 @@
           "ac": "QA-audit-clean"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-druid-e2e",
+      "label": "Druid Class \u2014 WIS key ability, HP/proficiencies, Druidic language, Wild Empathy, metal/shield restriction, anathema/atone, orders (Animal/Leaf/Storm/Wild), focus pool, prepared primal spellcasting, Primal Hierophant (level 19), Order Explorer, Wild Shape, Form Control, feat schedules, ACL",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-druid",
+      "command": "./vendor/bin/phpunit --filter DruidClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-druid/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-druid/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DRU-01",
+          "description": "Druid selectable in character creation; key_ability = Wisdom",
+          "suite": "module-test-suite",
+          "ac": "NEW-druid-class-exists-wis"
+        },
+        {
+          "id": "TC-DRU-02",
+          "description": "HP = 8 + CON modifier per level",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calc"
+        },
+        {
+          "id": "TC-DRU-03",
+          "description": "Trained Perception, Expert Will, Trained Fort/Reflex, Trained light/medium armor (metal blocked), Trained primal spell attacks/DCs (WIS)",
+          "suite": "module-test-suite",
+          "ac": "NEW-initial-proficiencies"
+        },
+        {
+          "id": "TC-DRU-04",
+          "description": "Druidic language automatically added at level 1; present on character sheet without manual selection",
+          "suite": "module-test-suite",
+          "ac": "NEW-druidic-language"
+        },
+        {
+          "id": "TC-DRU-05",
+          "description": "Wild Empathy: Druid can use Diplomacy skill on animals",
+          "suite": "module-test-suite",
+          "ac": "NEW-wild-empathy"
+        },
+        {
+          "id": "TC-DRU-06",
+          "description": "Metal armor equipment blocked for Druid characters; system prevents equipping",
+          "suite": "module-test-suite",
+          "ac": "NEW-metal-armor-blocked"
+        },
+        {
+          "id": "TC-DRU-07",
+          "description": "Shield equipment blocked for Druid characters",
+          "suite": "module-test-suite",
+          "ac": "NEW-shield-blocked"
+        },
+        {
+          "id": "TC-DRU-08",
+          "description": "Teaching Druidic to non-druids flagged as anathema; violation suspends primal spellcasting and order benefits",
+          "suite": "module-test-suite",
+          "ac": "NEW-druidic-anathema"
+        },
+        {
+          "id": "TC-DRU-09",
+          "description": "Atone ritual restores primal spellcasting and order benefits after anathema violation",
+          "suite": "module-test-suite",
+          "ac": "NEW-atone-restores"
+        },
+        {
+          "id": "TC-DRU-10",
+          "description": "Order selection: Animal, Leaf, Storm, or Wild accepted at level 1; invalid order rejected",
+          "suite": "module-test-suite",
+          "ac": "NEW-order-selection"
+        },
+        {
+          "id": "TC-DRU-11",
+          "description": "Order selection permanent; attempt to change order after level 1 blocked",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-order-permanent"
+        },
+        {
+          "id": "TC-DRU-12",
+          "description": "Each order grants one order focus spell at selection",
+          "suite": "module-test-suite",
+          "ac": "NEW-order-focus-spell"
+        },
+        {
+          "id": "TC-DRU-13",
+          "description": "Leaf and Storm orders start with focus_points = 2; Animal and Wild start with focus_points = 1",
+          "suite": "module-test-suite",
+          "ac": "NEW-focus-points-by-order"
+        },
+        {
+          "id": "TC-DRU-14",
+          "description": "Order focus spell casting blocked when focus_points = 0",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-focus-pool-empty"
+        },
+        {
+          "id": "TC-DRU-15",
+          "description": "Druid uses prepared primal spellcasting; casting unprepared spell blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-prepared-primal",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-DRU-16",
+          "description": "Spell attacks and DCs use WIS modifier; spell_dc = 10 + proficiency + WIS mod",
+          "suite": "module-test-suite",
+          "ac": "NEW-wis-spell-attack-dc",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-DRU-17",
+          "description": "Spell slots scale per advancement table across levels 1\u21923\u21925",
+          "suite": "module-test-suite",
+          "ac": "NEW-spell-slots-scale",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-DRU-18",
+          "description": "Preparing more spells than available slots blocked with error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-over-prepare-blocked",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-DRU-19",
+          "description": "Level 19: Primal Hierophant \u2014 one 10th-level prepared primal spell slot granted",
+          "suite": "module-test-suite",
+          "ac": "NEW-level19-primal-hierophant"
+        },
+        {
+          "id": "TC-DRU-20",
+          "description": "Primal Hierophant slot cannot be used with slot-manipulation features",
+          "suite": "module-test-suite",
+          "ac": "NEW-hierophant-no-manipulation"
+        },
+        {
+          "id": "TC-DRU-21",
+          "description": "Level-gated features absent before required level; Primal Hierophant absent below level 19",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-not-early"
+        },
+        {
+          "id": "TC-DRU-22",
+          "description": "Class feat schedule: granted at level 1 and every even level (2, 4, 6 ... 20)",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule"
+        },
+        {
+          "id": "TC-DRU-23",
+          "description": "General feats at levels 3, 7, 11, 15, 19; skill feats every even level; ancestry feats at 5, 9, 13, 17",
+          "suite": "module-test-suite",
+          "ac": "NEW-general-feat-schedule"
+        },
+        {
+          "id": "TC-DRU-24",
+          "description": "Ability boosts at levels 5, 10, 15, 20",
+          "suite": "module-test-suite",
+          "ac": "NEW-ability-boost-schedule"
+        },
+        {
+          "id": "TC-DRU-25",
+          "description": "Order Explorer feat: second order grants level-1 feats; violating secondary order anathema removes only secondary feats, not primal connection",
+          "suite": "module-test-suite",
+          "ac": "NEW-order-explorer"
+        },
+        {
+          "id": "TC-DRU-26",
+          "description": "Wild Shape: attempting unlocked form not yet taken is blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-wild-shape-unlocked-forms"
+        },
+        {
+          "id": "TC-DRU-27",
+          "description": "Form Control: duration extended; spell level \u20132 (min 1) applied when metamagic used",
+          "suite": "module-test-suite",
+          "ac": "NEW-form-control"
+        },
+        {
+          "id": "TC-DRU-28",
+          "description": "Metal armor equip blocked \u2014 explicit failure mode: error returned, not silent ignore",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-metal-armor-fail-mode"
+        },
+        {
+          "id": "TC-DRU-29",
+          "description": "Cross-player ACL: player cannot modify another player's Druid character; returns 403",
+          "suite": "module-test-suite",
+          "ac": "SEC-cross-player-403"
+        },
+        {
+          "id": "TC-DRU-30",
+          "description": "QA audit passes after module deployment: 0 violations, 0 failures",
+          "suite": "role-url-audit",
+          "ac": "QA-audit-clean"
+        }
+      ]
     }
   ],
   "_schema_notes": [
