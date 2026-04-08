@@ -84,13 +84,58 @@ slug="$(printf '%s' "$release_id" | tr -cs 'A-Za-z0-9._-' '-' | sed 's/^-//;s/-$
 out_file="${dir}/${slug}.md"
 
 # Gate 2 guard: require QA APPROVE evidence before writing PM signoff artifact.
+# For cross-team co-sign scenarios: the release_id may belong to a different team
+# (e.g., dungeoncrawler PM signing a forseti release). In that case the APPROVE evidence
+# lives in the OWNING team's qa outbox, not the signing team's. We check both.
 gate2_approved=0
+
+# Determine owning team's QA agent by matching release_id against all team IDs/aliases.
+owning_qa_agent="$(python3 - "$PRODUCT_TEAMS_JSON" "$release_id" <<'PY'
+import json
+import sys
+
+cfg_path = sys.argv[1]
+release_id_arg = sys.argv[2].lower()
+
+with open(cfg_path, 'r', encoding='utf-8') as fh:
+    data = json.load(fh)
+
+best_team = None
+best_len = 0
+for team in (data.get('teams') or []):
+    if not team.get('active', False):
+        continue
+    team_id = str(team.get('id') or '').lower()
+    aliases = [str(a).lower() for a in (team.get('aliases') or [])]
+    candidates = [team_id] + aliases
+    for cand in candidates:
+        if cand and cand in release_id_arg and len(cand) > best_len:
+            best_len = len(cand)
+            best_team = team
+
+if best_team:
+    print(str(best_team.get('qa_agent') or '').strip())
+else:
+    print('')
+PY
+)"
+
 qa_outbox="sessions/${qa_agent}/outbox"
-if [ -d "$qa_outbox" ]; then
-  if grep -rl "$release_id" "$qa_outbox/" 2>/dev/null \
-       | xargs grep -l "APPROVE" 2>/dev/null \
-       | grep -q .; then
+_check_gate2_in() {
+  local outbox_dir="$1"
+  [ -d "$outbox_dir" ] || return 1
+  grep -rl "$release_id" "$outbox_dir/" 2>/dev/null \
+    | xargs grep -l "APPROVE" 2>/dev/null \
+    | grep -q .
+}
+
+if _check_gate2_in "$qa_outbox"; then
+  gate2_approved=1
+elif [ -n "$owning_qa_agent" ] && [ "$owning_qa_agent" != "$qa_agent" ]; then
+  owning_qa_outbox="sessions/${owning_qa_agent}/outbox"
+  if _check_gate2_in "$owning_qa_outbox"; then
     gate2_approved=1
+    echo "INFO: Gate 2 APPROVE found in owning team QA outbox (${owning_qa_agent}) for cross-team co-sign"
   fi
 fi
 
@@ -118,6 +163,9 @@ CERT
   else
     echo "ERROR: Gate 2 APPROVE evidence not found for release '${release_id}'" >&2
     echo "  Searched: ${qa_outbox}/ for files containing both '${release_id}' and 'APPROVE'" >&2
+    if [ -n "$owning_qa_agent" ] && [ "$owning_qa_agent" != "$qa_agent" ]; then
+      echo "  Also searched: sessions/${owning_qa_agent}/outbox/ (owning team QA for cross-team co-sign)" >&2
+    fi
     echo "  If this release shipped zero features, re-run with --empty-release to self-certify." >&2
     echo "BLOCKED: PM signoff requires Gate 2 QA APPROVE before it can be issued." >&2
     exit 1
