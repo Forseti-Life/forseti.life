@@ -1965,3 +1965,48 @@ dungeoncrawler_content.roadmap_status:
     req_id: '\d+'
   options:
     _format: json
+
+# ==============================================================================
+# DC TABLE API ROUTES (dc-cr-dc-rarity-spell-adjustment)
+# Read-only GET endpoints — no CSRF required; authenticated users only.
+# ==============================================================================
+
+dungeoncrawler_content.api.dc_simple:
+  path: '/api/dc/simple'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DcApiController::simpleDc'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.dc_level:
+  path: '/api/dc/level'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DcApiController::levelDc'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.dc_spell_level:
+  path: '/api/dc/spell-level'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DcApiController::spellLevelDc'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.dc_adjustment:
+  path: '/api/dc/adjustment'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\DcApiController::dcAdjustment'
+  methods: [GET]
+  requirements:
+    _permission: 'access dungeoncrawler characters'
+  options:
+    _format: json

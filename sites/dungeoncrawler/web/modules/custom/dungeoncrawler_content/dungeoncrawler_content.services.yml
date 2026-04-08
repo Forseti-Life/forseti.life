@@ -551,3 +551,21 @@ services:
       - '@dungeoncrawler_content.calculator'
       - '@dungeoncrawler_content.number_generation'
       - '@dungeoncrawler_content.condition_manager'
+
+  dungeoncrawler_content.dc_adjustment:
+    class: Drupal\dungeoncrawler_content\Service\DcAdjustmentService
+
+  dungeoncrawler_content.recall_knowledge:
+    class: Drupal\dungeoncrawler_content\Service\RecallKnowledgeService
+    arguments:
+      - '@dungeoncrawler_content.dc_adjustment'
+
+  dungeoncrawler_content.identify_magic:
+    class: Drupal\dungeoncrawler_content\Service\IdentifyMagicService
+    arguments:
+      - '@dungeoncrawler_content.dc_adjustment'
+
+  dungeoncrawler_content.learn_a_spell:
+    class: Drupal\dungeoncrawler_content\Service\LearnASpellService
+    arguments:
+      - '@dungeoncrawler_content.dc_adjustment'
