@@ -1,9 +1,11 @@
 {
-  "generated_at": "2026-04-07T23:59:08.468777+00:00",
-  "parity_ok": true,
+  "generated_at": "2026-04-08T01:51:11.161102+00:00",
+  "parity_ok": false,
   "selected_agents": {
     "match": true,
-    "actual": []
+    "actual": [
+      "qa-forseti"
+    ]
   },
   "steps": {
     "match": true,
@@ -29,5 +31,7 @@
       "publish"
     ]
   },
-  "errors": []
+  "errors": [
+    "step publish: rc=127"
+  ]
 }

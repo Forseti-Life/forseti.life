@@ -3,7 +3,7 @@
 - Work item id: dc-cr-difficulty-class
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Priority: P0 (core check resolution mechanic — encounter and skill systems depend on this)
 - Release: 
 20260407-dungeoncrawler-release-b

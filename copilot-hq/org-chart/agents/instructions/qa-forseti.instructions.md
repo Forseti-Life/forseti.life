@@ -145,6 +145,22 @@ two distinct authenticated users. `jhtr:qa-users-ensure` provisions only one (`q
 These two test cases must be executed manually or deferred until `jhtr:qa-users-ensure` gains multi-user support.
 Escalate as blocker when running the full test plan at Stage 0.
 
+## Gate 2 consolidated APPROVE (required — GAP-QA-GATE2-CONSOLIDATE-01)
+
+After processing all suite-activate inbox items for a release, you MUST file one consolidated Gate 2 APPROVE outbox **in the same session**. This outbox is what `scripts/release-signoff.sh` searches for — it looks for a file in `sessions/qa-forseti/outbox/` that contains **both** the release ID string AND the word `APPROVE`.
+
+Rule: when your inbox queue for suite-activate items from a release drops to zero AND all suite-activates are Status: done, immediately file:
+
+```
+sessions/qa-forseti/outbox/YYYYMMDD-HHMMSS-gate2-approve-<release-id>.md
+```
+
+Required contents (at minimum):
+- The exact release ID (e.g., `20260407-forseti-release-b`)
+- The word `APPROVE` as a Gate 2 verdict
+- A table or list of features with their suite-activate outbox references
+- Any non-blocking caveats (pending-dev-confirmation items, prior-cycle evidence references)
+
 ## Escalation
 - Follow org-wide escalation rules in `org-chart/org-wide.instructions.md`.
 - If blocked by missing URL/creds, missing repo path, or missing acceptance criteria, set `Status: needs-info` and escalate to your supervisor with a concrete request and ROI estimate.

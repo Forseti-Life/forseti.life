@@ -3,7 +3,7 @@
 - Work item id: dc-cr-xp-award-system
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260407-dungeoncrawler-release-b
 - Priority: P3
 - PM owner: pm-dungeoncrawler

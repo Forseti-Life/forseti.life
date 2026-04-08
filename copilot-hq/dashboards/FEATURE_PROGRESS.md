@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-07T23:59:32Z
+Generated: 2026-04-08T01:51:35Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -42,14 +42,14 @@ Generated: 2026-04-07T23:59:32Z
 | dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | in_progress | medium |  |  |  |
+| dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | done | medium |  |  |  |
 | dc-cr-dc-rarity-spell-adjustment | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
-| dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | in_progress | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
+| dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | done | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
 | dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-dwarf-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 (extends ancestry-system with specific stat block; all deps now satisfied — ancestry-system ✓, clan-dagger shipped ✓, heritage-system ✓) |  |  |  |
 | dc-cr-dwarf-heritage-ancient-blooded | dungeoncrawler | dungeoncrawler_content | ready | P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle) |  |  |  |
@@ -60,14 +60,14 @@ Generated: 2026-04-07T23:59:32Z
 | dc-cr-dwarven-weapon-expertise | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-economy | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | done | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
 | dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | in_progress | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
+| dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | done | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -78,8 +78,8 @@ Generated: 2026-04-07T23:59:32Z
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
-| dc-cr-languages | dungeoncrawler | dungeoncrawler_content | in_progress | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
-| dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-languages | dungeoncrawler | dungeoncrawler_content | done | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
+| dc-cr-low-light-vision | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
@@ -115,7 +115,7 @@ Generated: 2026-04-07T23:59:32Z
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -123,15 +123,15 @@ Generated: 2026-04-07T23:59:32Z
 | dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-subsystems | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gng-guns-gears | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
-| dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | in_progress | P2 |  |  |  |
+| dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | in_progress | P1 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | in_progress | P2 |  |  |  |
-| forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | in_progress | P1 |  |  |  |
-| forseti-csrf-fix | forseti.life | job_hunter | in_progress | P0 |  |  |  |
-| forseti-jobhunter-application-submission | forseti.life | job_hunter | in_progress | P1 |  |  |  |
+| forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | ready | P1 |  |  |  |
+| forseti-csrf-fix | forseti.life | job_hunter | done | P0 |  |  |  |
+| forseti-jobhunter-application-submission | forseti.life | job_hunter | done | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | in_progress | P1 |  |  |  |
-| forseti-jobhunter-controller-refactor | forseti.life | job_hunter | in_progress | P2 |  |  |  |
+| forseti-jobhunter-controller-refactor | forseti.life | job_hunter | done | P2 |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | in_progress | P0 (ROI 1000) |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | in_progress | P0 |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | in_progress | P2 |  |  |  |

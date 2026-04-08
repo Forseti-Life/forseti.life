@@ -247,6 +247,24 @@ If PM has already self-certified the release as empty (shipping-gates Gate 0 sig
 
 Root cause: preflight dispatched for `20260402-dungeoncrawler-release-c` (0 features shipped, empty-release self-certified by PM). Full preflight slot consumed with no output value (GAP-QA-EMPTY-RELEASE-PREFLIGHT-01).
 
+## Gate 2 consolidated APPROVE (required — GAP-DC-QA-GATE2-CONSOLIDATE-01)
+
+After processing all suite-activate inbox items for a release, you MUST file one consolidated Gate 2 APPROVE outbox **in the same session**. This outbox is what `scripts/release-signoff.sh` searches for — it looks for a file in `sessions/qa-dungeoncrawler/outbox/` that contains **both** the release ID string AND the word `APPROVE`.
+
+Rule: when your inbox queue for suite-activate items from a release drops to zero AND all suite-activates are Status: done, immediately file:
+
+```
+sessions/qa-dungeoncrawler/outbox/YYYYMMDD-HHMMSS-gate2-approve-<release-id>.md
+```
+
+Required contents (at minimum):
+- The exact release ID (e.g., `20260407-dungeoncrawler-release-b`)
+- The word `APPROVE` as a Gate 2 verdict
+- A table or list of features with their suite-activate outbox references
+- Any non-blocking caveats (pending-dev-confirmation items, provisional APPROVEs)
+
+Root cause (GAP-DC-QA-GATE2-CONSOLIDATE-01, 2026-04-08): qa-dungeoncrawler processed all 10 suite-activate items for `20260407-dungeoncrawler-release-b` by 19:46 UTC Apr 7 but did not file a consolidated Gate 2 APPROVE outbox. Pipeline stagnated for 4.5h. CEO was required to file the APPROVE on qa's behalf to unblock the release.
+
 ## Suite-activate live test check (required)
 
 When a suite-activate item arrives and `ALLOW_PROD_QA=1` is not set (default):

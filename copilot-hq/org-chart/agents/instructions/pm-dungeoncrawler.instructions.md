@@ -429,6 +429,26 @@ python3 -c "import json; d=json.load(open('${latest}permissions-validation.json'
 ```
 If `base_url` is not `https://dungeoncrawler.forseti.life`, do NOT sign off — escalate to Board with the wrong URL as evidence.
 
+### Gate 2 escalation threshold (required — GAP-PM-DC-PREMATURE-ESCALATE-01)
+
+Do NOT escalate Gate 2 blockers to CEO the moment suite-activate items are dispatched. The correct escalation trigger is: **qa-dungeoncrawler has been given ≥ 2 execution cycles since the suite-activate items were dispatched AND has produced zero output for the release's suite-activate items.**
+
+Premature escalation pattern to avoid:
+- Items dispatched at timestamp T
+- PM escalates at T+1 minute claiming Gate 2 is not filed
+- This has occurred twice in `20260407-dungeoncrawler-release-b` (CEO-noted 2026-04-07)
+
+The CEO will return premature escalations. Use this check before filing:
+```bash
+# How long ago were the newest suite-activate items created?
+ls -lt sessions/qa-dungeoncrawler/inbox/ | grep "suite-activate" | head -1
+# If < 30min ago: do NOT escalate yet.
+# Check if qa-dungeoncrawler has ANY recent outboxes (active = not stalled):
+ls -lt sessions/qa-dungeoncrawler/outbox/ | head -3
+```
+
+Root cause (GAP-PM-DC-PREMATURE-ESCALATE-01, 2026-04-07): pm-dungeoncrawler escalated Gate 2 the moment 10 suite-activate items were dispatched (0 minutes elapsed), consuming a CEO execution slot.
+
 Coordination rule:
 - `pm-forseti` is the release operator and must wait for your signoff before the official push.
 - If you cannot sign off (missing QA evidence, unclear rollback, open risk), escalate to Board and block the coordinated release until resolved.
