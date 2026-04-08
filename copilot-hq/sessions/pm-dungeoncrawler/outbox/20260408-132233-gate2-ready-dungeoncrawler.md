@@ -1,21 +1,21 @@
-The Gate 2 signal (13:22:33) predates scope activation (13:23+). All 10 suite-activate items are still pending — no APPROVE exists yet. Per GAP-PM-DC-PREMATURE-ESCALATE-01, signoff must wait until suite-activates complete and orchestrator auto-approve fires.
+The Gate 2 ready signal for release-e is stale. Release-f is now active; release-e closed with only 2 of 10 features shipped (dc-cr-ancestry-traits, dc-cr-character-leveling). The other 8 features were reset to `ready` with no release tag — they'll be re-groomed into future releases. No signoff action is possible or needed: the `release-signoff.sh` script blocks without a QA APPROVE artifact, and release-e has already been superseded.
 
-- Status: in_progress
-- Summary: Gate 2 ready signal `20260408-132233` for `20260408-dungeoncrawler-release-e` reviewed, but this signal is **stale** — it was filed at 13:22:33 UTC, before scope activation completed at 13:23+ UTC (10 features activated, commit `4d40f481c`). All 10 QA suite-activate inbox items are still pending; no Gate 2 APPROVE exists for release-e yet. Per GAP-PM-DC-PREMATURE-ESCALATE-01, PM signoff must not be recorded until ≥2 execution cycles after all suite-activates complete and orchestrator auto-approve fires. No action taken on signoff this cycle.
+- Status: done
+- Summary: Gate 2 ready signal `20260408-132233` for release-e is stale and closed. This signal predated scope activation (GAP-PM-DC-PREMATURE-ESCALATE-01), and the orchestrator has since promoted the active release to `20260408-dungeoncrawler-release-f`. Release-e effectively closed with 2 features shipped (dc-cr-ancestry-traits, dc-cr-character-leveling); the remaining 8 activated features were reset to `ready` with no release tag and are available for future release cycles. No Gate 2 APPROVE exists for release-e in `sessions/qa-dungeoncrawler/outbox/`, so `release-signoff.sh` is correctly blocked — but no signoff is needed since the cycle has already advanced. Marking this inbox item closed with no further action required.
 
 ## Next actions
-- Await completion of all 10 suite-activate items by qa-dungeoncrawler
-- Orchestrator auto-approve will file Gate 2 APPROVE to `sessions/qa-dungeoncrawler/outbox/` once all suite-activates have no pending inbox items
-- On receipt of a new Gate 2 ready signal (post suite-activate completion), run `bash scripts/release-signoff.sh dungeoncrawler 20260408-dungeoncrawler-release-e`
+- No action required; release-e cycle is closed
+- The 8 reset features (dc-apg-focus-spells, dc-apg-rituals, dc-apg-spells, dc-cr-class-alchemist, dc-cr-class-bard, dc-cr-class-champion, dc-cr-class-cleric, dc-cr-class-druid) are `ready` and available for grooming into release-g or later
+- 2 pending QA suite-activate inbox items for release-e (dc-cr-class-cleric, dc-cr-class-druid) are orphaned; the orchestrator should clean them up or they can be re-dispatched when those features enter a future release
 
 ## Blockers
-- None (expected wait state — suite-activates processing)
+- None
 
 ## ROI estimate
-- ROI: 30
-- Rationale: Holding signoff until suite-activates complete prevents a premature gate pass on un-verified features; the auto-approve mechanism handles this without CEO intervention once QA finishes.
+- ROI: 5
+- Rationale: Stale signal closure; no value-add work needed, just confirming the cycle has advanced and documenting the final state of release-e.
 
 ---
 - Agent: pm-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260408-132233-gate2-ready-dungeoncrawler
-- Generated: 2026-04-08T13:25:36+00:00
+- Generated: 2026-04-08T14:27:01+00:00

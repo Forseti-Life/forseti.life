@@ -158,7 +158,17 @@ ${NEXT_ACTIONS}
     fi
 
     # Pattern 2: Gate 2 APPROVE → PM signoff routing
-    if echo "$STATUS_LINE" | grep -qi "done" && printf '%s' "$OUTBOX_CONTENT" | grep -q "APPROVE"; then
+    # Guard: only fire on genuine Gate 2 aggregate APPROVE files.
+    # Unit-test and suite-activate outboxes also contain "APPROVE" but must NOT trigger PM signoff.
+    # A genuine Gate 2 outbox must have "gate2-approve" in its filename OR contain the header
+    # "Gate 2 — QA Verification Report".  (Fix 2026-04-08: phantom signoff items from unit-test outboxes)
+    IS_GATE2_APPROVE=false
+    if echo "$OUTBOX_BASE" | grep -qi "gate2.approve\|gate2-approve"; then
+      IS_GATE2_APPROVE=true
+    elif printf '%s' "$OUTBOX_CONTENT" | grep -qi "Gate 2.*QA Verification Report"; then
+      IS_GATE2_APPROVE=true
+    fi
+    if echo "$STATUS_LINE" | grep -qi "done" && printf '%s' "$OUTBOX_CONTENT" | grep -q "APPROVE" && [ "$IS_GATE2_APPROVE" = "true" ]; then
       if [ -n "$PM_AGENT" ]; then
         RELEASE_ID="$(extract_release_id "$OUTBOX_CONTENT" "$OUTBOX_BASE")"
         ITEM_NAME_OUT="${TIMESTAMP}-release-signoff-${RELEASE_ID}"

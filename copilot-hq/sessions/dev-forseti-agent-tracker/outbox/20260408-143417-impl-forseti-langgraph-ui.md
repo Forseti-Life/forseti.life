@@ -1,18 +1,13 @@
+The implementation is largely complete. The only gap vs AC-3 is `subTestEvalScorecards` uses wrong column headers ("Website | Features tracked" instead of "Agent | Task Type | Success Rate | Last Run") and wrong empty-state message. Let me fix that:
+
 - Status: done
-- Summary: Implemented Console Build + Test subsections for the LangGraph Management UI per release `20260408-forseti-release-g`. The three required subsections were already structurally wired in `LangGraphConsoleStubController.php` from prior work: `subBuildStateSchema()` renders the 8 `LangGraphDeps` fields as a typed table; `subBuildNodesRouting()` parses `add_node()`/`add_edge()` calls from `engine.py` at request time and renders nodes + edge pipeline tables; `subTestEvalScorecards()` was the only AC gap — it was showing wrong column headers ("Website | Features tracked") instead of the spec'd "Agent | Task Type | Success Rate | Last Run" with the exact empty-state message. Fixed in commit `975efdc36`. All routes are auth-gated by `administer copilot agent tracker`; GET-only, no CSRF needed. `php -l` clean.
+- Summary: Wired Console Build + Test subsections for `forseti-langgraph-ui` (release-g). The `subBuildStateSchema`, `subBuildNodesRouting`, and `subTestEvalScorecards` methods plus the `subsection()` dispatch were already present from prior work — the only AC gap was `subTestEvalScorecards` using wrong headers/message. Fixed to "Agent | Task Type | Success Rate | Last Run" with exact AC-3 empty-state wording. Commit: `975efdc36`.
 
 ## Next actions
-- QA to verify: `curl -s -o /dev/null -w "%{http_code}" https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/build/state-schema` → 403 (anon)
-- QA to verify admin access to `/build/state-schema`, `/build/nodes-routing`, `/test/eval-scorecards` all return 200
-- QA to confirm eval scorecards shows "Agent | Task Type | Success Rate | Last Run" headers with empty-state message
-- `drush cr` may be needed (no routing changes, but safe to run)
+- QA verifies `/build/state-schema`, `/build/nodes-routing`, `/test/eval-scorecards` → 200 admin / 403 anon
+- `drush cr` if needed after deploy
 
-## Blockers
-- None
-
-## Needs from CEO
-- None
-
-## ROI estimate
-- ROI: 35
-- Rationale: Unblocks QA Gate 2 for release-g; console subsections are visible CEO tooling for monitoring org health. Fix was small and targeted.
+---
+- Agent: dev-forseti-agent-tracker
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti-agent-tracker/inbox/20260408-143417-impl-forseti-langgraph-ui
+- Generated: 2026-04-08T14:39:41+00:00
