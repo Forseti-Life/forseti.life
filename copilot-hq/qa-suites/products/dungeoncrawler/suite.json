@@ -5542,28 +5542,282 @@
       "type": "e2e",
       "feature_id": "dc-apg-equipment",
       "command": "npx playwright test tests/e2e/apg-equipment/ --reporter=junit",
-      "artifacts": ["tests/results/dc-apg-equipment-e2e.xml"],
+      "artifacts": [
+        "tests/results/dc-apg-equipment-e2e.xml"
+      ],
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
       "notes": "Security AC exemption confirmed: no new routes. All 16 TCs active. Key regression risks: Bola Trip not offered post-hit; Daikyu non-left mount firing not blocked; Net immobilize on non-crit; Focus Cathartic counteract modifier not tier-scaled; Dust undead 4-cap not enforced; Terrifying Ammunition Frightened floor not held at 1; Rod of Cancellation cooldown not rolling 2d6 hours; Slate destruction not propagating to partner.",
       "test_cases": [
-        {"id": "TC-EQP-01", "description": "New weapons: Sword Cane, Bola, Daikyu in weapon selector with correct traits and proficiency grouping", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-1"},
-        {"id": "TC-EQP-02", "description": "Sword Cane: weapon identity not revealed in social inspection by default; investigation check required to expose", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-2"},
-        {"id": "TC-EQP-03", "description": "Bola: successful hit offers Trip sub-action via standard Athletics vs CMD", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-3"},
-        {"id": "TC-EQP-04", "description": "Daikyu: while mounted non-left-side firing blocked or flagged; left-side or dismounted firing allowed", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-4"},
-        {"id": "TC-EQP-05", "description": "Adventuring gear: Detective Kit +1 item investigation checks; Dueling Cape Interact-to-deploy +1 AC/Feint; Net dual-mode (Grapple 10ft / crit-immobilize, Escape DC 16, ally Interact to remove)", "suite_type": "e2e", "status": "active", "ac_tag": "Gear-1-3"},
-        {"id": "TC-EQP-06", "description": "Alchemical bombs: Blight Bomb (poison+persistent+splash); Dread Ampoule (Enfeebled 2 until next turn, fear/emotion traits); Crystal Shards (caltrops or handholds context-dependent)", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-1-3"},
-        {"id": "TC-EQP-07", "description": "Counteract consumables: Focus Cathartic (Confused/Stupefied, 1 condition per use); Sinew-Shock Serum (Clumsy/Enfeebled); counteract modifier +6/+8/+19/+28 at L2/4/12/18", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-4-5"},
-        {"id": "TC-EQP-08", "description": "Alchemical utility: Olfactory Obfuscator (concealment vs scent detectors); Leadenleg (Speed reduction, Fortitude resists); Forensic Dye (tracking mark, Seek/Track bonus)", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-6-8"},
-        {"id": "TC-EQP-09", "description": "Preservation/poison: Timeless Salts (7-day decay prevention flag); Universal Solvent (auto-counteract sovereign glue); Cerulean Scourge (3-stage poison stages stored per item entry)", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-9-11"},
-        {"id": "TC-EQP-10", "description": "Consumable magic: Candle of Revealing (invisible -> concealed not observed); Dust of Corpse Animation (1 undead 1-min duration, max 4 total cap enforced)", "suite_type": "e2e", "status": "active", "ac_tag": "Consumable-1-2"},
-        {"id": "TC-EQP-11", "description": "Consumable magic: Potion of Retaliation (damage type set at craft time); Terrifying Ammunition (Frightened floor=1 until concentrate action); Oil of Unlife (heals undead, no harm to living)", "suite_type": "e2e", "status": "active", "ac_tag": "Consumable-3-5"},
-        {"id": "TC-EQP-12", "description": "Permanent magic: Glamorous Buckler (Feint bonus only while raised, dazzle daily limit); Victory Plate (kill log persists, resistance grant); Rope of Climbing (command animation)", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-1-3"},
-        {"id": "TC-EQP-13", "description": "Permanent magic: Slates of Distant Letters (pair-crafted, destruction propagates to partner, 25-word limit, 1-hour cooldown per slate); Four-Ways Dogslicer (3 rune slots Interact-to-swap, 1d6 activation damage)", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-4-5"},
-        {"id": "TC-EQP-14", "description": "Permanent magic: Winged Rune (5-min fly 1/hour); Wand of Overflowing Life (bonus heal); Wand of Snowfields (difficult terrain); Urn of Ashes (doomed reaction once/rest); Rod of Cancellation (permanent cancel, cooldown rolls 2d6 hours)", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-6-10"},
-        {"id": "TC-EQP-15", "description": "APG snares in snare selector alongside CRB snares: Engulfing Snare (Hardness 5 HP 30, Escape DC 31); Flare Snare (signal only, damage=0)", "suite_type": "e2e", "status": "active", "ac_tag": "APGSnares-1-2"},
-        {"id": "TC-EQP-16", "description": "Infiltrators Accessory: social-context concealment only; does not suppress magical detection", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-6-Integration"}
+        {
+          "id": "TC-EQP-01",
+          "description": "New weapons: Sword Cane, Bola, Daikyu in weapon selector with correct traits and proficiency grouping",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Weapons-1"
+        },
+        {
+          "id": "TC-EQP-02",
+          "description": "Sword Cane: weapon identity not revealed in social inspection by default; investigation check required to expose",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Weapons-2"
+        },
+        {
+          "id": "TC-EQP-03",
+          "description": "Bola: successful hit offers Trip sub-action via standard Athletics vs CMD",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Weapons-3"
+        },
+        {
+          "id": "TC-EQP-04",
+          "description": "Daikyu: while mounted non-left-side firing blocked or flagged; left-side or dismounted firing allowed",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Weapons-4"
+        },
+        {
+          "id": "TC-EQP-05",
+          "description": "Adventuring gear: Detective Kit +1 item investigation checks; Dueling Cape Interact-to-deploy +1 AC/Feint; Net dual-mode (Grapple 10ft / crit-immobilize, Escape DC 16, ally Interact to remove)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Gear-1-3"
+        },
+        {
+          "id": "TC-EQP-06",
+          "description": "Alchemical bombs: Blight Bomb (poison+persistent+splash); Dread Ampoule (Enfeebled 2 until next turn, fear/emotion traits); Crystal Shards (caltrops or handholds context-dependent)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Alchemical-1-3"
+        },
+        {
+          "id": "TC-EQP-07",
+          "description": "Counteract consumables: Focus Cathartic (Confused/Stupefied, 1 condition per use); Sinew-Shock Serum (Clumsy/Enfeebled); counteract modifier +6/+8/+19/+28 at L2/4/12/18",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Alchemical-4-5"
+        },
+        {
+          "id": "TC-EQP-08",
+          "description": "Alchemical utility: Olfactory Obfuscator (concealment vs scent detectors); Leadenleg (Speed reduction, Fortitude resists); Forensic Dye (tracking mark, Seek/Track bonus)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Alchemical-6-8"
+        },
+        {
+          "id": "TC-EQP-09",
+          "description": "Preservation/poison: Timeless Salts (7-day decay prevention flag); Universal Solvent (auto-counteract sovereign glue); Cerulean Scourge (3-stage poison stages stored per item entry)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Alchemical-9-11"
+        },
+        {
+          "id": "TC-EQP-10",
+          "description": "Consumable magic: Candle of Revealing (invisible -> concealed not observed); Dust of Corpse Animation (1 undead 1-min duration, max 4 total cap enforced)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Consumable-1-2"
+        },
+        {
+          "id": "TC-EQP-11",
+          "description": "Consumable magic: Potion of Retaliation (damage type set at craft time); Terrifying Ammunition (Frightened floor=1 until concentrate action); Oil of Unlife (heals undead, no harm to living)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Consumable-3-5"
+        },
+        {
+          "id": "TC-EQP-12",
+          "description": "Permanent magic: Glamorous Buckler (Feint bonus only while raised, dazzle daily limit); Victory Plate (kill log persists, resistance grant); Rope of Climbing (command animation)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Permanent-1-3"
+        },
+        {
+          "id": "TC-EQP-13",
+          "description": "Permanent magic: Slates of Distant Letters (pair-crafted, destruction propagates to partner, 25-word limit, 1-hour cooldown per slate); Four-Ways Dogslicer (3 rune slots Interact-to-swap, 1d6 activation damage)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Permanent-4-5"
+        },
+        {
+          "id": "TC-EQP-14",
+          "description": "Permanent magic: Winged Rune (5-min fly 1/hour); Wand of Overflowing Life (bonus heal); Wand of Snowfields (difficult terrain); Urn of Ashes (doomed reaction once/rest); Rod of Cancellation (permanent cancel, cooldown rolls 2d6 hours)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Permanent-6-10"
+        },
+        {
+          "id": "TC-EQP-15",
+          "description": "APG snares in snare selector alongside CRB snares: Engulfing Snare (Hardness 5 HP 30, Escape DC 31); Flare Snare (signal only, damage=0)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "APGSnares-1-2"
+        },
+        {
+          "id": "TC-EQP-16",
+          "description": "Infiltrators Accessory: social-context concealment only; does not suppress magical detection",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Permanent-6-Integration"
+        }
+      ]
+    },
+    {
+      "id": "dc-apg-feats-e2e",
+      "label": "APG general and skill feats: non-skill general feats (Hireling Manager, Improvised Repair, Keen Follower, Pick Up the Pace, Prescient Planner/Consumable, Skitter, Thorough Search, True Perception, Home in Every Port, Caravan Leader, Incredible Scout), skill feats by category (Acrobatics, Athletics, Crafting, Deception, Diplomacy, Intimidation, Lore, Medicine), multi-skill feats (Group Aid, Fascinating Spellcaster, Oddity Identification, Recognize Spell, Scare to Death, Shameless Request, Trick Magic Item), Nature feats, system-level general feat availability",
+      "type": "e2e",
+      "feature_id": "dc-apg-feats",
+      "command": "npx playwright test tests/e2e/apg-feats/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-feats-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 20 TCs active. Regression risks: Prescient Planner item eligibility filter too broad/narrow; Aerobatics Mastery missing rank gate; Bon Mot self-penalty on crit fail not applied; No Cause for Alarm missing 1-hour immunity; Ward Medic patient cap not enforced; Group Aid stacking with other circumstance bonuses; Scare to Death frequency or Frightened-4 gate not enforced; Trick Magic Item routing wrong tradition-to-skill.",
+      "test_cases": [
+        {
+          "id": "TC-FEAT-01",
+          "description": "Non-skill general feats: Hireling Manager (+2 circ to hireling checks), Improvised Repair (shoddy state), Keen Follower (scales 3/4 by expertise), Pick Up the Pace (+20 min group Hustle) \u2014 prereqs and bonuses enforced",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NonSkill-1-4"
+        },
+        {
+          "id": "TC-FEAT-02",
+          "description": "Prescient Planner: retroactive procurement (level \u2264 half char level, Bulk constrained, not weapon/armor/alchemical/magic); Prescient Consumable extends to consumables (prereq enforced)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NonSkill-5-6"
+        },
+        {
+          "id": "TC-FEAT-03",
+          "description": "Skitter: Crawl up to half Speed; Thorough Search: double time \u2192 +2 circ to Seek; True Perception: permanent true seeing using Perception modifier for counteract",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NonSkill-7-9"
+        },
+        {
+          "id": "TC-FEAT-04",
+          "description": "A Home in Every Port: free lodging for self+6 per settlement; Caravan Leader (prereq Pick Up the Pace): group Hustle \u2192 longest member duration +20 min; Incredible Scout: +2 ally initiative",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NonSkill-10-12"
+        },
+        {
+          "id": "TC-FEAT-05",
+          "description": "Acrobatics skill feats: Acrobatic Performer (Acrobatics substitutes Perform); Aerobatics Mastery (+2 to Maneuver in Flight, Master=2\u21921 action DC+5, Legendary=3\u21921 DC+10) \u2014 rank gates enforced",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Acrobatics-1-2"
+        },
+        {
+          "id": "TC-FEAT-06",
+          "description": "Athletics skill feats: Lead Climber (crit-fail climb \u2192 ally regular fail only; double crit = both fall); Water Sprint (cross water during Stride, must end on solid; straight path at Master, any path at Legendary)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Athletics-1-2"
+        },
+        {
+          "id": "TC-FEAT-07",
+          "description": "Crafting skill feats: Crafter's Appraisal (Crafting for Identify Magic on items); Improvise Tool (Repair without kit; blocked if no raw materials); Rapid Affixture (1 min at Master, 3 actions at Legendary)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Crafting-1-3"
+        },
+        {
+          "id": "TC-FEAT-08",
+          "description": "Deception: Doublespeak \u2014 hidden message in conversation; long-term allies auto-understand; others: Perception vs. Deception DC; only crit success decodes (not detects)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Deception-1"
+        },
+        {
+          "id": "TC-FEAT-09",
+          "description": "Diplomacy: Bon Mot \u2014 1-action; status penalty to Perception + Will saves; target removes via verbal/concentrate retort; crit fail \u2192 penalty on caster instead",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Diplomacy-1"
+        },
+        {
+          "id": "TC-FEAT-10",
+          "description": "Diplomacy: No Cause for Alarm \u2014 3-action; reduces Frightened in 10-ft emanation on success/crit; 1-hour immunity after use",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Diplomacy-2"
+        },
+        {
+          "id": "TC-FEAT-11",
+          "description": "Intimidation: Terrifying Resistance (+1 circ to saves vs. spells from Demoralized creature, 24-hr window); Lore: Battle Assessment (Recall Knowledge reveals highest damage modifier or attack bonus on success)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Intimidation-1-Lore-1"
+        },
+        {
+          "id": "TC-FEAT-12",
+          "description": "Medicine: Continual Recovery (Battle Medicine immunity \u2192 10 min); Robust Recovery (crit = max HP next check + temp HP); Ward Medic (\u22644 simultaneous patients); Godless Healing (no deity req)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Medicine-1-4"
+        },
+        {
+          "id": "TC-FEAT-13",
+          "description": "Group Aid: Aid up to 4 creatures simultaneously; preparation action taken prior turn; circumstance bonus applied (no stacking with other circumstance)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "MultiSkill-1"
+        },
+        {
+          "id": "TC-FEAT-14",
+          "description": "Fascinating Spellcaster: Fascinate using spell level to set DC; targets make Perception vs. DC; spellcasting prereq enforced",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "MultiSkill-2"
+        },
+        {
+          "id": "TC-FEAT-15",
+          "description": "Oddity Identification: +2 circ to Recall Knowledge for curses/haunts/oddities only; Recognize Spell: non-primary tradition at -2; ritual prep identifiable",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "MultiSkill-3-4"
+        },
+        {
+          "id": "TC-FEAT-16",
+          "description": "Scare to Death (Uncommon): 1/day frequency enforced; Frightened \u22654 prereq at activation; Fortitude save; fail \u2192 massive damage + unconscious chain; Uncommon gate blocks non-authorized",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "MultiSkill-5"
+        },
+        {
+          "id": "TC-FEAT-17",
+          "description": "Shameless Request: attitude requirement lowers by 1 step (even hostile allowed); Trick Magic Item: tradition-to-skill routing (Arcana/Nature/Occultism/Religion) matches item tradition",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "MultiSkill-6-7"
+        },
+        {
+          "id": "TC-FEAT-18",
+          "description": "Nature: Bonded Animal (deep bond with one specific non-combat animal; complex commands); Train Animal (prereq Bonded Animal; 1 week per trick)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Nature-1-2"
+        },
+        {
+          "id": "TC-FEAT-19",
+          "description": "System: APG general feats appear in general feat selector for any character class/ancestry; only level and stat prerequisites enforced (no class/ancestry gate)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-1"
+        },
+        {
+          "id": "TC-FEAT-20",
+          "description": "Feat prerequisite chain enforcement: Caravan Leader requires Pick Up the Pace; Prescient Consumable requires Prescient Planner; Aerobatics Mastery rank gates \u2014 all block out-of-order selection in character creation",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-2"
+        }
       ]
     }
   ],
