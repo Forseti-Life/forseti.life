@@ -81,7 +81,6 @@ if team_release_ids:
         # Per-team sentinel (<team_id>.advanced) records the new release_id we advanced
         # to; if current release_id already matches, this is a re-run — skip.
         today = datetime.now(timezone.utc).strftime("%Y%m%d")
-        _suffixes = ["release-b", "release-c", "release-d", "release-e", "release-f"]
         for team in sorted(coord_teams, key=lambda t: t['id']):
             team_id = team['id']
             next_rid_file = runtime_dir / f"{team_id}.next_release_id"
@@ -102,11 +101,17 @@ if team_release_ids:
                 if current_rid == sentinel_val:
                     print(f"SKIP {team_id}: release_id already advanced to {sentinel_val}")
                     continue
-            # Generate a collision-free next_release_id (same logic as orchestrator).
-            new_next = next(
-                (f"{today}-{team_id}-{s}" for s in _suffixes if f"{today}-{team_id}-{s}" != new_current),
-                f"{today}-{team_id}-release-b",
-            )
+            # Generate a collision-free next_release_id: pick the suffix
+            # immediately after new_current's suffix in the cycle order.
+            # (previously used "first suffix != new_current" which always returned release-b)
+            cur_suffix = new_current.split('-')[-1] if '-' in new_current else ''
+            cur_label  = new_current[len(f"{today}-{team_id}-release-"):] if new_current.startswith(f"{today}-{team_id}-release-") else ''
+            alpha = 'bcdefghijklmnopqrstuvwxyz'  # skip 'a' — release-a reserved
+            if cur_label and cur_label in alpha:
+                next_label = alpha[(alpha.index(cur_label) + 1) % len(alpha)]
+            else:
+                next_label = 'b'
+            new_next = f"{today}-{team_id}-release-{next_label}"
             (runtime_dir / f"{team_id}.release_id").write_text(new_current + "\n", encoding='utf-8')
             (runtime_dir / f"{team_id}.next_release_id").write_text(new_next + "\n", encoding='utf-8')
             (runtime_dir / f"{team_id}.started_at").write_text(

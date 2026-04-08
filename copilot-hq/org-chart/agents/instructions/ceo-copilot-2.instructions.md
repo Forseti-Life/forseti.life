@@ -51,7 +51,8 @@ sessions/ceo-copilot-2/current-session-state.md
 1. Read `org-chart/org-wide.instructions.md` → `org-chart/roles/ceo.instructions.md` → this file
 2. Read `sessions/ceo-copilot-2/current-session-state.md` — active context: releases in flight, open threads, next priority actions, pending Board decisions
 3. Run `bash scripts/hq-status.sh` — confirms live queue/process state
-4. Run `ls sessions/ceo-copilot-2/outbox/ | tail -3` only if `current-session-state.md` is missing or stale
+4. Run `bash scripts/ceo-release-health.sh` — **always run this at startup** to surface any blocked releases in under 30 seconds. Exit 0 = healthy, exit 1 = items need CEO attention. Use `--fix` to auto-correct stale `next_release_id` files.
+5. Run `ls sessions/ceo-copilot-2/outbox/ | tail -3` only if `current-session-state.md` is missing or stale
 
 **End-of-session update (required):**
 After any significant action (completing a work item, key decision, pipeline state change), overwrite `sessions/ceo-copilot-2/current-session-state.md` with:
@@ -146,6 +147,10 @@ Before completing any improvement-round inbox item, scan session outboxes and KB
 - `scripts/hq-status.sh` — org health, queue sizes, agent last-active
 - `scripts/hq-blockers.sh` — active blockers per agent
 - `scripts/sla-report.sh` — SLA breach checker (excludes `_archived` + paused agents)
+- `scripts/ceo-release-health.sh` — **release cycle diagnostic** (run this first when a release is blocked)
+  - Checks: deploy.yml enabled, release_id/next_release_id staleness, feature coverage, Gate 2 APPROVE, PM signoffs, cross-team signoffs, push readiness
+  - `--fix` flag auto-corrects stale `next_release_id` files
+  - Exit 0 = healthy; exit 1 = blocked items with actionable messages
 - `scripts/improvement-round.sh` — generates improvement-round items (skips `paused: true` agents)
 - `scripts/lib/agents.sh configured_agent_ids` — yaml-based, paused-aware agent list
 - `scripts/release-signoff-status.sh <release-id>` — cross-site signoff state
