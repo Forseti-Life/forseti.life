@@ -1,18 +1,18 @@
 # Feature Progress
 
-Generated: 2026-04-08T04:18:55Z
+Generated: 2026-04-08T05:51:53Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
-| dc-apg-ancestries | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-apg-archetypes | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-apg-ancestries | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-archetypes | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -24,7 +24,7 @@ Generated: 2026-04-08T04:18:55Z
 | dc-cr-ancestry-feat-schedule | dungeoncrawler | dungeoncrawler_content | done | P3 (depends on dc-cr-character-leveling which is deferred; ancestry feat slots blocked until leveling system exists) |  |  |  |
 | dc-cr-ancestry-system | dungeoncrawler | dungeoncrawler_content | done | P0 (required dependency for character creation; enables ancestry feat trees and heritage selection downstream) |  |  |  |
 | dc-cr-ancestry-traits | dungeoncrawler | dungeoncrawler_content | ready | P2 (spell/ability targeting prerequisite; deferred from current release — no spellcasting in scope yet) |  |  |  |
-| dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | done | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
 | dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | done | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
 | dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | done | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
@@ -140,10 +140,10 @@ Generated: 2026-04-08T04:18:55Z
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | done | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | in_progress | P1 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | done | P2 |  |  |  |
-| forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | in_progress | P2 |  |  |  |
+| forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | done | P2 |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | in_progress | P0 (ROI 1000) |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | in_progress | P0 |  |  |  |
-| forseti-jobhunter-profile-refactor | forseti.life | job_hunter | in_progress | P2 |  |  |  |
+| forseti-jobhunter-profile-refactor | forseti.life | job_hunter | done | P2 |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
