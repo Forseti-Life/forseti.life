@@ -4540,6 +4540,149 @@
           "ac_tag": "TEST-ONLY"
         }
       ]
+    },
+    {
+      "id": "dc-cr-human-ancestry-e2e",
+      "label": "Human ancestry: core stats (HP8/Medium/25ft), two free ability boosts (uniqueness enforced), no ability flaw, Human+Humanoid traits, languages (Common + Int-modifier bonus Regional), standard vision default, all 7 ancestry feats (Adapted Cantrip spellcasting gate / Cooperative Nature / General Training / Haughty Obstinacy / Natural Ambition level-1-gate / Natural Skill / Unconventional Weaponry), all 4 heritages (Half-Elf low-light+elf-pool / Half-Orc low-light+orc-pool / Skilled Heritage skill+expert-at-5 / Versatile Heritage extra-general-feat), DB gap pre-implementation gate",
+      "type": "e2e",
+      "feature_id": "dc-cr-human-ancestry",
+      "command": "npx playwright test tests/e2e/human-ancestry/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-cr-human-ancestry-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All dependencies done (dc-cr-ancestry-system, dc-cr-heritage-system, dc-cr-languages, dc-cr-ancestry-feat-schedule all status=done). All 18 TCs active. TC-HUM-18 is a pre-implementation data-integrity gate — DB-load task for core/ch01 and core/ch02 must be dispatched to dev-dungeoncrawler before feature enters dev (PM action required). Regression risks: two-boost uniqueness enforcement; Adapted Cantrip spellcasting gate; Natural Ambition level-1-only filter; Haughty Obstinacy crit-fail improvement boundary; heritage low-light vision not leaking to base Human.",
+      "test_cases": [
+        {
+          "id": "TC-HUM-01",
+          "description": "Human ancestry grants HP 8, Medium size, Speed 25 ft: character.hp_from_ancestry=8, size=Medium, speed=25",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-02",
+          "description": "Two free ability boosts: player chooses any two different ability scores; duplicate selection blocked; exactly 2 boosts allocated",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-03",
+          "description": "No ability flaw: zero ability_flaw entries on character after Human ancestry selection",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-04",
+          "description": "Traits Human and Humanoid applied to character after Human ancestry selection",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-05",
+          "description": "Starting languages: Common granted; bonus_language_slots = max(0, int_modifier); only Regional Languages selectable for bonus slots",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-06",
+          "description": "Standard vision only by default (not low-light or darkvision); senses=[standard_vision] unless heritage overrides",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-07",
+          "description": "Feat Adapted Cantrip: grants one cantrip from different tradition; blocked if character has no spellcasting class feature",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-08",
+          "description": "Feat Cooperative Nature: +4 circumstance bonus to Aid actions",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-09",
+          "description": "Feat General Training: opens bonus non-skill general feat slot; only non-skill general feats selectable; applied immediately",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-10",
+          "description": "Feat Haughty Obstinacy: coercion/control crit_fail improves to failure; target_will > spell_dc: normal save (no improvement)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-11",
+          "description": "Feat Natural Ambition: opens bonus 1st-level class feat slot from own class; level 2 feat attempt blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-12",
+          "description": "Feat Natural Skill: 2 additional skill training slots granted; any skills selectable",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-13",
+          "description": "Feat Unconventional Weaponry: one uncommon weapon proficiency added at trained; associated weapon feats unlocked for that weapon",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-14",
+          "description": "Heritage Half-Elf: senses.low_light_vision=true; elf ancestry feat pool accessible alongside human feats",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-15",
+          "description": "Heritage Half-Orc: senses.low_light_vision=true; orc ancestry feat pool accessible alongside human feats",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-16",
+          "description": "Heritage Skilled Heritage: +1 skill training at level 1; selected skill advances to expert automatically at level 5",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-17",
+          "description": "Heritage Versatile Heritage: extra general feat slot at level 1; any general feat selectable",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-HUM-18",
+          "description": "DB gap pre-implementation gate: dc_requirements contains rows for core/ch01 and core/ch02 before dev implementation starts",
+          "suite_type": "data-integrity",
+          "status": "active",
+          "ac_tag": "TEST-ONLY",
+          "notes": "Pre-implementation gate: SELECT COUNT(*) FROM dc_requirements WHERE section LIKE 'core/ch01%' > 0 AND core/ch02 > 0. DB-load task must be dispatched to dev-dungeoncrawler before feature enters dev."
+        }
+      ]
     }
   ],
   "_schema_notes": [
