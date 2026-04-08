@@ -11,7 +11,7 @@
 # Idempotent — safe to re-run.
 
 set -euo pipefail
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT_DIR="${HQ_ROOT_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)}"
 
 TEAMS_JSON="${ROOT_DIR}/org-chart/products/product-teams.json"
 RUNTIME_DIR="${ROOT_DIR}/tmp/release-cycle-active"
@@ -74,6 +74,43 @@ if team_release_ids:
     if not marker.exists():
         marker.write_text(datetime.now(timezone.utc).isoformat() + "\n")
         print(f"MARKER written: {marker.name}")
+
+        # Step 3 — advance each team's release_id to next_release_id.
+        # This is atomic with the push marker so site audits started after the push
+        # see the new release_id immediately (prevents stale gate2-ready dispatches).
+        # Per-team sentinel (<team_id>.advanced) records the new release_id we advanced
+        # to; if current release_id already matches, this is a re-run — skip.
+        today = datetime.now(timezone.utc).strftime("%Y%m%d")
+        _suffixes = ["release-b", "release-c", "release-d", "release-e", "release-f"]
+        for team in sorted(coord_teams, key=lambda t: t['id']):
+            team_id = team['id']
+            next_rid_file = runtime_dir / f"{team_id}.next_release_id"
+            if not next_rid_file.exists():
+                print(f"WARN {team_id}: no next_release_id file — skipping release_id advancement")
+                continue
+            new_current = next_rid_file.read_text(encoding='utf-8').strip()
+            if not new_current:
+                print(f"WARN {team_id}: next_release_id file is empty — skipping release_id advancement")
+                continue
+            # Idempotency: skip if this team's release_id was already advanced to new_current.
+            advance_sentinel = pushed_dir / f"{team_id}.advanced"
+            if advance_sentinel.exists():
+                current_rid = (runtime_dir / f"{team_id}.release_id").read_text(encoding='utf-8').strip()
+                if current_rid == new_current:
+                    print(f"SKIP {team_id}: release_id already advanced to {new_current}")
+                    continue
+            # Generate a collision-free next_release_id (same logic as orchestrator).
+            new_next = next(
+                (f"{today}-{team_id}-{s}" for s in _suffixes if f"{today}-{team_id}-{s}" != new_current),
+                f"{today}-{team_id}-release-b",
+            )
+            (runtime_dir / f"{team_id}.release_id").write_text(new_current + "\n", encoding='utf-8')
+            (runtime_dir / f"{team_id}.next_release_id").write_text(new_next + "\n", encoding='utf-8')
+            (runtime_dir / f"{team_id}.started_at").write_text(
+                datetime.now(timezone.utc).isoformat() + "\n", encoding='utf-8'
+            )
+            advance_sentinel.write_text(new_current + "\n", encoding='utf-8')
+            print(f"ADVANCE {team_id}: release_id={new_current} next_release_id={new_next}")
     else:
         print(f"MARKER already exists: {marker.name}")
 PY
