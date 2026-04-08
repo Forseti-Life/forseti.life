@@ -4678,6 +4678,13 @@ function dungeoncrawler_content_update_10034() {
         'default' => 0,
         'description' => 'UID of last user to change status.',
       ],
+      'feature_id' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Feature identifier linking requirement to a roadmap feature (e.g. dc-cr-spellcasting).',
+      ],
     ],
     'primary key' => ['id'],
     'unique keys' => [
@@ -4686,6 +4693,7 @@ function dungeoncrawler_content_update_10034() {
     'indexes' => [
       'book_chapter' => ['book_id', 'chapter_key'],
       'status' => ['status'],
+      'idx_feature_id' => ['feature_id'],
     ],
   ];
   $db_schema->createTable('dc_requirements', $schema);
@@ -4916,4 +4924,48 @@ function dungeoncrawler_content_update_10037() {
   ]);
 
   return 'Created dc_sessions table for play session tracking (dc-cr-session-structure).';
+}
+
+/**
+ * Add feature_id column and idx_feature_id index to dc_requirements (DC-RF-01).
+ *
+ * Idempotent: skips addField/addIndex if already present (e.g. production
+ * where the column was applied via direct ALTER TABLE in ca45aa0e0).
+ */
+function dungeoncrawler_content_update_10038() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('dc_requirements')) {
+    return 'dc_requirements table does not exist — skipped.';
+  }
+
+  if (!$schema->fieldExists('dc_requirements', 'feature_id')) {
+    $schema->addField('dc_requirements', 'feature_id', [
+      'type' => 'varchar',
+      'length' => 64,
+      'not null' => TRUE,
+      'default' => '',
+      'description' => 'Feature identifier linking requirement to a roadmap feature.',
+    ]);
+  }
+
+  // Add index if not already present. Drupal schema API has no indexExists();
+  // wrap in try/catch to stay idempotent on production where it may exist.
+  try {
+    $schema->addIndex('dc_requirements', 'idx_feature_id', ['feature_id'], [
+      'fields' => [
+        'feature_id' => [
+          'type' => 'varchar',
+          'length' => 64,
+          'not null' => TRUE,
+          'default' => '',
+        ],
+      ],
+    ]);
+  }
+  catch (\Exception $e) {
+    // Index already exists on this install; ignore.
+  }
+
+  return 'Added feature_id column (and idx_feature_id index) to dc_requirements (DC-RF-01).';
 }
