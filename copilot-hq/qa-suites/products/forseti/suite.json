@@ -745,6 +745,58 @@
         "STAGE 0 PENDING: requires feature implementation by dev-forseti."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-controller-extraction-phase1-static",
+      "label": "JobHunter Controller Extraction Phase 1 \u2014 static: 0 direct DB calls in JobApplicationController; all methods delegated to service layer",
+      "type": "script",
+      "feature_id": "forseti-jobhunter-controller-extraction-phase1",
+      "command": "bash -c 'set -e; CTRL=sites/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; cd /home/ubuntu/forseti.life; echo \"=== TC-1: no direct DB calls in controller ===\"; COUNT=$(grep -c \"this->database\" \"$CTRL\" 2>/dev/null || echo 0); [ \"$COUNT\" = \"0\" ] && echo \"PASS: 0 direct DB calls\" || (echo \"FAIL: $COUNT direct DB calls found\" && exit 1); echo \"=== TC-2: ApplicationSubmissionService contains migrated methods ===\"; SVC=sites/forseti/web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php; [ -f \"$SVC\" ] && echo \"PASS: ApplicationSubmissionService.php exists\" || (echo \"FAIL: service file missing\" && exit 1); METHOD_COUNT=$(grep -c 'public function' \"$SVC\" 2>/dev/null || echo 0); echo \"Service public methods: $METHOD_COUNT\"; [ \"$METHOD_COUNT\" -ge 5 ] && echo \"PASS: sufficient methods in service\" || (echo \"FAIL: insufficient methods ($METHOD_COUNT)\" && exit 1); echo All static checks PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/static.log"
+      ],
+      "run_notes": [
+        "TC-1: grep -c 'this->database' JobApplicationController.php must be 0.",
+        "TC-2: ApplicationSubmissionService.php must exist with >= 5 public methods (proxy for 54 migrated DB calls).",
+        "Full diff evidence (54 methods) is documented by Dev in implementation notes.",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-controller-extraction-phase1-functional",
+      "label": "JobHunter Controller Extraction Phase 1 \u2014 functional: step-1 renders 200 for authenticated user, step-3 POST not 500",
+      "type": "manual",
+      "feature_id": "forseti-jobhunter-controller-extraction-phase1",
+      "command": "manual: log in as authenticated user; GET https://forseti.life/jobhunter/application-submission/{job_id}/step-1; verify 200, no PHP errors; POST step-3 form; verify 200 or redirect, not 500",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/functional.log"
+      ],
+      "run_notes": [
+        "TC-3: GET /jobhunter/application-submission/{job_id}/step-1 as authenticated => 200.",
+        "TC-4: POST step-3 form as authenticated => 200 or redirect (not 500).",
+        "AC-3: all step 1-5 routes render without new 403/500 errors.",
+        "Requires an authenticated session cookie or Drush user-login URL for admin smoke test.",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-controller-extraction-phase1-regression",
+      "label": "JobHunter Controller Extraction Phase 1 \u2014 regression: site audit no new 403/500 on job_hunter routes",
+      "type": "script",
+      "feature_id": "forseti-jobhunter-controller-extraction-phase1",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh 2>&1 | tail -5; SUMMARY=sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md; FAILURES=$(grep 'Other failures' \"$SUMMARY\" | grep -o '[0-9]*' | head -1); VIOLATIONS=$(grep 'Permission expectation violations' \"$SUMMARY\" | grep -o '[0-9]*' | head -1); [ \"${FAILURES:-0}\" = \"0\" ] && [ \"${VIOLATIONS:-0}\" = \"0\" ] && echo \"PASS: 0 failures, 0 violations\" || (echo \"FAIL: failures=$FAILURES violations=$VIOLATIONS\" && exit 1); echo Regression check PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/regression.log",
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md"
+      ],
+      "run_notes": [
+        "TC-5: Full site audit must show 0 new failures and 0 permission violations.",
+        "Run after dev-forseti completes implementation to catch any routing/permission regressions.",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
