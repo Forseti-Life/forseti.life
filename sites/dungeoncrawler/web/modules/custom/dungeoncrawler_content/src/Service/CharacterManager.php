@@ -798,6 +798,10 @@ class CharacterManager {
       'skills' => 'Choose 2 + Intelligence modifier',
       'weapons' => 'Trained in simple and martial weapons, and the favored weapon of your deity',
       'trained_skills' => 2,
+      'alignment_options' => [
+        'good'  => ['access' => 'standard',  'label' => 'Good Champion',  'description' => 'Paladins and other good champions serve deities of light and justice.'],
+        'evil'  => ['access' => 'uncommon',  'label' => 'Evil Champion',  'description' => 'Antipaladins and other evil champions require GM access grant (Uncommon). They gain alignment-appropriate champion\'s reaction and devotion spells paralleling the good champion structure.'],
+      ],
     ],
     'druid' => [
       'id' => 'druid',
@@ -961,6 +965,10 @@ class CharacterManager {
         'benefit' => 'You make a dazzling series of attacks with both weapons, using the first attack to throw your foe off guard against a second attack. Make one Strike with each of your two melee weapons, both against the same target. The target is automatically flat-footed against the second attack.'],
       ['id' => 'you-re-next', 'name' => 'You\'re Next', 'level' => 1, 'traits' => ['Rogue', 'Emotion', 'Fear', 'Mental'], 'prerequisites' => '',
         'benefit' => 'Trigger: You reduce an enemy to 0 Hit Points. After downing a foe, you menace another to sow fear. Attempt an Intimidation check with a +2 circumstance bonus to Demoralize a single creature that you can see and that can see you. This creature doesn\'t need to be within 30 feet, but it must be able to perceive the creature you just killed.'],
+      ['id' => 'eldritch-trickster-racket', 'name' => 'Eldritch Trickster Racket', 'level' => 1, 'traits' => ['Rogue'], 'prerequisites' => '', 'racket' => TRUE,
+        'benefit' => 'You blend arcane power with criminal cunning. You gain a free multiclass spellcasting archetype dedication at 1st level. You can select the Magical Trickster feat at 2nd level (instead of 4th). Intelligence is your key ability score.'],
+      ['id' => 'mastermind-racket', 'name' => 'Mastermind Racket', 'level' => 1, 'traits' => ['Rogue'], 'prerequisites' => '', 'racket' => TRUE,
+        'benefit' => 'You use cunning deduction rather than brute force. Intelligence is your key ability score. You gain training in Society and one additional knowledge skill. When you successfully Recall Knowledge about a creature, it is flat-footed against your attacks until the start of your next turn. On a critical success, it is flat-footed for 1 minute.'],
     ],
     'wizard' => [
       ['id' => 'counterspell', 'name' => 'Counterspell', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => '',
@@ -977,6 +985,8 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'benefit' => 'You extend your spell\'s range. If the next action you use is to Cast a Spell that has a range, increase that spell\'s range by 30 feet. As is standard for increasing spell ranges, if the spell normally has a range of touch, you extend its range to 30 feet.'],
       ['id' => 'widen-spell', 'name' => 'Widen Spell', 'level' => 1, 'traits' => ['Manipulate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
         'benefit' => 'You manipulate the energy of your spell, causing it to affect a wider area. If the next action you use is to Cast a Spell that has an area of a burst, cone, or line and doesn\'t have a duration, increase the area of that spell. Add 5 feet to the radius of a burst that normally has a radius of at least 10 feet (a burst with a smaller radius is not affected). Add 5 feet to the length of a cone or line that is normally 15 feet long or smaller, and add 10 feet to the length of a larger cone or line.'],
+      ['id' => 'staff-nexus', 'name' => 'Staff Nexus Thesis', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => '', 'thesis' => TRUE,
+        'benefit' => 'Your arcane thesis focuses on the creation and empowerment of magical staves. You begin play with a makeshift staff containing 1 cantrip and 1 first-level spell from your spellbook. The makeshift staff gains charges only by expending spell slots (1 slot = number of spell levels in charges). At 8th level you may expend 2 slots per day; at 16th level up to 3 slots. You can Craft the makeshift staff into any standard staff type at standard cost, retaining the two original spells.'],
     ],
     'ranger' => [
       ['id' => 'animal-companion', 'name' => 'Animal Companion', 'level' => 1, 'traits' => ['Ranger'], 'prerequisites' => '',
@@ -989,6 +999,16 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'benefit' => 'You swear to hunt down a specific type of creature. Choose one of the following monster types: aberration, animal, beast, construct, dragon, elemental, fey, fungus, giant, humanoid, ooze, or undead. You gain a +2 circumstance bonus to Recall Knowledge checks and Investigation checks against creatures with this trait.'],
       ['id' => 'twin-takedown', 'name' => 'Twin Takedown', 'level' => 1, 'traits' => ['Flourish', 'Ranger'], 'prerequisites' => '',
         'benefit' => 'You swiftly move from one opponent to the next. Make two Strikes, each against a different target and with a different weapon. The second Strike takes the normal multiple attack penalty, but the Double Slice ability applies.'],
+    ],
+    'bard' => [
+      ['id' => 'lingering-composition', 'name' => 'Lingering Composition', 'level' => 1, 'traits' => ['Bard'], 'prerequisites' => '',
+        'benefit' => 'By adding a flourish, you make your composition last longer. If your next action is to cast a cantrip composition with a duration of 1 round, attempt a Performance check. On a success, the composition lasts 3 rounds; on a critical success, 4 rounds.'],
+      ['id' => 'martial-performance', 'name' => 'Martial Performance', 'level' => 1, 'traits' => ['Bard'], 'prerequisites' => 'Warrior muse',
+        'benefit' => 'Your muse grants you skill in martial weaponry. You become trained in all martial weapons. When you use a composition spell that benefits your own attacks, the bonus also applies to attacks with martial weapons you are wielding.'],
+      ['id' => 'warrior-muse', 'name' => 'Warrior Muse', 'level' => 1, 'traits' => ['Bard'], 'prerequisites' => '', 'muse' => TRUE,
+        'benefit' => 'Your muse is a great hero, deity of battle, or embodiment of conflict. You are granted the Martial Performance feat at 1st level. You add fear to your spell repertoire at 1st level. At 2nd level you can take the Song of Strength feat (composition cantrip: grants all allies a +2 circumstance bonus to Athletics checks for the duration).'],
+      ['id' => 'song-of-strength', 'name' => 'Song of Strength', 'level' => 2, 'traits' => ['Bard', 'Cantrip', 'Composition', 'Enchantment'], 'prerequisites' => 'Warrior muse',
+        'benefit' => 'You inspire your allies to great feats of strength. You and all allies in a 60-foot emanation gain a +2 circumstance bonus to Athletics checks and Strength-based damage rolls for as long as you Sustain the Cantrip (up to 1 minute).'],
     ],
   ];
 
@@ -1087,6 +1107,8 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     'hag'         => ['tradition' => 'occult',  'label' => 'Hag',         'description' => 'A hag ancestor grants you occult spellcasting.'],
     'imperial'    => ['tradition' => 'arcane',  'label' => 'Imperial',    'description' => 'Your bloodline carries arcane power from ancient rulers or conquerors.'],
     'undead'      => ['tradition' => 'divine',  'label' => 'Undead',      'description' => 'Undead taint in your lineage grants you divine necromantic power.'],
+    'genie'       => ['tradition' => 'arcane',  'label' => 'Genie',       'description' => 'Elemental genie power flows in your blood. Choose a subtype at 1st level: Janni, Djinni, Efreeti, Marid, or Shaitan — each determines certain granted spells.', 'subtype_required' => TRUE, 'subtypes' => ['janni', 'djinni', 'efreeti', 'marid', 'shaitan']],
+    'nymph'       => ['tradition' => 'primal',  'label' => 'Nymph',       'description' => 'A nymph ancestor grants you primal connection to natural beauty and elemental forces.'],
   ];
 
   /**
@@ -1465,7 +1487,7 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         ['id' => 'formula-book', 'name' => 'Formula Book',
           'description' => 'You start with a formula book containing the formulas for four common 1st-level alchemical items. You can expand it by finding or scribing new formulas.'],
         ['id' => 'research-field', 'name' => 'Research Field',
-          'description' => 'Your research has led you to specialize in one of three fields: Bomber, Chirurgeon, or Mutagenist. This choice grants unique abilities at levels 1, 5, and 13.'],
+          'description' => 'Your research has led you to specialize in one of four fields: Bomber, Chirurgeon, Mutagenist, or Toxicologist. This choice grants unique abilities at levels 1, 5, and 13. Toxicologist: start with 2 common 1st-level poison formulas; applying injury poisons costs 1 action (instead of 2); may substitute class DC for poison save DC when using infused poisons. L5: create 3 poisons per batch. L15: apply two injury poisons to the same weapon simultaneously (combined as double poison at the lower DC; cannot use perpetual poisons with this option).'],
       ]],
       5  => ['auto_features' => [
         ['id' => 'field-discovery', 'name' => 'Field Discovery',
