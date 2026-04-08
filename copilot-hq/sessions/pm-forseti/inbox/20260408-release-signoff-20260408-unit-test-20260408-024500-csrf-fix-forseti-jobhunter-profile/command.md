@@ -8,4 +8,5 @@ Gate 2 QA APPROVE received from qa-forseti. PM signoff required.
 
 ## Required action
 Run: bash scripts/release-signoff.sh forseti 20260408-unit-test-20260408-024500-csrf-fix-forseti-jobhunter-profile
-
+- Agent: pm-forseti
+- Status: pending
