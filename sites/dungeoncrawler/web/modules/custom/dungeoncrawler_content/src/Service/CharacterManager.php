@@ -1140,13 +1140,143 @@ class CharacterManager {
       'key_ability' => 'Intelligence',
       'proficiencies' => [
         'perception' => 'Expert',
-        'fortitude' => 'Trained',
-        'reflex' => 'Expert',
-        'will' => 'Expert',
+        'fortitude'  => 'Trained',
+        'reflex'     => 'Expert',
+        'will'       => 'Expert',
       ],
-      'skills' => 'Choose 4 + Intelligence modifier',
-      'weapons' => 'Trained in simple and martial weapons',
-      'trained_skills' => 4,
+      // Light armor + unarmored; simple weapons + rapier.
+      'armor'   => ['light', 'unarmored'],
+      'weapons' => 'Trained in simple weapons and the rapier',
+      // Total trained skills = 4 + Int + 1 (Society, always) + 1 (methodology skill).
+      'trained_skills'         => 4,
+      'class_skills'           => ['Society'],
+      'methodology_bonus_skill' => TRUE,
+      // ── Core Abilities ──────────────────────────────────────────────────────
+      'devise_a_stratagem' => [
+        'action_cost'      => 1,
+        'traits'           => ['Fortune'],
+        'frequency'        => '1 per round',
+        'effect'           => 'Roll a d20 immediately; stored result replaces the next qualifying Strike attack roll this turn.',
+        'qualifying_weapons' => ['agile melee', 'finesse melee', 'ranged', 'sap', 'agile unarmed', 'finesse unarmed'],
+        'attack_modifier'  => 'Intelligence (replaces Strength/Dexterity on qualifying Strike)',
+        'stored_roll' => [
+          // Cleared at end of turn whether used or not.
+          'discard_at_end_of_turn' => TRUE,
+          'discard_if_no_qualifying_strike' => TRUE,
+        ],
+        // Free action when the target is an active lead.
+        'active_lead_cost_reduction' => ['action_cost' => 0, 'condition' => 'target_is_active_lead'],
+      ],
+      'pursue_a_lead' => [
+        'action_cost'   => '1 minute (exploration)',
+        'benefit'       => '+1 circumstance bonus to investigative checks against the designated lead target.',
+        'max_leads'     => 2,
+        // Designating a 3rd lead removes the oldest automatically.
+        'oldest_lead_removed_at_cap' => TRUE,
+        'target_types'  => ['creature', 'object', 'location'],
+      ],
+      'clue_in' => [
+        'action_cost' => 0,
+        'traits'      => ['Reaction'],
+        'frequency'   => '1 per 10 minutes',
+        'trigger'     => 'Successful investigative check',
+        'effect'      => 'Share the Pursue a Lead circumstance bonus with one ally within 30 feet.',
+        'range'       => '30 feet',
+      ],
+      'strategic_strike' => [
+        'description' => 'Precision damage on attacks preceded by Devise a Stratagem in the same turn.',
+        'damage_type' => 'precision',
+        // Only the highest precision damage applies (does not stack with sneak attack).
+        'precision_damage_no_stack' => TRUE,
+        'progression' => [
+          1  => '1d6',
+          5  => '2d6',
+          9  => '3d6',
+          13 => '4d6',
+          17 => '5d6',
+        ],
+      ],
+      // ── Methodologies ───────────────────────────────────────────────────────
+      'methodology' => [
+        'required' => TRUE,
+        'note'     => 'Chosen at L1; grants one additional trained skill plus methodology-specific features.',
+        'options' => [
+          'alchemical-sciences' => [
+            'id'   => 'alchemical-sciences',
+            'name' => 'Alchemical Sciences',
+            'auto_grants' => [
+              'skill_proficiency' => 'Crafting',
+              'feat'              => 'Alchemical Crafting',
+            ],
+            'formula_book' => TRUE,
+            // Daily preparations produce versatile vials = Int modifier.
+            'versatile_vials' => [
+              'count_basis' => 'intelligence_modifier',
+              'refreshed'   => 'daily_preparations',
+            ],
+            'quick_tincture' => [
+              'id'          => 'quick-tincture',
+              'action_cost' => 1,
+              'effect'      => 'Consume one versatile vial to produce an alchemical item from known formulas.',
+              'cost'        => 'one versatile vial',
+            ],
+          ],
+          'empiricism' => [
+            'id'   => 'empiricism',
+            'name' => 'Empiricism',
+            'auto_grants' => [
+              'skill_proficiency' => 'one Intelligence-based skill (player choice)',
+              'feat'              => "That's Odd",
+            ],
+            'expeditious_inspection' => [
+              'id'          => 'expeditious-inspection',
+              'action_cost' => 0,
+              'traits'      => ['Free Action'],
+              'frequency'   => '1 per 10 minutes',
+              'options'     => ['Recall Knowledge', 'Seek', 'Sense Motive'],
+              'effect'      => 'Perform one of the listed actions instantly.',
+            ],
+            // Empiricism removes the lead requirement for Devise a Stratagem action cost.
+            // Free-action waiver applies only to the action cost, not other lead-dependent effects.
+            'devise_a_stratagem_lead_waiver' => TRUE,
+            'devise_a_stratagem_lead_waiver_note' => 'Empiricism waiver applies only to Devise a Stratagem action cost; other lead-dependent effects still require an active lead.',
+          ],
+          'forensic-medicine' => [
+            'id'   => 'forensic-medicine',
+            'name' => 'Forensic Medicine',
+            'auto_grants' => [
+              'skill_proficiency' => 'Medicine',
+              'feats' => ['Battle Medicine', 'Forensic Acumen'],
+            ],
+            'battle_medicine_bonus' => [
+              // Adds investigator level to Battle Medicine healing result.
+              'bonus_type'  => 'investigator_level',
+              'applies_to'  => 'battle_medicine_healing',
+            ],
+            // Reduces Battle Medicine recovery immunity from 1 day to 1 hour.
+            'battle_medicine_immunity_duration' => '1 hour',
+          ],
+          'interrogation' => [
+            'id'   => 'interrogation',
+            'name' => 'Interrogation',
+            'auto_grants' => [
+              'skill_proficiency' => 'Diplomacy',
+              'feat'              => 'No Cause for Alarm',
+            ],
+            // Pursue a Lead can designate a social target in conversation mode.
+            'pursue_lead_social_mode' => TRUE,
+            'pointed_question' => [
+              'id'          => 'pointed-question',
+              'action_cost' => 1,
+              'skills'      => ['Intimidation', 'Deception'],
+              'effect'      => 'Expose an inconsistency in a target\'s statements.',
+              // Target must have made a statement this encounter (GM adjudicated).
+              'requires_prior_statement' => TRUE,
+              'prior_statement_note'     => 'GM check: target must have made a statement this encounter.',
+            ],
+          ],
+        ],
+      ],
     ],
     'oracle' => [
       'id' => 'oracle',
