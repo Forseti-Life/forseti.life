@@ -569,3 +569,9 @@ services:
     class: Drupal\dungeoncrawler_content\Service\LearnASpellService
     arguments:
       - '@dungeoncrawler_content.dc_adjustment'
+
+  dungeoncrawler_content.session_service:
+    class: Drupal\dungeoncrawler_content\Service\SessionService
+    arguments:
+      - '@database'
+      - '@logger.factory'

@@ -4806,3 +4806,114 @@ function dungeoncrawler_content_update_10036() {
   $schema->createTable('combat_afflictions', $table_definition);
   return 'Created combat_afflictions table.';
 }
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create dc_sessions table for individual play sessions (one-shot and
+ * campaign chapters). Satisfies dc-cr-session-structure AC-001 through
+ * AC-005.
+ */
+function dungeoncrawler_content_update_10037() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('dc_sessions')) {
+    return 'dc_sessions table already exists — skipped.';
+  }
+
+  $schema->createTable('dc_sessions', [
+    'description' => 'Individual play sessions (one-shot or campaign chapter).',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uuid' => [
+        'type' => 'varchar',
+        'length' => 36,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Session UUID.',
+      ],
+      'campaign_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Owning campaign (NULL for one-shot sessions).',
+      ],
+      'mode' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'one-shot',
+        'description' => 'Session mode: one-shot or campaign-chapter.',
+      ],
+      'gm_uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'GM user ID.',
+      ],
+      'player_uids' => [
+        'type' => 'text',
+        'size' => 'normal',
+        'not null' => TRUE,
+        'description' => 'JSON array of player user IDs.',
+      ],
+      'narrative_state' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON: starting narrative state, session summary, and NPC tracking.',
+      ],
+      'character_state_snapshot' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => TRUE,
+        'description' => 'JSON map of character_id → {xp, hp, conditions, inventory} committed at session end.',
+      ],
+      'session_xp' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Total XP granted to the party during this session.',
+      ],
+      'status' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'active',
+        'description' => 'Session status: active or ended.',
+      ],
+      'started_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when session started.',
+      ],
+      'ended_at' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'default' => NULL,
+        'description' => 'Unix timestamp when session ended (NULL while active).',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uuid' => ['uuid'],
+    ],
+    'indexes' => [
+      'campaign_id' => ['campaign_id'],
+      'gm_uid' => ['gm_uid'],
+      'status' => ['status'],
+      'campaign_status' => ['campaign_id', 'status'],
+    ],
+  ]);
+
+  return 'Created dc_sessions table for play session tracking (dc-cr-session-structure).';
+}
