@@ -35,179 +35,6 @@
       "activated_date": "2026-03-28"
     },
     {
-      "id": "dc-cr-character-leveling-e2e",
-      "feature_id": "dc-cr-character-leveling",
-      "label": "Character Leveling and Advancement \u2014 E2E (drush ev unit tests)",
-      "type": "e2e",
-      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Stage-0 activated 2026-04-05. Playwright test scripts pending implementation (19 TCs defined in features/dc-cr-character-leveling/03-test-plan.md). Until scripts exist, use drush ev inline PHP for TC-001/007/009/010/013/014 (trigger, idempotency, max-level, milestone, non-existent char, structured error). TC-015 (concurrency) and TC-008 (persistence) require live env + PHPUnit. Routes: 8 level-up routes + 1 milestone route registered in dungeoncrawler_content.routing.yml. Admin routes gate on 'administer dungeoncrawler content'; player routes gate on _character_access:TRUE + _csrf_request_header_mode:TRUE. ACL coverage: api-character-entity-routes rule in qa-permissions.json (ignore on parametrized paths). Requires composer install in /home/ubuntu/forseti.life/sites/dungeoncrawler before any drush commands can run.",
-      "artifacts": [
-        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-character-leveling/verification-report.md"
-      ],
-      "required_for_release": true,
-      "activated_release": "20260402-dungeoncrawler-release-b",
-      "activated_date": "2026-04-05",
-      "test_cases": [
-        {
-          "id": "TC-LV-001",
-          "description": "Level-up trigger advances character level N\u2192N+1 when session milestone is set; POST returns 200 and character.level incremented",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testLevelUpTriggerAdvancesLevel",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-002",
-          "description": "Level-up response includes pending_choices/advancement section listing class features, feat slots, and ability boosts available at new level",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testLevelUpResponseIncludesAdvancementTable",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling",
-          "notes": "Response shape for pending_choices to be confirmed with Dev \u2014 one POST returning choices or separate GET advancement endpoint?"
-        },
-        {
-          "id": "TC-LV-003",
-          "description": "Auto-apply class features with no player choice \u2014 Fighter to level 3 auto-grants Shield Block without a player selection prompt",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testAutoApplyClassFeaturesNoChoice",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-004",
-          "description": "Ability boost selection at level 5: system prompts for 4 boosts, accepts 4 distinct abilities, each stat increases by 2 (or +1 if already 18+); boosts persist",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testAbilityBoostSelectionAtLevel5",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling",
-          "notes": "Confirm boost delta with Dev: PF2e = +2 if below 18, +1 if already 18+"
-        },
-        {
-          "id": "TC-LV-005",
-          "description": "Skill increase at applicable level \u2014 player selects one skill; proficiency rank increments by one step; change persists",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testSkillIncreaseRaisesProficiencyRank",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling",
-          "notes": "Confirm level+class combination that reliably has a skill increase for test fixture"
-        },
-        {
-          "id": "TC-LV-006",
-          "description": "Feat selection \u2014 level 2 class feat slot shows catalog filtered by prerequisites; selected feat persists in character.feats",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testFeatSelectionPersistedFiltered",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-007",
-          "description": "Level-up idempotency \u2014 second POST before reaching new milestone returns 4xx; character level unchanged",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testLevelUpRejectedWithoutNewMilestone",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-008",
-          "description": "Completed level-up persists across save/reload \u2014 level, class features, boosts, skill ranks, feats all survive session restart",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testLevelUpPersistsAcrossReload",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-009",
-          "description": "Reject level-up past level 20 \u2014 POST on level 20 character returns 4xx with 'Already at maximum level' (or equivalent)",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testRejectLevelUpPastMaxLevel",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-010",
-          "description": "Reject level-up without milestone \u2014 POST when milestone not reached returns 4xx with clear rejection message; character level unchanged",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testRejectLevelUpWithoutMilestone",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-011",
-          "description": "Skip-level rejected \u2014 POST level 1\u21923 (bypassing level 2) returns 4xx; each level must be applied in sequence",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testSkipLevelRejected",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-012",
-          "description": "Auto-apply no-choice class feature (e.g. +10 HP) \u2014 applied without prompting; no pending_choices entry for this feature",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testAutoApplyNoChoiceClassFeature",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-013",
-          "description": "Invalid/non-existent character ID returns structured error (not PHP exception)",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testInvalidCharacterIdReturnsStructuredError",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-014",
-          "description": "Missing class advancement data for a given level returns actionable error, not PHP exception",
-          "suite_type": "unit",
-          "class_method": "CharacterLevelingControllerTest::testMissingAdvancementDataReturnsActionableError",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-015",
-          "description": "Concurrent level-up requests for same character are serialized or second is rejected \u2014 no partial double-level-up",
-          "suite_type": "functional",
-          "class_method": "CharacterLevelingControllerTest::testConcurrentLevelUpRequestsNoDoubleLevel",
-          "ac_tag": "NEW",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling",
-          "notes": "Requires live env + PHPUnit race condition test harness; may be deferred to post-release if test infra not ready."
-        },
-        {
-          "id": "TC-LV-ACL-01",
-          "description": "POST /api/character/{id}/level-up \u2014 anon\u2192403; own player\u2192200 (_character_access); non-owner player\u2192403; admin\u2192200",
-          "suite_type": "role-url-audit",
-          "class_method": "n/a - role-url-audit entry (parameterized; ignore all roles \u2014 ownership check not probeable with numeric probe)",
-          "ac_tag": "permissions",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        },
-        {
-          "id": "TC-LV-ACL-02",
-          "description": "POST /api/character/{id}/level-up/admin-force \u2014 anon\u2192403; player\u2192403; administrator\u2192200 (administer dungeoncrawler content)",
-          "suite_type": "role-url-audit",
-          "class_method": "n/a - role-url-audit entry (parameterized; ignore all roles)",
-          "ac_tag": "permissions",
-          "status": "active",
-          "feature_id": "dc-cr-character-leveling"
-        }
-      ]
-    },
-    {
       "id": "module-test-suite",
       "label": "Module PHPUnit test suite (functional)",
       "type": "unit",
@@ -6407,6 +6234,137 @@
           "description": "Direct client-side PATCH/POST to traits array rejected with 403 or 405; traits unchanged after attempt",
           "suite": "playwright/character-creation",
           "ac": "ACL-no-direct-client-mutation"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-character-leveling-e2e",
+      "label": "Character Leveling \u2014 level-up trigger (session milestone), class features auto-apply, ability boosts, skill increases, feat selection with prerequisites, persistence, ACL (player own/GM any), edge cases (max level, no-milestone, skip-level, concurrent)",
+      "type": "e2e",
+      "feature_id": "dc-cr-character-leveling",
+      "command": "npx playwright test tests/dc-cr-character-leveling/ --reporter=json --output=test-results/dc-cr-character-leveling/",
+      "artifacts": [
+        "test-results/dc-cr-character-leveling/results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-LVL-001",
+          "description": "Session milestone trigger advances character level N \u2192 N+1; GET state confirms level incremented",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-level-up-trigger",
+          "notes": "Requires Dev-provided test helper to set milestone state"
+        },
+        {
+          "id": "TC-LVL-002",
+          "description": "Level-up response includes pending_choices/advancement section with class features, feat slots, ability boosts for new level",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-advancement-table"
+        },
+        {
+          "id": "TC-LVL-003",
+          "description": "Auto-apply class features with no player choice (Fighter level 3 Shield Block or equivalent); feature present in GET state with no pending prompt",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-auto-apply-class-features"
+        },
+        {
+          "id": "TC-LVL-004",
+          "description": "Level 5 ability boost: 4 boost slots presented, player submits 4 distinct abilities, all scores increment +2 in GET state",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-ability-boosts-level5"
+        },
+        {
+          "id": "TC-LVL-005",
+          "description": "Skill increase at applicable level: one skill proficiency rank raised by one step, other skills unchanged",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-skill-increase"
+        },
+        {
+          "id": "TC-LVL-006",
+          "description": "Feat slot at level 2: catalog filtered by prerequisites; selected feat persists in GET state character.feats",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-feat-selection"
+        },
+        {
+          "id": "TC-LVL-007",
+          "description": "Level-up idempotent: second level-up attempt before new milestone returns 4xx; character level unchanged",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-idempotent"
+        },
+        {
+          "id": "TC-LVL-008",
+          "description": "Full level-up (all choices resolved) persists across session reload: level, features, boosts, skill ranks, feats all intact",
+          "suite": "playwright/character-creation",
+          "ac": "HappyPath-persistence"
+        },
+        {
+          "id": "TC-LVL-009",
+          "description": "Level-up attempt at level 20 returns 4xx with 'Already at maximum level' message",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-max-level-20"
+        },
+        {
+          "id": "TC-LVL-010",
+          "description": "Level-up attempt without session milestone reached returns 4xx with clear rejection message",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-no-milestone"
+        },
+        {
+          "id": "TC-LVL-011",
+          "description": "Skip-level attempt (level 1 \u2192 3 directly) rejected; each level must be applied in sequence",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-no-skip-levels"
+        },
+        {
+          "id": "TC-LVL-012",
+          "description": "No-choice level: class feature with no player selection (e.g., +10 HP) auto-applied without prompting",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-auto-apply-no-choice"
+        },
+        {
+          "id": "TC-LVL-013",
+          "description": "Ability boost past 18 at post-creation level milestone: boost applied (PF2e: post-creation may exceed 18); no false rejection",
+          "suite": "playwright/character-creation",
+          "ac": "Edge-ability-boost-past-18"
+        },
+        {
+          "id": "TC-LVL-014",
+          "description": "Non-existent character ID returns HTTP 404 structured JSON error, not PHP exception or HTML page",
+          "suite": "playwright/character-creation",
+          "ac": "FailureMode-nonexistent-character"
+        },
+        {
+          "id": "TC-LVL-015",
+          "description": "Concurrent level-up POSTs for same character: character ends at exactly N+1 (not N+2); no partial/corrupt state",
+          "suite": "playwright/character-creation",
+          "ac": "FailureMode-concurrent-serialized",
+          "notes": "May require PHPUnit-level concurrency test; flag to Dev if playwright concurrent helper unavailable"
+        },
+        {
+          "id": "TC-LVL-016",
+          "description": "Missing class advancement data returns structured error, not unhandled 500 or PHP exception",
+          "suite": "playwright/character-creation",
+          "ac": "FailureMode-missing-advancement-data",
+          "notes": "Requires Dev-provided stub class fixture with incomplete advancement table"
+        },
+        {
+          "id": "TC-LVL-017",
+          "description": "ACL: player 200 own character, player 403 other character, admin 200 any, anon 403 for level-up endpoint",
+          "suite": "playwright/character-creation",
+          "ac": "ACL-levelup-ownership"
+        },
+        {
+          "id": "TC-LVL-018",
+          "description": "Anonymous users: GET and POST level-up endpoint both return 403",
+          "suite": "playwright/character-creation",
+          "ac": "ACL-anon-denied"
+        },
+        {
+          "id": "TC-LVL-019",
+          "description": "Admin force-apply level without milestone; admin reset level-up state back to pre-level; both operations succeed",
+          "suite": "playwright/character-creation",
+          "ac": "ACL-admin-force-apply-reset",
+          "notes": "Requires PM/Dev confirmation of force-apply and reset endpoint routes"
         }
       ]
     }
