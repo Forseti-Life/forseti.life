@@ -5,10 +5,7 @@
 - Module: dungeoncrawler_content
 - Status: deferred
 - Priority: P3
-- PM owner: pm-dungeoncrawler
-- Dev owner: dev-dungeoncrawler
-- QA owner: qa-dungeoncrawler
-- Source: PF2E Bestiary 2
+- Deferred until: dc-b1-bestiary1 ships
 - Category: creature-library
 - Created: 2026-04-07
 - DB sections: b2/s01/Baseline Requirements, b2/s01/Integration Notes, b2/s02/Baseline Requirements, b2/s02/Integration Notes

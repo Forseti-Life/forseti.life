@@ -5,14 +5,8 @@
 - Module: dungeoncrawler_content
 - Status: deferred
 - Priority: P3
-- PM owner: pm-dungeoncrawler
-- Dev owner: dev-dungeoncrawler
-- QA owner: qa-dungeoncrawler
-- Source: PF2E Guns and Gears
-- Category: sourcebook
-- Created: 2026-04-07
-- DB sections: gng/ch01/Baseline Requirements, gng/ch01/Integration Notes, gng/ch02/Baseline Requirements, gng/ch02/Integration Notes, gng/ch03/Baseline Requirements, gng/ch03/Integration Notes, gng/ch04/Baseline Requirements, gng/ch04/Integration Notes, gng/ch05/Baseline Requirements, gng/ch05/Integration Notes
-- Depends on: 
+- Deferred until: dc-cr-equipment-ch06 ships and dc-cr-encounter-rules is in_progress
+- Depends on: dc-cr-equipment-ch06, dc-cr-encounter-rules
 
 ## Goal
 

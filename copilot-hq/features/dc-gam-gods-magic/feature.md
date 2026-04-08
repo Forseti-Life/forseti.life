@@ -3,7 +3,7 @@
 - Work item id: dc-gam-gods-magic
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
+- Status: ready
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

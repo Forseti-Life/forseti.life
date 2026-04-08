@@ -5,6 +5,7 @@
 - Module: dungeoncrawler_content
 - Status: deferred
 - Priority: P3
+- Deferred until: dc-b2-bestiary2 ships
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

@@ -5,14 +5,8 @@
 - Module: dungeoncrawler_content
 - Status: deferred
 - Priority: P3
-- PM owner: pm-dungeoncrawler
-- Dev owner: dev-dungeoncrawler
-- QA owner: qa-dungeoncrawler
-- Source: PF2E Secrets of Magic
-- Category: sourcebook
-- Created: 2026-04-07
-- DB sections: som/ch01/Baseline Requirements, som/ch01/Integration Notes, som/ch02/Baseline Requirements, som/ch02/Integration Notes, som/ch03/Baseline Requirements, som/ch03/Integration Notes, som/ch04/Baseline Requirements, som/ch04/Integration Notes, som/ch05/Baseline Requirements, som/ch05/Integration Notes
-- Depends on: 
+- Deferred until: dc-cr-spellcasting ships and at least 4 spellcasting classes are in_progress
+- Depends on: dc-cr-spellcasting, dc-cr-class-wizard, dc-cr-class-sorcerer
 
 ## Goal
 

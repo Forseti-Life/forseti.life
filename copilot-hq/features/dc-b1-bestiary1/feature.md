@@ -3,7 +3,7 @@
 - Work item id: dc-b1-bestiary1
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: deferred
+- Status: ready
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
