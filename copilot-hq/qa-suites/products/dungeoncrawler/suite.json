@@ -5535,6 +5535,36 @@
           "ac_tag": "Integration-2"
         }
       ]
+    },
+    {
+      "id": "dc-apg-equipment-e2e",
+      "label": "APG equipment: weapons (Sword Cane concealment, Bola trip, Daikyu mount restriction), adventuring gear (Detective Kit, Dueling Cape, Net dual-mode), alchemical items (Blight Bomb, Dread Ampoule, Crystal Shards, Focus Cathartic counteract scaling, Sinew-Shock Serum, Olfactory Obfuscator, Leadenleg, Cerulean Scourge, Timeless Salts, Universal Solvent, Forensic Dye), consumable magic (Candle of Revealing, Dust of Corpse Animation 4-cap, Potion of Retaliation, Terrifying Ammunition, Oil of Unlife), permanent magic (Glamorous Buckler, Victory Plate, Slates pair destruction, Four-Ways Dogslicer, Winged Rune, Rod of Cancellation 2d6-cooldown), APG snares, integration edge cases",
+      "type": "e2e",
+      "feature_id": "dc-apg-equipment",
+      "command": "npx playwright test tests/e2e/apg-equipment/ --reporter=junit",
+      "artifacts": ["tests/results/dc-apg-equipment-e2e.xml"],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 16 TCs active. Key regression risks: Bola Trip not offered post-hit; Daikyu non-left mount firing not blocked; Net immobilize on non-crit; Focus Cathartic counteract modifier not tier-scaled; Dust undead 4-cap not enforced; Terrifying Ammunition Frightened floor not held at 1; Rod of Cancellation cooldown not rolling 2d6 hours; Slate destruction not propagating to partner.",
+      "test_cases": [
+        {"id": "TC-EQP-01", "description": "New weapons: Sword Cane, Bola, Daikyu in weapon selector with correct traits and proficiency grouping", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-1"},
+        {"id": "TC-EQP-02", "description": "Sword Cane: weapon identity not revealed in social inspection by default; investigation check required to expose", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-2"},
+        {"id": "TC-EQP-03", "description": "Bola: successful hit offers Trip sub-action via standard Athletics vs CMD", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-3"},
+        {"id": "TC-EQP-04", "description": "Daikyu: while mounted non-left-side firing blocked or flagged; left-side or dismounted firing allowed", "suite_type": "e2e", "status": "active", "ac_tag": "Weapons-4"},
+        {"id": "TC-EQP-05", "description": "Adventuring gear: Detective Kit +1 item investigation checks; Dueling Cape Interact-to-deploy +1 AC/Feint; Net dual-mode (Grapple 10ft / crit-immobilize, Escape DC 16, ally Interact to remove)", "suite_type": "e2e", "status": "active", "ac_tag": "Gear-1-3"},
+        {"id": "TC-EQP-06", "description": "Alchemical bombs: Blight Bomb (poison+persistent+splash); Dread Ampoule (Enfeebled 2 until next turn, fear/emotion traits); Crystal Shards (caltrops or handholds context-dependent)", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-1-3"},
+        {"id": "TC-EQP-07", "description": "Counteract consumables: Focus Cathartic (Confused/Stupefied, 1 condition per use); Sinew-Shock Serum (Clumsy/Enfeebled); counteract modifier +6/+8/+19/+28 at L2/4/12/18", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-4-5"},
+        {"id": "TC-EQP-08", "description": "Alchemical utility: Olfactory Obfuscator (concealment vs scent detectors); Leadenleg (Speed reduction, Fortitude resists); Forensic Dye (tracking mark, Seek/Track bonus)", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-6-8"},
+        {"id": "TC-EQP-09", "description": "Preservation/poison: Timeless Salts (7-day decay prevention flag); Universal Solvent (auto-counteract sovereign glue); Cerulean Scourge (3-stage poison stages stored per item entry)", "suite_type": "e2e", "status": "active", "ac_tag": "Alchemical-9-11"},
+        {"id": "TC-EQP-10", "description": "Consumable magic: Candle of Revealing (invisible -> concealed not observed); Dust of Corpse Animation (1 undead 1-min duration, max 4 total cap enforced)", "suite_type": "e2e", "status": "active", "ac_tag": "Consumable-1-2"},
+        {"id": "TC-EQP-11", "description": "Consumable magic: Potion of Retaliation (damage type set at craft time); Terrifying Ammunition (Frightened floor=1 until concentrate action); Oil of Unlife (heals undead, no harm to living)", "suite_type": "e2e", "status": "active", "ac_tag": "Consumable-3-5"},
+        {"id": "TC-EQP-12", "description": "Permanent magic: Glamorous Buckler (Feint bonus only while raised, dazzle daily limit); Victory Plate (kill log persists, resistance grant); Rope of Climbing (command animation)", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-1-3"},
+        {"id": "TC-EQP-13", "description": "Permanent magic: Slates of Distant Letters (pair-crafted, destruction propagates to partner, 25-word limit, 1-hour cooldown per slate); Four-Ways Dogslicer (3 rune slots Interact-to-swap, 1d6 activation damage)", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-4-5"},
+        {"id": "TC-EQP-14", "description": "Permanent magic: Winged Rune (5-min fly 1/hour); Wand of Overflowing Life (bonus heal); Wand of Snowfields (difficult terrain); Urn of Ashes (doomed reaction once/rest); Rod of Cancellation (permanent cancel, cooldown rolls 2d6 hours)", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-6-10"},
+        {"id": "TC-EQP-15", "description": "APG snares in snare selector alongside CRB snares: Engulfing Snare (Hardness 5 HP 30, Escape DC 31); Flare Snare (signal only, damage=0)", "suite_type": "e2e", "status": "active", "ac_tag": "APGSnares-1-2"},
+        {"id": "TC-EQP-16", "description": "Infiltrators Accessory: social-context concealment only; does not suppress magical detection", "suite_type": "e2e", "status": "active", "ac_tag": "Permanent-6-Integration"}
+      ]
     }
   ],
   "_schema_notes": [
