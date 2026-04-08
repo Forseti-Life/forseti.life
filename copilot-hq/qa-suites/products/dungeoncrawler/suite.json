@@ -3530,6 +3530,358 @@
           "status": "active"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-barbarian-phpunit",
+      "label": "Barbarian Class — identity/HP(12+CON)/proficiencies(Expert Fortitude+Will+Perception, Trained Reflex/weapons/armor), instinct selection+anathema (Animal/Dragon/Fury/Giant/Spirit), Rage state machine (temp HP, damage bonus, AC penalty, concentrate-block, cooldown, once-per-activation), level-gated features (Deny Advantage/Brutality/Juggernaut/Weapon Spec/Raging Resistance/Mighty Rage/Greater Juggernaut/Greater Weapon Spec/Quick Rage/Devastator), feat progression, Flourish/Open/Rage trait enforcement, auth guards",
+      "type": "phpunit",
+      "feature_id": "dc-cr-class-barbarian",
+      "command": "./vendor/bin/phpunit --filter=Barbarian tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-class-barbarian-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. dc-cr-conditions status=done — all conditions-dependent TCs (TC-BAR-12 Giant clumsy1, TC-BAR-16 AC penalty, TC-BAR-23 Deny Advantage) are marked active (not pending-dev-confirmation). Regression risks: Fortitude is Expert at level 1 AND upgrades at 7/13 (overwrite risk); Rage trait conflicts with Concentrate (must not block Seek/rage-trait exceptions); Giant clumsy 1 persistence during Rage; agile half-damage calculation; Quick Rage (level 17) cooldown removal must only apply at level 17+.",
+      "test_cases": [
+        {
+          "id": "TC-BAR-01",
+          "description": "Barbarian exists as selectable class; Strength as key ability boost at level 1",
+          "suite_type": "unit",
+          "class_method": "BarbarianClassTest::testBarbarianExistsWithStrKeyAbility",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-02",
+          "description": "Barbarian HP = 12 + CON modifier per level (CON 14 → Level 1 HP=14; Level 2 HP=28)",
+          "suite_type": "unit",
+          "class_method": "BarbarianClassTest::testHpCalculation",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-03",
+          "description": "Barbarian initial proficiencies: Expert Perception; Expert Fortitude+Will, Trained Reflex; Trained simple/martial weapons; Trained light/medium armor; 3+INT skills; Athletics fixed trained",
+          "suite_type": "unit",
+          "class_method": "BarbarianClassTest::testInitialProficiencies",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-04",
+          "description": "Instinct selection: all 5 valid values accepted (Animal, Dragon, Fury, Giant, Spirit)",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testAllValidInstinctsAccepted",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-05",
+          "description": "Invalid instinct selection rejected with validation error",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testInvalidInstinctRejected",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-06",
+          "description": "Anathema violation removes instinct-dependent abilities; re-centering downtime re-enables them",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testAnathemaViolationRemovesInstinctAbilities",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-07",
+          "description": "Animal Instinct: correct unarmed attacks granted during Rage (per animal type); Rage gains morph/primal/transmutation traits",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testAnimalInstinctGrantsAnimalAttacks",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-08",
+          "description": "Dragon Instinct: Draconic Rage damage 2→4, type changes to breath weapon type; Rage gains arcane/evocation/elemental traits",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testDragonInstinctDraconicRage",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-09",
+          "description": "Dragon Instinct: damage type correctly sourced from selected dragon type (fire→fire, cold→cold)",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testDragonInstinctDamageTypeFromDragonType",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-10",
+          "description": "Fury Instinct: anathema=null; grants additional 1st-level barbarian feat (class feat count=2 at level 1)",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testFuryInstinctGrantsBonusFeat",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-11",
+          "description": "Giant Instinct: oversized weapons equippable; Rage damage 2→6; clumsy 1 applied while raging with oversized weapon",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testGiantInstinctOversizedWeaponAndRage",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-12",
+          "description": "Giant Instinct: clumsy 1 cannot be removed by any means while raging with oversized weapon",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testGiantInstinctClumsy1CannotBeRemoved",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-13",
+          "description": "Spirit Instinct: Rage damage type changes to negative or positive (chosen each Rage); weapon acts as ghost touch rune; Rage gains divine/necromancy traits",
+          "suite_type": "unit",
+          "class_method": "BarbarianInstinctTest::testSpiritInstinctRageEffects",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-14",
+          "description": "Rage activation: temp HP = level + CON modifier (Level 3 CON +3 → temp_hp=6)",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageGrantsTempHp",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-15",
+          "description": "Rage: +2 damage bonus on melee Strikes; halved (+1) for agile weapons/unarmed attacks",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageDamageBonus",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-16",
+          "description": "Rage: -1 AC penalty applied during Rage; removed when Rage ends",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageAcPenalty",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-17",
+          "description": "Rage: concentrate-trait actions blocked (except rage-trait or Seek); Seek and rage-trait actions succeed",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageBlocksConcentrateActions",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-18",
+          "description": "Rage: cannot be voluntarily ended early by player; error returned on attempt",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageCannotBeVoluntarilyEnded",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-19",
+          "description": "Rage: ends when no perceived enemies or when unconscious; temp HP removed; cooldown starts",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageEndsOnNoEnemiesOrUnconscious",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-20",
+          "description": "Rage end: temp HP disappears (not converted to regular HP); rage_on_cooldown=true",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageEndTempHpAndCooldown",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-21",
+          "description": "Rage cooldown enforced: cannot Rage again within 1 minute (without Quick Rage)",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageCooldownEnforced",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-22",
+          "description": "Rage activation while already raging: blocked",
+          "suite_type": "unit",
+          "class_method": "BarbarianRageTest::testRageActivationBlockedWhileRaging",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-23",
+          "description": "Level 3: Deny Advantage — immune to flat-footed from hidden/undetected/flanking/surprise from creatures of same or lower level",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testDenyAdvantageAtLevel3",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-24",
+          "description": "Level 5: Brutality — simple/martial/unarmed proficiency increases to Master; crit specialization applies while raging",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testBrutalityAtLevel5",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-25",
+          "description": "Level 7: Juggernaut — Fortitude to Master; Fortitude save successes become critical successes",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testJuggernautAtLevel7",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-26",
+          "description": "Level 7: Weapon Specialization — damage bonus +2 (Expert)/+3 (Master)/+4 (Legendary); instinct specialization unlocked",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testWeaponSpecializationAtLevel7",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-27",
+          "description": "Level 9: Raging Resistance — while raging, resistance = 3 + CON modifier; type per instinct",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testRagingResistanceAtLevel9",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-28",
+          "description": "Level 11: Mighty Rage — class DC to Expert; Mighty Rage free-action available on Rage activation",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testMightyRageAtLevel11",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-29",
+          "description": "Level 11: Mighty Rage free-action only available on Rage activation window; blocked outside that window",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testMightyRageFreeActionWindowEnforced",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-30",
+          "description": "Level 13: Greater Juggernaut — Fortitude to Legendary; critical failures become failures; failure damage effects halved",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testGreaterJuggernautAtLevel13",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-31",
+          "description": "Level 15: Greater Weapon Specialization — damage bonus +4 (Expert)/+6 (Master)/+8 (Legendary)",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testGreaterWeaponSpecializationAtLevel15",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-32",
+          "description": "Level 17: Quick Rage — removes 1-minute Rage cooldown; can Rage again after one full turn without raging",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testQuickRageAtLevel17",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-33",
+          "description": "Level 19: Devastator — class DC to Master; melee Strikes ignore 10 points of physical damage resistance",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testDevastatorAtLevel19",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-34",
+          "description": "Level-gated features do not appear before required level (no Brutality at level 1, no Juggernaut at level 5)",
+          "suite_type": "unit",
+          "class_method": "BarbarianLevelFeaturesTest::testLevelGatedFeaturesNotGrantedEarly",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-35",
+          "description": "Class feat schedule: level 1 and every even level (1, 2, 4; not at level 3)",
+          "suite_type": "unit",
+          "class_method": "BarbarianFeatProgressionTest::testClassFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-36",
+          "description": "General feats at levels 3, 7, 11, 15, 19",
+          "suite_type": "unit",
+          "class_method": "BarbarianFeatProgressionTest::testGeneralFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-37",
+          "description": "Ancestry feats at levels 5, 9, 13, 17",
+          "suite_type": "unit",
+          "class_method": "BarbarianFeatProgressionTest::testAncestryFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-38",
+          "description": "Flourish trait: only one flourish action per turn enforced",
+          "suite_type": "unit",
+          "class_method": "BarbarianTraitRulesTest::testFlourishLimitPerTurn",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-39",
+          "description": "Open trait: only usable as first action of turn, before any attack or open action",
+          "suite_type": "unit",
+          "class_method": "BarbarianTraitRulesTest::testOpenActionOnlyAsFirstAction",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-40",
+          "description": "Rage trait: requires active Rage; ability ends if Rage ends mid-action",
+          "suite_type": "unit",
+          "class_method": "BarbarianTraitRulesTest::testRageTraitRequiresActiveRage",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-41",
+          "description": "Player cannot modify another player Barbarian character; cross-character mutation returns 403",
+          "suite_type": "unit",
+          "class_method": "BarbarianClassTest::testCannotModifyOtherPlayersCharacter",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-BAR-42",
+          "description": "QA audit still passes after module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "ac_tag": "audit",
+          "status": "active"
+        }
+      ]
     }
   ],
   "_schema_notes": [
