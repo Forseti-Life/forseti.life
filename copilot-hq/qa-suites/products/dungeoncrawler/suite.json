@@ -7165,6 +7165,218 @@
           "ac": "QA-audit-clean"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-cleric-e2e",
+      "label": "Cleric Class \u2014 WIS key ability, HP/proficiencies, deity/alignment/anathema, doctrine (Cloistered/Warpriest), prepared divine spellcasting, divine font (Healing/Harmful/Versatile), level-gated features (19: Miraculous Spell), feat schedules, edge cases, ACL",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-cleric",
+      "command": "./vendor/bin/phpunit --filter ClericClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-cleric/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-cleric/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CLR-01",
+          "description": "Cleric selectable in character creation; key_ability = Wisdom; no other key ability accepted",
+          "suite": "module-test-suite",
+          "ac": "NEW-cleric-class-exists-wis"
+        },
+        {
+          "id": "TC-CLR-02",
+          "description": "Cleric HP = 8 + CON modifier per level; CON+2 at level 1 = 10, level 2 = 20",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calc"
+        },
+        {
+          "id": "TC-CLR-03",
+          "description": "Initial proficiencies: Trained Perception, Expert Will, Trained Fort/Reflex, Trained deity favored weapon, untrained armor (default), Trained divine spell attack/DC (WIS)",
+          "suite": "module-test-suite",
+          "ac": "NEW-initial-proficiencies"
+        },
+        {
+          "id": "TC-CLR-04",
+          "description": "Deity selection enforces approved alignment; mismatched alignment produces validation error",
+          "suite": "module-test-suite",
+          "ac": "NEW-deity-alignment-enforced"
+        },
+        {
+          "id": "TC-CLR-05",
+          "description": "Anathema violation suspends divine_connection and disables domain spells/deity abilities; regular non-domain spellcasting still accessible",
+          "suite": "module-test-suite",
+          "ac": "NEW-anathema-violation"
+        },
+        {
+          "id": "TC-CLR-06",
+          "description": "Atone ritual restores divine connection, domain spells, and deity abilities",
+          "suite": "module-test-suite",
+          "ac": "NEW-atone-restores"
+        },
+        {
+          "id": "TC-CLR-07",
+          "description": "Cloistered Cleric doctrine accepted; faster spell DC/attack progression flag set; domain emphasis active",
+          "suite": "module-test-suite",
+          "ac": "NEW-cloistered-doctrine"
+        },
+        {
+          "id": "TC-CLR-08",
+          "description": "Warpriest doctrine accepted; armor/weapon proficiencies granted; slower spell progression flag set",
+          "suite": "module-test-suite",
+          "ac": "NEW-warpriest-doctrine",
+          "note": "PM to enumerate exact armor/weapon proficiency tiers before TC fully specified"
+        },
+        {
+          "id": "TC-CLR-09",
+          "description": "Doctrine selection permanent; attempt to change doctrine after level 1 blocked with error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-doctrine-permanent"
+        },
+        {
+          "id": "TC-CLR-10",
+          "description": "Cloistered Cleric has higher divine spell proficiency tier than Warpriest at same level",
+          "suite": "module-test-suite",
+          "ac": "NEW-doctrine-spell-progression-diff",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-CLR-11",
+          "description": "Cleric uses prepared spellcasting (not spontaneous); casting unprepared spell blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-prepared-spellcasting",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-CLR-12",
+          "description": "Religious symbol as divine focus bypasses material component requirements",
+          "suite": "module-test-suite",
+          "ac": "NEW-religious-symbol-focus",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting dc-cr-equipment-system"
+        },
+        {
+          "id": "TC-CLR-13",
+          "description": "Spell slots and cantrips scale per advancement table levels 1\u21923\u21925; WIS used for spell_attack/spell_dc",
+          "suite": "module-test-suite",
+          "ac": "NEW-spell-slots-cantrips-scale",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-CLR-14",
+          "description": "WIS modifier used for spell attacks and DCs; spell_dc = 10 + proficiency + WIS mod",
+          "suite": "module-test-suite",
+          "ac": "NEW-wis-spell-attack-dc",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-CLR-15",
+          "description": "Healing Font: bonus slots = 1 + CHA modifier at highest accessible spell level; filled with heal spells",
+          "suite": "module-test-suite",
+          "ac": "NEW-healing-font"
+        },
+        {
+          "id": "TC-CLR-16",
+          "description": "Harmful Font: bonus slots = 1 + CHA modifier; filled with harm spells",
+          "suite": "module-test-suite",
+          "ac": "NEW-harmful-font"
+        },
+        {
+          "id": "TC-CLR-17",
+          "description": "Font choice locked without Versatile Font feat; only heal or harm allowed per deity grant",
+          "suite": "module-test-suite",
+          "ac": "NEW-font-choice-locked"
+        },
+        {
+          "id": "TC-CLR-18",
+          "description": "Versatile Font feat: both heal and harm can fill font slots (requires deity that allows both)",
+          "suite": "module-test-suite",
+          "ac": "NEW-versatile-font"
+        },
+        {
+          "id": "TC-CLR-19",
+          "description": "Font slot count minimum 1 even if CHA modifier is 0 or negative",
+          "suite": "module-test-suite",
+          "ac": "NEW-font-slots-minimum-1"
+        },
+        {
+          "id": "TC-CLR-20",
+          "description": "Font slots do not exceed 1 + CHA modifier; excess preparation blocked",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-font-slots-cap"
+        },
+        {
+          "id": "TC-CLR-21",
+          "description": "Harmful Font without evil alignment permitted when deity explicitly allows it",
+          "suite": "module-test-suite",
+          "ac": "NEW-harmful-font-deity-override"
+        },
+        {
+          "id": "TC-CLR-22",
+          "description": "Bonus divine font slots are at the highest spell level the cleric has access to",
+          "suite": "module-test-suite",
+          "ac": "NEW-font-slots-highest-level"
+        },
+        {
+          "id": "TC-CLR-23",
+          "description": "Level 19: Miraculous Spell \u2014 one 10th-level spell slot granted for a prepared divine spell",
+          "suite": "module-test-suite",
+          "ac": "NEW-level19-miraculous-spell"
+        },
+        {
+          "id": "TC-CLR-24",
+          "description": "Miraculous Spell slot cannot be manipulated by slot-manipulation features",
+          "suite": "module-test-suite",
+          "ac": "NEW-miraculous-spell-no-manipulation"
+        },
+        {
+          "id": "TC-CLR-25",
+          "description": "Level-gated features absent before required level; e.g., Miraculous Spell absent below level 19",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-not-early"
+        },
+        {
+          "id": "TC-CLR-26",
+          "description": "Class feat schedule: granted at level 1 and every even level (2, 4, 6 ... 20)",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule"
+        },
+        {
+          "id": "TC-CLR-27",
+          "description": "General feats at levels 3, 7, 11, 15, 19; skill feats at every even level; ancestry feats at 5, 9, 13, 17",
+          "suite": "module-test-suite",
+          "ac": "NEW-general-feat-schedule"
+        },
+        {
+          "id": "TC-CLR-28",
+          "description": "Ability boosts at levels 5, 10, 15, 20",
+          "suite": "module-test-suite",
+          "ac": "NEW-ability-boost-schedule"
+        },
+        {
+          "id": "TC-CLR-29",
+          "description": "Invalid deity/alignment combination rejected at character creation with validation error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-deity-alignment"
+        },
+        {
+          "id": "TC-CLR-30",
+          "description": "Preparing more spells than available slots blocked; error references slot count",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-over-prepare-blocked",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-CLR-31",
+          "description": "Cross-player ACL: player cannot modify another player's Cleric character; returns 403",
+          "suite": "module-test-suite",
+          "ac": "SEC-cross-player-403"
+        },
+        {
+          "id": "TC-CLR-32",
+          "description": "QA audit passes after module deployment: 0 violations, 0 failures",
+          "suite": "role-url-audit",
+          "ac": "QA-audit-clean"
+        }
+      ]
     }
   ],
   "_schema_notes": [
