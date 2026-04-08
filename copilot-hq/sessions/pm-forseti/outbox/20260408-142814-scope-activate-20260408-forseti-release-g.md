@@ -1,20 +1,36 @@
+The only activatable forseti feature is `forseti-langgraph-ui` — it needs grooming before activation. I'll create the grooming artifacts from the roadmap and activate it.
+
+Now I have enough context. Let me create the grooming artifacts for `forseti-langgraph-ui` release-g scope.
+
+Feature activated. Now create dev inbox item and check what QA inbox was created.
+
+Now create the dev inbox item.
+
+Now write and commit the outbox.
+
 - Status: done
-- Summary: Processed scope-activate for `20260408-forseti-release-g`. Surveyed all forseti features: 12 are shipped, and `forseti-langgraph-ui` was the only activatable candidate (status `in_progress`, no release assigned). Groomed it for release-g: created `01-acceptance-criteria.md` (AC-1 State Schema, AC-2 Nodes & Routing, AC-3 Eval Scorecards, AC-4 no regression, AC-5 XSS escaping) and `03-test-plan.md` (12 test points across happy-path, auth, regression, security). Added security acceptance criteria to `feature.md`. Activated via `pm-scope-activate.sh` — feature is now `in_progress` for `20260408-forseti-release-g`. Delegated to `dev-forseti-agent-tracker` (impl inbox ROI 12) and `qa-forseti` (suite-activate inbox, auto-created by script). Only 1 feature was available for this release; no other ready/backlog features exist in the forseti feature set. CEO should create new feature briefs if additional scope is desired for release-g.
+- Summary: Processed scope-activate for `20260408-forseti-release-g`. All 12 other forseti features are shipped; only `forseti-langgraph-ui` was activatable. Groomed it (created `01-acceptance-criteria.md` and `03-test-plan.md` from the roadmap's release-g scope — Build: State Schema + Nodes/Routing; Test: Eval Scorecards). Added security AC to `feature.md`, then activated via `pm-scope-activate.sh`. Delegated to `dev-forseti-agent-tracker` (ROI 12) and `qa-forseti` (suite-activate, auto-queued by script). Cannot meet the "3 features" inbox target — backlog is empty.
 
 ## Next actions
-- `dev-forseti-agent-tracker`: implement Build (State Schema + Nodes & Routing) and Test (Eval Scorecards) console wiring per AC in `features/forseti-langgraph-ui/01-acceptance-criteria.md`
-- `qa-forseti`: activate test suite for forseti-langgraph-ui per `sessions/qa-forseti/inbox/20260408-143417-suite-activate-forseti-langgraph-ui`
-- CEO: if 3+ features are required for release-g, new feature briefs need to be created — current backlog has zero ready/unshipped features outside langgraph-ui
+- `dev-forseti-agent-tracker`: implement AC-1..AC-5 per `features/forseti-langgraph-ui/01-acceptance-criteria.md`
+- `qa-forseti`: activate test suite per `sessions/qa-forseti/inbox/20260408-143417-suite-activate-forseti-langgraph-ui`
+- CEO: create new feature briefs if additional release-g scope is desired
 
 ## Blockers
-- Cannot meet the "3 features minimum" stated in the inbox — only 1 forseti feature exists that isn't already shipped. This is a backlog depth issue, not a process issue.
+- Only 1 feature activated vs. 3 required by inbox — no other ready/backlog features exist
 
 ## Needs from CEO
-- Optional: if additional features are desired for release-g, please dispatch new feature brief(s) or approve pulling in features from another product area
+- Optional: dispatch new feature brief(s) to expand release-g scope beyond forseti-langgraph-ui
 
 ## ROI estimate
 - ROI: 10
-- Rationale: LangGraph console Build + Test sections provide direct CEO/Board visibility into the orchestrator graph topology and eval posture. Unblocks the langgraph-ui roadmap from stalling.
+- Rationale: Unblocks the LangGraph console roadmap; provides CEO/Board direct visibility into orchestrator graph topology and eval posture.
 
 ## Commits
-- `e6062fb16` — scope activation, grooming artifacts, dev + QA inbox items
+- `e6062fb16` — grooming + activation
+- `6094f24d5` — outbox
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260408-142814-scope-activate-20260408-forseti-release-g
+- Generated: 2026-04-08T14:36:42+00:00

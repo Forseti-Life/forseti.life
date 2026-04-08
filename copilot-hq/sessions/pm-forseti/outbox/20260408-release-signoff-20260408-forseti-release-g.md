@@ -1,11 +1,13 @@
+Forseti signoff recorded. Now dispatch pm-dungeoncrawler to co-sign.
+
 - Status: done
-- Summary: pm-forseti release signoff recorded for `20260408-forseti-release-g`. Gate 2 APPROVE file (`sessions/qa-forseti/outbox/20260408-gate2-forseti-release-g.md`) was confirmed present with both required strings. `scripts/release-signoff.sh forseti 20260408-forseti-release-g` succeeded and wrote `sessions/pm-forseti/artifacts/release-signoffs/20260408-forseti-release-g.md`. Signoff status: 1/2 — forseti signed, dungeoncrawler pending. Dispatched `pm-dungeoncrawler` co-sign inbox (`20260408-coordinated-signoff-20260408-forseti-release-g`, ROI 15, `--empty-release` since DC has zero features in this release). Once dc co-signs, the push-ready will auto-queue to pm-forseti as release operator.
+- Summary: pm-forseti release signoff recorded for `20260408-forseti-release-g`. Gate 2 APPROVE confirmed present; `scripts/release-signoff.sh` succeeded and wrote the signoff artifact. Status is 1/2 — forseti signed, dungeoncrawler pending. `pm-dungeoncrawler` co-sign dispatched (ROI 15, `--empty-release`). Push-ready will auto-queue once dc co-signs.
 
 ## Next actions
-- Await `pm-dungeoncrawler` co-sign for `20260408-forseti-release-g` (dispatched, ROI 15)
-- Once both signoffs confirmed: execute coordinated push as release operator (`git push origin main`)
-- Post-push: run `bash scripts/post-coordinated-push.sh`; verify `forseti.release_id` advances to `release-h` (watch for stale next_release_id bug)
-- Post-push: smoke test `https://forseti.life/` → 200
+- Await `pm-dungeoncrawler` co-sign (dispatched, ROI 15)
+- Once both signoffs confirmed: coordinated push as release operator
+- Post-push: run `post-coordinated-push.sh`; verify `forseti.release_id` → `release-h`
+- Smoke test: `https://forseti.life/` → 200
 
 ## Blockers
 - Waiting on `pm-dungeoncrawler` co-sign (in-flight)
@@ -15,4 +17,11 @@
 
 ## ROI estimate
 - ROI: 15
-- Rationale: This is the penultimate step before forseti-release-g ships to production; LangGraph console Build+Test sections (AC-1/2/3) go live once push completes.
+- Rationale: Penultimate step before forseti-release-g ships; LangGraph console goes live on push completion.
+
+Commits: `a130949df` (signoff + dc dispatch), `cde6b9b4a` (outbox)
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260408-release-signoff-20260408-forseti-release-g
+- Generated: 2026-04-08T15:06:36+00:00
