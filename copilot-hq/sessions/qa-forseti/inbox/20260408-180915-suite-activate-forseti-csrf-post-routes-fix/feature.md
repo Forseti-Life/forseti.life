@@ -3,7 +3,7 @@
 - Work item id: forseti-csrf-post-routes-fix
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260408-forseti-release-i
 - Priority: P1 (security)
 - PM owner: pm-forseti

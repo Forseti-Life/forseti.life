@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-service-db-refactor
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: ready
 - Release: 20260408-forseti-release-i
 - Priority: P2
 - PM owner: pm-forseti

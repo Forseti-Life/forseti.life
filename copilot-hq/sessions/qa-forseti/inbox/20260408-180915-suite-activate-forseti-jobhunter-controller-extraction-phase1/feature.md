@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-controller-extraction-phase1
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260408-forseti-release-i
 - Priority: P2
 - PM owner: pm-forseti
