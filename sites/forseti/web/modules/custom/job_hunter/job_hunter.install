@@ -882,6 +882,36 @@ function job_hunter_update_9038() {
 }
 
 /**
+ * Add age_18_or_older column to jobhunter_job_seeker.
+ *
+ * The column stores a 'Yes'/'No' string (per WorkdayProfileDataMapper
+ * normalizeYesNo()) and is written via UserProfileForm's db_column mapping.
+ * The QA acceptance criteria references the table as 'job_hunter_profile'
+ * which is an alias — the actual table is 'jobhunter_job_seeker'.
+ */
+function job_hunter_update_9039() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_job_seeker')) {
+    return t('No update needed: table jobhunter_job_seeker does not exist.');
+  }
+
+  if ($schema->fieldExists('jobhunter_job_seeker', 'age_18_or_older')) {
+    return t('No update needed: age_18_or_older column already exists.');
+  }
+
+  $schema->addField('jobhunter_job_seeker', 'age_18_or_older', [
+    'type' => 'varchar',
+    'length' => 3,
+    'not null' => FALSE,
+    'default' => NULL,
+    'description' => "Whether applicant is 18 or older ('Yes' or 'No').",
+  ]);
+
+  return t('Added age_18_or_older column to jobhunter_job_seeker.');
+}
+
+/**
  * Implements hook_uninstall().
  */
 function job_hunter_uninstall() {

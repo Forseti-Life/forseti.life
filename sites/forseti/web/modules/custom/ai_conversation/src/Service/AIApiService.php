@@ -45,6 +45,13 @@ class AIApiService {
   protected $promptManager;
 
   /**
+   * The AI conversation storage service.
+   *
+   * @var \Drupal\ai_conversation\Service\AIConversationStorageService
+   */
+  protected $storage;
+
+  /**
    * Maximum number of recent messages to keep (configurable).
    *
    * @var int
@@ -68,7 +75,7 @@ class AIApiService {
   /**
    * Constructs a new AIApiService object.
    */
-  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager, PromptManager $prompt_manager = NULL) {
+  public function __construct(ConfigFactoryInterface $config_factory, LoggerChannelFactoryInterface $logger_factory, EntityTypeManagerInterface $entity_type_manager, PromptManager $prompt_manager = NULL, AIConversationStorageService $storage = NULL) {
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('ai_conversation');
     $this->entityTypeManager = $entity_type_manager;
@@ -79,6 +86,13 @@ class AIApiService {
     } else {
       // Fallback for contexts where DI isn't available
       $this->promptManager = \Drupal::service('ai_conversation.prompt_manager');
+    }
+
+    // Inject storage service or resolve lazily for backwards compatibility.
+    if ($storage) {
+      $this->storage = $storage;
+    } else {
+      $this->storage = \Drupal::service('ai_conversation.storage');
     }
     
     // Load configuration.
@@ -447,8 +461,6 @@ class AIApiService {
    */
   public function trackApiUsage(array $params) {
     try {
-      $connection = \Drupal::database();
-      
       // Calculate estimated cost based on model-specific pricing
       $model_id = $params['model_id'] ?? '';
       $pricing = $this->getModelPricing($model_id);
@@ -489,23 +501,21 @@ class AIApiService {
         'context_data' => isset($params['context_data']) ? json_encode($params['context_data']) : NULL,
       ];
       
-      // Add debugging fields if they exist
-      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'success')) {
+      // Add debugging fields if they exist (schema guard via storage service).
+      if ($this->storage->usageTableHasField('success')) {
         $fields['success'] = $success ? 1 : 0;
       }
-      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'error_message')) {
+      if ($this->storage->usageTableHasField('error_message')) {
         $fields['error_message'] = $params['error_message'] ?? NULL;
       }
-      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'prompt_preview')) {
+      if ($this->storage->usageTableHasField('prompt_preview')) {
         $fields['prompt_preview'] = mb_substr((string) $full_prompt, 0, 250);
       }
-      if ($connection->schema()->fieldExists('ai_conversation_api_usage', 'response_preview')) {
+      if ($this->storage->usageTableHasField('response_preview')) {
         $fields['response_preview'] = mb_substr((string) $full_response, 0, 250);
       }
       
-      $connection->insert('ai_conversation_api_usage')
-        ->fields($fields)
-        ->execute();
+      $this->storage->insertUsageRecord($fields);
         
       if ($success) {
         $this->logInfo('📊 API usage tracked: @module/@operation - @input_tokens in + @output_tokens out = $@cost', [
@@ -745,43 +755,7 @@ class AIApiService {
    *   Array with response data if found, NULL otherwise.
    */
   private function getCachedApiResponse(string $module, string $operation, array $context_data) {
-    $connection = \Drupal::database();
-    $schema = $connection->schema();
-
-    // If required caching fields are not present yet, skip cache lookup safely.
-    if (!$schema->fieldExists('ai_conversation_api_usage', 'response_preview') ||
-        !$schema->fieldExists('ai_conversation_api_usage', 'success')) {
-      return NULL;
-    }
-    
-    // Build WHERE clauses for context_data matching
-    $query = $connection->select('ai_conversation_api_usage', 'u')
-      ->fields('u', ['response_preview', 'stop_reason', 'timestamp', 'input_tokens', 'output_tokens'])
-      ->condition('module', $module)
-      ->condition('operation', $operation)
-      ->condition('success', 1)
-      ->orderBy('timestamp', 'DESC')
-      ->range(0, 1);
-    
-    // Add JSON_EXTRACT conditions for each context field
-    // JSON_EXTRACT handles both numeric and string values correctly
-    foreach ($context_data as $key => $value) {
-      $query->where("JSON_EXTRACT(context_data, '$.$key') = :value_$key", [":value_$key" => $value]);
-    }
-    
-    $result = $query->execute()->fetchAssoc();
-    
-    if ($result && !empty($result['response_preview'])) {
-      return [
-        'response' => $result['response_preview'],
-        'stop_reason' => $result['stop_reason'],
-        'timestamp' => $result['timestamp'],
-        'input_tokens' => $result['input_tokens'],
-        'output_tokens' => $result['output_tokens'],
-      ];
-    }
-    
-    return NULL;
+    return $this->storage->findCachedResponse($module, $operation, $context_data);
   }
 
   /**
@@ -801,21 +775,8 @@ class AIApiService {
    *   Number of cached responses cleared.
    */
   public function clearCachedResponse(string $module, string $operation, array $context_data) {
-    $connection = \Drupal::database();
-    
-    // Build delete query matching the context
-    $query = $connection->delete('ai_conversation_api_usage')
-      ->condition('module', $module)
-      ->condition('operation', $operation);
-    
-    // Add JSON_EXTRACT conditions for each context field
-    // JSON_EXTRACT handles both numeric and string values correctly
-    foreach ($context_data as $key => $value) {
-      $query->where("JSON_EXTRACT(context_data, '$.$key') = :value_$key", [":value_$key" => $value]);
-    }
-    
-    $count = $query->execute();
-    
+    $count = $this->storage->deleteCachedResponses($module, $operation, $context_data);
+
     if ($count > 0) {
       $this->logInfo('🗑️ Cleared @count cached GenAI response(s) for @module/@operation', [
         '@count' => $count,
@@ -823,7 +784,7 @@ class AIApiService {
         '@operation' => $operation,
       ]);
     }
-    
+
     return $count;
   }
 

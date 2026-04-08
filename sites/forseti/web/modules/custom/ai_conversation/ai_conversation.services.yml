@@ -3,6 +3,12 @@ services:
     parent: logger.channel_base
     arguments: ['ai_conversation']
 
+  ai_conversation.storage:
+    class: Drupal\ai_conversation\Service\AIConversationStorageService
+    arguments: ['@database']
+    tags:
+      - { name: service }
+
   ai_conversation.prompt_manager:
     class: Drupal\ai_conversation\Service\PromptManager
     arguments: ['@config.factory', '@entity_type.manager', '@logger.channel.ai_conversation']
@@ -11,7 +17,7 @@ services:
 
   ai_conversation.ai_api_service:
     class: Drupal\ai_conversation\Service\AIApiService
-    arguments: ['@config.factory', '@logger.factory', '@entity_type.manager', '@ai_conversation.prompt_manager']
+    arguments: ['@config.factory', '@logger.factory', '@entity_type.manager', '@ai_conversation.prompt_manager', '@ai_conversation.storage']
     tags:
       - { name: service }
 
