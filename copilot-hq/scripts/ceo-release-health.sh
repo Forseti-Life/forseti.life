@@ -261,38 +261,49 @@ PY
     info "Run: bash scripts/release-signoff.sh $TEAM $RELEASE_ID"
   fi
 
-  # 6. Orphaned features — in_progress on a stale/closed release for this team
+  # 6. Orphaned features — in_progress on a stale/closed release (Python for speed)
   echo
+  ORPHAN_RESULTS="$(python3 - features "$TEAM" "$RELEASE_ID" <<'PY'
+import pathlib, sys, re
+feat_root = pathlib.Path(sys.argv[1])
+team, current_release = sys.argv[2], sys.argv[3]
+for feat_dir in sorted(feat_root.iterdir()):
+    fm = feat_dir / "feature.md"
+    if not fm.exists(): continue
+    text = fm.read_text()
+    status = next((re.sub(r"^- Status:\s*", "", l).strip()
+                   for l in text.splitlines() if re.match(r"^- Status:", l)), "")
+    if status != "in_progress": continue
+    release = next((re.sub(r"^- Release:\s*", "", l).strip()
+                    for l in text.splitlines() if re.match(r"^- Release:", l)), "")
+    if not release or release in ("none", "(set by PM at activation)"): continue
+    if release == current_release: continue
+    if team not in release: continue   # only flag features belonging to this team
+    print(f"{feat_dir.name}\t{release}")
+PY
+)"
+
   ORPHAN_COUNT=0
-  while IFS= read -r FEAT_DIR; do
-    [ -d "$FEAT_DIR" ] || continue
-    FM="$FEAT_DIR/feature.md"
-    [ -f "$FM" ] || continue
-    F_STATUS="$(grep -E '^- Status:' "$FM" | head -1 | sed 's/^- Status: //')"
-    [ "$F_STATUS" = "in_progress" ] || continue
-    F_RELEASE="$(grep -E '^- Release:' "$FM" | head -1 | sed 's/^- Release: //')"
-    # Skip if blank, placeholder, or the CURRENT release
-    [ -z "$F_RELEASE" ] && continue
-    echo "$F_RELEASE" | grep -qE "set by PM|^none$" && continue
-    [ "$F_RELEASE" = "$RELEASE_ID" ] && continue
-    # Only flag features belonging to this team (release ID contains team name)
-    echo "$F_RELEASE" | grep -q "$TEAM" || continue
-    FEAT_NAME="$(basename "$FEAT_DIR")"
-    DEV_AGENT="dev-$TEAM"
-    HAS_IMPL="$(ls "sessions/${DEV_AGENT}/outbox/" 2>/dev/null | grep "$FEAT_NAME" | head -1 || true)"
-    if [ -n "$HAS_IMPL" ]; then
-      warn "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on OLD $F_RELEASE — dev outbox exists, mark done?)"
-    else
-      fail "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on CLOSED $F_RELEASE — no dev work done)"
-      info "  Fix: reset to ready + clear release; or run with --fix to auto-reset"
-      if [ "$FIX_MODE" = "1" ]; then
-        sed -i 's/^- Status: in_progress/- Status: ready/' "$FM"
-        sed -i "s|^- Release: ${F_RELEASE}|- Release: |" "$FM"
-        info "  FIX: reset $FEAT_NAME → ready, release cleared"
+  if [ -n "$ORPHAN_RESULTS" ]; then
+    while IFS=$'\t' read -r FEAT_NAME F_RELEASE; do
+      [ -n "$FEAT_NAME" ] || continue
+      DEV_AGENT="dev-$TEAM"
+      HAS_IMPL="$(ls "sessions/${DEV_AGENT}/outbox/" 2>/dev/null | grep "$FEAT_NAME" | head -1 || true)"
+      if [ -n "$HAS_IMPL" ]; then
+        warn "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on OLD $F_RELEASE — dev outbox exists, mark done?)"
+      else
+        fail "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on CLOSED $F_RELEASE — no dev work done)"
+        info "  Fix: reset to ready + clear release; or run with --fix to auto-reset"
+        if [ "$FIX_MODE" = "1" ]; then
+          FM="features/$FEAT_NAME/feature.md"
+          sed -i 's/^- Status: in_progress/- Status: ready/' "$FM"
+          sed -i "s|^- Release: ${F_RELEASE}|- Release: |" "$FM"
+          info "  FIX: reset $FEAT_NAME → ready, release cleared"
+        fi
       fi
-    fi
-    ORPHAN_COUNT=$((ORPHAN_COUNT + 1))
-  done < <(find features -maxdepth 1 -mindepth 1 -type d 2>/dev/null)
+      ORPHAN_COUNT=$((ORPHAN_COUNT + 1))
+    done <<<"$ORPHAN_RESULTS"
+  fi
 
   if [ "$ORPHAN_COUNT" -eq 0 ]; then
     pass "[$TEAM] No orphaned in_progress features on stale/closed releases"
