@@ -436,3 +436,5 @@ TCs with no deferred dependencies (immediately activatable at Stage 0): TC-DRU-0
 ## Security acceptance criteria
 
 - Security AC exemption: game-mechanic class logic; no new routes or user-facing input beyond existing character creation and leveling forms
+- Agent: qa-dungeoncrawler
+- Status: pending

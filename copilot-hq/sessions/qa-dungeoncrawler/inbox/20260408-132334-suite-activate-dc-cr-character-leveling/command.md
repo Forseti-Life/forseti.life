@@ -440,3 +440,4 @@ Notes:
 | Feat selection | Trigger level with feat slot; submit feat; verify feat in character abilities |
 | Already max level | Attempt level-up on level 20 char; verify rejection |
 | Save/reload persistence | Level up; restart session; verify all changes survived |
+- Agent: qa-dungeoncrawler

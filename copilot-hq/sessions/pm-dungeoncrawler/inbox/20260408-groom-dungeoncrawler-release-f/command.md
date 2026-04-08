@@ -38,3 +38,5 @@ Priority order for release-f (P1 first, then P2 by dependency order):
 ## Note
 
 Release-f ID: `20260408-dungeoncrawler-release-f` (already set as next_release_id in runtime)
+- Agent: pm-dungeoncrawler
+- Status: pending

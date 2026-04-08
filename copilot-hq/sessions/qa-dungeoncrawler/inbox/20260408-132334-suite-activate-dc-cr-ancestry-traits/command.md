@@ -353,3 +353,4 @@ Notes:
 | Unknown trait rejection | POST unknown trait to character; verify error response |
 | Case sensitivity | Query hasTraits(char, ["humanoid"]); verify false (case mismatch) |
 | Duplicate idempotency | Assign "Humanoid" twice; verify traits array has one "Humanoid" entry |
+- Agent: qa-dungeoncrawler

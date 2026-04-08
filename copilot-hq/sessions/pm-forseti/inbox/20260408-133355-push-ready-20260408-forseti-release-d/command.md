@@ -15,3 +15,5 @@ Execute the coordinated push per runbooks/shipping-gates.md Gate 4:
 bash scripts/release-signoff-status.sh 20260408-forseti-release-d
 cd /home/ubuntu/forseti.life && git push
 ```
+- Agent: pm-forseti
+- Status: pending

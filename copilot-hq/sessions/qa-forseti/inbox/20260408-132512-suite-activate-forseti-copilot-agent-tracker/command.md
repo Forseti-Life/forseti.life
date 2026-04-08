@@ -293,3 +293,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 - All dashboard routes require `administer copilot agent tracker` — confirmed in `copilot_agent_tracker.permissions.yml` and `copilot_agent_tracker.routing.yml`.
 - AC-PAY-04 allows either store-as-is or reject-422 for unknown enum values; QA should confirm with PM/Dev which behavior is implemented and verify accordingly.
 - AC-AUTH-05 relates to the CSRF split-route pattern (GET-only vs POST-only routes); see `site.instructions.md` security note on CSRF routing.
+- Agent: qa-forseti
+- Status: pending
