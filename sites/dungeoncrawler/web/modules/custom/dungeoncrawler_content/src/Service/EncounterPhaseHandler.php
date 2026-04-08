@@ -215,6 +215,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'treat_poison',
       // REQ 1591–1594, 2329: Recall Knowledge [1 action, Secret].
       'recall_knowledge',
+      // REQ 1715–1722: Stealth skill actions [encounter-phase].
+      'hide',
+      'sneak',
+      'conceal_object',
     ];
   }
 
@@ -1473,6 +1477,157 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
           'secret' => TRUE,
         ];
         $events[] = GameEventLogger::buildEvent('recall_knowledge', 'encounter', $actor_id, ['skill_used' => $skill_used_rk, 'degree' => $degree_rk, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1715–1718: Hide [1 action]
+      // Transitions actor from Observed → Hidden vs each observer's Perception DC.
+      // Requires cover or concealment.
+      // -----------------------------------------------------------------------
+      case 'hide': {
+        if (empty($params['has_cover']) && empty($params['has_concealment'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Hide requires cover or concealment.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $stealth_bonus_h = (int) ($params['stealth_bonus'] ?? 0);
+        $observer_ids_h = $params['observer_ids'] ?? [];
+        $perception_dcs_h = $params['perception_dcs'] ?? [];
+
+        if (!isset($game_state['visibility'])) {
+          $game_state['visibility'] = [];
+        }
+
+        $hide_results = [];
+        foreach ($observer_ids_h as $obs_id) {
+          $perc_dc_h = (int) ($perception_dcs_h[$obs_id] ?? 15);
+          $d20_h = $this->numberGenerationService->rollPathfinderDie(20);
+          $total_h = $d20_h + $stealth_bonus_h;
+          $degree_h = $this->combatCalculator->calculateDegreeOfSuccess($total_h, $perc_dc_h, $d20_h);
+
+          // REQ 1715: Success → Hidden; Failure → Observed (no change if already hidden/undetected).
+          if (in_array($degree_h, ['critical_success', 'success'], TRUE)) {
+            $game_state['visibility'][$obs_id][$actor_id] = 'hidden';
+          }
+          else {
+            $game_state['visibility'][$obs_id][$actor_id] = 'observed';
+          }
+          // Secret: d20 not included in player-visible result.
+          $hide_results[$obs_id] = ['degree' => $degree_h, 'visibility' => $game_state['visibility'][$obs_id][$actor_id]];
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['hide_results' => $hide_results, 'observer_count' => count($observer_ids_h), 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('hide', 'encounter', $actor_id, ['observer_count' => count($observer_ids_h), 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1719–1722: Sneak [1 action, Move]
+      // Actor must be Hidden; moves at half speed; Stealth vs Perception at end.
+      // -----------------------------------------------------------------------
+      case 'sneak': {
+        // REQ 1719: Must already be Hidden to at least one observer.
+        $is_hidden_to_any = FALSE;
+        $observer_ids_sn = $params['observer_ids'] ?? [];
+        foreach ($observer_ids_sn as $obs_id) {
+          $vis = $game_state['visibility'][$obs_id][$actor_id] ?? 'observed';
+          if (in_array($vis, ['hidden', 'undetected', 'unnoticed'], TRUE)) {
+            $is_hidden_to_any = TRUE;
+            break;
+          }
+        }
+        if (!$is_hidden_to_any && !empty($observer_ids_sn)) {
+          return ['success' => FALSE, 'result' => ['error' => 'Sneak requires Hidden (or Undetected) status. Use Hide first.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        // REQ 1720: Move at half speed (enforced by rounding client-provided distance).
+        $speed_sn = (int) ($params['speed'] ?? 25);
+        $half_speed_sn = (int) (floor($speed_sn / 2 / 5) * 5);
+
+        // REQ 1722: Cannot end Sneak in an open location (no cover/concealment).
+        if (empty($params['ends_in_cover']) && empty($params['ends_in_concealment'])) {
+          // Sneak ending in open automatically becomes Observed to all observers.
+          foreach ($observer_ids_sn as $obs_id) {
+            $game_state['visibility'][$obs_id][$actor_id] = 'observed';
+          }
+          $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+          $result = ['sneak_results' => [], 'became_observed' => TRUE, 'half_speed' => $half_speed_sn, 'reason' => 'Ended in open terrain.'];
+          $events[] = GameEventLogger::buildEvent('sneak', 'encounter', $actor_id, ['became_observed' => TRUE, 'round' => $game_state['round'] ?? NULL]);
+          break;
+        }
+
+        $stealth_bonus_sn = (int) ($params['stealth_bonus'] ?? 0);
+        $perception_dcs_sn = $params['perception_dcs'] ?? [];
+
+        $sneak_results = [];
+        foreach ($observer_ids_sn as $obs_id) {
+          $current_vis_sn = $game_state['visibility'][$obs_id][$actor_id] ?? 'observed';
+          if (!in_array($current_vis_sn, ['hidden', 'undetected', 'unnoticed'], TRUE)) {
+            // REQ 1721: Can only Sneak from a Hidden state vs an observer.
+            $sneak_results[$obs_id] = ['degree' => NULL, 'visibility' => 'observed'];
+            continue;
+          }
+
+          $perc_dc_sn = (int) ($perception_dcs_sn[$obs_id] ?? 15);
+          $d20_sn = $this->numberGenerationService->rollPathfinderDie(20);
+          $total_sn = $d20_sn + $stealth_bonus_sn;
+          $degree_sn = $this->combatCalculator->calculateDegreeOfSuccess($total_sn, $perc_dc_sn, $d20_sn);
+
+          // REQ 1720: Success → remain Hidden; Failure → Observed to this observer.
+          if (in_array($degree_sn, ['critical_success', 'success'], TRUE)) {
+            // Keep current visibility (hidden/undetected preserved).
+          }
+          else {
+            $game_state['visibility'][$obs_id][$actor_id] = 'observed';
+          }
+          $sneak_results[$obs_id] = ['degree' => $degree_sn, 'visibility' => $game_state['visibility'][$obs_id][$actor_id]];
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['sneak_results' => $sneak_results, 'half_speed' => $half_speed_sn, 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('sneak', 'encounter', $actor_id, ['observer_count' => count($observer_ids_sn), 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1721–1724: Conceal an Object [1 action, Manipulation]
+      // Hides a carried/worn item; observers must Seek to discover it.
+      // -----------------------------------------------------------------------
+      case 'conceal_object': {
+        $stealth_bonus_co = (int) ($params['stealth_bonus'] ?? 0);
+        $observer_ids_co = $params['observer_ids'] ?? [];
+        $perception_dcs_co = $params['perception_dcs'] ?? [];
+        $item_id_co = $params['item_id'] ?? NULL;
+
+        if (!isset($game_state['concealed_objects'])) {
+          $game_state['concealed_objects'] = [];
+        }
+
+        $co_results = [];
+        $concealed_to_all = TRUE;
+        foreach ($observer_ids_co as $obs_id) {
+          $perc_dc_co = (int) ($perception_dcs_co[$obs_id] ?? 15);
+          $d20_co = $this->numberGenerationService->rollPathfinderDie(20);
+          $total_co = $d20_co + $stealth_bonus_co;
+          $degree_co = $this->combatCalculator->calculateDegreeOfSuccess($total_co, $perc_dc_co, $d20_co);
+
+          if (in_array($degree_co, ['critical_success', 'success'], TRUE)) {
+            $co_results[$obs_id] = ['degree' => $degree_co, 'concealed' => TRUE];
+          }
+          else {
+            $co_results[$obs_id] = ['degree' => $degree_co, 'concealed' => FALSE];
+            $concealed_to_all = FALSE;
+          }
+        }
+
+        if ($item_id_co && $concealed_to_all && !empty($observer_ids_co)) {
+          $game_state['concealed_objects'][$actor_id . ':' . $item_id_co] = TRUE;
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['concealed_results' => $co_results, 'item_id' => $item_id_co, 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('conceal_object', 'encounter', $actor_id, ['item_id' => $item_id_co, 'round' => $game_state['round'] ?? NULL]);
         break;
       }
 
@@ -2955,6 +3110,12 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'treat_poison':
       // REQ 1591: Recall Knowledge costs 1 action.
       case 'recall_knowledge':
+      // REQ 1715: Hide costs 1 action.
+      case 'hide':
+      // REQ 1719: Sneak is a 1-action move.
+      case 'sneak':
+      // REQ 1721: Conceal an Object costs 1 action.
+      case 'conceal_object':
         return 1;
 
       case 'ready':
