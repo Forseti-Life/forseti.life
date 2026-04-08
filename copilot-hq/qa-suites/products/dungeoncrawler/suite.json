@@ -4683,6 +4683,120 @@
           "notes": "Pre-implementation gate: SELECT COUNT(*) FROM dc_requirements WHERE section LIKE 'core/ch01%' > 0 AND core/ch02 > 0. DB-load task must be dispatched to dev-dungeoncrawler before feature enters dev."
         }
       ]
+    },
+    {
+      "id": "dc-cr-spellcasting-e2e",
+      "label": "Spellcasting rules system: spell slot tracking by level (1-10) for prepared and spontaneous casters with daily restore, four casting traditions (arcane/divine/occult/primal) with tradition-gating, prepared vs spontaneous distinction (daily prep UI / known repertoire / unprepared block), spell attack roll and DC formula (proficiency + key ability), heightening (heighten_entries at higher slots / signature spell auto-heighten), cantrips (no slot cost / auto-heighten), focus spells (FP not slot / Refocus restore / 3-max cap), data model completeness, proficiency-rank recalculation",
+      "type": "e2e",
+      "feature_id": "dc-cr-spellcasting",
+      "command": "npx playwright test tests/e2e/spellcasting/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-cr-spellcasting-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes; all spell data is static rulebook content; slot state is session-scoped with standard auth protection. All 14 TCs active. Regression risks: prepared vs spontaneous slot decrement routing; cantrip effective-level not updating on max-level change; focus pool cap not enforced on multi-source characters; heighten_entries not applying on correct cast level; proficiency-rank change not triggering DC/attack recalculation.",
+      "test_cases": [
+        {
+          "id": "TC-SPC-01",
+          "description": "Spellcasting character shows spell slots keyed by level 1-10; counts match class progression table",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-02",
+          "description": "Prepared caster: casting a spell decrements that slot level by 1; after rest all slots restored to max",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-03",
+          "description": "Spontaneous caster: can cast known spell at any slot level >= spell base level; correct higher slot level decremented",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-04",
+          "description": "Tradition field = one of {arcane, divine, occult, primal}; off-tradition spell cast attempt blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-05",
+          "description": "Prepared caster: daily preparation UI distinct from full known spell list; unprepared spell cast blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-06",
+          "description": "Spell attack = d20 + proficiency + key ability + item bonuses; Spell DC = 10 + proficiency + key ability; both use correct formula",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-07",
+          "description": "Heightened spells: heighten_entries applied when cast at higher slot level; signature spells auto-heighten for spontaneous casters; prepared caster must explicitly prepare in higher slot",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-08",
+          "description": "Cantrips: cast without spending slots (no slot change); effective_level updates to match character max spell level as it increases",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-09",
+          "description": "Focus spells: cast costs 1 FP (not spell slot); Refocus 10-min action restores 1 FP up to max; spell_slot unchanged on focus cast",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-10",
+          "description": "Data model: character entity has spell_slots{}, spellcasting_tradition, casting_type, spell_attack_modifier, spell_dc, focus_points, focus_points_max; spell type has traditions[], spell_level, heighten_entries[], is_cantrip, save_type, requires_attack_roll",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-11",
+          "description": "Prepared caster cannot cast unprepared spell: attempt rejected with clear feedback",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "TEST-ONLY"
+        },
+        {
+          "id": "TC-SPC-12",
+          "description": "Proficiency rank change triggers recalculation: spell_attack_modifier and spell_dc update to reflect new rank",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-13",
+          "description": "Four traditions present with distinct spell lists; spell selector filters by tradition; spells tagged with one or more traditions",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-SPC-14",
+          "description": "Focus pool cap: fp_max cannot exceed 3 regardless of number of sources; adding fourth focus source leaves fp_max at 3",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "TEST-ONLY"
+        }
+      ]
     }
   ],
   "_schema_notes": [
