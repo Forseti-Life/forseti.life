@@ -3,8 +3,8 @@
 - Work item id: dc-cr-class-rogue
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260408-dungeoncrawler-release-b
+- Status: ready
+- Release: 
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
