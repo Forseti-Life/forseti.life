@@ -3,7 +3,7 @@
 - Feature ID: forseti-jobhunter-profile-form-db-extraction
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Priority: P2
 - Release: 20260408-forseti-release-j
 

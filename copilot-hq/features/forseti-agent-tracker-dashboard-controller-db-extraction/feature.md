@@ -3,7 +3,7 @@
 - Feature ID: forseti-agent-tracker-dashboard-controller-db-extraction
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
+- Status: done
 - Priority: P2
 - Release: 20260408-forseti-release-j
 

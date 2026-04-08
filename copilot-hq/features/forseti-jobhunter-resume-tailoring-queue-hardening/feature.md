@@ -3,7 +3,7 @@
 - Feature ID: forseti-jobhunter-resume-tailoring-queue-hardening
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Priority: P3
 - Release: 20260408-forseti-release-j
 
