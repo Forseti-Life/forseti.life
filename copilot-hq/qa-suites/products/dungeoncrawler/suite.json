@@ -6905,6 +6905,266 @@
           "ac": "QA-audit-clean"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-champion-e2e",
+      "label": "Champion Class \u2014 STR/DEX key ability, HP/proficiencies, deity/cause/alignment (Paladin/Redeemer/Liberator), Deific Weapon, tenet hierarchy, code violation/atone, Champion's Reaction (Retributive Strike/Glimpse of Redemption/Liberating Step), focus pool/devotion spells, level-gated features (3/5/7/9/11/13/15/17/19), Exalt, feat schedules, ACL",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-champion",
+      "command": "./vendor/bin/phpunit --filter ChampionClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-champion/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-champion/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CHP-01",
+          "description": "Champion selectable in character creation; STR and DEX both accepted as key_ability; no other accepted",
+          "suite": "module-test-suite",
+          "ac": "NEW-champion-class-exists-str-dex"
+        },
+        {
+          "id": "TC-CHP-02",
+          "description": "Champion HP = 10 + CON modifier per level; CON+2 at level 1 = 12, level 2 = 24",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calc"
+        },
+        {
+          "id": "TC-CHP-03",
+          "description": "Initial proficiencies: Trained Perception, Expert Fort/Will, Trained Reflex, Trained Religion+deity skill+2+INT skills, all armor Trained, divine spell attack/DC Trained (CHA)",
+          "suite": "module-test-suite",
+          "ac": "NEW-initial-proficiencies"
+        },
+        {
+          "id": "TC-CHP-04",
+          "description": "Paladin cause requires Lawful Good alignment; NG+Paladin blocked with alignment error",
+          "suite": "module-test-suite",
+          "ac": "NEW-paladin-lg-alignment"
+        },
+        {
+          "id": "TC-CHP-05",
+          "description": "Redeemer requires Neutral Good; Liberator requires Chaotic Good; mismatches produce validation errors",
+          "suite": "module-test-suite",
+          "ac": "NEW-redeemer-ng-liberator-cg"
+        },
+        {
+          "id": "TC-CHP-06",
+          "description": "Invalid deity/cause combination (e.g., chaotic deity + Paladin) rejected with validation error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-deity-cause"
+        },
+        {
+          "id": "TC-CHP-07",
+          "description": "Deific Weapon: uncommon access granted; d4/simple weapon die upgraded one step (d4\u2192d6, d6\u2192d8)",
+          "suite": "module-test-suite",
+          "ac": "NEW-deific-weapon"
+        },
+        {
+          "id": "TC-CHP-08",
+          "description": "Tenet hierarchy: higher tenet overrides lower in conflict; conflict-resolution mechanism exists",
+          "suite": "module-test-suite",
+          "ac": "NEW-tenet-hierarchy",
+          "note": "PM to enumerate specific conflict cases before TC finalized"
+        },
+        {
+          "id": "TC-CHP-09",
+          "description": "Code violation suspends focus pool and divine ally; atone ritual fully restores both",
+          "suite": "module-test-suite",
+          "ac": "NEW-code-violation-atone"
+        },
+        {
+          "id": "TC-CHP-10",
+          "description": "Paladin Retributive Strike: ally resistance = 2+level; melee Strike on foe in reach",
+          "suite": "module-test-suite",
+          "ac": "NEW-retributive-strike"
+        },
+        {
+          "id": "TC-CHP-11",
+          "description": "Redeemer Glimpse of Redemption: foe choice A (ally unharmed) or B (ally resistance = 2+level); foe enfeebled 2 either way",
+          "suite": "module-test-suite",
+          "ac": "NEW-glimpse-of-redemption"
+        },
+        {
+          "id": "TC-CHP-12",
+          "description": "Liberator Liberating Step: ally resistance = 2+level; break-free save/Escape available; ally can Step as free action",
+          "suite": "module-test-suite",
+          "ac": "NEW-liberating-step"
+        },
+        {
+          "id": "TC-CHP-13",
+          "description": "Focus pool starts at 1 (max 3 with feats); Refocus = 10 minutes prayer/service",
+          "suite": "module-test-suite",
+          "ac": "NEW-focus-pool-initial"
+        },
+        {
+          "id": "TC-CHP-14",
+          "description": "Lay on Hands devotion spell present for all three good causes at level 1",
+          "suite": "module-test-suite",
+          "ac": "NEW-lay-on-hands-level1"
+        },
+        {
+          "id": "TC-CHP-15",
+          "description": "Devotion spells auto-heighten to half level rounded up; spell attacks/DCs use CHA",
+          "suite": "module-test-suite",
+          "ac": "NEW-devotion-auto-heighten-cha"
+        },
+        {
+          "id": "TC-CHP-16",
+          "description": "Focus pool at 0: devotion spell activation blocked with clear error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-empty-pool-blocks"
+        },
+        {
+          "id": "TC-CHP-17",
+          "description": "Level 1: Shield Block general feat granted for free",
+          "suite": "module-test-suite",
+          "ac": "NEW-level1-shield-block"
+        },
+        {
+          "id": "TC-CHP-18",
+          "description": "Level 3: Divine Ally \u2014 Blade Ally, Shield Ally, Steed Ally all accepted; selection permanent",
+          "suite": "module-test-suite",
+          "ac": "NEW-level3-divine-ally"
+        },
+        {
+          "id": "TC-CHP-19",
+          "description": "Blade Ally: weapon gets property rune + critical specialization effect",
+          "suite": "module-test-suite",
+          "ac": "NEW-blade-ally"
+        },
+        {
+          "id": "TC-CHP-20",
+          "description": "Shield Ally: +2 Hardness and +50% HP/Broken Threshold on shield",
+          "suite": "module-test-suite",
+          "ac": "NEW-shield-ally"
+        },
+        {
+          "id": "TC-CHP-21",
+          "description": "Level 5: simple and martial weapon proficiency increases to Expert",
+          "suite": "module-test-suite",
+          "ac": "NEW-level5-weapon-expert"
+        },
+        {
+          "id": "TC-CHP-22",
+          "description": "Level 7: all armor/unarmored to Expert; armor specialization for medium/heavy unlocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-level7-armor-expert"
+        },
+        {
+          "id": "TC-CHP-23",
+          "description": "Level 7: Weapon Specialization \u2014 +2/+3/+4 damage at Expert/Master/Legendary",
+          "suite": "module-test-suite",
+          "ac": "NEW-level7-weapon-spec"
+        },
+        {
+          "id": "TC-CHP-24",
+          "description": "Level 9: champion class DC and divine spell attack/DC increase to Expert",
+          "suite": "module-test-suite",
+          "ac": "NEW-level9-spell-expert"
+        },
+        {
+          "id": "TC-CHP-25",
+          "description": "Level 9: Divine Smite \u2014 Champion's Reaction also inflicts persistent good damage equal to CHA modifier",
+          "suite": "module-test-suite",
+          "ac": "NEW-level9-divine-smite"
+        },
+        {
+          "id": "TC-CHP-26",
+          "description": "Level 9: Fortitude to Master (successes \u2192 critical successes); Reflex to Expert",
+          "suite": "module-test-suite",
+          "ac": "NEW-level9-saves"
+        },
+        {
+          "id": "TC-CHP-27",
+          "description": "Level 11: Perception to Expert; Will to Master (successes \u2192 critical successes)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-perception-will"
+        },
+        {
+          "id": "TC-CHP-28",
+          "description": "Level 11: Exalt Retributive Strike \u2014 allies within 15 ft can react-Strike at \u20135 penalty; cannot be reduced",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-exalt-retributive"
+        },
+        {
+          "id": "TC-CHP-29",
+          "description": "Level 11: Exalt Glimpse of Redemption \u2014 resistance applies to all within 15 ft at \u20132 each",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-exalt-glimpse"
+        },
+        {
+          "id": "TC-CHP-30",
+          "description": "Level 11: Exalt Liberating Step \u2014 all allies within 15 ft can Step",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-exalt-liberating"
+        },
+        {
+          "id": "TC-CHP-31",
+          "description": "Level 13: all armor/unarmored to Master; simple/martial/unarmed weapons to Master",
+          "suite": "module-test-suite",
+          "ac": "NEW-level13-armor-weapon-master"
+        },
+        {
+          "id": "TC-CHP-32",
+          "description": "Level 15: Greater Weapon Specialization \u2014 +4/+6/+8 at Expert/Master/Legendary",
+          "suite": "module-test-suite",
+          "ac": "NEW-level15-greater-weapon-spec"
+        },
+        {
+          "id": "TC-CHP-33",
+          "description": "Level 17: champion class DC and divine spell attack/DC to Master; all armor/unarmored to Legendary",
+          "suite": "module-test-suite",
+          "ac": "NEW-level17-spell-master-armor-legendary"
+        },
+        {
+          "id": "TC-CHP-34",
+          "description": "Level 19: Hero's Defiance devotion spell granted",
+          "suite": "module-test-suite",
+          "ac": "NEW-level19-heros-defiance"
+        },
+        {
+          "id": "TC-CHP-35",
+          "description": "Level-gated features absent before required level; e.g., no Divine Ally before level 3",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-not-early"
+        },
+        {
+          "id": "TC-CHP-36",
+          "description": "Oath feat: only one Oath feat per champion enforced; second Oath attempt rejected",
+          "suite": "module-test-suite",
+          "ac": "NEW-oath-one-only"
+        },
+        {
+          "id": "TC-CHP-37",
+          "description": "Exalt Retributive Strike ally \u20135 penalty: correctly applied, cannot be reduced by any effect",
+          "suite": "module-test-suite",
+          "ac": "NEW-exalt-penalty-irreducible"
+        },
+        {
+          "id": "TC-CHP-38",
+          "description": "Class feat schedule: granted at level 1 and every even level (2, 4, 6 ... 20)",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule"
+        },
+        {
+          "id": "TC-CHP-39",
+          "description": "General feats at levels 3, 7, 11, 15, 19; free Shield Block at level 1",
+          "suite": "module-test-suite",
+          "ac": "NEW-general-feat-schedule"
+        },
+        {
+          "id": "TC-CHP-40",
+          "description": "Cross-player ACL: player cannot modify another player's Champion character; returns 403",
+          "suite": "module-test-suite",
+          "ac": "SEC-cross-player-403"
+        },
+        {
+          "id": "TC-CHP-41",
+          "description": "QA audit passes after module deployment: 0 violations, 0 failures",
+          "suite": "role-url-audit",
+          "ac": "QA-audit-clean"
+        }
+      ]
     }
   ],
   "_schema_notes": [
