@@ -175,3 +175,11 @@ If the `diff` above shows drift (installed unit ≠ source file):
 
 ## Supervisor
 - Supervisor: `pm-dungeoncrawler`
+
+## CharacterCalculator vs Calculator service (ADDED 2026-04-08)
+- `CharacterCalculator.php` is a standalone class (NOT a Drupal service). Instantiate directly: `new CharacterCalculator()`.
+- `Calculator.php` is the registered service (`dungeoncrawler_content.calculator`) — different class, no `calculateSkillCheck()`.
+- When testing `calculateSkillCheck()` via drush php:eval, instantiate directly: `$c = new \Drupal\dungeoncrawler_content\Service\CharacterCalculator();`
+- The `calculateSkillCheck()` 6th param `array $options = []` accepts: `trained_only` (bool), `is_attack_trait` (bool).
+- Armor check penalty source: `$characterData['armor_check_penalty']` (negative int, e.g. -2). Zero or absent = no penalty.
+- Level ceiling source in `CharacterLevelingService`: `$char_data['basicInfo']['level'] ?? $char_data['level'] ?? 1`.
