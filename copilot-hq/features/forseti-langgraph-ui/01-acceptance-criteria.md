@@ -44,7 +44,7 @@ Wire the **Build** and **Test** console sections with live data from `engine.py`
   - `/admin/reports/copilot-agent-tracker/langgraph-console/run`
   - `/admin/reports/copilot-agent-tracker/langgraph-console/observe`
   - `/admin/reports/copilot-agent-tracker/langgraph-console/release`
-  - `/admin/reports/copilot-agent-tracker/langgraph-console/config`
+  - `/admin/reports/copilot-agent-tracker/langgraph-console/admin`
 - All 7 existing telemetry dashboard routes (`/admin/reports/copilot-agent-tracker/langgraph`, `/langgraph/session`, etc.) still return 200 for admin
 
 ### AC-5: No XSS / output escaping
