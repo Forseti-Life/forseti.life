@@ -92,12 +92,15 @@ if team_release_ids:
             if not new_current:
                 print(f"WARN {team_id}: next_release_id file is empty — skipping release_id advancement")
                 continue
-            # Idempotency: skip if this team's release_id was already advanced to new_current.
+            # Idempotency: skip if we already advanced this team's release_id.
+            # The sentinel records the value we wrote as release_id; if the current
+            # release_id still matches that sentinel, Step 3 already ran — skip.
             advance_sentinel = pushed_dir / f"{team_id}.advanced"
             if advance_sentinel.exists():
+                sentinel_val = advance_sentinel.read_text(encoding='utf-8').strip()
                 current_rid = (runtime_dir / f"{team_id}.release_id").read_text(encoding='utf-8').strip()
-                if current_rid == new_current:
-                    print(f"SKIP {team_id}: release_id already advanced to {new_current}")
+                if current_rid == sentinel_val:
+                    print(f"SKIP {team_id}: release_id already advanced to {sentinel_val}")
                     continue
             # Generate a collision-free next_release_id (same logic as orchestrator).
             new_next = next(
