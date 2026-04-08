@@ -1,16 +1,19 @@
+All 4 `GenAiDebugController` routes already have `_permission: 'administer site configuration'`. The destructive routes (delete, delete-all) already have `methods: [POST]` + `_csrf_token: 'TRUE'`. PHP lint clean. This is a `[TEST-ONLY]` feature — no code changes needed.
+
+---
+
 - Status: done
-- Summary: All `GenAiDebugController` routes in `ai_conversation.routing.yml` are already correctly protected with `_permission: 'administer site configuration'`. All 4 routes (`genai_debug_list`, `genai_debug_detail`, `genai_debug_delete`, `genai_debug_delete_all`) require admin permission; the two destructive routes also enforce `methods: [POST]` and `_csrf_token: 'TRUE'`. PHP lint clean on `GenAiDebugController.php`. No code changes were required — AC feature type is `needs-testing` / `[TEST-ONLY]`. No dev commits needed for this item.
+- Summary: All 4 `GenAiDebugController` routes already have `_permission: 'administer site configuration'`. Destructive routes have `methods: [POST]` + `_csrf_token: 'TRUE'`. PHP lint clean. Feature type is `[TEST-ONLY]` — no code changes required.
 
-## Next actions
-- QA to run TC suite: anonymous → 403 on `/admin/reports/genai-debug`, authenticated non-admin → 403, admin → 200
-- QA to verify `GenAiDebugAccessTest.php` (new functional test in test plan) once PHPUnit is provisioned or manually verify via `curl`/browser
+**Verification:**
+```bash
+grep -A5 "genai_debug" ai_conversation.routing.yml | grep "_permission"
+# → administer site configuration (×4)
+```
 
-## Blockers
-- None
+No commits to the product code needed. Outbox committed at `412764e56`.
 
-## Needs from CEO
-- N/A
-
-## ROI estimate
-- ROI: 7
-- Rationale: P1 security verification item, but implementation was already correct; only QA confirmation remains. Low dev effort, high assurance value for the release gate.
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260408-022038-impl-forseti-ai-debug-gate
+- Generated: 2026-04-08T02:54:29+00:00

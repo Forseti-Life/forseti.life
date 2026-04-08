@@ -3,115 +3,113 @@
 - Feature: forseti-jobhunter-controller-refactor-phase2
 - Module: job_hunter
 - QA owner: qa-forseti
-- Status: groomed (next-release)
-- AC source: 01-acceptance-criteria.md
-- KB references: forseti-ai-service-refactor precedent (same DB extraction pattern; prior lessons in knowledgebase/lessons/)
+- Status: groomed (next-release — do NOT activate in suite until Stage 0)
+- KB references: precedent from forseti-ai-service-refactor (same DB extraction pattern); knowledgebase/lessons/ — none specific found
 
-## Scope summary
+## Summary
 
-Internal refactor only — extract `$this->database` calls from `JobApplicationController` into `ApplicationSubmissionService` (or new `ApplicationAttemptService`). No new routes, permissions, or UI changes. Regression risk is behavioural: if extracted queries change semantics, submission steps silently break.
+Refactoring `JobApplicationController` to extract direct DB calls into `ApplicationSubmissionService` (or a new `ApplicationAttemptService`). This is a pure internal refactor — no routes, permissions, or UI change. QA focus is regression detection (existing flows must not break) and structural static checks (no DB calls remain in controller).
 
-## Test cases
+---
 
-### TC-01: Zero direct DB calls in controller (AC-1)
+## Test Cases
 
-| Field | Value |
-|---|---|
-| Suite | `forseti-jobhunter-controller-refactor-phase2-static` (unit/static) |
-| Command | `grep -c '\$this->database' web/modules/custom/job_hunter/src/Controller/JobApplicationController.php` |
-| Expected | Returns `0` |
-| Roles | N/A (static analysis) |
-| Automation | Yes — bash static check |
+### TC-01 — Static: Zero direct DB calls in JobApplicationController
+- **Suite:** `unit` (static grep)
+- **Command:** `grep -c '\$this->database' web/modules/custom/job_hunter/src/Controller/JobApplicationController.php`
+- **Expected result:** `0`
+- **Roles covered:** N/A (static)
+- **AC:** AC-1
 
-### TC-02: Service methods exist and are documented (AC-2)
+### TC-02 — Static: Service public methods with PHPDoc exist
+- **Suite:** `unit` (static grep)
+- **Command:** `grep -c 'public function' web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php`
+- **Expected result:** `>= 6` (current baseline; increases after refactor)
+- **Roles covered:** N/A (static)
+- **AC:** AC-2
+- **Note:** Each extracted DB query must have a corresponding public method with `/** ... */` PHPDoc. Manual inspection of PHPDoc coverage is required at verification time.
 
-| Field | Value |
-|---|---|
-| Suite | `forseti-jobhunter-controller-refactor-phase2-static` (unit/static) |
-| Command | `grep -c 'public function' web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php` returns > 0; `grep -c '/\*\*' ApplicationSubmissionService.php` > 0 |
-| Expected | At least 1 public method; at least 1 PHPDoc block per extracted query |
-| Roles | N/A |
-| Automation | Yes — bash static check |
+### TC-03 — Static: ApplicationSubmissionService registered in job_hunter.services.yml
+- **Suite:** `unit` (static grep)
+- **Command:** `grep -c 'ApplicationSubmissionService\|application_submission_service' web/modules/custom/job_hunter/job_hunter.services.yml`
+- **Expected result:** `>= 2` (class + service id)
+- **Roles covered:** N/A (static)
+- **AC:** AC-2
 
-### TC-03: Service registered in services.yml (AC-2)
+### TC-04 — Static: PHP lint clean — JobApplicationController
+- **Suite:** `unit` (lint)
+- **Command:** `php -l web/modules/custom/job_hunter/src/Controller/JobApplicationController.php`
+- **Expected result:** `No syntax errors detected`
+- **Roles covered:** N/A (static)
+- **AC:** AC-5
 
-| Field | Value |
-|---|---|
-| Suite | `forseti-jobhunter-controller-refactor-phase2-static` (unit/static) |
-| Command | `grep 'ApplicationSubmissionService\|ApplicationAttemptService' web/modules/custom/job_hunter/job_hunter.services.yml` |
-| Expected | At least one matching entry with `@database` or DB-level dependency |
-| Roles | N/A |
-| Automation | Yes — bash static check |
+### TC-05 — Static: PHP lint clean — ApplicationSubmissionService
+- **Suite:** `unit` (lint)
+- **Command:** `php -l web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php`
+- **Expected result:** `No syntax errors detected`
+- **Roles covered:** N/A (static)
+- **AC:** AC-5
 
-### TC-04: PHP lint clean — controller and service (AC-5)
+### TC-06 — Smoke: Application submission step 1 renders (GET)
+- **Suite:** `functional` (Playwright or curl)
+- **URL:** `/jobhunter/application-submission`
+- **Expected result:** HTTP 200 for authenticated user with `access job hunter` permission; HTTP 302/403 for anonymous
+- **Roles covered:** authenticated job seeker, anonymous
+- **AC:** AC-3
+- **Deferred:** Playwright/Node absent; curl smoke against production requires `ALLOW_PROD_QA=1`
 
-| Field | Value |
-|---|---|
-| Suite | `forseti-jobhunter-controller-refactor-phase2-static` (unit/static) |
-| Command | `php -l .../JobApplicationController.php && php -l .../ApplicationSubmissionService.php` |
-| Expected | Both exit 0 with "No syntax errors detected" |
-| Roles | N/A |
-| Automation | Yes — bash static check |
+### TC-07 — Smoke: Application submission step 2 (job-specific) renders (GET)
+- **Suite:** `functional` (Playwright or curl)
+- **URL:** `/jobhunter/application-submission/{job_id}` (use a known test job_id)
+- **Expected result:** HTTP 200 for authenticated job seeker; HTTP 403 for anonymous
+- **Roles covered:** authenticated job seeker, anonymous
+- **AC:** AC-3
 
-### TC-05: Application submission steps 1–5 render without PHP errors (AC-3)
+### TC-08 — Smoke: POST flows step 3/4/5 complete without error
+- **Suite:** `e2e` (Playwright)
+- **Flow:** Fill and submit steps 3, 4, 5 via Playwright browser automation
+- **Expected result:** Each POST returns HTTP 200 or expected redirect; no PHP errors in Drupal watchdog; no regression vs pre-refactor baseline
+- **Roles covered:** authenticated job seeker
+- **AC:** AC-3, AC-4
+- **Deferred:** Playwright/Node absent; flagged as manual verification or post-infra-fix automation
 
-| Field | Value |
-|---|---|
-| Suite | `forseti-jobhunter-controller-refactor-phase2-functional` (functional/e2e) |
-| Command | ALLOW_PROD_QA=1 curl GET `/jobhunter/application-submission` authenticated; check HTTP 200 or 302 redirect to step1 |
-| Expected | HTTP 200 or 302 (no 500); no PHP error in Drupal watchdog |
-| Roles | Authenticated (`access job hunter`) |
-| Automation | Partially — curl smoke test; full E2E requires Playwright (deferred, Node absent) |
-| Note to PM | Full multi-step POST flow (steps 3/4/5) requires Playwright or a logged-in session. Recommend manual smoke test OR Playwright when Node is installed. Mark as risk-accepted if Playwright remains deferred at ship time. |
+### TC-09 — Regression: No new routes or permissions introduced
+- **Suite:** `role-url-audit`
+- **Command:** `grep -c 'job_hunter\.' web/modules/custom/job_hunter/job_hunter.routing.yml` (count must not increase); `grep -c "access job hunter\|administer job" web/modules/custom/job_hunter/job_hunter.routing.yml` (permission set must not change)
+- **Expected result:** Route count and permission set unchanged vs pre-refactor baseline
+- **Roles covered:** N/A (structural)
+- **AC:** AC-4
 
-### TC-06: Existing application-submission ACL regression (AC-4)
+### TC-10 — Regression: Existing application-submission QA tests still pass
+- **Suite:** `functional` (re-run existing suite entries for forseti-jobhunter-application-submission)
+- **Expected result:** All pre-existing PASS/FAIL outcomes unchanged
+- **Roles covered:** authenticated job seeker, admin
+- **AC:** AC-4
+- **Note to PM:** Verify pre-existing suite entries for `forseti-jobhunter-application-submission` are still in suite.json at Stage 0 and not inadvertently removed.
 
-| Field | Value |
-|---|---|
-| Suite | Re-run existing `forseti-jobhunter-application-submission-route-acl` suite entry |
-| Command | Existing suite command (see qa-suites/products/forseti/suite.json line 42) |
-| Expected | Same as current baseline: anon=deny, authenticated=allow for all `/jobhunter/application-submission/*` and `/application-submission/*` paths |
-| Roles | Anonymous + Authenticated |
-| Automation | Yes — already in suite.json, no new entry needed |
+---
 
-### TC-07: Existing CSRF checks still pass (AC-4)
+## Automation gap flags (for PM)
 
-| Field | Value |
-|---|---|
-| Suite | Re-run existing CSRF static check suite entry (suite.json ~line 195) |
-| Command | Existing suite command — checks all 7 step POST routes have `_csrf_token: 'TRUE'` |
-| Expected | All 7 routes PASS (no regression from refactor) |
-| Roles | N/A (static YAML check) |
-| Automation | Yes — already in suite.json, no new entry needed |
+| Gap | Impact | Recommendation |
+|---|---|---|
+| TC-08 POST E2E requires Playwright/Node | Medium — cannot auto-verify step 3/4/5 submission flows | pm-infra: install Node + Playwright before this feature's Gate 2; or accept manual smoke as risk mitigation |
+| TC-06/TC-07 functional smoke requires live env or curl with auth cookies | Low — GET render can be verified with curl + session cookie | QA can perform manual curl check at Gate 2 if `ALLOW_PROD_QA=1` authorized |
+| PHPDoc coverage (TC-02) is manual at verify time | Low — static grep only counts public functions, not PHPDoc presence | Dev should self-enforce PHPDoc on each extracted method per AC-2 wording |
 
-## Suite entries to activate at Stage 0
+---
 
-One new suite entry to add at Stage 0 (DO NOT add now):
+## Suite mapping (activate at Stage 0)
 
-```json
-{
-  "id": "forseti-jobhunter-controller-refactor-phase2-static",
-  "label": "Controller refactor phase2: zero direct DB calls in controller, service methods present, services.yml registered, PHP lint clean",
-  "type": "unit",
-  "feature_id": "forseti-jobhunter-controller-refactor-phase2",
-  "command": "bash -c 'set -e; CTRL=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; SVC=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php; echo \"TC-01 zero DB calls:\"; COUNT=$(grep -c \"\\$this->database\" \"$CTRL\" 2>/dev/null || echo 0); [ \"$COUNT\" -eq 0 ] && echo \"PASS: 0 direct DB calls\" || (echo \"FAIL: $COUNT direct DB calls remain\" && exit 1); echo \"TC-02 service methods:\"; MC=$(grep -c \"public function\" \"$SVC\"); [ \"$MC\" -gt 0 ] && echo \"PASS: $MC public methods\" || (echo \"FAIL: no public methods\" && exit 1); echo \"TC-03 services.yml:\"; grep -q \"ApplicationSubmissionService\\|ApplicationAttemptService\" /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.services.yml && echo \"PASS: service registered\" || (echo \"FAIL: service not registered\" && exit 1); echo \"TC-04 lint controller:\"; php -l \"$CTRL\" && echo \"TC-04 lint service:\"; php -l \"$SVC\"'",
-  "artifacts": [
-    "sessions/qa-forseti/artifacts/jobhunter-controller-refactor-phase2-static-latest/"
-  ],
-  "run_notes": [
-    "Static-only suite. TC-05 (POST flow smoke test) requires authenticated session; deferred to functional suite when Playwright/drush available.",
-    "TC-06 and TC-07 reuse existing application-submission-route-acl and CSRF suite entries."
-  ]
-}
-```
-
-## Non-automatable items (note to PM)
-
-- **TC-05 full POST flow** (steps 3/4/5 POST with real form data): requires authenticated browser session or Playwright. Currently deferred due to Node/Playwright absent on host. Recommend risk-acceptance at ship time or blocking on Playwright install before release.
-- The existing unit suite entry (`forseti-jobhunter-application-submission-unit`) covers ApplicationSubmissionService in isolation — QA will re-run this at Stage 0 to confirm no regression.
-
-## Regression risk areas
-
-1. Query semantics change during extraction (silent data bug) — mitigated by AC-4 requiring existing tests pass
-2. Service injection missing or wrong argument order — caught by TC-03 + TC-04 lint
-3. Controller still retaining `$this->database` via a helper call — caught by TC-01 grep
+| TC | Suite type | suite.json entry id (proposed) |
+|---|---|---|
+| TC-01 | unit | `forseti-jobhunter-controller-refactor-phase2-unit-db-calls` |
+| TC-02 | unit | `forseti-jobhunter-controller-refactor-phase2-unit-service-methods` |
+| TC-03 | unit | `forseti-jobhunter-controller-refactor-phase2-unit-services-yml` |
+| TC-04 | unit | `forseti-jobhunter-controller-refactor-phase2-unit-lint-controller` |
+| TC-05 | unit | `forseti-jobhunter-controller-refactor-phase2-unit-lint-service` |
+| TC-06 | functional | `forseti-jobhunter-controller-refactor-phase2-functional-step1-render` |
+| TC-07 | functional | `forseti-jobhunter-controller-refactor-phase2-functional-step2-render` |
+| TC-08 | e2e | `forseti-jobhunter-controller-refactor-phase2-e2e-post-flows` |
+| TC-09 | unit | `forseti-jobhunter-controller-refactor-phase2-unit-no-new-routes` |
+| TC-10 | functional | (re-run existing forseti-jobhunter-application-submission entries) |

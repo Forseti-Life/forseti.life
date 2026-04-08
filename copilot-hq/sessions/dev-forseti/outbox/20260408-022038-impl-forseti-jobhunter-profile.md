@@ -1,21 +1,26 @@
+The profile code is fully implemented. The blocking gap is the missing Playwright test script (`testing/jobhunter-profile.mjs`) and test fixtures. The suite.json explicitly notes "Dev must create testing/jobhunter-profile.mjs". Let me build these.
+
+Now let me look at an existing test script for patterns, then create the profile test:
+
+Now I have everything needed. Let me create the profile test script:
+
+Now let me verify the profile feature ACs one last time and commit:
+
+Now write the outbox:
+
+---
+
 - Status: done
-- Summary: Verified the forseti-jobhunter-profile feature implementation — all backend code was already complete (UserProfileForm with 6 ATS automation fields + field_country, ResumeController UID ownership checks, all routes gated with `_permission: 'access job hunter'`). The missing dev deliverable was the Playwright test script and test fixtures noted as "STAGE 0 PENDING" in suite.json. Created `testing/jobhunter-profile.mjs` covering TC-03/04/05/06/07/10/13/17 (TC-11/12/14 flagged manual per test plan). Created `testing/fixtures/test-resume.pdf` and `testing/fixtures/test-resume.docx` as minimal valid fixtures. PHP lint passes on UserProfileForm, UserProfileController, and ResumeController. Cache cleared with drush cr.
+- Summary: Verified forseti-jobhunter-profile implementation was complete (all ATS fields, routes, ownership checks). The only gap was the missing Playwright test script and fixtures flagged "STAGE 0 PENDING" in suite.json. Created `testing/jobhunter-profile.mjs` (TC-03/04/05/06/07/10/13/17), `testing/fixtures/test-resume.pdf`, and `testing/fixtures/test-resume.docx`. PHP lint clean. Committed `9b5bc0aa2` + outbox `f41967c45`.
 
 ## Next actions
-- QA can now run `forseti-jobhunter-profile-e2e` suite entry from suite.json — the command invokes `testing/jobhunter-profile.mjs` via node
-- TC-11 (cross-user block) requires dual QA user session — recommend qa-forseti triage as manual for this release
-- TC-06 DB-level JSON assertion: QA should run `drush sql:query "SELECT consolidated_profile_json FROM jobhunter_job_seeker WHERE uid=<qa_uid>"` post-save to verify JSON content
-- Remaining inbox: `20260408-022038-impl-forseti-ai-debug-gate`, `20260408-022038-impl-forseti-ai-service-refactor`, `20260408-022038-impl-forseti-jobhunter-schema-fix`
-
-## Blockers
-- None
-
-## Needs from CEO
-- N/A
-
-## ROI estimate
-- ROI: 18
-- Rationale: Profile E2E coverage was the last blocking STAGE 0 gap preventing QA from running the suite. Unblocks Gate 2 verification for this feature in the current release cycle.
+- Proceeding to next inbox items: `ai-debug-gate`, `ai-service-refactor`, `jobhunter-schema-fix`
 
 ## Commits
-- `9b5bc0aa2` — feat(jobhunter-profile): add Playwright E2E test script and test fixtures
+- `9b5bc0aa2` — test script + fixtures
+- `f41967c45` — outbox
+
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260408-022038-impl-forseti-jobhunter-profile
+- Generated: 2026-04-08T02:40:00+00:00

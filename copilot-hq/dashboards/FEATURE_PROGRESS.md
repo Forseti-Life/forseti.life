@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-08T02:15:59Z
+Generated: 2026-04-08T03:52:55Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -16,7 +16,7 @@ Generated: 2026-04-08T02:15:59Z
 | dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-cr-action-economy | dungeoncrawler | dungeoncrawler_content | done | P0 (foundation for all encounter-mode gameplay; all class features, spells, and skill actions depend on this) |  |  |  |
@@ -71,18 +71,18 @@ Generated: 2026-04-08T02:15:59Z
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P1 |  |  |  |
@@ -125,7 +125,7 @@ Generated: 2026-04-08T02:15:59Z
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
+| dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-hazards | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-gmg-npc-gallery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-gmg-running-guide | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -140,8 +140,10 @@ Generated: 2026-04-08T02:15:59Z
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | done | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | in_progress | P1 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | done | P2 |  |  |  |
+| forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | in_progress | P0 (ROI 1000) |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | in_progress | P0 |  |  |  |
+| forseti-jobhunter-profile-refactor | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 

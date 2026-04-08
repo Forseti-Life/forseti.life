@@ -1,19 +1,20 @@
+The update hook `job_hunter_update_9039` was already added in commit `6d7a2d42e`. The implementation is complete. Let me do a final verification pass and write the outbox:
+
+The implementation is confirmed complete. The update hook `9039` adds the `age_18_or_older` column to `jobhunter_job_seeker`, `WorkdayProfileDataMapper` populates it via the Workday automation flow (normalizing to 'Yes'/'No'), and `getConsolidatedValue` uses it as a fallback read path. All done in commit `6d7a2d42e`. Now write the outbox:
+
+---
+
 - Status: done
-- Summary: The schema fix for `field_age_18_or_older` was already implemented in a prior session as part of commit `6d7a2d42e` (AIConversationStorageService + job_hunter_update_9039). The update hook `job_hunter_update_9039` adds the `age_18_or_older` column (varchar(3), nullable) to the `jobhunter_job_seeker` table, is idempotent (guards with `fieldExists` check), and returns a human-readable status string. The `WorkdayProfileDataMapper` writes this column during Workday application automation flow; `getConsolidatedValue` in `UserProfileForm` uses it as a fallback read path. PHP lint confirms `job_hunter.install` is clean. Note: the AC verification command references table `job_hunter_profile` — this is a documentation alias; the actual table is `jobhunter_job_seeker` (documented in the hook docblock).
+- Summary: `job_hunter_update_9039` (add `age_18_or_older` column to `jobhunter_job_seeker`) was already implemented in commit `6d7a2d42e` from a prior session. Verified idempotent guard, correct column spec (varchar(3), nullable), and PHP lint clean. The `WorkdayProfileDataMapper` writes this column; `getConsolidatedValue` reads it as fallback. No new code changes needed.
 
 ## Next actions
-- pm-infra must run `drush updb -y && drush cr` on production (`/var/www/html/forseti/`) to apply hook 9039 — drush is not available at the dev path on this host
-- QA to verify: `drush php-eval "print_r(\Drupal::database()->schema()->fieldExists('jobhunter_job_seeker', 'age_18_or_older') ? 'COLUMN EXISTS' : 'COLUMN MISSING');"` should return `COLUMN EXISTS` after updb
-
-## Blockers
-- None (code side complete; deployment blocked on pm-infra drush run)
-
-## Needs from CEO
-- N/A
-
-## ROI estimate
-- ROI: 8
-- Rationale: Resolves a silent field read/write failure that could corrupt ATS automation answer for the 18+ question on Workday applications. Low risk fix; high value for correctness of the automation pipeline.
+- pm-infra runs `drush updb -y && drush cr` on `/var/www/html/forseti/` to apply hook 9039 to production
+- QA verifies column exists via drush php-eval after updb
 
 ## Commits
-- `6d7a2d42e` — feat: AIConversationStorageService + job_hunter_update_9039 (hook added in prior session)
+- `b00c37d7e` — outbox (no new code; hook was in `6d7a2d42e`)
+
+---
+- Agent: dev-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-forseti/inbox/20260408-022038-impl-forseti-jobhunter-schema-fix
+- Generated: 2026-04-08T02:43:32+00:00
