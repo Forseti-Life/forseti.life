@@ -6367,6 +6367,537 @@
           "notes": "Requires PM/Dev confirmation of force-apply and reset endpoint routes"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-alchemist-e2e",
+      "label": "Alchemist Class \u2014 identity/INT key ability, research field (Bomber/Chirurgeon/Mutagenist), infused reagents, Advanced Alchemy, Quick Alchemy, formula book, level-gated features (5/7/9/11/13/15/17), additive feats, feat schedules",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-alchemist",
+      "command": "./vendor/bin/phpunit --filter AlchemistClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-alchemist/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-alchemist/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-ALC-01",
+          "description": "Alchemist exists as selectable class in character creation",
+          "suite": "module-test-suite",
+          "ac": "NEW-alchemist-class-exists"
+        },
+        {
+          "id": "TC-ALC-02",
+          "description": "Class description references alchemical items (not spellcasting); no 'spell slots' in description",
+          "suite": "module-test-suite",
+          "ac": "NEW-description-identity"
+        },
+        {
+          "id": "TC-ALC-03",
+          "description": "INT enforced as key ability score; class DC references INT",
+          "suite": "module-test-suite",
+          "ac": "NEW-int-key-ability"
+        },
+        {
+          "id": "TC-ALC-04",
+          "description": "Starting HP = 8 + CON modifier at level 1; CON 14 (mod +2) \u2192 HP 10; level 2 \u2192 HP 20",
+          "suite": "module-test-suite",
+          "ac": "NEW-starting-hp"
+        },
+        {
+          "id": "TC-ALC-05",
+          "description": "Research field selection: Bomber, Chirurgeon, Mutagenist all accepted at level 1; stored on character",
+          "suite": "module-test-suite",
+          "ac": "NEW-research-field-valid"
+        },
+        {
+          "id": "TC-ALC-06",
+          "description": "Research field locked after level 1; attempt to change at level 2 returns error; field unchanged",
+          "suite": "module-test-suite",
+          "ac": "NEW-research-field-locked"
+        },
+        {
+          "id": "TC-ALC-07",
+          "description": "Invalid research field (not Bomber/Chirurgeon/Mutagenist) rejected with validation error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-field"
+        },
+        {
+          "id": "TC-ALC-08",
+          "description": "Bomber field: Advanced Alchemy can produce bombs from formula book",
+          "suite": "module-test-suite",
+          "ac": "NEW-bomber-bomb-access"
+        },
+        {
+          "id": "TC-ALC-09",
+          "description": "Chirurgeon field: healing elixirs created via Advanced Alchemy; Medicine modifier includes field bonus",
+          "suite": "module-test-suite",
+          "ac": "NEW-chirurgeon-healing"
+        },
+        {
+          "id": "TC-ALC-10",
+          "description": "Mutagenist field: Advanced Alchemy can produce mutagens from formula book",
+          "suite": "module-test-suite",
+          "ac": "NEW-mutagenist-mutagen-access"
+        },
+        {
+          "id": "TC-ALC-11",
+          "description": "Infused reagents count = level + INT modifier; minimum 1; level-3 INT+3 \u2192 6; level-1 INT-1 \u2192 1",
+          "suite": "module-test-suite",
+          "ac": "NEW-reagent-count-formula"
+        },
+        {
+          "id": "TC-ALC-12",
+          "description": "Infused reagents refresh at daily preparations; count restored to level + INT modifier",
+          "suite": "module-test-suite",
+          "ac": "NEW-reagents-refresh-daily"
+        },
+        {
+          "id": "TC-ALC-13",
+          "description": "Reagents consumed by Advanced Alchemy and Quick Alchemy; 4 reagents - 1 QA - 2 AA = 1 remaining",
+          "suite": "module-test-suite",
+          "ac": "NEW-reagents-consumed"
+        },
+        {
+          "id": "TC-ALC-14",
+          "description": "Quick Alchemy blocked at 0 reagents with clear error referencing reagent count",
+          "suite": "module-test-suite",
+          "ac": "NEW-zero-reagents-blocked"
+        },
+        {
+          "id": "TC-ALC-15",
+          "description": "Advanced Alchemy during daily prep: spend N reagents \u2192 N items created (infused); no gold cost",
+          "suite": "module-test-suite",
+          "ac": "NEW-advanced-alchemy-daily-prep"
+        },
+        {
+          "id": "TC-ALC-16",
+          "description": "Advanced Alchemy item level cap: item level > character level blocked with error",
+          "suite": "module-test-suite",
+          "ac": "NEW-item-level-cap"
+        },
+        {
+          "id": "TC-ALC-17",
+          "description": "Advanced Alchemy infused items expire at next daily prep; active affliction items unaffected",
+          "suite": "module-test-suite",
+          "ac": "NEW-items-expire-daily-prep"
+        },
+        {
+          "id": "TC-ALC-18",
+          "description": "Quick Alchemy [one-action]: 1 reagent \u2192 1 item created (infused temporary); reagent_count decremented",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-basic"
+        },
+        {
+          "id": "TC-ALC-19",
+          "description": "Quick Alchemy item expires at start of alchemist's next turn if not used",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-expires-next-turn"
+        },
+        {
+          "id": "TC-ALC-20",
+          "description": "Quick Alchemy level cap: item level > advanced alchemy level blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-level-cap"
+        },
+        {
+          "id": "TC-ALC-21",
+          "description": "Quick Alchemy blocked for item not in formula book; error returned",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-formula-required"
+        },
+        {
+          "id": "TC-ALC-22",
+          "description": "Formula book: starting formulas per research field present at character creation (level-0 and level-1)",
+          "suite": "module-test-suite",
+          "ac": "NEW-starting-formulas"
+        },
+        {
+          "id": "TC-ALC-23",
+          "description": "Formulas can be added to formula book; Advanced/Quick Alchemy can then create that item",
+          "suite": "module-test-suite",
+          "ac": "NEW-formula-can-be-added"
+        },
+        {
+          "id": "TC-ALC-24",
+          "description": "Level 5 Field Discovery: advanced alchemy batch may produce any 3 field-appropriate items (not required identical)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level5-field-discovery"
+        },
+        {
+          "id": "TC-ALC-25",
+          "description": "Level 5 Powerful Alchemy: Quick Alchemy item DCs use alchemist class DC (not item default DC)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level5-powerful-alchemy"
+        },
+        {
+          "id": "TC-ALC-26",
+          "description": "Level 7 Perpetual Infusions: 2 designated field-eligible items created via Quick Alchemy for free (reagent_count unchanged)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level7-perpetual-infusions"
+        },
+        {
+          "id": "TC-ALC-27",
+          "description": "Perpetual Infusion item swap at level-up: eligible swap accepted; ineligible swap rejected",
+          "suite": "module-test-suite",
+          "ac": "NEW-perpetual-infusion-swap"
+        },
+        {
+          "id": "TC-ALC-28",
+          "description": "Level 9 Double Brew: Quick Alchemy spends up to 2 reagents, creates up to 2 items; both expire next turn",
+          "suite": "module-test-suite",
+          "ac": "NEW-level9-double-brew"
+        },
+        {
+          "id": "TC-ALC-29",
+          "description": "Level 11 Perpetual Potency: upgrades perpetual item level eligibility (Bomber/Mutagenist \u2192 level 3, Chirurgeon \u2192 level 6)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-perpetual-potency"
+        },
+        {
+          "id": "TC-ALC-30",
+          "description": "Level 13 Greater Field Discovery (Mutagenist): 2 simultaneous mutagen benefits; 3rd \u2192 player removes one benefit; all drawbacks persist; polymorph removes both benefits",
+          "suite": "module-test-suite",
+          "ac": "NEW-level13-mutagenist-gfd"
+        },
+        {
+          "id": "TC-ALC-31",
+          "description": "Level 13 Greater Field Discovery (Chirurgeon): elixirs of life via Quick Alchemy heal max HP (no dice roll)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level13-chirurgeon-gfd"
+        },
+        {
+          "id": "TC-ALC-32",
+          "description": "Level 15 Alchemical Alacrity: Quick Alchemy spends up to 3 reagents, creates 3 items; 1 auto-stowed",
+          "suite": "module-test-suite",
+          "ac": "NEW-level15-alchemical-alacrity"
+        },
+        {
+          "id": "TC-ALC-33",
+          "description": "Level 17 Perpetual Perfection: perpetual infusion eligibility upgraded to level-11 items for all fields",
+          "suite": "module-test-suite",
+          "ac": "NEW-level17-perpetual-perfection"
+        },
+        {
+          "id": "TC-ALC-34",
+          "description": "Level-gated features absent before required level: level-4 alchemist has no Field Discovery, Powerful Alchemy, Perpetual Infusions, Double Brew",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-features-not-early"
+        },
+        {
+          "id": "TC-ALC-35",
+          "description": "Class feat schedule: granted at level 1 and every even level (2, 4, 6 ... 20)",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule"
+        },
+        {
+          "id": "TC-ALC-36",
+          "description": "Skill feat schedule: granted at level 2 and every 2 levels; not at odd levels",
+          "suite": "module-test-suite",
+          "ac": "NEW-skill-feat-schedule"
+        },
+        {
+          "id": "TC-ALC-37",
+          "description": "Additive feats: first additive applied; second additive spoils item (unusable); no crash",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-second-spoils"
+        },
+        {
+          "id": "TC-ALC-38",
+          "description": "Additive actions blocked on non-infused purchased items; error returned",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-requires-infused"
+        },
+        {
+          "id": "TC-ALC-39",
+          "description": "Additive level cap: combined item+additive level exceeding advanced alchemy level blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-level-cap"
+        },
+        {
+          "id": "TC-ALC-40",
+          "description": "Invalid key ability (not INT) rejected at character creation with clear error message",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-key-ability"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-class-alchemist-e2e",
+      "label": "Alchemist Class \u2014 identity/INT key ability, research fields (Bomber/Chirurgeon/Mutagenist), infused reagents, Advanced Alchemy, Quick Alchemy, formula book, level-gated features (5/7/9/11/13/15/17), additive feats, cross-player ACL, expiry enforcement",
+      "type": "phpunit",
+      "feature_id": "dc-cr-class-alchemist",
+      "command": "./vendor/bin/phpunit --filter AlchemistClassTest --filter AlchemistResearchFieldTest --filter AlchemistInfusedReagentsTest --filter AlchemistAdvancedAlchemyTest --filter AlchemistQuickAlchemyTest --filter AlchemistFormulaBookTest --filter AlchemistLevelFeaturesTest --filter AlchemistFeatProgressionTest --filter AlchemistAdditiveFeatTest --log-junit test-results/dc-cr-class-alchemist/junit.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-alchemist/junit.xml"
+      ],
+      "required_for_release": true,
+      "notes": "Uses PHPUnit (module-test-suite), not Playwright. Security AC exemption \u2014 no new routes. Dependency: dc-cr-equipment-system must be stable for Advanced/Quick Alchemy item creation tests (TC-ALC-08 through TC-ALC-21).",
+      "test_cases": [
+        {
+          "id": "TC-ALC-01",
+          "description": "Alchemist exists as selectable class in character creation",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-exists"
+        },
+        {
+          "id": "TC-ALC-02",
+          "description": "Class description references alchemical items, not spellcasting",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-description"
+        },
+        {
+          "id": "TC-ALC-03",
+          "description": "INT enforced as key ability; class DC references INT",
+          "suite": "module-test-suite",
+          "ac": "NEW-int-key-ability"
+        },
+        {
+          "id": "TC-ALC-04",
+          "description": "Starting HP = 8 + CON mod at level 1; level 2 doubles",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calculation"
+        },
+        {
+          "id": "TC-ALC-05",
+          "description": "Research field: Bomber/Chirurgeon/Mutagenist accepted and stored at level 1",
+          "suite": "module-test-suite",
+          "ac": "NEW-research-field-valid"
+        },
+        {
+          "id": "TC-ALC-06",
+          "description": "Research field locked after level 1 \u2014 change attempt rejected",
+          "suite": "module-test-suite",
+          "ac": "NEW-research-field-locked"
+        },
+        {
+          "id": "TC-ALC-07",
+          "description": "Invalid research field rejected with validation error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-field"
+        },
+        {
+          "id": "TC-ALC-08",
+          "description": "Bomber field: Advanced Alchemy produces bombs",
+          "suite": "module-test-suite",
+          "ac": "NEW-bomber-bombs"
+        },
+        {
+          "id": "TC-ALC-09",
+          "description": "Chirurgeon field: Advanced Alchemy produces healing elixirs; Medicine bonus granted",
+          "suite": "module-test-suite",
+          "ac": "NEW-chirurgeon-elixirs"
+        },
+        {
+          "id": "TC-ALC-10",
+          "description": "Mutagenist field: Advanced Alchemy produces mutagens",
+          "suite": "module-test-suite",
+          "ac": "NEW-mutagenist-mutagens"
+        },
+        {
+          "id": "TC-ALC-11",
+          "description": "Infused reagent count = level + INT mod (minimum 1)",
+          "suite": "module-test-suite",
+          "ac": "NEW-reagent-count"
+        },
+        {
+          "id": "TC-ALC-12",
+          "description": "Infused reagents refresh at daily preparations",
+          "suite": "module-test-suite",
+          "ac": "NEW-reagent-refresh"
+        },
+        {
+          "id": "TC-ALC-13",
+          "description": "Reagents consumed by Advanced and Quick Alchemy actions",
+          "suite": "module-test-suite",
+          "ac": "NEW-reagent-consumed"
+        },
+        {
+          "id": "TC-ALC-14",
+          "description": "Quick Alchemy blocked with 0 reagents; clear error referencing reagent count",
+          "suite": "module-test-suite",
+          "ac": "NEW-zero-reagents-blocked"
+        },
+        {
+          "id": "TC-ALC-15",
+          "description": "Advanced Alchemy creates items during daily prep from formula book; no gold cost",
+          "suite": "module-test-suite",
+          "ac": "NEW-advanced-alchemy-daily"
+        },
+        {
+          "id": "TC-ALC-16",
+          "description": "Advanced Alchemy item level cap enforced (item level <= character level)",
+          "suite": "module-test-suite",
+          "ac": "NEW-advanced-alchemy-level-cap"
+        },
+        {
+          "id": "TC-ALC-17",
+          "description": "Advanced Alchemy items expire at next daily prep; afflictions persist",
+          "suite": "module-test-suite",
+          "ac": "NEW-advanced-alchemy-expiry"
+        },
+        {
+          "id": "TC-ALC-18",
+          "description": "Quick Alchemy: creates 1 item, consumes 1 reagent",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-basic"
+        },
+        {
+          "id": "TC-ALC-19",
+          "description": "Quick Alchemy item expires at start of alchemist's next turn",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-expiry"
+        },
+        {
+          "id": "TC-ALC-20",
+          "description": "Quick Alchemy item level cap enforced (level <= advanced alchemy level)",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-level-cap"
+        },
+        {
+          "id": "TC-ALC-21",
+          "description": "Quick Alchemy blocked for item not in formula book",
+          "suite": "module-test-suite",
+          "ac": "NEW-quick-alchemy-formula-required"
+        },
+        {
+          "id": "TC-ALC-22",
+          "description": "Formula book: starting formulas present for research field (level-0 and level-1)",
+          "suite": "module-test-suite",
+          "ac": "NEW-formula-book-starters"
+        },
+        {
+          "id": "TC-ALC-23",
+          "description": "Formula book: formulas can be added; newly added formula usable by alchemy actions",
+          "suite": "module-test-suite",
+          "ac": "NEW-formula-book-addable"
+        },
+        {
+          "id": "TC-ALC-24",
+          "description": "Level 5 Field Discovery: each batch may produce any 3 field-appropriate items",
+          "suite": "module-test-suite",
+          "ac": "NEW-field-discovery-level5"
+        },
+        {
+          "id": "TC-ALC-25",
+          "description": "Level 5 Powerful Alchemy: Quick Alchemy item saving throw DCs use alchemist class DC",
+          "suite": "module-test-suite",
+          "ac": "NEW-powerful-alchemy-level5"
+        },
+        {
+          "id": "TC-ALC-26",
+          "description": "Level 7 Perpetual Infusions: 2 designated items created via Quick Alchemy for free (no reagent cost)",
+          "suite": "module-test-suite",
+          "ac": "NEW-perpetual-infusions-level7"
+        },
+        {
+          "id": "TC-ALC-27",
+          "description": "Level 7 Perpetual Infusion swap at level-up: eligible swap accepted, ineligible rejected",
+          "suite": "module-test-suite",
+          "ac": "NEW-perpetual-infusions-swap"
+        },
+        {
+          "id": "TC-ALC-28",
+          "description": "Level 9 Double Brew: Quick Alchemy may spend up to 2 reagents for up to 2 items",
+          "suite": "module-test-suite",
+          "ac": "NEW-double-brew-level9"
+        },
+        {
+          "id": "TC-ALC-29",
+          "description": "Level 11 Perpetual Potency: upgrades perpetual infusion eligible item levels per field",
+          "suite": "module-test-suite",
+          "ac": "NEW-perpetual-potency-level11"
+        },
+        {
+          "id": "TC-ALC-30",
+          "description": "Level 13 Greater Field Discovery (Mutagenist): 2 simultaneous mutagens; 3rd removes one benefit (player choice), all drawbacks persist",
+          "suite": "module-test-suite",
+          "ac": "NEW-mutagenist-greater-discovery-level13"
+        },
+        {
+          "id": "TC-ALC-31",
+          "description": "Level 13 Greater Field Discovery (Chirurgeon): elixirs of life via Quick Alchemy heal maximum HP",
+          "suite": "module-test-suite",
+          "ac": "NEW-chirurgeon-greater-discovery-level13"
+        },
+        {
+          "id": "TC-ALC-32",
+          "description": "Level 15 Alchemical Alacrity: Quick Alchemy creates up to 3 items (3 reagents); one auto-stowed",
+          "suite": "module-test-suite",
+          "ac": "NEW-alchemical-alacrity-level15"
+        },
+        {
+          "id": "TC-ALC-33",
+          "description": "Level 17 Perpetual Perfection: eligible level upgraded to 11th for all research fields",
+          "suite": "module-test-suite",
+          "ac": "NEW-perpetual-perfection-level17"
+        },
+        {
+          "id": "TC-ALC-34",
+          "description": "Level-gated features absent before required level (no Field Discovery/Powerful Alchemy below level 5)",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-no-early-features"
+        },
+        {
+          "id": "TC-ALC-35",
+          "description": "Class feat granted at level 1 and every even level through 20",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule"
+        },
+        {
+          "id": "TC-ALC-36",
+          "description": "Skill feat granted at level 2 and every 2 levels thereafter",
+          "suite": "module-test-suite",
+          "ac": "NEW-skill-feat-schedule"
+        },
+        {
+          "id": "TC-ALC-37",
+          "description": "Additive feat: only one additive per item; second additive spoils item",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-second-spoils"
+        },
+        {
+          "id": "TC-ALC-38",
+          "description": "Additive actions usable only when creating infused items; blocked on non-infused",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-requires-infused"
+        },
+        {
+          "id": "TC-ALC-39",
+          "description": "Additive level cap: combined item+additive level must not exceed advanced alchemy level",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-level-cap"
+        },
+        {
+          "id": "TC-ALC-40",
+          "description": "Invalid key ability (STR) for Alchemist rejected at character creation",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-key-ability"
+        },
+        {
+          "id": "TC-ALC-41",
+          "description": "Infused item expiry enforced: nonpermanent effects removed; afflictions continue",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-expiry-enforced"
+        },
+        {
+          "id": "TC-ALC-42",
+          "description": "Chirurgeon Perpetual Infusion: 10-min immunity tracks correctly; non-perpetual elixirs unaffected",
+          "suite": "module-test-suite",
+          "ac": "NEW-chirurgeon-perpetual-immunity"
+        },
+        {
+          "id": "TC-ALC-43",
+          "description": "Cross-player ACL: player cannot modify another player's Alchemist character (403)",
+          "suite": "module-test-suite",
+          "ac": "security-cross-player"
+        },
+        {
+          "id": "TC-ALC-44",
+          "description": "QA audit still passes after module deployment: 0 violations, 0 failures across all roles",
+          "suite": "role-url-audit",
+          "ac": "regression-audit-clean"
+        }
+      ]
     }
   ],
   "_schema_notes": [
