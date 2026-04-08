@@ -59,7 +59,7 @@ class AncestryController extends ControllerBase {
    * Build a normalized ancestry array from raw CharacterManager data.
    */
   protected function buildAncestryItem(string $name, array $data): array {
-    return [
+    $item = [
       'id'        => $this->toId($name),
       'name'      => $name,
       'hp'        => (int) ($data['hp'] ?? 0),
@@ -71,6 +71,10 @@ class AncestryController extends ControllerBase {
       'senses'    => $data['vision'] ?? 'normal',
       'traits'    => $data['traits'] ?? [],
     ];
+    if (!empty($data['special'])) {
+      $item['special'] = $data['special'];
+    }
+    return $item;
   }
 
   /**

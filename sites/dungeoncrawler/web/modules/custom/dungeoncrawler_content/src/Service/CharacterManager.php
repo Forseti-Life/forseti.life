@@ -21,7 +21,22 @@ class CharacterManager {
    * PF2e ancestries with base stats.
    */
   const ANCESTRIES = [
-    'Human' => ['hp' => 8, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Free', 'Free'], 'languages' => ['Common'], 'traits' => ['Human', 'Humanoid'], 'vision' => 'normal'],
+    'Human' => [
+      'hp' => 8,
+      'size' => 'Medium',
+      'speed' => 25,
+      'boosts' => ['Free', 'Free'],
+      'languages' => ['Common'],
+      'traits' => ['Human', 'Humanoid'],
+      'vision' => 'normal',
+      // Human-specific bonuses: +1 trained skill, +1 skill feat, and one
+      // additional language slot for every positive Int modifier point.
+      'special' => [
+        'extra_trained_skill'       => 1,
+        'extra_skill_feat'          => 1,
+        'bonus_language_per_int'    => 1,
+      ],
+    ],
     'Elf' => ['hp' => 6, 'size' => 'Medium', 'speed' => 30, 'boosts' => ['Dexterity', 'Intelligence'], 'flaw' => 'Constitution', 'languages' => ['Common', 'Elven'], 'traits' => ['Elf', 'Humanoid'], 'vision' => 'low-light vision'],
     'Dwarf' => ['hp' => 10, 'size' => 'Medium', 'speed' => 20, 'boosts' => ['Constitution', 'Wisdom'], 'flaw' => 'Charisma', 'languages' => ['Common', 'Dwarven'], 'traits' => ['Dwarf', 'Humanoid'], 'vision' => 'darkvision'],
     'Gnome' => ['hp' => 8, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Constitution', 'Charisma'], 'flaw' => 'Strength', 'languages' => ['Common', 'Gnomish', 'Sylvan'], 'traits' => ['Gnome', 'Humanoid'], 'vision' => 'low-light vision'],
@@ -184,9 +199,9 @@ class CharacterManager {
    * - Halfling (heritages: 4, feats: 7)
    *   H: gutsy, hillock, nomadic, twilight
    *   F: distracting-shadows, halfling-lore, halfling-luck, halfling-weapon-familiarity, sure-feet, titan-slinger, unfettered-halfling
-   * - Human (heritages: 1, feats: 7)
-   *   H: versatile
-   *   F: adapted-cantrip, cooperative-nature, general-training, haughty-obstinacy, natural-ambition, natural-skill, unconventional-weaponry
+   * - Human (heritages: 4, feats: 7)
+   *   H: versatile, skilled, half-elf, half-orc
+   *   F: adapted-cantrip (req: spellcasting), cooperative-nature, general-training, haughty-obstinacy, natural-ambition, natural-skill, unconventional-weaponry
    * - Kobold (heritages: 4, feats: 6)
    *   H: cavern, dracomancer, dragonscaled, spelunker
    *   F: kobold-lore, snare-setter, draconic-ties, tunnel-runner, draconic-scout, kobold-weapon-familiarity
@@ -239,7 +254,27 @@ class CharacterManager {
       ['id' => 'twilight', 'name' => 'Twilight Halfling', 'benefit' => 'Low-light vision'],
     ],
     'Human' => [
-      ['id' => 'versatile', 'name' => 'Versatile Heritage', 'benefit' => 'Extra general feat'],
+      ['id' => 'versatile', 'name' => 'Versatile Heritage', 'benefit' => 'Gain one extra 1st-level general feat at character creation'],
+      [
+        'id'      => 'skilled',
+        'name'    => 'Skilled Heritage',
+        'benefit' => 'Gain training in one additional skill; become an expert in that skill at level 5',
+        'special' => ['extra_trained_skill' => 1, 'expert_skill_at_level' => 5],
+      ],
+      [
+        'id'              => 'half-elf',
+        'name'            => 'Half-Elf',
+        'benefit'         => 'Gain low-light vision; may select elf ancestry feats in addition to human ones',
+        'vision_override' => 'low-light',
+        'cross_ancestry_feat_pool' => 'Elf',
+      ],
+      [
+        'id'              => 'half-orc',
+        'name'            => 'Half-Orc',
+        'benefit'         => 'Gain low-light vision; may select orc ancestry feats in addition to human ones',
+        'vision_override' => 'low-light',
+        'cross_ancestry_feat_pool' => 'Half-Orc',
+      ],
     ],
     'Catfolk' => [
       ['id' => 'clawed', 'name' => 'Clawed Catfolk', 'benefit' => 'Sharp claws grant an agile unarmed claw attack'],
@@ -297,7 +332,7 @@ class CharacterManager {
    */
   const ANCESTRY_FEATS = [
     'Human' => [
-      ['id' => 'adapted-cantrip', 'name' => 'Adapted Cantrip', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
+      ['id' => 'adapted-cantrip', 'name' => 'Adapted Cantrip', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => 'Spellcasting class feature',
         'benefit' => 'Choose one cantrip from the arcane, divine, occult, or primal spell list. You can cast this spelled as an innate spell at will.'],
       ['id' => 'cooperative-nature', 'name' => 'Cooperative Nature', 'level' => 1, 'traits' => ['Human'], 'prerequisites' => '',
         'benefit' => 'Aid grants a +5 circumstance bonus to skill checks instead of +2, and a +2 circumstance bonus to attack rolls or AC instead of +1.'],
