@@ -3882,6 +3882,327 @@
           "status": "active"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-rogue-phpunit",
+      "label": "Rogue Class — identity/stats (HP8+CON, Expert Reflex+Will, Trained Perception), Racket selection (Ruffian/Scoundrel/Thief with all variant rules including key ability, weapon/armor, skills), Sneak Attack (flat-footed gate, immune types, dice scaling), Surprise Attack (initiative-based flat-footed), Debilitation mutual exclusivity, feat progression (skill feat every level, skill increase every level from 2), auth guard, ACL regression",
+      "type": "phpunit",
+      "feature_id": "dc-cr-class-rogue",
+      "command": "./vendor/bin/phpunit --filter=Rogue tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-class-rogue-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. dc-cr-conditions status=done — TCs 18/19/20 (Scoundrel Feint flat-footed) activated immediately (not deferred). Regression risks: Expert Reflex+Will at level 1 (unique — class-agnostic Trained default will silently fail); Ruffian crit-spec die-size gate (d8 vs d10/d12 boundary); Thief DEX-to-damage finesse-only restriction; Sneak Attack immune-type list completeness; Surprise Attack initiative-timing implementation.",
+      "test_cases": [
+        {
+          "id": "TC-ROG-01",
+          "description": "Rogue appears in class selection list during character creation; is a valid selectable class",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testRogueIsSelectableAtCharacterCreation",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-02",
+          "description": "Default key ability = DEX; DEX mod applied to class DC without racket override",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testDefaultKeyAbilityDex",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-03",
+          "description": "Key ability override blocked: STR only with Ruffian, CHA only with Scoundrel, Thief forces DEX; non-qualifying selections rejected",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testKeyAbilityOverrideBlockedWithoutQualifyingRacket",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-04",
+          "description": "HP per level = 8 + CON modifier (CON 14 → Level 1 HP=10; Level 2 HP=20)",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testHpPerLevel",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-05",
+          "description": "Initial proficiency: Perception = Trained at level 1 (not Expert)",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testInitialPerceptionTrained",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-06",
+          "description": "Rogue uniquely starts with Expert Reflex AND Expert Will at level 1; Fortitude = Trained",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testInitialSavesExpertReflexAndWill",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-07",
+          "description": "Initial weapon proficiencies: Trained simple weapons + hand crossbow, rapier, sap, shortbow, shortsword; other martial weapons Untrained",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testInitialWeaponProficiencies",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-08",
+          "description": "Initial armor proficiencies: light armor = Trained; medium armor = Untrained (non-Ruffian); heavy armor = Untrained",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testInitialArmorProficiencies",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-09",
+          "description": "Initial skills: Stealth + racket skills + 7 + INT modifier trained; Ruffian adds Intimidation, Scoundrel adds Deception+Diplomacy, Thief adds Thievery",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testInitialSkillCount",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-10",
+          "description": "Skill feat slot at every level (1–20), unlike most classes which grant skill feats at even levels only",
+          "suite_type": "unit",
+          "class_method": "RogueFeatProgressionTest::testSkillFeatEveryLevel",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-11",
+          "description": "Skill proficiency increase slot at every level from level 2 onward (19 total opportunities)",
+          "suite_type": "unit",
+          "class_method": "RogueFeatProgressionTest::testSkillIncreaseEveryLevelFrom2",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-12",
+          "description": "Racket selection required at level 1; exactly one of {Ruffian, Scoundrel, Thief} must be chosen; level advancement gated on selection",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testRacketSelectionRequiredAtLevel1",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-13",
+          "description": "Ruffian: Sneak Attack precision damage applies with any simple weapon (including non-agile, non-finesse) when target is flat-footed",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testRuffianSneakAttackWithAnySimpleWeapon",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-14",
+          "description": "Ruffian: crit + flat-footed + simple weapon die ≤d8 → crit specialization applied; no crit spec on non-flat-footed crit",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testRuffianCritSpecializationOnFlatFootedD8",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-15",
+          "description": "Ruffian edge case: d10/d12 simple weapons (e.g., greatclub) do NOT trigger crit specialization on flat-footed crit",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testRuffianNoCritSpecLargeSimpleWeapon",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-16",
+          "description": "Ruffian: STR available as key ability boost when Racket = Ruffian",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testRuffianStrKeyAbilityAvailable",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-17",
+          "description": "Ruffian: medium armor = Trained at level 1",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testRuffianMediumArmorTrained",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-18",
+          "description": "Scoundrel: successful (non-crit) Feint makes target flat-footed to Rogue melee until end of Rogue next turn",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testScoundrelFeintSuccessFlatFootedToRogue",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-19",
+          "description": "Scoundrel: critical success Feint makes target flat-footed to ALL melee attacks (not just Rogue) until end of Rogue next turn",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testScoundrelFeintCritSuccessFlatFootedAll",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-20",
+          "description": "Scoundrel: Feint-applied flat-footed expires correctly at end of Rogue next turn; not persistent",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testScoundrelFlatFootedExpiresCorrectly",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-21",
+          "description": "Scoundrel: CHA available as key ability boost when Racket = Scoundrel",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testScoundrelChaKeyAbilityAvailable",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-22",
+          "description": "Scoundrel: Deception and Diplomacy both Trained at level 1",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testScoundrelDeceptionAndDiplomacyTrained",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-23",
+          "description": "Thief: DEX modifier applied to damage rolls on finesse melee weapons (DEX replaces STR for damage)",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testThiefDexToDamageFinesseWeapon",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-24",
+          "description": "Thief: DEX-to-damage restricted to finesse melee weapons only; ranged and non-finesse melee still use STR",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testThiefDexToDamageRestrictedToFinesseMelee",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-25",
+          "description": "Thief: Thievery = Trained at level 1",
+          "suite_type": "unit",
+          "class_method": "RogueRacketTest::testThiefThieveryTrained",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-26",
+          "description": "Sneak Attack: precision damage applied when target is flat-footed; damage dice scale by level",
+          "suite_type": "unit",
+          "class_method": "RogueSneakAttackTest::testSneakAttackPrecisionVsFlatFooted",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-27",
+          "description": "Sneak Attack: no precision damage when target is NOT flat-footed; normal damage only",
+          "suite_type": "unit",
+          "class_method": "RogueSneakAttackTest::testNoSneakAttackWithoutFlatFooted",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-28",
+          "description": "Sneak Attack: immune on targets without vital anatomy (construct, undead, ooze, etc.); precision damage = 0",
+          "suite_type": "unit",
+          "class_method": "RogueSneakAttackTest::testSneakAttackImmuneOnNoVitalAnatomy",
+          "ac_tag": "NEW",
+          "status": "active",
+          "notes": "Creature type immunity list needs PM/Dev enumeration for sub-type assertions."
+        },
+        {
+          "id": "TC-ROG-29",
+          "description": "Sneak Attack dice scaling by level: 1d6 at level 1, 2d6 at level 5, 3d6 at level 11, 4d6 at level 17",
+          "suite_type": "unit",
+          "class_method": "RogueSneakAttackTest::testSneakAttackDiceScalingByLevel",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-30",
+          "description": "Surprise Attack (Deception initiative): creatures that have not yet acted in round 1 are flat-footed vs Rogue",
+          "suite_type": "unit",
+          "class_method": "RogueSurpriseAttackTest::testSurpriseAttackDeceptionInitiativeFlatFooted",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-31",
+          "description": "Surprise Attack (Stealth initiative): same flat-footed behavior for pre-acting creatures in round 1",
+          "suite_type": "unit",
+          "class_method": "RogueSurpriseAttackTest::testSurpriseAttackStealthInitiativeFlatFooted",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-32",
+          "description": "Debilitations are mutually exclusive: applying a new Debilitation immediately removes the previous one; no two active simultaneously",
+          "suite_type": "unit",
+          "class_method": "RogueDebilitationTest::testDebilitationsMutuallyExclusive",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-33",
+          "description": "Class feat schedule: level 1 and every even level (1, 2, 4, ..., 20)",
+          "suite_type": "unit",
+          "class_method": "RogueFeatProgressionTest::testClassFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-34",
+          "description": "General feats at levels 3, 7, 11, 15, 19",
+          "suite_type": "unit",
+          "class_method": "RogueFeatProgressionTest::testGeneralFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-35",
+          "description": "Ancestry feats at levels 5, 9, 13, 17",
+          "suite_type": "unit",
+          "class_method": "RogueFeatProgressionTest::testAncestryFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-36",
+          "description": "Ability boosts at levels 5, 10, 15, 20",
+          "suite_type": "unit",
+          "class_method": "RogueFeatProgressionTest::testAbilityBoostSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-37",
+          "description": "Level-gated features do not appear before required level; no early-access to progression milestones",
+          "suite_type": "unit",
+          "class_method": "RogueClassTest::testLevelGatedFeaturesNotGrantedEarly",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-ROG-38",
+          "description": "QA audit still passes after Rogue module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "ac_tag": "audit",
+          "status": "active"
+        }
+      ]
     }
   ],
   "_schema_notes": [
