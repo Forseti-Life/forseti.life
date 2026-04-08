@@ -1048,6 +1048,7 @@ function _job_hunter_create_job_seeker_table() {
       'linkedin_url' => ['type' => 'varchar', 'length' => 512, 'description' => 'Projected LinkedIn URL from consolidated profile JSON.'],
       'github_url' => ['type' => 'varchar', 'length' => 512, 'description' => 'Projected GitHub URL from consolidated profile JSON.'],
       'portfolio_url' => ['type' => 'varchar', 'length' => 512, 'description' => 'Projected portfolio/personal site URL from consolidated profile JSON.'],
+      'age_18_or_older' => ['type' => 'varchar', 'length' => 3, 'not null' => FALSE, 'default' => NULL, 'description' => "Whether applicant is 18 or older ('Yes' or 'No')."],
       'projection_updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'Timestamp when projection columns were last updated.'],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'changed' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
