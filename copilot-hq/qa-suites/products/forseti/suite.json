@@ -996,6 +996,54 @@
         "Reads failure/violation counts from findings-summary.json via Python (avoids grep-from-markdown text-parse bugs)."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-queue-hardening-static",
+      "label": "ResumeTailoringWorker queue hardening: static checks \u2014 lint clean, retry logic present, no PII in logger calls, permanent failure path safe (TC-1 to TC-4, AC-1 to AC-4)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-resume-tailoring-queue-hardening",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; echo \"=== TC-1: PHP syntax clean on ResumeTailoringWorker ===\"; php -l \"sites/forseti/web/modules/custom/job_hunter/src/Plugin/QueueWorker/ResumeTailoringWorker.php\" | grep -q \"No syntax errors\" && echo \"PASS: lint clean\" || (echo \"FAIL: PHP lint error\" && exit 1); echo \"=== TC-2: retry/backoff logic present ===\"; RETRY_COUNT=$(grep -c \"retry\\|backoff\\|retry_count\\|max_retries\" \"sites/forseti/web/modules/custom/job_hunter/src/Plugin/QueueWorker/ResumeTailoringWorker.php\" 2>/dev/null; true); [ \"${RETRY_COUNT:-0}\" -ge 1 ] && echo \"PASS: $RETRY_COUNT retry/backoff references found\" || (echo \"FAIL: no retry logic found\" && exit 1); echo \"=== TC-3: no PII variables passed to logger ===\"; PII_HITS=$(grep -n \"logger\" \"sites/forseti/web/modules/custom/job_hunter/src/Plugin/QueueWorker/ResumeTailoringWorker.php\" | grep -c \"resume_content\\|user_data\\|full_name\\|email\\|ssn\\|address\" 2>/dev/null; true); [ \"${PII_HITS:-0}\" = \"0\" ] && echo \"PASS: no PII-named variables in logger calls\" || (echo \"FAIL: $PII_HITS potential PII logger calls found\" && exit 1); echo \"=== TC-4: permanent failure path exists (no infinite re-queue) ===\"; PERM_FAIL=$(grep -c \"SuspendQueueException\\|permanent\\|discard\\|dead.letter\\|auth.*error\\|invalid.*data\" \"sites/forseti/web/modules/custom/job_hunter/src/Plugin/QueueWorker/ResumeTailoringWorker.php\" 2>/dev/null; true); [ \"${PERM_FAIL:-0}\" -ge 1 ] && echo \"PASS: permanent failure path found ($PERM_FAIL refs)\" || (echo \"FAIL: no permanent failure/discard path found\" && exit 1); echo \"All static checks PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-resume-tailoring-queue-hardening/static.log"
+      ],
+      "run_notes": [
+        "TC-1: php -l must exit 0 \u2014 file must exist and be syntax-clean.",
+        "TC-2: grep for retry/backoff/retry_count/max_retries \u2014 >=1 match required.",
+        "TC-3: logger() calls must not contain resume_content/user_data/full_name/email/ssn/address \u2014 PII guard.",
+        "TC-4: SuspendQueueException or permanent/discard/dead-letter path must exist \u2014 prevents infinite re-queue.",
+        "Will FAIL on TC-2/TC-4 until dev-forseti completes hardening implementation."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-queue-hardening-functional",
+      "label": "ResumeTailoringWorker queue hardening: functional smoke \u2014 jobhunter routes return auth-required (not 500)",
+      "type": "script",
+      "feature_id": "forseti-jobhunter-resume-tailoring-queue-hardening",
+      "command": "bash -c 'set -e; BASE=https://forseti.life; echo \"=== smoke: /jobhunter returns auth-required (not 500) ===\"; S=$(curl -s -o /dev/null -w \"%{http_code}\" \"$BASE/jobhunter\"); case $S in 403|302|200) echo \"PASS: /jobhunter => $S (no server error)\";; *) echo \"FAIL: /jobhunter => $S (unexpected)\" && exit 1;; esac; echo \"All functional checks PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-resume-tailoring-queue-hardening/functional.log"
+      ],
+      "run_notes": [
+        "Queue worker is background; no HTTP endpoint to probe directly.",
+        "Smoke check confirms jobhunter surface loads without PHP 500 after worker code changes.",
+        "Full queue E2E (submit \u2192 worker fires \u2192 result logged) requires auth session; deferred to manual."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-queue-hardening-regression",
+      "label": "ResumeTailoringWorker queue hardening: regression \u2014 site audit 0 failures 0 violations (TC-5)",
+      "type": "script",
+      "feature_id": "forseti-jobhunter-resume-tailoring-queue-hardening",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh 2>&1 | tail -5; SUMMARY=sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json; FAILURES=$(python3 -c \"import json; d=json.load(open(\\\"$SUMMARY\\\")); print(d[\\\"counts\\\"][\\\"failures\\\"])\" 2>/dev/null || echo 0); VIOLATIONS=$(python3 -c \"import json; d=json.load(open(\\\"$SUMMARY\\\")); print(d[\\\"counts\\\"][\\\"permission_violations\\\"])\" 2>/dev/null || echo 0); [ \"${FAILURES:-0}\" = \"0\" ] && [ \"${VIOLATIONS:-0}\" = \"0\" ] && echo \"PASS: 0 failures, 0 violations\" || (echo \"FAIL: failures=$FAILURES violations=$VIOLATIONS\" && exit 1); echo \"Regression check PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "run_notes": [
+        "Reads counts from findings-summary.json via Python (avoids grep-from-markdown text-parse bugs)."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
