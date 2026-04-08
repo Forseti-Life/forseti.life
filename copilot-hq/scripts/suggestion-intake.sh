@@ -114,6 +114,39 @@ if ! DRUPAL_ROOT="$(resolve_drupal_root "$SITE")"; then
   exit 1
 fi
 
+# ── drupal_web_root validation (GAP-DC-RB-IR-02) ─────────────────────────────
+# Read drupal_web_root from product-teams.json and verify it is reachable before
+# doing any work. A stale/wrong path silently breaks all subsequent drush calls.
+DRUPAL_WEB_ROOT="$(python3 - "$SITE" <<'PY'
+import json, sys, pathlib
+site = (sys.argv[1] or '').strip().lower()
+p = pathlib.Path('org-chart/products/product-teams.json')
+if not p.exists():
+    sys.exit(0)
+data = json.loads(p.read_text(encoding='utf-8'))
+for t in (data.get('teams') or []):
+    aliases = {str(t.get('id','')).lower()}
+    aliases.update(str(a).lower() for a in (t.get('aliases') or []))
+    if site not in aliases:
+        continue
+    wroot = str((t.get('site_audit') or {}).get('drupal_web_root') or '').strip()
+    print(wroot)
+    break
+PY
+)"
+
+if [ -n "$DRUPAL_WEB_ROOT" ]; then
+  if [ ! -d "$DRUPAL_WEB_ROOT" ]; then
+    echo "ERROR: drupal_web_root not reachable: $DRUPAL_WEB_ROOT" >&2
+    echo "  Site: $SITE — update site_audit.drupal_web_root in org-chart/products/product-teams.json" >&2
+    mkdir -p "$ROOT_DIR/tmp/config-validation-failures"
+    printf 'site: %s\ndrupal_web_root: %s\nerror: path does not exist\ntimestamp: %s\n' \
+      "$SITE" "$DRUPAL_WEB_ROOT" "$(date -Iseconds)" \
+      > "$ROOT_DIR/tmp/config-validation-failures/$(date +%Y%m%d-%H%M%S)-${SITE}.txt"
+    exit 1
+  fi
+fi
+
 DRUSH="$DRUPAL_ROOT/vendor/bin/drush"
 PM_AGENT="pm-${SITE}"
 INBOX_DIR="sessions/${PM_AGENT}/inbox"
