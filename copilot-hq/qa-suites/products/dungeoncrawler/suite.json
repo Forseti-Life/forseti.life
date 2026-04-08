@@ -3426,6 +3426,110 @@
           "status": "active"
         }
       ]
+    },
+    {
+      "id": "dc-cr-session-structure-e2e",
+      "label": "Session/Campaign Structure — session data model (all fields stored), session end/resume state commit, campaign model + history, one-shot vs campaign modes, character state carry-over, AI GM context integration (summary + NPC state), campaign invite registered-user guard",
+      "type": "e2e",
+      "feature_id": "dc-cr-session-structure",
+      "command": "npx playwright test tests/e2e/session-structure/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-cr-session-structure-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "All POST/PATCH session+campaign routes require _csrf_request_header_mode:TRUE. All endpoints authenticated-only; campaign membership enforced. Invite endpoint validates registered account. Routes do not yet exist — tests will fail until Dev implements. Playwright suite: playwright/downtime.",
+      "test_cases": [
+        {
+          "id": "TC-SES-01",
+          "description": "Session stores all required fields: session_id, campaign_id (nullable), date, GM user, player users, starting narrative state",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::sessionDataModel",
+          "ac_tag": "AC-001",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-02",
+          "description": "Session end commits character XP, HP, conditions, inventory to end-of-session state; subsequent load shows committed state",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::sessionEndCommit",
+          "ac_tag": "AC-001",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-03",
+          "description": "Session resume restores all persistent state from last session: XP, HP, conditions, inventory",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::sessionResume",
+          "ac_tag": "AC-001",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-04",
+          "description": "Campaign stores all required fields: campaign_id, title, GM user, enrolled PCs, narrative notes; session history in chronological order",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::campaignModel",
+          "ac_tag": "AC-002",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-05",
+          "description": "XP accumulates correctly across campaign sessions; total_xp correct after n sessions",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::xpAccumulationAcrossSessions",
+          "ac_tag": "AC-002",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-06",
+          "description": "One-shot session completes without requiring campaign linkage; no campaign_id required, no carry-over error",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::oneShotNoPersistedCampaign",
+          "ac_tag": "AC-003",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-07",
+          "description": "Campaign session start loads character state from last session end commit; not default/initial state",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::campaignSessionLoadsLastState",
+          "ac_tag": "AC-003",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-08",
+          "description": "Character state carry-over: inventory, HP, conditions all present at session start matching last session end commit",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::characterStateCarryOver",
+          "ac_tag": "AC-004",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-09",
+          "description": "AI GM receives session_summary in system prompt when session has narrative summary; absent for first session (graceful)",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::aiGmSessionSummaryContext",
+          "ac_tag": "AC-005",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-10",
+          "description": "AI GM context includes recurring NPC npc.last_known_state and relationship_log for important NPCs from prior sessions",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::aiGmNpcRelationshipContext",
+          "ac_tag": "AC-005",
+          "status": "active"
+        },
+        {
+          "id": "TC-SES-11",
+          "description": "Campaign invite: invite to unregistered email/user rejected with feedback; invite to registered user accepted",
+          "suite": "playwright/downtime",
+          "class_method": "session-structure.spec.ts::inviteRegisteredUserOnly",
+          "ac_tag": "Security AC",
+          "status": "active"
+        }
+      ]
     }
   ],
   "_schema_notes": [
