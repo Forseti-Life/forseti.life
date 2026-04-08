@@ -40,7 +40,7 @@ function copilot_agent_tracker_schema(): array {
       ],
       'current_action' => [
         'type' => 'varchar',
-        'length' => 255,
+        'length' => 512,
         'not null' => FALSE,
       ],
       'last_seen' => [
@@ -353,5 +353,22 @@ function copilot_agent_tracker_update_8005(): void {
     if ($spec) {
       $schema_handler->createTable($table, $spec);
     }
+  }
+}
+
+/**
+ * Expand current_action column to varchar(512) to match input validation AC.
+ */
+function copilot_agent_tracker_update_8006(): void {
+  $db = \Drupal::database();
+  $schema_handler = $db->schema();
+
+  if ($schema_handler->tableExists('copilot_agent_tracker_agents')
+    && $schema_handler->fieldExists('copilot_agent_tracker_agents', 'current_action')) {
+    $schema_handler->changeField('copilot_agent_tracker_agents', 'current_action', 'current_action', [
+      'type' => 'varchar',
+      'length' => 512,
+      'not null' => FALSE,
+    ]);
   }
 }

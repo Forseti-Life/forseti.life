@@ -51,15 +51,42 @@ final class ApiController extends ControllerBase {
       throw new BadRequestHttpException('summary is required.');
     }
 
+    // Validate agent_id: required, max 64 chars, alphanumeric/dash/underscore.
+    $agent_id = (string) ($payload['agent_id'] ?? '');
+    if ($agent_id === '') {
+      throw new BadRequestHttpException('agent_id is required.');
+    }
+    if (!preg_match('/^[a-zA-Z0-9\-_]{1,64}$/', $agent_id)) {
+      throw new BadRequestHttpException('agent_id must be 1-64 characters: letters, digits, dashes, or underscores only.');
+    }
+
+    // Validate status enum if provided.
+    $allowed_statuses = ['active', 'idle', 'paused', 'done', 'in_progress', 'blocked', 'needs-info', 'error'];
+    if (isset($payload['status']) && !in_array((string) $payload['status'], $allowed_statuses, TRUE)) {
+      throw new BadRequestHttpException('Invalid status value.');
+    }
+
+    // Validate action (maps to current_action) max 512 chars.
+    if (isset($payload['action']) && strlen((string) $payload['action']) > 512) {
+      throw new BadRequestHttpException('action exceeds maximum length of 512 characters.');
+    }
+
+    // Validate metadata must be a JSON object, not an array or scalar.
+    if (isset($payload['metadata'])) {
+      if (!is_array($payload['metadata']) || array_is_list($payload['metadata'])) {
+        throw new BadRequestHttpException('metadata must be a JSON object.');
+      }
+    }
+
     $sanitized = [
-      'agent_id' => $payload['agent_id'] ?? NULL,
+      'agent_id' => $agent_id,
       'session_id' => $payload['session_id'] ?? NULL,
       'work_item_id' => $payload['work_item_id'] ?? NULL,
       'role' => $payload['role'] ?? NULL,
       'website' => $payload['website'] ?? NULL,
       'module' => $payload['module'] ?? NULL,
-      'action' => $payload['action'] ?? NULL,
-      'status' => $payload['status'] ?? NULL,
+      'action' => isset($payload['action']) ? (string) $payload['action'] : NULL,
+      'status' => isset($payload['status']) ? (string) $payload['status'] : NULL,
       'summary' => $summary,
       'details' => $payload['details'] ?? NULL,
       'metadata' => isset($payload['metadata']) ? json_encode($payload['metadata']) : NULL,
