@@ -5407,6 +5407,134 @@
           "ac_tag": "Edge-3"
         }
       ]
+    },
+    {
+      "id": "dc-apg-class-swashbuckler-e2e",
+      "label": "Swashbuckler class: class record (HP10+Con, Dex key, Fortitude upgrades L3), panache binary state (speed+5, check bonus, style-skill trigger, Finisher-consumed), 5 styles (Battledancer/Braggart/Fencer/Gymnast/Wit with correct skill routing and feat grants), Precise Strike flat/dice precision scaling, Finisher requirements and partial-damage failure, Confident Finisher, Opportune Riposte reaction, Vivacious Speed scaling, Exemplary Finisher style effect, integration (panache UI, skill routing per style)",
+      "type": "e2e",
+      "feature_id": "dc-apg-class-swashbuckler",
+      "command": "npx playwright test tests/e2e/apg-class-swashbuckler/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-class-swashbuckler-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 16 TCs active. Regression risks: panache not cleared before Finisher outcome resolves; Finisher failure effect triggered on crit failure; Precise Strike flat bonus applied instead of dice on Finisher; Vivacious Speed half-value not rounded to nearest 5 ft; Exemplary Finisher firing on miss; wrong skill linked to style panache trigger.",
+      "test_cases": [
+        {
+          "id": "TC-SWS-01",
+          "description": "Class record: HP 10+Con/level, key_ability=Dex, Trained Fortitude (upgrades L3), Expert Reflex/Will, simple+martial weapons, light armor, class_dc tracked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-1-4"
+        },
+        {
+          "id": "TC-SWS-02",
+          "description": "Panache: binary state; panache=true grants speed_bonus=+5 status; lost immediately (before outcome) when Finisher performed; persists until encounter end otherwise",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Panache-1-3,Panache-7"
+        },
+        {
+          "id": "TC-SWS-03",
+          "description": "Panache active: +1 circumstance bonus to style-skill checks that would earn panache",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Panache-4"
+        },
+        {
+          "id": "TC-SWS-04",
+          "description": "Panache earned by success on style-specific skill check; failure produces no change",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Panache-5"
+        },
+        {
+          "id": "TC-SWS-05",
+          "description": "GM-award panache mechanism exists for daring non-standard actions vs Very Hard DC; no auto-grant pathway",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Panache-6"
+        },
+        {
+          "id": "TC-SWS-06",
+          "description": "Styles: each grants Trained in correct skill; correct panache trigger linked; Battledancer grants Fascinating Performance; Wit grants Bon Mot feat",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Styles-1-5"
+        },
+        {
+          "id": "TC-SWS-07",
+          "description": "Precise Strike non-Finisher: with panache + agile/finesse weapon, flat precision bonus = +2/+3/+4/+5/+6 at L1/5/9/13/17",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "PreciseStrike-1-2"
+        },
+        {
+          "id": "TC-SWS-08",
+          "description": "Precise Strike Finisher: precision dice = 2d6/3d6/4d6/5d6/6d6 at L1/5/9/13/17; panache consumed before outcome",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "PreciseStrike-2"
+        },
+        {
+          "id": "TC-SWS-09",
+          "description": "Finisher: blocked if panache=false; after Finisher, attack-trait actions blocked for rest of turn",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Finisher-1-3,Edge-1"
+        },
+        {
+          "id": "TC-SWS-10",
+          "description": "Finisher failure effect: failure -> partial damage (flat); crit failure -> NO failure effect triggered (distinct from failure)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Finisher-4"
+        },
+        {
+          "id": "TC-SWS-11",
+          "description": "Confident Finisher L1: 1-action; success=full precision dice; failure=flat_half_value (no dice rolled); action_cost=1",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Finisher-5,Edge-2"
+        },
+        {
+          "id": "TC-SWS-12",
+          "description": "Opportune Riposte L3 reaction: triggers on foe crit failure on Strike vs swashbuckler; player chooses melee Strike or Disarm",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Riposte-1"
+        },
+        {
+          "id": "TC-SWS-13",
+          "description": "Vivacious Speed L3: with panache +10/+15/+20/+25/+30 ft at L3/7/11/15/19; without panache half rounded to nearest 5 ft",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "VSpeed-1-2,Edge-3"
+        },
+        {
+          "id": "TC-SWS-14",
+          "description": "Exemplary Finisher L9: fires only on Finisher hit; applies style-specific effect matching selected style",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "ExFin-1,Edge-4"
+        },
+        {
+          "id": "TC-SWS-15",
+          "description": "Integration: panache state indicator visible in encounter UI; auto-removed when Finisher action taken (before resolution)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-1"
+        },
+        {
+          "id": "TC-SWS-16",
+          "description": "Integration: each style uses only its correct skill for panache generation (Performance/Intimidation/Deception/Athletics/Diplomacy for Battledancer/Braggart/Fencer/Gymnast/Wit)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-2"
+        }
+      ]
     }
   ],
   "_schema_notes": [
