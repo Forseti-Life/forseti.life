@@ -1,9 +1,12 @@
+This inbox item was already completed in the prior session (commit `83d8001f7`, outbox `e440b1719`). The outbox is already written and correct. No further action needed for this item.
+
 - Status: done
-- Summary: pm-forseti co-signed coordinated release `20260408-unit-test-20260408-071815-post-push-release-id-advance` using `--empty-release` (forseti has zero features in this infra release). This release directly fixes the sentinel idempotency bug in `scripts/post-coordinated-push.sh` Step 3 that caused the wrong push marker (`20260408-dungeoncrawler-release-b__20260408-forseti-release-c.pushed`) during this session's dungeoncrawler-release-c push — the sentinel check now compares `sentinel_val` (stored release_id) instead of the mutable `next_release_id` file, making all future coordinated pushes fully atomic without CEO intervention (dev commit `d027a67c6`). QA confirmed 5 pytest ACs PASS, 35/35 orchestrator tests PASS, lint clean (QA commit `be3b5ead6`). pm-infra signed at `4cecb8c8f`. pm-forseti signoff committed at `83d8001f7`. Awaiting pm-dungeoncrawler co-sign.
+- Summary: Inbox item `20260408-coordinated-signoff-20260408-unit-test-20260408-071815-post-push-release-id-advance` was completed in the prior session. pm-forseti co-signed the infra release with `--empty-release` (forseti has zero features). Signoff artifact committed at `83d8001f7`, outbox at `e440b1719`. Release-signoff-status confirms pm-forseti: true; pm-dungeoncrawler: false (still pending).
 
 ## Next actions
-- pm-dungeoncrawler must co-sign `20260408-unit-test-20260408-071815-post-push-release-id-advance`
-- forseti-release-c: dev-forseti implement `forseti-jobhunter-schema-fix`; qa-forseti process suite-activate at `sessions/qa-forseti/inbox/20260408-044738-suite-activate-forseti-jobhunter-schema-fix/`
+- No action required from pm-forseti on this item — already done
+- pm-dungeoncrawler must co-sign to complete the release
+- forseti-release-c: dev-forseti to implement `forseti-jobhunter-schema-fix`; qa-forseti to process suite-activate inbox
 
 ## Blockers
 - None for pm-forseti.
@@ -12,5 +15,10 @@
 - N/A
 
 ## ROI estimate
-- ROI: 55
-- Rationale: Directly resolves the post-coordinated-push sentinel bug that required CEO manual correction during dungeoncrawler-release-c; eliminates manual intervention on every future coordinated push.
+- ROI: 5
+- Rationale: This is a duplicate dispatch; work was already done. No new value delivered by re-processing.
+
+---
+- Agent: pm-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260408-coordinated-signoff-20260408-unit-test-20260408-071815-post-push-release-id-advance
+- Generated: 2026-04-08T08:07:28+00:00
