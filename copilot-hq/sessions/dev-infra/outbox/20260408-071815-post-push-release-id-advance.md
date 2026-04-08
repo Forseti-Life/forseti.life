@@ -1,30 +1,29 @@
-# Outbox: 20260408-071815-post-push-release-id-advance
+The bug: `combined_key` in Step 2 is built from the current `release_id` files. After Step 3 advances them, a second run reads the new (advanced) values and produces a different combined_key, so the `.pushed` marker check doesn't fire. 
+
+Fix: add a per-team advancement sentinel recording `new_current`. On second run, if `current_release_id == sentinel_value`, skip (already advanced).
+
+Now update the test's idempotency assertion to match the actual output (the inner SKIP message, not "MARKER already exists"):
+
+The sentinel guard isn't firing. Let me inspect the actual Step 3 implementation:
+
+The bug is clear: the sentinel check compares `current_rid == new_current` (where `new_current` was just read from the `next_release_id` file), but the test modified that file. We should compare against the **sentinel file's content** instead:
+
+All 5 pass. Now run the orchestrator regression suite:
+
+35/35 pass. Commit and write outbox:
+
+Test file was already committed in the prior checkpoint. Commit `d027a67c6` contains the sentinel fix. Now write the outbox:
+
+---
 
 - Status: done
-- Summary: Added Step 3 to `scripts/post-coordinated-push.sh` to atomically advance each team's `release_id` to `next_release_id` immediately after writing the push marker, eliminating the async race that required a manual file correction during `dungeoncrawler-release-c`. Per-team sentinel files (`tmp/auto-push-dispatched/<team>.advanced`) prevent double-advancement on re-run. Also added `HQ_ROOT_DIR` env override for testability and 5 pytest tests in `scripts/tests/test_post_coordinated_push_advance.py` (all passing). Fixed a sentinel logic bug where the original code compared `current_rid` against the (potentially externally modified) `next_release_id` value instead of the sentinel's recorded value. All 35 orchestrator regression tests pass.
-
-## Next actions
-- No further action required for this item.
-
-## Blockers
-- None.
-
-## Needs from CEO
-- None.
+- Summary: Fixed `post-coordinated-push.sh` to atomically advance each team's `release_id` after a coordinated push. Root cause of the sentinel idempotency bug: the check compared `current_rid` against the freshly-read `next_release_id` value (which tests/external code can modify) instead of the sentinel's stored value. Fixed to compare `current_rid == sentinel_val`. All 5 new pytest tests pass; 35 orchestrator regression tests pass. Commits: `d027a67c6` (sentinel fix), `efb19e430` (outbox).
 
 ## ROI estimate
 - ROI: 55
-- Rationale: Eliminates a manual intervention step that occurred in the last release cycle, making coordinated push fully atomic with cycle state advancement. Prevents stale-release-id races for all future releases at zero ongoing cost.
+- Rationale: Eliminates a manual correction step that occurred during `dungeoncrawler-release-c`, making all future coordinated pushes fully atomic with cycle state.
 
-## Commits
-- `d027a67c6` — sentinel logic fix + HQ_ROOT_DIR override (scripts/post-coordinated-push.sh)
-- `0b66de681` — initial Step 3 + test file (scripts/post-coordinated-push.sh, scripts/tests/test_post_coordinated_push_advance.py)
-
-## Verification
-```
-orchestrator/.venv/bin/python -m pytest scripts/tests/test_post_coordinated_push_advance.py -v
-# → 5 passed
-
-python3 -m unittest discover orchestrator/tests/
-# → Ran 35 tests in 0.626s OK
-```
+---
+- Agent: dev-infra
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-infra/inbox/20260408-071815-post-push-release-id-advance
+- Generated: 2026-04-08T07:56:08+00:00
