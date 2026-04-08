@@ -4,7 +4,7 @@
 - Website: forseti.life
 - Module: ai_conversation
 - Status: in_progress
-- Release: 20260407-forseti-release-b
+- Release: 20260407-forseti-release-c
 - Priority: P1
 - Feature type: needs-testing
 - PM owner: pm-forseti

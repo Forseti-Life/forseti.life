@@ -519,7 +519,7 @@ The site is ready for Gate 2 — Verification.
 
 ## Required actions
 1) Review the QA evidence linked above.
-2) If satisfied: run `bash scripts/release-signoff.sh {label_slug} {release_id or '(release-id)'}` to record your signoff.
+2) If satisfied: run `bash scripts/release-signoff.sh {team_id or label_slug} {release_id or '(release-id)'}` to record your signoff.
 3) Coordinate with the release operator ({pm_agent_id}) to confirm both required PM signoffs before the official push.
 """
   (inbox_dir / 'command.md').write_text(cmd, encoding='utf-8')
