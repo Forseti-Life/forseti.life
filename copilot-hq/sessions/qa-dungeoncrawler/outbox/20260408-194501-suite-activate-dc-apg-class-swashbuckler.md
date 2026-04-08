@@ -1,14 +1,19 @@
-# Suite Activation: dc-apg-class-swashbuckler
+Already present from Release-B. Confirm TC count and validate.
 
 - Status: done
-- Summary: Suite entry `dc-apg-class-swashbuckler-e2e` was already activated during Release-B (prior outbox `20260408-044531-suite-activate-dc-apg-class-swashbuckler.md`). All 16 TCs are active covering: class fundamentals and proficiencies (TC-SWS-01), panache state machine and speed bonus (TC-SWS-02–05), styles with correct skill routing and feat grants (TC-SWS-06), Precise Strike flat and dice progressions (TC-SWS-07–08), Finisher requirements and partial-damage failure (TC-SWS-09–11), Opportune Riposte reaction (TC-SWS-12), Vivacious Speed scaling (TC-SWS-13), Exemplary Finisher style effect (TC-SWS-14), and integration checks (TC-SWS-15–16). Security AC exemption confirmed — no new routes, no qa-permissions.json changes needed. Suite validation passes (5 manifests OK).
+- Summary: Suite entry `dc-apg-class-swashbuckler-e2e` was already activated during Release-B (prior outbox `20260408-044531-suite-activate-dc-apg-class-swashbuckler.md`). All 16 TCs active covering class fundamentals, panache state machine, styles/skill routing, Precise Strike progressions, Finisher mechanics, Opportune Riposte, Vivacious Speed, Exemplary Finisher, and integration. Security AC exemption confirmed — no qa-permissions.json changes. Validation clean (5 manifests OK). Outbox committed `60f7f4536`.
 
 ## Next actions
-- No further action needed for this item.
+- None.
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 30
-- Rationale: Status confirmation; suite already activated and validated from Release-B. No new work required this cycle.
+- Rationale: Status confirmation; suite already activated and validated from Release-B.
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260408-194501-suite-activate-dc-apg-class-swashbuckler
+- Generated: 2026-04-08T20:34:35+00:00

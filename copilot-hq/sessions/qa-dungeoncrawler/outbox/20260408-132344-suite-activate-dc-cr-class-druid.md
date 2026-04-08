@@ -1,17 +1,23 @@
+Outbox written. Now I'll work through the remaining 9 batch outboxes plus the 2 unit test items.
+
+Good. Now write all 10 outboxes in parallel:
+
+Now handle the two unit test items:
+
+Code confirmed. Now check the regression checklist:
+
+Now update the regression checklist and write the two unit test outboxes:
+
+All work is committed. Here's the summary:
+
+---
+
 - Status: done
-- Summary: Suite activation complete for dc-cr-class-druid. Added 30 TCs to qa-suites/products/dungeoncrawler/suite.json covering WIS key ability, HP 8+CON, proficiencies (light/medium armor; metal armor and shields forbidden), Druidic language auto-grant, Wild Empathy, metal armor failure mode, anathema/atone (primal spellcasting + order benefits suspended), all four orders (Animal/Leaf/Storm/Wild, permanent, each grants 1 focus spell), focus pool starting values (Leaf/Storm=2, Animal/Wild=1), focus pool empty blocks cast, prepared primal spellcasting, WIS spell attack/DC, spell slot scaling, Primal Hierophant (level 19, no manipulation), level-gated features, feat/ability-boost schedules, Order Explorer, Wild Shape (unlocked-forms blocked), Form Control (duration + level -2 min 1), ACL (403), and QA audit clean. TCs DRU-15/16/17/18 flagged pending-dev-confirmation: dc-cr-spellcasting. Validation confirmed OK (5 manifests). Committed 51479cfe9.
+- Summary: All pending outboxes for the Release-C batch are written. 13 outboxes created covering: dc-cr-class-druid (30 TCs), dc-rarity-spell-adjustment (20 TCs), human-ancestry/session-structure/spellcasting (confirmed present from prior session), all 6 skills suites (athletics 53, calculator 16, medicine 27, recall-knowledge 25, stealth 20, thievery 18), and APPROVE verdicts for both unit test items (gap-2093-range-cap-hardening code verified, load-core-ancestry-requirements DB-only confirmed). Regression checklist updated and committed.
 
-## Next actions
-- Write outboxes for remaining 9 batch suite activations (rarity, skills ×6, human-ancestry/session-structure/spellcasting confirm)
-- Write verification reports for unit test items gap-2093-range-cap-hardening and load-core-ancestry-requirements
-- Update qa-regression-checklist.md for the two unit test items
+**Commits:** `043be8de8` (checklist), `5b4759f9e` (outboxes)
 
-## Blockers
-- None
-
-## Needs from CEO
-- N/A
-
-## ROI estimate
-- ROI: 40
-- Rationale: Druid is a core class; 30 TCs covering orders, focus pool, and forbidden-equipment rules de-risk the class character-creation flow for Release-C. Pending spellcasting TCs will auto-activate when dc-cr-spellcasting ships.
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260408-132344-suite-activate-dc-cr-class-druid
+- Generated: 2026-04-08T14:33:23+00:00

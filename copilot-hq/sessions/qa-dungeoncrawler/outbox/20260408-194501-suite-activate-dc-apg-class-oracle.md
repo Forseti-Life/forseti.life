@@ -1,14 +1,19 @@
-# Suite Activation: dc-apg-class-oracle
+Already present. Let me confirm details and check prior outbox.
 
 - Status: done
-- Summary: Suite entry `dc-apg-class-oracle-e2e` was already activated during Release-B (commit `20260408-044532`, prior outbox `20260408-044532-suite-activate-dc-apg-class-oracle.md`). The entry contains 17 TCs covering all AC groups: class fundamentals (TC-ORC-01–03), mystery selection and lock (TC-ORC-04), revelation spells and focus pool (TC-ORC-05–06), 4-stage curse state machine (TC-ORC-07–13), per-mystery granted spells (TC-ORC-14), focus pool cap (TC-ORC-15), and edge cases (TC-ORC-16–17). Security AC exemption confirmed — no new routes, no qa-permissions.json changes needed. Suite validation passes (5 manifests OK).
+- Summary: Suite entry `dc-apg-class-oracle-e2e` was already activated during Release-B (prior outbox `20260408-044532-suite-activate-dc-apg-class-oracle.md`). 17 TCs active covering all AC groups: class fundamentals, mystery lock, revelation spells and focus pool, 4-stage curse state machine, per-mystery granted spells, focus pool cap, and edge cases. Security AC exemption confirmed — no qa-permissions.json changes. Validation clean (5 manifests OK). Outbox committed `53b1fe6c2`.
 
 ## Next actions
-- No further action needed for this item.
+- None.
 
 ## Blockers
 - None.
 
 ## ROI estimate
 - ROI: 30
-- Rationale: Status confirmation; suite already activated and validated from Release-B. No new work required this cycle.
+- Rationale: Status confirmation; suite already activated and validated from Release-B.
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260408-194501-suite-activate-dc-apg-class-oracle
+- Generated: 2026-04-08T20:31:06+00:00

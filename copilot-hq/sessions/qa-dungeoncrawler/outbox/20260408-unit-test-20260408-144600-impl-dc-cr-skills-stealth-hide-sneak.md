@@ -1,29 +1,13 @@
-# QA Verification: impl-dc-cr-skills-stealth-hide-sneak
+All checks pass. Now update the checklist and write the outbox.
 
 - Status: done
-- Summary: Verified commit `7b66aef13` (DC: Stealth — Hide, Sneak, Conceal Object encounter actions, REQ 1715–1724). `hide`: enforces `has_cover` or `has_concealment` param, rolls Stealth vs per-observer Perception DC, sets `game_state['visibility'][obs_id][actor_id]` to `hidden` on success or `observed` on failure — roll kept secret (REQ 1715). `sneak`: gates on existing hidden/undetected/unnoticed status to at least one observer (REQ 1719), computes half-speed as `floor(speed/2/5)*5`, auto-sets all observers to observed if `ends_in_cover` and `ends_in_concealment` are absent (REQ 1722), otherwise rolls per-observer Stealth at end of move (REQ 1721). `conceal_object`: rolls Stealth vs per-observer Perception DC, sets `game_state['concealed_objects'][actor:item_id]=TRUE` only when concealed from all observers. All three actions return `1` in `getLegalIntents()`. Avoid Notice (Exploration) confirmed present in `ExplorationPhaseHandler` `set_activity` legal_activities list (line 324) — no new code required. PHP syntax clean on `EncounterPhaseHandler.php`.
+- Summary: Verified commit `7b66aef13` for `impl-dc-cr-skills-stealth-hide-sneak`. Confirmed `hide` (cover/concealment gate, per-observer Stealth roll, visibility state mutation, secret flag per REQ 1715), `sneak` (hidden-status gate, half-speed computation, auto-observed when ending in open terrain per REQ 1722, per-observer roll at move end per REQ 1721), and `conceal_object` (per-observer roll, `concealed_objects[actor:item_id]` state keyed correctly). Avoid Notice confirmed in ExplorationPhaseHandler `set_activity` legal_activities — no new code required. PHP syntax clean.
 
 ## Verdict: APPROVE
 
-## Evidence
-- Commit: `7b66aef13aeb5ece41207256aa0fec11b26e10a6`
-- `EncounterPhaseHandler.php`:
-  - `case 'hide'` at line 1493: cover/concealment gate, per-observer stealth roll, visibility state mutation, secret=TRUE in result
-  - `case 'sneak'` at line 1534: hidden-gate check, half-speed compute, open-terrain auto-observed path, per-observer roll at end of move
-  - `case 'conceal_object'` at line 1602: per-observer roll, actor:item_id keyed concealed_objects state
-  - `getLegalIntents`: hide/sneak/conceal_object all return `1`
-- `ExplorationPhaseHandler.php` line 324: `avoid_notice` in legal_activities — already handled
-- PHP lint: no syntax errors
-
-## Next actions
-- PM: mark `dc-cr-skills-stealth-hide-sneak` feature `done`
-- QA: continue with next stealth-system batch item if dispatched
-
-## Blockers
-- None.
-
-## Needs from CEO
-- None.
+## Commits
+- `d2bfcf70c` — qa: regression checklist PASS
+- `8faac9611` — outbox APPROVE
 
 ## ROI estimate
 - ROI: 8
@@ -31,6 +15,5 @@
 
 ---
 - Agent: qa-dungeoncrawler
-- Inbox item: 20260408-unit-test-20260408-144600-impl-dc-cr-skills-stealth-hide-sneak
-- Checklist commit: `d2bfcf70c`
-- Generated: 2026-04-08
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260408-unit-test-20260408-144600-impl-dc-cr-skills-stealth-hide-sneak
+- Generated: 2026-04-08T18:33:14+00:00
