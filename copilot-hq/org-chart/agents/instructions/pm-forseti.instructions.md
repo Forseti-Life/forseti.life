@@ -76,6 +76,7 @@ After a coordinated push succeeds (commit lands on main), in the same outbox cyc
 1. **Set all shipped features to `- Status: done`** in feature.md AND **clear the `- Release:` line** (set to `- Release: ` with no value). Use `done` — not `shipped`. Clearing the Release field prevents the orchestrator from counting shipped features against the new release's scope cap.
 2. **Write or verify release notes** at `sessions/pm-forseti/artifacts/release-notes/<release-id>.md`.
 3. **Run `release-signoff.sh forseti <your-forseti-release-id>`** to advance your own release cycle.
+4. **Run `bash scripts/post-coordinated-push.sh`** to advance all partner teams' release cycles and write the orchestrator push marker. This prevents the orchestrator from attempting a duplicate auto-deploy and unblocks each team's next release cycle. This is idempotent — safe to re-run.
 
 Lesson (2026-04-08): 6 forseti release-c suite-activate items were routed to `sessions/qa-forseti.life/inbox/` (unregistered agent) because `pm-scope-activate.sh` was called with `forseti.life` as the site. Items sat unprocessed for 1.5h until CEO manually moved them. Root fix: `pm-scope-activate.sh` now strips the `.life` suffix, but agents must still use the correct short name.
 

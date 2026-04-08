@@ -216,7 +216,9 @@ All required PM signoffs recorded for coordinated release `{release_id}`.
 As release operator, proceed with the official push:
 1. Verify: `bash scripts/release-signoff-status.sh {release_id}`
 2. Push per `runbooks/shipping-gates.md` Gate 4.
-3. Complete post-push steps (config import, smoke test, SLA report update).
+3. **Advance team release cycles**: `bash scripts/post-coordinated-push.sh`
+   (Files each coordinated team's own release signoff so their cycle can advance.)
+4. Complete post-push steps (config import, smoke test, SLA report update).
 """
 (inbox_dir / 'command.md').write_text(cmd, encoding='utf-8')
 print(f"INFO: ALL PMs signed — queued push-ready item for pm-forseti: {item_id}")
