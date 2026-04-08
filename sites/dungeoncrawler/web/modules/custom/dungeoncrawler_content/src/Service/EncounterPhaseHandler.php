@@ -219,6 +219,11 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'hide',
       'sneak',
       'conceal_object',
+      // REQ 1747–1756: Thievery skill actions [encounter-phase].
+      'palm_object',
+      'steal',
+      'disable_device',
+      'pick_lock',
     ];
   }
 
@@ -1628,6 +1633,218 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
         $result = ['concealed_results' => $co_results, 'item_id' => $item_id_co, 'secret' => TRUE];
         $events[] = GameEventLogger::buildEvent('conceal_object', 'encounter', $actor_id, ['item_id' => $item_id_co, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1747–1750: Palm an Object [1 action, Manipulation]
+      // Hides a small item on the character's person; observers must Seek.
+      // -----------------------------------------------------------------------
+      case 'palm_object': {
+        $stealth_bonus_po = (int) ($params['thievery_bonus'] ?? 0);
+        $observer_ids_po = $params['observer_ids'] ?? [];
+        $perception_dcs_po = $params['perception_dcs'] ?? [];
+        $item_id_po = $params['item_id'] ?? NULL;
+
+        if (!isset($game_state['palmed_objects'])) {
+          $game_state['palmed_objects'] = [];
+        }
+
+        $po_results = [];
+        $palmed_from_all = TRUE;
+        foreach ($observer_ids_po as $obs_id) {
+          $perc_dc_po = (int) ($perception_dcs_po[$obs_id] ?? 15);
+          $d20_po = $this->numberGenerationService->rollPathfinderDie(20);
+          $total_po = $d20_po + $stealth_bonus_po;
+          $degree_po = $this->combatCalculator->calculateDegreeOfSuccess($total_po, $perc_dc_po, $d20_po);
+
+          if (in_array($degree_po, ['critical_success', 'success'], TRUE)) {
+            $po_results[$obs_id] = ['degree' => $degree_po, 'hidden' => TRUE];
+          }
+          else {
+            $po_results[$obs_id] = ['degree' => $degree_po, 'hidden' => FALSE];
+            $palmed_from_all = FALSE;
+          }
+        }
+
+        // REQ 1747: On success vs all observers, item considered hidden until Seek reveals it.
+        if ($item_id_po && $palmed_from_all && !empty($observer_ids_po)) {
+          $game_state['palmed_objects'][$actor_id . ':' . $item_id_po] = TRUE;
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['palm_results' => $po_results, 'item_id' => $item_id_po, 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('palm_object', 'encounter', $actor_id, ['item_id' => $item_id_po, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1751–1752: Steal [1 action, Manipulation]
+      // Takes a small item from a target that is unaware of the attempt.
+      // Crit Failure: target and nearby observers become aware of the attempt.
+      // -----------------------------------------------------------------------
+      case 'steal': {
+        $thievery_bonus_st = (int) ($params['thievery_bonus'] ?? 0);
+        $target_id_st = $params['target_id'] ?? NULL;
+        $observer_ids_st = $params['observer_ids'] ?? [];
+        $perception_dc_st = (int) ($params['perception_dc'] ?? 15);
+        $item_id_st = $params['item_id'] ?? NULL;
+
+        $d20_st = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_st = $d20_st + $thievery_bonus_st;
+        $degree_st = $this->combatCalculator->calculateDegreeOfSuccess($total_st, $perception_dc_st, $d20_st);
+
+        $stolen = FALSE;
+        $observers_alerted = [];
+        if (in_array($degree_st, ['critical_success', 'success'], TRUE)) {
+          $stolen = TRUE;
+          if ($item_id_st) {
+            if (!isset($game_state['stolen_items'])) {
+              $game_state['stolen_items'] = [];
+            }
+            $game_state['stolen_items'][] = ['actor' => $actor_id, 'from' => $target_id_st, 'item_id' => $item_id_st];
+          }
+        }
+        elseif ($degree_st === 'critical_failure') {
+          // REQ 1752: Crit Failure — target and nearby observers become aware.
+          $observers_alerted = array_merge([$target_id_st], $observer_ids_st);
+          $observers_alerted = array_filter($observers_alerted);
+          if (!isset($game_state['steal_awareness'])) {
+            $game_state['steal_awareness'] = [];
+          }
+          foreach ($observers_alerted as $aware_id) {
+            $game_state['steal_awareness'][$aware_id][$actor_id] = TRUE;
+          }
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = ['degree' => $degree_st, 'stolen' => $stolen, 'observers_alerted' => array_values($observers_alerted), 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('steal', 'encounter', $actor_id, ['target_id' => $target_id_st, 'degree' => $degree_st, 'round' => $game_state['round'] ?? NULL], NULL, $target_id_st);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1748–1750: Disable a Device [2 actions, Manipulation, Trained]
+      // Disarms traps/alarms. Complex devices may need multiple successes.
+      // Crit Failure: triggers the device.
+      // -----------------------------------------------------------------------
+      case 'disable_device': {
+        // REQ 1748: Trained Thievery required.
+        $thievery_rank_dd = (int) ($params['thievery_proficiency_rank'] ?? 0);
+        if ($thievery_rank_dd < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Disable a Device requires Trained Thievery.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $device_id_dd = $params['device_id'] ?? NULL;
+        $dc_dd = (int) ($params['dc'] ?? 20);
+
+        // Improvised tools penalty.
+        $has_tools_dd = !empty($params['has_thieves_tools']);
+        if (!$has_tools_dd) {
+          $dc_dd += 5;
+        }
+
+        $thievery_bonus_dd = (int) ($params['thievery_bonus'] ?? 0);
+        $d20_dd = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_dd = $d20_dd + $thievery_bonus_dd;
+        $degree_dd = $this->combatCalculator->calculateDegreeOfSuccess($total_dd, $dc_dd, $d20_dd);
+
+        $disabled = FALSE;
+        $triggered = FALSE;
+
+        if (!isset($game_state['device_states'])) {
+          $game_state['device_states'] = [];
+        }
+
+        if ($degree_dd === 'critical_failure') {
+          // REQ 1750: Crit Failure triggers the device.
+          $triggered = TRUE;
+          if ($device_id_dd) {
+            $game_state['device_states'][$device_id_dd]['triggered'] = TRUE;
+          }
+        }
+        elseif (in_array($degree_dd, ['critical_success', 'success'], TRUE)) {
+          if ($device_id_dd) {
+            $successes_needed = (int) ($params['successes_needed'] ?? 1);
+            $successes_so_far = (int) ($game_state['device_states'][$device_id_dd]['successes'] ?? 0);
+            $successes_so_far++;
+            $game_state['device_states'][$device_id_dd]['successes'] = $successes_so_far;
+            if ($successes_so_far >= $successes_needed) {
+              $disabled = TRUE;
+              $game_state['device_states'][$device_id_dd]['disabled'] = TRUE;
+            }
+          }
+          else {
+            $disabled = TRUE;
+          }
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = ['degree' => $degree_dd, 'disabled' => $disabled, 'triggered' => $triggered, 'used_tools' => $has_tools_dd, 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('disable_device', 'encounter', $actor_id, ['device_id' => $device_id_dd, 'degree' => $degree_dd, 'triggered' => $triggered, 'round' => $game_state['round'] ?? NULL]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1753–1756: Pick a Lock [2 actions, Manipulation, Trained]
+      // DC by lock quality: simple 15, average 20, good 25, superior 30.
+      // No thieves' tools: DC +5.
+      // Crit Failure: lock jammed; no further attempts until repaired.
+      // -----------------------------------------------------------------------
+      case 'pick_lock': {
+        // REQ 1753: Trained Thievery required.
+        $thievery_rank_pl = (int) ($params['thievery_proficiency_rank'] ?? 0);
+        if ($thievery_rank_pl < 1) {
+          return ['success' => FALSE, 'result' => ['error' => 'Pick a Lock requires Trained Thievery.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $lock_id_pl = $params['lock_id'] ?? NULL;
+
+        // REQ 1756: Jammed lock blocks further attempts.
+        if ($lock_id_pl && !empty($game_state['lock_states'][$lock_id_pl]['jammed'])) {
+          return ['success' => FALSE, 'result' => ['error' => 'This lock is jammed and cannot be picked until repaired.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        // REQ 1754: DC by lock quality.
+        $lock_quality_dcs = ['simple' => 15, 'average' => 20, 'good' => 25, 'superior' => 30];
+        $lock_quality_pl = $params['lock_quality'] ?? 'average';
+        $dc_pl = $lock_quality_dcs[$lock_quality_pl] ?? 20;
+
+        // REQ 1755: Without thieves' tools, DC +5 (improvised).
+        $has_tools_pl = !empty($params['has_thieves_tools']);
+        if (!$has_tools_pl) {
+          $dc_pl += 5;
+        }
+
+        $thievery_bonus_pl = (int) ($params['thievery_bonus'] ?? 0);
+        $d20_pl = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_pl = $d20_pl + $thievery_bonus_pl;
+        $degree_pl = $this->combatCalculator->calculateDegreeOfSuccess($total_pl, $dc_pl, $d20_pl);
+
+        $unlocked = FALSE;
+        $jammed = FALSE;
+
+        if (!isset($game_state['lock_states'])) {
+          $game_state['lock_states'] = [];
+        }
+
+        if ($degree_pl === 'critical_failure') {
+          // REQ 1756: Crit Failure jams the lock.
+          $jammed = TRUE;
+          if ($lock_id_pl) {
+            $game_state['lock_states'][$lock_id_pl]['jammed'] = TRUE;
+          }
+        }
+        elseif (in_array($degree_pl, ['critical_success', 'success'], TRUE)) {
+          $unlocked = TRUE;
+          if ($lock_id_pl) {
+            $game_state['lock_states'][$lock_id_pl]['locked'] = FALSE;
+          }
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 2);
+        $result = ['degree' => $degree_pl, 'unlocked' => $unlocked, 'jammed' => $jammed, 'lock_quality' => $lock_quality_pl, 'used_tools' => $has_tools_pl, 'secret' => TRUE];
+        $events[] = GameEventLogger::buildEvent('pick_lock', 'encounter', $actor_id, ['lock_id' => $lock_id_pl, 'lock_quality' => $lock_quality_pl, 'degree' => $degree_pl, 'jammed' => $jammed, 'round' => $game_state['round'] ?? NULL]);
         break;
       }
 
@@ -3116,6 +3333,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'sneak':
       // REQ 1721: Conceal an Object costs 1 action.
       case 'conceal_object':
+      // REQ 1747: Palm an Object costs 1 action.
+      case 'palm_object':
+      // REQ 1751: Steal costs 1 action.
+      case 'steal':
         return 1;
 
       case 'ready':
@@ -3126,6 +3347,10 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'long_jump':
       // REQ 1688: Administer First Aid costs 2 actions.
       case 'administer_first_aid':
+      // REQ 1748: Disable a Device costs 2 actions.
+      case 'disable_device':
+      // REQ 1753: Pick a Lock costs 2 actions.
+      case 'pick_lock':
         return 2;
 
       case 'cast_spell':
