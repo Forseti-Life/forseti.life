@@ -901,6 +901,20 @@ class CharacterManager {
       'weapons' => 'Trained in simple weapons',
       'spellcasting' => 'Divine spellcasting, Charisma',
       'trained_skills' => 3,
+      'mystery' => [
+        'required' => TRUE,
+        'options'  => ['ancestors', 'battle', 'bones', 'cosmos', 'flames', 'life', 'lore', 'tempest'],
+        'note'     => 'Grants initial/advanced/greater revelation spells and unique 4-stage curse. See ORACLE_MYSTERIES.',
+      ],
+      'focus_pool' => [
+        'start'  => 2,
+        'cap'    => 3,
+        'note'   => 'Oracle starts with 2 Focus Points (unique). Revelation spells carry Cursebound trait; casting one advances the curse stage.',
+      ],
+      'cursebound' => [
+        'rule'   => 'Every revelation spell carries the Cursebound trait. Casting any one advances the oracle curse tracker by one stage.',
+        'stages' => 4,
+      ],
     ],
     'swashbuckler' => [
       'id' => 'swashbuckler',
@@ -1177,7 +1191,7 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     'bard'     => ['cantrips' => 5, 'first' => 2],
     'druid'    => ['cantrips' => 5, 'first' => 2],
     'sorcerer' => ['cantrips' => 5, 'first' => 3],
-    'oracle'   => ['cantrips' => 5, 'first' => 2],
+    'oracle'   => ['cantrips' => 5, 'first' => 2, 'focus_pool_start' => 2],
     'witch'    => ['cantrips' => 5, 'first' => 1, 'familiar_cantrips' => 10, 'familiar_spells' => 5, 'familiar_model' => TRUE],
   ];
 
@@ -1189,45 +1203,411 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   const WITCH_HEXES = [
     'hex_cantrips' => [
       ['id' => 'evil-eye',         'name' => 'Evil Eye',         'traits' => ['Hex', 'Cantrip', 'Curse', 'Emotion', 'Fear', 'Mental', 'Occult'], 'free' => TRUE,
+        'sustain' => TRUE, 'will_save_ends' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'Imposes a –2 status penalty to a target\'s AC (sustained). Ends early if the target succeeds at a Will save. Auto-heightens to half witch level rounded up.'],
       ['id' => 'nudge-fate',       'name' => 'Nudge Fate',       'traits' => ['Hex', 'Cantrip', 'Divination', 'Fortune', 'Occult'], 'free' => TRUE,
+        'sustain' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'You subtly alter fate. One creature within 30 feet must reroll its next attack roll or saving throw and use the worse result (sustained).'],
       ['id' => 'stoke-the-heart',  'name' => 'Stoke the Heart',  'traits' => ['Hex', 'Cantrip', 'Divine', 'Emotion', 'Enchantment', 'Mental'], 'free' => TRUE,
+        'sustain' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'You fill an ally with zeal. The target gains a +1 status bonus to attack rolls and weapon damage rolls (sustained up to 1 minute).'],
       ['id' => 'shroud-of-night',  'name' => 'Shroud of Night',  'traits' => ['Hex', 'Cantrip', 'Darkness', 'Occult'], 'free' => TRUE,
+        'sustain' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'You create a cloak of darkness around a target (sustained). The target becomes concealed in dim light or darkness.'],
       ['id' => 'discern-secrets',  'name' => 'Discern Secrets',  'traits' => ['Hex', 'Cantrip', 'Arcane', 'Divination', 'Revelation'], 'free' => TRUE,
+        'sustain' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'You reveal one hidden secret about a target creature or object within 30 feet (sustained).'],
       ['id' => 'wilding-word',     'name' => 'Wilding Word',     'traits' => ['Hex', 'Cantrip', 'Enchantment', 'Mental', 'Primal'], 'free' => TRUE,
+        'sustain' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'You speak to animals or plants (sustained). They react favorably to you and may perform simple tasks.'],
       ['id' => 'clinging-ice',     'name' => 'Clinging Ice',     'traits' => ['Hex', 'Cantrip', 'Attack', 'Cold', 'Primal'], 'free' => TRUE,
+        'sustain' => TRUE, 'one_hex_per_turn' => TRUE, 'auto_heighten' => 'half_level_rounded_up',
         'description' => 'Ice clings to a target on a spell attack, dealing 1d4 cold damage and imposing a –10-foot status penalty to Speed (sustained).'],
     ],
     'regular_hexes' => [
-      ['id' => 'cackle',         'name' => 'Cackle',         'action_cost' => 1, 'traits' => ['Hex', 'Concentrate'], 'fp_cost' => 0,
-        'description' => 'You cackle to extend another active hex\'s duration by 1 round. This is a free action in some situations (e.g., when you\'re sustaining the hex).'],
-      ['id' => 'phase-familiar', 'name' => 'Phase Familiar', 'action_cost' => 1, 'trigger' => 'Familiar would take damage', 'traits' => ['Hex', 'Abjuration', 'Reaction'], 'fp_cost' => 1,
-        'description' => 'Your familiar briefly becomes incorporeal, avoiding the triggering damage entirely.'],
-      ['id' => 'veil-of-dreams',       'name' => 'Veil of Dreams',       'action_cost' => 2, 'traits' => ['Hex', 'Enchantment', 'Mental', 'Sleep'], 'fp_cost' => 1,  'lesson' => 'dreams',
+      ['id' => 'cackle',         'name' => 'Cackle',         'action_cost' => 1, 'traits' => ['Hex', 'Concentrate'], 'fp_cost' => 0, 'one_hex_per_turn' => TRUE,
+        'requires_active_hex' => TRUE,
+        'free_action_feat_required' => TRUE,
+        'description' => 'You cackle to extend another active hex\'s duration by 1 round. Requires an active sustained hex — fails gracefully if none. This is a free action only when unlocked by a feat; system checks for feat before allowing free-action trigger.'],
+      ['id' => 'phase-familiar', 'name' => 'Phase Familiar', 'action_cost' => 'reaction', 'trigger' => 'Familiar would take damage', 'traits' => ['Hex', 'Abjuration', 'Reaction'], 'fp_cost' => 1, 'one_hex_per_turn' => TRUE,
+        'incorporeal_brief' => TRUE,
+        'description' => 'Your familiar briefly becomes incorporeal, negating the triggering damage entirely. Incorporeal state is brief (one instance of damage negated); does not persist between uses.'],
+      ['id' => 'veil-of-dreams',       'name' => 'Veil of Dreams',       'action_cost' => 2, 'traits' => ['Hex', 'Enchantment', 'Mental', 'Sleep'], 'fp_cost' => 1,  'lesson' => 'dreams', 'one_hex_per_turn' => TRUE,
         'description' => 'Target must succeed at a Will save or become drowsy (–2 status to Perception; critical failure: also slowed 1).'],
-      ['id' => 'elemental-betrayal',   'name' => 'Elemental Betrayal',   'action_cost' => 2, 'traits' => ['Hex', 'Divination'], 'fp_cost' => 1,  'lesson' => 'elements',
+      ['id' => 'elemental-betrayal',   'name' => 'Elemental Betrayal',   'action_cost' => 2, 'traits' => ['Hex', 'Divination'], 'fp_cost' => 1,  'lesson' => 'elements', 'one_hex_per_turn' => TRUE,
         'description' => 'Target becomes vulnerable to a chosen element: next attack with that damage type gains +2 circumstance bonus to damage.'],
-      ['id' => 'life-boost',           'name' => 'Life Boost',           'action_cost' => 1, 'traits' => ['Hex', 'Healing', 'Positive'], 'fp_cost' => 1,  'lesson' => 'life',
+      ['id' => 'life-boost',           'name' => 'Life Boost',           'action_cost' => 1, 'traits' => ['Hex', 'Healing', 'Positive'], 'fp_cost' => 1,  'lesson' => 'life', 'one_hex_per_turn' => TRUE,
         'description' => 'You channel healing energy. Target regains 1d6+4 HP (scales with level).'],
-      ['id' => 'blood-ward',           'name' => 'Blood Ward',           'action_cost' => 2, 'traits' => ['Hex', 'Abjuration'], 'fp_cost' => 1,  'lesson' => 'protection',
+      ['id' => 'blood-ward',           'name' => 'Blood Ward',           'action_cost' => 2, 'traits' => ['Hex', 'Abjuration'], 'fp_cost' => 1,  'lesson' => 'protection', 'one_hex_per_turn' => TRUE,
         'description' => 'You protect a target from a specific damage type. Target gains +1 circumstance bonus to AC and saves against the chosen damage type until your next turn.'],
-      ['id' => 'needle-of-vengeance',  'name' => 'Needle of Vengeance',  'action_cost' => 1, 'traits' => ['Hex', 'Attack', 'Curse', 'Necromancy'], 'fp_cost' => 1,  'lesson' => 'vengeance',
+      ['id' => 'needle-of-vengeance',  'name' => 'Needle of Vengeance',  'action_cost' => 1, 'traits' => ['Hex', 'Attack', 'Curse', 'Necromancy'], 'fp_cost' => 1,  'lesson' => 'vengeance', 'one_hex_per_turn' => TRUE,
         'description' => 'A psychic needle impales the target. If the target attacks your ally before your next turn, it takes 2d6 mental damage.'],
-      ['id' => 'deceivers-cloak',      'name' => 'Deceiver\'s Cloak',    'action_cost' => 2, 'traits' => ['Hex', 'Illusion', 'Mental'], 'fp_cost' => 1,  'lesson' => 'mischief',
+      ['id' => 'deceivers-cloak',      'name' => 'Deceiver\'s Cloak',    'action_cost' => 2, 'traits' => ['Hex', 'Illusion', 'Mental'], 'fp_cost' => 1,  'lesson' => 'mischief', 'one_hex_per_turn' => TRUE,
         'description' => 'The target appears as a different creature for the duration (Will save to see through). Lasts until the target attacks or casts.'],
-      ['id' => 'malicious-shadow',     'name' => 'Malicious Shadow',     'action_cost' => 2, 'traits' => ['Hex', 'Attack', 'Shadow'], 'fp_cost' => 1,  'lesson' => 'shadow',
+      ['id' => 'malicious-shadow',     'name' => 'Malicious Shadow',     'action_cost' => 2, 'traits' => ['Hex', 'Attack', 'Shadow'], 'fp_cost' => 1,  'lesson' => 'shadow', 'one_hex_per_turn' => TRUE,
         'description' => 'Target\'s shadow becomes your weapon. Shadow attack deals 2d6 cold damage on a hit (spell attack roll).'],
-      ['id' => 'personal-blizzard',    'name' => 'Personal Blizzard',    'action_cost' => 2, 'traits' => ['Hex', 'Cold', 'Evocation', 'Primal'], 'fp_cost' => 1,  'lesson' => 'snow',
+      ['id' => 'personal-blizzard',    'name' => 'Personal Blizzard',    'action_cost' => 2, 'traits' => ['Hex', 'Cold', 'Evocation', 'Primal'], 'fp_cost' => 1,  'lesson' => 'snow', 'one_hex_per_turn' => TRUE,
         'description' => 'Blizzard surrounds target (Basic Reflex save for 4d6 cold). While sustained, target is buffeted (-2 penalty to ranged attacks).'],
-      ['id' => 'curse-of-death',       'name' => 'Curse of Death',       'action_cost' => 2, 'traits' => ['Hex', 'Curse', 'Death', 'Necromancy'], 'fp_cost' => 1,  'lesson' => 'death',
+      ['id' => 'curse-of-death',       'name' => 'Curse of Death',       'action_cost' => 2, 'traits' => ['Hex', 'Curse', 'Death', 'Necromancy'], 'fp_cost' => 1,  'lesson' => 'death', 'one_hex_per_turn' => TRUE,
         'description' => 'Target must succeed at a Fortitude save or gain the Doomed 1 condition. On a critical failure, Doomed 2 and a –1 status penalty to all saving throws.'],
-      ['id' => 'restorative-moment',   'name' => 'Restorative Moment',   'action_cost' => 2, 'traits' => ['Hex', 'Healing', 'Positive', 'Primal'], 'fp_cost' => 1,  'lesson' => 'renewal',
+      ['id' => 'restorative-moment',   'name' => 'Restorative Moment',   'action_cost' => 2, 'traits' => ['Hex', 'Healing', 'Positive', 'Primal'], 'fp_cost' => 1,  'lesson' => 'renewal', 'one_hex_per_turn' => TRUE,
         'description' => 'Touched target regains HP equal to twice your spellcasting modifier and is no longer Sickened 1.'],
+    ],
+  ];
+
+  /**
+   * Oracle mysteries with curse progressions and revelation focus spells (APG).
+   *
+   * Each mystery defines:
+   *   - initial_revelation: rank-1 focus spell (cursed; cost 1 FP)
+   *   - advanced_revelation: rank-3 focus spell (cursed; cost 1 FP)
+   *   - greater_revelation: rank-7 focus spell (cursed; cost 1 FP)
+   *   - curse_stages: 4 stages (basic/minor/moderate/major) — unique per mystery
+   *
+   * All revelation spells have the Cursebound trait; casting one advances the
+   * curse stage tracker. The curse is unique to each mystery (not a shared condition).
+   */
+  const ORACLE_MYSTERIES = [
+    'ancestors' => [
+      'id'          => 'ancestors',
+      'name'        => 'Ancestors',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'ancestral-touch', 'name' => 'Ancestral Touch',
+        'traits' => ['Cursebound', 'Divine', 'Necromancy', 'Revelation'],
+        'description' => 'You touch a creature, channeling an ancestor\'s power: deal 1d4 negative damage and impose –1 status penalty to saves (Will negates). Scales with heightening.',
+      ],
+      'advanced_revelation' => [
+        'id' => 'ancestral-defense', 'name' => 'Ancestral Defense',
+        'traits' => ['Cursebound', 'Divine', 'Necromancy', 'Revelation'],
+        'description' => 'You draw the protection of an ancestor. Target gains resistance 5 to all damage for 1 round.',
+      ],
+      'greater_revelation' => [
+        'id' => 'ancestral-form', 'name' => 'Ancestral Form',
+        'traits' => ['Cursebound', 'Divine', 'Morph', 'Necromancy', 'Revelation', 'Transmutation'],
+        'description' => 'You briefly manifest in ancestral form, gaining the incorporeal trait, fly speed 30 ft, and +2 status to AC for 1 round.',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Your ancestors whisper constantly. –1 status to Perception checks.',
+        'minor'    => 'Ancestors grow insistent. –1 status to initiative rolls and –1 to skill checks until end of next turn each time you cast a spell.',
+        'moderate' => 'Ancestors overwhelm your senses. Fatigued condition while this stage persists.',
+        'major'    => 'Ancestors take partial control. After each spell, roll 1d4: 1–2 you are stunned 1; 3–4 you act normally.',
+      ],
+    ],
+    'battle' => [
+      'id'          => 'battle',
+      'name'        => 'Battle',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'battlefield-persistence', 'name' => 'Battlefield Persistence',
+        'traits' => ['Cursebound', 'Divine', 'Revelation', 'Transmutation'],
+        'description' => 'You stand firm against blows. You gain resistance 2 to all physical damage until the start of your next turn. Scales with heightening.',
+      ],
+      'advanced_revelation' => [
+        'id' => 'weapon-surge', 'name' => 'Weapon Surge',
+        'traits' => ['Cursebound', 'Divine', 'Revelation', 'Transmutation'],
+        'description' => 'One weapon you hold becomes a +1 striking weapon for 1 minute.',
+      ],
+      'greater_revelation' => [
+        'id' => 'divine-immolation', 'name' => 'Divine Immolation',
+        'traits' => ['Cursebound', 'Divine', 'Revelation', 'Transmutation'],
+        'description' => 'You are suffused with divine combat energy. Gain the effects of haste and +2 status to weapon damage rolls for 1 minute.',
+      ],
+      'curse_stages' => [
+        'basic'    => 'The battle calls to you. –1 status to Stealth checks and Diplomacy checks.',
+        'minor'    => 'You hear clashing blades. Must succeed at a DC 14 flat check or become distracted when using Recall Knowledge.',
+        'moderate' => 'The battle rage seizes you. At the start of each turn, you must use a Strike or Stride toward the nearest foe.',
+        'major'    => 'Battle fully possesses you. You are quickened but must use the extra action to Strike; you can\'t voluntarily retreat.',
+      ],
+    ],
+    'bones' => [
+      'id'          => 'bones',
+      'name'        => 'Bones',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'soul-siphon', 'name' => 'Soul Siphon',
+        'traits' => ['Cursebound', 'Divine', 'Necromancy', 'Revelation'],
+        'description' => 'Deal 1d6 negative damage to a target within 30 feet (Fortitude halves). You regain HP equal to half the damage dealt.',
+      ],
+      'advanced_revelation' => [
+        'id' => 'death-s-call', 'name' => 'Death\'s Call',
+        'traits' => ['Cursebound', 'Death', 'Divine', 'Necromancy', 'Revelation'],
+        'description' => 'Target must succeed at a Fortitude save or gain the Doomed 1 condition for 1 minute (critical failure: Doomed 2).',
+      ],
+      'greater_revelation' => [
+        'id' => 'undying-form', 'name' => 'Undying Form',
+        'traits' => ['Cursebound', 'Divine', 'Necromancy', 'Revelation'],
+        'description' => 'You temporarily assume a deathly form. Gain negative healing, resistance 10 to negative damage, and immunity to the paralyzed condition for 1 minute.',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Death lingers about you. Living creatures adjacent to you take –1 circumstance penalty to saves vs. fear.',
+        'minor'    => 'Your flesh grows pallid and cold. –2 circumstance penalty to Deception and Diplomacy checks with living creatures.',
+        'moderate' => 'Half your face becomes skeletal. Allies must succeed at a DC 10 flat check or become frightened 1 when they first see you each combat.',
+        'major'    => 'You oscillate between life and unlife. At the start of each turn roll 1d6: on 1–2, take 1d6 negative damage; on 3–6, regain 1d6 HP.',
+      ],
+    ],
+    'cosmos' => [
+      'id'          => 'cosmos',
+      'name'        => 'Cosmos',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'spray-of-stars', 'name' => 'Spray of Stars',
+        'traits' => ['Cursebound', 'Divine', 'Evocation', 'Fire', 'Light', 'Revelation'],
+        'description' => 'You spray a burst of starlight in a 15-foot cone. Each creature takes 1d4 fire damage (Basic Reflex). Scales with heightening.',
+      ],
+      'advanced_revelation' => [
+        'id' => 'interstellar-void', 'name' => 'Interstellar Void',
+        'traits' => ['Cursebound', 'Cold', 'Divine', 'Evocation', 'Revelation'],
+        'description' => 'The void between stars tears at a target. Deal 2d6 cold damage (Fortitude halves) and impose the slowed 1 condition on a critical failure.',
+      ],
+      'greater_revelation' => [
+        'id' => 'moonlight-bridge', 'name' => 'Moonlight Bridge',
+        'traits' => ['Cursebound', 'Conjuration', 'Divine', 'Light', 'Revelation', 'Teleportation'],
+        'description' => 'You create a shimmering bridge of moonlight (30 ft, 5 ft wide) for 1 minute. Creatures on it gain a fly speed of 30 ft and are concealed from darkness-based attacks.',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Stars appear around your head. You gain a +1 status bonus to Astronomy-related Recall Knowledge but –1 to Intimidation.',
+        'minor'    => 'Your eyes shine like stars. You are dazzled in bright light; you gain low-light vision in dim light.',
+        'moderate' => 'Cosmic energy consumes your attention. –2 status penalty to Perception checks for creatures within 30 ft.',
+        'major'    => 'The cosmos speaks through you. At the start of your turn roll 1d6: 1–3 you are blinded for 1 round; 4–6 you gain +2 status to spell attack rolls for 1 round.',
+      ],
+    ],
+    'flames' => [
+      'id'          => 'flames',
+      'name'        => 'Flames',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'incendiary-aura', 'name' => 'Incendiary Aura',
+        'traits' => ['Cursebound', 'Divine', 'Evocation', 'Fire', 'Revelation'],
+        'description' => 'You emit a 10-foot aura of flame until the start of your next turn. Creatures that enter or start their turn in the aura take 1d6 fire damage (Basic Reflex).',
+      ],
+      'advanced_revelation' => [
+        'id' => 'whirling-flames', 'name' => 'Whirling Flames',
+        'traits' => ['Cursebound', 'Divine', 'Evocation', 'Fire', 'Revelation'],
+        'description' => 'Flames swirl around you in a 15-ft burst. Each creature in the area takes 2d6 fire damage (Basic Reflex); on a critical failure, target also catches fire (persistent fire 1d4).',
+      ],
+      'greater_revelation' => [
+        'id' => 'flames-oracle-form', 'name' => 'Form of the Flames',
+        'traits' => ['Cursebound', 'Divine', 'Evocation', 'Fire', 'Morph', 'Revelation', 'Transmutation'],
+        'description' => 'You temporarily become a being of fire. Gain immunity to fire, fire resistance 15, and deal 2d6 fire splash damage to adjacent creatures hit by your Strikes for 1 minute.',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Flames flicker around your hands. +1 status to fire damage but –1 AC against cold attacks.',
+        'minor'    => 'Fire crackles in your eyes. Gain fire resistance 5 but cold damage you take is increased by 2.',
+        'moderate' => 'You emit smoke and heat. Creatures adjacent to you must succeed at a DC 12 flat check or become sickened 1 from smoke.',
+        'major'    => 'You are partially aflame. At the start of each turn, adjacent creatures take 1d6 fire damage (no save); you also take 1d6 fire damage.',
+      ],
+    ],
+    'life' => [
+      'id'          => 'life',
+      'name'        => 'Life',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'life-link', 'name' => 'Life Link',
+        'traits' => ['Cursebound', 'Divine', 'Healing', 'Necromancy', 'Positive', 'Revelation'],
+        'description' => 'Form a temporary life-link with a willing creature within 30 ft. While the link persists, when that creature would die, you can spend a reaction to transfer the killing blow\'s damage to yourself.',
+      ],
+      'advanced_revelation' => [
+        'id' => 'delay-affliction', 'name' => 'Delay Affliction',
+        'traits' => ['Cursebound', 'Divine', 'Healing', 'Necromancy', 'Revelation'],
+        'description' => 'Touch a creature afflicted with a disease or poison. Suspend the affliction for 1 day (does not progress, does not recover naturally).',
+      ],
+      'greater_revelation' => [
+        'id' => 'life-oracle-font', 'name' => 'Heaven\'s Thunder',
+        'traits' => ['Cursebound', 'Divine', 'Healing', 'Necromancy', 'Positive', 'Revelation'],
+        'description' => 'Release a torrent of life energy in a 30-foot burst. Living allies regain 4d6+10 HP; undead in the area take 4d6+10 positive damage (Basic Fortitude).',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Life force bleeds from you. You gain a +2 status bonus to Healing skill checks but –1 HP per minute of combat.',
+        'minor'    => 'Your healing overflows. Each time you restore HP to another creature, you take 1 persistent bleed damage.',
+        'moderate' => 'You are suffused with life. At the start of each turn, you automatically attempt to counteract any disease or poison on yourself (counteract level = half your level).',
+        'major'    => 'You are overwhelmed by life energy. At the start of each turn, roll 1d4: on 1, take 2d6 positive damage (yes, too much life hurts); on 2–4, regain 1d6 HP.',
+      ],
+    ],
+    'lore' => [
+      'id'          => 'lore',
+      'name'        => 'Lore',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'brain-drain', 'name' => 'Brain Drain',
+        'traits' => ['Cursebound', 'Divine', 'Divination', 'Mental', 'Revelation'],
+        'description' => 'Force a creature to share its knowledge. Target takes 1d6 mental damage (Will halves) and you learn a piece of knowledge it holds (GM adjudicates).',
+      ],
+      'advanced_revelation' => [
+        'id' => 'the-lore-oracle-sight', 'name' => 'Ancestral Clairvoyance',
+        'traits' => ['Cursebound', 'Detection', 'Divine', 'Divination', 'Revelation'],
+        'description' => 'Your senses extend. You gain tremorsense 15 ft, darkvision, and +2 to all Perception checks for 1 minute.',
+      ],
+      'greater_revelation' => [
+        'id' => 'dread-secret', 'name' => 'Dread Secret',
+        'traits' => ['Cursebound', 'Divine', 'Divination', 'Emotion', 'Fear', 'Mental', 'Revelation'],
+        'description' => 'You tear a terrible secret from the universe and speak it aloud. All creatures within 60 ft that can hear you must succeed at a Will save or become frightened 2 (critical failure: frightened 4 + fleeing for 1 round).',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Forbidden knowledge intrudes. +2 status to Recall Knowledge checks; –1 penalty to Will saves vs. mental effects.',
+        'minor'    => 'Whispers fill your head. –2 status penalty to Perception; +2 status to all Recall Knowledge checks.',
+        'moderate' => 'Lore overwhelms you. At the start of each turn, roll 1d6: on 1–2, you are confused until the start of your next turn.',
+        'major'    => 'You know too much. At the start of each turn, you must succeed at a DC 20 Will save or share one of your active secrets with the GM (mechanic: GM may reveal a held piece of info to foes for 1 round).',
+      ],
+    ],
+    'tempest' => [
+      'id'          => 'tempest',
+      'name'        => 'Tempest',
+      'tradition'   => 'divine',
+      'initial_revelation' => [
+        'id' => 'tempest-touch', 'name' => 'Tempest Touch',
+        'traits' => ['Cursebound', 'Divine', 'Electricity', 'Revelation', 'Transmutation'],
+        'description' => 'Your touch crackles with lightning. Deal 1d4 electricity damage + 1d4 sonic damage (Basic Fortitude) to a touched target. Scales with heightening.',
+      ],
+      'advanced_revelation' => [
+        'id' => 'lightning-form', 'name' => 'Lightning Form',
+        'traits' => ['Cursebound', 'Divine', 'Electricity', 'Morph', 'Revelation', 'Transmutation'],
+        'description' => 'Partially transform into lightning. Gain electricity resistance 10, a 10-ft-wide line of electricity (1d6 per 2 levels) as a free action once per turn, and fly speed 30 ft for 1 minute.',
+      ],
+      'greater_revelation' => [
+        'id' => 'tempest-form', 'name' => 'Form of the Tempest',
+        'traits' => ['Cursebound', 'Divine', 'Electricity', 'Morph', 'Revelation', 'Sonic', 'Transmutation'],
+        'description' => 'Fully become a storm. Gain immunity to electricity and sonic, Fly speed 60 ft, and when hit by a melee attack the attacker takes 1d12 electricity damage (no save) for 1 minute.',
+      ],
+      'curse_stages' => [
+        'basic'    => 'Static crackles from your hair. +1 status to electricity spell damage; –1 status to Stealth and Thievery checks.',
+        'minor'    => 'Wind roars around you. Ranged attacks against you take a –1 circumstance penalty; ranged attacks you make take a –1 circumstance penalty.',
+        'moderate' => 'Lightning dances across your skin. Creatures that hit you with a metal weapon take 1d6 electricity damage (no save).',
+        'major'    => 'You become a storm. At the start of each turn, roll 1d4: on 1–2, a random creature within 30 ft takes 2d6 electricity damage; on 3–4, you gain +2 status to spell attack rolls for 1 round.',
+      ],
+    ],
+  ];
+
+  /**
+   * Bard APG composition focus spells (Advanced Player's Guide).
+   *
+   * These are composition spells granted by APG bard feats (e.g., Warrior Muse
+   * and associated feats). All cost 1 Focus Point and are composition spells.
+   * Song of Strength's circumstance bonus does not stack with other circumstance
+   * bonuses to Athletics.
+   */
+  const BARD_FOCUS_SPELLS = [
+    'hymn-of-healing' => [
+      'id'          => 'hymn-of-healing',
+      'name'        => 'Hymn of Healing',
+      'type'        => 'composition',
+      'action_cost' => 2,
+      'fp_cost'     => 1,
+      'sustain'     => TRUE,
+      'traits'      => ['Composition', 'Focus', 'Healing', 'Occult'],
+      'healing'     => ['per_round' => '2 HP', 'heighten_scaling' => TRUE],
+      'description' => 'A sustained composition focus spell. Heals 2 HP per round while sustained. Scales with spell heightening (additional HP per rank above base).',
+    ],
+    'song-of-strength' => [
+      'id'          => 'song-of-strength',
+      'name'        => 'Song of Strength',
+      'type'        => 'composition',
+      'action_cost' => 2,
+      'fp_cost'     => 1,
+      'traits'      => ['Composition', 'Emotion', 'Enchantment', 'Focus', 'Mental', 'Occult'],
+      'bonus'       => [
+        'type'       => 'circumstance',
+        'stat'       => 'Athletics',
+        'value'      => 2,
+        'stacking'   => FALSE,
+        'stack_note' => 'Circumstance bonus — does not stack with other circumstance bonuses to Athletics.',
+      ],
+      'description' => 'Grants all allies in the area a +2 circumstance bonus to Athletics checks for the duration. Circumstance bonuses do not stack.',
+    ],
+    'gravity-weapon' => [
+      'id'          => 'gravity-weapon',
+      'name'        => 'Gravity Weapon',
+      'type'        => 'composition',
+      'action_cost' => 1,
+      'fp_cost'     => 1,
+      'traits'      => ['Composition', 'Focus', 'Occult', 'Transmutation'],
+      'bonus'       => [
+        'type'              => 'status',
+        'stat'              => 'weapon damage',
+        'value_source'      => 'number_of_weapon_damage_dice',
+        'value_note'        => 'Status bonus to damage = number of weapon damage dice (e.g., a 2d6 weapon grants +2). Doubles vs. Large or larger targets (+4 in that case).',
+        'doubles_vs_large'  => TRUE,
+      ],
+      'description' => 'A status bonus to damage equal to the weapon\'s damage dice count. Doubles against Large or larger targets. Damage-dice count sourced from the weapon\'s damage dice (a 2d6 weapon grants +2; vs. Large+ grants +4).',
+    ],
+  ];
+
+  /**
+   * Ranger Warden Spells (APG focus spells).
+   *
+   * Warden spells use the ranger's primal focus pool.
+   * Refocus activity: 10 minutes spent in nature.
+   * Warden spell effects are terrain-based or creature-type bonuses per spell.
+   */
+  const RANGER_WARDEN_SPELLS = [
+    'pool' => [
+      'tradition'      => 'primal',
+      'refocus_method' => '10 minutes spent in nature',
+      'pool_shared'    => TRUE,
+      'pool_note'      => 'Warden spells draw from the same primal focus pool as other ranger focus spells. Refocus in nature counts toward the general focus pool (same FP pool, different activity name).',
+    ],
+    'spells' => [
+      'animal-form' => [
+        'id'          => 'animal-form',
+        'name'        => 'Animal Form (Warden)',
+        'action_cost' => 2,
+        'fp_cost'     => 1,
+        'traits'      => ['Focus', 'Morph', 'Polymorph', 'Primal', 'Transmutation'],
+        'description' => 'Assume the form of a small or medium animal native to the terrain you scouted. Gain that animal\'s natural attacks and movement modes for 1 minute.',
+      ],
+      'terrain-form' => [
+        'id'          => 'terrain-form',
+        'name'        => 'Terrain Form',
+        'action_cost' => 2,
+        'fp_cost'     => 1,
+        'traits'      => ['Focus', 'Morph', 'Primal', 'Transmutation'],
+        'terrain_based' => TRUE,
+        'description' => 'Your body adapts to the favored terrain. Gain a movement benefit (climb speed, swim speed, burrow speed, or similar) appropriate to the terrain for 10 minutes.',
+      ],
+      'warden-s-boon' => [
+        'id'          => 'wardens-boon',
+        'name'        => "Warden's Boon",
+        'action_cost' => 1,
+        'fp_cost'     => 1,
+        'traits'      => ['Focus', 'Primal', 'Transmutation'],
+        'creature_type_bonus' => TRUE,
+        'description' => 'You and allies within 30 ft gain +1 status bonus to attack rolls and skill checks against creatures of a type matching your Warden Spells feat selection for 1 minute.',
+      ],
+    ],
+  ];
+
+  /**
+   * Focus pool configuration by class (APG).
+   *
+   * Defines the starting focus pool size and expansion rules.
+   * Oracle starts at 2 (unique — not the normal 1).
+   * Each additional focus spell source may expand the pool (cap: 3).
+   */
+  const FOCUS_POOLS = [
+    'oracle' => [
+      'start'     => 2,
+      'cap'       => 3,
+      'expand_per_source' => TRUE,
+      'note'      => 'Oracle focus pool starts at 2 Focus Points (unique; not the default 1). Each additional focus spell source (revelation feats, domain spells) expands the pool by 1 up to the cap of 3.',
+    ],
+    'witch' => [
+      'start'     => 1,
+      'cap'       => 3,
+      'expand_per_source' => TRUE,
+      'note'      => 'Witch focus pool starts at 1 Focus Point. Expands by 1 for each additional focus spell source (lesson hexes, patron feats) up to a cap of 3.',
+    ],
+    'bard' => [
+      'start'     => 1,
+      'cap'       => 3,
+      'expand_per_source' => TRUE,
+      'note'      => 'Bard focus pool starts at 1 Focus Point. APG composition spells (Hymn of Healing, Song of Strength, Gravity Weapon) expand the pool when their granting feats are taken.',
+    ],
+    'ranger' => [
+      'start'     => 1,
+      'cap'       => 3,
+      'tradition' => 'primal',
+      'expand_per_source' => TRUE,
+      'note'      => 'Ranger warden spell pool is primal. Refocus requires 10 minutes in nature. Pool shared across all ranger focus spells.',
     ],
   ];
 
