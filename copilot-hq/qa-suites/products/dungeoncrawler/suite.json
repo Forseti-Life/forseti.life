@@ -3182,6 +3182,250 @@
           "status": "active"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-fighter-phpunit",
+      "label": "Fighter Class — identity/stats (HP10+CON, Expert weapons/perception/saves), Attack of Opportunity (once per trigger, no MAP), combat traits (Press/MAP-gate, Stance/one-active/cooldown, Flourish/one-per-turn), Power Attack scaling, feat progression, edge cases, auth guards",
+      "type": "phpunit",
+      "feature_id": "dc-cr-class-fighter",
+      "command": "./vendor/bin/phpunit --filter=Fighter tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-class-fighter-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. Dependency: TC-FGT-04/05/06/21 depend on dc-cr-equipment-system weapon/armor entity existence (in-progress Release B). If equipment-system ships first, all 28 TCs activate immediately. If not, these 4 TCs are pending-dev-confirmation. Regression risks: Expert weapons/perception init (class-agnostic default may silently apply Trained); Expert Reflex+Fortitude simultaneously (overwrite risk); AoO MAP isolation (must not increment attack counter); Press MAP-state evaluation timing; stance cooldown cross-encounter leak; flourish per-turn reset.",
+      "test_cases": [
+        {
+          "id": "TC-FGT-01",
+          "description": "Fighter exists as selectable class; STR or DEX as key ability boost at level 1 (player chooses; no other key ability accepted)",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testFighterExistsWithStrOrDexKeyAbility",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-02",
+          "description": "Fighter HP = 10 + CON modifier per level (CON 14 → Level 1 HP=12; Level 2 HP=24)",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testHpCalculation",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-03",
+          "description": "Fighter initial saves/perception: Expert Perception, Expert Fortitude, Expert Reflex, Trained Will",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testInitialSavesAndPerception",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-04",
+          "description": "Fighter initial weapon proficiencies: Expert simple/martial/unarmed; Trained advanced weapons",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testInitialWeaponProficiencies",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "notes": "Depends on dc-cr-equipment-system weapon entity existence (in-progress Release B). Activate when equipment-system ships."
+        },
+        {
+          "id": "TC-FGT-05",
+          "description": "Fighter initial armor proficiencies: Trained light, medium, heavy, unarmored",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testInitialArmorProficiencies",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "notes": "Depends on dc-cr-equipment-system armor entity existence (in-progress Release B). Activate when equipment-system ships."
+        },
+        {
+          "id": "TC-FGT-06",
+          "description": "Fighter Expert weapons at level 1 is unique: Fighter simple_weapons=Expert vs Champion simple_weapons=Trained",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testExpertWeaponsUniqueAtLevel1",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "notes": "Comparative check requires weapon entity existence from dc-cr-equipment-system. Activate when equipment-system ships."
+        },
+        {
+          "id": "TC-FGT-07",
+          "description": "Attack of Opportunity granted at level 1 as class feature (reaction type, available at level 1)",
+          "suite_type": "unit",
+          "class_method": "FighterCombatTest::testAttackOfOpportunityGrantedAtLevel1",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-08",
+          "description": "Attack of Opportunity fires only once per triggering event; second AoO on same trigger rejected",
+          "suite_type": "unit",
+          "class_method": "FighterCombatTest::testAttackOfOpportunityOncePerTrigger",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-09",
+          "description": "Attack of Opportunity does not count toward MAP; subsequent attacks retain same MAP penalty as before AoO",
+          "suite_type": "unit",
+          "class_method": "FighterCombatTest::testAttackOfOpportunityNoMapPenalty",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-10",
+          "description": "Press trait: blocked at first action of turn (no MAP); error references MAP requirement",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testPressBlockedWithNoMap",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-11",
+          "description": "Press trait: allowed when under MAP (after first attack of turn)",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testPressAllowedUnderMap",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-12",
+          "description": "Press trait: cannot be Readied; Ready blocked for Press actions",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testPressCannotBeReadied",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-13",
+          "description": "Press trait: failure result does NOT apply critical failure effects (only normal failure effects)",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testPressFailureNoCritFailEffect",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-14",
+          "description": "Stance trait: only one stance active at a time; activating second stance ends the first",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testOnlyOneStanceActive",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-15",
+          "description": "Stance trait: 1-round cooldown on stance actions; second stance action same turn blocked",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testStanceOneRoundCooldown",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-16",
+          "description": "Stance ends on knockout (active_stance=null after knockout trigger); same for end-of-encounter",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testStanceEndsOnKnockout",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-17",
+          "description": "Two stances simultaneously not permitted: data-layer constraint enforced (only one stance_active flag can be true)",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testTwoStancesSimultaneouslyBlocked",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-18",
+          "description": "Flourish trait: only one flourish action per turn; second flourish same turn blocked",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testOnlyOneFlourishPerTurn",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-19",
+          "description": "Flourish limit failure mode: second flourish in same turn explicitly blocked (failure-mode origin traceable)",
+          "suite_type": "unit",
+          "class_method": "FighterTraitTest::testSecondFlourishBlockedIsFailureMode",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-20",
+          "description": "Power Attack counts as 2 MAP attacks: MAP penalty = -10 after Power Attack (not -5)",
+          "suite_type": "unit",
+          "class_method": "FighterCombatTest::testPowerAttackCountsAsTwoMapAttacks",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-21",
+          "description": "Power Attack damage die scaling: +1 extra die at level 1; +2 at level 10; +3 at level 18",
+          "suite_type": "unit",
+          "class_method": "FighterCombatTest::testPowerAttackDieScaling",
+          "ac_tag": "NEW",
+          "status": "pending-dev-confirmation",
+          "notes": "Exact die progression requires weapon damage die catalog from dc-cr-equipment-system (in-progress Release B). Activate when equipment-system ships."
+        },
+        {
+          "id": "TC-FGT-22",
+          "description": "Class feat schedule: class feat at level 1 and every even level (1, 2, 4; not at level 3)",
+          "suite_type": "unit",
+          "class_method": "FighterFeatProgressionTest::testClassFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-23",
+          "description": "Ability boost schedule: boost slot at levels 5, 10, 15, 20 (not at level 4)",
+          "suite_type": "unit",
+          "class_method": "FighterFeatProgressionTest::testAbilityBoostSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-24",
+          "description": "Feat schedule: skill feats at every even level; general feats at 3/7/11/15/19; ancestry feats at 5/9/13/17",
+          "suite_type": "unit",
+          "class_method": "FighterFeatProgressionTest::testFeatSchedule",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-25",
+          "description": "Level-gated features do not appear before required level (no ability boost or general feat at level 1)",
+          "suite_type": "unit",
+          "class_method": "FighterLevelFeaturesTest::testNoEarlyLevelFeatures",
+          "ac_tag": "TEST-ONLY",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-26",
+          "description": "Press actions blocked without prior attack (edge-case source): identical to TC-FGT-10; separate entry for AC traceability",
+          "suite_type": "unit",
+          "class_method": "FighterEdgeCaseTest::testPressBlockedWithoutPriorAttack",
+          "ac_tag": "NEW",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-27",
+          "description": "Player cannot modify another player Fighter character; cross-character mutation returns 403",
+          "suite_type": "unit",
+          "class_method": "FighterClassTest::testCannotModifyOtherPlayersCharacter",
+          "ac_tag": "permissions",
+          "status": "active"
+        },
+        {
+          "id": "TC-FGT-28",
+          "description": "QA audit still passes after module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "ac_tag": "audit",
+          "status": "active"
+        }
+      ]
     }
   ],
   "_schema_notes": [
