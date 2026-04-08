@@ -15,6 +15,7 @@
 |---|---|---|---|
 | 20260405-forseti-release-c | **shipped** | LangGraph Telemetry Foundation | Telemetry schema fix, dashboard path fix, feature progress auto-refresh |
 | 20260405-forseti-release-c (Phase 1b) | **shipped** | Console Stubs Scaffold | 7-section console route structure + LangGraphConsoleStubController |
+| 20260408-forseti-release-d (Phase 1c) | **shipped** | LangGraph UI Context Enrichment | Workflow Registry, context banners, key terms glossaries on all 15 pages; Live/Stub status per console subsection |
 | 20260408-forseti-release-d | **in-flight** | Agent Tracker Core + Schema | copilot_agent_tracker DB + telemetry API + admin dashboard UI |
 | forseti-release-e | **planned** | Console Wiring — Run + Session | Wire Run/Session panels to live orchestrator tick data |
 | forseti-release-f | **planned** | Console Wiring — Observe + Feature Progress | Node traces, metrics, drift detection wired to tick stream |
@@ -51,6 +52,21 @@
 | Section definitions | home (graph contract, runtime objects, durability model, control gates); build (state schema, nodes/routing, subgraphs, tool calling, prompts); test (path scenarios, checkpoint replay, eval scorecards, safety gates); run (threads/runs, stream events, resume/retry, concurrency); observe (node traces, runtime metrics, drift/anomalies, alerts); release (graph versions, promotion flow, canary controls); config |
 
 **QA verdict:** APPROVE (2026-04-06) — all console routes return 403 for anonymous (correct), no PHP errors
+
+---
+
+### forseti-release-d (Phase 1c) — LangGraph UI Context Enrichment
+**Theme:** Eliminate all ambiguity on LangGraph management pages; add Workflow Registry and Live/Stub indicators
+
+**Delivered:**
+| Item | Commits | Notes |
+|---|---|---|
+| Workflow Registry on Dashboard home | `848a38621` | Groups workflows by Scope (System/Site) with status and console links |
+| `renderLangGraphContextBanner()` + `renderLangGraphKeyTerms()` helpers | committed | DashboardController — blue info block + collapsible `<details>` glossary panel |
+| `renderConsoleContext()` + `renderKeyTerms()` helpers | committed | LangGraphConsoleStubController — same pattern |
+| Context banners + key terms: all 8 Dashboard LangGraph pages | `a630b6171` | Dashboard home, Workflow Mgmt, Session, Feature Flow, Parity, Release Status, Release Evidence, Release Triage |
+| Context banners + key terms: all 7 Console pages | committed | home, run, observe, build, test, release, admin |
+| Live/Stub status per subsection in section nav tables | `5ead323e8` | `buildSectionRows()` checks 20 wired keys; green 🟢 Live or grey ⬜ Stub |
 
 ---
 
