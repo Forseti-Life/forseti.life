@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-08T12:29:31Z
+Generated: 2026-04-08T13:06:31Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -144,7 +144,8 @@ Generated: 2026-04-08T12:29:31Z
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | in_progress | P0 (ROI 1000) |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | in_progress | P0 |  |  |  |
 | forseti-jobhunter-profile-refactor | forseti.life | job_hunter | done | P2 |  |  |  |
-| forseti-jobhunter-schema-fix | forseti.life | job_hunter | in_progress | P2 |  |  |  |
+| forseti-jobhunter-schema-fix | forseti.life | job_hunter | done | P2 |  |  |  |
+| forseti-langgraph-ui | forseti.life | copilot_agent_tracker | in_progress | P1 |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
 ## Key metric: auto-remediation rate

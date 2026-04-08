@@ -8,9 +8,119 @@ use Drupal\Core\Url;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
- * Clean-slate LangGraph management console stubs.
+ * LangGraph management console — live data wired for Home, Run, Observe.
+ *
+ * Build, Test, Release, Admin sections remain structural stubs pending
+ * their respective feature implementations.
  */
 final class LangGraphConsoleStubController extends ControllerBase {
+
+  // Paths relative to COPILOT_HQ_ROOT.
+  const TICKS_RELATIVE   = 'inbox/responses/langgraph-ticks.jsonl';
+  const PARITY_RELATIVE  = 'inbox/responses/langgraph-parity-latest.json';
+  const FEATURE_PROGRESS = 'dashboards/FEATURE_PROGRESS.md';
+
+  // -------------------------------------------------------------------------
+  // Data helpers
+  // -------------------------------------------------------------------------
+
+  /**
+   * Resolve a path under COPILOT_HQ_ROOT.
+   */
+  private function hqPath(string $relative): string {
+    $root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
+    return $root . '/' . ltrim($relative, '/');
+  }
+
+  /**
+   * Read a JSON file safely, returning [] on any failure.
+   *
+   * @return array<mixed>
+   */
+  private function readJson(string $path): array {
+    if (!is_readable($path)) {
+      return [];
+    }
+    try {
+      $raw = (string) file_get_contents($path);
+      $decoded = json_decode($raw, TRUE);
+      return is_array($decoded) ? $decoded : [];
+    }
+    catch (\Throwable) {
+      return [];
+    }
+  }
+
+  /**
+   * Read the last JSON object from a JSONL file safely.
+   *
+   * @return array<mixed>
+   */
+  private function readLastJsonl(string $path): array {
+    if (!is_readable($path)) {
+      return [];
+    }
+    try {
+      $lines = @file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: [];
+      if (!$lines) {
+        return [];
+      }
+      $decoded = json_decode(trim((string) end($lines)), TRUE);
+      return is_array($decoded) ? $decoded : [];
+    }
+    catch (\Throwable) {
+      return [];
+    }
+  }
+
+  /**
+   * Load the last tick and parity data in one call.
+   *
+   * @return array{tick: array<mixed>, parity: array<mixed>}
+   */
+  private function loadTelemetry(): array {
+    return [
+      'tick'   => $this->readLastJsonl($this->hqPath(self::TICKS_RELATIVE)),
+      'parity' => $this->readJson($this->hqPath(self::PARITY_RELATIVE)),
+    ];
+  }
+
+  /**
+   * Return a status badge markup string.
+   */
+  private function badge(bool|null $ok, string $pass = 'PASS', string $fail = 'FAIL'): string {
+    if ($ok === NULL) {
+      return '<span style="color:#888">UNKNOWN</span>';
+    }
+    $color = $ok ? '#2e7d32' : '#b71c1c';
+    $label = $ok ? $pass : $fail;
+    return '<strong style="color:' . $color . '">' . $label . '</strong>';
+  }
+
+  /**
+   * Format an ISO-8601 timestamp for display.
+   */
+  private function fmtTs(string $ts): string {
+    if ($ts === '') {
+      return '—';
+    }
+    try {
+      $dt = new \DateTimeImmutable($ts);
+      return $dt->format('Y-m-d H:i:s') . ' UTC';
+    }
+    catch (\Throwable) {
+      return $ts;
+    }
+  }
+
+  /**
+   * Render an rc value as a coloured badge.
+   */
+  private function rcBadge(int $rc): string {
+    return $rc === 0
+      ? '<span style="color:#2e7d32">✓ ok</span>'
+      : '<span style="color:#b71c1c">✗ rc=' . $rc . '</span>';
+  }
 
   /**
    * Console section definitions and subsection frames.
@@ -95,17 +205,78 @@ final class LangGraphConsoleStubController extends ControllerBase {
     ];
   }
 
+  // -------------------------------------------------------------------------
+  // Section pages
+  // -------------------------------------------------------------------------
+
   /**
-   * Console home.
+   * Console home — live orchestrator health summary.
    */
   public function home(): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+
+    $ts           = (string) ($tick['ts'] ?? '');
+    $dry_run      = isset($tick['dry_run']) ? (bool) $tick['dry_run'] : NULL;
+    $provider     = (string) ($tick['provider'] ?? '—');
+    $agent_cap    = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : '—';
+    $parity_ok    = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
+    $steps_match  = isset($parity['steps']['match']) ? (bool) $parity['steps']['match'] : NULL;
+    $agents_match = isset($parity['selected_agents']['match']) ? (bool) $parity['selected_agents']['match'] : NULL;
+    $errors       = array_merge((array) ($tick['errors'] ?? []), (array) ($parity['errors'] ?? []));
+    $exec_ran     = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
+    $selected     = (array) ($tick['step_results']['pick_agents']['selected'] ?? $tick['selected_agents'] ?? []);
+
+    $summary_rows = [
+      [$this->t('Last tick'), $this->fmtTs($ts), ''],
+      [$this->t('Provider'), $provider, ''],
+      [$this->t('Mode'), $dry_run === NULL ? '—' : ($dry_run ? 'dry-run' : 'live'), ''],
+      [$this->t('Agent cap'), (string) $agent_cap, ''],
+      [$this->t('Agents executed'), (string) count($exec_ran), ''],
+      [$this->t('Parity'), ['data' => ['#markup' => $this->badge($parity_ok)]], ''],
+      [$this->t('Pipeline steps match'), ['data' => ['#markup' => $this->badge($steps_match)]], ''],
+      [$this->t('Agent selection match'), ['data' => ['#markup' => $this->badge($agents_match)]], ''],
+      [$this->t('Errors'), (string) count($errors), count($errors) > 0 ? implode('; ', array_map('strval', $errors)) : 'none'],
+    ];
+
+    $agent_rows = [];
+    foreach ($exec_ran as $entry) {
+      $agent = (string) ($entry['agent'] ?? '?');
+      $rc    = isset($entry['rc']) ? (int) $entry['rc'] : -1;
+      $agent_rows[] = [$agent, ['data' => ['#markup' => $this->rcBadge($rc)]]];
+    }
+
     $sections = $this->sectionMap();
-    $page = $sections['home'];
-    return $this->buildPage(
-      (string) $page['title'],
-      (string) $page['description'],
-      $this->buildSectionRows('home', (array) $page['subsections'])
-    );
+    $section_nav = $this->buildSectionRows('home', (array) $sections['home']['subsections']);
+
+    return [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+      'title' => ['#markup' => '<h2>' . $this->t('LangGraph Console') . '</h2>'],
+      'summary_header' => ['#markup' => '<h3>' . $this->t('Orchestrator Health') . '</h3>'],
+      'summary' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value'), $this->t('Notes')],
+        '#rows' => $summary_rows,
+        '#empty' => $this->t('No tick data available.'),
+      ],
+      'agents_header' => ['#markup' => '<h3>' . $this->t('Last Tick: Agent Execution') . '</h3>'],
+      'agents_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Agent'), $this->t('Result')],
+        '#rows' => $agent_rows,
+        '#empty' => $this->t('No exec data.'),
+      ],
+      'nav' => [
+        '#type' => 'details',
+        '#title' => $this->t('Subsections'),
+        '#open' => TRUE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => [$this->t('Subsection'), $this->t('Frame'), $this->t('Status')],
+          '#rows' => $section_nav,
+        ],
+      ],
+    ];
   }
 
   /**
@@ -135,16 +306,108 @@ final class LangGraphConsoleStubController extends ControllerBase {
   }
 
   /**
-   * Run page.
+   * Run page — live runtime operations panel.
    */
   public function run(): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+
+    $ts        = (string) ($tick['ts'] ?? '');
+    $exec_ran  = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
+    $teams     = (array) ($tick['step_results']['release_cycle']['teams'] ?? []);
+    $push      = (array) ($tick['step_results']['coordinated_push'] ?? []);
+    $pick      = (array) ($tick['step_results']['pick_agents'] ?? []);
+    $selected  = (array) ($pick['selected'] ?? []);
+    $agent_cap = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : 0;
+    $health    = (array) ($tick['step_results']['health_check'] ?? []);
+
+    // Agents table.
+    $agent_rows = [];
+    foreach ($exec_ran as $entry) {
+      $agent = (string) ($entry['agent'] ?? '?');
+      $rc    = isset($entry['rc']) ? (int) $entry['rc'] : -1;
+      $agent_rows[] = [$agent, ['data' => ['#markup' => $this->rcBadge($rc)]]];
+    }
+
+    // Release teams table.
+    $team_rows = [];
+    foreach ($teams as $team_entry) {
+      $team_rows[] = [
+        (string) ($team_entry['team'] ?? '?'),
+        (string) ($team_entry['action'] ?? '—'),
+        (string) ($team_entry['current'] ?? '—'),
+        (string) ($team_entry['next'] ?? '—'),
+        ['data' => ['#markup' => $this->rcBadge(isset($team_entry['rc']) ? (int) $team_entry['rc'] : 0)]],
+      ];
+    }
+
+    // Concurrency row.
+    $push_status     = (string) ($push['status'] ?? '—');
+    $not_ready       = implode(', ', array_map('strval', (array) ($push['not_ready'] ?? [])));
+    $release_pri     = implode(', ', array_map('strval', (array) ($pick['release_priority'] ?? [])));
+    $idle_with_inbox = isset($health['idle_with_inbox']) ? (int) $health['idle_with_inbox'] : '—';
+    $blocked         = isset($health['blocked_count']) ? (int) $health['blocked_count'] : '—';
+    $remediated      = (array) ($health['remediated'] ?? []);
+
     $sections = $this->sectionMap();
-    $page = $sections['run'];
-    return $this->buildPage(
-      (string) $page['title'],
-      (string) $page['description'],
-      $this->buildSectionRows('run', (array) $page['subsections'])
-    );
+    $nav = $this->buildSectionRows('run', (array) $sections['run']['subsections']);
+
+    return [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+      'title' => ['#markup' => '<h2>' . $this->t('Run') . '</h2>'],
+      'ts_note' => ['#markup' => '<p><em>' . $this->t('Last tick: @ts', ['@ts' => $this->fmtTs($ts)]) . '</em></p>'],
+
+      'agents_header' => ['#markup' => '<h3>' . $this->t('Threads & Runs — Agent Execution') . '</h3>'],
+      'agents_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Agent'), $this->t('Exit')],
+        '#rows' => $agent_rows,
+        '#empty' => $this->t('No execution data.'),
+      ],
+
+      'teams_header' => ['#markup' => '<h3>' . $this->t('Release Cycle — Active Teams') . '</h3>'],
+      'teams_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Team'), $this->t('Action'), $this->t('Current Release'), $this->t('Next Release'), $this->t('RC')],
+        '#rows' => $team_rows,
+        '#empty' => $this->t('No release cycle data.'),
+      ],
+
+      'push_header' => ['#markup' => '<h3>' . $this->t('Coordinated Push') . '</h3>'],
+      'push_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows' => [
+          [$this->t('Push status'), $push_status],
+          [$this->t('Teams not ready'), $not_ready ?: '—'],
+          [$this->t('Release priority agents'), $release_pri ?: '—'],
+        ],
+      ],
+
+      'health_header' => ['#markup' => '<h3>' . $this->t('Health & Resume') . '</h3>'],
+      'health_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows' => [
+          [$this->t('Idle agents with inbox'), (string) $idle_with_inbox],
+          [$this->t('Blocked agents'), (string) $blocked],
+          [$this->t('Remediated this tick'), (string) count($remediated)],
+          [$this->t('Agent cap'), (string) $agent_cap],
+          [$this->t('Agents selected'), (string) count($selected) . ' (' . implode(', ', array_map('strval', $selected)) . ')'],
+        ],
+      ],
+
+      'nav' => [
+        '#type' => 'details',
+        '#title' => $this->t('Subsections'),
+        '#open' => FALSE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => [$this->t('Subsection'), $this->t('Frame'), $this->t('Status')],
+          '#rows' => $nav,
+        ],
+      ],
+    ];
   }
 
   /**
