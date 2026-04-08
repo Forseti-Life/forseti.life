@@ -797,6 +797,57 @@
         "STAGE 0 PENDING: requires feature implementation by dev-forseti."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-service-db-refactor-static",
+      "label": "AI Service DB Refactor \u2014 static: 0 direct DB calls in AIApiService.php; new query service exists with migrated methods",
+      "type": "script",
+      "feature_id": "forseti-ai-service-db-refactor",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; AIAPI=sites/forseti/web/modules/custom/ai_conversation/src/Service/AIApiService.php; echo \"=== TC-1: no direct DB calls in AIApiService ===\"; COUNT=$(grep -c \"database\" \"$AIAPI\" 2>/dev/null; true); [ \"${COUNT:-0}\" = \"0\" ] && echo \"PASS: 0 direct DB calls\" || (echo \"FAIL: $COUNT DB references found\" && exit 1); echo \"=== TC-2: query service exists ===\"; REPO_PATH=$(find sites/forseti/web/modules/custom/ai_conversation/src -name \"AiConversationRepository.php\" -o -name \"AIConversationRepository.php\" -o -name \"AiQueryService.php\" 2>/dev/null | head -1); [ -n \"$REPO_PATH\" ] && echo \"PASS: query service found at $REPO_PATH\" || (echo \"FAIL: no repository/query service file found\" && exit 1); METHOD_COUNT=$(grep -c \"public function\" \"$REPO_PATH\" 2>/dev/null || echo 0); echo \"Public methods: $METHOD_COUNT\"; [ \"${METHOD_COUNT:-0}\" -ge 5 ] && echo \"PASS: sufficient methods\" || (echo \"FAIL: insufficient methods ($METHOD_COUNT)\" && exit 1); echo All static checks PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-service-db-refactor/static.log"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-1: grep -c 'database' AIApiService.php must return 0.",
+        "TC-2: A repository/query service file (AiConversationRepository.php or similar) must exist with >= 5 public methods (14 expected).",
+        "Dev implementation notes must document exact path and method list.",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ]
+    },
+    {
+      "id": "forseti-ai-service-db-refactor-functional",
+      "label": "AI Service DB Refactor \u2014 functional: /talk-with-forseti returns 403 (not 500) for anon; no server errors",
+      "type": "script",
+      "feature_id": "forseti-ai-service-db-refactor",
+      "command": "bash -c 'set -e; echo \"=== TC-3: /talk-with-forseti not 500 ===\"; STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -m 10 https://forseti.life/talk-with-forseti); echo \"HTTP status: $STATUS\"; [ \"$STATUS\" != \"500\" ] && echo \"PASS: not 500 (got $STATUS)\" || (echo \"FAIL: got 500\" && exit 1); echo Functional check PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-service-db-refactor/functional.log"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-3: curl https://forseti.life/talk-with-forseti must return 403 (auth-required per qa-permissions.json), never 500.",
+        "Expected 403 per existing 'talk-with-forseti-short' rule (anon=deny).",
+        "STAGE 0 PENDING: run after dev-forseti completes implementation."
+      ]
+    },
+    {
+      "id": "forseti-ai-service-db-refactor-regression",
+      "label": "AI Service DB Refactor \u2014 regression: site audit 0 failures/violations on ai_conversation routes post-refactor",
+      "type": "script",
+      "feature_id": "forseti-ai-service-db-refactor",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh 2>&1 | tail -5; SUMMARY=sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md; FAILURES=$(grep \"Other failures\" \"$SUMMARY\" | grep -o \"[0-9]*\" | head -1); VIOLATIONS=$(grep \"Permission expectation violations\" \"$SUMMARY\" | grep -o \"[0-9]*\" | head -1); [ \"${FAILURES:-0}\" = \"0\" ] && [ \"${VIOLATIONS:-0}\" = \"0\" ] && echo \"PASS: 0 failures, 0 violations\" || (echo \"FAIL: failures=$FAILURES violations=$VIOLATIONS\" && exit 1); echo Regression check PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-ai-service-db-refactor/regression.log",
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-4: Full site audit must show 0 new failures and 0 permission violations.",
+        "TC-5: Config drift check \u2014 confirm drush config:status shows no drift for ai_conversation.",
+        "Run after dev-forseti completes implementation.",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ]
     }
   ],
   "_schema_notes": [
