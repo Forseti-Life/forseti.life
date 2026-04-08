@@ -1190,20 +1190,13 @@ final class LangGraphConsoleStubController extends ControllerBase {
 
   /** @param array<mixed> $sub @param array<mixed> $back */
   private function subTestEvalScorecards(array $sub, array $back): array {
-    $stats = $this->featureProgressStats();
-    $by_site = $stats['by_site'] ?? [];
-    $rows = array_map(
-      fn($site, $count) => [(string) $site, (string) $count],
-      array_keys($by_site),
-      array_values($by_site)
-    );
     return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
-      'note' => ['#markup' => '<p><em>' . $this->t('Eval scorecards (hallucination, task-success, tool-accuracy) require agent_evaluation module. Feature breakdown by site shown below.') . '</em></p>'],
+      'note' => ['#markup' => '<p><em>' . $this->t('Eval scorecard data requires the agent_evaluation module (not yet available).') . '</em></p>'],
       'table' => [
         '#type'   => 'table',
-        '#header' => [$this->t('Website'), $this->t('Features tracked')],
-        '#rows'   => $rows,
-        '#empty'  => $this->t('No data.'),
+        '#header' => [$this->t('Agent'), $this->t('Task Type'), $this->t('Success Rate'), $this->t('Last Run')],
+        '#rows'   => [],
+        '#empty'  => $this->t('No eval scorecard data available. Install the agent_evaluation module to populate this table.'),
       ],
     ]);
   }
