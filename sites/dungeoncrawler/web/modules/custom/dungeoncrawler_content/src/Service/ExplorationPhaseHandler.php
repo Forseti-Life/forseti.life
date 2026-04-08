@@ -109,6 +109,12 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'daily_prepare',
       'treat_wounds',
       'treat_disease',
+      // REQ 1591–1594, 2329: Recall Knowledge [1 action, Secret].
+      'recall_knowledge',
+      // REQ for Occultism/Religion: Decipher Writing, Identify Magic, Learn a Spell.
+      'decipher_writing',
+      'identify_magic',
+      'learn_a_spell',
     ];
   }
 
@@ -426,6 +432,185 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
           'degree' => $result['degree'] ?? NULL,
           'upgraded' => $result['upgraded'] ?? FALSE,
         ], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1591–1594, 2329: Recall Knowledge [1 action, Secret]
+      // -----------------------------------------------------------------------
+      case 'recall_knowledge': {
+        // Use provided DC or compute via RecallKnowledgeService.
+        if (!empty($params['dc'])) {
+          $dc_rk = (int) $params['dc'];
+        }
+        else {
+          $rk_svc = new RecallKnowledgeService(new DcAdjustmentService());
+          $dc_result_rk = $rk_svc->computeDc(
+            $params['subject_type'] ?? 'general',
+            (int) ($params['level'] ?? 0),
+            $params['rarity'] ?? 'common',
+            (int) ($params['spell_rank'] ?? 0),
+            $params['availability'] ?? 'trained'
+          );
+          $dc_rk = $dc_result_rk['dc'];
+        }
+
+        $skill_used_rk = $params['skill_used'] ?? 'arcana';
+        $skill_bonus_rk = (int) ($params['skill_bonus'] ?? 0);
+
+        // REQ 2329: Block re-attempts on same target until new info is found.
+        $attempt_key_rk = $actor_id . ':' . ($target_id ?? 'general');
+        if (!empty($game_state['recall_knowledge_attempts'][$attempt_key_rk])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Cannot re-attempt Recall Knowledge on the same target without new information.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $game_state['recall_knowledge_attempts'][$attempt_key_rk] = TRUE;
+
+        $d20_rk = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_rk = $d20_rk + $skill_bonus_rk;
+        $degree_rk = $this->calculateDegreeOfSuccess($total_rk, $dc_rk, $d20_rk);
+
+        switch ($degree_rk) {
+          case 'critical_success':
+            $player_msg_rk = 'You recall detailed information about the subject.';
+            $info_rk = $params['known_info'] ?? NULL;
+            $bonus_rk = $params['bonus_detail'] ?? NULL;
+            break;
+
+          case 'success':
+            $player_msg_rk = 'You recall accurate information about the subject.';
+            $info_rk = $params['known_info'] ?? NULL;
+            $bonus_rk = NULL;
+            break;
+
+          case 'failure':
+            $player_msg_rk = 'You fail to recall anything useful.';
+            $info_rk = NULL;
+            $bonus_rk = NULL;
+            break;
+
+          case 'critical_failure':
+          default:
+            // REQ 1594: Crit fail returns false info presented as truthful.
+            $player_msg_rk = 'You recall information about the subject.';
+            $info_rk = $params['false_info'] ?? NULL;
+            $bonus_rk = NULL;
+            break;
+        }
+
+        $result = [
+          'degree' => $degree_rk,
+          'skill_used' => $skill_used_rk,
+          'dc' => $dc_rk,
+          'd20' => $d20_rk,
+          'total' => $total_rk,
+          'player_facing_message' => $player_msg_rk,
+          'info' => $info_rk,
+          'bonus_detail' => $bonus_rk,
+          'secret' => TRUE,
+        ];
+        $events[] = GameEventLogger::buildEvent('recall_knowledge', 'exploration', $actor_id, ['skill_used' => $skill_used_rk, 'degree' => $degree_rk], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // Occultism/Religion: Decipher Writing [Exploration, Trained]
+      // REQ: Occultism covers metaphysics/syncretic/weird philosophies;
+      //      Religion covers religious allegories/homilies/proverbs.
+      // -----------------------------------------------------------------------
+      case 'decipher_writing': {
+        $skill_used_dw = $params['skill_used'] ?? 'society';
+        $skill_bonus_dw = (int) ($params['skill_bonus'] ?? 0);
+        $dc_dw = !empty($params['dc'])
+          ? (int) $params['dc']
+          : (new DcAdjustmentService())->simpleDc('trained');
+
+        $d20_dw = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_dw = $d20_dw + $skill_bonus_dw;
+        $degree_dw = $this->calculateDegreeOfSuccess($total_dw, $dc_dw, $d20_dw);
+
+        $this->advanceExplorationTime($game_state, 10);
+        $result = [
+          'degree' => $degree_dw,
+          'skill_used' => $skill_used_dw,
+          'dc' => $dc_dw,
+          'd20' => $d20_dw,
+          'total' => $total_dw,
+        ];
+        $events[] = GameEventLogger::buildEvent('decipher_writing', 'exploration', $actor_id, ['degree' => $degree_dw, 'skill_used' => $skill_used_dw], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // Occultism/Religion: Identify Magic [Exploration, Trained]
+      // Edge case: wrong tradition = +5 DC penalty (not blocked).
+      // -----------------------------------------------------------------------
+      case 'identify_magic': {
+        $skill_bonus_im = (int) ($params['skill_bonus'] ?? 0);
+        $im_svc = new IdentifyMagicService(new DcAdjustmentService());
+        $dc_result_im = $im_svc->computeDc(
+          $params['magic_type'] ?? 'item',
+          (int) ($params['level'] ?? 0),
+          $params['rarity'] ?? 'common',
+          (int) ($params['spell_rank'] ?? 0),
+          (int) ($params['spell_rank_delta'] ?? 0)
+        );
+        $dc_im = $dc_result_im['dc'];
+
+        // Wrong-tradition check: +5 DC if skill tradition mismatches target tradition.
+        $tradition_match_im = (bool) ($params['tradition_match'] ?? TRUE);
+        $wrong_tradition_penalty = 0;
+        if (!$tradition_match_im) {
+          $dc_im += 5;
+          $wrong_tradition_penalty = 5;
+        }
+
+        $d20_im = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_im = $d20_im + $skill_bonus_im;
+        $degree_im = $this->calculateDegreeOfSuccess($total_im, $dc_im, $d20_im);
+
+        $result = [
+          'degree' => $degree_im,
+          'dc' => $dc_im,
+          'd20' => $d20_im,
+          'total' => $total_im,
+          'tradition_match' => $tradition_match_im,
+          'wrong_tradition_penalty' => $wrong_tradition_penalty,
+        ];
+        $events[] = GameEventLogger::buildEvent('identify_magic', 'exploration', $actor_id, ['degree' => $degree_im, 'tradition_match' => $tradition_match_im], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // Occultism/Religion: Learn a Spell [Downtime, Trained]
+      // DC is spell-level-based + rarity adjustment.
+      // -----------------------------------------------------------------------
+      case 'learn_a_spell': {
+        $skill_used_las = $params['skill_used'] ?? 'arcana';
+        $skill_bonus_las = (int) ($params['skill_bonus'] ?? 0);
+
+        if (!empty($params['dc'])) {
+          $dc_las = (int) $params['dc'];
+        }
+        else {
+          $dc_svc_las = new DcAdjustmentService();
+          $base_dc_las = $dc_svc_las->spellLevelDc((int) ($params['spell_rank'] ?? 1));
+          $dc_las = $dc_svc_las->compute($base_dc_las, $params['rarity'] ?? 'common', 0);
+        }
+
+        $d20_las = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_las = $d20_las + $skill_bonus_las;
+        $degree_las = $this->calculateDegreeOfSuccess($total_las, $dc_las, $d20_las);
+
+        // Learning a spell takes approximately 8 hours (480 minutes).
+        $this->advanceExplorationTime($game_state, 480);
+        $result = [
+          'degree' => $degree_las,
+          'skill_used' => $skill_used_las,
+          'dc' => $dc_las,
+          'd20' => $d20_las,
+          'total' => $total_las,
+        ];
+        $events[] = GameEventLogger::buildEvent('learn_a_spell', 'exploration', $actor_id, ['degree' => $degree_las, 'skill_used' => $skill_used_las], NULL, $target_id);
         break;
       }
 

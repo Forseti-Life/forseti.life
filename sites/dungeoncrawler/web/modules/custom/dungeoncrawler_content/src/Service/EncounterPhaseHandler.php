@@ -213,6 +213,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       // REQ 1688–1694: Medicine skill actions (encounter-phase).
       'administer_first_aid',
       'treat_poison',
+      // REQ 1591–1594, 2329: Recall Knowledge [1 action, Secret].
+      'recall_knowledge',
     ];
   }
 
@@ -1392,6 +1394,85 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
         $result = ['treated' => $treated_tp, 'degree' => $degree_tp, 'd20' => $d20_tp, 'total' => $total_tp, 'dc' => $poison_dc_tp];
         $events[] = GameEventLogger::buildEvent('treat_poison', 'encounter', $actor_id, ['degree' => $degree_tp, 'treated' => $treated_tp, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1591–1594, 2329: Recall Knowledge [1 action, Secret]
+      // -----------------------------------------------------------------------
+      case 'recall_knowledge': {
+        // Use provided DC or compute via RecallKnowledgeService.
+        if (!empty($params['dc'])) {
+          $dc_rk = (int) $params['dc'];
+        }
+        else {
+          $rk_service = new RecallKnowledgeService(new DcAdjustmentService());
+          $dc_result_rk = $rk_service->computeDc(
+            $params['subject_type'] ?? 'general',
+            (int) ($params['level'] ?? 0),
+            $params['rarity'] ?? 'common',
+            (int) ($params['spell_rank'] ?? 0),
+            $params['availability'] ?? 'trained'
+          );
+          $dc_rk = $dc_result_rk['dc'];
+        }
+
+        $skill_used_rk = $params['skill_used'] ?? 'arcana';
+        $skill_bonus_rk = (int) ($params['skill_bonus'] ?? 0);
+        $d20_rk = $this->numberGenerationService->rollPathfinderDie(20);
+        $total_rk = $d20_rk + $skill_bonus_rk;
+        $degree_rk = $this->combatCalculator->calculateDegreeOfSuccess($total_rk, $dc_rk, $d20_rk);
+
+        // REQ 2329: Block re-attempts until new information is discovered.
+        $attempt_key_rk = $actor_id . ':' . ($target_id ?? 'general');
+        if (!empty($game_state['recall_knowledge_attempts'][$attempt_key_rk])) {
+          return ['success' => FALSE, 'result' => ['error' => 'Cannot re-attempt Recall Knowledge on the same target without new information.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+        $game_state['recall_knowledge_attempts'][$attempt_key_rk] = TRUE;
+
+        // Build player-facing output; crit fail presented as truthful (REQ 1594).
+        switch ($degree_rk) {
+          case 'critical_success':
+            $player_msg_rk = 'You recall detailed information about the subject.';
+            $info_rk = $params['known_info'] ?? NULL;
+            $bonus_detail_rk = $params['bonus_detail'] ?? NULL;
+            break;
+
+          case 'success':
+            $player_msg_rk = 'You recall accurate information about the subject.';
+            $info_rk = $params['known_info'] ?? NULL;
+            $bonus_detail_rk = NULL;
+            break;
+
+          case 'failure':
+            $player_msg_rk = 'You fail to recall anything useful.';
+            $info_rk = NULL;
+            $bonus_detail_rk = NULL;
+            break;
+
+          case 'critical_failure':
+          default:
+            // REQ 1594: False info returned; player-facing message appears truthful.
+            $player_msg_rk = 'You recall information about the subject.';
+            $info_rk = $params['false_info'] ?? NULL;
+            $bonus_detail_rk = NULL;
+            break;
+        }
+
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 0) - 1);
+        $result = [
+          'degree' => $degree_rk,
+          'skill_used' => $skill_used_rk,
+          'dc' => $dc_rk,
+          'd20' => $d20_rk,
+          'total' => $total_rk,
+          'player_facing_message' => $player_msg_rk,
+          'info' => $info_rk,
+          'bonus_detail' => $bonus_detail_rk,
+          // secret = true: raw d20 value is server-authoritative; not exposed to player.
+          'secret' => TRUE,
+        ];
+        $events[] = GameEventLogger::buildEvent('recall_knowledge', 'encounter', $actor_id, ['skill_used' => $skill_used_rk, 'degree' => $degree_rk, 'round' => $game_state['round'] ?? NULL], NULL, $target_id);
         break;
       }
 
@@ -2872,6 +2953,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'disarm':
       // REQ 1695: Treat Poison costs 1 action.
       case 'treat_poison':
+      // REQ 1591: Recall Knowledge costs 1 action.
+      case 'recall_knowledge':
         return 1;
 
       case 'ready':
