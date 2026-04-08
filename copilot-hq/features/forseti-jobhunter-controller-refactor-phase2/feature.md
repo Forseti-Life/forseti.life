@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-controller-refactor-phase2
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Release: 20260408-forseti-release-b
 - Priority: P2
 - Feature type: refactor
