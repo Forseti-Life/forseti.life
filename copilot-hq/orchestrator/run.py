@@ -1764,6 +1764,15 @@ def _release_cycle_step(log: List[Any]) -> None:
 
     log.append({"step": "release_cycle", "teams": results})
 
+    # Gate 2 auto-approve: fire inside release_cycle_step so it runs on every
+    # release-cycle tick (every release_cycle_interval seconds in the LangGraph
+    # flow). Previously this was called from a legacy tick path that is no longer
+    # executed — wired here to ensure it runs in the active LangGraph pipeline.
+    try:
+        _dispatch_gate2_auto_approve()
+    except Exception as _e:
+        log.append({"step": "release_cycle", "gate2_auto_approve_error": str(_e)})
+
 
 def _write_release_notes(release_id: str, slug: str, required: List[Dict[str, Any]]) -> None:
     """Auto-generate 05-release-notes.md in pm-forseti's release-candidates dir.
