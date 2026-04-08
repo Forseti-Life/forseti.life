@@ -2164,6 +2164,219 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * PF2e Animal Companions — species data, advancement tables, and command rules.
+   *
+   * Sources: CRB Chapter 3 (Animal Companion rules), p.214.
+   *
+   * Structure:
+   *   ANIMAL_COMPANIONS['species'] — keyed by species id; each entry has:
+   *     id, name, size, speed, senses, hp_per_level, ac, saves, attacks[], traits[]
+   *   ANIMAL_COMPANIONS['advancement'] — young/mature/nimble/savage stat changes
+   *   ANIMAL_COMPANIONS['command_rules'] — Command an Animal action rules
+   *
+   * Classes that grant animal companions: Ranger (L1), Druid (Order of the Animal),
+   * Beastmaster Archetype.
+   */
+  const ANIMAL_COMPANIONS = [
+
+    // ── Command an Animal Rules ───────────────────────────────────────────────
+    'command_rules' => [
+      'action'          => 'Command an Animal',
+      'action_cost'     => 1,
+      'check'           => 'Nature',
+      'dc_formula'      => 'DC 15, or the creature\'s Will DC if higher',
+      'success_effect'  => 'Companion takes 2 actions on its turn.',
+      'no_command_effect' => 'If Command an Animal is not used, the companion repeats the same Stride and/or Strike actions it took on its last turn.',
+      'traits'          => ['Auditory', 'Concentrate'],
+    ],
+
+    // ── Advancement Levels ─────────────────────────────────────────────────────
+    'advancement' => [
+      'young' => [
+        'label'       => 'Young',
+        'description' => 'Starting level for all animal companions. Uses base species stats.',
+        'hp_bonus'    => 0,
+        'ac_bonus'    => 0,
+        'attack_mod_bonus' => 0,
+        'damage_bonus'     => 0,
+        'save_bonus'       => 0,
+      ],
+      'mature' => [
+        'label'       => 'Mature',
+        'description' => 'Unlocked by class feature (Ranger L4 Animal Companion advancement, Druid L6, etc.).',
+        'hp_bonus'    => 20,
+        'ac_bonus'    => 2,
+        'attack_mod_bonus' => 2,
+        'damage_bonus'     => 2,
+        'save_bonus'       => 2,
+        'size_increase'    => TRUE,
+        'size_increase_note' => 'Companion grows one size category (Tiny→Small, Small→Medium, Medium→Large, etc.).',
+        'new_action' => [
+          'id'          => 'companion-action',
+          'name'        => 'Companion Action',
+          'description' => 'Mature companions gain a special action unique to their species (e.g., Support benefit).',
+        ],
+      ],
+      'nimble' => [
+        'label'       => 'Nimble',
+        'parent'      => 'mature',
+        'description' => 'Specialization option at Mature level. Emphasizes speed and agility.',
+        'hp_bonus'    => 30,
+        'ac_bonus'    => 4,
+        'attack_mod_bonus' => 2,
+        'damage_bonus'     => 2,
+        'save_bonus'       => 2,
+        'speed_bonus'      => 10,
+        'evasion'          => TRUE,
+      ],
+      'savage' => [
+        'label'       => 'Savage',
+        'parent'      => 'mature',
+        'description' => 'Specialization option at Mature level. Emphasizes raw damage and ferocity.',
+        'hp_bonus'    => 30,
+        'ac_bonus'    => 2,
+        'attack_mod_bonus' => 4,
+        'damage_bonus'     => 6,
+        'save_bonus'       => 2,
+        'additional_attack' => TRUE,
+        'additional_attack_note' => 'Savage companions gain one additional natural attack entry.',
+      ],
+    ],
+
+    // ── Death / Unconscious Rules ──────────────────────────────────────────────
+    'death_rules' => [
+      'at_0_hp'         => 'Companion falls unconscious; does not die permanently.',
+      'permanent_death'  => 'Companion dies permanently only if the character decides to let it die, or recovery checks fail over multiple days.',
+      'recovery_note'    => 'Standard recovery checks apply while companion is unconscious. Character may attempt Medicine checks to stabilize.',
+    ],
+
+    // ── Species ───────────────────────────────────────────────────────────────
+    'species' => [
+
+      'bear' => [
+        'id'    => 'bear',
+        'name'  => 'Bear',
+        'size'  => 'Medium',
+        'speed' => ['walk' => 35],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 8,
+        'base_ac'       => 14,
+        'base_saves'    => ['fortitude' => 6, 'reflex' => 4, 'will' => 2],
+        'attacks' => [
+          ['id' => 'jaws', 'name' => 'Jaws', 'type' => 'melee', 'damage' => '1d8', 'damage_type' => 'piercing', 'traits' => []],
+          ['id' => 'claw', 'name' => 'Claw', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'slashing', 'traits' => ['agile']],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Bear your weight: until end of turn, the bear\'s Strikes deal an extra 1d8 bludgeoning damage against the target.',
+      ],
+
+      'bird' => [
+        'id'    => 'bird',
+        'name'  => 'Bird (Eagle/Hawk/Raven)',
+        'size'  => 'Small',
+        'speed' => ['walk' => 10, 'fly' => 40],
+        'senses' => ['low_light_vision', 'vision_precise'],
+        'hp_per_level'  => 4,
+        'base_ac'       => 15,
+        'base_saves'    => ['fortitude' => 4, 'reflex' => 7, 'will' => 4],
+        'attacks' => [
+          ['id' => 'talon', 'name' => 'Talon', 'type' => 'melee', 'damage' => '1d4', 'damage_type' => 'piercing', 'traits' => ['agile', 'finesse']],
+          ['id' => 'beak', 'name' => 'Beak', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'piercing', 'traits' => ['finesse']],
+        ],
+        'traits' => ['Animal'],
+        'aerial_movement' => TRUE,
+        'aerial_movement_note' => 'Aerial movement rules (elevation, plunging strike) apply when Bird uses fly speed in combat.',
+        'support_benefit' => 'Distract prey: until end of turn, the target is flat-footed against the character\'s Strikes.',
+      ],
+
+      'cat' => [
+        'id'    => 'cat',
+        'name'  => 'Cat (Cheetah/Leopard/Lion)',
+        'size'  => 'Small',
+        'speed' => ['walk' => 40],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 6,
+        'base_ac'       => 14,
+        'base_saves'    => ['fortitude' => 5, 'reflex' => 7, 'will' => 3],
+        'attacks' => [
+          ['id' => 'jaws', 'name' => 'Jaws', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'piercing', 'traits' => ['finesse']],
+          ['id' => 'claw', 'name' => 'Claw', 'type' => 'melee', 'damage' => '1d4', 'damage_type' => 'slashing', 'traits' => ['agile', 'finesse']],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Pounce attack: if the character\'s Strike hits a target the cat has set up (flanking or charged), deal +1d4 precision damage until end of turn.',
+      ],
+
+      'wolf' => [
+        'id'    => 'wolf',
+        'name'  => 'Wolf',
+        'size'  => 'Medium',
+        'speed' => ['walk' => 35],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 6,
+        'base_ac'       => 14,
+        'base_saves'    => ['fortitude' => 5, 'reflex' => 6, 'will' => 3],
+        'attacks' => [
+          ['id' => 'jaws', 'name' => 'Jaws', 'type' => 'melee', 'damage' => '1d8', 'damage_type' => 'piercing', 'traits' => ['trip']],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Hamstring: if wolf\'s owner makes a Strike against the target this turn, the target is flat-footed and takes –10 foot penalty to all Speeds until start of its next turn.',
+      ],
+
+      'horse' => [
+        'id'    => 'horse',
+        'name'  => 'Horse',
+        'size'  => 'Large',
+        'speed' => ['walk' => 40],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 8,
+        'base_ac'       => 13,
+        'base_saves'    => ['fortitude' => 6, 'reflex' => 5, 'will' => 3],
+        'attacks' => [
+          ['id' => 'hoof', 'name' => 'Hoof', 'type' => 'melee', 'damage' => '1d8', 'damage_type' => 'bludgeoning', 'traits' => []],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Gallop: character may use Stride as a free action (once per turn) while mounted on the horse.',
+      ],
+
+      'snake' => [
+        'id'    => 'snake',
+        'name'  => 'Snake',
+        'size'  => 'Medium',
+        'speed' => ['walk' => 20, 'swim' => 20],
+        'senses' => ['low_light_vision', 'scent_30ft', 'tremorsense_5ft'],
+        'hp_per_level'  => 6,
+        'base_ac'       => 14,
+        'base_saves'    => ['fortitude' => 4, 'reflex' => 7, 'will' => 2],
+        'attacks' => [
+          ['id' => 'fangs', 'name' => 'Fangs', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'piercing',
+            'traits' => ['finesse'],
+            'special' => 'On a critical hit, the target is poisoned (DC 14 Fortitude; 1d4 poison on failure, sickened 1 on crit fail).'],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Constrict: if the snake\'s owner Grapples the target, the snake\'s Strikes deal an extra 1d6 bludgeoning damage until the end of the turn.',
+      ],
+
+      'ape' => [
+        'id'    => 'ape',
+        'name'  => 'Ape',
+        'size'  => 'Large',
+        'speed' => ['walk' => 25, 'climb' => 20],
+        'senses' => ['low_light_vision'],
+        'hp_per_level'  => 8,
+        'base_ac'       => 13,
+        'base_saves'    => ['fortitude' => 6, 'reflex' => 5, 'will' => 3],
+        'attacks' => [
+          ['id' => 'fist', 'name' => 'Fist', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'bludgeoning',
+            'traits' => ['agile', 'grapple']],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Powerful throw: if the ape Grapples a target, the character gains a +2 circumstance bonus to attack rolls against that target until end of turn.',
+      ],
+
+    ],
+  ];
+
+  /**
    * PF2e Ritual catalog — CRB and APG entries.
    *
    * Structure per entry:
