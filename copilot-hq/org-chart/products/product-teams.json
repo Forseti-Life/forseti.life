@@ -52,7 +52,7 @@
         "base_url_env": "DUNGEONCRAWLER_BASE_URL",
         "local_base_url": "https://dungeoncrawler.forseti.life",
         "production_url": "https://dungeoncrawler.forseti.life",
-        "drupal_web_root": "/home/ubuntu/forseti.life/sites/dungeoncrawler/web",
+        "drupal_web_root": "/var/www/html/dungeoncrawler/web",
         "qa_artifacts_dir": "sessions/qa-dungeoncrawler/artifacts/auto-site-audit",
         "route_regex": "^(?:/api/|/admin|/campaign|/campaigns|/characters|/user/login|/dungeoncrawler|/architecture|/home|/world|/how-to-play|/about|/credits|/hexmap|/ai-conversation)(?:/|$)",
         "qa_permissions_path": "org-chart/sites/dungeoncrawler/qa-permissions.json"
