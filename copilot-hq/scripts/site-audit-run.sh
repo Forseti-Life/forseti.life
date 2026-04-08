@@ -494,6 +494,40 @@ def _queue_pm_gate2_ready_item() -> None:
   if open_issue_total > 0:
     return
 
+  # Guard: skip if any in-progress feature for this site/release lacks a dev outbox.
+  # Fires when late-activated features have not been implemented yet, preventing a
+  # premature gate2-ready signal from reaching the PM.
+  if release_id and dev_agent_id and team_id:
+    features_dir = Path('features')
+    dev_outbox_dir = Path('sessions') / dev_agent_id / 'outbox'
+    dev_outbox_names: set = set()
+    if dev_outbox_dir.exists():
+      dev_outbox_names = {f.name for f in dev_outbox_dir.iterdir() if f.is_file()}
+    if features_dir.exists():
+      for feature_md in features_dir.glob('*/feature.md'):
+        feature_id = feature_md.parent.name
+        try:
+          text = feature_md.read_text(encoding='utf-8')
+        except OSError:
+          continue
+        status_m  = re.search(r'^-\s+Status:\s*(\S+)',  text, re.MULTILINE)
+        release_m = re.search(r'^-\s+Release:\s*(\S+)', text, re.MULTILINE)
+        website_m = re.search(r'^-\s+Website:\s*(\S+)', text, re.MULTILINE)
+        if not (status_m and release_m and website_m):
+          continue
+        if status_m.group(1).strip() != 'in_progress':
+          continue
+        if release_m.group(1).strip() != release_id:
+          continue
+        # Match Website field against both label (e.g. "forseti.life") and
+        # team_id (e.g. "forseti") to handle naming differences across sites.
+        if website_m.group(1).strip() not in (label, team_id):
+          continue
+        # Feature is in scope — require at least one dev outbox file naming it.
+        if not any(feature_id in name for name in dev_outbox_names):
+          print(f"Gate2-ready suppressed: feature {feature_id} has no dev outbox yet")
+          return
+
   label_slug = _slug(label)
   item_id = f"{run_ts}-gate2-ready-{label_slug}"
   inbox_dir = Path('sessions') / pm_agent_id / 'inbox' / item_id

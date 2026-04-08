@@ -1614,6 +1614,11 @@ def _health_check_step(provider: "RuntimeProvider", log: List[Any]) -> None:
     else:
         _stagnation_check(0, "")
 
+    # ── Release-support dispatchers ──────────────────────────────────────────
+    # These run every health-check tick (every health_check_interval seconds).
+    # _dispatch_gate2_auto_approve is also called from _release_cycle_step as
+    # a fallback for when this step returns early (hq-status.sh timeout).
+
     # Always check for lagging PM signoffs regardless of blocked count
     try:
         _dispatch_signoff_reminders()
@@ -1764,10 +1769,10 @@ def _release_cycle_step(log: List[Any]) -> None:
 
     log.append({"step": "release_cycle", "teams": results})
 
-    # Gate 2 auto-approve: fire inside release_cycle_step so it runs on every
-    # release-cycle tick (every release_cycle_interval seconds in the LangGraph
-    # flow). Previously this was called from a legacy tick path that is no longer
-    # executed — wired here to ensure it runs in the active LangGraph pipeline.
+    # Gate 2 auto-approve: also called here (in addition to _health_check_step)
+    # so it fires on the release-cycle cadence even if health_check times out
+    # and returns early (hq-status.sh > 180s). Belt-and-suspenders — the function
+    # is idempotent (skips if approve file already exists).
     try:
         _dispatch_gate2_auto_approve()
     except Exception as _e:
