@@ -5819,6 +5819,92 @@
           "ac_tag": "System-2"
         }
       ]
+    },
+    {
+      "id": "dc-cr-animal-companion-e2e",
+      "label": "Animal companion system: content type (all fields stored), initialization at young for eligible classes, advancement tiers (young\u2192mature\u2192nimble/savage), Command an Animal 1-action 2-actions-on-success, no-command Stride/Strike repeat, companion vs familiar distinction (full combat stats), 0 HP unconscious not dead, species base stats, flier aerial movement, Command range/line-of-effect gate",
+      "type": "e2e",
+      "feature_id": "dc-cr-animal-companion",
+      "command": "npx playwright test tests/e2e/cr-animal-companion/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-cr-animal-companion-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption: companion data is character-scoped, no PII, command resolution server-validated. All 10 TCs active. Regression risks: non-eligible class gaining companion; advancement not recalculating Mature stats; Command success giving wrong action count; 0 HP setting dead flag instead of unconscious; familiar record incorrectly getting attack entries; species selection leaving fields null.",
+      "test_cases": [
+        {
+          "id": "TC-ANC-01",
+          "description": "Companion content type: all required fields present (companion_id, character_id, companion_type, size, speeds, senses, HP, AC, saves, attack entries, advancement_level); no null required fields",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001"
+        },
+        {
+          "id": "TC-ANC-02",
+          "description": "Companion initialized at 'young' advancement for Ranger/Druid/Beastmaster Archetype; non-eligible classes blocked from companion creation",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001"
+        },
+        {
+          "id": "TC-ANC-03",
+          "description": "Advancement: young \u2192 mature \u2192 nimble or savage; Mature tier recalculates AC, saves, HP, attack modifier, and damage per Mature Animal Companion table",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-002"
+        },
+        {
+          "id": "TC-ANC-04",
+          "description": "Command an Animal: costs 1 action; success vs. DC 15 (or creature Will DC) \u2192 companion takes 2 actions that turn",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-003"
+        },
+        {
+          "id": "TC-ANC-05",
+          "description": "No Command issued: companion limited to Stride and/or Strike matching prior turn behavior only",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-003"
+        },
+        {
+          "id": "TC-ANC-06",
+          "description": "Companion vs. familiar distinction: companion record has attack_bonus, damage_entries, AC, saves; familiar record lacks attack entries",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-004"
+        },
+        {
+          "id": "TC-ANC-07",
+          "description": "Companion at 0 HP: state = unconscious (not destroyed/dead); permanent death requires explicit GM flag or failed recovery",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-004"
+        },
+        {
+          "id": "TC-ANC-08",
+          "description": "Species selection sets base stats, size, speed, senses, and natural attack type; fields not manually editable unless advanced",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-005"
+        },
+        {
+          "id": "TC-ANC-09",
+          "description": "Flier companion (eagle, bat): fly_speed present; elevation tracked in combat; plunging strike available at height",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-005"
+        },
+        {
+          "id": "TC-ANC-10",
+          "description": "Command an Animal blocked if companion outside communicable range or line-of-effect broken; edge case documented",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-003-integration"
+        }
+      ]
     }
   ],
   "_schema_notes": [
