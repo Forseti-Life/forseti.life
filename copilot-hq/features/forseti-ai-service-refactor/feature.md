@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-service-refactor
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: ready
 - Release: 20260407-forseti-release-b
 - Priority: P2
 - Feature type: enhancement
@@ -65,3 +65,4 @@ Extract DB queries to `AIConversationStorageService`. Keep public method signatu
 - CSRF expectations: No new routes added. Existing route CSRF expectations unchanged.
 - Input validation: Storage service methods must not accept raw user input directly; callers are responsible for sanitizing before passing to storage layer. Confirm no new `db_query()` with unsanitized strings introduced.
 - PII/logging constraints: Conversation history stored in DB contains user messages. Storage service must not log message content at DEBUG level. Error logging must use message IDs, not content.
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.

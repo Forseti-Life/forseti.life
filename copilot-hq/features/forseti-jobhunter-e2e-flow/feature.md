@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-e2e-flow
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260406-forseti-release-b
 - Priority: P0 (ROI 1000)
 - Feature type: stabilization
@@ -63,3 +63,4 @@ Stage break detail:
 
 - 2026-02-26: Handed off to QA for test generation (pm-qa-handoff.sh)
 - 2026-02-21: Created work item; queued PM/BA/Dev/QA tasks for OKR execution.
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.

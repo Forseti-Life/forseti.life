@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-debug-gate
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: ready
 - Release: 20260407-forseti-release-b
 - Priority: P1
 - Feature type: needs-testing
@@ -66,3 +66,4 @@ Verify and document that `GenAiDebugController` (586 lines) is properly gated so
 - CSRF expectations: GET-only debug routes — no state-changing POSTs, no CSRF token required.
 - Input validation: No user-supplied input accepted on debug routes (read-only debug info only).
 - PII/logging constraints: Debug output must not expose user PII, credentials, or API keys in response bodies or watchdog logs.
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.

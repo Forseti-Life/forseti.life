@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-profile
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260406-forseti-release-b
 - Priority: P0
 - Feature type: stabilization
@@ -36,3 +36,4 @@ Improve the JobHunter profile page so resume upload/parsing and consolidated pro
 
 - 2026-02-26: Handed off to QA for test generation (pm-qa-handoff.sh)
 - 2026-02-20: PM review recorded; improvement loops seeded (lesson + proposal).
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.

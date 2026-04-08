@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-schema-fix
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260407-forseti-release-b
 - Priority: P2
 - Feature type: enhancement
@@ -59,3 +59,4 @@ Fix the `field_age_18_or_older` field definition in the `job_hunter` module whic
 - CSRF expectations: No new POST routes added. No CSRF impact.
 - Input validation: Schema fix aligns db_column name; no new user input surface introduced. Existing field validation via Drupal Field API unchanged.
 - PII/logging constraints: `field_age_18_or_older` is a boolean field. No PII concern. Update hook must not log existing field values.
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.

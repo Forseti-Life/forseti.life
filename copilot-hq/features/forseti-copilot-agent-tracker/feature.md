@@ -3,7 +3,7 @@
 - Work item id: forseti-copilot-agent-tracker
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
+- Status: ready
 - Release: 20260405-forseti-release-c
 - Priority: P1
 - PM owner: pm-forseti-agent-tracker
@@ -35,3 +35,4 @@ Provide a Drupal admin UI and internal API endpoint to track agent status, curre
 - 2026-02-20: Work item created; dedicated team staffed; module skeleton started.
 - 2026-04-05: Security acceptance criteria section added (pm-forseti-agent-tracker, gap fix from sec-analyst outbox 20260227).
 - 2026-04-05: Release ID updated to 20260405-forseti-release-c (post-release gap review).
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.

@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-browser-automation
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260406-forseti-release-b
 - Priority: P1
 - Feature type: needs-testing
@@ -75,3 +75,4 @@ None yet — AC doc pending QA handoff triage.
 
 - 2026-02-28: Handed off to QA for test generation (pm-qa-handoff.sh)
 - 2026-02-27: Feature stub created post-shipping. Code confirmed on origin/main (`01cb73ea1`). AC + test-plan not yet written. Triaged as P1 for next release cycle.
+- 2026-04-08: Deferred from 20260407-forseti-release-b — no dev implementation or Gate 2 APPROVE before release close.
