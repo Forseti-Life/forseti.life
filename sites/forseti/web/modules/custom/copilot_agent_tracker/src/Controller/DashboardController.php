@@ -887,7 +887,100 @@ final class DashboardController extends ControllerBase {
   /**
    * Build explicit process-flow and node-page navigation for LangGraph home.
    */
-  private function renderLanggraphHomeFlowHub(): array {
+  /**
+   * Render the top-level workflow registry grouped by scope.
+   *
+   * Scope levels:
+   *   system  — org-wide flows (not tied to a single site)
+   *   site    — flows scoped to one product site
+   *
+   * Add a row here whenever a new LangGraph flow is implemented or planned.
+   */
+  private function renderWorkflowRegistry(): array {
+    /** @var array<array{scope: string, site: string, name: string, status: string, purpose: string, console: string|null}> $workflows */
+    $workflows = [
+      // ── System / Org-wide ──────────────────────────────────────────────────
+      [
+        'scope'   => 'System',
+        'site'    => 'Org-wide',
+        'name'    => 'Release Cycle Orchestrator',
+        'status'  => 'active',
+        'purpose' => 'Multi-team release cycles, agent dispatch, feature progression, publish gates, and coordinated push across all sites.',
+        'console' => 'copilot_agent_tracker.langgraph_console_home',
+      ],
+      // ── Site: forseti.life ─────────────────────────────────────────────────
+      [
+        'scope'   => 'Site',
+        'site'    => 'forseti.life',
+        'name'    => 'Job-Hunter Intake Flow',
+        'status'  => 'planned',
+        'purpose' => 'LangGraph-driven job-posting intake and triage for the forseti.life job-hunter module.',
+        'console' => NULL,
+      ],
+      // ── Site: dungeoncrawler ───────────────────────────────────────────────
+      [
+        'scope'   => 'Site',
+        'site'    => 'dungeoncrawler',
+        'name'    => 'PF2E Encounter Flow',
+        'status'  => 'planned',
+        'purpose' => 'LangGraph-driven encounter and session management for the DungeonCrawler PF2E assistant.',
+        'console' => NULL,
+      ],
+    ];
+
+    $rows = [];
+    foreach ($workflows as $wf) {
+      $status_label = match($wf['status']) {
+        'active'      => '🟢 Active',
+        'in_progress' => '🟡 In Progress',
+        'planned'     => '⬜ Planned',
+        default       => $wf['status'],
+      };
+
+      if ($wf['console'] !== NULL) {
+        try {
+          $console_link = \Drupal\Core\Link::createFromRoute('Open Console', $wf['console'])->toString();
+        }
+        catch (\Exception $e) {
+          $console_link = '—';
+        }
+      }
+      else {
+        $console_link = '—';
+      }
+
+      $rows[] = [
+        $wf['scope'] . ' · ' . $wf['site'],
+        $wf['name'],
+        $status_label,
+        $wf['purpose'],
+        ['data' => ['#markup' => $console_link]],
+      ];
+    }
+
+    return [
+      '#type' => 'container',
+      'heading' => [
+        '#markup' => '<h2>' . $this->t('LangGraph Workflow Registry') . '</h2>'
+          . '<p>' . $this->t('All LangGraph workflow processes, organised by scope. System-level flows run across the whole organisation; site-level flows are scoped to a single product.') . '</p>',
+      ],
+      'table' => [
+        '#type'   => 'table',
+        '#header' => [
+          $this->t('Scope · Site'),
+          $this->t('Workflow'),
+          $this->t('Status'),
+          $this->t('Purpose'),
+          $this->t('Console'),
+        ],
+        '#rows'   => $rows,
+        '#empty'  => $this->t('No workflows registered.'),
+      ],
+    ];
+  }
+
+  /**
+   * Render the home page process-flow navigation hub.
     return [
       '#type' => 'container',
       'flow_title' => [
@@ -3727,13 +3820,7 @@ final class DashboardController extends ControllerBase {
   public function langGraphDashboard(): array {
     $build = $this->buildLanggraphPageShell('LangGraph Control Plane');
 
-    $build['intro'] = [
-      '#markup' => '<p>This is the LangGraph Control Plane home. Start here, then move through Execution and Assurance planes using the lifecycle map below.</p>',
-    ];
-    $build['hierarchy_note'] = [
-      '#markup' => '<p><strong>' . $this->t('Hierarchy') . ':</strong> '
-        . $this->t('Control Plane owns cross-signal health and controls. Execution Plane owns work progression. Assurance Plane owns evidence and triage.') . '</p>',
-    ];
+    $build['workflow_registry'] = $this->renderWorkflowRegistry();
     $build['guide'] = $this->renderLanggraphPageGuide(
       'Provide a single operational entry point for LangGraph orchestration health.',
       'Start here first, then jump to Session, Parity, or Release pages based on which signal is degraded.',
