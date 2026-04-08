@@ -743,7 +743,9 @@ job_hunter.delete_resume:
   path: '/jobhunter/resume/delete/{resume_id}'
   defaults:
     _controller: '\Drupal\job_hunter\Controller\UserProfileController::deleteResume'
+  methods: [POST]
   requirements:
+    _csrf_token: 'TRUE'
     _permission: 'access job hunter'
     resume_id: \d+
 
