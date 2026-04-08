@@ -3,8 +3,8 @@
 - Work item id: forseti-copilot-agent-tracker
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
-- Release: 20260408-forseti-release-e
+- Status: ready
+- Release: 20260405-forseti-release-c
 - Priority: P1
 - PM owner: pm-forseti-agent-tracker
 - Dev owner: dev-forseti-agent-tracker
@@ -32,8 +32,6 @@ Provide a Drupal admin UI and internal API endpoint to track agent status, curre
 - **PII/logging constraints**: Must NOT log raw Copilot chat content, agent session tokens, or any user-identifying telemetry beyond agent_id. Drupal watchdog entries must not include payload body. Verify: review watchdog table after a publish cycle; confirm no chat transcript or credentials present.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 - 2026-02-20: Work item created; dedicated team staffed; module skeleton started.
 - 2026-04-05: Security acceptance criteria section added (pm-forseti-agent-tracker, gap fix from sec-analyst outbox 20260227).
 - 2026-04-05: Release ID updated to 20260405-forseti-release-c (post-release gap review).
