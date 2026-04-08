@@ -411,16 +411,116 @@ final class LangGraphConsoleStubController extends ControllerBase {
   }
 
   /**
-   * Observe page.
+   * Observe page — live observability panel.
    */
   public function observe(): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+
+    $ts          = (string) ($tick['ts'] ?? '');
+    $step_res    = (array) ($tick['step_results'] ?? []);
+    $errors      = (array) ($tick['errors'] ?? []);
+    $parity_ok   = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
+    $par_errors  = (array) ($parity['errors'] ?? []);
+    $exec_ran    = (array) ($step_res['exec_agents']['ran'] ?? []);
+
+    // Node trace: iterate step_results in pipeline order.
+    $trace_rows = [];
+    foreach ($step_res as $step_name => $step_data) {
+      $data_str = is_array($step_data)
+        ? json_encode($step_data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE)
+        : (string) $step_data;
+      $rc = isset($step_data['rc']) ? (int) $step_data['rc'] : NULL;
+      $rc_cell = $rc !== NULL
+        ? ['data' => ['#markup' => $this->rcBadge($rc)]]
+        : ['data' => ['#markup' => '<span style="color:#888">—</span>']];
+      $trace_rows[] = [$step_name, $rc_cell, '<code>' . htmlspecialchars((string) $data_str) . '</code>'];
+    }
+
+    // Runtime metrics.
+    $total_agents = count($exec_ran);
+    $ok_agents    = count(array_filter($exec_ran, fn($e) => (int) ($e['rc'] ?? -1) === 0));
+    $fail_agents  = $total_agents - $ok_agents;
+    $metric_rows  = [
+      [$this->t('Last tick'), $this->fmtTs($ts)],
+      [$this->t('Pipeline steps'), (string) count($step_res)],
+      [$this->t('Agents executed'), (string) $total_agents],
+      [$this->t('Agents ok / failed'), "$ok_agents / $fail_agents"],
+      [$this->t('Tick errors'), (string) count($errors)],
+      [$this->t('Parity'), ['data' => ['#markup' => $this->badge($parity_ok)]]],
+    ];
+
+    // Parity diff: expected vs actual steps.
+    $exp_steps = (array) ($parity['steps']['expected'] ?? []);
+    $act_steps = (array) ($parity['steps']['actual'] ?? []);
+    $all_steps = array_unique(array_merge($exp_steps, $act_steps));
+    $diff_rows = [];
+    foreach ($all_steps as $step) {
+      $in_exp   = in_array($step, $exp_steps, TRUE);
+      $in_act   = in_array($step, $act_steps, TRUE);
+      $status   = $in_exp && $in_act ? '<span style="color:#2e7d32">✓ match</span>' : ($in_exp ? '<span style="color:#b71c1c">missing in actual</span>' : '<span style="color:#e65100">extra in actual</span>');
+      $diff_rows[] = [(string) $step, ['data' => ['#markup' => $status]]];
+    }
+
+    // Alerts: combine tick errors + parity errors.
+    $alert_rows = [];
+    foreach ($errors as $err) {
+      $alert_rows[] = ['tick', (string) $err];
+    }
+    foreach ($par_errors as $err) {
+      $alert_rows[] = ['parity', (string) $err];
+    }
+
     $sections = $this->sectionMap();
-    $page = $sections['observe'];
-    return $this->buildPage(
-      (string) $page['title'],
-      (string) $page['description'],
-      $this->buildSectionRows('observe', (array) $page['subsections'])
-    );
+    $nav = $this->buildSectionRows('observe', (array) $sections['observe']['subsections']);
+
+    return [
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+      'title' => ['#markup' => '<h2>' . $this->t('Observe') . '</h2>'],
+      'ts_note' => ['#markup' => '<p><em>' . $this->t('Last tick: @ts', ['@ts' => $this->fmtTs($ts)]) . '</em></p>'],
+
+      'metrics_header' => ['#markup' => '<h3>' . $this->t('Runtime Metrics') . '</h3>'],
+      'metrics_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows' => $metric_rows,
+      ],
+
+      'trace_header' => ['#markup' => '<h3>' . $this->t('Node Trace — Pipeline Step Results') . '</h3>'],
+      'trace_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Step'), $this->t('RC'), $this->t('Data')],
+        '#rows' => $trace_rows,
+        '#empty' => $this->t('No step data.'),
+      ],
+
+      'parity_header' => ['#markup' => '<h3>' . $this->t('Drift & Parity — Pipeline Steps') . '</h3>'],
+      'parity_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Step'), $this->t('Status')],
+        '#rows' => $diff_rows,
+        '#empty' => $this->t('No parity data.'),
+      ],
+
+      'alerts_header' => ['#markup' => '<h3>' . $this->t('Alerts & Errors') . '</h3>'],
+      'alerts_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Source'), $this->t('Error')],
+        '#rows' => $alert_rows,
+        '#empty' => $this->t('No errors.'),
+      ],
+
+      'nav' => [
+        '#type' => 'details',
+        '#title' => $this->t('Subsections'),
+        '#open' => FALSE,
+        'table' => [
+          '#type' => 'table',
+          '#header' => [$this->t('Subsection'), $this->t('Frame'), $this->t('Status')],
+          '#rows' => $nav,
+        ],
+      ],
+    ];
   }
 
   /**
@@ -450,7 +550,7 @@ final class LangGraphConsoleStubController extends ControllerBase {
   }
 
   /**
-   * Generic subsection page.
+   * Generic subsection page — routes to live data for wired panels, stubs otherwise.
    */
   public function subsection(string $section, string $subsection): array {
     $map = $this->sectionMap();
@@ -458,53 +558,418 @@ final class LangGraphConsoleStubController extends ControllerBase {
     if (!is_array($section_info)) {
       throw new NotFoundHttpException();
     }
-
     $subsections = (array) ($section_info['subsections'] ?? []);
     $sub_info = $subsections[$subsection] ?? NULL;
     if (!is_array($sub_info) || count($sub_info) < 2) {
       throw new NotFoundHttpException();
     }
 
-    $sub_title = (string) $sub_info[0];
-    $sub_desc = (string) $sub_info[1];
+    $back = [
+      '#markup' => '<p>' . Link::fromTextAndUrl(
+        $this->t('← Back to @section', ['@section' => (string) ($section_info['title'] ?? '')]),
+        Url::fromRoute('copilot_agent_tracker.langgraph_console_' . $section)
+      )->toString() . '</p>',
+    ];
 
+    // Route to live implementations.
+    $key = $section . '/' . $subsection;
+    return match ($key) {
+      'home/graph-contract'   => $this->subHomeGraphContract($sub_info, $back),
+      'home/runtime-objects'  => $this->subHomeRuntimeObjects($sub_info, $back),
+      'home/durability-model' => $this->subHomeDurabilityModel($sub_info, $back),
+      'home/control-gates'    => $this->subHomeControlGates($sub_info, $back),
+      'run/threads-runs'      => $this->subRunThreadsRuns($sub_info, $back),
+      'run/stream-events'     => $this->subRunStreamEvents($sub_info, $back),
+      'run/resume-retry'      => $this->subRunResumeRetry($sub_info, $back),
+      'run/concurrency'       => $this->subRunConcurrency($sub_info, $back),
+      'observe/node-traces'   => $this->subObserveNodeTraces($sub_info, $back),
+      'observe/runtime-metrics' => $this->subObserveRuntimeMetrics($sub_info, $back),
+      'observe/drift-anomalies' => $this->subObserveDriftAnomalies($sub_info, $back),
+      'observe/alerts-incidents' => $this->subObserveAlertsIncidents($sub_info, $back),
+      default                 => $this->buildStubSubsection($section_info, $sub_info, $back),
+    };
+  }
+
+  // -------------------------------------------------------------------------
+  // Home subsections (live)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subHomeGraphContract(array $sub, array $back): array {
+    ['parity' => $parity] = $this->loadTelemetry();
+    $exp = (array) ($parity['steps']['expected'] ?? []);
+    $act = (array) ($parity['steps']['actual'] ?? []);
+    $rows = [];
+    foreach (array_unique(array_merge($exp, $act)) as $i => $step) {
+      $in_e = in_array($step, $exp, TRUE);
+      $in_a = in_array($step, $act, TRUE);
+      $rows[] = [
+        (string) ($i + 1),
+        (string) $step,
+        ['data' => ['#markup' => $in_e ? '✓' : '—']],
+        ['data' => ['#markup' => $in_a ? '✓' : '<span style="color:#e65100">missing</span>']],
+      ];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#caption' => $this->t('LangGraph pipeline step contract (from parity report)'),
+        '#header' => [$this->t('#'), $this->t('Step'), $this->t('Expected'), $this->t('Actual')],
+        '#rows' => $rows,
+        '#empty' => $this->t('No parity data.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subHomeRuntimeObjects(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $teams = (array) ($tick['step_results']['release_cycle']['teams'] ?? []);
+    $exec  = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
+    $rows  = [];
+    foreach ($teams as $t) {
+      $rows[] = [
+        'Thread',
+        (string) ($t['team'] ?? '?'),
+        (string) ($t['current'] ?? '—'),
+        (string) ($t['action'] ?? '—'),
+      ];
+    }
+    foreach ($exec as $e) {
+      $rows[] = [
+        'Run',
+        (string) ($e['agent'] ?? '?'),
+        '—',
+        ['data' => ['#markup' => $this->rcBadge(isset($e['rc']) ? (int) $e['rc'] : -1)]],
+      ];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#caption' => $this->t('Active threads (release teams) and runs (agent executions) from last tick'),
+        '#header' => [$this->t('Type'), $this->t('ID'), $this->t('State'), $this->t('Status')],
+        '#rows' => $rows,
+        '#empty' => $this->t('No data.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subHomeDurabilityModel(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $ts    = (string) ($tick['ts'] ?? '');
+    $push  = (array) ($tick['step_results']['coordinated_push'] ?? []);
+    $hc    = (array) ($tick['step_results']['health_check'] ?? []);
+    $rows  = [
+      [$this->t('Last successful tick'), $this->fmtTs($ts)],
+      [$this->t('Coordinated push status'), (string) ($push['status'] ?? '—')],
+      [$this->t('Idle agents with work'), (string) ($hc['idle_with_inbox'] ?? '—')],
+      [$this->t('Blocked agents'), (string) ($hc['blocked_count'] ?? '—')],
+      [$this->t('Remediated this tick'), (string) count((array) ($hc['remediated'] ?? []))],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Property'), $this->t('Value')],
+        '#rows' => $rows,
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subHomeControlGates(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $dry_run = isset($tick['dry_run']) ? (bool) $tick['dry_run'] : NULL;
+    $pub_en  = isset($tick['publish_enabled']) ? (bool) $tick['publish_enabled'] : NULL;
+    $cap     = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : NULL;
+    $rows    = [
+      [$this->t('Mode'), $dry_run === NULL ? '—' : ($dry_run ? 'dry-run (no writes)' : 'live')],
+      [$this->t('Publish enabled'), $pub_en === NULL ? '—' : ($pub_en ? 'yes' : 'no')],
+      [$this->t('Agent cap (max agents/tick)'), $cap !== NULL ? (string) $cap : '—'],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#caption' => $this->t('Orchestrator control gate values from last tick'),
+        '#header' => [$this->t('Gate'), $this->t('Value')],
+        '#rows' => $rows,
+      ],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Run subsections (live)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subRunThreadsRuns(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $exec  = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
+    $teams = (array) ($tick['step_results']['release_cycle']['teams'] ?? []);
+    $rows  = [];
+    foreach ($teams as $t) {
+      $rows[] = ['Team', (string) ($t['team'] ?? '?'), (string) ($t['current'] ?? '—'), (string) ($t['action'] ?? '—')];
+    }
+    foreach ($exec as $e) {
+      $rc = isset($e['rc']) ? (int) $e['rc'] : -1;
+      $rows[] = ['Agent', (string) ($e['agent'] ?? '?'), '—', ['data' => ['#markup' => $this->rcBadge($rc)]]];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Type'), $this->t('ID'), $this->t('Release / State'), $this->t('Status')],
+        '#rows' => $rows,
+        '#empty' => $this->t('No data.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subRunStreamEvents(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $steps = (array) ($tick['step_results'] ?? []);
+    $ts    = (string) ($tick['ts'] ?? '');
+    $rows  = [];
+    $i     = 1;
+    foreach ($steps as $name => $data) {
+      $rc = isset($data['rc']) ? $this->rcBadge((int) $data['rc']) : '—';
+      $rows[] = [
+        (string) $i++,
+        (string) $name,
+        ['data' => ['#markup' => $rc]],
+        $this->fmtTs($ts),
+      ];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#caption' => $this->t('Pipeline step execution events for the last tick'),
+        '#header' => [$this->t('Seq'), $this->t('Step'), $this->t('RC'), $this->t('Tick timestamp')],
+        '#rows' => $rows,
+        '#empty' => $this->t('No events.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subRunResumeRetry(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $hc         = (array) ($tick['step_results']['health_check'] ?? []);
+    $remediated = (array) ($hc['remediated'] ?? []);
+    $rem_rows   = [];
+    foreach ($remediated as $r) {
+      $rc = isset($r['rc']) ? (int) $r['rc'] : -1;
+      $rem_rows[] = [(string) ($r['agent'] ?? '?'), ['data' => ['#markup' => $this->rcBadge($rc)]]];
+    }
+    $summary = [
+      [$this->t('Idle agents with inbox items'), (string) ($hc['idle_with_inbox'] ?? '—')],
+      [$this->t('Blocked agents'), (string) ($hc['blocked_count'] ?? '—')],
+      [$this->t('Remediated this tick'), (string) count($remediated)],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'summary' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows' => $summary,
+      ],
+      'rem_header' => ['#markup' => '<h4>' . $this->t('Remediated Agents') . '</h4>'],
+      'rem_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Agent'), $this->t('RC')],
+        '#rows' => $rem_rows,
+        '#empty' => $this->t('None remediated this tick.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subRunConcurrency(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $pick = (array) ($tick['step_results']['pick_agents'] ?? []);
+    $cap  = isset($tick['agent_cap']) ? (int) $tick['agent_cap'] : NULL;
+    $sel  = (array) ($pick['selected'] ?? []);
+    $pri  = (array) ($pick['release_priority'] ?? []);
+    $rows = [
+      [$this->t('Agent cap (max/tick)'), $cap !== NULL ? (string) $cap : '—'],
+      [$this->t('Agents selected this tick'), (string) count($sel)],
+      [$this->t('Utilisation'), $cap ? round(count($sel) / $cap * 100) . '%' : '—'],
+      [$this->t('Release priority agents'), implode(', ', array_map('strval', $pri)) ?: '—'],
+      [$this->t('Selected agents'), implode(', ', array_map('strval', $sel)) ?: '—'],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows' => $rows,
+      ],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Observe subsections (live)
+  // -------------------------------------------------------------------------
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subObserveNodeTraces(array $sub, array $back): array {
+    ['tick' => $tick] = $this->loadTelemetry();
+    $steps = (array) ($tick['step_results'] ?? []);
+    $rows  = [];
+    foreach ($steps as $name => $data) {
+      $rc_cell = isset($data['rc'])
+        ? ['data' => ['#markup' => $this->rcBadge((int) $data['rc'])]]
+        : '—';
+      $payload = is_array($data)
+        ? json_encode($data, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+        : (string) $data;
+      $rows[] = [
+        (string) $name,
+        $rc_cell,
+        ['data' => ['#markup' => '<pre style="margin:0;font-size:0.8em;max-width:600px;white-space:pre-wrap">' . htmlspecialchars((string) $payload) . '</pre>']],
+      ];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Step / Node'), $this->t('RC'), $this->t('Output')],
+        '#rows' => $rows,
+        '#empty' => $this->t('No trace data.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subObserveRuntimeMetrics(array $sub, array $back): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+    $exec  = (array) ($tick['step_results']['exec_agents']['ran'] ?? []);
+    $errs  = (array) ($tick['errors'] ?? []);
+    $ok    = count(array_filter($exec, fn($e) => (int) ($e['rc'] ?? -1) === 0));
+    $fail  = count($exec) - $ok;
+    $par   = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
+    $rows  = [
+      [$this->t('Last tick timestamp'), $this->fmtTs((string) ($tick['ts'] ?? ''))],
+      [$this->t('Pipeline steps executed'), (string) count((array) ($tick['step_results'] ?? []))],
+      [$this->t('Agents executed'), (string) count($exec)],
+      [$this->t('Agents succeeded'), (string) $ok],
+      [$this->t('Agents failed'), (string) $fail],
+      [$this->t('Tick errors'), (string) count($errs)],
+      [$this->t('Parity health'), ['data' => ['#markup' => $this->badge($par)]]],
+    ];
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Metric'), $this->t('Value')],
+        '#rows' => $rows,
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subObserveDriftAnomalies(array $sub, array $back): array {
+    ['parity' => $parity] = $this->loadTelemetry();
+    $par_ok     = isset($parity['parity_ok']) ? (bool) $parity['parity_ok'] : NULL;
+    $exp_steps  = (array) ($parity['steps']['expected'] ?? []);
+    $act_steps  = (array) ($parity['steps']['actual'] ?? []);
+    $exp_agents = (array) ($parity['selected_agents']['actual'] ?? []);
+    $step_match = isset($parity['steps']['match']) ? (bool) $parity['steps']['match'] : NULL;
+    $ag_match   = isset($parity['selected_agents']['match']) ? (bool) $parity['selected_agents']['match'] : NULL;
+
+    $overview = [
+      [$this->t('Overall parity'), ['data' => ['#markup' => $this->badge($par_ok)]]],
+      [$this->t('Pipeline steps match'), ['data' => ['#markup' => $this->badge($step_match)]]],
+      [$this->t('Agent selection match'), ['data' => ['#markup' => $this->badge($ag_match)]]],
+    ];
+
+    $missing = array_diff($exp_steps, $act_steps);
+    $extra   = array_diff($act_steps, $exp_steps);
+    $drift_rows = [];
+    foreach ($missing as $s) {
+      $drift_rows[] = ['step', (string) $s, ['data' => ['#markup' => '<span style="color:#b71c1c">missing in actual</span>']]];
+    }
+    foreach ($extra as $s) {
+      $drift_rows[] = ['step', (string) $s, ['data' => ['#markup' => '<span style="color:#e65100">extra in actual</span>']]];
+    }
+
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'overview' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Check'), $this->t('Result')],
+        '#rows' => $overview,
+      ],
+      'drift_header' => ['#markup' => '<h4>' . $this->t('Pipeline Drift') . '</h4>'],
+      'drift_table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Type'), $this->t('Name'), $this->t('Status')],
+        '#rows' => $drift_rows,
+        '#empty' => $this->t('No drift detected.'),
+      ],
+    ]);
+  }
+
+  /** @param array<mixed> $sub @param array<mixed> $back */
+  private function subObserveAlertsIncidents(array $sub, array $back): array {
+    ['tick' => $tick, 'parity' => $parity] = $this->loadTelemetry();
+    $tick_errs  = (array) ($tick['errors'] ?? []);
+    $par_errs   = (array) ($parity['errors'] ?? []);
+    $rows       = [];
+    foreach ($tick_errs as $e) {
+      $rows[] = ['tick', (string) $e, $this->fmtTs((string) ($tick['ts'] ?? ''))];
+    }
+    foreach ($par_errs as $e) {
+      $rows[] = ['parity', (string) $e, $this->fmtTs((string) ($parity['generated_at'] ?? ''))];
+    }
+    return $this->buildSubPage((string) $sub[0], (string) $sub[1], $back, [
+      'table' => [
+        '#type' => 'table',
+        '#header' => [$this->t('Source'), $this->t('Error'), $this->t('Timestamp')],
+        '#rows' => $rows,
+        '#empty' => $this->t('No errors recorded.'),
+      ],
+    ]);
+  }
+
+  // -------------------------------------------------------------------------
+  // Stub subsection fallback
+  // -------------------------------------------------------------------------
+
+  /**
+   * Generic stub subsection.
+   *
+   * @param array<mixed> $section_info
+   * @param array<mixed> $sub_info
+   * @param array<mixed> $back
+   */
+  private function buildStubSubsection(array $section_info, array $sub_info, array $back): array {
     return [
       '#type' => 'container',
       '#cache' => ['max-age' => 0],
       'title' => [
         '#markup' => '<h2>' . $this->t('@section: @subsection', [
-          '@section' => (string) ($section_info['title'] ?? ''),
-          '@subsection' => $sub_title,
+          '@section'    => (string) ($section_info['title'] ?? ''),
+          '@subsection' => (string) ($sub_info[0] ?? ''),
         ]) . '</h2>',
       ],
-      'description' => [
-        '#markup' => '<p>' . $this->t($sub_desc) . '</p>',
-      ],
+      'desc' => ['#markup' => '<p>' . $this->t((string) ($sub_info[1] ?? '')) . '</p>'],
       'notice' => [
-        '#markup' => '<div class="messages messages--status"><strong>' . $this->t('Stub Subsection') . ':</strong> ' . $this->t('This is a structural frame only. No workflows or data are connected.') . '</div>',
+        '#markup' => '<div class="messages messages--status"><strong>' . $this->t('Stub') . ':</strong> ' . $this->t('Data integration not yet wired for this subsection.') . '</div>',
       ],
-      'back' => [
-        '#markup' => '<p>' . Link::fromTextAndUrl(
-          $this->t('Back to @section', ['@section' => (string) ($section_info['title'] ?? '')]),
-          Url::fromRoute('copilot_agent_tracker.langgraph_console_' . $section)
-        )->toString() . '</p>',
-      ],
-      'layout_frames' => [
-        '#type' => 'details',
-        '#title' => $this->t('Subsection Frame'),
-        '#open' => TRUE,
-        'table' => [
-          '#type' => 'table',
-          '#header' => [$this->t('Frame Area'), $this->t('Placeholder')],
-          '#rows' => [
-            [$this->t('Scope controls'), $this->t('Graph, thread, run, and environment selectors placeholder.')],
-            [$this->t('Execution panel'), $this->t('Node path, state snapshot, or lifecycle timeline placeholder.')],
-            [$this->t('Checkpoint/context panel'), $this->t('Checkpoint state, resume context, and metadata placeholder.')],
-            [$this->t('Control rail'), $this->t('Interrupt/resume/retry/promote action placeholders.')],
-          ],
-        ],
-      ],
+      'back' => $back,
     ];
+  }
+
+  /**
+   * Helper to wrap subsection content with a title + back link.
+   *
+   * @param array<mixed> $back
+   * @param array<mixed> $content
+   */
+  private function buildSubPage(string $title, string $description, array $back, array $content): array {
+    return array_merge([
+      '#type' => 'container',
+      '#cache' => ['max-age' => 0],
+      'title' => ['#markup' => '<h2>' . htmlspecialchars($title) . '</h2>'],
+      'desc'  => ['#markup' => '<p>' . htmlspecialchars($description) . '</p>'],
+      'back'  => $back,
+    ], $content);
   }
 
   /**
