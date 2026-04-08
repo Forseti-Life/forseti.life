@@ -3,8 +3,8 @@
 - Work item id: dc-cr-skills-stealth-hide-sneak
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260408-dungeoncrawler-release-f
+- Status: planned
+- Release: 20260408-dungeoncrawler-release-g
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
