@@ -3,8 +3,8 @@
 - Work item id: forseti-jobhunter-profile-refactor
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260408-forseti-release-b
+- Status: ready
+- Release: 20260408-forseti-release-c
 - Priority: P2
 - Feature type: refactor
 - PM owner: pm-forseti
@@ -40,8 +40,6 @@ See: features/forseti-jobhunter-profile-refactor/01-acceptance-criteria.md
 - Security AC exemption: pure form-structure extraction refactor — no new routes, no new permissions, no new user input surfaces introduced. CSRF protection on `job_hunter.delete_resume` (POST + `_csrf_token: 'TRUE'`) must be preserved post-extraction; this is explicitly verified in AC-3.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-08: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 

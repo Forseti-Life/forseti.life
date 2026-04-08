@@ -3,8 +3,8 @@
 - Work item id: forseti-jobhunter-controller-refactor-phase2
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260408-forseti-release-b
+- Status: ready
+- Release: 20260408-forseti-release-c
 - Priority: P2
 - Feature type: refactor
 - PM owner: pm-forseti
@@ -39,8 +39,6 @@ See: features/forseti-jobhunter-controller-refactor-phase2/01-acceptance-criteri
 - Security AC exemption: pure DB-layer extraction refactor — no new routes, no new permissions, no new user input surfaces introduced. Existing route ACLs and CSRF protections are unchanged; verified in AC-1 and AC-3.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-08: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 
