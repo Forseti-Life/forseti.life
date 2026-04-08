@@ -45,11 +45,58 @@ class CharacterManager {
     'Half-Elf' => ['hp' => 8, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Free', 'Free'], 'languages' => ['Common', 'Elven'], 'traits' => ['Human', 'Elf', 'Humanoid', 'Half-Elf'], 'vision' => 'low-light vision'],
     'Half-Orc' => ['hp' => 8, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Free', 'Free'], 'languages' => ['Common', 'Orcish'], 'traits' => ['Human', 'Orc', 'Humanoid', 'Half-Orc'], 'vision' => 'low-light vision'],
     'Leshy' => ['hp' => 8, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Constitution', 'Wisdom'], 'flaw' => 'Intelligence', 'languages' => ['Common', 'Sylvan'], 'traits' => ['Leshy', 'Plant', 'Humanoid'], 'vision' => 'low-light vision'],
-    'Orc' => ['hp' => 10, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Strength', 'Free'], 'languages' => ['Common', 'Orcish'], 'traits' => ['Orc', 'Humanoid'], 'vision' => 'darkvision'],
-    'Catfolk' => ['hp' => 8, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Dexterity', 'Charisma'], 'flaw' => 'Wisdom', 'languages' => ['Common', 'Amurrun'], 'traits' => ['Catfolk', 'Humanoid'], 'vision' => 'low-light vision'],
-    'Kobold' => ['hp' => 6, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Dexterity', 'Charisma'], 'flaw' => 'Constitution', 'languages' => ['Common', 'Draconic'], 'traits' => ['Kobold', 'Humanoid'], 'vision' => 'darkvision'],
-    'Ratfolk' => ['hp' => 6, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Dexterity', 'Intelligence'], 'flaw' => 'Strength', 'languages' => ['Common', 'Ysoki'], 'traits' => ['Ratfolk', 'Humanoid'], 'vision' => 'low-light vision'],
-    'Tengu' => ['hp' => 6, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Dexterity', 'Free'], 'languages' => ['Common', 'Tengu'], 'traits' => ['Tengu', 'Humanoid'], 'vision' => 'low-light vision'],
+    'Orc' => [
+      'hp' => 10, 'size' => 'Medium', 'speed' => 25,
+      'boosts' => ['Strength', 'Free'],
+      'languages' => ['Common', 'Orcish'],
+      'traits' => ['Orc', 'Humanoid'],
+      'vision' => 'darkvision',
+      // Orc has no ability flaw (APG distinction).
+    ],
+    'Catfolk' => [
+      'hp' => 8, 'size' => 'Medium', 'speed' => 25,
+      'boosts' => ['Dexterity', 'Charisma'], 'flaw' => 'Wisdom',
+      'languages' => ['Common', 'Amurrun'],
+      'traits' => ['Catfolk', 'Humanoid'],
+      'vision' => 'low-light vision',
+      'special' => [
+        // Halve falling damage and do not land Prone from any fall.
+        'land_on_your_feet' => TRUE,
+      ],
+    ],
+    'Kobold' => [
+      'hp' => 6, 'size' => 'Small', 'speed' => 25,
+      'boosts' => ['Dexterity', 'Charisma'], 'flaw' => 'Constitution',
+      'languages' => ['Common', 'Draconic'],
+      'traits' => ['Kobold', 'Humanoid'],
+      'vision' => 'darkvision',
+      'special' => [
+        // Player selects one entry from KOBOLD_DRACONIC_EXEMPLAR_TABLE at L1.
+        'draconic_exemplar' => TRUE,
+      ],
+    ],
+    'Ratfolk' => [
+      'hp' => 6, 'size' => 'Small', 'speed' => 25,
+      'boosts' => ['Dexterity', 'Intelligence'], 'flaw' => 'Strength',
+      'languages' => ['Common', 'Ysoki'],
+      'traits' => ['Ratfolk', 'Humanoid'],
+      'vision' => 'low-light vision',
+    ],
+    'Tengu' => [
+      'hp' => 6, 'size' => 'Medium', 'speed' => 25,
+      'boosts' => ['Dexterity', 'Free'],
+      'languages' => ['Common', 'Tengu'],
+      'traits' => ['Tengu', 'Humanoid'],
+      'vision' => 'low-light vision',
+      'special' => [
+        // All tengus have this unarmed attack from birth (not heritage-gated).
+        'sharp_beak' => [
+          'damage' => '1d6', 'type' => 'piercing',
+          'group' => 'brawling',
+          'traits' => ['finesse', 'unarmed'],
+        ],
+      ],
+    ],
   ];
 
   /**
@@ -59,7 +106,11 @@ class CharacterManager {
    * Trait comparison is case-sensitive; only strings in this list are valid.
    */
   const TRAIT_CATALOG = [
+    'Aasimar',
     'Catfolk',
+    'Changeling',
+    'Dhampir',
+    'Duskwalker',
     'Dwarf',
     'Elf',
     'Gnome',
@@ -75,6 +126,7 @@ class CharacterManager {
     'Plant',
     'Ratfolk',
     'Tengu',
+    'Tiefling',
   ];
 
   /**
@@ -176,7 +228,7 @@ class CharacterManager {
    *
    * Tree:
    * - Catfolk (heritages: 4, feats: 6)
-   *   H: clawed, hunting, jungle, winter
+   *   H: clawed, hunting, jungle, nine-lives
    *   F: catfolk-lore, catfolk-weapon-familiarity, graceful-step, feline-eyes, well-groomed, cat-nap
    * - Dwarf (heritages: 4, feats: 6)
    *   H: ancient-blooded, forge, rock, strong-blooded
@@ -202,20 +254,20 @@ class CharacterManager {
    * - Human (heritages: 4, feats: 7)
    *   H: versatile, skilled, half-elf, half-orc
    *   F: adapted-cantrip (req: spellcasting), cooperative-nature, general-training, haughty-obstinacy, natural-ambition, natural-skill, unconventional-weaponry
-   * - Kobold (heritages: 4, feats: 6)
-   *   H: cavern, dracomancer, dragonscaled, spelunker
+   * - Kobold (heritages: 5, feats: 6)
+   *   H: cavern, dragonscaled, spellscale, strongjaw, venomtail
    *   F: kobold-lore, snare-setter, draconic-ties, tunnel-runner, draconic-scout, kobold-weapon-familiarity
    * - Leshy (heritages: 4, feats: 6)
    *   H: cactus, gourd, leaf, vine
    *   F: leshy-lore, seedpod, photosynthetic-recovery, rooted-resilience, verdant-voice, forest-step
-   * - Orc (heritages: 4, feats: 6)
-   *   H: badlands, battle-ready, deep-orc, rainfall
+   * - Orc (heritages: 5, feats: 6)
+   *   H: badlands, battle-ready, deep-orc, grave, rainfall
    *   F: hold-scarred, orc-ferocity, orc-sight, orc-superstition, orc-weapon-familiarity, orc-weapon-carnage
    * - Ratfolk (heritages: 4, feats: 6)
    *   H: desert, sewer, shadow, tunnel
    *   F: ratfolk-lore, cheek-pouches, tunnel-vision, scrounger, communal-instinct, ratfolk-weapon-familiarity
    * - Tengu (heritages: 4, feats: 6)
-   *   H: dogtooth, jinxed, mountainkeeper, skyborn
+   *   H: jinxed, skyborn, stormtossed, taloned
    *   F: tengu-lore, one-toed-hop, squawk, sky-bridge-runner, beak-adept, tengu-weapon-familiarity
    */
 
@@ -277,10 +329,36 @@ class CharacterManager {
       ],
     ],
     'Catfolk' => [
-      ['id' => 'clawed', 'name' => 'Clawed Catfolk', 'benefit' => 'Sharp claws grant an agile unarmed claw attack'],
-      ['id' => 'hunting', 'name' => 'Hunting Catfolk', 'benefit' => 'Enhanced predatory instincts improve tracking and initiative awareness'],
-      ['id' => 'jungle', 'name' => 'Jungle Catfolk', 'benefit' => 'Natural climber with improved movement through foliage and rough growth'],
-      ['id' => 'winter', 'name' => 'Winter Catfolk', 'benefit' => 'Cold adaptation grants minor resistance to cold environments'],
+      [
+        'id' => 'clawed', 'name' => 'Clawed Catfolk',
+        'benefit' => 'Sharp claws grant an agile unarmed claw attack',
+        'unarmed_attack' => [
+          'name' => 'claw', 'damage' => '1d6', 'type' => 'slashing',
+          'traits' => ['agile', 'finesse', 'unarmed'],
+        ],
+      ],
+      [
+        'id' => 'hunting', 'name' => 'Hunting Catfolk',
+        'benefit' => 'Imprecise scent at 30 ft',
+        'special' => ['scent' => ['range' => 30, 'precision' => 'imprecise']],
+      ],
+      [
+        'id' => 'jungle', 'name' => 'Jungle Catfolk',
+        'benefit' => 'Ignore difficult terrain from vegetation and rubble',
+        'special' => ['ignore_difficult_terrain' => ['vegetation', 'rubble']],
+      ],
+      [
+        'id' => 'nine-lives', 'name' => 'Nine Lives Catfolk',
+        'benefit' => 'One-time critical hit death mitigation: treat one killing crit as a normal hit',
+        'special' => [
+          'death_mitigation' => [
+            'trigger' => 'critical_hit_would_kill',
+            'effect' => 'treat_as_normal_hit',
+            'uses' => 1,
+            'per' => 'lifetime',
+          ],
+        ],
+      ],
     ],
     'Half-Elf' => [
       ['id' => 'ancient-elf-blood', 'name' => 'Ancient Elf-Blooded', 'benefit' => 'Elven lineage grants broader familiarity with long-lived traditions and magic'],
@@ -295,10 +373,58 @@ class CharacterManager {
       ['id' => 'unyielding', 'name' => 'Unyielding Half-Orc', 'benefit' => 'Refusal to fall grants a brief endurance surge when dropped low'],
     ],
     'Kobold' => [
-      ['id' => 'cavern', 'name' => 'Cavern Kobold', 'benefit' => 'Tunnel-bred senses improve underground navigation and hazard awareness'],
-      ['id' => 'dracomancer', 'name' => 'Dracomancer Kobold', 'benefit' => 'Arcane draconic spark grants a minor magical trick'],
-      ['id' => 'dragonscaled', 'name' => 'Dragonscaled Kobold', 'benefit' => 'Scale-hardening grants minor resistance against energy assaults'],
-      ['id' => 'spelunker', 'name' => 'Spelunker Kobold', 'benefit' => 'Nimble caving movement improves squeezing and climbing in confined spaces'],
+      [
+        'id' => 'cavern', 'name' => 'Cavern Kobold',
+        'benefit' => 'Climb natural stone surfaces; squeeze success → crit success',
+        'special' => [
+          'climb_natural_stone' => [
+            'success_speed' => 'half', 'crit_success_speed' => 'full',
+          ],
+          'squeeze_success_upgrade' => TRUE,
+        ],
+      ],
+      [
+        'id' => 'dragonscaled', 'name' => 'Dragonscaled Kobold',
+        'benefit' => 'Resistance to exemplar damage type = level/2 (min 1); doubled vs dragon breath',
+        'special' => [
+          'resistance' => [
+            'damage_type' => 'draconic_exemplar',
+            'value' => 'level_half_min_1',
+            'double_vs_dragon_breath' => TRUE,
+          ],
+        ],
+      ],
+      [
+        'id' => 'spellscale', 'name' => 'Spellscale Kobold',
+        'benefit' => '1 at-will arcane cantrip; trained in arcane spellcasting (Cha-based)',
+        'special' => [
+          'cantrip_slots' => 1,
+          'cantrip_tradition' => 'arcane',
+          'spellcasting_ability' => 'cha',
+          'spellcasting_proficiency' => 'trained',
+        ],
+      ],
+      [
+        'id' => 'strongjaw', 'name' => 'Strongjaw Kobold',
+        'benefit' => 'Jaws unarmed attack (1d6 piercing)',
+        'unarmed_attack' => [
+          'name' => 'jaws', 'damage' => '1d6', 'type' => 'piercing',
+          'group' => 'brawling',
+          'traits' => ['finesse', 'unarmed'],
+        ],
+      ],
+      [
+        'id' => 'venomtail', 'name' => 'Venomtail Kobold',
+        'benefit' => 'Tail Toxin: 1 action, 1/day — apply to weapon; next hit before end of next turn deals persistent poison = level',
+        'special' => [
+          'tail_toxin' => [
+            'action_cost' => 1,
+            'uses_per_day' => 1,
+            'effect' => 'persistent_poison',
+            'damage' => 'level',
+          ],
+        ],
+      ],
     ],
     'Leshy' => [
       ['id' => 'cactus', 'name' => 'Cactus Leshy', 'benefit' => 'Spiny body deters attackers and improves arid survival'],
@@ -307,22 +433,109 @@ class CharacterManager {
       ['id' => 'vine', 'name' => 'Vine Leshy', 'benefit' => 'Flexible tendrils improve grasping and maneuvering through vegetation'],
     ],
     'Orc' => [
-      ['id' => 'badlands', 'name' => 'Badlands Orc', 'benefit' => 'Harsh-land adaptation grants endurance in extreme environments'],
-      ['id' => 'battle-ready', 'name' => 'Battle-Ready Orc', 'benefit' => 'Martial upbringing improves readiness and opening combat discipline'],
-      ['id' => 'deep-orc', 'name' => 'Deep Orc', 'benefit' => 'Subterranean heritage grants stronger darkness adaptation'],
-      ['id' => 'rainfall', 'name' => 'Rainfall Orc', 'benefit' => 'Wetland survival training improves mobility in mud and heavy terrain'],
+      [
+        'id' => 'badlands', 'name' => 'Badlands Orc',
+        'benefit' => 'Ignore non-magical difficult terrain; extra Fortitude save vs heat exhaustion',
+        'special' => ['ignore_difficult_terrain' => ['non_magical'], 'heat_fortitude_bonus' => 2],
+      ],
+      [
+        'id' => 'battle-ready', 'name' => 'Battle-Ready Orc',
+        'benefit' => 'Trained in martial weapons (if not already); +1 bonus to initiative when using Perception',
+        'special' => ['martial_weapons_trained' => TRUE, 'initiative_perception_bonus' => 1],
+      ],
+      [
+        'id' => 'deep-orc', 'name' => 'Deep Orc',
+        'benefit' => 'Low-light vision upgrades to darkvision',
+        'vision_override' => 'darkvision',
+      ],
+      [
+        'id' => 'grave', 'name' => 'Grave Orc',
+        'benefit' => 'Negative healing: harmed by positive energy, healed by negative energy; treated as undead for energy effects',
+        'special' => [
+          'negative_healing'       => TRUE,
+          'positive_damage_heals'  => FALSE,
+          'negative_damage_heals'  => TRUE,
+          'undead_energy_rules'    => TRUE,
+        ],
+      ],
+      [
+        'id' => 'rainfall', 'name' => 'Rainfall Orc',
+        'benefit' => 'Ignore difficult terrain from rain/mud; fire resistance = level/2 (min 1)',
+        'special' => [
+          'ignore_difficult_terrain' => ['rain', 'mud'],
+          'resistance' => ['damage_type' => 'fire', 'value' => 'level_half_min_1'],
+        ],
+      ],
     ],
     'Ratfolk' => [
-      ['id' => 'desert', 'name' => 'Desert Ratfolk', 'benefit' => 'Heat resilience improves travel and recovery in arid climates'],
-      ['id' => 'sewer', 'name' => 'Sewer Ratfolk', 'benefit' => 'Urban scavenger instincts improve hazard awareness in settlements'],
-      ['id' => 'shadow', 'name' => 'Shadow Ratfolk', 'benefit' => 'Low-profile movement improves stealth in cluttered environments'],
-      ['id' => 'tunnel', 'name' => 'Tunnel Ratfolk', 'benefit' => 'Burrow-network familiarity improves movement through cramped passages'],
+      [
+        'id' => 'desert', 'name' => 'Desert Ratfolk',
+        'benefit' => 'All-fours speed 30 (both hands free); starvation/thirst threshold ×10; heat/cold extremes modified',
+        'special' => [
+          'all_fours_speed' => 30,
+          'all_fours_requires_free_hands' => 2,
+          'starvation_thirst_multiplier' => 10,
+          'extreme_heat_cold_modified' => TRUE,
+        ],
+      ],
+      [
+        'id' => 'sewer', 'name' => 'Sewer Ratfolk',
+        'benefit' => 'Immune to filth fever; disease/poison stage reduction improved (success: −2 stages, crit: −3 stages; halved for virulent)',
+        'special' => [
+          'immune' => ['filth-fever'],
+          'disease_poison_stage_reduction' => [
+            'success' => 2, 'crit_success' => 3,
+            'virulent_halved' => TRUE,
+          ],
+        ],
+      ],
+      [
+        'id' => 'shadow', 'name' => 'Shadow Ratfolk',
+        'benefit' => 'Trained in Intimidation; can Coerce animals without language penalty; animals start one attitude step worse',
+        'special' => [
+          'trained_skill' => 'Intimidation',
+          'coerce_animals_no_language_penalty' => TRUE,
+          'animal_starting_attitude_penalty' => 1,
+        ],
+      ],
+      [
+        'id' => 'tunnel', 'name' => 'Tunnel Ratfolk',
+        'benefit' => 'Burrow-network familiarity improves movement through cramped passages',
+      ],
     ],
     'Tengu' => [
-      ['id' => 'dogtooth', 'name' => 'Dogtooth Tengu', 'benefit' => 'Predatory beak grants improved precision with close-quarters strikes'],
-      ['id' => 'jinxed', 'name' => 'Jinxed Tengu', 'benefit' => 'Ominous luck twists misfortune away from the tengu at critical moments'],
-      ['id' => 'mountainkeeper', 'name' => 'Mountainkeeper Tengu', 'benefit' => 'Highland upbringing improves sure-footed movement on difficult elevations'],
-      ['id' => 'skyborn', 'name' => 'Skyborn Tengu', 'benefit' => 'Windwise instincts improve balance and aerial environment awareness'],
+      [
+        'id' => 'jinxed', 'name' => 'Jinxed Tengu',
+        'benefit' => 'Curse/misfortune saves: success → crit success; doomed gain → flat DC 17 to reduce by 1',
+        'special' => [
+          'curse_misfortune_save_upgrade' => 'success_to_crit',
+          'doomed_gain_reduction' => ['type' => 'flat_check', 'dc' => 17, 'reduce_by' => 1],
+        ],
+      ],
+      [
+        'id' => 'skyborn', 'name' => 'Skyborn Tengu',
+        'benefit' => 'Take 0 damage from any fall; never land Prone from falling',
+        'special' => [
+          'fall_damage' => 0,
+          'fall_prevents_prone' => TRUE,
+        ],
+      ],
+      [
+        'id' => 'stormtossed', 'name' => 'Stormtossed Tengu',
+        'benefit' => 'Electricity resistance = level/2 (min 1); ignore concealment from rain/fog when targeting',
+        'special' => [
+          'resistance' => ['damage_type' => 'electricity', 'value' => 'level_half_min_1'],
+          'ignore_concealment' => ['rain', 'fog'],
+        ],
+      ],
+      [
+        'id' => 'taloned', 'name' => 'Taloned Tengu',
+        'benefit' => 'Talons unarmed attack (1d4 slashing, agile/finesse/unarmed/versatile piercing)',
+        'unarmed_attack' => [
+          'name' => 'talons', 'damage' => '1d4', 'type' => 'slashing',
+          'traits' => ['agile', 'finesse', 'unarmed', 'versatile piercing'],
+        ],
+      ],
     ],
   ];
 
@@ -661,6 +874,56 @@ class CharacterManager {
       'skill' => 'Intimidation',
       'feat' => 'Intimidating Glare',
       'lore' => 'Warfare Lore',
+    ],
+    // APG backgrounds
+    'haunted' => [
+      'id' => 'haunted',
+      'name' => 'Haunted',
+      'description' => 'A malevolent entity has latched onto you, aiding you while creating havoc.',
+      'fixed_boost' => 'wis',
+      'skill' => 'Occultism',
+      'feat' => 'Dubious Knowledge',
+      'lore' => 'Haunted Lore',
+      'special' => [
+        // On Aid failure → Frightened 2; on critical fail → Frightened 4.
+        // Initial Frightened from this ability cannot be reduced by prevention effects.
+        'haunted_aid' => [
+          'fail_condition' => 'frightened_2',
+          'crit_fail_condition' => 'frightened_4',
+          'initial_frightened_prevention_immune' => TRUE,
+        ],
+      ],
+    ],
+    'fey_touched' => [
+      'id' => 'fey_touched',
+      'name' => 'Fey-Touched',
+      'description' => 'You were touched by fey magic, giving you a hint of their luck and whimsy.',
+      'fixed_boost' => 'cha',
+      'skill' => 'Nature',
+      'feat' => 'Fey Fellowship',
+      'lore' => 'Fey Lore',
+      'special' => [
+        // Fey's Fortune: 1/day free-action fortune on any skill check (roll twice, use better).
+        'feys_fortune' => [
+          'action_cost' => 0,
+          'uses_per_day' => 1,
+          'effect' => 'fortune_skill_check',
+          'description' => 'Roll twice and use the better result on one skill check.',
+        ],
+      ],
+    ],
+    'returned' => [
+      'id' => 'returned',
+      'name' => 'Returned',
+      'description' => 'You have died and returned to life, giving you an uncanny knack for cheating death.',
+      'fixed_boost' => 'con',
+      'skill' => 'Medicine',
+      'feat' => 'Diehard',
+      'lore' => 'Underworld Lore',
+      'special' => [
+        // Diehard feat is automatically granted — not a selection. No separate feat choice needed.
+        'auto_grant_feat' => 'Diehard',
+      ],
     ],
   ];
 
@@ -3575,6 +3838,127 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
 
     ], // end primal
 
+  ];
+
+  /**
+   * Kobold Draconic Exemplar lookup table.
+   *
+   * Kobold players choose one entry at character creation. The chosen
+   * dragon type drives resistance (Dragonscaled), breath weapon shape, and
+   * other kobold abilities that reference the exemplar.
+   *
+   * Key: dragon type id. Value: mechanical properties.
+   */
+  const KOBOLD_DRACONIC_EXEMPLAR_TABLE = [
+    'black'   => ['name' => 'Black Dragon',   'damage_type' => 'acid',        'breath_shape' => 'line',       'save' => 'reflex'],
+    'blue'    => ['name' => 'Blue Dragon',    'damage_type' => 'electricity', 'breath_shape' => 'line',       'save' => 'reflex'],
+    'brass'   => ['name' => 'Brass Dragon',   'damage_type' => 'fire',        'breath_shape' => 'line',       'save' => 'reflex'],
+    'bronze'  => ['name' => 'Bronze Dragon',  'damage_type' => 'electricity', 'breath_shape' => 'line',       'save' => 'reflex'],
+    'copper'  => ['name' => 'Copper Dragon',  'damage_type' => 'acid',        'breath_shape' => 'line',       'save' => 'reflex'],
+    'gold'    => ['name' => 'Gold Dragon',    'damage_type' => 'fire',        'breath_shape' => 'cone',       'save' => 'reflex'],
+    'green'   => ['name' => 'Green Dragon',   'damage_type' => 'poison',      'breath_shape' => 'cone',       'save' => 'fortitude'],
+    'red'     => ['name' => 'Red Dragon',     'damage_type' => 'fire',        'breath_shape' => 'cone',       'save' => 'reflex'],
+    'silver'  => ['name' => 'Silver Dragon',  'damage_type' => 'cold',        'breath_shape' => 'cone',       'save' => 'reflex'],
+    'white'   => ['name' => 'White Dragon',   'damage_type' => 'cold',        'breath_shape' => 'cone',       'save' => 'reflex'],
+  ];
+
+  /**
+   * APG Versatile Heritages.
+   *
+   * Versatile heritages occupy the heritage slot; the character has no normal
+   * ancestry heritage abilities. They gain access to the versatile heritage
+   * feat list PLUS their original ancestry feat list.
+   *
+   * Rules:
+   * - All versatile heritages have the Uncommon trait (require GM approval).
+   * - Sense upgrade: if the character's ancestry already grants low-light
+   *   vision and the versatile heritage would also grant it, the heritage
+   *   upgrades that to darkvision instead.
+   * - Each character's versatile heritage feat list is independent.
+   */
+  const VERSATILE_HERITAGES = [
+    'aasimar' => [
+      'id' => 'aasimar', 'name' => 'Aasimar',
+      'traits' => ['Aasimar', 'Uncommon'],
+      'benefit' => 'Celestial heritage; low-light vision (upgrade rule applies)',
+      'vision' => 'low-light vision',
+      'vision_upgrade_if_already_low_light' => 'darkvision',
+      'ancestry_feats' => [
+        [
+          'id' => 'lawbringer', 'name' => 'Lawbringer', 'level' => 1,
+          'traits' => ['Aasimar'],
+          'benefit' => 'When you succeed on a save against an emotion effect, treat it as a critical success.',
+          'special' => ['save_success_upgrade' => ['effect_type' => 'emotion', 'success_to_crit' => TRUE]],
+        ],
+      ],
+    ],
+    'changeling' => [
+      'id' => 'changeling', 'name' => 'Changeling',
+      'traits' => ['Changeling', 'Uncommon'],
+      'benefit' => 'Hag heritage; low-light vision (upgrade rule applies)',
+      'vision' => 'low-light vision',
+      'vision_upgrade_if_already_low_light' => 'darkvision',
+      'ancestry_feats' => [
+        [
+          'id' => 'slag-may', 'name' => 'Slag May', 'level' => 1,
+          'traits' => ['Changeling'],
+          'benefit' => 'You grow a cold iron claw unarmed attack.',
+          'unarmed_attack' => [
+            'name' => 'claw', 'damage' => '1d6', 'type' => 'slashing',
+            'group' => 'brawling',
+            'traits' => ['unarmed', 'grapple'],
+            'material' => 'cold iron',
+          ],
+        ],
+      ],
+    ],
+    'dhampir' => [
+      'id' => 'dhampir', 'name' => 'Dhampir',
+      'traits' => ['Dhampir', 'Uncommon'],
+      'benefit' => 'Vampire heritage; negative healing; low-light vision (upgrade rule applies)',
+      'vision' => 'low-light vision',
+      'vision_upgrade_if_already_low_light' => 'darkvision',
+      'special' => [
+        // Same negative healing semantics as Grave Orc.
+        'negative_healing'      => TRUE,
+        'positive_damage_heals' => FALSE,
+        'negative_damage_heals' => TRUE,
+        'undead_energy_rules'   => TRUE,
+      ],
+      'ancestry_feats' => [
+        [
+          'id' => 'dhampir-fangs', 'name' => 'Dhampir Fangs', 'level' => 1,
+          'traits' => ['Dhampir'],
+          'benefit' => 'You grow fangs, usable as an unarmed attack.',
+          'unarmed_attack' => [
+            'name' => 'fangs', 'damage' => '1d6', 'type' => 'piercing',
+            'group' => 'brawling',
+            'traits' => ['unarmed', 'grapple'],
+          ],
+        ],
+      ],
+    ],
+    'duskwalker' => [
+      'id' => 'duskwalker', 'name' => 'Duskwalker',
+      'traits' => ['Duskwalker', 'Uncommon'],
+      'benefit' => 'Psychopomp heritage; immune to becoming undead; low-light vision (upgrade rule applies)',
+      'vision' => 'low-light vision',
+      'vision_upgrade_if_already_low_light' => 'darkvision',
+      'special' => [
+        'immune_to_becoming_undead' => TRUE,
+        // Detects haunts without Searching (still must meet other requirements).
+        'passive_haunt_detection' => TRUE,
+      ],
+      'ancestry_feats' => [],
+    ],
+    'tiefling' => [
+      'id' => 'tiefling', 'name' => 'Tiefling',
+      'traits' => ['Tiefling', 'Uncommon'],
+      'benefit' => 'Fiend heritage; low-light vision (upgrade rule applies)',
+      'vision' => 'low-light vision',
+      'vision_upgrade_if_already_low_light' => 'darkvision',
+      'ancestry_feats' => [],
+    ],
   ];
 
   /**
