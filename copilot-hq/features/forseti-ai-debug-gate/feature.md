@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-debug-gate
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: shipped
 - Release: 20260407-forseti-release-c
 - Priority: P1
 - Feature type: needs-testing

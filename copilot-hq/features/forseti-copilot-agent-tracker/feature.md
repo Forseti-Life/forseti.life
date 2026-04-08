@@ -3,7 +3,7 @@
 - Work item id: forseti-copilot-agent-tracker
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
+- Status: shipped
 - Release: 20260408-forseti-release-e
 - Priority: P1
 - PM owner: pm-forseti-agent-tracker

@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-profile
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Release: 20260407-forseti-release-c
 - Priority: P0
 - Feature type: stabilization

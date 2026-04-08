@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-browser-automation
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Release: 20260407-forseti-release-c
 - Priority: P1
 - Feature type: needs-testing
