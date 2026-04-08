@@ -188,6 +188,18 @@ grep -A5 '<route-name>:' job_hunter.routing.yml | grep 'methods:'
 
 **AC spec rule**: Any AC for a CSRF task must include a "HTTP methods" column per route row; any AC listing a `[GET, ...]` route for `_csrf_token` is incorrect and must be flagged to `pm-forseti` before implementation.
 
+**Post-implementation full-module CSRF scan (required for any CSRF task — GAP-CSRF-SEED-20260408)**:
+After completing any CSRF-related implementation, run a full-module route scan to confirm no other routes in the module have mismatched seeds:
+```bash
+# Full module CSRF seed audit — scan all routes for _csrf_token on non-POST-only routes
+grep -n "_csrf_token" web/modules/custom/job_hunter/job_hunter.routing.yml
+# For each hit, verify the route also has: methods: [POST]
+grep -B10 "_csrf_token" web/modules/custom/job_hunter/job_hunter.routing.yml | grep -E "^[a-z]|methods:"
+```
+- If any `_csrf_token: 'TRUE'` route includes GET in its methods, apply the split-route pattern (separate GET-only + POST-only entries).
+- Record the full-module scan output in your implementation outbox before declaring done.
+- Lesson: `forseti-csrf-fix` fixed the primary routes but missed `toggle_job_applied` and `job_apply` — QA found the gaps at Gate 2, requiring a mid-release hot-fix.
+
 ## Exception class discipline in job_hunter controllers (critical)
 
 In job_hunter controllers, exception class choice is semantic and QA-visible:

@@ -50,14 +50,21 @@ from `/home/ubuntu/forseti.life` (repo root). Existing tracked files use normal 
 - Supervisor: `ceo-copilot`
 - You are responsible for ensuring BA/Dev/QA are not working the same files concurrently.
 
-## Pre-scope-activation gate (required — GAP-SG-20260406 fix)
-Before running `pm-scope-activate.sh` for any feature candidate, verify the test plan exists:
+## Pre-scope-activation gate (required — GAP-SG-20260406 fix, updated GAP-DEV-DISPATCH-20260408)
+Before running `pm-scope-activate.sh` for any feature candidate, verify the test plan exists AND dev has no pending (unprocessed) inbox item for this feature from a prior cycle:
 ```bash
+# 1. Test plan must exist
 ls features/<feature-id>/03-test-plan.md
+
+# 2. Check for unprocessed dev inbox items from prior cycles (carry-over guard)
+ls sessions/dev-forseti/inbox/ | grep "<feature-id>"
 ```
 - If `03-test-plan.md` is absent: do NOT activate. Leave `Status: ready` and defer to the next cycle.
+- If an unprocessed dev inbox item for this feature exists (not in `_archived/`): do NOT re-activate. Dev has not yet acknowledged the prior dispatch — activating scope again creates duplicate in-flight work and causes Gate 2 BLOCK.
+- Only activate if (a) test plan exists AND (b) dev inbox is clear (prior item archived or feature is fresh with no prior dispatch).
 - The grooming "ready" definition requires all 3 artifacts: `feature.md` + `01-acceptance-criteria.md` + `03-test-plan.md`.
 - Features activated without a test plan inflate the in_progress count and can trigger premature auto-close.
+- Lesson (2026-04-08): `forseti-ai-service-refactor` and `forseti-jobhunter-schema-fix` were activated for `20260407-forseti-release-b` but dev hadn't processed the dispatch — QA issued a Gate 2 BLOCK because the implementations were missing.
 
 **CRITICAL — scope-activate site argument (added 2026-04-08):** Always pass `forseti` (short name, no domain) as the site argument — **not** `forseti.life`. The script derives the QA agent ID as `qa-${SITE}`, and the registered agent is `qa-forseti`, not `qa-forseti.life`.
 
