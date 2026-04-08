@@ -5135,6 +5135,36 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'description' => 'Your patron bestows a powerful gift. You can cast one additional 10th-rank spell per day, chosen from your tradition\'s spell list.'],
       ]],
     ],
+    'investigator' => [
+      1  => ['auto_features' => [
+        ['id' => 'devise-a-stratagem', 'name' => 'Devise a Stratagem',
+          'description' => '1-action Fortune trait (free action vs. active lead). Roll a d20 immediately; stored result replaces the next qualifying Strike attack roll this turn. Qualifying weapons: agile melee, finesse melee, ranged, sap, agile unarmed, finesse unarmed. Use Intelligence modifier instead of Strength/Dexterity on the attack roll. Stored roll is discarded at end of turn whether used or not. Frequency: 1/round.'],
+        ['id' => 'pursue-a-lead', 'name' => 'Pursue a Lead',
+          'description' => '1-minute exploration activity. Designate a specific creature, object, or location as a lead; gain +1 circumstance bonus to investigative checks against it. Maximum 2 active leads; designating a 3rd lead automatically removes the oldest.'],
+        ['id' => 'clue-in', 'name' => 'Clue In',
+          'description' => 'Reaction, 1/10 minutes. Trigger: you succeed at an investigative check. Share your Pursue a Lead +1 circumstance bonus with one ally within 30 feet.'],
+        ['id' => 'strategic-strike-1d6', 'name' => 'Strategic Strike (1d6)',
+          'description' => 'When you make a Strike on a turn you used Devise a Stratagem, you deal 1d6 additional precision damage. Does not stack with other precision damage sources; only the highest applies.'],
+        ['id' => 'methodology', 'name' => 'Methodology',
+          'description' => 'Choose one methodology at L1: Alchemical Sciences (Crafting + Alchemical Crafting feat + daily versatile vials + Quick Tincture), Empiricism (1 Int skill + That\'s Odd feat + Expeditious Inspection + DaS lead waiver), Forensic Medicine (Medicine + Battle Medicine + Forensic Acumen; BM bonus = level; BM immunity 1 hour), or Interrogation (Diplomacy + No Cause for Alarm; social Pursue a Lead; Pointed Question).'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'strategic-strike-2d6', 'name' => 'Strategic Strike (2d6)',
+          'description' => 'Your Strategic Strike precision damage increases to 2d6.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'strategic-strike-3d6', 'name' => 'Strategic Strike (3d6)',
+          'description' => 'Your Strategic Strike precision damage increases to 3d6.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'strategic-strike-4d6', 'name' => 'Strategic Strike (4d6)',
+          'description' => 'Your Strategic Strike precision damage increases to 4d6.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'strategic-strike-5d6', 'name' => 'Strategic Strike (5d6)',
+          'description' => 'Your Strategic Strike precision damage increases to 5d6.'],
+      ]],
+    ],
   ];
 
   /**
