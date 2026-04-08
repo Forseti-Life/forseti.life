@@ -1429,24 +1429,10 @@ final class LangGraphConsoleStubController extends ControllerBase {
    *   Table rows.
    */
   private function buildSectionRows(string $section, array $subsections): array {
-    // Keys that have live implementations in subsection() match() block.
-    $wired = [
-      'home/graph-contract', 'home/runtime-objects', 'home/durability-model', 'home/control-gates',
-      'run/threads-runs', 'run/stream-events', 'run/resume-retry', 'run/concurrency',
-      'observe/node-traces', 'observe/runtime-metrics', 'observe/drift-anomalies', 'observe/alerts-incidents',
-      'build/state-schema', 'build/nodes-routing',
-      'test/path-scenarios', 'test/eval-scorecards',
-      'release/graph-versions', 'release/promotion-flow',
-      'admin/identity-rbac', 'admin/audit-change-log',
-    ];
     $rows = [];
     foreach ($subsections as $slug => $info) {
       $title = (string) ($info[0] ?? '');
       $desc = (string) ($info[1] ?? '');
-      $is_live = in_array($section . '/' . $slug, $wired, TRUE);
-      $status = $is_live
-        ? ['data' => ['#markup' => '<span style="color:#1a7f37;font-weight:bold">🟢 Live</span>']]
-        : ['data' => ['#markup' => '<span style="color:#888">⬜ Stub</span>']];
       $rows[] = [
         Link::fromTextAndUrl(
           $this->t($title),
@@ -1456,7 +1442,7 @@ final class LangGraphConsoleStubController extends ControllerBase {
           ])
         )->toString(),
         $desc,
-        $status,
+        $this->t('Stub'),
       ];
     }
     return $rows;
