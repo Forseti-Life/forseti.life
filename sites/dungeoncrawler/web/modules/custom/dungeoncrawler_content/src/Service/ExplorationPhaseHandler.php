@@ -115,6 +115,9 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'decipher_writing',
       'identify_magic',
       'learn_a_spell',
+      // AC-003, AC-005: Prepared spell assignment and Refocus.
+      'prepare_spell',
+      'refocus',
     ];
   }
 
@@ -614,6 +617,65 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         break;
       }
 
+      // -----------------------------------------------------------------------
+      // AC-003: Prepare Spells [Exploration, part of daily_prepare]
+      // Allows a prepared caster to assign spells to specific slot levels.
+      // -----------------------------------------------------------------------
+      case 'prepare_spell': {
+        $entity_ps = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+        if (!$entity_ps) {
+          return ['success' => FALSE, 'result' => ['error' => 'Character not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $casting_type_ps = $entity_ps['stats']['casting_type'] ?? 'spontaneous';
+        if ($casting_type_ps !== 'prepared') {
+          return ['success' => FALSE, 'result' => ['error' => 'Only prepared casters can prepare spells in advance.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        // params['prepared_spells']: {slot_level: [spell_name, ...], ...}
+        $new_prepared_ps = $params['prepared_spells'] ?? [];
+        if (!isset($entity_ps['state'])) {
+          $entity_ps['state'] = [];
+        }
+        $entity_ps['state']['prepared_spells'] = $new_prepared_ps;
+
+        $this->persistDungeonData($campaign_id, $dungeon_data);
+        $events[] = GameEventLogger::buildEvent('prepare_spell', 'exploration', $actor_id, ['slot_count' => count($new_prepared_ps)]);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // AC-007: Refocus [Exploration, 10 minutes]
+      // Restores 1 Focus Point (up to max 3).
+      // -----------------------------------------------------------------------
+      case 'refocus': {
+        $entity_rf = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+        if (!$entity_rf) {
+          return ['success' => FALSE, 'result' => ['error' => 'Character not found.'], 'mutations' => [], 'events' => [], 'phase_transition' => NULL, 'narration' => NULL];
+        }
+
+        $fp_max_rf = (int) ($entity_rf['stats']['focus_points_max'] ?? 3);
+        $fp_current_rf = (int) ($entity_rf['state']['focus_points'] ?? 0);
+
+        if ($fp_current_rf >= $fp_max_rf) {
+          $result = ['focus_points' => $fp_current_rf, 'restored' => 0, 'message' => 'Focus pool already full.'];
+        }
+        else {
+          $fp_new_rf = min($fp_max_rf, $fp_current_rf + 1);
+          if (!isset($entity_rf['state'])) {
+            $entity_rf['state'] = [];
+          }
+          $entity_rf['state']['focus_points'] = $fp_new_rf;
+          $this->persistDungeonData($campaign_id, $dungeon_data);
+          $result = ['focus_points' => $fp_new_rf, 'restored' => 1];
+        }
+
+        // Refocus takes 10 minutes.
+        $this->advanceExplorationTime($game_state, 10);
+        $events[] = GameEventLogger::buildEvent('refocus', 'exploration', $actor_id, ['focus_points' => $result['focus_points']]);
+        break;
+      }
+
       default:
         return [
           'success' => FALSE,
@@ -961,7 +1023,9 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $rest_type = $params['rest_type'] ?? 'short';
 
     if ($rest_type === 'short') {
-      // Short rest: refocus, catch breath. 10 minutes.
+      // AC-007: Short rest allows Refocus — restore focus points via refocus action.
+      // Short rest itself (10 min) does not automatically restore focus; player must
+      // take the Refocus exploration activity. This case is a fallback catch-breath rest.
       return [
         'rested' => TRUE,
         'rest_type' => 'short',
@@ -969,10 +1033,31 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       ];
     }
 
-    // Long rest handled via phase transition to downtime.
+    // AC-001: Long rest (8 hours) restores all spell slots to maximum.
+    $entity_lr = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+    if ($entity_lr) {
+      if (!isset($entity_lr['state'])) {
+        $entity_lr['state'] = [];
+      }
+      // Restore all spell slot 'used' counts to 0.
+      if (!empty($entity_lr['state']['spell_slots'])) {
+        foreach ($entity_lr['state']['spell_slots'] as $level => &$slot) {
+          $slot['used'] = 0;
+        }
+        unset($slot);
+      }
+      // AC-007: Long rest also restores focus pool to max.
+      $fp_max_lr = (int) ($entity_lr['stats']['focus_points_max'] ?? 0);
+      if ($fp_max_lr > 0) {
+        $entity_lr['state']['focus_points'] = $fp_max_lr;
+      }
+      $this->persistDungeonData($campaign_id, $dungeon_data);
+    }
+
     return [
       'rested' => TRUE,
       'rest_type' => 'long',
+      'spell_slots_restored' => TRUE,
       'mutations' => [],
     ];
   }
@@ -982,13 +1067,72 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
    */
   protected function processCastSpell(string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
     $spell_name = $params['spell_name'] ?? 'unknown';
+    $spell_level = (int) ($params['spell_level'] ?? 0);
+    $cast_at_level = (int) ($params['cast_at_level'] ?? $spell_level);
+    $is_cantrip = !empty($params['is_cantrip']);
+    $is_focus_spell = !empty($params['is_focus_spell']);
+    $spell_tradition = $params['spell_tradition'] ?? NULL;
 
-    // Exploration-mode spell casting (e.g., Detect Magic, Light, Mage Armor).
-    // Character spell slot tracking is handled by CharacterStateService.
-    // For now, log the intent. The AI GM chat can narrate the effect.
+    $entity_ep = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+    if (!$entity_ep) {
+      return ['cast' => FALSE, 'error' => 'Character not found.', 'mutations' => [], 'narration' => NULL];
+    }
+
+    // AC-002: Tradition validation.
+    $char_tradition_ep = $entity_ep['stats']['spellcasting_tradition'] ?? NULL;
+    if ($spell_tradition && $char_tradition_ep && $spell_tradition !== $char_tradition_ep) {
+      return ['cast' => FALSE, 'error' => "Spell tradition '{$spell_tradition}' does not match '{$char_tradition_ep}'.", 'mutations' => [], 'narration' => NULL];
+    }
+
+    // AC-006: Cantrips never consume slots.
+    if ($is_cantrip) {
+      return ['cast' => TRUE, 'spell' => $spell_name, 'is_cantrip' => TRUE, 'narration' => NULL, 'mutations' => []];
+    }
+
+    // AC-007: Focus spells consume 1 Focus Point.
+    if ($is_focus_spell) {
+      $fp_ep = (int) ($entity_ep['state']['focus_points'] ?? 0);
+      if ($fp_ep < 1) {
+        return ['cast' => FALSE, 'error' => 'No Focus Points remaining.', 'mutations' => [], 'narration' => NULL];
+      }
+      $entity_ep['state']['focus_points'] = $fp_ep - 1;
+      $this->persistDungeonData($campaign_id, $dungeon_data);
+      return ['cast' => TRUE, 'spell' => $spell_name, 'is_focus_spell' => TRUE, 'focus_points_remaining' => $fp_ep - 1, 'narration' => NULL, 'mutations' => []];
+    }
+
+    // Slot-consuming spell.
+    $slot_level_ep = $cast_at_level > 0 ? $cast_at_level : $spell_level;
+    if ($slot_level_ep < 1) {
+      $slot_level_ep = 1;
+    }
+    $slot_key_ep = (string) $slot_level_ep;
+    $slots_ep = $entity_ep['state']['spell_slots'] ?? [];
+    $slot_data_ep = $slots_ep[$slot_key_ep] ?? ['max' => 0, 'used' => 0];
+    $avail_ep = max(0, (int) ($slot_data_ep['max'] ?? 0) - (int) ($slot_data_ep['used'] ?? 0));
+    if ($avail_ep < 1) {
+      return ['cast' => FALSE, 'error' => "No level-{$slot_level_ep} spell slots remaining.", 'mutations' => [], 'narration' => NULL];
+    }
+
+    // AC-003: Prepared casters must have spell prepared.
+    $casting_type_ep = $entity_ep['stats']['casting_type'] ?? 'spontaneous';
+    if ($casting_type_ep === 'prepared') {
+      $prepared_ep = $entity_ep['state']['prepared_spells'][$slot_key_ep] ?? [];
+      if (!in_array($spell_name, $prepared_ep, TRUE)) {
+        return ['cast' => FALSE, 'error' => "'{$spell_name}' is not prepared in a level-{$slot_level_ep} slot.", 'mutations' => [], 'narration' => NULL];
+      }
+    }
+
+    // Deduct slot.
+    $entity_ep['state']['spell_slots'][$slot_key_ep]['used'] = (int) ($slot_data_ep['used'] ?? 0) + 1;
+    $this->persistDungeonData($campaign_id, $dungeon_data);
+
     return [
       'cast' => TRUE,
       'spell' => $spell_name,
+      'spell_level' => $spell_level,
+      'cast_at_level' => $slot_level_ep,
+      'heightened' => $slot_level_ep > $spell_level,
+      'slots_remaining' => $avail_ep - 1,
       'narration' => NULL,
       'mutations' => [],
     ];
@@ -1033,20 +1177,42 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
   /**
    * Processes daily preparation (REQ 2304-2305).
-   * Takes 1 hour. Restores focus points; marks daily abilities as ready.
+   * Takes 1 hour. Restores focus points, spell slots; marks daily abilities ready.
+   * AC-001: Restores all spell slots to max.
+   * AC-003: Stores prepared_spells from params for prepared casters.
    */
   protected function processDailyPrepare(string $actor_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
     $prepared = [];
 
     if (!empty($dungeon_data['entities'])) {
       foreach ($dungeon_data['entities'] as &$entity) {
-        $iid = $entity['instance_id'] ?? ($entity['id'] ?? NULL);
+        $iid = $entity['entity_instance_id'] ?? ($entity['instance_id'] ?? ($entity['id'] ?? NULL));
         if ($iid === $actor_id) {
+          if (!isset($entity['state'])) {
+            $entity['state'] = [];
+          }
+
+          // AC-001: Restore all spell slots to max.
+          if (!empty($entity['state']['spell_slots'])) {
+            foreach ($entity['state']['spell_slots'] as $level => &$slot) {
+              $slot['used'] = 0;
+            }
+            unset($slot);
+            $prepared[] = 'spell_slots';
+          }
+
           // Restore focus points to max.
-          if (isset($entity['state']['focus_points'])) {
-            $max_focus = $entity['stats']['focus_points_max'] ?? 3;
+          $max_focus = (int) ($entity['stats']['focus_points_max'] ?? 0);
+          if ($max_focus > 0) {
             $entity['state']['focus_points'] = $max_focus;
             $prepared[] = 'focus_points';
+          }
+
+          // AC-003: Store prepared spells for prepared casters.
+          $casting_type_dp = $entity['stats']['casting_type'] ?? 'spontaneous';
+          if ($casting_type_dp === 'prepared' && !empty($params['prepared_spells'])) {
+            $entity['state']['prepared_spells'] = $params['prepared_spells'];
+            $prepared[] = 'prepared_spells';
           }
 
           // Mark daily abilities as ready.
@@ -1060,7 +1226,6 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
           // Record prepare time (REQ 2305: takes 1 hour).
           $entity['state']['last_daily_prepare'] = $game_state['exploration']['time_elapsed_minutes'] ?? 0;
-          $prepared[] = 'spells_prepared';
           break;
         }
       }

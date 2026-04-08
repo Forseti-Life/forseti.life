@@ -2676,13 +2676,128 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
    * Processes a spell cast during encounter.
    */
   protected function processCastSpell(int $encounter_id, string $actor_id, ?string $target_id, array $params, array &$game_state, array &$dungeon_data, int $campaign_id): array {
-    // Spell casting is a stub in the existing system.
-    // For now, log the intent and let the AI narrate.
     $spell_name = $params['spell_name'] ?? 'unknown';
+    $spell_level = (int) ($params['spell_level'] ?? 0);
+    $cast_at_level = (int) ($params['cast_at_level'] ?? $spell_level);
+    $is_cantrip = !empty($params['is_cantrip']);
+    $is_focus_spell = !empty($params['is_focus_spell']);
+    $requires_attack_roll = !empty($params['requires_attack_roll']);
+    $spell_tradition = $params['spell_tradition'] ?? NULL;
+
+    // Load entity_ref for persistent spellcasting state.
+    $enc_cs = $this->encounterStore->loadEncounter($encounter_id);
+    $ptcp_cs = $enc_cs ? $this->findEncounterParticipantByEntityId($enc_cs, $actor_id) : NULL;
+    if (!$ptcp_cs) {
+      return ['cast' => FALSE, 'error' => 'Caster not found.', 'mutations' => [], 'narration' => NULL];
+    }
+    $edata_cs = !empty($ptcp_cs['entity_ref']) ? json_decode($ptcp_cs['entity_ref'], TRUE) : [];
+
+    // AC-002: Tradition validation (only if both tradition values are present).
+    $char_tradition = $edata_cs['spellcasting_tradition'] ?? NULL;
+    if ($spell_tradition && $char_tradition && $spell_tradition !== $char_tradition) {
+      return ['cast' => FALSE, 'error' => "Spell tradition '{$spell_tradition}' does not match character tradition '{$char_tradition}'.", 'mutations' => [], 'narration' => NULL];
+    }
+
+    // Shared: build spell attack result if needed.
+    $spell_attack_mod = (int) ($edata_cs['spell_attack_modifier'] ?? $params['spell_attack_modifier'] ?? 0);
+    $spell_dc = (int) ($edata_cs['spell_dc'] ?? $params['spell_dc'] ?? (10 + ($params['proficiency_bonus'] ?? 0) + ($params['key_ability_mod'] ?? 0)));
+    $attack_result = NULL;
+    if ($requires_attack_roll) {
+      $d20_cs = $this->numberGenerationService->rollPathfinderDie(20);
+      $total_cs = $d20_cs + $spell_attack_mod;
+      $target_ac_cs = (int) ($params['target_ac'] ?? 15);
+      $attack_result = [
+        'roll' => $d20_cs,
+        'total' => $total_cs,
+        'degree' => $this->combatCalculator->calculateDegreeOfSuccess($total_cs, $target_ac_cs, $d20_cs),
+      ];
+    }
+
+    // AC-006: Cantrips never expend slots; effective level = highest castable spell level.
+    if ($is_cantrip) {
+      $slots_cs = $edata_cs['spell_slots'] ?? [];
+      $effective_level = 1;
+      if (!empty($slots_cs)) {
+        $effective_level = max(array_keys(array_filter($slots_cs, function ($s) {
+          return (int) ($s['max'] ?? 0) > 0;
+        })) ?: [1]);
+      }
+      return [
+        'cast' => TRUE,
+        'spell' => $spell_name,
+        'is_cantrip' => TRUE,
+        'effective_level' => $effective_level,
+        'spell_dc' => $spell_dc,
+        'attack_result' => $attack_result,
+        'narration' => NULL,
+        'mutations' => [],
+      ];
+    }
+
+    // AC-007: Focus spells consume 1 Focus Point, not a spell slot.
+    if ($is_focus_spell) {
+      $fp_cs = (int) ($edata_cs['focus_points'] ?? $edata_cs['state']['focus_points'] ?? 0);
+      if ($fp_cs < 1) {
+        return ['cast' => FALSE, 'error' => 'No Focus Points remaining.', 'mutations' => [], 'narration' => NULL];
+      }
+      if (isset($edata_cs['focus_points'])) {
+        $edata_cs['focus_points'] = $fp_cs - 1;
+      }
+      else {
+        $edata_cs['state']['focus_points'] = $fp_cs - 1;
+      }
+      $this->encounterStore->updateParticipant((int) $ptcp_cs['id'], ['entity_ref' => json_encode($edata_cs)]);
+      return [
+        'cast' => TRUE,
+        'spell' => $spell_name,
+        'is_focus_spell' => TRUE,
+        'focus_points_remaining' => $fp_cs - 1,
+        'spell_dc' => $spell_dc,
+        'attack_result' => $attack_result,
+        'narration' => NULL,
+        'mutations' => [],
+      ];
+    }
+
+    // Slot-consuming spell — determine slot level.
+    $slot_level = $cast_at_level > 0 ? $cast_at_level : $spell_level;
+    if ($slot_level < 1) {
+      $slot_level = 1;
+    }
+    $slot_key = (string) $slot_level;
+
+    if (!isset($edata_cs['spell_slots'])) {
+      $edata_cs['spell_slots'] = [];
+    }
+    $slot_data_cs = $edata_cs['spell_slots'][$slot_key] ?? ['max' => 0, 'used' => 0];
+    $slots_avail = max(0, (int) ($slot_data_cs['max'] ?? 0) - (int) ($slot_data_cs['used'] ?? 0));
+    if ($slots_avail < 1) {
+      return ['cast' => FALSE, 'error' => "No level-{$slot_level} spell slots remaining.", 'mutations' => [], 'narration' => NULL];
+    }
+
+    // AC-003: Prepared casters must have the spell prepared in that slot level.
+    $casting_type = $edata_cs['casting_type'] ?? 'spontaneous';
+    if ($casting_type === 'prepared') {
+      $prepared_cs = $edata_cs['prepared_spells'][$slot_key] ?? [];
+      if (!in_array($spell_name, $prepared_cs, TRUE)) {
+        return ['cast' => FALSE, 'error' => "'{$spell_name}' is not prepared in a level-{$slot_level} slot.", 'mutations' => [], 'narration' => NULL];
+      }
+    }
+
+    // Deduct slot.
+    $edata_cs['spell_slots'][$slot_key]['used'] = (int) ($slot_data_cs['used'] ?? 0) + 1;
+    $this->encounterStore->updateParticipant((int) $ptcp_cs['id'], ['entity_ref' => json_encode($edata_cs)]);
 
     return [
       'cast' => TRUE,
       'spell' => $spell_name,
+      'spell_level' => $spell_level,
+      'cast_at_level' => $slot_level,
+      'heightened' => $slot_level > $spell_level,
+      'slots_remaining' => $slots_avail - 1,
+      'spell_dc' => $spell_dc,
+      'spell_attack_modifier' => $spell_attack_mod,
+      'attack_result' => $attack_result,
       'narration' => NULL,
       'mutations' => [],
     ];
