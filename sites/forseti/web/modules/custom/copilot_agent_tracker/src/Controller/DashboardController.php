@@ -888,6 +888,43 @@ final class DashboardController extends ControllerBase {
    * Build explicit process-flow and node-page navigation for LangGraph home.
    */
   /**
+   * Render a collapsible Key Terms / glossary panel for a LangGraph page.
+   *
+   * @param array<string,string> $terms  Map of term => plain-English definition.
+   * @param bool $open  Whether the details panel starts expanded.
+   */
+  private function renderLangGraphKeyTerms(array $terms, bool $open = FALSE): array {
+    $items = '';
+    foreach ($terms as $term => $def) {
+      $items .= '<dt style="font-weight:bold;margin-top:.5em">' . htmlspecialchars($term) . '</dt>'
+              . '<dd style="margin-left:1.2em;color:#444">' . htmlspecialchars($def) . '</dd>';
+    }
+    return [
+      '#type'   => 'details',
+      '#title'  => $this->t('Key Terms'),
+      '#open'   => $open,
+      'content' => ['#markup' => '<dl style="margin:0 0 .5em">' . $items . '</dl>'],
+    ];
+  }
+
+  /**
+   * Render a context callout banner for a LangGraph dashboard page.
+   *
+   * @param string $what   What signals / data this page shows.
+   * @param string $when   When an operator should use this page.
+   * @param string $source Where the data comes from.
+   */
+  private function renderLangGraphContextBanner(string $what, string $when, string $source): array {
+    return [
+      '#markup' => '<div style="background:#f5f5f5;border-left:4px solid #1976d2;padding:.75em 1em;margin:.5em 0 1em">'
+        . '<strong>What this page shows:</strong> ' . htmlspecialchars($what) . '<br>'
+        . '<strong>When to use it:</strong> ' . htmlspecialchars($when) . '<br>'
+        . '<strong>Data source:</strong> ' . htmlspecialchars($source)
+        . '</div>',
+    ];
+  }
+
+  /**
    * Render the top-level workflow registry grouped by scope.
    *
    * Scope levels:
@@ -3821,6 +3858,21 @@ final class DashboardController extends ControllerBase {
     $build = $this->buildLanggraphPageShell('LangGraph Control Plane');
 
     $build['workflow_registry'] = $this->renderWorkflowRegistry();
+    $build['context_banner'] = $this->renderLangGraphContextBanner(
+      'Top-level health of the LangGraph orchestration system — tick freshness, engine mode, parity status, publishing state, and release cycle control. The single go/no-go view before drilling into any subpage.',
+      'Check here first whenever you suspect orchestrator problems, before approving a release, or after making any configuration change to the engine or agent setup.',
+      'langgraph-ticks.jsonl (latest tick) + langgraph-parity-latest.json + release-cycle-control.json — all written by the orchestrator in copilot-hq/inbox/responses/.'
+    );
+    $build['terms'] = $this->renderLangGraphKeyTerms([
+      'Tick'                     => 'One complete orchestrator loop iteration — the engine runs on a schedule (every few minutes) and appends one JSON record per loop to langgraph-ticks.jsonl.',
+      'Parity'                   => 'A validation check that the running graph matches its expected configuration: the same pipeline steps execute in the same order, and the same agents are selected.',
+      'dry_run'                  => 'When true, the orchestrator runs all logic but makes no external writes (no GitHub pushes, no Drupal DB writes). Safe mode for testing engine changes.',
+      'publish_enabled'          => 'Controls the publish pipeline step — when true, agent tracker telemetry is written to the Drupal database so this UI reflects live data.',
+      'Release cycle automation' => 'The release_cycle + coordinated_push pipeline steps. When disabled, teams stop advancing through release phases but other automation continues.',
+      'Control Plane'            => 'Pages that own health signals and operational controls (this page, Session Health, Parity Health).',
+      'Execution Plane'          => 'Pages that own work progression and release readiness (Feature Flow, Release Control).',
+      'Assurance Plane'          => 'Pages that own evidence and triage (Release Evidence, Release Triage).',
+    ]);
     $build['guide'] = $this->renderLanggraphPageGuide(
       'Provide a single operational entry point for LangGraph orchestration health.',
       'Start here first, then jump to Session, Parity, or Release pages based on which signal is degraded.',
@@ -4085,6 +4137,20 @@ final class DashboardController extends ControllerBase {
         'Release go/no-go decisions (Release Control page).',
       ]
     );
+
+    $build['context_banner'] = $this->renderLangGraphContextBanner(
+      'Tick timeline for the last 50 orchestrator iterations — timestamps, execution mode, provider, agent cap, and per-tick error count. The primary signal for "is the orchestrator running and healthy?"',
+      'Use when the dashboard shows a stale tick, when error counts spike, or after a config change to confirm the engine resumed normal cadence.',
+      'langgraph-ticks.jsonl — append-only log in copilot-hq/inbox/responses/. Each line is one tick JSON object. This page shows the last 50.'
+    );
+    $build['terms'] = $this->renderLangGraphKeyTerms([
+      'Tick'           => 'One complete orchestrator loop. The engine appends a JSON record to langgraph-ticks.jsonl on every iteration.',
+      'dry_run'        => 'When yes, no external writes occurred this tick (no GitHub pushes, no DB writes). Engine ran in safe/test mode.',
+      'publish_enabled' => 'When yes, the publish step ran and pushed telemetry to Drupal. When no, this UI may be showing stale agent data.',
+      'agent_cap'      => 'How many agents were allowed to run in parallel this tick.',
+      'provider'       => 'The LLM/execution backend used for agent dispatch (e.g. "anthropic").',
+      'error count'    => 'Sum of top-level tick errors plus any pipeline steps that reported an error status. Red rows = errors detected.',
+    ]);
 
     $ticks_path = $this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE);
     $content = $this->readFileSafe($ticks_path);
