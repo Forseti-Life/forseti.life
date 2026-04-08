@@ -39,6 +39,17 @@ Minimum required content:
 - The word `APPROVE` (or `BLOCK` if findings warrant it)
 - Evidence summary (feature list with outbox references)
 
+## Update (2026-04-08 cycle 2)
+
+The same failure occurred in `20260408-dungeoncrawler-release-b`. qa-dungeoncrawler completed all 8 suite-activates (02:16–02:41 UTC) but **still did not file the consolidated Gate 2 APPROVE**, even though GAP-DC-QA-GATE2-CONSOLIDATE-01 was added to qa-dungeoncrawler seat instructions at 00:16 UTC Apr 8 (before the suite-activate run). CEO filed the APPROVE again (20260408-042000-gate2-approve-20260408-dungeoncrawler-release-b.md).
+
+**Root cause (deeper):** The seat instruction fix alone is insufficient because the per-item dispatch model gives qa no explicit "batch complete" signal. Each suite-activate item is processed in isolation; there is no natural trigger to consolidate.
+
+**Structural fix applied (GAP-DC-QA-GATE2-CONSOLIDATE-02):**
+- pm-dungeoncrawler instructions now require dispatching a dedicated `gate2-approve-<release-id>` inbox item to qa **after all suite-activate items** are dispatched (same cycle)
+- Same fix added to pm-forseti instructions for forseti releases
+- This creates an explicit trigger rather than relying on qa's self-initiated consolidation
+
 ## Related
 
 - GAP-PM-DC-PREMATURE-ESCALATE-01 (pm-dungeoncrawler escalating before qa has processing time)

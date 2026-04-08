@@ -319,6 +319,29 @@ curl -s -o /dev/null -w "%{http_code}" https://dungeoncrawler.forseti.life/
 ALLOW_PROD_QA=1 is authorized for all live audits against `https://dungeoncrawler.forseti.life`.
 This server IS production — there is no localhost:8080 dev environment.
 
+## Gate 2 aggregate dispatch (required — GAP-DC-QA-GATE2-CONSOLIDATE-02)
+
+After dispatching all suite-activate inbox items to qa-dungeoncrawler, you MUST also dispatch one additional `gate2-approve-<release-id>` inbox item to qa-dungeoncrawler. This item is the explicit trigger for qa to file the consolidated Gate 2 APPROVE outbox — qa cannot reliably self-trigger consolidation from per-item dispatches alone.
+
+**Why this is required:** qa-dungeoncrawler has failed to self-file the consolidated Gate 2 APPROVE in 2 consecutive release cycles (20260407-dungeoncrawler-release-b, 20260408-dungeoncrawler-release-b) despite correct per-feature suite-activate outboxes and a seat instruction fix (GAP-DC-QA-GATE2-CONSOLIDATE-01). The per-item model does not produce a "batch complete" signal.
+
+**How to create the gate2-approve item:**
+```bash
+RELEASE_ID="20260408-dungeoncrawler-release-b"  # use actual active release ID
+ITEM="sessions/qa-dungeoncrawler/inbox/$(date +%Y%m%d-%H%M%S)-gate2-approve-${RELEASE_ID}"
+mkdir -p "$ITEM"
+echo "999" > "${ITEM}/roi.txt"
+```
+
+Then write `${ITEM}/README.md` with:
+- The exact release ID
+- A list of all features that received suite-activate items in this dispatch batch
+- Instruction: "All suite-activate items for this release have been dispatched. File the consolidated Gate 2 APPROVE outbox now referencing `${RELEASE_ID}` with the word `APPROVE`."
+
+**Timing:** dispatch the gate2-approve item in the SAME outbox cycle as the last suite-activate item (not as a follow-up).
+
+Root cause (GAP-DC-QA-GATE2-CONSOLIDATE-02, 2026-04-08): 2 consecutive cycles of CEO having to file Gate 2 APPROVE manually due to missing structural dispatch trigger.
+
 ## Roadmap maintenance (required — added 2026-04-06)
 
 The requirements roadmap at `https://dungeoncrawler.forseti.life/Roadmap` is PM-owned.
