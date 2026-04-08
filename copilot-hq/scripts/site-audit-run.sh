@@ -479,6 +479,18 @@ def _queue_pm_gate2_ready_item() -> None:
     return
   if not pm_agent_id:
     return
+  # Guard: skip if release_id is stale (cycle has advanced since audit started).
+  # Re-read the active marker at dispatch time; if the file is gone or holds a
+  # different release_id, the cycle has already advanced and we must not dispatch.
+  if team_id and release_id:
+    active_rid_file = Path('tmp') / 'release-cycle-active' / f"{team_id}.release_id"
+    if not active_rid_file.exists():
+      print(f"INFO: skip gate2-ready queue — release {release_id} no longer active (marker removed)")
+      return
+    current_active_rid = active_rid_file.read_text(encoding='utf-8').strip()
+    if current_active_rid != release_id:
+      print(f"INFO: skip gate2-ready queue — release {release_id} stale (active: {current_active_rid})")
+      return
   if open_issue_total > 0:
     return
 
