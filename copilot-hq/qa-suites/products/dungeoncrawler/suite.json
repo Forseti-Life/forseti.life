@@ -6267,6 +6267,61 @@
           "ac": "FocusPool-1 (Integration)"
         }
       ]
+    },
+    {
+      "id": "dc-apg-rituals-e2e",
+      "label": "APG Rituals \u2014 stat block completeness, multiple secondary casters, rare/uncommon gate, extensibility, edge cases (0-secondary, name collision)",
+      "type": "e2e",
+      "feature_id": "dc-apg-rituals",
+      "command": "npx playwright test tests/dc-apg-rituals/ --reporter=json --output=test-results/dc-apg-rituals/",
+      "artifacts": [
+        "test-results/dc-apg-rituals/results.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-RIT-01",
+          "description": "Ritual system accepts APG entries without structural changes; APG + CRB in same table/UI",
+          "suite": "playwright/downtime",
+          "ac": "System-1"
+        },
+        {
+          "id": "TC-RIT-02",
+          "description": "Ritual stat block completeness: level, casting time, cost, primary check skill+proficiency, secondary checks, targets, effect all stored",
+          "suite": "playwright/downtime",
+          "ac": "Catalog-1"
+        },
+        {
+          "id": "TC-RIT-03",
+          "description": "Multiple secondary casters pattern: secondary_checks stored as array; UI shows each role+skill",
+          "suite": "playwright/downtime",
+          "ac": "Catalog-2,System-3"
+        },
+        {
+          "id": "TC-RIT-04",
+          "description": "Rare/Uncommon rituals require GM approval; non-approved character cannot initiate; GM override unlocks",
+          "suite": "playwright/downtime",
+          "ac": "Catalog-3"
+        },
+        {
+          "id": "TC-RIT-05",
+          "description": "Primary check modifier stored per-ritual (data-driven, not hardcoded in UI)",
+          "suite": "playwright/downtime",
+          "ac": "Integration-1"
+        },
+        {
+          "id": "TC-RIT-06",
+          "description": "Edge: ritual with 0 secondary casters renders correctly; no secondary-caster error",
+          "suite": "playwright/downtime",
+          "ac": "Edge-1"
+        },
+        {
+          "id": "TC-RIT-07",
+          "description": "Edge: APG ritual same name as CRB ritual differentiated by book_id composite key",
+          "suite": "playwright/downtime",
+          "ac": "Edge-2"
+        }
+      ]
     }
   ],
   "_schema_notes": [
