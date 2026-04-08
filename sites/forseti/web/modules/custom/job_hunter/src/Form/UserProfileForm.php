@@ -15,6 +15,8 @@ use Drupal\job_hunter\Service\UserProfileService;
 use Drupal\job_hunter\Service\JobSeekerService;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Drupal\job_hunter\Plugin\QueueWorker\ResumeGenAiParsingWorker;
+use Drupal\job_hunter\Form\Subform\EducationHistorySubform;
+use Drupal\job_hunter\Form\Subform\ResumeUploadSubform;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\InvokeCommand;
 
@@ -82,6 +84,20 @@ class UserProfileForm extends FormBase {
   protected $database;
 
   /**
+   * The education history subform handler.
+   *
+   * @var \Drupal\job_hunter\Form\Subform\EducationHistorySubform
+   */
+  protected EducationHistorySubform $educationHistorySubform;
+
+  /**
+   * The resume upload subform handler.
+   *
+   * @var \Drupal\job_hunter\Form\Subform\ResumeUploadSubform
+   */
+  protected ResumeUploadSubform $resumeUploadSubform;
+
+  /**
    * Constructs a new UserProfileForm.
    *
    * @param \Drupal\Core\Session\AccountInterface $current_user
@@ -110,6 +126,8 @@ class UserProfileForm extends FormBase {
     $this->configFactory = $config_factory;
     $this->database = $database;
     $this->aiApiService = $ai_api_service;
+    $this->educationHistorySubform = new EducationHistorySubform($database);
+    $this->resumeUploadSubform = new ResumeUploadSubform($job_seeker_service, $database);
   }
 
   /**
@@ -227,368 +245,8 @@ class UserProfileForm extends FormBase {
     // Reload job seeker profile in case consolidation updated consolidated_profile_json.
     $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
     
-    // Resume Management Section - displayed at top of page (not in accordion)
-    $form['resume_workflow'] = [
-      '#type' => 'container',
-      '#weight' => -100,
-      '#prefix' => '<div id="resume-workflow-wrapper" class="jh-profile__resume">',
-      '#suffix' => '</div>',
-    ];
-
-    $form['resume_workflow']['header'] = [
-      '#markup' => '<h3 class="jh-profile__resume-header">📁 ' . $this->t('Resume Management') . '</h3><p class="jh-profile__resume-desc">' . $this->t('Upload your resume files. Files are automatically processed with AI to extract your profile information.') . '</p>',
-    ];
-    
-    // Upload field - always show empty for new uploads
-    // Note: We don't pre-populate this with existing files - it's for NEW uploads only
-    // Ensure user-specific directory exists
-    $user_resume_dir = 'private://job_hunter/resumes/' . $uid . '/originalresumes';
-    \Drupal::service('file_system')->prepareDirectory($user_resume_dir, \Drupal\Core\File\FileSystemInterface::CREATE_DIRECTORY | \Drupal\Core\File\FileSystemInterface::MODIFY_PERMISSIONS);
-    
-    $form['resume_workflow']['field_resume_file'] = [
-      '#type' => 'managed_file',
-      '#title' => $this->t('Upload New Resume'),
-      '#description' => $this->t('Upload resume files (PDF or Word format, max 10MB). Click "Upload" after selecting.'),
-      '#required' => FALSE,
-      '#multiple' => TRUE, // Allow multiple file selection
-      '#upload_location' => $user_resume_dir,
-      '#upload_validators' => [
-        'FileExtension' => ['extensions' => 'pdf doc docx'],
-        'FileSizeLimit' => ['fileLimit' => 10 * 1024 * 1024],
-      ],
-      '#default_value' => [], // Always empty - don't show existing files here
-      '#progress_indicator' => 'bar', // Shows progress bar during upload
-    ];
-    
-    // Process uploaded files button
-    $form['resume_workflow']['process_upload'] = [
-      '#type' => 'submit',
-      '#value' => $this->t('📤 Process Uploaded Files'),
-      '#submit' => ['::processUploadedFilesSubmit'],
-      '#limit_validation_errors' => [['field_resume_file']],
-      '#attributes' => [
-        'class' => ['button', 'button--primary'],
-      ],
-    ];
-    
-    // UPLOADED FILES STATUS (was Step 2)
-    $database = \Drupal::database();
-    $files_list = [];
-    $resume_table = '';
-    
-    // Check for uploaded files in the user's originalresumes directory
-    $private_path = \Drupal::service('file_system')->realpath('private://job_hunter/resumes/' . $uid . '/originalresumes');
-    
-    if ($private_path && is_dir($private_path)) {
-      $files = scandir($private_path);
-      $files = array_diff($files, ['.', '..']);
-      
-      // Filter out directories - only process actual files
-      $files = array_filter($files, function($filename) use ($private_path) {
-        return is_file($private_path . '/' . $filename);
-      });
-      
-      if (!empty($files)) {
-        $resume_table = '<div class="jh-profile__resume-list">';
-          
-          $index = 0;
-          foreach ($files as $filename) {
-            $file_path = $private_path . '/' . $filename;
-            $file_size = filesize($file_path);
-            
-            // Check if file is registered in database
-            $file_uri = 'private://job_hunter/resumes/' . $uid . '/originalresumes/' . $filename;
-            $file_entities = \Drupal::entityTypeManager()
-              ->getStorage('file')
-              ->loadByProperties(['uri' => $file_uri]);
-            
-            $is_registered = false;
-            $resume_record_id = null;
-            $file_id = null;
-            $parsed_data = null;
-            $extracted_text = null;
-            
-            // Get or create file entity
-            if (empty($file_entities)) {
-              $file = \Drupal\file\Entity\File::create([
-                'uri' => $file_uri,
-                'filename' => $filename,
-                'status' => 1,
-              ]);
-              $file->save();
-              $file_id = $file->id();
-            } else {
-              $file = reset($file_entities);
-              $file_id = $file->id();
-            }
-            
-            // Ensure job_seeker profile exists before auto-registration
-            if (!$job_seeker_profile) {
-              $job_seeker_data = ['uid' => $uid];
-              $job_seeker_id = $this->jobSeekerService->create($job_seeker_data);
-              $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
-            }
-            $job_seeker_id = (int) $job_seeker_profile->id;
-            
-            // Check if resume record exists
-            $resume_record = $database->select('jobhunter_job_seeker_resumes', 'jsr')
-              ->fields('jsr', ['id', 'extracted_text'])
-              ->condition('job_seeker_id', $job_seeker_id)
-              ->condition('file_id', $file_id)
-              ->execute()
-              ->fetchAssoc();
-            
-            if ($resume_record) {
-              $is_registered = true;
-              $resume_record_id = $resume_record['id'];
-              $extracted_text = $resume_record['extracted_text'];
-            } else {
-              // Auto-register: Insert resume record
-              $resume_record_id = $database->insert('jobhunter_job_seeker_resumes')
-                ->fields([
-                  'job_seeker_id' => $job_seeker_id,
-                  'file_id' => $file_id,
-                  'resume_name' => pathinfo($filename, PATHINFO_FILENAME),
-                  'created' => time(),
-                  'changed' => time(),
-                ])
-                ->execute();
-              $is_registered = true;
-            }
-            
-            // Get parsed data for this resume (latest record)
-            $parsing_status = NULL;
-            $parsing_error = NULL;
-            if ($is_registered) {
-              $parsed_record = $this->getLatestParsedRecordForFile($database, $uid, $file_id, $file_uri, $filename);
-              
-              if ($parsed_record) {
-                $parsing_status = $parsed_record['status'];
-                $parsing_error = $parsed_record['error_message'];
-                $parsed_data = json_decode($parsed_record['parsed_data'], TRUE);
-              }
-            }
-            
-            $size_kb = round($file_size / 1024, 2);
-            $size_display = $size_kb < 1024 ? $size_kb . ' KB' : round($size_kb / 1024, 2) . ' MB';
-            
-            // Build resume card
-            $resume_table .= '<div class="jh-profile__resume-card">';
-            $resume_table .= '<div class="jh-profile__resume-card-header">';
-            $resume_table .= '<div>';
-            $resume_table .= '<strong class="jh-profile__resume-card-name">' . htmlspecialchars($filename) . '</strong>';
-            $resume_table .= '<span class="jh-profile__resume-card-size">(' . $size_display . ')</span>';
-            $resume_table .= '</div>';
-            $resume_table .= '<div id="delete-btn-' . $index . '"></div>';
-            $resume_table .= '</div>';
-            
-            // Show processing status
-            $resume_table .= '<div class="jh-profile__status">';
-            $resume_table .= '<strong class="jh-profile__status-title">📋 ' . $this->t('Processing Status:') . '</strong>';
-            $resume_table .= '<ul class="jh-profile__status-list">';
-            
-            // Check if text has been extracted
-            $has_extracted_text = !empty($extracted_text);
-            $text_icon = $has_extracted_text ? '✅' : '⬜';
-            $text_status_class = $has_extracted_text ? 'jh-profile__status-item--done' : 'jh-profile__status-item--pending';
-            $resume_table .= '<li class="jh-profile__status-item ' . $text_status_class . '">';
-            $resume_table .= $text_icon . ' <strong>' . $this->t('Text Extracted:') . '</strong> ' . ($has_extracted_text ? $this->t('Yes (@chars chars)', ['@chars' => number_format(strlen($extracted_text))]) : $this->t('Pending...'));
-            $resume_table .= '</li>';
-            
-            // Check parsing status and JSON existence
-            $has_json = false;
-            $is_queued = ($parsing_status === 'queued');
-            $is_processing = ($parsing_status === 'processing');
-            $is_error = ($parsing_status === 'error');
-            $is_complete = in_array($parsing_status, ['complete', 'completed'], TRUE);
-            
-            if ($parsed_data && is_array($parsed_data) && $is_complete) {
-              // Check for schema v1.0 keys
-              $has_json = !empty($parsed_data['schema_version']) ||
-                         !empty($parsed_data['contact_info']) || 
-                         !empty($parsed_data['executive_profile']) ||
-                         !empty($parsed_data['professional_experience']) ||
-                         !empty($parsed_data['technical_expertise']) ||
-                         !empty($parsed_data['education']);
-            }
-            
-            // Determine status display
-            if ($is_queued) {
-              $json_icon = '⏳';
-              $json_status_class = 'jh-profile__status-item--queued';
-              $json_status = $this->t('Queued for AI parsing...');
-            } elseif ($is_processing) {
-              $json_icon = '🔄';
-              $json_status_class = 'jh-profile__status-item--processing';
-              $json_status = $this->t('AI parsing in progress...');
-            } elseif ($is_error) {
-              $json_icon = '❌';
-              $json_status_class = 'jh-profile__status-item--error';
-              $json_status = $this->t('Error: @msg', ['@msg' => substr($parsing_error ?? 'Unknown error', 0, 50)]);
-            } elseif ($has_json) {
-              $json_icon = '✅';
-              $json_status_class = 'jh-profile__status-item--done';
-              $json_status = $this->t('Yes');
-            } else {
-              $json_icon = '⬜';
-              $json_status_class = 'jh-profile__status-item--pending';
-              $json_status = $this->t('No');
-            }
-
-            $resume_table .= '<li class="jh-profile__status-item ' . $json_status_class . '">';
-            $resume_table .= $json_icon . ' <strong>' . $this->t('Individual JSON Stored:') . '</strong> ' . $json_status;
-            if ($is_queued || $is_processing) {
-              $resume_table .= ' <span class="jh-profile__section-info">(' . $this->t('Refresh page to check status') . ')</span>';
-            }
-            $resume_table .= '</li>';
-            
-            // Check if this file's data is in consolidated profile JSON
-            // Check if THIS file's name is in extraction_metadata.source_files
-            $in_consolidated = false;
-            if ($job_seeker_profile && !empty($job_seeker_profile->consolidated_profile_json)) {
-              $consolidated = json_decode($job_seeker_profile->consolidated_profile_json, TRUE);
-              // Check if this file is listed in source_files array
-              if ($consolidated && is_array($consolidated) && 
-                  !empty($consolidated['extraction_metadata']['source_files'])) {
-                // Check if this filename is in the source_files list
-                $in_consolidated = in_array($filename, $consolidated['extraction_metadata']['source_files']);
-              }
-            }
-            
-            $consol_status_class = $in_consolidated ? 'jh-profile__status-item--done' : 'jh-profile__status-item--pending';
-            $consol_icon = $in_consolidated ? '✅' : '⬜';
-            $resume_table .= '<li class="jh-profile__status-item ' . $consol_status_class . '">';
-            $resume_table .= $consol_icon . ' <strong>' . $this->t('Merged to Consolidated:') . '</strong> ' . ($in_consolidated ? $this->t('Yes') : $this->t('Pending...'));
-            $resume_table .= '</li>';
-            
-            $resume_table .= '</ul>';
-            
-            // Show info if processing is queued or in progress
-            if ($is_queued || $is_processing) {
-              $resume_table .= '<div class="jh-profile__status-banner jh-profile__status-banner--info">';
-              $resume_table .= '🔄 <em>' . $this->t('Processing automatically - check back in 2-3 minutes') . '</em>';
-              $resume_table .= '</div>';
-            } elseif ($is_error) {
-              $resume_table .= '<div class="jh-profile__status-banner jh-profile__status-banner--error">';
-              $resume_table .= '❌ <em>' . $this->t('Parsing failed - please try re-uploading the file') . '</em>';
-              $resume_table .= '</div>';
-            }
-            
-            $resume_table .= '</div>';
-            
-            $resume_table .= '</div>';
-            
-            $files_list[] = [
-              'filename' => $filename,
-              'resume_id' => $resume_record_id,
-              'has_text' => $has_extracted_text,
-              'has_json' => $has_json,
-              'in_consolidated' => $in_consolidated,
-              'file_id' => $file_id,
-              'file' => $file,
-            ];
-            $index++;
-          }
-          
-          $resume_table .= '</div>';
-        }
-      }
-    
-    // Display uploaded files status (combined with upload above)
-    if (!empty($resume_table)) {
-      $form['resume_workflow']['resume_files_display'] = [
-        '#markup' => '<div class="jh-profile__uploaded-files"><h4 class="jh-profile__uploaded-files-title">' . $this->t('📋 Uploaded Files') . '</h4>' . $resume_table . '</div>',
-      ];
-      
-      // Add action buttons for each file (delete only - other actions are automatic)
-      $index = 0;
-      foreach ($files_list as $file_info) {
-        // Delete button (goes next to filename)
-        $form['resume_workflow']['delete_btn_' . $index] = [
-          '#type' => 'container',
-          '#attributes' => [
-            'class' => ['delete-btn-container'],
-            'data-target' => 'delete-btn-' . $index,
-          ],
-        ];
-        
-        $form['resume_workflow']['delete_btn_' . $index]['delete_resume_' . $index] = [
-          '#type' => 'submit',
-          '#value' => $this->t('Delete'),
-          '#name' => 'delete_resume_' . $index,
-          '#submit' => ['::deleteResumeFileSubmit'],
-          '#limit_validation_errors' => [],
-          '#validate' => [],
-          '#attributes' => [
-            'data-filename' => $file_info['filename'],
-            'data-file-id' => (string) ($file_info['file_id'] ?? ''),
-            'class' => ['button', 'button--danger', 'jh-profile__delete-btn'],
-            'data-confirm-message' => $this->t('Are you sure you want to delete this resume file?'),
-          ],
-        ];
-        
-        $index++;
-      }
-      
-      // Add separate section for individual JSON editors
-      $form['resume_workflow']['individual_json_editors'] = [
-        '#type' => 'details',
-        '#title' => $this->t('📝 Individual Resume JSON Data'),
-        '#description' => $this->t('View and edit the parsed JSON data for each resume file.'),
-        '#open' => FALSE,
-        '#weight' => 10,
-      ];
-      
-      // Add JSON editors for files with parsed data
-      $json_index = 0;
-      foreach ($files_list as $file_info) {
-        if (isset($file_info['has_json']) && $file_info['has_json'] && isset($file_info['file_id'])) {
-          $parsed_record = $this->database->select('jobhunter_resume_parsed_data', 'jrpd')
-            ->fields('jrpd', ['id', 'parsed_data'])
-            ->condition('uid', $uid)
-            ->condition('resume_file_id', $file_info['file_id'])
-            ->execute()
-            ->fetchObject();
-          
-          if ($parsed_record && isset($file_info['file'])) {
-            $form['resume_workflow']['individual_json_editors']['json_' . $json_index] = [
-              '#type' => 'details',
-              '#title' => $this->t('📄 @name', ['@name' => $file_info['file']->getFilename()]),
-              '#open' => FALSE,
-              '#attributes' => ['class' => ['jh-profile__json-editor']],
-            ];
-
-            $form['resume_workflow']['individual_json_editors']['json_' . $json_index]['parsed_data_' . $parsed_record->id] = [
-              '#type' => 'textarea',
-              '#title' => $this->t('Parsed JSON Data'),
-              '#default_value' => $parsed_record->parsed_data,
-              '#rows' => 20,
-              '#attributes' => [
-                'class' => ['jh-profile__json-textarea'],
-                'placeholder' => $this->t('JSON data will appear here after parsing...'),
-              ],
-              '#description' => $this->t('Edit the parsed JSON data for this resume. Must be valid JSON format. Changes save when you submit the form.'),
-            ];
-            
-            $json_index++;
-          }
-        }
-      }
-      
-      if ($json_index == 0) {
-        $form['resume_workflow']['individual_json_editors']['no_json'] = [
-          '#markup' => '<p><em>' . $this->t('No parsed JSON data available yet. Use "Parse JSON" buttons above to extract data from your resumes.') . '</em></p>',
-        ];
-      }
-      
-      // Attach the user-profile library which handles button relocation
-      $form['resume_workflow']['#attached']['library'][] = 'core/drupal';
-      $form['resume_workflow']['#attached']['library'][] = 'job_hunter/user_profile';
-    } else {
-      $form['resume_workflow']['no_files'] = [
-        '#markup' => '<p class="jh-profile__no-files">' . $this->t('No resume files uploaded yet. Use the upload field above to add your resume.') . '</p>',
-      ];
-    }
+    // Resume Management Section — delegated to ResumeUploadSubform.
+    $this->resumeUploadSubform->buildFormElements($form, $form_state, $job_seeker_profile, $uid);
 
     // Load consolidated profile JSON for pre-populating fields
     $consolidated = [];
@@ -1075,35 +733,13 @@ class UserProfileForm extends FormBase {
       '#default_value' => $this->getConsolidatedValue($job_seeker_profile, 'field_education_level'),
     ];
 
-    // Education History Section (editable text)
-    $form['experience_education']['education_entries'] = [
-      '#type' => 'details',
-      '#title' => $this->t('📚 Education History'),
-      '#open' => TRUE,
-      '#attributes' => [
-        'class' => ['education-entries-display', 'jh-profile__education-entries'],
-      ],
-    ];
-
-    $education_display = $this->buildEducationDisplay($job_seeker_profile);
-    if ($education_display) {
-      $form['experience_education']['education_entries']['education_display'] = [
-        '#type' => 'markup',
-        '#markup' => $education_display,
-        '#weight' => -20,
-      ];
-    }
-    $form['experience_education']['education_entries']['info'] = [
-      '#markup' => '<p class="description"><em>Edit one entry per line. Save to apply changes.</em></p>',
-    ];
-    $form['experience_education']['education_entries']['field_education_json'] = [
-      '#type' => 'textarea',
-      '#title' => $this->t('Education History'),
-      '#description' => $this->t('One item per line. Optional format: Institution | Degree | Year'),
-      '#default_value' => $this->formatSectionForTextarea($consolidated, 'education'),
-      '#rows' => 10,
-      
-    ];
+    // Education History Section — delegated to EducationHistorySubform.
+    $this->educationHistorySubform->buildFormElements(
+      $form,
+      $form_state,
+      $job_seeker_profile,
+      $this->formatSectionForTextarea($consolidated, 'education')
+    );
 
     // Professional Experience Section (editable JSON)
     $form['professional_experience'] = [
@@ -1993,205 +1629,20 @@ class UserProfileForm extends FormBase {
 
   /**
    * Submit handler for processing uploaded resume files.
-   * Makes files permanent, registers them, and queues for AI parsing.
+   *
+   * Delegated to ResumeUploadSubform.
    */
   public function processUploadedFilesSubmit(array &$form, FormStateInterface $form_state) {
-    $fids = $form_state->getValue('field_resume_file');
-    
-    if (empty($fids)) {
-      \Drupal::messenger()->addWarning($this->t('No files selected. Please choose files to upload first.'));
-      return;
-    }
-    
-    $uid = \Drupal::currentUser()->id();
-    $connection = \Drupal::database();
-    $processed_count = 0;
-    
-    // Ensure job_seeker profile exists
-    $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
-    if (!$job_seeker_profile) {
-      $job_seeker_id = $this->jobSeekerService->create(['uid' => $uid]);
-      $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
-    }
-    $job_seeker_id = (int) $job_seeker_profile->id;
-    
-    foreach ($fids as $fid) {
-      $file = \Drupal\file\Entity\File::load($fid);
-      if (!$file) {
-        continue;
-      }
-      
-      // Make file permanent
-      $file->setPermanent();
-      $file->save();
-      
-      $this->logInfo('📁 File made permanent: @filename (fid: @fid)', [
-        '@filename' => $file->getFilename(),
-        '@fid' => $file->id(),
-      ]);
-      
-      // Check if already registered
-      // Check if already registered
-      $existing_record = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-        ->fields('jsr', ['id', 'extracted_text'])
-        ->condition('job_seeker_id', $job_seeker_id)
-        ->condition('file_id', $file->id())
-        ->execute()
-        ->fetchAssoc();
-      
-      if ($existing_record) {
-        // File is registered - determine parsed-data status.
-        $latest_parsed = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-          ->fields('rpd', ['id', 'status'])
-          ->condition('uid', $uid)
-          ->condition('resume_file_id', $file->id())
-          ->orderBy('changed', 'DESC')
-          ->range(0, 1)
-          ->execute()
-          ->fetchAssoc();
-
-        // Avoid duplicate queue items while work is already in-flight.
-        if (!empty($latest_parsed['status']) && in_array($latest_parsed['status'], ['queued', 'processing'], TRUE)) {
-          $this->logInfo('📁 File already queued/processing, skipping duplicate queue: @filename', [
-            '@filename' => $file->getFilename(),
-          ]);
-          continue;
-        }
-
-        // File registered and either never parsed or already completed/error.
-        // Reprocess by resetting/creating parsed-data status to queued below.
-        $resume_id = $existing_record['id'];
-        $this->logInfo('📁 File already registered; queueing reprocess: @filename', [
-          '@filename' => $file->getFilename(),
-        ]);
-      }
-      else {
-        // New file - register it
-        $existing_count = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-          ->condition('job_seeker_id', $job_seeker_id)
-          ->countQuery()
-          ->execute()
-          ->fetchField();
-        
-        $is_primary = ($existing_count == 0) ? 1 : 0;
-        
-        // Register resume
-        $resume_id = $connection->insert('jobhunter_job_seeker_resumes')
-          ->fields([
-            'job_seeker_id' => $job_seeker_id,
-            'file_id' => $file->id(),
-            'resume_name' => pathinfo($file->getFilename(), PATHINFO_FILENAME),
-            'is_primary' => $is_primary,
-            'created' => time(),
-            'changed' => time(),
-          ])
-          ->execute();
-        
-        $this->logInfo('📁 Registered resume: @filename (resume_id: @id)', [
-          '@filename' => $file->getFilename(),
-          '@id' => $resume_id,
-        ]);
-      }
-      
-      // Extract text and queue for AI parsing
-      try {
-        $extracted_text = $this->extractTextFromFile($file);
-        
-        if (!empty($extracted_text)) {
-          // Store extracted text
-          $connection->update('jobhunter_job_seeker_resumes')
-            ->fields(['extracted_text' => $extracted_text])
-            ->condition('id', $resume_id)
-            ->execute();
-          
-          $this->logInfo('📁 Extracted @chars characters from: @filename', [
-            '@chars' => strlen($extracted_text),
-            '@filename' => $file->getFilename(),
-          ]);
-
-          // Upsert parsed-data row to queued so already-complete files are
-          // reprocessed when the user clicks "Process Uploaded Files".
-          $timestamp = \Drupal::time()->getRequestTime();
-          $existing_parsed_id = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-            ->fields('rpd', ['id'])
-            ->condition('uid', $uid)
-            ->condition('resume_file_id', $file->id())
-            ->orderBy('changed', 'DESC')
-            ->range(0, 1)
-            ->execute()
-            ->fetchField();
-
-          if ($existing_parsed_id) {
-            $connection->update('jobhunter_resume_parsed_data')
-              ->fields([
-                'resume_path' => $file->getFileUri(),
-                'parsed_data' => json_encode(['status' => 'queued']),
-                'status' => 'queued',
-                'error_message' => NULL,
-                'changed' => $timestamp,
-              ])
-              ->condition('id', $existing_parsed_id)
-              ->execute();
-          }
-          else {
-            $connection->insert('jobhunter_resume_parsed_data')
-              ->fields([
-                'uid' => $uid,
-                'resume_file_id' => $file->id(),
-                'resume_path' => $file->getFileUri(),
-                'parsed_data' => json_encode(['status' => 'queued']),
-                'status' => 'queued',
-                'error_message' => NULL,
-                'created' => $timestamp,
-                'changed' => $timestamp,
-              ])
-              ->execute();
-          }
-
-          // Queue the GenAI parsing job
-          $queue = \Drupal::queue('job_hunter_genai_parsing');
-          $queue->createItem([
-            'uid' => $uid,
-            'resume_id' => $resume_id,
-            'file_id' => $file->id(),
-            'extracted_text' => $extracted_text,
-            'filename' => $file->getFilename(),
-          ]);
-
-          $this->logInfo('📁 Queued for GenAI parsing: @filename', [
-            '@filename' => $file->getFilename(),
-          ]);
-        }
-      } catch (\Exception $e) {
-        $this->logError('📁 Processing failed for @filename: @error', [
-          '@filename' => $file->getFilename(),
-          '@error' => $e->getMessage(),
-        ]);
-      }
-      
-      $processed_count++;
-    }
-    
-    if ($processed_count > 0) {
-      \Drupal::messenger()->addStatus($this->t('@count resume(s) queued for AI processing. Existing processed files were re-queued when selected. Check back in 2-3 minutes for results.', ['@count' => $processed_count]));
-    }
-    
-    // Redirect to refresh the page
-    $form_state->setRedirect('job_hunter.user_profile_edit');
+    $this->resumeUploadSubform->processUploadedFilesSubmit($form, $form_state);
   }
 
   /**
    * Submit handler for "Add Another Resume" button.
-   * Clears the upload field to allow uploading another file.
+   *
+   * Delegated to ResumeUploadSubform.
    */
   public function addAnotherResumeSubmit(array &$form, FormStateInterface $form_state) {
-    $this->logInfo('📁 Add Another Resume clicked');
-    
-    // Clear the managed_file field value to allow new upload
-    $form_state->setValue('field_resume_file', []);
-    
-    // Rebuild the form with empty upload field
-    $form_state->setRebuild(TRUE);
+    $this->resumeUploadSubform->addAnotherResumeSubmit($form, $form_state);
   }
 
   /**
@@ -2282,101 +1733,11 @@ class UserProfileForm extends FormBase {
 
   /**
    * Submit handler for adding a resume.
+   *
+   * Delegated to ResumeUploadSubform.
    */
   public function addResumeSubmit(array &$form, FormStateInterface $form_state) {
-    \Drupal::logger('job_hunter_debug')->info('=== ADD RESUME SUBMIT CALLED ===');
-    
-    $user_entity = $form_state->get('user_entity');
-    $uid = $user_entity->id();
-    \Drupal::logger('job_hunter_debug')->info('Submit handler: User ID @uid', ['@uid' => $uid]);
-    
-    // Get uploaded file
-    $resume_file = $form_state->getValue('field_resume_file');
-    $resume_name = $form_state->getValue('resume_name');
-    
-    \Drupal::logger('job_hunter_debug')->info('Submit handler: Resume file value - @file, Resume name - @name', [
-      '@file' => print_r($resume_file, TRUE),
-      '@name' => $resume_name ?: 'NOT PROVIDED',
-    ]);
-    
-    if (!empty($resume_file[0])) {
-      \Drupal::logger('job_hunter_debug')->info('Submit handler: File ID present - @fid', ['@fid' => $resume_file[0]]);
-      
-      $file = \Drupal\file\Entity\File::load($resume_file[0]);
-      if ($file) {
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: File entity loaded - @filename (@fid)', [
-          '@filename' => $file->getFilename(),
-          '@fid' => $file->id(),
-        ]);
-        
-        $file->setPermanent();
-        $file->save();
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: File set to permanent and saved');
-        
-        // Get or create job seeker profile
-        $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
-        if (!$job_seeker_profile) {
-          \Drupal::logger('job_hunter_debug')->info('Submit handler: Creating new job seeker profile for uid @uid', ['@uid' => $uid]);
-          $job_seeker_data = ['uid' => $uid];
-          $job_seeker_id = $this->jobSeekerService->create($job_seeker_data);
-          $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
-        }
-        
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: Job seeker profile ID - @id', ['@id' => $job_seeker_profile->id]);
-        
-        // Check if this is the first resume (make it primary)
-        $database = \Drupal::database();
-        $existing_count = $database->select('jobhunter_job_seeker_resumes', 'jsr')
-          ->condition('job_seeker_id', $job_seeker_profile->id)
-          ->countQuery()
-          ->execute()
-          ->fetchField();
-        
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: Existing resume count - @count', ['@count' => $existing_count]);
-        
-        $is_primary = ($existing_count == 0) ? 1 : 0;
-        
-        // Save to jobhunter_job_seeker_resumes table
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: Inserting into jobhunter_job_seeker_resumes - job_seeker_id: @jsid, file_id: @fid, is_primary: @primary', [
-          '@jsid' => $job_seeker_profile->id,
-          '@fid' => $file->id(),
-          '@primary' => $is_primary,
-        ]);
-        
-        $insert_result = $database->insert('jobhunter_job_seeker_resumes')
-          ->fields([
-            'job_seeker_id' => $job_seeker_profile->id,
-            'file_id' => $file->id(),
-            'resume_name' => $resume_name ?: NULL,
-            'is_primary' => $is_primary,
-            'created' => time(),
-            'changed' => time(),
-          ])
-          ->execute();
-        
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: Database insert result - @result', ['@result' => $insert_result]);
-        
-        // If first resume, also update job_seeker table for backward compatibility
-        if ($is_primary) {
-          $this->jobSeekerService->update($job_seeker_profile->id, [
-            'resume_node_id' => $file->id(),
-          ]);
-        }
-        
-        // Clear the form field values to allow another upload
-        $form_state->setValue('field_resume_file', []);
-        $form_state->setValue('resume_name', '');
-        $form_state->setRebuild(TRUE);
-        
-        \Drupal::logger('job_hunter_debug')->info('Submit handler: Form fields cleared, rebuild set to TRUE');
-        \Drupal::messenger()->addMessage($this->t('Resume uploaded successfully!'));
-        \Drupal::logger('job_hunter_debug')->info('=== ADD RESUME SUBMIT COMPLETED SUCCESSFULLY ===');
-      } else {
-        \Drupal::logger('job_hunter_debug')->error('Submit handler: FAILED to load file entity for FID @fid', ['@fid' => $resume_file[0]]);
-      }
-    } else {
-      \Drupal::logger('job_hunter_debug')->error('Submit handler: NO FILE ID in form state value');
-    }
+    $this->resumeUploadSubform->addResumeSubmit($form, $form_state);
   }
 
   /**
@@ -2392,242 +1753,23 @@ class UserProfileForm extends FormBase {
 
   /**
    * Submit handler for registering a resume file to the database.
+   *
    * Also automatically extracts text and parses with AI.
+   * Delegated to ResumeUploadSubform.
    */
   public function registerResumeSubmit(array &$form, FormStateInterface $form_state) {
-    $this->logInfo('📝 REGISTER BUTTON CLICKED - registerResumeSubmit called');
-    
-    $triggering_element = $form_state->getTriggeringElement();
-    $filename = $triggering_element['#attributes']['data-filename'] ?? NULL;
-    
-    $this->logInfo('📝 Register filename: @filename', ['@filename' => $filename ?? 'NULL']);
-    
-    if (!$filename) {
-      \Drupal::messenger()->addError($this->t('Could not identify file to register.'));
-      return;
-    }
-    
-    $user_entity = $form_state->get('user_entity');
-    $uid = $user_entity->id();
-    $connection = \Drupal::database();
-    
-    // Get or create job seeker profile
-    $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
-    if (!$job_seeker_profile) {
-      $job_seeker_data = ['uid' => $uid];
-      $job_seeker_id = $this->jobSeekerService->create($job_seeker_data);
-      $job_seeker_profile = $this->jobSeekerService->load($job_seeker_id);
-    }
-    
-    // Find or create file entity for this private file
-    $file_uri = 'private://job_hunter/resumes/' . $uid . '/originalresumes/' . $filename;
-    
-    // Check if file entity already exists
-    $file_entities = \Drupal::entityTypeManager()
-      ->getStorage('file')
-      ->loadByProperties(['uri' => $file_uri]);
-    
-    if (!empty($file_entities)) {
-      $file = reset($file_entities);
-    } else {
-      // Create new file entity
-      $file = \Drupal\file\Entity\File::create([
-        'uri' => $file_uri,
-        'filename' => $filename,
-        'status' => 1,
-      ]);
-      $file->save();
-    }
-    
-    // Check if already registered
-    $existing = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-      ->condition('job_seeker_id', (int) $job_seeker_profile->id)
-      ->condition('file_id', $file->id())
-      ->countQuery()
-      ->execute()
-      ->fetchField();
-    
-    if ($existing > 0) {
-      \Drupal::messenger()->addWarning($this->t('This resume is already registered.'));
-      return;
-    }
-    
-    // Check if this is the first resume (make it primary)
-    $existing_count = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-      ->condition('job_seeker_id', (int) $job_seeker_profile->id)
-      ->countQuery()
-      ->execute()
-      ->fetchField();
-    
-    $is_primary = ($existing_count == 0) ? 1 : 0;
-    
-    // Insert into jobhunter_job_seeker_resumes table
-    $resume_id = $connection->insert('jobhunter_job_seeker_resumes')
-      ->fields([
-        'job_seeker_id' => (int) $job_seeker_profile->id,
-        'file_id' => $file->id(),
-        'resume_name' => pathinfo($filename, PATHINFO_FILENAME),
-        'is_primary' => $is_primary,
-        'created' => time(),
-        'changed' => time(),
-      ])
-      ->execute();
-    
-    // If first resume, update job_seeker table for backward compatibility
-    if ($is_primary) {
-      $this->jobSeekerService->update($job_seeker_profile->id, [
-        'resume_node_id' => $file->id(),
-      ]);
-    }
-    
-    $this->logInfo('📝 Resume registered with ID: @id', ['@id' => $resume_id]);
-    
-    // AUTO-PARSE: Extract text and queue GenAI parsing (Bedrock) for background processing.
-    try {
-      $extracted_text = $this->extractTextFromFile($file);
-      
-      if (!empty($extracted_text)) {
-        // Store extracted text
-        $connection->update('jobhunter_job_seeker_resumes')
-          ->fields(['extracted_text' => $extracted_text])
-          ->condition('id', $resume_id)
-          ->execute();
-        
-        $this->logInfo('📝 Auto-extracted @chars characters from: @filename', [
-          '@chars' => strlen($extracted_text),
-          '@filename' => $filename,
-        ]);
-        
-        // Create placeholder parsed-data record and queue parsing.
-        $timestamp = \Drupal::time()->getRequestTime();
-        $connection->insert('jobhunter_resume_parsed_data')
-          ->fields([
-            'uid' => $uid,
-            'resume_file_id' => $file->id(),
-            'resume_path' => $file->getFileUri(),
-            'parsed_data' => json_encode(['status' => 'queued']),
-            'status' => 'queued',
-            'error_message' => NULL,
-            'created' => $timestamp,
-            'changed' => $timestamp,
-          ])
-          ->execute();
-
-        $queue = \Drupal::queue('job_hunter_genai_parsing');
-        $queue->createItem([
-          'uid' => $uid,
-          'resume_id' => $resume_id,
-          'file_id' => $file->id(),
-          'extracted_text' => $extracted_text,
-          'filename' => $filename,
-        ]);
-
-        $this->logInfo('📝 Queued resume for GenAI parsing: @filename', ['@filename' => $filename]);
-
-        \Drupal::messenger()->addStatus($this->t('Resume "@filename" has been registered. AI parsing has been queued.', ['@filename' => $filename]));
-      } else {
-        \Drupal::messenger()->addStatus($this->t('Resume "@filename" has been registered. (Text extraction returned empty - check file format)', ['@filename' => $filename]));
-      }
-    } catch (\Exception $e) {
-      $this->logError('📝 Auto-parse failed: @error', ['@error' => $e->getMessage()]);
-      \Drupal::messenger()->addWarning($this->t('Resume registered but parsing failed: @error', ['@error' => $e->getMessage()]));
-    }
-    
-    // Redirect to prevent POST resubmission
-    $form_state->setRedirect('job_hunter.user_profile_edit');
+    $this->resumeUploadSubform->registerResumeSubmit($form, $form_state);
   }
 
   /**
    * Submit handler for deleting a resume file.
+   *
+   * Delegated to ResumeUploadSubform.
    */
   public function deleteResumeFileSubmit(array &$form, FormStateInterface $form_state) {
-    $triggering_element = $form_state->getTriggeringElement();
-    $filename = $triggering_element['#attributes']['data-filename'] ?? NULL;
-    $file_id_attr = $triggering_element['#attributes']['data-file-id'] ?? NULL;
-    $target_file_id = is_numeric($file_id_attr) ? (int) $file_id_attr : 0;
-    
-    if (!$filename) {
-      \Drupal::messenger()->addError($this->t('Could not identify file to delete.'));
-      return;
-    }
-    
-    $uid = \Drupal::currentUser()->id();
-    $connection = \Drupal::database();
-    $file_uri = 'private://job_hunter/resumes/' . $uid . '/originalresumes/' . $filename;
-    $logger = \Drupal::logger('job_hunter');
-    
-    $logger->info('🗑️ Deleting resume file: @filename for user @uid', [
-      '@filename' => $filename,
-      '@uid' => $uid,
-    ]);
-    
-    // Find the file entity from the clicked button context first (file ID),
-    // then fallback to URI for legacy buttons.
-    $file_entities = [];
-    if ($target_file_id > 0) {
-      $file_by_id = \Drupal\file\Entity\File::load($target_file_id);
-      if ($file_by_id) {
-        $file_entities[$target_file_id] = $file_by_id;
-      }
-    }
-    if (empty($file_entities)) {
-      $file_entities = \Drupal::entityTypeManager()
-        ->getStorage('file')
-        ->loadByProperties(['uri' => $file_uri]);
-    }
-    
-    $file_id = NULL;
-    if (!empty($file_entities)) {
-      foreach ($file_entities as $file) {
-        $file_id = $file->id();
-        
-        // Delete from jobhunter_resume_parsed_data
-        $deleted_parsed = $connection->delete('jobhunter_resume_parsed_data')
-          ->condition('uid', $uid)
-          ->condition('resume_file_id', $file_id)
-          ->execute();
-        $logger->info('🗑️ Deleted @count parsed data records for file_id @fid', [
-          '@count' => $deleted_parsed,
-          '@fid' => $file_id,
-        ]);
-        
-        // Delete from jobhunter_job_seeker_resumes
-        $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
-        $job_seeker_id = $job_seeker_profile ? (int) $job_seeker_profile->id : 0;
-        $deleted_resume = $connection->delete('jobhunter_job_seeker_resumes')
-          ->condition('job_seeker_id', $job_seeker_id)
-          ->condition('file_id', $file_id)
-          ->execute();
-        $logger->info('🗑️ Deleted @count resume records for file_id @fid', [
-          '@count' => $deleted_resume,
-          '@fid' => $file_id,
-        ]);
-        
-        // Delete any pending queue items for this file
-        $connection->delete('queue')
-          ->condition('name', 'job_hunter_genai_parsing')
-          ->condition('data', '%"file_id":' . $file_id . '%', 'LIKE')
-          ->execute();
-        
-        // Delete file entity
-        $file->delete();
-      }
-    }
-    
-    // Delete physical file
-    $file_system = \Drupal::service('file_system');
-    $file_path = $file_system->realpath($file_uri);
-    
-    if ($file_path && file_exists($file_path) && is_file($file_path)) {
-      unlink($file_path);
-    }
-    
-    \Drupal::messenger()->addStatus($this->t('Resume file "@filename" and all associated data have been deleted.', ['@filename' => $filename]));
-    
-    // Redirect to prevent POST resubmission on browser refresh
-    $form_state->setRedirect('job_hunter.user_profile_edit');
+    $this->resumeUploadSubform->deleteResumeFileSubmit($form, $form_state);
   }
-
+    
   /**
    * Submit handler for extracting text from a resume file.
    */
@@ -2787,260 +1929,7 @@ class UserProfileForm extends FormBase {
    * Submit handler for deleting all resume data and profile information for the current user.
    */
   public function deleteAllResumeDataSubmit(array &$form, FormStateInterface $form_state) {
-    $uid = \Drupal::currentUser()->id();
-    $connection = \Drupal::database();
-    $file_system = \Drupal::service('file_system');
-    $logger = \Drupal::logger('job_hunter');
-    
-    $logger->info('🔍 DEBUG: deleteAllResumeDataSubmit called for user @uid', ['@uid' => $uid]);
-    
-    try {
-      $deleted_count = 0;
-      $errors = [];
-      
-      // Check if jobhunter_job_seeker record exists BEFORE deletion
-      $before_delete = $connection->select('jobhunter_job_seeker', 'js')
-        ->fields('js')
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchAssoc();
-      
-      $logger->info('🔍 DEBUG: job_seeker record BEFORE delete: @exists', [
-        '@exists' => $before_delete ? 'EXISTS' : 'NOT FOUND'
-      ]);
-      
-      // Get all resumes for this user
-      $job_seeker_profile = $this->jobSeekerService->loadByUserId($uid);
-      $job_seeker_ids = array_values(array_unique(array_filter([
-        (int) $uid,
-        (int) ($job_seeker_profile->id ?? 0),
-      ])));
-      $resumes = $connection->select('jobhunter_job_seeker_resumes', 'jsr')
-        ->fields('jsr', ['id', 'file_id', 'resume_name'])
-        ->condition('job_seeker_id', $job_seeker_ids, 'IN')
-        ->execute()
-        ->fetchAll();
-      
-      $logger->info('🔍 DEBUG: Found @count resume(s) to delete', ['@count' => count($resumes)]);
-      
-      // Also find any orphaned file entities by URI pattern for this user
-      $orphaned_files = \Drupal::database()->select('file_managed', 'fm')
-        ->fields('fm', ['fid', 'uri', 'filename'])
-        ->condition('uri', 'private://job_hunter/resumes/' . $uid . '/%', 'LIKE')
-        ->execute()
-        ->fetchAll();
-      
-      $logger->info('🔍 DEBUG: Found @count file(s) in file_managed table', ['@count' => count($orphaned_files)]);
-      
-      // Delete all parsed data for each resume
-      foreach ($resumes as $resume) {
-        // Delete from jobhunter_resume_parsed_data
-        $connection->delete('jobhunter_resume_parsed_data')
-          ->condition('uid', $uid)
-          ->condition('resume_file_id', $resume->file_id)
-          ->execute();
-        
-        // Delete any pending queue items for this file
-        $connection->delete('queue')
-          ->condition('name', 'job_hunter_genai_parsing')
-          ->condition('data', '%"file_id":' . $resume->file_id . '%', 'LIKE')
-          ->execute();
-        
-        // Delete file entity
-        try {
-          $file = \Drupal\file\Entity\File::load($resume->file_id);
-          if ($file) {
-            $file_uri = $file->getFileUri();
-            $file->delete();
-            
-            // Delete physical file
-            $file_path = $file_system->realpath($file_uri);
-            if ($file_path && file_exists($file_path)) {
-              unlink($file_path);
-            }
-          }
-        } catch (\Exception $e) {
-          $errors[] = "Error deleting file {$resume->resume_name}: " . $e->getMessage();
-          $this->logError('Error deleting file entity: @error', [
-            '@error' => $e->getMessage(),
-            'file_id' => $resume->file_id,
-          ]);
-        }
-        
-        // Delete from jobhunter_job_seeker_resumes
-        $connection->delete('jobhunter_job_seeker_resumes')
-          ->condition('id', $resume->id)
-          ->execute();
-        
-        $deleted_count++;
-      }
-      
-      // Delete any orphaned parsed data for this user (not associated with a known resume)
-      $orphaned_parsed = $connection->delete('jobhunter_resume_parsed_data')
-        ->condition('uid', $uid)
-        ->execute();
-      if ($orphaned_parsed > 0) {
-        $logger->info('🗑️ Deleted @count orphaned parsed data records for user @uid', [
-          '@count' => $orphaned_parsed,
-          '@uid' => $uid,
-        ]);
-      }
-      
-      // Delete any pending queue items for this user
-      $queues_to_check = [
-        'job_hunter_genai_parsing',
-        'job_hunter_text_extraction',
-        'job_hunter_profile_text_extraction',
-        'job_hunter_resume_tailoring',
-        'job_hunter_job_posting_parsing',
-      ];
-      
-      $total_deleted = 0;
-      foreach ($queues_to_check as $queue_name) {
-        // Fetch all items from this queue
-        $queue_items = $connection->select('queue', 'q')
-          ->fields('q', ['item_id', 'data'])
-          ->condition('q.name', $queue_name)
-          ->execute()
-          ->fetchAll();
-        
-        foreach ($queue_items as $item) {
-          $item_data = unserialize($item->data);
-          // Check if this queue item belongs to the current user
-          if (isset($item_data['uid']) && $item_data['uid'] == $uid) {
-            $connection->delete('queue')
-              ->condition('item_id', $item->item_id)
-              ->execute();
-            $total_deleted++;
-          }
-        }
-      }
-      
-      if ($total_deleted > 0) {
-        $logger->info('🗑️ Deleted @count queued items for user @uid', [
-          '@count' => $total_deleted,
-          '@uid' => $uid,
-        ]);
-      }
-      
-      // Delete orphaned file entities that weren't tracked in jobhunter_job_seeker_resumes
-      foreach ($orphaned_files as $orphaned) {
-        try {
-          $file = \Drupal\file\Entity\File::load($orphaned->fid);
-          if ($file) {
-            $file_uri = $file->getFileUri();
-            $logger->info('🔍 DEBUG: Deleting orphaned file entity fid=@fid, uri=@uri', [
-              '@fid' => $orphaned->fid,
-              '@uri' => $file_uri,
-            ]);
-            $file->delete();
-            
-            // Delete physical file
-            $file_path = $file_system->realpath($file_uri);
-            if ($file_path && file_exists($file_path)) {
-              unlink($file_path);
-            }
-            $deleted_count++;
-          }
-        } catch (\Exception $e) {
-          $errors[] = "Error deleting orphaned file {$orphaned->filename}: " . $e->getMessage();
-          $logger->error('Error deleting orphaned file entity: @error', [
-            '@error' => $e->getMessage(),
-            'fid' => $orphaned->fid,
-          ]);
-        }
-      }
-      
-      // Clean up any orphaned files in the user's directories
-      $user_base_path = $file_system->realpath('private://job_hunter/resumes/' . $uid);
-      if ($user_base_path && is_dir($user_base_path)) {
-        // Recursively delete the user's resume directory
-        $this->deleteDirectoryRecursive($user_base_path);
-      }
-      
-      // Delete all profile data from jobhunter_job_seeker table
-      $logger->info('🔍 DEBUG: Attempting to delete jobhunter_job_seeker record for uid @uid', ['@uid' => $uid]);
-      
-      $profile_deleted = $connection->delete('jobhunter_job_seeker')
-        ->condition('uid', $uid)
-        ->execute();
-      
-      $logger->info('🔍 DEBUG: job_seeker delete result: @count rows affected', [
-        '@count' => $profile_deleted
-      ]);
-      
-      // Verify deletion
-      $after_delete = $connection->select('jobhunter_job_seeker', 'js')
-        ->fields('js')
-        ->condition('uid', $uid)
-        ->execute()
-        ->fetchAssoc();
-      
-      $logger->info('🔍 DEBUG: job_seeker record AFTER delete: @exists', [
-        '@exists' => $after_delete ? 'STILL EXISTS' : 'DELETED SUCCESSFULLY'
-      ]);
-      
-      if ($profile_deleted) {
-        $logger->info('Deleted job_seeker profile for user @uid', [
-          '@uid' => $uid,
-        ]);
-      }
-      
-      // Success messages
-      $message_parts = [];
-      if ($deleted_count > 0) {
-        $message_parts[] = $this->t('@count resume file(s)', ['@count' => $deleted_count]);
-      }
-      if ($profile_deleted) {
-        $message_parts[] = $this->t('all profile data');
-      }
-      
-      if (!empty($message_parts)) {
-        \Drupal::messenger()->addStatus($this->t('Successfully deleted: @items. Your profile has been reset to 0%.', [
-          '@items' => implode(', ', $message_parts),
-        ]));
-        
-        $this->logInfo('User @uid deleted all profile and resume data: @count files, profile: @profile', [
-          '@uid' => $uid,
-          '@count' => $deleted_count,
-          '@profile' => $profile_deleted ? 'yes' : 'no',
-        ]);
-      } else {
-        \Drupal::messenger()->addWarning($this->t('No profile or resume data found to delete.'));
-      }
-      
-      if (!empty($errors)) {
-        foreach ($errors as $error) {
-          \Drupal::messenger()->addWarning($this->t('Warning: @error', ['@error' => $error]));
-        }
-      }
-    }
-    catch (\Exception $e) {
-      \Drupal::messenger()->addError($this->t('Error deleting profile and resume data: @error', [
-        '@error' => $e->getMessage(),
-      ]));
-      $this->logError('Error in deleteAllResumeDataSubmit: @error', [
-        '@error' => $e->getMessage(),
-        'uid' => $uid,
-      ]);
-    }
-    
-    // Clear form state input so rebuilt form doesn't repopulate deleted data
-    $input = $form_state->getUserInput();
-    // Clear all field values but keep form_build_id and form_token for security
-    $preserved_keys = ['form_build_id', 'form_token', 'form_id', 'op'];
-    foreach (array_keys($input) as $key) {
-      if (!in_array($key, $preserved_keys)) {
-        unset($input[$key]);
-      }
-    }
-    $form_state->setUserInput($input);
-    
-    // Clear form values as well
-    $form_state->setValues([]);
-    
-    // Redirect to prevent POST resubmission on browser refresh (PRG pattern)
-    $form_state->setRedirect('job_hunter.user_profile_edit');
+    $this->resumeUploadSubform->deleteAllResumeDataSubmit($form, $form_state);
   }
 
   /**
@@ -3213,40 +2102,7 @@ class UserProfileForm extends FormBase {
    *   Years of experience calculated from graduation date.
    */
   private function calculateYearsOfExperience($job_seeker_id) {
-    if (!$job_seeker_id) {
-      return 0;
-    }
-
-    // Get earliest graduation date from education history
-    $query = $this->database->select('jobhunter_education_history', 'e')
-      ->fields('e', ['end_date'])
-      ->condition('e.job_seeker_id', $job_seeker_id)
-      ->orderBy('e.end_date', 'ASC')
-      ->range(0, 1);
-    
-    $earliest_graduation = $query->execute()->fetchField();
-
-    if (!$earliest_graduation) {
-      return 0;
-    }
-
-    // Parse the date - could be various formats like "2015", "May 2015", "2015-05", etc.
-    $graduation_year = null;
-    
-    // Try to extract year from the date string
-    if (preg_match('/\b(19|20)\d{2}\b/', $earliest_graduation, $matches)) {
-      $graduation_year = (int) $matches[0];
-    }
-
-    if (!$graduation_year) {
-      return 0;
-    }
-
-    // Calculate years since graduation
-    $current_year = (int) date('Y');
-    $years = max(0, $current_year - $graduation_year);
-    
-    return $years;
+    return $this->educationHistorySubform->calculateYearsOfExperience($job_seeker_id);
   }
 
   /**
@@ -5006,20 +3862,7 @@ class UserProfileForm extends FormBase {
    * Helper: Recursively delete a directory and all its contents.
    */
   private function deleteDirectoryRecursive($dir) {
-    if (!is_dir($dir)) {
-      return;
-    }
-    
-    $files = array_diff(scandir($dir), ['.', '..']);
-    foreach ($files as $file) {
-      $path = $dir . '/' . $file;
-      if (is_dir($path)) {
-        $this->deleteDirectoryRecursive($path);
-      } else {
-        @unlink($path);
-      }
-    }
-    @rmdir($dir);
+    $this->resumeUploadSubform->deleteDirectoryRecursive($dir);
   }
 
   /**
@@ -6087,61 +4930,7 @@ PROMPT;
    * record by matching filename in resume_path and repairs resume_file_id.
    */
   private function getLatestParsedRecordForFile($connection, int $uid, int $file_id, string $file_uri, string $filename): ?array {
-    $parsed_record = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-      ->fields('rpd', ['id', 'parsed_data', 'status', 'error_message', 'resume_file_id'])
-      ->condition('uid', $uid)
-      ->condition('resume_file_id', $file_id)
-      ->orderBy('changed', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-
-    if ($parsed_record) {
-      return $parsed_record;
-    }
-
-    // Legacy fallback: match by filename in resume_path.
-    $like = '%' . $connection->escapeLike('/' . $filename);
-    $legacy = $connection->select('jobhunter_resume_parsed_data', 'rpd')
-      ->fields('rpd', ['id', 'parsed_data', 'status', 'error_message', 'resume_file_id', 'resume_path'])
-      ->condition('uid', $uid)
-      ->condition('resume_path', $like, 'LIKE')
-      ->orderBy('changed', 'DESC')
-      ->range(0, 1)
-      ->execute()
-      ->fetchAssoc();
-
-    if (empty($legacy)) {
-      return NULL;
-    }
-
-    // Repair linkage if needed (and safe).
-    if (!empty($legacy['resume_file_id']) && (int) $legacy['resume_file_id'] !== $file_id) {
-      try {
-        $connection->update('jobhunter_resume_parsed_data')
-          ->fields([
-            'resume_file_id' => $file_id,
-            'resume_path' => $file_uri,
-            'changed' => \Drupal::time()->getRequestTime(),
-          ])
-          ->condition('id', (int) $legacy['id'])
-          ->execute();
-        $legacy['resume_file_id'] = $file_id;
-        $legacy['resume_path'] = $file_uri;
-      }
-      catch (\Exception $e) {
-        $this->logWarning('Failed to repair resume_file_id on parsed_data row @id: @error', [
-          '@id' => $legacy['id'],
-          '@error' => $e->getMessage(),
-        ]);
-      }
-    }
-
-    if (($legacy['status'] ?? NULL) === 'completed') {
-      $legacy['status'] = 'complete';
-    }
-
-    return $legacy;
+    return $this->resumeUploadSubform->getLatestParsedRecordForFile($connection, $uid, $file_id, $file_uri, $filename);
   }
 
   /**
@@ -6723,66 +5512,7 @@ PROMPT;
    * Extract text from uploaded file.
    */
   protected function extractTextFromFile($file) {
-    $file_path = \Drupal::service('file_system')->realpath($file->getFileUri());
-    $extension = pathinfo($file->getFilename(), PATHINFO_EXTENSION);
-    
-    switch (strtolower($extension)) {
-      case 'txt':
-        return file_get_contents($file_path);
-        
-      case 'pdf':
-        // Use pdftotext; don't rely on PATH/which (web SAPI PATH can be minimal).
-        $pdftotext = NULL;
-        foreach (['/usr/bin/pdftotext', '/bin/pdftotext', 'pdftotext'] as $candidate) {
-          if ($candidate === 'pdftotext' || file_exists($candidate)) {
-            $pdftotext = $candidate;
-            break;
-          }
-        }
-        if ($pdftotext) {
-          $cmd = escapeshellcmd($pdftotext) . ' ' . escapeshellarg($file_path) . ' -';
-          $output = shell_exec($cmd);
-          return is_string($output) ? $output : '';
-        }
-        break;
-        
-      case 'doc':
-      case 'docx':
-        // Handle DOCX files with docx2txt
-        if (strtolower($extension) === 'docx') {
-          $docx2txt = NULL;
-          foreach (['/usr/bin/docx2txt', '/bin/docx2txt', 'docx2txt'] as $candidate) {
-            if ($candidate === 'docx2txt' || file_exists($candidate)) {
-              $docx2txt = $candidate;
-              break;
-            }
-          }
-          if ($docx2txt) {
-            $cmd = escapeshellcmd($docx2txt) . ' ' . escapeshellarg($file_path) . ' -';
-            $output = shell_exec($cmd);
-            return is_string($output) ? $output : '';
-          }
-        }
-        // Handle DOC files with antiword
-        if (strtolower($extension) === 'doc') {
-          $antiword = NULL;
-          foreach (['/usr/bin/antiword', '/bin/antiword', 'antiword'] as $candidate) {
-            if ($candidate === 'antiword' || file_exists($candidate)) {
-              $antiword = $candidate;
-              break;
-            }
-          }
-          if ($antiword) {
-            $cmd = escapeshellcmd($antiword) . ' ' . escapeshellarg($file_path);
-            $output = shell_exec($cmd);
-            return is_string($output) ? $output : '';
-          }
-        }
-        break;
-    }
-    
-    // Fallback: return empty and let user know
-    return '';
+    return $this->resumeUploadSubform->extractTextFromFile($file);
   }
 
   /**
@@ -6904,58 +5634,7 @@ PROMPT;
    *   HTML markup for education display.
    */
   private function buildEducationDisplay($job_seeker_profile): string {
-    if (!$job_seeker_profile || empty($job_seeker_profile->consolidated_profile_json)) {
-      return '';
-    }
-
-    $consolidated = json_decode($job_seeker_profile->consolidated_profile_json, TRUE);
-    if (!$consolidated || empty($consolidated['education'])) {
-      return '';
-    }
-
-    $html = '<div class="education-display">';
-    
-    foreach ($consolidated['education'] as $edu) {
-      $institution = htmlspecialchars($edu['institution'] ?? 'Unknown Institution');
-      $degree = htmlspecialchars($edu['degree'] ?? '');
-      $abbreviation = $edu['abbreviation'] ?? '';
-      $field = htmlspecialchars($edu['field'] ?? '');
-      $location = htmlspecialchars($edu['location'] ?? '');
-      $start = $edu['start_date'] ?? '';
-      $end = $edu['end_date'] ?? '';
-
-      $html .= '<div class="education-entry jh-profile__education-entry">';
-      
-      $degree_line = $degree;
-      if ($abbreviation) {
-        $degree_line .= ' (' . htmlspecialchars($abbreviation) . ')';
-      }
-      if ($field) {
-        $degree_line .= ' in ' . $field;
-      }
-      
-      $html .= '<h4 class="jh-profile__education-degree">' . $degree_line . '</h4>';
-      $html .= '<div class="jh-profile__education-institution">' . $institution . '</div>';
-      
-      $meta = [];
-      if ($location) {
-        $meta[] = $location;
-      }
-      if ($start && $end) {
-        $meta[] = $start . ' – ' . $end;
-      } elseif ($end) {
-        $meta[] = 'Graduated ' . $end;
-      }
-      
-      if (!empty($meta)) {
-        $html .= '<div class="jh-profile__education-meta">' . implode(' | ', $meta) . '</div>';
-      }
-
-      $html .= '</div>';
-    }
-
-    $html .= '</div>';
-    return $html;
+    return $this->educationHistorySubform->buildEducationDisplay($job_seeker_profile);
   }
 
   /**
