@@ -64,3 +64,5 @@ bash scripts/release-signoff.sh dungeoncrawler <release-id>
 
 ## Escalation
 Report back to pm-dungeoncrawler inbox (ROI 30) when the fix is implemented and verified.
+- Agent: dev-infra
+- Status: pending
