@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-schema-fix
 - Website: forseti.life
 - Module: job_hunter
-- Status: done
+- Status: shipped
 - Release: 20260408-forseti-release-c
 - Priority: P2
 - Feature type: enhancement

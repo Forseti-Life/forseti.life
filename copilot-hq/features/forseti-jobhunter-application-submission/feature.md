@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-application-submission
 - Website: forseti.life
 - Module: job_hunter
-- Status: done
+- Status: shipped
 - Release: 20260406-forseti-release-b
 - Priority: P1
 - Feature type: needs-testing
