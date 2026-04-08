@@ -6040,6 +6040,148 @@
           "ac_tag": "Revelation-initial-cast"
         }
       ]
+    },
+    {
+      "id": "dc-apg-class-witch-e2e",
+      "label": "Witch class mechanics: class record (HP 6+Con/Int key/Expert Will/unarmored), patron theme (7 themes locked at creation, grants tradition/skill/hex cantrip/familiar spell), mandatory familiar (auto-created, holds all spells, bonus abilities L1/6/12/18, death preserves spells), prepared spellcasting via familiar commune, spell repertoire (10 cantrips+5 1st+patron spell, +2/level), familiar scroll absorption and familiar-to-familiar sharing, hexes (1 FP, one per turn, focus pool 1), hex cantrips (0 FP, auto-heighten, no slot usage), Refocus via commune, Witch Lessons tiered feats (Basic/Greater/Major), notable hexes (Cackle extend, Evil Eye status, Phase Familiar), Cackle edge case",
+      "type": "e2e",
+      "feature_id": "dc-apg-class-witch",
+      "command": "npx playwright test tests/e2e/apg-class-witch/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-class-witch-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 18 TCs active. Regression risks: patron theme not locked after creation; familiar not auto-created; familiar death erasing spells; hex cantrip consuming prepared cantrip slot; second hex per turn not blocked; Cackle incorrectly counted as second hex cast; Lessons not gated by tier level; Evil Eye not removed on Will success.",
+      "test_cases": [
+        {
+          "id": "TC-WCH-01",
+          "description": "Class record: HP 6+Con/level, key ability Int, Trained Fort/Ref, Expert Will, unarmored proficiency only",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-1-4"
+        },
+        {
+          "id": "TC-WCH-02",
+          "description": "Patron theme: 7 options shown at L1; after selection locked; grants tradition, patron_skill (trained), hex cantrip, familiar first spell",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Patron-1-2"
+        },
+        {
+          "id": "TC-WCH-03",
+          "description": "Familiar: mandatory, auto-created at character creation, cannot be dismissed, all spells stored in familiar",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Familiar-1"
+        },
+        {
+          "id": "TC-WCH-04",
+          "description": "Familiar: bonus ability unlocked at L1, L6, L12, L18; correct count at each milestone",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Familiar-2"
+        },
+        {
+          "id": "TC-WCH-05",
+          "description": "Familiar death: spells list preserved; new familiar with same spells restored at next daily prep",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Familiar-3-4"
+        },
+        {
+          "id": "TC-WCH-06",
+          "description": "Witch prepared spellcasting: spellcasting_type=prepared; preparation UI shows commune step; no spontaneous casting",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Familiar-3"
+        },
+        {
+          "id": "TC-WCH-07",
+          "description": "Spell repertoire: 10 cantrips + 5 first-level + 1 patron spell at start; +2 player-chosen spells per level-up",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Repertoire-1-2"
+        },
+        {
+          "id": "TC-WCH-08",
+          "description": "Familiar learns from scrolls (1 hr each, consumes scroll); familiar-to-familiar via Learn a Spell (both present); direct prep from foreign familiar blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Repertoire-3-5"
+        },
+        {
+          "id": "TC-WCH-09",
+          "description": "Hexes: cost 1 FP; hex_cantrip cost 0 FP; only one hex per turn any type; initial focus_pool = 1",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Hexes-1-4"
+        },
+        {
+          "id": "TC-WCH-10",
+          "description": "Hex cantrips: auto-heighten to ceil(level/2); using hex_cantrip blocks second hex that turn",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Hexes-5-7"
+        },
+        {
+          "id": "TC-WCH-11",
+          "description": "Hex cantrips do not occupy prepared cantrip slots; separate pool from prepared cantrips",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Hexes-8"
+        },
+        {
+          "id": "TC-WCH-12",
+          "description": "Refocus: 10 min commune with familiar; restores 1 FP",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Hexes-3"
+        },
+        {
+          "id": "TC-WCH-13",
+          "description": "Witch Lessons: tiered feat mechanism (Basic L2/Greater L6/Major L10); each lesson grants 1 hex + 1 familiar spell",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Lessons-1-2"
+        },
+        {
+          "id": "TC-WCH-14",
+          "description": "Basic Lessons catalog: 5 lessons (Dreams/Elements/Life/Protection/Vengeance); each grants correct hex + spell pair; accessible at L2+",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Lessons-3"
+        },
+        {
+          "id": "TC-WCH-15",
+          "description": "Greater Lessons (Mischief/Shadow/Snow) gated at L6+; Major Lessons (Death/Renewal) gated at L10+; correct hex/spell pairs",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Lessons-4-5"
+        },
+        {
+          "id": "TC-WCH-16",
+          "description": "Notable hexes: Cackle extends active hex +1 round (not a second cast); Evil Eye 0 FP -2 status removed on Will success; Phase Familiar incorporeal limited to 1 damage negation",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NotableHexes-1-3-Edge-1-2"
+        },
+        {
+          "id": "TC-WCH-17",
+          "description": "Integration: familiar.spells grows by exactly 2 player-chosen spells per level-up event",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-3"
+        },
+        {
+          "id": "TC-WCH-18",
+          "description": "Edge: Cackle extending a hex cantrip is valid; Cackle does not count as casting a second hex; one_hex_per_turn rule not violated",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-3"
+        }
+      ]
     }
   ],
   "_schema_notes": [
