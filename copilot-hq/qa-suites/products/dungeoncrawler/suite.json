@@ -23,10 +23,10 @@
     {
       "id": "dc-cr-clan-dagger-e2e",
       "feature_id": "dc-cr-clan-dagger",
-      "label": "Clan Dagger — Dwarven Starting Equipment (drush ev unit tests)",
+      "label": "Clan Dagger \u2014 Dwarven Starting Equipment (drush ev unit tests)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Verified via drush ev (no Playwright suite yet — drush-ev approach is authoritative until Playwright env is provisioned). Tests cover: TC-001 catalog JSON, TC-002 Dwarf auto-grant, TC-003 item flags, TC-004 sell taboo block, TC-008 non-Dwarf exclusion, TC-009 distinct instances, TC-010 drop no-taboo, TC-011 location change no-taboo, TC-013 graceful fail, TC-014 server-side grant, TC-015 server-side taboo, TC-016 GM override. TC-005/006/007 (combat) deferred: requires dc-cr-encounter-rules completion. TC-012 FAIL: duplicate grant prevention not enforced (see BLOCK note).",
+      "notes": "Verified via drush ev (no Playwright suite yet \u2014 drush-ev approach is authoritative until Playwright env is provisioned). Tests cover: TC-001 catalog JSON, TC-002 Dwarf auto-grant, TC-003 item flags, TC-004 sell taboo block, TC-008 non-Dwarf exclusion, TC-009 distinct instances, TC-010 drop no-taboo, TC-011 location change no-taboo, TC-013 graceful fail, TC-014 server-side grant, TC-015 server-side taboo, TC-016 GM override. TC-005/006/007 (combat) deferred: requires dc-cr-encounter-rules completion. TC-012 FAIL: duplicate grant prevention not enforced (see BLOCK note).",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/20260327-004055-unit-test-20260320-impl-dc-cr-clan-dagger/verification-report.md"
       ],
@@ -37,7 +37,7 @@
     {
       "id": "dc-cr-character-leveling-e2e",
       "feature_id": "dc-cr-character-leveling",
-      "label": "Character Leveling and Advancement — E2E (drush ev unit tests)",
+      "label": "Character Leveling and Advancement \u2014 E2E (drush ev unit tests)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
       "notes": "Stage-0 activated 2026-04-05. Playwright test scripts pending implementation (19 TCs defined in features/dc-cr-character-leveling/03-test-plan.md). Until scripts exist, use drush ev inline PHP for TC-001/007/009/010/013/014 (trigger, idempotency, max-level, milestone, non-existent char, structured error). TC-015 (concurrency) and TC-008 (persistence) require live env + PHPUnit. Routes: 8 level-up routes + 1 milestone route registered in dungeoncrawler_content.routing.yml. Admin routes gate on 'administer dungeoncrawler content'; player routes gate on _character_access:TRUE + _csrf_request_header_mode:TRUE. ACL coverage: api-character-entity-routes rule in qa-permissions.json (ignore on parametrized paths). Requires composer install in /home/ubuntu/forseti.life/sites/dungeoncrawler before any drush commands can run.",
@@ -50,7 +50,7 @@
       "test_cases": [
         {
           "id": "TC-LV-001",
-          "description": "Level-up trigger advances character level N→N+1 when session milestone is set; POST returns 200 and character.level incremented",
+          "description": "Level-up trigger advances character level N\u2192N+1 when session milestone is set; POST returns 200 and character.level incremented",
           "suite_type": "functional",
           "class_method": "CharacterLevelingControllerTest::testLevelUpTriggerAdvancesLevel",
           "ac_tag": "NEW",
@@ -65,11 +65,11 @@
           "ac_tag": "NEW",
           "status": "active",
           "feature_id": "dc-cr-character-leveling",
-          "notes": "Response shape for pending_choices to be confirmed with Dev — one POST returning choices or separate GET advancement endpoint?"
+          "notes": "Response shape for pending_choices to be confirmed with Dev \u2014 one POST returning choices or separate GET advancement endpoint?"
         },
         {
           "id": "TC-LV-003",
-          "description": "Auto-apply class features with no player choice — Fighter to level 3 auto-grants Shield Block without a player selection prompt",
+          "description": "Auto-apply class features with no player choice \u2014 Fighter to level 3 auto-grants Shield Block without a player selection prompt",
           "suite_type": "functional",
           "class_method": "CharacterLevelingControllerTest::testAutoApplyClassFeaturesNoChoice",
           "ac_tag": "NEW",
@@ -88,7 +88,7 @@
         },
         {
           "id": "TC-LV-005",
-          "description": "Skill increase at applicable level — player selects one skill; proficiency rank increments by one step; change persists",
+          "description": "Skill increase at applicable level \u2014 player selects one skill; proficiency rank increments by one step; change persists",
           "suite_type": "functional",
           "class_method": "CharacterLevelingControllerTest::testSkillIncreaseRaisesProficiencyRank",
           "ac_tag": "NEW",
@@ -98,7 +98,7 @@
         },
         {
           "id": "TC-LV-006",
-          "description": "Feat selection — level 2 class feat slot shows catalog filtered by prerequisites; selected feat persists in character.feats",
+          "description": "Feat selection \u2014 level 2 class feat slot shows catalog filtered by prerequisites; selected feat persists in character.feats",
           "suite_type": "functional",
           "class_method": "CharacterLevelingControllerTest::testFeatSelectionPersistedFiltered",
           "ac_tag": "NEW",
@@ -107,7 +107,7 @@
         },
         {
           "id": "TC-LV-007",
-          "description": "Level-up idempotency — second POST before reaching new milestone returns 4xx; character level unchanged",
+          "description": "Level-up idempotency \u2014 second POST before reaching new milestone returns 4xx; character level unchanged",
           "suite_type": "unit",
           "class_method": "CharacterLevelingControllerTest::testLevelUpRejectedWithoutNewMilestone",
           "ac_tag": "NEW",
@@ -116,7 +116,7 @@
         },
         {
           "id": "TC-LV-008",
-          "description": "Completed level-up persists across save/reload — level, class features, boosts, skill ranks, feats all survive session restart",
+          "description": "Completed level-up persists across save/reload \u2014 level, class features, boosts, skill ranks, feats all survive session restart",
           "suite_type": "functional",
           "class_method": "CharacterLevelingControllerTest::testLevelUpPersistsAcrossReload",
           "ac_tag": "NEW",
@@ -125,7 +125,7 @@
         },
         {
           "id": "TC-LV-009",
-          "description": "Reject level-up past level 20 — POST on level 20 character returns 4xx with 'Already at maximum level' (or equivalent)",
+          "description": "Reject level-up past level 20 \u2014 POST on level 20 character returns 4xx with 'Already at maximum level' (or equivalent)",
           "suite_type": "unit",
           "class_method": "CharacterLevelingControllerTest::testRejectLevelUpPastMaxLevel",
           "ac_tag": "NEW",
@@ -134,7 +134,7 @@
         },
         {
           "id": "TC-LV-010",
-          "description": "Reject level-up without milestone — POST when milestone not reached returns 4xx with clear rejection message; character level unchanged",
+          "description": "Reject level-up without milestone \u2014 POST when milestone not reached returns 4xx with clear rejection message; character level unchanged",
           "suite_type": "unit",
           "class_method": "CharacterLevelingControllerTest::testRejectLevelUpWithoutMilestone",
           "ac_tag": "NEW",
@@ -143,7 +143,7 @@
         },
         {
           "id": "TC-LV-011",
-          "description": "Skip-level rejected — POST level 1→3 (bypassing level 2) returns 4xx; each level must be applied in sequence",
+          "description": "Skip-level rejected \u2014 POST level 1\u21923 (bypassing level 2) returns 4xx; each level must be applied in sequence",
           "suite_type": "unit",
           "class_method": "CharacterLevelingControllerTest::testSkipLevelRejected",
           "ac_tag": "NEW",
@@ -152,7 +152,7 @@
         },
         {
           "id": "TC-LV-012",
-          "description": "Auto-apply no-choice class feature (e.g. +10 HP) — applied without prompting; no pending_choices entry for this feature",
+          "description": "Auto-apply no-choice class feature (e.g. +10 HP) \u2014 applied without prompting; no pending_choices entry for this feature",
           "suite_type": "unit",
           "class_method": "CharacterLevelingControllerTest::testAutoApplyNoChoiceClassFeature",
           "ac_tag": "NEW",
@@ -179,7 +179,7 @@
         },
         {
           "id": "TC-LV-015",
-          "description": "Concurrent level-up requests for same character are serialized or second is rejected — no partial double-level-up",
+          "description": "Concurrent level-up requests for same character are serialized or second is rejected \u2014 no partial double-level-up",
           "suite_type": "functional",
           "class_method": "CharacterLevelingControllerTest::testConcurrentLevelUpRequestsNoDoubleLevel",
           "ac_tag": "NEW",
@@ -189,16 +189,16 @@
         },
         {
           "id": "TC-LV-ACL-01",
-          "description": "POST /api/character/{id}/level-up — anon→403; own player→200 (_character_access); non-owner player→403; admin→200",
+          "description": "POST /api/character/{id}/level-up \u2014 anon\u2192403; own player\u2192200 (_character_access); non-owner player\u2192403; admin\u2192200",
           "suite_type": "role-url-audit",
-          "class_method": "n/a - role-url-audit entry (parameterized; ignore all roles — ownership check not probeable with numeric probe)",
+          "class_method": "n/a - role-url-audit entry (parameterized; ignore all roles \u2014 ownership check not probeable with numeric probe)",
           "ac_tag": "permissions",
           "status": "active",
           "feature_id": "dc-cr-character-leveling"
         },
         {
           "id": "TC-LV-ACL-02",
-          "description": "POST /api/character/{id}/level-up/admin-force — anon→403; player→403; administrator→200 (administer dungeoncrawler content)",
+          "description": "POST /api/character/{id}/level-up/admin-force \u2014 anon\u2192403; player\u2192403; administrator\u2192200 (administer dungeoncrawler content)",
           "suite_type": "role-url-audit",
           "class_method": "n/a - role-url-audit entry (parameterized; ignore all roles)",
           "ac_tag": "permissions",
@@ -220,7 +220,7 @@
     },
     {
       "id": "dc-cr-action-economy-phpunit",
-      "label": "Action Economy — 1/2/3-action, reaction, free-action budget enforcement, validation guards, permissions",
+      "label": "Action Economy \u2014 1/2/3-action, reaction, free-action budget enforcement, validation guards, permissions",
       "type": "phpunit",
       "feature_id": "dc-cr-action-economy",
       "command": "./vendor/bin/phpunit --filter=ActionEconomy tests/src/",
@@ -327,7 +327,7 @@
         },
         {
           "id": "TC-AE-13",
-          "description": "Anon cannot access mutation endpoints (POST /api/combat/action → 403/405; ignore in probe scan)",
+          "description": "Anon cannot access mutation endpoints (POST /api/combat/action \u2192 403/405; ignore in probe scan)",
           "suite_type": "role-url-audit",
           "class_method": "n/a - role-url-audit; covered by api-combat-action ignore rule",
           "ac_tag": "permissions",
@@ -381,7 +381,7 @@
     },
     {
       "id": "dc-cr-ancestry-system-phpunit",
-      "label": "Ancestry System — content type fields, seed data, API endpoints, character creation integration, ability boosts/flaws/HP/speed, permissions, data integrity",
+      "label": "Ancestry System \u2014 content type fields, seed data, API endpoints, character creation integration, ability boosts/flaws/HP/speed, permissions, data integrity",
       "type": "phpunit",
       "feature_id": "dc-cr-ancestry-system",
       "command": "./vendor/bin/phpunit --filter=AncestrySystem tests/src/",
@@ -408,7 +408,7 @@
         },
         {
           "id": "TC-AN-03",
-          "description": "Ancestry node data matches CharacterManager::ANCESTRIES constants — dwarf spot-check",
+          "description": "Ancestry node data matches CharacterManager::ANCESTRIES constants \u2014 dwarf spot-check",
           "suite_type": "unit",
           "class_method": "AncestrySystemTest::testDwarfAncestryDataMatchesConstants",
           "ac_tag": "EXTEND",
@@ -504,7 +504,7 @@
         },
         {
           "id": "TC-AN-15",
-          "description": "Anonymous can read ancestry nodes — role-url-audit GET /ancestries anon 200",
+          "description": "Anonymous can read ancestry nodes \u2014 role-url-audit GET /ancestries anon 200",
           "suite_type": "role-url-audit",
           "class_method": "n/a - dc-cr-ancestry-system-list rule",
           "ac_tag": "permissions",
@@ -547,7 +547,7 @@
     },
     {
       "id": "dc-cr-background-system-phpunit",
-      "label": "PHPUnit tests for dc-cr-background-system — content type, seed data, boost/skill/feat application",
+      "label": "PHPUnit tests for dc-cr-background-system \u2014 content type, seed data, boost/skill/feat application",
       "type": "phpunit",
       "feature_id": "dc-cr-background-system",
       "command": "./vendor/bin/phpunit --filter=BackgroundSystemTest tests/src/",
@@ -680,7 +680,7 @@
     },
     {
       "id": "dc-cr-character-class-phpunit",
-      "label": "PHPUnit tests for dc-cr-character-class — content type, 12 core PF2E classes, class selection, HP/proficiency/feature application",
+      "label": "PHPUnit tests for dc-cr-character-class \u2014 content type, 12 core PF2E classes, class selection, HP/proficiency/feature application",
       "type": "phpunit",
       "feature_id": "dc-cr-character-class",
       "command": "./vendor/bin/phpunit --filter=CharacterClass tests/src/",
@@ -813,7 +813,7 @@
     },
     {
       "id": "dc-cr-character-creation-phpunit",
-      "label": "Character Creation Workflow — 6-step state machine, draft/active states, derived stat computation, step sequencing, access control, rollback",
+      "label": "Character Creation Workflow \u2014 6-step state machine, draft/active states, derived stat computation, step sequencing, access control, rollback",
       "type": "phpunit",
       "feature_id": "dc-cr-character-creation",
       "command": "./vendor/bin/phpunit --filter=CharacterCreation tests/src/",
@@ -917,7 +917,7 @@
           "class_method": "CharacterCreationRollbackTest::testUninstallPreservesActiveCharacters",
           "ac_tag": "NEW",
           "status": "active",
-          "notes": "Dev confirm: drush character:cleanup-drafts command expected — verify command name at Stage 0"
+          "notes": "Dev confirm: drush character:cleanup-drafts command expected \u2014 verify command name at Stage 0"
         },
         {
           "id": "TC-CWF-13",
@@ -947,7 +947,7 @@
     },
     {
       "id": "dc-cr-conditions-phpunit",
-      "label": "Conditions System — condition catalog, tick/decrement, dying/recovery rules, restriction enforcement, permissions",
+      "label": "Conditions System \u2014 condition catalog, tick/decrement, dying/recovery rules, restriction enforcement, permissions",
       "type": "phpunit",
       "feature_id": "dc-cr-conditions",
       "command": "./vendor/bin/phpunit --filter=Condition tests/src/",
@@ -1072,7 +1072,7 @@
     },
     {
       "id": "dc-cr-dice-system-phpunit",
-      "label": "Dice System — NdX parser, rollPathfinderDie, POST /dice/roll, roll logging, keep-highest/lowest",
+      "label": "Dice System \u2014 NdX parser, rollPathfinderDie, POST /dice/roll, roll logging, keep-highest/lowest",
       "type": "phpunit",
       "feature_id": "dc-cr-dice-system",
       "command": "./vendor/bin/phpunit --filter=Dice tests/src/",
@@ -1195,7 +1195,7 @@
         },
         {
           "id": "TC-DS-15",
-          "description": "ACL: POST /dice/roll anon vs auth access — TBD pending PM site-auth-policy confirmation",
+          "description": "ACL: POST /dice/roll anon vs auth access \u2014 TBD pending PM site-auth-policy confirmation",
           "suite_type": "audit",
           "class_method": null,
           "ac_tag": "NEW",
@@ -1217,7 +1217,7 @@
     },
     {
       "id": "dc-cr-heritage-system-phpunit",
-      "label": "Heritage System — required enforcement, ancestry-filtered dropdown, server-side mismatch validation, AJAX reset, dropdown counts per ancestry, permissions",
+      "label": "Heritage System \u2014 required enforcement, ancestry-filtered dropdown, server-side mismatch validation, AJAX reset, dropdown counts per ancestry, permissions",
       "type": "phpunit",
       "feature_id": "dc-cr-heritage-system",
       "command": "./vendor/bin/phpunit --filter=Heritage tests/src/",
@@ -1277,7 +1277,7 @@
         },
         {
           "id": "TC-HS-07",
-          "description": "AJAX: heritage dropdown repopulates when ancestry changes (Dwarf→Elf: Dwarf options replaced by 4 Elf options)",
+          "description": "AJAX: heritage dropdown repopulates when ancestry changes (Dwarf\u2192Elf: Dwarf options replaced by 4 Elf options)",
           "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testAjaxHeritageDropdownRepopulatesOnAncestryChange",
           "ac_tag": "EXTEND",
@@ -1311,7 +1311,7 @@
         },
         {
           "id": "TC-HS-10",
-          "description": "Valid selection allows progression to next wizard step (Halfling+gutsy → step 2)",
+          "description": "Valid selection allows progression to next wizard step (Halfling+gutsy \u2192 step 2)",
           "suite_type": "e2e",
           "class_method": "CharacterCreationFlow::testValidHeritageAllowsWizardProgression",
           "ac_tag": "TEST-ONLY",
@@ -1355,7 +1355,7 @@
     },
     {
       "id": "dc-cr-skill-system-phpunit",
-      "label": "Skill System — 17 skill constants with ability associations, proficiency bonus formula, calculateSkillCheck(), Lore specializations, GET /character/{id}/skills, permissions",
+      "label": "Skill System \u2014 17 skill constants with ability associations, proficiency bonus formula, calculateSkillCheck(), Lore specializations, GET /character/{id}/skills, permissions",
       "type": "phpunit",
       "feature_id": "dc-cr-skill-system",
       "command": "./vendor/bin/phpunit --filter=Skill tests/src/",
@@ -1419,7 +1419,7 @@
           "class_method": "CharacterCalculatorTest::testCalculateSkillCheckUntrained",
           "ac_tag": "EXTEND",
           "status": "active",
-          "notes": "Untrained penalty for training-required tasks is deferred — AC undefined. Update TC if PM adds penalty behavior."
+          "notes": "Untrained penalty for training-required tasks is deferred \u2014 AC undefined. Update TC if PM adds penalty behavior."
         },
         {
           "id": "TC-SK-08",
@@ -1439,7 +1439,7 @@
         },
         {
           "id": "TC-SK-10",
-          "description": "Lore skill stored with specialization string as key (Sailing Lore → rank stored, ability=Int)",
+          "description": "Lore skill stored with specialization string as key (Sailing Lore \u2192 rank stored, ability=Int)",
           "suite_type": "unit",
           "class_method": "CharacterManagerTest::testLoreSkillStoredWithSpecialization",
           "ac_tag": "NEW",
@@ -1555,7 +1555,7 @@
     },
     {
       "id": "dc-cr-difficulty-class-phpunit",
-      "label": "Difficulty Class — determineDegreOfSuccess, natural 20/1 bumps, Simple DC table, task DC guidelines, POST /rules/check",
+      "label": "Difficulty Class \u2014 determineDegreOfSuccess, natural 20/1 bumps, Simple DC table, task DC guidelines, POST /rules/check",
       "type": "phpunit",
       "feature_id": "dc-cr-difficulty-class",
       "command": "./vendor/bin/phpunit --filter=CombatCalculator tests/src/",
@@ -1680,7 +1680,7 @@
     },
     {
       "id": "dc-cr-equipment-system-phpunit",
-      "label": "Equipment System — catalog completeness, GET /equipment filtering, equip-to-stat integration, encumbrance conditions, worn-vs-held, strength requirement enforcement, starting equipment by class",
+      "label": "Equipment System \u2014 catalog completeness, GET /equipment filtering, equip-to-stat integration, encumbrance conditions, worn-vs-held, strength requirement enforcement, starting equipment by class",
       "type": "phpunit",
       "feature_id": "dc-cr-equipment-system",
       "command": "./vendor/bin/phpunit --filter=Equipment tests/src/",
@@ -1771,7 +1771,7 @@
         },
         {
           "id": "TC-EQ-11",
-          "description": "Equipping a weapon updates character attack damage dice (longsword → 1d8 slashing)",
+          "description": "Equipping a weapon updates character attack damage dice (longsword \u2192 1d8 slashing)",
           "suite_type": "unit",
           "class_method": "CharacterCalculatorTest::testEquippedWeaponUpdatesDamageDice",
           "ac_tag": "EXTEND",
@@ -1871,7 +1871,7 @@
     {
       "id": "dc-cr-ancestry-traits-e2e",
       "feature_id": "dc-cr-ancestry-traits",
-      "label": "Ancestry Traits — catalog coverage, auto-assign on character creation, hasTraits/isValidTrait logic, duplicate idempotency, case-sensitivity, mixed-heritage union, unknown-trait rejection, persistence",
+      "label": "Ancestry Traits \u2014 catalog coverage, auto-assign on character creation, hasTraits/isValidTrait logic, duplicate idempotency, case-sensitivity, mixed-heritage union, unknown-trait rejection, persistence",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev 'require_once DRUPAL_ROOT . \"/../tests/ancestry_traits_e2e.php\"; ancestry_traits_run_all();'",
       "notes": "Drush ev approach (authoritative until Playwright env provisioned). Covers TC-001 through TC-010 from the test plan. Routes under test: GET /dungeoncrawler/traits (catalog), GET /api/character/{id}/traits (read), GET /api/character/{id}/traits/check (hasTraits). Character creation auto-assignment verified via CharacterManager::ANCESTRIES + getAncestryTraits(). Case-sensitivity: 'humanoid' != 'Humanoid' per PM decision commit 576262c5.",
@@ -1884,7 +1884,7 @@
       "test_cases": [
         {
           "id": "TC-AT-001",
-          "description": "Ancestry catalog defines creature traits — Dwarf→[\"Dwarf\",\"Humanoid\"], Human→[\"Human\",\"Humanoid\"], Elf→[\"Elf\",\"Humanoid\"]; all core ancestries have non-empty traits array",
+          "description": "Ancestry catalog defines creature traits \u2014 Dwarf\u2192[\"Dwarf\",\"Humanoid\"], Human\u2192[\"Human\",\"Humanoid\"], Elf\u2192[\"Elf\",\"Humanoid\"]; all core ancestries have non-empty traits array",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testAncestryCatalogDefinesTraits",
           "ac_tag": "NEW",
@@ -1893,7 +1893,7 @@
         },
         {
           "id": "TC-AT-002",
-          "description": "Dwarf character creation auto-assigns traits — character.traits contains 'Dwarf' and 'Humanoid' after creation with no additional player action",
+          "description": "Dwarf character creation auto-assigns traits \u2014 character.traits contains 'Dwarf' and 'Humanoid' after creation with no additional player action",
           "suite_type": "functional",
           "class_method": "CharacterTraitsControllerTest::testDwarfCreationAutoAssignsTraits",
           "ac_tag": "NEW",
@@ -1902,7 +1902,7 @@
         },
         {
           "id": "TC-AT-003",
-          "description": "Trait persistence — traits array unchanged after session reload (save/reload round-trip)",
+          "description": "Trait persistence \u2014 traits array unchanged after session reload (save/reload round-trip)",
           "suite_type": "functional",
           "class_method": "CharacterTraitsControllerTest::testTraitPersistenceAcrossReload",
           "ac_tag": "NEW",
@@ -1911,7 +1911,7 @@
         },
         {
           "id": "TC-AT-004",
-          "description": "hasTraits returns true — Dwarf character with hasTraits(['Humanoid']) → true",
+          "description": "hasTraits returns true \u2014 Dwarf character with hasTraits(['Humanoid']) \u2192 true",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testHasTraitsReturnsTrueForMatch",
           "ac_tag": "NEW",
@@ -1920,7 +1920,7 @@
         },
         {
           "id": "TC-AT-005",
-          "description": "hasTraits returns false — Dwarf character with hasTraits(['Elf']) → false",
+          "description": "hasTraits returns false \u2014 Dwarf character with hasTraits(['Elf']) \u2192 false",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testHasTraitsReturnsFalseForNonMatch",
           "ac_tag": "NEW",
@@ -1929,7 +1929,7 @@
         },
         {
           "id": "TC-AT-006",
-          "description": "Traits queryable via API — GET /api/character/{id}/traits returns 200 with traits field populated for character owner",
+          "description": "Traits queryable via API \u2014 GET /api/character/{id}/traits returns 200 with traits field populated for character owner",
           "suite_type": "functional",
           "class_method": "CharacterTraitsControllerTest::testTraitsQueryableViaApi",
           "ac_tag": "NEW",
@@ -1938,17 +1938,17 @@
         },
         {
           "id": "TC-AT-007",
-          "description": "Mixed-heritage union — Half-Elf traits are union of Human+Elf traits with no duplicates (e.g. ['Human','Elf','Humanoid'] each exactly once)",
+          "description": "Mixed-heritage union \u2014 Half-Elf traits are union of Human+Elf traits with no duplicates (e.g. ['Human','Elf','Humanoid'] each exactly once)",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testMixedHeritageTraitUnion",
           "ac_tag": "NEW",
           "status": "active",
           "feature_id": "dc-cr-ancestry-traits",
-          "notes": "Skip with explicit note in verification report if Half-Elf not in initial ancestry catalog — flag to PM for scope decision."
+          "notes": "Skip with explicit note in verification report if Half-Elf not in initial ancestry catalog \u2014 flag to PM for scope decision."
         },
         {
           "id": "TC-AT-008",
-          "description": "Duplicate trait assignment is idempotent — assigning 'Humanoid' twice results in exactly one 'Humanoid' entry in traits array",
+          "description": "Duplicate trait assignment is idempotent \u2014 assigning 'Humanoid' twice results in exactly one 'Humanoid' entry in traits array",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testDuplicateTraitIdempotent",
           "ac_tag": "NEW",
@@ -1957,7 +1957,7 @@
         },
         {
           "id": "TC-AT-009",
-          "description": "Unknown trait rejected — POST unknown/non-catalog trait returns 4xx with error body containing trait name",
+          "description": "Unknown trait rejected \u2014 POST unknown/non-catalog trait returns 4xx with error body containing trait name",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testUnknownTraitRejected",
           "ac_tag": "NEW",
@@ -1966,7 +1966,7 @@
         },
         {
           "id": "TC-AT-010",
-          "description": "Case-sensitivity — hasTraits(['humanoid']) (lowercase) → false; hasTraits(['Humanoid']) (Title Case) → true; canonical form is Title Case per PM decision commit 576262c5",
+          "description": "Case-sensitivity \u2014 hasTraits(['humanoid']) (lowercase) \u2192 false; hasTraits(['Humanoid']) (Title Case) \u2192 true; canonical form is Title Case per PM decision commit 576262c5",
           "suite_type": "unit",
           "class_method": "CharacterTraitsControllerTest::testTraitComparisonCaseSensitive",
           "ac_tag": "NEW",
@@ -1975,7 +1975,7 @@
         },
         {
           "id": "TC-AT-ACL-01",
-          "description": "GET /dungeoncrawler/traits — anon→403, authenticated→200 (requires 'access dungeoncrawler characters')",
+          "description": "GET /dungeoncrawler/traits \u2014 anon\u2192403, authenticated\u2192200 (requires 'access dungeoncrawler characters')",
           "suite_type": "role-url-audit",
           "class_method": "n/a - role-url-audit entry",
           "ac_tag": "permissions",
@@ -1984,7 +1984,7 @@
         },
         {
           "id": "TC-AT-ACL-02",
-          "description": "GET /api/character/{id}/traits — anon→403; authenticated owner→200; non-owner player→403 (_character_access ownership check)",
+          "description": "GET /api/character/{id}/traits \u2014 anon\u2192403; authenticated owner\u2192200; non-owner player\u2192403 (_character_access ownership check)",
           "suite_type": "role-url-audit",
           "class_method": "n/a - role-url-audit entry (parameterized; numeric probe will 404 on non-existent IDs)",
           "ac_tag": "permissions",
@@ -1996,10 +1996,10 @@
     {
       "id": "dc-cr-darkvision-phpunit",
       "feature_id": "dc-cr-darkvision",
-      "label": "Darkvision Sense Entity — sense entity structure, effects, Low-Light Vision distinction, ancestry senses reference, encounter visibility bypasses, null-senses crash guard, ancestry swap integrity, character sheet API, ACL",
+      "label": "Darkvision Sense Entity \u2014 sense entity structure, effects, Low-Light Vision distinction, ancestry senses reference, encounter visibility bypasses, null-senses crash guard, ancestry swap integrity, character sheet API, ACL",
       "type": "phpunit",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit --filter='SenseEntityTest|VisibilitySystemTest|SenseIntegrationTest|AncestryDataTest|CharacterViewControllerTest' tests/src/",
-      "notes": "PHPUnit unit + functional approach (authoritative until Playwright env provisioned). Regression risk: ConditionManager coupling (concealed/flat_footed must route through applyCondition()), CharacterViewController senses render path (currently feat-based only), AncestryController plain-string vision field migration, HexMap lighting integration, dc-cr-conditions coupling. TC-DV-15 admin route path is TBD — sense entity admin UI path must be confirmed by Dev before adding qa-permissions.json rule. TC-DV-14 (anon char sheet visibility) documented as ignore in route-scan; verify via functional test.",
+      "notes": "PHPUnit unit + functional approach (authoritative until Playwright env provisioned). Regression risk: ConditionManager coupling (concealed/flat_footed must route through applyCondition()), CharacterViewController senses render path (currently feat-based only), AncestryController plain-string vision field migration, HexMap lighting integration, dc-cr-conditions coupling. TC-DV-15 admin route path is TBD \u2014 sense entity admin UI path must be confirmed by Dev before adding qa-permissions.json rule. TC-DV-14 (anon char sheet visibility) documented as ignore in route-scan; verify via functional test.",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-darkvision/verification-report.md"
       ],
@@ -2036,7 +2036,7 @@
         },
         {
           "id": "TC-DV-04",
-          "description": "Dwarf ancestry has darkvision in senses field — senses is array containing entry with id='darkvision'; no duplication",
+          "description": "Dwarf ancestry has darkvision in senses field \u2014 senses is array containing entry with id='darkvision'; no duplication",
           "suite_type": "functional",
           "class_method": "AncestryDataTest::testDwarfAncestryReferencesDarkvision",
           "ac_tag": "NEW",
@@ -2081,7 +2081,7 @@
         },
         {
           "id": "TC-DV-09",
-          "description": "Darkvision does NOT suppress Concealed from non-darkness sources (fog, invisibility) — lighting=normal, source=fog → concealed applied",
+          "description": "Darkvision does NOT suppress Concealed from non-darkness sources (fog, invisibility) \u2014 lighting=normal, source=fog \u2192 concealed applied",
           "suite_type": "unit",
           "class_method": "VisibilitySystemTest::testDarkvisionDoesNotSuppressConcealedFromFog",
           "ac_tag": "NEW",
@@ -2090,7 +2090,7 @@
         },
         {
           "id": "TC-DV-10",
-          "description": "Darkvision has no effect in bright light — same behavior as character without darkvision; no Concealed, no flat_footed",
+          "description": "Darkvision has no effect in bright light \u2014 same behavior as character without darkvision; no Concealed, no flat_footed",
           "suite_type": "unit",
           "class_method": "VisibilitySystemTest::testDarkvisionNoEffectInBrightLight",
           "ac_tag": "NEW",
@@ -2099,7 +2099,7 @@
         },
         {
           "id": "TC-DV-11",
-          "description": "Null/missing senses field on character does not crash encounter visibility check — treated as no special senses; Concealed applied as baseline",
+          "description": "Null/missing senses field on character does not crash encounter visibility check \u2014 treated as no special senses; Concealed applied as baseline",
           "suite_type": "unit",
           "class_method": "VisibilitySystemTest::testNullSensesFieldDoesNotCrashVisibilityCheck",
           "ac_tag": "TEST-ONLY",
@@ -2126,7 +2126,7 @@
         },
         {
           "id": "TC-DV-14",
-          "description": "Anonymous user can view darkvision on public character sheet — GET /character/{id} returns perception.senses field; ignore in route-scan (parameterized), verify via functional test",
+          "description": "Anonymous user can view darkvision on public character sheet \u2014 GET /character/{id} returns perception.senses field; ignore in route-scan (parameterized), verify via functional test",
           "suite_type": "role-url-audit",
           "class_method": "n/a - role-url-audit entry (parameterized; ignore; verify via CharacterViewControllerTest functional test)",
           "ac_tag": "permissions",
@@ -2136,7 +2136,7 @@
         },
         {
           "id": "TC-DV-15",
-          "description": "Admin can add/edit sense entities via Drupal admin UI — sense entity admin route: admin 200, authenticated player 403, anon 403",
+          "description": "Admin can add/edit sense entities via Drupal admin UI \u2014 sense entity admin route: admin 200, authenticated player 403, anon 403",
           "suite_type": "role-url-audit",
           "class_method": "n/a - role-url-audit entry (route path TBD by Dev; add qa-permissions.json rule at Stage 0 once path confirmed)",
           "ac_tag": "permissions",
@@ -2149,10 +2149,10 @@
     {
       "id": "dc-cr-dwarf-heritage-ancient-blooded-e2e",
       "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
-      "label": "Dwarf Heritage Ancient-Blooded — heritage availability/selection, call-on-ancient-blood reaction grant, reaction prompt on magical save, +1 circumstance bonus application and expiry, reaction consumption, non-magical trigger exclusion, circumstance stacking rule, non-dwarf exclusion, heritage lock post-creation, reaction authorization",
+      "label": "Dwarf Heritage Ancient-Blooded \u2014 heritage availability/selection, call-on-ancient-blood reaction grant, reaction prompt on magical save, +1 circumstance bonus application and expiry, reaction consumption, non-magical trigger exclusion, circumstance stacking rule, non-dwarf exclusion, heritage lock post-creation, reaction authorization",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Drush ev approach (authoritative until Playwright env provisioned). This is the first concrete heritage implementation — TC-001/TC-002 are templates for all future heritage features. OPEN CLARIFICATION ITEMS (PM-owned): CQ-001 reaction prompt API surface (payload field vs separate endpoint vs state machine), CQ-002 turn-duration tracking for bonus expiry, CQ-003 circumstance-stacking enforcement location (ConditionManager vs feature-local), CQ-004 magical-vs-non-magical source_type classification in combat engine, CQ-005 GM role definition for reaction override. TC-011 (magical trigger) and TC-010 (circumstance stacking) are highest-risk; require Dev implementation notes before deterministic assertions can be written. Heritage selection uses dc-cr-heritage-system routes (character creation flow); reaction trigger uses encounter/combat API routes.",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). This is the first concrete heritage implementation \u2014 TC-001/TC-002 are templates for all future heritage features. OPEN CLARIFICATION ITEMS (PM-owned): CQ-001 reaction prompt API surface (payload field vs separate endpoint vs state machine), CQ-002 turn-duration tracking for bonus expiry, CQ-003 circumstance-stacking enforcement location (ConditionManager vs feature-local), CQ-004 magical-vs-non-magical source_type classification in combat engine, CQ-005 GM role definition for reaction override. TC-011 (magical trigger) and TC-010 (circumstance stacking) are highest-risk; require Dev implementation notes before deterministic assertions can be written. Heritage selection uses dc-cr-heritage-system routes (character creation flow); reaction trigger uses encounter/combat API routes.",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-dwarf-heritage-ancient-blooded/verification-report.md"
       ],
@@ -2186,7 +2186,7 @@
           "ac_tag": "NEW",
           "status": "pending-dev-confirmation",
           "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
-          "notes": "CQ-001: reaction prompt API surface TBD — payload field, separate prompt action, or state machine transition. Update class_method when Dev confirms."
+          "notes": "CQ-001: reaction prompt API surface TBD \u2014 payload field, separate prompt action, or state machine transition. Update class_method when Dev confirms."
         },
         {
           "id": "TC-HAB-004",
@@ -2228,7 +2228,7 @@
         },
         {
           "id": "TC-HAB-008",
-          "description": "ancient-blooded-dwarf NOT available for non-Dwarf character (e.g. Elf) — filtered from heritage options",
+          "description": "ancient-blooded-dwarf NOT available for non-Dwarf character (e.g. Elf) \u2014 filtered from heritage options",
           "suite_type": "functional",
           "class_method": "HeritageDwarfAncientBloodedTest::testAncientBloodedNotAvailableForNonDwarf",
           "ac_tag": "NEW",
@@ -2246,7 +2246,7 @@
         },
         {
           "id": "TC-HAB-010",
-          "description": "Circumstance bonus does NOT stack — when +1 circumstance (Ancient Blood) + +2 circumstance (other source) active, total=max(1,2)=2, not 3",
+          "description": "Circumstance bonus does NOT stack \u2014 when +1 circumstance (Ancient Blood) + +2 circumstance (other source) active, total=max(1,2)=2, not 3",
           "suite_type": "unit",
           "class_method": "HeritageDwarfAncientBloodedTest::testCircumstanceBonusDoesNotStack",
           "ac_tag": "NEW",
@@ -2256,17 +2256,17 @@
         },
         {
           "id": "TC-HAB-011",
-          "description": "Reaction does NOT trigger for non-magical saving throws (physical trap, mundane hazard) — no reaction prompt, save proceeds normally",
+          "description": "Reaction does NOT trigger for non-magical saving throws (physical trap, mundane hazard) \u2014 no reaction prompt, save proceeds normally",
           "suite_type": "functional",
           "class_method": "HeritageDwarfAncientBloodedTest::testReactionNotTriggeredForNonMagicalSave",
           "ac_tag": "NEW",
           "status": "pending-dev-confirmation",
           "feature_id": "dc-cr-dwarf-heritage-ancient-blooded",
-          "notes": "CQ-004: how is 'magical effect' classified in the combat engine? source_type field needed. Highest-risk TC — Dev must document this in implementation notes."
+          "notes": "CQ-004: how is 'magical effect' classified in the combat engine? source_type field needed. Highest-risk TC \u2014 Dev must document this in implementation notes."
         },
         {
           "id": "TC-HAB-012",
-          "description": "Server-side rejection of Ancient-Blooded assignment to non-Dwarf character via API (ancestry mismatch → HTTP 422/400)",
+          "description": "Server-side rejection of Ancient-Blooded assignment to non-Dwarf character via API (ancestry mismatch \u2192 HTTP 422/400)",
           "suite_type": "unit",
           "class_method": "HeritageDwarfAncientBloodedTest::testNonDwarfAssignmentRejectedServerSide",
           "ac_tag": "NEW",
@@ -2284,7 +2284,7 @@
         },
         {
           "id": "TC-HAB-014",
-          "description": "Heritage locked after character creation — POST heritage change on completed character returns HTTP 422/403",
+          "description": "Heritage locked after character creation \u2014 POST heritage change on completed character returns HTTP 422/403",
           "suite_type": "unit",
           "class_method": "HeritageDwarfAncientBloodedTest::testHeritageLockedPostCreation",
           "ac_tag": "permissions",
@@ -2293,7 +2293,7 @@
         },
         {
           "id": "TC-HAB-015",
-          "description": "Reaction usage scoped to character owner + GM/admin — non-owner player gets 403; owner and administrator succeed",
+          "description": "Reaction usage scoped to character owner + GM/admin \u2014 non-owner player gets 403; owner and administrator succeed",
           "suite_type": "unit",
           "class_method": "HeritageDwarfAncientBloodedTest::testReactionUsageAuthorization",
           "ac_tag": "permissions",
@@ -2306,10 +2306,10 @@
     {
       "id": "dc-cr-elf-ancestry-e2e",
       "feature_id": "dc-cr-elf-ancestry",
-      "label": "Elf Ancestry — stat block (HP6/Spd30/Med), Dex+Int fixed boosts, free boost (non-duplicate), Constitution flaw, Low-Light Vision, Common+Elven base languages, Elf+Humanoid traits, full creation flow, persist/reload, anon deny ACL, free-boost duplicate rejection, missing free-boost block, invalid language errors (deferred TCs 08/11-14 await dc-cr-languages)",
+      "label": "Elf Ancestry \u2014 stat block (HP6/Spd30/Med), Dex+Int fixed boosts, free boost (non-duplicate), Constitution flaw, Low-Light Vision, Common+Elven base languages, Elf+Humanoid traits, full creation flow, persist/reload, anon deny ACL, free-boost duplicate rejection, missing free-boost block, invalid language errors (deferred TCs 08/11-14 await dc-cr-languages)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Drush ev approach (authoritative until Playwright env provisioned). Pattern follows dc-cr-dwarf-ancestry implementation. DEFERRED: TC-EA-08, TC-EA-11, TC-EA-12, TC-EA-13, TC-EA-14 depend on dc-cr-languages (currently deferred) — re-evaluate at Stage 0 of release-c when dc-cr-languages status confirmed. NOTE TO DEV: TC-EA-04/TC-EA-09 (LLV assertions) may need updating if dc-cr-low-light-vision formalizes LLV as a sense entity (currently stored as plain string in ANCESTRIES). Security: POST /dungeoncrawler/character/create must retain _csrf_request_header_mode:TRUE from dc-cr-character-creation — verify not relaxed by elf implementation. Route /dungeoncrawler/character/create (GET/POST) already covered by rule dc-cr-heritage-system-character-create-form; no new permission rule needed.",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). Pattern follows dc-cr-dwarf-ancestry implementation. DEFERRED: TC-EA-08, TC-EA-11, TC-EA-12, TC-EA-13, TC-EA-14 depend on dc-cr-languages (currently deferred) \u2014 re-evaluate at Stage 0 of release-c when dc-cr-languages status confirmed. NOTE TO DEV: TC-EA-04/TC-EA-09 (LLV assertions) may need updating if dc-cr-low-light-vision formalizes LLV as a sense entity (currently stored as plain string in ANCESTRIES). Security: POST /dungeoncrawler/character/create must retain _csrf_request_header_mode:TRUE from dc-cr-character-creation \u2014 verify not relaxed by elf implementation. Route /dungeoncrawler/character/create (GET/POST) already covered by rule dc-cr-heritage-system-character-create-form; no new permission rule needed.",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-elf-ancestry/verification-report.md"
       ],
@@ -2337,7 +2337,7 @@
         },
         {
           "id": "TC-EA-003",
-          "description": "Elf applies Constitution flaw (–2); character CON final = base CON − 2",
+          "description": "Elf applies Constitution flaw (\u20132); character CON final = base CON \u2212 2",
           "suite_type": "unit",
           "class_method": "CharacterManagerTest::testElfAncestryFlaw",
           "ac_tag": "happy-path",
@@ -2374,7 +2374,7 @@
         },
         {
           "id": "TC-EA-007",
-          "description": "Free boost cannot target Dexterity or Intelligence (already boosted) — validation error returned, not 200",
+          "description": "Free boost cannot target Dexterity or Intelligence (already boosted) \u2014 validation error returned, not 200",
           "suite_type": "unit",
           "class_method": "CharacterCreationStepFormTest::testElfFreeBoostRejectsAlreadyBoostedAbility",
           "ac_tag": "edge-case",
@@ -2383,17 +2383,17 @@
         },
         {
           "id": "TC-EA-008",
-          "description": "Language slot count = max(0, Int modifier); Int 8 (−1) → 0 slots; Int 14 (+2) → 2 slots",
+          "description": "Language slot count = max(0, Int modifier); Int 8 (\u22121) \u2192 0 slots; Int 14 (+2) \u2192 2 slots",
           "suite_type": "unit",
           "class_method": "CharacterCreationStepFormTest::testElfLanguageSlotCountFromIntModifier",
           "ac_tag": "edge-case",
           "status": "deferred",
           "feature_id": "dc-cr-elf-ancestry",
-          "notes": "Deferred — depends on dc-cr-languages (currently deferred). Re-activate at Stage 0 when dc-cr-languages is re-activated."
+          "notes": "Deferred \u2014 depends on dc-cr-languages (currently deferred). Re-activate at Stage 0 when dc-cr-languages is re-activated."
         },
         {
           "id": "TC-EA-009",
-          "description": "Full Elf character creation: HP=6, Speed=30, Size=Medium, boosts=[Dex+2,Int+2,free+2], flaw=[Con−2], traits=[Elf,Humanoid], senses=[low-light vision], languages=[Common,Elven]",
+          "description": "Full Elf character creation: HP=6, Speed=30, Size=Medium, boosts=[Dex+2,Int+2,free+2], flaw=[Con\u22122], traits=[Elf,Humanoid], senses=[low-light vision], languages=[Common,Elven]",
           "suite_type": "functional",
           "class_method": "ElfAncestryCreationTest::testFullElfCharacterCreation",
           "ac_tag": "happy-path",
@@ -2402,7 +2402,7 @@
         },
         {
           "id": "TC-EA-010",
-          "description": "Elf character persists correctly across save/reload — all boosts, flaw, traits, senses, languages identical pre/post reload",
+          "description": "Elf character persists correctly across save/reload \u2014 all boosts, flaw, traits, senses, languages identical pre/post reload",
           "suite_type": "functional",
           "class_method": "ElfAncestryCreationTest::testElfCharacterPersistence",
           "ac_tag": "edge-case",
@@ -2417,7 +2417,7 @@
           "ac_tag": "happy-path",
           "status": "deferred",
           "feature_id": "dc-cr-elf-ancestry",
-          "notes": "Deferred — depends on dc-cr-languages. Re-activate at Stage 0."
+          "notes": "Deferred \u2014 depends on dc-cr-languages. Re-activate at Stage 0."
         },
         {
           "id": "TC-EA-012",
@@ -2427,7 +2427,7 @@
           "ac_tag": "edge-case",
           "status": "deferred",
           "feature_id": "dc-cr-elf-ancestry",
-          "notes": "Deferred — depends on dc-cr-languages. Re-activate at Stage 0."
+          "notes": "Deferred \u2014 depends on dc-cr-languages. Re-activate at Stage 0."
         },
         {
           "id": "TC-EA-013",
@@ -2437,7 +2437,7 @@
           "ac_tag": "edge-case",
           "status": "deferred",
           "feature_id": "dc-cr-elf-ancestry",
-          "notes": "Deferred — depends on dc-cr-languages. Re-activate at Stage 0."
+          "notes": "Deferred \u2014 depends on dc-cr-languages. Re-activate at Stage 0."
         },
         {
           "id": "TC-EA-014",
@@ -2447,11 +2447,11 @@
           "ac_tag": "failure-mode",
           "status": "deferred",
           "feature_id": "dc-cr-elf-ancestry",
-          "notes": "Deferred — depends on dc-cr-languages. Re-activate at Stage 0."
+          "notes": "Deferred \u2014 depends on dc-cr-languages. Re-activate at Stage 0."
         },
         {
           "id": "TC-EA-015",
-          "description": "Missing free boost selection blocks character save — form error 'Please select a free ability boost'; character not persisted",
+          "description": "Missing free boost selection blocks character save \u2014 form error 'Please select a free ability boost'; character not persisted",
           "suite_type": "functional",
           "class_method": "ElfAncestryCreationTest::testMissingFreeBoostBlocksSave",
           "ac_tag": "failure-mode",
@@ -2478,7 +2478,7 @@
         },
         {
           "id": "TC-EA-018",
-          "description": "E2E: Full Elf ancestry creation in browser — login → character create → select Elf → free boost (Strength) → assert HP 6, Speed 30, LLV, languages Common+Elven on character sheet",
+          "description": "E2E: Full Elf ancestry creation in browser \u2014 login \u2192 character create \u2192 select Elf \u2192 free boost (Strength) \u2192 assert HP 6, Speed 30, LLV, languages Common+Elven on character sheet",
           "suite_type": "e2e",
           "class_method": "tests/e2e/elf-ancestry-creation.spec.js",
           "ac_tag": "happy-path",
@@ -2487,7 +2487,7 @@
         },
         {
           "id": "TC-EA-ACL-01",
-          "description": "GET /dungeoncrawler/character/create — anon: 302; authenticated/content_editor/administrator/dc_playwright_player: 200. Rule dc-cr-heritage-system-character-create-form already covers this path — no new rule added; elf ancestry verifies expected values still hold.",
+          "description": "GET /dungeoncrawler/character/create \u2014 anon: 302; authenticated/content_editor/administrator/dc_playwright_player: 200. Rule dc-cr-heritage-system-character-create-form already covers this path \u2014 no new rule added; elf ancestry verifies expected values still hold.",
           "suite_type": "role-url-audit",
           "class_method": "n/a - covered by dc-cr-heritage-system-character-create-form in qa-permissions.json; verified in TC-EA-016/017",
           "ac_tag": "permissions",
@@ -2499,10 +2499,10 @@
     {
       "id": "dc-cr-elf-heritage-cavern-e2e",
       "feature_id": "dc-cr-elf-heritage-cavern",
-      "label": "Cavern Elf Heritage — catalog entry (Elf-only), LLV→Darkvision sense replacement at creation, sense identical to dc-cr-darkvision baseline, non-Elf rejection, one-heritage-per-character, persist/reload stability, invalid heritage error, cross-character ownership guard, anon deny ACL, E2E browser flow; TC-EC-08/09 implementation-dependent (post-creation heritage route not yet confirmed)",
+      "label": "Cavern Elf Heritage \u2014 catalog entry (Elf-only), LLV\u2192Darkvision sense replacement at creation, sense identical to dc-cr-darkvision baseline, non-Elf rejection, one-heritage-per-character, persist/reload stability, invalid heritage error, cross-character ownership guard, anon deny ACL, E2E browser flow; TC-EC-08/09 implementation-dependent (post-creation heritage route not yet confirmed)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Drush ev approach (authoritative until Playwright env provisioned). IMPLEMENTATION-DEPENDENT: TC-EC-008 (heritage removal revert) and TC-EC-009 (anon POST to dedicated heritage route) require the /dungeoncrawler/character/{id}/heritage POST route — this route does NOT exist in current routing.yml. PM/Dev must confirm at Stage 0 whether post-creation heritage update is in scope. If creation-only: defer TC-EC-008/009. NOTE TO DEV: FeatEffectManager has no 'cavern' case and no removeSense() helper — both must be added. Sense replacement: (a) addSense darkvision, (b) remove low-light-vision from effects.senses. Security: POST route must have _csrf_request_header_mode:TRUE and character-ownership validation. Regression coupling: dc-cr-darkvision, dc-cr-heritage-system, dc-cr-elf-ancestry.",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). IMPLEMENTATION-DEPENDENT: TC-EC-008 (heritage removal revert) and TC-EC-009 (anon POST to dedicated heritage route) require the /dungeoncrawler/character/{id}/heritage POST route \u2014 this route does NOT exist in current routing.yml. PM/Dev must confirm at Stage 0 whether post-creation heritage update is in scope. If creation-only: defer TC-EC-008/009. NOTE TO DEV: FeatEffectManager has no 'cavern' case and no removeSense() helper \u2014 both must be added. Sense replacement: (a) addSense darkvision, (b) remove low-light-vision from effects.senses. Security: POST route must have _csrf_request_header_mode:TRUE and character-ownership validation. Regression coupling: dc-cr-darkvision, dc-cr-heritage-system, dc-cr-elf-ancestry.",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-elf-heritage-cavern/verification-report.md"
       ],
@@ -2548,7 +2548,7 @@
         },
         {
           "id": "TC-EC-005",
-          "description": "Cavern Elf restricted to Elf ancestry — attempt Dwarf + heritage=cavern returns validation error, not 500",
+          "description": "Cavern Elf restricted to Elf ancestry \u2014 attempt Dwarf + heritage=cavern returns validation error, not 500",
           "suite_type": "functional",
           "class_method": "CavernElfHeritageTest::testCavernElfRestrictedToElfAncestry",
           "ac_tag": "edge-case",
@@ -2557,7 +2557,7 @@
         },
         {
           "id": "TC-EC-006",
-          "description": "One heritage per character enforced — submitting two heritages simultaneously returns validation error, not silent override",
+          "description": "One heritage per character enforced \u2014 submitting two heritages simultaneously returns validation error, not silent override",
           "suite_type": "functional",
           "class_method": "CavernElfHeritageTest::testOneHeritagePerCharacterEnforced",
           "ac_tag": "edge-case",
@@ -2622,7 +2622,7 @@
         },
         {
           "id": "TC-EC-013",
-          "description": "E2E: login → character create → Elf ancestry → Cavern Elf heritage → complete → character sheet shows Darkvision, not Low-Light Vision",
+          "description": "E2E: login \u2192 character create \u2192 Elf ancestry \u2192 Cavern Elf heritage \u2192 complete \u2192 character sheet shows Darkvision, not Low-Light Vision",
           "suite_type": "e2e",
           "class_method": "tests/e2e/cavern-elf-heritage.spec.js",
           "ac_tag": "happy-path",
@@ -2631,7 +2631,7 @@
         },
         {
           "id": "TC-EC-ACL-01",
-          "description": "POST /dungeoncrawler/character/{id}/heritage — anon: 403; authenticated (owner): 200. Add rule dc-cr-elf-heritage-cavern-update ONLY when route is confirmed implemented (currently absent from routing.yml; probe-ignore until then).",
+          "description": "POST /dungeoncrawler/character/{id}/heritage \u2014 anon: 403; authenticated (owner): 200. Add rule dc-cr-elf-heritage-cavern-update ONLY when route is confirmed implemented (currently absent from routing.yml; probe-ignore until then).",
           "suite_type": "role-url-audit",
           "class_method": "n/a - probe-ignore until /dungeoncrawler/character/{id}/heritage POST route confirmed in routing.yml",
           "ac_tag": "permissions",
@@ -2643,10 +2643,10 @@
     {
       "id": "dc-cr-low-light-vision-e2e",
       "feature_id": "dc-cr-low-light-vision",
-      "label": "Low-Light Vision — sense flag on character entity, Elf ancestry grants structured LLV (not plain string), dim-light concealment bypass, normal-vision baseline intact, darkvision wins when both set, LLV vs DV distinct effects, persist/reload, ancestry-switch clears/re-applies, non-existent character 404, client direct-write blocked, cross-character read blocked, E2E character sheet; TC-LLV-011/012 (new /senses route) implementation-dependent",
+      "label": "Low-Light Vision \u2014 sense flag on character entity, Elf ancestry grants structured LLV (not plain string), dim-light concealment bypass, normal-vision baseline intact, darkvision wins when both set, LLV vs DV distinct effects, persist/reload, ancestry-switch clears/re-applies, non-existent character 404, client direct-write blocked, cross-character read blocked, E2E character sheet; TC-LLV-011/012 (new /senses route) implementation-dependent",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
-      "notes": "Drush ev approach (authoritative until Playwright env provisioned). Pattern follows dc-cr-darkvision. IMPLEMENTATION-DEPENDENT: TC-LLV-011 and TC-LLV-012 require the /dungeoncrawler/character/{id}/senses GET route which does NOT exist in current routing.yml — probe-ignore until Dev implements. PM/Dev to decide: dedicated /senses endpoint vs filtered alias of /api/character/{id}/state. NOTE TO DEV: AncestryController currently maps ANCESTRIES['vision'] as plain string; must wire to FeatEffectManager::addSense('low-light-vision',...) at character load. HexMapController does not yet check character senses before applying concealment — LLV dim-light bypass requires new check in encounter resolution path. TC-LLV-005/006 assume dc-cr-darkvision is implemented; if darkvision deferred, defer those TCs. Regression coupling: dc-cr-darkvision, dc-cr-elf-ancestry (TC-EA-004 assertion update), dc-cr-elf-heritage-cavern (sense replacement), ConditionManager.",
+      "notes": "Drush ev approach (authoritative until Playwright env provisioned). Pattern follows dc-cr-darkvision. IMPLEMENTATION-DEPENDENT: TC-LLV-011 and TC-LLV-012 require the /dungeoncrawler/character/{id}/senses GET route which does NOT exist in current routing.yml \u2014 probe-ignore until Dev implements. PM/Dev to decide: dedicated /senses endpoint vs filtered alias of /api/character/{id}/state. NOTE TO DEV: AncestryController currently maps ANCESTRIES['vision'] as plain string; must wire to FeatEffectManager::addSense('low-light-vision',...) at character load. HexMapController does not yet check character senses before applying concealment \u2014 LLV dim-light bypass requires new check in encounter resolution path. TC-LLV-005/006 assume dc-cr-darkvision is implemented; if darkvision deferred, defer those TCs. Regression coupling: dc-cr-darkvision, dc-cr-elf-ancestry (TC-EA-004 assertion update), dc-cr-elf-heritage-cavern (sense replacement), ConditionManager.",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-low-light-vision/verification-report.md"
       ],
@@ -2665,7 +2665,7 @@
         },
         {
           "id": "TC-LLV-002",
-          "description": "Elf ancestry grants structured LLV sense (id=low-light-vision) at character load — NOT the plain string 'low-light vision' from ANCESTRIES",
+          "description": "Elf ancestry grants structured LLV sense (id=low-light-vision) at character load \u2014 NOT the plain string 'low-light vision' from ANCESTRIES",
           "suite_type": "unit",
           "class_method": "LowLightVisionTest::testElfAncestryGrantsStructuredLowLightVisionSense",
           "ac_tag": "happy-path",
@@ -2684,7 +2684,7 @@
         },
         {
           "id": "TC-LLV-004",
-          "description": "Normal-vision character (no sense flags) in dim-light zone receives Concealed condition — baseline unchanged",
+          "description": "Normal-vision character (no sense flags) in dim-light zone receives Concealed condition \u2014 baseline unchanged",
           "suite_type": "unit",
           "class_method": "LowLightVisionTest::testNormalVisionCharacterGetsConcealedInDimLight",
           "ac_tag": "edge-case",
@@ -2713,7 +2713,7 @@
         },
         {
           "id": "TC-LLV-007",
-          "description": "LLV sense flag persists across save/reload — senses array contains low-light-vision after persist/load cycle",
+          "description": "LLV sense flag persists across save/reload \u2014 senses array contains low-light-vision after persist/load cycle",
           "suite_type": "functional",
           "class_method": "LowLightVisionTest::testLowLightVisionFlagPersistsAcrossSaveReload",
           "ac_tag": "happy-path",
@@ -2722,7 +2722,7 @@
         },
         {
           "id": "TC-LLV-008",
-          "description": "Ancestry switch during creation: Elf→Dwarf clears LLV and applies darkvision; no stale LLV flag on final character",
+          "description": "Ancestry switch during creation: Elf\u2192Dwarf clears LLV and applies darkvision; no stale LLV flag on final character",
           "suite_type": "functional",
           "class_method": "LowLightVisionTest::testAncestrySwitchClearsAndReappliesSense",
           "ac_tag": "edge-case",
@@ -2740,7 +2740,7 @@
         },
         {
           "id": "TC-LLV-010",
-          "description": "Client cannot directly POST/PATCH low_light_vision flag — returns 403 or 405; sense flags unchanged",
+          "description": "Client cannot directly POST/PATCH low_light_vision flag \u2014 returns 403 or 405; sense flags unchanged",
           "suite_type": "functional",
           "class_method": "LowLightVisionTest::testClientCannotDirectlyMutateSenseFlags",
           "ac_tag": "failure-mode",
@@ -2787,7 +2787,7 @@
         },
         {
           "id": "TC-LLV-ACL-01",
-          "description": "GET /dungeoncrawler/character/{id}/senses — anon: 302/403; authenticated owner: 200. Add rule dc-cr-low-light-vision-senses-read ONLY when dedicated /senses route is confirmed in routing.yml (currently probe-ignore).",
+          "description": "GET /dungeoncrawler/character/{id}/senses \u2014 anon: 302/403; authenticated owner: 200. Add rule dc-cr-low-light-vision-senses-read ONLY when dedicated /senses route is confirmed in routing.yml (currently probe-ignore).",
           "suite_type": "role-url-audit",
           "class_method": "n/a - probe-ignore until /dungeoncrawler/character/{id}/senses GET route confirmed in routing.yml",
           "ac_tag": "permissions",
@@ -2799,10 +2799,10 @@
     {
       "id": "dc-home-suggestion-notice-e2e",
       "feature_id": "dc-home-suggestion-notice",
-      "label": "Home page suggestion notice — HTTP 200 anon+auth, notice text in HTML response (anon+auth), no new routes; manual gate for layout and JS-error checks (static content, low risk)",
+      "label": "Home page suggestion notice \u2014 HTTP 200 anon+auth, notice text in HTML response (anon+auth), no new routes; manual gate for layout and JS-error checks (static content, low risk)",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit tests/src/Functional/HomePageTest.php",
-      "notes": "Static content addition only — no new routes, no schema changes. /home ACL already covered by public-pages rule in qa-permissions.json (anon: allow); no new permission rule needed. MANUAL-ONLY: TC-HSN-005 (layout check) and TC-HSN-006 (JS errors) cannot be expressed as PHPUnit or curl automation — they require browser/Playwright. PM should risk-accept at Gate 2 or add Playwright coverage at Stage 0. Low risk: this is a plain text block with no JS components. Rollback: revert block/template config + drush cr.",
+      "notes": "Static content addition only \u2014 no new routes, no schema changes. /home ACL already covered by public-pages rule in qa-permissions.json (anon: allow); no new permission rule needed. MANUAL-ONLY: TC-HSN-005 (layout check) and TC-HSN-006 (JS errors) cannot be expressed as PHPUnit or curl automation \u2014 they require browser/Playwright. PM should risk-accept at Gate 2 or add Playwright coverage at Stage 0. Low risk: this is a plain text block with no JS components. Rollback: revert block/template config + drush cr.",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-home-suggestion-notice/verification-report.md"
       ],
@@ -2812,7 +2812,7 @@
       "test_cases": [
         {
           "id": "TC-HSN-001",
-          "description": "GET /home as anonymous returns HTTP 200 — verify existing public-pages rule still passes post-implementation",
+          "description": "GET /home as anonymous returns HTTP 200 \u2014 verify existing public-pages rule still passes post-implementation",
           "suite_type": "role-url-audit",
           "class_method": "n/a - covered by public-pages rule in qa-permissions.json; regression check only",
           "ac_tag": "happy-path",
@@ -2830,7 +2830,7 @@
         },
         {
           "id": "TC-HSN-003",
-          "description": "Home page HTML contains notice text 'We are actively implementing player suggestions' — anonymous GET /home",
+          "description": "Home page HTML contains notice text 'We are actively implementing player suggestions' \u2014 anonymous GET /home",
           "suite_type": "functional",
           "class_method": "HomePageTest::testHomePageSuggestionNoticeAnon",
           "ac_tag": "happy-path",
@@ -2839,7 +2839,7 @@
         },
         {
           "id": "TC-HSN-004",
-          "description": "Home page HTML contains notice text — authenticated user GET /home",
+          "description": "Home page HTML contains notice text \u2014 authenticated user GET /home",
           "suite_type": "functional",
           "class_method": "HomePageTest::testHomePageSuggestionNoticeAuthenticated",
           "ac_tag": "happy-path",
@@ -2848,7 +2848,7 @@
         },
         {
           "id": "TC-HSN-005",
-          "description": "MANUAL: Home page layout not broken on desktop and mobile after notice addition — no overflow, wrapping, or element displacement",
+          "description": "MANUAL: Home page layout not broken on desktop and mobile after notice addition \u2014 no overflow, wrapping, or element displacement",
           "suite_type": "manual",
           "class_method": "n/a - manual browser spot-check; cannot automate without Playwright",
           "ac_tag": "happy-path",
@@ -2871,10 +2871,10 @@
     {
       "id": "dc-cr-languages-e2e",
       "feature_id": "dc-cr-languages",
-      "label": "Languages System — catalog min 10 entries (GET /languages anon 200), languages[] field on character entity, ancestry default-language assignment, INT-mod bonus slots (cap enforcement, dedup, unknown-ID rejection, no-ancestry empty array), patch-other-fields no-clobber, admin taxonomy route, non-owner write blocked",
+      "label": "Languages System \u2014 catalog min 10 entries (GET /languages anon 200), languages[] field on character entity, ancestry default-language assignment, INT-mod bonus slots (cap enforcement, dedup, unknown-ID rejection, no-ancestry empty array), patch-other-fields no-clobber, admin taxonomy route, non-owner write blocked",
       "type": "e2e",
       "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/phpunit tests/src/Functional/LanguagesSystemTest.php",
-      "notes": "All 14 TCs are active (no deferred). Two items cannot be fully automated: (1) TC-LANG-013 admin CRUD — route access covered; full CRUD requires Playwright admin session. (2) schema rollback (Data Integrity #2) must be a manual DBA test. NOTE TO DEV: This is a greenfield feature — language taxonomy, languages[] field, ancestry default_languages config, and INT-modifier slot allocation all need to be created. INT-mod slot pattern should be consistent with ancestry feat slot gating. Unblocks TC-EA-008/011-013 (elf ancestry deferred TCs) and analogous TCs in future ancestries. New routes: GET /languages (anon allow) added to qa-permissions.json. TC-LANG-013 admin taxonomy path must be confirmed at Stage 0 (depends on implementation: taxonomy vs config entity).",
+      "notes": "All 14 TCs are active (no deferred). Two items cannot be fully automated: (1) TC-LANG-013 admin CRUD \u2014 route access covered; full CRUD requires Playwright admin session. (2) schema rollback (Data Integrity #2) must be a manual DBA test. NOTE TO DEV: This is a greenfield feature \u2014 language taxonomy, languages[] field, ancestry default_languages config, and INT-modifier slot allocation all need to be created. INT-mod slot pattern should be consistent with ancestry feat slot gating. Unblocks TC-EA-008/011-013 (elf ancestry deferred TCs) and analogous TCs in future ancestries. New routes: GET /languages (anon allow) added to qa-permissions.json. TC-LANG-013 admin taxonomy path must be confirmed at Stage 0 (depends on implementation: taxonomy vs config entity).",
       "artifacts": [
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-languages/verification-report.md"
       ],
@@ -2902,7 +2902,7 @@
         },
         {
           "id": "TC-LANG-003",
-          "description": "GET /languages is publicly accessible (anonymous, no auth) — HTTP 200, not 403/redirect",
+          "description": "GET /languages is publicly accessible (anonymous, no auth) \u2014 HTTP 200, not 403/redirect",
           "suite_type": "role-url-audit",
           "class_method": "LanguagesSystemTest::testLanguagesCatalogPubliclyAccessible",
           "ac_tag": "permissions",
@@ -2993,7 +2993,7 @@
         },
         {
           "id": "TC-LANG-013",
-          "description": "Admin GET /admin/structure/taxonomy/manage/language (or equivalent) returns HTTP 200 — admin can manage language taxonomy",
+          "description": "Admin GET /admin/structure/taxonomy/manage/language (or equivalent) returns HTTP 200 \u2014 admin can manage language taxonomy",
           "suite_type": "role-url-audit",
           "class_method": "LanguagesSystemTest::testAdminLanguageTaxonomyRouteAccessible",
           "ac_tag": "permissions",
@@ -3014,7 +3014,7 @@
     },
     {
       "id": "dc-cr-xp-award-system-phpunit",
-      "label": "XP Award System — 1000 XP threshold, carryover, advancement speed variants (Fast/Standard/Slow), party-wide award, accomplishment tiers, Hero Point flags, story-based leveling, double-XP for behind-level PCs, trivial encounter 0 XP",
+      "label": "XP Award System \u2014 1000 XP threshold, carryover, advancement speed variants (Fast/Standard/Slow), party-wide award, accomplishment tiers, Hero Point flags, story-based leveling, double-XP for behind-level PCs, trivial encounter 0 XP",
       "type": "phpunit",
       "feature_id": "dc-cr-xp-award-system",
       "command": "./vendor/bin/phpunit --filter=XpAward tests/src/",
@@ -3024,11 +3024,11 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-07",
-      "notes": "Security AC exemption confirmed: no new routes or user-facing input surfaces. All TCs are pure game-mechanic logic assertions. Depends on dc-cr-encounter-creature-xp-table (creature XP table). NOTE: TC-XPA-11 accomplishment XP exact values (minor/moderate/major) not yet specified — BA must extract from PF2E CRB; automation asserts structure and ordering. TC-XPA-17 double-XP behind-level threshold unclear (any level gap vs min 2+ levels) — PM clarification requested. TC-XPA-12/13 Hero Point flag asserted; GM selection of which PC is not automated.",
+      "notes": "Security AC exemption confirmed: no new routes or user-facing input surfaces. All TCs are pure game-mechanic logic assertions. Depends on dc-cr-encounter-creature-xp-table (creature XP table). NOTE: TC-XPA-11 accomplishment XP exact values (minor/moderate/major) not yet specified \u2014 BA must extract from PF2E CRB; automation asserts structure and ordering. TC-XPA-17 double-XP behind-level threshold unclear (any level gap vs min 2+ levels) \u2014 PM clarification requested. TC-XPA-12/13 Hero Point flag asserted; GM selection of which PC is not automated.",
       "test_cases": [
         {
           "id": "TC-XPA-01",
-          "description": "XP threshold: 1000 XP to gain a level; XP reduced by 1000 on level-up, not reset (950+100 → new_xp=50, level_gained=true)",
+          "description": "XP threshold: 1000 XP to gain a level; XP reduced by 1000 on level-up, not reset (950+100 \u2192 new_xp=50, level_gained=true)",
           "suite_type": "unit",
           "class_method": "XpAwardServiceTest::testXpThresholdLevelUp",
           "ac_tag": "NEW",
@@ -3036,7 +3036,7 @@
         },
         {
           "id": "TC-XPA-02",
-          "description": "XP carryover: excess XP preserved on level-up; not reset to 0 (980+200 → new_xp=180, level_gained=true)",
+          "description": "XP carryover: excess XP preserved on level-up; not reset to 0 (980+200 \u2192 new_xp=180, level_gained=true)",
           "suite_type": "unit",
           "class_method": "XpAwardServiceTest::testXpCarryoverOnLevelUp",
           "ac_tag": "NEW",
@@ -3076,7 +3076,7 @@
         },
         {
           "id": "TC-XPA-07",
-          "description": "Party-wide XP award: all party members receive equal XP (award_encounter_xp(party_size=4, xp=40) → each PC gets 10)",
+          "description": "Party-wide XP award: all party members receive equal XP (award_encounter_xp(party_size=4, xp=40) \u2192 each PC gets 10)",
           "suite_type": "unit",
           "class_method": "XpAwardServiceTest::testPartyWideEqualXpDistribution",
           "ac_tag": "NEW",
@@ -3085,7 +3085,7 @@
         },
         {
           "id": "TC-XPA-08",
-          "description": "Trivial encounter returns 0 XP by default (encounter_xp(threat_tier=trivial) → 0)",
+          "description": "Trivial encounter returns 0 XP by default (encounter_xp(threat_tier=trivial) \u2192 0)",
           "suite_type": "unit",
           "class_method": "XpAwardServiceTest::testTrivialEncounterZeroXp",
           "ac_tag": "NEW",
@@ -3101,7 +3101,7 @@
         },
         {
           "id": "TC-XPA-10",
-          "description": "Story-based leveling: XP not tracked (award_xp(mode=story) → {xp_tracked: false})",
+          "description": "Story-based leveling: XP not tracked (award_xp(mode=story) \u2192 {xp_tracked: false})",
           "suite_type": "unit",
           "class_method": "XpAwardServiceTest::testStoryBasedLevelingXpNotTracked",
           "ac_tag": "NEW",
@@ -3114,7 +3114,7 @@
           "class_method": "XpAwardServiceTest::testAccomplishmentXpTableStructure",
           "ac_tag": "NEW",
           "status": "active",
-          "notes": "Exact XP values for accomplishment tiers not in AC — BA must extract from PF2E CRB. Automation asserts structure and ordering until confirmed."
+          "notes": "Exact XP values for accomplishment tiers not in AC \u2014 BA must extract from PF2E CRB. Automation asserts structure and ordering until confirmed."
         },
         {
           "id": "TC-XPA-12",
@@ -3158,7 +3158,7 @@
         },
         {
           "id": "TC-XPA-17",
-          "description": "PC behind party level receives double XP until caught up (pc_level=3, party_level=5, base_xp=40 → PC receives 80)",
+          "description": "PC behind party level receives double XP until caught up (pc_level=3, party_level=5, base_xp=40 \u2192 PC receives 80)",
           "suite_type": "unit",
           "class_method": "XpAwardServiceTest::testBehindLevelDoublsXp",
           "ac_tag": "NEW",
@@ -3185,7 +3185,7 @@
     },
     {
       "id": "dc-cr-class-fighter-phpunit",
-      "label": "Fighter Class — identity/stats (HP10+CON, Expert weapons/perception/saves), Attack of Opportunity (once per trigger, no MAP), combat traits (Press/MAP-gate, Stance/one-active/cooldown, Flourish/one-per-turn), Power Attack scaling, feat progression, edge cases, auth guards",
+      "label": "Fighter Class \u2014 identity/stats (HP10+CON, Expert weapons/perception/saves), Attack of Opportunity (once per trigger, no MAP), combat traits (Press/MAP-gate, Stance/one-active/cooldown, Flourish/one-per-turn), Power Attack scaling, feat progression, edge cases, auth guards",
       "type": "phpunit",
       "feature_id": "dc-cr-class-fighter",
       "command": "./vendor/bin/phpunit --filter=Fighter tests/src/",
@@ -3207,7 +3207,7 @@
         },
         {
           "id": "TC-FGT-02",
-          "description": "Fighter HP = 10 + CON modifier per level (CON 14 → Level 1 HP=12; Level 2 HP=24)",
+          "description": "Fighter HP = 10 + CON modifier per level (CON 14 \u2192 Level 1 HP=12; Level 2 HP=24)",
           "suite_type": "unit",
           "class_method": "FighterClassTest::testHpCalculation",
           "ac_tag": "NEW",
@@ -3429,7 +3429,7 @@
     },
     {
       "id": "dc-cr-session-structure-e2e",
-      "label": "Session/Campaign Structure — session data model (all fields stored), session end/resume state commit, campaign model + history, one-shot vs campaign modes, character state carry-over, AI GM context integration (summary + NPC state), campaign invite registered-user guard",
+      "label": "Session/Campaign Structure \u2014 session data model (all fields stored), session end/resume state commit, campaign model + history, one-shot vs campaign modes, character state carry-over, AI GM context integration (summary + NPC state), campaign invite registered-user guard",
       "type": "e2e",
       "feature_id": "dc-cr-session-structure",
       "command": "npx playwright test tests/e2e/session-structure/ --reporter=junit",
@@ -3439,7 +3439,7 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
-      "notes": "All POST/PATCH session+campaign routes require _csrf_request_header_mode:TRUE. All endpoints authenticated-only; campaign membership enforced. Invite endpoint validates registered account. Routes do not yet exist — tests will fail until Dev implements. Playwright suite: playwright/downtime.",
+      "notes": "All POST/PATCH session+campaign routes require _csrf_request_header_mode:TRUE. All endpoints authenticated-only; campaign membership enforced. Invite endpoint validates registered account. Routes do not yet exist \u2014 tests will fail until Dev implements. Playwright suite: playwright/downtime.",
       "test_cases": [
         {
           "id": "TC-SES-01",
@@ -3533,7 +3533,7 @@
     },
     {
       "id": "dc-cr-class-barbarian-phpunit",
-      "label": "Barbarian Class — identity/HP(12+CON)/proficiencies(Expert Fortitude+Will+Perception, Trained Reflex/weapons/armor), instinct selection+anathema (Animal/Dragon/Fury/Giant/Spirit), Rage state machine (temp HP, damage bonus, AC penalty, concentrate-block, cooldown, once-per-activation), level-gated features (Deny Advantage/Brutality/Juggernaut/Weapon Spec/Raging Resistance/Mighty Rage/Greater Juggernaut/Greater Weapon Spec/Quick Rage/Devastator), feat progression, Flourish/Open/Rage trait enforcement, auth guards",
+      "label": "Barbarian Class \u2014 identity/HP(12+CON)/proficiencies(Expert Fortitude+Will+Perception, Trained Reflex/weapons/armor), instinct selection+anathema (Animal/Dragon/Fury/Giant/Spirit), Rage state machine (temp HP, damage bonus, AC penalty, concentrate-block, cooldown, once-per-activation), level-gated features (Deny Advantage/Brutality/Juggernaut/Weapon Spec/Raging Resistance/Mighty Rage/Greater Juggernaut/Greater Weapon Spec/Quick Rage/Devastator), feat progression, Flourish/Open/Rage trait enforcement, auth guards",
       "type": "phpunit",
       "feature_id": "dc-cr-class-barbarian",
       "command": "./vendor/bin/phpunit --filter=Barbarian tests/src/",
@@ -3543,7 +3543,7 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
-      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. dc-cr-conditions status=done — all conditions-dependent TCs (TC-BAR-12 Giant clumsy1, TC-BAR-16 AC penalty, TC-BAR-23 Deny Advantage) are marked active (not pending-dev-confirmation). Regression risks: Fortitude is Expert at level 1 AND upgrades at 7/13 (overwrite risk); Rage trait conflicts with Concentrate (must not block Seek/rage-trait exceptions); Giant clumsy 1 persistence during Rage; agile half-damage calculation; Quick Rage (level 17) cooldown removal must only apply at level 17+.",
+      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. dc-cr-conditions status=done \u2014 all conditions-dependent TCs (TC-BAR-12 Giant clumsy1, TC-BAR-16 AC penalty, TC-BAR-23 Deny Advantage) are marked active (not pending-dev-confirmation). Regression risks: Fortitude is Expert at level 1 AND upgrades at 7/13 (overwrite risk); Rage trait conflicts with Concentrate (must not block Seek/rage-trait exceptions); Giant clumsy 1 persistence during Rage; agile half-damage calculation; Quick Rage (level 17) cooldown removal must only apply at level 17+.",
       "test_cases": [
         {
           "id": "TC-BAR-01",
@@ -3555,7 +3555,7 @@
         },
         {
           "id": "TC-BAR-02",
-          "description": "Barbarian HP = 12 + CON modifier per level (CON 14 → Level 1 HP=14; Level 2 HP=28)",
+          "description": "Barbarian HP = 12 + CON modifier per level (CON 14 \u2192 Level 1 HP=14; Level 2 HP=28)",
           "suite_type": "unit",
           "class_method": "BarbarianClassTest::testHpCalculation",
           "ac_tag": "NEW",
@@ -3603,7 +3603,7 @@
         },
         {
           "id": "TC-BAR-08",
-          "description": "Dragon Instinct: Draconic Rage damage 2→4, type changes to breath weapon type; Rage gains arcane/evocation/elemental traits",
+          "description": "Dragon Instinct: Draconic Rage damage 2\u21924, type changes to breath weapon type; Rage gains arcane/evocation/elemental traits",
           "suite_type": "unit",
           "class_method": "BarbarianInstinctTest::testDragonInstinctDraconicRage",
           "ac_tag": "NEW",
@@ -3611,7 +3611,7 @@
         },
         {
           "id": "TC-BAR-09",
-          "description": "Dragon Instinct: damage type correctly sourced from selected dragon type (fire→fire, cold→cold)",
+          "description": "Dragon Instinct: damage type correctly sourced from selected dragon type (fire\u2192fire, cold\u2192cold)",
           "suite_type": "unit",
           "class_method": "BarbarianInstinctTest::testDragonInstinctDamageTypeFromDragonType",
           "ac_tag": "NEW",
@@ -3627,7 +3627,7 @@
         },
         {
           "id": "TC-BAR-11",
-          "description": "Giant Instinct: oversized weapons equippable; Rage damage 2→6; clumsy 1 applied while raging with oversized weapon",
+          "description": "Giant Instinct: oversized weapons equippable; Rage damage 2\u21926; clumsy 1 applied while raging with oversized weapon",
           "suite_type": "unit",
           "class_method": "BarbarianInstinctTest::testGiantInstinctOversizedWeaponAndRage",
           "ac_tag": "NEW",
@@ -3651,7 +3651,7 @@
         },
         {
           "id": "TC-BAR-14",
-          "description": "Rage activation: temp HP = level + CON modifier (Level 3 CON +3 → temp_hp=6)",
+          "description": "Rage activation: temp HP = level + CON modifier (Level 3 CON +3 \u2192 temp_hp=6)",
           "suite_type": "unit",
           "class_method": "BarbarianRageTest::testRageGrantsTempHp",
           "ac_tag": "NEW",
@@ -3723,7 +3723,7 @@
         },
         {
           "id": "TC-BAR-23",
-          "description": "Level 3: Deny Advantage — immune to flat-footed from hidden/undetected/flanking/surprise from creatures of same or lower level",
+          "description": "Level 3: Deny Advantage \u2014 immune to flat-footed from hidden/undetected/flanking/surprise from creatures of same or lower level",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testDenyAdvantageAtLevel3",
           "ac_tag": "NEW",
@@ -3731,7 +3731,7 @@
         },
         {
           "id": "TC-BAR-24",
-          "description": "Level 5: Brutality — simple/martial/unarmed proficiency increases to Master; crit specialization applies while raging",
+          "description": "Level 5: Brutality \u2014 simple/martial/unarmed proficiency increases to Master; crit specialization applies while raging",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testBrutalityAtLevel5",
           "ac_tag": "NEW",
@@ -3739,7 +3739,7 @@
         },
         {
           "id": "TC-BAR-25",
-          "description": "Level 7: Juggernaut — Fortitude to Master; Fortitude save successes become critical successes",
+          "description": "Level 7: Juggernaut \u2014 Fortitude to Master; Fortitude save successes become critical successes",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testJuggernautAtLevel7",
           "ac_tag": "NEW",
@@ -3747,7 +3747,7 @@
         },
         {
           "id": "TC-BAR-26",
-          "description": "Level 7: Weapon Specialization — damage bonus +2 (Expert)/+3 (Master)/+4 (Legendary); instinct specialization unlocked",
+          "description": "Level 7: Weapon Specialization \u2014 damage bonus +2 (Expert)/+3 (Master)/+4 (Legendary); instinct specialization unlocked",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testWeaponSpecializationAtLevel7",
           "ac_tag": "NEW",
@@ -3755,7 +3755,7 @@
         },
         {
           "id": "TC-BAR-27",
-          "description": "Level 9: Raging Resistance — while raging, resistance = 3 + CON modifier; type per instinct",
+          "description": "Level 9: Raging Resistance \u2014 while raging, resistance = 3 + CON modifier; type per instinct",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testRagingResistanceAtLevel9",
           "ac_tag": "NEW",
@@ -3763,7 +3763,7 @@
         },
         {
           "id": "TC-BAR-28",
-          "description": "Level 11: Mighty Rage — class DC to Expert; Mighty Rage free-action available on Rage activation",
+          "description": "Level 11: Mighty Rage \u2014 class DC to Expert; Mighty Rage free-action available on Rage activation",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testMightyRageAtLevel11",
           "ac_tag": "NEW",
@@ -3779,7 +3779,7 @@
         },
         {
           "id": "TC-BAR-30",
-          "description": "Level 13: Greater Juggernaut — Fortitude to Legendary; critical failures become failures; failure damage effects halved",
+          "description": "Level 13: Greater Juggernaut \u2014 Fortitude to Legendary; critical failures become failures; failure damage effects halved",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testGreaterJuggernautAtLevel13",
           "ac_tag": "NEW",
@@ -3787,7 +3787,7 @@
         },
         {
           "id": "TC-BAR-31",
-          "description": "Level 15: Greater Weapon Specialization — damage bonus +4 (Expert)/+6 (Master)/+8 (Legendary)",
+          "description": "Level 15: Greater Weapon Specialization \u2014 damage bonus +4 (Expert)/+6 (Master)/+8 (Legendary)",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testGreaterWeaponSpecializationAtLevel15",
           "ac_tag": "NEW",
@@ -3795,7 +3795,7 @@
         },
         {
           "id": "TC-BAR-32",
-          "description": "Level 17: Quick Rage — removes 1-minute Rage cooldown; can Rage again after one full turn without raging",
+          "description": "Level 17: Quick Rage \u2014 removes 1-minute Rage cooldown; can Rage again after one full turn without raging",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testQuickRageAtLevel17",
           "ac_tag": "NEW",
@@ -3803,7 +3803,7 @@
         },
         {
           "id": "TC-BAR-33",
-          "description": "Level 19: Devastator — class DC to Master; melee Strikes ignore 10 points of physical damage resistance",
+          "description": "Level 19: Devastator \u2014 class DC to Master; melee Strikes ignore 10 points of physical damage resistance",
           "suite_type": "unit",
           "class_method": "BarbarianLevelFeaturesTest::testDevastatorAtLevel19",
           "ac_tag": "NEW",
@@ -3885,7 +3885,7 @@
     },
     {
       "id": "dc-cr-class-rogue-phpunit",
-      "label": "Rogue Class — identity/stats (HP8+CON, Expert Reflex+Will, Trained Perception), Racket selection (Ruffian/Scoundrel/Thief with all variant rules including key ability, weapon/armor, skills), Sneak Attack (flat-footed gate, immune types, dice scaling), Surprise Attack (initiative-based flat-footed), Debilitation mutual exclusivity, feat progression (skill feat every level, skill increase every level from 2), auth guard, ACL regression",
+      "label": "Rogue Class \u2014 identity/stats (HP8+CON, Expert Reflex+Will, Trained Perception), Racket selection (Ruffian/Scoundrel/Thief with all variant rules including key ability, weapon/armor, skills), Sneak Attack (flat-footed gate, immune types, dice scaling), Surprise Attack (initiative-based flat-footed), Debilitation mutual exclusivity, feat progression (skill feat every level, skill increase every level from 2), auth guard, ACL regression",
       "type": "phpunit",
       "feature_id": "dc-cr-class-rogue",
       "command": "./vendor/bin/phpunit --filter=Rogue tests/src/",
@@ -3895,7 +3895,7 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
-      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. dc-cr-conditions status=done — TCs 18/19/20 (Scoundrel Feint flat-footed) activated immediately (not deferred). Regression risks: Expert Reflex+Will at level 1 (unique — class-agnostic Trained default will silently fail); Ruffian crit-spec die-size gate (d8 vs d10/d12 boundary); Thief DEX-to-damage finesse-only restriction; Sneak Attack immune-type list completeness; Surprise Attack initiative-timing implementation.",
+      "notes": "Security AC exemption confirmed: no new routes beyond existing character creation/leveling forms. No qa-permissions.json update needed. dc-cr-conditions status=done \u2014 TCs 18/19/20 (Scoundrel Feint flat-footed) activated immediately (not deferred). Regression risks: Expert Reflex+Will at level 1 (unique \u2014 class-agnostic Trained default will silently fail); Ruffian crit-spec die-size gate (d8 vs d10/d12 boundary); Thief DEX-to-damage finesse-only restriction; Sneak Attack immune-type list completeness; Surprise Attack initiative-timing implementation.",
       "test_cases": [
         {
           "id": "TC-ROG-01",
@@ -3923,7 +3923,7 @@
         },
         {
           "id": "TC-ROG-04",
-          "description": "HP per level = 8 + CON modifier (CON 14 → Level 1 HP=10; Level 2 HP=20)",
+          "description": "HP per level = 8 + CON modifier (CON 14 \u2192 Level 1 HP=10; Level 2 HP=20)",
           "suite_type": "unit",
           "class_method": "RogueClassTest::testHpPerLevel",
           "ac_tag": "NEW",
@@ -3971,7 +3971,7 @@
         },
         {
           "id": "TC-ROG-10",
-          "description": "Skill feat slot at every level (1–20), unlike most classes which grant skill feats at even levels only",
+          "description": "Skill feat slot at every level (1\u201320), unlike most classes which grant skill feats at even levels only",
           "suite_type": "unit",
           "class_method": "RogueFeatProgressionTest::testSkillFeatEveryLevel",
           "ac_tag": "NEW",
@@ -4003,7 +4003,7 @@
         },
         {
           "id": "TC-ROG-14",
-          "description": "Ruffian: crit + flat-footed + simple weapon die ≤d8 → crit specialization applied; no crit spec on non-flat-footed crit",
+          "description": "Ruffian: crit + flat-footed + simple weapon die \u2264d8 \u2192 crit specialization applied; no crit spec on non-flat-footed crit",
           "suite_type": "unit",
           "class_method": "RogueRacketTest::testRuffianCritSpecializationOnFlatFootedD8",
           "ac_tag": "NEW",
@@ -4331,7 +4331,7 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
-      "notes": "Security AC exemption confirmed: no new routes. All dependencies met (dc-cr-encounter-rules=done, dc-cr-conditions=done). TC-HAZ-20 and TC-HAZ-28 (counteract mechanics) deferred pending-dev-confirmation — dc-cr-spells-ch07 status=ready, not done. TC-HAZ-22 hazard XP exact table values need PM/BA confirmation (Table 10-14 PF2E CRB) before assertions are final. Hazard XP uses separate lookup from creature XP table — confirmed by dc-cr-encounter-creature-xp-table test plan (TC-XPT-08). 27 TCs active, 2 pending-dev-confirmation.",
+      "notes": "Security AC exemption confirmed: no new routes. All dependencies met (dc-cr-encounter-rules=done, dc-cr-conditions=done). TC-HAZ-20 and TC-HAZ-28 (counteract mechanics) deferred pending-dev-confirmation \u2014 dc-cr-spells-ch07 status=ready, not done. TC-HAZ-22 hazard XP exact table values need PM/BA confirmation (Table 10-14 PF2E CRB) before assertions are final. Hazard XP uses separate lookup from creature XP table \u2014 confirmed by dc-cr-encounter-creature-xp-table test plan (TC-XPT-08). 27 TCs active, 2 pending-dev-confirmation.",
       "test_cases": [
         {
           "id": "TC-HAZ-01",
@@ -4472,7 +4472,7 @@
           "suite_type": "data-validation",
           "status": "pending-dev-confirmation",
           "ac_tag": "NEW",
-          "notes": "Conditional on dc-cr-spells-ch07 (counteract rules) — status=ready, not done. Activate once dc-cr-spells-ch07 ships."
+          "notes": "Conditional on dc-cr-spells-ch07 (counteract rules) \u2014 status=ready, not done. Activate once dc-cr-spells-ch07 ships."
         },
         {
           "id": "TC-HAZ-21",
@@ -4530,7 +4530,7 @@
           "suite_type": "data-validation",
           "status": "pending-dev-confirmation",
           "ac_tag": "TEST-ONLY",
-          "notes": "Conditional on dc-cr-spells-ch07 (counteract rules) — status=ready, not done. Activate once dc-cr-spells-ch07 ships."
+          "notes": "Conditional on dc-cr-spells-ch07 (counteract rules) \u2014 status=ready, not done. Activate once dc-cr-spells-ch07 ships."
         },
         {
           "id": "TC-HAZ-29",
@@ -4553,7 +4553,7 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
-      "notes": "Security AC exemption confirmed: no new routes. All dependencies done (dc-cr-ancestry-system, dc-cr-heritage-system, dc-cr-languages, dc-cr-ancestry-feat-schedule all status=done). All 18 TCs active. TC-HUM-18 is a pre-implementation data-integrity gate — DB-load task for core/ch01 and core/ch02 must be dispatched to dev-dungeoncrawler before feature enters dev (PM action required). Regression risks: two-boost uniqueness enforcement; Adapted Cantrip spellcasting gate; Natural Ambition level-1-only filter; Haughty Obstinacy crit-fail improvement boundary; heritage low-light vision not leaking to base Human.",
+      "notes": "Security AC exemption confirmed: no new routes. All dependencies done (dc-cr-ancestry-system, dc-cr-heritage-system, dc-cr-languages, dc-cr-ancestry-feat-schedule all status=done). All 18 TCs active. TC-HUM-18 is a pre-implementation data-integrity gate \u2014 DB-load task for core/ch01 and core/ch02 must be dispatched to dev-dungeoncrawler before feature enters dev (PM action required). Regression risks: two-boost uniqueness enforcement; Adapted Cantrip spellcasting gate; Natural Ambition level-1-only filter; Haughty Obstinacy crit-fail improvement boundary; heritage low-light vision not leaking to base Human.",
       "test_cases": [
         {
           "id": "TC-HUM-01",
@@ -4981,11 +4981,167 @@
           "ac_tag": "NEW"
         }
       ]
+    },
+    {
+      "id": "dc-apg-archetypes-e2e",
+      "label": "APG archetypes system: dedication gate (L2/2-before rules), 26+ archetype dedication feats, proficiency cap enforcement, individual archetype mechanics (Acrobat/Assassin/Marshal/Bounty Hunter/Beastmaster/Blessed One/Familiar Master/Shadowdancer/Vigilante/Snarecrafter), multiclass spellcasting progression, Cavalier mount dependency, Ritualist skill-based rituals, edge cases",
+      "type": "e2e",
+      "feature_id": "dc-apg-archetypes",
+      "command": "npx playwright test tests/e2e/apg-archetypes/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-archetypes-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 20 TCs active. Regression risks: 2-before-dedication rule not enforced at feat selection; proficiency cap allowing archetype to exceed class maximum; Assassin Mark for Death deadly upgrade vs addition regression; Beastmaster focus pool not created if class already has one; Ritualist using spell DC instead of skill modifier; Cavalier actions failing non-gracefully when no mount.",
+      "test_cases": [
+        {
+          "id": "TC-ARC-01",
+          "description": "Dedication feat gate: archetype Dedication feats appear only at L2+ in class feat slot; blocked when character.level < 2",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-1"
+        },
+        {
+          "id": "TC-ARC-02",
+          "description": "2-before-another-dedication rule: second Dedication from same archetype blocked until 2 non-Dedication feats from that archetype are taken",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-2"
+        },
+        {
+          "id": "TC-ARC-03",
+          "description": "Dedication prerequisite enforcement: non-Dedication archetype feats blocked unless character has corresponding Dedication",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-1"
+        },
+        {
+          "id": "TC-ARC-04",
+          "description": "Proficiency cap: archetype-granted proficiency (weapon/armor/skill) cannot exceed class max proficiency for that category",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-Integration-3"
+        },
+        {
+          "id": "TC-ARC-05",
+          "description": "Acrobat: Expert Acrobatics at dedication; Master at L7; Legendary at L15; crit Tumble Through ignores difficult terrain (tumble_through_crit.difficult_terrain_ignored=true)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Martial-1"
+        },
+        {
+          "id": "TC-ARC-06",
+          "description": "Assassin Mark for Death: 3-action; 1 mark at a time; +2 circumstance Seek/Feint vs mark; agile/finesse/unarmed attacks get backstabber+deadly d6 or upgrade existing deadly die (not add)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Martial-3,Edge-2"
+        },
+        {
+          "id": "TC-ARC-07",
+          "description": "Marshal aura: 1-action 10-ft emanation; choice of +1 circumstance to attacks OR +1 status to saves per activation; mutually exclusive per activation",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Martial-11,Edge-Integration-6"
+        },
+        {
+          "id": "TC-ARC-08",
+          "description": "Bounty Hunter: grants Hunt Prey (ranger feature); target must be known creature; +2 circumstance to Gather Information about prey",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Skill-2"
+        },
+        {
+          "id": "TC-ARC-09",
+          "description": "Beastmaster: dedication grants young animal companion; Call Companion 1-action (only if >=2 companions); Cha-based primal focus spells; focus pool=1; Refocus via tending companion",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-1,Integration-4"
+        },
+        {
+          "id": "TC-ARC-10",
+          "description": "Blessed One: available to ALL classes; grants lay_on_hands divine focus spell; creates focus pool of 1 FP if not already present; Refocus via 10-min meditation",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-2,Integration-5"
+        },
+        {
+          "id": "TC-ARC-11",
+          "description": "Familiar Master: grants familiar to characters without a class that normally provides one; familiar follows standard familiar mechanics",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-3"
+        },
+        {
+          "id": "TC-ARC-12",
+          "description": "Shadowdancer: shadow_jump action available; stealth_bonus_shadow applies in low-light/darkness; all 5 prerequisite feat reqs enforced at selection",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-19"
+        },
+        {
+          "id": "TC-ARC-13",
+          "description": "Vigilante: two identity states (social/vigilante) stored; identity_revealed check uses Perception vs Vigilante DC; 8-feat chain gated behind Dedication",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-23"
+        },
+        {
+          "id": "TC-ARC-14",
+          "description": "Snarecrafter: snare_crafting_time reduced per feat progression; snare feats accessible; 4-feat chain gated behind Dedication",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-20"
+        },
+        {
+          "id": "TC-ARC-15",
+          "description": "Multiclass spellcasting archetypes: spell slots granted per basic/expert/master progression table; proficiency follows basic->expert->master chain",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "System-4"
+        },
+        {
+          "id": "TC-ARC-16",
+          "description": "Integration: all 26+ archetype Dedication feats present in L2 class feat slot; each independently selectable without prior archetype feats",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-1"
+        },
+        {
+          "id": "TC-ARC-17",
+          "description": "Integration: UI blocks second Dedication from same archetype; shows requires-2-more-feats message until condition met",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-2"
+        },
+        {
+          "id": "TC-ARC-18",
+          "description": "Edge: Archer bow proficiency upgrades tied to class weapon proficiency level milestones (not independent archetype progression)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-1"
+        },
+        {
+          "id": "TC-ARC-19",
+          "description": "Edge: Cavalier Dedication available; mount-dependent actions fail gracefully when no mount active; mount_system_required flag documented in character sheet",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-3"
+        },
+        {
+          "id": "TC-ARC-20",
+          "description": "Edge: Ritualist accessible to non-spellcasting classes; ritual_check_modifier = chosen_skill_modifier (not spell DC); no spell slots granted",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Magic-8,Edge-4"
+        }
+      ]
     }
   ],
   "_schema_notes": [
     "Suite entries MAY include an optional 'feature_id' field when the suite was added for a specific groomed feature.",
-    "feature_id links back to features/<feature_id>/ — the living requirements document.",
+    "feature_id links back to features/<feature_id>/ \u2014 the living requirements document.",
     "Suites without feature_id are baseline regression tests.",
     "Example: { 'id': 'my-feature-e2e', 'feature_id': 'dc-my-feature', 'label': '...', 'type': 'e2e', ... }"
   ]
