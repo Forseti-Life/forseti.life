@@ -678,6 +678,73 @@
         "TP-DISP-01..04: display/performance tests are manual; accept risk or seed DB and verify manually pre-Gate 2."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-langgraph-ui-auth",
+      "label": "LangGraph Console UI \u2014 auth: build+test routes return 403 for anonymous",
+      "type": "script",
+      "feature_id": "forseti-langgraph-ui",
+      "command": "bash -c 'set -e; BASE=https://forseti.life; echo \"=== TP-AUTH-01: build console anon => 403 ===\"; S=$(curl -s -o /dev/null -w \"%{http_code}\" \"$BASE/admin/reports/copilot-agent-tracker/langgraph-console/build\"); [ \"$S\" = \"403\" ] && echo PASS || (echo \"FAIL: got $S\" && exit 1); echo \"=== TP-AUTH-02: test console anon => 403 ===\"; S=$(curl -s -o /dev/null -w \"%{http_code}\" \"$BASE/admin/reports/copilot-agent-tracker/langgraph-console/test\"); [ \"$S\" = \"403\" ] && echo PASS || (echo \"FAIL: got $S\" && exit 1); echo All auth checks PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-ui/auth.log"
+      ],
+      "run_notes": [
+        "TP-AUTH-01: curl /admin/reports/copilot-agent-tracker/langgraph-console/build anon => 403.",
+        "TP-AUTH-02: curl /admin/reports/copilot-agent-tracker/langgraph-console/test anon => 403.",
+        "Admin auth-positive tests (200) require admin session cookie; covered by manual build/test entries."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-langgraph-ui-regression",
+      "label": "LangGraph Console UI \u2014 regression: all 7 console routes return 403 for anonymous",
+      "type": "script",
+      "feature_id": "forseti-langgraph-ui",
+      "command": "bash -c 'set -e; BASE=https://forseti.life; ROUTES=\"langgraph-console langgraph-console/build langgraph-console/test langgraph-console/run langgraph-console/observe langgraph-console/release langgraph-console/admin\"; FAIL=0; for R in $ROUTES; do   S=$(curl -s -o /dev/null -w \"%{http_code}\" \"$BASE/admin/reports/copilot-agent-tracker/$R\");   if [ \"$S\" = \"403\" ]; then echo \"PASS $R => 403\"; else echo \"FAIL $R => $S\"; FAIL=1; fi; done; [ $FAIL -eq 0 ] && echo All regression checks PASS || exit 1'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-ui/regression.log"
+      ],
+      "run_notes": [
+        "TP-REG-01: All 7 console routes must return 403 for anonymous.",
+        "TP-REG-02: Admin 200 on all 7 dashboard routes is manual (requires session cookie).",
+        "TP-REG-03: XSS check on rendered field names is manual (inspect HTML source for unescaped values).",
+        "Note: AC-4 lists /langgraph-console/config but actual route is /langgraph-console/admin (routing.yml: copilot_agent_tracker.langgraph_console_admin). Command uses correct /admin path."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-langgraph-ui-build",
+      "label": "LangGraph Console UI \u2014 Build page: State Schema (>=6 LangGraphDeps fields) + Nodes & Routing panels render",
+      "type": "manual",
+      "feature_id": "forseti-langgraph-ui",
+      "command": "manual: log in as admin; GET https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/build; verify State Schema table has >=6 LangGraphDeps fields (run_cmd, dispatch_commands_step, release_cycle_step, coordinated_push_step, prioritized_agents, health_check_step); verify Nodes & Routing section lists >=3 step names; no PHP errors; page returns 200",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-ui/build-manual.log"
+      ],
+      "run_notes": [
+        "TP-BUILD-01: 200 + State Schema section + >=6 LangGraphDeps fields visible.",
+        "TP-BUILD-02: Fields include run_cmd, dispatch_commands_step, release_cycle_step, coordinated_push_step, prioritized_agents, health_check_step.",
+        "TP-BUILD-03: Nodes & Routing subsection present with >=3 step names.",
+        "TP-SEC-01: No raw variable output in Twig (all values HTML-escaped).",
+        "TP-SEC-02: engine.py missing/unreadable shows empty-state message, not PHP fatal or 500 (Dev to verify).",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-langgraph-ui-test",
+      "label": "LangGraph Console UI \u2014 Test page: Eval Scorecards placeholder with empty-state message renders",
+      "type": "manual",
+      "feature_id": "forseti-langgraph-ui",
+      "command": "manual: log in as admin; GET https://forseti.life/admin/reports/copilot-agent-tracker/langgraph-console/test; verify Eval Scorecards subsection visible with placeholder table (columns: Agent, Task Type, Success Rate, Last Run) and empty-state message referencing agent_evaluation module; no PHP errors; page returns 200",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-langgraph-ui/test-manual.log"
+      ],
+      "run_notes": [
+        "TP-TEST-01: 200 + Eval Scorecards subsection + placeholder table with 4 columns + empty-state message.",
+        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
