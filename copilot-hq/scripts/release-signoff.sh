@@ -27,6 +27,15 @@ if [ -z "$site" ] || [ -z "$release_id" ]; then
   exit 2
 fi
 
+# Guard: reject non-conforming release IDs (e.g., phantom IDs derived from QA outbox filenames).
+# Valid format: YYYYMMDD-<team>-release-<letter[s]>  e.g. 20260408-forseti-release-j
+if ! echo "$release_id" | grep -qE '^[0-9]{8}-[a-zA-Z][a-zA-Z0-9-]+-release-[a-z][a-z0-9]*$'; then
+  echo "ERROR: release_id '${release_id}' does not match required format YYYYMMDD-<team>-release-<letter>." >&2
+  echo "This is likely a phantom dispatch from a QA unit-test or feature-verify outbox." >&2
+  echo "Archive the inbox item and discard — do NOT run this with a non-release ID." >&2
+  exit 2
+fi
+
 if ! lookup_result="$(python3 - "$PRODUCT_TEAMS_JSON" "$site" <<'PY'
 import json
 import sys
