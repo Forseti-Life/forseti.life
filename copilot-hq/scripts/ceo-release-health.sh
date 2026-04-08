@@ -9,10 +9,12 @@
 #   • PM signoffs (own + cross-team)
 #   • Coordinated push readiness
 #   • GitHub Actions deploy.yml enabled + last run
+#   • Orphaned features — in_progress on stale/closed releases with no dev work
+#   • Backlog health — ready features awaiting grooming into upcoming releases
 #
 # Usage:
 #   bash scripts/ceo-release-health.sh
-#   bash scripts/ceo-release-health.sh --fix     # auto-fix stale next_release_id (CEO authority)
+#   bash scripts/ceo-release-health.sh --fix     # auto-fix stale next_release_id AND reset orphaned features (CEO authority)
 #
 # Output uses ✅ PASS / ❌ FAIL / ⚠️  WARN prefixes.
 # Exit 0 = all checks pass. Exit 1 = at least one FAIL.
@@ -259,6 +261,43 @@ PY
     info "Run: bash scripts/release-signoff.sh $TEAM $RELEASE_ID"
   fi
 
+  # 6. Orphaned features — in_progress on a stale/closed release for this team
+  echo
+  ORPHAN_COUNT=0
+  while IFS= read -r FEAT_DIR; do
+    [ -d "$FEAT_DIR" ] || continue
+    FM="$FEAT_DIR/feature.md"
+    [ -f "$FM" ] || continue
+    F_STATUS="$(grep -E '^- Status:' "$FM" | head -1 | sed 's/^- Status: //')"
+    [ "$F_STATUS" = "in_progress" ] || continue
+    F_RELEASE="$(grep -E '^- Release:' "$FM" | head -1 | sed 's/^- Release: //')"
+    # Skip if blank, placeholder, or the CURRENT release
+    [ -z "$F_RELEASE" ] && continue
+    echo "$F_RELEASE" | grep -qE "set by PM|^none$" && continue
+    [ "$F_RELEASE" = "$RELEASE_ID" ] && continue
+    # Only flag features belonging to this team (release ID contains team name)
+    echo "$F_RELEASE" | grep -q "$TEAM" || continue
+    FEAT_NAME="$(basename "$FEAT_DIR")"
+    DEV_AGENT="dev-$TEAM"
+    HAS_IMPL="$(ls "sessions/${DEV_AGENT}/outbox/" 2>/dev/null | grep "$FEAT_NAME" | head -1 || true)"
+    if [ -n "$HAS_IMPL" ]; then
+      warn "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on OLD $F_RELEASE — dev outbox exists, mark done?)"
+    else
+      fail "[$TEAM] ORPHAN: $FEAT_NAME (in_progress on CLOSED $F_RELEASE — no dev work done)"
+      info "  Fix: reset to ready + clear release; or run with --fix to auto-reset"
+      if [ "$FIX_MODE" = "1" ]; then
+        sed -i 's/^- Status: in_progress/- Status: ready/' "$FM"
+        sed -i "s|^- Release: ${F_RELEASE}|- Release: |" "$FM"
+        info "  FIX: reset $FEAT_NAME → ready, release cleared"
+      fi
+    fi
+    ORPHAN_COUNT=$((ORPHAN_COUNT + 1))
+  done < <(find features -maxdepth 1 -mindepth 1 -type d 2>/dev/null)
+
+  if [ "$ORPHAN_COUNT" -eq 0 ]; then
+    pass "[$TEAM] No orphaned in_progress features on stale/closed releases"
+  fi
+
 done <<<"$COORDINATED_TEAMS"
 
 # ── Cross-team signoffs ───────────────────────────────────────────────────────
@@ -337,6 +376,56 @@ else
     info "Push not yet ready — waiting on signoffs listed above"
   fi
 fi
+
+# ── Feature backlog health ────────────────────────────────────────────────────
+echo
+hr
+echo "  Feature Backlog Health"
+hr
+
+while IFS=$'\t' read -r TEAM PM_AGENT QA_AGENT; do
+  [ -n "$TEAM" ] || continue
+
+  COUNTS="$(python3 - features "$PM_AGENT" <<'PY'
+import pathlib, sys, re
+feat_root = pathlib.Path(sys.argv[1])
+pm_agent = sys.argv[2]
+ready, unassigned = 0, 0
+for feat_dir in sorted(feat_root.iterdir()):
+    fm = feat_dir / "feature.md"
+    if not fm.exists():
+        continue
+    text = fm.read_text()
+    # Only count features owned by this team's PM
+    if not any(pm_agent in l for l in text.splitlines() if re.match(r"^- PM owner:", l)):
+        continue
+    status_val = next(
+        (re.sub(r"^- Status:\s*", "", l).strip()
+         for l in text.splitlines() if re.match(r"^- Status:", l)), "")
+    if status_val != "ready":
+        continue
+    ready += 1
+    release_val = next(
+        (re.sub(r"^- Release:\s*", "", l).strip()
+         for l in text.splitlines() if re.match(r"^- Release:", l)), "")
+    if not release_val or release_val in ("none", "(set by PM at activation)"):
+        unassigned += 1
+print(f"{ready}\t{unassigned}")
+PY
+)"
+
+  READY_COUNT="$(echo "$COUNTS" | cut -f1)"
+  UNASSIGNED_COUNT="$(echo "$COUNTS" | cut -f2)"
+
+  if [ "${READY_COUNT:-0}" -ge 30 ]; then
+    warn "[$TEAM] ${READY_COUNT} ready features in backlog (${UNASSIGNED_COUNT} unassigned to any release) — grooming needed"
+    info "Dispatch grooming task to $PM_AGENT: scope next batch into upcoming release"
+  elif [ "${READY_COUNT:-0}" -gt 0 ]; then
+    pass "[$TEAM] ${READY_COUNT} ready feature(s) in backlog (${UNASSIGNED_COUNT} unassigned) — healthy"
+  else
+    pass "[$TEAM] Backlog empty — no unshipped ready features"
+  fi
+done <<<"$COORDINATED_TEAMS"
 
 # ── Summary ───────────────────────────────────────────────────────────────────
 echo
