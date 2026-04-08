@@ -6645,6 +6645,266 @@
           "ac": "regression-audit-clean"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-bard-e2e",
+      "label": "Bard Class \u2014 CHA key ability, HP/proficiencies, Muse selection (Enigma/Maestro/Polymath), occult spellcasting (repertoire/cantrips/signature spells/spell slots/metamagic), composition spells/focus pool, level-gated features (3/7/9/11/13/15/17/19), ACL",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-bard",
+      "command": "./vendor/bin/phpunit --filter BardClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-bard/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-bard/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-BRD-01",
+          "description": "Bard selectable in character creation; key_ability = charisma",
+          "suite": "module-test-suite",
+          "ac": "NEW-bard-class-exists-cha"
+        },
+        {
+          "id": "TC-BRD-02",
+          "description": "Bard HP = 8 + CON modifier per level; CON+1 at level 1 = 9, level 2 = 18",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calc"
+        },
+        {
+          "id": "TC-BRD-03",
+          "description": "Initial proficiencies: Expert Perception/Will, Trained Fort/Reflex, Trained Occultism/Performance, 4+INT skills, specific weapons, light armor, occult spell attack/DC",
+          "suite": "module-test-suite",
+          "ac": "NEW-initial-proficiencies"
+        },
+        {
+          "id": "TC-BRD-04",
+          "description": "Muse selection: Enigma, Maestro, Polymath all accepted and stored at level 1",
+          "suite": "module-test-suite",
+          "ac": "NEW-valid-muse"
+        },
+        {
+          "id": "TC-BRD-05",
+          "description": "Invalid Muse (not Enigma/Maestro/Polymath) rejected with validation error",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-invalid-muse"
+        },
+        {
+          "id": "TC-BRD-06",
+          "description": "Enigma Muse: Bardic Lore feat + true strike added to spell repertoire",
+          "suite": "module-test-suite",
+          "ac": "NEW-enigma-muse-grants",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-07",
+          "description": "Maestro Muse: Lingering Composition feat + soothe added to spell repertoire",
+          "suite": "module-test-suite",
+          "ac": "NEW-maestro-muse-grants",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-08",
+          "description": "Polymath Muse: Versatile Performance feat + unseen servant added to spell repertoire",
+          "suite": "module-test-suite",
+          "ac": "NEW-polymath-muse-grants",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-09",
+          "description": "Occult spell attacks and DCs scale with CHA; DC = 10 + proficiency + CHA mod",
+          "suite": "module-test-suite",
+          "ac": "NEW-spell-scale-cha",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-10",
+          "description": "Instrument replaces somatic/material components; can replace verbal; held in one hand",
+          "suite": "module-test-suite",
+          "ac": "NEW-instrument-components",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-11",
+          "description": "Spell repertoire at level 1: 2 first-level occult spells + 5 cantrips (excluding muse spell)",
+          "suite": "module-test-suite",
+          "ac": "NEW-starting-repertoire",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-12",
+          "description": "Cantrips auto-heighten to half level rounded up; level 1\u21921, level 3\u21922, level 5\u21923",
+          "suite": "module-test-suite",
+          "ac": "NEW-cantrip-auto-heighten",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-13",
+          "description": "Spell swap at level-up: one known spell replaced per level; same-level restriction enforced",
+          "suite": "module-test-suite",
+          "ac": "NEW-spell-swap",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-14",
+          "description": "Signature Spells at level 3: one per spell level; freely heightened without learning each level; non-signature heighten to unlearned level blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW-signature-spells",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-15",
+          "description": "Focus pool starts at 1 Focus Point; max 3 with feats",
+          "suite": "module-test-suite",
+          "ac": "NEW-focus-pool-start"
+        },
+        {
+          "id": "TC-BRD-16",
+          "description": "Composition focus spells cost 1 Focus Point; composition cantrips are free",
+          "suite": "module-test-suite",
+          "ac": "NEW-composition-fp-cost"
+        },
+        {
+          "id": "TC-BRD-17",
+          "description": "Focus pool at 0: composition focus spells blocked; cantrip compositions still work",
+          "suite": "module-test-suite",
+          "ac": "NEW-empty-focus-pool-blocks"
+        },
+        {
+          "id": "TC-BRD-18",
+          "description": "Refocus: 10 minutes; restores 1 Focus Point; cannot exceed max",
+          "suite": "module-test-suite",
+          "ac": "NEW-refocus"
+        },
+        {
+          "id": "TC-BRD-19",
+          "description": "Composition spells auto-heighten to half level rounded up",
+          "suite": "module-test-suite",
+          "ac": "NEW-composition-auto-heighten"
+        },
+        {
+          "id": "TC-BRD-20",
+          "description": "Counter Performance available as starting composition focus spell (reaction, protects vs auditory/visual)",
+          "suite": "module-test-suite",
+          "ac": "NEW-counter-performance"
+        },
+        {
+          "id": "TC-BRD-21",
+          "description": "Inspire Courage available as starting composition cantrip (buffs ally attacks, damage, saves vs fear)",
+          "suite": "module-test-suite",
+          "ac": "NEW-inspire-courage"
+        },
+        {
+          "id": "TC-BRD-22",
+          "description": "Composition trait: only one composition per turn; only one active at a time",
+          "suite": "module-test-suite",
+          "ac": "NEW-composition-one-per-turn"
+        },
+        {
+          "id": "TC-BRD-23",
+          "description": "Casting new composition while one is active: previous composition immediately ends",
+          "suite": "module-test-suite",
+          "ac": "NEW-composition-ends-previous"
+        },
+        {
+          "id": "TC-BRD-24",
+          "description": "Level 3: Lightning Reflexes \u2014 Reflex saves increase to Expert",
+          "suite": "module-test-suite",
+          "ac": "NEW-level3-lightning-reflexes"
+        },
+        {
+          "id": "TC-BRD-25",
+          "description": "Level 7: occult spell attack rolls and DCs increase to Expert",
+          "suite": "module-test-suite",
+          "ac": "NEW-level7-occult-expert"
+        },
+        {
+          "id": "TC-BRD-26",
+          "description": "Level 9: Great Fortitude (Fort \u2192 Expert); Resolve (Will \u2192 Master; successes become critical successes)",
+          "suite": "module-test-suite",
+          "ac": "NEW-level9-saves"
+        },
+        {
+          "id": "TC-BRD-27",
+          "description": "Level 11: Bard Weapon Expertise \u2014 weapons to Expert; crit specialization during active composition",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-weapon-expertise"
+        },
+        {
+          "id": "TC-BRD-28",
+          "description": "Level 11: Vigilant Senses \u2014 Perception increases to Master",
+          "suite": "module-test-suite",
+          "ac": "NEW-level11-vigilant-senses"
+        },
+        {
+          "id": "TC-BRD-29",
+          "description": "Level 13: light armor/unarmored to Expert; Weapon Specialization +2/+3/+4 at Expert/Master/Legendary",
+          "suite": "module-test-suite",
+          "ac": "NEW-level13-armor-weapon-spec"
+        },
+        {
+          "id": "TC-BRD-30",
+          "description": "Level 15: occult spell attack rolls and DCs increase to Master",
+          "suite": "module-test-suite",
+          "ac": "NEW-level15-occult-master"
+        },
+        {
+          "id": "TC-BRD-31",
+          "description": "Level 17: Greater Resolve \u2014 Will to Legendary; critical failures \u2192 failures; failure damage halved",
+          "suite": "module-test-suite",
+          "ac": "NEW-level17-greater-resolve"
+        },
+        {
+          "id": "TC-BRD-32",
+          "description": "Level 19: occult spell attacks/DCs to Legendary; Magnum Opus \u2014 2 common 10th-level spells + unique 10th-level slot",
+          "suite": "module-test-suite",
+          "ac": "NEW-level19-legendary-magnum-opus"
+        },
+        {
+          "id": "TC-BRD-33",
+          "description": "Spell slots match advancement table: 2 at level 1, scaling through 9th at level 17",
+          "suite": "module-test-suite",
+          "ac": "NEW-spell-slots-table",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-34",
+          "description": "Spell slots do not exceed advancement table values at any level",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-spell-slots-cap",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-35",
+          "description": "Metamagic: interruption before Cast a Spell wastes metamagic action; no effect applied",
+          "suite": "module-test-suite",
+          "ac": "NEW-metamagic-interruption",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-36",
+          "description": "Signature spell heightening freely permitted to any level without learning each version",
+          "suite": "module-test-suite",
+          "ac": "NEW-signature-heighten-free",
+          "dependency": "pending-dev-confirmation: dc-cr-spellcasting"
+        },
+        {
+          "id": "TC-BRD-37",
+          "description": "Level-gated features absent before required level: level-2 Bard has no Signature Spells, Lightning Reflexes absent before level 3",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-features-not-early"
+        },
+        {
+          "id": "TC-BRD-38",
+          "description": "Cross-player ACL: player cannot modify another player's Bard character; returns 403",
+          "suite": "module-test-suite",
+          "ac": "SEC-cross-player-403"
+        },
+        {
+          "id": "TC-BRD-39",
+          "description": "QA audit passes after module deployment: 0 violations, 0 failures",
+          "suite": "role-url-audit",
+          "ac": "QA-audit-clean"
+        }
+      ]
     }
   ],
   "_schema_notes": [
