@@ -441,6 +441,42 @@
         "TC-07/TC-08 (ACL smoke check) covered by existing role-url-audit suite via talk-with-forseti-short rule."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-copilot-agent-tracker-route-acl",
+      "label": "Copilot Agent Tracker \u2014 role/URL audit: admin routes return 200 for administrator, 403 for anon/authenticated/content_editor",
+      "type": "audit",
+      "feature_id": "forseti-copilot-agent-tracker",
+      "command": "ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md"
+      ],
+      "run_notes": [
+        "Relies on qa-permissions.json rules: copilot-agent-tracker-admin-routes (^/admin/reports/copilot-agent-tracker) and copilot-agent-tracker-waitingonkeith (^/admin/reports/waitingonkeith).",
+        "All dashboard routes require 'administer copilot agent tracker' permission \u2014 anon, authenticated, and content_editor must receive 403/redirect.",
+        "Administrator role must receive 200 for all /admin/reports/copilot-agent-tracker/* paths.",
+        "STAGE 0 PENDING: requires live authenticated session cookies in FORSETI_COOKIE_* env vars."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-copilot-agent-tracker-api",
+      "label": "Copilot Agent Tracker \u2014 API telemetry endpoint: token-gated (no token=403), payload validation (missing summary=400, invalid JSON=400), PII constraint (no chat log in watchdog)",
+      "type": "script",
+      "feature_id": "forseti-copilot-agent-tracker",
+      "command": "bash -c 'set -e; BASE=https://forseti.life; echo \"=== TC: POST without token => 403 ===\"; STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST -H \"Content-Type: application/json\" -d \"{\\\"summary\\\":\\\"test\\\"}\" \"$BASE/api/copilot-agent-tracker/event\"); [ \"$STATUS\" = \"403\" ] && echo \"PASS: 403\" || (echo \"FAIL: got $STATUS\" && exit 1); echo \"=== TC: POST without summary => 400 ===\"; STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST -H \"Content-Type: application/json\" -H \"X-Copilot-Agent-Tracker-Token: test-invalid\" -d \"{}\" \"$BASE/api/copilot-agent-tracker/event\"); [ \"$STATUS\" = \"400\" ] || [ \"$STATUS\" = \"403\" ] && echo \"PASS: $STATUS\" || (echo \"FAIL: got $STATUS\" && exit 1); echo \"=== TC: POST with invalid JSON => 400 ===\"; STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST -H \"Content-Type: application/json\" -H \"X-Copilot-Agent-Tracker-Token: test-invalid\" -d \"not-json\" \"$BASE/api/copilot-agent-tracker/event\"); [ \"$STATUS\" = \"400\" ] || [ \"$STATUS\" = \"403\" ] && echo \"PASS: $STATUS\" || (echo \"FAIL: got $STATUS\" && exit 1); echo \"=== All API static checks PASS ===\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-copilot-agent-tracker/api-checks.log"
+      ],
+      "run_notes": [
+        "TC: POST to /api/copilot-agent-tracker/event without X-Copilot-Agent-Tracker-Token header \u2192 403 (AccessDeniedHttpException in ApiController).",
+        "TC: POST with invalid token but missing 'summary' field \u2192 400 or 403 (controller validates token first, then payload).",
+        "TC: POST with invalid JSON body \u2192 400 (BadRequestHttpException).",
+        "PII constraint: watchdog must NOT contain raw chat content after a publish cycle. Manual verify: drush watchdog:show | grep -i 'event\\|telemetry' and confirm no chat transcripts.",
+        "ALLOW_PROD_QA=1 required to run against production. Token value is in Drupal state: drush state:get copilot_agent_tracker.telemetry_token.",
+        "STAGE 0 PENDING: happy-path test (POST with valid token + summary) requires live telemetry token from Drupal state."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [

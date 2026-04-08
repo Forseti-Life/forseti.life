@@ -87,6 +87,30 @@
       }
     },
     {
+      "id": "copilot-agent-tracker-admin-routes",
+      "feature_id": "forseti-copilot-agent-tracker",
+      "path_regex": "^/admin/reports/copilot-agent-tracker(?:/|$)",
+      "notes": "All copilot-agent-tracker dashboard routes require 'administer copilot agent tracker'. content_editor lacks this permission. Listed before admin-area so content_editor gets correct deny.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "deny",
+        "content_editor": "deny",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "copilot-agent-tracker-waitingonkeith",
+      "feature_id": "forseti-copilot-agent-tracker",
+      "path_regex": "^/admin/reports/waitingonkeith(?:/|$)",
+      "notes": "waitingonkeith routes require 'administer copilot agent tracker'. Listed before admin-area.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "deny",
+        "content_editor": "deny",
+        "administrator": "allow"
+      }
+    },
+    {
       "id": "admin-area",
       "path_regex": "^/admin(?:/|$)",
       "expect": {
