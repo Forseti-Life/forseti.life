@@ -5905,6 +5905,141 @@
           "ac_tag": "AC-003-integration"
         }
       ]
+    },
+    {
+      "id": "dc-apg-class-oracle-e2e",
+      "label": "Oracle class mechanics: class record (HP/Cha/Will Expert), divine spontaneous spellcasting (material\u2192somatic), cantrip auto-heighten, sorcerer spell slot progression, Signature Spells L3, mystery selection (8 options locked at creation), revelation spells (cursebound trait, 2 FP focus pool), 4-stage curse machine (basic\u2192minor\u2192moderate\u2192overwhelmed), curse overwhelmed blocking, refocus moderate\u2192minor reset, daily reset to basic, curse irremovable, per-mystery curse progressions and granted spells, focus pool cap 2, edge cases (0 FP block, initial cast path)",
+      "type": "e2e",
+      "feature_id": "dc-apg-class-oracle",
+      "command": "npx playwright test tests/e2e/apg-class-oracle/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-class-oracle-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 17 TCs active. Regression risks: material component flag not cleared for oracle spells; cantrip heighten formula using floor instead of ceil; mystery not locked after creation; curse stage advancing incorrectly (e.g. skipping moderate); overwhelmed not blocking revelation casting; refocus resetting to basic instead of minor; remove_curse succeeding on oracle; focus pool auto-growing beyond 2 without feat; TC-ORC-06 first revelation spell not forced by mystery.",
+      "test_cases": [
+        {
+          "id": "TC-ORC-01",
+          "description": "Class record: HP 8+Con/level, key ability Cha, Expert Will, Trained Fort/Ref; divine spontaneous spellcasting; material_component_required=false; 5 cantrips + 2 first-level spells",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-1-5"
+        },
+        {
+          "id": "TC-ORC-02",
+          "description": "Cantrips auto-heighten to ceil(level/2); spell slots per day match sorcerer progression (TABLE 2-3)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-6-7"
+        },
+        {
+          "id": "TC-ORC-03",
+          "description": "Signature Spells at L3: one signature spell slot per accessible spell level; selected spell castable at any higher slot",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-8"
+        },
+        {
+          "id": "TC-ORC-04",
+          "description": "Mystery selection: 8 options shown at creation; after selection, mystery locked (change blocked)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Mystery-1-2"
+        },
+        {
+          "id": "TC-ORC-05",
+          "description": "Revelation spells: cursebound trait on all; focus pool starts at 2 FP; Refocus 10 min restores 1 FP",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Revelation-1-4"
+        },
+        {
+          "id": "TC-ORC-06",
+          "description": "Revelation spells at L1: initial (forced, mystery-specific) + one domain spell (player choice from domain list)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Revelation-4-Edge-3"
+        },
+        {
+          "id": "TC-ORC-07",
+          "description": "Curse stage machine: stage 0 (basic passive) \u2192 minor \u2192 moderate \u2192 overwhelmed; each revelation cast advances by 1; overwhelmed blocks all revelation casting",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-1-5-Integration-2"
+        },
+        {
+          "id": "TC-ORC-08",
+          "description": "Overwhelmed state: revelation_cast and sustain_revelation both blocked; resets at daily prep",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-5"
+        },
+        {
+          "id": "TC-ORC-09",
+          "description": "Refocus at moderate or higher: curse resets to minor (not basic) + FP += 1",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-6-Edge-4"
+        },
+        {
+          "id": "TC-ORC-10",
+          "description": "Daily prep (8hr rest): curse resets to basic stage",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-7"
+        },
+        {
+          "id": "TC-ORC-11",
+          "description": "Curse irremovable: remove_curse targeting oracle returns failure; curse_stage unchanged",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-9-Edge-2"
+        },
+        {
+          "id": "TC-ORC-12",
+          "description": "Curse traits: [curse, divine, necromancy] all present",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-8"
+        },
+        {
+          "id": "TC-ORC-13",
+          "description": "Per-mystery curse progressions: all 8 mysteries have distinct 4-stage curse effects (not shared generic widget); UI renders them uniquely",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Curse-3-MysterySpells-1-Integration-1"
+        },
+        {
+          "id": "TC-ORC-14",
+          "description": "Per-mystery granted content: all 8 mysteries have initial (locked) + advanced + greater revelation spells + domain spell choices; advanced/greater accessible at correct levels",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "MysterySpells-1-8"
+        },
+        {
+          "id": "TC-ORC-15",
+          "description": "Focus pool cap: oracle.focus_pool_max = 2 by default; grows only when focus-spell feats taken; hard cap 3 per standard rules",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-4"
+        },
+        {
+          "id": "TC-ORC-16",
+          "description": "Edge: revelation cast at 0 FP \u2192 blocked regardless of curse stage",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-1"
+        },
+        {
+          "id": "TC-ORC-17",
+          "description": "Edge: initial revelation cast activates curse at basic stage; first cast of day succeeds and sets initial curse state",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Revelation-initial-cast"
+        }
+      ]
     }
   ],
   "_schema_notes": [
