@@ -1148,7 +1148,7 @@ def _dispatch_scope_activate_nudge() -> None:
             f"## Task\n\n"
             f"Release `{rid}` has been active for **{age_min} minutes** with zero features scoped.\n"
             f"Activate features now using:\n\n"
-            f"```bash\nbash scripts/pm-scope-activate.sh <feature_id> {site} {rid}\n```\n\n"
+            f"```bash\nbash scripts/pm-scope-activate.sh {site} <feature_id>\n```\n\n"
             f"Cap is **10 features** (auto-close fires at 10 or 24h). "
             f"Activate your highest-priority `ready` features first.\n\n"
             f"## Ready features (up to 10)\n{feats_list}\n\n"

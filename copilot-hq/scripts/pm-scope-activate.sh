@@ -30,6 +30,10 @@ if [ -z "$SITE" ] || [ -z "$FEATURE_ID" ]; then
   exit 1
 fi
 
+# Normalise SITE: strip .life domain suffix so both "forseti" and "forseti.life"
+# resolve to the same registered agent ID (qa-forseti, not qa-forseti.life).
+SITE="${SITE%.life}"
+
 FEATURE_DIR="features/${FEATURE_ID}"
 FEATURE_BRIEF="${FEATURE_DIR}/feature.md"
 AC_FILE="${FEATURE_DIR}/01-acceptance-criteria.md"

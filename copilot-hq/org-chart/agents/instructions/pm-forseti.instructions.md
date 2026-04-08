@@ -59,7 +59,25 @@ ls features/<feature-id>/03-test-plan.md
 - The grooming "ready" definition requires all 3 artifacts: `feature.md` + `01-acceptance-criteria.md` + `03-test-plan.md`.
 - Features activated without a test plan inflate the in_progress count and can trigger premature auto-close.
 
+**CRITICAL — scope-activate site argument (added 2026-04-08):** Always pass `forseti` (short name, no domain) as the site argument — **not** `forseti.life`. The script derives the QA agent ID as `qa-${SITE}`, and the registered agent is `qa-forseti`, not `qa-forseti.life`.
+
+```bash
+# Correct:
+bash scripts/pm-scope-activate.sh forseti <feature-id>
+
+# Wrong — routes suite-activate to unregistered qa-forseti.life inbox:
+bash scripts/pm-scope-activate.sh forseti.life <feature-id>
+```
+
 Reference: `knowledgebase/lessons/20260406-stale-groom-feature-scope-inflation.md`
+
+## Post-release cleanup (required immediately after push — added 2026-04-08)
+After a coordinated push succeeds (commit lands on main), in the same outbox cycle:
+1. **Set all shipped features to `- Status: done`** in feature.md AND **clear the `- Release:` line** (set to `- Release: ` with no value). Use `done` — not `shipped`. Clearing the Release field prevents the orchestrator from counting shipped features against the new release's scope cap.
+2. **Write or verify release notes** at `sessions/pm-forseti/artifacts/release-notes/<release-id>.md`.
+3. **Run `release-signoff.sh forseti <your-forseti-release-id>`** to advance your own release cycle.
+
+Lesson (2026-04-08): 6 forseti release-c suite-activate items were routed to `sessions/qa-forseti.life/inbox/` (unregistered agent) because `pm-scope-activate.sh` was called with `forseti.life` as the site. Items sat unprocessed for 1.5h until CEO manually moved them. Root fix: `pm-scope-activate.sh` now strips the `.life` suffix, but agents must still use the correct short name.
 
 ## DC config drift — post-push check (required — post-push gap fix)
 After any push that includes changes to DC (dungeoncrawler) configs applied via `drush config:set` or CEO/hotfix (DB-only changes), the sync dir must be updated to match. Run on `/var/www/html/dungeoncrawler`:

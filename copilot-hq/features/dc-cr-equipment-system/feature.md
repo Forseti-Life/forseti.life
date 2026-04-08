@@ -4,7 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: done
-- Release: 20260407-dungeoncrawler-release-b
+- Release: 
 - Priority: P1 (combat and character creation dependency; InventoryManagementService partial impl exists)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

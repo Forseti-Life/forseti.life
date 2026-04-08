@@ -402,11 +402,15 @@ Even without a `release-close-now` trigger, you MUST sign off as soon as ALL in-
 
 ### Post-release cleanup (required immediately after signoff — added 2026-04-06)
 After `release-signoff.sh` succeeds for any release:
-1. **Set all shipped features to `status: shipped`** in feature.md and remove the `Release:` line.
+1. **Set all shipped features to `- Status: done`** in feature.md AND **clear the `- Release:` line** (set it to `- Release: ` with no value). Do NOT use `status: shipped` — the canonical done value is `done`. Clearing the Release field prevents the orchestrator from counting shipped features against the new release's scope cap.
 2. **Write release notes** to `sessions/pm-dungeoncrawler/artifacts/release-notes/<release-id>.md` if not already written. Include: features shipped, features deferred, commit hashes, and one-line summary.
 3. **Trigger post-release gap review immediately** — do not wait. The orchestrator may send an improvement-round inbox item; if not, add a note to your outbox summarizing the top 1-3 gaps and any follow-through items.
 
+**Coordinated push rule (required — added 2026-04-08):** If you co-sign a coordinated push initiated by pm-forseti (i.e., the push is named `20260407-forseti-release-*`), you must **also** run `release-signoff.sh dungeoncrawler <your-dungeoncrawler-release-id>` in the same outbox cycle. Co-signing the forseti release does NOT advance your own dungeoncrawler release cycle.
+
 Lesson (2026-04-06): Release `20260322-dungeoncrawler-release-next` shipped 2026-03-22 but the post-release gap review inbox item was not created until 2026-04-02 (11 days later). Stale in_progress features from that release were never cleaned up, contributing to a release-c false auto-close. Post-release cleanup must happen in the same outbox cycle as signoff.
+
+Lesson (2026-04-08): DC release `20260407-dungeoncrawler-release-b` shipped at 00:23 UTC as part of coordinated push `20260407-forseti-release-b`. pm-dungeoncrawler co-signed the forseti release but never ran `release-signoff.sh dungeoncrawler 20260407-dungeoncrawler-release-b`. The 10 shipped features remained `in_progress` with stale `Release:` fields for 1.5h, blocking scope-activate for release-c. CEO had to manually run signoff and clear Release fields.
 
 Required action:
 - `bash scripts/release-signoff.sh dungeoncrawler <release-id>`
