@@ -3,6 +3,10 @@ services:
     class: Drupal\job_hunter\Repository\JobApplicationRepository
     arguments: ['@database']
 
+  job_hunter.user_profile_repository:
+    class: Drupal\job_hunter\Repository\UserProfileRepository
+    arguments: ['@database']
+
   logger.channel.job_hunter:
     parent: logger.channel_base
     arguments: ['job_hunter']

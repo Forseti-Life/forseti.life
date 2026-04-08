@@ -17,6 +17,7 @@ use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Drupal\job_hunter\Plugin\QueueWorker\ResumeGenAiParsingWorker;
 use Drupal\job_hunter\Form\Subform\EducationHistorySubform;
 use Drupal\job_hunter\Form\Subform\ResumeUploadSubform;
+use Drupal\job_hunter\Repository\UserProfileRepository;
 use Drupal\Core\Ajax\AjaxResponse;
 use Drupal\Core\Ajax\InvokeCommand;
 
@@ -77,11 +78,11 @@ class UserProfileForm extends FormBase {
   protected $configFactory;
 
   /**
-   * The database connection.
+   * The user profile repository.
    *
-   * @var \Drupal\Core\Database\Connection
+   * @var \Drupal\job_hunter\Repository\UserProfileRepository
    */
-  protected $database;
+  protected UserProfileRepository $userProfileRepository;
 
   /**
    * The education history subform handler.
@@ -117,14 +118,14 @@ class UserProfileForm extends FormBase {
    * @param \Drupal\ai_conversation\Service\AIApiService|null $ai_api_service
    *   The AI API service.
    */
-  public function __construct(AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger, UserProfileService $user_profile_service, JobSeekerService $job_seeker_service, $config_factory, $database, $ai_api_service = NULL) {
+  public function __construct(AccountInterface $current_user, EntityTypeManagerInterface $entity_type_manager, MessengerInterface $messenger, UserProfileService $user_profile_service, JobSeekerService $job_seeker_service, $config_factory, $database, UserProfileRepository $userProfileRepository, $ai_api_service = NULL) {
     $this->currentUser = $current_user;
     $this->entityTypeManager = $entity_type_manager;
     $this->messenger = $messenger;
     $this->userProfileService = $user_profile_service;
     $this->jobSeekerService = $job_seeker_service;
     $this->configFactory = $config_factory;
-    $this->database = $database;
+    $this->userProfileRepository = $userProfileRepository;
     $this->aiApiService = $ai_api_service;
     $this->educationHistorySubform = new EducationHistorySubform($database);
     $this->resumeUploadSubform = new ResumeUploadSubform($job_seeker_service, $database);
@@ -148,6 +149,7 @@ class UserProfileForm extends FormBase {
       $container->get('job_hunter.job_seeker_service'),
       $container->get('config.factory'),
       $container->get('database'),
+      $container->get('job_hunter.user_profile_repository'),
       $ai_service
     );
   }
@@ -1698,10 +1700,7 @@ class UserProfileForm extends FormBase {
     foreach ($values as $key => $value) {
       if (strpos($key, 'parsed_data_') === 0 && $value !== NULL && $value !== '') {
         $parsed_id = str_replace('parsed_data_', '', $key);
-        $this->database->update('jobhunter_resume_parsed_data')
-          ->fields(['parsed_data' => $value, 'changed' => time()])
-          ->condition('id', $parsed_id)
-          ->execute();
+        $this->userProfileRepository->updateParsedResumeData((int) $parsed_id, (string) $value);
       }
     }
     
@@ -3071,11 +3070,7 @@ class UserProfileForm extends FormBase {
   private function syncFormFieldsToConsolidatedJson(FormStateInterface $form_state, array $field_mappings, array &$job_seeker_data) {
     // Get current consolidated JSON
     $uid = \Drupal::currentUser()->id();
-    $profile = $this->database->select('jobhunter_job_seeker', 'js')
-      ->fields('js', ['consolidated_profile_json'])
-      ->condition('uid', $uid)
-      ->execute()
-      ->fetchAssoc();
+    $profile = $this->userProfileRepository->getConsolidatedProfileJsonRow((int) $uid);
     
     $consolidated = [];
     if ($profile && !empty($profile['consolidated_profile_json'])) {
