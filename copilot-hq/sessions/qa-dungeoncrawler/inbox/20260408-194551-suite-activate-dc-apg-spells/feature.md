@@ -3,9 +3,9 @@
 - Work item id: dc-apg-spells
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260408-dungeoncrawler-release-h
-20260408-dungeoncrawler-release-h
+- Status: ready
+- Release: 
+- Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
