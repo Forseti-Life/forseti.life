@@ -3,8 +3,7 @@
 - Work item id: forseti-langgraph-ui
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
-- Release: 20260408-forseti-release-g
+- Status: ready
 - Priority: P1
 - PM owner: pm-forseti-agent-tracker
 - Dev owner: dev-forseti-agent-tracker
