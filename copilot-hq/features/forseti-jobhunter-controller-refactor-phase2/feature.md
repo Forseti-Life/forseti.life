@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-controller-refactor-phase2
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260408-forseti-release-c
 - Priority: P2
 - Feature type: refactor
@@ -36,6 +36,8 @@ See: features/forseti-jobhunter-controller-refactor-phase2/01-acceptance-criteri
 - Must not change external behavior.
 
 ## Latest updates
+
+- 2026-04-08: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 
 - 2026-04-08: Handed off to QA for test generation (pm-qa-handoff.sh)
 - 2026-04-08: Feature brief created from BA inventory JH-R2. Groomed for 20260408-forseti-release-c.
