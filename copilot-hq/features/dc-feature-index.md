@@ -4,7 +4,7 @@
 
 **Maintained by:** `ba-dungeoncrawler` — update this file at the end of every scan chunk (same commit as new feature stubs). Include `Category` and `Depends on` for every new row (`Depends on` may be blank if no dependencies).
 
-**Last updated:** 2026-04-06 | Release: `20260406-dungeoncrawler-release-b` | Total: 54
+**Last updated:** 2026-04-08 | Release: `20260408-dungeoncrawler-release-b` | Total: 62
 
 ---
 
@@ -44,8 +44,16 @@
 | dc-cr-equipment-system | item |  | Weapons, armor, shields, and adventuring gear with damage/AC/bulk fields |
 | dc-cr-exploration-mode | rule-system |  | Between-encounter mode with ongoing exploration activities that affect initiative |
 | dc-cr-familiar | game-mechanic |  | Magical familiars for casters with daily-selectable familiar abilities |
+| dc-cr-fey-fellowship | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 1: +2 vs fey Perception/saves; immediate Diplomacy with fey (–5 penalty) |
+| dc-cr-first-world-magic | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-spellcasting | Gnome Feat 1: one primal cantrip as at-will innate spell (fixed at selection) |
 | dc-cr-focus-spells | game-mechanic |  | Focus Point pool and focus spells that auto-heighten; used by 6+ classes |
 | dc-cr-general-feats | game-mechanic |  | General feat catalog available to all characters at levels 3/7/11/15/19 |
+| dc-cr-gnome-ancestry | game-mechanic |  | Gnome ancestry: 8 HP, Small, Speed 25, Con+Cha boosts, Str flaw, Low-Light Vision |
+| dc-cr-gnome-heritage-chameleon | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system | Chameleon Gnome: +2 Stealth when coloration matches terrain (1-action minor shift) |
+| dc-cr-gnome-heritage-fey-touched | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system, dc-cr-spellcasting | Fey-touched Gnome: fey trait, primal cantrip at will, daily cantrip swap (10-min activity) |
+| dc-cr-gnome-heritage-sensate | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system | Sensate Gnome: imprecise scent 30 ft + +2 Perception vs undetected within scent range |
+| dc-cr-gnome-heritage-umbral | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system, dc-cr-darkvision | Umbral Gnome: darkvision (see in complete darkness) |
+| dc-cr-gnome-heritage-wellspring | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system, dc-cr-spellcasting | Wellspring Gnome: choose tradition (arcane/divine/occult); cantrip at will; override primal innate spells |
 | dc-cr-gm-narrative-engine | rule-system | dc-cr-gm-tools, dc-cr-npc-system, dc-cr-session-structure | AI GM storytelling pipeline: scene framing, NPC dialogue, outcome narration |
 | dc-cr-gm-tools | rule-system |  | GM encounter budgeting, NPC stat blocks, loot-by-level tables for AI GM use |
 | dc-cr-heritage-system | game-mechanic | dc-cr-ancestry-system | Heritage selection: one heritage per ancestry at level 1, locked after creation |
