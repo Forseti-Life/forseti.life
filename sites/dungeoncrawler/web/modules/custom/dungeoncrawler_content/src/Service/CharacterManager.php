@@ -921,7 +921,7 @@ class CharacterManager {
     'witch' => [
       'id' => 'witch',
       'name' => 'Witch',
-      'description' => 'You command powerful magic through your patron, who granted you a familiar to aid your spellcasting.',
+      'description' => 'You command powerful magic through your patron, who granted you a familiar to aid your spellcasting. Your familiar is a class-locked feature that stores all your spells; you must commune with it to prepare each day.',
       'hp' => 6,
       'key_ability' => 'Intelligence',
       'proficiencies' => [
@@ -930,10 +930,29 @@ class CharacterManager {
         'reflex' => 'Trained',
         'will' => 'Expert',
       ],
+      'armor_proficiency' => 'unarmored_only',
       'skills' => 'Choose 3 + Intelligence modifier',
       'weapons' => 'Trained in simple weapons',
       'spellcasting' => 'Patron spellcasting, Intelligence',
       'trained_skills' => 3,
+      'familiar' => [
+        'required' => TRUE,
+        'stores_spells' => TRUE,
+        'starting_cantrips' => 10,
+        'starting_spells' => 5,
+        'patron_granted_spell' => 1,
+        'spells_per_level_up' => 2,
+        'bonus_abilities_at_levels' => [1, 6, 12, 18],
+        'scroll_learning' => TRUE,
+        'death_note' => 'Familiar death does not erase known spells; replacement familiar with all same spells granted at next daily prep.',
+      ],
+      'hexes' => [
+        'focus_pool_start' => 1,
+        'refocus' => '10 minutes communing with familiar',
+        'one_hex_per_turn' => TRUE,
+        'hex_cantrips_free' => TRUE,
+        'hex_cantrip_auto_heighten' => 'half level rounded up',
+      ],
     ],
   ];
 
@@ -1009,6 +1028,31 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'benefit' => 'Your muse is a great hero, deity of battle, or embodiment of conflict. You are granted the Martial Performance feat at 1st level. You add fear to your spell repertoire at 1st level. At 2nd level you can take the Song of Strength feat (composition cantrip: grants all allies a +2 circumstance bonus to Athletics checks for the duration).'],
       ['id' => 'song-of-strength', 'name' => 'Song of Strength', 'level' => 2, 'traits' => ['Bard', 'Cantrip', 'Composition', 'Enchantment'], 'prerequisites' => 'Warrior muse',
         'benefit' => 'You inspire your allies to great feats of strength. You and all allies in a 60-foot emanation gain a +2 circumstance bonus to Athletics checks and Strength-based damage rolls for as long as you Sustain the Cantrip (up to 1 minute).'],
+    ],
+    'witch' => [
+      // Basic Lessons (L2+)
+      ['id' => 'lesson-of-dreams',      'name' => 'Basic Lesson: Dreams',      'level' => 2, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'basic', 'lesson' => 'dreams',
+        'benefit' => 'You commune with dream spirits. You learn the veil-of-dreams hex. Your familiar learns sleep.'],
+      ['id' => 'lesson-of-elements',    'name' => 'Basic Lesson: Elements',    'level' => 2, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'basic', 'lesson' => 'elements',
+        'benefit' => 'You call on raw elemental power. You learn the elemental-betrayal hex. Your familiar learns your choice of burning hands, gust of wind, hydraulic push, or pummeling rubble.'],
+      ['id' => 'lesson-of-life',        'name' => 'Basic Lesson: Life',        'level' => 2, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'basic', 'lesson' => 'life',
+        'benefit' => 'You connect with life energy. You learn the life-boost hex. Your familiar learns spirit link.'],
+      ['id' => 'lesson-of-protection',  'name' => 'Basic Lesson: Protection',  'level' => 2, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'basic', 'lesson' => 'protection',
+        'benefit' => 'You conjure wards against harm. You learn the blood-ward hex. Your familiar learns mage armor.'],
+      ['id' => 'lesson-of-vengeance',   'name' => 'Basic Lesson: Vengeance',   'level' => 2, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'basic', 'lesson' => 'vengeance',
+        'benefit' => 'You call upon retribution. You learn the needle-of-vengeance hex. Your familiar learns phantom pain.'],
+      // Greater Lessons (L6+)
+      ['id' => 'lesson-of-mischief',    'name' => 'Greater Lesson: Mischief',  'level' => 6, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'greater', 'lesson' => 'mischief',
+        'benefit' => 'You dabble in chaos. You learn the deceiver\'s-cloak hex. Your familiar learns mad monkeys.'],
+      ['id' => 'lesson-of-shadow',      'name' => 'Greater Lesson: Shadow',    'level' => 6, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'greater', 'lesson' => 'shadow',
+        'benefit' => 'You command shadow and darkness. You learn the malicious-shadow hex. Your familiar learns chilling darkness.'],
+      ['id' => 'lesson-of-snow',        'name' => 'Greater Lesson: Snow',      'level' => 6, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'greater', 'lesson' => 'snow',
+        'benefit' => 'You channel winter\'s fury. You learn the personal-blizzard hex. Your familiar learns wall of wind.'],
+      // Major Lessons (L10+)
+      ['id' => 'lesson-of-death',       'name' => 'Major Lesson: Death',       'level' => 10, 'traits' => ['Witch', 'Uncommon'], 'prerequisites' => '', 'lesson_tier' => 'major', 'lesson' => 'death',
+        'benefit' => 'You peer into death itself. You learn the curse-of-death hex. Your familiar learns raise dead.'],
+      ['id' => 'lesson-of-renewal',     'name' => 'Major Lesson: Renewal',     'level' => 10, 'traits' => ['Witch'], 'prerequisites' => '', 'lesson_tier' => 'major', 'lesson' => 'renewal',
+        'benefit' => 'You channel renewal and rebirth. You learn the restorative-moment hex. Your familiar learns field of life.'],
     ],
   ];
 
@@ -1115,13 +1159,13 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
    * Witch patron → tradition mapping.
    */
   const WITCH_PATRONS = [
-    'curse'   => ['tradition' => 'occult',  'label' => 'Curse',   'description' => 'Your patron embodies curses and misfortune, granting occult power.'],
-    'fate'    => ['tradition' => 'occult',  'label' => 'Fate',    'description' => 'Your patron sees and manipulates the threads of fate.'],
-    'fervor'  => ['tradition' => 'divine',  'label' => 'Fervor',  'description' => 'Your patron is a divine being of zealous conviction.'],
-    'night'   => ['tradition' => 'occult',  'label' => 'Night',   'description' => 'Darkness and shadow are your patron\'s domain.'],
-    'rune'    => ['tradition' => 'arcane',  'label' => 'Rune',    'description' => 'Your patron commands the power of arcane runes.'],
-    'wild'    => ['tradition' => 'primal',  'label' => 'Wild',    'description' => 'Nature and the wild are your patron\'s domain.'],
-    'winter'  => ['tradition' => 'primal',  'label' => 'Winter',  'description' => 'The cold power of winter flows through your patron.'],
+    'curse'   => ['tradition' => 'occult',  'label' => 'Curse',   'patron_skill' => 'Occultism',  'hex_cantrip' => 'evil-eye',          'granted_spell' => 'phantom-pain',      'description' => 'Your patron embodies curses and misfortune, granting occult power.'],
+    'fate'    => ['tradition' => 'occult',  'label' => 'Fate',    'patron_skill' => 'Occultism',  'hex_cantrip' => 'nudge-fate',        'granted_spell' => 'augury',            'description' => 'Your patron sees and manipulates the threads of fate.'],
+    'fervor'  => ['tradition' => 'divine',  'label' => 'Fervor',  'patron_skill' => 'Religion',   'hex_cantrip' => 'stoke-the-heart',   'granted_spell' => 'zealous-conviction', 'description' => 'Your patron is a divine being of zealous conviction.'],
+    'night'   => ['tradition' => 'occult',  'label' => 'Night',   'patron_skill' => 'Stealth',    'hex_cantrip' => 'shroud-of-night',   'granted_spell' => 'sleep',             'description' => 'Darkness and shadow are your patron\'s domain.'],
+    'rune'    => ['tradition' => 'arcane',  'label' => 'Rune',    'patron_skill' => 'Arcana',     'hex_cantrip' => 'discern-secrets',   'granted_spell' => 'magic-missile',     'description' => 'Your patron commands the power of arcane runes.'],
+    'wild'    => ['tradition' => 'primal',  'label' => 'Wild',    'patron_skill' => 'Nature',     'hex_cantrip' => 'wilding-word',      'granted_spell' => 'natures-enmity',    'description' => 'Nature and the wild are your patron\'s domain.'],
+    'winter'  => ['tradition' => 'primal',  'label' => 'Winter',  'patron_skill' => 'Nature',     'hex_cantrip' => 'clinging-ice',      'granted_spell' => 'gust-of-wind',      'description' => 'The cold power of winter flows through your patron.'],
   ];
 
   /**
@@ -1134,7 +1178,57 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     'druid'    => ['cantrips' => 5, 'first' => 2],
     'sorcerer' => ['cantrips' => 5, 'first' => 3],
     'oracle'   => ['cantrips' => 5, 'first' => 2],
-    'witch'    => ['cantrips' => 5, 'first' => 1],
+    'witch'    => ['cantrips' => 5, 'first' => 1, 'familiar_cantrips' => 10, 'familiar_spells' => 5, 'familiar_model' => TRUE],
+  ];
+
+  /**
+   * Witch hex focus spells and cantrips.
+   * Hexes are focus spells (cost 1 FP). Hex cantrips are free (no FP cost).
+   * Only one hex (regular or cantrip) may be cast per turn.
+   */
+  const WITCH_HEXES = [
+    'hex_cantrips' => [
+      ['id' => 'evil-eye',         'name' => 'Evil Eye',         'traits' => ['Hex', 'Cantrip', 'Curse', 'Emotion', 'Fear', 'Mental', 'Occult'], 'free' => TRUE,
+        'description' => 'Imposes a –2 status penalty to a target\'s AC (sustained). Ends early if the target succeeds at a Will save. Auto-heightens to half witch level rounded up.'],
+      ['id' => 'nudge-fate',       'name' => 'Nudge Fate',       'traits' => ['Hex', 'Cantrip', 'Divination', 'Fortune', 'Occult'], 'free' => TRUE,
+        'description' => 'You subtly alter fate. One creature within 30 feet must reroll its next attack roll or saving throw and use the worse result (sustained).'],
+      ['id' => 'stoke-the-heart',  'name' => 'Stoke the Heart',  'traits' => ['Hex', 'Cantrip', 'Divine', 'Emotion', 'Enchantment', 'Mental'], 'free' => TRUE,
+        'description' => 'You fill an ally with zeal. The target gains a +1 status bonus to attack rolls and weapon damage rolls (sustained up to 1 minute).'],
+      ['id' => 'shroud-of-night',  'name' => 'Shroud of Night',  'traits' => ['Hex', 'Cantrip', 'Darkness', 'Occult'], 'free' => TRUE,
+        'description' => 'You create a cloak of darkness around a target (sustained). The target becomes concealed in dim light or darkness.'],
+      ['id' => 'discern-secrets',  'name' => 'Discern Secrets',  'traits' => ['Hex', 'Cantrip', 'Arcane', 'Divination', 'Revelation'], 'free' => TRUE,
+        'description' => 'You reveal one hidden secret about a target creature or object within 30 feet (sustained).'],
+      ['id' => 'wilding-word',     'name' => 'Wilding Word',     'traits' => ['Hex', 'Cantrip', 'Enchantment', 'Mental', 'Primal'], 'free' => TRUE,
+        'description' => 'You speak to animals or plants (sustained). They react favorably to you and may perform simple tasks.'],
+      ['id' => 'clinging-ice',     'name' => 'Clinging Ice',     'traits' => ['Hex', 'Cantrip', 'Attack', 'Cold', 'Primal'], 'free' => TRUE,
+        'description' => 'Ice clings to a target on a spell attack, dealing 1d4 cold damage and imposing a –10-foot status penalty to Speed (sustained).'],
+    ],
+    'regular_hexes' => [
+      ['id' => 'cackle',         'name' => 'Cackle',         'action_cost' => 1, 'traits' => ['Hex', 'Concentrate'], 'fp_cost' => 0,
+        'description' => 'You cackle to extend another active hex\'s duration by 1 round. This is a free action in some situations (e.g., when you\'re sustaining the hex).'],
+      ['id' => 'phase-familiar', 'name' => 'Phase Familiar', 'action_cost' => 1, 'trigger' => 'Familiar would take damage', 'traits' => ['Hex', 'Abjuration', 'Reaction'], 'fp_cost' => 1,
+        'description' => 'Your familiar briefly becomes incorporeal, avoiding the triggering damage entirely.'],
+      ['id' => 'veil-of-dreams',       'name' => 'Veil of Dreams',       'action_cost' => 2, 'traits' => ['Hex', 'Enchantment', 'Mental', 'Sleep'], 'fp_cost' => 1,  'lesson' => 'dreams',
+        'description' => 'Target must succeed at a Will save or become drowsy (–2 status to Perception; critical failure: also slowed 1).'],
+      ['id' => 'elemental-betrayal',   'name' => 'Elemental Betrayal',   'action_cost' => 2, 'traits' => ['Hex', 'Divination'], 'fp_cost' => 1,  'lesson' => 'elements',
+        'description' => 'Target becomes vulnerable to a chosen element: next attack with that damage type gains +2 circumstance bonus to damage.'],
+      ['id' => 'life-boost',           'name' => 'Life Boost',           'action_cost' => 1, 'traits' => ['Hex', 'Healing', 'Positive'], 'fp_cost' => 1,  'lesson' => 'life',
+        'description' => 'You channel healing energy. Target regains 1d6+4 HP (scales with level).'],
+      ['id' => 'blood-ward',           'name' => 'Blood Ward',           'action_cost' => 2, 'traits' => ['Hex', 'Abjuration'], 'fp_cost' => 1,  'lesson' => 'protection',
+        'description' => 'You protect a target from a specific damage type. Target gains +1 circumstance bonus to AC and saves against the chosen damage type until your next turn.'],
+      ['id' => 'needle-of-vengeance',  'name' => 'Needle of Vengeance',  'action_cost' => 1, 'traits' => ['Hex', 'Attack', 'Curse', 'Necromancy'], 'fp_cost' => 1,  'lesson' => 'vengeance',
+        'description' => 'A psychic needle impales the target. If the target attacks your ally before your next turn, it takes 2d6 mental damage.'],
+      ['id' => 'deceivers-cloak',      'name' => 'Deceiver\'s Cloak',    'action_cost' => 2, 'traits' => ['Hex', 'Illusion', 'Mental'], 'fp_cost' => 1,  'lesson' => 'mischief',
+        'description' => 'The target appears as a different creature for the duration (Will save to see through). Lasts until the target attacks or casts.'],
+      ['id' => 'malicious-shadow',     'name' => 'Malicious Shadow',     'action_cost' => 2, 'traits' => ['Hex', 'Attack', 'Shadow'], 'fp_cost' => 1,  'lesson' => 'shadow',
+        'description' => 'Target\'s shadow becomes your weapon. Shadow attack deals 2d6 cold damage on a hit (spell attack roll).'],
+      ['id' => 'personal-blizzard',    'name' => 'Personal Blizzard',    'action_cost' => 2, 'traits' => ['Hex', 'Cold', 'Evocation', 'Primal'], 'fp_cost' => 1,  'lesson' => 'snow',
+        'description' => 'Blizzard surrounds target (Basic Reflex save for 4d6 cold). While sustained, target is buffeted (-2 penalty to ranged attacks).'],
+      ['id' => 'curse-of-death',       'name' => 'Curse of Death',       'action_cost' => 2, 'traits' => ['Hex', 'Curse', 'Death', 'Necromancy'], 'fp_cost' => 1,  'lesson' => 'death',
+        'description' => 'Target must succeed at a Fortitude save or gain the Doomed 1 condition. On a critical failure, Doomed 2 and a –1 status penalty to all saving throws.'],
+      ['id' => 'restorative-moment',   'name' => 'Restorative Moment',   'action_cost' => 2, 'traits' => ['Hex', 'Healing', 'Positive', 'Primal'], 'fp_cost' => 1,  'lesson' => 'renewal',
+        'description' => 'Touched target regains HP equal to twice your spellcasting modifier and is no longer Sickened 1.'],
+    ],
   ];
 
   /**
@@ -1540,6 +1634,64 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       19 => ['auto_features' => [
         ['id' => 'medium-armor-mastery', 'name' => 'Medium Armor Mastery',
           'description' => 'Your armor proficiency for light and medium armor increases to Master.'],
+      ]],
+    ],
+    'witch' => [
+      1  => ['auto_features' => [
+        ['id' => 'witch-spellcasting', 'name' => 'Patron Spellcasting',
+          'description' => 'You can cast spells of your patron\'s tradition (determined by patron theme). Your spellcasting ability is Intelligence. All spells are stored in your familiar; you must commune with your familiar during daily preparations to prepare spells.'],
+        ['id' => 'familiar-witch', 'name' => 'Witch\'s Familiar',
+          'description' => 'You gain a familiar, a class-locked feature. Your familiar stores all your spells and grants bonus familiar abilities at levels 1, 6, 12, and 18. Familiar death does not erase spells; a replacement familiar with the same spells is granted at next daily prep.'],
+        ['id' => 'patron-theme', 'name' => 'Patron Theme',
+          'description' => 'Choose your patron theme (cannot change): Curse, Fate, Fervor, Night, Rune, Wild, or Winter. This determines your spell tradition, patron skill (automatically trained), hex cantrip, and familiar\'s first granted spell.'],
+        ['id' => 'hexes', 'name' => 'Hexes',
+          'description' => 'You gain access to hex focus spells. You start with a focus pool of 1 Focus Point. Refocus by communing with your familiar for 10 minutes. Only one hex (regular or cantrip) may be cast per turn. Hex cantrips do not cost Focus Points and auto-heighten to half your level rounded up.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'witch-magical-fortitude', 'name' => 'Magical Fortitude',
+          'description' => 'Your Fortitude saving throw proficiency increases to Expert.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'witch-expert-spellcaster', 'name' => 'Expert Spellcaster',
+          'description' => 'Your spell attack rolls and spell DCs increase to Expert proficiency.'],
+      ]],
+      6  => ['auto_features' => [
+        ['id' => 'familiar-witch-l6', 'name' => 'Familiar (Bonus Abilities)',
+          'description' => 'Your familiar gains one additional familiar ability.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'witch-alertness', 'name' => 'Alertness',
+          'description' => 'Your Perception proficiency increases to Expert.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'witch-master-spellcaster', 'name' => 'Master Spellcaster',
+          'description' => 'Your spell attack rolls and spell DCs increase to Master proficiency.'],
+        ['id' => 'witch-resolve', 'name' => 'Resolve',
+          'description' => 'Your Will saving throw proficiency increases to Master.'],
+      ]],
+      12 => ['auto_features' => [
+        ['id' => 'familiar-witch-l12', 'name' => 'Familiar (Bonus Abilities)',
+          'description' => 'Your familiar gains one additional familiar ability.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'witch-weapon-expertise', 'name' => 'Weapon Expertise',
+          'description' => 'Your proficiency rank with simple weapons and unarmed attacks increases to Expert.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'witch-evasion', 'name' => 'Evasion',
+          'description' => 'Your Reflex saving throw proficiency increases to Expert.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'witch-legendary-spellcaster', 'name' => 'Legendary Spellcaster',
+          'description' => 'Your spell attack rolls and spell DCs increase to Legendary proficiency.'],
+      ]],
+      18 => ['auto_features' => [
+        ['id' => 'familiar-witch-l18', 'name' => 'Familiar (Bonus Abilities)',
+          'description' => 'Your familiar gains one additional familiar ability.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'witch-patron-gift', 'name' => 'Patron\'s Gift',
+          'description' => 'Your patron bestows a powerful gift. You can cast one additional 10th-rank spell per day, chosen from your tradition\'s spell list.'],
       ]],
     ],
   ];
