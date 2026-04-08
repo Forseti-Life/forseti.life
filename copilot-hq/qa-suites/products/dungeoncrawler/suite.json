@@ -5265,6 +5265,148 @@
           "ac_tag": "Integration-1-7"
         }
       ]
+    },
+    {
+      "id": "dc-apg-class-investigator-e2e",
+      "label": "Investigator class: class record (HP8+Con, Int key, Expert Perception/Reflex/Will), Devise a Stratagem (fortune d20 store, Int mod substitution, free-action vs active lead), Strategic Strike precision damage scaling (1d6 to 5d6), Pursue a Lead 2-lead cap, Clue In reaction with 10-min cooldown, all 4 methodologies (Alchemical Sciences/Empiricism/Forensic Medicine/Interrogation), integration (vial count, FM 1-hour immunity), edge cases",
+      "type": "e2e",
+      "feature_id": "dc-apg-class-investigator",
+      "command": "npx playwright test tests/e2e/apg-class-investigator/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-class-investigator-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 18 TCs active. Regression risks: DaS stored roll not cleared at end-of-turn; Int mod substitution applied to non-qualifying weapons; Strategic Strike stacking with sneak attack; Forensic Medicine healing bonus not level-scaled; FM recovery immunity 1-day vs 1-hour regression; Empiricism DaS not waiving lead requirement; 3rd lead not auto-dropping oldest.",
+      "test_cases": [
+        {
+          "id": "TC-INV-01",
+          "description": "Class record: HP 8+Con/level, key_ability=Int, Expert Perception/Reflex/Will, Trained Fortitude, light armor, simple weapons+rapier, Society always trained",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-1-4"
+        },
+        {
+          "id": "TC-INV-02",
+          "description": "Skill count: trained_skill_count = 4 + int_mod + 2 (Society and methodology auto-granted)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Fundamentals-5"
+        },
+        {
+          "id": "TC-INV-03",
+          "description": "Devise a Stratagem: 1-action fortune; d20 rolled immediately; result stored; applied to next qualifying Strike this turn; cleared at end-of-turn",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "DaS-1-3,Integration-1"
+        },
+        {
+          "id": "TC-INV-04",
+          "description": "DaS: on qualifying agile/finesse/ranged/sap/unarmed Strike, attack_modifier = int_modifier (not Str/Dex); non-qualifying weapons use normal modifier",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "DaS-4"
+        },
+        {
+          "id": "TC-INV-05",
+          "description": "DaS: when target is an active lead, action_cost=0 (free action); standard targets cost 1 action",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "DaS-5,Edge-1,Integration-2"
+        },
+        {
+          "id": "TC-INV-06",
+          "description": "DaS: stored d20 result discarded at end_of_turn if no qualifying Strike was made",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-1"
+        },
+        {
+          "id": "TC-INV-07",
+          "description": "Pursue a Lead: 1-minute activity; +1 circumstance on investigative checks vs lead; max_leads=2; adding 3rd auto-ends oldest",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "PaL-1-4,Integration-3"
+        },
+        {
+          "id": "TC-INV-08",
+          "description": "Clue In: reaction after successful investigative check; one ally <=30 ft gains +1 circumstance vs lead; 10-min cooldown enforced",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "ClueIn-1"
+        },
+        {
+          "id": "TC-INV-09",
+          "description": "Strategic Strike: precision damage dice = floor((level-1)/4)+1 capped at 5d6 (L1=1d6, L5=2d6, L9=3d6, L13=4d6, L17=5d6); does not stack with sneak attack",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Strategic-1-2"
+        },
+        {
+          "id": "TC-INV-10",
+          "description": "Methodology Alchemical Sciences: Crafting trained + Alchemical Crafting auto-granted; daily_vials = int_mod; Quick Tincture 1-action from vial",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Method-AS-1-4"
+        },
+        {
+          "id": "TC-INV-11",
+          "description": "Methodology Empiricism: +1 Int-skill training; Expeditious Inspection free-action 1/10min; DaS waives lead requirement (any creature targetable)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Method-Em-1-4,Edge-2"
+        },
+        {
+          "id": "TC-INV-12",
+          "description": "Methodology Forensic Medicine: Medicine trained + Battle Medicine auto-granted; Battle Medicine heal_bonus += character.level; recovery immunity = 1 hour (not 1 day)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Method-FM-1-4,Integration-6"
+        },
+        {
+          "id": "TC-INV-13",
+          "description": "Methodology Interrogation: Diplomacy trained + No Cause for Alarm auto-granted; Pursue a Lead usable in social encounters; Pointed Question 1-action available",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Method-In-1-4"
+        },
+        {
+          "id": "TC-INV-14",
+          "description": "Pursue a Lead: requires specific entity target (creature/object/location ID); generic category descriptions blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "PaL-4"
+        },
+        {
+          "id": "TC-INV-15",
+          "description": "Clue In 10-minute frequency: second trigger within cooldown window blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "ClueIn-1"
+        },
+        {
+          "id": "TC-INV-16",
+          "description": "Integration: Alchemical Sciences daily_vials recalculated on any Int modifier change (ability boost etc.)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-5"
+        },
+        {
+          "id": "TC-INV-17",
+          "description": "Integration: Forensic Medicine Battle Medicine recovery block expires exactly 1 hour after use (not 1 day)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-6"
+        },
+        {
+          "id": "TC-INV-18",
+          "description": "Edge: Pointed Question blocked/flagged when target.has_spoken_this_encounter=false; GM adjudication flag visible in UI",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-3"
+        }
+      ]
     }
   ],
   "_schema_notes": [
