@@ -4797,6 +4797,190 @@
           "ac_tag": "TEST-ONLY"
         }
       ]
+    },
+    {
+      "id": "dc-apg-ancestries-e2e",
+      "label": "APG ancestries and versatile heritages: 5 new ancestries (Catfolk/Kobold/Orc/Ratfolk/Tengu) with core stats/heritages/passives, 5 versatile heritages (Aasimar/Changeling/Dhampir/Duskwalker/Tiefling) with Uncommon gate and LLV-upgrade rule, APG feats for CRB ancestries, APG backgrounds (Haunted/Fey-Touched/Returned with correct mechanics), Kobold Draconic Exemplar table, negative-healing rule consistency (Grave Orc + Dhampir), edge cases (Skyborn fall immunity, Spellscale one-cantrip-only)",
+      "type": "e2e",
+      "feature_id": "dc-apg-ancestries",
+      "command": "npx playwright test tests/e2e/apg-ancestries/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-ancestries-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 24 TCs active. Regression risks: Kobold Dragonscaled resistance formula (floor(level/2 min 1)); Nine Lives one-use flag not reset on rest; Spellscale creating full spell progression instead of 1 cantrip; VH sense-upgrade not auto-resolving; Uncommon gate not blocking VH selection without GM flag; Grave Orc / Dhampir negative healing not sharing identical rule lookup; Tengu Skyborn returning reduced damage instead of 0.",
+      "test_cases": [
+        {
+          "id": "TC-APGA-01",
+          "description": "Catfolk core stats: HP 8, Medium, Speed 25, Dex+Cha boosts, Wis flaw, low-light vision; Land on Your Feet: fall damage halved (ceil), prone_on_landing=false",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-02",
+          "description": "Catfolk heritages: Clawed (1d6 agile/finesse claw), Hunting (scent 30ft imprecise), Jungle (ignore vegetation/rubble difficult terrain), Nine Lives (one-use crit-death mitigation flag)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-03",
+          "description": "Kobold core stats: HP 6, Small, Speed 25, Dex+Cha boosts, Con flaw, darkvision; Draconic Exemplar selection at L1 from 10-dragon table; exemplar stored and referenced by other abilities",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-04",
+          "description": "Kobold heritages: Cavern (climb stone), Dragonscaled (floor(level/2 min 1) resistance vs exemplar type x2 vs breath), Spellscale (1 arcane cantrip slot only), Strongjaw (jaws 1d6), Venomtail (Tail Toxin 1/day tracked)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-05",
+          "description": "Orc core stats: HP 10, Medium, Speed 25, Str boost, free boost, darkvision, no ability flaw; Grave Orc heritage: healed_by_negative=true, harmed_by_positive=true",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-06",
+          "description": "Ratfolk core stats: HP 6, Small, Speed 25, Dex+Int boosts, Str flaw, low-light vision; heritages: Sewer Rat (disease immunity + stage reduction 2/3 halved for virulent), Desert Rat (quad Speed 30; x10 hunger/thirst), Shadow Rat (Intimidation trained; Coerce animals no penalty)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-07",
+          "description": "Tengu core stats: HP 6, Medium, Speed 25, Dex boost + free boost, low-light vision; Sharp Beak unarmed (1d6 piercing, brawling, finesse) auto-added without selection",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-08",
+          "description": "Tengu heritages: Jinxed (curse/misfortune success to crit; doomed flat DC 17 to reduce), Skyborn (fall_damage=0, fall_prone=false absolute), Stormtossed (electricity resistance; ignore rain/fog concealment), Taloned (talons 1d4)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-09",
+          "description": "Versatile heritages occupy heritage slot; grant VH feat list PLUS original ancestry feat list; sense upgrade: low-light to darkvision auto-resolves when doubled",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-10",
+          "description": "Versatile heritages have Uncommon trait; VH selection blocked until GM-approval flag set",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-11",
+          "description": "Aasimar VH: aasimar trait, LLV upgrade, Lawbringer feat (emotion effect fail improves to crit success); Changeling VH: trait, LLV upgrade, Slag May (1d6 cold iron claw, brawling, grapple)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-12",
+          "description": "Dhampir VH: dhampir trait, negative healing (positive damages, negative heals, treated as undead for energy), LLV upgrade; Dhampir Fangs (1d6 piercing grapple unarmed)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-13",
+          "description": "Duskwalker VH: duskwalker trait, cannot_become_undead=true (body and spirit), LLV upgrade; haunt detection passive (no Search required)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-14",
+          "description": "Tiefling VH: tiefling trait, LLV upgrade applied if base ancestry had LLV",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-15",
+          "description": "APG supplemental feats for CRB ancestries appear in ancestry feat selectors for each applicable CRB ancestry; new unarmed attacks in unarmed table with correct stats",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-16",
+          "description": "APG backgrounds: 2 ability boosts (1 fixed + 1 free), skill training, skill feat grant; Rare backgrounds gated behind GM approval flag",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-17",
+          "description": "Background Haunted: Aid outcomes Failure=Frightened 2, CritFail=Frightened 4; initial Frightened not reducible by prevention effects",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-18",
+          "description": "Background Fey-Touched: Fey Fortune 1/day free-action fortune (roll twice use better); frequency tracked and enforced",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-19",
+          "description": "Background Returned: Diehard feat granted automatically (no player selection step); appears in character.feats",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-20",
+          "description": "Integration: all 5 ancestries (Catfolk/Kobold/Orc/Ratfolk/Tengu) appear in ancestry selector with correct traits/HP/speed/ability modifiers",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-21",
+          "description": "Integration: versatile heritages appear in heritage selector for any ancestry; tooltip explains slot replacement rule",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-22",
+          "description": "Integration: Kobold character creation shows Draconic Exemplar selection table; exemplar.dragon_type persists to feat and heritage lookups",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-23",
+          "description": "Edge: Grave Orc and Dhampir negative healing use identical undead energy rules (positive_energy.effect=damage, negative_energy.effect=heal); both ancestry types confirmed",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        },
+        {
+          "id": "TC-APGA-24",
+          "description": "Edge: Kobold Spellscale grants exactly 1 cantrip slot (spell_slots_granted={cantrip:1}); no 1st-level slots created; no spell progression table",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "NEW"
+        }
+      ]
     }
   ],
   "_schema_notes": [
