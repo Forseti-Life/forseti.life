@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-e2e-flow
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260406-forseti-release-b
 - Priority: P0 (ROI 1000)
 - Feature type: stabilization
@@ -52,8 +52,6 @@ Stage break detail:
 - Existing test workflow: testing/jobhunter-workflow-step1-6-data-engineer.mjs
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-05: Scoped into release — suite activation sent to QA.
 

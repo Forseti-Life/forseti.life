@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-debug-gate
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: ready
 - Release: 20260407-forseti-release-b
 - Priority: P1
 - Feature type: needs-testing
@@ -49,8 +49,6 @@ Verify and document that `GenAiDebugController` (586 lines) is properly gated so
 - Low ROI (5) relative to other release items; if resource-constrained, may be deferred to release-c.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-07: Scoped into release — suite activation sent to QA.
 

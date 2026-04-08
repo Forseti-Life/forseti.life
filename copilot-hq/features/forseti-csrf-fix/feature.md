@@ -3,7 +3,7 @@
 - Work item id: forseti-csrf-fix
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Release: 20260407-forseti-release-b
 - Priority: P0
 - Feature type: enhancement

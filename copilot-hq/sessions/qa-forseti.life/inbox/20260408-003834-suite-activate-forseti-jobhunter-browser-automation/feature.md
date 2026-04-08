@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-browser-automation
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260406-forseti-release-b
 - Priority: P1
 - Feature type: needs-testing
@@ -64,8 +64,6 @@ None yet — AC doc pending QA handoff triage.
 - Credentials UI is authenticated-only — confirm ACL in qa-permissions.json before Gate 2.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-06: Scoped into release — suite activation sent to QA.
 

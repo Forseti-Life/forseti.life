@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-schema-fix
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260407-forseti-release-b
 - Priority: P2
 - Feature type: enhancement
@@ -45,8 +45,6 @@ Fix the `field_age_18_or_older` field definition in the `job_hunter` module whic
 - Low: isolated field fix. No dependencies on other modules.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-07: Scoped into release — suite activation sent to QA.
 

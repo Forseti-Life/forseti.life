@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-service-refactor
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: ready
 - Release: 20260407-forseti-release-b
 - Priority: P2
 - Feature type: enhancement
@@ -51,8 +51,6 @@ Extract DB queries to `AIConversationStorageService`. Keep public method signatu
 - If any caller accesses DB queries directly via AIApiService (not through the public API), those must also be updated. Dev must audit all callers.
 
 ## Latest updates
-
-- 2026-04-08: Scoped into release — suite activation sent to QA.
 
 - 2026-04-07: Scoped into release — suite activation sent to QA.
 
