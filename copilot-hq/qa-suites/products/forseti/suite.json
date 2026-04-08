@@ -748,18 +748,18 @@
     },
     {
       "id": "forseti-jobhunter-controller-extraction-phase1-static",
-      "label": "JobHunter Controller Extraction Phase 1 \u2014 static: 0 direct DB calls in JobApplicationController; all methods delegated to service layer",
+      "label": "JobHunter Controller Extraction Phase 1 \u2014 static: 0 direct DB calls in JobApplicationController; DB delegation verified in JobApplicationRepository (29 methods)",
       "type": "script",
       "feature_id": "forseti-jobhunter-controller-extraction-phase1",
-      "command": "bash -c 'set -e; CTRL=sites/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; cd /home/ubuntu/forseti.life; echo \"=== TC-1: no direct DB calls in controller ===\"; COUNT=$(grep -c \"this->database\" \"$CTRL\" 2>/dev/null || echo 0); [ \"$COUNT\" = \"0\" ] && echo \"PASS: 0 direct DB calls\" || (echo \"FAIL: $COUNT direct DB calls found\" && exit 1); echo \"=== TC-2: ApplicationSubmissionService contains migrated methods ===\"; SVC=sites/forseti/web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php; [ -f \"$SVC\" ] && echo \"PASS: ApplicationSubmissionService.php exists\" || (echo \"FAIL: service file missing\" && exit 1); METHOD_COUNT=$(grep -c 'public function' \"$SVC\" 2>/dev/null || echo 0); echo \"Service public methods: $METHOD_COUNT\"; [ \"$METHOD_COUNT\" -ge 5 ] && echo \"PASS: sufficient methods in service\" || (echo \"FAIL: insufficient methods ($METHOD_COUNT)\" && exit 1); echo All static checks PASS'",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; CTRL=sites/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; echo \"=== TC-1: no direct DB calls in controller ===\"; COUNT=$(grep -c \"\\$this->database\" \"$CTRL\" 2>/dev/null; true); [ \"${COUNT:-0}\" = \"0\" ] && echo \"PASS: 0 direct DB calls\" || (echo \"FAIL: $COUNT direct DB calls found\" && exit 1); echo \"=== TC-2: JobApplicationRepository contains migrated methods ===\"; REPO=sites/forseti/web/modules/custom/job_hunter/src/Repository/JobApplicationRepository.php; [ -f \"$REPO\" ] && echo \"PASS: JobApplicationRepository.php exists\" || (echo \"FAIL: repository file missing\" && exit 1); METHOD_COUNT=$(grep -c \"public function\" \"$REPO\" 2>/dev/null || echo 0); echo \"Repository public methods: $METHOD_COUNT\"; [ \"${METHOD_COUNT:-0}\" -ge 5 ] && echo \"PASS: sufficient methods in repository\" || (echo \"FAIL: insufficient methods ($METHOD_COUNT)\" && exit 1); echo All static checks PASS'",
       "artifacts": [
         "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/static.log"
       ],
       "run_notes": [
-        "TC-1: grep -c 'this->database' JobApplicationController.php must be 0.",
-        "TC-2: ApplicationSubmissionService.php must exist with >= 5 public methods (proxy for 54 migrated DB calls).",
-        "Full diff evidence (54 methods) is documented by Dev in implementation notes.",
-        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+        "TC-1: grep -c '$this->database' JobApplicationController.php must return 0.",
+        "TC-2: JobApplicationRepository.php must exist with >= 5 public methods (29 present post-refactor).",
+        "NOTE: impl used JobApplicationRepository (new Repository layer) not ApplicationSubmissionService \u2014 suite updated to match.",
+        "STAGE 1 READY: implementation complete as of commit cfd24e07e (2026-04-06)."
       ],
       "required_for_release": true
     },
