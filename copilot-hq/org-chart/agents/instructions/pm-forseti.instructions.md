@@ -293,6 +293,19 @@ Long-term fix: delegate to dev-forseti to delete stale `webform.*` configs from 
 
 Reference: `knowledgebase/lessons/20260406-config-import-webform-orphan-blocker.md`
 
+## Production deploy reality (CRITICAL — do not re-escalate false alarms)
+
+On this server, `/var/www/html/forseti/web/modules/custom` and `/var/www/html/forseti/web/themes/custom` are **symlinks** to the git checkout at `/home/ubuntu/forseti.life/sites/forseti/web/`. Code changes committed to main are **immediately live in production — no rsync/deploy step needed** for module or theme changes.
+
+GitHub Actions `deploy.yml` handles: config/sync rsync, composer installs, and `drush cr`. If `deploy.yml` shows no recent runs, do NOT escalate as a code-deploy blocker. Instead verify:
+
+```bash
+cd /var/www/html/forseti && ./vendor/bin/drush config:status   # should say "No differences"
+stat /var/www/html/forseti/web/modules/custom                   # should show symlink → repo
+```
+
+**Lesson (2026-04-08):** pm-forseti halted release-b post-push steps because deploy.yml hadn't triggered since 2026-04-02. Production was already current via symlinks — one wasted cycle.
+
 ## Gate R5 — Post-push production audit (PM responsibility)
 
 After every coordinated push, pm-forseti (as release operator) must run the production audit:
