@@ -7574,6 +7574,1192 @@
           "ac": "QA-audit-clean"
         }
       ]
+    },
+    {
+      "id": "dc-cr-dc-rarity-spell-adjustment-e2e",
+      "label": "DC Tables and Rarity Adjustments \u2014 Simple DC, level-based DC, spell-level DC, adjustment table, rarity adjustments (Uncommon/Rare/Unique), min proficiency rank gate, specific DC applications (Craft/Earn Income/Gather Info/Identify Magic/Learn Spell/Recall Knowledge/NPC social), additive stacking, failure modes",
+      "type": "e2e",
+      "feature_id": "dc-cr-dc-rarity-spell-adjustment",
+      "command": "./vendor/bin/phpunit --filter DCRarityAdjustmentTest --testsuite module-test-suite --log-junit test-results/dc-cr-dc-rarity-spell-adjustment/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-dc-rarity-spell-adjustment/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DC-01",
+          "description": "Simple DC table: Untrained=10, Trained=15, Expert=20, Master=30, Legendary=40; invalid rank returns 400",
+          "suite": "module-test-suite",
+          "ac": "NEW-simple-dc-table"
+        },
+        {
+          "id": "TC-DC-02",
+          "description": "Level-based DC table covers all levels 0\u201325 with correct values per Table 10-4",
+          "suite": "module-test-suite",
+          "ac": "NEW-level-dc-table"
+        },
+        {
+          "id": "TC-DC-03",
+          "description": "Level-based DC boundary: level below 0 rejected; level above 25 rejected",
+          "suite": "module-test-suite",
+          "ac": "NEW-level-dc-boundary"
+        },
+        {
+          "id": "TC-DC-04",
+          "description": "Spell-level DC table maps spell levels 0\u201310 to correct DCs; level 11 returns 400",
+          "suite": "module-test-suite",
+          "ac": "NEW-spell-level-dc-table"
+        },
+        {
+          "id": "TC-DC-05",
+          "description": "DC adjustment enum: 7 values (Incredibly Easy -10 through Incredibly Hard +10); unrecognized name returns error",
+          "suite": "module-test-suite",
+          "ac": "NEW-dc-adjustment-enum"
+        },
+        {
+          "id": "TC-DC-06",
+          "description": "DC adjustment applied correctly: base 20 + Hard(+2)=22, + Very Easy(-5)=15, + Normal(0)=20",
+          "suite": "module-test-suite",
+          "ac": "NEW-dc-adjustment-applied"
+        },
+        {
+          "id": "TC-DC-07",
+          "description": "Uncommon rarity applies Hard (+2) to base DC",
+          "suite": "module-test-suite",
+          "ac": "NEW-uncommon-rarity-dc"
+        },
+        {
+          "id": "TC-DC-08",
+          "description": "Rare rarity applies Very Hard (+5) to base DC",
+          "suite": "module-test-suite",
+          "ac": "NEW-rare-rarity-dc"
+        },
+        {
+          "id": "TC-DC-09",
+          "description": "Unique rarity applies Incredibly Hard (+10) to base DC",
+          "suite": "module-test-suite",
+          "ac": "NEW-unique-rarity-dc"
+        },
+        {
+          "id": "TC-DC-10",
+          "description": "Min proficiency rank gate: below minimum rank can attempt but cannot succeed (max = Failure); Crit Fail still possible",
+          "suite": "module-test-suite",
+          "ac": "NEW-min-proficiency-rank-gate"
+        },
+        {
+          "id": "TC-DC-11",
+          "description": "Craft DC = item level DC + rarity adjustment (common: +0, uncommon: +2)",
+          "suite": "module-test-suite",
+          "ac": "NEW-craft-dc"
+        },
+        {
+          "id": "TC-DC-12",
+          "description": "Earn Income DC = settlement level \u2192 level-based DC",
+          "suite": "module-test-suite",
+          "ac": "NEW-earn-income-dc"
+        },
+        {
+          "id": "TC-DC-13",
+          "description": "Gather Information DC: simple DC for common subject; rare subject elevated by rarity adjustment",
+          "suite": "module-test-suite",
+          "ac": "NEW-gather-info-dc"
+        },
+        {
+          "id": "TC-DC-14",
+          "description": "Identify Magic DC = level-based + rarity (common: +0, rare: +5)",
+          "suite": "module-test-suite",
+          "ac": "NEW-identify-magic-dc"
+        },
+        {
+          "id": "TC-DC-15",
+          "description": "Learn a Spell DC = spell level DC + rarity (common: +0, uncommon: +2)",
+          "suite": "module-test-suite",
+          "ac": "NEW-learn-spell-dc"
+        },
+        {
+          "id": "TC-DC-16",
+          "description": "Recall Knowledge DC: simple for general, level-based for creatures/hazards, rarity applied on top",
+          "suite": "module-test-suite",
+          "ac": "NEW-recall-knowledge-dc"
+        },
+        {
+          "id": "TC-DC-17",
+          "description": "NPC social DCs by attitude: Friendly=Easy(-2), Helpful=Very Easy(-5), Unfriendly=Hard(+2), Hostile=Very Hard(+5), fundamentally opposed=Incredibly Hard or impossible",
+          "suite": "module-test-suite",
+          "ac": "NEW-npc-social-dc"
+        },
+        {
+          "id": "TC-DC-18",
+          "description": "Stacking adjustments combine additively: uncommon(+2) + Hard(+2) = base+4",
+          "suite": "module-test-suite",
+          "ac": "NEW-stacking-additive"
+        },
+        {
+          "id": "TC-DC-19",
+          "description": "Stacking negative adjustments: Easy(-2) + Very Easy(-5) = -7 total; DC may not drop below 0 (floor TBD per PM confirmation)",
+          "suite": "module-test-suite",
+          "ac": "NEW-stacking-negative",
+          "note": "PM to confirm minimum DC floor"
+        },
+        {
+          "id": "TC-DC-20",
+          "description": "Rarity and level-based DCs both applied independently and additively (not exclusive): Level-5 rare creature = level_dc(5) + 5",
+          "suite": "module-test-suite",
+          "ac": "NEW-additive-not-exclusive"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-athletics-actions-e2e",
+      "label": "Athletics Actions \u2014 Escape, Climb, Force Open, Grapple (size limit/conditions/crit table), High Jump, Long Jump, Shove, Swim, Trip, Disarm, Falling (damage/prone/soft surface/Grab an Edge), MAP/Attack trait enforcement, ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-skills-athletics-actions",
+      "command": "./vendor/bin/phpunit --filter AthleticsActionsTest --testsuite module-test-suite --log-junit test-results/dc-cr-skills-athletics-actions/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-skills-athletics-actions/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-ATH-01",
+          "description": "Escape accepts Athletics modifier as alternative; escape_modifier_type accepts athletics or unarmed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-02",
+          "description": "Escape default modifier is unarmed when Athletics not selected",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-03",
+          "description": "Climb is a 1-action Move action; action_cost=1, traits include move",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-04",
+          "description": "Climb: flat-footed condition applied unless character has a climb Speed",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-05",
+          "description": "Climb movement distance scales with land Speed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-06",
+          "description": "Climb Critical Failure: character falls and lands prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-07",
+          "description": "Force Open has Attack trait (counts toward MAP)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-08",
+          "description": "Force Open: -2 item penalty without crowbar",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-09",
+          "description": "Force Open Critical Success: object opens without damage",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-10",
+          "description": "Force Open Success: object becomes broken",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-11",
+          "description": "Force Open Critical Failure: object jammed with -2 penalty to future attempts",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-12",
+          "description": "Grapple has Attack trait",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-13",
+          "description": "Grapple requires one free hand",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-14",
+          "description": "Grapple size limit: blocked for targets more than one size larger",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-15",
+          "description": "Grapple Critical Success: target gains restrained condition",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-16",
+          "description": "Grapple Success: target gains grabbed condition",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-17",
+          "description": "Grapple Failure: existing grapple released",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-18",
+          "description": "Grapple Critical Failure: target may grab attacker or knock prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-19",
+          "description": "Grapple condition broken by moving away",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-20",
+          "description": "High Jump costs 2 actions",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-21",
+          "description": "High Jump auto-fails without prior Stride of 10+ ft in same round",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-22",
+          "description": "High Jump Critical Success: 8 ft vertical (or 5 ft + 10 ft reach)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-23",
+          "description": "High Jump Success: 5 ft vertical",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-24",
+          "description": "High Jump Failure: resolves as normal Leap",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-25",
+          "description": "High Jump Critical Failure: attacker falls prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-26",
+          "description": "Long Jump costs 2 actions; DC = target distance in feet",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-27",
+          "description": "Long Jump requires prior Stride of 10+ ft in same direction in same round",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-28",
+          "description": "Long Jump max distance capped at character Speed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-29",
+          "description": "Long Jump Critical Failure: resolves as normal Leap + attacker prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-30",
+          "description": "Shove has Attack trait",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-31",
+          "description": "Shove forced movement does NOT trigger movement reactions",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-32",
+          "description": "Shove Critical Success: 10 ft push",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-33",
+          "description": "Shove Success: 5 ft push",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-34",
+          "description": "Shove Critical Failure: attacker falls prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-35",
+          "description": "Swim is a 1-action Move action",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-36",
+          "description": "Swim: no check required in calm water",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-37",
+          "description": "Swim: air-breathing characters must hold breath while submerged",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-38",
+          "description": "Swim: sink rule applied at end of turn (not on initial entry turn)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-39",
+          "description": "Swim Critical Failure: costs 1 round of held breath",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-40",
+          "description": "Trip has Attack trait",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-41",
+          "description": "Trip Critical Success: 1d6 bludgeoning + prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-42",
+          "description": "Trip Success: prone only (no damage)",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-43",
+          "description": "Trip Critical Failure: attacker falls prone",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-44",
+          "description": "Disarm requires Trained Athletics",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-45",
+          "description": "Disarm has Attack trait",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-46",
+          "description": "Disarm Critical Success: item dropped",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-47",
+          "description": "Disarm Success: grip weakened (bonuses/penalties until start of target's next turn)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-48",
+          "description": "Disarm Critical Failure: attacker becomes flat-footed",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-49",
+          "description": "Falling damage = half distance in feet as bludgeoning",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-50",
+          "description": "Character lands prone after falling",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-conditions"
+        },
+        {
+          "id": "TC-ATH-51",
+          "description": "Soft surface reduces effective fall distance by up to 20 ft",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-52",
+          "description": "Grab an Edge reaction: reduces or eliminates fall damage",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-ATH-53",
+          "description": "ACL regression: no new routes introduced by Athletics actions; existing encounter handlers retain ACL",
+          "suite": "role-url-audit",
+          "ac": "SEC-no-new-routes"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-calculator-hardening-e2e",
+      "label": "Skills Calculator Hardening \u2014 Trained gate enforcement, rank ceiling (Expert/Master/Legendary level gates), armor check penalty (STR/DEX skills, not attack-trait), server-side enforcement, ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-skills-calculator-hardening",
+      "command": "./vendor/bin/phpunit --filter SkillsCalculatorHardeningTest --testsuite module-test-suite --log-junit test-results/dc-cr-skills-calculator-hardening/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-skills-calculator-hardening/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CALC-01",
+          "description": "calculateSkillCheck() blocks untrained character on trained-only action",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-02",
+          "description": "Trained gate error message explicitly states character is untrained",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-03",
+          "description": "Trained character not blocked on trained-only action",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-04",
+          "description": "Rank ceiling: Expert to Master requires level >= 7",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-CALC-05",
+          "description": "Rank ceiling: Master to Legendary requires level >= 15",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-CALC-06",
+          "description": "Rank ceiling: blocked increase returns clear error; does not silently no-op",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-07",
+          "description": "Rank ceiling: Expert to Master allowed at level 7",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-CALC-08",
+          "description": "Rank ceiling: Master to Legendary allowed at level 15",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-CALC-09",
+          "description": "Armor check penalty applied to Strength-based skill rolls",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-10",
+          "description": "Armor check penalty applied to Dexterity-based skill rolls (non-attack)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-11",
+          "description": "Armor check penalty NOT applied to attack-trait actions (e.g., Grapple, Trip, Disarm)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-12",
+          "description": "Zero armor check penalty: unarmored character, no penalty applied",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-13",
+          "description": "Untrained attempting trained-only: blocked, not silently degraded",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY"
+        },
+        {
+          "id": "TC-CALC-14",
+          "description": "Armor check penalty on DEX attack-trait action: NOT applied",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY"
+        },
+        {
+          "id": "TC-CALC-15",
+          "description": "Server-side enforcement: rank ceiling bypass via direct API call still blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-CALC-16",
+          "description": "ACL regression: no new routes; existing character creation and leveling forms retain ACL",
+          "suite": "role-url-audit",
+          "ac": "SEC-no-new-routes"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-medicine-actions-e2e",
+      "label": "Medicine Actions \u2014 Administer First Aid (Stabilize/Stop Bleeding, 2-action, Trained gate, healer's tools, improvised penalty, outcome table), Treat Disease (8-hour downtime), Treat Poison (1-action, next-save improvement), Treat Wounds (10-min, proficiency-scaled DC/HP, cooldown), edge cases, ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-skills-medicine-actions",
+      "command": "./vendor/bin/phpunit --filter MedicineActionsTest --testsuite module-test-suite --log-junit test-results/dc-cr-skills-medicine-actions/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-skills-medicine-actions/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-MED-01",
+          "description": "Administer First Aid costs 2 actions",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-02",
+          "description": "Administer First Aid requires Trained Medicine",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-03",
+          "description": "Administer First Aid requires healer's tools",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-04",
+          "description": "Administer First Aid without tools: improvised at -2 penalty",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-05",
+          "description": "Administer First Aid Stabilize Success: removes dying condition",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-06",
+          "description": "Administer First Aid Stabilize Failure: reduces dying by 1",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-07",
+          "description": "Administer First Aid Stabilize Critical Failure: advances dying by 1",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-08",
+          "description": "Administer First Aid Stop Bleeding mode stops persistent bleeding condition",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-09",
+          "description": "Stabilize blocked on non-dying target",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-10",
+          "description": "Administer First Aid: cannot apply same mode to same target twice in one round",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-11",
+          "description": "Treat Disease is a downtime activity (8 hours)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-12",
+          "description": "Treat Disease requires Trained Medicine and healer's tools",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-13",
+          "description": "Treat Disease improves target's next disease save by one degree of success",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-14",
+          "description": "Treat Disease: one application per rest period per disease",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-15",
+          "description": "Treat Poison costs 1 action",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-16",
+          "description": "Treat Poison requires Trained Medicine and healer's tools",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-17",
+          "description": "Treat Poison improves target's next poison save by one degree",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-18",
+          "description": "Treat Poison applies to next upcoming save only (one save, one poison)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-19",
+          "description": "Treat Wounds is an exploration activity (10 minutes)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-20",
+          "description": "Treat Wounds requires Trained Medicine and healer's tools",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-21",
+          "description": "Treat Wounds DC scales with proficiency rank",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-22",
+          "description": "Treat Wounds HP restoration scales by proficiency rank",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-23",
+          "description": "Treat Wounds Critical Success: double HP restored",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-24",
+          "description": "Treat Wounds Critical Failure: deals 1d8 damage instead of healing",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-25",
+          "description": "Treat Wounds: 1-hour cooldown per target",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-26",
+          "description": "Treat Wounds cooldown is per-target, not per-healer (edge case)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-MED-27",
+          "description": "ACL regression: no new routes introduced by Medicine actions",
+          "suite": "role-url-audit",
+          "ac": "SEC-no-new-routes"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-recall-knowledge-e2e",
+      "label": "Recall Knowledge \u2014 1-action, secret check, outcome table (Crit Success/Success/Fail/Crit Fail), untrained allowed, skill routing (Arcana/Crafting/Lore/Medicine/Nature/Occultism/Religion/Society), DC resolution (GM-set/level-based/rarity), Occultism/Religion extended uses (Decipher Writing/Identify Magic/Learn a Spell), wrong-tradition +5 DC penalty, ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-skills-recall-knowledge",
+      "command": "./vendor/bin/phpunit --filter RecallKnowledgeTest --testsuite module-test-suite --log-junit test-results/dc-cr-skills-recall-knowledge/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-skills-recall-knowledge/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-RK-01",
+          "description": "Recall Knowledge: 1-action cost, flagged as secret check",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-02",
+          "description": "Critical Success: accurate info + bonus detail returned",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-03",
+          "description": "Success: accurate info returned, no bonus detail",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-04",
+          "description": "Failure: no information returned",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-05",
+          "description": "Critical Failure: false info returned; player output appears truthful (not flagged as false)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-06",
+          "description": "Untrained: Recall Knowledge action is permitted (no trained gate)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-07",
+          "description": "Skill routing: Arcana routes to arcane creatures/magic/planes",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-08",
+          "description": "Skill routing: Crafting routes to item construction/artifice",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-09",
+          "description": "Skill routing: Lore routes to specific subcategory",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-10",
+          "description": "Skill routing: Medicine routes to diseases/poisons/anatomy",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-11",
+          "description": "Skill routing: Nature routes to animals/plants/terrain",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-12",
+          "description": "Skill routing: Occultism routes to metaphysics/weird philosophies/occult magic",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-13",
+          "description": "Skill routing: Religion routes to deities/undead/divine magic",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-14",
+          "description": "Skill routing: Society routes to cultures/laws/humanoid organizations",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-15",
+          "description": "DC resolution: GM-set simple DC for obscurity-based topics",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-16",
+          "description": "DC resolution: level-based DC for creatures and hazards",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-dc-rarity-spell-adjustment"
+        },
+        {
+          "id": "TC-RK-17",
+          "description": "DC resolution: rarity adjustment applied on top of base DC",
+          "suite": "module-test-suite",
+          "ac": "NEW",
+          "dependency": "dc-cr-dc-rarity-spell-adjustment"
+        },
+        {
+          "id": "TC-RK-18",
+          "description": "Occultism Decipher Writing: covers metaphysics, syncretic principles, weird philosophies",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-19",
+          "description": "Occultism Identify Magic: routes to occult tradition items/effects",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-20",
+          "description": "Occultism Learn a Spell: routes to occult tradition spells",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-21",
+          "description": "Religion Decipher Writing: covers religious allegories, homilies, proverbs",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-22",
+          "description": "Religion Identify Magic: routes to divine tradition items/effects",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-23",
+          "description": "Religion Learn a Spell: routes to divine tradition spells",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-24",
+          "description": "Wrong tradition Identify Magic: +5 DC penalty applied; NOT blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-RK-25",
+          "description": "ACL regression: no new routes; existing encounter handler routes retain ACL",
+          "suite": "role-url-audit",
+          "ac": "SEC-no-new-routes"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-stealth-hide-sneak-e2e",
+      "label": "Stealth Actions \u2014 Conceal an Object (1-action, Manipulation), Hide (requires cover, Stealth vs Perception, any-observer-beats = Observed, Observed-to-Hidden, no open terrain), Sneak (Hidden-only, half-speed rounded to 5-ft, roll at end, cannot end in open), Avoid Notice (exploration, starts Unnoticed), ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-skills-stealth-hide-sneak",
+      "command": "./vendor/bin/phpunit --filter StealthActionsTest --testsuite module-test-suite --log-junit test-results/dc-cr-skills-stealth-hide-sneak/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-skills-stealth-hide-sneak/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-STL-01",
+          "description": "Conceal an Object: 1-action, Manipulation trait, applies to small concealable items",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-02",
+          "description": "Conceal an Object Critical Success: item hidden, observers must Seek to find",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-03",
+          "description": "Conceal an Object Success: item hidden at lower DC to find (vs Crit Success)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-04",
+          "description": "Hide: requires cover or concealment to attempt",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-05",
+          "description": "Hide: Stealth roll vs each observer's Perception DC",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-06",
+          "description": "Hide: if ANY observer beats DC, character remains Observed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-07",
+          "description": "Hide: transitions character from Observed to Hidden on full success",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-08",
+          "description": "Hide: Hidden character performing most actions becomes Observed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-09",
+          "description": "Hide in open terrain (no cover): blocked or auto-fail",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-10",
+          "description": "Sneak: requires Hidden status before use",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-11",
+          "description": "Sneak: 1-action, Move trait, costs half Speed rounded to 5-ft intervals",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-12",
+          "description": "Sneak speed rounding: half speed rounds DOWN to 5-ft interval (not blocked)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-13",
+          "description": "Sneak: roll Stealth vs each observer's Perception at end of move",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-14",
+          "description": "Sneak Success: character remains Hidden",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-15",
+          "description": "Sneak Failure: character becomes Observed by failing observer",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-16",
+          "description": "Sneak: cannot end move in obvious/open location",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-17",
+          "description": "Avoid Notice: exploration activity, uses Stealth for duration",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-18",
+          "description": "Avoid Notice: character starts as Unnoticed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-19",
+          "description": "Avoid Notice: first failed Seek or Perception check transitions to Observed",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-STL-20",
+          "description": "ACL regression: no new routes introduced by Stealth actions",
+          "suite": "role-url-audit",
+          "ac": "SEC-no-new-routes"
+        }
+      ]
+    },
+    {
+      "id": "dc-cr-skills-thievery-disable-pick-lock-e2e",
+      "label": "Thievery Actions \u2014 Palm an Object (1-action, Manipulation, small items), Steal (1-action, unaware target required, Crit Fail awareness broadcast), Disable a Device (2-action, Trained gate, thieves' tools, complex multi-success, trigger on Crit Fail), Pick a Lock (2-action, Trained gate, without-tools DC+5, DC by lock quality, jammed on Crit Fail), ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-skills-thievery-disable-pick-lock",
+      "command": "./vendor/bin/phpunit --filter ThieveryActionsTest --testsuite module-test-suite --log-junit test-results/dc-cr-skills-thievery-disable-pick-lock/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-skills-thievery-disable-pick-lock/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-THI-01",
+          "description": "Palm an Object: 1-action, Manipulation trait, applies to small concealable items",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-02",
+          "description": "Palm an Object Success: item hidden on person, observers must Seek to notice",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-03",
+          "description": "Steal: 1-action, Manipulation trait",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-04",
+          "description": "Steal: requires target to be unaware of attempt (Observed to character or distracted)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-05",
+          "description": "Steal Success: item transferred from target to character",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-06",
+          "description": "Steal Critical Failure: target AND nearby observers become aware of attempt",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-07",
+          "description": "Disable a Device: 2-action cost, Manipulation trait, Trained gate",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-08",
+          "description": "Disable a Device: requires thieves' tools",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-09",
+          "description": "Disable a Device: complex devices require multiple successes",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-10",
+          "description": "Disable a Device Critical Failure: trap/device triggers",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-11",
+          "description": "Disable a Device untrained: blocked",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-12",
+          "description": "Pick a Lock: 2-action cost, Manipulation trait, Trained gate",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-13",
+          "description": "Pick a Lock: requires thieves' tools; without tools DC increases by 5",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-14",
+          "description": "Pick a Lock: DC by lock quality (simple, average, good, superior)",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-15",
+          "description": "Pick a Lock Success: lock opened",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-16",
+          "description": "Pick a Lock Critical Failure: lock becomes jammed, no further attempts until repaired",
+          "suite": "module-test-suite",
+          "ac": "NEW"
+        },
+        {
+          "id": "TC-THI-17",
+          "description": "Pick a Lock jammed state persists until repaired",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY"
+        },
+        {
+          "id": "TC-THI-18",
+          "description": "ACL regression: no new routes introduced by Thievery actions",
+          "suite": "role-url-audit",
+          "ac": "SEC-no-new-routes"
+        }
+      ]
     }
   ],
   "_schema_notes": [
