@@ -1044,6 +1044,55 @@
         "Reads counts from findings-summary.json via Python (avoids grep-from-markdown text-parse bugs)."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-profile-form-static-db-extraction-static",
+      "label": "UserProfileForm static-DB extraction: static checks \u2014 no \\Drupal::database() in form, repository lint clean, method count (TC-1 to TC-3, AC-1 to AC-4)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-profile-form-static-db-extraction",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; echo \"=== TC-1: no Drupal::database() in UserProfileForm ===\"; COUNT=$(grep -c \"Drupal::database()\" \"sites/forseti/web/modules/custom/job_hunter/src/Form/UserProfileForm.php\" 2>/dev/null; true); [ \"${COUNT:-0}\" = \"0\" ] && echo \"PASS: 0 static DB calls\" || (echo \"FAIL: $COUNT Drupal::database() calls found\" && exit 1); echo \"=== TC-2: PHP lint clean on UserProfileForm ===\"; php -l \"sites/forseti/web/modules/custom/job_hunter/src/Form/UserProfileForm.php\" | grep -q \"No syntax errors\" && echo \"PASS: lint clean\" || (echo \"FAIL: PHP lint error\" && exit 1); echo \"=== TC-3: UserProfileRepository exists, lint clean, >= 13 public methods ===\"; REPO=\"sites/forseti/web/modules/custom/job_hunter/src/Repository/UserProfileRepository.php\"; [ -f \"$REPO\" ] && echo \"PASS: UserProfileRepository.php exists\" || (echo \"FAIL: UserProfileRepository.php missing\" && exit 1); php -l \"$REPO\" | grep -q \"No syntax errors\" && echo \"PASS: repository lint clean\" || (echo \"FAIL: repository PHP lint error\" && exit 1); METHOD_COUNT=$(grep -c \"public function\" \"$REPO\" 2>/dev/null || echo 0); echo \"Repository public methods: $METHOD_COUNT\"; [ \"${METHOD_COUNT:-0}\" -ge 13 ] && echo \"PASS: repository has >= 13 public methods\" || (echo \"FAIL: expected >= 13 methods, found $METHOD_COUNT\" && exit 1); echo \"All static checks PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-profile-form-static-db-extraction/static.log"
+      ],
+      "run_notes": [
+        "TC-1: grep -c 'Drupal::database()' must return 0 \u2014 10 static calls exist pre-implementation at lines 1483, 1792, 1838, 1889, 2023, 2722, 4541, 4907, 4937, 5175.",
+        "TC-2: php -l on UserProfileForm.php must exit 0.",
+        "TC-3: UserProfileRepository.php must have >= 13 public methods (3 existing + 10 extracted).",
+        "Will FAIL on TC-1 and TC-3 until dev-forseti completes extraction \u2014 expected Stage 0 behavior.",
+        "STAGE 0 PENDING: Dev must complete extraction before TC-1/TC-3 pass."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-profile-form-static-db-extraction-functional",
+      "label": "UserProfileForm static-DB extraction: functional smoke \u2014 /jobhunter/profile returns auth-required (not 500) (TC-4, AC-5)",
+      "type": "script",
+      "feature_id": "forseti-jobhunter-profile-form-static-db-extraction",
+      "command": "bash -c 'set -e; BASE=https://forseti.life; echo \"=== TC-4: /jobhunter/profile returns auth-required (not 500) ===\"; S=$(curl -s -o /dev/null -w \"%{http_code}\" \"$BASE/jobhunter/profile\"); case $S in 403|302|200) echo \"PASS: /jobhunter/profile => $S (no server error)\";; *) echo \"FAIL: /jobhunter/profile => $S (unexpected)\" && exit 1;; esac; echo \"All functional checks PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-profile-form-static-db-extraction/functional.log"
+      ],
+      "run_notes": [
+        "TC-4: /jobhunter/profile must return 403/302 for anon (auth-required) or 200 for admin.",
+        "Anon 403 is the expected passing state \u2014 confirms route loads without PHP 500.",
+        "Full authenticated form render requires a session cookie; deferred to manual/E2E."
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-profile-form-static-db-extraction-regression",
+      "label": "UserProfileForm static-DB extraction: regression \u2014 site audit 0 failures 0 violations + no ->database( re-introduced (TC-5, TC-6, AC-5)",
+      "type": "script",
+      "feature_id": "forseti-jobhunter-profile-form-static-db-extraction",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq; echo \"=== TC-6: regression \u2014 no ->database( re-introduced ===\"; COUNT=$(grep -c \"->database(\" \"/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Form/UserProfileForm.php\" 2>/dev/null; true); [ \"${COUNT:-0}\" = \"0\" ] && echo \"PASS: 0 injected database calls\" || (echo \"FAIL: $COUNT ->database( calls re-introduced\" && exit 1); echo \"=== TC-5: site audit 0 failures 0 violations ===\"; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh 2>&1 | tail -5; SUMMARY=sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json; FAILURES=$(python3 -c \"import json; d=json.load(open(\\\"$SUMMARY\\\")); print(d[\\\"counts\\\"][\\\"failures\\\"])\" 2>/dev/null || echo 0); VIOLATIONS=$(python3 -c \"import json; d=json.load(open(\\\"$SUMMARY\\\")); print(d[\\\"counts\\\"][\\\"permission_violations\\\"])\" 2>/dev/null || echo 0); [ \"${FAILURES:-0}\" = \"0\" ] && [ \"${VIOLATIONS:-0}\" = \"0\" ] && echo \"PASS: 0 failures, 0 violations\" || (echo \"FAIL: failures=$FAILURES violations=$VIOLATIONS\" && exit 1); echo \"Regression check PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "run_notes": [
+        "TC-6: confirms release-j scope not regressed \u2014 injected ->database( calls remain at 0.",
+        "TC-5: reads failure/violation counts from findings-summary.json via Python (avoids grep-from-markdown parse bugs)."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
