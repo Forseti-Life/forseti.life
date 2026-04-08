@@ -5137,6 +5137,134 @@
           "ac_tag": "Magic-8,Edge-4"
         }
       ]
+    },
+    {
+      "id": "dc-apg-class-expansions-e2e",
+      "label": "APG core class expansions: Alchemist Toxicologist (1-action poison apply, class DC sub, batch-3 at L5, double-poison at L15), Barbarian Superstition instinct (anathema scope), Bard Warrior muse (Martial Performance grant, fear repertoire, Song of Strength), Champion evil options (Uncommon gate), Rogue Eldritch Trickster and Mastermind rackets, Sorcerer Genie/Nymph bloodlines, Wizard Staff Nexus thesis (makeshift staff, charge stacking), integration and edge cases",
+      "type": "e2e",
+      "feature_id": "dc-apg-class-expansions",
+      "command": "npx playwright test tests/e2e/apg-class-expansions/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-apg-class-expansions-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260407-dungeoncrawler-release-b",
+      "activated_date": "2026-04-08",
+      "notes": "Security AC exemption confirmed: no new routes. All 16 TCs active. Regression risks: Toxicologist double-poison combined DC (min not max); Superstition anathema incorrectly blocking potions; Mastermind flat-footed duration (until-next-turn vs 1-min); Staff Nexus cantrip incorrectly costing charges; Genie subtype not stored for downstream spell lookup; evil champion options visible without GM approval flag.",
+      "test_cases": [
+        {
+          "id": "TC-EXP-01",
+          "description": "Alchemist: Toxicologist research field selectable; selecting grants 2 common L1 poison formulas in formula book",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Toxicologist-1-2"
+        },
+        {
+          "id": "TC-EXP-02",
+          "description": "Toxicologist: apply_poison.action_cost=1 (standard=2); class_dc may substitute for poison save DC when using infused poisons",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Toxicologist-3-4,Integration-1"
+        },
+        {
+          "id": "TC-EXP-03",
+          "description": "Toxicologist L5 Field Discovery: poison_batch_size=3 (standard=2)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Toxicologist-5"
+        },
+        {
+          "id": "TC-EXP-04",
+          "description": "Toxicologist L15 Greater Discovery: double_poison_application=enabled; combined DC = min(dc1,dc2); cannot use with perpetual poisons",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Toxicologist-6,Edge-1"
+        },
+        {
+          "id": "TC-EXP-05",
+          "description": "Barbarian Superstition: anathema_flag set on willingly accepting spell effects; potions and non-spell magic activations bypass flag; spell-casting items (wands/scrolls) blocked",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Superstition-1-4"
+        },
+        {
+          "id": "TC-EXP-06",
+          "description": "Bard Warrior muse: Martial Performance feat in character.feats at L1; fear added to spell repertoire at L1",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "WarriorMuse-1-2"
+        },
+        {
+          "id": "TC-EXP-07",
+          "description": "Bard Warrior muse: Song of Strength composition cantrip available at L2 feat slot for warrior muse only; +2 circumstance Athletics bonus active while composition sustained",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "WarriorMuse-3"
+        },
+        {
+          "id": "TC-EXP-08",
+          "description": "Champion: evil alignment options tagged Uncommon; blocked without GM approval flag; parallel structure to good champion reactions and devotion spells",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Champion-1-3,Integration-4"
+        },
+        {
+          "id": "TC-EXP-09",
+          "description": "Rogue Eldritch Trickster racket: free multiclass spellcasting dedication at L1; Magical Trickster feat available at L2 (not L4)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Rogue-1-2"
+        },
+        {
+          "id": "TC-EXP-10",
+          "description": "Rogue Mastermind racket: key_ability=Int; Society + knowledge Lore trained; Recall Knowledge success -> target flat-footed until next turn; crit success -> 1 minute",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Rogue-3-4,Edge-2,Integration-6"
+        },
+        {
+          "id": "TC-EXP-11",
+          "description": "Sorcerer Genie bloodline: arcane tradition; 5 subtypes (Janni/Djinni/Efreeti/Marid/Shaitan) selectable at L1; subtype stored and used for granted spell lookup",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Sorcerer-1-2,Edge-3"
+        },
+        {
+          "id": "TC-EXP-12",
+          "description": "Sorcerer Nymph bloodline: primal tradition; granted_spells, bloodline_spells, blood_magic all present",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Sorcerer-3"
+        },
+        {
+          "id": "TC-EXP-13",
+          "description": "Wizard Staff Nexus thesis: makeshift_staff created with 1 cantrip + 1 L1 spell; charges loaded by expending spell slots only; cantrip cast free (charges_spent=0)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "StaffNexus-1-3,Edge-4,Integration-7"
+        },
+        {
+          "id": "TC-EXP-14",
+          "description": "Wizard Staff Nexus: at L8 max_slots_per_charge=2; at L16 max_slots_per_charge=3; charges = sum of all expended spell levels",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "StaffNexus-4-5"
+        },
+        {
+          "id": "TC-EXP-15",
+          "description": "Staff Nexus cantrip cast from makeshift staff costs 0 charges regardless of other staff rules",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Edge-4"
+        },
+        {
+          "id": "TC-EXP-16",
+          "description": "Integration: all 6 expansion options visible in correct class selection screens (Toxicologist/Superstition/Warrior/evil-champion/Eldritch-Trickster/Mastermind/Genie/Nymph/Staff-Nexus)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "Integration-1-7"
+        }
+      ]
     }
   ],
   "_schema_notes": [
