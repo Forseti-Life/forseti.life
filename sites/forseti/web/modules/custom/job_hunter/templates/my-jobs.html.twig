@@ -203,6 +203,25 @@
               {% endif %}
               </div>
 
+              {# Applied toggle — available on all rows so users can record manual applications #}
+              <div class="operation-item applied-toggle-item">
+                <form class="applied-toggle-form" method="POST"
+                      action="/jobhunter/my-jobs/{{ job.id }}/applied?token={{ job.apply_csrf_token }}">
+                  <input type="hidden" name="return_to" value="{{ return_url }}" />
+                  <label class="applied-toggle-label" title="{{ 'Check when you have submitted this application'|t }}">
+                    <input type="checkbox" name="have_applied" value="1"
+                           {{ job.status == 'applied' ? 'checked' : '' }} />
+                    {{ 'Applied'|t }}
+                  </label>
+                  <input type="date" name="applied_on_date"
+                         value="{{ job.applied_on_date|default('') }}"
+                         title="{{ 'Date you submitted the application'|t }}" />
+                  <button type="submit" class="button button--small button--secondary">
+                    {{ 'Update'|t }}
+                  </button>
+                </form>
+              </div>
+
               {# Secondary actions always available #}
               <div class="operation-item">
                 <a href="/jobhunter/tailor-resume/{{ job.id }}" class="button button--small button--secondary" title="{{ 'Open tailoring page'|t }}">
