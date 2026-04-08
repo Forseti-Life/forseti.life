@@ -57,7 +57,7 @@ ceo_agent="$(active_ceo_agent)"
 ceo_inbox="sessions/${ceo_agent}/inbox"
 pending_count=0
 if [ -d "$ceo_inbox" ]; then
-  pending_count="$(find "$ceo_inbox" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | tr -d ' ')"
+  pending_count="$(find "$ceo_inbox" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | tr -d ' ')"
 fi
 
 breach_count=0

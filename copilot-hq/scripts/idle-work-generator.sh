@@ -128,7 +128,7 @@ inbox_count() {
   local dir="sessions/${agent}/inbox"
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || { echo 0; return; }
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1}'
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | awk '{print $1}'
 }
 
 create_item() {
@@ -181,7 +181,7 @@ inbox_has_non_idle_items() {
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || return 1
   # Non-idle items are anything not containing '-idle-'.
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|.*/||' \
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sed 's|.*/||' \
     | grep -qv -- '-idle-' && return 0
   return 1
 }

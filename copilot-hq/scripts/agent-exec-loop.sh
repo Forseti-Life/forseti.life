@@ -61,7 +61,7 @@ agent_inbox_count() {
   local dir="sessions/${agent}/inbox"
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || { echo 0; return; }
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1}'
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | awk '{print $1}'
 }
 
 # Organizational priority weighting (shared helper).
@@ -114,7 +114,7 @@ agent_top_effective_roi() {
     if [ "$roi" -gt "$top" ] 2>/dev/null; then
       top="$roi"
     fi
-  done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|.*/||' || true)
+  done < <(find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sed 's|.*/||' || true)
 
   echo "$top"
 }

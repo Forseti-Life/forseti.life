@@ -156,7 +156,7 @@ bump_other_agents_queued_roi() {
     inbox_dir="$(readlink -f "$inbox_dir" 2>/dev/null || echo "$inbox_dir")"
     [ -d "$inbox_dir" ] || continue
 
-    find "$inbox_dir" -mindepth 1 -maxdepth 1 -type d -print0 2>/dev/null \
+    find "$inbox_dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" -print0 2>/dev/null \
       | while IFS= read -r -d '' item_dir; do
           [ -d "$item_dir" ] || continue
           local roi_file="$item_dir/roi.txt"

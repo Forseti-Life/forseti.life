@@ -89,7 +89,7 @@ agent_pending_inbox_count() {
     echo 0
     return
   fi
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1}'
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | awk '{print $1}'
 }
 
 agent_next_inbox() {
@@ -101,7 +101,7 @@ agent_next_inbox() {
     return
   fi
   local next
-  next=$(find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|.*/||' | sort | head -n 1 || true)
+  next=$(find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sed 's|.*/||' | sort | head -n 1 || true)
   echo "${next:--}"
 }
 
@@ -218,7 +218,7 @@ _check_starvation() {
       oldest_age_h=$age_h
       oldest_item="$item"
     fi
-  done < <(find "$inbox_dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sort)
+  done < <(find "$inbox_dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sort)
 
   [ "$unprocessed" -eq 0 ] && return 0
 

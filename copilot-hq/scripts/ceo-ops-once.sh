@@ -64,7 +64,7 @@ if [ "${matrix_noncompliant_count:-0}" -gt 0 ]; then
 fi
 
 # Prioritize agent-management: ensure tracker PM/Dev/QA have work if backlog exists.
-pm_backlog=$(find sessions/pm-forseti-agent-tracker/inbox -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1}')
+pm_backlog=$(find sessions/pm-forseti-agent-tracker/inbox -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | awk '{print $1}')
 if [ "${pm_backlog:-0}" -gt 0 ]; then
   echo "- Agent-management: pm-forseti-agent-tracker has ${pm_backlog} inbox item(s); ensure outbox artifacts are being produced and prioritize this stream."
 fi

@@ -368,7 +368,7 @@ agent_next_inbox() {
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || { echo ""; return; }
 
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|.*/||' \
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sed 's|.*/||' \
     | while IFS= read -r name; do
         [ -n "$name" ] || continue
         eff="$(agent_inbox_item_effective_roi "$agent" "$name")"
@@ -437,19 +437,15 @@ agent_inbox_count() {
   local dir="sessions/${agent}/inbox"
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || { echo 0; return; }
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | wc -l | awk '{print $1}'
-}
-
-agent_inbox_items_json() {
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | awk '{print $1}'
   local agent="$1"
   local dir="sessions/${agent}/inbox"
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || { echo "[]"; return; }
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|.*/||' \
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sed 's|.*/||' \
     | while IFS= read -r name; do
         [ -n "$name" ] || continue
         eff="$(agent_inbox_item_effective_roi "$agent" "$name")"
-        [[ "$eff" =~ ^[0-9]+$ ]] || eff=0
         printf '%s\t%s\n' "$eff" "$name"
       done \
     | python3 -c $'import json\nimport sys\n\nrows=[]\nfor ln in sys.stdin:\n  ln=ln.rstrip("\\n")\n  if not ln.strip():\n    continue\n  parts=ln.split("\\t",1)\n  if len(parts)!=2:\n    continue\n  eff_s,name=parts[0].strip(),parts[1].strip()\n  if not name:\n    continue\n  try:\n    eff=int(eff_s)\n  except Exception:\n    eff=0\n  rows.append((eff,name))\n\nrows.sort(key=lambda t:(-t[0], t[1]))\nprint(json.dumps([name for _,name in rows[:25]]))'
@@ -463,7 +459,7 @@ agent_inbox_items_detail_json() {
   dir="$(readlink -f "$dir" 2>/dev/null || echo "$dir")"
   [ -d "$dir" ] || { echo "[]"; return; }
 
-  find "$dir" -mindepth 1 -maxdepth 1 -type d 2>/dev/null | sed 's|.*/||' \
+  find "$dir" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | sed 's|.*/||' \
     | while IFS= read -r name; do
         [ -n "$name" ] || continue
         base="$(agent_inbox_item_roi "$agent" "$name")"
