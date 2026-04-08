@@ -22,7 +22,9 @@
 **When** `UserProfileForm.php` calls them,
 **Then** each call is through a properly injected dependency (not static `\Drupal::service()`).
 
-**Verification:** Code review — no `\Drupal::database()` or `\Drupal::service('database')` in UserProfileForm.
+**Verification:** Code review — no `$this->database` property calls remain in UserProfileForm (the 2 `$this->database` call sites targeted by this extraction are removed). Pre-existing `\Drupal::database()` static calls elsewhere in the file are out of scope for this extraction and tracked as follow-on work in `features/forseti-jobhunter-profile-form-static-db-extraction/`.
+
+**PM scope decision (2026-04-08):** The dev task was explicitly scoped to "Extract 3 DB calls from UserProfileForm" targeting the 2 `$this->database` property injection call sites. 10 pre-existing `\Drupal::database()` static calls remain but were not part of the original scope. AC-3 narrowed to match actual dev scope. Follow-on task queued for next release.
 
 ## AC-4 — PHP syntax passes on all modified files
 
