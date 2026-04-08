@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-profile-refactor
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260408-forseti-release-c
 - Priority: P2
 - Feature type: refactor
@@ -37,6 +37,8 @@ See: features/forseti-jobhunter-profile-refactor/01-acceptance-criteria.md
 - Education history persistence must be validated end-to-end.
 
 ## Latest updates
+
+- 2026-04-08: Grooming complete — test plan written by QA. Ready for next Stage 0 scope selection.
 
 - 2026-04-08: Handed off to QA for test generation (pm-qa-handoff.sh)
 - 2026-04-08: Feature brief created from BA inventory JH-R3. Groomed for 20260408-forseti-release-c.
