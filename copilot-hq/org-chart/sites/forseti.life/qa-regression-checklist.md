@@ -68,3 +68,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260408-forseti-release-b-schema-hook-age-18 — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260408-forseti-release-b-schema-hook-age-18.md)
 | 20260408-forseti-release-b-schema-hook-age-18 | APPROVE | 835d8290c | age_18_or_older column in hook_schema; write/read/NULL round-trip verified; site audit 20260408-125738 clean |
 - [ ] 20260408-132124-impl-forseti-copilot-agent-tracker — targeted regression check (see dev outbox: sessions/dev-forseti-agent-tracker/outbox/20260408-132124-impl-forseti-copilot-agent-tracker.md)
+| 20260408-132124-impl-forseti-copilot-agent-tracker | APPROVE | 9b21ad062 | Input validation (agent_id/status/action/metadata) + PII guard + schema hook_update_8006; auth checks all pass; minor AC delta: anon=403 not 302 (accepted) |
