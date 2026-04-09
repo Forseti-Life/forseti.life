@@ -159,8 +159,17 @@ Every feature you are about to activate MUST have a matching inbox item in that 
 
 **Lesson (2026-04-09, GAP-PM-DC-NO-DEV-DISPATCH):** In release-c (20260409), pm-dungeoncrawler activated 10 features and dispatched only QA suite-activate items. Dev-dungeoncrawler had zero inbox items. Auto-close fired immediately (10 in_progress) before dev executed a single item — empty release resulted.
 
-**Scope cap per cycle: ≤7 features (enforced):**
+**Scope cap per cycle: ≤7 features (enforced — HARD STOP):**
 Activate no more than 7 features per release cycle. The org-wide auto-close fires at ≥10 in_progress; activating exactly 10 fires auto-close the instant scope-activate completes, before dev can work. A cap of 7 leaves headroom. If backlog demands more, start a second release cycle after shipping the first 7.
+
+**Pre-activate count check (required — no exceptions):**
+Before activating ANY features, count current in_progress dungeoncrawler features:
+```bash
+grep -rl "Status: in_progress" features/dc-*/feature.md | wc -l
+```
+If count is already ≥7, do NOT activate more. If count is <7, activate only enough to reach 7 total (not 10). Activating up to 10 triggers immediate auto-close — this is a confirmed empty-release pattern (release-c, release-d both failed this way).
+
+**Lesson (2026-04-09, GAP-DC-PM-AUTO-CLOSE-IMMEDIATE):** In release-d (20260409), PM activated exactly 10 features (the auto-close threshold), triggering immediate release-close-now before dev could pick up any work items. Third consecutive empty release. Root cause: PM count not verified before activation.
 
 **PRE-CHECK (required before every activation run):**
 ```bash

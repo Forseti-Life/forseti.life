@@ -33,3 +33,5 @@ Your outbox MUST include:
 ## Acceptance
 
 PM will dispatch QA suite-activate only after your outbox is present at `sessions/dev-dungeoncrawler/outbox/<date>-impl-dc-cr-rune-system.md` with `Status: done`.
+- Agent: dev-dungeoncrawler
+- Status: pending

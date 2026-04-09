@@ -3,9 +3,8 @@
 - Work item id: dc-cr-tactical-grid
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release:
-20260409-dungeoncrawler-release-d
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

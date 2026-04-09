@@ -3,7 +3,7 @@
 - Work item id: dc-cr-gnome-heritage-sensate
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -11,7 +11,6 @@
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
 - Release:
-20260409-dungeoncrawler-release-d
 
 ## Goal
 
