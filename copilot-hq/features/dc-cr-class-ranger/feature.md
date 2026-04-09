@@ -3,7 +3,8 @@
 - Work item id: dc-cr-class-ranger
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260409-dungeoncrawler-release-c
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

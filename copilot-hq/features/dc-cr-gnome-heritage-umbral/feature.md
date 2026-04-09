@@ -3,14 +3,14 @@
 - Work item id: dc-cr-gnome-heritage-umbral
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
-- Release: (set by PM at activation)
+- Release: 20260409-dungeoncrawler-release-c
 - Created: 2026-04-08
 
 ## Goal
@@ -29,3 +29,6 @@ Heritage node in `dungeoncrawler_content` linked to Gnome ancestry. Sets charact
 
 - [ ] Aligns with democratized community game experience
 - [ ] Does not add surveillance or restrict community access
+
+## Security acceptance criteria
+- Security AC exemption: static data content only — no new routes, no user input, no PII. Data added to CharacterManager.php constants.

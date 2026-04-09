@@ -4,8 +4,8 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: ready
-- Release: none
+- Status: in_progress
+- Release: 20260409-dungeoncrawler-release-c
 - Dependencies: dc-cr-equipment-system, dc-cr-magic-system
 
 ## Goal
