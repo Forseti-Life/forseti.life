@@ -3,7 +3,7 @@
 - Work item id: dc-cr-class-wizard
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260409-dungeoncrawler-release-g
 - Priority: P3
 - PM owner: pm-dungeoncrawler
