@@ -265,6 +265,25 @@ Required contents (at minimum):
 
 Root cause (GAP-DC-QA-GATE2-CONSOLIDATE-01, 2026-04-08): qa-dungeoncrawler processed all 10 suite-activate items for `20260407-dungeoncrawler-release-b` by 19:46 UTC Apr 7 but did not file a consolidated Gate 2 APPROVE outbox. Pipeline stagnated for 4.5h. CEO was required to file the APPROVE on qa's behalf to unblock the release.
 
+## Suite-activate feature-status pre-check (required — GAP-DC-QA-DEFERRED-SUITE-ACTIVATE-01)
+
+**Before any other suite-activate processing**, check current feature status:
+
+```bash
+# Read the feature status
+grep "^- Status:" features/<feature_id>/feature.md | head -1
+```
+
+Rules:
+1. If `Status: in_progress` — proceed with suite activation normally.
+2. If `Status: ready`, `Status: deferred`, or any status other than `in_progress` — fast-exit:
+   - Write outbox: `Status: done`, note `SUITE-ACTIVATE-SKIPPED-DEFERRED`.
+   - Do NOT add or modify any entry in `qa-suites/products/dungeoncrawler/suite.json`.
+   - Do NOT produce any test plan or verification report.
+   - Reason: the feature was deferred after this inbox item was dispatched; processing it creates phantom QA coverage for unimplemented work.
+
+Root cause (GAP-DC-QA-DEFERRED-SUITE-ACTIVATE-01, 2026-04-09): During release-c close, PM deferred all 10 features at 01:31 UTC (commit 22e8444c6). QA activated the dc-cr-gnome-ancestry suite 11 seconds later (commit 37e898cc7) without checking feature status. QA then re-activated the same suite 5 minutes later with a dedup fix (commit 3abdecace) — 4+ minutes after the empty-release PM signoff (commit d37c03852). Both activations were wasted slots on a deferred feature. The existing empty-release fast-exit only triggers at the release level; this check is needed at the individual feature level.
+
 ## Suite-activate live test check (required)
 
 When a suite-activate item arrives and `ALLOW_PROD_QA=1` is not set (default):
