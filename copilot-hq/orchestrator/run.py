@@ -815,7 +815,10 @@ def _count_site_features_for_release(site_keyword: str, release_id: str) -> int:
             text = fm.read_text(encoding="utf-8", errors="ignore")
             has_status  = bool(re.search(r"^-\s+Status:\s*in_progress", text, re.MULTILINE | re.IGNORECASE))
             has_site    = bool(re.search(rf"^-\s+Website:.*{re.escape(site_keyword)}", text, re.MULTILINE | re.IGNORECASE))
-            has_release = bool(re.search(rf"^-\s+Release:\s*{re.escape(release_id)}\s*$", text, re.MULTILINE | re.IGNORECASE))
+            has_release = bool(re.search(
+                rf"^-\s+Release:\s*(?:\n\s*)*{re.escape(release_id)}\s*$",
+                text, re.MULTILINE | re.IGNORECASE,
+            ))
             if has_status and has_site and has_release:
                 count += 1
         except Exception:
@@ -1081,11 +1084,16 @@ def _dispatch_scope_activate_nudge() -> None:
         if age_secs < grace_secs:
             continue  # still in grace period
 
-        # Count features tagged with this release
+        # Count features tagged with this release.
+        # Handle both single-line ("- Release: <rid>") and multiline ("- Release:\n\n<rid>") formats.
+        _release_pat = re.compile(
+            rf"^-\s+Release:\s*(?:\n\s*)*{re.escape(rid)}\s*$",
+            re.MULTILINE,
+        )
         feature_count = 0
         for fm in (REPO_ROOT / "features").glob("*/feature.md"):
             try:
-                if f"Release: {rid}" in fm.read_text(encoding="utf-8", errors="ignore"):
+                if _release_pat.search(fm.read_text(encoding="utf-8", errors="ignore")):
                     feature_count += 1
             except Exception:
                 pass
