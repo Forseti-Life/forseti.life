@@ -346,6 +346,24 @@ Record the audit run_ts in your release outbox. If the audit fails: document vio
 
 **Zero-feature releases**: include the audit run_ts as the verification baseline in the signoff artifact (see Zero-feature-scope releases note above).
 
+## Pre-Gate-2 dev-completion check (required — GAP-PF-PRE-GATE2-DEV-01)
+
+**Before dispatching any gate2-ready or suite-activate items to qa-forseti**, confirm every in-scope forseti feature has a dev outbox file with `Status: done` in `sessions/dev-forseti/outbox/`.
+
+**Check command:**
+```bash
+# For each in-scope feature, verify a done dev outbox exists:
+for feat in $(grep -rl "Release: ${RELEASE_ID}" features/*/feature.md | xargs grep -l "Website: forseti.life" | xargs grep -l "Status: in_progress" | sed 's|features/||;s|/feature.md||'); do
+  if ! grep -rl "$feat" sessions/dev-forseti/outbox/*.md 2>/dev/null | xargs grep -l "Status: done" 2>/dev/null | grep -q .; then
+    echo "MISSING done dev outbox: $feat"
+  fi
+done
+```
+
+**Rule**: If any in-scope feature lacks a `Status: done` dev outbox entry, do NOT call Gate 2. Instead dispatch dev-forseti with the missing implementation items first and wait for their done confirmation.
+
+**Why this exists (2026-04-07 lesson)**: `forseti-ai-service-refactor` and `forseti-jobhunter-schema-fix` were activated for `20260407-forseti-release-b` but had no dev outbox. QA issued an immediate Gate 2 BLOCK because implementations were missing. This caused a deferred QA cycle and wasted a full gate pass. A 30-second check prevents the repeat.
+
 ## Gate 2 aggregate dispatch (required — GAP-QA-GATE2-CONSOLIDATE-02)
 
 After dispatching all suite-activate inbox items to qa-forseti, you MUST also dispatch one additional `gate2-approve-<release-id>` inbox item to qa-forseti **in the same outbox cycle**. This is the explicit trigger for qa to file the consolidated Gate 2 APPROVE outbox.
