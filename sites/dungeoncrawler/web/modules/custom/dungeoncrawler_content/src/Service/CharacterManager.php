@@ -303,7 +303,27 @@ class CharacterManager {
       ['id' => 'woodland', 'name' => 'Woodland Elf', 'benefit' => 'Climb speed'],
     ],
     'Gnome' => [
-      ['id' => 'chameleon', 'name' => 'Chameleon Gnome', 'benefit' => 'Change colors'],
+      [
+        'id'      => 'chameleon',
+        'name'    => 'Chameleon Gnome',
+        'benefit' => 'Your skin, hair, and eyes shift to match your surroundings. When you are in terrain whose color or pattern roughly matches your current coloration, you gain a +2 circumstance bonus to all Stealth checks. This bonus is lost immediately when the environment\'s coloration or pattern changes significantly. You can spend 1 action to make minor localized color shifts to enable the bonus in your current terrain (instant). A dramatic full-body coloration change to match a very different terrain takes up to 1 hour as a downtime activity.',
+        'special' => [
+          'stealth_bonus' => [
+            'type'      => 'circumstance',
+            'value'     => 2,
+            'condition' => 'terrain-tag matches character coloration-tag',
+            'note'      => 'Multiple circumstance bonuses to Stealth do not stack; only the highest applies.',
+          ],
+          'minor_color_shift' => [
+            'action_cost' => 1,
+            'effect'      => 'Enables stealth bonus in current terrain by making localized color adjustments.',
+          ],
+          'dramatic_color_shift' => [
+            'duration' => 'up to 1 hour (downtime activity)',
+            'effect'   => 'Changes base coloration to match a significantly different terrain type.',
+          ],
+        ],
+      ],
       ['id' => 'fey-touched', 'name' => 'Fey-Touched Gnome', 'benefit' => 'First World magic'],
       ['id' => 'sensate', 'name' => 'Sensate Gnome', 'benefit' => 'Enhanced senses'],
       ['id' => 'umbral', 'name' => 'Umbral Gnome', 'benefit' => 'Darkvision'],
