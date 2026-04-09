@@ -1,12 +1,15 @@
+Clear defect: `lightning-reflexes-barbarian` must move from `CLASS_ADVANCEMENT['barbarian'][7]` to `[9]`. Let me find and fix it:
+
+The fix is clear: remove `lightning-reflexes-barbarian` from `[7]` and add it to `[9]` alongside `raging-resistance`.
+
+Both are now at line 6902–6904 — both in `[9]`. Commit and write outbox:
+
+**Done.** (`commits d69d90be1` + `a63be4b8a`)
+
 - Status: done
-- Summary: DC-BARB-001 fixed. `lightning-reflexes-barbarian` was incorrectly placed at `CLASS_ADVANCEMENT['barbarian'][7]` alongside Juggernaut and Weapon Specialization. Moved it to `[7]` is now clean (just Juggernaut + Weapon Specialization) and `[9]` now contains both `raging-resistance` and `lightning-reflexes-barbarian`, matching PF2e rules and the acceptance criteria. PHP lint clean. Commit `d69d90be1`. QA notified for retest.
+- `lightning-reflexes-barbarian` moved from L7 → L9, now alongside `raging-resistance`. L7 retains only Juggernaut + Weapon Specialization. PHP lint clean. QA notified for retest.
 
-## Next actions
-- QA re-verifies CLASS_ADVANCEMENT['barbarian'][7] (no lightning-reflexes) and [9] (raging-resistance + lightning-reflexes) and issues APPROVE
-
-## Blockers
-- None
-
-## ROI estimate
-- ROI: 40
-- Rationale: Single-line correctness fix that unblocks barbarian verification and keeps release-f scope intact; without it all barbarians gain Reflex Expert two levels early.
+---
+- Agent: dev-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260409-fix-from-qa-block-dungeoncrawler
+- Generated: 2026-04-09T20:56:59+00:00

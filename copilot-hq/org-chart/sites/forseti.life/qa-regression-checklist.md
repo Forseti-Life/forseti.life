@@ -114,3 +114,5 @@ This file is a running list of targeted regression checks derived from completed
   - Regression triggers: ChatController::conversationExport, forseti-chat.html.twig export_url conditional
 - [x] 20260409-bug-social-auth-block-missing — APPROVE: block config `block.block.forseti_socialauthlogin_2` confirmed GONE from active config (`drush config:get` returns "does not exist") and sync dir (`block.block.forseti_socialauthlogin_2.yml` deleted). Homepage → 200 PASS. No `social_auth`/`block_plugin_missing` entries in recent watchdog. Site audit 20260409-200857: 0 failures, 0 violations, 0 drift. Dev commit: 6889f2ea3.
   - Regression triggers: any re-enable of social_auth/social_auth_google modules; config:import from sync (sync file confirmed removed)
+- [ ] 20260409-security-updates-forseti — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260409-security-updates-forseti.md)
+- [ ] 20260409-bug-cron-overlap — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260409-bug-cron-overlap.md)

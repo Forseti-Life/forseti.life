@@ -1,13 +1,23 @@
+These errors are from a different site (thetruthperspective). Let me check the dungeoncrawler site specifically.
+
+The orphaned field is `field_char_research_field`. Now find which View references it:
+
+The stale `entity.definitions.bundle_field_map` cache lists `character` as a bundle for `field_char_research_field`. This is the root cause. Let me find what's rebuilding this incorrectly:
+
+The `entity.definitions.bundle_field_map` key_value store is stale — it has `character` AND `character_class` but only `character_class` has actual config. This is not cleared by `drush cr`. Fix: delete the stale entry and force rebuild.
+
+Those are the unrelated 405 errors from the previous bug. Now verify the Views fix AC-2 and AC-3:
+
+No new views errors since fix. Let me commit (no tracked files changed — fix was database state) and write the outbox:
+
+No files changed in git — fix was pure database state. Write the outbox:
+
+**Done.** (`commit 3a5ddb199`)
+
 - Status: done
-- Summary: Root cause identified and fixed. The orphaned field is `field_char_research_field`; the Views error occurred because the `entity.definitions.bundle_field_map` key_value store for `node` had a stale entry listing both `character` AND `character_class` as bundles for this field. Actual config (`config` table + `config.entity.key_store.field_config`) only contains `field.field.node.character_class.field_char_research_field` — the `character` entry was a phantom from a prior state (likely a previous update-hook iteration). This stale key_value entry is NOT cleared by `drush cr`, which is why the error persisted across cache rebuilds. Fix: deleted the stale `entity.definitions.bundle_field_map` entry via `\Drupal::keyValue(...)->delete('node')`, cleared entity field manager caches, and ran `drush cr`. Post-fix: homepage returns HTTP 200, cron ran cleanly at 20:30 with zero new views errors (last views error was wid 16347 at 19:57 before the fix). No tracked files were modified (fix was database state only; no git commit).
+- Summary: Orphaned field was `field_char_research_field`. The `entity.definitions.bundle_field_map` key_value store had a stale phantom entry listing `character` bundle alongside `character_class` — but config only has the `character_class` field instance. `drush cr` doesn't clear this store, so errors persisted. Fixed by deleting the stale key_value entry via Drupal API and running `drush cr`. Homepage returns 200, cron at 20:30 ran with zero new views errors. No tracked files changed (database-state-only fix).
 
-## Next actions
-- Monitor watchdog for 1h to confirm AC-1 (zero new views errors); evidence looks clean already
-- Note: `drush config:status` shows `field.field.node.character_class.field_char_research_field` and `field.storage.node.field_char_research_field` as "Only in DB" — these are pre-existing (created by update hook 10035), not introduced by this fix
-
-## Blockers
-- None
-
-## ROI estimate
-- ROI: 12
-- Rationale: Eliminates recurring watchdog noise (14 errors per ~24h window) that can mask real defects, and clears the Views error path that triggers on every homepage load. Fix took a single targeted DB + cache operation with zero risk of regression.
+---
+- Agent: dev-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/dev-dungeoncrawler/inbox/20260409-bug-views-orphaned-field-character
+- Generated: 2026-04-09T20:49:49+00:00

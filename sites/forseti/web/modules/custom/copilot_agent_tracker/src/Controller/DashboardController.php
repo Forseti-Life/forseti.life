@@ -2662,6 +2662,16 @@ final class DashboardController extends ControllerBase {
   public function releaseNotes(): array {
     $entries = $this->loadReleaseNotesEntries();
 
+    // State badge colours.
+    $state_colours = [
+      'shipped'        => '#1a7f37',
+      'signed-off'     => '#0969da',
+      'push-ready'     => '#8250df',
+      'scope-activated'=> '#9a6700',
+      'grooming'       => '#6e7781',
+      'unknown'        => '#6e7781',
+    ];
+
     $items = [];
     foreach ($entries as $e) {
       if (!is_array($e)) {
@@ -2672,7 +2682,30 @@ final class DashboardController extends ControllerBase {
         continue;
       }
       $state = trim((string) ($e['state'] ?? '')) ?: 'unknown';
+      $colour = $state_colours[$state] ?? '#6e7781';
+      $state_badge = '<span style="display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.78em;'
+        . 'font-weight:600;color:#fff;background:' . $colour . ';vertical-align:middle;margin-left:8px;">'
+        . htmlspecialchars(strtoupper($state)) . '</span>';
 
+      // Feature list — parsed from PM artifacts or CEO metadata.
+      $features_text = trim((string) ($e['features_text'] ?? ''));
+      $features_html = '';
+      if ($features_text !== '') {
+        $lines = array_filter(array_map('trim', explode("\n", $features_text)));
+        $lis = '';
+        foreach ($lines as $line) {
+          [$fid, $desc] = array_pad(explode(':', $line, 2), 2, '');
+          $fid = htmlspecialchars(trim($fid));
+          $desc = htmlspecialchars(trim($desc));
+          $lis .= '<li><code style="background:#f6f8fa;padding:1px 5px;border-radius:3px;">' . $fid . '</code>'
+            . ($desc !== '' ? ' — ' . $desc : '') . '</li>';
+        }
+        $features_html = '<div style="margin:6px 0 4px 0;">'
+          . '<strong>Features in this release:</strong>'
+          . '<ul style="margin:4px 0 0 16px;padding:0;">' . $lis . '</ul></div>';
+      }
+
+      // Optional detail sections.
       $details = [];
       $fields = [
         'plan' => 'Release plan',
@@ -2681,11 +2714,10 @@ final class DashboardController extends ControllerBase {
         'risk_security' => 'Risk + security',
         'rollback' => 'Rollback',
         'human_approval' => 'Human approval',
-        'release_notes' => 'Release notes',
+        'release_notes' => 'Full release notes',
       ];
       foreach ($fields as $k => $title) {
-        $txt = (string) ($e[$k] ?? '');
-        $txt = trim($txt);
+        $txt = trim((string) ($e[$k] ?? ''));
         if ($txt === '') {
           continue;
         }
@@ -2693,11 +2725,12 @@ final class DashboardController extends ControllerBase {
           '#type' => 'details',
           '#title' => $this->t('@t', ['@t' => $title]),
           '#open' => FALSE,
-          '#markup' => '<pre style="white-space:pre-wrap;max-height:260px;overflow:auto;">' . htmlspecialchars($txt) . '</pre>',
+          '#markup' => '<pre style="white-space:pre-wrap;max-height:260px;overflow:auto;font-size:0.85em;">'
+            . htmlspecialchars($txt) . '</pre>',
         ];
       }
 
-      // Link to Waiting on Keith message view if it's a pending needs-* item.
+      // Links.
       $rid_link = $rid;
       $links_markup = '';
       if (preg_match('/^\d{8}-needs-/', $rid)) {
@@ -2707,25 +2740,31 @@ final class DashboardController extends ControllerBase {
         $rid_link = Link::fromTextAndUrl($rid, $this->safeReleaseNotesDetailUrl($rid))->toString();
         $release_status_link = Link::fromTextAndUrl('Release status', $this->safeReleaseNotesDetailUrl($rid))->toString();
         $testing_results_link = Link::fromTextAndUrl('Testing results', $this->safeReleaseTestingResultsUrl($rid))->toString();
-        $links_markup = '<p>' . $release_status_link . ' | ' . $testing_results_link . '</p>';
+        $links_markup = '<p style="margin:4px 0;">' . $release_status_link . ' &nbsp;|&nbsp; ' . $testing_results_link . '</p>';
       }
+
+      $summary_html = $links_markup . $features_html;
 
       $items[] = [
         '#type' => 'details',
-        '#title' => Markup::create($rid_link . ' — ' . htmlspecialchars($state)),
+        '#title' => Markup::create($rid_link . $state_badge),
         '#open' => FALSE,
-        'links' => $links_markup !== '' ? ['#markup' => $links_markup] : [],
-        'body' => $details ?: ['#markup' => '<em>No details published.</em>'],
+        'summary' => $summary_html !== '' ? ['#markup' => $summary_html] : [],
+        'body' => $details ?: ['#markup' => '<em>No detailed release notes published yet.</em>'],
       ];
     }
 
+    $total = count($items);
     return [
       '#type' => 'container',
       'help' => [
-          '#markup' => '<p>This page is driven by HQ release candidate artifacts and is coordinated by the CEO. Pending release candidates should appear here and in <a href="/admin/reports/copilot-agent-tracker#todo-for-keith">the approval queue</a> for human approval.</p>',
+        '#markup' => '<p>Release history sourced from HQ PM artifacts and CEO metadata. '
+          . '<strong>' . $total . ' release(s)</strong> found. '
+          . 'Pending release candidates also appear in the '
+          . '<a href="/admin/reports/copilot-agent-tracker#todo-for-keith">approval queue</a>.</p>',
       ],
       'items' => $items ?: [
-        '#markup' => '<em>No release candidates or shipped releases published yet.</em>',
+        '#markup' => '<em>No release candidates or shipped releases found.</em>',
       ],
       '#cache' => [
         'max-age' => 0,
@@ -2978,6 +3017,8 @@ final class DashboardController extends ControllerBase {
    * Loads release note entries from CEO metadata.
    */
   private function loadReleaseNotesEntries(): array {
+    // --- 1. Load CEO DB metadata (existing source) ---
+    $ceo_entries = [];
     $row = $this->database->select('copilot_agent_tracker_agents', 'a')
       ->fields('a', ['metadata', 'last_seen'])
       ->condition('agent_id', 'ceo-copilot%', 'LIKE')
@@ -2985,22 +3026,168 @@ final class DashboardController extends ControllerBase {
       ->range(0, 1)
       ->execute()
       ->fetchAssoc();
-
-    $meta = [];
     if (!empty($row['metadata'])) {
       try {
         $meta = Json::decode((string) $row['metadata']) ?? [];
+        $raw = $meta['release_notes'] ?? [];
+        if (is_array($raw)) {
+          foreach ($raw as $e) {
+            if (is_array($e) && !empty($e['release_id'])) {
+              $ceo_entries[$e['release_id']] = $e;
+            }
+          }
+        }
       }
-      catch (\Throwable) {
-        $meta = [];
+      catch (\Throwable) {}
+    }
+
+    // --- 2. Scan filesystem for PM release artifacts ---
+    $hq_root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
+    $fs_entries = [];
+
+    // 2a. Detailed change-list files (more complete; process first so release-notes don't override)
+    $cl_files = glob($hq_root . '/sessions/pm-*/artifacts/releases/*/01-change-list.md') ?: [];
+    foreach ($cl_files as $path) {
+      $content = @file_get_contents($path);
+      if ($content === FALSE) {
+        continue;
+      }
+      $release_id = '';
+      if (preg_match('/(?:Release Change List|Release):\s*([0-9]{8}-[A-Za-z0-9._-]+)/i', $content, $m)) {
+        $release_id = trim($m[1]);
+      }
+      if ($release_id === '') {
+        $release_id = basename(dirname($path));
+        if (!preg_match('/^\d{8}-/', $release_id)) {
+          continue;
+        }
+      }
+      $fs_entries[$release_id] = [
+        'release_id' => $release_id,
+        'release_notes' => $content,
+        'change_list' => $content,
+        'features_text' => $this->parseReleaseFeatures($content),
+        'state' => 'scope-activated',
+        'mtime' => filemtime($path) ?: 0,
+        'plan' => '', 'test_evidence' => '',
+        'risk_security' => '', 'rollback' => '', 'human_approval' => '',
+      ];
+    }
+
+    // 2b. Release-notes files (compact summary format)
+    $rn_files = glob($hq_root . '/sessions/pm-*/artifacts/release-notes/*.md') ?: [];
+    foreach ($rn_files as $path) {
+      $fname = basename($path, '.md');
+      $content = @file_get_contents($path);
+      if ($content === FALSE) {
+        continue;
+      }
+      $release_id = '';
+      if (preg_match('/(?:Release (?:id|ID|Notes):\s*|[Rr]elease[_-][Ii][Dd]:\s*)`?([0-9]{8}-[A-Za-z0-9._-]+)`?/i', $content, $m)) {
+        $release_id = trim($m[1]);
+      }
+      if ($release_id === '' && preg_match('/^(\d{8}-[A-Za-z0-9._-]+)$/', $fname)) {
+        $release_id = $fname;
+      }
+      if ($release_id === '' || isset($fs_entries[$release_id])) {
+        // Skip if already have a more detailed change-list entry.
+        continue;
+      }
+      $fs_entries[$release_id] = [
+        'release_id' => $release_id,
+        'release_notes' => $content,
+        'features_text' => $this->parseReleaseFeatures($content),
+        'state' => 'scope-activated',
+        'mtime' => filemtime($path) ?: 0,
+        'plan' => '', 'change_list' => '', 'test_evidence' => '',
+        'risk_security' => '', 'rollback' => '', 'human_approval' => '',
+      ];
+    }
+
+    // 2c. Determine state from signoff + outbox files.
+    $signoff_files = glob($hq_root . '/sessions/pm-*/artifacts/release-signoffs/*.md') ?: [];
+    $signed_releases = [];
+    foreach ($signoff_files as $f) {
+      $signed_releases[basename($f, '.md')] = TRUE;
+    }
+    $outbox_files = glob($hq_root . '/sessions/pm-forseti/outbox/*post-push-*.md') ?: [];
+    $shipped_releases = [];
+    foreach ($outbox_files as $f) {
+      if (preg_match('/post-push-([0-9]{8}-[A-Za-z0-9._-]+)/', basename($f), $m)) {
+        $shipped_releases[$m[1]] = TRUE;
+      }
+    }
+    foreach ($fs_entries as $rid => &$entry) {
+      if (isset($shipped_releases[$rid])) {
+        $entry['state'] = 'shipped';
+      }
+      elseif (isset($signed_releases[$rid])) {
+        $entry['state'] = 'signed-off';
+      }
+    }
+    unset($entry);
+
+    // --- 3. Merge: CEO metadata overrides fs_entries for same release_id ---
+    $merged = $ceo_entries;
+    foreach ($fs_entries as $rid => $fs_entry) {
+      if (!isset($merged[$rid])) {
+        $merged[$rid] = $fs_entry;
+      }
+      else {
+        // Enrich CEO entry with features_text parsed from PM artifacts.
+        if (empty($merged[$rid]['features_text']) && !empty($fs_entry['features_text'])) {
+          $merged[$rid]['features_text'] = $fs_entry['features_text'];
+        }
+        // Upgrade state if CEO has no useful state.
+        if (in_array($merged[$rid]['state'] ?? '', ['', 'unknown'], TRUE)) {
+          $merged[$rid]['state'] = $fs_entry['state'];
+        }
       }
     }
 
-    $entries = $meta['release_notes'] ?? [];
-    if (!is_array($entries)) {
-      return [];
+    // --- 4. Sort by release_id descending (newest first) ---
+    $result = array_values($merged);
+    usort($result, static function ($a, $b): int {
+      return strcmp((string) ($b['release_id'] ?? ''), (string) ($a['release_id'] ?? ''));
+    });
+    return $result;
+  }
+
+  /**
+   * Parses a PM release-notes/change-list markdown and returns a plain-text
+   * feature list (one feature per line: "feature-id: description").
+   */
+  private function parseReleaseFeatures(string $content): string {
+    $features = [];
+
+    // Find the features section (## Features in scope / ## Features shipped / ## Features)
+    if (preg_match('/##\s+Features(?:\s+in\s+scope|\s+shipped)?[^\n]*\n([\s\S]*?)(?:\n##|\z)/i', $content, $m)) {
+      $section = $m[1];
+
+      // Numbered/bulleted inline format: "1. `feature-id` — Description"
+      preg_match_all(
+        '/^[\s]*(?:\d+\.|[-*])\s+(?:\*\*)?`?([a-z0-9_-]+)`?(?:\*\*)?\s*(?:\(ROI[^)]*\))?\s*(?:—|--|-)?\s*(.*)$/m',
+        $section,
+        $matches
+      );
+      for ($i = 0; $i < count($matches[1]); $i++) {
+        $fid = trim($matches[1][$i]);
+        $desc = trim(strip_tags($matches[2][$i]));
+        if ($fid !== '' && !preg_match('/^\d+$/', $fid)) {
+          $features[] = $desc !== '' ? "$fid: $desc" : $fid;
+        }
+      }
+
+      // Structured format: "### feature-id" headings
+      if (empty($features)) {
+        preg_match_all('/^###\s+([a-z0-9_-]+)\s*$/m', $section, $hm);
+        foreach ($hm[1] as $fid) {
+          $features[] = $fid;
+        }
+      }
     }
-    return $entries;
+
+    return implode("\n", $features);
   }
 
   /**

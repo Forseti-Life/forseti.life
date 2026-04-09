@@ -292,18 +292,92 @@ BOARD_EMAIL="${BOARD_EMAIL:-keith.aumiller@stlouisintegration.com}"
 HQ_FROM_EMAIL="${HQ_FROM_EMAIL:-hq-noreply@forseti.life}"
 HQ_SITE_NAME="${HQ_SITE_NAME:-forseti.life HQ}"
 
-_release_notify_body="Release ${release_id} has been signed off by all PMs and is ready to push to production.
+# ── Build HTML features list from PM release-notes artifact ──────────────────
+_features_html=""
+_features_section=""
 
-Release ID: ${release_id}
-Status: All PM signoffs recorded — push-ready item queued for pm-forseti.
+# Search all PM release-notes artifacts for this release_id
+for _rn_file in "${ROOT_DIR}"/sessions/pm-*/artifacts/release-notes/"${release_id}".md \
+                "${ROOT_DIR}"/sessions/pm-*/artifacts/releases/"${release_id}"/01-change-list.md; do
+  if [ -f "$_rn_file" ]; then
+    # Extract the "Features in scope" / "Features shipped" section
+    _features_section="$(awk '/^##[[:space:]]+Features/{found=1; next} found && /^##/{exit} found{print}' "$_rn_file" | head -40)"
+    break
+  fi
+done
 
-To check release status:
-  bash ${ROOT_DIR}/scripts/release-signoff-status.sh ${release_id}
+if [ -n "$_features_section" ]; then
+  _features_html="<h3 style=\"color:#1f2328;margin:16px 0 8px;\">Features in this release</h3><ul style=\"margin:0;padding-left:20px;color:#1f2328;\">"
+  while IFS= read -r _line; do
+    # Match: "1. \`feature-id\` — Description" or "- **feature** (ROI N) — Desc"
+    if echo "$_line" | grep -qE '^[[:space:]]*([0-9]+\.|[-*])[[:space:]]+'; then
+      _clean="$(echo "$_line" | sed 's/^[[:space:]]*[0-9]*\.[[:space:]]*//' | sed 's/^[[:space:]]*[-*][[:space:]]*//' | sed 's/`//g' | sed 's/\*\*//g')"
+      if [ -n "$_clean" ]; then
+        _features_html="${_features_html}<li style=\"margin:3px 0;\">${_clean}</li>"
+      fi
+    fi
+  done <<< "$_features_section"
+  _features_html="${_features_html}</ul>"
+fi
 
-This notification was sent automatically by release-signoff.sh."
+# ── Build HTML email ──────────────────────────────────────────────────────────
+_releases_url="https://forseti.life/admin/reports/copilot-agent-tracker/releases"
 
-printf "To: %s\nFrom: %s\nSubject: [%s] Release ready to push: %s\nContent-Type: text/plain\n\n%s\n" \
-  "$BOARD_EMAIL" "$HQ_FROM_EMAIL" "$HQ_SITE_NAME" "$release_id" "$_release_notify_body" \
+_email_html="<!DOCTYPE html>
+<html>
+<head><meta charset=\"UTF-8\"></head>
+<body style=\"font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;background:#f6f8fa;margin:0;padding:24px;\">
+<div style=\"max-width:600px;margin:0 auto;background:#fff;border:1px solid #d0d7de;border-radius:6px;overflow:hidden;\">
+
+  <!-- Header -->
+  <div style=\"background:#1a7f37;padding:20px 24px;\">
+    <h1 style=\"color:#fff;margin:0;font-size:18px;\">🚀 Release Ready to Push</h1>
+    <p style=\"color:#d1fae5;margin:4px 0 0;font-size:13px;\">${HQ_SITE_NAME}</p>
+  </div>
+
+  <!-- Body -->
+  <div style=\"padding:24px;\">
+    <table style=\"width:100%;border-collapse:collapse;margin-bottom:20px;\">
+      <tr>
+        <td style=\"padding:6px 0;color:#57606a;font-size:13px;width:140px;\">Release ID</td>
+        <td style=\"padding:6px 0;font-weight:600;font-size:14px;color:#1f2328;font-family:monospace;\">${release_id}</td>
+      </tr>
+      <tr>
+        <td style=\"padding:6px 0;color:#57606a;font-size:13px;\">Status</td>
+        <td style=\"padding:6px 0;\"><span style=\"background:#1a7f37;color:#fff;padding:2px 10px;border-radius:12px;font-size:12px;font-weight:600;\">ALL PMs SIGNED OFF</span></td>
+      </tr>
+      <tr>
+        <td style=\"padding:6px 0;color:#57606a;font-size:13px;\">Site</td>
+        <td style=\"padding:6px 0;color:#1f2328;\">${site}</td>
+      </tr>
+    </table>
+
+    ${_features_html}
+
+    <div style=\"margin-top:24px;padding:16px;background:#f6f8fa;border-radius:6px;border-left:3px solid #1a7f37;\">
+      <p style=\"margin:0 0 8px;font-weight:600;color:#1f2328;\">Required action</p>
+      <p style=\"margin:0;color:#57606a;font-size:13px;\">Verify, push, and advance the release cycle:</p>
+      <ol style=\"margin:8px 0 0;padding-left:20px;color:#57606a;font-size:13px;\">
+        <li>Check status: <code>bash scripts/release-signoff-status.sh ${release_id}</code></li>
+        <li>Push per <strong>runbooks/shipping-gates.md</strong> Gate 4</li>
+        <li>Advance cycles: <code>bash scripts/post-coordinated-push.sh</code></li>
+        <li>Run post-push steps (config import, smoke test, SLA report)</li>
+      </ol>
+    </div>
+
+    <p style=\"margin:20px 0 0;text-align:center;\">
+      <a href=\"${_releases_url}\" style=\"display:inline-block;padding:8px 20px;background:#0969da;color:#fff;border-radius:6px;text-decoration:none;font-size:14px;font-weight:600;\">View all releases →</a>
+    </p>
+  </div>
+
+  <div style=\"padding:12px 24px;background:#f6f8fa;border-top:1px solid #d0d7de;font-size:11px;color:#57606a;text-align:center;\">
+    Sent automatically by release-signoff.sh · ${HQ_SITE_NAME}
+  </div>
+</div>
+</body></html>"
+
+printf "To: %s\nFrom: %s\nSubject: [%s] 🚀 Release ready to push: %s\nContent-Type: text/html; charset=UTF-8\nMIME-Version: 1.0\n\n%s\n" \
+  "$BOARD_EMAIL" "$HQ_FROM_EMAIL" "$HQ_SITE_NAME" "$release_id" "$_email_html" \
   | /usr/sbin/sendmail -t \
   && echo "INFO: Board notification sent to ${BOARD_EMAIL}" \
   || echo "WARN: Board notification email failed (sendmail returned non-zero)"
