@@ -105,6 +105,12 @@ After a coordinated push succeeds (commit lands on main), in the same outbox cyc
 2. **Write or verify release notes** at `sessions/pm-forseti/artifacts/release-notes/<release-id>.md`.
 3. **Run `release-signoff.sh forseti <your-forseti-release-id>`** to advance your own release cycle.
 4. **Run `bash scripts/post-coordinated-push.sh`** to advance all partner teams' release cycles and write the orchestrator push marker. This prevents the orchestrator from attempting a duplicate auto-deploy and unblocks each team's next release cycle. This is idempotent — safe to re-run.
+5. **Verify cycle state after `post-coordinated-push.sh`** — the script has a known sentinel bug: if `tmp/auto-push-dispatched/<team>.advanced` contains the same value as `tmp/release-cycle-active/<team>.release_id`, the ADVANCE step is skipped silently. After each run, verify:
+   ```bash
+   cat tmp/release-cycle-active/forseti.release_id      # must be the NEW release (e.g. release-d)
+   cat tmp/release-cycle-active/dungeoncrawler.release_id  # must be a valid dungeoncrawler-release-X
+   ```
+   If either is stale or contains a cross-team ID (e.g., `forseti-release-c-next` in a dungeoncrawler field), manually write the correct values and commit with `git add -f tmp/`. Correct values: advance from the PRIOR release letter (c→d, d→e), use team-scoped prefix (forseti-release-X or dungeoncrawler-release-X).
 
 Lesson (2026-04-08): 6 forseti release-c suite-activate items were routed to `sessions/qa-forseti.life/inbox/` (unregistered agent) because `pm-scope-activate.sh` was called with `forseti.life` as the site. Items sat unprocessed for 1.5h until CEO manually moved them. Root fix: `pm-scope-activate.sh` now strips the `.life` suffix, but agents must still use the correct short name.
 
