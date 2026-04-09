@@ -3,7 +3,7 @@
 - Work item id: forseti-qa-e2e-auth-pipeline
 - Website: forseti.life
 - Module: qa_suites
-- Status: grooming
+- Status: ready
 - Release: TBD (release-h)
 - Feature type: qa-infrastructure
 - PM owner: pm-forseti
