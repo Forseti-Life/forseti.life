@@ -9339,6 +9339,94 @@
           "description": "Gnome Weapon Familiarity grants glaive: trained, kukri: trained"
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-heritage-chameleon-e2e",
+      "label": "Chameleon Gnome Heritage \u2014 catalog entry (Gnome-only), +2 circ Stealth in matching terrain, lost on terrain change, 1-action minor shift, 1-hour dramatic shift, non-stacking circumstance bonus, ancestry restriction",
+      "feature_id": "dc-cr-gnome-heritage-chameleon",
+      "type": "e2e",
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-gnome-heritage-chameleon/verification-report.md"
+      ],
+      "notes": "Data-only heritage (no new routes). Site audit 20260409-051852 (0 violations) covers this. Stealth bonus is conditional on terrain-tag matching coloration-tag \u2014 FeatEffectManager must evaluate this at runtime; current implementation stores the rule in HERITAGES[] special sub-array.",
+      "test_cases": [
+        {
+          "id": "TC-CGH-001",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testChameleonGnomeHeritageInCatalog",
+          "description": "Chameleon Gnome heritage exists in CharacterManager::HERITAGES['Gnome'] catalog (id=chameleon, name=Chameleon Gnome); absent from non-Gnome catalogs"
+        },
+        {
+          "id": "TC-CGH-002",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testChameleonGnomeStealthBonusStructure",
+          "description": "special.stealth_bonus: type=circumstance, value=2, condition='terrain-tag matches character coloration-tag', note includes non-stacking rule"
+        },
+        {
+          "id": "TC-CGH-003",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testChameleonGnomeMinorColorShift",
+          "description": "special.minor_color_shift: action_cost=1; enables stealth bonus in current terrain (instant)"
+        },
+        {
+          "id": "TC-CGH-004",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testChameleonGnomeDramaticColorShift",
+          "description": "special.dramatic_color_shift: duration='up to 1 hour (downtime activity)'"
+        },
+        {
+          "id": "TC-CGH-005",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "edge-case",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testChameleonGnomeBonusLostOnTerrainChange",
+          "description": "Benefit text states bonus is lost immediately when environment coloration/pattern changes significantly"
+        },
+        {
+          "id": "TC-CGH-006",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "edge-case",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testChameleonGnomeCircumstanceBonusNonStacking",
+          "description": "special.stealth_bonus.note confirms circumstance bonuses do not stack; only highest applies"
+        },
+        {
+          "id": "TC-CGH-007",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "edge-case",
+          "suite_type": "functional",
+          "status": "active",
+          "class_method": "ChameleonGnomeHeritageTest::testHeritageRestrictedToGnomeAncestry",
+          "description": "Chameleon Gnome restricted to Gnome ancestry \u2014 non-Gnome + heritage=chameleon returns validation error"
+        },
+        {
+          "id": "TC-CGH-008",
+          "feature_id": "dc-cr-gnome-heritage-chameleon",
+          "ac_tag": "permissions",
+          "suite_type": "acl",
+          "status": "active",
+          "class_method": "ChameleonGnomeHeritageTest::testAnonDeniedCharacterCreate",
+          "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard; covered by dc-cr-heritage-system baseline)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
