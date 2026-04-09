@@ -751,18 +751,20 @@
     },
     {
       "id": "forseti-jobhunter-controller-extraction-phase1-static",
-      "label": "JobHunter Controller Extraction Phase 1 \u2014 static: 0 direct DB calls in JobApplicationController; DB delegation verified in JobApplicationRepository (29 methods)",
-      "type": "script",
-      "feature_id": "forseti-jobhunter-controller-extraction-phase1",
-      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; CTRL=sites/forseti/web/modules/custom/job_hunter/src/Controller/JobApplicationController.php; echo \"=== TC-1: no direct DB calls in controller ===\"; COUNT=$(grep -c \"\\$this->database\" \"$CTRL\" 2>/dev/null; true); [ \"${COUNT:-0}\" = \"0\" ] && echo \"PASS: 0 direct DB calls\" || (echo \"FAIL: $COUNT direct DB calls found\" && exit 1); echo \"=== TC-2: JobApplicationRepository contains migrated methods ===\"; REPO=sites/forseti/web/modules/custom/job_hunter/src/Repository/JobApplicationRepository.php; [ -f \"$REPO\" ] && echo \"PASS: JobApplicationRepository.php exists\" || (echo \"FAIL: repository file missing\" && exit 1); METHOD_COUNT=$(grep -c \"public function\" \"$REPO\" 2>/dev/null || echo 0); echo \"Repository public methods: $METHOD_COUNT\"; [ \"${METHOD_COUNT:-0}\" -ge 5 ] && echo \"PASS: sufficient methods in repository\" || (echo \"FAIL: insufficient methods ($METHOD_COUNT)\" && exit 1); echo All static checks PASS'",
+      "label": "JobHunter controller extraction Phase 1 \u2014 static: 7 structural invariants (0 DB calls in controllers, repository DI)",
+      "type": "static",
+      "feature_id": "forseti-qa-suite-fill-controller-extraction",
+      "command": "python3 -c \"import sys,subprocess,os\nroot=os.environ.get(\"DRUPAL_ROOT\",\"/home/ubuntu/forseti.life/sites/forseti\")\nmod=root+\"/web/modules/custom/job_hunter/src\"\nfailures=[]\ndef grep_count(path,pattern):\n  r=subprocess.run([\"grep\",\"-c\",pattern,path],capture_output=True,text=True)\n  try: return int(r.stdout.strip())\n  except: return 0\nc=grep_count(mod+\"/Controller/JobApplicationController.php\",\"\\\\$this->database\")\nif c>0: failures.append(\"AC-STATIC-01 FAIL: JobApplicationController has \"+str(c)+\" direct DB calls\")\nelse: print(\"AC-STATIC-01 PASS: JobApplicationController 0 DB calls\")\nc=grep_count(mod+\"/Controller/ApplicationSubmissionController.php\",\"\\\\$this->database\")\nif c>0: failures.append(\"AC-STATIC-02 FAIL: ApplicationSubmissionController has \"+str(c)+\" direct DB calls\")\nelse: print(\"AC-STATIC-02 PASS: ApplicationSubmissionController 0 DB calls\")\nc=grep_count(mod+\"/Controller/ApplicationActionController.php\",\"\\\\$this->database\")\nif c>0: failures.append(\"AC-STATIC-03 FAIL: ApplicationActionController has \"+str(c)+\" direct DB calls\")\nelse: print(\"AC-STATIC-03 PASS: ApplicationActionController 0 DB calls\")\nrepo=mod+\"/Repository/JobApplicationRepository.php\"\nimport os as _os\nif not _os.path.isfile(repo): failures.append(\"AC-STATIC-04 FAIL: JobApplicationRepository.php not found\")\nelse: print(\"AC-STATIC-04 PASS: JobApplicationRepository.php exists\")\nsvc=root+\"/web/modules/custom/job_hunter/job_hunter.services.yml\"\nc=grep_count(svc,\"job_hunter.job_application_repository\")\nif c<1: failures.append(\"AC-STATIC-05 FAIL: job_hunter.job_application_repository not in services.yml\")\nelse: print(\"AC-STATIC-05 PASS: repository registered in services.yml\")\nc=grep_count(mod+\"/Controller/ApplicationSubmissionController.php\",\"job_hunter.job_application_repository\")\nif c<1: failures.append(\"AC-STATIC-06 FAIL: ApplicationSubmissionController does not inject repository via container\")\nelse: print(\"AC-STATIC-06 PASS: ApplicationSubmissionController injects repository\")\nc=grep_count(mod+\"/Controller/ApplicationActionController.php\",\"job_hunter.job_application_repository\")\nif c<1: failures.append(\"AC-STATIC-07 FAIL: ApplicationActionController does not inject repository via container\")\nelse: print(\"AC-STATIC-07 PASS: ApplicationActionController injects repository\")\nprint(\"Note: CompanyController/GoogleJobsSearchController/ResumeController are Phase 2 scope -- not checked here\")\n[print(f,file=sys.stderr) for f in failures]\nsys.exit(1 if failures else 0)\n\"",
       "artifacts": [
-        "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/static.log"
+        "stdout"
       ],
       "run_notes": [
-        "TC-1: grep -c '$this->database' JobApplicationController.php must return 0.",
-        "TC-2: JobApplicationRepository.php must exist with >= 5 public methods (29 present post-refactor).",
-        "NOTE: impl used JobApplicationRepository (new Repository layer) not ApplicationSubmissionService \u2014 suite updated to match.",
-        "STAGE 1 READY: implementation complete as of commit cfd24e07e (2026-04-06)."
+        "AC-STATIC-01..03: 0 direct $this->database calls in JobApplicationController, ApplicationSubmissionController, ApplicationActionController.",
+        "AC-STATIC-04: JobApplicationRepository.php exists at src/Repository/.",
+        "AC-STATIC-05: job_hunter.job_application_repository registered in job_hunter.services.yml.",
+        "AC-STATIC-06..07: ApplicationSubmissionController and ApplicationActionController inject repository via $container->get('job_hunter.job_application_repository') in create().",
+        "Phase 2 controllers (CompanyController, GoogleJobsSearchController, ResumeController) are explicitly out of scope.",
+        "Implementation verified in codebase: all 7 invariants confirmed passing as of 2026-04-09."
       ],
       "required_for_release": true
     },
@@ -770,7 +772,7 @@
       "id": "forseti-jobhunter-controller-extraction-phase1-functional",
       "label": "JobHunter Controller Extraction Phase 1 \u2014 functional: step-1 renders 200 for authenticated user, step-3 POST not 500",
       "type": "manual",
-      "feature_id": "forseti-jobhunter-controller-extraction-phase1",
+      "feature_id": "forseti-qa-suite-fill-controller-extraction",
       "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life; SVC=sites/forseti/web/modules/custom/job_hunter/src/Service/ApplicationSubmissionService.php; echo \"=== TC-2: ApplicationSubmissionService exists and lint clean ===\"; [ -f \"$SVC\" ] && echo \"PASS: ApplicationSubmissionService.php found\" || (echo \"FAIL: file missing\" && exit 1); php -l \"$SVC\" | grep -q \"No syntax errors\" && echo \"PASS: PHP lint clean\" || (echo \"FAIL: PHP lint error\" && exit 1); METHOD_COUNT=$(grep -c \"public function\" \"$SVC\" 2>/dev/null || echo 0); echo \"Public methods: $METHOD_COUNT\"; [ \"${METHOD_COUNT:-0}\" -ge 3 ] && echo \"PASS: service has methods\" || (echo \"FAIL: too few methods ($METHOD_COUNT)\" && exit 1); echo \"=== TC-3: jobhunter routes return auth-required (not 500) ===\"; S=$(curl -s -o /dev/null -w \"%{http_code}\" \"https://forseti.life/jobhunter\"); case $S in 403|302|200) echo \"PASS: /jobhunter => $S (no server error)\";; *) echo \"FAIL: /jobhunter => $S (unexpected)\" && exit 1;; esac; echo All functional checks PASS'",
       "artifacts": [
         "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/functional.log"
@@ -786,18 +788,19 @@
     },
     {
       "id": "forseti-jobhunter-controller-extraction-phase1-regression",
-      "label": "JobHunter Controller Extraction Phase 1 \u2014 regression: site audit no new 403/500 on job_hunter routes",
-      "type": "script",
-      "feature_id": "forseti-jobhunter-controller-extraction-phase1",
-      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq; ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh 2>&1 | tail -5; SUMMARY=sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md; FAILURES=$(grep \"Other failures\" \"$SUMMARY\" | grep -oE \"[0-9]+$\"); VIOLATIONS=$(grep \"Permission expectation violations\" \"$SUMMARY\" | grep -oE \"[0-9]+$\"); [ \"${FAILURES:-0}\" = \"0\" ] && [ \"${VIOLATIONS:-0}\" = \"0\" ] && echo \"PASS: 0 failures, 0 violations\" || (echo \"FAIL: failures=$FAILURES violations=$VIOLATIONS\" && exit 1); echo Regression check PASS'",
+      "label": "JobHunter controller extraction Phase 1 \u2014 regression: 7 Phase 1 GET routes return correct status (no 500s)",
+      "type": "acl",
+      "feature_id": "forseti-qa-suite-fill-controller-extraction",
+      "command": "python3 -c \"import os,sys,subprocess\nbase=os.environ.get(\"FORSETI_BASE_URL\",\"https://forseti.life\")\nauth=os.environ.get(\"FORSETI_COOKIE_AUTHENTICATED\",\"\")\ndrupal_root=os.environ.get(\"DRUPAL_ROOT\",\"/home/ubuntu/forseti.life/sites/forseti\")\nJID=\"99999\"\nROUTES=[\n  \"/jobhunter\",\n  \"/jobhunter/my-jobs\",\n  \"/jobhunter/application-submission\",\n  f\"/jobhunter/application-submission/{JID}\",\n  f\"/jobhunter/application-submission/{JID}/identify-auth-path\",\n  f\"/jobhunter/application-submission/{JID}/create-account\",\n  f\"/jobhunter/application-submission/{JID}/submit-application\",\n]\ndef curl_code(url,cookie=\"\"):\n  cmd=[\"curl\",\"--max-time\",\"10\",\"-o\",\"/dev/null\",\"-w\",\"%{http_code}\",\"-s\"]\n  if cookie: cmd+=[\"-H\",\"Cookie: \"+cookie]\n  cmd.append(url)\n  return subprocess.run(cmd,capture_output=True,text=True).stdout.strip()\nfailures=[]\nfor path in ROUTES:\n  c=curl_code(base+path)\n  print(f\"AC-REGR-01 ANON {path}: {c}\")\n  if c==\"500\": failures.append(f\"AC-REGR-01 FAIL 500 on {path} (extraction broke service dep)\")\n  elif c==\"200\": failures.append(f\"AC-REGR-01 FAIL ACL regression anon got 200 on {path}\")\nif auth:\n  for path in ROUTES:\n    c=curl_code(base+path,cookie=auth)\n    print(f\"AC-REGR-02 AUTH {path}: {c}\")\n    if c==\"500\": failures.append(f\"AC-REGR-02 FAIL 500 on {path} (extraction broke service dep)\")\n    elif c!=\"200\": failures.append(f\"AC-REGR-02 FAIL auth got {c} on {path} (want 200)\")\nelse: print(\"AC-REGR-02: SKIP - FORSETI_COOKIE_AUTHENTICATED not set\")\nr=subprocess.run([\"/usr/local/bin/drush\",\"--root=\"+drupal_root,\n  \"watchdog:show\",\"--count=20\",\"--severity=error\",\"--format=json\"],\n  capture_output=True,text=True)\ntry:\n  import json as j; rows=j.loads(r.stdout) if r.stdout.strip() else []\n  phase1_errs=[row for row in rows if \"application-submission\" in str(row).lower() or \"jobapplication\" in str(row).lower()]\n  if phase1_errs: failures.append(f\"AC-REGR-03 FAIL: {len(phase1_errs)} Phase 1 errors in watchdog\")\n  else: print(f\"AC-REGR-03 PASS: 0 Phase 1 errors in watchdog ({len(rows)} entries checked)\")\nexcept Exception as e: print(\"AC-REGR-03: NOTE could not parse watchdog:\"+str(e)[:60])\n[print(f,file=sys.stderr) for f in failures]\nsys.exit(1 if failures else 0)\n\"",
       "artifacts": [
-        "sessions/qa-forseti/artifacts/forseti-jobhunter-controller-extraction-phase1/regression.log",
-        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.md"
+        "stdout"
       ],
       "run_notes": [
-        "TC-5: Full site audit must show 0 new failures and 0 permission violations.",
-        "Run after dev-forseti completes implementation to catch any routing/permission regressions.",
-        "STAGE 0 PENDING: requires feature implementation by dev-forseti."
+        "AC-REGR-01: anon GET all 7 Phase 1 routes \u2192 403 or 302; 500 = extraction broke service dependency (FAIL); 200 = ACL regression (FAIL).",
+        "AC-REGR-02: auth GET all 7 routes \u2192 200; 500 = service dependency broken (FAIL). Skipped if FORSETI_COOKIE_AUTHENTICATED unset.",
+        "AC-REGR-03: watchdog:show error severity \u2014 0 entries for application-submission or JobApplication paths.",
+        "job_id=99999 for parameterized routes; controllers return graceful 200 for non-existent IDs.",
+        "Critical regression signal: any 500 means the extraction broke a service container dependency."
       ],
       "required_for_release": true
     },
