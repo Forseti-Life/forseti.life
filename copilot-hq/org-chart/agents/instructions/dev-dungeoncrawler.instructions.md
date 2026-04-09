@@ -34,7 +34,21 @@ Every QA findings item you receive is one of two types. Check the command.md hea
 6. **Pre-QA checklist (new routes):** If you added any new routes, before the first QA audit run notify `qa-dungeoncrawler` with the route paths and expected permission matrix so `qa-permissions.json` can be updated. Missing permission rules generate avoidable QA violations — this is a recurring pattern (2026-03-19 release-b cycle: 8 violations from `copilot_agent_tracker`).
 7. **Pre-QA checklist (new DB tables):** Every new database table MUST appear in BOTH `hook_schema()` AND `hook_update_N`. BrowserTestBase installs fresh — update hooks never run. Missing from `hook_schema()` = `Table doesn't exist` errors in every functional test. This is a recurring release-b pattern (affected: `dc_character_ancestry_details`, `dc_roll_log`).
    **tableExists() guard rule (2026-04):** Any `_update_N` that calls `addField()` on a schema-defined table MUST first check `tableExists()` and call `createTable()` if absent. Reason: tables added to `schema()` after module install are never auto-created — only `hook_install()` creates them. A missing table causes the entire `updb` chain to abort at that hook. Pattern: `if (!$schema->tableExists($table)) { $schema->createTable($table, $schema_array[$table]); return; }` before `addField()`. Root cause in release-c: `combat_encounters` and `combat_participants` blocked all 20 pending hooks (commits `664d0eb3`).
-8. Notify QA with specific paths/behaviors implemented, for targeted retest.
+8. **Mark requirements implemented in roadmap DB (REQUIRED — recurring gap 2026-04):** After implementation, update every `dc_requirements` row your feature covers to `status = 'implemented'`. Use:
+   ```bash
+   drush --root=/var/www/html/dungeoncrawler/web --uri=https://dungeoncrawler.forseti.life \
+     dungeoncrawler:roadmap-set-status implemented --book=<book_id> --chapter=<chapter_key>
+   ```
+   Or for targeted row updates when only part of a chapter is implemented:
+   ```php
+   // drush php:eval
+   \Drupal::database()->update('dc_requirements')
+     ->fields(['status' => 'implemented', 'feature_id' => 'dc-your-feature-id', 'updated_at' => time()])
+     ->condition('id', [1234, 1235, 1236], 'IN')
+     ->execute();
+   ```
+   **Do not ship without this step.** Rows left at `in_progress` after code ships cause the roadmap to show everything as perpetually in-flight and block release accounting. This is the single most common roadmap sync failure (2,488 orphaned `in_progress` rows as of 2026-04-09, root cause: this step was skipped).
+9. Notify QA with specific paths/behaviors implemented, for targeted retest.
 
 #### Required section in `02-implementation-notes.md`: New routes introduced
 If the feature introduces any routes, include this section:
