@@ -43,6 +43,7 @@ function job_hunter_theme() {
         'completeness' => 0,
         'is_complete' => FALSE,
         'validation_errors' => [],
+        'missing_fields' => [],
       ],
       'template' => 'profile-completeness',
     ],

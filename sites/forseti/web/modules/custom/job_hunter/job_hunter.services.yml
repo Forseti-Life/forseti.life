@@ -62,7 +62,11 @@ services:
   job_hunter.opportunity_management_service:
     class: Drupal\job_hunter\Service\OpportunityManagementService
     arguments: ['@database', '@logger.factory']
-  
+
+  job_hunter.profile_completeness_service:
+    class: Drupal\job_hunter\Service\ProfileCompletenessService
+    arguments: ['@database']
+
   job_hunter.commands:
     class: Drupal\job_hunter\Commands\JobApplicationAutomationCommands
     arguments: ['@entity_type.manager', '@logger.factory']

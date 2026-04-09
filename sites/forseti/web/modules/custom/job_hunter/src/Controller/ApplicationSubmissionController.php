@@ -159,9 +159,14 @@ class ApplicationSubmissionController extends ControllerBase {
   private function buildAuthenticatedView($build, $current_user) {
     $user_name = $current_user->getDisplayName();
     $submission_summary = $this->getApplicationSubmissionSummary((int) $current_user->id());
-    
-    // Calculate stats
-    $profile_completion = $this->calculateProfileCompletion($current_user);
+
+    // Calculate stats using ProfileCompletenessService for consistency.
+    /** @var \Drupal\job_hunter\Service\ProfileCompletenessService $completeness_service */
+    $completeness_service = \Drupal::service('job_hunter.profile_completeness_service');
+    $uid = (int) $current_user->id();
+    $profile_completion = $completeness_service->calculate($uid);
+    $missing_fields = $completeness_service->getMissingFields($uid);
+
     $target_companies = $this->getTargetCompaniesCount($current_user);
     $saved_jobs = $this->getSavedJobsCount($current_user);
     
@@ -176,6 +181,17 @@ class ApplicationSubmissionController extends ControllerBase {
       '#attributes' => ['class' => ['user-welcome']],
       '#value' => '<div class="user-welcome">Welcome back, ' . $user_name . '!</div>',
     ];
+
+    // Profile completeness widget — only shown when profile is not 100% complete.
+    if ($profile_completion < 100) {
+      $build['completeness_widget'] = [
+        '#theme' => 'profile_completeness',
+        '#completeness' => $profile_completion,
+        '#is_complete' => FALSE,
+        '#validation_errors' => [],
+        '#missing_fields' => $missing_fields,
+      ];
+    }
     
     // ========================================
     // Job Application Workflow

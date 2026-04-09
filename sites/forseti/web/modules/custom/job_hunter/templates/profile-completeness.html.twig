@@ -3,21 +3,25 @@
   Template for displaying user profile completeness progress.
 
   Variables:
-  - completeness: Percentage 0-100 of profile completion
-  - is_complete: Boolean indicating if profile meets minimum requirements
-  - validation_errors: Array of validation error messages
+  - completeness:      Integer 0-100 completeness percentage.
+  - is_complete:       Boolean — true when completeness == 100.
+  - validation_errors: Legacy array of validation error message strings (kept for BC).
+  - missing_fields:    Array of items that are not yet completed. Each item has:
+                         - 'id'    : machine name of the field
+                         - 'label' : human-readable field label
+                         - 'link'  : URL path to the profile edit section for this field
 #}
 
 {{ attach_library('job_hunter/user-profile-styling') }}
 
 <div class="profile-completeness-container">
   <div class="completeness-header">
-    <h2>{{ 'Your Job Search Profile'|t }}</h2>
+    <h2>{{ 'Profile Completeness'|t }}</h2>
     <p class="completeness-subtitle">
       {% if is_complete %}
-        {{ 'Your profile is ready!'|t }}
+        {{ 'Your profile is complete and ready for job matching.'|t }}
       {% else %}
-        {{ 'Complete your profile to start your job search.'|t }}
+        {{ 'Complete your profile to unlock job matching and applications.'|t }}
       {% endif %}
     </p>
   </div>
@@ -25,36 +29,27 @@
   {# Progress bar #}
   <div class="completeness-progress">
     <div class="progress-track">
-      <div class="progress-bar" style="width: {{ completeness }}%">
+      <div class="progress-bar{% if is_complete %} complete{% endif %}" style="width: {{ completeness }}%">
         <span class="progress-text">{{ completeness }}%</span>
       </div>
     </div>
   </div>
 
-  {# Validation errors if any #}
-  {% if validation_errors %}
-    <div class="alert alert-warning validation-errors">
-      <h3>{{ 'Action Required'|t }}</h3>
-      <ul>
-        {% for error in validation_errors %}
-          <li {{ loop.index0 == 0 ? 'class="first"' : '' }}>
-            <strong>
-              {% if error == 'Resume file is required to use the job application system.' %}
-                {{ '📄 Resume'|t }}
-              {% elseif error == 'Work authorization status is required.' %}
-                {{ '🛂 Work Authorization'|t }}
-              {% elseif error == 'Available start date is required.' %}
-                {{ '📅 Start Date'|t }}
-              {% elseif error == 'Remote work preference is required.' %}
-                {{ '🏠 Remote Preference'|t }}
-              {% else %}
-                {{ 'Profile'|t }}
-              {% endif %}
-            </strong>
-            <span>{{ error }}</span>
+  {# Missing-field checklist with direct edit links #}
+  {% if missing_fields %}
+    <div class="completeness-checklist">
+      <h3>{{ 'Complete these sections to improve your profile'|t }}</h3>
+      <ul class="missing-fields-list">
+        {% for field in missing_fields %}
+          <li class="missing-field-item missing-field--{{ field.id }}">
+            <span class="missing-field-icon" aria-hidden="true">○</span>
+            <a href="{{ field.link }}" class="missing-field-link">{{ field.label|t }}</a>
           </li>
         {% endfor %}
       </ul>
+      <p class="completeness-cta">
+        <a href="/jobhunter/profile/edit" class="button button--primary">{{ 'Edit Profile'|t }}</a>
+      </p>
     </div>
   {% endif %}
 
@@ -63,13 +58,9 @@
     <div class="alert alert-success profile-ready">
       <p>✓ {{ 'Your profile is complete and ready for job matching and applications.'|t }}</p>
     </div>
-  {% elseif completeness >= 70 %}
+  {% elseif completeness >= 60 %}
     <div class="alert alert-info profile-nearly-complete">
-      <p>{{ 'You\'re almost there! Complete the remaining items to unlock all features.'|t }}</p>
-    </div>
-  {% else %}
-    <div class="alert alert-info profile-start">
-      <p>{{ 'Get started by filling out the fields below.'|t }}</p>
+      <p>{{ 'Almost there — complete the remaining sections to unlock all features.'|t }}</p>
     </div>
   {% endif %}
 </div>

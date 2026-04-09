@@ -1051,12 +1051,17 @@ class UserProfileController extends ControllerBase {
       throw new AccessDeniedHttpException();
     }
 
+    /** @var \Drupal\job_hunter\Service\ProfileCompletenessService $completeness_service */
+    $completeness_service = \Drupal::service('job_hunter.profile_completeness_service');
     /** @var \Drupal\job_hunter\Service\UserJobProfileService $profile_service */
     $profile_service = \Drupal::service('job_hunter.user_job_profile_service');
 
-    // Calculate profile completeness
-    $completeness = $profile_service->getProfileCompleteness($user);
-    $is_complete = $profile_service->isProfileComplete($user);
+    $uid = (int) $user->id();
+    $completeness = $completeness_service->calculate($uid);
+    $missing_fields = $completeness_service->getMissingFields($uid);
+    $is_complete = $completeness >= 100;
+
+    // Keep legacy validation_errors for backwards-compat with any other callers.
     $validation_errors = $profile_service->validateProfile($user);
     $profile_summary = $profile_service->getProfileSummary($user);
 
@@ -1069,6 +1074,7 @@ class UserProfileController extends ControllerBase {
       '#completeness' => $completeness,
       '#is_complete' => $is_complete,
       '#validation_errors' => $validation_errors,
+      '#missing_fields' => $missing_fields,
     ];
 
     // Profile summary
