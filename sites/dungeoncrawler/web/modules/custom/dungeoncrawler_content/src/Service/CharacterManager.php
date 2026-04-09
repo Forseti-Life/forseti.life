@@ -2894,6 +2894,57 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       ['id' => 'leyline-conduit', 'name' => 'Leyline Conduit', 'level' => 20, 'traits' => ['Druid'], 'prerequisites' => '',
         'benefit' => 'Once per day, you can attune to nearby ley lines. For 10 minutes you can cast any primal spell you have prepared as if you had one additional spell slot at the highest spell level you can cast.'],
     ],
+    'sorcerer' => [
+      // Level 1 class feats
+      ['id' => 'dangerous-sorcery', 'name' => 'Dangerous Sorcery', 'level' => 1, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Your legacy of magical power grants you great destructive force. When you Cast a Spell from your spell slots, if the spell deals damage and doesn\'t have a duration, add a bonus to the damage equal to the spell\'s rank.'],
+      ['id' => 'familiar-sorcerer', 'name' => 'Familiar', 'level' => 1, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'You make a pact with a creature that serves you and assists your spellcasting. You gain a familiar.'],
+      ['id' => 'reach-spell-sorcerer', 'name' => 'Reach Spell', 'level' => 1, 'traits' => ['Concentrate', 'Metamagic', 'Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'If the next action you use is to Cast a Spell that has a range, increase that spell\'s range by 30 feet. As is standard for increasing spell ranges, if the spell normally has a range of touch, you extend its range to 30 feet.'],
+      ['id' => 'widen-spell-sorcerer', 'name' => 'Widen Spell', 'level' => 1, 'traits' => ['Manipulate', 'Metamagic', 'Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'If the next action you use is to Cast a Spell that has an area of a burst, cone, or line and doesn\'t have a duration, increase the area of that spell. Add 5 feet to the radius of a burst (≥ 10 ft radius) or 5–10 feet to the length of a cone or line.'],
+      // Level 2 class feats
+      ['id' => 'cantrip-expansion-sorcerer', 'name' => 'Cantrip Expansion', 'level' => 2, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'A greater understanding of your magic broadens your range of simple spells. Add 2 additional cantrips to your spell repertoire from your bloodline\'s spell list.'],
+      ['id' => 'enhanced-familiar-sorcerer', 'name' => 'Enhanced Familiar', 'level' => 2, 'traits' => ['Sorcerer'], 'prerequisites' => 'Familiar',
+        'benefit' => 'You infuse your familiar with additional magical energy. Your familiar gains 2 additional familiar abilities.'],
+      ['id' => 'steady-spellcasting-sorcerer', 'name' => 'Steady Spellcasting', 'level' => 2, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'If a reaction would disrupt your spellcasting action, attempt a DC 15 flat check. On a success, the action is not disrupted.'],
+      // Level 4 class feats
+      ['id' => 'arcane-evolution', 'name' => 'Arcane Evolution', 'level' => 4, 'traits' => ['Sorcerer'], 'prerequisites' => 'Arcane bloodline',
+        'benefit' => 'You have adapted your bloodline magic to function as an arcane tradition. You gain one additional spell in your repertoire of any level you can cast (chosen from the arcane list). Each time you gain a spell slot of a new rank, you add one arcane spell of that rank to your repertoire.'],
+      ['id' => 'bespell-weapon', 'name' => 'Bespell Weapon', 'level' => 4, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'After you use an action to Cast a Spell (not a cantrip), the next Strike you make before the end of your turn deals an extra 1d6 damage of a type matching the spell\'s school. Evocation: force; Necromancy: negative; Transmutation: your choice of acid/cold/electricity/fire/sonic; other schools: force.'],
+      ['id' => 'crossblooded-evolution', 'name' => 'Crossblooded Evolution', 'level' => 4, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'You add one spell from a bloodline other than your own to your spell repertoire. This spell must be on your bloodline\'s tradition\'s spell list. You don\'t gain the other bloodline\'s blood magic or granted spells; you gain only this one spell.'],
+      // Level 6 class feats
+      ['id' => 'bloodline-breadth', 'name' => 'Bloodline Breadth', 'level' => 6, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Your magical heritage encompasses an even wider range of bloodline spells. Add 1 spell of each level you can cast from your bloodline\'s granted spell list to your spell repertoire (this adds 1 spell per spell rank, not one total).'],
+      ['id' => 'instinctive-obfuscation', 'name' => 'Instinctive Obfuscation', 'level' => 6, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'As a reaction (trigger: a creature targets you with a spell), you automatically attempt to Misdirect the spell toward a different target within range, using Deception against the caster\'s Perception DC.'],
+      // Level 8 class feats
+      ['id' => 'greater-bloodline', 'name' => 'Greater Bloodline', 'level' => 8, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Your bloodline grows even more powerful. You gain an additional bloodline spell of the highest rank you can currently cast and add it to your repertoire; this spell gains the blood magic benefit whenever you cast it.'],
+      // Level 10 class feats
+      ['id' => 'overwhelming-energy', 'name' => 'Overwhelming Energy', 'level' => 10, 'traits' => ['Manipulate', 'Metamagic', 'Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Your primal power overwhelms resistances. If the next action you take is to Cast a Spell that deals acid, cold, electricity, fire, or sonic damage, the spell ignores up to 10 points of resistance to its damage type.'],
+      // Level 12 class feats
+      ['id' => 'quickened-casting-sorcerer', 'name' => 'Quickened Casting', 'level' => 12, 'traits' => ['Concentrate', 'Metamagic', 'Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Once per day, if your next action is to Cast a Spell of 3rd level or lower, reduce the number of actions to cast it by 1 (minimum 1 action). You can\'t use this with a spell that already has a reduced casting time.'],
+      // Level 14 class feats
+      ['id' => 'greater-mental-evolution', 'name' => 'Greater Mental Evolution', 'level' => 14, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'You gain one 6th- or lower-level mental spell from any tradition in your spell repertoire. You can cast this spell once per day as a bloodline spell, using your bloodline tradition.'],
+      // Level 16 class feats
+      ['id' => 'bloodline-resistance', 'name' => 'Bloodline Resistance', 'level' => 16, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Your bloodline magic protects your mind and body. You gain resistance 10 to the damage type associated with your bloodline\'s blood magic effect.'],
+      // Level 18 class feats
+      ['id' => 'true-blood', 'name' => 'True Blood', 'level' => 18, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Your bloodline magic has reached its full potential. When you cast a bloodline spell, the blood magic effect automatically triggers and can apply both to you and to the spell\'s target simultaneously (rather than choosing one).'],
+      // Level 20 class feats
+      ['id' => 'bloodline-conduit', 'name' => 'Bloodline Conduit', 'level' => 20, 'traits' => ['Sorcerer'], 'prerequisites' => '',
+        'benefit' => 'Once per day, you can channel raw bloodline power directly. Gain 1 additional 10th-level spell slot. You can use this slot to heighten any spell in your repertoire to 10th level; you don\'t need a 10th-level version of that spell.'],
+    ],
   ];
 
   /**
@@ -3434,6 +3485,12 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       'tradition' => 'primal',
       'expand_per_source' => TRUE,
       'note'      => 'Ranger warden spell pool is primal. Refocus requires 10 minutes in nature. Pool shared across all ranger focus spells.',
+    ],
+    'sorcerer' => [
+      'start'     => 1,
+      'cap'       => 3,
+      'expand_per_source' => TRUE,
+      'note'      => 'Sorcerer focus pool starts at 1 Focus Point. Bloodline powers are granted focus spells from the sorcerer\'s bloodline. Additional bloodline feats can expand the pool up to a cap of 3. Refocus: 10 minutes connecting with your bloodline (meditation or related activity).',
     ],
   ];
 
@@ -7732,6 +7789,62 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       19 => ['auto_features' => [
         ['id' => 'primal-hierophant', 'name' => 'Primal Hierophant',
           'description' => 'You gain 1 additional 10th-level prepared primal spell slot. This cannot be used with slot-manipulation abilities such as drain bonded item or similar effects.'],
+      ]],
+    ],
+    'sorcerer' => [
+      1  => ['auto_features' => [
+        ['id' => 'bloodline', 'name' => 'Bloodline',
+          'description' => 'Choose one bloodline at L1 (permanent). The bloodline determines your spellcasting tradition (arcane/divine/occult/primal), grants bloodline spells added to your repertoire automatically at specific levels, and determines your Blood Magic effect (triggered when you cast a bloodline spell or cantrip).'],
+        ['id' => 'sorcerer-spell-repertoire', 'name' => 'Spell Repertoire',
+          'description' => 'Spontaneous spellcasting using Charisma. You begin with 5 cantrips and 3 first-level spell slots, plus 2 first-level spells known. At each level you gain spell slots and add spells to your repertoire. You can cast any known spell using any available slot of the appropriate rank or higher. Your tradition is determined by your bloodline.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'lightning-reflexes-sorcerer', 'name' => 'Lightning Reflexes',
+          'description' => 'Reflex save proficiency increases to Expert.'],
+        ['id' => 'signature-spells-sorcerer', 'name' => 'Signature Spells',
+          'description' => 'Designate one spell per spell rank in your repertoire as a signature spell. A signature spell can be freely heightened to any rank for which you have a slot without adding each heightened version separately to your repertoire.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'magical-fortitude', 'name' => 'Magical Fortitude',
+          'description' => 'Fortitude save proficiency increases to Expert.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'expert-spellcaster-sorcerer', 'name' => 'Expert Spellcaster',
+          'description' => 'Spell attack rolls and spell DC proficiency increases to Expert (applies to your bloodline tradition).'],
+        ['id' => 'sorcerer-weapon-expertise', 'name' => 'Weapon Expertise',
+          'description' => 'Proficiency in simple weapons and unarmed attacks increases to Expert.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'alertness-sorcerer', 'name' => 'Alertness',
+          'description' => 'Perception proficiency increases to Expert.'],
+        ['id' => 'resolve-sorcerer', 'name' => 'Resolve',
+          'description' => 'Will save proficiency increases to Master. Successes on Will saves become critical successes.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'simple-weapon-mastery', 'name' => 'Simple Weapon Mastery',
+          'description' => 'Proficiency in simple weapons and unarmed attacks increases to Master.'],
+        ['id' => 'vigilant-senses-sorcerer', 'name' => 'Vigilant Senses',
+          'description' => 'Perception proficiency increases to Master.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'defensive-robes', 'name' => 'Defensive Robes',
+          'description' => 'Unarmored defense proficiency increases to Expert.'],
+        ['id' => 'weapon-specialization-sorcerer', 'name' => 'Weapon Specialization',
+          'description' => '+2 damage with Expert weapons/unarmed, +3 at Master, +4 at Legendary.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'master-spellcaster-sorcerer', 'name' => 'Master Spellcaster',
+          'description' => 'Spell attack rolls and spell DC proficiency increases to Master (applies to your bloodline tradition).'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'bloodline-paragon', 'name' => 'Bloodline Paragon',
+          'description' => 'Your bloodline power fully awakens. Add 2 spells from your bloodline\'s granted spell list (of ranks you can cast) to your repertoire for free. You also gain an additional 9th-level spell slot each day; this slot can only be used for bloodline spells or spells already in your repertoire.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'legendary-spellcaster-sorcerer', 'name' => 'Legendary Spellcaster',
+          'description' => 'Spell attack rolls and spell DC proficiency increases to Legendary (applies to your bloodline tradition).'],
+        ['id' => 'bloodline-perfection', 'name' => 'Bloodline Perfection',
+          'description' => 'You gain 1 additional 10th-level spell slot. You can use this slot to heighten any spell in your repertoire to 10th level without needing a 10th-level version in your repertoire.'],
       ]],
     ],
   ];
