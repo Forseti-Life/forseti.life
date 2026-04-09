@@ -7164,7 +7164,9 @@
           "suite": "role-url-audit",
           "ac": "QA-audit-clean"
         }
-      ]
+      ],
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09"
     },
     {
       "id": "dc-cr-class-cleric-e2e",
