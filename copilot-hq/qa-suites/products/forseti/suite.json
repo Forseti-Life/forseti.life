@@ -1500,6 +1500,52 @@
         "Regression note: CSRF guard on new save route \u2014 grep -A5 'job_tailoring_save_resume' job_hunter.routing.yml must show _csrf_token:'TRUE'.",
         "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
       ]
+    },
+    {
+      "id": "forseti-ai-conversation-user-chat-static",
+      "label": "AI Chat user-chat: static checks \u2014 route registered, CSRF on send-message intact",
+      "type": "static",
+      "feature_id": "forseti-ai-conversation-user-chat",
+      "command": "bash -c 'set -e; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation/ai_conversation.routing.yml; echo \"[TC-12] forseti.chat route:\"; grep -c \"forseti.chat\\|ai_conversation.forseti_chat\" \"$ROUTING\" && echo PASS || (echo FAIL && exit 1); echo \"[TC-13] CSRF send-message:\"; grep -A8 \"ai_conversation.send_message\" \"$ROUTING\" | grep -q \"_csrf_token.*TRUE\" && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-user-chat/forseti-ai-conversation-user-chat-static.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-user-chat-acl",
+      "label": "AI Chat user-chat: anonymous GET /forseti/chat returns 403",
+      "type": "functional",
+      "feature_id": "forseti-ai-conversation-user-chat",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/forseti/chat); echo \"anon GET /forseti/chat: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-user-chat/forseti-ai-conversation-user-chat-acl.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-user-chat-csrf-post",
+      "label": "AI Chat user-chat: POST /ai-conversation/send-message without CSRF returns 403",
+      "type": "functional",
+      "feature_id": "forseti-ai-conversation-user-chat",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" -X POST https://forseti.life/ai-conversation/send-message -H \"Content-Type: application/json\" -d \"{\\\"message\\\":\\\"test\\\",\\\"conversation_id\\\":1}\"); echo \"POST send-message no-CSRF: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-user-chat/forseti-ai-conversation-user-chat-csrf-post.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-user-chat-e2e",
+      "label": "AI Chat user-chat: authenticated page load, history, send, empty/error state (Playwright \u2014 TC-2 through TC-11)",
+      "type": "e2e",
+      "feature_id": "forseti-ai-conversation-user-chat",
+      "command": "npx playwright test tests/forseti-ai-conversation-user-chat.spec.ts --reporter=json --output=sessions/qa-forseti/artifacts/ai-conversation-user-chat/",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-user-chat/results.json"
+      ],
+      "required_for_release": true,
+      "skip_reason": "Playwright/Node unavailable in current QA environment. Covers TC-2 through TC-11. Accepted gap until E2E environment provisioned.",
+      "status": "skipped"
     }
   ],
   "_schema_notes": [

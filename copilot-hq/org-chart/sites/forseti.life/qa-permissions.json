@@ -374,6 +374,30 @@
         "authenticated": "allow",
         "administrator": "allow"
       }
+    },
+    {
+      "id": "forseti-ai-conversation-user-chat-chat-page",
+      "feature_id": "forseti-ai-conversation-user-chat",
+      "path_regex": "^/forseti/chat(?:/|$)",
+      "notes": "Dedicated AI chat page for authenticated users. Requires 'use ai conversation' permission. Anonymous access \u2192 403. Added for feature forseti-ai-conversation-user-chat (release-f).",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-ai-conversation-user-chat-send-message",
+      "feature_id": "forseti-ai-conversation-user-chat",
+      "path_regex": "^/ai-conversation/send-message(?:/|$)",
+      "notes": "CSRF-protected POST endpoint. GET returns 405/403; POST without CSRF returns 403. Skip GET probes \u2014 this is a POST-only route with CSRF. Added for feature forseti-ai-conversation-user-chat.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }
