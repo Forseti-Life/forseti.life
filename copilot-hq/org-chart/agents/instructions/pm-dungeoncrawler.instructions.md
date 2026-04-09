@@ -331,13 +331,28 @@ curl -s -o /dev/null -w "%{http_code}" https://dungeoncrawler.forseti.life/
 ALLOW_PROD_QA=1 is authorized for all live audits against `https://dungeoncrawler.forseti.life`.
 This server IS production — there is no localhost:8080 dev environment.
 
+## Pre-QA-dispatch dev delivery gate (required — GAP-DC-PM-PRE-QA-DISPATCH-01)
+
+Before dispatching any suite-activate inbox item to qa-dungeoncrawler for a feature, confirm that dev-dungeoncrawler has filed an outbox for that feature confirming implementation complete (commit hash present in outbox).
+
+```bash
+ls sessions/dev-dungeoncrawler/outbox/ | grep <feature-id>
+```
+
+- If dev outbox exists: dispatch suite-activate.
+- If no dev outbox: do NOT dispatch suite-activate for that feature. Defer it or queue for next cycle.
+
+Do not batch-dispatch suite-activate items at scope-activate time for features that have not yet been delivered by dev.
+
+Root cause (GAP-DC-PM-PRE-QA-DISPATCH-01, 2026-04-09): In release-b, 10 suite-activates were queued simultaneously at scope-activate time. 6 features had no dev implementation. PM deleted them 19 minutes later — 26 artifact files created and immediately removed (~4,381 lines of churn). Root commit: `b8f9769c3`.
+
 ## Gate 2 auto-approve (orchestrator-handled — GAP-DC-QA-GATE2-CONSOLIDATE-02 RESOLVED)
 
 **Status as of 2026-04-08 (commit `fd79af602`):** The orchestrator now automatically files the Gate 2 APPROVE artifact to `sessions/qa-dungeoncrawler/outbox/` once all suite-activate items for the active release are complete (no pending suite-activate inbox items remain, no approve file already exists).
 
-**PM action required:** None. Do NOT manually dispatch a `gate2-approve-<release-id>` inbox item to qa-dungeoncrawler — the orchestrator handles this.
+**PM action required:** None. Do NOT manually dispatch a `gate2-approve-<release-id>` inbox item to qa-dungeoncrawler, AND do NOT write directly to `sessions/qa-dungeoncrawler/outbox/`. The orchestrator handles Gate 2 APPROVE automatically. Wait ≥2 orchestrator ticks after all suite-activate outboxes complete before escalating to CEO.
 
-**Verification:** After all suite-activate outboxes complete, `bash scripts/release-signoff.sh dungeoncrawler <release-id>` should exit 0 without CEO or PM manual intervention. If it still fails after one full orchestrator tick cycle (≥2 execution cycles), escalate to CEO.
+**Verification:** After all suite-activate outboxes complete, `bash scripts/release-signoff.sh dungeoncrawler <release-id>` should exit 0 without CEO or PM manual intervention. If it still fails after ≥2 orchestrator tick cycles, escalate to CEO.
 
 History: GAP-DC-QA-GATE2-CONSOLIDATE-02 (2026-04-08) — 2 consecutive cycles of CEO filing Gate 2 APPROVE manually. Root cause: no orchestrator-level auto-trigger. Fixed in orchestrator commit `fd79af602`.
 
