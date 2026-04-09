@@ -9243,7 +9243,7 @@
     },
     {
       "id": "dc-cr-gnome-ancestry-e2e",
-      "label": "Gnome Ancestry \u2014 HP 8/Small/Speed 25, CON+CHA boosts+STR flaw+free boost, traits, languages (Common/Gnomish/Sylvan + INT-bonus languages), Low-Light Vision, 5 heritages (exactly one required), ancestry feats (Animal Accomplice/Fey Fellowship/First World Magic/Gnome Obsession/Gnome Weapon Familiarity/Illusion Sense/Natural Performer/Vibrant Display/Burrow Elocutionist), HP/Speed/flaw failure modes",
+      "label": "Gnome Ancestry \u2014 HP 8/Small/Speed 25, CON+CHA boosts+free boost+STR flaw, Gnome+Humanoid traits, Common/Gnomish/Sylvan languages, bonus languages by INT mod, Low-Light Vision, 5 heritages (exactly one required), feat availability (First World Magic/Fey Fellowship/Gnome Weapon Familiarity), Dwarf stat differentiation, STR flaw non-overrideable, Small-size Bulk rules",
       "type": "e2e",
       "feature_id": "dc-cr-gnome-ancestry",
       "activated_release": "20260409-dungeoncrawler-release-c",
@@ -9258,13 +9258,13 @@
           "id": "TC-GNM-01",
           "suite": "playwright/character-creation",
           "ac": "NEW-core-stats",
-          "description": "Gnome ancestry: hp_from_ancestry=8, size=Small, speed=25"
+          "description": "Gnome ancestry grants HP 8, Small size, Speed 25 ft"
         },
         {
           "id": "TC-GNM-02",
           "suite": "playwright/character-creation",
           "ac": "NEW-ability-boosts-flaw",
-          "description": "CON+2, CHA+2 fixed boosts, one free boost (not to CON/CHA again); STR -2 flaw applied automatically"
+          "description": "CON +2, CHA +2, one free player-chosen boost; STR -2 applied automatically; free boost cannot target CON or CHA again"
         },
         {
           "id": "TC-GNM-03",
@@ -9276,13 +9276,13 @@
           "id": "TC-GNM-04",
           "suite": "playwright/character-creation",
           "ac": "NEW-starting-languages",
-          "description": "character.languages includes [Common, Gnomish, Sylvan] automatically"
+          "description": "Common, Gnomish, Sylvan granted automatically"
         },
         {
           "id": "TC-GNM-05",
           "suite": "playwright/character-creation",
-          "ac": "NEW-bonus-languages-by-int",
-          "description": "bonus_language_slots = max(0, int_modifier); only allowed list selectable (Draconic/Dwarven/Elven/Goblin/Jotun/Orcish/uncommon)"
+          "ac": "NEW-bonus-languages",
+          "description": "bonus_language_slots = max(0, int_modifier); only Draconic/Dwarven/Elven/Goblin/Jotun/Orcish/uncommon selectable"
         },
         {
           "id": "TC-GNM-06",
@@ -9293,50 +9293,50 @@
         {
           "id": "TC-GNM-07",
           "suite": "playwright/character-creation",
-          "ac": "NEW-heritages",
-          "description": "Gnome unlocks exactly 5 heritages [chameleon, fey-touched, sensate, umbral, wellspring]; exactly one required before creation completes"
+          "ac": "NEW-heritage-options",
+          "description": "heritage_options = [chameleon, fey-touched, sensate, umbral, wellspring]; exactly one required before creation complete"
         },
         {
           "id": "TC-GNM-08",
           "suite": "playwright/character-creation",
           "ac": "TEST-ONLY-hp-not-dwarf",
-          "description": "hp_from_ancestry=8 (not 10); Gnome must not inherit Dwarf's HP value"
+          "description": "hp_from_ancestry = 8 when ancestry = gnome; does not inherit Dwarf HP (10)"
         },
         {
           "id": "TC-GNM-09",
           "suite": "playwright/character-creation",
           "ac": "TEST-ONLY-speed-not-dwarf",
-          "description": "speed=25 (not 20); Gnome must not inherit Dwarf's Speed"
+          "description": "speed = 25 when ancestry = gnome; does not inherit Dwarf speed (20)"
         },
         {
           "id": "TC-GNM-10",
           "suite": "playwright/character-creation",
           "ac": "TEST-ONLY-str-flaw-not-overrideable",
-          "description": "STR flaw (-2) applied automatically; no UI control to remove it; free boost cannot target STR as second application"
+          "description": "str_from_flaw = -2 applied automatically; no UI control to remove; free boost cannot retarget STR"
         },
         {
           "id": "TC-GNM-11",
           "suite": "playwright/character-creation",
-          "ac": "NEW-small-bulk-rules",
-          "description": "character.size=Small; bulk_limit uses Small-creature rules for inventory"
+          "ac": "NEW-small-size-bulk",
+          "description": "character.size = Small; bulk_limit uses Small-creature rules"
         },
         {
           "id": "TC-GNM-12",
           "suite": "playwright/character-creation",
-          "ac": "NEW-first-world-magic-feat",
+          "ac": "NEW-first-world-magic-available",
           "description": "feat_pool[gnome][level_1] includes dc-cr-first-world-magic"
         },
         {
           "id": "TC-GNM-13",
           "suite": "playwright/character-creation",
-          "ac": "NEW-fey-fellowship-feat",
+          "ac": "NEW-fey-fellowship-available",
           "description": "feat_pool[gnome][level_1] includes dc-cr-fey-fellowship"
         },
         {
           "id": "TC-GNM-14",
           "suite": "playwright/character-creation",
           "ac": "NEW-gnome-weapon-familiarity",
-          "description": "Gnome Weapon Familiarity: weapon_proficiencies includes [glaive: trained, kukri: trained]; gnome-trait weapons treated as martial if already in martial group"
+          "description": "Gnome Weapon Familiarity grants glaive: trained, kukri: trained"
         }
       ]
     }
