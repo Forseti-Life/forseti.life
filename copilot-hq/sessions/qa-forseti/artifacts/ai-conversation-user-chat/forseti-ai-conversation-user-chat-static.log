@@ -1,0 +1,5 @@
+[TC-12] forseti.chat route:
+2
+PASS
+[TC-13] CSRF send-message:
+PASS

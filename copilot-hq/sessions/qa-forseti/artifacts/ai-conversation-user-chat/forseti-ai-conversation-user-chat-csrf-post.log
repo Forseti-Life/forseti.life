@@ -1,0 +1,2 @@
+POST send-message no-CSRF: 403
+PASS
