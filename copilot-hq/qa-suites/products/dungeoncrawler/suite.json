@@ -9727,6 +9727,103 @@
           "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-tactical-grid-e2e",
+      "label": "Tactical Grid \u2014 5-ft square model, creature size footprints, Stride/difficult-terrain/AoO, reach (5ft/10ft), AoE templates (burst/cone/line), flanking (+2 circ, primary-square rule), cover (standard +2/greater +4/prone interaction), hazardous terrain",
+      "feature_id": "dc-cr-tactical-grid",
+      "type": "e2e",
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-tactical-grid/verification-report.md"
+      ],
+      "notes": "Data-only constant (no new routes). Site audit 20260409-051852 (0 violations) covers this. TACTICAL_GRID is a static class constant \u2014 runtime logic (flanking resolution, AoO triggering, cover detection) is downstream in encounter engine. Security note: grid position is server-validated; no client-side position spoofing.",
+      "test_cases": [
+        {
+          "id": "TC-TG-001",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testTacticalGridSquareModel",
+          "description": "TACTICAL_GRID.grid: square_size_ft=5, coordinate_model=row_column, position_field has row+column int fields"
+        },
+        {
+          "id": "TC-TG-002",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testCreatureSizeFootprints",
+          "description": "grid.multi_square_creatures: Tiny=1(shares), Small=1, Medium=1, Large=4(2x2), Huge=9(3x3), Gargantuan=16(4x4)"
+        },
+        {
+          "id": "TC-TG-003",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testStrideMovementRules",
+          "description": "movement.stride: action_cost=1, 5-ft increments up to Speed, difficult_terrain_cost='2 feet per square', aoo_trigger confirmed"
+        },
+        {
+          "id": "TC-TG-004",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testReachValues",
+          "description": "reach: standard_melee=5ft/1sq, reach_weapon=10ft/2sq; primary_square_rule confirmed"
+        },
+        {
+          "id": "TC-TG-005",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testAoETemplates",
+          "description": "areas_of_effect: burst (radius from origin), cone (90-degree wedge), line (5ft wide straight path) \u2014 all three templates present"
+        },
+        {
+          "id": "TC-TG-006",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testFlankingRules",
+          "description": "flanking: condition=opposite sides same row/column center, benefit_type=circumstance, benefit=+2 attack, size_rule=primary-square"
+        },
+        {
+          "id": "TC-TG-007",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testCoverBonuses",
+          "description": "cover: standard=+2 AC/Reflex circ, greater=+4 AC/Reflex circ, prone_interaction confirmed"
+        },
+        {
+          "id": "TC-TG-008",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testTerrainTypes",
+          "description": "terrain: difficult.cost='2 feet per square', hazardous.effect='terrain damage on entry'"
+        },
+        {
+          "id": "TC-TG-009",
+          "feature_id": "dc-cr-tactical-grid",
+          "ac_tag": "permissions",
+          "suite_type": "acl",
+          "status": "active",
+          "class_method": "TacticalGridTest::testAnonDeniedCharacterCreate",
+          "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
