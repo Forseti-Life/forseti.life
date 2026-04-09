@@ -330,6 +330,28 @@
         "authenticated": "allow",
         "administrator": "allow"
       }
+    },
+    {
+      "id": "forseti-jobhunter-google-jobs-ux-search",
+      "feature_id": "forseti-jobhunter-google-jobs-ux",
+      "path_regex": "^/jobhunter/googlejobssearch(?:\\?.*)?$",
+      "notes": "Added for feature forseti-jobhunter-google-jobs-ux (TC-1). GET /jobhunter/googlejobssearch requires 'access job hunter' permission. Anonymous access must return 403.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-google-jobs-ux-job-detail",
+      "feature_id": "forseti-jobhunter-google-jobs-ux",
+      "path_regex": "^/jobhunter/googlejobsintegration/job/\\d+(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-google-jobs-ux (TC-8). Job detail requires 'administer job application automation' \u2014 admin-only. Anon and regular authenticated users denied.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "deny",
+        "administrator": "allow"
+      }
     }
   ]
 }

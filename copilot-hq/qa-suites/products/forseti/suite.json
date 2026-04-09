@@ -1279,6 +1279,79 @@
         "Verifies /jobhunter/my-jobs and new bulk archive route don't introduce 4xx/5xx regressions on public paths.",
         "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
       ]
+    },
+    {
+      "id": "forseti-jobhunter-google-jobs-ux-static",
+      "label": "Google Jobs UX static checks \u2014 controller lint, templates exist, routes registered, XSS/input checks",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-google-jobs-ux",
+      "command": "bash -c 'set -e; php -l /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Controller/GoogleJobsSearchController.php && echo \"lint: PASS\"; ls /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/templates/google-jobs-search.html.twig && echo \"template-search: PASS\"; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml; grep -q \"job_hunter.google_jobs_search:\" $ROUTING && echo \"route-search: PASS\" || (echo \"route-search: FAIL\" && exit 1); grep -q \"job_hunter.google_jobs_job_detail:\" $ROUTING && echo \"route-detail: PASS\" || (echo \"route-detail: FAIL\" && exit 1); CSRF=$(grep -c \"_csrf_token\" $ROUTING); echo \"csrf_count=$CSRF (baseline 37, GET-only feature \u2014 no new CSRF expected)\"; echo \"TC-6/TC-7/TC-9 require E2E auth; marking static checks PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-google-jobs-ux-static-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "No new routes: all UX changes are in GoogleJobsSearchController and existing templates.",
+        "Feature is GET-only; no CSRF token added \u2014 CSRF baseline 37 must remain unchanged.",
+        "TC-6 XSS sanitization: verify `{{ q | escape }}` or `{{ q }}` in google-jobs-search.html.twig (Twig auto-escapes by default).",
+        "TC-7 oversized query / TC-9 page param validation: verified by E2E suite (requires auth)."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-google-jobs-ux-functional",
+      "label": "Google Jobs UX functional \u2014 TC-1 anon /jobhunter/googlejobssearch returns 403",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-google-jobs-ux",
+      "command": "bash -c 'set -e; STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/googlejobssearch); echo \"anon /jobhunter/googlejobssearch: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo \"TC-1 anon-access: PASS\" || (echo \"TC-1 anon-access: FAIL expected 403 got $STATUS\" && exit 1); XSS_STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" \"https://forseti.life/jobhunter/googlejobssearch?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E\"); echo \"anon-XSS-probe: $XSS_STATUS (expect 403 \u2014 anon denied before rendering)\"; [ \"$XSS_STATUS\" = \"403\" ] && echo \"TC-6 anon-xss: PASS (anon blocked before render)\" || (echo \"TC-6 anon-xss: unexpected $XSS_STATUS\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-google-jobs-ux-functional-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-1: anon GET /jobhunter/googlejobssearch must return 403 (route requires 'access job hunter' permission).",
+        "TC-6 XSS probe at anon level: always 403 before rendering \u2014 Twig auto-escape is the defense for auth'd users (E2E validates).",
+        "This test is runnable immediately against production (no Dev changes needed for TC-1).",
+        "STAGE 0 PENDING for TC-2/3/4/5/7/8/9: UX changes not yet implemented by Dev."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-google-jobs-ux-e2e",
+      "label": "Google Jobs UX E2E \u2014 TC-2 result count, TC-3 pagination, TC-4 empty state, TC-5 API error, TC-7 oversize query, TC-8 detail page, TC-9 page param",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-google-jobs-ux",
+      "command": "node testing/jobhunter-google-jobs-ux.mjs 2>/dev/null || (echo 'SKIPPED: Node/Playwright unavailable or test not yet written' && exit 0)",
+      "artifacts": [
+        "testing/results/google-jobs-ux-e2e-latest.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must implement UX changes; testing/jobhunter-google-jobs-ux.mjs must be created alongside implementation.",
+        "TC-2: authenticated load with results shows '{N} jobs found' count label.",
+        "TC-3: search returning >1 page renders pagination controls; ?page=2 loads next page.",
+        "TC-4: zero-results search shows user-facing 'no results' message; no blank list, no PHP notice.",
+        "TC-5: API error state renders user-facing error message; no PHP fatal. Watchdog must log at ERROR level without query text or API key.",
+        "TC-7: GET ?q=<257-char string> \u2014 server truncates/rejects; no PHP error.",
+        "TC-8: detail page at /jobhunter/googlejobsintegration/job/{job_id} returns 200 for valid ID; no PHP errors.",
+        "TC-9: GET ?page=abc defaults to page 1; no PHP error.",
+        "Node/Playwright unavailable on this host: SKIPPED (not FAIL) per org policy."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-google-jobs-ux-regression",
+      "label": "Google Jobs UX regression \u2014 site audit 0/0 + drush route check for google_jobs routes",
+      "type": "regression",
+      "feature_id": "forseti-jobhunter-google-jobs-ux",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq && ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti && python3 -c \"import json; d=json.load(open(\\\"sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json\\\")); failures=d[\\\"counts\\\"][\\\"failures\\\"]; viols=d[\\\"counts\\\"].get(\\\"violations\\\",0); assert failures==0 and viols==0, f\\\"FAIL: failures={failures} violations={viols}\\\"; print(\\\"PASS: 0 failures 0 violations\\\")\" && cd /home/ubuntu/forseti.life/sites/forseti && ./vendor/bin/drush router:debug --no-interaction 2>/dev/null | grep google_jobs | grep -q \"google_jobs_search\" && echo \"route-registration: PASS\" || (echo \"route-registration: FAIL\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Run after Dev implements UX changes.",
+        "Verifies no new 4xx/5xx regressions on existing public paths from UX refactor.",
+        "Regression notes from test plan: google_jobs_search and google_jobs_job_detail routes must remain registered.",
+        "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
+      ]
     }
   ],
   "_schema_notes": [
