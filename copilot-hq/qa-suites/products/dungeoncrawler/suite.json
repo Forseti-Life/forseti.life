@@ -6643,6 +6643,42 @@
           "description": "QA audit still passes after module deployment: 0 violations, 0 failures across all roles",
           "suite": "role-url-audit",
           "ac": "regression-audit-clean"
+        },
+        {
+          "id": "TC-ALC-45",
+          "description": "CLASS_FEATS['alchemist'] contains exactly 37 feats spanning levels 1-20 with id, name, level, traits, and benefit fields",
+          "suite": "module-test-suite",
+          "ac": "class-feats-completeness"
+        },
+        {
+          "id": "TC-ALC-46",
+          "description": "All additive feats have Additive trait and additive_level key; additive_level cap enforced relative to advanced alchemy level",
+          "suite": "module-test-suite",
+          "ac": "additive-feats-metadata"
+        },
+        {
+          "id": "TC-ALC-47",
+          "description": "Advanced Alchemy batch_copies=2, signature_batch_copies=3; batch copy enforcement prevents creating 3 non-signature items from 1 batch",
+          "suite": "module-test-suite",
+          "ac": "batch-copy-counts"
+        },
+        {
+          "id": "TC-ALC-48",
+          "description": "Formula book per_level_formulas=2; each level-up automatically adds 2 common alchemical formulas of any craftable level",
+          "suite": "module-test-suite",
+          "ac": "formula-book-per-level-gains"
+        },
+        {
+          "id": "TC-ALC-49",
+          "description": "Chirurgeon: crafting_substitutes_medicine=TRUE; Crafting proficiency rank substitutes for Medicine rank and modifier on all Medicine checks and prerequisites",
+          "suite": "module-test-suite",
+          "ac": "chirurgeon-crafting-medicine-substitution"
+        },
+        {
+          "id": "TC-ALC-50",
+          "description": "Mutagenist Mutagenic Flashback: Free Action (action_cost=0), once per day, grants effects of one previously consumed mutagen for 1 minute",
+          "suite": "module-test-suite",
+          "ac": "mutagenist-mutagenic-flashback"
         }
       ]
     },
