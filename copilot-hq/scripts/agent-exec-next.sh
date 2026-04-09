@@ -575,8 +575,45 @@ PY
 LOCAL_MODEL_FILE="$(_llm_resolve_model "$AGENT_ID")"
 LOCAL_RUNNER="$ROOT_DIR/llm/runner.py"
 
+_throttle_copilot_api() {
+  # Global rate-limit guard: enforces a minimum delay between Copilot API calls
+  # across ALL concurrent agent executions (shared timestamp file).
+  # Override minimum delay via COPILOT_API_MIN_DELAY_SECONDS (default: 60).
+  local min_delay="${COPILOT_API_MIN_DELAY_SECONDS:-60}"
+  local ts_file="$ROOT_DIR/tmp/.last-copilot-api-call"
+  mkdir -p "$ROOT_DIR/tmp"
+
+  # Use a separate lock file so only one agent updates the timestamp at a time.
+  local lock_file="$ROOT_DIR/tmp/.copilot-api-throttle.lock"
+  (
+    if command -v flock >/dev/null 2>&1; then
+      exec 9>"$lock_file"
+      flock 9
+    fi
+
+    local now elapsed wait_for
+    now=$(date +%s)
+
+    if [ -f "$ts_file" ]; then
+      local last
+      last=$(cat "$ts_file" 2>/dev/null || echo 0)
+      elapsed=$(( now - last ))
+      if [ "$elapsed" -lt "$min_delay" ]; then
+        wait_for=$(( min_delay - elapsed ))
+        echo "THROTTLE: waiting ${wait_for}s before next Copilot API call (last=${last}, now=${now}, min_delay=${min_delay})" >&2
+        sleep "$wait_for"
+      fi
+    fi
+
+    # Record the time of this API call.
+    date +%s > "$ts_file"
+  )
+}
+
 run_copilot() {
   local prompt="$1"
+  # Enforce inter-call rate-limit delay before hitting the Copilot API.
+  _throttle_copilot_api
   # Prevent orchestration hangs if the Copilot CLI stalls.
   # Default: 15 minutes; override via COPILOT_TIMEOUT_SEC.
   if command -v timeout >/dev/null 2>&1; then
