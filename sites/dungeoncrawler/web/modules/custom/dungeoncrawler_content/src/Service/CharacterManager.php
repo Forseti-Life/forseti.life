@@ -1818,6 +1818,25 @@ class CharacterManager {
       'weapons' => 'Trained in simple weapons',
       'spellcasting' => 'Bloodline spellcasting, Charisma',
       'trained_skills' => 2,
+      'armor_proficiency' => ['unarmored'],
+      'spell_repertoire' => [
+        'type'               => 'spontaneous',
+        'casting_ability'    => 'Charisma',
+        'tradition'          => 'bloodline',
+        'cantrips_at_1'      => 5,
+        'slots_at_1'         => 3,
+        'note'               => 'Sorcerers learn a fixed number of spells (spell repertoire) and can cast each known spell multiple times using available slots. Signature spells can be spontaneously heightened.',
+      ],
+      'signature_spells' => [
+        'gained_at'  => 3,
+        'count'      => 'one per spell rank',
+        'note'       => 'A signature spell can be heightened to any rank for which you have a slot without learning each rank separately.',
+      ],
+      'blood_magic' => [
+        'trigger'  => 'Cast a bloodline spell or cantrip',
+        'effect'   => 'Bloodline-specific effect on caster or one target of the spell (choose when casting). See SORCERER_BLOODLINES for per-bloodline effect descriptions.',
+        'note'     => 'Blood magic is automatic — no action cost. The effect persists for 1 round unless stated otherwise.',
+      ],
     ],
     'alchemist' => [
       'id' => 'alchemist',
