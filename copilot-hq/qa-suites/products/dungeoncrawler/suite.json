@@ -9585,6 +9585,148 @@
           "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard; covered by dc-cr-heritage-system baseline)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-rune-system-e2e",
+      "label": "Rune System \u2014 RUNE_SYSTEM and PRECIOUS_MATERIALS constants: fundamental weapon/armor runes, property slot rules, duplicate/orphan/energy-resistance handling, etch/transfer/upgrade rules, precious material grades and Hardness/HP/BT tables",
+      "feature_id": "dc-cr-rune-system",
+      "type": "e2e",
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-rune-system/verification-report.md"
+      ],
+      "notes": "Data-only constants (no new routes). Site audit 20260409-051852 (0 violations) covers this. RUNE_SYSTEM and PRECIOUS_MATERIALS are static class constants in CharacterManager.php \u2014 runtime logic enforcement (slot gating, orphan activation, etc.) is downstream in FeatEffectManager.",
+      "test_cases": [
+        {
+          "id": "TC-RS-001",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testWeaponPotencyRunesExist",
+          "description": "RUNE_SYSTEM.fundamental.weapon.potency: 3 entries (+1/+2/+3), bonus=1/2/3, property_slots=1/2/3"
+        },
+        {
+          "id": "TC-RS-002",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testStrikingRunesExist",
+          "description": "RUNE_SYSTEM.fundamental.weapon.striking: Striking(2d)/Greater(3d)/Major(4d)"
+        },
+        {
+          "id": "TC-RS-003",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testArmorPotencyRunesExist",
+          "description": "RUNE_SYSTEM.fundamental.armor.potency: 3 entries, ac_bonus=1/2/3, property_slots=1/2/3"
+        },
+        {
+          "id": "TC-RS-004",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testResilientRunesExist",
+          "description": "RUNE_SYSTEM.fundamental.armor.resilient: Resilient(+1)/Greater(+2)/Major(+3 saves)"
+        },
+        {
+          "id": "TC-RS-005",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testPropertyRulesSlotsRequirePotency",
+          "description": "property_rules.slots_require_potency_rune=TRUE, slots_without_potency=0, slots_equal_potency_value=TRUE"
+        },
+        {
+          "id": "TC-RS-006",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testPropertyRulesDuplicateAndOrphan",
+          "description": "duplicate_property_rule='only_higher_level_applies', energy_resistance_exception='different_damage_types_all_apply', orphaned_rune_behavior='dormant_until_compatible_potency_present'"
+        },
+        {
+          "id": "TC-RS-007",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSpecificLockedMaxSlots",
+          "description": "specific_locked_max_slots=0 (locked items allow only fundamental runes)"
+        },
+        {
+          "id": "TC-RS-008",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testEtchingRules",
+          "description": "etching: activity=Craft(downtime), requires Magical Crafting feat, requires_formula=TRUE, requires_possession=TRUE, runes_per_activity=1"
+        },
+        {
+          "id": "TC-RS-009",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testTransferRules",
+          "description": "transfer: cost_pct_of_price=10, minimum_days=1, from_runestone_cost=0, incompatible_result=auto-crit-fail, category_restriction=fundamental<->fundamental/property<->property"
+        },
+        {
+          "id": "TC-RS-010",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testUpgradePricingFormula",
+          "description": "upgrade: cost_formula='(new rune price) - (existing rune price)', dc='new rune level'"
+        },
+        {
+          "id": "TC-RS-011",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testPreciousMaterialsGrades",
+          "description": "PRECIOUS_MATERIALS.rules: max_materials_per_item=1; grades low(Expert/8/10%), standard(Master/15/25%), high(Legendary/null/100%)"
+        },
+        {
+          "id": "TC-RS-012",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testPreciousMaterialsCatalog",
+          "description": "PRECIOUS_MATERIALS.materials: all 7 named materials present (adamantine, cold-iron, darkwood, dragonhide, mithral, orichalcum, silver) plus base materials (steel, stone, wood) with Hardness/HP/BT per grade"
+        },
+        {
+          "id": "TC-RS-013",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "edge-case",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testEnergyResistanceStackingException",
+          "description": "energy_resistance_exception confirms different damage types all stack (not subject to duplicate-higher-only rule)"
+        },
+        {
+          "id": "TC-RS-014",
+          "feature_id": "dc-cr-rune-system",
+          "ac_tag": "permissions",
+          "suite_type": "acl",
+          "status": "active",
+          "class_method": "RuneSystemTest::testAnonDeniedCharacterCreate",
+          "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
