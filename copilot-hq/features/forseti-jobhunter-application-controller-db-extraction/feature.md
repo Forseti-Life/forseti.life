@@ -3,9 +3,9 @@
 - Feature ID: forseti-jobhunter-application-controller-db-extraction
 - Website: forseti.life
 - Module: job_hunter
-- Status: ready
+- Status: in_progress
 - Priority: P2
-- Release: 20260409-forseti-release-b
+- Release: 20260409-forseti-release-c
 - Source: BA inventory JH-R2 (ROI 15)
 - PM owner: pm-forseti
 - Dev owner: dev-forseti

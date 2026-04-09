@@ -3,7 +3,7 @@
 - Feature id: forseti-jobhunter-profile-form-static-db-extraction
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Priority: P3
 - Release: 20260408-forseti-release-k
 - Created: 2026-04-08 (follow-on from forseti-jobhunter-profile-form-db-extraction PM scope decision)
