@@ -3,7 +3,7 @@
 - Work item id: dc-cr-animal-companion
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260409-dungeoncrawler-release-f
 20260409-dungeoncrawler-release-f
 - PM owner: pm-dungeoncrawler
