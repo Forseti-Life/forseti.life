@@ -997,8 +997,7 @@ function job_hunter_update_9041() {
 /**
  * Create jobhunter_interview_notes table for interview prep feature.
  */
-function job_hunter_update_9042() {
-  $schema = \Drupal::database()->schema();
+function job_hunter_update_9042() {  $schema = \Drupal::database()->schema();
 
   if ($schema->tableExists('jobhunter_interview_notes')) {
     return t('jobhunter_interview_notes table already exists — skipping.');
@@ -1051,6 +1050,69 @@ function job_hunter_update_9042() {
 
   $schema->createTable('jobhunter_interview_notes', $table_schema);
   return t('Created jobhunter_interview_notes table.');
+}
+
+/**
+ * Create jobhunter_saved_searches table for saved search feature.
+ */
+function job_hunter_update_9043() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_saved_searches')) {
+    return t('jobhunter_saved_searches table already exists — skipping.');
+  }
+
+  $table_schema = [
+    'description' => 'Stores saved Google Jobs search parameters per user.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID.',
+      ],
+      'keywords' => [
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Search keywords.',
+      ],
+      'location' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'default' => '',
+        'description' => 'Search location filter.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when saved.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of last update.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_saved_searches', $table_schema);
+  return t('Created jobhunter_saved_searches table.');
 }
 
 
