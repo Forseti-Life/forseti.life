@@ -61,6 +61,7 @@ function ai_conversation_theme() {
         'conversation' => NULL,
         'messages' => [],
         'stats' => NULL,
+        'export_url' => '',
       ],
       'template' => 'forseti-chat',
     ],

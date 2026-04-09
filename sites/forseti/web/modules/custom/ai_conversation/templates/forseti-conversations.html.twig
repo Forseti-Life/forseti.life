@@ -62,6 +62,10 @@
                 <a href="{{ conv.chat_url }}" class="btn btn-sm btn-outline-primary">
                   <i class="bi bi-play-fill"></i> {{ 'Resume'|t }}
                 </a>
+                {# forseti-ai-conversation-export AC-4: Download link #}
+                <a href="{{ conv.export_url }}" class="btn btn-sm btn-outline-secondary">
+                  <i class="bi bi-download"></i> {{ 'Download'|t }}
+                </a>
                 {# AC-5: Delete button #}
                 <form method="post" action="{{ delete_url }}" style="display:inline-block;">
                   <input type="hidden" name="form_token" value="{{ csrf_token(delete_url) }}">

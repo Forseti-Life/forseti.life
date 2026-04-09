@@ -5,10 +5,15 @@ namespace Drupal\ai_conversation\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 use Drupal\Core\Session\AccountInterface;
+use Drupal\Core\Url;
 use Drupal\node\NodeInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Drupal\ai_conversation\Service\AIApiService;
 use Drupal\Core\Access\AccessResult;
 
@@ -85,7 +90,7 @@ class ChatController extends ControllerBase {
     // Verify access.
     $access = $this->chatAccess($node, $this->currentUser);
     if (!$access->isAllowed()) {
-      throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException();
+      throw new AccessDeniedHttpException();
     }
 
     // Get conversation messages (only recent ones for display).
@@ -155,14 +160,14 @@ class ChatController extends ControllerBase {
    */
   public function startChat() {
     if ($this->currentUser->isAnonymous()) {
-      $url = \Drupal\Core\Url::fromRoute('user.register', [], [
+      $url = Url::fromRoute('user.register', [], [
         'query' => ['destination' => '/forseti/chat'],
       ]);
-      return new \Symfony\Component\HttpFoundation\RedirectResponse($url->toString(), 301);
+      return new RedirectResponse($url->toString(), 301);
     }
 
-    $url = \Drupal\Core\Url::fromRoute('ai_conversation.forseti_chat');
-    return new \Symfony\Component\HttpFoundation\RedirectResponse($url->toString(), 301);
+    $url = Url::fromRoute('ai_conversation.forseti_chat');
+    return new RedirectResponse($url->toString(), 301);
   }
 
   /**
@@ -233,6 +238,7 @@ class ChatController extends ControllerBase {
       '#conversation' => $conversation,
       '#messages' => $messages,
       '#stats' => $stats,
+      '#export_url' => !empty($messages) ? Url::fromRoute('forseti.conversation_export', ['conversation_id' => $conversation->id()])->toString() : '',
       '#attached' => [
         'library' => ['ai_conversation/chat-interface'],
         'drupalSettings' => [
@@ -334,6 +340,73 @@ class ChatController extends ControllerBase {
   }
 
   /**
+   * Export a conversation as a plain-text file download.
+   *
+   * AC-1, AC-2, AC-5, AC-6.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   * @param int $conversation_id
+   *   The node ID (enforced by routing pattern \d+).
+   *
+   * @return \Symfony\Component\HttpFoundation\Response
+   *   Plain-text file download response.
+   */
+  public function conversationExport(Request $request, $conversation_id) {
+    $uid = (int) $this->currentUser->id();
+    $nid = (int) $conversation_id;
+
+    $node = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$node || $node->bundle() !== 'ai_conversation') {
+      throw new NotFoundHttpException();
+    }
+    if ((int) $node->getOwnerId() !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $title = $node->getTitle() ?: 'Untitled';
+    $created_date = date('c', $node->getCreatedTime());
+    $filename = 'conversation-' . $nid . '-' . date('Ymd', $node->getCreatedTime()) . '.txt';
+
+    // Build message list, filtering system messages (AC-2, AC-5).
+    $messages = [];
+    if ($node->hasField('field_messages') && !$node->get('field_messages')->isEmpty()) {
+      $all_items = $node->get('field_messages')->getValue();
+      // Sort by timestamp ascending.
+      $parsed = [];
+      foreach ($all_items as $item) {
+        $data = json_decode($item['value'], TRUE);
+        if ($data && isset($data['role']) && isset($data['content']) && $data['role'] !== 'system') {
+          $parsed[] = $data;
+        }
+      }
+      usort($parsed, function ($a, $b) {
+        return ($a['timestamp'] ?? 0) - ($b['timestamp'] ?? 0);
+      });
+      $messages = $parsed;
+    }
+
+    // Build plain-text body.
+    $lines = [];
+    $lines[] = 'Conversation: ' . $title;
+    $lines[] = 'Date: ' . $created_date;
+    $lines[] = '';
+    foreach ($messages as $msg) {
+      $role = ($msg['role'] === 'user') ? '[User]' : '[Assistant]';
+      $lines[] = $role . ': ' . $msg['content'];
+      $lines[] = '';
+    }
+
+    $body = implode("\n", $lines);
+
+    $response = new Response($body, 200, [
+      'Content-Type' => 'text/plain; charset=UTF-8',
+      'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+    return $response;
+  }
+
+  /**
    * Build a display row for a conversation node.
    *
    * @param \Drupal\node\NodeInterface $node
@@ -366,6 +439,7 @@ class ChatController extends ControllerBase {
       'total_tokens' => (int) ($node->hasField('field_total_tokens') ? $node->get('field_total_tokens')->value : 0),
       'chat_url' => Url::fromRoute('ai_conversation.forseti_chat', [], ['query' => ['conversation_id' => $conv_id]])->toString(),
       'delete_url' => Url::fromRoute('forseti.conversation_delete', ['conversation_id' => $conv_id])->toString(),
+      'export_url' => Url::fromRoute('forseti.conversation_export', ['conversation_id' => $conv_id])->toString(),
     ];
   }
 

@@ -53,6 +53,13 @@
       <button id="clear-input" class="btn btn-secondary btn-sm" type="button">
         {{ 'Clear'|t }}
       </button>
+      {# AC-3: Export button — only when conversation has messages #}
+      {% if export_url %}
+        <a href="{{ export_url }}" class="btn btn-outline-secondary btn-sm ms-1"
+           title="{{ 'Download this conversation as a text file'|t }}">
+          <i class="bi bi-download"></i> {{ 'Download conversation'|t }}
+        </a>
+      {% endif %}
     </div>
   </div>
 

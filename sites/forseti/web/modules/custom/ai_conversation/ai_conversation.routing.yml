@@ -233,3 +233,14 @@ forseti.conversation_delete:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     conversation_id: \d+
+
+forseti.conversation_export:
+  path: '/forseti/conversation/{conversation_id}/export'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::conversationExport'
+    _title: 'Export Conversation'
+  methods: [GET]
+  requirements:
+    _permission: 'use ai conversation'
+    _user_is_logged_in: 'TRUE'
+    conversation_id: \d+
