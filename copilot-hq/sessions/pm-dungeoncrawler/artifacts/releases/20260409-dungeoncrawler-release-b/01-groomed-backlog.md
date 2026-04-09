@@ -44,6 +44,18 @@ Recommended scope cap for release-b: **10 features** (auto-close threshold; do n
 ### CRB additional (fully groomed, deferred from release-h)
 - dc-cr-animal-companion (P2)
 
+### Newly groomed in this cycle (previously missing AC + test plans — now fully groomed)
+- dc-cr-gnome-ancestry (P2) — full ancestry: HP 8, Small, Con/Cha/Free boosts, Str flaw, Low-Light Vision, 5 heritages
+- dc-cr-gnome-heritage-chameleon (P2) — terrain Stealth +2, 1-action color shift
+- dc-cr-gnome-heritage-sensate (P2) — imprecise scent 30 ft, +2 Perception vs. undetected in range
+- dc-cr-gnome-heritage-umbral (P2) — darkvision
+- dc-cr-gnome-heritage-wellspring (P3) — non-primal tradition + at-will cantrip + tradition override
+- dc-cr-gnome-heritage-fey-touched (P3) — fey trait + at-will primal cantrip + daily swap
+- dc-cr-fey-fellowship (P2) — +2 vs fey (Perception/saves), immediate Diplomacy shortcut
+- dc-cr-first-world-magic (P3) — fixed at-will primal cantrip, Wellspring override
+- dc-b1-bestiary1 (P3) — creature stat block schema, encounter filtering, GM/CSRF security
+- dc-gam-gods-magic (P3) — deity schema, Cleric/Champion integration, Channel Smite, domain feats
+
 ### Gate for Stage 0 eligibility
 All 10 recommended features meet the gate:
 - `features/<id>/feature.md` — Status: ready ✓
