@@ -3,14 +3,14 @@
 - Work item id: dc-cr-gnome-heritage-chameleon
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
-- Release: 20260409-dungeoncrawler-release-c
+- Release:
 - Created: 2026-04-08
 
 ## Goal
