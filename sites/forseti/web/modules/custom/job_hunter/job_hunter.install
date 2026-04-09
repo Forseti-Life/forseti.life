@@ -912,8 +912,41 @@ function job_hunter_update_9039() {
 }
 
 /**
- * Implements hook_uninstall().
+ * Add confidence_score to jobhunter_tailored_resumes and
+ * active_tailored_resume_id to jobhunter_job_seeker (resume tailoring display).
  */
+function job_hunter_update_9040() {
+  $schema = \Drupal::database()->schema();
+  $messages = [];
+
+  if ($schema->tableExists('jobhunter_tailored_resumes') &&
+      !$schema->fieldExists('jobhunter_tailored_resumes', 'confidence_score')) {
+    $schema->addField('jobhunter_tailored_resumes', 'confidence_score', [
+      'type' => 'int',
+      'size' => 'small',
+      'unsigned' => TRUE,
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'AI confidence score 0-100 for the tailoring quality.',
+    ]);
+    $messages[] = 'Added confidence_score to jobhunter_tailored_resumes.';
+  }
+
+  if ($schema->tableExists('jobhunter_job_seeker') &&
+      !$schema->fieldExists('jobhunter_job_seeker', 'active_tailored_resume_id')) {
+    $schema->addField('jobhunter_job_seeker', 'active_tailored_resume_id', [
+      'type' => 'int',
+      'not null' => FALSE,
+      'default' => NULL,
+      'description' => 'FK to jobhunter_tailored_resumes.id — the resume saved to profile.',
+    ]);
+    $messages[] = 'Added active_tailored_resume_id to jobhunter_job_seeker.';
+  }
+
+  return $messages ? t(implode(' ', $messages)) : t('No update needed: columns already exist.');
+}
+
+
 function job_hunter_uninstall() {
   $messenger = \Drupal::messenger();
   $logger = \Drupal::logger('job_hunter');

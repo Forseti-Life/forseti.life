@@ -411,6 +411,8 @@ function job_hunter_theme() {
         'pdf_path' => NULL,
         'pdf_generated' => NULL,
         'pdf_history' => [],
+        'confidence_score' => 0,
+        'save_resume_url' => '',
       ],
       'template' => 'job-tailoring-combined',
     ],

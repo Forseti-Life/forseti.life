@@ -12,6 +12,7 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 
 /**
  * Controller for company and job requirement management.
@@ -1232,7 +1233,12 @@ class CompanyController extends ControllerBase {
       $this->messenger()->addError($this->t('Job not found.'));
       return new RedirectResponse(Url::fromRoute('job_hunter.my_jobs')->toString());
     }
-    
+
+    // AC-6: Cross-user access check — users may only view their own job tailoring.
+    if ((int) $job->uid !== (int) $this->currentUser->id()) {
+      throw new AccessDeniedHttpException();
+    }
+
     // Parse JSON data using helper method
     $extracted = $this->safeJsonDecode($job->extracted_json, 'job extracted data', $job_id) ?? [];
     $skills = $this->safeJsonDecode($job->skills_required_json, 'job skills', $job_id) ?? [];
@@ -1307,6 +1313,7 @@ class CompanyController extends ControllerBase {
     }
     
     // Build combined content
+    $save_resume_url = Url::fromRoute('job_hunter.job_tailoring_save_resume', ['job_id' => $job_id])->toString();
     $content = [
       '#theme' => 'job_tailoring_combined',
       '#job' => $job,
@@ -1323,6 +1330,8 @@ class CompanyController extends ControllerBase {
       '#pdf_path' => $pdf_path,
       '#pdf_generated' => $pdf_generated,
       '#pdf_history' => $pdf_history,
+      '#confidence_score' => $tailored_record ? (int) ($tailored_record->confidence_score ?? 0) : 0,
+      '#save_resume_url' => $save_resume_url,
       '#attached' => [
         'library' => [
           'job_hunter/job-hunter-navigation',
@@ -1333,6 +1342,59 @@ class CompanyController extends ControllerBase {
     ];
     
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * POST handler: save a completed tailored resume as the user's active resume.
+   *
+   * Route: job_hunter.job_tailoring_save_resume (POST, CSRF-protected).
+   *
+   * @param int $job_id
+   *   The job whose tailored resume is being saved.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   *   Redirect back to the tailoring page with a status message.
+   */
+  public function saveResume($job_id) {
+    $uid = (int) $this->currentUser->id();
+
+    // Load the tailored resume record (scoped to current user + job).
+    $tailored_record = $this->database->select('jobhunter_tailored_resumes', 'tr')
+      ->fields('tr', ['id', 'tailoring_status', 'uid'])
+      ->condition('tr.uid', $uid)
+      ->condition('tr.job_id', (int) $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$tailored_record) {
+      $this->messenger()->addError($this->t('Tailored resume not found.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.job_tailoring', ['job_id' => $job_id])->toString());
+    }
+
+    // Ownership double-check (belt-and-suspenders; route already guards).
+    if ((int) $tailored_record->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    if ($tailored_record->tailoring_status !== 'completed') {
+      $this->messenger()->addWarning($this->t('Tailoring must be completed before saving to your profile.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.job_tailoring', ['job_id' => $job_id])->toString());
+    }
+
+    // Update jobhunter_job_seeker to point to this tailored resume as active.
+    $updated = $this->database->update('jobhunter_job_seeker')
+      ->fields(['active_tailored_resume_id' => (int) $tailored_record->id])
+      ->condition('uid', $uid)
+      ->execute();
+
+    if ($updated > 0) {
+      $this->messenger()->addStatus($this->t('Tailored resume saved as your active resume.'));
+    }
+    else {
+      $this->messenger()->addWarning($this->t('Profile record not found; could not save resume. Please complete your profile first.'));
+    }
+
+    return new RedirectResponse(Url::fromRoute('job_hunter.job_tailoring', ['job_id' => $job_id])->toString());
   }
 
   /**

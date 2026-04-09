@@ -967,3 +967,68 @@
     width: 100%;
   }
 }
+/* ================================================================
+   Side-by-side resume comparison (AC-1)
+   ================================================================ */
+.resume-comparison-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.resume-column {
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.resume-column-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  background: #f5f5f5;
+  border-bottom: 1px solid #e0e0e0;
+  flex-wrap: wrap;
+}
+
+.resume-column-header h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.resume-column--tailored .resume-column-header {
+  background: #e8f4fd;
+}
+
+.resume-column-body {
+  padding: 1rem;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* AC-4: Confidence score badge */
+.confidence-badge {
+  display: inline-block;
+  padding: 0.2rem 0.5rem;
+  background: #2e7d32;
+  color: #fff;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* AC-3: Save-to-profile form inline */
+.save-resume-form {
+  display: inline;
+}
+
+/* AC-1: Stack columns on narrow viewports */
+@media (max-width: 767px) {
+  .resume-comparison-grid {
+    grid-template-columns: 1fr;
+  }
+}

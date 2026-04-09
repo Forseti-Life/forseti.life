@@ -962,6 +962,19 @@ job_hunter.job_tailoring:
     _title: 'Job & Resume Tailoring'
   requirements:
     _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    job_id: \d+
+
+job_hunter.job_tailoring_save_resume:
+  path: '/jobhunter/jobtailoring/{job_id}/save-resume'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::saveResume'
+    _title: 'Save Resume to Profile'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
     job_id: \d+
 
 job_hunter.job_delete:
