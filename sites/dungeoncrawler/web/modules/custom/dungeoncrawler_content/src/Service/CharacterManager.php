@@ -1049,21 +1049,117 @@ class CharacterManager {
     'champion' => [
       'id' => 'champion',
       'name' => 'Champion',
-      'description' => 'You are a divine fighting servant, an instrument of your deity\'s will.',
+      'description' => 'You are a divine fighting servant, an instrument of your deity\'s will. Your identity is defined by martial excellence and unwavering devotion — not spellcasting. Your power flows through divine reactions, focus spells, and a sacred code.',
       'hp' => 10,
       'key_ability' => 'Strength or Dexterity',
+      'key_ability_choice' => TRUE,
       'proficiencies' => [
-        'perception' => 'Trained',
-        'fortitude' => 'Expert',
-        'reflex' => 'Trained',
-        'will' => 'Expert',
+        'perception'      => 'Trained',
+        'fortitude'       => 'Expert',
+        'reflex'          => 'Trained',
+        'will'            => 'Expert',
+        'divine_spells'   => 'Trained',
+        'divine_spell_dc' => 'Trained (Charisma)',
+        'class_dc'        => 'Trained',
       ],
-      'skills' => 'Choose 2 + Intelligence modifier',
-      'weapons' => 'Trained in simple and martial weapons, and the favored weapon of your deity',
-      'trained_skills' => 2,
+      'armor_proficiency' => ['light', 'medium', 'heavy', 'unarmored'],
+      'skills'            => 'Religion + deity-specific skill + 2 + Intelligence modifier',
+      'trained_skills'    => 2,
+      'class_skills'      => ['Religion'],
+      'deity_skill'       => TRUE,
+      'weapons'           => 'Trained in simple weapons, martial weapons, and the favored weapon of your deity',
+      // ── Deity, Cause & Code ──────────────────────────────────────────────────
+      'deity_and_cause' => [
+        'selection'      => 'L1: choose deity + cause (permanent pairing)',
+        'causes' => [
+          'paladin' => [
+            'id'             => 'paladin',
+            'name'           => 'Paladin',
+            'alignment'      => 'Lawful Good',
+            'reaction'       => 'Retributive Strike',
+            'reaction_desc'  => 'An ally within 15 ft takes damage. Ally gains resistance to all damage = 2 + level. If the triggering foe is within your reach, make a melee Strike against it.',
+            'tenets'         => ['never willfully commit evil acts', 'never harm innocents', 'never lie or deceive', 'never act with cruelty'],
+          ],
+          'redeemer' => [
+            'id'             => 'redeemer',
+            'name'           => 'Redeemer',
+            'alignment'      => 'Neutral Good',
+            'reaction'       => 'Glimpse of Redemption',
+            'reaction_desc'  => 'An ally within 15 ft takes damage. Foe chooses: (A) ally is unharmed, or (B) ally gains resistance to all damage = 2 + level, then foe becomes enfeebled 2 until end of its next turn.',
+            'tenets'         => ['never willfully commit evil acts', 'never harm innocents', 'always offer redemption before resorting to violence'],
+          ],
+          'liberator' => [
+            'id'             => 'liberator',
+            'name'           => 'Liberator',
+            'alignment'      => 'Chaotic Good',
+            'reaction'       => 'Liberating Step',
+            'reaction_desc'  => 'An ally within 15 ft is grabbed, restrained, or immobilized. Ally gains resistance to all damage = 2 + level; ally can attempt to break free (new save or Escape as free action); ally can Step as a free action.',
+            'tenets'         => ['never willfully commit evil acts', 'never harm innocents', 'never prevent others from exercising their freedom'],
+          ],
+        ],
+        'code_violation' => [
+          'effect'  => 'Removes access to focus pool and suspends all divine ally benefits.',
+          'restore' => 'Atone ritual completed with deity\'s approval restores focus pool and divine ally.',
+        ],
+        'tenet_hierarchy' => 'Higher tenets override lower in conflicts. All codes begin with "do not commit evil acts" as highest tenet.',
+      ],
+      // ── Deific Weapon ─────────────────────────────────────────────────────────
+      'deific_weapon' => [
+        'uncommon_access' => TRUE,
+        'upgrade_rule'    => 'd4/simple weapon damage die upgraded by one step (e.g., d4 → d6).',
+      ],
+      // ── Devotion Spells & Focus Pool ─────────────────────────────────────────
+      'devotion_spells' => [
+        'focus_pool_start'     => 1,
+        'focus_pool_max'       => 3,
+        'refocus'              => '10 minutes of prayer or service to deity',
+        'spellcasting_ability' => 'Charisma',
+        'auto_heighten'        => TRUE,
+        'heighten_formula'     => 'half level rounded up',
+        'starting_spells' => [
+          'good_champions' => 'lay on hands',
+        ],
+        'l19_spell' => "hero's defiance (defy fate, continue fighting with divine energy)",
+      ],
+      // ── Divine Ally (L3 selection, permanent) ────────────────────────────────
+      'divine_ally' => [
+        'selection_level' => 3,
+        'permanent'       => TRUE,
+        'options' => [
+          'blade' => [
+            'id'   => 'blade',
+            'name' => 'Blade Ally',
+            'desc' => 'Your deity blesses one weapon or handwraps. It gains a property rune of your choice (level-gated) and critical specialization effect.',
+          ],
+          'shield' => [
+            'id'   => 'shield',
+            'name' => 'Shield Ally',
+            'desc' => 'Your shield gains +2 Hardness and its HP and Broken Threshold increase by 50%.',
+          ],
+          'steed' => [
+            'id'   => 'steed',
+            'name' => 'Steed Ally',
+            'desc' => 'You gain a young animal companion that serves as a mount. Follows animal companion advancement rules.',
+          ],
+        ],
+      ],
+      // ── Alignment enforcement ─────────────────────────────────────────────────
       'alignment_options' => [
-        'good'  => ['access' => 'standard',  'label' => 'Good Champion',  'description' => 'Paladins and other good champions serve deities of light and justice.'],
-        'evil'  => ['access' => 'uncommon',  'label' => 'Evil Champion',  'description' => 'Antipaladins and other evil champions require GM access grant (Uncommon). They gain alignment-appropriate champion\'s reaction and devotion spells paralleling the good champion structure.'],
+        'good' => [
+          'access'      => 'standard',
+          'label'       => 'Good Champion',
+          'description' => 'Standard access. Cause must match alignment: Paladin (Lawful Good), Redeemer (Neutral Good), Liberator (Chaotic Good). Invalid cause/alignment combination blocked.',
+        ],
+        'evil' => [
+          'access'      => 'uncommon',
+          'label'       => 'Evil Champion',
+          'description' => 'Requires GM access grant (Uncommon). Alignment-appropriate champion\'s reaction and devotion spells parallel the good champion structure.',
+        ],
+      ],
+      // ── Oath feats ────────────────────────────────────────────────────────────
+      'oath_feats' => [
+        'max_per_character' => 1,
+        'note'              => 'Only one Oath feat may be selected per champion.',
       ],
     ],
     'druid' => [
@@ -5965,6 +6061,70 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'description' => 'Panache speed bonus increases to +30 ft. Without panache: +15 ft.'],
         ['id' => 'swashbuckler-evasion', 'name' => 'Evasion',
           'description' => 'When you succeed at a Reflex save, you get a critical success instead.'],
+      ]],
+    ],
+    'champion' => [
+      1  => ['auto_features' => [
+        ['id' => 'champion-cause', 'name' => "Champion's Cause",
+          'description' => 'Choose deity + cause (Paladin/Redeemer/Liberator) — permanent. Determines Champion\'s Reaction, devotion tenets, and code. Paladin requires Lawful Good; Redeemer requires Neutral Good; Liberator requires Chaotic Good. Code violation removes focus pool and divine ally benefits until atone ritual completed.'],
+        ['id' => 'champions-reaction', 'name' => "Champion's Reaction",
+          'description' => 'Paladin: Retributive Strike — ally in 15 ft takes damage; ally gains resistance = 2+level; if foe in reach, make a melee Strike. Redeemer: Glimpse of Redemption — foe chooses (A) ally unharmed or (B) ally resistance = 2+level + foe enfeebled 2 until end of its next turn. Liberator: Liberating Step — grabbed/restrained ally gains resistance = 2+level; new save or free Escape; ally can Step as a free action.'],
+        ['id' => 'lay-on-hands', 'name' => 'Lay on Hands (Devotion Spell)',
+          'description' => 'Good champions start with lay on hands devotion spell. Focus pool = 1 (max 3 with feats). Refocus = 10 minutes prayer/service. All devotion spells auto-heighten to half level rounded up; use Charisma for spell attacks/DCs.'],
+        ['id' => 'shield-block-champion', 'name' => 'Shield Block (Free Feat)',
+          'description' => 'You gain the Shield Block general feat for free at level 1.'],
+        ['id' => 'deific-weapon', 'name' => 'Deific Weapon',
+          'description' => 'Uncommon access to your deity\'s favored weapon. d4/simple weapon damage die upgraded by one step (e.g., d4 → d6).'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'divine-ally', 'name' => 'Divine Ally',
+          'description' => 'Choose one (permanent): Blade Ally (weapon gains property rune + crit specialization), Shield Ally (+2 Hardness, +50% HP/Broken Threshold), or Steed Ally (young animal companion mount). Cannot change after selection.'],
+      ]],
+      5  => ['auto_features' => [
+        ['id' => 'champion-weapon-expertise', 'name' => 'Weapon Expertise',
+          'description' => 'Proficiency with simple weapons, martial weapons, and unarmed attacks increases to Expert.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'champion-armor-expertise', 'name' => 'Armor Expertise',
+          'description' => 'All armor categories and unarmored defense increase to Expert. Armor specialization effects for medium and heavy armor are unlocked.'],
+        ['id' => 'weapon-specialization-champion', 'name' => 'Weapon Specialization',
+          'description' => '+2 damage with Expert weapons/unarmed, +3 at Master, +4 at Legendary.'],
+      ]],
+      9  => ['auto_features' => [
+        ['id' => 'champion-expertise', 'name' => 'Champion Expertise',
+          'description' => 'Champion class DC and divine spell attack rolls/DCs increase to Expert proficiency.'],
+        ['id' => 'divine-smite', 'name' => 'Divine Smite',
+          'description' => "When Champion's Reaction triggers and its condition is met, the target also takes persistent good damage equal to your Charisma modifier."],
+        ['id' => 'juggernaut-champion', 'name' => 'Juggernaut',
+          'description' => 'Fortitude save proficiency increases to Master. Successes on Fortitude saves become critical successes.'],
+        ['id' => 'champion-reflex-expertise', 'name' => 'Reflex Expertise',
+          'description' => 'Reflex save proficiency increases to Expert.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'champion-perception-expertise', 'name' => 'Perception Expertise',
+          'description' => 'Perception proficiency increases to Expert.'],
+        ['id' => 'divine-will', 'name' => 'Divine Will',
+          'description' => 'Will save proficiency increases to Master. Successes on Will saves become critical successes.'],
+        ['id' => 'exalt', 'name' => 'Exalt',
+          'description' => "Champion's Reaction now affects nearby allies. Retributive Strike: allies within 15 ft can use a reaction to Strike at –5 penalty. Glimpse of Redemption: resistance applies to all allies within 15 ft (reduced by 2 per ally). Liberating Step: all allies within 15 ft can Step as a free action."],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'champion-armor-mastery', 'name' => 'Armor Mastery',
+          'description' => 'All armor categories and unarmored defense increase to Master.'],
+        ['id' => 'champion-weapon-mastery', 'name' => 'Weapon Mastery',
+          'description' => 'Proficiency with simple weapons, martial weapons, and unarmed attacks increases to Master.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'greater-weapon-specialization-champion', 'name' => 'Greater Weapon Specialization',
+          'description' => '+4 damage at Expert, +6 at Master, +8 at Legendary.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'champion-mastery', 'name' => 'Champion Mastery',
+          'description' => 'Champion class DC and divine spell attack rolls/DCs increase to Master. All armor categories and unarmored defense increase to Legendary.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'heros-defiance', 'name' => "Hero's Defiance",
+          'description' => "Gain the hero's defiance devotion spell: when reduced to 0 HP, spend 1 Focus Point to defy fate and continue fighting (survive with 1 HP using divine energy)."],
       ]],
     ],
   ];
