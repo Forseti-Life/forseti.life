@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T22:09:38Z
+Generated: 2026-04-09T22:15:56Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -173,11 +173,11 @@ Generated: 2026-04-09T22:09:38Z
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
-| forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | in_progress | low |  |  |  |
-| forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | in_progress | medium |  |  |  |
-| forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | in_progress | medium |  |  |  |
-| forseti-qa-suite-fill-jobhunter-submission | forseti.life | qa_suites | in_progress | medium |  |  |  |
-| forseti-qa-suite-fill-release-f | forseti.life | qa_suites | in_progress | medium |  |  |  |
+| forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
+| forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |
+| forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | shipped | medium |  |  |  |
+| forseti-qa-suite-fill-jobhunter-submission | forseti.life | qa_suites | shipped | medium |  |  |  |
+| forseti-qa-suite-fill-release-f | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-retire-stale | forseti.life | qa_suites | ready | medium |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
