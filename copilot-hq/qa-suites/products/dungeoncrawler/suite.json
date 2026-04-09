@@ -4694,8 +4694,8 @@
         "tests/results/dc-apg-archetypes-e2e.xml"
       ],
       "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-08",
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
       "notes": "Security AC exemption confirmed: no new routes. All 20 TCs active. Regression risks: 2-before-dedication rule not enforced at feat selection; proficiency cap allowing archetype to exceed class maximum; Assassin Mark for Death deadly upgrade vs addition regression; Beastmaster focus pool not created if class already has one; Ritualist using spell DC instead of skill modifier; Cavalier actions failing non-gracefully when no mount.",
       "test_cases": [
         {
