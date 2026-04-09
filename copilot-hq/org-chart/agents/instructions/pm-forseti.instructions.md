@@ -188,6 +188,17 @@ Even without a `release-close-now` trigger, you MUST sign off as soon as ALL in-
 Start-of-cycle (recommended for coordinated releases):
 - `./scripts/coordinated-release-cycle-start.sh <release-id>`
 
+## Gate 2 with no in-scope features — empty release pattern (required)
+When a `gate2-ready` inbox item arrives and `features/*/feature.md` shows NO forseti features in `in_progress` status:
+1. This is a site-health baseline audit (triggered post-release or start-of-cycle) — NOT a pre-ship Gate 2
+2. Use `--empty-release` flag to self-certify: `bash scripts/release-signoff.sh forseti <release-id> --empty-release`
+3. The script writes an empty-release self-cert to `sessions/qa-forseti/outbox/` and records pm-forseti signoff
+4. Dispatch pm-dungeoncrawler cosign inbox item (ROI 10)
+5. **Do NOT block** waiting for features — this confirms production is clean; scope activation is a separate step
+6. After signoff: escalate to CEO (needs-info, ROI 8) if no forseti features exist in any non-shipped state — the product backlog is empty and new work needs to be identified
+
+Reference: 2026-04-09 `20260409-forseti-release-e` used this pattern after release-d push.
+
 ## Coordinated signoff claim — trigger on any Gate 2 report (required)
 **Trigger**: Any inbox item arrives that reports or follows up on a Gate 2 APPROVE for a coordinated release (dungeoncrawler OR forseti), OR any inbox item where `release-signoff-status.sh` would be relevant (follow-up, handoff, post-push, improvement round).
 
