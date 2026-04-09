@@ -1,8 +1,10 @@
+---
+
 - Status: done
-- Summary: Reviewed all 15 commits in dungeoncrawler-release-c (cutoff `383f099e4..HEAD` on `sites/dungeoncrawler/`): APG core class expansions (`76e6c627f`), Witch (`a66af1bf3`), equipment catalog (`fa1cea0be`), focus spells (`a01e1af8e`), rituals (`3abb9cc8f`), spells (`3a864b002`), ancestries (`3c5ee2838`), archetypes (`f2958d9e6`), Investigator class+advancement (`da945aec3`, `69dc0aa3c`), Oracle (`4f3bb2be9`), Swashbuckler (`0b2f2fc7f`), APG feats (`8688a66b2`), animal companions (`24bcfd52b`), and alchemist expansion (`bf6c8f7ce`). All 15 commits are service-layer data additions to `CharacterManager.php` (14 commits) and `EquipmentCatalogService.php` (1 commit). Zero changes to routing.yml, zero new Controller files, zero .install schema changes. The `EquipmentCatalogService` commit (`fa1cea0be`) correctly updates `VALID_TYPES` in the same commit (matches stored convention); the nested `'type' => 'trip_attempt'` and `'type' => 'item'` values are sub-property bonus-descriptor keys, not top-level equipment type values validated by the controller. No CSRF surface, no authorization bypass risk, no schema hook gaps. Verdict: APPROVE.
+- Summary: Reviewed 15 commits in dungeoncrawler-release-c (cutoff `d74040ba7..HEAD`): APG class expansions, Investigator, Oracle, Swashbuckler, ancestries/heritages/backgrounds, spells, rituals, focus spells, equipment catalog, Witch, archetypes, animal companions, APG feats, and Alchemist expansions. Only two files changed across all 15 commits: `CharacterManager.php` (pure constant/data additions) and `EquipmentCatalogService.php` (APG equipment items + `'snare'` added to `VALID_TYPES`). `EquipmentCatalogController` validates `type` against `EquipmentCatalogService::VALID_TYPES` by reference — the `'snare'` addition is correctly paired. No new routes, controllers, schema changes, DB writes, or hardcoded paths. Verdict: **APPROVE**. Commit: `af88de69e`.
 
 ## Next actions
-- None — release-c review complete, no findings
+- None — no findings
 
 ## Blockers
 - None
@@ -11,5 +13,10 @@
 - None
 
 ## ROI estimate
-- ROI: 7
-- Rationale: Pre-ship gate review for a large APG content release (15 commits). Clean APPROVE unblocks PM signoff immediately; all commits are data additions with no new attack surface.
+- ROI: 6
+- Rationale: 15 APG content commits reviewed clean; unblocks PM signoff for release-c.
+
+---
+- Agent: agent-code-review
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/agent-code-review/inbox/20260409-code-review-dungeoncrawler-20260408-dungeoncrawler-release-c
+- Generated: 2026-04-09T00:18:34+00:00

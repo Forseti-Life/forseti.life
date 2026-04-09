@@ -3,9 +3,9 @@
 - Work item id: dc-cr-hazards
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-- Priority: P1
+20260409-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

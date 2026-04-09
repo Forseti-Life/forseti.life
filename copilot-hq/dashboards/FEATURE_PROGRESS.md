@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-08T23:58:30Z
+Generated: 2026-04-09T00:36:39Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -24,8 +24,10 @@ Generated: 2026-04-08T23:58:30Z
 | dc-cr-ancestry-feat-schedule | dungeoncrawler | dungeoncrawler_content | done | P3 (depends on dc-cr-character-leveling which is deferred; ancestry feat slots blocked until leveling system exists) |  |  |  |
 | dc-cr-ancestry-system | dungeoncrawler | dungeoncrawler_content | done | P0 (required dependency for character creation; enables ancestry feat trees and heritage selection downstream) |  |  |  |
 | dc-cr-ancestry-traits | dungeoncrawler | dungeoncrawler_content | shipped | P2 (spell/ability targeting prerequisite; deferred from current release — no spellcasting in scope yet) |  |  |  |
+| dc-cr-animal-accomplice | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-animal-companion | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-background-system | dungeoncrawler | dungeoncrawler_content | done | high (required prerequisite for character creation workflow; provides ability boosts, skill training, and skill feat to character) |  |  |  |
+| dc-cr-burrow-elocutionist | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-character-class | dungeoncrawler | dungeoncrawler_content | done | high (core pillar of character building; defines proficiencies, HP/level, class features, and class feats — required for character creation workflow) |  |  |  |
 | dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | done | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
 | dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | shipped | P3 (complex; depends on feats system not yet in scope; deferred to release after next) |  |  |  |
@@ -72,6 +74,7 @@ Generated: 2026-04-08T23:58:30Z
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
@@ -83,6 +86,10 @@ Generated: 2026-04-08T23:58:30Z
 | dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-gnome-heritage-umbral | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-gnome-heritage-wellspring | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-gnome-obsession | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready | P1 |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
@@ -123,6 +130,7 @@ Generated: 2026-04-08T23:58:30Z
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
+| dc-cr-vivacious-conduit | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-xp-award-system | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-xp-rewards | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-gam-gods-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
