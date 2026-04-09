@@ -1093,6 +1093,23 @@
         "TC-5: reads failure/violation counts from findings-summary.json via Python (avoids grep-from-markdown parse bugs)."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-csrf-seed-consistency",
+      "label": "CSRF seed consistency check \u2014 controller seeds must match route paths",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-csrf-seed-consistency",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/Controller/CsrfSeedConsistencyTest.php --no-coverage --testdox",
+      "artifacts": [],
+      "run_notes": [
+        "Static analysis test \u2014 no Drupal bootstrap needed beyond autoloader.",
+        "Scans src/Controller/*.php for csrfToken()->get() calls.",
+        "Seeds containing '/' must match a route path in job_hunter.routing.yml (leading slash stripped, {param} placeholders normalized).",
+        "Seeds without '/' are treated as intentional custom/form tokens and are not validated.",
+        "Prevents FR-RB-01 class regressions: custom seeds like 'job_apply_{id}' instead of route-path seeds.",
+        "Requires: vendor/bin/phpunit available (composer install --dev from /var/www/html/forseti)."
+      ],
+      "required_for_release": true
     }
   ],
   "_schema_notes": [
