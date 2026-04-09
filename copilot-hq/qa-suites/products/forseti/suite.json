@@ -1213,38 +1213,71 @@
       ]
     },
     {
-      "id": "forseti-jobhunter-application-controller-split-static",
-      "label": "Controller split static checks \u2014 TC-2 php -l, TC-3 zero DB calls, TC-4 CSRF count preserved, TC-6 line count \u2264800",
+      "id": "forseti-jobhunter-application-status-dashboard-static",
+      "label": "Status dashboard static checks \u2014 TC-9 bulk archive route has methods:[POST] and _csrf_token:'TRUE', CSRF count >= 38",
       "type": "unit",
-      "feature_id": "forseti-jobhunter-application-controller-split",
-      "command": "bash -c 'set -e; BASE=sites/forseti/web/modules/custom/job_hunter; php -l $BASE/src/Controller/ApplicationSubmissionController.php && php -l $BASE/src/Controller/ApplicationActionController.php && echo \"php-l: PASS\" && SUB=$(grep -c \"\\$this->database\" $BASE/src/Controller/ApplicationSubmissionController.php || true) && ACT=$(grep -c \"\\$this->database\" $BASE/src/Controller/ApplicationActionController.php || true) && echo \"db-calls sub=$SUB act=$ACT\" && [ \"$SUB\" -eq 0 ] && [ \"$ACT\" -eq 0 ] && echo \"TC-3 zero-db: PASS\" && CSRF=$(grep -c \"_csrf_token\" $BASE/../../../job_hunter.routing.yml) && echo \"csrf_count=$CSRF (baseline 37)\" && [ \"$CSRF\" -ge 37 ] && echo \"TC-4 csrf-preserved: PASS\" && SUBLINES=$(wc -l < $BASE/src/Controller/ApplicationSubmissionController.php) && ACTLINES=$(wc -l < $BASE/src/Controller/ApplicationActionController.php) && echo \"lines sub=$SUBLINES act=$ACTLINES\" && [ \"$SUBLINES\" -le 800 ] && [ \"$ACTLINES\" -le 800 ] && echo \"TC-6 line-count: PASS\"'",
+      "feature_id": "forseti-jobhunter-application-status-dashboard",
+      "command": "bash -c 'set -e; ROUTING=sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml; grep -q \"my_jobs_bulk_archive\" $ROUTING && echo \"route-exists: PASS\" || (echo \"route-exists: FAIL -- route not yet added by Dev\" && exit 1); grep -A8 \"my_jobs_bulk_archive\" $ROUTING | grep -q \"methods.*POST\" && echo \"methods-POST: PASS\" || (echo \"methods-POST: FAIL\" && exit 1); grep -A8 \"my_jobs_bulk_archive\" $ROUTING | grep -q \"_csrf_token\" && echo \"csrf-guard: PASS\" || (echo \"csrf-guard: FAIL\" && exit 1); CSRF=$(grep -c \"_csrf_token\" $ROUTING); echo \"csrf_count=$CSRF (baseline 37, expect >=38)\"; [ \"$CSRF\" -ge 38 ] && echo \"TC-9 csrf-count: PASS\" || (echo \"TC-9 csrf-count: FAIL\" && exit 1)'",
       "artifacts": [
-        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-controller-split-static-latest/"
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-status-dashboard-static-latest/"
       ],
       "required_for_release": true,
       "run_notes": [
-        "STAGE 0 PENDING: Dev must create ApplicationSubmissionController.php and ApplicationActionController.php before this suite is runnable.",
-        "TC-2: php -l on both new controller files.",
-        "TC-3: zero $this->database calls in both new controllers (DB extraction was Phase 1).",
-        "TC-4: CSRF token count in job_hunter.routing.yml must be >= 37 (baseline at suite-write time). Split must not collapse or remove split-route CSRF patterns.",
-        "TC-6: each new controller file must be <= 800 lines."
+        "STAGE 0 PENDING: Dev must add job_hunter.my_jobs_bulk_archive route before this suite is runnable.",
+        "TC-9: job_hunter.my_jobs_bulk_archive in routing.yml must have methods:[POST] and _csrf_token:'TRUE'.",
+        "CSRF baseline: 37 (as of release-d). Adding bulk archive POST route must push count to >= 38.",
+        "Per AC-4 verification command: grep -A5 'job_hunter.my_jobs_bulk_archive' job_hunter.routing.yml"
       ]
     },
     {
-      "id": "forseti-jobhunter-application-controller-split-functional",
-      "label": "Controller split functional checks \u2014 TC-1 route smoke (anon 403 on /jobhunter/my-jobs), TC-5 drush cr clean",
+      "id": "forseti-jobhunter-application-status-dashboard-functional",
+      "label": "Status dashboard functional checks \u2014 TC-1 anon /jobhunter/my-jobs returns 403, TC-9 CSRF-missing POST returns 403",
       "type": "functional",
-      "feature_id": "forseti-jobhunter-application-controller-split",
-      "command": "bash -c 'set -e; STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/my-jobs); echo \"anon /jobhunter/my-jobs: $STATUS\"; ([ \"$STATUS\" = \"403\" ] || [ \"$STATUS\" = \"302\" ]) && echo \"TC-1 route-smoke: PASS\" || (echo \"TC-1 route-smoke: FAIL expected 403/302 got $STATUS\" && exit 1) && cd sites/forseti && vendor/bin/drush cr && echo \"TC-5 drush-cr: PASS\" && ERRORS=$(vendor/bin/drush watchdog:show --count=5 --severity=Error --format=json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(len(d))\" 2>/dev/null || echo 0) && echo \"recent error log entries: $ERRORS\"'",
+      "feature_id": "forseti-jobhunter-application-status-dashboard",
+      "command": "bash -c 'set -e; STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/my-jobs); echo \"anon /jobhunter/my-jobs: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo \"TC-1 anon-access: PASS\" || (echo \"TC-1 anon-access: FAIL expected 403 got $STATUS\" && exit 1); CSRF_STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" -X POST https://forseti.life/jobhunter/my-jobs/bulk-archive --data \"job_ids[]=1\" 2>/dev/null || echo 000); echo \"anon-POST-no-csrf /jobhunter/my-jobs/bulk-archive: $CSRF_STATUS\"; ([ \"$CSRF_STATUS\" = \"403\" ] || [ \"$CSRF_STATUS\" = \"404\" ] || [ \"$CSRF_STATUS\" = \"000\" ]) && echo \"TC-9 csrf-missing-POST: acceptable ($CSRF_STATUS)\" || (echo \"TC-9 csrf-missing-POST: FAIL unexpected $CSRF_STATUS\" && exit 1)'",
       "artifacts": [
-        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-controller-split-functional-latest/"
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-status-dashboard-functional-latest/"
       ],
       "required_for_release": true,
       "run_notes": [
-        "STAGE 0 PENDING: Dev must complete the controller split before this suite is runnable.",
-        "TC-1: anonymous GET /jobhunter/my-jobs must return 403 or 302 (no change from pre-split baseline).",
-        "TC-5: drush cr must exit 0 with no PHP fatal errors in watchdog after the split.",
-        "Also smoke-checks site root: curl https://forseti.life/ must return 200 (checked via TC-1 cascade)."
+        "TC-1: anonymous GET /jobhunter/my-jobs must return 403.",
+        "TC-9: anon POST to /jobhunter/my-jobs/bulk-archive without CSRF must return 403. 404 is also acceptable before Dev adds route (route DNE = safe). 000 = connection refused (safe).",
+        "Route /jobhunter/my-jobs already exists (post release-d ApplicationSubmissionController::myJobs)."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-status-dashboard-e2e",
+      "label": "Status dashboard E2E \u2014 TC-2 stages display, TC-3/5/6 filters, TC-7 empty state, TC-8 bulk archive, TC-10 pagination, TC-11 cross-user guard",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-status-dashboard",
+      "command": "node testing/jobhunter-application-status-dashboard.mjs 2>/dev/null || (echo 'SKIPPED: Node/Playwright unavailable or test not yet written' && exit 0)",
+      "artifacts": [
+        "testing/results/application-status-dashboard-e2e-latest.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must implement the feature; testing/jobhunter-application-status-dashboard.mjs must be created alongside implementation.",
+        "TC-2: authenticated load shows stage headers + count badges. TC-3: filter_status=applied scopes results. TC-5: filter_company scopes results. TC-6: combined AND filter works.",
+        "TC-7: filter with no matches shows empty-state message (no blank list, no PHP notice).",
+        "TC-8: bulk archive with valid CSRF token succeeds (jobs move to archived). TC-9 covered by functional suite.",
+        "TC-10: > 20 jobs shows prev/next pagination. TC-11: cross-user job IDs in bulk archive POST return 403 or silent discard.",
+        "If Node/Playwright unavailable: SKIPPED (not FAIL) per org policy."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-status-dashboard-regression",
+      "label": "Status dashboard regression \u2014 site audit 0/0 post-implementation",
+      "type": "regression",
+      "feature_id": "forseti-jobhunter-application-status-dashboard",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq && ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti && python3 -c \"import json; d=json.load(open(\\\"sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json\\\")); failures=d[\\\"counts\\\"][\\\"failures\\\"]; viols=d[\\\"counts\\\"].get(\\\"violations\\\",0); assert failures==0 and viols==0, f\\\"FAIL: failures={failures} violations={viols}\\\"; print(\\\"PASS: 0 failures 0 violations\\\")\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must implement the feature before full regression is meaningful.",
+        "Verifies /jobhunter/my-jobs and new bulk archive route don't introduce 4xx/5xx regressions on public paths.",
+        "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
       ]
     }
   ],

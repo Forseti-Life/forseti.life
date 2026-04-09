@@ -308,6 +308,28 @@
         "authenticated": "allow",
         "administrator": "allow"
       }
+    },
+    {
+      "id": "forseti-jobhunter-application-status-dashboard-my-jobs",
+      "feature_id": "forseti-jobhunter-application-status-dashboard",
+      "path_regex": "^/jobhunter/my-jobs(?:\\?.*)?$",
+      "notes": "Added for feature forseti-jobhunter-application-status-dashboard (TC-1). GET /jobhunter/my-jobs requires authentication. Anonymous access must return 403.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-status-dashboard-bulk-archive",
+      "feature_id": "forseti-jobhunter-application-status-dashboard",
+      "path_regex": "^/jobhunter/my-jobs/bulk-archive(?:\\?.*)?$",
+      "notes": "Added for feature forseti-jobhunter-application-status-dashboard (TC-9). POST /jobhunter/my-jobs/bulk-archive requires authentication + valid CSRF token. Anon or no-CSRF must return 403.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
     }
   ]
 }
