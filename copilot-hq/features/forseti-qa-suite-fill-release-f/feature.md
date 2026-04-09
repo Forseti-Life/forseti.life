@@ -3,7 +3,7 @@
 - Work item id: forseti-qa-suite-fill-release-f
 - Website: forseti.life
 - Module: qa_suites
-- Status: grooming
+- Status: ready
 - Release: TBD (release-g or release-h)
 - Feature type: qa-infrastructure
 - PM owner: pm-forseti
