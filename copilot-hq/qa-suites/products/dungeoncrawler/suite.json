@@ -9240,6 +9240,105 @@
           "description": "Glad-Hand waiver does not apply vs non-fey targets; penalty = -5 even with Glad-Hand when target is not fey"
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-ancestry-e2e",
+      "label": "Gnome Ancestry \u2014 HP 8/Small/Speed 25, CON+CHA boosts+STR flaw+free boost, traits, languages (Common/Gnomish/Sylvan + INT-bonus languages), Low-Light Vision, 5 heritages (exactly one required), ancestry feats (Animal Accomplice/Fey Fellowship/First World Magic/Gnome Obsession/Gnome Weapon Familiarity/Illusion Sense/Natural Performer/Vibrant Display/Burrow Elocutionist), HP/Speed/flaw failure modes",
+      "type": "e2e",
+      "feature_id": "dc-cr-gnome-ancestry",
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "npx playwright test tests/dc-cr-gnome-ancestry --reporter=junit --output=test-results/dc-cr-gnome-ancestry/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-gnome-ancestry/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-GNM-01",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-core-stats",
+          "description": "Gnome ancestry: hp_from_ancestry=8, size=Small, speed=25"
+        },
+        {
+          "id": "TC-GNM-02",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-ability-boosts-flaw",
+          "description": "CON+2, CHA+2 fixed boosts, one free boost (not to CON/CHA again); STR -2 flaw applied automatically"
+        },
+        {
+          "id": "TC-GNM-03",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-traits",
+          "description": "character.traits includes [Gnome, Humanoid]"
+        },
+        {
+          "id": "TC-GNM-04",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-starting-languages",
+          "description": "character.languages includes [Common, Gnomish, Sylvan] automatically"
+        },
+        {
+          "id": "TC-GNM-05",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-bonus-languages-by-int",
+          "description": "bonus_language_slots = max(0, int_modifier); only allowed list selectable (Draconic/Dwarven/Elven/Goblin/Jotun/Orcish/uncommon)"
+        },
+        {
+          "id": "TC-GNM-06",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-low-light-vision",
+          "description": "character.senses includes [low-light-vision]"
+        },
+        {
+          "id": "TC-GNM-07",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-heritages",
+          "description": "Gnome unlocks exactly 5 heritages [chameleon, fey-touched, sensate, umbral, wellspring]; exactly one required before creation completes"
+        },
+        {
+          "id": "TC-GNM-08",
+          "suite": "playwright/character-creation",
+          "ac": "TEST-ONLY-hp-not-dwarf",
+          "description": "hp_from_ancestry=8 (not 10); Gnome must not inherit Dwarf's HP value"
+        },
+        {
+          "id": "TC-GNM-09",
+          "suite": "playwright/character-creation",
+          "ac": "TEST-ONLY-speed-not-dwarf",
+          "description": "speed=25 (not 20); Gnome must not inherit Dwarf's Speed"
+        },
+        {
+          "id": "TC-GNM-10",
+          "suite": "playwright/character-creation",
+          "ac": "TEST-ONLY-str-flaw-not-overrideable",
+          "description": "STR flaw (-2) applied automatically; no UI control to remove it; free boost cannot target STR as second application"
+        },
+        {
+          "id": "TC-GNM-11",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-small-bulk-rules",
+          "description": "character.size=Small; bulk_limit uses Small-creature rules for inventory"
+        },
+        {
+          "id": "TC-GNM-12",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-first-world-magic-feat",
+          "description": "feat_pool[gnome][level_1] includes dc-cr-first-world-magic"
+        },
+        {
+          "id": "TC-GNM-13",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-fey-fellowship-feat",
+          "description": "feat_pool[gnome][level_1] includes dc-cr-fey-fellowship"
+        },
+        {
+          "id": "TC-GNM-14",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-gnome-weapon-familiarity",
+          "description": "Gnome Weapon Familiarity: weapon_proficiencies includes [glaive: trained, kukri: trained]; gnome-trait weapons treated as martial if already in martial group"
+        }
+      ]
     }
   ],
   "_schema_notes": [
