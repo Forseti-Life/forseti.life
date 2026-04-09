@@ -29,3 +29,5 @@ Add the following entry to `CLASS_FEATS['fighter']` in CharacterManager.php:
 
 ## Next step after fix
 Re-dispatch qa-dungeoncrawler for Fighter re-verification (create a new unit-test inbox item for dc-cr-class-fighter).
+- Agent: dev-dungeoncrawler
+- Status: pending

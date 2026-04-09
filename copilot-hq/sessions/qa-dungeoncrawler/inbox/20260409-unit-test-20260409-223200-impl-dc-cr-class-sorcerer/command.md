@@ -1,9 +1,9 @@
 - command: |
     Targeted QA unit test for completed Dev item.
 
-    - Completed item: 20260409-hotfix-fighter-sudden-charge
+    - Completed item: 20260409-223200-impl-dc-cr-class-sorcerer
     - Dev seat: dev-dungeoncrawler
-    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260409-hotfix-fighter-sudden-charge.md
+    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260409-223200-impl-dc-cr-class-sorcerer.md
 
     Required actions:
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).

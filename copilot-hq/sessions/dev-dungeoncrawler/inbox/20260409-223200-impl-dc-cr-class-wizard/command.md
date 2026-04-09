@@ -22,3 +22,5 @@ Implement Wizard class mechanics: Arcane School (8 options), Drain Bonded Item, 
 
 ## KB reference
 - Check knowledgebase/ for prior PF2E class implementation lessons
+- Agent: dev-dungeoncrawler
+- Status: pending

@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T23:07:25Z
+Generated: 2026-04-09T23:24:50Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -42,7 +42,7 @@ Generated: 2026-04-09T23:07:25Z
 | dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -178,7 +178,7 @@ Generated: 2026-04-09T23:07:25Z
 | forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-fill-jobhunter-submission | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-fill-release-f | forseti.life | qa_suites | shipped | medium |  |  |  |
-| forseti-qa-suite-retire-stale | forseti.life | qa_suites | done | medium |  |  |  |
+| forseti-qa-suite-retire-stale | forseti.life | qa_suites | shipped | medium |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
 ## Key metric: auto-remediation rate
