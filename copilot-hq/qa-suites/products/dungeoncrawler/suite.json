@@ -5753,8 +5753,8 @@
         "tests/results/dc-apg-class-witch-e2e.xml"
       ],
       "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-08",
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
       "notes": "Security AC exemption confirmed: no new routes. All 18 TCs active. Regression risks: patron theme not locked after creation; familiar not auto-created; familiar death erasing spells; hex cantrip consuming prepared cantrip slot; second hex per turn not blocked; Cackle incorrectly counted as second hex cast; Lessons not gated by tier level; Evil Eye not removed on Will success.",
       "test_cases": [
         {
