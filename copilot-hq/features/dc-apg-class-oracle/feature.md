@@ -3,7 +3,7 @@
 - Work item id: dc-apg-class-oracle
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260409-dungeoncrawler-release-g
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
