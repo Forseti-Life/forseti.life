@@ -4510,8 +4510,8 @@
         "tests/results/dc-apg-ancestries-e2e.xml"
       ],
       "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-08",
+      "activated_release": "20260409-dungeoncrawler-release-b",
+      "activated_date": "2026-04-09",
       "notes": "Security AC exemption confirmed: no new routes. All 24 TCs active. Regression risks: Kobold Dragonscaled resistance formula (floor(level/2 min 1)); Nine Lives one-use flag not reset on rest; Spellscale creating full spell progression instead of 1 cantrip; VH sense-upgrade not auto-resolving; Uncommon gate not blocking VH selection without GM flag; Grave Orc / Dhampir negative healing not sharing identical rule lookup; Tengu Skyborn returning reduced damage instead of 0.",
       "test_cases": [
         {
