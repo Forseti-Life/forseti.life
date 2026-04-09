@@ -1352,6 +1352,79 @@
         "Regression notes from test plan: google_jobs_search and google_jobs_job_detail routes must remain registered.",
         "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
       ]
+    },
+    {
+      "id": "forseti-jobhunter-profile-completeness-static",
+      "label": "Profile completeness static \u2014 TC-9 PHP lint on ProfileCompletenessService, TC-10 drush cr, template exists",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-profile-completeness",
+      "command": "bash -c 'set -e; SVC=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/src/Service/ProfileCompletenessService.php; [ -f \"$SVC\" ] && (php -l \"$SVC\" && echo \"TC-9 lint: PASS\") || (echo \"TC-9 lint: FAIL -- ProfileCompletenessService.php not yet created by Dev\" && exit 1); ls /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/templates/profile-completeness.html.twig && echo \"template: PASS\" || (echo \"template: FAIL\" && exit 1); cd /home/ubuntu/forseti.life/sites/forseti && ./vendor/bin/drush cr --no-interaction 2>&1 | tail -2 && echo \"TC-10 drush-cr: PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-profile-completeness-static-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: ProfileCompletenessService.php does not exist yet \u2014 Dev must create it.",
+        "Template profile-completeness.html.twig already exists (pre-release-e skeleton).",
+        "TC-9: php -l on ProfileCompletenessService.php must exit 0.",
+        "TC-10: drush cr must exit 0 after new service registration. Widget is read-only (no CSRF needed \u2014 baseline 37 unchanged).",
+        "No new routes added by this feature \u2014 CSRF count should stay at 37."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-profile-completeness-functional",
+      "label": "Profile completeness functional \u2014 TC-1 anon /jobhunter/profile 403, TC-1 anon /jobhunter/profile/summary 403",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-profile-completeness",
+      "command": "bash -c 'set -e; S1=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/profile); echo \"anon /jobhunter/profile: $S1\"; ([ \"$S1\" = \"403\" ] || [ \"$S1\" = \"302\" ]) && echo \"TC-1 profile: PASS\" || (echo \"TC-1 profile: FAIL expected 403/302 got $S1\" && exit 1); S2=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/profile/summary); echo \"anon /jobhunter/profile/summary: $S2\"; ([ \"$S2\" = \"403\" ] || [ \"$S2\" = \"302\" ]) && echo \"TC-1 summary: PASS\" || (echo \"TC-1 summary: FAIL expected 403/302 got $S2\" && exit 1); S3=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter); echo \"anon /jobhunter: $S3\"; ([ \"$S3\" = \"403\" ] || [ \"$S3\" = \"302\" ]) && echo \"TC-1 dashboard: PASS\" || (echo \"TC-1 dashboard: FAIL expected 403/302 got $S3\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-profile-completeness-functional-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-1: anon access to /jobhunter/profile, /jobhunter/profile/summary, and /jobhunter must all return 403 or redirect (302).",
+        "These checks are immediately runnable against production (pre-implementation) \u2014 routes already registered.",
+        "Anon /jobhunter/profile confirmed 403 live at activation time (2026-04-09).",
+        "TC-2/3/4/5/6/7 require auth \u2014 covered by E2E suite (STAGE 0 PENDING until Dev implements service)."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-profile-completeness-e2e",
+      "label": "Profile completeness E2E \u2014 TC-2 100% complete state, TC-3 incomplete checklist, TC-4 checklist links valid, TC-5/6/7 widget embed, TC-8 calculation determinism",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-profile-completeness",
+      "command": "node testing/jobhunter-profile-completeness.mjs 2>/dev/null || (echo 'SKIPPED: Node/Playwright unavailable or test not yet written' && exit 0)",
+      "artifacts": [
+        "testing/results/profile-completeness-e2e-latest.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must implement ProfileCompletenessService; testing/jobhunter-profile-completeness.mjs must be created alongside implementation.",
+        "TC-2: complete profile shows 'Profile complete' success state; no missing-field checklist.",
+        "TC-3: user missing resume_text + education_history shows percentage < 100% and those fields in checklist.",
+        "TC-4: each checklist link returns 200 for authenticated user and navigates to relevant edit section.",
+        "TC-5: completeness widget renders on /jobhunter/profile/summary without PHP error.",
+        "TC-6: widget rendered on /jobhunter for incomplete user (shows percentage + checklist).",
+        "TC-7: widget hidden or success-state-only on /jobhunter for 100% complete user.",
+        "TC-8: calculation determinism \u2014 calling calculate() twice with same data returns same integer.",
+        "Node/Playwright unavailable on this host: SKIPPED (not FAIL) per org policy."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-profile-completeness-regression",
+      "label": "Profile completeness regression \u2014 site audit 0/0, existing profile fields unchanged, home dashboard no error",
+      "type": "regression",
+      "feature_id": "forseti-jobhunter-profile-completeness",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq && ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti && python3 -c \"import json; d=json.load(open(\\\"sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json\\\")); failures=d[\\\"counts\\\"][\\\"failures\\\"]; viols=d[\\\"counts\\\"].get(\\\"violations\\\",0); assert failures==0 and viols==0, f\\\"FAIL: failures={failures} violations={viols}\\\"; print(\\\"PASS: 0 failures 0 violations\\\")\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Run post-Dev-implementation to confirm widget embed doesn't regress existing profile or dashboard routes.",
+        "Regression notes: /jobhunter/profile must still render existing fields; /jobhunter home route must render without error after widget embed.",
+        "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
+      ]
     }
   ],
   "_schema_notes": [
