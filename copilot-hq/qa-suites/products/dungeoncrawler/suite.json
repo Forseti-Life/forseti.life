@@ -5534,7 +5534,7 @@
       "required_for_release": true,
       "activated_release": "20260407-dungeoncrawler-release-b",
       "activated_date": "2026-04-08",
-      "notes": "Security AC exemption: companion data is character-scoped, no PII, command resolution server-validated. All 10 TCs active. Regression risks: non-eligible class gaining companion; advancement not recalculating Mature stats; Command success giving wrong action count; 0 HP setting dead flag instead of unconscious; familiar record incorrectly getting attack entries; species selection leaving fields null.",
+      "notes": "Security AC exemption: companion data is character-scoped, no PII, command resolution server-validated. All 13 TCs active (10 original + 3 added for specializations, mount rules, species completeness). Regression risks: non-eligible class gaining companion; advancement not recalculating Mature stats; Command success giving wrong action count; 0 HP setting dead flag instead of unconscious; familiar record incorrectly getting attack entries; species selection leaving fields null; duplicate specializations applied; non-Large species flagged as mount-eligible.",
       "test_cases": [
         {
           "id": "TC-ANC-01",
@@ -5605,6 +5605,27 @@
           "suite_type": "e2e",
           "status": "active",
           "ac_tag": "AC-003-integration"
+        },
+        {
+          "id": "TC-ANC-11",
+          "description": "Specializations: companion may have at most one specialization (bully/defender/racer/scout/tracker); each grants correct stat delta (attack_mod_bonus, ac_bonus, speed_bonus, skill_bonuses) and granted_action",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-002-ext"
+        },
+        {
+          "id": "TC-ANC-12",
+          "description": "Mount rules: only Large/Huge-eligible species (horse, deer, ape@Mature) can be ridden; Stride (Mounted) costs 1 action; Command Mount DC is 5 lower; rider falls on mount 0 HP or prone with correct fall damage calculation",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-005-ext"
+        },
+        {
+          "id": "TC-ANC-13",
+          "description": "Species completeness: all 11 CRB species (bear, bird, cat, wolf, horse, snake, ape, crocodile, deer, dog, frog) available for selection; each has required fields: size, speed, senses, hp_per_level, base_ac, base_saves, attacks[]",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-005"
         }
       ]
     },
