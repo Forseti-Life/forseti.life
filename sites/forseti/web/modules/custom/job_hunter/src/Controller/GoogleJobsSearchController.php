@@ -10,6 +10,7 @@ use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
  * Controller for Google Jobs search via Cloud Talent Solution API.
@@ -67,23 +68,165 @@ class GoogleJobsSearchController extends ControllerBase {
   }
 
   /**
-   * Google Jobs search page.
+   * Maximum allowed search query length (characters).
+   */
+  const MAX_QUERY_LENGTH = 256;
+
+  /**
+   * Results per page for Google Jobs search.
+   */
+  const ITEMS_PER_PAGE = 10;
+
+  /**
+   * Cache TTL for page tokens (1 hour).
+   */
+  const PAGE_TOKEN_TTL = 3600;
+
+  /**
+   * Google Jobs search page with server-side rendering.
+   *
+   * Handles ?q= (search query) and ?page=N (pagination) GET parameters.
+   * Validates inputs, calls the Cloud Talent API, and renders results
+   * including result count, pagination controls, empty state, and error state.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
    *
    * @return array
    *   Render array for the page.
    */
-  public function searchPage() {
+  public function searchPage(Request $request) {
+    // Validate and sanitize the search query.
+    $raw_query = $request->query->get('q', '');
+    $query = strip_tags(trim($raw_query));
+    $query = substr($query, 0, self::MAX_QUERY_LENGTH);
+
+    // Validate page parameter: must be a positive integer.
+    $raw_page = $request->query->get('page', 1);
+    $page = (is_numeric($raw_page) && (int) $raw_page >= 1) ? (int) $raw_page : 1;
+
+    $results = [];
+    $total_results = 0;
+    $total_pages = 0;
+    $error_message = NULL;
+    $has_search = !empty($query);
+
+    if ($has_search) {
+      try {
+        $page_token = '';
+
+        // For pages > 1, retrieve the cached page token.
+        if ($page > 1) {
+          $token_cache_key = 'gjobs_pt:' . md5($query) . ':' . $page;
+          $cached = $this->cache->get($token_cache_key);
+          if ($cached && !empty($cached->data)) {
+            $page_token = $cached->data;
+          }
+          else {
+            // No cached token — fall back to page 1.
+            $page = 1;
+          }
+        }
+
+        $params = [
+          'query' => $query,
+          'page_size' => self::ITEMS_PER_PAGE,
+        ];
+        if (!empty($page_token)) {
+          $params['page_token'] = $page_token;
+        }
+
+        $api_results = $this->cloudTalentService->searchJobs($params);
+        $results = $api_results['jobs'] ?? [];
+        $total_results = (int) ($api_results['total_size'] ?? count($results));
+        $total_pages = $total_results > 0
+          ? (int) ceil($total_results / self::ITEMS_PER_PAGE)
+          : ($results ? 1 : 0);
+
+        // Cache the next page token for subsequent navigation.
+        if (!empty($api_results['next_page_token'])) {
+          $next_key = 'gjobs_pt:' . md5($query) . ':' . ($page + 1);
+          $this->cache->set(
+            $next_key,
+            $api_results['next_page_token'],
+            time() + self::PAGE_TOKEN_TTL,
+            ['job_hunter:google_search']
+          );
+        }
+      }
+      catch (\Exception $e) {
+        // Log only error code + class — no query content or API key fragments.
+        $this->logError('Google Jobs search failed: @type (code @code)', [
+          '@type' => get_class($e),
+          '@code' => $e->getCode(),
+        ]);
+        $error_message = $this->t('An error occurred while searching for jobs. Please try again later.');
+      }
+    }
 
     $content = [
       '#theme' => 'google_jobs_search',
-      '#attached' => [
-        'library' => [
-          'job_hunter/google_jobs_search',
-        ],
-      ],
+      '#query' => $query,
+      '#results' => $results,
+      '#total_results' => $total_results,
+      '#current_page' => $page,
+      '#total_pages' => $total_pages,
+      '#page_size' => self::ITEMS_PER_PAGE,
+      '#has_search' => $has_search,
+      '#error_message' => $error_message,
+      '#cache' => ['max-age' => 0],
+      '#attached' => ['library' => ['job_hunter/google_jobs_search']],
     ];
-    
+
     return $this->wrapWithNavigation($content, ['job_hunter/google_jobs_search']);
+  }
+
+  /**
+   * Job detail page for a Google Jobs-imported job (user-facing).
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   * @param int $job_id
+   *   The numeric job ID from jobhunter_job_requirements.
+   *
+   * @return array
+   *   Render array for the page.
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\NotFoundHttpException
+   *   When the job does not exist or belongs to a different user.
+   */
+  public function searchJobDetail(Request $request, $job_id) {
+    $job_id = (int) $job_id;
+    $user_id = $this->currentUser()->id();
+
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j')
+      ->condition('j.id', $job_id)
+      ->condition('j.user_id', $user_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job) {
+      throw new NotFoundHttpException();
+    }
+
+    $company = NULL;
+    if (!empty($job->company_id)) {
+      $company = $this->database->select('jobhunter_companies', 'c')
+        ->fields('c')
+        ->condition('c.id', $job->company_id)
+        ->execute()
+        ->fetchObject();
+    }
+
+    $content = [
+      '#theme' => 'google_jobs_search_detail',
+      '#job' => $job,
+      '#company' => $company,
+      '#cache' => ['max-age' => 0],
+    ];
+
+    return $this->wrapWithNavigation($content);
   }
 
   /**

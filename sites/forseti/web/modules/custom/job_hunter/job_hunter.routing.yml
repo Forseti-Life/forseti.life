@@ -1125,8 +1125,19 @@ job_hunter.google_jobs_search:
   defaults:
     _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::searchPage'
     _title: 'Google Jobs Search'
+  methods: [GET]
   requirements:
     _permission: 'access job hunter'
+
+job_hunter.google_jobs_search_detail:
+  path: '/jobhunter/googlejobsdetail/{job_id}'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::searchJobDetail'
+    _title: 'Job Details'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    job_id: \d+
 
 job_hunter.google_jobs_search_api:
   path: '/jobhunter/api/googlejobs/search'
