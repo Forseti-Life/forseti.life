@@ -44,6 +44,24 @@ This file is owned by the `pm-dungeoncrawler` seat.
 - features/dungeoncrawler-*/**
 - org-chart/agents/instructions/pm-dungeoncrawler.instructions.md
 
+## Stale scope-activate fast-exit rule (required — added 2026-04-09)
+
+**Pattern:** The orchestrator's scope-activate dispatch counts features using `- Status: in_progress` + `- Website: dungeoncrawler` but does NOT filter by active release ID. If prior-release features are in_progress (stale), the count is inflated and scope-activate is never triggered for the new release. Conversely, if the orchestrator reads 0 scoped features while the PM has already activated (because it reads `Status: in_progress` from feature.md but fails to match the `Release:` field on the next line), it will fire repeated stale scope-activate dispatches.
+
+**Fast-exit check (required at start of every scope-activate inbox item):**
+```bash
+# Count in_progress features for the active release specifically:
+grep -rl "Status: in_progress" features/dc-*/feature.md | xargs grep -l "$(cat tmp/release-cycle-active/dungeoncrawler.release_id)" | wc -l
+```
+If the count is ≥1 (features already scoped for the active release), this inbox item is a **stale duplicate dispatch**. Fast-exit: write `Status: done` outbox noting count and active release, no action taken.
+
+**Escalation trigger:** If this pattern fires ≥3 times in a single release cycle, escalate to CEO with:
+- Inbox item IDs of all stale dispatches
+- Confirmed in_progress count per above command
+- Request to fix orchestrator feature-count query (it must filter by active release ID, not just `Status: in_progress`)
+
+Lesson (2026-04-09, GAP-DC-ORCH-SCOPE-ACTIVATE-MISCOUNT): Release-e received 4 consecutive stale scope-activate dispatches (06:32, 07:34, 08:34 UTC+) while 7 features were correctly in_progress. Root cause: orchestrator scope-activate trigger does not filter by active release ID when counting scoped features.
+
 ## Synthetic / malformed release-ID fast-exit rule (required — added 2026-04-06)
 Inbox items with synthetic or malformed release IDs must be fast-exited immediately:
 
