@@ -66,6 +66,27 @@ ls sessions/dev-forseti/inbox/ | grep "<feature-id>"
 - Features activated without a test plan inflate the in_progress count and can trigger premature auto-close.
 - Lesson (2026-04-08): `forseti-ai-service-refactor` and `forseti-jobhunter-schema-fix` were activated for `20260407-forseti-release-b` but dev hadn't processed the dispatch — QA issued a Gate 2 BLOCK because the implementations were missing.
 
+**Dev capacity check before activating scope (added 2026-04-09 — GAP-PM-CAPACITY-20260408):**
+Before activating features for any release, count the features you are about to activate and compare to expected dev throughput:
+- `dev-forseti` typical throughput: **3–5 features per release cycle** (1 dev seat)
+- Activate ≤ 5 features per cycle unless dev explicitly signals higher capacity (e.g., a dev inbox-cleared, all-artifacts-done confirmation from prior cycle)
+- If you have more than 5 groomed-ready features: activate the top 5 by ROI and defer the rest to the next cycle
+- **Lesson (2026-04-08):** `20260407-forseti-release-b` activated 10 features; dev completed only 3 of them. Gate 2 BLOCKed with 2 unimplemented features; PM deferred 7/10. Wasted one full QA cycle.
+
+**Stale-feature groom check (added 2026-04-09 — GAP-PM-STALEFEAT-20260408):**
+At each grooming cycle, run:
+```bash
+# Find features that have been tagged in_progress for a prior release but lack a dev outbox this cycle
+grep -rl "Status: in_progress" features/forseti-*/feature.md | while read f; do
+  feat=$(dirname "$f" | xargs basename)
+  latest_dev=$(ls sessions/dev-forseti/outbox/ | grep "$feat" | tail -1)
+  if [ -z "$latest_dev" ]; then
+    echo "STALE in_progress (no dev outbox): $feat"
+  fi
+done
+```
+Any feature showing `STALE` must be either: (a) explicitly re-dispatched to dev with a new inbox item this cycle, OR (b) set back to `Status: ready` and deferred. Do not leave stale in_progress features silently accumulating.
+
 **CRITICAL — scope-activate site argument (added 2026-04-08):** Always pass `forseti` (short name, no domain) as the site argument — **not** `forseti.life`. The script derives the QA agent ID as `qa-${SITE}`, and the registered agent is `qa-forseti`, not `qa-forseti.life`.
 
 ```bash

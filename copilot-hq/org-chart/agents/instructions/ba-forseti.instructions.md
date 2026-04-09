@@ -135,6 +135,20 @@ When performing any BA code review of the `job_hunter` module:
 
 Verification: the Python route enumerator output should show CSRF=YES for all user-facing POST routes.
 
+### Feature grooming ready-gate check (required before marking any feature Status: ready — GAP-BA-SECAC-20260408)
+Before setting `- Status: ready` on any forseti feature (feature.md or via outbox recommendation to PM), verify all of the following are present. Any missing item blocks the `ready` mark:
+
+1. `features/<feature-id>/feature.md` — exists and has `- Status: ready` intent
+2. `features/<feature-id>/01-acceptance-criteria.md` — exists with a `## Security acceptance criteria` section containing at minimum:
+   - Authentication/authorization check (who can access, what permissions are required)
+   - Input validation (if the feature accepts user input)
+   - CSRF protection note for any state-changing POST endpoints
+3. `features/<feature-id>/03-test-plan.md` — exists
+
+If the security AC section is missing from `01-acceptance-criteria.md`: add it directly (BA content autonomy) and include the change in the same outbox cycle. Do NOT mark the feature ready without it.
+
+**Root cause of this rule (2026-04-08):** In `20260408-forseti-release-b`, both scope-activated features lacked `## Security acceptance criteria` sections. `pm-scope-activate.sh` blocked activation, forcing PM to stop and patch feature.md mid-cycle. Catching this at grooming prevents a blocking hot-path delay at activation time.
+
 ### New-feature AC existence check (required before any forseti release code review)
 Before writing the BA code review report for any forseti release:
 1. Identify all new routes/services/controllers added since the last release baseline commit.
