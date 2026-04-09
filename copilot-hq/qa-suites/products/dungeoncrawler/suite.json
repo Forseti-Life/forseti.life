@@ -9953,6 +9953,162 @@
           "ac_tag": "AC-001-deferred"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-sorcerer-phpunit",
+      "label": "Sorcerer Class \u2014 identity/stats (HP6+CON, Charisma key, Expert Will, unarmored), Bloodline selection (11 options, tradition-locked, immutable post-creation), spontaneous Spell Repertoire (charisma-based, cantrips+slots), Signature Spells at L3, Focus Pool (start 1 cap 3, blood magic trigger), CLASS_ADVANCEMENT L1\u2013L19 milestones, CLASS_FEATS progression, auth guards",
+      "type": "phpunit",
+      "feature_id": "dc-cr-class-sorcerer",
+      "command": "./vendor/bin/phpunit --filter=Sorcerer tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-class-sorcerer-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-g",
+      "activated_date": "2026-04-09",
+      "notes": "Sorcerer is the only spontaneous bloodline caster. Key regression risks: Expert Will at L1 (unique vs Trained default); Bloodline immutable post-creation; spell_repertoire type=spontaneous vs prepared; Signature Spells one-per-rank gained at L3; blood_magic trigger on bloodline spells and cantrips; FOCUS_POOLS expand_per_source with cap=3. 11 bloodlines implemented (feature.md stated 8 \u2014 dev extended with elemental/genie/nymph). Cantrips stored as CLASS_FEATS level=0 entries (15 cantrips); not a bug \u2014 always-available cantrips per PF2e design.",
+      "test_cases": [
+        {
+          "id": "TC-SOR-01",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererClassTest::testSorcererIsSelectableAtCharacterCreation",
+          "description": "Sorcerer appears in class selection list during character creation; is a valid selectable class"
+        },
+        {
+          "id": "TC-SOR-02",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererClassTest::testHpPerLevel",
+          "description": "HP per level = 6 + CON modifier (CON 14 \u2192 Level 1 HP=8; Level 2 HP=16)"
+        },
+        {
+          "id": "TC-SOR-03",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererClassTest::testDefaultKeyAbilityCha",
+          "description": "Key ability = CHA; CHA modifier applied to spell DC and spell attack rolls"
+        },
+        {
+          "id": "TC-SOR-04",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererClassTest::testInitialSavesExpertWill",
+          "description": "Sorcerer uniquely starts with Expert Will at level 1; Fortitude=Trained, Reflex=Trained"
+        },
+        {
+          "id": "TC-SOR-05",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererClassTest::testArmorProficiencyUnarmored",
+          "description": "Armor proficiency: unarmored only at level 1; no light/medium/heavy"
+        },
+        {
+          "id": "TC-SOR-06",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererBloodlineTest::testBloodlineSelectionRequiredAtLevel1",
+          "description": "Bloodline selection required at L1; must be one of 11 valid options; level advancement gated on selection"
+        },
+        {
+          "id": "TC-SOR-07",
+          "ac_tag": "TEST-ONLY",
+          "suite_type": "unit",
+          "class_method": "SorcererBloodlineTest::testBloodlineImmutablePostCreation",
+          "description": "Bloodline is immutable after character creation; attempt to change bloodline rejected"
+        },
+        {
+          "id": "TC-SOR-08",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererBloodlineTest::testBloodlineDeterminesTradition",
+          "description": "Each bloodline maps to correct tradition: draconic/imperial\u2192arcane, angelic/undead/demonic\u2192divine, fey/elemental/nymph\u2192primal, aberrant/hag\u2192occult, genie\u2192arcane"
+        },
+        {
+          "id": "TC-SOR-09",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererSpellRepertoireTest::testSpellRepertoireTypeSpontaneous",
+          "description": "Spell repertoire type = spontaneous (not prepared); known spells castable multiple times per slot"
+        },
+        {
+          "id": "TC-SOR-10",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererSpellRepertoireTest::testInitialSlots",
+          "description": "At level 1: 5 cantrips, 3 first-level spell slots, 2 first-level spells in repertoire"
+        },
+        {
+          "id": "TC-SOR-11",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererSignatureSpellsTest::testSignatureSpellsGainedAtLevel3",
+          "description": "Signature Spells feature granted at CLASS_ADVANCEMENT level 3; not available at level 1 or 2"
+        },
+        {
+          "id": "TC-SOR-12",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererSignatureSpellsTest::testSignatureSpellCanBeHeightenedFreely",
+          "description": "Signature spell can be heightened to any rank for which the sorcerer has a slot without adding each heightened version to repertoire"
+        },
+        {
+          "id": "TC-SOR-13",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererFocusPoolTest::testFocusPoolStartsAt1",
+          "description": "FOCUS_POOLS[sorcerer].start = 1; sorcerer begins with exactly 1 Focus Point at level 1"
+        },
+        {
+          "id": "TC-SOR-14",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererFocusPoolTest::testFocusPoolCapIs3",
+          "description": "FOCUS_POOLS[sorcerer].cap = 3; pool cannot exceed 3 Focus Points regardless of bloodline feats taken"
+        },
+        {
+          "id": "TC-SOR-15",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererBloodMagicTest::testBloodMagicTriggerOnBloodlineSpell",
+          "description": "Blood Magic triggers when a bloodline spell is cast; effect is bloodline-specific; no action cost"
+        },
+        {
+          "id": "TC-SOR-16",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererBloodMagicTest::testBloodMagicTriggerOnCantrip",
+          "description": "Blood Magic also triggers when a cantrip (bloodline cantrip) is cast; same bloodline-specific effect applies"
+        },
+        {
+          "id": "TC-SOR-17",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererAdvancementTest::testClassAdvancementL1Features",
+          "description": "CLASS_ADVANCEMENT L1: Bloodline + Spell Repertoire auto-features granted at character creation"
+        },
+        {
+          "id": "TC-SOR-18",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererAdvancementTest::testClassAdvancementL19Features",
+          "description": "CLASS_ADVANCEMENT L19: Legendary Spellcaster + Bloodline Perfection (10th-level slot) granted"
+        },
+        {
+          "id": "TC-SOR-19",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "SorcererAdvancementTest::testNoAdvancementDuplicateKeys",
+          "description": "CLASS_ADVANCEMENT[sorcerer] has no duplicate integer keys (PHP last-key-wins silent discard regression)"
+        },
+        {
+          "id": "TC-SOR-20",
+          "ac_tag": "audit",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "description": "QA audit still passes after Sorcerer module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
