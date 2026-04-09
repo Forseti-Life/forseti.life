@@ -571,6 +571,17 @@
         "post_valid_token_valid_payload": "200",
         "post_valid_token_missing_agent_id": "400"
       }
+    },
+    {
+      "id": "forseti-jobhunter-application-submission-post-steps",
+      "feature_id": "forseti-qa-suite-fill-jobhunter-submission",
+      "path_regex": "^/(jobhunter/)?application-submission/[^/]+/(identify-auth-path|create-account|submit-application|step/[^/]+)$",
+      "notes": "POST wizard step routes \u2014 CSRF-guarded (_csrf_token: TRUE) + 'access job hunter' permission. Anon POST \u2192 403 (no auth, CSRF check does not reach permission check). Tagged for forseti-qa-suite-fill-jobhunter-submission suite activation.",
+      "expect": {
+        "anon_post": "403",
+        "anon_get": "403_or_302",
+        "authenticated_with_perm_get": "200"
+      }
     }
   ]
 }

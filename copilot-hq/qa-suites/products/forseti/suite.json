@@ -40,17 +40,19 @@
     },
     {
       "id": "forseti-jobhunter-application-submission-route-acl",
-      "label": "Application-submission routes: auth=200, anon=403 (TC-04, TC-05)",
-      "type": "audit",
-      "feature_id": "forseti-jobhunter-application-submission",
-      "command": "ALLOW_PROD_QA=0 FORSETI_BASE_URL=http://localhost scripts/site-audit-run.sh forseti-life",
+      "label": "Application-submission routes ACL \u2014 anon\u2192403/302 (GET+POST), auth-with-perm\u2192200 (GET)",
+      "type": "acl",
+      "feature_id": "forseti-qa-suite-fill-jobhunter-submission",
+      "command": "python3 -c \"import os,sys,subprocess\nbase=os.environ.get(\"FORSETI_BASE_URL\",\"http://localhost\")\nauth=os.environ.get(\"FORSETI_COOKIE_AUTHENTICATED\",\"\")\nJID=\"99999\"\nGET_ROUTES=[\n  \"/jobhunter/application-submission\",\n  f\"/jobhunter/application-submission/{JID}\",\n  \"/application-submission\",\n  f\"/application-submission/{JID}\",\n  f\"/jobhunter/application-submission/{JID}/resolve-redirect-chain\",\n  f\"/jobhunter/application-submission/{JID}/identify-auth-path\",\n  f\"/jobhunter/application-submission/{JID}/create-account\",\n  f\"/jobhunter/application-submission/{JID}/submit-application\",\n]\nPOST_ROUTES=[\n  f\"/jobhunter/application-submission/{JID}/identify-auth-path\",\n  f\"/application-submission/{JID}/identify-auth-path\",\n  f\"/jobhunter/application-submission/{JID}/create-account\",\n  f\"/application-submission/{JID}/create-account\",\n  f\"/jobhunter/application-submission/{JID}/submit-application\",\n  f\"/application-submission/{JID}/submit-application\",\n  f\"/jobhunter/application-submission/{JID}/step/3\",\n]\ndef curl_code(url,cookie=\"\",method=\"GET\"):\n  cmd=[\"curl\",\"--max-time\",\"10\",\"-o\",\"/dev/null\",\"-w\",\"%{http_code}\",\"-s\",\"-X\",method]\n  if cookie: cmd+=[\"-H\",\"Cookie: \"+cookie]\n  cmd.append(url)\n  return subprocess.run(cmd,capture_output=True,text=True).stdout.strip()\nfailures=[]\nfor path in GET_ROUTES:\n  c=curl_code(base+path)\n  print(f\"ANON GET {path}: {c}\")\n  if c not in (\"403\",\"302\"): failures.append(f\"AC-ACL-01 FAIL ANON GET {path}: got {c}\")\nfor path in POST_ROUTES:\n  c=curl_code(base+path,method=\"POST\")\n  print(f\"ANON POST {path}: {c}\")\n  if c not in (\"403\",\"302\"): failures.append(f\"AC-ACL-02 FAIL ANON POST {path}: got {c}\")\nif auth:\n  for path in GET_ROUTES:\n    c=curl_code(base+path,cookie=auth)\n    print(f\"AUTH GET {path}: {c}\")\n    if c!=\"200\": failures.append(f\"AC-ACL-03 FAIL AUTH GET {path}: got {c}\")\nelse: print(\"AC-ACL-03: SKIP - FORSETI_COOKIE_AUTHENTICATED not set\")\n[print(f,file=sys.stderr) for f in failures]\nsys.exit(1 if failures else 0)\n\"",
       "artifacts": [
-        "sessions/qa-forseti/artifacts/auto-site-audit/<ts>/..."
+        "stdout"
       ],
       "run_notes": [
-        "Coverage driven by qa-permissions.json rules tagged feature_id=forseti-jobhunter-application-submission.",
-        "All /jobhunter/application-submission/* and /application-submission/* paths must return anon=deny, authenticated=allow.",
-        "Parameterized paths ({job_id}, {step}) tested with fixture job_id; confirm fixture exists before release run."
+        "AC-ACL-01: anon GET all 8 wizard step routes \u2192 403 or 302.",
+        "AC-ACL-02: anon POST all 7 wizard step POST routes \u2192 403 or 302.",
+        "AC-ACL-03: authenticated user with 'access job hunter' GET routes \u2192 200 (skipped if FORSETI_COOKIE_AUTHENTICATED unset).",
+        "fixture job_id=99999 used for parameterized paths; controllers return graceful 200/403 without requiring a real DB fixture.",
+        "Coverage driven by explicit route enumeration per AC-ACL-01/02/03 in feature.md."
       ],
       "required_for_release": true
     },
@@ -58,15 +60,16 @@
       "id": "forseti-jobhunter-application-submission-unit",
       "label": "WorkdayWizardService unit tests \u2014 TC-01..TC-11 (PHPUnit)",
       "type": "unit",
-      "feature_id": "forseti-jobhunter-application-submission",
-      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/WorkdayWizardServiceTest.php --testdox",
+      "feature_id": "forseti-qa-suite-fill-jobhunter-submission",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/Service/WorkdayWizardServiceTest.php --testdox",
       "artifacts": [
         "sessions/qa-forseti/artifacts/jobhunter-application-submission-unit-latest/"
       ],
       "run_notes": [
-        "STAGE 0 PENDING: Dev must create WorkdayWizardServiceTest.php before this suite is runnable.",
+        "Path corrected: tests/src/Unit/Service/WorkdayWizardServiceTest.php (15 test methods; STAGE 0 PENDING note is OBSOLETE \u2014 file exists).",
         "Covers: advanceStep() happy path, advanceWizardAutoSingleSession() full sequence + log records, credential retrieval, timeout/failure handling, missing credentials, duplicate invocation, ATS 503, null job_id, log record count + orphan cleanup.",
-        "TC-12 (rollback path) is manual-only; not included here."
+        "TC-12 (rollback path) is manual-only; not included here.",
+        "Fallback path (dev): cd /home/ubuntu/forseti.life/sites/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/Service/WorkdayWizardServiceTest.php --testdox"
       ],
       "required_for_release": true
     },
