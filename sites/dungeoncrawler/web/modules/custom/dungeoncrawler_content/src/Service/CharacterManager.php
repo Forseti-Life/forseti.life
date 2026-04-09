@@ -39,7 +39,22 @@ class CharacterManager {
     ],
     'Elf' => ['hp' => 6, 'size' => 'Medium', 'speed' => 30, 'boosts' => ['Dexterity', 'Intelligence'], 'flaw' => 'Constitution', 'languages' => ['Common', 'Elven'], 'traits' => ['Elf', 'Humanoid'], 'vision' => 'low-light vision'],
     'Dwarf' => ['hp' => 10, 'size' => 'Medium', 'speed' => 20, 'boosts' => ['Constitution', 'Wisdom'], 'flaw' => 'Charisma', 'languages' => ['Common', 'Dwarven'], 'traits' => ['Dwarf', 'Humanoid'], 'vision' => 'darkvision'],
-    'Gnome' => ['hp' => 8, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Constitution', 'Charisma'], 'flaw' => 'Strength', 'languages' => ['Common', 'Gnomish', 'Sylvan'], 'traits' => ['Gnome', 'Humanoid'], 'vision' => 'low-light vision'],
+    'Gnome' => [
+      'hp' => 8, 'size' => 'Small', 'speed' => 25,
+      // Two fixed boosts + one free boost; free boost may not duplicate Con or Cha.
+      'boosts' => ['Constitution', 'Charisma', 'Free'],
+      'flaw' => 'Strength',
+      'languages' => ['Common', 'Gnomish', 'Sylvan'],
+      'traits' => ['Gnome', 'Humanoid'],
+      'vision' => 'low-light vision',
+      'special' => [
+        // One additional language slot per positive Intelligence modifier point.
+        'bonus_language_per_int'     => 1,
+        'bonus_language_options'     => ['Draconic', 'Dwarven', 'Elven', 'Goblin', 'Jotun', 'Orcish'],
+        // One slot may instead be spent on a single DM-approved uncommon language.
+        'bonus_language_uncommon_ok' => TRUE,
+      ],
+    ],
     'Goblin' => ['hp' => 6, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Dexterity', 'Charisma'], 'flaw' => 'Wisdom', 'languages' => ['Common', 'Goblin'], 'traits' => ['Goblin', 'Humanoid'], 'vision' => 'darkvision'],
     'Halfling' => ['hp' => 6, 'size' => 'Small', 'speed' => 25, 'boosts' => ['Dexterity', 'Wisdom'], 'flaw' => 'Strength', 'languages' => ['Common', 'Halfling'], 'traits' => ['Halfling', 'Humanoid'], 'vision' => 'normal'],
     'Half-Elf' => ['hp' => 8, 'size' => 'Medium', 'speed' => 25, 'boosts' => ['Free', 'Free'], 'languages' => ['Common', 'Elven'], 'traits' => ['Human', 'Elf', 'Humanoid', 'Half-Elf'], 'vision' => 'low-light vision'],
@@ -292,6 +307,7 @@ class CharacterManager {
       ['id' => 'fey-touched', 'name' => 'Fey-Touched Gnome', 'benefit' => 'First World magic'],
       ['id' => 'sensate', 'name' => 'Sensate Gnome', 'benefit' => 'Enhanced senses'],
       ['id' => 'umbral', 'name' => 'Umbral Gnome', 'benefit' => 'Darkvision'],
+      ['id' => 'wellspring', 'name' => 'Wellspring Gnome', 'benefit' => 'Your connection to magic is especially potent. Choose a magical tradition (arcane, divine, occult, or primal). You gain two additional innate cantrips from that tradition, chosen at character creation. Once per day when you recover your spell slots, you may also recover one expended innate cantrip or innate spell.'],
     ],
     'Goblin' => [
       ['id' => 'charhide', 'name' => 'Charhide Goblin', 'benefit' => 'Fire resistance'],
@@ -619,11 +635,15 @@ class CharacterManager {
       ['id' => 'first-world-magic', 'name' => 'First World Magic', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
         'benefit' => 'Choose one primal cantrip. You can cast it as a primal innate spell at will.'],
       ['id' => 'gnome-obsession', 'name' => 'Gnome Obsession', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
-        'benefit' => 'Choose a Lore skill. You become trained in that skill and gain the Assurance skill feat with it.'],
+        'benefit' => 'Pick a Lore skill subcategory. You become trained in that Lore skill (or an expert if already trained). During downtime, if you perform a task connected to your obsession, you gain a +1 circumstance bonus to any related skill checks.'],
       ['id' => 'gnome-weapon-familiarity', 'name' => 'Gnome Weapon Familiarity', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
         'benefit' => 'Trained with glaive and kukri. For proficiency, treat martial gnome weapons as simple, advanced gnome weapons as martial.'],
       ['id' => 'illusion-sense', 'name' => 'Illusion Sense', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
-        'benefit' => 'You automatically get a Perception check to disbelieve illusions you can see, with a +2 circumstance bonus.'],
+        'benefit' => 'You gain a +1 circumstance bonus to Will saves against illusions and to Perception checks to disbelieve illusions. When you move into an area with an illusion you can see, you automatically attempt a Perception check to disbelieve it (no action required).'],
+      ['id' => 'natural-performer', 'name' => 'Natural Performer', 'level' => 1, 'traits' => ['Gnome'], 'prerequisites' => '',
+        'benefit' => 'You become trained in Performance. Choose one specialization at character creation: singing, dancing, or acting. When you use Perform with your chosen specialization, you gain a +1 circumstance bonus to the check.'],
+      ['id' => 'vibrant-display', 'name' => 'Vibrant Display', 'level' => 1, 'traits' => ['Gnome', 'Visual'], 'prerequisites' => '',
+        'benefit' => 'You spend 2 actions to display a dazzling burst of vivid coloration. All creatures within 10 feet that can see you must attempt a Will save (DC = 10 + your Charisma modifier + your level). Failure: the creature becomes fascinated by you until the end of your next turn. Success: no effect. Creatures are then temporarily immune to this effect for 1 minute.'],
     ],
     'Goblin' => [
       ['id' => 'burn-it', 'name' => 'Burn It!', 'level' => 1, 'traits' => ['Goblin'], 'prerequisites' => '',
