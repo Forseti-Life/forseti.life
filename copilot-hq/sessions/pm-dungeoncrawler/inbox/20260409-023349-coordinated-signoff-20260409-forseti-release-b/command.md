@@ -15,3 +15,5 @@ pm-forseti has signed off on forseti release `20260409-forseti-release-b`. Gate 
 1. Review all PM signoffs: `bash scripts/release-signoff-status.sh 20260409-forseti-release-b`
 2. If ready: run `bash scripts/release-signoff.sh dungeoncrawler 20260409-forseti-release-b`
 3. The script will auto-queue push-ready to pm-forseti once all PMs have signed.
+- Agent: pm-dungeoncrawler
+- Status: pending

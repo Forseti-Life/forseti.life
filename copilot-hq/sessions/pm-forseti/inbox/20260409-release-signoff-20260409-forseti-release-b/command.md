@@ -8,4 +8,5 @@ Gate 2 QA APPROVE received from qa-forseti. PM signoff required.
 
 ## Required action
 Run: bash scripts/release-signoff.sh forseti 20260409-forseti-release-b
-
+- Agent: pm-forseti
+- Status: pending
