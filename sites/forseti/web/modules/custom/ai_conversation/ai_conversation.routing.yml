@@ -134,6 +134,15 @@ ai_conversation.trigger_summary:
       node:
         type: entity:node
 
+ai_conversation.forseti_chat:
+  path: '/forseti/chat'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::forsetiChat'
+    _title: 'AI Chat'
+  requirements:
+    _permission: 'use ai conversation'
+    _user_is_logged_in: 'TRUE'
+
 ai_conversation.start_chat:
   path: '/ai-chat'
   defaults:

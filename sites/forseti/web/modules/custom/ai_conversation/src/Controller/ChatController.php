@@ -147,60 +147,151 @@ class ChatController extends ControllerBase {
   }
 
   /**
-   * Start AI Chat - handles smart user redirect logic.
+   * Start AI Chat — 301 redirect to the dedicated /forseti/chat page.
    *
-   * For anonymous users: redirects to registration with destination parameter
-   * For authenticated users: creates new conversation and redirects to chat
+   * Anonymous users are sent to registration with /forseti/chat as destination.
    *
    * @return \Symfony\Component\HttpFoundation\RedirectResponse
    */
   public function startChat() {
-    // Check if user is logged in
     if ($this->currentUser->isAnonymous()) {
-      // Redirect anonymous users to registration with destination
       $url = \Drupal\Core\Url::fromRoute('user.register', [], [
-        'query' => ['destination' => '/ai-chat']
+        'query' => ['destination' => '/forseti/chat'],
       ]);
-      return new \Symfony\Component\HttpFoundation\RedirectResponse($url->toString());
+      return new \Symfony\Component\HttpFoundation\RedirectResponse($url->toString(), 301);
     }
 
-    try {
-      // Create new AI conversation node for authenticated user
+    $url = \Drupal\Core\Url::fromRoute('ai_conversation.forseti_chat');
+    return new \Symfony\Component\HttpFoundation\RedirectResponse($url->toString(), 301);
+  }
+
+  /**
+   * Forseti chat page — user-facing AI chat at /forseti/chat.
+   *
+   * Loads the most recent conversation for the current user or creates a new
+   * one with job-seeker context injection.
+   *
+   * @return array
+   *   A Drupal render array.
+   */
+  public function forsetiChat() {
+    $uid = $this->currentUser->id();
+
+    // Find most recent ai_conversation node owned by this user.
+    $query = $this->entityTypeManager->getStorage('node')->getQuery()
+      ->condition('type', 'ai_conversation')
+      ->condition('uid', $uid)
+      ->condition('status', 1)
+      ->sort('created', 'DESC')
+      ->range(0, 1)
+      ->accessCheck(FALSE);
+
+    $nids = $query->execute();
+
+    if (!empty($nids)) {
+      $conversation = $this->entityTypeManager->getStorage('node')->load(reset($nids));
+    }
+    else {
+      $context = $this->buildJobSeekerContext();
       $conversation = $this->entityTypeManager->getStorage('node')->create([
         'type' => 'ai_conversation',
         'title' => 'AI Chat - ' . date('Y-m-d H:i:s'),
-        'uid' => $this->currentUser->id(),
+        'uid' => $uid,
         'status' => 1,
         'field_context' => [
-          'value' => 'You are a helpful AI assistant for St. Louis Integration, a technology consulting company. Please provide helpful, professional responses to user questions.',
-          'format' => 'basic_html'
+          'value' => $context,
+          'format' => 'basic_html',
         ],
         'field_message_count' => ['value' => 0],
         'field_total_tokens' => ['value' => 0],
       ]);
-      
       $conversation->save();
+    }
 
-      // Redirect to the chat interface
-      $chat_url = \Drupal\Core\Url::fromRoute('ai_conversation.chat_interface', [
-        'node' => $conversation->id()
-      ]);
-      
-      $this->messenger()->addStatus($this->t('New AI conversation started successfully!'));
-      
-      return new \Symfony\Component\HttpFoundation\RedirectResponse($chat_url->toString());
-      
-    } catch (\Exception $e) {
-      // Log error and show user-friendly message
-      \Drupal::logger('ai_conversation')->error('Error creating new conversation: @error', [
-        '@error' => $e->getMessage()
-      ]);
-      
-      $this->messenger()->addError($this->t('Unable to start new conversation. Please try again.'));
-      
-      // Fallback to home page
-      $home_url = \Drupal\Core\Url::fromRoute('<front>');
-      return new \Symfony\Component\HttpFoundation\RedirectResponse($home_url->toString());
+    $messages = $this->getRecentMessagesForDisplay($conversation);
+    $stats = $this->aiApiService->getConversationStats($conversation);
+
+    return [
+      '#theme' => 'forseti_chat',
+      '#conversation' => $conversation,
+      '#messages' => $messages,
+      '#stats' => $stats,
+      '#attached' => [
+        'library' => ['ai_conversation/chat-interface'],
+        'drupalSettings' => [
+          'aiConversation' => [
+            'nodeId' => $conversation->id(),
+            'sendMessageUrl' => '/ai-conversation/send-message',
+            'statsUrl' => '/ai-conversation/stats',
+            'csrfToken' => \Drupal::csrfToken()->get('ai_conversation_send_message'),
+            'stats' => $stats,
+          ],
+        ],
+      ],
+    ];
+  }
+
+  /**
+   * Builds a system context string for a new job-seeker conversation.
+   *
+   * Pulls name, current job title, and professional summary from the
+   * job_hunter module if available. Fails gracefully when the module or
+   * profile record is absent.
+   *
+   * @return string
+   *   System context to store as field_context on a new conversation node.
+   */
+  private function buildJobSeekerContext(): string {
+    $base = 'You are a helpful AI assistant for job seekers on forseti.life. Help users with career development, job searching, resume writing, and professional growth.';
+
+    if (!\Drupal::moduleHandler()->moduleExists('job_hunter')) {
+      return $base;
+    }
+
+    try {
+      $uid = $this->currentUser->id();
+      $db = \Drupal::database();
+
+      $record = $db->select('jobhunter_job_seeker', 'js')
+        ->fields('js', ['id', 'full_name', 'professional_summary'])
+        ->condition('js.uid', $uid)
+        ->execute()
+        ->fetchObject();
+
+      if (!$record) {
+        return $base;
+      }
+
+      $parts = [$base];
+
+      if (!empty($record->full_name)) {
+        $parts[] = "The user's name is {$record->full_name}.";
+      }
+
+      // Active job title: prefer a current job history entry.
+      $job_title = $db->select('jobhunter_job_history', 'jh')
+        ->fields('jh', ['job_title'])
+        ->condition('jh.job_seeker_id', $record->id)
+        ->condition('jh.is_current', 1)
+        ->range(0, 1)
+        ->execute()
+        ->fetchField();
+
+      if ($job_title) {
+        $parts[] = "Current job title: {$job_title}.";
+      }
+
+      if (!empty($record->professional_summary)) {
+        $summary = substr(strip_tags((string) $record->professional_summary), 0, 200);
+        if ($summary !== '') {
+          $parts[] = "Professional summary: {$summary}";
+        }
+      }
+
+      return implode(' ', $parts);
+    }
+    catch (\Exception $e) {
+      return $base;
     }
   }
 

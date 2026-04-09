@@ -56,6 +56,14 @@ function ai_conversation_theme() {
       ],
       'template' => 'genai-debug-detail',
     ],
+    'forseti_chat' => [
+      'variables' => [
+        'conversation' => NULL,
+        'messages' => [],
+        'stats' => NULL,
+      ],
+      'template' => 'forseti-chat',
+    ],
     'ai_model_pricing' => [
       'variables' => [
         'pricing_data' => [],

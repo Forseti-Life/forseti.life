@@ -1,5 +1,8 @@
 chat-interface:
   version: 1.x
+  css:
+    theme:
+      css/chat-interface.css: {}
   js:
     js/chat-interface.js: {}
   dependencies:
