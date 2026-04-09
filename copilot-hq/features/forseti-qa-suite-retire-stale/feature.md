@@ -3,7 +3,7 @@
 - Work item id: forseti-qa-suite-retire-stale
 - Website: forseti.life
 - Module: qa_suites
-- Status: grooming
+- Status: ready
 - Release: TBD (release-g)
 - Feature type: qa-infrastructure
 - PM owner: pm-forseti
