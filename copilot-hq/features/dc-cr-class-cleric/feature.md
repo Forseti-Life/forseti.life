@@ -4,7 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: in_progress
-- Release: 
+- Release: 20260409-dungeoncrawler-release-f
 20260409-dungeoncrawler-release-f
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
