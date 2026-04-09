@@ -8762,6 +8762,212 @@
           "ac": "SEC-no-new-routes"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-monk-e2e",
+      "label": "Monk Class \u2014 STR/DEX key ability, HP/proficiencies, fist damage, no lethal penalty, Flurry of Blows (once/turn/MAP), Ki spells/focus pool (WIS), stance unarmed profiles (one-at-a-time), Mountain Stance (+4 AC/+2 Shove-Trip/DEX-cap/Speed), Stunning Fist, Fuse Stance, armor restriction, feat schedules, ACL",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-monk",
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "./vendor/bin/phpunit --filter MonkClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-monk/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-monk/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-MNK-01",
+          "suite": "module-test-suite",
+          "ac": "NEW-monk-class-exists-str-dex",
+          "description": "Monk selectable in character creation; STR and DEX both accepted as key_ability; no other key ability accepted"
+        },
+        {
+          "id": "TC-MNK-02",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calc",
+          "description": "Monk HP = 10 + CON modifier per level; CON+2 at level 1 = 12, level 2 = 24"
+        },
+        {
+          "id": "TC-MNK-03",
+          "suite": "module-test-suite",
+          "ac": "NEW-initial-proficiencies",
+          "description": "Initial proficiencies: Trained Perception, Expert Will, Trained Fort+Reflex, Untrained all armor, Expert unarmored defense"
+        },
+        {
+          "id": "TC-MNK-04",
+          "suite": "module-test-suite",
+          "ac": "NEW-fist-damage-1d6",
+          "description": "Monk fist base damage die = d6 (not d4 default unarmed for other characters)"
+        },
+        {
+          "id": "TC-MNK-05",
+          "suite": "module-test-suite",
+          "ac": "NEW-no-lethal-nonlethal-penalty",
+          "description": "No lethal/nonlethal penalty on Monk unarmed attacks; monk can freely choose lethal or nonlethal"
+        },
+        {
+          "id": "TC-MNK-06",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-of-blows-granted",
+          "description": "Flurry of Blows present in class_features at level 1; action_cost = 1; produces two unarmed Strike results"
+        },
+        {
+          "id": "TC-MNK-07",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-once-per-turn",
+          "description": "Flurry of Blows usable only once per turn; second use blocked with once-per-turn error"
+        },
+        {
+          "id": "TC-MNK-08",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-map-increment",
+          "description": "MAP = -10 after Flurry of Blows (both attacks counted); subsequent action at -10"
+        },
+        {
+          "id": "TC-MNK-09",
+          "suite": "module-test-suite",
+          "ac": "NEW-ki-focus-pool-initial",
+          "description": "Ki focus pool starts at 1 (max 3 with feats); spellcasting_ability = Wisdom for Ki spells"
+        },
+        {
+          "id": "TC-MNK-10",
+          "suite": "module-test-suite",
+          "ac": "NEW-ki-feat-grants-focus-point",
+          "description": "Each Ki spell feat grants +1 Focus Point; capped at 3; no further increase beyond 3"
+        },
+        {
+          "id": "TC-MNK-11",
+          "suite": "module-test-suite",
+          "ac": "NEW-ki-spell-blocked-at-zero-fp",
+          "description": "Ki spell cast blocked when focus pool = 0; error references empty focus pool"
+        },
+        {
+          "id": "TC-MNK-12",
+          "suite": "module-test-suite",
+          "ac": "NEW-stance-unarmed-profile",
+          "description": "Active stance provides unique unarmed attack profile (die/traits); base profile restored when stance ends",
+          "note": "PM to enumerate per-stance attack profiles (Tiger/Wolf/Mountain/etc.) before all stances can be parametrized"
+        },
+        {
+          "id": "TC-MNK-13",
+          "suite": "module-test-suite",
+          "ac": "NEW-one-stance-at-a-time",
+          "description": "Entering a new stance immediately ends previous stance; active_stance = new stance only"
+        },
+        {
+          "id": "TC-MNK-14",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-two-stances-blocked",
+          "description": "Two stance flags active simultaneously (without Fuse Stance) rejected at data layer; only one stance_active at a time"
+        },
+        {
+          "id": "TC-MNK-15",
+          "suite": "module-test-suite",
+          "ac": "NEW-mountain-stance-ac-bonus",
+          "description": "Mountain Stance grants +4 item bonus to AC"
+        },
+        {
+          "id": "TC-MNK-16",
+          "suite": "module-test-suite",
+          "ac": "NEW-mountain-stance-shove-trip",
+          "description": "Mountain Stance grants +2 circumstance bonus vs Shove and Trip"
+        },
+        {
+          "id": "TC-MNK-17",
+          "suite": "module-test-suite",
+          "ac": "NEW-mountain-stance-dex-cap",
+          "description": "Mountain Stance DEX cap to AC = +0; overrides character DEX bonus even with bonuses from other sources"
+        },
+        {
+          "id": "TC-MNK-18",
+          "suite": "module-test-suite",
+          "ac": "NEW-mountain-stance-speed-penalty",
+          "description": "Mountain Stance applies -5 ft Speed penalty"
+        },
+        {
+          "id": "TC-MNK-19",
+          "suite": "module-test-suite",
+          "ac": "NEW-mountain-stance-requires-ground",
+          "description": "Mountain Stance requires touching ground; entering while airborne blocked",
+          "note": "PM: if movement/terrain system not in scope yet, mark pending-dev-confirmation"
+        },
+        {
+          "id": "TC-MNK-20",
+          "suite": "module-test-suite",
+          "ac": "NEW-mountain-stance-potency-stack",
+          "description": "Mountain Stance +4 item AC bonus stacks with armor potency runes on mage armor / explorer's clothing",
+          "note": "PM: depends on dc-cr-equipment-system rune support; mark pending-dev-confirmation if not yet in scope"
+        },
+        {
+          "id": "TC-MNK-21",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-both-attacks-attempted",
+          "description": "Flurry of Blows: both strikes always attempted even if second is under MAP penalty"
+        },
+        {
+          "id": "TC-MNK-22",
+          "suite": "module-test-suite",
+          "ac": "NEW-stunning-fist-both-hits",
+          "description": "Stunning Fist: Fortitude vs class DC triggered only when BOTH flurry strikes hit same creature"
+        },
+        {
+          "id": "TC-MNK-23",
+          "suite": "module-test-suite",
+          "ac": "NEW-stunning-fist-incapacitation",
+          "description": "Stunning Fist incapacitation rule: creature level > Monk level causes saves to be one step better (penalizes Monk, not creature)",
+          "note": "PM: confirm incapacitation direction \u2014 saves one step better for creature (PF2 RAW)"
+        },
+        {
+          "id": "TC-MNK-24",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-armor-equip-blocked",
+          "description": "Monk cannot equip non-explorer's-clothing armor without armor training feat; equip attempt blocked with error"
+        },
+        {
+          "id": "TC-MNK-25",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-explorers-clothing-equippable",
+          "description": "Explorer's clothing equippable by Monk without any special feat"
+        },
+        {
+          "id": "TC-MNK-26",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-not-early",
+          "description": "Level-gated features absent before required level; e.g., Fuse Stance not available before level 20"
+        },
+        {
+          "id": "TC-MNK-27",
+          "suite": "module-test-suite",
+          "ac": "NEW-fuse-stance-level20",
+          "description": "Fuse Stance (level 20 feat): grants all effects of both selected stances simultaneously",
+          "note": "PM: define conflict resolution for stacking stance effects (e.g., duplicate Speed penalties)"
+        },
+        {
+          "id": "TC-MNK-28",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule",
+          "description": "Class feat granted at level 1 and every even level (2, 4, 6 ... 20)"
+        },
+        {
+          "id": "TC-MNK-29",
+          "suite": "module-test-suite",
+          "ac": "NEW-general-skill-ancestry-ability-schedule",
+          "description": "General feats at 3/7/11/15/19; skill feats every even level; ancestry feats at 5/9/13/17; ability boosts at 5/10/15/20"
+        },
+        {
+          "id": "TC-MNK-30",
+          "suite": "module-test-suite",
+          "ac": "SEC-cross-player-403",
+          "description": "Cross-player ACL: player cannot modify another player's Monk character; returns 403"
+        },
+        {
+          "id": "TC-MNK-31",
+          "suite": "role-url-audit",
+          "ac": "QA-audit-clean",
+          "description": "QA audit passes after module deployment: 0 violations, 0 failures"
+        }
+      ]
     }
   ],
   "_schema_notes": [
