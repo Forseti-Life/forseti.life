@@ -1548,6 +1548,51 @@
       "status": "skipped"
     },
     {
+      "id": "forseti-ai-conversation-export-static",
+      "label": "Static check: export route is GET-only, no CSRF required, integer constraint",
+      "type": "static",
+      "feature_id": "forseti-ai-conversation-export",
+      "command": "bash -c 'set -e; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation/ai_conversation.routing.yml; echo \"[AC-1] Route GET-only:\"; grep -A10 \"forseti.conversation_export\" \"$ROUTING\" | grep -q \"methods.*GET\" && echo PASS || (echo FAIL && exit 1); echo \"[AC-1] integer constraint:\"; grep -A10 \"forseti.conversation_export\" \"$ROUTING\" | grep -q \"conversation_id.*\\\\\\\\d\" && echo PASS || (echo FAIL && exit 1); echo \"[AC-1] no CSRF on GET:\"; grep -A10 \"forseti.conversation_export\" \"$ROUTING\" | grep -q \"_csrf_token\" && (echo FAIL_CSRF_ON_GET && exit 1) || echo PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-export/forseti-ai-conversation-export-static.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-export-acl",
+      "label": "AC-1/AC-6: Anonymous GET export returns 403",
+      "type": "acl",
+      "feature_id": "forseti-ai-conversation-export",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/forseti/conversation/1/export); echo \"anon GET /forseti/conversation/1/export: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-export/forseti-ai-conversation-export-acl.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-export-non-int",
+      "label": "AC-1: Non-integer conversation_id returns 404",
+      "type": "acl",
+      "feature_id": "forseti-ai-conversation-export",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/forseti/conversation/notanid/export); echo \"GET /forseti/conversation/notanid/export: $STATUS\"; [ \"$STATUS\" = \"404\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-export/forseti-ai-conversation-export-non-int.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-export-e2e",
+      "label": "AC-2/AC-3/AC-4/AC-5/AC-6: Authenticated export, content format, chat button, history link, empty conversation, cross-user 403",
+      "type": "e2e",
+      "feature_id": "forseti-ai-conversation-export",
+      "skip_reason": "Playwright/Node unavailable in current QA environment. Covers TC-2 through TC-9 (authenticated export, file format, chat download button, history browser link, empty conversation, cross-user 403). Accepted gap until E2E environment provisioned.",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-export/forseti-ai-conversation-export-e2e.log"
+      ],
+      "required_for_release": false,
+      "command": "npx playwright test tests/forseti-ai-conversation-export.spec.ts --reporter=json --output=sessions/qa-forseti/artifacts/ai-conversation-export/"
+    },
+    {
       "id": "forseti-jobhunter-cover-letter-display-static",
       "label": "Cover Letter Display: static checks \u2014 CSRF on generate+save routes, job_id constraint",
       "type": "static",

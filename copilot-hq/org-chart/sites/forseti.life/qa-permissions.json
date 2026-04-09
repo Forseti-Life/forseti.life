@@ -506,6 +506,26 @@
         "content_editor": "ignore",
         "administrator": "ignore"
       }
+    },
+    {
+      "id": "forseti-ai-conversation-export-get",
+      "feature_id": "forseti-ai-conversation-export",
+      "path_regex": "^/forseti/conversation/\\d+/export$",
+      "notes": "Export route (GET). Added for feature forseti-ai-conversation-export.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200"
+      }
+    },
+    {
+      "id": "forseti-ai-conversation-export-non-int",
+      "feature_id": "forseti-ai-conversation-export",
+      "path_regex": "^/forseti/conversation/[^\\d][^/]*/export$",
+      "notes": "Non-integer conversation_id blocked by routing constraint. Added for feature forseti-ai-conversation-export.",
+      "expect": {
+        "anon": "404",
+        "authenticated": "404"
+      }
     }
   ]
 }
