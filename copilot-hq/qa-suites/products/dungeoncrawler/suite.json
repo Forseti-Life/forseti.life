@@ -8968,6 +8968,215 @@
           "description": "QA audit passes after module deployment: 0 violations, 0 failures"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-ranger-e2e",
+      "label": "Ranger Class \u2014 STR/DEX key ability, HP/proficiencies (Expert Perception, Trained saves/weapons/armor), Hunt Prey (one prey at a time), Hunter's Edge (Flurry MAP reduction, Precision +1d8\u21922d8\u21923d8, Outwit skill/AC bonuses), feat/ability-boost schedules, edge cases (Double Prey, Hunted Shot, Warden's Boon), ACL regression",
+      "type": "e2e",
+      "feature_id": "dc-cr-class-ranger",
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "./vendor/bin/phpunit --filter RangerClassTest --testsuite module-test-suite --log-junit test-results/dc-cr-class-ranger/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-class-ranger/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-RNG-01",
+          "suite": "module-test-suite",
+          "ac": "NEW-ranger-class-exists",
+          "description": "Ranger appears in class selection list; selectable during character creation"
+        },
+        {
+          "id": "TC-RNG-02",
+          "suite": "module-test-suite",
+          "ac": "NEW-key-ability-str",
+          "description": "Player selects STR as key ability at level 1; STR mod applied to class DC and relevant attack rolls"
+        },
+        {
+          "id": "TC-RNG-03",
+          "suite": "module-test-suite",
+          "ac": "NEW-key-ability-dex",
+          "description": "Player selects DEX as key ability at level 1; DEX mod applied to class DC and relevant attack rolls"
+        },
+        {
+          "id": "TC-RNG-04",
+          "suite": "module-test-suite",
+          "ac": "NEW-hp-calc",
+          "description": "HP delta per level = 10 + CON mod (minimum 1 per level)"
+        },
+        {
+          "id": "TC-RNG-05",
+          "suite": "module-test-suite",
+          "ac": "NEW-expert-perception",
+          "description": "Ranger starts with Expert Perception at level 1 (not Trained)"
+        },
+        {
+          "id": "TC-RNG-06",
+          "suite": "module-test-suite",
+          "ac": "NEW-saves-trained",
+          "description": "Fortitude = Trained, Reflex = Trained, Will = Trained at level 1"
+        },
+        {
+          "id": "TC-RNG-07",
+          "suite": "module-test-suite",
+          "ac": "NEW-weapon-proficiency",
+          "description": "Simple weapon = Trained, martial weapon = Trained at level 1"
+        },
+        {
+          "id": "TC-RNG-08",
+          "suite": "module-test-suite",
+          "ac": "NEW-armor-proficiency",
+          "description": "Light armor = Trained, medium armor = Trained at level 1; heavy armor = Untrained"
+        },
+        {
+          "id": "TC-RNG-09",
+          "suite": "module-test-suite",
+          "ac": "NEW-hunt-prey-designates",
+          "description": "Hunt Prey (1 action) marks target as hunted prey; prey-conditional effects apply"
+        },
+        {
+          "id": "TC-RNG-10",
+          "suite": "module-test-suite",
+          "ac": "NEW-hunt-prey-one-at-a-time",
+          "description": "Without Double Prey, Hunt Prey on second creature removes first prey designation; only one prey exists"
+        },
+        {
+          "id": "TC-RNG-11",
+          "suite": "module-test-suite",
+          "ac": "NEW-hunt-prey-replaces-previous",
+          "description": "Previous prey benefits (MAP, precision, Outwit) no longer apply after new prey is designated"
+        },
+        {
+          "id": "TC-RNG-12",
+          "suite": "module-test-suite",
+          "ac": "NEW-hunters-edge-selection",
+          "description": "Player required to select exactly one Hunter's Edge (Flurry/Precision/Outwit) at level 1; cannot advance without selection"
+        },
+        {
+          "id": "TC-RNG-13",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-map-non-agile",
+          "description": "Flurry edge: attack 2 vs prey = -3 MAP, attack 3 vs prey = -6 MAP (non-agile weapon)"
+        },
+        {
+          "id": "TC-RNG-14",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-map-agile",
+          "description": "Flurry edge + agile weapon: attack 2 vs prey = -2 MAP, attack 3 vs prey = -4 MAP"
+        },
+        {
+          "id": "TC-RNG-15",
+          "suite": "module-test-suite",
+          "ac": "NEW-flurry-no-reduction-non-prey",
+          "description": "Flurry MAP reduction does not apply vs non-prey targets; standard -5/-10 (or -4/-8 agile) applies"
+        },
+        {
+          "id": "TC-RNG-16",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-flurry-map-floor",
+          "description": "Flurry MAP cannot stack below its floor values (-3/-6 non-agile, -2/-4 agile vs prey)",
+          "note": "PM: confirm stacking order with other MAP-reduction effects (Agile + Flurry interaction)"
+        },
+        {
+          "id": "TC-RNG-17",
+          "suite": "module-test-suite",
+          "ac": "NEW-precision-1d8-first-hit",
+          "description": "Precision edge: first successful Strike vs hunted prey per round adds +1d8 precision damage (level 1-10)"
+        },
+        {
+          "id": "TC-RNG-18",
+          "suite": "module-test-suite",
+          "ac": "NEW-precision-first-hit-only",
+          "description": "Precision +1d8 applies only to first hit per round; hit 2+ vs prey = base damage only"
+        },
+        {
+          "id": "TC-RNG-19",
+          "suite": "module-test-suite",
+          "ac": "NEW-precision-scaling",
+          "description": "Precision scales: +2d8 at level 11, +3d8 at level 19"
+        },
+        {
+          "id": "TC-RNG-20",
+          "suite": "module-test-suite",
+          "ac": "NEW-outwit-skill-bonus",
+          "description": "Outwit edge: +2 circumstance to Deception/Intimidation/Stealth/Recall Knowledge vs hunted prey"
+        },
+        {
+          "id": "TC-RNG-21",
+          "suite": "module-test-suite",
+          "ac": "NEW-outwit-ac-bonus",
+          "description": "Outwit edge: +1 circumstance bonus to AC vs prey's attacks"
+        },
+        {
+          "id": "TC-RNG-22",
+          "suite": "module-test-suite",
+          "ac": "NEW-outwit-prey-only",
+          "description": "Outwit bonuses (skill and AC) apply only vs designated prey; no bonus vs non-prey creatures"
+        },
+        {
+          "id": "TC-RNG-23",
+          "suite": "module-test-suite",
+          "ac": "NEW-class-feat-schedule",
+          "description": "Class feat granted at level 1 and every even level (2, 4, 6 ... 20)"
+        },
+        {
+          "id": "TC-RNG-24",
+          "suite": "module-test-suite",
+          "ac": "NEW-general-feat-schedule",
+          "description": "General feats at levels 3, 7, 11, 15, 19"
+        },
+        {
+          "id": "TC-RNG-25",
+          "suite": "module-test-suite",
+          "ac": "NEW-skill-feat-schedule",
+          "description": "Skill feats every even level (2, 4, 6 ... 20)"
+        },
+        {
+          "id": "TC-RNG-26",
+          "suite": "module-test-suite",
+          "ac": "NEW-ancestry-feat-schedule",
+          "description": "Ancestry feats at levels 5, 9, 13, 17"
+        },
+        {
+          "id": "TC-RNG-27",
+          "suite": "module-test-suite",
+          "ac": "NEW-ability-boost-schedule",
+          "description": "Ability boosts at levels 5, 10, 15, 20"
+        },
+        {
+          "id": "TC-RNG-28",
+          "suite": "module-test-suite",
+          "ac": "TEST-ONLY-gated-not-early",
+          "description": "Level-gated features absent before required level (e.g., Precision 2d8 not present before level 11)"
+        },
+        {
+          "id": "TC-RNG-29",
+          "suite": "module-test-suite",
+          "ac": "NEW-double-prey-feat",
+          "description": "Double Prey feat allows two simultaneous prey designations; both receive prey-conditional effects",
+          "note": "PM: clarify 'oldest replaced' vs 'player chooses' when third Hunt Prey is used with Double Prey"
+        },
+        {
+          "id": "TC-RNG-30",
+          "suite": "module-test-suite",
+          "ac": "NEW-hunted-shot",
+          "description": "Hunted Shot: both attacks count for MAP progression; usable only once per round"
+        },
+        {
+          "id": "TC-RNG-31",
+          "suite": "module-test-suite",
+          "ac": "NEW-wardens-boon",
+          "description": "Warden's Boon: ally gains prey benefits for one turn only; benefit expires at end of turn"
+        },
+        {
+          "id": "TC-RNG-32",
+          "suite": "role-url-audit",
+          "ac": "QA-audit-clean",
+          "description": "ACL regression: no new routes from Ranger; existing character routes return expected results (0 violations)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
