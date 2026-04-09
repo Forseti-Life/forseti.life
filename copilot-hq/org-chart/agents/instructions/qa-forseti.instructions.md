@@ -55,7 +55,7 @@ Run the suite(s) per the manifest and produce PASS/FAIL evidence (existing behav
 	- Write an outbox update summarizing new issues, access-control concerns, and recommended ROI work items for PM triage.
 
 Notes:
-- **Drupal roles on forseti.life (as of 2026-04-06):** `anonymous`, `authenticated`, `content_editor`, `administrator`, `firefighter`, `fire_dept_admin`, `nfr_researcher`, `nfr_administrator`. The last four (`firefighter`, `fire_dept_admin`, `nfr_researcher`, `nfr_administrator`) are **empty placeholder roles with zero permissions**. Do NOT add them to `qa-permissions.json` unless they gain real permissions — confirm with `drush role:list --format=yaml` each release cycle.
+- **Drupal roles on forseti.life (as of 2026-04-09, release-c preflight):** `anonymous`, `authenticated`, `content_editor`, `administrator`, `firefighter`, `fire_dept_admin`, `nfr_researcher`, `nfr_administrator`. The last four (`firefighter`, `fire_dept_admin`, `nfr_researcher`, `nfr_administrator`) are **empty placeholder roles with zero permissions** (verified release-c preflight). Do NOT add them to `qa-permissions.json` unless they gain real permissions — confirm with `drush role:list --format=json` each release cycle.
 - Production `BASE_URL`: `https://forseti.life`. This server IS production — there is no local/dev environment.
 - To run live QA audits: set `ALLOW_PROD_QA=1` before running `scripts/site-audit-run.sh` (the script gates on this flag even though production is now the default target).
 - Preferred execution: `ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti-life`
