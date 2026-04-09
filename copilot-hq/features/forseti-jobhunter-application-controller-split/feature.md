@@ -5,7 +5,6 @@
 - Module: job_hunter
 - Status: in_progress
 - Release: 20260409-forseti-release-d
-20260409-forseti-release-d
 - Feature type: refactor
 - PM owner: pm-forseti
 - Dev owner: dev-forseti
