@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T21:34:05Z
+Generated: 2026-04-09T21:42:10Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -16,7 +16,7 @@ Generated: 2026-04-09T21:34:05Z
 | dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-cr-action-economy | dungeoncrawler | dungeoncrawler_content | done | P0 (foundation for all encounter-mode gameplay; all class features, spells, and skill actions depend on this) |  |  |  |
