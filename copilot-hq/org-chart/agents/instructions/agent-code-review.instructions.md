@@ -24,6 +24,16 @@ This file is owned by the `agent-code-review` seat.
 - Perform a small refactor/review within owned scope and write findings in outbox.
 - If action is needed on findings, escalate to PM supervisor with Status: needs-info and ROI.
 
+## Data-only fast-path (dungeoncrawler content releases)
+
+When ALL commits in a release touch **only** `CharacterManager.php` and/or `EquipmentCatalogService.php` with no routing, controller, schema, or install file changes:
+1. Confirm with: `git diff <cutoff>..HEAD --name-only -- sites/dungeoncrawler/`
+2. If only those two files appear: skip CSRF, route-method, schema-hook, and qa-permissions checks.
+3. Still run: VALID_TYPES pairing check (see checklist), stale-duplicate check, and hardcoded-path scan.
+4. Record "data-only fast-path applied" in outbox summary.
+
+This pattern applies to APG content releases (classes, feats, ancestries, spells, equipment).
+
 ## Review checklist (apply to every script/file reviewed)
 Before the findings table, run and record each check as applies/N/A:
 - [ ] Missing file/arg existence guards (unhandled FileNotFoundError, empty-var usage)
@@ -38,6 +48,7 @@ Before the findings table, run and record each check as applies/N/A:
 - [ ] Drupal-specific CSRF route-path seed: `CsrfAccessCheck` validates `?token=` against the **rendered route path** (without leading slash, with raw parameter values substituted). E.g., route `jobhunter/my-jobs/{job_id}/applied` with `job_id=5` → seed must be `'jobhunter/my-jobs/5/applied'`. Any custom seed string (e.g., `'job_apply_5'`) will produce 403 on every submission. Verify: `grep -n 'csrfToken.*get\(' <controller>` and confirm the seed matches the route path. (2026-04-08: FR-RB-01 — JobApplicationController + CompanyController used `'job_apply_{id}'` custom seeds, all submissions 403'd)
 - [ ] Drupal-specific: stale private duplicates of canonical data — check if controller/service has hardcoded lookups that diverge from a `const` or `static` in a Manager/Service class (2026-03-22: CharacterCreationController::getAncestryTraits() vs CharacterManager::ANCESTRIES)
 - [ ] Drupal-specific: schema hook pairing — for any new/modified table, verify both `hook_schema()` AND `hook_update_N()` exist; if only `hook_schema()` is present, the table will exist on fresh install but not on upgrade deployments (2026-04-05: dc_chat_sessions and dc_campaign_characters.version missing in production — hooks defined but not run; review `.install` file)
+- [ ] Drupal-specific (dungeoncrawler): EquipmentCatalogService VALID_TYPES pairing — any new item type added to `EquipmentCatalogService::VALID_TYPES` must appear in the same commit as the items that use it; verify with `grep -n "VALID_TYPES" EquipmentCatalogService.php` and confirm controller validates against the const (2026-04-09: 'snare' type added to VALID_TYPES in dc-apg-equipment, confirmed controller uses `in_array($type, EquipmentCatalogService::VALID_TYPES, TRUE)`)
 - [ ] Drupal-specific (dungeoncrawler): new routes must be pre-registered in `org-chart/sites/dungeoncrawler/qa-permissions.json` in the same commit as routing.yml — verify with `git show <impl-commit> -- org-chart/sites/dungeoncrawler/qa-permissions.json | grep diff` (2026-03-22: false-positive QA violation cycle from unregistered `/dungeoncrawler/traits` in release-next)
 - [ ] Drupal-specific (dungeoncrawler): every new POST route MUST have `_csrf_request_header_mode: TRUE` in its requirements — verify with `grep -A8 '<new-route-name>:' routing.yml | grep csrf` (2026-03-27: inventory_sell_item shipped without it while all other POST inventory routes had it)
 - [ ] Authorization bypass on optional override params — any `$gm_override`, `$admin_override`, or similar bypass flag accepted from request body MUST be gated on a permission check before use (2026-03-27: gm_override in sellItem() accepted from any authenticated user)
