@@ -9427,6 +9427,94 @@
           "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard; covered by dc-cr-heritage-system baseline)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-heritage-sensate-e2e",
+      "label": "Sensate Gnome Heritage \u2014 catalog entry (Gnome-only), imprecise scent base 30 ft, downwind 60 ft / upwind 15 ft / neutral fallback, +2 circ Perception vs undetected within range, bonus out-of-range exclusion, no-wind-model fallback",
+      "feature_id": "dc-cr-gnome-heritage-sensate",
+      "type": "e2e",
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-gnome-heritage-sensate/verification-report.md"
+      ],
+      "notes": "Data-only heritage (no new routes). Site audit 20260409-051852 (0 violations) covers this. Wind-direction modifiers and scent-range gating require FeatEffectManager runtime evaluation; current implementation stores the rules in HERITAGES[] special sub-array for machine-readable enforcement.",
+      "test_cases": [
+        {
+          "id": "TC-SGH-001",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomeHeritageInCatalog",
+          "description": "Sensate Gnome heritage exists in CharacterManager::HERITAGES['Gnome'] catalog (id=sensate, name=Sensate Gnome); absent from non-Gnome catalogs"
+        },
+        {
+          "id": "TC-SGH-002",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomeScentSenseStructure",
+          "description": "special.senses[0]: type=scent, precision=imprecise, base_range=30, no_wind_fallback=30"
+        },
+        {
+          "id": "TC-SGH-003",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomeWindModifiers",
+          "description": "special.senses[0].modifiers: downwind effective_range=60 (x2), upwind effective_range=15 (x0.5), neutral effective_range=30 (x1)"
+        },
+        {
+          "id": "TC-SGH-004",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomePerceptionBonusStructure",
+          "description": "special.perception_bonus: type=circumstance, value=2, condition='locating an undetected creature within current scent range'"
+        },
+        {
+          "id": "TC-SGH-005",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomeImpreciseScentNarrowing",
+          "description": "Benefit text confirms imprecise \u2014 narrows position to a square, does not pinpoint"
+        },
+        {
+          "id": "TC-SGH-006",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "edge-case",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomeNoWindFallback",
+          "description": "no_wind_fallback=30: if encounter has no wind model, base 30 ft applies (no modifier)"
+        },
+        {
+          "id": "TC-SGH-007",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "edge-case",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testSensateGnomePerceptionBonusOutOfRangeExclusion",
+          "description": "special.perception_bonus.note confirms bonus does not apply outside scent range or to already-detected creatures"
+        },
+        {
+          "id": "TC-SGH-008",
+          "feature_id": "dc-cr-gnome-heritage-sensate",
+          "ac_tag": "permissions",
+          "suite_type": "acl",
+          "status": "active",
+          "class_method": "SensateGnomeHeritageTest::testAnonDeniedCharacterCreate",
+          "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard; covered by dc-cr-heritage-system baseline)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
