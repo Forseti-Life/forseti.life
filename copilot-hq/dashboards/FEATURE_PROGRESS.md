@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T05:25:40Z
+Generated: 2026-04-09T05:36:55Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -35,12 +35,12 @@ Generated: 2026-04-09T05:25:40Z
 | dc-cr-class-alchemist | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-barbarian | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-bard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -73,14 +73,14 @@ Generated: 2026-04-09T05:25:40Z
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-gnome-heritage-fey-touched | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-gnome-heritage-sensate | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -103,7 +103,7 @@ Generated: 2026-04-09T05:25:40Z
 | dc-cr-rest-watch-starvation | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-rituals | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-rock-runner | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-rune-system | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-rune-system | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-session-structure | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-skill-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-skill-system | dungeoncrawler | dungeoncrawler_content | done | P1 (core activity resolution; exploration and social gameplay) |  |  |  |
@@ -126,7 +126,7 @@ Generated: 2026-04-09T05:25:40Z
 | dc-cr-snares | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
