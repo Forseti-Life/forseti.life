@@ -9881,6 +9881,78 @@
           "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard)"
         }
       ]
+    },
+    {
+      "id": "dc-b1-bestiary1-e2e",
+      "label": "Bestiary 1 creature library: 38 stat blocks L0-L8, required fields (level/rarity/traits/perception/skills/ac/saves/hp/speeds/attacks/role), role distribution, EncounterBalancer fallback ID alignment, level-range filter inclusive bounds, player read-only, GM mutation routes require _campaign_gm_access",
+      "type": "e2e",
+      "feature_id": "dc-b1-bestiary1",
+      "command": "npx playwright test tests/e2e/b1-bestiary1/ --reporter=junit",
+      "artifacts": [
+        "tests/results/dc-b1-bestiary1-e2e.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-f",
+      "activated_date": "2026-04-09",
+      "notes": "38 creatures (L0-L8) covering dungeon/cave/crypt/ruins/underground/demonic/underdark themes. L9+ creatures (lich, beholder, purple_worm, iron_golem, vrock, hezrou, glabrezu, mind_flayer, shield_guardian) deferred \u2014 present in EncounterBalancer fallback catalog but no stat block yet; those levels will not appear in L0-L8 filtered encounter results. Regression risks: CREATURES key mismatch with EncounterBalancer fallback IDs; creature missing required field; level-range filter off-by-one (inclusive on both ends required); player-role accessing mutation routes; speed zero stored as 0 instead of omitted.",
+      "test_cases": [
+        {
+          "id": "TC-B1-01",
+          "description": "All 38 CREATURES entries present; each has required fields: id, level, rarity, traits[], perception, skills{}, ac, saves{fort/ref/will}, hp, immunities[], weaknesses[], resistances[], speeds{}, attacks[], abilities[], role",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001"
+        },
+        {
+          "id": "TC-B1-02",
+          "description": "All creature IDs in CREATURES align with EncounterBalancer fallback catalog IDs for L0-L8; no creature_id in fallback for levels 0-8 is missing from CREATURES",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001-integration"
+        },
+        {
+          "id": "TC-B1-03",
+          "description": "Encounter filter by level range is inclusive on both ends: creatures at exactly min_level and exactly max_level are included in results",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-002"
+        },
+        {
+          "id": "TC-B1-04",
+          "description": "Each creature has a 'role' field set to one of: brute/skirmisher/controller/support/spellcaster; role is used in encounter filtering",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-002"
+        },
+        {
+          "id": "TC-B1-05",
+          "description": "Attacks[] entries accept arbitrary length (no hardcoded max); creatures with multiple attacks (e.g., orc_brute, roper) are stored correctly",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001-edge"
+        },
+        {
+          "id": "TC-B1-06",
+          "description": "Speeds{}: zero-value speeds are omitted from the map, not stored as 0 (e.g., a land-only creature has no 'fly' key)",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001-edge"
+        },
+        {
+          "id": "TC-B1-07",
+          "description": "Player-role user receives 403 on any creature mutation (import/override) route; GM-only routes require _campaign_gm_access: TRUE",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-003-security"
+        },
+        {
+          "id": "TC-B1-08",
+          "description": "L9+ creatures (lich, beholder, purple_worm, etc.) in fallback catalog return no stat block from CREATURES (graceful missing-key handling); encounters filtered to L0-L8 do not surface them",
+          "suite_type": "e2e",
+          "status": "active",
+          "ac_tag": "AC-001-deferred"
+        }
+      ]
     }
   ],
   "_schema_notes": [
