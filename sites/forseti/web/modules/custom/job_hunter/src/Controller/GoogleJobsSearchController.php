@@ -5,11 +5,14 @@ namespace Drupal\job_hunter\Controller;
 use Drupal\Core\Cache\CacheBackendInterface;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Database\Connection;
+use Drupal\Core\Url;
 use Drupal\job_hunter\Service\CloudTalentSolutionService;
 use Drupal\job_hunter\Traits\JobHunterLoggerTrait;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 /**
@@ -174,11 +177,137 @@ class GoogleJobsSearchController extends ControllerBase {
       '#page_size' => self::ITEMS_PER_PAGE,
       '#has_search' => $has_search,
       '#error_message' => $error_message,
+      '#saved_searches' => $this->loadSavedSearches(),
+      '#save_search_url' => Url::fromRoute('job_hunter.saved_search_save')->toString(),
+      '#max_saved_searches' => self::MAX_SAVED_SEARCHES,
       '#cache' => ['max-age' => 0],
       '#attached' => ['library' => ['job_hunter/google_jobs_search']],
     ];
 
     return $this->wrapWithNavigation($content, ['job_hunter/google_jobs_search']);
+  }
+
+  /**
+   * List page for saved searches.
+   *
+   * @return array
+   *   Render array wrapped in navigation.
+   */
+  public function savedSearches(): array {
+    $saved_searches = $this->loadSavedSearches();
+    $content = [
+      '#theme' => 'saved_searches_page',
+      '#saved_searches' => $saved_searches,
+      '#saved_searches_count' => count($saved_searches),
+      '#max_saved_searches' => self::MAX_SAVED_SEARCHES,
+      '#cache' => ['max-age' => 0],
+    ];
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Maximum saved searches per user.
+   */
+  const MAX_SAVED_SEARCHES = 10;
+
+  /**
+   * Load saved searches for the current user.
+   *
+   * @return array
+   *   Array of saved search objects (id, uid, keywords, location, created).
+   */
+  private function loadSavedSearches(): array {
+    $uid = (int) $this->currentUser()->id();
+    return $this->database->select('jobhunter_saved_searches', 's')
+      ->fields('s', ['id', 'keywords', 'location', 'created'])
+      ->condition('s.uid', $uid)
+      ->orderBy('s.created', 'DESC')
+      ->range(0, self::MAX_SAVED_SEARCHES)
+      ->execute()
+      ->fetchAll();
+  }
+
+  /**
+   * Save a search (POST, CSRF-guarded).
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   */
+  public function savedSearchSave(Request $request) {
+    $uid = (int) $this->currentUser()->id();
+
+    $existing_count = (int) $this->database->select('jobhunter_saved_searches', 's')
+      ->condition('s.uid', $uid)
+      ->countQuery()
+      ->execute()
+      ->fetchField();
+
+    if ($existing_count >= self::MAX_SAVED_SEARCHES) {
+      $this->messenger()->addWarning($this->t('Maximum saved searches reached. Delete one to save a new search.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.google_jobs_search')->toString());
+    }
+
+    $keywords = strip_tags((string) $request->request->get('keywords', ''));
+    $keywords = substr($keywords, 0, 256);
+    $location = strip_tags((string) $request->request->get('location', ''));
+    $location = substr($location, 0, 128);
+
+    if ($keywords === '') {
+      $this->messenger()->addWarning($this->t('Cannot save an empty search.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.google_jobs_search')->toString());
+    }
+
+    $this->database->insert('jobhunter_saved_searches')
+      ->fields([
+        'uid' => $uid,
+        'keywords' => $keywords,
+        'location' => $location,
+        'created' => time(),
+        'updated' => time(),
+      ])
+      ->execute();
+
+    $this->messenger()->addStatus($this->t('Search saved.'));
+
+    $redirect_url = Url::fromRoute('job_hunter.google_jobs_search', [], [
+      'query' => array_filter(['q' => $keywords, 'location' => $location]),
+    ])->toString();
+    return new RedirectResponse($redirect_url);
+  }
+
+  /**
+   * Delete a saved search (POST, CSRF-guarded).
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   * @param int $saved_search_id
+   *   The saved search ID (integer enforced by routing pattern \d+).
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   */
+  public function savedSearchDelete(Request $request, $saved_search_id) {
+    $uid = (int) $this->currentUser()->id();
+    $id = (int) $saved_search_id;
+
+    $row = $this->database->select('jobhunter_saved_searches', 's')
+      ->fields('s', ['id', 'uid'])
+      ->condition('s.id', $id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$row || (int) $row->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $this->database->delete('jobhunter_saved_searches')
+      ->condition('id', $id)
+      ->condition('uid', $uid)
+      ->execute();
+
+    $this->messenger()->addStatus($this->t('Saved search deleted.'));
+    return new RedirectResponse(Url::fromRoute('job_hunter.google_jobs_search')->toString());
   }
 
   /**

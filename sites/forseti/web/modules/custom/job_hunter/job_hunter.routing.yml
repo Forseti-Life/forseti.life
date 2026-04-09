@@ -1314,3 +1314,36 @@ job_hunter.interview_prep_ai_tips:
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
     job_id: \d+
+
+job_hunter.saved_search_save:
+  path: '/jobhunter/saved-search/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::savedSearchSave'
+    _title: 'Save Search'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+
+job_hunter.saved_search_delete:
+  path: '/jobhunter/saved-search/{saved_search_id}/delete'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::savedSearchDelete'
+    _title: 'Delete Saved Search'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    saved_search_id: \d+
+
+
+job_hunter.saved_searches:
+  path: '/jobhunter/saved-searches'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\GoogleJobsSearchController::savedSearches'
+    _title: 'Saved Searches'
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
