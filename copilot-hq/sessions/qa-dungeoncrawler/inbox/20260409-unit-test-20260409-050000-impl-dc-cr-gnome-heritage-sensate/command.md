@@ -1,9 +1,9 @@
 - command: |
     Targeted QA unit test for completed Dev item.
 
-    - Completed item: 20260409-050000-impl-dc-cr-gnome-heritage-chameleon
+    - Completed item: 20260409-050000-impl-dc-cr-gnome-heritage-sensate
     - Dev seat: dev-dungeoncrawler
-    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260409-050000-impl-dc-cr-gnome-heritage-chameleon.md
+    - Dev outbox: sessions/dev-dungeoncrawler/outbox/20260409-050000-impl-dc-cr-gnome-heritage-sensate.md
 
     Required actions:
     1) Run a targeted verification for *this item* (derive steps from Dev outbox + acceptance criteria).
@@ -14,5 +14,3 @@
 
     Deliverable:
     - Write a Verification Report with explicit APPROVE/BLOCK and evidence.
-- Agent: qa-dungeoncrawler
-- Status: pending

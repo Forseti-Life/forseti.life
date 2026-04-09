@@ -325,32 +325,7 @@ class CharacterManager {
         ],
       ],
       ['id' => 'fey-touched', 'name' => 'Fey-Touched Gnome', 'benefit' => 'First World magic'],
-      [
-        'id'      => 'sensate',
-        'name'    => 'Sensate Gnome',
-        'benefit' => 'You have a powerful sense of smell. You gain imprecise scent with a base range of 30 feet. This sense is imprecise — it narrows an undetected creature\'s position to a square but does not pinpoint it precisely. You gain a +2 circumstance bonus to Perception checks to locate an undetected creature within your current scent range. Wind direction modifies effective range: when a creature is downwind, range doubles to 60 feet; when upwind, range is halved to 15 feet. If no wind-direction model is present in the encounter, treat range as the base 30 feet.',
-        'special' => [
-          'senses' => [
-            [
-              'type'       => 'scent',
-              'precision'  => 'imprecise',
-              'base_range' => 30,
-              'modifiers'  => [
-                'downwind' => ['multiplier' => 2, 'effective_range' => 60],
-                'upwind'   => ['multiplier' => 0.5, 'effective_range' => 15],
-                'neutral'  => ['multiplier' => 1, 'effective_range' => 30],
-              ],
-              'no_wind_fallback' => 30,
-            ],
-          ],
-          'perception_bonus' => [
-            'type'      => 'circumstance',
-            'value'     => 2,
-            'condition' => 'locating an undetected creature within current scent range',
-            'note'      => 'Does not apply to Perception checks beyond scent range or to already-detected creatures.',
-          ],
-        ],
-      ],
+      ['id' => 'sensate', 'name' => 'Sensate Gnome', 'benefit' => 'Enhanced senses'],
       ['id' => 'umbral', 'name' => 'Umbral Gnome', 'benefit' => 'Darkvision'],
       ['id' => 'wellspring', 'name' => 'Wellspring Gnome', 'benefit' => 'Your connection to magic is especially potent. Choose a magical tradition (arcane, divine, occult, or primal). You gain two additional innate cantrips from that tradition, chosen at character creation. Once per day when you recover your spell slots, you may also recover one expended innate cantrip or innate spell.'],
     ],

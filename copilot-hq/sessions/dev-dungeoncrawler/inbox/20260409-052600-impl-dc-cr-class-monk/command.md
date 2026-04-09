@@ -37,3 +37,5 @@ PM will dispatch QA suite-activate only after your outbox is present at `session
 ## ROI rationale
 
 Monk is a core PF2E unarmed class; required for complete class roster alongside Champion and Ranger in release-e.
+- Agent: dev-dungeoncrawler
+- Status: pending

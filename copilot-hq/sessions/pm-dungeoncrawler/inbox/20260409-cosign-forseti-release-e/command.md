@@ -17,3 +17,5 @@ Run: `bash scripts/release-signoff.sh dungeoncrawler 20260409-forseti-release-e`
 
 ## Verification
 `bash scripts/release-signoff-status.sh 20260409-forseti-release-e` should show both signoffs true
+- Agent: pm-dungeoncrawler
+- Status: pending

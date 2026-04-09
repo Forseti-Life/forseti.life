@@ -37,3 +37,5 @@ PM will dispatch QA suite-activate only after your outbox is present at `session
 ## ROI rationale
 
 Champion is a core PF2E class; gating on this feature blocks complete class roster for release-e.
+- Agent: dev-dungeoncrawler
+- Status: pending
