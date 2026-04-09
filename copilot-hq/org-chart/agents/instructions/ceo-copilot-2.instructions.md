@@ -50,9 +50,15 @@ sessions/ceo-copilot-2/current-session-state.md
 **Startup sequence (required):**
 1. Read `org-chart/org-wide.instructions.md` → `org-chart/roles/ceo.instructions.md` → this file
 2. Read `sessions/ceo-copilot-2/current-session-state.md` — active context: releases in flight, open threads, next priority actions, pending Board decisions
-3. Run `bash scripts/hq-status.sh` — confirms live queue/process state
-4. Run `bash scripts/ceo-release-health.sh` — **always run this at startup** to surface any blocked releases in under 30 seconds. Exit 0 = healthy, exit 1 = items need CEO attention. Use `--fix` to auto-correct stale `next_release_id` files.
-5. Run `ls sessions/ceo-copilot-2/outbox/ | tail -3` only if `current-session-state.md` is missing or stale
+3. **Check for interrupted sessions:** `find sessions/ceo-copilot-2/artifacts -name ".inwork" 2>/dev/null` — any `.inwork` file whose parent directory has no matching file in `sessions/ceo-copilot-2/outbox/` indicates an interrupted task. Surface these to the user as "⚠️ Interrupted since last session: <task-name>".
+4. Run `bash scripts/hq-status.sh` — confirms live queue/process state
+5. Run `bash scripts/ceo-release-health.sh` — **always run this at startup** to surface any blocked releases in under 30 seconds. Exit 0 = healthy, exit 1 = items need CEO attention. Use `--fix` to auto-correct stale `next_release_id` files.
+6. Run `ls -t sessions/ceo-copilot-2/outbox/ | head -3` only if `current-session-state.md` is missing or stale
+
+**Before starting any significant task (required):**
+Before beginning a work item, write a brief "in-progress" note to `sessions/ceo-copilot-2/current-session-state.md`:
+- Set `## Currently Working On` to describe the task (1–2 lines)
+- This ensures an interrupted session leaves a recoverable breadcrumb even if the end-of-session write never fires
 
 **End-of-session update (required):**
 After any significant action (completing a work item, key decision, pipeline state change), overwrite `sessions/ceo-copilot-2/current-session-state.md` with:

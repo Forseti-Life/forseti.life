@@ -29,8 +29,21 @@ cat sessions/architect-copilot/current-session-state.md 2>/dev/null || echo "(no
 ls -t sessions/architect-copilot/outbox/ 2>/dev/null | head -3
 ```
 
+**Step 2b --- Check for interrupted sessions:**
+```bash
+cd /home/ubuntu/forseti.life/copilot-hq
+find sessions/architect-copilot/artifacts -name ".inwork" 2>/dev/null | while read f; do
+  base=$(basename "$(dirname "$f")")
+  if ! ls sessions/architect-copilot/outbox/ 2>/dev/null | grep -q "$base"; then
+    echo "INTERRUPTED: $base"
+  fi
+done
+```
+Any `INTERRUPTED:` output means a task was started but never completed. Surface this to the user: "⚠️ Interrupted since last session: <task-name>".
+
 **Step 3 --- Brief the user:**
 - Last completed work (most recent outbox or session state)
+- Any interrupted tasks found in Step 2b (⚠️ flag these prominently)
 - What is currently in flight (if any)
 - Ask what to work on next (if no active task is obvious)
 
@@ -191,6 +204,8 @@ copilot-hq/orchestrator/
 ---
 
 ## Session Continuity
+**Before starting any significant task:** Write a brief "in-progress" note to `sessions/architect-copilot/current-session-state.md` — set `## Currently Working On` to describe the task (1–2 lines). This ensures an interrupted session leaves a recoverable breadcrumb even if the end-of-session write never fires.
+
 After any significant implementation block, overwrite `sessions/architect-copilot/current-session-state.md` with:
 - What was just built or changed
 - Current state of in-flight work
