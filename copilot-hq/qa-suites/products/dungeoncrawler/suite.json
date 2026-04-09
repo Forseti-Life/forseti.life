@@ -9515,6 +9515,76 @@
           "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard; covered by dc-cr-heritage-system baseline)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-gnome-heritage-umbral-e2e",
+      "label": "Umbral Gnome Heritage \u2014 catalog entry (Gnome-only), darkvision (precise, complete darkness), supersedes Low-Light Vision, no-duplicate guard when sense already held",
+      "feature_id": "dc-cr-gnome-heritage-umbral",
+      "type": "e2e",
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "cd /home/ubuntu/forseti.life/sites/dungeoncrawler && ./vendor/bin/drush ev '...'",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-gnome-heritage-umbral/verification-report.md"
+      ],
+      "notes": "Data-only heritage (no new routes). Site audit 20260409-051852 (0 violations) covers this. Darkvision sense type shared with dc-cr-darkvision baseline. Commit f811ec132 also restored Sensate Gnome regression (from 90b346aae revert); both features confirmed present at HEAD.",
+      "test_cases": [
+        {
+          "id": "TC-UGH-001",
+          "feature_id": "dc-cr-gnome-heritage-umbral",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testUmbralGnomeHeritageInCatalog",
+          "description": "Umbral Gnome heritage exists in CharacterManager::HERITAGES['Gnome'] catalog (id=umbral, name=Umbral Gnome); absent from non-Gnome catalogs"
+        },
+        {
+          "id": "TC-UGH-002",
+          "feature_id": "dc-cr-gnome-heritage-umbral",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testUmbralGnomeDarkvisionSenseStructure",
+          "description": "special.senses[0]: type=darkvision, precision=precise; benefit text confirms complete-darkness vision"
+        },
+        {
+          "id": "TC-UGH-003",
+          "feature_id": "dc-cr-gnome-heritage-umbral",
+          "ac_tag": "happy-path",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testUmbralGnomeDarkvisionSupersedesLLV",
+          "description": "special.senses[0].note confirms Darkvision supersedes Low-Light Vision (Gnome ancestry default)"
+        },
+        {
+          "id": "TC-UGH-004",
+          "feature_id": "dc-cr-gnome-heritage-umbral",
+          "ac_tag": "edge-case",
+          "suite_type": "unit",
+          "status": "active",
+          "class_method": "CharacterManagerTest::testUmbralGnomeNoDuplicateDarkvision",
+          "description": "special.senses[0].note confirms no duplicate darkvision entry when sense already granted by another source (feat or item)"
+        },
+        {
+          "id": "TC-UGH-005",
+          "feature_id": "dc-cr-gnome-heritage-umbral",
+          "ac_tag": "happy-path",
+          "suite_type": "functional",
+          "status": "active",
+          "class_method": "UmbralGnomeHeritageTest::testHeritageRestrictedToGnomeAncestry",
+          "description": "Umbral Gnome restricted to Gnome ancestry \u2014 non-Gnome + heritage=umbral returns validation error"
+        },
+        {
+          "id": "TC-UGH-006",
+          "feature_id": "dc-cr-gnome-heritage-umbral",
+          "ac_tag": "permissions",
+          "suite_type": "acl",
+          "status": "active",
+          "class_method": "UmbralGnomeHeritageTest::testAnonDeniedCharacterCreate",
+          "description": "Anonymous GET /dungeoncrawler/character/create returns 302 or 403 (regression guard; covered by dc-cr-heritage-system baseline)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
