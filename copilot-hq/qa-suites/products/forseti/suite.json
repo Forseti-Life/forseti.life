@@ -1593,6 +1593,62 @@
       "command": "npx playwright test tests/forseti-ai-conversation-export.spec.ts --reporter=json --output=sessions/qa-forseti/artifacts/ai-conversation-export/"
     },
     {
+      "id": "forseti-ai-conversation-history-browser-static",
+      "label": "History browser routes: GET /forseti/conversations GET-only, POST /forseti/conversations/{id}/delete POST-only with CSRF, integer constraint on delete",
+      "type": "static",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "command": "bash -c 'ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/ai_conversation/ai_conversation.routing.yml; echo \"[AC-1] forseti.conversations GET-only:\"; grep -A10 \"^forseti\\.conversations:\" \"$ROUTING\" | grep -q \"methods.*GET\" && echo PASS || (echo FAIL && exit 1); echo \"[AC-1] no CSRF on list:\"; grep -A10 \"^forseti\\.conversations:\" \"$ROUTING\" | grep -q \"_csrf_token\" && (echo FAIL_CSRF_ON_GET && exit 1) || echo PASS; echo \"[AC-5] forseti.conversation_delete POST-only:\"; grep -A12 \"^forseti\\.conversation_delete:\" \"$ROUTING\" | grep -q \"methods.*POST\" && echo PASS || (echo FAIL && exit 1); echo \"[AC-5] _csrf_token on delete:\"; grep -A12 \"^forseti\\.conversation_delete:\" \"$ROUTING\" | grep -q \"_csrf_token.*TRUE\" && echo PASS || (echo FAIL && exit 1); echo \"[AC-5] integer constraint on delete:\"; grep -A12 \"^forseti\\.conversation_delete:\" \"$ROUTING\" | grep -q \"conversation_id.*\\\\\\\\d\" && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-history-browser/forseti-ai-conversation-history-browser-static.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-history-browser-acl",
+      "label": "Anonymous GET /forseti/conversations \u2192 403",
+      "type": "acl",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/forseti/conversations); echo \"anon GET /forseti/conversations: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-history-browser/forseti-ai-conversation-history-browser-acl.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-history-browser-csrf-delete",
+      "label": "POST /forseti/conversations/{id}/delete without CSRF \u2192 403",
+      "type": "csrf",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" -X POST https://forseti.life/forseti/conversations/1/delete); echo \"POST delete no-CSRF: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-history-browser/forseti-ai-conversation-history-browser-csrf-delete.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-history-browser-non-int",
+      "label": "POST /forseti/conversations/notanid/delete \u2192 404 (integer constraint)",
+      "type": "acl",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" -X POST https://forseti.life/forseti/conversations/notanid/delete); echo \"POST delete non-int: $STATUS\"; [ \"$STATUS\" = \"404\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-history-browser/forseti-ai-conversation-history-browser-non-int.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-ai-conversation-history-browser-e2e",
+      "label": "E2E: authenticated list renders, pagination, resume link, delete, empty state (Playwright \u2014 deferred)",
+      "type": "e2e",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "command": "npx playwright test tests/forseti-ai-conversation-history-browser.spec.ts --reporter=json --output=sessions/qa-forseti/artifacts/ai-conversation-history-browser/",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/ai-conversation-history-browser/forseti-ai-conversation-history-browser-e2e.log"
+      ],
+      "skip_reason": "Playwright not available on this host; deferred until Playwright environment is provisioned",
+      "required_for_release": false
+    },
+    {
       "id": "forseti-jobhunter-cover-letter-display-static",
       "label": "Cover Letter Display: static checks \u2014 CSRF on generate+save routes, job_id constraint",
       "type": "static",

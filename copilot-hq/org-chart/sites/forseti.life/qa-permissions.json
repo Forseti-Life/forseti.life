@@ -526,6 +526,28 @@
         "anon": "404",
         "authenticated": "404"
       }
+    },
+    {
+      "id": "forseti-ai-conversation-history-browser-list",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "path_regex": "^/forseti/conversations$",
+      "notes": "GET /forseti/conversations \u2014 requires 'use ai conversation' permission + logged in",
+      "expect": {
+        "anon": "403",
+        "authenticated_no_permission": "403",
+        "authenticated_with_permission": "200"
+      }
+    },
+    {
+      "id": "forseti-ai-conversation-history-browser-delete",
+      "feature_id": "forseti-ai-conversation-history-browser",
+      "path_regex": "^/forseti/conversations/\\d+/delete$",
+      "notes": "POST /forseti/conversations/{id}/delete \u2014 POST-only, CSRF-guarded, integer constraint",
+      "expect": {
+        "anon_post_no_csrf": "403",
+        "authenticated_post_no_csrf": "403",
+        "non_int_id_post": "404"
+      }
     }
   ]
 }
