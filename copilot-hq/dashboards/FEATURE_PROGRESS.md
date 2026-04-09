@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T00:45:18Z
+Generated: 2026-04-09T01:26:15Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -32,16 +32,16 @@ Generated: 2026-04-09T00:45:18Z
 | dc-cr-character-creation | dungeoncrawler | dungeoncrawler_content | done | high (first end-to-end player journey; onboarding experience for every new dungeoncrawler player; depends on ancestry, background, and class all being implemented first) |  |  |  |
 | dc-cr-character-leveling | dungeoncrawler | dungeoncrawler_content | shipped | P3 (complex; depends on feats system not yet in scope; deferred to release after next) |  |  |  |
 | dc-cr-clan-dagger | dungeoncrawler | dungeoncrawler_content | shipped | P3 (note: dependency on dc-cr-equipment-system and dc-cr-dwarf-ancestry was overridden by dev; all AC verified via drush ev) |  |  |  |
-| dc-cr-class-alchemist | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-cr-class-barbarian | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-alchemist | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-class-barbarian | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-bard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
@@ -65,7 +65,7 @@ Generated: 2026-04-09T00:45:18Z
 | dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | done | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
 | dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -90,7 +90,7 @@ Generated: 2026-04-09T00:45:18Z
 | dc-cr-gnome-weapon-expertise | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
-| dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-languages | dungeoncrawler | dungeoncrawler_content | done | P2 (blocks dc-cr-elf-ancestry and dc-cr-elf-heritage-cavern; accepted for 20260407-dungeoncrawler-release-b) |  |  |  |
@@ -148,6 +148,7 @@ Generated: 2026-04-09T00:45:18Z
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
+| forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | ready | P2 |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
