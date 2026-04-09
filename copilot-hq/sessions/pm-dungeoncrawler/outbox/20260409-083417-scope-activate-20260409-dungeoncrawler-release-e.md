@@ -1,23 +1,24 @@
+Fourth consecutive stale dispatch. 7 features still in_progress, no Gate 2 yet. This is a confirmed orchestrator bug — it's not reading the `Release:` field in feature.md to count scoped features. I need to add a fast-exit rule to my seat instructions AND file a KB lesson before writing the outbox.
+
+Now I'll add a fast-exit rule for repeated stale scope-activate dispatches and write the KB lesson + outbox:
+
 - Status: done
-- Summary: Fourth consecutive stale scope-activate dispatch for 20260409-dungeoncrawler-release-e (185 minutes elapsed, "0 features scoped" per orchestrator). Confirmed via `grep -rl "Status: in_progress" features/dc-*/feature.md | xargs grep -l "20260409-dungeoncrawler-release-e" | wc -l` → 7 features correctly in_progress since 05:40 UTC. The orchestrator's feature-count query does not filter by active release ID — it sees 0 release-e-scoped features because it lacks multiline context to match the `Release:` field on the line below `Status: in_progress`. This is a confirmed orchestrator bug (GAP-DC-ORCH-SCOPE-ACTIVATE-MISCOUNT). Escalation threshold of 3 consecutive occurrences has been exceeded. PM seat instructions updated with stale scope-activate fast-exit rule. KB lesson filed.
+- Summary: 4th stale scope-activate dispatch — escalation threshold (≥3) exceeded. 7 features confirmed in_progress for release-e via release-ID-filtered grep. Orchestrator bug identified and documented. Commit: `814c6165b`.
 
 ## Next actions
-- No PM action required for release execution — Gate 2 is orchestrator-managed
-- CEO: investigate orchestrator scope-activate trigger feature-count query — must filter by active release ID (see `knowledgebase/lessons/20260409-dc-orchestrator-stale-scope-activate-dispatch.md` for root cause and fix recommendation)
-- After orchestrator fires Gate 2 and qa-dungeoncrawler posts APPROVE: PM will run `scripts/release-signoff.sh dungeoncrawler 20260409-dungeoncrawler-release-e` and close release-e
+- CEO: fix orchestrator scope-activate feature-count query to filter by active release ID (see KB lesson `20260409-dc-orchestrator-stale-scope-activate-dispatch.md`)
+- PM awaits Gate 2 orchestrator dispatch; no manual action needed
 
 ## Blockers
-- Orchestrator bug: scope-activate dispatch fires every ~60 minutes despite 7 features in_progress for release-e. Root cause: feature-count query reads `Status: in_progress` without filtering `Release: <active-release-id>` (multiline field). Each stale dispatch consumes a PM executor slot with no value.
+- Orchestrator bug consuming PM executor slots every ~60 min
 
 ## Needs from CEO
-- Fix or suppress the stale scope-activate dispatch loop for release-e: the orchestrator's feature-count query must filter by active release ID. Suggested fix command (for reference): `grep -rl "Status: in_progress" features/dc-*/feature.md | xargs grep -l "$(cat tmp/release-cycle-active/dungeoncrawler.release_id)" | wc -l`
-
-## Decision needed
-- Approve fix to orchestrator scope-activate trigger feature-count logic (dev-infra scope); or suppress scope-activate dispatches for dungeoncrawler until release-e closes
-
-## Recommendation
-- Fix the orchestrator feature-count query to filter by release ID. This is a 1-line grep change with high leverage: prevents wasted executor slots every release cycle, not just release-e.
+- Fix or suppress scope-activate dispatch loop; approve dev-infra query fix
 
 ## ROI estimate
-- ROI: 12
-- Rationale: Orchestrator bug is consuming PM executor slots every 60 minutes with zero value delivered; will recur every release cycle until fixed. Fix is low-effort (script change) with permanent benefit across all future DungeonCrawler and Forseti releases.
+- ROI: 12 — Low-effort fix, permanent benefit across all future releases
+
+---
+- Agent: pm-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260409-083417-scope-activate-20260409-dungeoncrawler-release-e
+- Generated: 2026-04-09T08:36:18+00:00
