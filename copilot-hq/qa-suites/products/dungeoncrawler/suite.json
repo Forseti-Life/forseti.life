@@ -9177,6 +9177,69 @@
           "description": "ACL regression: no new routes from Ranger; existing character routes return expected results (0 violations)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-fey-fellowship-e2e",
+      "label": "Fey Fellowship \u2014 Gnome level-1 feat selectability, +2 Perception/saves vs fey (not non-fey), immediate Diplomacy Make-an-Impression (1 action, -5 penalty), failed-check retry, Glad-Hand waiver for fey targets only",
+      "type": "e2e",
+      "feature_id": "dc-cr-fey-fellowship",
+      "activated_release": "20260409-dungeoncrawler-release-c",
+      "activated_date": "2026-04-09",
+      "command": "npx playwright test tests/dc-cr-fey-fellowship --reporter=junit --output=test-results/dc-cr-fey-fellowship/results.xml",
+      "artifacts": [
+        "test-results/dc-cr-fey-fellowship/results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-FEY-01",
+          "suite": "playwright/character-creation",
+          "ac": "NEW-availability",
+          "description": "Fey Fellowship appears in Gnome level-1 ancestry feat list; selectable at character creation and level-1 ancestry feat slots"
+        },
+        {
+          "id": "TC-FEY-02",
+          "suite": "playwright/encounter",
+          "ac": "NEW-perception-bonus-vs-fey",
+          "description": "+2 circumstance bonus to Perception checks when target.traits includes fey"
+        },
+        {
+          "id": "TC-FEY-03",
+          "suite": "playwright/encounter",
+          "ac": "NEW-save-bonus-vs-fey",
+          "description": "+2 circumstance bonus to all saving throws when source.traits includes fey"
+        },
+        {
+          "id": "TC-FEY-04",
+          "suite": "playwright/encounter",
+          "ac": "NEW-bonuses-fey-only",
+          "description": "+2 Perception and +2 save bonuses = 0 vs non-fey targets in same encounter; fey-trait gate enforced"
+        },
+        {
+          "id": "TC-FEY-05",
+          "suite": "playwright/social",
+          "ac": "NEW-immediate-diplomacy",
+          "description": "Immediate Make an Impression (1 action) available in social encounter with fey; diplomacy_check.penalty = -5"
+        },
+        {
+          "id": "TC-FEY-06",
+          "suite": "playwright/social",
+          "ac": "TEST-ONLY-failed-retry",
+          "description": "After failed immediate check, normal 1-minute retry available with no additional penalty from this feat"
+        },
+        {
+          "id": "TC-FEY-07",
+          "suite": "playwright/social",
+          "ac": "NEW-glad-hand-waiver-fey",
+          "description": "With Glad-Hand feat + fey target, -5 immediate Diplomacy penalty waived; diplomacy_check.penalty = 0"
+        },
+        {
+          "id": "TC-FEY-08",
+          "suite": "playwright/social",
+          "ac": "TEST-ONLY-glad-hand-non-fey",
+          "description": "Glad-Hand waiver does not apply vs non-fey targets; penalty = -5 even with Glad-Hand when target is not fey"
+        }
+      ]
     }
   ],
   "_schema_notes": [
