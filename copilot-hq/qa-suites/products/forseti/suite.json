@@ -1161,6 +1161,91 @@
         "Run after dev completes the extraction to confirm no site-wide regressions."
       ],
       "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-application-controller-split-static",
+      "label": "Controller split static checks \u2014 TC-2 php -l, TC-3 zero DB calls, TC-4 CSRF count, TC-6 line count",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-application-controller-split",
+      "command": "bash -c 'set -e; BASE=sites/forseti/web/modules/custom/job_hunter/src/Controller; php -l $BASE/ApplicationSubmissionController.php && php -l $BASE/ApplicationActionController.php && test $(grep -c \"\\$this->database\" $BASE/ApplicationSubmissionController.php) -eq 0 && test $(grep -c \"\\$this->database\" $BASE/ApplicationActionController.php) -eq 0 && test $(wc -l < $BASE/ApplicationSubmissionController.php) -le 800 && test $(wc -l < $BASE/ApplicationActionController.php) -le 800 && echo PASS'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/jobhunter-application-controller-split-static-latest/results.txt"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create ApplicationSubmissionController.php and ApplicationActionController.php before this suite is runnable.",
+        "Covers: php -l clean (TC-2), 0 $this->database calls (TC-3), line count <= 800 (TC-6).",
+        "TC-4 (CSRF count) requires Dev to record pre-refactor baseline in implementation notes; QA to verify count matches post-split.",
+        "CSRF baseline: 37 _csrf_token occurrences in job_hunter.routing.yml as of 2026-04-09."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-controller-split-functional",
+      "label": "Controller split functional smoke \u2014 TC-1 route HTTP status, TC-5 drush cr",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-application-controller-split",
+      "command": "bash -c 'set -e; STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/); test \"$STATUS\" = \"200\" && echo homepage=200 || echo homepage=$STATUS; ANON=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/my-jobs); (test \"$ANON\" = \"403\" || test \"$ANON\" = \"302\") && echo my-jobs-anon=$ANON || (echo FAIL: my-jobs-anon=$ANON && exit 1); cd /var/www/html/forseti && vendor/bin/drush cr && echo drush-cr=OK'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/jobhunter-application-controller-split-functional-latest/results.txt"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must complete split before this suite is runnable.",
+        "Covers: homepage HTTP 200 (TC-1), /jobhunter/my-jobs anon=403/302 (TC-1/AC-6), drush cr exits 0 (TC-5).",
+        "Expected anon status on /jobhunter/my-jobs: 403 (confirmed pre-split).",
+        "TC-5 watchdog check: run drush watchdog:show --count=5 --severity=Error manually post-drush-cr if automated check is insufficient."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-controller-split-regression",
+      "label": "Controller split regression \u2014 site audit 0/0 after split",
+      "type": "regression",
+      "feature_id": "forseti-jobhunter-application-controller-split",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq && ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti && python3 -c \"import json; d=json.load(open(\\\"sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json\\\")); failures=d[\\\"counts\\\"][\\\"failures\\\"]; viols=d[\\\"counts\\\"].get(\\\"permission_violations\\\",0); assert failures==0 and viols==0, f\\\"FAIL: failures={failures} violations={viols}\\\"; print(\\\"PASS: 0 failures 0 violations\\\")\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must complete split before meaningful regression run.",
+        "Covers: AC-6 (auth/permission surface unchanged) via full site audit.",
+        "Baseline: site audit 20260409-033955 \u2014 0 failures, 0 violations."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-controller-split-static",
+      "label": "Controller split static checks \u2014 TC-2 php -l, TC-3 zero DB calls, TC-4 CSRF count preserved, TC-6 line count \u2264800",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-application-controller-split",
+      "command": "bash -c 'set -e; BASE=sites/forseti/web/modules/custom/job_hunter; php -l $BASE/src/Controller/ApplicationSubmissionController.php && php -l $BASE/src/Controller/ApplicationActionController.php && echo \"php-l: PASS\" && SUB=$(grep -c \"\\$this->database\" $BASE/src/Controller/ApplicationSubmissionController.php || true) && ACT=$(grep -c \"\\$this->database\" $BASE/src/Controller/ApplicationActionController.php || true) && echo \"db-calls sub=$SUB act=$ACT\" && [ \"$SUB\" -eq 0 ] && [ \"$ACT\" -eq 0 ] && echo \"TC-3 zero-db: PASS\" && CSRF=$(grep -c \"_csrf_token\" $BASE/../../../job_hunter.routing.yml) && echo \"csrf_count=$CSRF (baseline 37)\" && [ \"$CSRF\" -ge 37 ] && echo \"TC-4 csrf-preserved: PASS\" && SUBLINES=$(wc -l < $BASE/src/Controller/ApplicationSubmissionController.php) && ACTLINES=$(wc -l < $BASE/src/Controller/ApplicationActionController.php) && echo \"lines sub=$SUBLINES act=$ACTLINES\" && [ \"$SUBLINES\" -le 800 ] && [ \"$ACTLINES\" -le 800 ] && echo \"TC-6 line-count: PASS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-controller-split-static-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must create ApplicationSubmissionController.php and ApplicationActionController.php before this suite is runnable.",
+        "TC-2: php -l on both new controller files.",
+        "TC-3: zero $this->database calls in both new controllers (DB extraction was Phase 1).",
+        "TC-4: CSRF token count in job_hunter.routing.yml must be >= 37 (baseline at suite-write time). Split must not collapse or remove split-route CSRF patterns.",
+        "TC-6: each new controller file must be <= 800 lines."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-application-controller-split-functional",
+      "label": "Controller split functional checks \u2014 TC-1 route smoke (anon 403 on /jobhunter/my-jobs), TC-5 drush cr clean",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-application-controller-split",
+      "command": "bash -c 'set -e; STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/my-jobs); echo \"anon /jobhunter/my-jobs: $STATUS\"; ([ \"$STATUS\" = \"403\" ] || [ \"$STATUS\" = \"302\" ]) && echo \"TC-1 route-smoke: PASS\" || (echo \"TC-1 route-smoke: FAIL expected 403/302 got $STATUS\" && exit 1) && cd sites/forseti && vendor/bin/drush cr && echo \"TC-5 drush-cr: PASS\" && ERRORS=$(vendor/bin/drush watchdog:show --count=5 --severity=Error --format=json 2>/dev/null | python3 -c \"import json,sys; d=json.load(sys.stdin); print(len(d))\" 2>/dev/null || echo 0) && echo \"recent error log entries: $ERRORS\"'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-application-controller-split-functional-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must complete the controller split before this suite is runnable.",
+        "TC-1: anonymous GET /jobhunter/my-jobs must return 403 or 302 (no change from pre-split baseline).",
+        "TC-5: drush cr must exit 0 with no PHP fatal errors in watchdog after the split.",
+        "Also smoke-checks site root: curl https://forseti.life/ must return 200 (checked via TC-1 cascade)."
+      ]
     }
   ],
   "_schema_notes": [
