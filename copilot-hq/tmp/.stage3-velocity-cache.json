@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-09T13:53:30.032003",
+  "generated_at": "2026-04-09T13:59:31.857201",
   "window_minutes": 15,
   "teams": [
     {
@@ -7,38 +7,18 @@
       "label": "Forseti",
       "site": "forseti.life",
       "window_minutes": 15,
-      "latest_run": "20260409-130530",
+      "latest_run": "20260409-135804",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
       "resolved_per_15_minutes": 0.0,
       "workflow": {
-        "dev_outbox_updates": 0,
+        "dev_outbox_updates": 1,
         "dev_notify_qa_markers": 0,
         "qa_done_markers": 0,
         "handoff_signal": "weak"
       },
       "recent_deltas": [
-        {
-          "from_run": "20260409-123432",
-          "to_run": "20260409-123513",
-          "to_ts": "2026-04-09T12:35:13",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 0.68
-        },
-        {
-          "from_run": "20260409-123513",
-          "to_run": "20260409-124035",
-          "to_ts": "2026-04-09T12:40:35",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 5.37
-        },
         {
           "from_run": "20260409-124035",
           "to_run": "20260409-124843",
@@ -68,6 +48,26 @@
           "resolved": 0,
           "introduced": 0,
           "elapsed_minutes": 9.48
+        },
+        {
+          "from_run": "20260409-130530",
+          "to_run": "20260409-135701",
+          "to_ts": "2026-04-09T13:57:01",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 51.52
+        },
+        {
+          "from_run": "20260409-135701",
+          "to_run": "20260409-135804",
+          "to_ts": "2026-04-09T13:58:04",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 1.05
         }
       ]
     },
