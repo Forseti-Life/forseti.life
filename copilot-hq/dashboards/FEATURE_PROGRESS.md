@@ -1,15 +1,15 @@
 # Feature Progress
 
-Generated: 2026-04-09T22:28:40Z
+Generated: 2026-04-09T22:39:55Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
 | dc-apg-ancestries | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-archetypes | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
+| dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
+| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-apg-feats | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
@@ -38,12 +38,12 @@ Generated: 2026-04-09T22:28:40Z
 | dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -178,7 +178,7 @@ Generated: 2026-04-09T22:28:40Z
 | forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-fill-jobhunter-submission | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-fill-release-f | forseti.life | qa_suites | shipped | medium |  |  |  |
-| forseti-qa-suite-retire-stale | forseti.life | qa_suites | ready | medium |  |  |  |
+| forseti-qa-suite-retire-stale | forseti.life | qa_suites | done | medium |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
 ## Key metric: auto-remediation rate
