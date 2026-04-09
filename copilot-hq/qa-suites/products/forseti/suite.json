@@ -75,12 +75,12 @@
       "label": "BrowserAutomationService unit tests \u2014 TC-02, TC-03, TC-09, TC-11, TC-12 (PHPUnit)",
       "type": "unit",
       "feature_id": "forseti-jobhunter-browser-automation",
-      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/BrowserAutomationServiceTest.php --testdox",
+      "command": "cd /var/www/html/forseti && vendor/bin/phpunit web/modules/custom/job_hunter/tests/src/Unit/Service/BrowserAutomationServiceTest.php --testdox",
       "artifacts": [
         "sessions/qa-forseti/artifacts/jobhunter-browser-automation-unit-latest/"
       ],
       "run_notes": [
-        "STAGE 0 PENDING: Dev must create BrowserAutomationServiceTest.php before this suite is runnable.",
+        "File exists at tests/src/Unit/Service/BrowserAutomationServiceTest.php (343 lines, TestableBrowserAutomationService subclass pattern).",
         "Covers: smart routing unsupported ATS (TC-02), attempt logging correct job_seeker_id (TC-03), bridge failure logging (TC-09), exception caught structured error (TC-11), DB absent graceful fail (TC-12).",
         "KB: job_seeker_id must be profile PK (jobhunter_job_seeker.id), NOT Drupal uid. Ref: knowledgebase/lessons/20260220-forseti-jobhunter-uid-vs-jobseeker-id.md."
       ],
