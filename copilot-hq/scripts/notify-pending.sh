@@ -32,7 +32,7 @@ active_ceo_agent() {
 }
 
 METHOD="${NOTIFY_METHOD:-log}"
-COOLDOWN_SECONDS="${NOTIFY_COOLDOWN_SECONDS:-1800}"
+COOLDOWN_SECONDS="${NOTIFY_COOLDOWN_SECONDS:-14400}"  # default 4h; override with env var
 FORCE=0
 if [ "${1:-}" = "--force" ]; then
   FORCE=1
@@ -60,12 +60,27 @@ if [ -d "$ceo_inbox" ]; then
   pending_count="$(find "$ceo_inbox" -mindepth 1 -maxdepth 1 -type d ! -name "_archived" 2>/dev/null | wc -l | tr -d ' ')"
 fi
 
+breach_ids=""
 breach_count=0
 if [ -x ./scripts/sla-report.sh ]; then
-  breach_count="$(./scripts/sla-report.sh 2>/dev/null | grep -c '^BREACH' || true)"
+  breach_ids="$(./scripts/sla-report.sh 2>/dev/null | grep '^BREACH' | sort || true)"
+  breach_count="$(echo "$breach_ids" | grep -c '^BREACH' || true)"
 fi
 
 if [ "$pending_count" -eq 0 ] && [ "$breach_count" -eq 0 ]; then
+  exit 0
+fi
+
+# Deduplication: only notify if breach set has changed since last notification.
+SEEN_FILE="$STATE_DIR/.notify-pending.seen-breaches"
+breach_fingerprint="$(echo "${breach_ids}" | md5sum | cut -d' ' -f1)"
+last_fingerprint=""
+if [ -f "$SEEN_FILE" ]; then
+  last_fingerprint="$(cat "$SEEN_FILE" 2>/dev/null || true)"
+fi
+
+# Skip if: cooldown not expired AND breach set hasn't changed
+if [ "$FORCE" -ne 1 ] && [ $((now - last)) -lt "$COOLDOWN_SECONDS" ] && [ "$breach_fingerprint" = "$last_fingerprint" ] && [ "$pending_count" -eq 0 ]; then
   exit 0
 fi
 
@@ -75,7 +90,9 @@ Pending items require your attention.
 
 - CEO inbox items: ${pending_count}
 - SLA breaches: ${breach_count}
-
+${breach_ids:+
+Active breaches:
+${breach_ids}}
 Check:
 - /home/ubuntu/forseti.life/copilot-hq/sessions/${ceo_agent}/inbox
 - /home/ubuntu/forseti.life/copilot-hq/inbox/responses/forseti-triage-latest.log
@@ -134,3 +151,4 @@ case "$METHOD" in
 esac
 
 echo "$now" > "$STATE_FILE"
+echo "$breach_fingerprint" > "$SEEN_FILE"
