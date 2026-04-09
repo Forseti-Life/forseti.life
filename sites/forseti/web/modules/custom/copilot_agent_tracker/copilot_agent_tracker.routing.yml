@@ -154,6 +154,14 @@ copilot_agent_tracker.langgraph_release_troubleshooting:
   requirements:
     _permission: 'administer copilot agent tracker'
 
+copilot_agent_tracker.langgraph_process_flow:
+  path: '/admin/reports/copilot-agent-tracker/langgraph/process-flow'
+  defaults:
+    _controller: '\Drupal\copilot_agent_tracker\Controller\DashboardController::langGraphProcessFlow'
+    _title: 'Process Flow'
+  requirements:
+    _permission: 'administer copilot agent tracker'
+
 copilot_agent_tracker.llm_management:
   path: '/admin/reports/copilot-agent-tracker/llm-management'
   defaults:

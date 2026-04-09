@@ -3849,33 +3849,8 @@ final class DashboardController extends ControllerBase {
   public function langGraphDashboard(): array {
     $build = $this->buildLanggraphPageShell('LangGraph Control Plane');
 
-    $build['workflow_registry'] = $this->renderWorkflowRegistry();
-    $build['context_banner'] = $this->renderLangGraphContextBanner(
-      'Top-level health of the LangGraph orchestration system — tick freshness, engine mode, parity status, publishing state, and release cycle control. The single go/no-go view before drilling into any subpage.',
-      'Check here first whenever you suspect orchestrator problems, before approving a release, or after making any configuration change to the engine or agent setup.',
-      'langgraph-ticks.jsonl (latest tick) + langgraph-parity-latest.json + release-cycle-control.json — all written by the orchestrator in copilot-hq/inbox/responses/.'
-    );
-    $build['terms'] = $this->renderLangGraphKeyTerms([
-      'Tick'                     => 'One complete orchestrator loop iteration — the engine runs on a schedule (every few minutes) and appends one JSON record per loop to langgraph-ticks.jsonl.',
-      'Parity'                   => 'A validation check that the running graph matches its expected configuration: the same pipeline steps execute in the same order, and the same agents are selected.',
-      'dry_run'                  => 'When true, the orchestrator runs all logic but makes no external writes (no GitHub pushes, no Drupal DB writes). Safe mode for testing engine changes.',
-      'publish_enabled'          => 'Controls the publish pipeline step — when true, agent tracker telemetry is written to the Drupal database so this UI reflects live data.',
-      'Release cycle automation' => 'The release_cycle + coordinated_push pipeline steps. When disabled, teams stop advancing through release phases but other automation continues.',
-      'Control Plane'            => 'Pages that own health signals and operational controls (this page, Session Health, Parity Health).',
-      'Execution Plane'          => 'Pages that own work progression and release readiness (Feature Flow, Release Control).',
-      'Assurance Plane'          => 'Pages that own evidence and triage (Release Evidence, Release Triage).',
-    ]);
-    $build['guide'] = $this->renderLanggraphPageGuide(
-      'Provide a single operational entry point for LangGraph orchestration health.',
-      'Start here first, then jump to Session, Parity, or Release pages based on which signal is degraded.',
-      [
-        'Top-level health signals: latest tick freshness, parity status, publish mode, and release-cycle control state.',
-        'A quick action launchpad for deeper diagnostics pages.',
-        'Operational control forms (org automation and release-cycle control).',
-      ]
-    );
-    $build['flow_hub'] = $this->renderLanggraphHomeFlowHub();
-
+    // ── Data ─────────────────────────────────────────────────────────────────
+    // Load tick data first so health signals are available for all sections.
     $latest_tick = $this->readLastJsonlObject($this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE));
     $parity_data = $this->readJsonFile($this->langgraphPath(self::LANGGRAPH_PARITY_RELATIVE));
     $release_control = $this->readReleaseCycleControlState();
@@ -3900,10 +3875,12 @@ final class DashboardController extends ControllerBase {
       && $publish_enabled
       && $release_enabled;
 
+    // ── ACTION ZONE (weight -100 to -40) ─────────────────────────────────────
     $build['health_banner'] = [
       '#markup' => $ok_overall
         ? '<div class="messages messages--status"><strong>' . $this->t('LangGraph Health: OK') . '</strong> — ' . $this->t('Ticks, parity, publishing, and release-cycle automation are all healthy.') . '</div>'
         : '<div class="messages messages--warning"><strong>' . $this->t('LangGraph Health: ATTENTION') . '</strong> — ' . $this->t('One or more critical signals are degraded. Use the quick actions below to investigate.') . '</div>',
+      '#weight' => -100,
     ];
     $build['expected_action'] = $this->renderLanggraphExpectedAction(
       $ok_overall,
@@ -3912,6 +3889,7 @@ final class DashboardController extends ControllerBase {
       'Expected operator action (ATTENTION)',
       'Pause release approvals, investigate parity/session/release signals, and restore green status before proceeding.'
     );
+    $build['expected_action']['#weight'] = -90;
 
     $build['status_snapshot'] = [
       '#type' => 'table',
@@ -3946,6 +3924,7 @@ final class DashboardController extends ControllerBase {
           ]),
         ],
       ],
+      '#weight' => -80,
     ];
 
     $build['quick_actions'] = $this->renderLanggraphNavList(
@@ -3954,13 +3933,50 @@ final class DashboardController extends ControllerBase {
         $this->safeRouteLinkOrCurrent('Control Plane: review parity health now', 'copilot_agent_tracker.langgraph_parity'),
         $this->safeRouteLinkOrCurrent('Execution Plane: review release control now', 'copilot_agent_tracker.langgraph_release_status'),
         $this->safeRouteLinkOrCurrent('Control Plane: review session health now', 'copilot_agent_tracker.langgraph_session'),
+        $this->safeRouteLinkOrCurrent('View full process flow for all workflows', 'copilot_agent_tracker.langgraph_process_flow'),
         $this->safeRouteLinkOrCurrent('Open main Copilot dashboard', 'copilot_agent_tracker.dashboard'),
       ]
     );
+    $build['quick_actions']['#weight'] = -70;
+
+    $build['ops_control'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Org Automation Control'),
+      '#open' => TRUE,
+      '#weight' => -60,
+      'form' => $this->formBuilder()->getForm(OrgAutomationToggleForm::class, []),
+    ];
+
+    $build['release_cycle_control'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Release Management Cycle Control'),
+      '#open' => TRUE,
+      '#weight' => -50,
+      'help' => [
+        '#markup' => '<p>Start or stop release-cycle automation (release_cycle + coordinated_push) while keeping other automation controls intact.</p>',
+      ],
+      'form' => $this->formBuilder()->getForm(ReleaseManagementCycleForm::class),
+    ];
+
+    $build['waiting'] = [
+      '#type' => 'details',
+      '#title' => $this->t('Waiting on Keith'),
+      '#open' => FALSE,
+      '#weight' => -40,
+      'content' => $this->buildWaitingOnKeithView(),
+    ];
+
+    // ── REFERENCE ZONE (weight 10+) ──────────────────────────────────────────
+    $build['workflow_registry'] = $this->renderWorkflowRegistry();
+    $build['workflow_registry']['#weight'] = 10;
+
+    $build['flow_hub'] = $this->renderLanggraphHomeFlowHub();
+    $build['flow_hub']['#weight'] = 20;
 
     $build['page_responsibilities'] = [
       '#type' => 'table',
       '#caption' => $this->t('LangGraph architecture plane map'),
+      '#weight' => 30,
       '#header' => [
         $this->t('Plane'),
         $this->t('Page'),
@@ -4013,31 +4029,234 @@ final class DashboardController extends ControllerBase {
       ],
     ];
 
-    $build['ops_control'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Org Automation Control'),
-      '#open' => TRUE,
-      'form' => $this->formBuilder()->getForm(OrgAutomationToggleForm::class, []),
-    ];
+    // Reference/documentation sections — collapsed, weight 40+.
+    $build['terms'] = $this->renderLangGraphKeyTerms([
+      'Tick'                     => 'One complete orchestrator loop iteration — the engine runs on a schedule (every few minutes) and appends one JSON record per loop to langgraph-ticks.jsonl.',
+      'Parity'                   => 'A validation check that the running graph matches its expected configuration: the same pipeline steps execute in the same order, and the same agents are selected.',
+      'dry_run'                  => 'When true, the orchestrator runs all logic but makes no external writes (no GitHub pushes, no Drupal DB writes). Safe mode for testing engine changes.',
+      'publish_enabled'          => 'Controls the publish pipeline step — when true, agent tracker telemetry is written to the Drupal database so this UI reflects live data.',
+      'Release cycle automation' => 'The release_cycle + coordinated_push pipeline steps. When disabled, teams stop advancing through release phases but other automation continues.',
+      'Control Plane'            => 'Pages that own health signals and operational controls (this page, Session Health, Parity Health).',
+      'Execution Plane'          => 'Pages that own work progression and release readiness (Feature Flow, Release Control).',
+      'Assurance Plane'          => 'Pages that own evidence and triage (Release Evidence, Release Triage).',
+    ]);
+    $build['terms']['#weight'] = 40;
 
-    $build['release_cycle_control'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Release Management Cycle Control'),
-      '#open' => TRUE,
-      'help' => [
-        '#markup' => '<p>Start or stop release-cycle automation (release_cycle + coordinated_push) while keeping other automation controls intact.</p>',
-      ],
-      'form' => $this->formBuilder()->getForm(ReleaseManagementCycleForm::class),
-    ];
+    $build['guide'] = $this->renderLanggraphPageGuide(
+      'Provide a single operational entry point for LangGraph orchestration health.',
+      'Start here first, then jump to Session, Parity, or Release pages based on which signal is degraded.',
+      [
+        'Top-level health signals: latest tick freshness, parity status, publish mode, and release-cycle control state.',
+        'A quick action launchpad for deeper diagnostics pages.',
+        'Operational control forms (org automation and release-cycle control).',
+      ]
+    );
+    $build['guide']['#weight'] = 50;
 
-    $build['waiting'] = [
-      '#type' => 'details',
-      '#title' => $this->t('Waiting on Keith'),
-      '#open' => FALSE,
-      'content' => $this->buildWaitingOnKeithView(),
-    ];
+    $build['context_banner'] = $this->renderLangGraphContextBanner(
+      'Top-level health of the LangGraph orchestration system — tick freshness, engine mode, parity status, publishing state, and release cycle control. The single go/no-go view before drilling into any subpage.',
+      'Check here first whenever you suspect orchestrator problems, before approving a release, or after making any configuration change to the engine or agent setup.',
+      'langgraph-ticks.jsonl (latest tick) + langgraph-parity-latest.json + release-cycle-control.json — all written by the orchestrator in copilot-hq/inbox/responses/.'
+    );
+    $build['context_banner']['#weight'] = 60;
 
     $build['troubleshooting'] = $this->renderLanggraphTroubleshootingSection('LangGraph Troubleshooting Interfaces');
+    $build['troubleshooting']['#weight'] = 70;
+
+    return $this->sanitizeRenderArray($build);
+  }
+
+  /**
+   * LangGraph Process Flow — full pipeline visualization with live step status.
+   *
+   * Route: /admin/reports/copilot-agent-tracker/langgraph/process-flow
+   */
+  public function langGraphProcessFlow(): array {
+    $build = $this->buildLanggraphPageShell('LangGraph Process Flow');
+
+    $build['context_banner'] = $this->renderLangGraphContextBanner(
+      'The full execution pipeline for each registered LangGraph workflow — step-by-step node definitions, execution order, and live status from the most recent orchestrator tick.',
+      'Use when debugging a stuck or skipped pipeline step, verifying a new node was registered in the correct position, or reviewing end-to-end execution health of a workflow.',
+      'orchestrator/runtime_graph/engine.py (pipeline definition) + langgraph-ticks.jsonl latest tick (live step_results per node).'
+    );
+
+    $latest_tick  = $this->readLastJsonlObject($this->langgraphPath(self::LANGGRAPH_TICKS_RELATIVE));
+    $step_results = (array) ($latest_tick['step_results'] ?? []);
+    $tick_ts      = (string) ($latest_tick['ts'] ?? '');
+
+    // ── Orchestrator pipeline definition ────────────────────────────────────
+    // Order mirrors engine.py graph.add_edge() calls.
+    $pipeline_steps = [
+      'consume_replies' => [
+        'label'       => 'Consume Replies',
+        'description' => 'Reads agent outbox reply files from sessions/*/outbox/ and ingests them into the HQ inbox. Moves completed agent work downstream for further processing.',
+        'outputs'     => 'rc (exit code)',
+      ],
+      'dispatch_commands' => [
+        'label'       => 'Dispatch Commands',
+        'description' => 'Processes pending command files and dispatches directives to the appropriate agents. Handles inter-agent communication and board-level commands.',
+        'outputs'     => 'dispatched (list of commands sent)',
+      ],
+      'release_cycle' => [
+        'label'       => 'Release Cycle',
+        'description' => 'Advances each product team through release phases (R0→R1→R2→R3→R4→R5→shipped). Triggers phase transitions when signoff and readiness conditions are met.',
+        'outputs'     => 'teams (per-team action, current release, next release)',
+      ],
+      'coordinated_push' => [
+        'label'       => 'Coordinated Push',
+        'description' => 'Executes a GitHub push only when ALL teams simultaneously signal ready at the push gate. Reports "waiting" and the blocking teams when not all are ready.',
+        'outputs'     => 'status (pushed|waiting|skipped), not_ready (blocking teams)',
+      ],
+      'pick_agents' => [
+        'label'       => 'Pick Agents',
+        'description' => 'Scores all agents by inbox ROI and selects up to agent_cap agents to run this tick. Prioritises release-critical agents over normal workqueue items.',
+        'outputs'     => 'selected (agents to run), release_priority (agents on release path)',
+      ],
+      'exec_agents' => [
+        'label'       => 'Execute Agents',
+        'description' => 'Runs the selected agents in parallel via the configured shell provider (Copilot CLI). Records name and exit code for each agent execution.',
+        'outputs'     => 'ran (list of {agent, rc} entries)',
+      ],
+      'health_check' => [
+        'label'       => 'Health Check',
+        'description' => 'Scans all agents for stuck or idle-with-unread-inbox states and attempts automatic remediation. Reports blocked agent count and any remediation actions taken.',
+        'outputs'     => 'idle_with_inbox, blocked_count, remediated',
+      ],
+      'kpi_monitor' => [
+        'label'       => 'KPI Monitor',
+        'description' => 'Runs the release KPI monitoring script to detect stagnant releases, stale inboxes, and development throughput bottlenecks across all sites.',
+        'outputs'     => 'rc, out (KPI report text)',
+      ],
+      'publish' => [
+        'label'       => 'Publish',
+        'description' => 'When publish_enabled=true, writes the full tick telemetry snapshot to the Drupal database so all dashboard pages reflect live orchestrator state.',
+        'outputs'     => 'rc (exit code)',
+      ],
+    ];
+
+    // ── Live tick status banner ──────────────────────────────────────────────
+    $tick_note = $tick_ts !== ''
+      ? $this->t('Showing live data from tick at @ts', ['@ts' => $tick_ts])
+      : $this->t('No tick data available — pipeline status column will be empty.');
+    $build['tick_note'] = ['#markup' => '<p><em>' . $tick_note . '</em></p>'];
+
+    // ── Release Cycle Orchestrator pipeline table ────────────────────────────
+    $build['orchestrator_heading'] = [
+      '#markup' => '<h3>' . $this->t('Release Cycle Orchestrator — Pipeline Steps') . '</h3>'
+        . '<p>' . $this->t('consume_replies → dispatch_commands → release_cycle → coordinated_push → pick_agents → exec_agents → health_check → kpi_monitor → publish') . '</p>',
+    ];
+
+    $step_rows   = [];
+    $step_idx    = 1;
+    $total_steps = count($pipeline_steps);
+    foreach ($pipeline_steps as $step_key => $step_info) {
+      $step_data = (array) ($step_results[$step_key] ?? []);
+
+      // RC badge.
+      if (isset($step_data['rc'])) {
+        $rc    = (int) $step_data['rc'];
+        $color = $rc === 0 ? '#2e7d32' : '#b71c1c';
+        $badge = '<strong style="color:' . $color . '">' . ($rc === 0 ? '✓ rc=0' : '✗ rc=' . $rc) . '</strong>';
+      }
+      elseif (!empty($step_data)) {
+        $badge = '<span style="color:#2e7d32">✓ ran</span>';
+      }
+      else {
+        $badge = '<span style="color:#888">—</span>';
+      }
+
+      // Key output summary (compact, one line).
+      $output_parts = [];
+      foreach ($step_data as $k => $v) {
+        if ($k === 'rc') {
+          continue;
+        }
+        if (is_array($v)) {
+          $output_parts[] = $k . '=' . count($v) . ' item(s)';
+        }
+        else {
+          $str = (string) $v;
+          if (strlen($str) > 80) {
+            $str = substr($str, 0, 77) . '…';
+          }
+          $output_parts[] = $k . '=' . htmlspecialchars($str);
+        }
+      }
+      $output_summary = $output_parts ? implode('; ', $output_parts) : '—';
+
+      // Position cell with down-arrow between steps.
+      $position_cell = $step_idx < $total_steps
+        ? '<strong>' . $step_idx . '</strong> <span style="color:#666">↓</span>'
+        : '<strong>' . $step_idx . '</strong>';
+
+      $step_rows[] = [
+        ['data' => ['#markup' => $position_cell]],
+        ['data' => ['#markup' => '<strong>' . htmlspecialchars((string) $step_info['label']) . '</strong>']],
+        (string) $step_info['description'],
+        (string) $step_info['outputs'],
+        ['data' => ['#markup' => $badge]],
+        ['data' => ['#markup' => '<code style="font-size:.85em">' . $output_summary . '</code>']],
+      ];
+      $step_idx++;
+    }
+
+    $build['pipeline_table'] = [
+      '#type'   => 'table',
+      '#header' => [
+        $this->t('#'),
+        $this->t('Step'),
+        $this->t('What it does'),
+        $this->t('Expected outputs'),
+        $this->t('Last tick status'),
+        $this->t('Last tick output'),
+      ],
+      '#rows'  => $step_rows,
+      '#empty' => $this->t('No pipeline steps defined.'),
+    ];
+
+    // ── KPI monitor output (collapsible) ────────────────────────────────────
+    $kpi_out = (string) ($step_results['kpi_monitor']['out'] ?? '');
+    if ($kpi_out !== '') {
+      $build['kpi_detail'] = [
+        '#type'   => 'details',
+        '#title'  => $this->t('KPI Monitor Output (last tick)'),
+        '#open'   => FALSE,
+        'content' => ['#markup' => '<pre style="white-space:pre-wrap;font-size:.85em">' . htmlspecialchars($kpi_out) . '</pre>'],
+      ];
+    }
+
+    // ── Registered workflows summary ─────────────────────────────────────────
+    $build['other_flows_heading'] = [
+      '#markup' => '<h3>' . $this->t('Registered Workflows') . '</h3>',
+    ];
+    $build['other_flows_table'] = [
+      '#type'   => 'table',
+      '#header' => [$this->t('Workflow'), $this->t('Site'), $this->t('Status'), $this->t('Notes')],
+      '#rows'   => [
+        [
+          $this->t('Release Cycle Orchestrator'),
+          $this->t('Org-wide'),
+          $this->t('🟢 Active — see pipeline above'),
+          $this->t('Python LangGraph engine in orchestrator/runtime_graph/engine.py'),
+        ],
+        [
+          $this->t('Job-Hunter Intake Flow'),
+          $this->t('forseti.life'),
+          $this->t('⬜ Planned'),
+          $this->t('LangGraph-driven job-posting intake and triage — scoping pending.'),
+        ],
+        [
+          $this->t('PF2E Encounter Flow'),
+          $this->t('dungeoncrawler'),
+          $this->t('⬜ Planned'),
+          $this->t('LangGraph-driven encounter and session management — scoping pending.'),
+        ],
+      ],
+    ];
+
+    $build['back'] = [
+      '#markup' => '<p>' . Link::createFromRoute('← Back to LangGraph Overview', 'copilot_agent_tracker.langgraph_dashboard')->toString() . '</p>',
+    ];
 
     return $this->sanitizeRenderArray($build);
   }

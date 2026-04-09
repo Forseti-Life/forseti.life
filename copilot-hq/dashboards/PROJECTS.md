@@ -13,7 +13,7 @@ Central list of multi-release initiatives across all products.
 | ID | Name | Product | Status | Priority | Lead | Started |
 |---|---|---|---|---|---|---|
 | PROJ-001 | LangGraph Console UI | forseti.life | in_progress | P1 | pm-forseti | 2026-04-05 |
-| PROJ-002 | QA Suite Completeness | forseti.life | planned | P2 | pm-forseti / qa-forseti | 2026-04-09 |
+| PROJ-002 | QA Suite Completeness | forseti.life | in_progress | P2 | pm-forseti / qa-forseti | 2026-04-09 |
 | PROJ-003 | DungeonCrawler Roadmap Completion | dungeoncrawler | in_progress | P1 | pm-dungeoncrawler | 2026-03-01 |
 
 ---
@@ -29,7 +29,7 @@ See roadmap file for full release-by-release breakdown. Currently mid-Phase 1c.
 
 ## PROJ-002 — QA Suite Completeness
 
-**Status:** planned  
+**Status:** in_progress  
 **Priority:** P2  
 **Lead:** pm-forseti (dispatch), qa-forseti (execution)  
 **Scope product:** forseti.life  
@@ -57,6 +57,20 @@ The forseti QA suite manifest has **86 registered suites but only 2 have populat
 #### Phase 1 — Triage (1 release cycle)
 **Owner:** qa-forseti  
 **Output:** Audit report in `sessions/qa-forseti/artifacts/suite-triage/`
+**Status:** in_progress (dispatched 2026-04-09)
+
+**Feature stubs created (2026-04-09):**
+- `features/forseti-qa-suite-fill-release-f` — 16 release-f suites (ROI: 45)
+- `features/forseti-qa-suite-fill-jobhunter-submission` — 2 submission suites (ROI: 45)
+- `features/forseti-qa-suite-fill-agent-tracker` — 4 agent tracker suites (ROI: 45)
+- `features/forseti-qa-suite-fill-controller-extraction` — 2 controller extraction suites (ROI: 45)
+- `features/forseti-qa-suite-retire-stale` — 18 retire candidates (ROI: 40)
+- `features/forseti-qa-e2e-auth-pipeline` — E2E Playwright auth unblock, release-h (ROI: 35)
+
+**Dispatched (2026-04-09):**
+- qa-forseti triage → `sessions/qa-forseti/inbox/20260409-proj002-suite-triage/` (ROI 60)
+- ba-forseti: 6 grooming items (ROI 35–45)
+- Pending: pm-qa-handoff.sh dispatch for each feature after ba-forseti delivers ACs
 
 - Classify each of the 84 empty suites as one of:
   - `fill` — feature is shipped and actively in production; needs real test_cases
