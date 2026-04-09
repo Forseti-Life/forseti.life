@@ -1133,6 +1133,86 @@ class CharacterManager {
       'weapons' => 'Trained in club, crossbow, dagger, heavy crossbow, and staff',
       'spellcasting' => 'Arcane spellcasting, Intelligence',
       'trained_skills' => 2,
+      'armor_proficiency' => ['unarmored'],
+      // ── Arcane School ─────────────────────────────────────────────────────────
+      'arcane_school' => [
+        'description' => 'At L1, choose one of 8 arcane schools (or be a Universalist). The school grants 1 extra spell slot of each rank (for school spell use), adds 2 focus spells unique to that school, and gives an associated school spell.',
+        'schools' => ['abjuration', 'conjuration', 'divination', 'enchantment', 'evocation', 'illusion', 'necromancy', 'transmutation'],
+        'universalist' => [
+          'id'          => 'universalist',
+          'name'        => 'Universalist',
+          'description' => 'You study all eight schools equally. Gain the Hand of the Apprentice arcane school spell (focus spell) and can borrow 1 prepared spell slot per day from an unspecialized pool.',
+          'focus_spell' => 'hand-of-the-apprentice',
+        ],
+        'extra_slot' => 'One additional spell slot of each spell rank (used for school spells only).',
+      ],
+      // ── Arcane Thesis ─────────────────────────────────────────────────────────
+      'arcane_thesis' => [
+        'description' => 'At L1, choose one Arcane Thesis — a unique specialization that modifies how you use spell slots and your spellbook.',
+        'options' => [
+          'spell-blending' => [
+            'id'      => 'spell-blending',
+            'name'    => 'Spell Blending',
+            'benefit' => 'Merge 2 prepared spell slots of the same rank into 1 slot of the next rank. You can do this any number of times per day during daily preparations, allowing flexible access to higher-rank spells by sacrificing lower-rank ones.',
+          ],
+          'spell-substitution' => [
+            'id'      => 'spell-substitution',
+            'name'    => 'Spell Substitution',
+            'benefit' => 'Once per 10 minutes (not just daily prep), you can replace a prepared spell with another from your spellbook of the same rank. This gives you exceptional in-encounter flexibility.',
+          ],
+          'improved-familiar-attunement' => [
+            'id'      => 'improved-familiar-attunement',
+            'name'    => 'Improved Familiar Attunement',
+            'benefit' => 'Your familiar grows more powerful. Gain the Familiar feat for free. Your familiar gains 3 extra familiar abilities at L1 (instead of the normal 2), and gains 1 additional ability at every even level.',
+          ],
+          'experimental-spellshaping' => [
+            'id'      => 'experimental-spellshaping',
+            'name'    => 'Experimental Spellshaping',
+            'benefit' => 'Gain 1 free arcane metamagic wizard feat at L1. Each time you gain a wizard class feat, you may choose an arcane metamagic feat of your level or lower instead of a normal wizard class feat.',
+          ],
+          'staff-nexus' => [
+            'id'      => 'staff-nexus',
+            'name'    => 'Staff Nexus',
+            'benefit' => 'Begin play with a makeshift staff containing 1 cantrip and 1 first-rank spell from your spellbook. The makeshift staff gains charges by expending spell slots (1 slot = charges equal to the slot\'s rank). Craft it into any standard staff at standard cost.',
+          ],
+        ],
+      ],
+      // ── Arcane Bond ───────────────────────────────────────────────────────────
+      'arcane_bond' => [
+        'description' => 'At L1, choose a bonded item or a familiar as your arcane bond. The bond fuels Drain Bonded Item.',
+        'options' => [
+          'bonded-item' => [
+            'id'          => 'bonded-item',
+            'name'        => 'Bonded Item',
+            'description' => 'A magic item (wand, weapon, ring, or staff) bonded to you. Once per day, you may Drain Bonded Item to recover one expended spell slot.',
+          ],
+          'familiar' => [
+            'id'          => 'familiar',
+            'name'        => 'Familiar',
+            'description' => 'A familiar assists your spellcasting. The familiar can Drain the bond once per day on your behalf to recover one expended spell slot.',
+          ],
+        ],
+      ],
+      // ── Drain Bonded Item ─────────────────────────────────────────────────────
+      'drain_bonded_item' => [
+        'description'    => 'Once per day as a free action, drain magical energy stored in your bonded item to recall one expended spell slot. You can recover any spell slot you have already cast that day.',
+        'action'         => 'Free Action',
+        'frequency'      => 'Once per day',
+        'effect'         => 'Recover one expended spell slot of any level.',
+        'recharge'       => 'Daily preparation (spellbook study).',
+        'tracking_field' => 'bonded_item_drained (boolean, reset on daily prep)',
+      ],
+      // ── Spellbook ─────────────────────────────────────────────────────────────
+      'spellbook' => [
+        'description'     => 'You record your arcane spells in a spellbook. You prepare spells each morning from the spellbook.',
+        'starting_spells' => 10,
+        'starting_cantrips' => 5,
+        'add_spells'      => 'Learn a Spell activity: 10 gp × spell rank in materials + Arcana skill check vs spell DC.',
+        'daily_prep_from' => 'spellbook',
+        'prepared_type'   => 'prepared',
+        'spells_per_level_gained' => 2,
+        'tradition'       => 'arcane',
+      ],
     ],
     'cleric' => [
       'id' => 'cleric',
@@ -2407,6 +2487,68 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'benefit' => 'You manipulate the energy of your spell, causing it to affect a wider area. If the next action you use is to Cast a Spell that has an area of a burst, cone, or line and doesn\'t have a duration, increase the area of that spell. Add 5 feet to the radius of a burst that normally has a radius of at least 10 feet (a burst with a smaller radius is not affected). Add 5 feet to the length of a cone or line that is normally 15 feet long or smaller, and add 10 feet to the length of a larger cone or line.'],
       ['id' => 'staff-nexus', 'name' => 'Staff Nexus Thesis', 'level' => 1, 'traits' => ['Wizard'], 'prerequisites' => '', 'thesis' => TRUE,
         'benefit' => 'Your arcane thesis focuses on the creation and empowerment of magical staves. You begin play with a makeshift staff containing 1 cantrip and 1 first-level spell from your spellbook. The makeshift staff gains charges only by expending spell slots (1 slot = number of spell levels in charges). At 8th level you may expend 2 slots per day; at 16th level up to 3 slots. You can Craft the makeshift staff into any standard staff type at standard cost, retaining the two original spells.'],
+      // Level 2 class feats
+      ['id' => 'cantrip-expansion-wizard', 'name' => 'Cantrip Expansion', 'level' => 2, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Add 2 additional arcane cantrips to your spellbook and gain the ability to prepare them each day. These cantrips do not count against your prepared cantrip limit.'],
+      ['id' => 'conceal-spell', 'name' => 'Conceal Spell', 'level' => 2, 'traits' => ['Concentrate', 'Manipulate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'Your next action is to Cast a Spell. The spell gains the subtle trait, making its manifestations invisible to observers. Creatures who succeed on Perception vs your Arcana DC realize you are casting a spell.'],
+      ['id' => 'enhanced-familiar', 'name' => 'Enhanced Familiar', 'level' => 2, 'traits' => ['Wizard'], 'prerequisites' => 'Familiar',
+        'benefit' => 'Your familiar gains 2 additional familiar abilities each level. It also becomes more resilient: add your Intelligence modifier to its Hit Point total.'],
+      ['id' => 'nonlethal-spell', 'name' => 'Nonlethal Spell', 'level' => 2, 'traits' => ['Manipulate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'If the next action you use is to Cast a Spell, that spell deals nonlethal damage. This doesn\'t work on spells that already deal nonlethal damage or on spells that don\'t deal damage.'],
+      // Level 4 class feats
+      ['id' => 'bespell-weapon', 'name' => 'Bespell Weapon', 'level' => 4, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'After Casting a non-cantrip arcane spell, your held weapon crackles with magical energy until the end of the current turn. Your next Strike with that weapon deals 1d6 extra damage of the spell\'s trait (if applicable) or 1d6 force damage.'],
+      ['id' => 'linked-focus', 'name' => 'Linked Focus', 'level' => 4, 'traits' => ['Wizard'], 'prerequisites' => 'Focus pool (arcane school or Hand of the Apprentice)',
+        'benefit' => 'When you cast an arcane spell from a spell slot, you also recover 1 Focus Point (up to your pool maximum). You may only regain 1 Focus Point this way per round.'],
+      ['id' => 'spell-penetration-feat', 'name' => 'Spell Penetration', 'level' => 4, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Your spells are harder to resist. Targets take a -2 circumstance penalty to their saving throw or check to counteract your spells.'],
+      ['id' => 'steady-spellcasting-wizard', 'name' => 'Steady Spellcasting', 'level' => 4, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Confidence in your spellcasting helps you maintain concentration. When a reaction or free action would disrupt your spellcasting, attempt a DC 15 flat check. On a success, the spell is not disrupted.'],
+      // Level 6 class feats
+      ['id' => 'advanced-school-spell', 'name' => 'Advanced School Spell', 'level' => 6, 'traits' => ['Wizard'], 'prerequisites' => 'Arcane School (any specialist)',
+        'benefit' => 'Gain an additional focus spell from your arcane school. Add it to your focus pool. Each time you Cast this spell, you gain a small benefit depending on your school (see ARCANE_SCHOOLS).'],
+      ['id' => 'bond-conservation', 'name' => 'Bond Conservation', 'level' => 6, 'traits' => ['Manipulate', 'Metamagic', 'Wizard'], 'prerequisites' => 'Drain Bonded Item',
+        'benefit' => 'When the next action you use is to Cast a 1-action or 2-action spell, you can Drain Bonded Item as part of the same activity. If the spell level is lower than your highest-level spell slot, you recover an additional lower-level spell slot as well.'],
+      ['id' => 'universal-versatility', 'name' => 'Universal Versatility', 'level' => 6, 'traits' => ['Wizard'], 'prerequisites' => 'Universalist wizard, Hand of the Apprentice',
+        'benefit' => 'Your command of all schools lets you borrow minor school benefits. Once per day you can gain the trained school spell of any one arcane school and cast it using your focus pool.'],
+      // Level 8 class feats
+      ['id' => 'greater-vital-evolution', 'name' => 'Greater Mental Evolution', 'level' => 8, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Your arcane mind expands. Add 2 additional arcane spells of your choice to your spellbook. These spells do not cost gold. Additionally, your Intelligence modifier is added to initiative rolls.'],
+      ['id' => 'overwhelming-energy-wizard', 'name' => 'Overwhelming Energy', 'level' => 8, 'traits' => ['Manipulate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'The next spell you Cast deals energy damage (acid, cold, electricity, fire, or sonic). Targets take a -5 circumstance penalty to any resistance they have against that damage type.'],
+      ['id' => 'quickened-casting-wizard', 'name' => 'Quickened Casting', 'level' => 8, 'traits' => ['Concentrate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'Once per day, if your next action is to Cast an arcane spell that normally takes 2 actions, you may instead cast it with 1 action. You can\'t use this feat again until the next time you prepare spells.'],
+      // Level 10 class feats
+      ['id' => 'scroll-savant', 'name' => 'Scroll Savant', 'level' => 10, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'During your daily preparations, you can craft two temporary scrolls of arcane spells from your spellbook, of any rank you can prepare. These scrolls are usable only by you and expire at the next daily preparation.'],
+      ['id' => 'clever-counterspell', 'name' => 'Clever Counterspell', 'level' => 10, 'traits' => ['Wizard'], 'prerequisites' => 'Counterspell, Recognize Spell',
+        'benefit' => 'When using Counterspell, instead of needing to have the same spell prepared, you can expend any prepared spell of the same or higher rank from your spellbook to attempt to counteract the triggering spell.'],
+      // Level 12 class feats
+      ['id' => 'magic-sense', 'name' => 'Magic Sense', 'level' => 12, 'traits' => ['Detection', 'Divination', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'You have a constant, subtle sense for magic. You always detect when a spell is cast within 30 feet (like constant Detect Magic), though not necessarily the school or details.'],
+      ['id' => 'reflect-spell', 'name' => 'Reflect Spell', 'level' => 12, 'traits' => ['Wizard'], 'prerequisites' => 'Counterspell',
+        'benefit' => 'When you successfully counteract a spell with Counterspell, you can redirect the spell back at its caster. The original caster becomes the new target of their own spell.'],
+      // Level 14 class feats
+      ['id' => 'effortless-concentration', 'name' => 'Effortless Concentration', 'level' => 14, 'traits' => ['Concentrate', 'Metamagic', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'The next spell you cast gains a Sustained duration. You can Sustain it with a free action (instead of an action). This applies once per spell cast with this feat.'],
+      ['id' => 'alter-reality', 'name' => 'Alter Reality', 'level' => 14, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'You can subtly manipulate the world around you. Once per day, cast a Wish-like effect with the following restrictions: duplicate the effect of any arcane spell of 7th rank or lower without expending a spell slot.'],
+      // Level 16 class feats
+      ['id' => 'spell-combination', 'name' => 'Spell Combination', 'level' => 16, 'traits' => ['Wizard'], 'prerequisites' => 'Spell Blending thesis or Universalist',
+        'benefit' => 'Once per day during preparation, combine two prepared spells of the same rank into a dual-spell slot. When cast, both effects occur simultaneously, but you spend only one slot.'],
+      ['id' => 'infinite-eye', 'name' => 'Infinite Eye', 'level' => 16, 'traits' => ['Divination', 'Wizard'], 'prerequisites' => '',
+        'benefit' => 'You can perceive magical auras at will. As a free action, you gain Truesight with a 30-foot range for 1 round. Use this ability up to 3 times per day.'],
+      // Level 18 class feats
+      ['id' => 'reprepare-spell', 'name' => 'Reprepare Spell', 'level' => 18, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Three times per day, as a 10-minute activity, you can reprepare any one spell from your spellbook into an empty or expended spell slot of the appropriate rank.'],
+      ['id' => 'infinite-possibilities', 'name' => 'Infinite Possibilities', 'level' => 18, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'During your daily preparations, add up to 3 spells from any tradition (not just arcane) to your spellbook as temporary entries. These entries expire at next daily prep, and the spells are treated as arcane spells while prepared from them.'],
+      // Level 20 class feats
+      ['id' => 'spell-mastery', 'name' => 'Spell Mastery', 'level' => 20, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Choose 4 arcane spells of rank 9 or lower in your spellbook. These spells are permanently prepared — you can cast each once per day without them counting against your prepared spell slots. On subsequent castings in the same day, use normal spell slots.'],
+      ['id' => 'metamagic-mastery', 'name' => 'Metamagic Mastery', 'level' => 20, 'traits' => ['Wizard'], 'prerequisites' => '',
+        'benefit' => 'Any metamagic feat you apply to a spell does not count as an additional action. You can apply two metamagic feats to the same spell, though each still requires its own action if specified.'],
     ],
     'ranger' => [
       ['id' => 'animal-companion', 'name' => 'Animal Companion', 'level' => 1, 'traits' => ['Ranger'], 'prerequisites' => '',
@@ -3030,6 +3172,110 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * Wizard Arcane Schools — each of the 8 specialist schools plus Universalist.
+   *
+   * Each school grants:
+   *  - An extra spell slot at each level (for school spells only)
+   *  - 2 focus spells keyed to the school
+   *  - A school spell (listed as the primary arcane school spell)
+   *
+   * Source: PF2E CRB ch03 (Wizard — Arcane School feature).
+   */
+  const ARCANE_SCHOOLS = [
+    'abjuration' => [
+      'id'          => 'abjuration',
+      'name'        => 'School of Abjuration',
+      'description' => 'You specialize in protective magic. You excel at dispelling magic and warding against harm.',
+      'school_spells' => ['protective-ward', 'energy-absorption'],
+      'primary_spell' => 'protective-ward',
+      'focus_spells' => ['protective-ward', 'energy-absorption'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain 1 extra spell slot of each rank for school spells. Gain Protective Ward (1-action focus spell: +1 AC aura 10 ft, Sustained). Gain Energy Absorption (reaction: reduce damage from spell by 3 × rank).',
+    ],
+    'conjuration' => [
+      'id'          => 'conjuration',
+      'name'        => 'School of Conjuration',
+      'description' => 'You specialize in summoning creatures and teleporting across space.',
+      'school_spells' => ['augment-summoning', 'dimensional-steps'],
+      'primary_spell' => 'augment-summoning',
+      'focus_spells' => ['augment-summoning', 'dimensional-steps'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Augment Summoning (free action focus spell: summoned creature gains a +1 status bonus to attack rolls and saves for 1 minute). Gain Dimensional Steps (action focus spell: teleport up to 20 feet).',
+    ],
+    'divination' => [
+      'id'          => 'divination',
+      'name'        => 'School of Divination',
+      'description' => 'You specialize in gaining information and perceiving hidden truths.',
+      'school_spells' => ['diviner-s-sight', 'dread-aura'],
+      'primary_spell' => "diviner-s-sight",
+      'focus_spells' => ["diviner-s-sight", 'scholastic-dissertation'],
+      'school_cantrip' => NULL,
+      'benefit' => "Gain Diviner's Sight (free action focus spell: glimpse a creature's future — learn if next action is Peaceful, Uncertain, or Dangerous vs you). Gain Scholastic Dissertation.",
+    ],
+    'enchantment' => [
+      'id'          => 'enchantment',
+      'name'        => 'School of Enchantment',
+      'description' => 'You specialize in influencing the minds of others.',
+      'school_spells' => ['charming-words', 'dread-aura'],
+      'primary_spell' => 'charming-words',
+      'focus_spells' => ['charming-words', 'dread-aura'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Charming Words (action focus spell: target becomes helpful toward you for 1 round on fail). Gain Dread Aura (1-action focus spell: frightened 1 aura, Sustained).',
+    ],
+    'evocation' => [
+      'id'          => 'evocation',
+      'name'        => 'School of Evocation',
+      'description' => 'You specialize in harnessing raw magical energy and dealing damage.',
+      'school_spells' => ['force-bolt', 'thunderburst'],
+      'primary_spell' => 'force-bolt',
+      'focus_spells' => ['force-bolt', 'thunderburst'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Force Bolt (action focus spell: 1d4+Int ranged force damage, 1 free action on spell cast). Gain Thunderburst (2-action: 30-ft burst, 2d10 sonic, Fortitude save).',
+    ],
+    'illusion' => [
+      'id'          => 'illusion',
+      'name'        => 'School of Illusion',
+      'description' => 'You specialize in creating deceptive images and misleading the senses.',
+      'school_spells' => ['warped-terrain', 'invisibility-cloak'],
+      'primary_spell' => 'warped-terrain',
+      'focus_spells' => ['warped-terrain', 'invisibility-cloak'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Warped Terrain (action focus spell: 5-ft illusory difficult terrain square, 1 minute). Gain Invisibility Cloak (2-action focus spell: become invisible until end of next turn or until you attack).',
+    ],
+    'necromancy' => [
+      'id'          => 'necromancy',
+      'name'        => 'School of Necromancy',
+      'description' => 'You specialize in life, death, and the undead.',
+      'school_spells' => ['call-of-the-grave', 'life-siphon'],
+      'primary_spell' => 'call-of-the-grave',
+      'focus_spells' => ['call-of-the-grave', 'life-siphon'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Call of the Grave (2-action focus spell: 30-ft range, sickened 1 on fail Fortitude). Gain Life Siphon (reaction: when you cast a necromancy spell you lose HP from, regain 1d8 HP per spell rank).',
+    ],
+    'transmutation' => [
+      'id'          => 'transmutation',
+      'name'        => 'School of Transmutation',
+      'description' => 'You specialize in altering and transforming creatures and objects.',
+      'school_spells' => ['physical-boost', 'shifting-form'],
+      'primary_spell' => 'physical-boost',
+      'focus_spells' => ['physical-boost', 'shifting-form'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Physical Boost (action focus spell: target gains +2 status bonus to one physical ability check of your choice for 1 round). Gain Shifting Form (2-action: transform limbs for swim or climb speed 25 ft, 1 minute).',
+    ],
+    'universalist' => [
+      'id'          => 'universalist',
+      'name'        => 'Universalist',
+      'description' => 'You refuse to limit yourself to one school, studying all eight equally. You gain Hand of the Apprentice as an arcane school spell and can use a flexible pool to replenish one spell slot per day.',
+      'school_spells' => ['hand-of-the-apprentice'],
+      'primary_spell' => 'hand-of-the-apprentice',
+      'focus_spells' => ['hand-of-the-apprentice'],
+      'school_cantrip' => NULL,
+      'benefit' => 'Gain Hand of the Apprentice (action focus spell: hurl a held weapon as a ranged Strike using Intelligence, then it returns). Gain Drain Arcane Bond once per day to restore one prepared spell. No extra school spell slots, but no spell slot restrictions.',
+      'no_extra_slot'  => TRUE,
+    ],
+  ];
+
+  /**
    * Sorcerer bloodline → tradition mapping.
    */
   const SORCERER_BLOODLINES = [
@@ -3491,6 +3737,12 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       'cap'       => 3,
       'expand_per_source' => TRUE,
       'note'      => 'Sorcerer focus pool starts at 1 Focus Point. Bloodline powers are granted focus spells from the sorcerer\'s bloodline. Additional bloodline feats can expand the pool up to a cap of 3. Refocus: 10 minutes connecting with your bloodline (meditation or related activity).',
+    ],
+    'wizard' => [
+      'start'     => 1,
+      'cap'       => 3,
+      'expand_per_source' => TRUE,
+      'note'      => 'Wizard focus pool starts at 1 Focus Point from arcane school (or Hand of the Apprentice for Universalist). Gain 1 additional Focus Point when you take Advanced School Spell or other focus-granting wizard feats, up to a cap of 3. Refocus: 10 minutes studying your spellbook.',
     ],
   ];
 
@@ -6953,17 +7205,25 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     'wizard' => [
       1  => ['auto_features' => [
         ['id' => 'arcane-spellcasting', 'name' => 'Arcane Spellcasting',
-          'description' => 'You can cast arcane spells using the Cast a Spell activity. Your spellcasting ability modifier is Intelligence.'],
+          'description' => 'You can cast arcane spells using the Cast a Spell activity. Your spellcasting ability modifier is Intelligence. You prepare spells each morning from your spellbook.'],
         ['id' => 'arcane-school', 'name' => 'Arcane School',
-          'description' => 'You specialize in an arcane school of magic, gaining additional spells and abilities.'],
+          'description' => 'Choose one of 8 arcane schools (Abjuration, Conjuration, Divination, Enchantment, Evocation, Illusion, Necromancy, Transmutation) or be a Universalist. Specialist schools grant 1 extra spell slot per rank (for school spells) and 2 focus spells. Universalist gains Hand of the Apprentice.'],
+        ['id' => 'arcane-bond', 'name' => 'Arcane Bond',
+          'description' => 'Choose a bonded item or a familiar. The bond fuels Drain Bonded Item. Bonded item: once per day recover one expended spell slot. Familiar: assists spellcasting and can Drain the bond on your behalf.'],
+        ['id' => 'arcane-thesis', 'name' => 'Arcane Thesis',
+          'description' => 'Choose one arcane thesis at L1: Spell Blending (merge 2 same-rank slots into 1 higher-rank slot), Spell Substitution (swap prepared spells in 10 minutes), Improved Familiar Attunement (+3 familiar abilities), Experimental Spellshaping (free metamagic feat), or Staff Nexus (begin with makeshift staff).'],
+        ['id' => 'drain-bonded-item', 'name' => 'Drain Bonded Item',
+          'description' => 'Once per day as a free action, drain your bonded item to recover one expended spell slot of any level.'],
       ]],
-      3  => ['auto_features' => [
-        ['id' => 'expert-spellcaster', 'name' => 'Expert Spellcaster',
-          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs increase to Expert.'],
+      5  => ['auto_features' => [
+        ['id' => 'lightning-reflexes', 'name' => 'Lightning Reflexes',
+          'description' => 'Your Reflex saving throw proficiency increases to Expert.'],
       ]],
       7  => ['auto_features' => [
+        ['id' => 'expert-spellcaster', 'name' => 'Expert Spellcaster',
+          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs increase to Expert.'],
         ['id' => 'wizard-weapon-expertise', 'name' => 'Wizard Weapon Expertise',
-          'description' => 'Your proficiency rank for your wizard weapons increases to Expert.'],
+          'description' => 'Your proficiency rank for your wizard weapons (club, crossbow, dagger, heavy crossbow, staff) increases to Expert.'],
       ]],
       9  => ['auto_features' => [
         ['id' => 'magical-fortitude', 'name' => 'Magical Fortitude',
@@ -6985,15 +7245,11 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       ]],
       17 => ['auto_features' => [
         ['id' => 'resolve', 'name' => 'Resolve',
-          'description' => 'Your Will saving throw proficiency increases to Master.'],
+          'description' => 'Your Will saving throw proficiency increases to Master. When you critically fail a Will save, you fail instead.'],
       ]],
       19 => ['auto_features' => [
-        ['id' => 'archwizards-spellcraft', 'name' => 'Archwizard\'s Spellcraft',
+        ['id' => 'archwizards-spellcraft', 'name' => "Archwizard's Spellcraft",
           'description' => 'You can cast 10th-rank spells. You gain a single 10th-rank spell slot per day.'],
-      ]],
-      20 => ['auto_features' => [
-        ['id' => 'supreme-spellcaster', 'name' => 'Supreme Spellcaster',
-          'description' => 'Your proficiency ranks for spell attack rolls and spell DCs are now Legendary.'],
       ]],
     ],
     'rogue' => [
