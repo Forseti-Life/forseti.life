@@ -1063,10 +1063,59 @@ class CharacterManager {
         'fortitude' => 'Trained',
         'reflex' => 'Expert',
         'will' => 'Expert',
+        'class_dc' => 'Trained',
       ],
       'skills' => 'Choose 7 + Intelligence modifier',
       'weapons' => 'Trained in simple weapons, rapier, sap, shortbow, and shortsword',
       'trained_skills' => 7,
+      // Rogues gain a skill increase every level from 2nd (unique — not every 2 levels).
+      'skill_increases_per_level' => 'every_level_from_2',
+      // Rogues gain a skill feat every level (unique — not every 2 levels).
+      'skill_feats_per_level' => 'every_level',
+      // ── Sneak Attack ────────────────────────────────────────────────────────
+      'sneak_attack' => [
+        'damage_by_level' => [1 => '1d6', 5 => '2d6', 11 => '3d6', 17 => '4d6'],
+        'requires' => 'target is flat-footed to you',
+        'damage_type' => 'precision',
+        'no_vital_organs' => 'Creatures without vital organs (e.g. oozes, constructs, certain undead) are immune.',
+      ],
+      // ── Racket (L1 permanent subclass) ──────────────────────────────────────
+      'racket' => [
+        'selection' => 'L1 permanent choice; determines key ability, bonus features, and sneak attack eligibility',
+        'options' => [
+          'ruffian' => [
+            'key_ability' => 'Strength',
+            'trained_skill' => 'Intimidation',
+            'sneak_attack_weapons' => 'Any simple weapon (not just finesse/agile)',
+            'crit_specialization' => 'On a critical sneak attack hit, apply the weapon\'s crit specialization effect vs flat-footed targets',
+            'note' => 'Ruffian rogues can use bulky simple weapons for sneak attacks.',
+          ],
+          'scoundrel' => [
+            'key_ability' => 'Charisma',
+            'trained_skill' => 'Deception',
+            'feint_bonus' => 'On a critical Feint, the target is flat-footed against all melee attacks until the start of your next turn (not just your next)',
+            'note' => 'Scoundrel rogues leverage deception for broader flat-footed application.',
+          ],
+          'thief' => [
+            'key_ability' => 'Dexterity',
+            'trained_skill' => 'Thievery',
+            'dex_to_damage' => TRUE,
+            'dex_to_damage_note' => 'Add Dexterity modifier to damage rolls with finesse melee weapons (in place of Strength)',
+            'note' => 'Thief rogues are the archetypal DEX-based sneak attacker.',
+          ],
+        ],
+      ],
+      // ── Debilitating Strike ──────────────────────────────────────────────────
+      'debilitating_strike' => [
+        'level_gained' => 9,
+        'trigger' => 'Hits a flat-footed target with a Strike',
+        'effect' => 'Apply one debilitation from the list (mutually exclusive; applying a new one replaces the old). Persists until the start of your next turn.',
+        'debilitations' => [
+          'enfeebled-1' => 'Target is enfeebled 1.',
+          'clumsy-1'    => 'Target is clumsy 1.',
+          'flat-footed' => 'Target is flat-footed (even when not triggered by conditions that normally cause it).',
+        ],
+      ],
     ],
     'wizard' => [
       'id' => 'wizard',
@@ -6871,8 +6920,10 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     ],
     'rogue' => [
       1  => ['auto_features' => [
+        ['id' => 'rogue-racket', 'name' => 'Rogue Racket',
+          'description' => 'Choose one racket at L1 (permanent). Ruffian: STR key ability, Intimidation skill, sneak attack with any simple weapon, crit specialization on sneak crits. Scoundrel: CHA key ability, Deception skill, critical Feint makes target flat-footed vs all melee attacks until your next turn. Thief: DEX key ability, Thievery skill, add DEX modifier to damage with finesse melee weapons.'],
         ['id' => 'sneak-attack', 'name' => 'Sneak Attack',
-          'description' => 'When your target is flat-footed to you, you deal an extra 1d6 precision damage. This increases by 1d6 at levels 5, 11, and 17.'],
+          'description' => 'When your target is flat-footed to you, you deal an extra 1d6 precision damage. This increases to 2d6 at L5, 3d6 at L11, 4d6 at L17. Ineffective against creatures without vital organs.'],
         ['id' => 'surprise-attack', 'name' => 'Surprise Attack',
           'description' => 'On the first round of combat, if you rolled Deception or Stealth for initiative, creatures that haven\'t acted are flat-footed to you.'],
       ]],
@@ -6887,10 +6938,44 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       7  => ['auto_features' => [
         ['id' => 'evasion', 'name' => 'Evasion',
           'description' => 'Your Reflex save proficiency increases to Master. When you critically fail a Reflex save, you fail instead.'],
+        ['id' => 'rogue-weapon-expertise', 'name' => 'Weapon Expertise',
+          'description' => 'Your proficiency with simple weapons and the rogue weapons (rapier, sap, shortbow, shortsword) increases to Expert.'],
+        ['id' => 'vigilant-senses-rogue', 'name' => 'Vigilant Senses',
+          'description' => 'Perception proficiency increases to Master.'],
       ]],
       9  => ['auto_features' => [
         ['id' => 'debilitating-strike', 'name' => 'Debilitating Strike',
-          'description' => 'When you hit a flat-footed target with a Strike, you can inflict a debilitating condition.'],
+          'description' => 'When you hit a flat-footed target with a Strike, apply one debilitation (enfeebled 1, clumsy 1, or flat-footed) until start of your next turn. Mutually exclusive — new debilitation replaces old.'],
+        ['id' => 'rogue-expertise', 'name' => 'Rogue Expertise',
+          'description' => 'Your class DC increases to Expert proficiency.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'sneak-attack-3d6', 'name' => 'Sneak Attack Upgrade (3d6)',
+          'description' => 'Your Sneak Attack increases to 3d6 precision damage.'],
+        ['id' => 'rogue-perception-master', 'name' => 'Improved Evasion',
+          'description' => 'When you fail a Reflex save, you get a success instead (critical failure becomes a failure); previously on success you got critical success — both effects now apply together.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'light-armor-expertise-rogue', 'name' => 'Light Armor Expertise',
+          'description' => 'Light armor and unarmored defense proficiency increases to Expert.'],
+        ['id' => 'weapon-specialization-rogue', 'name' => 'Weapon Specialization',
+          'description' => '+2 damage with Expert weapons/unarmed, +3 at Master, +4 at Legendary.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'slippery-mind', 'name' => 'Slippery Mind',
+          'description' => 'Will save proficiency increases to Master. Successes on Will saves become critical successes.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'sneak-attack-4d6', 'name' => 'Sneak Attack Upgrade (4d6)',
+          'description' => 'Your Sneak Attack increases to 4d6 precision damage.'],
+        ['id' => 'greater-weapon-specialization-rogue', 'name' => 'Greater Weapon Specialization',
+          'description' => '+4 damage with Expert weapons, +6 at Master, +8 at Legendary.'],
+        ['id' => 'light-armor-mastery-rogue', 'name' => 'Light Armor Mastery',
+          'description' => 'Light armor and unarmored defense proficiency increases to Master.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'master-strike', 'name' => 'Master Strike',
+          'description' => 'When you Sneak Attack a flat-footed creature, after the Strike resolves, the creature must attempt a Fortitude save (class DC). Critical failure: paralyzed for 4 rounds. Failure: paralyzed for 2 rounds. Success: slowed 1 for 1 round. Critical success: unaffected.'],
       ]],
     ],
     'cleric' => [
