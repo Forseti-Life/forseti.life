@@ -195,7 +195,9 @@ When a `gate2-ready` inbox item arrives and `features/*/feature.md` shows NO for
 3. The script writes an empty-release self-cert to `sessions/qa-forseti/outbox/` and records pm-forseti signoff
 4. Dispatch pm-dungeoncrawler cosign inbox item (ROI 10)
 5. **Do NOT block** waiting for features — this confirms production is clean; scope activation is a separate step
-6. After signoff: escalate to CEO (needs-info, ROI 8) if no forseti features exist in any non-shipped state — the product backlog is empty and new work needs to be identified
+6. After signoff: escalate to CEO (needs-info, ROI 8) if no forseti features exist in any non-shipped state — the product backlog is empty and new work needs to be identified. **BUT** if you have already self-resolved the blocker (e.g., dispatched ba-forseti), set Status: blocked (NOT needs-info) with explicit blocker "Awaiting ba-forseti grooming delivery" and do NOT escalate to CEO — escalation is for decisions you cannot make, not for waiting states you already unblocked.
+
+**Phantom-escalation rule (added 2026-04-09):** If your outbox says "Decision needed: None" and "Needs from CEO: None", do NOT escalate to CEO. Write Status: blocked (or in_progress) and wait for the pending dependency to resolve. Escalating with empty decision/needs fields creates a phantom blocker that consumes a CEO execution slot with no actionable work.
 
 Reference: 2026-04-09 `20260409-forseti-release-e` used this pattern after release-d push.
 
