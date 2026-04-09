@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T23:24:50Z
+Generated: 2026-04-09T23:43:56Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -43,7 +43,7 @@ Generated: 2026-04-09T23:24:50Z
 | dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
-| dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
+| dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
