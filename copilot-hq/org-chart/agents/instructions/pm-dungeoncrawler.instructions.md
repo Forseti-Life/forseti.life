@@ -294,6 +294,19 @@ When your outbox status is `blocked` or `needs-info`, you MUST include ALL of th
 
 **Lesson (2026-03-20):** Multiple improvement round outboxes for 20260308/20260315 release cycles were returned for missing `## Decision needed` and `## Recommendation` fields, each adding an extra round-trip cycle.
 
+## Gate 2 — QA BLOCK routing (required — added 2026-04-09)
+When qa-dungeoncrawler files a unit-test outbox with `Status: blocked` and a named defect:
+
+1. **Do NOT escalate to CEO** — this is a standard dev-fix dispatch (matrix: "Code defect in owned module").
+2. Immediately dispatch a targeted fix inbox item to dev-dungeoncrawler with:
+   - Defect ID + description + exact file path + line number (if known)
+   - Expected fix (copy from QA outbox `## Needs from Supervisor` section)
+   - Verification command (PHP lint + grep for the added entry)
+   - Re-dispatch QA instruction after fix is committed
+3. Write your own outbox as `Status: blocked` (NOT escalation) with blocker "Awaiting DEF-XXX fix from dev-dungeoncrawler".
+
+**Lesson (2026-04-09, DEF-FIGHTER-01):** qa-dungeoncrawler filed 3x BLOCK on missing Sudden Charge feat (single array entry). pm-dungeoncrawler did not dispatch the fix to dev-dungeoncrawler — CEO received the 3rd escalation and dispatched dev directly. This is always a PM-level dispatch decision, not CEO authority.
+
 ## Gate 2 — Throughput-Constrained Waiver Policy (CEO-approved 2026-03-27)
 
 When QA testgen throughput is zero AND at least one release cycle has elapsed without test plan output from qa-dungeoncrawler:
