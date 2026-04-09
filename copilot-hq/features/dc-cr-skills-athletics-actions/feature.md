@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-athletics-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260408-dungeoncrawler-release-f
 - Priority: P1
 - PM owner: pm-dungeoncrawler

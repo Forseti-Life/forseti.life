@@ -4,7 +4,7 @@
 - Type: extend
 - Module: dungeoncrawler_content
 - Priority: P1
-- Status: in_progress
+- Status: done
 - Release: 20260408-dungeoncrawler-release-f
 - Dependencies: dc-cr-encounter-rules, dc-cr-spellcasting
 

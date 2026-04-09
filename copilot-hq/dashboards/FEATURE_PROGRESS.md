@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T15:49:11Z
+Generated: 2026-04-09T17:48:17Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -173,12 +173,12 @@ Generated: 2026-04-09T15:49:11Z
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
-| forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | grooming | low |  |  |  |
+| forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | ready | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | ready | medium |  |  |  |
 | forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | ready | medium |  |  |  |
 | forseti-qa-suite-fill-jobhunter-submission | forseti.life | qa_suites | ready | medium |  |  |  |
 | forseti-qa-suite-fill-release-f | forseti.life | qa_suites | ready | medium |  |  |  |
-| forseti-qa-suite-retire-stale | forseti.life | qa_suites | grooming | medium |  |  |  |
+| forseti-qa-suite-retire-stale | forseti.life | qa_suites | ready | medium |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
 ## Key metric: auto-remediation rate

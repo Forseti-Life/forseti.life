@@ -3,9 +3,9 @@
 - Work item id: dc-cr-class-alchemist
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-- PM owner: pm-dungeoncrawler
+20260409-dungeoncrawler-release-f
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch03

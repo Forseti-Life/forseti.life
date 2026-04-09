@@ -3,7 +3,7 @@
 - Work item id: dc-cr-class-champion
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release:
 20260409-dungeoncrawler-release-e
 - QA owner: qa-dungeoncrawler

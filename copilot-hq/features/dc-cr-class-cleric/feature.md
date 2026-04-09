@@ -3,9 +3,9 @@
 - Work item id: dc-cr-class-cleric
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-- Priority: P3
+20260409-dungeoncrawler-release-f
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
