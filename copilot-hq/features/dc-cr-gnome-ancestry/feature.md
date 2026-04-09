@@ -3,7 +3,7 @@
 - Work item id: dc-cr-gnome-ancestry
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -12,7 +12,7 @@
 - Category: game-mechanic
 - Release:
 
-## Goal
+20260409-dungeoncrawler-release-e
 
 Add the Gnome as a playable ancestry in the character creation system. Gnomes are Small humanoids with 8 HP, Speed 25, ability boosts to Constitution and Charisma, an ability flaw to Strength, Low-Light Vision, and access to Common, Gnomish, and Sylvan languages plus additional languages based on Intelligence modifier. Selecting Gnome at character creation unlocks the five gnome heritages and gnome ancestry feats.
 

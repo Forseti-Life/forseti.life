@@ -4,10 +4,10 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: ready
+- Status: in_progress
 - Release:
 
-## Goal
+20260409-dungeoncrawler-release-e
 
 Implement the rune etching and transfer system — fundamental runes (Striking/Resilient tiers) for weapons and armor, property rune slots gated by potency, and the Etch a Rune downtime action — enabling the primary weapon and armor power scaling path.
 

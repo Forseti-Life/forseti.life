@@ -3,9 +3,9 @@
 - Work item id: dc-cr-class-champion
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release:
-- Dev owner: dev-dungeoncrawler
+20260409-dungeoncrawler-release-e
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch03
 - Category: class

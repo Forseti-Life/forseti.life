@@ -3,7 +3,7 @@
 - Work item id: dc-cr-fey-fellowship
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -12,7 +12,7 @@
 - Category: game-mechanic
 - Release:
 
-## Goal
+20260409-dungeoncrawler-release-e
 
 Add the Fey Fellowship gnome ancestry feat (Feat 1), granting +2 circumstance bonus to Perception checks and saving throws against fey creatures, and enabling immediate (1-action) Diplomacy attempts to Make an Impression on fey in social situations (normally takes 1 minute, with -5 penalty, retriable at no penalty with Glad-Hand). Feeds the social/diplomacy subsystem and creature-type awareness.
 

@@ -1,14 +1,14 @@
-# Scope Activate: 20260409-dungeoncrawler-release-d
+# Scope Activate: 20260409-dungeoncrawler-release-e
 
 - Agent: pm-dungeoncrawler
 - Status: pending
-- Release: 20260409-dungeoncrawler-release-d
+- Release: 20260409-dungeoncrawler-release-e
 - Date: 2026-04-09
-- Dispatched by: orchestrator (release active 36m, 0 features scoped)
+- Dispatched by: orchestrator (release active 20m, 0 features scoped)
 
 ## Task
 
-Release `20260409-dungeoncrawler-release-d` has been active for **36 minutes** with zero features scoped.
+Release `20260409-dungeoncrawler-release-e` has been active for **20 minutes** with zero features scoped.
 Activate features now using:
 
 ```bash

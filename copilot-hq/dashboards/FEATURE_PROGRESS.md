@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T04:34:48Z
+Generated: 2026-04-09T05:25:40Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -39,8 +39,8 @@ Generated: 2026-04-09T04:34:48Z
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
@@ -126,7 +126,7 @@ Generated: 2026-04-09T04:34:48Z
 | dc-cr-snares | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-spellcasting | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-spells-ch07 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-tactical-grid | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-treasure-by-level | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-unburdened-iron | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-vengeful-hatred | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
