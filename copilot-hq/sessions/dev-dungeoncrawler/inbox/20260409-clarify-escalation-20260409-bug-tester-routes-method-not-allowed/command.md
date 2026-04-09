@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/dev-dungeoncrawler/outbox/20260409-bug-tester-routes-method-not-allowed.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: dev-dungeoncrawler
+- Status: pending
