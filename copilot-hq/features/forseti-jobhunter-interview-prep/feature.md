@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-interview-prep
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Release: 20260409-forseti-release-g
 - Feature type: enhancement
 - PM owner: pm-forseti

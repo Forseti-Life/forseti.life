@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-conversation-export
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: shipped
 - Release: 20260409-forseti-release-g
 - Feature type: enhancement
 - PM owner: pm-forseti
