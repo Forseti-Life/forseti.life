@@ -1,36 +1,23 @@
-# Suite Activation: dc-apg-class-witch
+Already stamped for the current release. Validate and write outbox only.
 
-- Feature: dc-apg-class-witch
-- Inbox: 20260409-003844-suite-activate-dc-apg-class-witch
-- Date: 2026-04-09
-- Release: 20260409-dungeoncrawler-release-c
+Outbox already exists from a prior session. No changes needed — suite is already stamped for release-c and the outbox is written.
 
-## Result: ACTIVATED (re-stamped for current release)
+---
 
-The suite entry `dc-apg-class-witch-e2e` was already present in `qa-suites/products/dungeoncrawler/suite.json` with all 18 active test cases. Updated `activated_release` to `20260409-dungeoncrawler-release-c` (release-b closed 01:01 UTC; release-c started 01:05 UTC).
+- Status: done
+- Summary: Suite activation for `dc-apg-class-witch` requires no action this cycle. The entry `dc-apg-class-witch-e2e` in `qa-suites/products/dungeoncrawler/suite.json` already has `activated_release: 20260409-dungeoncrawler-release-c` (the current release), all 18 test cases (TC-WCH-01–18) active, and `required_for_release: true`. The outbox file `sessions/qa-dungeoncrawler/outbox/20260409-003844-suite-activate-dc-apg-class-witch.md` already exists from a prior session. Suite validates clean: `OK: validated 5 suite manifest(s)`. No permission rules needed (no new routes — ACL exemption confirmed). No commits required.
 
-### Suite entry
-- ID: `dc-apg-class-witch-e2e`
-- Type: e2e (playwright/character-creation + encounter + downtime)
-- feature_id: `dc-apg-class-witch` ✓ tagged
-- TCs: 18 (TC-WCH-01–18), all status=active
-- required_for_release: true ✓
-- activated_release: `20260409-dungeoncrawler-release-c` ✓
+## Next actions
+- Awaiting next dispatch from pm-dungeoncrawler for release-c items.
 
-### Permission rules
-- No new routes introduced by this feature — ACL exemption confirmed (command.md states "Security AC exemption granted: no new routes").
-- No new entries added to `org-chart/sites/dungeoncrawler/qa-permissions.json`.
+## Blockers
+- None.
 
-### Suite validation
-`python3 scripts/qa-suite-validate.py` → **OK: validated 5 suite manifest(s)**
+## ROI estimate
+- ROI: 10
+- Rationale: Confirmation pass only — suite already correctly activated for the current release; 18 Witch class test cases covering patron/familiar/hex/lesson mechanics are live.
 
-### Coverage summary (18 TCs active)
-- TC-WCH-01–02: Class record/saves, patron theme selection (7 themes, locks at L1)
-- TC-WCH-03–06: Familiar (mandatory, bonus abilities L1/6/12/18, death/spell preservation, prepared spellcasting via commune)
-- TC-WCH-07–08: Spell repertoire (starting count 16, +2/level-up, scroll absorption, familiar-to-familiar transfer)
-- TC-WCH-09–12: Hexes (FP cost, one-per-turn, hex cantrips auto-heighten, separate from prepared slots, Refocus via commune)
-- TC-WCH-13–15: Witch Lessons (tiered mechanism, Basic L2/Greater L6/Major L10, hex+spell pairs)
-- TC-WCH-16: Notable hexes (Cackle extension, Evil Eye status, Phase Familiar)
-- TC-WCH-17–18: Integration (familiar spell count growth) + Edge (Cackle on hex cantrip is valid)
-
-No gaps identified.
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260409-003844-suite-activate-dc-apg-class-witch
+- Generated: 2026-04-09T01:19:27+00:00
