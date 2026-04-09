@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T22:39:55Z
+Generated: 2026-04-09T22:59:13Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -9,7 +9,7 @@ Generated: 2026-04-09T22:39:55Z
 | dc-apg-class-expansions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-class-investigator | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-apg-feats | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
@@ -38,10 +38,10 @@ Generated: 2026-04-09T22:39:55Z
 | dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-rogue | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |

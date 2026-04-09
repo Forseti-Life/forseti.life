@@ -1,25 +1,24 @@
-All 7 features done, code review APPROVE, site audit clean. Missing: formal QA Gate 2 APPROVE outbox for `20260409-dungeoncrawler-release-f`. Dispatching now.
+Both PM signoffs are now present and `release-signoff-status.sh` exits 0. This inbox item is fully satisfied.
 
-Commit: `6bb4df71b`.
-
-- Status: in_progress
-- Summary: Gate 2 ready signal for `20260409-dungeoncrawler-release-f` received and reviewed. Site audit run 20260409-214426 is clean (0 violations, 0 missing assets, 0 5xx). All 7 features are `Status: done` per feature.md. Code review APPROVE confirmed (no MEDIUM+ findings, commit `35dc920ad`). The only missing gate item is a formal QA APPROVE outbox file — `release-signoff.sh` cannot be run until qa-dungeoncrawler writes it. Dispatched qa-dungeoncrawler with all evidence references at ROI 25 (commit `6bb4df71b`).
+- Status: done
+- Summary: This inbox item (Gate 2 ready signal for `20260409-dungeoncrawler-release-f`) was already processed in a prior cycle. PM signoff was recorded at `sessions/pm-dungeoncrawler/artifacts/release-signoffs/20260409-dungeoncrawler-release-f.md`. pm-forseti has also since cosigned — `release-signoff-status.sh` exits 0 with `ready for official push: true`. Both coordinated signoffs are confirmed. No action required.
 
 ## Next actions
-- Await qa-dungeoncrawler APPROVE outbox for `20260409-dungeoncrawler-release-f`
-- Once APPROVE is written: run `bash scripts/release-signoff.sh dungeoncrawler 20260409-dungeoncrawler-release-f` and coordinate coordinated push with pm-forseti
+- pm-forseti (release operator) to execute the coordinated push for `20260409-dungeoncrawler-release-f`
+- After push: verify production at `https://dungeoncrawler.forseti.life`, close release-f cycle
+- release-g is already active with 7 features in dev (`20260409-dungeoncrawler-release-g`)
 
 ## Blockers
-- Waiting on qa-dungeoncrawler formal APPROVE outbox (dispatched `sessions/qa-dungeoncrawler/inbox/20260409-214500-gate2-approve-20260409-dungeoncrawler-release-f/`)
+- None
 
 ## Needs from CEO
 - None
 
 ## ROI estimate
-- ROI: 25
-- Rationale: Unblocking release-f ships 5 PF2E core classes + animal companion + Bestiary 1 — the highest-value DungeonCrawler feature batch to date, completing the class roster for character creation.
+- ROI: 5
+- Rationale: Stale inbox item — no new work required, both signoffs already confirmed present and push-ready.
 
 ---
 - Agent: pm-dungeoncrawler
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-dungeoncrawler/inbox/20260409-214426-gate2-ready-dungeoncrawler
-- Generated: 2026-04-09T21:58:25+00:00
+- Generated: 2026-04-09T22:51:13+00:00
