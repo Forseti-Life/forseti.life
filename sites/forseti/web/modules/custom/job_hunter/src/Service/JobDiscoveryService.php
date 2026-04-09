@@ -315,7 +315,7 @@ class JobDiscoveryService {
         $query->condition('j.status', $filters['status']);
       }
       else {
-        $query->condition('j.status', 'archived', '!=');
+        $query->condition('sj.archived', 0);
       }
       if (!empty($filters['platform'])) {
         // Filter by source_platform or via field.
@@ -373,7 +373,7 @@ class JobDiscoveryService {
         $query->condition('j.status', $filters['status']);
       }
       else {
-        $query->condition('j.status', 'archived', '!=');
+        $query->condition('sj.archived', 0);
       }
       if (!empty($filters['platform'])) {
         $platform_group = $query->orConditionGroup()
@@ -404,7 +404,7 @@ class JobDiscoveryService {
         ':uid' => $this->currentUser->id(),
       ]);
       $query->addField('tr', 'tailoring_status');
-      $query->condition('j.status', 'archived');
+      $query->condition('sj.archived', 1);
       $query->orderBy('c.' . $company_name_field, 'ASC');
       $query->orderBy('j.job_title', 'ASC');
       $query->range($page * $per_page, $per_page);
@@ -424,7 +424,7 @@ class JobDiscoveryService {
       $query = $this->database->select('jobhunter_saved_jobs', 'sj');
       $query->innerJoin('jobhunter_job_requirements', 'j', 'sj.job_id = j.id');
       $query->condition('sj.uid', $this->currentUser->id());
-      $query->condition('j.status', 'archived');
+      $query->condition('sj.archived', 1);
       $query->addExpression('COUNT(*)', 'total');
       return (int) $query->execute()->fetchField();
     }

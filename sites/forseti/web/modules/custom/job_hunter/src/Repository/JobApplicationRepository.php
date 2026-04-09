@@ -127,9 +127,34 @@ class JobApplicationRepository {
       ->fields([
         'uid' => $uid,
         'job_id' => $job_id,
+        'archived' => 0,
         'created' => $now,
         'updated' => $now,
       ])
+      ->execute();
+  }
+
+  /**
+   * Set the per-user archive flag on a saved-job mapping row.
+   *
+   * This replaces the old pattern of writing to jobhunter_job_requirements
+   * .status so that archiving is scoped to the calling user only.
+   *
+   * @param int $uid
+   *   The user performing the archive/unarchive.
+   * @param int $job_id
+   *   The jobhunter_job_requirements.id to archive/unarchive.
+   * @param bool $archived
+   *   TRUE to archive; FALSE to restore.
+   */
+  public function setJobArchivedForUser(int $uid, int $job_id, bool $archived): void {
+    $this->database->update('jobhunter_saved_jobs')
+      ->fields([
+        'archived' => (int) $archived,
+        'updated' => time(),
+      ])
+      ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
       ->execute();
   }
 

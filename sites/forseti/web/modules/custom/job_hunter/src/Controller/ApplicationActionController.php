@@ -411,7 +411,7 @@ class ApplicationActionController extends ControllerBase {
       $owned = $this->repository->findSavedJobMappingId($uid, $job_id);
       if ($owned) {
         try {
-          $this->repository->updateJobRequirement($job_id, ['status' => 'archived']);
+          $this->repository->setJobArchivedForUser($uid, $job_id, TRUE);
           $archived_count++;
         }
         catch (\Exception $e) {
@@ -450,7 +450,7 @@ class ApplicationActionController extends ControllerBase {
         return new RedirectResponse($return_to);
       }
 
-      $this->repository->updateJobRequirement($job_id, ['status' => 'archived']);
+      $this->repository->setJobArchivedForUser((int) $this->currentUser()->id(), $job_id, TRUE);
 
       $this->messenger()->addMessage($this->t('Job archived.'));
     }
@@ -487,7 +487,7 @@ class ApplicationActionController extends ControllerBase {
         return new RedirectResponse($return_to);
       }
 
-      $this->repository->updateJobRequirement($job_id, ['status' => 'active']);
+      $this->repository->setJobArchivedForUser((int) $this->currentUser()->id(), $job_id, FALSE);
 
       $this->messenger()->addMessage($this->t('Job restored to My Jobs.'));
     }

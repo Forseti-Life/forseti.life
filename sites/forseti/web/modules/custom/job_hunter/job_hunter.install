@@ -100,6 +100,13 @@ function _job_hunter_create_saved_jobs_table() {
       'id' => ['type' => 'serial', 'not null' => TRUE],
       'uid' => ['type' => 'int', 'not null' => TRUE, 'default' => 0, 'description' => 'User ID'],
       'job_id' => ['type' => 'int', 'not null' => TRUE, 'description' => 'Job requirement ID'],
+      'archived' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Per-user archive flag (1 = archived by this user).',
+      ],
       'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
       'updated' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
     ],
@@ -944,6 +951,47 @@ function job_hunter_update_9040() {
   }
 
   return $messages ? t(implode(' ', $messages)) : t('No update needed: columns already exist.');
+}
+
+/**
+ * Add per-user archive flag to jobhunter_saved_jobs; migrate existing data.
+ *
+ * Moves archive state from jobhunter_job_requirements.status (global,
+ * uid-free) to jobhunter_saved_jobs.archived (per-user) so that User A
+ * archiving a shared job does not affect User B's My Jobs view.
+ *
+ * Migration: any saved_job row whose catalog job has status='archived' is
+ * given archived=1 (best-effort — cannot recover cross-user intent from
+ * the old schema, so all holders of an archived catalog row are treated as
+ * having archived it).  After migration the 'archived' catalog status is
+ * left in place to avoid breaking anything until a separate cleanup pass.
+ */
+function job_hunter_update_9041() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->tableExists('jobhunter_saved_jobs')) {
+    return t('jobhunter_saved_jobs table does not exist — skipping.');
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'archived')) {
+    $schema->addField('jobhunter_saved_jobs', 'archived', [
+      'type' => 'int',
+      'size' => 'tiny',
+      'not null' => TRUE,
+      'default' => 0,
+      'description' => 'Per-user archive flag (1 = archived by this user).',
+    ]);
+  }
+
+  // Migrate: mark saved_job rows as archived=1 where the catalog job is
+  // currently status='archived'.
+  \Drupal::database()->update('jobhunter_saved_jobs')
+    ->expression('archived', '1')
+    ->where('job_id IN (SELECT id FROM {jobhunter_job_requirements} WHERE status = :s)', [':s' => 'archived'])
+    ->condition('archived', 0)
+    ->execute();
+
+  return t('Added archived column to jobhunter_saved_jobs and migrated existing archived rows.');
 }
 
 

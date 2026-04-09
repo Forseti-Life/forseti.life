@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-09T12:08:57.860553",
+  "generated_at": "2026-04-09T13:53:30.032003",
   "window_minutes": 15,
   "teams": [
     {
@@ -7,7 +7,7 @@
       "label": "Forseti",
       "site": "forseti.life",
       "window_minutes": 15,
-      "latest_run": "20260409-055417",
+      "latest_run": "20260409-130530",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -20,54 +20,54 @@
       },
       "recent_deltas": [
         {
-          "from_run": "20260409-014037",
-          "to_run": "20260409-033955",
-          "to_ts": "2026-04-09T03:39:55",
+          "from_run": "20260409-123432",
+          "to_run": "20260409-123513",
+          "to_ts": "2026-04-09T12:35:13",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 119.3
+          "elapsed_minutes": 0.68
         },
         {
-          "from_run": "20260409-033955",
-          "to_run": "20260409-044542",
-          "to_ts": "2026-04-09T04:45:42",
+          "from_run": "20260409-123513",
+          "to_run": "20260409-124035",
+          "to_ts": "2026-04-09T12:40:35",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 65.78
+          "elapsed_minutes": 5.37
         },
         {
-          "from_run": "20260409-044542",
-          "to_run": "20260409-045632",
-          "to_ts": "2026-04-09T04:56:32",
+          "from_run": "20260409-124035",
+          "to_run": "20260409-124843",
+          "to_ts": "2026-04-09T12:48:43",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 10.83
+          "elapsed_minutes": 8.13
         },
         {
-          "from_run": "20260409-045632",
-          "to_run": "20260409-052335",
-          "to_ts": "2026-04-09T05:23:35",
+          "from_run": "20260409-124843",
+          "to_run": "20260409-125601",
+          "to_ts": "2026-04-09T12:56:01",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 27.05
+          "elapsed_minutes": 7.3
         },
         {
-          "from_run": "20260409-052335",
-          "to_run": "20260409-055417",
-          "to_ts": "2026-04-09T05:54:17",
+          "from_run": "20260409-125601",
+          "to_run": "20260409-130530",
+          "to_ts": "2026-04-09T13:05:30",
           "prev_total": 0,
           "cur_total": 0,
           "resolved": 0,
           "introduced": 0,
-          "elapsed_minutes": 30.7
+          "elapsed_minutes": 9.48
         }
       ]
     },
