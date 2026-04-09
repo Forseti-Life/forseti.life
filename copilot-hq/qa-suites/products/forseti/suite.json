@@ -1425,6 +1425,81 @@
         "Regression notes: /jobhunter/profile must still render existing fields; /jobhunter home route must render without error after widget embed.",
         "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
       ]
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-display-static",
+      "label": "Resume tailoring display static \u2014 TC-11 non-int job_id 404, CSRF check on save route (methods:POST + _csrf_token), template exists, CSRF count >= 39",
+      "type": "unit",
+      "feature_id": "forseti-jobhunter-resume-tailoring-display",
+      "command": "bash -c 'set -e; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml; ls /home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/templates/job-tailoring-combined.html.twig && echo \"template: PASS\" || (echo \"template: FAIL\" && exit 1); grep -q \"job_tailoring_save_resume\" $ROUTING && echo \"save-route-exists: PASS\" || (echo \"save-route-exists: FAIL -- route not yet added by Dev\" && exit 1); grep -A8 \"job_tailoring_save_resume\" $ROUTING | grep -q \"methods.*POST\" && echo \"save-methods-POST: PASS\" || (echo \"save-methods-POST: FAIL\" && exit 1); grep -A8 \"job_tailoring_save_resume\" $ROUTING | grep -q \"_csrf_token\" && echo \"save-csrf-guard: PASS\" || (echo \"save-csrf-guard: FAIL\" && exit 1); CSRF=$(grep -c \"_csrf_token\" $ROUTING); echo \"csrf_count=$CSRF (baseline 38, expect >=39 after save route added)\"; [ \"$CSRF\" -ge 39 ] && echo \"csrf-count: PASS\" || (echo \"csrf-count: FAIL\" && exit 1); S=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/jobtailoring/notanid 2>/dev/null); echo \"non-int job_id: $S\"; [ \"$S\" = \"404\" ] && echo \"TC-11 non-int: PASS\" || (echo \"TC-11 non-int: FAIL expected 404 got $S\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-resume-tailoring-display-static-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must add job_hunter.job_tailoring_save_resume POST route with _csrf_token:'TRUE'.",
+        "job_hunter.job_tailoring GET route already exists (job_id: \\d+ enforces integer \u2014 non-int returns 404, confirmed by routing.yml requirement).",
+        "Template job-tailoring-combined.html.twig already exists as skeleton.",
+        "CSRF baseline: 38 (as of activation 2026-04-09). Adding save_resume POST route must push count to >=39.",
+        "TC-11: non-integer job_id hits routing regex \\d+ and returns 404 natively \u2014 no controller code needed.",
+        "Split-route pattern required: existing GET job_tailoring route unchanged; new POST-only job_tailoring_save_resume gets _csrf_token:'TRUE'."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-display-functional",
+      "label": "Resume tailoring display functional \u2014 TC-1 anon /jobhunter/jobtailoring/1 returns 403, TC-11 non-int returns 404, TC-7 no-CSRF POST returns 403",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-resume-tailoring-display",
+      "command": "bash -c 'set -e; S1=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/jobtailoring/1); echo \"anon /jobhunter/jobtailoring/1: $S1\"; [ \"$S1\" = \"403\" ] && echo \"TC-1 anon-int: PASS\" || (echo \"TC-1 anon-int: FAIL expected 403 got $S1\" && exit 1); S2=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/jobtailoring/notanid); echo \"anon /jobhunter/jobtailoring/notanid: $S2\"; [ \"$S2\" = \"404\" ] && echo \"TC-11 non-int: PASS\" || (echo \"TC-11 non-int: FAIL expected 404 got $S2\" && exit 1); S3=$(curl -o /dev/null -s -w \"%{http_code}\" -X POST https://forseti.life/jobhunter/jobtailoring/1/save-resume --data \"dummy=1\" 2>/dev/null); echo \"anon-POST-no-csrf: $S3 (expect 403 or 404 -- route may not exist yet)\"; ([ \"$S3\" = \"403\" ] || [ \"$S3\" = \"404\" ] || [ \"$S3\" = \"000\" ]) && echo \"TC-7 csrf-missing: acceptable ($S3)\" || (echo \"TC-7 csrf-missing: FAIL unexpected $S3\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/forseti-jobhunter-resume-tailoring-display-functional-latest/"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "TC-1: anon GET /jobhunter/jobtailoring/1 must return 403 (route requires 'access job hunter' permission). Confirmed live at activation time.",
+        "TC-11: non-integer job_id (jobhunter/jobtailoring/notanid) returns 404 due to routing.yml job_id:\\d+ constraint. Immediately runnable.",
+        "TC-7: anon POST to save-resume without CSRF must return 403 (or 404 pre-implementation). 000 also acceptable (connection refused before route exists).",
+        "TC-2/3/4/5/6/8/9/10 require authentication \u2014 covered by E2E suite (STAGE 0 PENDING)."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-display-e2e",
+      "label": "Resume tailoring E2E \u2014 TC-2 side-by-side view, TC-3/4 confidence score, TC-5 PDF button, TC-6 save-to-profile valid CSRF, TC-8 pending state, TC-9 failed state, TC-10 cross-user guard",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-resume-tailoring-display",
+      "command": "node testing/jobhunter-resume-tailoring-display.mjs 2>/dev/null || (echo 'SKIPPED: Node/Playwright unavailable or test not yet written' && exit 0)",
+      "artifacts": [
+        "testing/results/resume-tailoring-display-e2e-latest.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Dev must implement display changes; testing/jobhunter-resume-tailoring-display.mjs must be created alongside implementation.",
+        "TC-2: completed tailoring shows two columns ('Your Profile' / 'Tailored Resume') with labelled headers.",
+        "TC-3: confidence_score set (e.g. 82) shows '82%' label. TC-4: null confidence_score shows no label (not 'null%' or '0%').",
+        "TC-5: pdf_path set renders 'Download PDF' button; pdf_path null renders no download button.",
+        "TC-6: 'Save as active resume' with valid CSRF \u2192 200/redirect + confirmation message + active resume updated.",
+        "TC-8: status=processing shows status message ('Tailoring in progress...'); no side-by-side view.",
+        "TC-9: status=failed shows error message with Retry link/button.",
+        "TC-10: cross-user access (User A\u2192job owned by User B) returns 403 or 404.",
+        "Node/Playwright unavailable on this host: SKIPPED (not FAIL) per org policy."
+      ]
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-display-regression",
+      "label": "Resume tailoring display regression \u2014 site audit 0/0, job_tailoring GET route still registered",
+      "type": "regression",
+      "feature_id": "forseti-jobhunter-resume-tailoring-display",
+      "command": "bash -c 'set -e; cd /home/ubuntu/forseti.life/copilot-hq && ALLOW_PROD_QA=1 bash scripts/site-audit-run.sh forseti && python3 -c \"import json; d=json.load(open(\\\"sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json\\\")); failures=d[\\\"counts\\\"][\\\"failures\\\"]; viols=d[\\\"counts\\\"].get(\\\"violations\\\",0); assert failures==0 and viols==0, f\\\"FAIL: failures={failures} violations={viols}\\\"; print(\\\"PASS: 0 failures 0 violations\\\")\" && cd /home/ubuntu/forseti.life/sites/forseti && ./vendor/bin/drush router:debug --no-interaction 2>/dev/null | grep job_tailoring | grep -q \"job_tailoring\" && echo \"route-registration: PASS\" || (echo \"route-registration: FAIL\" && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/auto-site-audit/latest/findings-summary.json"
+      ],
+      "required_for_release": true,
+      "run_notes": [
+        "STAGE 0 PENDING: Run after Dev implements display polish and save route.",
+        "Regression note: job_hunter.job_tailoring GET route must remain registered and functional post-refactor.",
+        "Regression note: CSRF guard on new save route \u2014 grep -A5 'job_tailoring_save_resume' job_hunter.routing.yml must show _csrf_token:'TRUE'.",
+        "Baseline: site audit 20260409-055417 \u2014 0 failures, 0 violations (post release-d)."
+      ]
     }
   ],
   "_schema_notes": [

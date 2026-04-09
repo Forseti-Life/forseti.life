@@ -352,6 +352,28 @@
         "authenticated": "deny",
         "administrator": "allow"
       }
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-display-view",
+      "feature_id": "forseti-jobhunter-resume-tailoring-display",
+      "path_regex": "^/jobhunter/jobtailoring/\\d+(?:/|$)",
+      "notes": "Added for feature forseti-jobhunter-resume-tailoring-display (TC-1). GET /jobhunter/jobtailoring/{job_id} requires 'access job hunter' permission. Anonymous access must return 403. Non-integer job_id returns 404 (routing.yml job_id:\\d+ constraint). Cross-user access must return 403/404 (controller must verify job.uid == current_user->id()).",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-resume-tailoring-display-save-resume",
+      "feature_id": "forseti-jobhunter-resume-tailoring-display",
+      "path_regex": "^/jobhunter/jobtailoring/\\d+/save-resume(?:\\?.*)?$",
+      "notes": "Added for feature forseti-jobhunter-resume-tailoring-display (TC-6/TC-7). POST-only job_hunter.job_tailoring_save_resume route requires CSRF token. Missing/invalid CSRF must return 403. Anon access must return 403. STAGE 0 PENDING: route not yet added by Dev.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "administrator": "allow"
+      }
     }
   ]
 }
