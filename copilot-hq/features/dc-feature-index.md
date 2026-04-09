@@ -4,7 +4,7 @@
 
 **Maintained by:** `ba-dungeoncrawler` — update this file at the end of every scan chunk (same commit as new feature stubs). Include `Category` and `Depends on` for every new row (`Depends on` may be blank if no dependencies).
 
-**Last updated:** 2026-04-08 | Release: `20260408-dungeoncrawler-release-b` | Total: 62
+**Last updated:** 2026-04-09 | Release: `20260409-dungeoncrawler-release-b` | Total: 70
 
 ---
 
@@ -17,8 +17,10 @@
 | dc-cr-ancestry-feat-schedule | game-mechanic | dc-cr-ancestry-system, dc-cr-character-leveling | Ancestry feat progression slots at levels 1/5/9/13/17 with prerequisite checking |
 | dc-cr-ancestry-system | game-mechanic |  | Ancestry selection (dwarf/elf/gnome/goblin/halfling/human) with stat grants and feat trees |
 | dc-cr-ancestry-traits | rule-system | dc-cr-ancestry-system | Creature trait tags (e.g. Dwarf, Humanoid) enabling correct spell/ability targeting |
+| dc-cr-animal-accomplice | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-familiar | Gnome Feat 1: bonded animal familiar (gnomes typically choose burrowing animals) |
 | dc-cr-animal-companion | game-mechanic |  | Animal companions for druids/rangers with own stat blocks and advancement |
 | dc-cr-background-system | game-mechanic |  | Background selection granting ability boosts, skill training, and a skill feat |
+| dc-cr-burrow-elocutionist | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 1: comprehend and speak with burrowing creatures |
 | dc-cr-character-class | game-mechanic |  | 12 character classes (fighter, cleric, wizard, alchemist, etc.) with advancement tables |
 | dc-cr-character-creation | rule-system |  | End-to-end character creation workflow (ancestry → class → background → stats) |
 | dc-cr-character-leveling | rule-system |  | Level-up flow applying class features, ability boosts, and feats at each level |
@@ -45,6 +47,7 @@
 | dc-cr-exploration-mode | rule-system |  | Between-encounter mode with ongoing exploration activities that affect initiative |
 | dc-cr-familiar | game-mechanic |  | Magical familiars for casters with daily-selectable familiar abilities |
 | dc-cr-fey-fellowship | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 1: +2 vs fey Perception/saves; immediate Diplomacy with fey (–5 penalty) |
+| dc-cr-first-world-adept | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-spellcasting | Gnome Feat 9: faerie fire + invisibility as 2nd-level primal innate spells (1/day each) |
 | dc-cr-first-world-magic | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-spellcasting | Gnome Feat 1: one primal cantrip as at-will innate spell (fixed at selection) |
 | dc-cr-focus-spells | game-mechanic |  | Focus Point pool and focus spells that auto-heighten; used by 6+ classes |
 | dc-cr-general-feats | game-mechanic |  | General feat catalog available to all characters at levels 3/7/11/15/19 |
@@ -54,6 +57,10 @@
 | dc-cr-gnome-heritage-sensate | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system | Sensate Gnome: imprecise scent 30 ft + +2 Perception vs undetected within scent range |
 | dc-cr-gnome-heritage-umbral | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system, dc-cr-darkvision | Umbral Gnome: darkvision (see in complete darkness) |
 | dc-cr-gnome-heritage-wellspring | game-mechanic | dc-cr-gnome-ancestry, dc-cr-heritage-system, dc-cr-spellcasting | Wellspring Gnome: choose tradition (arcane/divine/occult); cantrip at will; override primal innate spells |
+| dc-cr-gnome-obsession | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 1: chosen Lore skill auto-scales to expert/master/legendary at levels 2/7/15 |
+| dc-cr-gnome-weapon-expertise | game-mechanic | dc-cr-gnome-ancestry, dc-cr-gnome-weapon-familiarity, dc-cr-ancestry-feat-schedule | Gnome Feat 13: class weapon proficiency upgrades cascade to glaive/kukri/gnome weapons |
+| dc-cr-gnome-weapon-familiarity | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 1: trained in glaive + kukri; gnome martial weapons count as simple |
+| dc-cr-gnome-weapon-specialist | game-mechanic | dc-cr-gnome-ancestry, dc-cr-gnome-weapon-familiarity, dc-cr-ancestry-feat-schedule | Gnome Feat 5: critical specialization effects with glaive, kukri, and gnome weapons |
 | dc-cr-gm-narrative-engine | rule-system | dc-cr-gm-tools, dc-cr-npc-system, dc-cr-session-structure | AI GM storytelling pipeline: scene framing, NPC dialogue, outcome narration |
 | dc-cr-gm-tools | rule-system |  | GM encounter budgeting, NPC stat blocks, loot-by-level tables for AI GM use |
 | dc-cr-heritage-system | game-mechanic | dc-cr-ancestry-system | Heritage selection: one heritage per ancestry at level 1, locked after creation |
@@ -73,6 +80,7 @@
 | dc-cr-tactical-grid | rule-system |  | 5-foot grid spatial system for combat positioning, reach, area effects, and flanking |
 | dc-cr-unburdened-iron | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-ancestry-feat-schedule, dc-cr-equipment-system | Unburdened Iron: reduce Speed penalty from armor to 0; 5-ft penalty reduction stacks for others |
 | dc-cr-vengeful-hatred | game-mechanic | dc-cr-dwarf-ancestry, dc-cr-ancestry-feat-schedule | Vengeful Hatred: +1 circumstance bonus on attacks vs. chosen ancestry or creature type |
+| dc-cr-vivacious-conduit | game-mechanic | dc-cr-gnome-ancestry, dc-cr-ancestry-feat-schedule | Gnome Feat 9: 10-min rest heals HP = Con mod × (level/2); stacks with Treat Wounds |
 | dc-cr-xp-rewards | rule-system | dc-cr-character-leveling | XP tracking with 1,000 XP per level threshold; triggers character-leveling flow |
 
 ## New features (roadmap audit 2026-04-07)

@@ -6,7 +6,7 @@
       "path": "docs/dungeoncrawler/reference documentation/PF2E Core Rulebook - Fourth Printing.txt",
       "outline": "docs/dungeoncrawler/reference documentation/outlines/PF2E_Core_Rulebook_Fourth_Printing_OUTLINE.md",
       "type": "rulebook",
-      "last_line": 6783,
+      "last_line": 7083,
       "chapters_completed": ["Chapter 1: Introduction"],
       "status": "in_progress",
       "chapter_boundaries": [
@@ -96,7 +96,7 @@
       "status": "pending"
     }
   ],
-  "total_features_generated": 62,
-  "last_scan_release": "20260408-dungeoncrawler-release-b",
+  "total_features_generated": 70,
+  "last_scan_release": "20260409-dungeoncrawler-release-b",
   "notes": "Scan picks up where last left off. Cap: 30 new features per release cycle. chapter_boundaries field in books[0] gives line ranges and density ratings; use density to skip low-density sections and jump to next high-density chapter start."
 }
