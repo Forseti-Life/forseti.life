@@ -7503,4 +7503,98 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     return NULL;
   }
 
+  /**
+   * Tactical grid rules for PF2e combat.
+   *
+   * Structure:
+   *   TACTICAL_GRID['grid']         — square size, coordinate model, creature sizing
+   *   TACTICAL_GRID['movement']     — Stride action, difficult terrain, AoO trigger
+   *   TACTICAL_GRID['reach']        — melee reach by weapon type
+   *   TACTICAL_GRID['areas_of_effect'] — burst, cone, line templates
+   *   TACTICAL_GRID['flanking']     — flanking positions and benefit
+   *   TACTICAL_GRID['cover']        — cover degrees and AC/Reflex bonuses
+   *   TACTICAL_GRID['terrain']      — difficult and hazardous terrain rules
+   */
+  const TACTICAL_GRID = [
+    'grid' => [
+      'square_size_ft'          => 5,
+      'coordinate_model'        => 'row_column',
+      'position_field'          => ['row' => 'int', 'column' => 'int'],
+      'multi_square_creatures'  => [
+        'rule'  => 'all occupied squares tracked',
+        'sizes' => [
+          'Tiny'       => ['squares' => 1, 'note' => 'shares square with others'],
+          'Small'      => ['squares' => 1],
+          'Medium'     => ['squares' => 1],
+          'Large'      => ['squares' => 4, 'footprint' => '2x2'],
+          'Huge'       => ['squares' => 9, 'footprint' => '3x3'],
+          'Gargantuan' => ['squares' => 16, 'footprint' => '4x4'],
+        ],
+      ],
+    ],
+    'movement' => [
+      'stride' => [
+        'action_cost'              => 1,
+        'distance_per_increment'   => 5,
+        'max_distance'             => 'creature Speed',
+        'difficult_terrain_cost'   => '2 feet of movement per 5-foot square',
+        'aoo_trigger'              => 'leaving a square threatened by an enemy with Attack of Opportunity reaction',
+      ],
+    ],
+    'reach' => [
+      'standard_melee'    => ['ft' => 5,  'squares' => 1, 'note' => 'adjacent square'],
+      'reach_weapon'      => ['ft' => 10, 'squares' => 2, 'note' => '2 squares distance (not diagonal)'],
+      'primary_square_rule' => 'use primary square of creature for flanking position checks',
+    ],
+    'areas_of_effect' => [
+      'burst' => [
+        'shape'        => 'radius from origin point',
+        'measurement'  => 'squares within burst radius measured from origin',
+        'origin'       => 'intersection of 4 squares or center of single square',
+      ],
+      'cone' => [
+        'shape'        => '90-degree wedge from caster square',
+        'direction'    => 'chosen at casting',
+        'measurement'  => 'squares within cone length from caster',
+      ],
+      'line' => [
+        'shape'        => 'straight path from caster in chosen direction',
+        'measurement'  => 'each square along the line checked for occupants',
+        'width'        => '5 ft (1 square) unless otherwise specified',
+      ],
+    ],
+    'flanking' => [
+      'condition'    => 'two allies on directly opposite sides of creature (same row or column center)',
+      'benefit_type' => 'circumstance',
+      'benefit'      => '+2 to attack rolls for both flanking attackers',
+      'size_rule'    => 'use primary square of each creature for position determination',
+    ],
+    'cover' => [
+      'standard' => [
+        'source'    => 'creature or terrain feature between attacker and target',
+        'ac_bonus'  => 2,
+        'reflex_bonus' => 2,
+        'type'      => 'circumstance',
+      ],
+      'greater' => [
+        'source'    => 'solid wall or equivalent blocking most of target',
+        'ac_bonus'  => 4,
+        'reflex_bonus' => 4,
+        'type'      => 'circumstance',
+      ],
+      'prone_interaction' => 'Prone creature gains cover against ranged attacks from sources more than 5 ft away',
+    ],
+    'terrain' => [
+      'difficult' => [
+        'cost'   => '2 feet of movement per 5-foot square (costs double movement)',
+        'effect' => 'none beyond movement cost',
+      ],
+      'hazardous' => [
+        'cost'   => 'standard movement cost',
+        'effect' => 'terrain damage triggered on entry',
+        'damage' => 'defined per terrain instance',
+      ],
+    ],
+  ];
+
 }
