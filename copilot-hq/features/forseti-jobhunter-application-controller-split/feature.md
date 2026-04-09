@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-application-controller-split
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Release: 20260409-forseti-release-d
 - Feature type: refactor
 - PM owner: pm-forseti
