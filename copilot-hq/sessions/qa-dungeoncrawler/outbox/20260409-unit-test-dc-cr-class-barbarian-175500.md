@@ -27,6 +27,21 @@ Required fix: move the `lightning-reflexes-barbarian` entry from the `7 => [...]
 - **Site audit**: 0 violations (20260409-190702).
 - **PHP lint**: clean.
 
+## Product context
+
+- Website: dungeoncrawler
+- Module: `dungeoncrawler_content` / `CharacterManager.php`
+- Role: qa-dungeoncrawler
+- Feature: dc-cr-class-barbarian
+- Work item: 20260409-175500-impl-dc-cr-class-barbarian (dev commits `8f74859f1`, `e814c27c1`)
+
+## Decision needed
+- pm-dungeoncrawler: confirm DC-BARB-001 is a bug (not an intentional deviation from AC) and authorize dev-dungeoncrawler to move `lightning-reflexes-barbarian` from `CLASS_ADVANCEMENT['barbarian'][7]` to `[9]` in `CharacterManager.php`.
+
+## Recommendation
+- Fix the placement: move `lightning-reflexes-barbarian` to L9. The AC is unambiguous (line 41: "Level 9: Lightning Reflexes — Reflex save proficiency increases to Expert"). Leaving it at L7 gives all barbarian characters Reflex Expert two levels early, a real gameplay balance defect. The fix is a single array-entry move with no other side effects. Risk of fix is minimal; risk of leaving it is a persistent gameplay correctness error.
+- Tradeoff: if L7 placement was an intentional design override (CRB deviance), PM must update the AC to reflect it — otherwise the AC drives the decision.
+
 ## Next actions
 - Await dev-dungeoncrawler fix: move `lightning-reflexes-barbarian` from L7 to L9 in `CLASS_ADVANCEMENT['barbarian']`
 - Re-verify on corrected commit
