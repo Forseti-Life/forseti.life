@@ -1546,6 +1546,52 @@
       "required_for_release": true,
       "skip_reason": "Playwright/Node unavailable in current QA environment. Covers TC-2 through TC-11. Accepted gap until E2E environment provisioned.",
       "status": "skipped"
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-static",
+      "label": "Cover Letter Display: static checks \u2014 CSRF on generate+save routes, job_id constraint",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "command": "bash -c 'set -e; ROUTING=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter/job_hunter.routing.yml; echo \"[AC-8] CSRF cover_letter_generate:\"; grep -A10 \"job_hunter.cover_letter_generate\" \"$ROUTING\" | grep -q \"_csrf_token.*TRUE\" && echo PASS || (echo FAIL && exit 1); echo \"[AC-8] CSRF cover_letter_save:\"; grep -A10 \"job_hunter.cover_letter_save\" \"$ROUTING\" | grep -q \"_csrf_token.*TRUE\" && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/cover-letter-display/forseti-jobhunter-cover-letter-display-static.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-acl",
+      "label": "Cover Letter Display: anonymous GET /jobhunter/coverletter/1 returns 403",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" https://forseti.life/jobhunter/coverletter/1); echo \"anon GET /jobhunter/coverletter/1: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/cover-letter-display/forseti-jobhunter-cover-letter-display-acl.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-csrf-generate",
+      "label": "Cover Letter Display: POST cover_letter_generate without CSRF returns 403",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "command": "bash -c 'STATUS=$(curl -o /dev/null -s -w \"%{http_code}\" -X POST https://forseti.life/jobhunter/coverletter/1/generate -H \"Content-Type: application/x-www-form-urlencoded\" -d \"job_id=1\"); echo \"POST generate no-CSRF: $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo FAIL && exit 1)'",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/cover-letter-display/forseti-jobhunter-cover-letter-display-csrf-generate.log"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-e2e",
+      "label": "Cover Letter Display: authenticated view, status states, generate/save flows, PDF link, cross-user 403 (TC-2 to TC-11)",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "command": "npx playwright test tests/forseti-jobhunter-cover-letter-display.spec.ts --reporter=json --output=sessions/qa-forseti/artifacts/cover-letter-display/",
+      "artifacts": [
+        "sessions/qa-forseti/artifacts/cover-letter-display/results.json"
+      ],
+      "required_for_release": true,
+      "skip_reason": "Playwright/Node unavailable in current QA environment. Covers TC-2 through TC-11 (status states, generate flow, completed display, PDF link, save-to-application, failed state, cross-user guard). Accepted gap until E2E environment provisioned.",
+      "status": "skipped"
     }
   ],
   "_schema_notes": [

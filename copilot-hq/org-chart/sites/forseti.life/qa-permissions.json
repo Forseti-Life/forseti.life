@@ -398,6 +398,42 @@
         "content_editor": "ignore",
         "administrator": "ignore"
       }
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-coverletter-page",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "path_regex": "^/jobhunter/coverletter/\\d+(?:/|$)",
+      "notes": "Cover letter display page for authenticated users. Requires 'access job hunter' permission and uid ownership check. Anonymous access -> 403. Added for feature forseti-jobhunter-cover-letter-display (release-g).",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-generate",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "path_regex": "^/jobhunter/coverletter/\\d+/generate(?:/|$)",
+      "notes": "CSRF-protected POST endpoint to trigger cover letter generation. POST-only with _csrf_token: TRUE (split-route pattern). GET returns 405/403. Added for feature forseti-jobhunter-cover-letter-display.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-cover-letter-display-save",
+      "feature_id": "forseti-jobhunter-cover-letter-display",
+      "path_regex": "^/jobhunter/coverletter/\\d+/save(?:/|$)",
+      "notes": "CSRF-protected POST endpoint to save cover letter to application. POST-only with _csrf_token: TRUE. GET returns 405/403. Added for feature forseti-jobhunter-cover-letter-display.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }
