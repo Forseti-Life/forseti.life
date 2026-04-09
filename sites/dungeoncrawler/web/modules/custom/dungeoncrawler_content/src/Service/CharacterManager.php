@@ -1000,18 +1000,60 @@ class CharacterManager {
     'ranger' => [
       'id' => 'ranger',
       'name' => 'Ranger',
-      'description' => 'Some rangers believe civilization wears down the soul, but still needs to be protected. Others say nature needs to be protected from the greedy.',
+      'description' => 'You are a master of the wild, equally at home tracking prey through tangled forest or stalking an enemy across open plains. Your identity is defined by relentless pursuit, precise strikes, and intimate knowledge of your hunted prey.',
       'hp' => 10,
       'key_ability' => 'Strength or Dexterity',
+      'key_ability_choice' => TRUE,
       'proficiencies' => [
         'perception' => 'Expert',
-        'fortitude' => 'Expert',
-        'reflex' => 'Expert',
-        'will' => 'Trained',
+        'fortitude'  => 'Trained',
+        'reflex'     => 'Trained',
+        'will'       => 'Trained',
+        'class_dc'   => 'Trained',
       ],
-      'skills' => 'Choose 4 + Intelligence modifier',
-      'weapons' => 'Trained in simple and martial weapons',
-      'trained_skills' => 4,
+      'armor_proficiency' => ['light', 'medium', 'unarmored'],
+      'skills'            => 'Choose 4 + Intelligence modifier',
+      'trained_skills'    => 4,
+      'weapons'           => 'Trained in simple and martial weapons',
+      // ── Hunt Prey ────────────────────────────────────────────────────────────
+      'hunt_prey' => [
+        'action_cost'        => 1,
+        'free_action_feats'  => TRUE,
+        'max_prey'           => 1,
+        'exception_feat'     => 'Double Prey (allows 2 simultaneous prey designations)',
+        'benefits' => [
+          '+2 circumstance bonus to Perception checks to Seek or Recall Knowledge on prey',
+          'Ignore DC 5 flat check for hunted prey in darkness',
+          "Ignore hunted prey's concealment (not total concealment)",
+        ],
+        'change_prey' => 'Designating new prey replaces current prey designation.',
+      ],
+      // ── Hunter's Edge (L1 subclass, permanent) ────────────────────────────────
+      'hunters_edge' => [
+        'selection'  => 'L1 choice; permanent',
+        'options' => [
+          'flurry' => [
+            'id'          => 'flurry',
+            'name'        => 'Flurry',
+            'description' => 'MAP with attacks against hunted prey: –3/–6 (–2/–4 with agile weapons) instead of –5/–10. Only applies when attacking designated prey; normal MAP vs other targets.',
+          ],
+          'precision' => [
+            'id'          => 'precision',
+            'name'        => 'Precision',
+            'description' => 'First hit per round against hunted prey deals bonus precision damage: +1d8 at L1, +2d8 at L11, +3d8 at L19. Applies only to the FIRST hit per round; subsequent hits same round do not get bonus.',
+            'scaling' => [
+              1  => '1d8',
+              11 => '2d8',
+              19 => '3d8',
+            ],
+          ],
+          'outwit' => [
+            'id'          => 'outwit',
+            'name'        => 'Outwit',
+            'description' => '+2 circumstance bonus to Deception, Intimidation, Stealth, and Recall Knowledge checks against hunted prey; +1 circumstance bonus to AC against hunted prey\'s attacks.',
+          ],
+        ],
+      ],
     ],
     'bard' => [
       'id' => 'bard',
@@ -5772,17 +5814,61 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     'ranger' => [
       1  => ['auto_features' => [
         ['id' => 'hunt-prey', 'name' => 'Hunt Prey',
-          'description' => 'You can designate a creature as your prey with a free action. You gain a +2 circumstance bonus to Perception checks to locate your prey.'],
-        ['id' => 'hunters-edge', 'name' => 'Hunter\'s Edge',
-          'description' => 'You gain the benefit of one of the following hunter\'s edge options: Flurry, Precision, or Outwit.'],
+          'description' => '1-action (free action with certain feats): designate one creature as hunted prey. Only one prey at a time (Double Prey feat allows 2). Benefits: +2 circumstance to Perception checks to Seek/Recall Knowledge vs prey; ignore DC 5 flat check in darkness; ignore prey\'s concealment (not total concealment). Designating a new prey replaces the current.'],
+        ['id' => 'hunters-edge', 'name' => "Hunter's Edge",
+          'description' => 'L1 permanent subclass choice. Flurry: MAP vs hunted prey is –3/–6 (–2/–4 agile) instead of –5/–10; only vs prey, normal MAP vs others. Precision: first hit per round vs prey deals +1d8 precision damage (only first hit; scales to 2d8 at L11, 3d8 at L19). Outwit: +2 circumstance to Deception/Intimidation/Stealth/Recall Knowledge vs prey; +1 circumstance AC vs prey\'s attacks.'],
+      ]],
+      3  => ['auto_features' => [
+        ['id' => 'iron-will-ranger', 'name' => 'Iron Will',
+          'description' => 'Will save proficiency increases to Expert.'],
       ]],
       5  => ['auto_features' => [
+        ['id' => 'ranger-weapon-expertise', 'name' => 'Ranger Weapon Expertise',
+          'description' => 'Proficiency with simple weapons, martial weapons, and unarmed attacks increases to Expert.'],
         ['id' => 'trackless-step', 'name' => 'Trackless Step',
-          'description' => 'When you move through natural environments, you leave no tracks and can\'t be tracked.'],
+          'description' => 'When moving through natural environments you leave no tracks and cannot be tracked.'],
+      ]],
+      7  => ['auto_features' => [
+        ['id' => 'evasion-ranger', 'name' => 'Evasion',
+          'description' => 'Reflex save proficiency increases to Master. Successes on Reflex saves become critical successes.'],
+        ['id' => 'ranger-expertise', 'name' => 'Vigilant Senses',
+          'description' => 'Perception proficiency increases to Master.'],
+        ['id' => 'weapon-specialization-ranger', 'name' => 'Weapon Specialization',
+          'description' => '+2 damage with Expert weapons/unarmed, +3 at Master, +4 at Legendary.'],
       ]],
       9  => ['auto_features' => [
         ['id' => 'swift-prey', 'name' => 'Swift Prey',
           'description' => 'You can Hunt Prey as a free action once per turn on your turn.'],
+        ['id' => 'nature-s-edge', 'name' => "Nature's Edge",
+          'description' => 'Enemies are flat-footed against your attacks in natural terrain and in difficult terrain you created.'],
+      ]],
+      11 => ['auto_features' => [
+        ['id' => 'hunter-s-edge-mastery', 'name' => "Hunter's Edge Mastery",
+          'description' => "Precision: first hit vs prey now deals +2d8 precision damage (up from +1d8). Flurry: MAP reduction vs prey now extends to all attacks in the round (not just first two). Outwit: circumstance bonus to AC vs prey's attacks increases to +2."],
+        ['id' => 'ranger-weapon-mastery', 'name' => 'Ranger Weapon Mastery',
+          'description' => 'Proficiency with simple weapons, martial weapons, and unarmed attacks increases to Master.'],
+      ]],
+      13 => ['auto_features' => [
+        ['id' => 'medium-armor-expertise-ranger', 'name' => 'Medium Armor Expertise',
+          'description' => 'Light armor, medium armor, and unarmored defense proficiency increases to Expert.'],
+        ['id' => 'greater-weapon-specialization-ranger', 'name' => 'Greater Weapon Specialization',
+          'description' => '+4 damage at Expert, +6 at Master, +8 at Legendary.'],
+      ]],
+      15 => ['auto_features' => [
+        ['id' => 'improved-evasion-ranger', 'name' => 'Improved Evasion',
+          'description' => 'Critical failures on Reflex saves become regular failures.'],
+        ['id' => 'incredible-senses-ranger', 'name' => 'Incredible Senses',
+          'description' => 'Perception proficiency increases to Legendary.'],
+      ]],
+      17 => ['auto_features' => [
+        ['id' => 'masterful-hunter', 'name' => 'Masterful Hunter',
+          'description' => "Precision: first hit vs prey now deals +3d8 precision damage (up from +2d8). Flurry and Outwit also receive final-tier upgrades per their tracks."],
+        ['id' => 'medium-armor-mastery-ranger', 'name' => 'Medium Armor Mastery',
+          'description' => 'Light armor, medium armor, and unarmored defense proficiency increases to Master.'],
+      ]],
+      19 => ['auto_features' => [
+        ['id' => 'swift-prey-free', 'name' => 'Surge of Pursuit',
+          'description' => 'You can use Hunt Prey as a free action even on reactions and off-turn triggers (as well as on your turn).'],
       ]],
     ],
     'bard' => [
