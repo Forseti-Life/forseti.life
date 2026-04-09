@@ -30,3 +30,5 @@ ALLOW_PROD_QA=1 bash /home/ubuntu/forseti.life/copilot-hq/scripts/site-audit-run
 
 ## KB reference
 - Check knowledgebase/lessons/ for prior PF2E class implementation patterns
+- Agent: dev-dungeoncrawler
+- Status: pending
