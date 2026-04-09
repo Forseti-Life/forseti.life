@@ -7221,6 +7221,180 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * Rune system data: fundamental runes, property rune rules, etching/transfer rules.
+   *
+   * Structure:
+   *   RUNE_SYSTEM['fundamental']['weapon'] — potency and striking runes
+   *   RUNE_SYSTEM['fundamental']['armor']  — armor potency and resilient runes
+   *   RUNE_SYSTEM['property_rules']        — slot limits, stacking, orphan behavior
+   *   RUNE_SYSTEM['etching']               — Craft activity rules
+   *   RUNE_SYSTEM['transfer']              — Transfer rules + upgrade pricing
+   */
+  const RUNE_SYSTEM = [
+    'fundamental' => [
+      'weapon' => [
+        'potency' => [
+          ['id' => 'weapon-potency-1', 'name' => '+1 Weapon Potency', 'bonus' => 1, 'property_slots' => 1, 'level' => 2,  'price_gp' => 35],
+          ['id' => 'weapon-potency-2', 'name' => '+2 Weapon Potency', 'bonus' => 2, 'property_slots' => 2, 'level' => 10, 'price_gp' => 935],
+          ['id' => 'weapon-potency-3', 'name' => '+3 Weapon Potency', 'bonus' => 3, 'property_slots' => 3, 'level' => 16, 'price_gp' => 8935],
+        ],
+        'striking' => [
+          ['id' => 'striking',         'name' => 'Striking',         'damage_dice' => 2, 'level' => 4,  'price_gp' => 65],
+          ['id' => 'greater-striking', 'name' => 'Greater Striking', 'damage_dice' => 3, 'level' => 12, 'price_gp' => 1065],
+          ['id' => 'major-striking',   'name' => 'Major Striking',   'damage_dice' => 4, 'level' => 19, 'price_gp' => 31065],
+        ],
+      ],
+      'armor' => [
+        'potency' => [
+          ['id' => 'armor-potency-1', 'name' => '+1 Armor Potency', 'ac_bonus' => 1, 'property_slots' => 1, 'level' => 5,  'price_gp' => 160],
+          ['id' => 'armor-potency-2', 'name' => '+2 Armor Potency', 'ac_bonus' => 2, 'property_slots' => 2, 'level' => 11, 'price_gp' => 1060],
+          ['id' => 'armor-potency-3', 'name' => '+3 Armor Potency', 'ac_bonus' => 3, 'property_slots' => 3, 'level' => 18, 'price_gp' => 20560],
+        ],
+        'resilient' => [
+          ['id' => 'resilient',         'name' => 'Resilient',         'save_bonus' => 1, 'level' => 8,  'price_gp' => 340],
+          ['id' => 'greater-resilient', 'name' => 'Greater Resilient', 'save_bonus' => 2, 'level' => 14, 'price_gp' => 3440],
+          ['id' => 'major-resilient',   'name' => 'Major Resilient',   'save_bonus' => 3, 'level' => 20, 'price_gp' => 49440],
+        ],
+      ],
+    ],
+    'property_rules' => [
+      'slots_require_potency_rune'  => TRUE,
+      'slots_without_potency'       => 0,
+      'slots_equal_potency_value'   => TRUE,
+      'specific_locked_max_slots'   => 0,
+      'duplicate_property_rule'     => 'only_higher_level_applies',
+      'energy_resistance_exception' => 'different_damage_types_all_apply',
+      'orphaned_rune_behavior'      => 'dormant_until_compatible_potency_present',
+    ],
+    'etching' => [
+      'activity'        => 'Craft (downtime)',
+      'requires_feats'  => ['Magical Crafting'],
+      'requires_formula' => TRUE,
+      'requires_possession' => TRUE,
+      'runes_per_activity' => 1,
+    ],
+    'transfer' => [
+      'activity'           => 'Craft (Transfer Rune)',
+      'dc'                 => 'rune level',
+      'cost_pct_of_price'  => 10,
+      'minimum_days'       => 1,
+      'from_runestone_cost' => 0,
+      'incompatible_result' => 'automatic critical failure (no cost charged)',
+      'category_restriction' => 'fundamental <-> fundamental only; property <-> property only',
+    ],
+    'upgrade' => [
+      'cost_formula' => '(new rune price) - (existing rune price)',
+      'dc'           => 'new rune level',
+    ],
+  ];
+
+  /**
+   * Precious materials catalog: grades, Crafting skill requirements, Hardness/HP/BT,
+   * and special properties per material.
+   */
+  const PRECIOUS_MATERIALS = [
+    'rules' => [
+      'max_materials_per_item' => 1,
+      'grades' => [
+        'low'      => ['crafting_proficiency' => 'Expert',    'max_item_level' => 8,  'investment_pct' => 10],
+        'standard' => ['crafting_proficiency' => 'Master',    'max_item_level' => 15, 'investment_pct' => 25],
+        'high'     => ['crafting_proficiency' => 'Legendary', 'max_item_level' => NULL, 'investment_pct' => 100],
+      ],
+    ],
+    'materials' => [
+      'adamantine' => [
+        'name' => 'Adamantine',
+        'grades' => [
+          'low'      => ['hardness' => 10, 'hp' => 40, 'bt' => 20],
+          'standard' => ['hardness' => 14, 'hp' => 56, 'bt' => 28],
+          'high'     => ['hardness' => 20, 'hp' => 80, 'bt' => 40],
+        ],
+        'special' => 'Bypasses all DR except epic; ignores Hardness of objects up to adamantine hardness rating.',
+      ],
+      'cold-iron' => [
+        'name' => 'Cold Iron',
+        'grades' => [
+          'low'      => ['hardness' => 9,  'hp' => 36, 'bt' => 18],
+          'standard' => ['hardness' => 12, 'hp' => 48, 'bt' => 24],
+          'high'     => ['hardness' => 16, 'hp' => 64, 'bt' => 32],
+        ],
+        'special' => 'Deals additional damage to creatures with the fey trait; bypasses resistances of fey creatures.',
+      ],
+      'darkwood' => [
+        'name' => 'Darkwood',
+        'grades' => [
+          'low'      => ['hardness' => 5, 'hp' => 20, 'bt' => 10],
+          'standard' => ['hardness' => 7, 'hp' => 28, 'bt' => 14],
+          'high'     => ['hardness' => 10, 'hp' => 40, 'bt' => 20],
+        ],
+        'special' => 'Counts as half Bulk (round up). Wooden items only.',
+      ],
+      'dragonhide' => [
+        'name' => 'Dragonhide',
+        'grades' => [
+          'low'      => ['hardness' => 4,  'hp' => 16, 'bt' => 8],
+          'standard' => ['hardness' => 7,  'hp' => 28, 'bt' => 14],
+          'high'     => ['hardness' => 10, 'hp' => 40, 'bt' => 20],
+        ],
+        'special' => 'Grants resistance to the dragon type\'s damage. Shields and armor only.',
+      ],
+      'mithral' => [
+        'name' => 'Mithral',
+        'grades' => [
+          'low'      => ['hardness' => 9,  'hp' => 36, 'bt' => 18],
+          'standard' => ['hardness' => 12, 'hp' => 48, 'bt' => 24],
+          'high'     => ['hardness' => 16, 'hp' => 64, 'bt' => 32],
+        ],
+        'special' => 'Reduces armor check penalty by 1 and armor\'s Strength requirement by 2. Counts as 1 Bulk lighter (minimum L).',
+      ],
+      'orichalcum' => [
+        'name' => 'Orichalcum',
+        'grades' => [
+          'standard' => ['hardness' => 16, 'hp' => 64, 'bt' => 32],
+          'high'     => ['hardness' => 20, 'hp' => 80, 'bt' => 40],
+        ],
+        'special' => 'Time-dilating. Once per day, the wielder can cast haste on themselves (spell level = 3) as a free action at the start of their turn.',
+      ],
+      'silver' => [
+        'name' => 'Silver',
+        'grades' => [
+          'low'      => ['hardness' => 7,  'hp' => 28, 'bt' => 14],
+          'standard' => ['hardness' => 10, 'hp' => 40, 'bt' => 20],
+          'high'     => ['hardness' => 14, 'hp' => 56, 'bt' => 28],
+        ],
+        'special' => 'Bypasses resistances of creatures with the fiend trait and lycanthropes.',
+      ],
+      'steel' => [
+        'name' => 'Steel (base)',
+        'grades' => [
+          'thin'     => ['hardness' => 5,  'hp' => 20, 'bt' => 10],
+          'standard' => ['hardness' => 9,  'hp' => 36, 'bt' => 18],
+          'structure' => ['hardness' => 9, 'hp' => 36, 'bt' => 18],
+        ],
+        'special' => NULL,
+      ],
+      'stone' => [
+        'name' => 'Stone (base)',
+        'grades' => [
+          'thin'     => ['hardness' => 4,  'hp' => 16, 'bt' => 8],
+          'standard' => ['hardness' => 7,  'hp' => 28, 'bt' => 14],
+          'structure' => ['hardness' => 14, 'hp' => 56, 'bt' => 28],
+        ],
+        'special' => NULL,
+      ],
+      'wood' => [
+        'name' => 'Wood (base)',
+        'grades' => [
+          'thin'      => ['hardness' => 3, 'hp' => 12, 'bt' => 6],
+          'standard'  => ['hardness' => 5, 'hp' => 20, 'bt' => 10],
+          'structure' => ['hardness' => 10, 'hp' => 40, 'bt' => 20],
+        ],
+        'special' => NULL,
+      ],
+    ],
+  ];
+
+  /**
    * Retrieves spells from the content registry filtered by tradition and level.
    *
    * Applies three data-quality guards:
