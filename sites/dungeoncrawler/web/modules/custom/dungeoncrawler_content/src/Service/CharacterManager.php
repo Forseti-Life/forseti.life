@@ -7397,8 +7397,6 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'description' => 'Your Perception proficiency increases to Master.'],
         ['id' => 'swashbuckler-weapon-mastery', 'name' => 'Weapon Mastery',
           'description' => 'Your proficiency with simple and martial weapons and unarmed attacks increases to Master.'],
-      ]],
-      11 => ['auto_features' => [
         ['id' => 'vivacious-speed-20', 'name' => 'Vivacious Speed (+20 ft)',
           'description' => 'Panache speed bonus increases to +20 ft. Without panache: +10 ft.'],
       ]],
