@@ -3,6 +3,7 @@
 namespace Drupal\copilot_agent_tracker\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
+use Drupal\Core\Database\Connection;
 use Drupal\copilot_agent_tracker\Repository\DashboardRepository;
 use Drupal\Core\Datetime\DateFormatterInterface;
 use Drupal\Core\Form\FormBuilderInterface;
@@ -46,6 +47,7 @@ final class DashboardController extends ControllerBase {
     private readonly FormBuilderInterface $dashboardFormBuilder,
     private readonly RequestStack $dashboardRequestStack,
     private readonly CsrfTokenGenerator $csrfToken,
+    private readonly Connection $database,
   ) {}
 
   public static function create(ContainerInterface $container): static {
@@ -56,6 +58,7 @@ final class DashboardController extends ControllerBase {
       $container->get('form_builder'),
       $container->get('request_stack'),
       $container->get('csrf_token'),
+      $container->get('database'),
     );
   }
 
@@ -703,6 +706,19 @@ final class DashboardController extends ControllerBase {
           $this->safeRouteLinkOrCurrent('Main Copilot Agent Tracker', 'copilot_agent_tracker.dashboard'),
         ]
       ),
+    ];
+  }
+
+  /**
+   * Render a compact flow hub for the LangGraph home page — groups all pages
+   * by plane with a one-line description, so operators can orient quickly.
+   */
+  private function renderLanggraphHomeFlowHub(): array {
+    return [
+      '#type'  => 'details',
+      '#title' => $this->t('LangGraph Page Hub'),
+      '#open'  => FALSE,
+      'nav'    => $this->renderLanggraphReferenceNav(),
     ];
   }
 
