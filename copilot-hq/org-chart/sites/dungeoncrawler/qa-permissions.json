@@ -981,6 +981,162 @@
         "dc_playwright_player": "ignore",
         "dc_playwright_admin": "ignore"
       }
+    },
+    {
+      "id": "api-dc-simple",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/dc/simple(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-dc-level",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/dc/level(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-dc-spell-level",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/dc/spell-level(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-dc-adjustment",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/dc/adjustment(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-sessions-start",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/sessions/start(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-sessions-by-id",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/sessions/[^/]+(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-sessions-end",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/sessions/[^/]+/end(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-campaign-play-sessions",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/campaign/[^/]+/play-sessions(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-campaign-play-sessions-latest-state",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/campaign/[^/]+/play-sessions/latest-state(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-campaign-play-sessions-ai-context",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/campaign/[^/]+/play-sessions/ai-context(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-campaign-xp-total",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/campaign/[^/]+/xp-total/[^/]+(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
+    },
+    {
+      "id": "api-campaign-invite",
+      "feature_id": "dc-apg-class-expansions",
+      "path_regex": "^/api/campaign/[^/]+/invite(?:/|$)",
+      "expect": {
+        "anon": "ignore",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore",
+        "dc_playwright_player": "ignore",
+        "dc_playwright_admin": "ignore"
+      }
     }
   ]
 }
