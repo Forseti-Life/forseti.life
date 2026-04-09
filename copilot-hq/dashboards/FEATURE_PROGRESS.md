@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T04:00:12Z
+Generated: 2026-04-09T04:34:48Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -148,9 +148,10 @@ Generated: 2026-04-09T04:00:12Z
 | forseti-copilot-agent-tracker | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-csrf-fix | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
-| forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | in_progress | P2 |  |  |  |
+| forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-jobhunter-application-controller-split | forseti.life | job_hunter | in_progress |  |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
-| forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
+| forseti-jobhunter-browser-automation | forseti.life | job_hunter | in_progress | P1 |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | shipped | P2 |  |  |  |

@@ -240,7 +240,16 @@ class BrowserAutomationService {
 
     // Phase 2: Automatable platforms — run Playwright bridge.
     if (in_array($ats_platform, self::AUTOMATABLE_PLATFORMS)) {
-      $bridge_result = $this->runPlaywrightBridge($app_data, $apply_url, $ats_platform, $application_id, FALSE);
+      try {
+        $bridge_result = $this->runPlaywrightBridge($app_data, $apply_url, $ats_platform, $application_id, FALSE);
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('job_hunter')->error('Playwright bridge exception for application @id: @error', [
+          '@id'    => $application_id,
+          '@error' => $e->getMessage(),
+        ]);
+        $bridge_result = NULL;
+      }
       if ($bridge_result !== NULL) {
         return $bridge_result;
       }
@@ -284,7 +293,16 @@ class BrowserAutomationService {
 
     // Login-required ATS WITH credentials → run Playwright bridge.
     if ($requires_credentials && $has_credentials) {
-      $bridge_result = $this->runPlaywrightBridge($app_data, $apply_url, $ats_platform, $application_id, FALSE);
+      try {
+        $bridge_result = $this->runPlaywrightBridge($app_data, $apply_url, $ats_platform, $application_id, FALSE);
+      }
+      catch (\Throwable $e) {
+        $this->loggerFactory->get('job_hunter')->error('Playwright bridge exception for application @id: @error', [
+          '@id'    => $application_id,
+          '@error' => $e->getMessage(),
+        ]);
+        $bridge_result = NULL;
+      }
       if ($bridge_result !== NULL) {
         return $bridge_result;
       }

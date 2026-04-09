@@ -3,9 +3,9 @@
 - Work item id: dc-cr-class-monk
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release:
-- Priority: P2
+20260409-dungeoncrawler-release-d
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

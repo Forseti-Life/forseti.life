@@ -264,6 +264,107 @@ class BrowserAutomationServiceTest extends UnitTestCase {
     $svc->testLogAttempt(100, 1, 'https://boards.greenhouse.io/acme/1', 'greenhouse', 'manual_required', 250, 'some error', []);
   }
 
+  // -------------------------------------------------------------------------
+  // TC-09: logAttempt called even when Playwright bridge returns failure status
+  // -------------------------------------------------------------------------
+
+  /**
+   * TC-09: When routeByPlatform returns a failure-outcome result, logAttempt
+   * must still insert a run-history record (logging is not conditional on success).
+   *
+   * @covers ::logAttempt
+   */
+  public function testLogAttemptCalledWithFailureOutcome(): void {
+    $insertQuery = $this->createMock(Insert::class);
+    $insertQuery->method('fields')->willReturnSelf();
+    $insertQuery->expects($this->once())->method('execute');
+
+    $this->database
+      ->expects($this->once())
+      ->method('insert')
+      ->with('jobhunter_application_attempts')
+      ->willReturn($insertQuery);
+
+    $svc = $this->buildService();
+    // Invoke logAttempt directly with a failure/timeout outcome.
+    $svc->testLogAttempt(100, 1, 'https://boards.greenhouse.io/acme/1', 'greenhouse', 'failure', 5000, 'Bridge timeout', ['ats_label' => 'Greenhouse']);
+  }
+
+  /**
+   * TC-09b: logAttempt called with status='timeout' (bridge timeout path).
+   *
+   * @covers ::logAttempt
+   */
+  public function testLogAttemptCalledWithTimeoutOutcome(): void {
+    $insertQuery = $this->createMock(Insert::class);
+    $insertQuery->method('fields')->willReturnSelf();
+    $insertQuery->expects($this->once())->method('execute');
+
+    $this->database
+      ->expects($this->once())
+      ->method('insert')
+      ->with('jobhunter_application_attempts')
+      ->willReturn($insertQuery);
+
+    $svc = $this->buildService();
+    $svc->testLogAttempt(101, 2, 'https://jobs.lever.co/acme/abc', 'lever', 'timeout', 95000, 'Playwright timeout after 95s', []);
+  }
+
+  // -------------------------------------------------------------------------
+  // TC-11: runPlaywrightBridge() exception caught → structured error returned
+  // -------------------------------------------------------------------------
+
+  /**
+   * TC-11: When the Playwright bridge throws an exception, routeByPlatform
+   * must catch it and return a structured result (manual_required), not
+   * propagate the exception.
+   *
+   * Uses TestableBrowserAutomationServiceWithThrowingBridge which stubs
+   * runPlaywrightBridge to throw a RuntimeException.
+   *
+   * @covers ::routeByPlatform
+   */
+  public function testPlaywrightBridgeExceptionCaughtAndStructuredErrorReturned(): void {
+    $svc = new TestableBrowserAutomationServiceWithThrowingBridge(
+      $this->database,
+      $this->loggerFactory,
+      $this->urlResolver,
+      $this->formMapper,
+      $this->jobSeekerService
+    );
+
+    // Should not throw — must return structured result.
+    $result = $svc->testRouteByPlatform(1, 10, 100, [], 'https://boards.greenhouse.io/acme/jobs/1', 'greenhouse', 'Greenhouse');
+
+    $this->assertIsArray($result, 'routeByPlatform must return an array even when bridge throws');
+    $this->assertArrayHasKey('outcome', $result, 'Result must contain outcome key');
+    $this->assertEquals('manual_required', $result['outcome']);
+    $this->assertFalse($result['success']);
+  }
+
+  // -------------------------------------------------------------------------
+  // TC-12: DB absent — logAttempt fails gracefully with logged error
+  // -------------------------------------------------------------------------
+
+  /**
+   * TC-12: When the run-history DB table is absent (simulated via exception),
+   * logAttempt must log an error and NOT throw a fatal exception to the caller.
+   *
+   * @covers ::logAttempt
+   */
+  public function testLogAttemptGracefulOnMissingTable(): void {
+    $this->database
+      ->method('insert')
+      ->willThrowException(new \Drupal\Core\Database\DatabaseExceptionWrapper('Table not found: jobhunter_application_attempts'));
+
+    // Error should be logged.
+    $this->logger->expects($this->once())->method('error');
+
+    $svc = $this->buildService();
+    // Must not throw.
+    $svc->testLogAttempt(200, 5, 'https://boards.greenhouse.io/acme/1', 'greenhouse', 'manual_required', 100, NULL, []);
+  }
+
 }
 
 /**
@@ -338,6 +439,36 @@ class TestableBrowserAutomationService extends BrowserAutomationService {
    */
   protected function getAtsLoginUrl(string $ats_platform, string $apply_url): string {
     return $apply_url;
+  }
+
+}
+
+/**
+ * Testable subclass: Playwright bridge throws a RuntimeException (TC-11).
+ *
+ * Used to verify that routeByPlatform catches bridge exceptions and returns
+ * a structured manual_required result rather than propagating the exception.
+ */
+class TestableBrowserAutomationServiceWithThrowingBridge extends TestableBrowserAutomationService {
+
+  /**
+   * {@inheritdoc}
+   */
+  public function __construct(
+    \Drupal\Core\Database\Connection $database,
+    \Drupal\Core\Logger\LoggerChannelFactoryInterface $logger_factory,
+    \Drupal\job_hunter\Service\ApplyUrlResolverService $url_resolver,
+    \Drupal\job_hunter\Service\ApplicationFormMapper $form_mapper,
+    \Drupal\job_hunter\Service\JobSeekerService $job_seeker_service
+  ) {
+    parent::__construct($database, $logger_factory, $url_resolver, $form_mapper, $job_seeker_service, FALSE);
+  }
+
+  /**
+   * Stub: always throws to simulate bridge failure (TC-11).
+   */
+  protected function runPlaywrightBridge(array $app_data, string $apply_url, string $ats_platform, int $application_id, bool $dry_run = FALSE): ?array {
+    throw new \RuntimeException('Playwright bridge: proc_open failed — Node not available');
   }
 
 }

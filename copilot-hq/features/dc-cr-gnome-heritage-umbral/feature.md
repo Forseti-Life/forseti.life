@@ -3,7 +3,7 @@
 - Work item id: dc-cr-gnome-heritage-umbral
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
@@ -11,7 +11,7 @@
 - Source: PF2E Core Rulebook (Fourth Printing), lines 6484–6783
 - Category: game-mechanic
 - Release:
-- Created: 2026-04-08
+20260409-dungeoncrawler-release-d
 
 ## Goal
 
