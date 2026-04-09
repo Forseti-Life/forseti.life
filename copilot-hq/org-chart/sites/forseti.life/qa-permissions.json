@@ -434,6 +434,42 @@
         "content_editor": "ignore",
         "administrator": "ignore"
       }
+    },
+    {
+      "id": "forseti-jobhunter-interview-prep-page",
+      "feature_id": "forseti-jobhunter-interview-prep",
+      "path_regex": "^/jobhunter/interview-prep/\\d+(?:/|$)",
+      "notes": "Interview prep page for authenticated users. Requires 'access job hunter' permission and uid ownership check. Anonymous access -> 403. Added for feature forseti-jobhunter-interview-prep (release-g).",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-interview-prep-save",
+      "feature_id": "forseti-jobhunter-interview-prep",
+      "path_regex": "^/jobhunter/interview-prep/\\d+/save(?:/|$)",
+      "notes": "CSRF-protected POST endpoint to save interview prep notes. POST-only with _csrf_token: TRUE (split-route pattern). GET returns 405/403. Added for feature forseti-jobhunter-interview-prep.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-interview-prep-ai-tips",
+      "feature_id": "forseti-jobhunter-interview-prep",
+      "path_regex": "^/jobhunter/interview-prep/\\d+/ai-tips(?:/|$)",
+      "notes": "CSRF-protected AJAX POST endpoint for AI interview tips. POST-only with _csrf_token: TRUE. Returns JSON. GET returns 405/403. Added for feature forseti-jobhunter-interview-prep.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }
