@@ -3,7 +3,7 @@
 - Work item id: forseti-ai-conversation-user-chat
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
+- Status: ready
 - Release: 20260409-forseti-release-f
 - Feature type: enhancement
 - PM owner: pm-forseti

@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-profile-completeness
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260409-forseti-release-f
 - Feature type: enhancement
 - PM owner: pm-forseti
