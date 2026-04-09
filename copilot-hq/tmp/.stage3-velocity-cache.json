@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-09T21:53:57.260101",
+  "generated_at": "2026-04-09T21:59:59.061595",
   "window_minutes": 15,
   "teams": [
     {
@@ -15,7 +15,7 @@
       "workflow": {
         "dev_outbox_updates": 0,
         "dev_notify_qa_markers": 0,
-        "qa_done_markers": 3,
+        "qa_done_markers": 1,
         "handoff_signal": "weak"
       },
       "recent_deltas": [
@@ -82,7 +82,7 @@
       "introduced_last_window": 0,
       "resolved_per_15_minutes": 0.0,
       "workflow": {
-        "dev_outbox_updates": 4,
+        "dev_outbox_updates": 2,
         "dev_notify_qa_markers": 0,
         "qa_done_markers": 2,
         "handoff_signal": "moderate"
