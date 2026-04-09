@@ -1398,6 +1398,179 @@ class CompanyController extends ControllerBase {
   }
 
   /**
+   * Cover letter display page — GET /jobhunter/coverletter/{job_id}.
+   */
+  public function coverLetter($job_id) {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    // Load and verify job ownership.
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['id', 'job_title', 'uid'])
+      ->condition('j.id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job) {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+
+    if ((int) $job->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    // Load existing cover letter record (may be NULL).
+    $cover_letter = $this->database->select('jobhunter_cover_letters', 'cl')
+      ->fields('cl')
+      ->condition('cl.uid', $uid)
+      ->condition('cl.job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    $tailoring_status = $cover_letter ? (string) $cover_letter->tailoring_status : NULL;
+    $cover_letter_html = ($tailoring_status === 'completed' && $cover_letter)
+      ? (string) ($cover_letter->cover_letter_html ?: '')
+      : '';
+
+    $generate_url = Url::fromRoute('job_hunter.cover_letter_generate', ['job_id' => $job_id])->toString();
+    $save_url = Url::fromRoute('job_hunter.cover_letter_save', ['job_id' => $job_id])->toString();
+
+    $build = [
+      '#theme' => 'cover_letter_display',
+      '#job' => $job,
+      '#job_id' => $job_id,
+      '#cover_letter' => $cover_letter,
+      '#tailoring_status' => $tailoring_status,
+      '#cover_letter_html' => $cover_letter_html,
+      '#pdf_path' => $cover_letter ? $cover_letter->pdf_path : NULL,
+      '#generate_url' => $generate_url,
+      '#save_url' => $save_url,
+      '#attached' => [
+        'drupalSettings' => [
+          'jobHunterCoverLetter' => [
+            'jobId' => $job_id,
+            'status' => $tailoring_status,
+          ],
+        ],
+      ],
+    ];
+
+    return $this->wrapWithNavigation($build);
+  }
+
+  /**
+   * Cover letter generate — POST /jobhunter/coverletter/{job_id}/generate.
+   *
+   * Creates a jobhunter_cover_letters row (status=queued) if one does not exist
+   * (or re-enqueues on retry), then enqueues a queue item.
+   */
+  public function coverLetterGenerate($job_id) {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    // Verify job ownership.
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['id', 'uid'])
+      ->condition('j.id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job || (int) $job->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    try {
+      $existing = $this->database->select('jobhunter_cover_letters', 'cl')
+        ->fields('cl', ['id', 'tailoring_status'])
+        ->condition('cl.uid', $uid)
+        ->condition('cl.job_id', $job_id)
+        ->execute()
+        ->fetchObject();
+
+      $now = time();
+
+      if (!$existing) {
+        $this->database->insert('jobhunter_cover_letters')
+          ->fields([
+            'uid' => $uid,
+            'job_id' => $job_id,
+            'tailoring_status' => 'queued',
+            'created' => $now,
+            'updated' => $now,
+          ])
+          ->execute();
+      }
+      else {
+        $this->database->update('jobhunter_cover_letters')
+          ->fields(['tailoring_status' => 'queued', 'updated' => $now])
+          ->condition('uid', $uid)
+          ->condition('job_id', $job_id)
+          ->execute();
+      }
+
+      // Enqueue the cover letter generation item.
+      $queue = \Drupal::queue('job_hunter_cover_letter_tailoring');
+      $queue->createItem([
+        'uid' => $uid,
+        'job_id' => $job_id,
+      ]);
+
+      $this->messenger()->addStatus($this->t('Cover letter generation queued. Check back shortly.'));
+    }
+    catch (\Exception $e) {
+      $this->getLogger('job_hunter')->error('Cover letter enqueue failed for job @id: @error', [
+        '@id' => $job_id,
+        '@error' => $e->getMessage(),
+      ]);
+      $this->messenger()->addError($this->t('Failed to queue cover letter generation. Please try again.'));
+    }
+
+    return new RedirectResponse(Url::fromRoute('job_hunter.cover_letter', ['job_id' => $job_id])->toString());
+  }
+
+  /**
+   * Cover letter save — POST /jobhunter/coverletter/{job_id}/save.
+   *
+   * Links the completed cover letter to the job application record.
+   */
+  public function coverLetterSave($job_id) {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $cover_letter = $this->database->select('jobhunter_cover_letters', 'cl')
+      ->fields('cl', ['id', 'uid', 'tailoring_status'])
+      ->condition('cl.uid', $uid)
+      ->condition('cl.job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$cover_letter || (int) $cover_letter->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    if ($cover_letter->tailoring_status !== 'completed') {
+      $this->messenger()->addWarning($this->t('Cover letter must be completed before saving.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.cover_letter', ['job_id' => $job_id])->toString());
+    }
+
+    // Update application record if one exists, else no-op (graceful).
+    $updated = $this->database->update('jobhunter_applications')
+      ->fields(['cover_letter_id' => (int) $cover_letter->id, 'updated' => time()])
+      ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
+      ->execute();
+
+    if ($updated > 0) {
+      $this->messenger()->addStatus($this->t('Cover letter saved to your application.'));
+    }
+    else {
+      $this->messenger()->addStatus($this->t('Cover letter saved. It will be linked when you apply.'));
+    }
+
+    return new RedirectResponse(Url::fromRoute('job_hunter.cover_letter', ['job_id' => $job_id])->toString());
+  }
+
+  /**
    * Display the add company form wrapped in navigation.
    */
   public function addForm($company_id = NULL) {
