@@ -548,6 +548,29 @@
         "authenticated_post_no_csrf": "403",
         "non_int_id_post": "404"
       }
+    },
+    {
+      "id": "forseti-copilot-agent-tracker-dashboard",
+      "feature_id": "forseti-qa-suite-fill-agent-tracker",
+      "path_regex": "^/admin/reports/copilot-agent-tracker(/.*)?$",
+      "notes": "Agent tracker admin dashboard and agent-detail sub-pages. Requires 'administer copilot agent tracker' permission.",
+      "expect": {
+        "anon": "403_or_302",
+        "authenticated_no_perm": "403",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-copilot-agent-tracker-api-event",
+      "feature_id": "forseti-qa-suite-fill-agent-tracker",
+      "path_regex": "^/api/copilot-agent-tracker/event$",
+      "notes": "Telemetry POST endpoint. Token-auth via X-Copilot-Agent-Tracker-Token header. No Drupal CSRF (token-auth channel). GET not supported.",
+      "expect": {
+        "anon_post_no_token": "403",
+        "post_invalid_token": "403",
+        "post_valid_token_valid_payload": "200",
+        "post_valid_token_missing_agent_id": "400"
+      }
     }
   ]
 }
