@@ -235,6 +235,28 @@ grep -n 'aws_model\|hardcoded\|invokeModelDirect\|anthropic\.' \
 
 **Root cause (2026-04-05):** dungeoncrawler `ai_conversation` diverged 311 lines; Bedrock fallback fix was never forward-ported, leaving dungeoncrawler on a hardcoded deprecated model.
 
+## DB column checklist — schema hook pairing (required)
+
+When adding a DB column via `$schema->addField()` in a `hook_update_N()`, always update the corresponding `hook_schema()` in the same commit.
+
+**Why**: fresh-install path uses `hook_schema()`; upgrade path uses update hooks. If they diverge, fresh installs silently create tables without the new column → runtime crashes on first access.
+
+**Detection** (run before committing any `.install` change):
+```bash
+JH=/home/ubuntu/forseti.life/sites/forseti/web/modules/custom/job_hunter
+grep -n 'addField\|changeField\|dropField' "$JH/job_hunter.install" | head -20
+# For each column found above, verify it also appears in hook_schema():
+grep -n '<column_name>' "$JH/job_hunter.install" | head -10
+```
+
+**Checklist**:
+- [ ] For each `$schema->addField('table', 'column', $spec)` call, find the matching table in `hook_schema()` and add `'column' => $spec` there too.
+- [ ] Column spec (type, size, not null, default) must match exactly between update hook and `hook_schema()`.
+- [ ] Both changes committed together.
+
+KB lesson: `knowledgebase/lessons/20260409-schema-hook-pairing-db-columns.md`
+Root cause incidents: FR-RB-02 (2026-04-08), dungeoncrawler dc_chat_sessions + dc_campaign_characters.version (April 2026).
+
 ## Schema drift diagnostic (drush updatedb silent failure)
 
 When a controller crashes with `Unknown column` but `drush updatedb` reports "no pending updates":
