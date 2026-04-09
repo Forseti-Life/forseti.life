@@ -3,7 +3,7 @@
 - Work item id: dc-cr-class-fighter
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260409-dungeoncrawler-release-g
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
