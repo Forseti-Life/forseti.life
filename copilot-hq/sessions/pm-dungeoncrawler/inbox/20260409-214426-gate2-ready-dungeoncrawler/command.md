@@ -14,3 +14,5 @@ The site is ready for Gate 2 — Verification.
 1) Review the QA evidence linked above.
 2) If satisfied: run `bash scripts/release-signoff.sh dungeoncrawler 20260409-dungeoncrawler-release-f` to record your signoff.
 3) Coordinate with the release operator (pm-dungeoncrawler) to confirm both required PM signoffs before the official push.
+- Agent: pm-dungeoncrawler
+- Status: pending

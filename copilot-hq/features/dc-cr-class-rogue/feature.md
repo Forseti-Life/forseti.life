@@ -3,9 +3,8 @@
 - Work item id: dc-cr-class-rogue
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
-- Release: 
-- PM owner: pm-dungeoncrawler
+- Status: in_progress
+- Release: 20260409-dungeoncrawler-release-g
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch03
