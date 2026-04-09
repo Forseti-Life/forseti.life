@@ -160,6 +160,12 @@ Workaround (until production credentials are available):
 - Full role-based permissions validation is covered by the local/dev audit (all 6 roles auto-acquired via drush OTL).
 - Do NOT block a release gate on missing production role coverage alone if local audit is clean.
 
+**Direct DB verification (SQL-only dev items):**
+- `drush sql:query` and `drush ev` fail on this host (EmptyBoot / drush terminated abnormally) — do NOT use them for DB verification.
+- Use direct MySQL: `mysql --user=debian-sys-maint --password=<see /etc/mysql/debian.cnf> dungeoncrawler -e "SELECT ..."`
+- Database names: `dungeoncrawler` (production), `dungeoncrawler_dev` does NOT exist on this host.
+- Pattern for backfill verification: `SELECT feature_id, COUNT(*) FROM dc_requirements WHERE id BETWEEN X AND Y GROUP BY feature_id;`
+
 ## ROI standing rules (required — prevents Gate 2 stagnation)
 
 ### Gate 2 ROI floor (GAP-DC-GATE2-ROI-01, 2026-03-28)
