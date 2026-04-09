@@ -64,6 +64,17 @@ function ai_conversation_theme() {
       ],
       'template' => 'forseti-chat',
     ],
+    'forseti_conversations' => [
+      'variables' => [
+        'conversations' => [],
+        'total' => 0,
+        'page' => 1,
+        'per_page' => 20,
+        'has_next' => FALSE,
+        'has_prev' => FALSE,
+      ],
+      'template' => 'forseti-conversations',
+    ],
     'ai_model_pricing' => [
       'variables' => [
         'pricing_data' => [],

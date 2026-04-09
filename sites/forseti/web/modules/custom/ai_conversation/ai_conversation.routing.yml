@@ -211,3 +211,25 @@ ai_conversation.api_get_stats:
     _method: 'GET'
     _format: 'json'
     conversation_id: \d+
+
+forseti.conversations:
+  path: '/forseti/conversations'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::conversationListPage'
+    _title: 'My Conversations'
+  methods: [GET]
+  requirements:
+    _permission: 'use ai conversation'
+    _user_is_logged_in: 'TRUE'
+
+forseti.conversation_delete:
+  path: '/forseti/conversations/{conversation_id}/delete'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::conversationDelete'
+    _title: 'Delete Conversation'
+  methods: [POST]
+  requirements:
+    _permission: 'use ai conversation'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    conversation_id: \d+

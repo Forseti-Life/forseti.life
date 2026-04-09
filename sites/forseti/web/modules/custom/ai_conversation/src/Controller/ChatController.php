@@ -174,38 +174,55 @@ class ChatController extends ControllerBase {
    * @return array
    *   A Drupal render array.
    */
-  public function forsetiChat() {
-    $uid = $this->currentUser->id();
+  public function forsetiChat(Request $request) {
+    $uid = (int) $this->currentUser->id();
 
-    // Find most recent ai_conversation node owned by this user.
-    $query = $this->entityTypeManager->getStorage('node')->getQuery()
-      ->condition('type', 'ai_conversation')
-      ->condition('uid', $uid)
-      ->condition('status', 1)
-      ->sort('created', 'DESC')
-      ->range(0, 1)
-      ->accessCheck(FALSE);
-
-    $nids = $query->execute();
-
-    if (!empty($nids)) {
-      $conversation = $this->entityTypeManager->getStorage('node')->load(reset($nids));
+    // AC-4: Accept ?conversation_id=N to resume a specific conversation.
+    $raw_conv_id = $request->query->get('conversation_id', '');
+    if ($raw_conv_id !== '') {
+      if (!is_numeric($raw_conv_id) || (int) $raw_conv_id <= 0) {
+        throw new NotFoundHttpException();
+      }
+      $conv_id = (int) $raw_conv_id;
+      $conversation = $this->entityTypeManager->getStorage('node')->load($conv_id);
+      if (!$conversation || $conversation->bundle() !== 'ai_conversation') {
+        throw new NotFoundHttpException();
+      }
+      if ((int) $conversation->getOwnerId() !== $uid) {
+        throw new AccessDeniedHttpException();
+      }
     }
     else {
-      $context = $this->buildJobSeekerContext();
-      $conversation = $this->entityTypeManager->getStorage('node')->create([
-        'type' => 'ai_conversation',
-        'title' => 'AI Chat - ' . date('Y-m-d H:i:s'),
-        'uid' => $uid,
-        'status' => 1,
-        'field_context' => [
-          'value' => $context,
-          'format' => 'basic_html',
-        ],
-        'field_message_count' => ['value' => 0],
-        'field_total_tokens' => ['value' => 0],
-      ]);
-      $conversation->save();
+      // Default: load most recent or create new (AC-7: unchanged behaviour).
+      $query = $this->entityTypeManager->getStorage('node')->getQuery()
+        ->condition('type', 'ai_conversation')
+        ->condition('uid', $uid)
+        ->condition('status', 1)
+        ->sort('created', 'DESC')
+        ->range(0, 1)
+        ->accessCheck(FALSE);
+
+      $nids = $query->execute();
+
+      if (!empty($nids)) {
+        $conversation = $this->entityTypeManager->getStorage('node')->load(reset($nids));
+      }
+      else {
+        $context = $this->buildJobSeekerContext();
+        $conversation = $this->entityTypeManager->getStorage('node')->create([
+          'type' => 'ai_conversation',
+          'title' => 'AI Chat - ' . date('Y-m-d H:i:s'),
+          'uid' => $uid,
+          'status' => 1,
+          'field_context' => [
+            'value' => $context,
+            'format' => 'basic_html',
+          ],
+          'field_message_count' => ['value' => 0],
+          'field_total_tokens' => ['value' => 0],
+        ]);
+        $conversation->save();
+      }
     }
 
     $messages = $this->getRecentMessagesForDisplay($conversation);
@@ -228,6 +245,127 @@ class ChatController extends ControllerBase {
           ],
         ],
       ],
+    ];
+  }
+
+  /**
+   * Conversation history list page at /forseti/conversations.
+   *
+   * AC-2, AC-3, AC-6.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   *
+   * @return array
+   *   Render array.
+   */
+  public function conversationListPage(Request $request): array {
+    $uid = (int) $this->currentUser->id();
+
+    $raw_page = $request->query->get('page', 1);
+    $page = (is_numeric($raw_page) && (int) $raw_page >= 1) ? (int) $raw_page : 1;
+    $per_page = 20;
+    $offset = ($page - 1) * $per_page;
+
+    $storage = $this->entityTypeManager->getStorage('node');
+
+    // Fetch one extra to determine if a next page exists.
+    $nids = $storage->getQuery()
+      ->condition('type', 'ai_conversation')
+      ->condition('uid', $uid)
+      ->condition('status', 1)
+      ->sort('changed', 'DESC')
+      ->range($offset, $per_page + 1)
+      ->accessCheck(FALSE)
+      ->execute();
+
+    $has_next = count($nids) > $per_page;
+    if ($has_next) {
+      array_pop($nids);
+    }
+
+    $conversations = [];
+    if (!empty($nids)) {
+      $nodes = $storage->loadMultiple($nids);
+      foreach ($nodes as $node) {
+        $conversations[] = $this->buildConversationRow($node);
+      }
+    }
+
+    return [
+      '#theme' => 'forseti_conversations',
+      '#conversations' => $conversations,
+      '#total' => count($conversations),
+      '#page' => $page,
+      '#per_page' => $per_page,
+      '#has_next' => $has_next,
+      '#has_prev' => $page > 1,
+      '#cache' => ['max-age' => 0],
+    ];
+  }
+
+  /**
+   * Delete a conversation (POST, CSRF-guarded).
+   *
+   * AC-5.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *   The current request.
+   * @param int $conversation_id
+   *   The node ID (enforced by routing pattern \d+).
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   */
+  public function conversationDelete(Request $request, $conversation_id) {
+    $uid = (int) $this->currentUser->id();
+    $nid = (int) $conversation_id;
+
+    $node = $this->entityTypeManager->getStorage('node')->load($nid);
+    if (!$node || $node->bundle() !== 'ai_conversation') {
+      throw new NotFoundHttpException();
+    }
+    if ((int) $node->getOwnerId() !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $node->delete();
+    $this->messenger()->addStatus($this->t('Conversation deleted.'));
+    return new RedirectResponse(Url::fromRoute('forseti.conversations')->toString());
+  }
+
+  /**
+   * Build a display row for a conversation node.
+   *
+   * @param \Drupal\node\NodeInterface $node
+   *   The conversation node.
+   *
+   * @return array
+   *   Associative array with display fields.
+   */
+  private function buildConversationRow($node): array {
+    $title = $node->getTitle() ?: 'Conversation ' . date('Y-m-d', $node->getCreatedTime());
+    $preview = '';
+    if ($node->hasField('field_messages') && !$node->get('field_messages')->isEmpty()) {
+      $items = $node->get('field_messages')->getValue();
+      $last = end($items);
+      if ($last) {
+        $data = json_decode($last['value'], TRUE);
+        if ($data && !empty($data['content'])) {
+          $preview = substr(strip_tags((string) $data['content']), 0, 120);
+        }
+      }
+    }
+
+    $conv_id = (int) $node->id();
+    return [
+      'id' => $conv_id,
+      'title' => $title,
+      'preview' => $preview,
+      'changed' => $node->getChangedTime(),
+      'message_count' => (int) ($node->hasField('field_message_count') ? $node->get('field_message_count')->value : 0),
+      'total_tokens' => (int) ($node->hasField('field_total_tokens') ? $node->get('field_total_tokens')->value : 0),
+      'chat_url' => Url::fromRoute('ai_conversation.forseti_chat', [], ['query' => ['conversation_id' => $conv_id]])->toString(),
+      'delete_url' => Url::fromRoute('forseti.conversation_delete', ['conversation_id' => $conv_id])->toString(),
     ];
   }
 
