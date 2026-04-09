@@ -150,6 +150,18 @@ Required per-feature inbox item content:
 
 ### 7. When next Stage 0 starts: activate scoped features
 
+**Dev-dispatch gate (required BEFORE activation):**
+Confirm ALL dev implementation inbox items are already dispatched. Run:
+```bash
+ls sessions/dev-dungeoncrawler/inbox/
+```
+Every feature you are about to activate MUST have a matching inbox item in that listing. If any are missing, create the impl inbox item first. Do NOT run `pm-scope-activate.sh` until this check passes.
+
+**Lesson (2026-04-09, GAP-PM-DC-NO-DEV-DISPATCH):** In release-c (20260409), pm-dungeoncrawler activated 10 features and dispatched only QA suite-activate items. Dev-dungeoncrawler had zero inbox items. Auto-close fired immediately (10 in_progress) before dev executed a single item — empty release resulted.
+
+**Scope cap per cycle: ≤7 features (enforced):**
+Activate no more than 7 features per release cycle. The org-wide auto-close fires at ≥10 in_progress; activating exactly 10 fires auto-close the instant scope-activate completes, before dev can work. A cap of 7 leaves headroom. If backlog demands more, start a second release cycle after shipping the first 7.
+
 **PRE-CHECK (required before every activation run):**
 ```bash
 cat tmp/release-cycle-active/dungeoncrawler.release_id
