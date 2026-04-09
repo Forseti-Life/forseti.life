@@ -1039,10 +1039,18 @@ class CharacterManager {
         'fortitude' => 'Expert',
         'reflex' => 'Trained',
         'will' => 'Trained',
+        'class_dc' => 'Trained',
       ],
+      'armor_proficiency' => ['light', 'medium', 'heavy', 'unarmored'],
       'skills' => 'Choose 3 + Intelligence modifier',
       'weapons' => 'Expert in simple and martial weapons, trained in advanced weapons',
       'trained_skills' => 3,
+      // Shield Block is a free general feat granted at L1.
+      'shield_block' => [
+        'free_feat' => TRUE,
+        'level_gained' => 1,
+        'note' => 'Fighters gain the Shield Block general feat for free at L1. Reaction trigger: take physical damage while a shield is raised. Reduce damage by shield Hardness; both shield and wearer share remaining damage after Hardness.',
+      ],
     ],
     'rogue' => [
       'id' => 'rogue',
@@ -6769,6 +6777,8 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'description' => 'You react to an opening from a foe. You can use a reaction to make a melee Strike against a triggering creature.'],
         ['id' => 'fighter-weapon-training', 'name' => 'Fighter Weapon Training',
           'description' => 'You are trained with all simple and martial weapons, and with all advanced weapons in one weapon group of your choice.'],
+        ['id' => 'shield-block-fighter', 'name' => 'Shield Block (Free Feat)',
+          'description' => 'Reaction. Trigger: you have a shield raised and take physical damage. Reduce the damage by your shield\'s Hardness; the shield and you each take any remaining damage after Hardness is applied. The shield takes damage equal to the remaining amount, potentially becoming dented or broken.'],
       ]],
       3  => ['auto_features' => [
         ['id' => 'bravery', 'name' => 'Bravery',
