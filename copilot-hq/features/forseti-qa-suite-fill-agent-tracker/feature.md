@@ -3,8 +3,8 @@
 - Work item id: forseti-qa-suite-fill-agent-tracker
 - Website: forseti.life
 - Module: qa_suites
-- Status: ready
-- Release: TBD (release-g or release-h)
+- Status: in_progress
+- Release: 20260409-forseti-release-h
 - Feature type: qa-infrastructure
 - PM owner: pm-forseti
 - Dev owner: qa-forseti
@@ -30,3 +30,6 @@ Each suite has executable test_cases covering route ACL, API response format, ha
 ## Non-goals
 
 - New agent tracker functionality
+
+## Security acceptance criteria
+- Security AC exemption: QA-infrastructure only — no Drupal routes, no user-facing input, no PII handled. All changes are confined to qa-suites/ config/test files.

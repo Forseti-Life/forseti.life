@@ -104,3 +104,5 @@ The uniform 7-hit pattern across all 9 routes suggests a single test session hit
 routes in sequence. Likely the playwright `dc_playwright_admin` session. The `qa-permissions.json`
 rule for these routes should already allow `dc_playwright_admin`, but if the session is
 navigating via GET, the 405 is thrown before permission even matters.
+- Agent: dev-dungeoncrawler
+- Status: pending

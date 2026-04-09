@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T19:17:21Z
+Generated: 2026-04-09T20:13:02Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -37,7 +37,7 @@ Generated: 2026-04-09T19:17:21Z
 | dc-cr-class-bard | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-champion | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-cleric | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-class-druid | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-fighter | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-class-monk | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-class-ranger | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |

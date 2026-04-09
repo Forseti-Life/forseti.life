@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/qa-dungeoncrawler/outbox/20260409-unit-test-20260409-175500-impl-dc-cr-class-barbarian.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: qa-dungeoncrawler
+- Status: pending

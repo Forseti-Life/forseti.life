@@ -70,3 +70,5 @@ does not exist. Either:
 - AC-1: `drush updb` runs with no errors
 - AC-2: `ai_conversation_api_usage` table exists (or module cleanly uninstalled)
 - AC-3: Site functions normally
+- Agent: dev-infra
+- Status: pending

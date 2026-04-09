@@ -3,8 +3,8 @@
 - Work item id: forseti-qa-suite-fill-release-f
 - Website: forseti.life
 - Module: qa_suites
-- Status: ready
-- Release: TBD (release-g or release-h)
+- Status: in_progress
+- Release: 20260409-forseti-release-h
 - Feature type: qa-infrastructure
 - PM owner: pm-forseti
 - Dev owner: qa-forseti
@@ -43,3 +43,6 @@ Each suite has at least 2 executable `test_cases` entries (bash commands with PA
 
 - E2E Playwright tests (deferred to forseti-qa-e2e-auth-pipeline)
 - New features or behavior changes
+
+## Security acceptance criteria
+- Security AC exemption: QA-infrastructure only — no Drupal routes, no user-facing input, no PII handled. All changes are confined to qa-suites/ config/test files.

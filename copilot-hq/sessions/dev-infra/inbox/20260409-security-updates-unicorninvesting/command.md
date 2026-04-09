@@ -52,3 +52,5 @@
 - AC-2: `composer audit` shows 0 advisories
 - AC-3: `drush status` all OK, no pending DB updates
 - AC-4: No new watchdog errors after update
+- Agent: dev-infra
+- Status: pending

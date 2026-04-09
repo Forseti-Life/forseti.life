@@ -64,3 +64,5 @@
 - `psy/psysh` and `symfony/process` CVEs are low real-world risk on Linux servers (psysh priv-esc requires local untrusted user access; symfony/process is Windows-only). Update them anyway for hygiene.
 - `aws/aws-sdk-php` CloudFront injection is HIGH — patch promptly.
 - `drupal/captcha` access bypass is MEDIUM — allows bypassing CAPTCHA checks, relevant if forseti uses CAPTCHA on public forms.
+- Agent: dev-forseti
+- Status: pending

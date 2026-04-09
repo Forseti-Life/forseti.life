@@ -3,8 +3,8 @@
 - Work item id: forseti-qa-e2e-auth-pipeline
 - Website: forseti.life
 - Module: qa_suites
-- Status: ready
-- Release: TBD (release-h)
+- Status: in_progress
+- Release: 20260409-forseti-release-h
 - Feature type: qa-infrastructure
 - PM owner: pm-forseti
 - Dev owner: qa-forseti
@@ -35,3 +35,6 @@ Additionally, provision a second QA user (`qa_tester_authenticated_2`) for cross
 
 - Filling test_cases for non-E2E suites (handled by fill features)
 - Changes to Drupal module code
+
+## Security acceptance criteria
+- Security AC exemption: QA-infrastructure only — no Drupal routes, no user-facing input, no PII handled. All changes are confined to qa-suites/ config/test files.

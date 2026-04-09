@@ -61,3 +61,5 @@ Cron is being triggered again before the previous run has completed. This can be
 - AC-1: Cron overlap warnings drop to 0 in watchdog for a 24h period
 - AC-2: Cron still runs successfully (verify `system.cron_last` updates)
 - AC-3: No cron-dependent features degraded (search indexing, feeds, etc.)
+- Agent: dev-forseti
+- Status: pending

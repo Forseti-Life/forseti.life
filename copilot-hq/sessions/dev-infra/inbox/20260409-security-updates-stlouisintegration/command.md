@@ -46,3 +46,5 @@
 - AC-1: `composer audit` 0 advisories
 - AC-2: `drush status` all OK
 - AC-3: Site loads, CAPTCHA forms functional, no watchdog errors
+- Agent: dev-infra
+- Status: pending

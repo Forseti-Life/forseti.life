@@ -42,3 +42,5 @@
 
 - AC-1: `composer audit` 0 advisories
 - AC-2: Site loads without errors
+- Agent: dev-infra
+- Status: pending
