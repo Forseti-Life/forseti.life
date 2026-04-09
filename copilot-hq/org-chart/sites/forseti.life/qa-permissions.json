@@ -470,6 +470,42 @@
         "content_editor": "ignore",
         "administrator": "ignore"
       }
+    },
+    {
+      "id": "forseti-jobhunter-saved-search-search-page",
+      "feature_id": "forseti-jobhunter-saved-search",
+      "path_regex": "^/jobhunter/googlejobssearch(?:\\?.*)?$",
+      "notes": "Google Jobs search page with saved searches panel. Requires 'access job hunter'. Anonymous access -> 403. Added for feature forseti-jobhunter-saved-search (release-g).",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-saved-search-save",
+      "feature_id": "forseti-jobhunter-saved-search",
+      "path_regex": "^/jobhunter/saved-search/save(?:/|$)",
+      "notes": "CSRF-protected POST endpoint to save a search. POST-only with _csrf_token: TRUE (split-route pattern). GET returns 405/403. Added for feature forseti-jobhunter-saved-search.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-saved-search-delete",
+      "feature_id": "forseti-jobhunter-saved-search",
+      "path_regex": "^/jobhunter/saved-search/\\d+/delete(?:/|$)",
+      "notes": "CSRF-protected POST endpoint to delete a saved search. POST-only with _csrf_token: TRUE. GET returns 405/403. Added for feature forseti-jobhunter-saved-search.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "ignore",
+        "content_editor": "ignore",
+        "administrator": "ignore"
+      }
     }
   ]
 }
