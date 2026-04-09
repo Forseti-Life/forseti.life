@@ -155,3 +155,40 @@ Dev recommendation: **Option A**. The structural separation still delivers value
 - [ ] All AC from `01-acceptance-criteria.md` verified with commands
 - [ ] `drush cr` exits 0 with no fatal errors in watchdog
 - [ ] `git diff --stat` reviewed to confirm no unintended files changed
+
+## Implementation Results (dev-forseti, release-d)
+
+### Final split rationale
+
+`loadSelectedJobContext()` was the only private helper used across both controller halves (submission + action). Extracted to `ApplicationControllerHelperTrait.php`. All other private helpers had single-controller usage and were moved with their owning method.
+
+`detectAtsPlatformFromUrl()` was action-only (used only inside SubmitApplication chain). `buildJobJourneyFlow()` was submission-only. No further trait extraction required.
+
+### File sizes (post-split)
+
+| File | Lines |
+|---|---|
+| ApplicationSubmissionController.php | 1795 |
+| ApplicationActionController.php | 2027 |
+| ApplicationControllerHelperTrait.php | 22 |
+| JobApplicationController.php (stub) | 17 |
+
+All files ≤ 2500 lines (AC-3 updated by PM, Option A).
+
+### Verification
+
+- `php -l` passes on all three new files — no syntax errors
+- `job_hunter.routing.yml`: 0 remaining `JobApplicationController::` references
+- `job_hunter.routing.yml`: `_csrf_token` count = 37 (unchanged from pre-split)
+- `drush cr` completed with exit 0, no new PHP errors in watchdog
+- Smoke test: `https://forseti.life/` → 200; `https://forseti.life/jobhunter/my-jobs` → 403 (auth-protected, expected)
+
+### Sign-off checklist
+
+- [x] All 3 new files pass `php -l`
+- [x] routing.yml CSRF count unchanged (37)
+- [x] routing.yml has 0 refs to old class
+- [x] `JobApplicationController.php` stubbed to ≤ 20 lines
+- [x] `drush cr` succeeded
+- [x] Smoke test passed
+- [x] Committed
