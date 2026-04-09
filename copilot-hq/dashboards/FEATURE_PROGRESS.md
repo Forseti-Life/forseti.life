@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T13:54:21Z
+Generated: 2026-04-09T15:49:11Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -142,7 +142,9 @@ Generated: 2026-04-09T13:54:21Z
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | forseti-agent-tracker-dashboard-controller-db-extraction | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
-| forseti-ai-conversation-user-chat | forseti.life | ai_conversation | in_progress | high |  |  |  |
+| forseti-ai-conversation-export | forseti.life | ai_conversation | in_progress | medium |  |  |  |
+| forseti-ai-conversation-history-browser | forseti.life | ai_conversation | in_progress | high |  |  |  |
+| forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | shipped | P1 |  |  |  |
 | forseti-ai-service-db-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
 | forseti-ai-service-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
@@ -151,23 +153,32 @@ Generated: 2026-04-09T13:54:21Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
-| forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | in_progress | high |  |  |  |
+| forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-jobhunter-cover-letter-display | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | shipped | P0 (ROI 1000) |  |  |  |
-| forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | in_progress | high |  |  |  |
+| forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
+| forseti-jobhunter-interview-prep | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
-| forseti-jobhunter-profile-completeness | forseti.life | job_hunter | in_progress | medium |  |  |  |
+| forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-profile-form-static-db-extraction | forseti.life | job_hunter | shipped | P3 |  |  |  |
 | forseti-jobhunter-profile-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
-| forseti-jobhunter-resume-tailoring-display | forseti.life | job_hunter | in_progress | high |  |  |  |
+| forseti-jobhunter-resume-tailoring-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-resume-tailoring-queue-hardening | forseti.life | job_hunter | shipped | P3 |  |  |  |
+| forseti-jobhunter-saved-search | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
+| forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | grooming | low |  |  |  |
+| forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | ready | medium |  |  |  |
+| forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | ready | medium |  |  |  |
+| forseti-qa-suite-fill-jobhunter-submission | forseti.life | qa_suites | ready | medium |  |  |  |
+| forseti-qa-suite-fill-release-f | forseti.life | qa_suites | ready | medium |  |  |  |
+| forseti-qa-suite-retire-stale | forseti.life | qa_suites | grooming | medium |  |  |  |
 | local-llm-integration |  |  |  |  |  |  |  |
 
 ## Key metric: auto-remediation rate

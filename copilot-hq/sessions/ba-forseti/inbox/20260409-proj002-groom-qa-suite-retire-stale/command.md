@@ -29,3 +29,5 @@ This feature retires 18 pre-classified `retire` suite shells from `suite.json`. 
 - [ ] Specific verification commands listed
 - [ ] No stub placeholders remain
 - [ ] Committed to HQ repo
+- Agent: ba-forseti
+- Status: pending

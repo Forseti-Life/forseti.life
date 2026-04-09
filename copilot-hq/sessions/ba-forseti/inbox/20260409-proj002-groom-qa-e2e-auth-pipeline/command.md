@@ -37,3 +37,5 @@ This is a release-h feature (lower priority than fill features). Acceptance crit
 - [ ] Cross-user isolation test pattern documented
 - [ ] No stub placeholders remain
 - [ ] Committed to HQ repo
+- Agent: ba-forseti
+- Status: pending
