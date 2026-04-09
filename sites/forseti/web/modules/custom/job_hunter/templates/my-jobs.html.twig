@@ -55,6 +55,7 @@
             <option value="approval_pending"{{ filter_status == 'approval_pending' ? ' selected' : '' }}>{{ 'Approval Pending'|t }}</option>
             <option value="application_pending"{{ filter_status == 'application_pending' ? ' selected' : '' }}>{{ 'Application Pending'|t }}</option>
             <option value="pending_response"{{ filter_status == 'pending_response' ? ' selected' : '' }}>{{ 'Pending Response'|t }}</option>
+            <option value="interview"{{ filter_status == 'interview' ? ' selected' : '' }}>{{ 'Interview'|t }}</option>
             <option value="closed"{{ filter_status == 'closed' ? ' selected' : '' }}>{{ 'Closed'|t }}</option>
           </select>
         </div>
@@ -141,6 +142,8 @@
                             </a>
                           {% elseif wf == 'pending_response' %}
                             <span class="status-text status-text--muted">{{ 'Awaiting response'|t }}</span>
+                          {% elseif wf == 'interview' %}
+                            <a href="{{ path('job_hunter.interview_prep', {'job_id': job.id}) }}" class="button button--small button--primary">{{ 'Prepare for Interview'|t }}</a>
                           {% else %}
                             <span class="status-text status-text--muted">&mdash;</span>
                           {% endif %}

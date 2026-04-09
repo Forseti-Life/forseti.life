@@ -416,6 +416,16 @@ function job_hunter_theme() {
       ],
       'template' => 'job-tailoring-combined',
     ],
+    'interview_prep_page' => [
+      'variables' => [
+        'job' => NULL,
+        'job_id' => NULL,
+        'notes_text' => '',
+        'save_url' => '',
+        'ai_tips_url' => '',
+      ],
+      'template' => 'interview-prep-page',
+    ],
     'cover_letter_display' => [
       'variables' => [
         'job' => NULL,

@@ -1571,6 +1571,192 @@ class CompanyController extends ControllerBase {
   }
 
   /**
+   * Interview prep page — checklist, notes, and AI tips for a saved job.
+   *
+   * @param int $job_id
+   *   The saved job ID (integer enforced by routing pattern \d+).
+   *
+   * @return array
+   *   Render array wrapped in navigation.
+   */
+  public function interviewPrep($job_id) {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['id', 'job_title', 'uid'])
+      ->condition('j.id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job) {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+    if ((int) $job->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $notes_text = $this->database->select('jobhunter_interview_notes', 'n')
+      ->fields('n', ['notes_text'])
+      ->condition('n.uid', $uid)
+      ->condition('n.job_id', $job_id)
+      ->execute()
+      ->fetchField();
+
+    $build = [
+      '#theme' => 'interview_prep_page',
+      '#job' => $job,
+      '#job_id' => $job_id,
+      '#notes_text' => $notes_text ?: '',
+      '#save_url' => Url::fromRoute('job_hunter.interview_prep_save', ['job_id' => $job_id])->toString(),
+      '#ai_tips_url' => Url::fromRoute('job_hunter.interview_prep_ai_tips', ['job_id' => $job_id])->toString(),
+    ];
+
+    return $this->wrapWithNavigation($build);
+  }
+
+  /**
+   * Save interview prep notes (POST, CSRF-guarded).
+   *
+   * @param int $job_id
+   *   The saved job ID.
+   *
+   * @return \Symfony\Component\HttpFoundation\RedirectResponse
+   */
+  public function interviewPrepSave($job_id) {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+    $request = $this->requestStack->getCurrentRequest();
+
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['id', 'uid'])
+      ->condition('j.id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job) {
+      throw new \Symfony\Component\HttpKernel\Exception\NotFoundHttpException();
+    }
+    if ((int) $job->uid !== $uid) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $notes_raw = (string) $request->request->get('notes_text', '');
+    if (mb_strlen($notes_raw) > 10000) {
+      $this->messenger()->addError($this->t('Notes may not exceed 10,000 characters.'));
+      return new RedirectResponse(Url::fromRoute('job_hunter.interview_prep', ['job_id' => $job_id])->toString());
+    }
+    $notes = strip_tags($notes_raw);
+
+    $existing_id = $this->database->select('jobhunter_interview_notes', 'n')
+      ->fields('n', ['id'])
+      ->condition('n.uid', $uid)
+      ->condition('n.job_id', $job_id)
+      ->execute()
+      ->fetchField();
+
+    if ($existing_id) {
+      $this->database->update('jobhunter_interview_notes')
+        ->fields(['notes_text' => $notes, 'updated' => time()])
+        ->condition('uid', $uid)
+        ->condition('job_id', $job_id)
+        ->execute();
+    }
+    else {
+      $this->database->insert('jobhunter_interview_notes')
+        ->fields([
+          'uid' => $uid,
+          'job_id' => $job_id,
+          'notes_text' => $notes,
+          'updated' => time(),
+        ])
+        ->execute();
+    }
+
+    $this->messenger()->addStatus($this->t('Interview notes saved.'));
+    return new RedirectResponse(Url::fromRoute('job_hunter.interview_prep', ['job_id' => $job_id])->toString());
+  }
+
+  /**
+   * Return AI-generated interview tips as JSON (POST, CSRF-guarded, AJAX).
+   *
+   * @param int $job_id
+   *   The saved job ID.
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   */
+  public function interviewPrepAiTips($job_id) {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $job = $this->database->select('jobhunter_job_requirements', 'j')
+      ->fields('j', ['id', 'uid', 'job_title', 'job_description'])
+      ->condition('j.id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$job || (int) $job->uid !== $uid) {
+      return new JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $job_title = (string) ($job->job_title ?: 'this role');
+    $job_desc_snippet = substr((string) ($job->job_description ?: ''), 0, 500);
+
+    $profile_summary = '';
+    try {
+      $user = \Drupal::entityTypeManager()->getStorage('user')->load($uid);
+      if ($user && $user->hasField('field_professional_summary')) {
+        $profile_summary = (string) $user->get('field_professional_summary')->getString();
+      }
+    }
+    catch (\Exception $e) {
+      // Non-fatal — proceed without profile summary.
+    }
+
+    $prompt = "You are a career coach. Give 3-5 concise bullet-point interview preparation tips for a candidate applying for the following position.\n\nJob Title: {$job_title}\n";
+    if ($job_desc_snippet) {
+      $prompt .= "Job Description (excerpt): {$job_desc_snippet}\n";
+    }
+    if ($profile_summary) {
+      $prompt .= "Candidate Summary: {$profile_summary}\n";
+    }
+    $prompt .= "\nRespond with ONLY a JSON object: {\"tips\": [\"tip1\", \"tip2\", ...]}";
+
+    try {
+      $ai_service = \Drupal::service('ai_conversation.ai_api_service');
+      $result = $ai_service->invokeModelDirect(
+        $prompt,
+        'job_hunter',
+        'interview_prep_tips',
+        ['job_id' => $job_id],
+        ['skip_cache' => FALSE]
+      );
+
+      if (!empty($result['success']) && !empty($result['response'])) {
+        $raw = trim($result['response']);
+        $decoded = json_decode($raw, TRUE);
+        if (is_array($decoded) && !empty($decoded['tips'])) {
+          return new JsonResponse(['tips' => $decoded['tips']]);
+        }
+        // Fallback: parse plain-text bullets if JSON parsing fails.
+        $lines = array_filter(explode("\n", $raw));
+        $tips = array_values(array_filter(
+          array_map(fn($l) => trim(ltrim($l, '-•* ')), $lines)
+        ));
+        return new JsonResponse(['tips' => array_slice($tips, 0, 5)]);
+      }
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('job_hunter')->error('interview_prep_ai_tips error for job @id: @code', [
+        '@id' => $job_id,
+        '@code' => get_class($e),
+      ]);
+    }
+
+    return new JsonResponse(['error' => 'Could not generate tips. Please try again later.'], 500);
+  }
+
+  /**
    * Display the add company form wrapped in navigation.
    */
   public function addForm($company_id = NULL) {

@@ -721,6 +721,7 @@ class ApplicationSubmissionController extends ControllerBase {
     'approval_pending',
     'application_pending',
     'pending_response',
+    'interview',
     'closed',
   ];
 
@@ -734,6 +735,7 @@ class ApplicationSubmissionController extends ControllerBase {
     'approval_pending'     => 'Approval Pending',
     'application_pending'  => 'Application Pending',
     'pending_response'     => 'Pending Response',
+    'interview'            => 'Interview',
     'closed'               => 'Closed',
   ];
 
@@ -860,6 +862,11 @@ class ApplicationSubmissionController extends ControllerBase {
     $app_status = $job->application_status ?? '';
     if (in_array($app_status, ['submitted', 'confirmed', 'manual_completed'], TRUE)) {
       return 'pending_response';
+    }
+
+    // If the application has progressed to interview stage.
+    if (in_array($app_status, ['interview_scheduled', 'interview_completed'], TRUE)) {
+      return 'interview';
     }
 
     // If tailoring is complete, user must approve/generate PDF before apply.

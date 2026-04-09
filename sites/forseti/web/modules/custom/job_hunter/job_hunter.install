@@ -994,6 +994,65 @@ function job_hunter_update_9041() {
   return t('Added archived column to jobhunter_saved_jobs and migrated existing archived rows.');
 }
 
+/**
+ * Create jobhunter_interview_notes table for interview prep feature.
+ */
+function job_hunter_update_9042() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_interview_notes')) {
+    return t('jobhunter_interview_notes table already exists — skipping.');
+  }
+
+  $table_schema = [
+    'description' => 'Stores per-user interview prep notes per job.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID.',
+      ],
+      'job_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Job requirement ID.',
+      ],
+      'notes_text' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Free-form interview prep notes.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of last update.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid_job_id' => ['uid', 'job_id'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_interview_notes', $table_schema);
+  return t('Created jobhunter_interview_notes table.');
+}
+
 
 function job_hunter_uninstall() {
   $messenger = \Drupal::messenger();
