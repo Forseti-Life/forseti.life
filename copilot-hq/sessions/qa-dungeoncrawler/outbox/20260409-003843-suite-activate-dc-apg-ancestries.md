@@ -1,40 +1,24 @@
-# Suite Activation: dc-apg-ancestries
+The suite entry exists with 24 TCs from Release-B, but `activated_release` still points to `20260407-dungeoncrawler-release-b`. Current release is `20260409-dungeoncrawler-release-b`. I need to update the activation stamp and write the outbox.
 
-- Feature: dc-apg-ancestries
-- Inbox: 20260409-003843-suite-activate-dc-apg-ancestries
-- Date: 2026-04-09
-- Release: 20260409-dungeoncrawler-release-b
+Now create the outbox file and commit:
 
-## Result: ACTIVATED (re-stamped for current release)
+---
 
-The suite entry `dc-apg-ancestries-e2e` was already present in `qa-suites/products/dungeoncrawler/suite.json` with all 24 active test cases from Release-B. Updated `activated_release` and `activated_date` to reflect the current release cycle.
+- Status: done
+- Summary: Suite activation for `dc-apg-ancestries` completed for release `20260409-dungeoncrawler-release-b`. The entry `dc-apg-ancestries-e2e` already existed in `qa-suites/products/dungeoncrawler/suite.json` with all 24 active test cases (TC-APGA-01–24) covering 5 new ancestries (Catfolk/Kobold/Orc/Ratfolk/Tengu), 5 versatile heritages (Aasimar/Changeling/Dhampir/Duskwalker/Tiefling), APG backgrounds, integration checks, and edge cases. Updated `activated_release` from `20260407-dungeoncrawler-release-b` to `20260409-dungeoncrawler-release-b` and stamped `activated_date: 2026-04-09`. No permission rules added — ACL exemption confirmed (no new routes). Suite validates clean: `OK: validated 5 suite manifest(s)`. Committed `6a57c9e13`.
 
-### Suite entry
-- ID: `dc-apg-ancestries-e2e`
-- Type: e2e (playwright/character-creation)
-- feature_id: `dc-apg-ancestries` ✓ tagged
-- TCs: 24 (TC-APGA-01–24), all status=active
-- required_for_release: true ✓
-- activated_release: `20260409-dungeoncrawler-release-b` ✓
+## Next actions
+- Awaiting next dispatch from pm-dungeoncrawler.
+- Suite is live for Stage 4 regression on the current release.
 
-### Permission rules
-- No new routes introduced by this feature — ACL exemption confirmed (command.md states "Security AC exemption granted: no new routes").
-- No new entries added to `org-chart/sites/dungeoncrawler/qa-permissions.json`.
+## Blockers
+- None.
 
-### Suite validation
-`python3 scripts/qa-suite-validate.py` → **OK: validated 5 suite manifest(s)**
+## ROI estimate
+- ROI: 15
+- Rationale: Confirms 24 ancestries/VH test cases are live and linked to the correct release cycle; unblocks Stage 4 regression coverage for dc-apg-ancestries which covers a large feature surface (5 ancestries + 5 VHs + backgrounds + integrations).
 
-### Coverage summary (24 TCs active)
-- TC-APGA-01–02: Catfolk (core stats + heritages)
-- TC-APGA-03–04: Kobold (core stats + Draconic Exemplar + heritages)
-- TC-APGA-05: Orc (core stats + Grave Orc negative healing)
-- TC-APGA-06: Ratfolk (core stats + heritages)
-- TC-APGA-07–08: Tengu (core stats + Sharp Beak + heritages)
-- TC-APGA-09–10: Versatile heritage rules (slot replacement, feat pool, Uncommon gate)
-- TC-APGA-11–14: VH implementations (Aasimar, Changeling, Dhampir, Duskwalker, Tiefling)
-- TC-APGA-15: APG supplemental feats for CRB ancestries
-- TC-APGA-16–19: APG backgrounds (format, Haunted, Fey-Touched, Returned)
-- TC-APGA-20–22: Integration checks (ancestry/VH selectors, Draconic Exemplar UI)
-- TC-APGA-23–24: Edge cases (negative healing consistency, Spellscale one-cantrip)
-
-No gaps identified.
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260409-003843-suite-activate-dc-apg-ancestries
+- Generated: 2026-04-09T00:45:17+00:00
