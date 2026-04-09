@@ -3569,7 +3569,179 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
         'support_benefit' => 'Powerful throw: if the ape Grapples a target, the character gains a +2 circumstance bonus to attack rolls against that target until end of turn.',
       ],
 
+      'crocodile' => [
+        'id'    => 'crocodile',
+        'name'  => 'Crocodile',
+        'size'  => 'Medium',
+        'speed' => ['walk' => 15, 'swim' => 25],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 8,
+        'base_ac'       => 15,
+        'base_saves'    => ['fortitude' => 6, 'reflex' => 4, 'will' => 2],
+        'attacks' => [
+          ['id' => 'jaws', 'name' => 'Jaws', 'type' => 'melee', 'damage' => '1d10', 'damage_type' => 'piercing',
+            'traits' => ['grab']],
+        ],
+        'traits' => ['Animal', 'Amphibious'],
+        'support_benefit' => 'Death roll: if the crocodile has the target grabbed, the target takes 1d6 persistent bleed damage (DC 14 Reflex to negate) until end of turn.',
+      ],
+
+      'deer' => [
+        'id'    => 'deer',
+        'name'  => 'Deer (Elk)',
+        'size'  => 'Large',
+        'speed' => ['walk' => 50],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 6,
+        'base_ac'       => 13,
+        'base_saves'    => ['fortitude' => 5, 'reflex' => 7, 'will' => 3],
+        'attacks' => [
+          ['id' => 'antler', 'name' => 'Antler', 'type' => 'melee', 'damage' => '1d8', 'damage_type' => 'piercing',
+            'traits' => ['shove']],
+          ['id' => 'hoof', 'name' => 'Hoof', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'bludgeoning',
+            'traits' => ['agile']],
+        ],
+        'traits' => ['Animal'],
+        'mount_capable' => TRUE,
+        'support_benefit' => 'Trample: if the deer Strides through a foe\'s space, that foe takes the deer\'s hoof Strike damage (no attack roll; DC 14 Reflex to halve).',
+      ],
+
+      'dog' => [
+        'id'    => 'dog',
+        'name'  => 'Dog',
+        'size'  => 'Small',
+        'speed' => ['walk' => 35],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 6,
+        'base_ac'       => 14,
+        'base_saves'    => ['fortitude' => 5, 'reflex' => 7, 'will' => 3],
+        'attacks' => [
+          ['id' => 'jaws', 'name' => 'Jaws', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'piercing',
+            'traits' => ['trip']],
+        ],
+        'traits' => ['Animal'],
+        'support_benefit' => 'Aid hunt: if the dog\'s owner is flanking the target with the dog, the target is flat-footed against all Strikes until end of turn.',
+      ],
+
+      'frog' => [
+        'id'    => 'frog',
+        'name'  => 'Frog',
+        'size'  => 'Small',
+        'speed' => ['walk' => 20, 'swim' => 25],
+        'senses' => ['low_light_vision', 'scent_30ft'],
+        'hp_per_level'  => 6,
+        'base_ac'       => 13,
+        'base_saves'    => ['fortitude' => 4, 'reflex' => 7, 'will' => 4],
+        'attacks' => [
+          ['id' => 'tongue', 'name' => 'Tongue', 'type' => 'melee', 'damage' => '1d4', 'damage_type' => 'bludgeoning',
+            'traits' => ['agile', 'reach_10ft'],
+            'special' => 'On a hit, the target is pulled 5 feet toward the frog (Shove; no action required).'],
+          ['id' => 'jaws', 'name' => 'Jaws', 'type' => 'melee', 'damage' => '1d6', 'damage_type' => 'bludgeoning',
+            'traits' => ['grab']],
+        ],
+        'traits' => ['Animal', 'Amphibious'],
+        'support_benefit' => 'Slippery skin: until end of turn, the target is flat-footed against the character\'s Strikes and takes a –10-foot penalty to Speed (slowed by slick secretions).',
+      ],
+
     ],
+
+    // ── Companion Specializations ──────────────────────────────────────────────
+    // Unlocked by class feat (Specialized Companion for Druid L10, Rangers at L14).
+    // A companion may have only one specialization.
+    'specializations' => [
+
+      'bully' => [
+        'id'          => 'bully',
+        'name'        => 'Bully',
+        'description' => 'Your companion excels at forcing foes around the battlefield.',
+        'attack_mod_bonus'  => 2,
+        'damage_bonus'      => 4,
+        'granted_actions'   => [
+          ['id' => 'advanced-maneuver', 'name' => 'Advanced Maneuver',
+           'description' => 'Companion can use Shove and Trip even without the relevant attack trait; gains +2 circumstance bonus to those Athletics checks.'],
+        ],
+      ],
+
+      'defender' => [
+        'id'          => 'defender',
+        'name'        => 'Defender',
+        'description' => 'Your companion shields allies and draws enemy attention.',
+        'ac_bonus'          => 2,
+        'save_bonus'        => 1,
+        'granted_actions'   => [
+          ['id' => 'guardian-stance', 'name' => 'Guardian Stance',
+           'description' => 'Companion can use Raise a Shield (even without a shield) to grant adjacent allies +1 circumstance bonus to AC until start of companion\'s next turn.'],
+        ],
+      ],
+
+      'racer' => [
+        'id'          => 'racer',
+        'name'        => 'Racer',
+        'description' => 'Your companion moves with exceptional speed and agility.',
+        'speed_bonus'       => 10,
+        'save_bonus'        => 2,
+        'granted_actions'   => [
+          ['id' => 'swift-strides', 'name' => 'Swift Strides',
+           'description' => 'Companion may Stride twice with a single action once per round.'],
+        ],
+      ],
+
+      'scout' => [
+        'id'          => 'scout',
+        'name'        => 'Scout',
+        'description' => 'Your companion is trained to range ahead and alert you to danger.',
+        'skill_bonuses'     => ['Perception' => 2, 'Stealth' => 2],
+        'granted_actions'   => [
+          ['id' => 'scout-ahead', 'name' => 'Scout Ahead',
+           'description' => 'Companion may use Seek and Sneak without spending a Command an Animal action. If it spots a hidden creature, it signals the character (free action).'],
+        ],
+      ],
+
+      'tracker' => [
+        'id'          => 'tracker',
+        'name'        => 'Tracker',
+        'description' => 'Your companion excels at following prey and staying on the hunt.',
+        'skill_bonuses'     => ['Survival' => 2, 'Perception' => 1],
+        'granted_actions'   => [
+          ['id' => 'mark-quarry', 'name' => 'Mark Quarry',
+           'description' => 'Companion may designate one creature as its quarry (1 action). The character gains +1 circumstance bonus to Perception checks and attack rolls against that quarry. Ends if the quarry dies or the companion designates a new one.'],
+        ],
+      ],
+
+    ],
+
+    // ── Mount Rules ────────────────────────────────────────────────────────────
+    // Applies when a character rides a Large or larger animal companion as a mount.
+    // Species eligible to serve as mounts: horse, deer (elk), ape (at Mature size).
+    'mount_rules' => [
+      'eligible_sizes'     => ['Large', 'Huge'],
+      'eligible_species'   => ['horse', 'deer', 'ape'],
+      'eligible_note'      => 'Ape becomes mount-eligible at Mature advancement (grows to Large).',
+      'rider_actions'      => [
+        'stride_mount' => [
+          'id'          => 'stride-mount',
+          'name'        => 'Stride (Mounted)',
+          'action_cost' => 1,
+          'description' => 'You command your mount to Stride. Both you and the mount move up to the mount\'s Speed. Costs 1 action (not Command an Animal).',
+        ],
+        'command_mount' => [
+          'id'          => 'command-mount',
+          'name'        => 'Command Mount',
+          'action_cost' => 1,
+          'description' => 'You direct your mount to take 2 actions (as Command an Animal, but DC is 5 lower while mounted because of the bond).',
+          'dc_modifier' => -5,
+        ],
+      ],
+      'mount_ac_note'      => 'While mounted, you gain the same AC bonus as your mount\'s barding (if equipped).',
+      'falling_note'       => 'If your mount is knocked prone or reduced to 0 HP, you are thrown and take falling damage (10 ft. fall = 1d6 bludgeoning; DC 13 Acrobatics to land prone instead).',
+      'barding_rules' => [
+        'description'  => 'Barding is armor for animal companions serving as mounts.',
+        'available'    => ['leather', 'hide', 'chain', 'scale', 'full-plate'],
+        'ac_bonus_ref' => 'Same as equivalent light/medium/heavy armor AC bonus.',
+        'weight_note'  => 'Barding counts as bulk carried by the companion (not the rider).',
+      ],
+    ],
+
   ];
 
   /**
