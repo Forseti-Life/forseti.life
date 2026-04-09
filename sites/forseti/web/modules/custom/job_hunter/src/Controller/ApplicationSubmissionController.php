@@ -695,41 +695,99 @@ class ApplicationSubmissionController extends ControllerBase {
    * @return \Symfony\Component\HttpFoundation\RedirectResponse|\Symfony\Component\HttpFoundation\JsonResponse
    *   Redirect response for normal navigation, or JSON for AJAX requests.
    */
+  /**
+   * Known derived workflow_status values (used for enum validation of filter_status).
+   */
+  private const WORKFLOW_STATUS_ENUM = [
+    'profile_pending',
+    'tailoring_pending',
+    'tailoring_processing',
+    'approval_pending',
+    'application_pending',
+    'pending_response',
+    'closed',
+  ];
+
+  /**
+   * Human-readable labels for each pipeline stage, in display order.
+   */
+  private const PIPELINE_STAGE_LABELS = [
+    'profile_pending'      => 'Profile Pending',
+    'tailoring_pending'    => 'Tailoring Pending',
+    'tailoring_processing' => 'Tailoring Processing',
+    'approval_pending'     => 'Approval Pending',
+    'application_pending'  => 'Application Pending',
+    'pending_response'     => 'Pending Response',
+    'closed'               => 'Closed',
+  ];
+
   public function myJobs(): array {
     $request = $this->requestStack->getCurrentRequest();
-    $filters = [
-      'company' => $request->query->get('company', ''),
-      'status' => $request->query->get('status', ''),
-      'platform' => $request->query->get('platform', ''),
-    ];
-    $per_page = 50;
+    $per_page = 20;
     $page = max(0, (int) $request->query->get('page', 0));
 
-    $total = $this->jobDiscoveryService->getSavedJobsFiltered($filters);
-    $jobs = $this->jobDiscoveryService->getSavedJobs($filters, $page, $per_page);
+    // AC-2: filter_status validated against known enum; invalid → empty (no PHP error).
+    $filter_status_raw = (string) $request->query->get('filter_status', '');
+    $filter_status = in_array($filter_status_raw, self::WORKFLOW_STATUS_ENUM, TRUE) ? $filter_status_raw : '';
+
+    // AC-3: filter_company sanitized before use.
+    $filter_company = strip_tags((string) $request->query->get('filter_company', ''));
+
+    // Load all non-archived jobs for the current user (company filter applied at DB).
+    // Workflow_status filter is derived post-query, so we load the full set here.
+    $db_filters = ['company' => $filter_company];
+    $all_jobs = $this->jobDiscoveryService->getSavedJobs($db_filters, 0, 1000);
     $companies = $this->jobDiscoveryService->getCompanyNames();
     $platforms = $this->jobDiscoveryService->getSourcePlatforms();
-    $total_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
 
-    // Determine whether the user has a completed profile.
     $has_profile = $this->userHasCompletedProfile();
 
-    // Derive the workflow status for each job.
-    foreach ($jobs as $job) {
+    // Derive workflow_status and display fields for every job.
+    foreach ($all_jobs as $job) {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
-      // Resolve display platform: prefer via (friendly name), fall back to source_platform.
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
       $job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $job->id . '/applied');
     }
 
+    // AC-2: Apply workflow_status filter (post-derivation).
+    if ($filter_status !== '') {
+      $all_jobs = array_values(array_filter($all_jobs, fn($j) => $j->workflow_status === $filter_status));
+    }
+
+    // Compute per-stage counts across the full filtered set (for count badges).
+    $stage_counts = array_fill_keys(array_keys(self::PIPELINE_STAGE_LABELS), 0);
+    foreach ($all_jobs as $job) {
+      $stage = $job->workflow_status;
+      if (isset($stage_counts[$stage])) {
+        $stage_counts[$stage]++;
+      }
+    }
+
+    // Paginate the full filtered set.
+    $total = count($all_jobs);
+    $total_pages = $total > 0 ? (int) ceil($total / $per_page) : 1;
+    $paged_jobs = array_slice($all_jobs, $page * $per_page, $per_page);
+
+    // AC-1: Group paged jobs by pipeline stage for display.
+    $pipeline_stages = [];
+    foreach (self::PIPELINE_STAGE_LABELS as $stage => $label) {
+      $stage_jobs = array_values(array_filter($paged_jobs, fn($j) => $j->workflow_status === $stage));
+      $pipeline_stages[$stage] = [
+        'label' => $label,
+        'count' => $stage_counts[$stage],
+        'jobs'  => $stage_jobs,
+      ];
+    }
+
     $content = [
       '#theme' => 'my_jobs',
-      '#jobs' => $jobs,
+      '#jobs' => $paged_jobs,
+      '#pipeline_stages' => $pipeline_stages,
       '#companies' => $companies,
       '#platforms' => $platforms,
-      '#filter_company' => $filters['company'],
-      '#filter_status' => $filters['status'],
-      '#filter_platform' => $filters['platform'],
+      '#filter_company' => $filter_company,
+      '#filter_status' => $filter_status,
+      '#filter_platform' => '',
       '#return_url' => $request->getRequestUri(),
       '#current_page' => $page,
       '#total_pages' => $total_pages,

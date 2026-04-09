@@ -161,6 +161,7 @@ function job_hunter_theme() {
     'my_jobs' => [
       'variables' => [
         'jobs' => [],
+        'pipeline_stages' => [],
         'companies' => [],
         'platforms' => [],
         'filter_company' => '',

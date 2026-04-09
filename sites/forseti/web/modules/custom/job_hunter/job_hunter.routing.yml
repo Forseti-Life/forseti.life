@@ -328,6 +328,16 @@ job_hunter.my_jobs:
   requirements:
     _permission: 'access job hunter'
 
+job_hunter.my_jobs_bulk_archive:
+  path: '/jobhunter/my-jobs/bulk-archive'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\ApplicationActionController::myJobsBulkArchive'
+    _title: 'Bulk Archive Jobs'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _csrf_token: 'TRUE'
+
 job_hunter.my_jobs_archive:
   path: '/jobhunter/my-jobs/archive'
   defaults:

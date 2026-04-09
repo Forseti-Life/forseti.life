@@ -368,6 +368,68 @@ class ApplicationActionController extends ControllerBase {
    * @return array
    *   Renderable array for the my jobs page.
    */
+
+  /**
+   * Bulk archive selected jobs (POST-only, CSRF-protected).
+   *
+   * AC-4: Validates CSRF via routing (split-route pattern). Job IDs are
+   * validated as integers and cross-checked against current user ownership.
+   * Non-integer or unowned IDs are silently discarded (no error exposure).
+   */
+  public function myJobsBulkArchive(): RedirectResponse {
+    if ($this->currentUser()->isAnonymous()) {
+      throw new AccessDeniedHttpException();
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    $job_ids_raw = (array) ($request->request->all()['job_ids'] ?? []);
+
+    // Validate: accept only positive integers.
+    $job_ids = [];
+    foreach ($job_ids_raw as $raw) {
+      $int_id = (int) $raw;
+      if ($int_id > 0 && (string) $int_id === (string) $raw) {
+        $job_ids[] = $int_id;
+      }
+    }
+
+    $return_to = (string) $request->request->get('return_to', '/jobhunter/my-jobs');
+    if (strpos($return_to, '/') !== 0) {
+      $return_to = '/jobhunter/my-jobs';
+    }
+
+    if (empty($job_ids)) {
+      $this->messenger()->addWarning($this->t('No jobs selected for archiving.'));
+      return new RedirectResponse($return_to);
+    }
+
+    $uid = (int) $this->currentUser()->id();
+    $archived_count = 0;
+
+    foreach ($job_ids as $job_id) {
+      // Verify ownership before archiving (cross-user access prevention).
+      $owned = $this->repository->findSavedJobMappingId($uid, $job_id);
+      if ($owned) {
+        try {
+          $this->repository->updateJobRequirement($job_id, ['status' => 'archived']);
+          $archived_count++;
+        }
+        catch (\Exception $e) {
+          $this->getLogger('job_hunter')->error('Bulk archive failed for job @id: @error', [
+            '@id' => $job_id,
+            '@error' => $e->getMessage(),
+          ]);
+        }
+      }
+    }
+
+    if ($archived_count > 0) {
+      $this->messenger()->addMessage($this->t('@count job(s) archived successfully.', ['@count' => $archived_count]));
+    }
+
+    return new RedirectResponse($return_to);
+  }
+
   public function archiveJob(int $job_id): RedirectResponse {
     $request = $this->requestStack->getCurrentRequest();
     $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
