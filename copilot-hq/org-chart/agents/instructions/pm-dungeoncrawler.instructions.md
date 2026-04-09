@@ -422,11 +422,19 @@ When you receive this item, act immediately in the same outbox cycle:
 
 Even without a `release-close-now` trigger, you MUST sign off as soon as ALL in-scope features have Gate 2 APPROVE — do not wait for the feature count to grow.
 
-### Post-release cleanup (required immediately after signoff — added 2026-04-06)
-After `release-signoff.sh` succeeds for any release:
+### Post-release cleanup (GATE — required before outbox is marked done — added 2026-04-06)
+After `release-signoff.sh` succeeds for any release, you MUST complete all three steps **before** writing your outbox:
 1. **Set all shipped features to `- Status: done`** in feature.md AND **clear the `- Release:` line** (set it to `- Release: ` with no value). Do NOT use `status: shipped` — the canonical done value is `done`. Clearing the Release field prevents the orchestrator from counting shipped features against the new release's scope cap.
 2. **Write release notes** to `sessions/pm-dungeoncrawler/artifacts/release-notes/<release-id>.md` if not already written. Include: features shipped, features deferred, commit hashes, and one-line summary.
 3. **Trigger post-release gap review immediately** — do not wait. The orchestrator may send an improvement-round inbox item; if not, add a note to your outbox summarizing the top 1-3 gaps and any follow-through items.
+
+**Verification (run this before writing outbox — zero output = clean):**
+```bash
+grep -rl "Status: in_progress" features/dc-*/feature.md | xargs -I{} grep -l "<release-id>" {}
+# Must return empty. Any hits = cleanup incomplete — fix before writing outbox.
+```
+
+Lesson (2026-04-09, 3rd occurrence — GAP-PM-DC-POST-PUSH-CLEANUP): Release-b shipped (`d37c03852`) but dc-apg-ancestries, dc-apg-archetypes, dc-apg-class-expansions, dc-apg-class-witch remained `in_progress` with stale Release field. CEO manually fixed. Three occurrences of this pattern: release-next (11 days), 20260407-release-b (1.5h), 20260409-release-b (active). This cleanup is now a GATE, not a step.
 
 **Coordinated push rule (required — added 2026-04-08):** If you co-sign a coordinated push initiated by pm-forseti (i.e., the push is named `20260407-forseti-release-*`), you must **also** run `release-signoff.sh dungeoncrawler <your-dungeoncrawler-release-id>` in the same outbox cycle. Co-signing the forseti release does NOT advance your own dungeoncrawler release cycle.
 

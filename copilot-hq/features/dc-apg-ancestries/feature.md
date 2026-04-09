@@ -3,8 +3,8 @@
 - Work item id: dc-apg-ancestries
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260409-dungeoncrawler-release-b
+- Status: done
+- Release: 
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
