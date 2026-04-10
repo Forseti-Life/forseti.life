@@ -5230,3 +5230,71 @@ function dungeoncrawler_content_update_10040() {
 
   return 'Created dc_knowledge_attempt_state table (dc-cr-decipher-identify-learn).';
 }
+
+/**
+ * Implements hook_update_N().
+ *
+ * Create dc_focus_spell_sources join table for FocusPoolService.
+ * Tracks per-character focus spell sources so FocusPoolService.computeMax()
+ * can count distinct sources and enforce the cap-of-3 rule (PF2e APG).
+ */
+function dungeoncrawler_content_update_10041() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('dc_focus_spell_sources')) {
+    return 'dc_focus_spell_sources already exists — skipped.';
+  }
+
+  $schema->createTable('dc_focus_spell_sources', [
+    'description' => 'Tracks focus spell sources per character for FocusPoolService.computeMax().',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'character_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Character identifier.',
+      ],
+      'source_type' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => 'class',
+        'description' => 'Source category: class, archetype, feat, lesson, revelation, dedication.',
+      ],
+      'source_description' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Human-readable description of the source (e.g., Witch Lesson: Life).',
+      ],
+      'granted_spell_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Focus spell ID granted by this source (e.g., life-boost).',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when source was registered.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'character_spell' => ['character_id', 'granted_spell_id'],
+    ],
+    'indexes' => [
+      'character_id' => ['character_id'],
+    ],
+  ]);
+
+  return 'Created dc_focus_spell_sources table (dc-apg-focus-spells).';
+}

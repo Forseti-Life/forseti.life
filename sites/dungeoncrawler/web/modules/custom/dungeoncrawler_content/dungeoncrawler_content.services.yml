@@ -174,6 +174,11 @@ services:
   dungeoncrawler_content.equipment_catalog:
     class: Drupal\dungeoncrawler_content\Service\EquipmentCatalogService
 
+  dungeoncrawler_content.focus_pool:
+    class: Drupal\dungeoncrawler_content\Service\FocusPoolService
+    arguments:
+      - '@database'
+
   dungeoncrawler_content.rules_engine:
     class: Drupal\dungeoncrawler_content\Service\RulesEngine
     arguments:
