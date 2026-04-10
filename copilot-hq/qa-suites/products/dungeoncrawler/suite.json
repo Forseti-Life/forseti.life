@@ -11427,6 +11427,109 @@
           "status": "immediately activatable"
         }
       ]
+    },
+    {
+      "id": "dc-cr-familiar-e2e",
+      "label": "Familiar system: HP calc, daily ability selection, ability catalog, no combat stats, death/replacement, touch spell delivery, class rules, server validation",
+      "type": "e2e",
+      "feature_id": "dc-cr-familiar",
+      "command": "npx playwright test qa-suites/products/dungeoncrawler/dc-cr-familiar-e2e.spec.js --reporter=json",
+      "artifacts": [
+        "qa-suites/products/dungeoncrawler/reports/dc-cr-familiar-e2e.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-FAM-01",
+          "description": "Familiar content type: HP=5*level, default land speed 25 ft, stores familiar_id/character_id/familiar_type/ability list",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "familiar.HP = 5*level; familiar.speed = 25; HP updates on level-up",
+          "ac_ref": "AC-001",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-02",
+          "description": "Daily ability selection up to class-granted maximum (2 base + 1 per relevant class feat); selections reset each day",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "ability selector shows count up to max; exceeding max blocked; selections reset each day",
+          "ac_ref": "AC-002",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-03",
+          "description": "Familiar ability catalog and prerequisites enforced (e.g., Flier requires wings); all abilities visible in selector",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "Flier blocked if familiar_has_wings=false; all catalog abilities in selector; prereq check fires",
+          "ac_ref": "AC-002",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-04",
+          "description": "Familiar has no combat stats (no attack_bonus or damage_entries); UI does not show attack option",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "familiar record lacks attack/damage fields; no attack option in UI",
+          "ac_ref": "AC-003",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-05",
+          "description": "Familiar dies at 0 HP (not unconscious); replacement via 1-week downtime ritual",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/encounter",
+          "expected": "familiar.HP=0 \u2192 familiar.state=dead; replacement=1 week downtime ritual",
+          "ac_ref": "AC-003",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-06",
+          "description": "Familiar delivers touch spells within reach; resolves as caster touching target",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/encounter",
+          "expected": "touch spell + familiar in range \u2192 familiar_delivery option offered; resolution=same as caster touching",
+          "ac_ref": "AC-004",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-07",
+          "description": "Wizard Arcane Bond: grants familiar with standard ability selection; no deviation from base rules",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "Arcane Bond grants familiar; standard ability selection; no special overrides",
+          "ac_ref": "AC-005",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-08",
+          "description": "Witch familiar mandatory (cannot be dismissed); stores prepared spells as patron vessel",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "witch must have familiar; familiar.spell_storage=witch prepared spells; familiar cannot be dismissed",
+          "ac_ref": "AC-005",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-09",
+          "description": "Daily ability count server-validated against class-granted max; exceeding max rejected by API",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/character-creation",
+          "expected": "API rejects ability selection count > max; no client-side bypass",
+          "ac_ref": "Security AC",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-FAM-10",
+          "description": "Familiar Spellcasting ability: stores 1 spell slot in familiar; slot usable via familiar delivery",
+          "feature_id": "dc-cr-familiar",
+          "suite": "playwright/encounter",
+          "expected": "Spellcasting ability adds 1 stored slot to familiar; slot usable via delivery",
+          "ac_ref": "AC-002",
+          "status": "immediately activatable"
+        }
+      ]
     }
   ],
   "_schema_notes": [
