@@ -126,7 +126,7 @@ echo "$SEP"
 echo "  Orchestrator Health"
 echo "$SEP"
 
-pid_file="tmp/orchestrator.pid"
+pid_file=".orchestrator-loop.pid"
 health_file="tmp/orchestrator-health-last-autoexec"
 
 if [ -f "$pid_file" ]; then
@@ -135,17 +135,17 @@ if [ -f "$pid_file" ]; then
     pass "Orchestrator: running (pid $orc_pid)"
   else
     fail "Orchestrator: pid file exists but process $orc_pid is not running"
-    info "Restart: source orchestrator/.venv/bin/activate && python3 orchestrator/run.py"
+    info "Restart: bash scripts/orchestrator-loop.sh start"
     queue_dispatch "dev-infra" "orchestrator-down" "9" "FAIL" \
       "Orchestrator process is down" \
-      "The orchestrator pid file exists but process $orc_pid is not running.\n\nRestart:\n\`\`\`bash\nsource orchestrator/.venv/bin/activate && python3 orchestrator/run.py\n\`\`\`\nThen verify the pid file is updated and the process is running."
+      "The orchestrator pid file exists but process $orc_pid is not running.\n\nRestart:\n\`\`\`bash\nbash scripts/orchestrator-loop.sh start\n\`\`\`\nThen verify with: bash scripts/orchestrator-loop.sh status"
   fi
 else
   warn "Orchestrator: no pid file found — may not be running"
-  info "Start: source orchestrator/.venv/bin/activate && python3 orchestrator/run.py"
+  info "Start: bash scripts/orchestrator-loop.sh start"
   queue_dispatch "dev-infra" "orchestrator-no-pid" "7" "WARN" \
     "Orchestrator has no pid file — may not be running" \
-    "No orchestrator pid file found at tmp/orchestrator.pid.\n\nVerify if it's running and restart if needed:\n\`\`\`bash\nsource orchestrator/.venv/bin/activate && python3 orchestrator/run.py\n\`\`\`"
+    "No orchestrator pid file found at .orchestrator-loop.pid.\n\nVerify if it's running and restart if needed:\n\`\`\`bash\nbash scripts/orchestrator-loop.sh start\n\`\`\`"
 fi
 
 if [ -f "$health_file" ]; then
