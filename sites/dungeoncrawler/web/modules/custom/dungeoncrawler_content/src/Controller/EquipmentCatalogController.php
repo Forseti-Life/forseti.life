@@ -34,12 +34,15 @@ class EquipmentCatalogController extends ControllerBase {
   }
 
   /**
-   * GET /equipment?type=<type>
-   * Returns equipment items. Optional ?type= filter: weapon|armor|shield|gear.
+   * GET /equipment?type=<type>&source_book=<book>
+   * Returns equipment items. Optional filters:
+   *   ?type=        weapon|armor|shield|gear|alchemical|consumable|magic|snare
+   *   ?source_book= crb|apg|gmg|all  (default: all)
    * Equipment catalog is public (reference data).
    */
   public function catalog(Request $request): JsonResponse {
-    $type = $request->query->get('type');
+    $type        = $request->query->get('type');
+    $source_book = $request->query->get('source_book');
 
     if ($type !== NULL && !in_array($type, EquipmentCatalogService::VALID_TYPES, TRUE)) {
       return new JsonResponse([
@@ -48,12 +51,20 @@ class EquipmentCatalogController extends ControllerBase {
       ], 400);
     }
 
-    $items = $this->catalog->getByType($type ?: NULL);
+    if ($source_book !== NULL && !in_array($source_book, EquipmentCatalogService::VALID_BOOKS, TRUE)) {
+      return new JsonResponse([
+        'error'       => 'Invalid source_book. Must be one of: ' . implode(', ', EquipmentCatalogService::VALID_BOOKS),
+        'valid_books' => EquipmentCatalogService::VALID_BOOKS,
+      ], 400);
+    }
+
+    $items = $this->catalog->getByCriteria($type ?: NULL, $source_book ?: NULL);
 
     return new JsonResponse([
-      'type'  => $type ?? 'all',
-      'count' => count($items),
-      'items' => $items,
+      'type'        => $type ?? 'all',
+      'source_book' => $source_book ?? 'all',
+      'count'       => count($items),
+      'items'       => $items,
     ], 200);
   }
 

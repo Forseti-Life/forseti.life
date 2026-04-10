@@ -19,6 +19,12 @@ class EquipmentCatalogService {
   const VALID_TYPES = ['weapon', 'armor', 'shield', 'gear', 'alchemical', 'consumable', 'magic', 'snare'];
 
   /**
+   * Valid source book values for filtering.
+   * 'all' is a pseudo-value meaning no filter (return all source books).
+   */
+  const VALID_BOOKS = ['crb', 'apg', 'gmg', 'all'];
+
+  /**
    * Canonical PF2E equipment catalog.
    *
    * Weapons: 5 simple + 5 martial (plus longsword already in JSON catalog)
@@ -493,7 +499,7 @@ class EquipmentCatalogService {
       'id'       => 'sword-cane',
       'name'     => 'Sword Cane',
       'type'     => 'weapon',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 5,
       'bulk'     => '1',
       'hands'    => '1',
@@ -511,7 +517,7 @@ class EquipmentCatalogService {
       'id'       => 'bola',
       'name'     => 'Bola',
       'type'     => 'weapon',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 0.5,
       'bulk'     => 'L',
       'hands'    => '1',
@@ -533,7 +539,7 @@ class EquipmentCatalogService {
       'id'       => 'daikyu',
       'name'     => 'Daikyu',
       'type'     => 'weapon',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 8,
       'bulk'     => '2',
       'hands'    => '2',
@@ -559,7 +565,7 @@ class EquipmentCatalogService {
       'id'       => 'detectives-kit',
       'name'     => "Detective's Kit",
       'type'     => 'gear',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 10,
       'bulk'     => '1',
       'item_bonus' => [
@@ -573,7 +579,7 @@ class EquipmentCatalogService {
       'id'       => 'dueling-cape',
       'name'     => 'Dueling Cape',
       'type'     => 'gear',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'deploy_action' => 'Interact',
@@ -587,7 +593,7 @@ class EquipmentCatalogService {
       'id'       => 'net',
       'name'     => 'Net',
       'type'     => 'gear',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 0.2,
       'bulk'     => 'L',
       'modes' => [
@@ -617,7 +623,7 @@ class EquipmentCatalogService {
       'id'       => 'blight-bomb',
       'name'     => 'Blight Bomb',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -633,7 +639,7 @@ class EquipmentCatalogService {
       'id'       => 'dread-ampoule',
       'name'     => 'Dread Ampoule',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -650,7 +656,7 @@ class EquipmentCatalogService {
       'id'       => 'crystal-shards',
       'name'     => 'Crystal Shards',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -668,7 +674,7 @@ class EquipmentCatalogService {
       'id'       => 'focus-cathartic',
       'name'     => 'Focus Cathartic',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 5,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -690,7 +696,7 @@ class EquipmentCatalogService {
       'id'       => 'sinew-shock-serum',
       'name'     => 'Sinew-Shock Serum',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 5,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -712,7 +718,7 @@ class EquipmentCatalogService {
       'id'       => 'olfactory-obfuscator',
       'name'     => 'Olfactory Obfuscator',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -727,7 +733,7 @@ class EquipmentCatalogService {
       'id'       => 'leadenleg',
       'name'     => 'Leadenleg',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -743,7 +749,7 @@ class EquipmentCatalogService {
       'id'       => 'cerulean-scourge',
       'name'     => 'Cerulean Scourge',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 50,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -762,7 +768,7 @@ class EquipmentCatalogService {
       'id'       => 'timeless-salts',
       'name'     => 'Timeless Salts',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 10,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -777,7 +783,7 @@ class EquipmentCatalogService {
       'id'       => 'universal-solvent',
       'name'     => 'Universal Solvent',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 7,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -792,7 +798,7 @@ class EquipmentCatalogService {
       'id'       => 'forensic-dye',
       'name'     => 'Forensic Dye',
       'type'     => 'alchemical',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 3,
       'bulk'     => 'L',
       'alchemical_stats' => [
@@ -812,7 +818,7 @@ class EquipmentCatalogService {
       'id'       => 'candle-of-revealing',
       'name'     => 'Candle of Revealing',
       'type'     => 'consumable',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 8,
       'bulk'     => 'L',
       'consumable_stats' => [
@@ -828,7 +834,7 @@ class EquipmentCatalogService {
       'id'       => 'dust-of-corpse-animation',
       'name'     => 'Dust of Corpse Animation',
       'type'     => 'consumable',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 25,
       'bulk'     => 'L',
       'consumable_stats' => [
@@ -845,7 +851,7 @@ class EquipmentCatalogService {
       'id'       => 'potion-of-retaliation',
       'name'     => 'Potion of Retaliation',
       'type'     => 'consumable',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 15,
       'bulk'     => 'L',
       'consumable_stats' => [
@@ -861,7 +867,7 @@ class EquipmentCatalogService {
       'id'       => 'terrifying-ammunition',
       'name'     => 'Terrifying Ammunition',
       'type'     => 'consumable',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 10,
       'bulk'     => '-',
       'consumable_stats' => [
@@ -878,7 +884,7 @@ class EquipmentCatalogService {
       'id'       => 'oil-of-unlife',
       'name'     => 'Oil of Unlife',
       'type'     => 'consumable',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 6,
       'bulk'     => 'L',
       'consumable_stats' => [
@@ -899,7 +905,7 @@ class EquipmentCatalogService {
       'id'       => 'glamorous-buckler',
       'name'     => 'Glamorous Buckler',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 160,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -923,7 +929,7 @@ class EquipmentCatalogService {
       'id'       => 'victory-plate',
       'name'     => 'Victory Plate',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 700,
       'bulk'     => '4',
       'magic_stats' => [
@@ -950,7 +956,7 @@ class EquipmentCatalogService {
       'id'       => 'rope-of-climbing',
       'name'     => 'Rope of Climbing',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 180,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -967,7 +973,7 @@ class EquipmentCatalogService {
       'id'       => 'slates-of-distant-letters',
       'name'     => 'Slates of Distant Letters',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 250,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -985,7 +991,7 @@ class EquipmentCatalogService {
       'id'       => 'four-ways-dogslicer',
       'name'     => 'Four-Ways Dogslicer',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 400,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -1009,7 +1015,7 @@ class EquipmentCatalogService {
       'id'       => 'infiltrators-accessory',
       'name'     => "Infiltrator's Accessory",
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 120,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -1026,7 +1032,7 @@ class EquipmentCatalogService {
       'id'       => 'winged-rune',
       'name'     => 'Winged Rune',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 700,
       'bulk'     => '-',
       'magic_stats' => [
@@ -1046,7 +1052,7 @@ class EquipmentCatalogService {
       'id'       => 'wand-of-overflowing-life',
       'name'     => 'Wand of Overflowing Life',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 500,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -1063,7 +1069,7 @@ class EquipmentCatalogService {
       'id'       => 'wand-of-the-snowfields',
       'name'     => 'Wand of the Snowfields',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 500,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -1080,7 +1086,7 @@ class EquipmentCatalogService {
       'id'       => 'urn-of-ashes',
       'name'     => 'Urn of Ashes',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 650,
       'bulk'     => 'L',
       'magic_stats' => [
@@ -1099,7 +1105,7 @@ class EquipmentCatalogService {
       'id'       => 'rod-of-cancellation',
       'name'     => 'Rod of Cancellation',
       'type'     => 'magic',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 5000,
       'bulk'     => '1',
       'magic_stats' => [
@@ -1123,7 +1129,7 @@ class EquipmentCatalogService {
       'id'       => 'engulfing-snare',
       'name'     => 'Engulfing Snare',
       'type'     => 'snare',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 50,
       'bulk'     => '2',
       'snare_stats' => [
@@ -1142,7 +1148,7 @@ class EquipmentCatalogService {
       'id'       => 'flare-snare',
       'name'     => 'Flare Snare',
       'type'     => 'snare',
-      'source'   => 'apg',
+      'source_book' => 'apg',
       'price_gp' => 5,
       'bulk'     => 'L',
       'snare_stats' => [
@@ -1172,6 +1178,51 @@ class EquipmentCatalogService {
     return array_values(
       array_filter(self::CATALOG, static fn(array $item): bool => $item['type'] === $type)
     );
+  }
+
+  /**
+   * Return catalog items filtered by source book.
+   *
+   * @param string $source_book  'crb'|'apg'|'gmg'|'all'
+   *   'all' returns the entire catalog regardless of source.
+   *   'crb' returns items without a source_book field (legacy CRB items).
+   *
+   * @return array  Flat list of item arrays.
+   */
+  public function getBySourceBook(string $source_book): array {
+    if ($source_book === 'all') {
+      return array_values(self::CATALOG);
+    }
+    return array_values(
+      array_filter(self::CATALOG, static function (array $item) use ($source_book): bool {
+        $book = $item['source_book'] ?? 'crb';
+        return $book === $source_book;
+      })
+    );
+  }
+
+  /**
+   * Return catalog items filtered by both type and source book.
+   *
+   * @param string|null $type        Item type or NULL for all types.
+   * @param string|null $source_book 'crb'|'apg'|'all'|NULL (all books).
+   *
+   * @return array  Flat list of item arrays.
+   */
+  public function getByCriteria(?string $type = NULL, ?string $source_book = NULL): array {
+    $items = self::CATALOG;
+
+    if ($type !== NULL) {
+      $items = array_filter($items, static fn(array $item): bool => $item['type'] === $type);
+    }
+
+    if ($source_book !== NULL && $source_book !== 'all') {
+      $items = array_filter($items, static function (array $item) use ($source_book): bool {
+        return ($item['source_book'] ?? 'crb') === $source_book;
+      });
+    }
+
+    return array_values($items);
   }
 
   /**
