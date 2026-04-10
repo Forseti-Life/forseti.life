@@ -29,3 +29,4 @@ Extend the focus spell catalog with APG Oracle Revelation Spells, Witch Hexes, a
 ## Rollback
 
 Revert import data and `FocusSpellSource` table migration if schema was modified.
+- Status: pending

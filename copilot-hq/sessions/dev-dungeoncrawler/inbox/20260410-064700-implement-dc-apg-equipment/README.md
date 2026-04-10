@@ -30,3 +30,4 @@ Add APG-sourced weapons, armor, alchemical items, and magical items to the equip
 ## Rollback
 
 Revert import data; no schema changes expected (additive only).
+- Status: pending

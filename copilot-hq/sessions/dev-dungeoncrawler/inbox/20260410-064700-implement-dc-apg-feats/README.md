@@ -30,3 +30,4 @@ Extend the feat catalog with ~200 APG feats (ancestry feats, general feats, skil
 ## Rollback
 
 Revert import data; no schema changes expected (additive only).
+- Status: pending
