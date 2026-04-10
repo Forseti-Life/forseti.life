@@ -38,7 +38,21 @@ class CharacterManager {
       ],
     ],
     'Elf' => ['hp' => 6, 'size' => 'Medium', 'speed' => 30, 'boosts' => ['Dexterity', 'Intelligence'], 'flaw' => 'Constitution', 'languages' => ['Common', 'Elven'], 'traits' => ['Elf', 'Humanoid'], 'vision' => 'low-light vision'],
-    'Dwarf' => ['hp' => 10, 'size' => 'Medium', 'speed' => 20, 'boosts' => ['Constitution', 'Wisdom'], 'flaw' => 'Charisma', 'languages' => ['Common', 'Dwarven'], 'traits' => ['Dwarf', 'Humanoid'], 'vision' => 'darkvision'],
+    'Dwarf' => [
+      'hp' => 10,
+      'size' => 'Medium',
+      'speed' => 20,
+      'boosts' => ['Constitution', 'Wisdom', 'Free'],
+      'flaw' => 'Charisma',
+      'languages' => ['Common', 'Dwarven'],
+      'traits' => ['Dwarf', 'Humanoid'],
+      'vision' => 'darkvision',
+      // One bonus language per positive Intelligence modifier point.
+      'bonus_language_pool' => ['Gnomish', 'Goblin', 'Jotun', 'Orcish', 'Terran', 'Undercommon'],
+      'bonus_language_source' => 'intelligence_modifier',
+      // Every dwarf receives a free Clan Dagger at character creation (taboo to sell).
+      'starting_equipment' => ['clan-dagger'],
+    ],
     'Gnome' => [
       'hp' => 8, 'size' => 'Small', 'speed' => 25,
       // Two fixed boosts + one free boost; free boost may not duplicate Con or Cha.
@@ -291,10 +305,67 @@ class CharacterManager {
    */
   const HERITAGES = [
     'Dwarf' => [
-      ['id' => 'ancient-blooded', 'name' => 'Ancient-Blooded Dwarf', 'benefit' => 'Resistance to magic', 'granted_abilities' => ['call-on-ancient-blood']],
-      ['id' => 'forge', 'name' => 'Forge Dwarf', 'benefit' => 'Fire resistance'],
-      ['id' => 'rock', 'name' => 'Rock Dwarf', 'benefit' => 'Extended darkvision'],
-      ['id' => 'strong-blooded', 'name' => 'Strong-Blooded Dwarf', 'benefit' => 'Poison resistance'],
+      [
+        'id' => 'ancient-blooded',
+        'name' => 'Ancient-Blooded Dwarf',
+        'benefit' => 'Your blood carries ancient magics that protect you. You gain a +1 circumstance bonus to saving throws against magic. Once per day as a free action, you can call on your ancient blood to Aid a saving throw (see Call on Ancient Blood).',
+        'granted_abilities' => ['call-on-ancient-blood'],
+        'special' => [
+          'save_bonus_magic' => ['type' => 'circumstance', 'value' => 1, 'condition' => 'saving throws against magic effects'],
+          'daily_ability' => [
+            'id' => 'call-on-ancient-blood',
+            'action_cost' => 'free',
+            'frequency' => 'once per day',
+            'effect' => 'Aid one saving throw against a magical effect (adds +2 circumstance bonus or +4 on critical Aid).',
+            'trigger' => 'You attempt a saving throw against a magical effect.',
+          ],
+        ],
+      ],
+      [
+        'id' => 'death-warden',
+        'name' => 'Death Warden Dwarf',
+        'benefit' => 'Your ancestors have long warded their families against the necromantic powers wielded by their enemies. If you roll a critical failure on a saving throw against a necromancy effect, you get a failure instead.',
+        'special' => [
+          'necromancy_crit_fail_upgrade' => [
+            'trigger' => 'critical failure on saving throw vs. necromancy',
+            'effect' => 'Treat the result as a failure instead of a critical failure.',
+          ],
+        ],
+      ],
+      [
+        'id' => 'forge',
+        'name' => 'Forge Dwarf',
+        'benefit' => 'You have a remarkable adaptation to hot environments from your ancestors who lived and worked with fire. You can ignore the effects of environmental heat in non-extreme environments. Standard armor penalties do not apply to Fortitude saves vs. heat in non-extreme conditions.',
+        'special' => [
+          'heat_resistance_non_extreme' => TRUE,
+          'armor_heat_penalty_ignored' => TRUE,
+        ],
+      ],
+      [
+        'id' => 'rock',
+        'name' => 'Rock Dwarf',
+        'benefit' => 'Your ancestors lived and worked among the rocks and boulders of the mountains, and you carry some of this hardiness in your bones. You gain a +1 circumstance bonus to your Fortitude DC against Shove and Trip attempts. You are also treated as one size larger when calculating your Bulk limit.',
+        'special' => [
+          'fortitude_bonus' => [
+            'type' => 'circumstance',
+            'value' => 1,
+            'condition' => 'Fortitude DC against Shove and Trip',
+          ],
+          'bulk_size_bonus' => 1,
+        ],
+      ],
+      [
+        'id' => 'strong-blooded',
+        'name' => 'Strong-Blooded Dwarf',
+        'benefit' => 'Your blood runs hearty and strong, and you can shake off the effects of toxins. You gain a +1 status bonus to Fortitude saving throws against poisons. When you succeed at a Fortitude save against a poison, you treat it as a critical success and expunge the poison from your system.',
+        'special' => [
+          'fortitude_poison_bonus' => ['type' => 'status', 'value' => 1, 'condition' => 'saving throws against poisons'],
+          'poison_save_upgrade' => [
+            'on_critical_success' => 'expunge poison',
+            'on_success' => 'reduce poison stage by 1',
+          ],
+        ],
+      ],
     ],
     'Elf' => [
       ['id' => 'arctic', 'name' => 'Arctic Elf', 'benefit' => 'Cold resistance'],
@@ -636,17 +707,50 @@ class CharacterManager {
     ],
     'Dwarf' => [
       ['id' => 'dwarven-lore', 'name' => 'Dwarven Lore', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
-        'benefit' => 'Trained in Crafting and Religion. Gain Crafting Lore and Dwarven Lore.'],
+        'benefit' => 'Trained in Crafting and Religion. Gain Crafting Lore and Dwarven Lore.',
+        'special' => [
+          'skill_grants' => ['crafting' => 'trained', 'religion' => 'trained'],
+          'lore_subcategories' => ['Crafting Lore', 'Dwarven Lore'],
+        ],
+      ],
       ['id' => 'dwarven-weapon-familiarity', 'name' => 'Dwarven Weapon Familiarity', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
-        'benefit' => 'You are trained with the battle axe, pick, and warhammer, and all dwarf weapons. For proficiency, treat martial dwarf weapons as simple, and advanced dwarf weapons as martial.'],
+        'benefit' => 'You are trained with the battle axe, pick, and warhammer, and all dwarf weapons. For proficiency, treat martial dwarf weapons as simple, and advanced dwarf weapons as martial.',
+        'special' => [
+          'weapon_proficiencies' => ['battleaxe' => 'trained', 'pick' => 'trained', 'warhammer' => 'trained'],
+          'dwarf_weapon_proficiency_shift' => ['martial' => 'simple', 'advanced' => 'martial'],
+          'dwarf_weapon_feats_unlocked' => TRUE,
+        ],
+      ],
       ['id' => 'rock-runner', 'name' => 'Rock Runner', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
-        'benefit' => 'You can ignore difficult terrain caused by rubble and uneven ground made of stone and earth. Acrobatics DC to Balance on narrow surfaces and uneven ground made of stone or earth reduced by 2.'],
+        'benefit' => 'You can ignore difficult terrain caused by rubble and uneven ground made of stone and earth. You are not flat-footed when Balancing on uneven or slippery stone. Acrobatics DC to Balance on narrow surfaces and uneven ground made of stone or earth is reduced by 2.',
+        'special' => [
+          'difficult_terrain_immunity' => ['stone_rubble', 'earth_uneven'],
+          'flat_footed_stone_immunity' => TRUE,
+          'stone_surface_acrobatics_dc_reduction' => 2,
+        ],
+      ],
       ['id' => 'stonecunning', 'name' => 'Stonecunning', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
-        'benefit' => '+2 circumstance bonus on Perception checks to notice unusual stonework. When not Seeking, get a check to find unusual stonework anyway.'],
+        'benefit' => '+2 circumstance bonus on Perception checks to notice unusual stonework. When not Seeking, you get a check to find unusual stonework when you pass within 10 feet of it.',
+        'special' => [
+          'perception_bonus_stonework' => ['type' => 'circumstance', 'value' => 2],
+          'auto_check_trigger' => 'within_10ft_stonework',
+        ],
+      ],
       ['id' => 'unburdened-iron', 'name' => 'Unburdened Iron', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
-        'benefit' => 'Ignore the reduction to Speed from wearing armor and reduce the encumbered speed penalty from 5 feet to only 0 feet.'],
+        'benefit' => 'Ignore the reduction to Speed from wearing armor and reduce the encumbered speed penalty from 5 feet to only 0 feet.',
+        'special' => [
+          'armor_speed_penalty_reduction' => 5,
+          'armor_speed_penalty_minimum' => 0,
+        ],
+      ],
       ['id' => 'vengeful-hatred', 'name' => 'Vengeful Hatred', 'level' => 1, 'traits' => ['Dwarf'], 'prerequisites' => '',
-        'benefit' => 'Choose drow, duergar, giant, or orc when you take this feat. +1 circumstance damage per weapon die against creatures with that trait.'],
+        'benefit' => 'Choose drow, duergar, giant, or orc when you take this feat. +1 circumstance damage per weapon die against creatures with that trait.',
+        'special' => [
+          'target_type_selection' => TRUE,
+          'target_type_options' => ['drow', 'duergar', 'giant', 'orc'],
+          'damage_bonus' => ['type' => 'circumstance', 'value' => 1, 'per' => 'weapon_die', 'condition' => 'against selected target type'],
+        ],
+      ],
     ],
     'Elf' => [
       ['id' => 'ancestral-longevity', 'name' => 'Ancestral Longevity', 'level' => 1, 'traits' => ['Elf'], 'prerequisites' => '',
