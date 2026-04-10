@@ -6046,7 +6046,9 @@
           "suite": "playwright/downtime",
           "ac": "Edge-2"
         }
-      ]
+      ],
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10"
     },
     {
       "id": "dc-apg-spells-e2e",
