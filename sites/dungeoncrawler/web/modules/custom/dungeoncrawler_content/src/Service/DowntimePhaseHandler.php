@@ -34,16 +34,23 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
   protected CharacterStateService $characterStateService;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\CraftingService
+   */
+  protected CraftingService $craftingService;
+
+  /**
    * Constructs a DowntimePhaseHandler.
    */
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
-    CharacterStateService $character_state_service
+    CharacterStateService $character_state_service,
+    CraftingService $crafting_service
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->characterStateService = $character_state_service;
+    $this->craftingService = $crafting_service;
   }
 
   /**
@@ -148,15 +155,20 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         break;
 
       case 'craft':
-      case 'earn_income':
-        // Stubs — to be implemented in a future sprint.
-        $result = [
-          'stub' => TRUE,
-          'message' => "The '$type' action is not yet implemented.",
-        ];
+        $result = $this->processCraft($actor_id, $params, $game_state, $campaign_id);
         $events[] = GameEventLogger::buildEvent($type, 'downtime', $actor_id, [
-          'stub' => TRUE,
+          'degree'       => $params['degree'] ?? NULL,
+          'item_granted' => $result['item_granted'] ?? FALSE,
         ]);
+        break;
+
+      case 'earn_income':
+        // Stub — to be implemented in a future sprint.
+        $result = [
+          'stub'    => TRUE,
+          'message' => "The 'earn_income' action is not yet implemented.",
+        ];
+        $events[] = GameEventLogger::buildEvent($type, 'downtime', $actor_id, ['stub' => TRUE]);
         break;
 
       case 'talk':
@@ -363,6 +375,57 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
     }
     $category = $equipped['category'] ?? ($equipped['armor_type'] ?? '');
     return in_array($category, $armor_categories, TRUE);
+  }
+
+  /**
+   * Processes a crafting action (AC-001 through AC-006).
+   *
+   * Dispatches to CraftingService based on the 'sub_action' param:
+   *   - 'begin':        Start a new crafting project (validate + pay half price).
+   *   - 'resolve':      Apply check degree after 4-day minimum.
+   *   - 'advance_day':  Progress an in-progress success project.
+   *   - 'add_formula':  Add a formula to the formula book.
+   *
+   * @param string $actor_id    Character ID.
+   * @param array  $params      Action parameters (sub_action, item, degree, item_id, source, campaign_id).
+   * @param array  $game_state  Current game state (phase must be 'downtime').
+   * @param int    $campaign_id Campaign context.
+   *
+   * @return array  Result array.
+   */
+  protected function processCraft(string $actor_id, array $params, array &$game_state, int $campaign_id): array {
+    $in_downtime = ($game_state['phase'] ?? '') === 'downtime';
+    $sub_action  = $params['sub_action'] ?? 'begin';
+
+    switch ($sub_action) {
+      case 'begin':
+        $item = $params['item'] ?? [];
+        if (empty($item)) {
+          return ['success' => FALSE, 'error' => 'missing_item', 'message' => 'No item specified for crafting.'];
+        }
+        return $this->craftingService->beginCrafting($actor_id, $item, $campaign_id, $in_downtime);
+
+      case 'resolve':
+        $degree = $params['degree'] ?? '';
+        if (!in_array($degree, ['critical_success', 'success', 'failure', 'critical_failure'], TRUE)) {
+          return ['success' => FALSE, 'error' => 'invalid_degree', 'message' => "Invalid degree: {$degree}."];
+        }
+        return $this->craftingService->resolveCrafting($actor_id, $degree, $campaign_id);
+
+      case 'advance_day':
+        return $this->craftingService->advanceCraftingDay($actor_id, $campaign_id);
+
+      case 'add_formula':
+        $item_id = $params['item_id'] ?? '';
+        $source  = $params['source'] ?? 'purchased';
+        if (empty($item_id)) {
+          return ['success' => FALSE, 'error' => 'missing_item_id', 'message' => 'No item_id specified for formula.'];
+        }
+        return $this->craftingService->addFormula($actor_id, $item_id, $campaign_id, $source);
+
+      default:
+        return ['success' => FALSE, 'error' => 'unknown_sub_action', 'message' => "Unknown craft sub_action: {$sub_action}."];
+    }
   }
 
   /**

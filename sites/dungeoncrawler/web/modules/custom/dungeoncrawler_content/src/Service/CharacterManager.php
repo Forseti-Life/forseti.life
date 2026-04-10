@@ -12208,4 +12208,177 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     return (bool) (self::RARITY_RULES[$rarity]['requires_access'] ?? TRUE);
   }
 
+  // -------------------------------------------------------------------------
+  // Crafting System Constants (CRB Chapter 4: Skills, Chapter 9: Downtime)
+  // -------------------------------------------------------------------------
+
+  /**
+   * Crafting Difficulty Class by item level — CRB Table 10-5 "DCs by Level".
+   *
+   * Key: item level (0–20). Value: DC for the initial Crafting check.
+   * Uncommon items add +2; Rare items add +5; Unique items add +10.
+   */
+  const CRAFTING_DC_TABLE = [
+    0  => 14,
+    1  => 15,
+    2  => 16,
+    3  => 18,
+    4  => 19,
+    5  => 20,
+    6  => 22,
+    7  => 23,
+    8  => 24,
+    9  => 26,
+    10 => 27,
+    11 => 28,
+    12 => 30,
+    13 => 31,
+    14 => 32,
+    15 => 34,
+    16 => 35,
+    17 => 36,
+    18 => 38,
+    19 => 39,
+    20 => 40,
+  ];
+
+  /**
+   * DC modifier by item rarity — CRB p.244 "Adjusting Difficulty".
+   */
+  const CRAFTING_RARITY_DC_MODIFIER = [
+    'common'   => 0,
+    'uncommon' => 2,
+    'rare'     => 5,
+    'unique'   => 10,
+  ];
+
+  /**
+   * Minimum Crafting proficiency rank required by item rarity — CRB p.243.
+   *
+   * Key: rarity string. Value: minimum rank string (case-insensitive compare).
+   */
+  const CRAFTING_PROFICIENCY_REQUIREMENTS = [
+    'common'   => 'trained',
+    'uncommon' => 'expert',
+    'rare'     => 'master',
+    'unique'   => 'legendary',
+  ];
+
+  /**
+   * Proficiency rank order (lower index = lower rank) for comparison.
+   */
+  const PROFICIENCY_RANK_ORDER = [
+    'untrained' => 0,
+    'trained'   => 1,
+    'expert'    => 2,
+    'master'    => 3,
+    'legendary' => 4,
+  ];
+
+  /**
+   * Alchemist proficiency bonus by character level — CRB p.78.
+   *
+   * Alchemist Advanced Alchemy creates (2 × proficiency_bonus) items at daily prep.
+   * Proficiency bonus = proficiency_rank_value + level.
+   * This table gives the proficiency_rank_value component at each level.
+   * (Untrained=0, Trained=2, Expert=4, Master=6, Legendary=8; Alchemist gets Trained at L1, Expert at L9, Master at L17.)
+   */
+  const ALCHEMIST_CRAFTING_PROFICIENCY_BY_LEVEL = [
+    1  => 'trained',   // Trained at level 1
+    9  => 'expert',    // Expert at level 9
+    17 => 'master',    // Master at level 17
+  ];
+
+  /**
+   * Daily income rate in copper pieces for Crafting/Earn Income (CRB Table 4-2).
+   *
+   * Key: item level (task level). Sub-keys: 'failure', 'success', 'critical_success'.
+   * 'critical_failure' always returns 0 (no income; materials ruined).
+   * 'failure' returns 1 cp regardless of level.
+   * Used to reduce remaining crafting cost each additional day beyond minimum.
+   */
+  const CRAFTING_DAILY_INCOME_TABLE = [
+    0  => ['failure' => 1, 'success' => 10,    'critical_success' => 50],
+    1  => ['failure' => 1, 'success' => 20,    'critical_success' => 40],
+    2  => ['failure' => 1, 'success' => 40,    'critical_success' => 80],
+    3  => ['failure' => 1, 'success' => 80,    'critical_success' => 160],
+    4  => ['failure' => 1, 'success' => 150,   'critical_success' => 300],
+    5  => ['failure' => 1, 'success' => 200,   'critical_success' => 400],
+    6  => ['failure' => 1, 'success' => 300,   'critical_success' => 600],
+    7  => ['failure' => 1, 'success' => 400,   'critical_success' => 800],
+    8  => ['failure' => 1, 'success' => 550,   'critical_success' => 1100],
+    9  => ['failure' => 1, 'success' => 700,   'critical_success' => 1400],
+    10 => ['failure' => 1, 'success' => 900,   'critical_success' => 1800],
+    11 => ['failure' => 1, 'success' => 1200,  'critical_success' => 2400],
+    12 => ['failure' => 1, 'success' => 1600,  'critical_success' => 3200],
+    13 => ['failure' => 1, 'success' => 2500,  'critical_success' => 5000],
+    14 => ['failure' => 1, 'success' => 4000,  'critical_success' => 7500],
+    15 => ['failure' => 1, 'success' => 5000,  'critical_success' => 9000],
+    16 => ['failure' => 1, 'success' => 6000,  'critical_success' => 12500],
+    17 => ['failure' => 1, 'success' => 7500,  'critical_success' => 15000],
+    18 => ['failure' => 1, 'success' => 10000, 'critical_success' => 17500],
+    19 => ['failure' => 1, 'success' => 15000, 'critical_success' => 30000],
+    20 => ['failure' => 1, 'success' => 20000, 'critical_success' => 40000],
+  ];
+
+  // -------------------------------------------------------------------------
+  // Crafting System — Helper Methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Return the Crafting DC for a given item level and rarity.
+   *
+   * @param int    $item_level  Item level (0–20).
+   * @param string $rarity      Item rarity key (default 'common').
+   *
+   * @return int  The DC for the Crafting check.
+   */
+  public static function craftingDC(int $item_level, string $rarity = 'common'): int {
+    $base = self::CRAFTING_DC_TABLE[$item_level] ?? (14 + $item_level);
+    $mod  = self::CRAFTING_RARITY_DC_MODIFIER[$rarity] ?? 0;
+    return $base + $mod;
+  }
+
+  /**
+   * Return the daily income rate (in copper pieces) for Crafting progress.
+   *
+   * @param int    $item_level  Item level used as task level.
+   * @param string $degree      Check degree: 'critical_success', 'success', 'failure', 'critical_failure'.
+   *
+   * @return int  Copper pieces earned (deducted from remaining cost) per additional day.
+   */
+  public static function craftingDailyRate(int $item_level, string $degree): int {
+    if ($degree === 'critical_failure') {
+      return 0;
+    }
+    $row = self::CRAFTING_DAILY_INCOME_TABLE[$item_level] ?? self::CRAFTING_DAILY_INCOME_TABLE[20];
+    return (int) ($row[$degree] ?? $row['failure']);
+  }
+
+  /**
+   * Return the minimum proficiency rank string required to craft an item of given rarity.
+   *
+   * @param string $rarity  Item rarity: 'common', 'uncommon', 'rare', 'unique'.
+   *
+   * @return string  Required rank: 'trained', 'expert', 'master', or 'legendary'.
+   */
+  public static function craftingMinRank(string $rarity): string {
+    return self::CRAFTING_PROFICIENCY_REQUIREMENTS[$rarity] ?? 'legendary';
+  }
+
+  /**
+   * Compare two proficiency rank strings; return TRUE if $actual >= $required.
+   *
+   * @param string $actual    Character's actual rank.
+   * @param string $required  Required minimum rank.
+   *
+   * @return bool
+   */
+  public static function meetsRankRequirement(string $actual, string $required): bool {
+    $order = self::PROFICIENCY_RANK_ORDER;
+    $a = $order[strtolower($actual)]   ?? 0;
+    $r = $order[strtolower($required)] ?? 0;
+    return $a >= $r;
+  }
+
 }
