@@ -297,23 +297,30 @@ For improvement round inbox items (`<date>-improvement-round-*`):
 - Pattern: open command.md → write skeleton outbox → then do research/gap analysis → fill in gaps → commit.
 - **Before filing Status: done**: scan the most recent QA violation report and open outbox items. "No blockers" is only valid if QA evidence confirms it. List any known open items with owner and ROI.
 
-## Security patch completeness check (required — lesson 2026-04-10)
+## Pattern-sweep completeness check (required — lesson 2026-04-10, extended 2026-04-10-release-b)
 
-Before committing any security fix that targets a pattern (e.g. open redirect, unescaped output, SQL interpolation), you MUST run a grep across ALL relevant files to confirm zero remaining instances:
+Before committing **any task** that removes or replaces an enumerable pattern across files (security fixes, code cleanup, dead-code removal, deprecated API migrations), you MUST run a grep across ALL relevant files to confirm zero remaining instances:
 
 ```bash
 # Example: verifying all open-redirect strpos instances are gone
 grep -rn "strpos.*return_to\|strpos.*\$return_to" sites/forseti/web/modules/custom/job_hunter/src/Controller/
 
-# General pattern: grep for the vulnerable expression across ALL controllers in the module
-grep -rn "<vulnerable-pattern>" sites/forseti/web/modules/custom/<module>/src/
+# Example: verifying all dead CSRF hidden fields are gone (release-b lesson)
+grep -rn 'name.*form_token\|name="token"' sites/forseti/web/modules/custom/job_hunter/templates/
+
+# General pattern: grep for the target pattern across ALL files in the module scope
+grep -rn "<target-pattern>" sites/forseti/web/modules/custom/<module>/
 
 # Must return 0 results before committing
 ```
 
-**Rule**: If the grep returns any results, fix them all in the SAME commit. Do NOT ship a partial fix across multiple commits for the same vulnerability.
+**Rule**: If the grep returns any results, fix them all in the SAME commit. Do NOT ship a partial fix across multiple commits for the same pattern.
 
-**Why**: In forseti release-j, `dev` patched 6/7 open-redirect instances in CompanyController and ApplicationActionController but missed `ResumeController.php:243`. This caused an extra QA BLOCK cycle, a CEO escalation, and a delay in the release. A 5-second grep would have caught it.
+**Applies to**: security patches, dead-code removal, deprecated API/pattern migrations, bulk field cleanups — any task where the definition of "done" is "zero remaining instances."
+
+**Why (security case)**: In forseti release-j, `dev` patched 6/7 open-redirect instances but missed `ResumeController.php:243`. This caused an extra QA BLOCK cycle and a CEO escalation.
+
+**Why (cleanup case)**: In forseti release-b, `dev` removed 6/9 dead CSRF hidden fields in the first commit (`google-jobs-search.html.twig:41,190` and `job-tailoring-combined.html.twig:309` were missed). QA caught 3 remaining instances, triggering a second fix cycle.
 
 **Reference**: `knowledgebase/lessons/return-to-redirect-bypass.md`
 

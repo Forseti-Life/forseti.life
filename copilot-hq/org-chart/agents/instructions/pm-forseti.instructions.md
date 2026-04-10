@@ -164,6 +164,8 @@ When a release is coordinated across Forseti + Dungeoncrawler, you are the relea
 ### Release auto-close triggers (ship when ready — added 2026-04-05)
 **20 features is the MAXIMUM scope cap, not a target. Never wait to fill remaining scope slots.**
 
+**There is no minimum feature count per release.** A 1-feature release is valid. Do NOT invent targets like "3-feature minimum" or similar. If the backlog has only 1 ready feature, activate it and proceed — ship as soon as all in-scope features have Gate 2 APPROVE. (Lesson: forseti release-b shipped 1 feature; pm-forseti invented a phantom "3-feature target" that had no basis in any instruction.)
+
 The orchestrator will dispatch a `release-close-now` item (ROI 999) to your inbox when either:
 - **≥ 10 forseti features** are `in_progress` for this release, OR
 - **≥ 24 hours** have elapsed since the release was started
@@ -200,6 +202,20 @@ When a `gate2-ready` inbox item arrives and `features/*/feature.md` shows NO for
 **Phantom-escalation rule (added 2026-04-09):** If your outbox says "Decision needed: None" and "Needs from CEO: None", do NOT escalate to CEO. Write Status: blocked (or in_progress) and wait for the pending dependency to resolve. Escalating with empty decision/needs fields creates a phantom blocker that consumes a CEO execution slot with no actionable work.
 
 Reference: 2026-04-09 `20260409-forseti-release-e` used this pattern after release-d push.
+
+## Stale coordinated-signoff inbox items — detect and archive (required — lesson 2026-04-10-release-b)
+
+**Pattern**: The orchestrator sometimes delivers a `coordinated-signoff` inbox item for a release that has already been pushed. These are stale dispatches — processing them wastes an execution slot.
+
+**Rule**: When ANY `coordinated-signoff` inbox item arrives, run `release-signoff-status.sh` FIRST:
+```bash
+./scripts/release-signoff-status.sh <release-id>
+```
+
+- If the output shows the push is already complete (or status shows `PUSHED`/`DONE`), archive the inbox item immediately without further action. Document it as "stale post-push dispatch" in your outbox.
+- Only proceed with coordinated-signoff work if the release is NOT yet pushed.
+
+**Why**: In forseti release-b, a `coordinated-signoff-20260410-forseti-release-b` inbox item arrived after the push was already complete. pm-forseti correctly archived it — but only by recognizing the pattern manually, not via a standing instruction.
 
 ## Coordinated signoff claim — trigger on any Gate 2 report (required)
 **Trigger**: Any inbox item arrives that reports or follows up on a Gate 2 APPROVE for a coordinated release (dungeoncrawler OR forseti), OR any inbox item where `release-signoff-status.sh` would be relevant (follow-up, handoff, post-push, improvement round).

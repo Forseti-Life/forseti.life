@@ -289,3 +289,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260410-044500-implement-dc-cr-exploration-mode — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-044500-implement-dc-cr-exploration-mode.md)
 - [ ] 20260410-044500-implement-dc-cr-familiar — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-044500-implement-dc-cr-familiar.md)
 - [ ] 20260410-064700-implement-dc-apg-equipment — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-064700-implement-dc-apg-equipment.md)
+- [ ] 20260410-064700-implement-dc-apg-feats — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-064700-implement-dc-apg-feats.md)
