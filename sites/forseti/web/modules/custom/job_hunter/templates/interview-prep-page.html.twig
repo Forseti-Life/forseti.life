@@ -72,18 +72,16 @@
     btn.textContent = 'Generating tips…';
     resultEl.innerHTML = '';
 
-    // Drupal CSRF token for the ai-tips URL is generated server-side via the
-    // Twig csrf_token() filter and attached via drupalSettings or inline.
+    // CsrfAccessCheck reads ?token= from the query string only (never POST body).
     var aiTipsUrl = {{ ai_tips_url|json_encode|raw }};
     var csrfToken = {{ csrf_token(ai_tips_url)|json_encode|raw }};
+    var aiTipsUrlWithToken = aiTipsUrl + '?token=' + encodeURIComponent(csrfToken);
 
-    fetch(aiTipsUrl, {
+    fetch(aiTipsUrlWithToken, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
         'X-Requested-With': 'XMLHttpRequest',
       },
-      body: 'form_token=' + encodeURIComponent(csrfToken),
     })
     .then(function (res) { return res.json(); })
     .then(function (data) {
