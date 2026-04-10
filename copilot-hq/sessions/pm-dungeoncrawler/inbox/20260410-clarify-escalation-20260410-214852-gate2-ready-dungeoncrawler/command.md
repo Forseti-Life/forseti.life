@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/pm-dungeoncrawler/outbox/20260410-214852-gate2-ready-dungeoncrawler.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: pm-dungeoncrawler
+- Status: pending

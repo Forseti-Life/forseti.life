@@ -279,3 +279,5 @@ The `note` field must be stored as plain text (no HTML). The controller must str
 ### SEC-5: PII / logging constraints
 
 The `note` field may contain user-authored text. It must NOT be logged to Drupal watchdog at severity DEBUG or lower with the full note content. Log only `uid` and `tailored_resume_id`.
+- Agent: qa-forseti
+- Status: pending

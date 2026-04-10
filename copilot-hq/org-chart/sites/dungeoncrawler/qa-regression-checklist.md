@@ -292,3 +292,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260410-064700-implement-dc-apg-feats — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-064700-implement-dc-apg-feats.md)
 - [ ] 20260410-064700-implement-dc-apg-focus-spells — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-064700-implement-dc-apg-focus-spells.md)
 - [ ] 20260410-171000-implement-dc-cr-skills-release-d — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-171000-implement-dc-cr-skills-release-d.md)
+- [ ] 20260410-fix-from-qa-block-dungeoncrawler — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-fix-from-qa-block-dungeoncrawler.md)

@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T21:54:21Z
+Generated: 2026-04-10T23:10:46Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -147,7 +147,7 @@ Generated: 2026-04-10T21:54:21Z
 | forseti-agent-tracker-payload-size-limit | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
 | forseti-ai-conversation-export | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-history-browser | forseti.life | ai_conversation | shipped | high |  |  |  |
-| forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | ready | medium |  |  |  |
+| forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | in_progress | medium |  |  |  |
 | forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | shipped | P1 |  |  |  |
 | forseti-ai-service-db-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
@@ -157,7 +157,7 @@ Generated: 2026-04-10T21:54:21Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
-| forseti-jobhunter-application-notes | forseti.life | job_hunter | ready | medium |  |  |  |
+| forseti-jobhunter-application-notes | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
@@ -169,7 +169,7 @@ Generated: 2026-04-10T21:54:21Z
 | forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
-| forseti-jobhunter-job-match-score | forseti.life | job_hunter | ready | low |  |  |  |
+| forseti-jobhunter-job-match-score | forseti.life | job_hunter | in_progress | low |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -180,7 +180,7 @@ Generated: 2026-04-10T21:54:21Z
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
-| forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | ready | medium |  |  |  |
+| forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  |  |  |  |  |  |

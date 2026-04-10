@@ -273,3 +273,5 @@ Job titles and company names in suggestions must NOT be logged to watchdog at DE
 ### SEC-5: No SQL injection — parameterized queries only
 
 The saved-job lookup must use Drupal's database abstraction layer (`$db->select(...)` with `->condition()`), not string-interpolated SQL.
+- Agent: qa-forseti
+- Status: pending

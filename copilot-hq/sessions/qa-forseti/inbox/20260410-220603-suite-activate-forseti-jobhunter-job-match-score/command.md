@@ -278,3 +278,5 @@ The match score badge must show only the numeric score (0–100%). Raw skills te
 ### SEC-5: No PII / logging constraints
 
 Score values and job data must NOT be logged to watchdog at DEBUG level. Log only `uid` and job count for performance monitoring.
+- Agent: qa-forseti
+- Status: pending

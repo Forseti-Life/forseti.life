@@ -46,3 +46,4 @@ curl -s -b "$FORSETI_COOKIE_AUTHENTICATED" https://forseti.life/jobhunter/my-job
 ## Done when
 
 All AC items pass; code committed with verification evidence in outbox.
+- Status: pending
