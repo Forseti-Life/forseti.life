@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-09T23:43:56Z
+Generated: 2026-04-10T00:17:29Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -142,6 +142,7 @@ Generated: 2026-04-09T23:43:56Z
 | dc-home-suggestion-notice | dungeoncrawler.life | dungeoncrawler_content (home page / front page block) | done | P2 |  |  |  |
 | dc-som-secrets-of-magic | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | forseti-agent-tracker-dashboard-controller-db-extraction | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
+| forseti-agent-tracker-payload-size-limit | forseti.life | copilot_agent_tracker | in_progress | P2 |  |  |  |
 | forseti-ai-conversation-export | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-history-browser | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
@@ -162,6 +163,7 @@ Generated: 2026-04-09T23:43:56Z
 | forseti-jobhunter-cover-letter-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-e2e-flow | forseti.life | job_hunter | shipped | P0 (ROI 1000) |  |  |  |
 | forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
+| forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | in_progress | P1 |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
@@ -170,6 +172,7 @@ Generated: 2026-04-09T23:43:56Z
 | forseti-jobhunter-profile-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-resume-tailoring-display | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-resume-tailoring-queue-hardening | forseti.life | job_hunter | shipped | P3 |  |  |  |
+| forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
