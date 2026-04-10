@@ -11324,6 +11324,109 @@
           "feature_id": "dc-cr-equipment-ch06"
         }
       ]
+    },
+    {
+      "id": "dc-cr-exploration-mode-e2e",
+      "label": "Exploration mode: time scale, activities, initiative, light/darkness, encounter transition, stealth surprise",
+      "type": "e2e",
+      "feature_id": "dc-cr-exploration-mode",
+      "command": "npx playwright test qa-suites/products/dungeoncrawler/dc-cr-exploration-mode-e2e.spec.js --reporter=json",
+      "artifacts": [
+        "qa-suites/products/dungeoncrawler/reports/dc-cr-exploration-mode-e2e.json"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-EXP-01",
+          "description": "Exploration time scale: minutes/hours active; round tracker absent",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "time_unit = minutes when exploration_mode active; round tracker absent",
+          "ac_ref": "AC-001",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-02",
+          "description": "Exploration activities: all 8 available (Avoid Notice, Detect Magic, Hustle, Investigate, Repeat a Spell, Scout, Search, Sense Direction); no encounter-only actions listed",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "all 8 activities in exploration activity picker; no encounter-only actions listed",
+          "ac_ref": "AC-002",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-03",
+          "description": "Search: Perception check per 10-ft square moved; secret doors/hazards/hidden items detected on success",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "movement while Searching triggers Perception check per 10-ft segment; detection fires on success",
+          "ac_ref": "AC-002",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-04",
+          "description": "Hustle: speed doubled; fatigue condition applied after 10 minutes of Hustling",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "speed_bonus = x2; after 10 min fatigue condition applied",
+          "ac_ref": "AC-002",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-05",
+          "description": "Initiative from exploration activity: skill matches current activity (Stealth for Avoid Notice, Perception for Scout/Search)",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "initiative_skill determined by active exploration activity; correct skill mapping per activity",
+          "ac_ref": "AC-003",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-06",
+          "description": "Light/darkness: vision type (normal/low-light/darkvision) determines sight; bright/dim radius tracked for carried light sources",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "light source has bright_radius and dim_radius; beyond bright = dim; beyond dim = dark; vision type applied correctly",
+          "ac_ref": "AC-004",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-07",
+          "description": "Encounter transition: exploration time scale \u2192 combat rounds; initiative rolls fire; exploration activities deactivated",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "encounter_trigger event changes time_unit to rounds; initiative rolls fire; exploration activities deactivated",
+          "ac_ref": "AC-005",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-08",
+          "description": "Stealth surprise: enemies failing Perception vs. Stealth (Avoid Notice) are surprised and skip first turn",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "each enemy Perception vs stealth_roll; failure \u2192 enemy.state = surprised; surprised enemies skip first turn",
+          "ac_ref": "AC-005",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-09",
+          "description": "Exploration-to-encounter bonus: initiative roll uses exploration activity skill; pre-combat detection states carry into first round",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "initiative uses exploration activity skill; detection states from pre-combat carry into first round",
+          "ac_ref": "AC-001",
+          "status": "immediately activatable"
+        },
+        {
+          "id": "TC-EXP-10",
+          "description": "Grid position server-validated: position updates rejected if not consistent with server state; no client-side coordinate spoofing",
+          "feature_id": "dc-cr-exploration-mode",
+          "suite": "playwright/encounter",
+          "expected": "position updates rejected if inconsistent with server state; client cannot directly set coordinates",
+          "ac_ref": "Security AC",
+          "status": "immediately activatable"
+        }
+      ]
     }
   ],
   "_schema_notes": [
