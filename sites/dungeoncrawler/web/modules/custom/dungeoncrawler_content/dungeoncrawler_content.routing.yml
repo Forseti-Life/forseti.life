@@ -2113,3 +2113,97 @@ dungeoncrawler_content.api.campaign_invite:
     campaign_id: '\d+'
   options:
     _format: json
+
+dungeoncrawler_content.api.familiar_get:
+  path: '/api/character/{character_id}/familiar'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::getFamiliar'
+  methods: [GET]
+  requirements:
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_create:
+  path: '/api/character/{character_id}/familiar'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::createFamiliar'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_abilities:
+  path: '/api/character/{character_id}/familiar/abilities'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::getAvailableAbilities'
+  methods: [GET]
+  requirements:
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_daily_abilities:
+  path: '/api/character/{character_id}/familiar/daily-abilities'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::selectDailyAbilities'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_damage:
+  path: '/api/character/{character_id}/familiar/damage'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::applyDamage'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_replace:
+  path: '/api/character/{character_id}/familiar/replace'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::replaceFamiliar'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_touch_spell:
+  path: '/api/character/{character_id}/familiar/touch-spell'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::deliverTouchSpell'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json
+
+dungeoncrawler_content.api.familiar_witch_spells:
+  path: '/api/character/{character_id}/familiar/witch-spells'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FamiliarController::storeWitchSpells'
+  methods: [POST]
+  requirements:
+    _csrf_request_header_mode: TRUE
+    _character_access: 'TRUE'
+    character_id: '\d+'
+  options:
+    _format: json

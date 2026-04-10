@@ -441,11 +441,23 @@ class FeatEffectManager {
           $effects['applied_feats'][] = $feat_id;
           break;
 
+        case 'familiar':
+          // Grants a familiar. No combat stats; use FamiliarService for creation.
+          $this->addSelectionGrant($effects, $feat_id, 'familiar_creation', 1, 'Create a familiar via the Familiar API.');
+          $effects['notes'][] = 'Familiar: use POST /api/character/{id}/familiar to create. Daily abilities selected each day.';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
+        case 'improved-familiar-attunement':
+          // +1 additional familiar ability per day (above base 2).
+          $effects['notes'][] = 'Improved Familiar Attunement: familiar gains +1 daily ability selection (counted by FamiliarService::getMaxAbilityCount).';
+          $effects['applied_feats'][] = $feat_id;
+          break;
+
         case 'crossbow-ace':
         case 'double-slice':
         case 'eschew-materials':
         case 'exacting-strike':
-        case 'familiar':
         case 'hand-of-the-apprentice':
         case 'hunted-shot':
         case 'monster-hunter':

@@ -576,6 +576,11 @@ services:
       - '@database'
       - '@dungeoncrawler_content.recall_knowledge'
 
+  dungeoncrawler_content.familiar:
+    class: Drupal\dungeoncrawler_content\Service\FamiliarService
+    arguments:
+      - '@database'
+
   dungeoncrawler_content.knowledge_acquisition:
     class: Drupal\dungeoncrawler_content\Service\KnowledgeAcquisitionService
     arguments:
