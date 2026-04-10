@@ -62,6 +62,11 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
   protected ?NarrationEngine $narrationEngine;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\KnowledgeAcquisitionService
+   */
+  protected KnowledgeAcquisitionService $knowledgeAcquisition;
+
+  /**
    * Constructs an ExplorationPhaseHandler.
    */
   public function __construct(
@@ -72,7 +77,8 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     CharacterStateService $character_state_service,
     NumberGenerationService $number_generation_service,
     AiGmService $ai_gm_service,
-    ?NarrationEngine $narration_engine = NULL
+    ?NarrationEngine $narration_engine = NULL,
+    ?KnowledgeAcquisitionService $knowledge_acquisition = NULL
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
@@ -82,6 +88,14 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $this->numberGenerationService = $number_generation_service;
     $this->aiGmService = $ai_gm_service;
     $this->narrationEngine = $narration_engine;
+    $this->knowledgeAcquisition = $knowledge_acquisition
+      ?? new KnowledgeAcquisitionService(
+        $database,
+        $character_state_service,
+        new IdentifyMagicService(new DcAdjustmentService()),
+        new LearnASpellService(new DcAdjustmentService()),
+        new DcAdjustmentService()
+      );
   }
 
   /**
@@ -516,99 +530,87 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       }
 
       // -----------------------------------------------------------------------
-      // Occultism/Religion: Decipher Writing [Exploration, Trained]
-      // REQ: Occultism covers metaphysics/syncretic/weird philosophies;
-      //      Religion covers religious allegories/homilies/proverbs.
+      // Decipher Writing [Exploration, Secret, Trained] (dc-cr-decipher-identify-learn)
+      // Skills: Arcana (arcane/esoteric), Occultism (metaphysical/occult),
+      //         Religion (religious/divine), Society (coded/legal/historical).
+      // Timing: 1 min/page standard; 60 min/page for ciphers.
+      // Degrees: Crit Success = full meaning; Success = true meaning (coded = summary);
+      //          Failure = blocked + –2 circumstance retry penalty; Crit Fail = false.
       // -----------------------------------------------------------------------
       case 'decipher_writing': {
-        $skill_used_dw = $params['skill_used'] ?? 'society';
-        $skill_bonus_dw = (int) ($params['skill_bonus'] ?? 0);
-        $dc_dw = !empty($params['dc'])
-          ? (int) $params['dc']
-          : (new DcAdjustmentService())->simpleDc('trained');
-
-        $d20_dw = $this->numberGenerationService->rollPathfinderDie(20);
-        $total_dw = $d20_dw + $skill_bonus_dw;
-        $degree_dw = $this->calculateDegreeOfSuccess($total_dw, $dc_dw, $d20_dw);
-
-        $this->advanceExplorationTime($game_state, 10);
-        $result = [
-          'degree' => $degree_dw,
-          'skill_used' => $skill_used_dw,
-          'dc' => $dc_dw,
-          'd20' => $d20_dw,
-          'total' => $total_dw,
-        ];
-        $events[] = GameEventLogger::buildEvent('decipher_writing', 'exploration', $actor_id, ['degree' => $degree_dw, 'skill_used' => $skill_used_dw], NULL, $target_id);
+        $dw_params = array_merge($params, [
+          'text_id'       => $target_id ?? ($params['text_id'] ?? 'text_unknown'),
+          'skill_used'    => $params['skill_used'] ?? 'society',
+          'skill_bonus'   => (int) ($params['skill_bonus'] ?? 0),
+        ]);
+        $result_dw = $this->knowledgeAcquisition->processDecipherWriting(
+          (string) $actor_id, $dw_params
+        );
+        $this->advanceExplorationTime($game_state, $result_dw['time_cost_minutes'] ?? 1);
+        $result = $result_dw;
+        $events[] = GameEventLogger::buildEvent(
+          'decipher_writing', 'exploration', $actor_id,
+          ['degree' => $result_dw['degree'], 'skill_used' => $result_dw['skill_used'] ?? NULL, 'is_false' => $result_dw['is_false']],
+          NULL, $target_id
+        );
         break;
       }
 
       // -----------------------------------------------------------------------
-      // Occultism/Religion: Identify Magic [Exploration, Trained]
-      // Edge case: wrong tradition = +5 DC penalty (not blocked).
+      // Identify Magic [Exploration, Trained] (dc-cr-decipher-identify-learn)
+      // Skills: Arcana (arcane), Nature (primal), Occultism (occult), Religion (divine).
+      // Wrong-tradition: +5 DC penalty (not blocked).
+      // Degrees: Crit Success = full ID + bonus fact; Success = full ID;
+      //          Failure = 1-day block same item; Crit Fail = false ID (secret).
       // -----------------------------------------------------------------------
       case 'identify_magic': {
-        $skill_bonus_im = (int) ($params['skill_bonus'] ?? 0);
-        $im_svc = new IdentifyMagicService(new DcAdjustmentService());
-        $dc_result_im = $im_svc->computeDc(
-          $params['magic_type'] ?? 'item',
-          (int) ($params['level'] ?? 0),
-          $params['rarity'] ?? 'common',
-          (int) ($params['spell_rank'] ?? 0),
-          (int) ($params['spell_rank_delta'] ?? 0)
+        $im_params = array_merge($params, [
+          'item_id'     => $target_id ?? ($params['item_id'] ?? 'item_unknown'),
+          'skill_used'  => $params['skill_used'] ?? 'arcana',
+          'skill_bonus' => (int) ($params['skill_bonus'] ?? 0),
+        ]);
+        $result_im = $this->knowledgeAcquisition->processIdentifyMagic(
+          (string) $actor_id, $im_params
         );
-        $dc_im = $dc_result_im['dc'];
-
-        // Wrong-tradition check: +5 DC if skill tradition mismatches target tradition.
-        $tradition_match_im = (bool) ($params['tradition_match'] ?? TRUE);
-        $wrong_tradition_penalty = 0;
-        if (!$tradition_match_im) {
-          $dc_im += 5;
-          $wrong_tradition_penalty = 5;
-        }
-
-        $d20_im = $this->numberGenerationService->rollPathfinderDie(20);
-        $total_im = $d20_im + $skill_bonus_im;
-        $degree_im = $this->calculateDegreeOfSuccess($total_im, $dc_im, $d20_im);
-
-        $result = [
-          'degree' => $degree_im,
-          'dc' => $dc_im,
-          'd20' => $d20_im,
-          'total' => $total_im,
-          'tradition_match' => $tradition_match_im,
-          'wrong_tradition_penalty' => $wrong_tradition_penalty,
-        ];
-        $events[] = GameEventLogger::buildEvent('identify_magic', 'exploration', $actor_id, ['degree' => $degree_im, 'tradition_match' => $tradition_match_im], NULL, $target_id);
+        $this->advanceExplorationTime($game_state, $result_im['time_cost_minutes'] ?? 10);
+        $result = $result_im;
+        $events[] = GameEventLogger::buildEvent(
+          'identify_magic', 'exploration', $actor_id,
+          ['degree' => $result_im['degree'], 'tradition_match' => $result_im['tradition_match'] ?? TRUE, 'is_false' => $result_im['is_false'] ?? FALSE],
+          NULL, $target_id
+        );
         break;
       }
 
       // -----------------------------------------------------------------------
-      // Occultism/Religion: Learn a Spell [Downtime, Trained]
-      // DC is spell-level-based + rarity adjustment.
+      // Learn a Spell [Exploration, Trained] (dc-cr-decipher-identify-learn)
+      // Cost: spell_rank × 10 gp (deducted immediately; refunded on Failure).
+      // Degrees: Crit Success = learn + refund 50%; Success = learn;
+      //          Failure = NOT learned, NO cost; Crit Fail = not learned + cost lost.
       // -----------------------------------------------------------------------
       case 'learn_a_spell': {
-        $skill_used_las = $params['skill_used'] ?? 'arcana';
-        $skill_bonus_las = (int) ($params['skill_bonus'] ?? 0);
-
-        if (!empty($params['dc'])) {
-          $dc_las = (int) $params['dc'];
-        }
-        else {
-          $dc_svc_las = new DcAdjustmentService();
-          $base_dc_las = $dc_svc_las->spellLevelDc((int) ($params['spell_rank'] ?? 1));
-          $dc_las = $dc_svc_las->compute($base_dc_las, $params['rarity'] ?? 'common', 0);
-        }
-
-        $d20_las = $this->numberGenerationService->rollPathfinderDie(20);
-        $total_las = $d20_las + $skill_bonus_las;
-        $degree_las = $this->calculateDegreeOfSuccess($total_las, $dc_las, $d20_las);
-
-        // Learning a spell takes approximately 8 hours (480 minutes).
-        $this->advanceExplorationTime($game_state, 480);
-        $result = [
-          'degree' => $degree_las,
-          'skill_used' => $skill_used_las,
+        $las_actor_entity = &$this->findEntityInDungeon($actor_id, $dungeon_data, TRUE);
+        $las_entity_val   = $las_actor_entity ?: [];
+        $las_params = array_merge($params, [
+          'spell_id'    => $target_id ?? ($params['spell_id'] ?? 'spell_unknown'),
+          'skill_used'  => $params['skill_used'] ?? 'arcana',
+          'skill_bonus' => (int) ($params['skill_bonus'] ?? 0),
+        ]);
+        $result_las = $this->knowledgeAcquisition->processLearnASpell(
+          (string) $actor_id,
+          (string) $campaign_id,
+          $las_entity_val,
+          $las_params
+        );
+        $this->advanceExplorationTime($game_state, $result_las['time_cost_minutes'] ?? 60);
+        $result = $result_las;
+        $events[] = GameEventLogger::buildEvent(
+          'learn_a_spell', 'exploration', $actor_id,
+          ['degree' => $result_las['degree'], 'spell_learned' => $result_las['spell_learned'] ?? FALSE, 'gp_spent' => $result_las['gp_spent'] ?? 0],
+          NULL, $target_id
+        );
+        break;
+      }
           'dc' => $dc_las,
           'd20' => $d20_las,
           'total' => $total_las,

@@ -5128,3 +5128,105 @@ function dungeoncrawler_content_update_10039() {
 
   return 'Created dc_creature_id_attempts table (dc-cr-creature-identification).';
 }
+
+/**
+ * Create dc_knowledge_attempt_state table for Decipher Writing / Identify Magic
+ * / Learn a Spell state tracking (dc-cr-decipher-identify-learn).
+ */
+function dungeoncrawler_content_update_10040() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('dc_knowledge_attempt_state')) {
+    return 'dc_knowledge_attempt_state already exists — skipped.';
+  }
+
+  $schema->createTable('dc_knowledge_attempt_state', [
+    'description' => 'Tracks per-character state for Decipher Writing, Identify Magic, and Learn a Spell.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'character_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Character identifier.',
+      ],
+      'action_type' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+        'description' => 'One of: decipher_writing, identify_magic, learn_a_spell.',
+      ],
+      'target_id' => [
+        'type' => 'varchar',
+        'length' => 255,
+        'not null' => TRUE,
+        'description' => 'Target entity identifier (text_id, item_id, or spell_id).',
+      ],
+      'degree' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Most recent degree of success.',
+      ],
+      'penalty' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Accumulated circumstance penalty (negative) for Decipher Writing retries.',
+      ],
+      'is_false' => [
+        'type' => 'int',
+        'size' => 'tiny',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => '1 = current stored result is a false/misleading interpretation.',
+      ],
+      'outcome' => [
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => FALSE,
+        'description' => 'Outcome label for Decipher Writing (full_meaning, true_meaning, etc.).',
+      ],
+      'blocked_until' => [
+        'type' => 'int',
+        'not null' => FALSE,
+        'description' => 'Unix timestamp until which Identify Magic is blocked for this item.',
+      ],
+      'gp_spent' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'GP spent on most recent Learn a Spell attempt.',
+      ],
+      'gp_refunded' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'GP refunded from most recent Learn a Spell attempt.',
+      ],
+      'attempted_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of most recent attempt.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'character_action_target' => ['character_id', 'action_type', 'target_id'],
+    ],
+    'indexes' => [
+      'character_id'  => ['character_id'],
+      'action_type'   => ['action_type'],
+      'blocked_until' => ['blocked_until'],
+    ],
+  ]);
+
+  return 'Created dc_knowledge_attempt_state table (dc-cr-decipher-identify-learn).';
+}

@@ -453,6 +453,7 @@ services:
       - '@dungeoncrawler_content.number_generation'
       - '@dungeoncrawler_content.ai_gm'
       - '@dungeoncrawler_content.narration_engine'
+      - '@dungeoncrawler_content.knowledge_acquisition'
 
   dungeoncrawler_content.encounter_phase_handler:
     class: Drupal\dungeoncrawler_content\Service\EncounterPhaseHandler
@@ -574,6 +575,15 @@ services:
     arguments:
       - '@database'
       - '@dungeoncrawler_content.recall_knowledge'
+
+  dungeoncrawler_content.knowledge_acquisition:
+    class: Drupal\dungeoncrawler_content\Service\KnowledgeAcquisitionService
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.character_state'
+      - '@dungeoncrawler_content.identify_magic'
+      - '@dungeoncrawler_content.learn_a_spell'
+      - '@dungeoncrawler_content.dc_adjustment'
 
   dungeoncrawler_content.identify_magic:
     class: Drupal\dungeoncrawler_content\Service\IdentifyMagicService
