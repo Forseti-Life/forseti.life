@@ -2782,3 +2782,123 @@ function _job_hunter_create_error_queue_fields() {
     }
   }
 }
+
+/**
+ * Creates the jobhunter_interview_notes table during module install.
+ */
+function _job_hunter_create_interview_notes_table() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_interview_notes')) {
+    return;
+  }
+
+  $table_schema = [
+    'description' => 'Stores per-user interview prep notes per job.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID.',
+      ],
+      'job_id' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Job requirement ID.',
+      ],
+      'notes_text' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'Free-form interview prep notes.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of last update.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'uid_job_id' => ['uid', 'job_id'],
+    ],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_interview_notes', $table_schema);
+}
+
+/**
+ * Creates the jobhunter_saved_searches table during module install.
+ */
+function _job_hunter_create_saved_searches_table() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('jobhunter_saved_searches')) {
+    return;
+  }
+
+  $table_schema = [
+    'description' => 'Stores saved Google Jobs search parameters per user.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'uid' => [
+        'type' => 'int',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'User ID.',
+      ],
+      'keywords' => [
+        'type' => 'varchar',
+        'length' => 256,
+        'not null' => TRUE,
+        'default' => '',
+        'description' => 'Search keywords.',
+      ],
+      'location' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => FALSE,
+        'default' => '',
+        'description' => 'Search location filter.',
+      ],
+      'created' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp when saved.',
+      ],
+      'updated' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of last update.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'indexes' => [
+      'uid' => ['uid'],
+    ],
+  ];
+
+  $schema->createTable('jobhunter_saved_searches', $table_schema);
+}
