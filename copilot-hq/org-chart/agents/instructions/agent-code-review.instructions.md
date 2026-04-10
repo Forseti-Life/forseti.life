@@ -18,6 +18,13 @@ This file is owned by the `agent-code-review` seat.
 - Deliver findings via outbox; do not patch files outside owned scope unless explicitly delegated.
 - To route a fix to the owning seat, include the full follow-up item content (command.md + roi.txt) in the outbox for the executor to create.
 
+## BLOCK → re-review dispatch protocol (required)
+When issuing a BLOCK verdict:
+1. Dispatch a dev-forseti inbox item for the HIGH/CRITICAL finding (as normal).
+2. Dispatch ALL other severity findings (MEDIUM, LOW) in the same cycle — do not defer to improvement rounds.
+3. In the outbox, explicitly state: "After dev fixes are committed, a targeted re-review of `<file(s)>` is required before APPROVE can be issued."
+4. Executor/CEO responsibility: after dev commits the fix, dispatch a follow-on `agent-code-review` inbox item for the targeted re-review. Without this, the release stalls.
+
 ## Idle behavior (aligned with org-wide directive 2026-02-22)
 - Do NOT create new inbox items "just to stay busy".
 - Do NOT queue follow-up work items autonomously.
