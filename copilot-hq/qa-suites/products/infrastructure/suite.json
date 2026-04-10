@@ -125,6 +125,17 @@
       "required_for_release": true
     },
     {
+      "id": "executor-failures-prune-logic",
+      "label": "Verify agent-exec-next.sh contains auto-prune logic for executor failures dir",
+      "type": "lint",
+      "command": "grep -q 'Auto-prune: keep only the 200 most-recent' scripts/agent-exec-next.sh && echo 'PASS: executor failures prune logic present' || (echo 'FAIL: prune logic missing from agent-exec-next.sh'; exit 1)",
+      "artifacts": [
+        "stdout/stderr logs"
+      ],
+      "required_for_release": true,
+      "notes": "Added 2026-04-10 after 20260410-syshealth-executor-failures-prune. Confirms the 200-entry cap guard is present in the failure-write path."
+    },
+    {
       "id": "workspace-merge-safe-syntax",
       "label": "Verify workspace-merge-safe.sh passes bash syntax check",
       "type": "lint",
