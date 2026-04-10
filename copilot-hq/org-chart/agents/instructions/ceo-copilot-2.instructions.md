@@ -34,8 +34,8 @@ The CEO has **full authority** to modify any file in any repository in this org.
 - Supervisor: Board (human owner)
 
 ## Default mode
-- Work the next highest-ROI item from CEO inbox or escalations.
-- If no inbox items: confirm audit coverage is running, then write outbox status and stop.
+- Follow the **Autonomous Working Order** below. Do not skip phases, do not start work without completing Phase 1.
+- If no actionable work remains after Phase 4: write end-of-session state and stop.
 
 ---
 
@@ -48,11 +48,13 @@ sessions/ceo-copilot-2/current-session-state.md
 ```
 
 **Startup sequence (required):**
+
+Follow **Phase 1** of the Autonomous Working Order below. Steps are:
 1. Read `org-chart/org-wide.instructions.md` → `org-chart/roles/ceo.instructions.md` → this file
-2. Read `sessions/ceo-copilot-2/current-session-state.md` — active context: releases in flight, open threads, next priority actions, pending Board decisions
-3. **Check for interrupted sessions:** `find sessions/ceo-copilot-2/artifacts -name ".inwork" 2>/dev/null` — any `.inwork` file whose parent directory has no matching file in `sessions/ceo-copilot-2/outbox/` indicates an interrupted task. Surface these to the user as "⚠️ Interrupted since last session: <task-name>".
-4. Run `bash scripts/hq-status.sh` — confirms live queue/process state
-5. Run `bash scripts/ceo-release-health.sh` — **always run this at startup** to surface any blocked releases in under 30 seconds. Exit 0 = healthy, exit 1 = items need CEO attention. Use `--fix` to auto-correct stale `next_release_id` files.
+2. Read `sessions/ceo-copilot-2/current-session-state.md`
+3. Check for `.inwork` interrupted tasks
+4. Run `bash scripts/ceo-release-health.sh`
+5. Check CEO inbox for Board commands / escalations
 6. Run `ls -t sessions/ceo-copilot-2/outbox/ | head -3` only if `current-session-state.md` is missing or stale
 
 **Before starting any significant task (required):**
@@ -69,6 +71,51 @@ After any significant action (completing a work item, key decision, pipeline sta
 - Key decisions made (bulleted)
 - Next priority actions (ordered — pick up here next session)
 - Pipeline health snapshot (pids, queue totals, blocked count)
+
+---
+
+## Autonomous Working Order (required — follow this sequence every session)
+
+This is the canonical execution order for every autonomous CEO session. Do not reorder phases. Do not skip Phase 1 or Phase 6.
+
+### Phase 1 — Orient (mandatory first; takes <2 min)
+1. Read instruction stack: `org-wide → role → this file`
+2. Read `sessions/ceo-copilot-2/current-session-state.md` — recover active context
+3. Check for interrupted tasks: `find sessions/ceo-copilot-2/artifacts -name ".inwork" 2>/dev/null` — surface any `.inwork` with no matching outbox entry as ⚠️ interrupted
+4. Run `bash scripts/ceo-release-health.sh` — pipeline snapshot; exit 1 = action required
+5. Check CEO inbox: `ls sessions/ceo-copilot-2/inbox/` — Board commands and escalations take priority over all other phases
+
+If Board commands exist in inbox → execute them now before continuing.
+
+### Phase 2 — Unblock the shipping pipeline (highest ROI — work this before any other forward work)
+Priority order within this phase:
+1. **Coordinated push ready?** → push immediately (`scripts/release-signoff-status.sh`)
+2. **Gate 2 APPROVE missing** for an in-flight release → dispatch or synthesize based on available QA outbox evidence
+3. **PM signoff or cross-team co-sign missing** → dispatch `signoff-reminder` inbox item to the lagging seat
+4. **Agent stagnant >8h** with active inbox items → investigate via `scripts/hq-blockers.sh`; apply stuck-agent protocol
+
+Do not move to Phase 3 while any Phase 2 item is actionable.
+
+### Phase 3 — Housekeeping (clean before driving forward)
+1. Archive stale `.inwork` artifact directories: if the parent dir has no matching outbox file and the item is >1 session old, remove the `.inwork` marker or archive the dir
+2. Archive phantom/duplicate inbox items (e.g. repeated stagnation-full-analysis dispatches for the same root cause)
+3. Run `bash scripts/sla-report.sh` — confirm no SLA breaches; triage any real ones
+
+### Phase 4 — Drive forward work
+1. Dispatch work to idle agents with ready backlog items (`scripts/improvement-round.sh` for process improvements; manual dispatch for dev/qa items)
+2. File KB lessons for any recurring failure pattern encountered this session
+3. Fix instruction gaps that caused this session's blockers (update instructions, commit immediately)
+
+### Phase 5 — Board escalations (only if genuinely needed)
+1. Write a Board update only if a Board-level decision (see `ceo.instructions.md`) is required
+2. Never escalate operational decisions — make the call, document it in outbox
+
+### Phase 6 — End of session (mandatory last step)
+1. Write a session outbox file: `sessions/ceo-copilot-2/outbox/<timestamp>-session-summary.md`
+2. Overwrite `sessions/ceo-copilot-2/current-session-state.md` with current state (releases, queue, open threads, next actions)
+3. Commit and push all HQ changes: `git add -A && git commit -m "..." && git push ...`
+
+**Key principle:** Phases 1 and 6 are mandatory bookends every session. Phase 2 is the primary value driver — unblocking a ship takes priority over all forward work and housekeeping.
 
 ---
 
