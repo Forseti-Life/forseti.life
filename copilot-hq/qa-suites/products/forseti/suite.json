@@ -1596,6 +1596,45 @@
       "required_for_release": true,
       "notes": "Requires FORSETI_COOKIE_AUTHENTICATED env var. TC-02 is the critical security check; TC-03 is regression-guard. The return_to parameter test route may vary by controller \u2014 verify against an actual company delete/action route if /jobhunter/my-jobs does not use return_to directly.",
       "status": "pending_implementation"
+    },
+    {
+      "id": "forseti-jobhunter-twig-csrf-cleanup-static-grep",
+      "label": "TC-01: No dead CSRF POST body fields in any job_hunter Twig template (grep returns 0)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "command": "bash -c 'RESULT=$(grep -rn \"name.*form_token\\|name=\\\"token\\\"\\|name=\\\"csrf\\\"\" sites/forseti/web/modules/custom/job_hunter/templates/*.twig 2>/dev/null); if [ -z \"\" ]; then echo \"TC-01 PASS: no dead CSRF hidden fields found\"; else echo \"TC-01 FAIL: dead CSRF fields remain:\"; echo \"\"; exit 1; fi'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true,
+      "status": "pending_implementation",
+      "notes": "Run from /home/ubuntu/forseti.life repo root. Checks all .twig files in job_hunter/templates for name=form_token, name=\"token\", name=\"csrf\". Must return 0 results. Catches dead POST body CSRF fields that CsrfAccessCheck ignores (it reads URL ?token= only)."
+    },
+    {
+      "id": "forseti-jobhunter-twig-csrf-cleanup-csrf-rejection",
+      "label": "TC-07: POST without ?token= query param rejected with 403 (CSRF still enforced)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "command": "bash -c 'BASE=${FORSETI_BASE_URL:-https://forseti.life}; COOKIE=${FORSETI_COOKIE_AUTHENTICATED:-}; STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"\" \"/jobhunter/coverletter/1/generate\" 2>/dev/null); echo \"TC-07 POST without token -> HTTP \"; [ \"\" = \"403\" ] && echo \"TC-07 PASS: 403 returned (CSRF enforced)\" || (echo \"TC-07 FAIL: expected 403 got \"; exit 1)'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true,
+      "status": "pending_implementation",
+      "notes": "Requires FORSETI_COOKIE_AUTHENTICATED env var (authenticated session). Tests that removing the dead POST body form_token field does NOT disable CSRF protection \u2014 the URL ?token= route check must still reject tokenless POSTs with 403. Representative of all 5 CSRF-protected routes."
+    },
+    {
+      "id": "forseti-jobhunter-twig-csrf-cleanup-anon-blocked",
+      "label": "TC-08: Anonymous access to job_hunter form pages returns 403/redirect (auth gates unchanged)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "command": "bash -c 'BASE=${FORSETI_BASE_URL:-https://forseti.life}; FAILURES=0; for PATH in /jobhunter/coverletter/1 /jobhunter/interview-prep/1 /jobhunter/saved-searches /jobhunter/googlejobssearch; do STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" \"$PATH\" 2>/dev/null); echo \"TC-08 anon /root/.npm-global/bin:/root/.local/bin:/usr/local/bin:/usr/bin:/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/games:/usr/local/games:/snap/bin -> HTTP \"; ([ \"\" = \"403\" ] || [ \"\" = \"302\" ] || [ \"\" = \"301\" ]) && echo \"  PASS\" || (echo \"  FAIL: expected 403 or 3xx got \" && FAILURES=$((FAILURES+1))); done; [ $FAILURES -eq 0 ] && echo \"ALL PASS\" || (echo \"FAILURES: $FAILURES\" && exit 1)'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true,
+      "status": "pending_implementation",
+      "notes": "No auth required (anonymous). Regression check: CSRF dead-field cleanup must not alter access control. Checks cover-letter, interview-prep, saved-searches, google-jobs pages. 403 or redirect to login both acceptable outcomes."
     }
   ],
   "_schema_notes": [

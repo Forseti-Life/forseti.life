@@ -678,6 +678,46 @@
       "auth_expected": 200,
       "feature_id": "forseti-jobhunter-return-to-open-redirect",
       "notes": "CompanyController delete confirm route. return_to param must reject //evil.com (protocol-relative) and http://evil.com (absolute). Valid /path accepted. Fallback: /jobhunter/my-jobs."
+    },
+    {
+      "path": "/jobhunter/coverletter/*/generate",
+      "method": "POST",
+      "anon_expected": 403,
+      "auth_expected": 200,
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "notes": "cover_letter_generate route. _csrf_token: TRUE \u2014 requires ?token= in URL query. Dead form_token POST body field removed. POST without ?token= must return 403."
+    },
+    {
+      "path": "/jobhunter/interview-prep/*/save",
+      "method": "POST",
+      "anon_expected": 403,
+      "auth_expected": 200,
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "notes": "interview_prep_save route. _csrf_token: TRUE \u2014 URL query token only. Dead form_token POST body field removed."
+    },
+    {
+      "path": "/jobhunter/saved-search/save",
+      "method": "POST",
+      "anon_expected": 403,
+      "auth_expected": 200,
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "notes": "saved_search_save route. _csrf_token: TRUE \u2014 URL query token only. Dead form_token POST body field removed from google-jobs-search.html.twig (pending dev BLOCK fix)."
+    },
+    {
+      "path": "/jobhunter/saved-search/*/delete",
+      "method": "POST",
+      "anon_expected": 403,
+      "auth_expected": 200,
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "notes": "saved_search_delete route. _csrf_token: TRUE \u2014 URL query token only. Dead form_token POST body field removed from google-jobs-search.html.twig (pending dev BLOCK fix)."
+    },
+    {
+      "path": "/jobhunter/jobtailoring/*/save-resume",
+      "method": "POST",
+      "anon_expected": 403,
+      "auth_expected": 200,
+      "feature_id": "forseti-jobhunter-twig-csrf-cleanup",
+      "notes": "job_tailoring_save_resume route. _csrf_token: TRUE \u2014 URL query token only. Dead name=\"token\" POST body field removed from job-tailoring-combined.html.twig (pending dev BLOCK fix)."
     }
   ]
 }
