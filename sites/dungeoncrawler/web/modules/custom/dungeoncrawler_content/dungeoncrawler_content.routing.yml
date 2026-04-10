@@ -2217,3 +2217,13 @@ dungeoncrawler_content.api.feat_catalog:
     _access: 'TRUE'
   options:
     _format: json
+
+dungeoncrawler_content.api.focus_spell_catalog:
+  path: '/api/focus-spells'
+  defaults:
+    _controller: '\Drupal\dungeoncrawler_content\Controller\FocusSpellCatalogController::catalog'
+  methods: [GET]
+  requirements:
+    _access: 'TRUE'
+  options:
+    _format: json
