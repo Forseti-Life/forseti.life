@@ -38,7 +38,6 @@
     {% if has_search and query %}
       {% if saved_searches|length < max_saved_searches %}
         <form method="post" action="{{ save_search_url }}" class="gjobs-save-search-form mt-2">
-          <input type="hidden" name="form_token" value="{{ csrf_token(save_search_url) }}">
           <input type="hidden" name="keywords" value="{{ query|e }}">
           <button type="submit" class="btn btn-sm btn-outline-secondary">
             <i class="bi bi-bookmark"></i> {{ 'Save this search'|t }}
@@ -187,7 +186,6 @@
                 <i class="bi bi-play"></i> {{ 'Re-run'|t }}
               </a>
               <form method="post" action="{{ delete_url }}" style="display:inline-block;">
-                <input type="hidden" name="form_token" value="{{ csrf_token(delete_url) }}">
                 <button type="submit" class="btn btn-sm btn-outline-danger"
                         onclick="return confirm('{{ 'Delete this saved search?'|t }}')">
                   <i class="bi bi-trash"></i> {{ 'Delete'|t }}

@@ -306,7 +306,6 @@
             </a>
           {% endif %}
           <form action="{{ save_resume_url }}" method="POST" class="save-resume-form d-inline">
-            <input type="hidden" name="token" value="{{ csrf_token('job_hunter.job_tailoring_save_resume') }}">
             <button type="submit" class="btn btn-outline btn-lg" id="save-resume-btn">
               <span class="btn-icon">💾</span> {{ 'Save as active resume'|t }}
             </button>
