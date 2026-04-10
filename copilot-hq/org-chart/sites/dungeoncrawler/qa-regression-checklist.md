@@ -285,3 +285,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260410-050000-fix-dc-inventorymgmt-purchaseitem-missing-transaction — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-050000-fix-dc-inventorymgmt-purchaseitem-missing-transaction.md)
 - [ ] 20260410-044500-implement-dc-cr-crafting — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-044500-implement-dc-cr-crafting.md)
 - [ ] 20260410-044500-implement-dc-cr-creature-identification — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-044500-implement-dc-cr-creature-identification.md)
+- [ ] 20260410-044500-implement-dc-cr-decipher-identify-learn — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-044500-implement-dc-cr-decipher-identify-learn.md)

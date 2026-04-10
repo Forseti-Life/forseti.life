@@ -1,59 +1,27 @@
-# Verification Report — dc-cr-dwarf-ancestry
+Now update the regression checklist and write the verification outbox:
 
 - Status: blocked
-- Summary: Targeted verification of dc-cr-dwarf-ancestry (dev outbox 20260410-021500-implement-dc-cr-dwarf-ancestry). Core stats, traits, heritages, and senses verified PASS via live API. Site audit clean (0 violations, 0 permission expectation violations). One suite defect corrected: TC-DWF-08 said `low_light_vision` but PF2e CRB grants Dwarves darkvision — implementation is RAW-correct, TC updated in suite.json (commit `153a4480e`). BLOCK on AncestryController API gaps: the `/ancestries/dwarf` read endpoint omits `ancestry_feats`, `bonus_language_pool`, `bonus_language_source`, and `starting_equipment` from its response. The character creation pipeline correctly applies starting equipment (grantAncestryStartingEquipment called from createCharacter), but a UI client cannot serve feat selection (TC-DWF-09–14), bonus language selection (TC-DWF-05), or starting equipment display (TC-DWF-06) without these fields in the API response. Dev must extend AncestryController::buildAncestryItem() and detail() to include the missing fields before Gate 2 can APPROVE.
+- Summary: Verified dc-cr-dwarf-ancestry implementation. Core stats, heritages, traits, and senses all pass (TC-DWF-01–04, TC-DWF-15–19 PASS via live API; site audit 0 violations). One suite defect self-corrected: TC-DWF-08 expected `low_light_vision` but PF2e CRB grants Dwarves darkvision — TC updated in suite.json (`153a4480e`). BLOCK on three API gaps in `AncestryController`: the `/ancestries/dwarf` endpoint omits `ancestry_feats` (blocks TC-DWF-09–14), `bonus_language_pool`/`bonus_language_source` (blocks TC-DWF-05), and `starting_equipment` (TC-DWF-06). Character creation pipeline correctly applies starting equipment, but a UI client cannot serve feat or language selection without these fields in the read API response.
 
-## Verified PASS
+## Next actions
+- Dev to extend `AncestryController::buildAncestryItem()` to include `bonus_language_pool`, `bonus_language_source`, `starting_equipment`, and `AncestryController::detail()` to attach `ANCESTRY_FEATS[$name]`
+- QA to re-run targeted verification once dev ships the fix
 
-| TC | Description | Evidence |
-|---|---|---|
-| TC-DWF-01 | hp=10, size=Medium, speed=20 | `GET /ancestries/dwarf` → `hp:10, size:Medium, speed:20` |
-| TC-DWF-02 | Boosts=[Constitution, Wisdom, Free], flaw=Charisma | API response confirmed |
-| TC-DWF-03 | Traits: [Dwarf, Humanoid] | API response confirmed |
-| TC-DWF-04 | Languages: [Common, Dwarven] | API response confirmed |
-| TC-DWF-08 | Darkvision (corrected from low-light) | API returns `"senses":"darkvision"`; suite TC corrected |
-| TC-DWF-15 | Heritage Ancient-Blooded: reaction mechanic in API | Heritage entry present with `special.reaction` block |
-| TC-DWF-16 | Heritage Death Warden: necromancy crit-fail upgrade | Heritage entry present with `special.necromancy_crit_fail_upgrade` |
-| TC-DWF-17 | Heritage Forge Dwarf: heat_resistance_non_extreme | Heritage entry present with `special` block |
-| TC-DWF-18 | Heritage Rock Dwarf: +1 circ Fortitude vs Shove/Trip; bulk_size_bonus | Heritage entry present with `special` block |
-| TC-DWF-19 | Heritage Strong-Blooded: +1 status Fortitude vs poison; crit success upgrade | Heritage entry present with `special` block |
+## Blockers
+- `AncestryController.php` missing fields: `ancestry_feats`, `bonus_language_pool`, `bonus_language_source`, `starting_equipment` from `/ancestries/{id}` response
 
-## BLOCK — Dev fix required
+## Needs from Supervisor
+- N/A — dev consumes this evidence directly per delegation rule; no PM scope/intent decision required for these API gaps (they are straightforward omissions)
 
-### Finding 1: ancestry_feats missing from API response
-- **Severity:** High — blocks TC-DWF-09 through TC-DWF-14 (6 feats)
-- **Location:** `AncestryController::detail()` — attaches heritages but does not attach `ANCESTRY_FEATS[$name]`
-- **Evidence:** `GET /ancestries/dwarf` returns `"ancestry_feats": []` (empty array or absent)
-- **TCs affected:** TC-DWF-09 (Dwarven Lore), TC-DWF-10 (Dwarven Weapon Familiarity), TC-DWF-11 (Rock Runner), TC-DWF-12 (Stonecunning), TC-DWF-13 (Unburdened Iron), TC-DWF-14 (Vengeful Hatred)
-- **Fix:** In `AncestryController::detail()`, after attaching heritages, add: `$item['ancestry_feats'] = CharacterManager::ANCESTRY_FEATS[$name] ?? [];`
+## Commits
+- `153a4480e` — fix TC-DWF-08 suite defect (darkvision)
+- `e92c96a02` — BLOCK outbox + regression checklist update
 
-### Finding 2: bonus_language_pool and bonus_language_source missing from API response
-- **Severity:** Medium — blocks TC-DWF-05 (bonus language slot selection)
-- **Location:** `AncestryController::buildAncestryItem()` — does not map `bonus_language_pool` or `bonus_language_source` from ancestry data
-- **Evidence:** API response field absent; CharacterManager has `'bonus_language_pool' => [...]` and `'bonus_language_source' => 'intelligence_modifier'`
-- **Fix:** In `buildAncestryItem()`, add: `'bonus_language_pool' => $data['bonus_language_pool'] ?? [], 'bonus_language_source' => $data['bonus_language_source'] ?? null`
+## ROI estimate
+- ROI: 8
+- Rationale: Dwarf is one of the six core ancestries for character creation; unblocking feat/language selection from the API directly enables the character creation UI to function correctly for Dwarf players.
 
-### Finding 3: starting_equipment missing from API response
-- **Severity:** Low-Medium — character creation pipeline correctly calls `grantAncestryStartingEquipment`, so clan dagger IS applied; but UI client cannot read the expected equipment list from the ancestry read endpoint
-- **Location:** `AncestryController::buildAncestryItem()` — does not map `starting_equipment`
-- **Fix:** Add `'starting_equipment' => $data['starting_equipment'] ?? []` to `buildAncestryItem()`
-
-## Suite defect corrected
-- TC-DWF-08 previously said "Low-Light Vision: character.senses includes low_light_vision"
-- Corrected to: "Darkvision: character.senses includes darkvision (PF2e CRB RAW; not low-light vision)"
-- Commit: `153a4480e` in copilot-hq
-
-## Site audit
-- Run: 20260410-090552
-- 0 missing assets, 0 permission violations, 0 other failures
-- Config drift: none
-- Evidence: `sessions/qa-dungeoncrawler/artifacts/auto-site-audit/20260410-090552/`
-
-## Decision: BLOCK
-- AncestryController::detail() and buildAncestryItem() must be extended to expose `ancestry_feats`, `bonus_language_pool`, `bonus_language_source`, and `starting_equipment` before this feature can APPROVE.
-- No new ACL issues found. No new Dev items unrelated to this feature.
-
-## Next step for Dev
-- Fix the three findings above in `AncestryController.php`
-- Re-run: `curl -s https://dungeoncrawler.forseti.life/ancestries/dwarf | python3 -m json.tool` to confirm all fields present
-- Notify QA for targeted re-verification
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260410-unit-test-20260410-021500-implement-dc-cr-dwarf-ancestry
+- Generated: 2026-04-10T09:14:34+00:00
