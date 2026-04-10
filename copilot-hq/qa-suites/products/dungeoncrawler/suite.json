@@ -10961,6 +10961,368 @@
           "feature_id": "dc-cr-environment-terrain"
         }
       ]
+    },
+    {
+      "id": "dc-cr-equipment-ch06-e2e",
+      "label": "Equipment Ch06: currency/selling/starting wealth/rarity gates, item states, bulk/encumbrance/hard-cap, item HP/Hardness/BT/broken/shoddy, armor AC formula/ACP/donning/specialization, shield bonus type/Shield Block/buckler, MAP/crit/ability modifier routing/unarmed/improvised/ranged/reload/weapon-group-crit, adventuring gear gates (Healers/Thieves Tools, caltrops, locks, grappling hook, manacles), consumables/talismans/scrolls, formulas/Crafters Book, services/animals",
+      "type": "e2e",
+      "feature_id": "dc-cr-equipment-ch06",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/dungeoncrawler-content/equipment-ch06.spec.ts",
+      "artifacts": [
+        "playwright-report/equipment-ch06-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption granted (no new routes). TC-EQ-03/08/09/10 conditional on dc-cr-character-leveling (Str modifier). TC-EQ-05 open PM question: how access grants stored for uncommon items (flag, list, or class-feature-derived). TC-EQ-02 open PM question: confirm exception taxonomy enum values (coin/gem/art_object/raw_material). Shield bonus is circumstance type (TC-EQ-27) - critical stacking assertion affecting all future bonus-stacking validation. Thieves Tools tri-state model (TC-EQ-41) is authoritative source for dc-cr-skills-thievery-disable-pick-lock.",
+      "test_cases": [
+        {
+          "id": "TC-EQ-01",
+          "description": "Currency: cp/sp/gp/pp with standard exchange rates (10cp=1sp, 10sp=1gp, 10gp=1pp)",
+          "ac": "Currency-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-02",
+          "description": "Sell price: standard items sell at half purchase price; coins/gems/art/raw materials sell at full",
+          "ac": "Currency-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-03",
+          "description": "Starting wealth: new character = 15 gp (150 sp)",
+          "ac": "Currency-3",
+          "feature_id": "dc-cr-equipment-ch06",
+          "notes": "Conditional on dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-EQ-04",
+          "description": "Price dash items blocked from purchase; Price 0 items are free",
+          "ac": "Currency-4",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-05",
+          "description": "Rarity gate: uncommon items require explicit access grant to purchase",
+          "ac": "Rarity-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-06",
+          "description": "Item states: held/worn/stowed tracked; abilities requiring specific state blocked if wrong state",
+          "ac": "State-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-07",
+          "description": "Bulk: 10 Light = 1 Bulk (floor division); negligible = 0 Bulk",
+          "ac": "Bulk-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-08",
+          "description": "Carrying limit: 5 + Str modifier Bulk without encumbrance penalty",
+          "ac": "Bulk-2",
+          "feature_id": "dc-cr-equipment-ch06",
+          "notes": "Conditional on dc-cr-character-leveling (Str modifier)"
+        },
+        {
+          "id": "TC-EQ-09",
+          "description": "Encumbered condition: clumsy 1 + -10 ft Speed (minimum 5 ft) when bulk > 5+Str",
+          "ac": "Bulk-3",
+          "feature_id": "dc-cr-equipment-ch06",
+          "notes": "Conditional on dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-EQ-10",
+          "description": "Hard cap: cannot carry more than 10 + Str modifier Bulk (system blocks pickup)",
+          "ac": "Bulk-4",
+          "feature_id": "dc-cr-equipment-ch06",
+          "notes": "Conditional on dc-cr-character-leveling"
+        },
+        {
+          "id": "TC-EQ-11",
+          "description": "Coin bulk: 1000 coins = 1 Bulk (floor); 999=0, 1999=1, 2000=2",
+          "ac": "Bulk-5",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-12",
+          "description": "Small/Medium wielding Large weapon: clumsy 1; no extra damage dice",
+          "ac": "Size-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-13",
+          "description": "Large armor cannot be worn by Small/Medium creatures (equip blocked)",
+          "ac": "Size-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-14",
+          "description": "Worn tool sets: free access as part of use action; max 2 Bulk worn tools",
+          "ac": "Tools-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-15",
+          "description": "Item damage: max(0, raw_damage - Hardness) subtracted from item HP",
+          "ac": "ItemHP-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-16",
+          "description": "Broken threshold: HP <= BT = broken condition; HP = 0 = destroyed",
+          "ac": "ItemHP-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-17",
+          "description": "Broken items: cannot be used normally, grant no bonuses",
+          "ac": "ItemHP-3",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-18",
+          "description": "Broken armor exception: retains AC item bonus but gains status penalty to AC/ACP/speed",
+          "ac": "ItemHP-4",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-19",
+          "description": "Shoddy quality: -2 item penalty to attacks/checks; ACP worsened -2; HP/BT halved",
+          "ac": "Quality-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-20",
+          "description": "AC formula: 10 + min(Dex mod, Dex Cap) + proficiency + item bonus + others + penalties",
+          "ac": "Armor-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-21",
+          "description": "Armor check penalty exempt for attack-trait actions",
+          "ac": "Armor-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-22",
+          "description": "Strength threshold: meets threshold removes ACP + reduces speed penalty by 5 ft",
+          "ac": "Armor-3",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-23",
+          "description": "Donning time: light=1 min; medium/heavy=5 min; removing=1 min",
+          "ac": "Armor-4",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-24",
+          "description": "Armor specialization effects gated behind class features (not automatic)",
+          "ac": "Armor-5",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-25",
+          "description": "Chain group specialization: crit damage reduction (floor = pre-doubling roll)",
+          "ac": "Armor-6",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-26",
+          "description": "Shield bonus: circumstance bonus to AC only when Raise a Shield action is active",
+          "ac": "Shield-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-27",
+          "description": "Shield bonus is circumstance type: does NOT stack with other circumstance bonuses to AC",
+          "ac": "Shield-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-28",
+          "description": "Shield speed penalty applies whenever held (not only when raised)",
+          "ac": "Shield-3",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-29",
+          "description": "Buckler: strapped to forearm, does not occupy hand, can raise with hand holding light non-weapon",
+          "ac": "Shield-4",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-30",
+          "description": "Shield Block: damage reduced by Hardness; remainder splits between character and shield HP",
+          "ac": "Shield-5",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-31",
+          "description": "Melee ability modifier routing: Str standard; Dex for finesse; Str for thrown; half-Str for propulsive",
+          "ac": "Weapon-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-32",
+          "description": "MAP: -5 second attack, -10 third+; agile -4/-8; no MAP on reactions",
+          "ac": "Weapon-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-33",
+          "description": "MAP agile reduction only applies to that weapon's own attacks",
+          "ac": "Weapon-3",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-34",
+          "description": "Critical hit: doubles all damage components (dice + bonus)",
+          "ac": "Weapon-4",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-35",
+          "description": "Unarmed: fist = 1d4 B, agile+finesse+nonlethal+unarmed traits, Brawling group",
+          "ac": "Weapon-5",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-36",
+          "description": "Improvised weapon: simple category, -2 item penalty, system allows use",
+          "ac": "Weapon-6",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-37",
+          "description": "Ranged range increments: -2 per increment beyond 1st; impossible at 7th+",
+          "ac": "Weapon-7",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-38",
+          "description": "Reload: Interact actions per reload value; 0 = draw+fire in one action",
+          "ac": "Weapon-8",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-39",
+          "description": "Weapon group crit specialization effects gated behind class features",
+          "ac": "Weapon-9",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-40",
+          "description": "Healer's Tools: gates First Aid/Treat Disease/Treat Poison/Treat Wounds; worn = free access; expanded kit +1 item bonus",
+          "ac": "Gear-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-41",
+          "description": "Thieves' Tools: gates Pick Lock/Disable Device; infiltrator +1; worn = free; broken picks replaced without Repair",
+          "ac": "Gear-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-42",
+          "description": "Caltrops: DC 14 Acrobatics or 1d4 P + 1 persistent bleed + -5 ft Speed; Interact to remove",
+          "ac": "Gear-3",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-43",
+          "description": "Lock: DC and successes-required per quality tier",
+          "ac": "Gear-4",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-44",
+          "description": "Grappling Hook: attack roll (secret, DC 20); Crit Fail appears anchored but fails mid-climb",
+          "ac": "Gear-5",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-45",
+          "description": "Manacles: leg = -15 ft Speed; wrist = DC 5 flat check on manipulate; escape DCs by quality tier",
+          "ac": "Gear-6",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-46",
+          "description": "Alchemical bombs: consumable, 20 ft range, Bomb group, splash damage applied",
+          "ac": "Alch-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-47",
+          "description": "Scrolls: consumable, single-use, common 1st-level = 4 gp",
+          "ac": "Magic-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-48",
+          "description": "Talismans: affixed to gear slot, single-use activation",
+          "ac": "Magic-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-49",
+          "description": "Formulas: purchase/copy/reverse-engineer; reverse = disassemble + Craft check vs item DC",
+          "ac": "Formula-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-50",
+          "description": "Basic Crafter's Book: contains all 0-level common formulas",
+          "ac": "Formula-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-51",
+          "description": "Craft action gate: item level must be <= character level",
+          "ac": "Formula-3",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-52",
+          "description": "Hirelings: level 0; unskilled +0 all skills; skilled +4 specialty/+0 others; rates double in danger",
+          "ac": "Services-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-53",
+          "description": "Non-combat-trained animals: frightened 4 + fleeing on combat_start",
+          "ac": "Animals-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-54",
+          "description": "Combat-trained animals: no panic on combat_start",
+          "ac": "Animals-2",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-55",
+          "description": "Encumbered minimum Speed: 5 ft (not 0 ft)",
+          "ac": "Bulk-6",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-56",
+          "description": "Broken armor status penalty stacks with existing AC; check/speed penalties still apply",
+          "ac": "ItemHP-5",
+          "feature_id": "dc-cr-equipment-ch06"
+        },
+        {
+          "id": "TC-EQ-57",
+          "description": "ACL regression: no new routes; existing character/inventory/encounter form routes retain expected ACL",
+          "ac": "Security-1",
+          "feature_id": "dc-cr-equipment-ch06"
+        }
+      ]
     }
   ],
   "_schema_notes": [
