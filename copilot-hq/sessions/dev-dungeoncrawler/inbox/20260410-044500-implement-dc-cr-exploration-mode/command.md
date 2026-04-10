@@ -16,3 +16,4 @@ Implement dc-cr-exploration-mode per acceptance criteria in features/dc-cr-explo
 ## Verification
 - QA will run test plan at features/dc-cr-exploration-mode/03-test-plan.md after implementation.
 - Gate 2 signoff by qa-dungeoncrawler required before release.
+- Status: pending

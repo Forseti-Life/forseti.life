@@ -26,8 +26,19 @@ This accepts: `/path/to/page`, `/admin/...`, any single-slash-prefixed relative 
 ## Files fixed (release-j)
 - `job_hunter/src/Controller/CompanyController.php` — 2 instances
 - `job_hunter/src/Controller/ApplicationActionController.php` — 4 instances
+- `job_hunter/src/Controller/ResumeController.php` — 1 instance (line 243; missed in initial commit `233d400c9`, patched in follow-up commit `605d4230a`)
+
+## Missed-instance lesson (2026-04-10)
+Initial fix commit `233d400c9` patched 6 of 7 instances and missed `ResumeController.php:243`. This caused an extra QA BLOCK cycle and a CEO-level escalation. Root cause: dev searched by filename, not by pattern across all controllers.
+
+**Required completeness check** (run before committing any security fix):
+```bash
+grep -rn "strpos.*return_to\|strpos.*\$return_to" sites/forseti/web/modules/custom/job_hunter/src/Controller/
+```
+Result must be 0 matches. If any match remains, fix it in the same commit.
 
 ## Prevention
 
 Any new `return_to` / redirect parameter must use the preg_match pattern above.
 Never use `strpos($url, '/') !== 0` alone as a redirect validator.
+Always run the completeness grep above before committing — do not assume one-file fixes cover all instances.

@@ -16,3 +16,4 @@ Implement dc-cr-crafting per acceptance criteria in features/dc-cr-crafting/01-a
 ## Verification
 - QA will run test plan at features/dc-cr-crafting/03-test-plan.md after implementation.
 - Gate 2 signoff by qa-dungeoncrawler required before release.
+- Status: pending

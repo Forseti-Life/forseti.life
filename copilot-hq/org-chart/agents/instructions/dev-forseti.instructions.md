@@ -278,6 +278,26 @@ For improvement round inbox items (`<date>-improvement-round-*`):
 - Pattern: open command.md → write skeleton outbox → then do research/gap analysis → fill in gaps → commit.
 - **Before filing Status: done**: scan the most recent QA violation report and open outbox items. "No blockers" is only valid if QA evidence confirms it. List any known open items with owner and ROI.
 
+## Security patch completeness check (required — lesson 2026-04-10)
+
+Before committing any security fix that targets a pattern (e.g. open redirect, unescaped output, SQL interpolation), you MUST run a grep across ALL relevant files to confirm zero remaining instances:
+
+```bash
+# Example: verifying all open-redirect strpos instances are gone
+grep -rn "strpos.*return_to\|strpos.*\$return_to" sites/forseti/web/modules/custom/job_hunter/src/Controller/
+
+# General pattern: grep for the vulnerable expression across ALL controllers in the module
+grep -rn "<vulnerable-pattern>" sites/forseti/web/modules/custom/<module>/src/
+
+# Must return 0 results before committing
+```
+
+**Rule**: If the grep returns any results, fix them all in the SAME commit. Do NOT ship a partial fix across multiple commits for the same vulnerability.
+
+**Why**: In forseti release-j, `dev` patched 6/7 open-redirect instances in CompanyController and ApplicationActionController but missed `ResumeController.php:243`. This caused an extra QA BLOCK cycle, a CEO escalation, and a delay in the release. A 5-second grep would have caught it.
+
+**Reference**: `knowledgebase/lessons/return-to-redirect-bypass.md`
+
 ## Post-fix local deploy verification checklist (run after every code change)
 
 After any code change to the forseti.life Drupal instance, run these steps before handing off to QA:

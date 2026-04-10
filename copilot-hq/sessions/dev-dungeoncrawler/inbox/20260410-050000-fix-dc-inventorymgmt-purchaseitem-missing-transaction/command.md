@@ -54,3 +54,5 @@ grep -A 5 "startTransaction\|rollBack" sites/dungeoncrawler/web/modules/custom/d
 
 ## ROI rationale
 Atomicity failure in a currency deduction path is a data-integrity bug. Low urgency now (not routed), high urgency before any purchase route ships. Fix before wiring.
+- Agent: dev-dungeoncrawler
+- Status: pending

@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T03:54:39Z
+Generated: 2026-04-10T05:14:34Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -45,11 +45,11 @@ Generated: 2026-04-10T03:54:39Z
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | shipped | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | shipped | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
-| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | done | medium |  |  |  |
 | dc-cr-dc-rarity-spell-adjustment | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
-| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
 | dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | done | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
 | dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -61,17 +61,17 @@ Generated: 2026-04-10T03:54:39Z
 | dc-cr-dwarf-heritage-strong-blooded | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-expertise | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-economy | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-economy | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | done | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
-| dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
+| dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | done | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
-| dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |

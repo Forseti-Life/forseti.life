@@ -54,3 +54,5 @@ grep -A 30 "'Gnome' =>" sites/dungeoncrawler/web/modules/custom/dungeoncrawler_c
 
 ## ROI rationale
 Wellspring Gnome was added in this release cycle. Shipping without the controller fix means a released feature is silently inaccessible to users.
+- Agent: dev-dungeoncrawler
+- Status: pending

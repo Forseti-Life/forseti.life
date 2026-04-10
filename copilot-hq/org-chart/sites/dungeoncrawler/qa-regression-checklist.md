@@ -277,3 +277,5 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260410-021500-implement-dc-cr-dwarf-ancestry — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-dwarf-ancestry.md)
 - [ ] 20260410-021500-implement-dc-cr-dwarf-heritage-ancient-blooded — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-dwarf-heritage-ancient-blooded.md)
 - [ ] 20260410-021500-implement-dc-cr-economy — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-economy.md)
+- [ ] 20260410-021500-implement-dc-cr-encounter-creature-xp-table — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-encounter-creature-xp-table.md)
+- [ ] 20260410-021500-implement-dc-cr-environment-terrain — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-environment-terrain.md)
