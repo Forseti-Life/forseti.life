@@ -3,7 +3,8 @@
 - Work item id: dc-cr-skills-arcana-borrow-spell
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260410-dungeoncrawler-release-d
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

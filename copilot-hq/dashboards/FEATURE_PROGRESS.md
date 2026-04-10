@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T11:39:59Z
+Generated: 2026-04-10T17:06:28Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -11,9 +11,9 @@ Generated: 2026-04-10T11:39:59Z
 | dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
+| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
+| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
@@ -91,6 +91,7 @@ Generated: 2026-04-10T11:39:59Z
 | dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | (set by PM) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
 | dc-cr-human-ancestry | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |

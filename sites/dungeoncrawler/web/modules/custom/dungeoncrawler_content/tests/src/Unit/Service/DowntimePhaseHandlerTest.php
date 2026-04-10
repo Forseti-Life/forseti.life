@@ -133,7 +133,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertTrue($response['success']);
     $this->assertSame(50, $response['result']['earned_cp']); // Trained success level 3 = 50 cp.
@@ -185,7 +186,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertTrue($response['success']);
     $this->assertSame(70, $response['result']['earned_cp']); // Trained success level 4 = 70 cp.
@@ -235,7 +237,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertTrue($response['success']);
     $this->assertSame(8, $response['result']['earned_cp']); // Failure level 3 = 8 cp.
@@ -259,7 +262,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertTrue($response['success']);
     $this->assertSame(0, $response['result']['earned_cp']);
@@ -290,7 +294,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertFalse($response['success']);
     $this->assertSame('critical_failure_cooldown', $response['result']['error']);
@@ -319,7 +324,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertFalse($response['success']);
     $this->assertSame('rank_insufficient', $response['result']['error']);
@@ -369,7 +375,8 @@ class DowntimePhaseHandlerTest extends UnitTestCase {
       ],
     ];
 
-    $response = $handler->processIntent($intent, $game_state, [], 42);
+    $dd = [];
+    $response = $handler->processIntent($intent, $game_state, $dd, 42);
 
     $this->assertTrue($response['success']);
     $this->assertSame(270, $response['result']['earned_cp']); // 90 × 3.
