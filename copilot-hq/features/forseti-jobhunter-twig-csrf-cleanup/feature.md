@@ -14,7 +14,9 @@
 
 ## Goal
 
-Remove dead-code hidden CSRF token fields from three job_hunter Twig templates. `CsrfAccessCheck` reads only the URL query string `?token=` (appended by `RouteProcessorCsrf`); hidden `name="form_token"` and `name="token"` body inputs on `_csrf_token: 'TRUE'` routes are silently ignored. Leaving them misleads future developers into repeating the pattern.
+Remove ALL dead-code hidden CSRF token fields from job_hunter Twig templates. `CsrfAccessCheck` reads only the URL query string `?token=` (appended by `RouteProcessorCsrf`); hidden `name="form_token"` and `name="token"` body inputs on `_csrf_token: 'TRUE'` routes are silently ignored. Leaving them misleads future developers into repeating the pattern.
+
+**PM scope decision (2026-04-10):** QA unit-test audit found 3 additional confirmed dead fields beyond the original 3 templates. Scope expanded to clean all dead CSRF fields across all job_hunter templates in one pass.
 
 ## Non-goals
 
@@ -31,10 +33,12 @@ Remove dead-code hidden CSRF token fields from three job_hunter Twig templates. 
 | Remove dead `name="form_token"` from cover-letter-display.html.twig | `job_hunter/templates/cover-letter-display.html.twig` | Full — dev commit c0f597279 |
 | Remove dead `name="form_token"` from interview-prep-page.html.twig | `job_hunter/templates/interview-prep-page.html.twig` | Full — dev commit c0f597279 |
 | Remove dead `name="token"` from saved-searches-page.html.twig | `job_hunter/templates/saved-searches-page.html.twig` | Full — dev commit c0f597279 |
+| Remove dead `name="form_token"` at lines 41+190 from google-jobs-search.html.twig | `job_hunter/templates/google-jobs-search.html.twig` | Pending — QA BLOCK issued |
+| Remove dead `name="token"` at line 309 from job-tailoring-combined.html.twig | `job_hunter/templates/job-tailoring-combined.html.twig` | Pending — QA BLOCK issued |
 
 ### Coverage determination
 
-Feature type: needs-testing — implementation complete in dev commit c0f597279. QA must verify absence of dead fields and confirm functional forms still work.
+Feature type: needs-testing — partial implementation in dev commit c0f597279. QA BLOCK issued for 3 remaining dead fields in 2 templates. Dev-forseti must complete cleanup; then QA re-verifies.
 
 ### Test path guidance for QA
 
