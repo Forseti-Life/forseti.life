@@ -2,6 +2,24 @@
 
 > Update weekly. Track only a few metrics that drive behavior.
 
+## 2026-04-10 — forseti-release-c close (CSRF hotfix) / releases advanced to -d
+
+| Metric | Target | Actual | Notes |
+|--------|--------|--------|-------|
+| Post-merge regressions | 0 | 0 | forseti-release-c was a CSRF hotfix-only empty release. Deploy workflow completed 2026-04-10T14:37 UTC (commit `ff9c4bb23`). No feature changes, no regressions. |
+| Reopen rate (issues/PRs) | < 10% | N/A | No PR tracker configured; metric uncomputable. |
+| Time-to-verify (median) | < 24h | same-day | CSRF hotfix identified and deployed same-day. Gate 2 auto-certified (empty release). |
+| Escaped defects (prod/user reported) | 0 | 0 | CSRF fix was proactive (security hardening), not a user-reported regression. No production defects. |
+| Consecutive unclean releases (post-release QA) | 0 | 0 | Empty hotfix release; no Gate R5 needed. Counter remains 0. |
+| Instructions-change proposals created | >= 1 when friction repeats | 3 | KB lessons: executor-inbox-close-policy-gap, post-push advance-skip structural bug (fixed in `post-coordinated-push.sh`), executor write-gap pattern (#4 occurrence — architect recommendation for automated tooling still pending). |
+| Pipeline health | Clean | Clean | 46 stale `.inwork` artifacts cleaned; advance loop bug fixed; both release cycles on -d clean slate. |
+
+**Open items carried forward:**
+- Tailoring queue AWS STS token expired — user-facing tailoring broken when jobs queued (Board escalation pending Keith action).
+- `post-coordinated-push.sh` advance bug: fixed this session (`7a2d48765`).
+- dev-infra: orchestrator `pick_agents` guard fix dispatched.
+- qa-dungeoncrawler: 23-item QA backlog from APG features — being executed by orchestrator now.
+
 ## 2026-03-27 — 20260326-dungeoncrawler-release-b close / Gate R5 clean
 
 | Metric | Target | Actual | Notes |
