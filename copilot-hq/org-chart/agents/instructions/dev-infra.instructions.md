@@ -23,11 +23,20 @@ This file is owned by the `dev-infra` seat.
 - Pre-commit hook: installed at `.git/hooks/pre-commit` — runs `lint-scripts.sh` automatically on every `git commit` in HQ repo (blocks commit if issues found)
 - Release signoff check: `bash scripts/release-signoff-status.sh <release-id>` (exit 0 = all PM signoffs recorded = safe to dispatch post-ship items)
 
+## Inbox close policy (required — implemented 2026-04-10, commit `0606cabc1`)
+When `agent-exec-next.sh` writes an outbox artifact with `Status: done`, it prepends
+`- Status: done` and `- Completed: <timestamp>` to the source `command.md` (Option A stamp).
+The orchestrator (`orchestrator/run.py`) skips any inbox item dir whose `command.md`
+contains `^- Status: done` in `_agent_inbox_count`, `_prioritized_agents`, and
+`_oldest_unresolved_inbox_seconds`. `ceo-system-health.sh` dead-letter check also skips
+items with either the stamp or a matching done outbox entry.
+
 ## Recent script changes (reference)
+- `scripts/agent-exec-next.sh` — inbox close stamp (commit `0606cabc1`): prepends `- Status: done` + `- Completed:` to `command.md` after done outbox is written
+- `orchestrator/run.py` — inbox close guard (commit `0606cabc1`): `_is_inbox_item_done()` helper; all inbox enumeration skips done-stamped items
+- `scripts/ceo-system-health.sh` — dead-letter correlation fix (commit `0606cabc1`): skips items with done stamp or matching done outbox entry
+- `scripts/ceo-system-health.sh` — orchestrator PID path fix (commit `ab26b18cd`): checks `.orchestrator-loop.pid` not `tmp/orchestrator.pid`
 - `scripts/suggestion-intake.sh` — cross-site attribution warning (commit `07c0bfa8f`): detects cross-site keywords in suggestion triage stubs using `product-teams.json`; co-hosted teams excluded to prevent false positives
-- `scripts/1-copilot.sh` — mktemp/trap cleanup in `append_bedrock_history()` (commit `b02b32ed5`): all mktemp calls must be paired with `trap 'rm -f "$tmpfile"' EXIT` and `trap - EXIT` after mv
-- `scripts/site-audit-run.sh` — gate2-ready idempotency (commit `0d32a6fad`): skips queue if `sessions/<pm_agent>/artifacts/release-signoffs/<release-slug>.md` exists
-- `scripts/improvement-round.sh` — release signoff gate (commit `24580c3ff`): TOPIC pattern `improvement-round-YYYYMMDD-*` extracts release-id and calls `release-signoff-status.sh` before queuing
 
 ## Improvement round behavior
 - If dispatched with TOPIC `improvement-round-YYYYMMDD-<release>`, first verify release shipped: `bash scripts/release-signoff-status.sh <YYYYMMDD-release>`.
