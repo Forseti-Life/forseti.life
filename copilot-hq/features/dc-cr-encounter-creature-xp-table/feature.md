@@ -3,7 +3,7 @@
 - Work item id: dc-cr-encounter-creature-xp-table
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: ready
 - Release: 
 20260409-dungeoncrawler-release-h
 - Dev owner: dev-dungeoncrawler

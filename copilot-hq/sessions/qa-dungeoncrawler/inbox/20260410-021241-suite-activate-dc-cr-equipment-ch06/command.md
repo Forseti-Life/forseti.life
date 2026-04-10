@@ -712,3 +712,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic equipment system logic; no new routes or user-facing input beyond existing character creation, inventory management, and encounter forms
+- Agent: qa-dungeoncrawler
+- Status: pending

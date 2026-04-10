@@ -18,3 +18,5 @@ Feature **dc-cr-dwarf-heritage-ancient-blooded** activated into release scope. I
 2. QA suite entries tagged feature_id: dc-cr-dwarf-heritage-ancient-blooded pass
 3. No regressions in qa-suites/products/dungeoncrawler/suite.json
 4. Outbox written with verification evidence
+- Agent: dev-dungeoncrawler
+- Status: pending

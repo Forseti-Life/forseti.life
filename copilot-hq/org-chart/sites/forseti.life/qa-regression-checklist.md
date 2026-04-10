@@ -120,3 +120,4 @@ This file is a running list of targeted regression checks derived from completed
   - Evergreen check: `grep -rn "strpos.*return_to" sites/forseti/web/modules/custom/job_hunter/src/Controller/*.php` must return 0 results.
 - [x] 20260409-235500-impl-forseti-agent-tracker-payload-size-limit — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260409-235500-impl-forseti-agent-tracker-payload-size-limit.md)
 - [ ] 20260409-235500-impl-forseti-jobhunter-hook-install-fix — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260409-235500-impl-forseti-jobhunter-hook-install-fix.md)
+- [ ] 20260410-return-to-fix-resumecontroller — targeted regression check (see dev outbox: sessions/dev-forseti/outbox/20260410-return-to-fix-resumecontroller.md)

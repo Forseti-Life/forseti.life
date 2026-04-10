@@ -18,3 +18,5 @@ Feature **dc-cr-equipment-ch06** activated into release scope. Implement per acc
 2. QA suite entries tagged feature_id: dc-cr-equipment-ch06 pass
 3. No regressions in qa-suites/products/dungeoncrawler/suite.json
 4. Outbox written with verification evidence
+- Agent: dev-dungeoncrawler
+- Status: pending

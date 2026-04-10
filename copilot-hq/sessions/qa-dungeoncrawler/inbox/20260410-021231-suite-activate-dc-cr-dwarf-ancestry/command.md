@@ -232,3 +232,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic ancestry selection; no new routes or user-facing input beyond existing character creation forms
+- Agent: qa-dungeoncrawler
+- Status: pending

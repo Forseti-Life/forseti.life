@@ -18,3 +18,5 @@ Feature **dc-cr-environment-terrain** activated into release scope. Implement pe
 2. QA suite entries tagged feature_id: dc-cr-environment-terrain pass
 3. No regressions in qa-suites/products/dungeoncrawler/suite.json
 4. Outbox written with verification evidence
+- Agent: dev-dungeoncrawler
+- Status: pending

@@ -18,3 +18,5 @@ Feature **dc-cr-economy** activated into release scope. Implement per acceptance
 2. QA suite entries tagged feature_id: dc-cr-economy pass
 3. No regressions in qa-suites/products/dungeoncrawler/suite.json
 4. Outbox written with verification evidence
+- Agent: dev-dungeoncrawler
+- Status: pending

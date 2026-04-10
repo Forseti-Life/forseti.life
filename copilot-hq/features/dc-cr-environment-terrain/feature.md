@@ -3,8 +3,8 @@
 - Work item id: dc-cr-environment-terrain
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260409-dungeoncrawler-release-h
+- Status: ready
+- Release: 
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

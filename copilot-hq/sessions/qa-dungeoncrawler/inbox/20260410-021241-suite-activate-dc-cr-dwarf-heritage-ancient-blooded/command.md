@@ -370,3 +370,4 @@ None found for specific heritage implementations. This is the first concrete her
 | Reaction consumption | Use reaction; verify reaction_available = false |
 | Reaction spent rejection | Attempt reaction again when spent; verify rejection message |
 | Non-magical save — no trigger | Simulate physical attack save; verify no reaction prompt for this heritage |
+- Agent: qa-dungeoncrawler

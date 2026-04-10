@@ -192,3 +192,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: game-mechanic economy and services logic; no new routes or user-facing input beyond existing character creation and downtime handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

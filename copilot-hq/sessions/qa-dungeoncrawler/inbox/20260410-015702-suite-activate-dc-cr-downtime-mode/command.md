@@ -161,3 +161,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 - Roadmap: Core Rulebook
 - Chapter: Chapter 9: Playing the Game (Downtime)
+- Agent: qa-dungeoncrawler
+- Status: pending

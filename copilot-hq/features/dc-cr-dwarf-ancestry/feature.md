@@ -4,7 +4,7 @@
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
 - Status: done
-- Release: 20260409-dungeoncrawler-release-h
+- Release: 
 - Priority: P2 (extends ancestry-system with specific stat block; all deps now satisfied — ancestry-system ✓, clan-dagger shipped ✓, heritage-system ✓)
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

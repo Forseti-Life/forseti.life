@@ -144,3 +144,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 - [ ] Ritual with 0 secondary casters: valid — primary-caster-only rituals should not require a secondary caster UI
 - [ ] APG ritual added with same name as a CRB ritual: system should differentiate by book_id
 - [ ] Ritual cost validation: if cost includes rare/valuable materials, system flags but does not block (GM adjudication)
+- Agent: qa-dungeoncrawler
+- Status: pending
