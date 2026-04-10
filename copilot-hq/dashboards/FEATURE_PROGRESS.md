@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T02:59:16Z
+Generated: 2026-04-10T03:54:39Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -11,11 +11,11 @@ Generated: 2026-04-10T02:59:16Z
 | dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
@@ -45,30 +45,30 @@ Generated: 2026-04-10T02:59:16Z
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | shipped | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | shipped | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
-| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | done | medium |  |  |  |
 | dc-cr-dc-rarity-spell-adjustment | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
-| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
 | dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | done | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
-| dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-dwarf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 (extends ancestry-system with specific stat block; all deps now satisfied — ancestry-system ✓, clan-dagger shipped ✓, heritage-system ✓) |  |  |  |
-| dc-cr-dwarf-heritage-ancient-blooded | dungeoncrawler | dungeoncrawler_content | in_progress | P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle) |  |  |  |
+| dc-cr-dwarf-heritage-ancient-blooded | dungeoncrawler | dungeoncrawler_content | done | P3 (depends on dc-cr-heritage-system and dc-cr-dwarf-ancestry, neither yet shipped; deferred to next cycle) |  |  |  |
 | dc-cr-dwarf-heritage-death-warden | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-heritage-forge | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-heritage-rock | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarf-heritage-strong-blooded | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-expertise | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-dwarven-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-economy | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-economy | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-elf-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-elf-heritage-arctic | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-elf-heritage-cavern | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
-| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | done | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
-| dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | done | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
