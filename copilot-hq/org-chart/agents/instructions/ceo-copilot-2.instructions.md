@@ -54,8 +54,9 @@ Follow **Phase 1** of the Autonomous Working Order below. Steps are:
 2. Read `sessions/ceo-copilot-2/current-session-state.md`
 3. Check for `.inwork` interrupted tasks
 4. Run `bash scripts/ceo-release-health.sh`
-5. Check CEO inbox for Board commands / escalations
-6. Run `ls -t sessions/ceo-copilot-2/outbox/ | head -3` only if `current-session-state.md` is missing or stale
+5. Run `bash scripts/ceo-system-health.sh`
+6. Check CEO inbox for Board commands / escalations
+7. Run `ls -t sessions/ceo-copilot-2/outbox/ | head -3` only if `current-session-state.md` is missing or stale
 
 **Before starting any significant task (required):**
 Before beginning a work item, write a brief "in-progress" note to `sessions/ceo-copilot-2/current-session-state.md`:
@@ -83,7 +84,8 @@ This is the canonical execution order for every autonomous CEO session. Do not r
 2. Read `sessions/ceo-copilot-2/current-session-state.md` — recover active context
 3. Check for interrupted tasks: `find sessions/ceo-copilot-2/artifacts -name ".inwork" 2>/dev/null` — surface any `.inwork` with no matching outbox entry as ⚠️ interrupted
 4. Run `bash scripts/ceo-release-health.sh` — pipeline snapshot; exit 1 = action required
-5. Check CEO inbox: `ls sessions/ceo-copilot-2/inbox/` — Board commands and escalations take priority over all other phases
+5. Run `bash scripts/ceo-system-health.sh` — systemic health snapshot (error logs, orchestrator, scoreboards, queue, dead letters); exit 1 = action required
+6. Check CEO inbox: `ls sessions/ceo-copilot-2/inbox/` — Board commands and escalations take priority over all other phases
 
 If Board commands exist in inbox → execute them now before continuing.
 
@@ -204,6 +206,10 @@ Before completing any improvement-round inbox item, scan session outboxes and KB
   - Checks: deploy.yml enabled, release_id/next_release_id staleness, feature coverage, Gate 2 APPROVE, PM signoffs, cross-team signoffs, push readiness
   - `--fix` flag auto-corrects stale `next_release_id` files
   - Exit 0 = healthy; exit 1 = blocked items with actionable messages
+- `scripts/ceo-system-health.sh` — **systemic health diagnostic** (run at every startup alongside release health)
+  - Checks: executor failure backlog, orchestrator running+heartbeat, Apache error logs (PHP fatals, security probes), Drupal watchdog, scoreboard freshness, feature velocity + stale in_progress, KB lesson rate, Drupal queue errors, QA audit freshness, dead-letter inbox items
+  - Exit 0 = healthy; exit 1 = FAILs found; warnings indicate items to review
+  - `--json` flag outputs `{"fail":N,"warn":N}` for scripted use
 - `scripts/improvement-round.sh` — generates improvement-round items (skips `paused: true` agents)
 - `scripts/lib/agents.sh configured_agent_ids` — yaml-based, paused-aware agent list
 - `scripts/release-signoff-status.sh <release-id>` — cross-site signoff state
