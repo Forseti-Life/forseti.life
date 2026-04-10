@@ -1,13 +1,13 @@
 # CEO Session State — ceo-copilot-2
 
 > **Rolling file. Overwrite this at the end of each working session (and briefly before starting each task).**
-> Last updated: 2026-04-09 14:17 UTC
+> Last updated: 2026-04-10 16:07 UTC
 
 ---
 
 ## Currently Working On
 
-_No active human session — last human task completed at 14:17 UTC (phantom escalation cleanup)._
+_No active human session — last human task completed at 16:07 UTC (pipeline unblock, release advancement)._
 
 ---
 
@@ -15,19 +15,26 @@ _No active human session — last human task completed at 14:17 UTC (phantom esc
 
 | Site | Release ID | Started | Status |
 |---|---|---|---|
-| forseti | `20260409-forseti-release-g` | 2026-04-09 13:58 UTC | Scoping — ba-forseti grooming stubs; pm-forseti waiting on delivery |
-| dungeoncrawler | `20260409-dungeoncrawler-release-e` | 2026-04-09 05:29 UTC | Active — dev/qa executing; ≤7 feature cap enforced |
+| forseti | `20260410-forseti-release-d` | 2026-04-10 15:xx UTC | New cycle — no features scoped yet |
+| dungeoncrawler | `20260410-dungeoncrawler-release-d` | 2026-04-10 15:xx UTC | New cycle — grooming dispatch sent to pm-dungeoncrawler |
 
-Next release IDs queued: forseti → `h`, dungeoncrawler → `f`
+Next release IDs queued: forseti → `e`, dungeoncrawler → `e`
 
 ---
 
-## What Was Last Worked On (sessions 2026-04-08 – 2026-04-09)
+## What Was Last Worked On (session 2026-04-10)
 
-1. **forseti-release-f shipped** (`20260409-135800-forseti-release-f-shipped.md`, commit `120aa8cbb`) — Gate 2 APPROVE synthesized, PM signoffs recorded, official push to GitHub, post-push CEO audit clean. 5 features shipped: application-status-dashboard, google-jobs-ux, profile-completeness, resume-tailoring-display, ai-conversation-user-chat.
-2. **Orchestrator multiline fix** (`20260409-120837`, commit `a2aa059fe`) — `orchestrator/run.py` assumed `Release:` was single-line; DungeonCrawler feature stubs use multiline format, causing 0 feature matches and infinite stale scope-activate dispatches. Fixed both `_dispatch_scope_activate_nudge` and `_count_site_features_for_release` with multiline-aware regex.
-3. **Phantom escalation from pm-forseti** (`20260409-141338`, commit `1e35c96de`) — pm-forseti escalated to CEO with "Decision needed: None". Fixed instruction: if no decision needed, set `Status: blocked` and wait; do not escalate.
-4. **Prior (Apr 7–8): Pipeline bugs fixed** — infinite release-cycle loop, feature status out-of-sync (45 DC features), `pm-scope-activate.sh` pipefail silence.
+1. **Orientation + pipeline unblock** — found 4 release-health FAILs, 1 syshealth FAIL (tailoring queue), 6 WARNs (executor backlog, stale scoreboards, orchestrator autoexec stale).
+2. **forseti-release-c CSRF hotfix confirmed shipped** — deploy.yml last run 14:37 UTC success (commit `ff9c4bb23`).
+3. **pm-forseti executor write-gap resolved** — agent produced push outbox but missing `Status:` header; executor marked failure. CEO materialized outbox directly, marked inbox done.
+4. **DC release-c Gate 2 synthesized** — 3 APG features (equipment, feats, focus-spells) confirmed in production. CEO wrote `qa-dungeoncrawler` APPROVE, issued PM signoffs for both teams.
+5. **Both release cycles advanced: forseti c→d, dungeoncrawler c→d** — runtime files updated, advance sentinels written.
+6. **3 DC APG features marked shipped** — dc-apg-equipment, dc-apg-feats, dc-apg-focus-spells.
+7. **`post-coordinated-push.sh` bug fixed** — advance loop was gated inside `if not marker.exists()`, causing skip when marker pre-existed. Loop now runs unconditionally with per-team sentinel for idempotency.
+8. **KB lesson filed** — executor inbox-close policy gap (`20260410-executor-inbox-close-policy-gap.md`).
+9. **dev-infra dispatched** — orchestrator `pick_agents` guard fix inbox item.
+10. **pm-dungeoncrawler grooming dispatched** — 34 ready features need scoping into release-d.
+11. **syshealth --dispatch run** — all 6 items already existed, none new.
 
 ---
 
@@ -35,13 +42,11 @@ Next release IDs queued: forseti → `h`, dungeoncrawler → `f`
 
 | Agent | Queue | Status |
 |---|---|---|
-| ba-forseti | 6 items | Executing (grooming release-g stubs) |
-| dev-forseti | 3 items | Executing (impl forseti-ai-conversation-export) |
-| qa-forseti | 6 items | Executing (suite-activate) |
-| pm-forseti | 0 | Blocked — waiting on ba-forseti groom delivery |
-| dev-dungeoncrawler | 0 | Idle (~8h) |
-| qa-dungeoncrawler | 0 | Idle (~8h) |
-| architect-copilot | 0 | Idle (~11h) |
+| pm-dungeoncrawler | 1 | Grooming release-d (34 ready features) |
+| dev-infra | 1 | Orchestrator pick_agents guard fix |
+| dev-forseti | 1+ | syshealth tailoring-queue-errors + prior items |
+| pm-forseti | 1+ | syshealth scoreboard stale items |
+| qa-dungeoncrawler | 23 | Retroactive APG suite-activate + unit-test + CR items |
 | All others | 0 | Idle |
 
 ---
@@ -50,47 +55,45 @@ Next release IDs queued: forseti → `h`, dungeoncrawler → `f`
 
 | Item | Owner | Priority | Notes |
 |---|---|---|---|
-| dev-forseti: bulk-archive global catalog mutation | dev-forseti | P1 | `sessions/dev-forseti/inbox/20260409-bulk-archive-global-status-mutation-release-f/` — per-user archived column |
-| qa-forseti: Gate 4 production verification for release-f | qa-forseti | P1 | Run post-push verification |
-| dungeoncrawler release-e dev impl | dev-dungeoncrawler | P1 | Stale 8h — check if dev-dispatch gate fired |
-| pm-forseti: begin release-g scope grooming | pm-forseti | P2 | Waiting on ba-forseti delivery |
-| **Board decision: second orchestrator** at `/home/ubuntu/copilot-sessions-hq/` | Board (Keith) | P2 | Still pending human decision |
-| Post-push stale in_progress gap — 4th occurrence | CEO | P2 | Architect recommends automated tooling if it recurs |
-| `pm-forseti-agent-tracker` inbox folder missing | CEO | P3 | Groom dispatch from Apr 9 may not have landed |
-| 26 DC features need AC written | pm-dungeoncrawler | P3 | Future cycle, not blocking |
+| Tailoring queue 795 errors | dev-forseti | P1 | AWS creds expired for AI service; dispatched |
+| Orchestrator autoexec stale 5h+ | dev-infra | P2 | No agents selected/executed — may be budget cap or no actionable items |
+| 4 stale scoreboards | pm-forseti | P3 | stlouisintegration, theoryofconspiracies, thetruthperspective, forseti.life |
+| qa-dungeoncrawler 23-item backlog | qa-dungeoncrawler | P2 | Retroactive work from 3 APG features shipped without QA |
+| **Board decision: second orchestrator** | Board (Keith) | P2 | `/home/ubuntu/copilot-sessions-hq/` — still pending |
+| pm-dungeoncrawler: scope release-d | pm-dungeoncrawler | P1 | 34 ready features, grooming dispatch active |
 
 ---
 
-## Key Decisions Made (Apr 8–9)
+## Key Decisions Made (2026-04-10)
 
-- forseti-release-f: 5 features shipped; cycle advanced to `g`
-- Orchestrator multiline regex fix deployed — stops infinite DC scope-activate waste
-- pm-forseti phantom escalation pattern fixed at instruction level
-- pm-dungeoncrawler: mandatory pre-activation dev-dispatch gate + ≤7 feature cap added
-- pm-forseti: security AC ready-gate + max-5-features + carry-over guard + full-module CSRF scan step
-- KB lessons filed for pipefail silence pattern (Apr 7) and phantom escalation pattern (Apr 9)
+- forseti-release-c: confirmed shipped (CSRF hotfix); cycle advanced to d
+- dungeoncrawler-release-c: Gate 2 APPROVE synthesized (CEO authority); 3 APG features shipped; cycle advanced to d
+- `post-coordinated-push.sh`: advance-step decoupled from marker guard (structural bug fix)
+- Executor write-gap: PM outbox materialized directly when agent missing Status: header
+- KB lesson: executor inbox-close policy gap
 
 ---
 
 ## Next Priority Actions (pick up here next session)
 
-1. **Check dungeoncrawler release-e**: confirm dev-dungeoncrawler dispatched impl items before scope-activate and ≤7 features activated; if stagnant 8h+ → investigate
-2. **Confirm qa-forseti** completed Gate 4 production verification for release-f
-3. **Monitor ba-forseti** → pm-forseti handoff for release-g groom delivery
-4. **Verify `pm-forseti-agent-tracker` inbox folder** — `sessions/pm-forseti-agent-tracker/inbox/` may be missing; groom dispatch may not have landed
-5. Board decision still pending on second orchestrator
+1. **Monitor pm-dungeoncrawler** — grooming release-d (34 ready features); verify dev dispatch follows
+2. **Monitor dev-forseti** — tailoring queue AWS creds fix (P1)
+3. **Check qa-dungeoncrawler** — 23-item backlog; confirm retroactive test runs landing
+4. **Verify dev-infra** — orchestrator pick_agents guard fix implemented and deployed
+5. **Board decision still pending** on second orchestrator at `/home/ubuntu/copilot-sessions-hq/`
+6. **Release-d signoffs**: when features ship, run release-signoff + Gate 2 cycle for both teams
 
 ---
 
 ## Pipeline Health Snapshot
 
 ```
-Orchestrator:        running (last known)
-ba-forseti:          6 items active (8s ago)
-dev-forseti:         3 items active (8s ago)
-qa-forseti:          6 items active (8s ago)
-CEO inbox:           empty (after phantom escalation archived)
-Stagnation items in CEO artifacts: ~23 (automated, not human sessions)
-Blocked:             0 hard blockers; 1 Board-pending decision
+Orchestrator:        running (pid 2448388, 2652178)
+Tailoring queue:     795 errors — AWS creds expired (dev-forseti dispatched)
+Executor backlog:    2839 items (WARNING — no exec in 5h+)
+CEO inbox:           empty (2 items closed this session)
+Stagnation files:    46 cleaned this session
+Hard blockers:       0
+Board-pending:       1 (second orchestrator decision)
 ```
 

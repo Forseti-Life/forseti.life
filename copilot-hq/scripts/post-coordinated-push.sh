@@ -74,14 +74,16 @@ if team_release_ids:
     if not marker.exists():
         marker.write_text(datetime.now(timezone.utc).isoformat() + "\n")
         print(f"MARKER written: {marker.name}")
+    else:
+        print(f"MARKER already exists: {marker.name}")
 
-        # Step 3 — advance each team's release_id to next_release_id.
-        # This is atomic with the push marker so site audits started after the push
-        # see the new release_id immediately (prevents stale gate2-ready dispatches).
-        # Per-team sentinel (<team_id>.advanced) records the new release_id we advanced
-        # to; if current release_id already matches, this is a re-run — skip.
-        today = datetime.now(timezone.utc).strftime("%Y%m%d")
-        for team in sorted(coord_teams, key=lambda t: t['id']):
+    # Step 3 — advance each team's release_id to next_release_id.
+    # Runs unconditionally (not tied to marker creation) so a re-run of this
+    # script after a pre-existing signoff doesn't skip the advance.
+    # Per-team sentinel (<team_id>.advanced) records the new release_id we advanced
+    # to; if current release_id already matches, this is a re-run — skip.
+    today = datetime.now(timezone.utc).strftime("%Y%m%d")
+    for team in sorted(coord_teams, key=lambda t: t['id']):
             team_id = team['id']
             next_rid_file = runtime_dir / f"{team_id}.next_release_id"
             if not next_rid_file.exists():
@@ -119,8 +121,8 @@ if team_release_ids:
             )
             advance_sentinel.write_text(new_current + "\n", encoding='utf-8')
             print(f"ADVANCE {team_id}: release_id={new_current} next_release_id={new_next}")
-    else:
-        print(f"MARKER already exists: {marker.name}")
+else:
+    print("WARNING: no active team releases found — nothing to push")
 PY
 
 echo "=== post-coordinated-push complete ==="
