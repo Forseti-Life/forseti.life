@@ -6,19 +6,29 @@
 # Exit 0 = all checks pass
 # Exit 1 = one or more FAIL or actionable WARN found
 #
-# Usage: bash scripts/ceo-system-health.sh [--json]
+# Usage:
+#   bash scripts/ceo-system-health.sh              # report only
+#   bash scripts/ceo-system-health.sh --dispatch   # report + create agent inbox items for each finding
+#   bash scripts/ceo-system-health.sh --json       # report + JSON summary line
 set -euo pipefail
 cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 JSON_MODE=0
-[[ "${1:-}" == "--json" ]] && JSON_MODE=1
+DISPATCH_MODE=0
+for arg in "$@"; do
+  [[ "$arg" == "--json" ]]     && JSON_MODE=1
+  [[ "$arg" == "--dispatch" ]] && DISPATCH_MODE=1
+done
 
 FAIL_COUNT=0
 WARN_COUNT=0
 RESULTS=()
+# Dispatch queue: "agent|slug|severity|title|body" entries collected during checks
+DISPATCH_ITEMS=()
 
 now_ts=$(date +%s)
 now_iso=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
+date_prefix=$(date -u +"%Y%m%d")
 
 SEP="────────────────────────────────────────────────────────"
 
@@ -26,6 +36,46 @@ pass()  { echo "✅ PASS $*"; RESULTS+=("PASS|$*"); }
 fail()  { echo "❌ FAIL $*"; RESULTS+=("FAIL|$*"); FAIL_COUNT=$(( FAIL_COUNT + 1 )); }
 warn()  { echo "⚠️  WARN $*"; RESULTS+=("WARN|$*"); WARN_COUNT=$(( WARN_COUNT + 1 )); }
 info()  { echo "   ℹ️  $*"; }
+
+# queue_dispatch <agent> <slug> <roi> <severity> <title> <body>
+queue_dispatch() {
+  local agent="$1" slug="$2" roi="$3" severity="$4" title="$5" body="$6"
+  DISPATCH_ITEMS+=("${agent}|${slug}|${roi}|${severity}|${title}|${body}")
+}
+
+# create_inbox_item — writes one inbox folder if it doesn't already exist
+create_inbox_item() {
+  local agent="$1" slug="$2" roi="$3" title="$4" body="$5"
+  local dir="sessions/${agent}/inbox/${date_prefix}-syshealth-${slug}"
+  if [ -d "$dir" ]; then
+    echo "   ℹ️  [dispatch] Already exists, skipping: $dir"
+    return
+  fi
+  mkdir -p "$dir"
+  printf '%s\n' "$roi" > "$dir/roi.txt"
+  # Use printf %b to interpret \n escape sequences in body
+  body_rendered=$(printf '%b' "$body")
+  cat > "$dir/README.md" <<ITEMEOF
+# ${title}
+
+- Agent: ${agent}
+- Dispatched-by: ceo-copilot-2 (ceo-system-health.sh)
+- Dispatched-at: ${now_iso}
+- Source: system health check
+
+## Issue
+
+${body_rendered}
+
+## Acceptance criteria
+- Issue resolved and verified with command output or log evidence
+- Outbox entry filed with Status: done and verification steps
+
+## Verification
+- Re-run: \`bash scripts/ceo-system-health.sh\` — relevant check should show ✅ PASS
+ITEMEOF
+  echo "   📥 [dispatch] Created: $dir"
+}
 
 echo "═══════════════════════════════════════════════════════"
 echo "  CEO System Health Check"
@@ -48,12 +98,21 @@ if [ -d "$failure_dir" ]; then
     fail "Executor failures (last 24h): $recent_failures  (total: $total_failures)"
     info "Recent: $(ls -t "$failure_dir" | head -3 | tr '\n' ' ')"
     info "Investigate: head tmp/executor-failures/\$(ls -t tmp/executor-failures/ | head -1)"
+    queue_dispatch "dev-infra" "executor-failures-spike" "8" "FAIL" \
+      "Executor failure spike: $recent_failures failures in 24h" \
+      "The executor failure directory has $recent_failures new failures in the last 24 hours (total: $total_failures).\n\nRecent items:\n\`\`\`\n$(ls -t "$failure_dir" | head -5 | tr '\n' '\n')\`\`\`\n\nInvestigate root cause. Check agent command errors, tool timeouts, and permission issues. Prune resolved items."
   elif [ "$recent_failures" -gt 0 ]; then
     warn "Executor failures (last 24h): $recent_failures  (total: $total_failures)"
     info "Recent: $(ls -t "$failure_dir" | head -3 | tr '\n' ' ')"
+    queue_dispatch "dev-infra" "executor-failures-backlog" "5" "WARN" \
+      "Executor failure backlog: $recent_failures new in 24h (total: $total_failures)" \
+      "The executor failure directory has $recent_failures new entries in the last 24 hours and $total_failures total.\n\nReview recent failures and prune resolved items:\n\`\`\`\nbash: ls -t tmp/executor-failures/ | head -5\n\`\`\`"
   elif [ "$total_failures" -gt 100 ]; then
     warn "Executor failure backlog: $total_failures items — consider pruning after triage"
     info "Run: ls -t tmp/executor-failures/ | head -5"
+    queue_dispatch "dev-infra" "executor-failures-prune" "3" "WARN" \
+      "Executor failure backlog needs pruning: $total_failures items" \
+      "The executor failure directory has $total_failures accumulated items. Review and prune resolved/stale entries to keep signal clear."
   else
     pass "Executor failures (last 24h): $recent_failures  (total: $total_failures)"
   fi
@@ -77,10 +136,16 @@ if [ -f "$pid_file" ]; then
   else
     fail "Orchestrator: pid file exists but process $orc_pid is not running"
     info "Restart: source orchestrator/.venv/bin/activate && python3 orchestrator/run.py"
+    queue_dispatch "dev-infra" "orchestrator-down" "9" "FAIL" \
+      "Orchestrator process is down" \
+      "The orchestrator pid file exists but process $orc_pid is not running.\n\nRestart:\n\`\`\`bash\nsource orchestrator/.venv/bin/activate && python3 orchestrator/run.py\n\`\`\`\nThen verify the pid file is updated and the process is running."
   fi
 else
   warn "Orchestrator: no pid file found — may not be running"
   info "Start: source orchestrator/.venv/bin/activate && python3 orchestrator/run.py"
+  queue_dispatch "dev-infra" "orchestrator-no-pid" "7" "WARN" \
+    "Orchestrator has no pid file — may not be running" \
+    "No orchestrator pid file found at tmp/orchestrator.pid.\n\nVerify if it's running and restart if needed:\n\`\`\`bash\nsource orchestrator/.venv/bin/activate && python3 orchestrator/run.py\n\`\`\`"
 fi
 
 if [ -f "$health_file" ]; then
@@ -120,9 +185,17 @@ for site in forseti dungeoncrawler; do
   if [ "${php_fatal}" -gt 0 ]; then
     fail "[$site] PHP Fatal/Parse/Exception errors: $php_fatal"
     info "$(grep -E "PHP Fatal|PHP Parse error|PHP Exception" "$log" | tail -2)"
+    dev_agent="dev-${site}"
+    [[ "$site" == "forseti" ]] && dev_agent="dev-forseti"
+    queue_dispatch "$dev_agent" "php-fatal-${site}" "9" "FAIL" \
+      "PHP Fatal errors in Apache log: $site ($php_fatal occurrences)" \
+      "PHP fatal/parse/exception errors found in /var/log/apache2/${site}_error.log.\n\nRecent:\n\`\`\`\n$(grep -E "PHP Fatal|PHP Parse error|PHP Exception" "$log" | tail -3)\n\`\`\`\n\nInvestigate and fix. Verify site returns HTTP 200 after fix."
   elif [ "${real_errors}" -gt 50 ]; then
     warn "[$site] Non-scan Apache errors: $real_errors (last log)"
     info "$(grep -v "AH01630" "$log" | grep -E "\[error\]" | tail -2)"
+    queue_dispatch "dev-infra" "apache-errors-${site}" "6" "WARN" \
+      "High Apache error rate: $site ($real_errors non-scan errors)" \
+      "Apache error log /var/log/apache2/${site}_error.log has $real_errors non-security-scan errors.\n\nInvestigate and resolve."
   else
     pass "[$site] No PHP fatals; non-scan errors: $real_errors"
   fi
@@ -134,6 +207,9 @@ for site in forseti dungeoncrawler; do
     probe_ip=$(echo "$top_probe" | awk '{print $2}')
     if [ "${probe_count:-0}" -gt 20 ] 2>/dev/null; then
       warn "[$site] High-volume security probe: $probe_ip ($probe_count hits) — consider rate-limiting or fail2ban"
+      queue_dispatch "dev-infra" "security-probe-${site}" "5" "WARN" \
+        "High-volume security probe on $site: $probe_ip ($probe_count hits)" \
+        "IP $probe_ip has probed $site for .env/.git files $probe_count times.\n\nConsider adding to fail2ban or rate-limiting in Apache config."
     fi
   fi
 done
@@ -157,6 +233,9 @@ if [ -f "$drupal_root/vendor/bin/drush" ]; then
       fail "Drupal watchdog: $error_count recent error(s)"
       echo "$watchdog_out" | head -5 | sed 's/^/   /'
       info "Full log: cd $drupal_root && vendor/bin/drush watchdog:show --severity=error"
+      queue_dispatch "dev-forseti" "drupal-watchdog-errors" "8" "FAIL" \
+        "Drupal watchdog has $error_count recent error(s)" \
+        "Drush watchdog:show reports $error_count errors.\n\nCheck:\n\`\`\`bash\ncd $drupal_root && vendor/bin/drush watchdog:show --severity=error\n\`\`\`\n\nInvestigate and resolve each error. Verify clean watchdog after fix."
     fi
   fi
 else
@@ -180,6 +259,12 @@ if [ -d "$scoreboard_dir" ]; then
     if [ "$age_days" -gt 7 ]; then
       warn "Scoreboard stale: $board_name (${age_days}d old)"
       stale_boards=$(( stale_boards + 1 ))
+      # Map board name to PM agent
+      pm_agent="pm-forseti"
+      [[ "$board_name" == *"dungeoncrawler"* ]] && pm_agent="pm-dungeoncrawler"
+      queue_dispatch "$pm_agent" "scoreboard-stale-${board_name}" "3" "WARN" \
+        "Scoreboard stale: $board_name (${age_days}d old)" \
+        "The weekly scoreboard at knowledgebase/scoreboards/${board_name}.md has not been updated in ${age_days} days (target: ≤7 days).\n\nUpdate with current KPI data: post-merge regressions, reopen rate, time-to-verify, escaped defects, audit freshness."
     else
       pass "Scoreboard fresh: $board_name (${age_days}d old)"
     fi
@@ -212,6 +297,11 @@ for site in forseti dungeoncrawler; do
     if [ "$age_h" -gt 48 ]; then
       warn "[$site] Stale in_progress feature (${age_h}h): $(dirname "$ffile" | xargs basename)"
       stale_ip=$(( stale_ip + 1 ))
+      feature_id=$(dirname "$ffile" | xargs basename)
+      dev_agent="dev-${site}"
+      queue_dispatch "$dev_agent" "stale-feature-${feature_id}" "6" "WARN" \
+        "Stale in_progress feature: $feature_id (${age_h}h without update)" \
+        "Feature $feature_id has been in_progress for ${age_h}h without a file update.\n\nEither complete implementation and update status to 'done', or re-scope back to 'ready' if blocked. File outbox entry with current status."
     fi
   done < <(grep -rl "Status: in_progress" "$feature_dir"/*/feature.md 2>/dev/null || true)
 
@@ -259,9 +349,15 @@ if [ -f "$queue_log" ]; then
   if [ "$error_count" -gt 0 ]; then
     fail "Tailoring queue log has $error_count error/exception lines"
     info "$(grep -i "error\|exception\|failed" "$queue_log" | tail -2)"
+    queue_dispatch "dev-forseti" "tailoring-queue-errors" "8" "FAIL" \
+      "Tailoring queue has $error_count error/exception lines in log" \
+      "The Drupal tailoring queue log ($queue_log) contains $error_count error/exception/failed lines.\n\nRecent errors:\n\`\`\`\n$(grep -i "error\|exception\|failed" "$queue_log" | tail -5)\n\`\`\`\n\nInvestigate the AI resume service integration. Check JSON parsing, API connectivity, and cache state. Fix and verify the queue processes without errors."
   elif [ "$age_h" -gt 2 ]; then
     warn "Tailoring queue log last updated ${age_h}h ago — queue cron may be stopped"
     info "Check: crontab -l | grep tailoring"
+    queue_dispatch "dev-infra" "tailoring-queue-cron-stopped" "7" "WARN" \
+      "Tailoring queue cron appears stopped (log ${age_h}h stale)" \
+      "The tailoring queue log has not been updated in ${age_h}h. The queue cron may be stopped.\n\nCheck and restart:\n\`\`\`bash\ncrontab -l | grep tailoring\n\`\`\`"
   else
     pass "Tailoring queue: processing normally (log updated ${age_h}h ago)"
     info "Last entry: $last_entry"
@@ -289,12 +385,18 @@ for site_qa in qa-forseti qa-dungeoncrawler; do
     if [ "$age_h" -gt 24 ]; then
       warn "[$site_qa] Audit stale: ${age_h}h old (target ≤24h)"
       info "Rerun: bash scripts/site-audit-run.sh ${site_qa#qa-}"
+      queue_dispatch "$site_qa" "audit-stale-${site_qa}" "6" "WARN" \
+        "QA audit stale for ${site_qa}: ${age_h}h old" \
+        "The auto-site-audit latest output is ${age_h}h old (target ≤24h).\n\nRerun:\n\`\`\`bash\nbash scripts/site-audit-run.sh ${site_qa#qa-}\n\`\`\`\nVerify findings-summary.md is updated."
     else
       pass "[$site_qa] Audit fresh: ${age_h}h old (findings lines: ${findings:-?})"
     fi
   else
     warn "[$site_qa] No auto-site-audit/latest found — audit may never have run"
     info "Run: bash scripts/site-audit-run.sh ${site_qa#qa-}"
+    queue_dispatch "$site_qa" "audit-never-run-${site_qa}" "7" "WARN" \
+      "No QA audit found for ${site_qa} — audit may never have run" \
+      "No auto-site-audit/latest directory found for $site_qa.\n\nRun the initial audit:\n\`\`\`bash\nbash scripts/site-audit-run.sh ${site_qa#qa-}\n\`\`\`"
   fi
 done
 
@@ -316,12 +418,41 @@ while IFS= read -r inbox_item; do
     item_name=$(basename "$inbox_item")
     warn "Dead letter: $agent → $item_name (${age_h}h old)"
     dead_letter_count=$(( dead_letter_count + 1 ))
+    queue_dispatch "ceo-copilot-2" "dead-letter-${agent}-${item_name}" "5" "WARN" \
+      "Dead-letter inbox item: $agent → $item_name (${age_h}h)" \
+      "Inbox item ${item_name} in sessions/${agent}/inbox/ has been sitting for ${age_h}h without resolution.\n\nCEO action required: investigate, resolve or archive.\n- If resolvable: create outbox item with Status: done\n- If stale/superseded: move to _archived subfolder"
     [ "$dead_letter_count" -ge 5 ] && { info "(truncated — more dead letters exist)"; break; }
   fi
 done < <(find sessions/*/inbox -mindepth 1 -maxdepth 1 -not -name "_archived" 2>/dev/null | sort)
 
 if [ "$dead_letter_count" -eq 0 ]; then
   pass "No dead-letter inbox items found (all items < 48h or archived)"
+fi
+
+# ─── DISPATCH ───────────────────────────────────────────────────────────────
+if [ "$DISPATCH_MODE" -eq 1 ] && [ "${#DISPATCH_ITEMS[@]}" -gt 0 ]; then
+  echo ""
+  echo "$SEP"
+  echo "  Dispatching inbox items for findings..."
+  echo "$SEP"
+  dispatched=0
+  for entry in "${DISPATCH_ITEMS[@]}"; do
+    IFS='|' read -r d_agent d_slug d_roi d_sev d_title d_body <<< "$entry"
+    # Check if agent session inbox exists
+    inbox_dir="sessions/${d_agent}/inbox"
+    if [ ! -d "$inbox_dir" ]; then
+      echo "   ⚠️  No inbox for $d_agent — skipping: $d_slug"
+      continue
+    fi
+    create_inbox_item "$d_agent" "$d_slug" "$d_roi" "$d_title" "$d_body"
+    dispatched=$(( dispatched + 1 ))
+  done
+  echo "   ℹ️  Dispatched $dispatched item(s)"
+elif [ "$DISPATCH_MODE" -eq 1 ]; then
+  echo ""
+  echo "$SEP"
+  echo "  No findings to dispatch — all checks clean"
+  echo "$SEP"
 fi
 
 # ─── SUMMARY ────────────────────────────────────────────────────────────────

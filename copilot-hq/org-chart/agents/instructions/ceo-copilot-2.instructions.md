@@ -190,7 +190,46 @@ Sites are always running at production URLs. For QA audits: `ALLOW_PROD_QA=1 bas
 ### Identifying a systemd env-override as the root cause
 `diff <(systemctl --user cat <unit>)` is not available. Instead: `cat scripts/systemd/<unit>` and confirm `Environment=` lines match correct defaults. The installed unit may differ from source if daemon-reload hasn't run since last commit.
 
-### Cross-site signoff reminder (recurring orchestration pattern)
+### Health check issue dispatch protocol (required)
+
+When `ceo-system-health.sh` or `ceo-release-health.sh` finds FAILs or WARNs, dispatch work items to the owning agent — do not leave findings as report-only output.
+
+**Dispatch command:**
+```bash
+bash scripts/ceo-system-health.sh --dispatch
+```
+This auto-creates inbox items for all findings (idempotent — skips items that already exist today).
+
+**Triage ownership table:**
+
+| Finding | Owner agent | Notes |
+|---|---|---|
+| Executor failure spike/backlog | `dev-infra` | Investigate + prune |
+| Orchestrator down / no pid | `dev-infra` | Restart and verify |
+| Orchestrator heartbeat stale | `dev-infra` | Check cron/daemon |
+| PHP fatals in Apache log | `dev-forseti` or `dev-dungeoncrawler` | Fix code, verify HTTP 200 |
+| High Apache error rate | `dev-infra` | Investigate |
+| High-volume security probe | `dev-infra` | fail2ban / rate-limit |
+| Drupal watchdog errors | `dev-forseti` | Fix and verify clean watchdog |
+| Scoreboard stale (forseti/non-product) | `pm-forseti` | Update weekly KPI data |
+| Scoreboard stale (dungeoncrawler) | `pm-dungeoncrawler` | Update weekly KPI data |
+| Stale in_progress feature | `dev-forseti` or `dev-dungeoncrawler` | Complete or re-scope to ready |
+| KB lesson rate = 0 (7 days) | CEO (self) | File lessons directly |
+| Tailoring queue errors | `dev-forseti` | Fix AI service integration |
+| Tailoring queue cron stopped | `dev-infra` | Restart cron |
+| QA audit stale | `qa-forseti` or `qa-dungeoncrawler` | Rerun audit |
+| Dead-letter inbox item | CEO (self) | Triage: resolve or archive |
+
+**CEO-owned findings** (do not dispatch — act directly):
+- KB lesson rate = 0: write the missing lessons now
+- Dead-letter items: investigate and resolve or archive in the same session
+
+**After dispatching:**
+1. Verify inbox items were created: `ls sessions/*/inbox/*syshealth*`
+2. Note dispatched items in `current-session-state.md` under "Open Threads"
+3. On next session, check if dispatched items have outbox responses — if stale >1 cycle, re-escalate
+
+
 When `scripts/release-signoff-status.sh <release-id>` shows one PM signed and one unsigned, queue a `signoff-reminder` inbox item for the lagging PM seat immediately. Item name convention: `<date>-signoff-reminder-<release-id>`.
 
 ### Proposal-to-passthrough enforcement
