@@ -2,6 +2,27 @@
 
 > Update weekly. Track only a few metrics that drive behavior.
 
+## 2026-04-10 — 20260410-dungeoncrawler-release-b PM signoff recorded / Gate 2 APPROVE
+
+| Metric | Target | Actual | Notes |
+|--------|--------|--------|-------|
+| Post-merge regressions | 0 | 0 | Gate 2 run `20260410-gate2-verify-release-b` (0 failures, commit `01a00afda`). Site audit `20260410-105722` PASS (0 violations, 0 missing assets). |
+| Reopen rate (issues/PRs) | < 10% | N/A | No PR tracker configured. |
+| Time-to-verify (median) | < 24h | ~same-day | Dev completed all 8 features 2026-04-10; Gate 2 dispatched same day; QA APPROVE same day. |
+| Escaped defects (prod/user reported) | 0 | 0 | 8 features deployed to scope; no user-reported defects. SSL timeout (`/characters/create`) from prior cycle: no new reports. |
+| Consecutive unclean releases (post-release QA) | 0 | 0 | Gate 2 clean. Counter remains 0. |
+| Instructions-change proposals created | >= 1 when friction repeats | 0 | No new friction modes this cycle. |
+| Audit freshness | <= 24h | Fresh | Latest audit: `20260410-105722` (~2h old at time of update). |
+
+**Release-b summary:**
+- 8 features shipped: dc-cr-crafting, dc-cr-creature-identification, dc-cr-decipher-identify-learn, dc-cr-encounter-creature-xp-table, dc-cr-environment-terrain, dc-cr-equipment-ch06, dc-cr-exploration-mode, dc-cr-familiar.
+- PM signoff: `sessions/pm-dungeoncrawler/artifacts/release-signoffs/20260410-dungeoncrawler-release-b.md`
+- Awaiting: pm-forseti co-sign + coordinated push (cosign item dispatched).
+
+**Active gaps:**
+- **`/characters/create` SSL timeout**: Still unresolved from 2026-03-26 audit. No new reports; low severity. Triage deferred to next cycle.
+- **APG features** (`dc-apg-equipment`, `dc-apg-feats`, `dc-apg-focus-spells`): In release-c scope (`in_progress`), dev inbox items queued.
+
 ## 2026-03-27 — 20260326-dungeoncrawler-release-b shipped / Gate R5 clean
 
 | Metric | Target | Actual | Notes |
