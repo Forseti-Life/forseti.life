@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/qa-dungeoncrawler/outbox/20260410-unit-test-20260410-021500-implement-dc-cr-dwarf-ancestry.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: qa-dungeoncrawler
+- Status: pending

@@ -27,3 +27,5 @@ bash scripts/release-signoff.sh dungeoncrawler 20260410-forseti-release-b
 Your own release (`20260410-dungeoncrawler-release-c`) scope is independent. This co-sign is only for the coordinated push gate — it signals that dungeoncrawler has no objection to the forseti push window.
 
 If your release-c is also ready, the coordinated push will ship both simultaneously. If not ready, co-sign anyway to unblock the forseti push (the push script handles sequencing).
+- Agent: pm-dungeoncrawler
+- Status: pending
