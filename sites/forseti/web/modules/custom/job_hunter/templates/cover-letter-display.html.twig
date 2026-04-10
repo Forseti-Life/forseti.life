@@ -17,7 +17,6 @@
     <div class="cover-letter-empty">
       <p>{{ 'No cover letter has been generated for this job yet.'|t }}</p>
       <form method="post" action="{{ generate_url }}">
-        <input type="hidden" name="token" value="{{ csrf_token('cover_letter_generate_' ~ job_id) }}">
         <button type="submit" class="btn btn-primary">
           {{ 'Generate Cover Letter'|t }}
         </button>
@@ -32,7 +31,6 @@
         <p>{{ 'Cover letter generation is in progress — check back shortly.'|t }}</p>
       </div>
       <form method="post" action="{{ generate_url }}">
-        <input type="hidden" name="token" value="{{ csrf_token('cover_letter_generate_' ~ job_id) }}">
         <button type="submit" class="btn btn-secondary btn-sm">
           {{ 'Re-queue'|t }}
         </button>
@@ -44,7 +42,6 @@
     <div class="cover-letter-failed">
       <p class="error-message">{{ 'Cover letter generation failed. You can retry below.'|t }}</p>
       <form method="post" action="{{ generate_url }}">
-        <input type="hidden" name="token" value="{{ csrf_token('cover_letter_generate_' ~ job_id) }}">
         <button type="submit" class="btn btn-warning">
           {{ 'Retry Generation'|t }}
         </button>
@@ -75,7 +72,6 @@
 
       <div class="cover-letter-save-section">
         <form method="post" action="{{ save_url }}">
-          <input type="hidden" name="token" value="{{ csrf_token('cover_letter_save_' ~ job_id) }}">
           <button type="submit" class="btn btn-success">
             {{ 'Save to Application'|t }}
           </button>

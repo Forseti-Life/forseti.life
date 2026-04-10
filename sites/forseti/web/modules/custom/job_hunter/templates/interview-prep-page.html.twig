@@ -41,7 +41,6 @@
   <section class="interview-prep__notes">
     <h2>{{ 'My Notes'|t }}</h2>
     <form method="post" action="{{ save_url }}">
-      <input type="hidden" name="form_token" value="{{ csrf_token(save_url) }}">
       <textarea
         name="notes_text"
         id="interview-notes"

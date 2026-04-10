@@ -32,7 +32,6 @@
               <i class="bi bi-play"></i> {{ 'Re-run'|t }}
             </a>
             <form method="post" action="{{ delete_url }}" style="display:inline-block;">
-              <input type="hidden" name="form_token" value="{{ csrf_token(delete_url) }}">
               <button type="submit" class="btn btn-sm btn-outline-danger"
                       onclick="return confirm('{{ 'Delete this saved search?'|t }}')">
                 <i class="bi bi-trash"></i> {{ 'Delete'|t }}
