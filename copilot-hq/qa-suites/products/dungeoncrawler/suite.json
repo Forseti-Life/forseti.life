@@ -10543,6 +10543,72 @@
           "ac": "Failure-3"
         }
       ]
+    },
+    {
+      "id": "dc-cr-downtime-mode-e2e",
+      "label": "Downtime Mode: day-based time scale, Earn Income table/failure/fired, retraining 1-week cost, crafting prereqs/baseline, Subsist, Treat Disease, business income, gold/build mutation server-validation and audit logging",
+      "type": "e2e",
+      "feature_id": "dc-cr-downtime-mode",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/downtime/downtime-mode.spec.ts",
+      "artifacts": [
+        "playwright-report/downtime-mode-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "notes": "TC-DTM-05 overlaps with dc-cr-crafting (crafting prereqs/4-day baseline/Alchemist free items) \u2014 these TCs should be kept in sync if crafting AC changes. Security TCs (TC-DTM-09/10) verify server-validation and audit log presence for gold and build mutations.",
+      "test_cases": [
+        {
+          "id": "TC-DTM-01",
+          "description": "Downtime time scale: time_unit=days; activity day allocation stored per activity",
+          "ac": "AC-001"
+        },
+        {
+          "id": "TC-DTM-02",
+          "description": "Earn Income: gold per day = table_lookup(task_level, result_tier); daily gold applied on check resolution",
+          "ac": "AC-002"
+        },
+        {
+          "id": "TC-DTM-03",
+          "description": "Earn Income failure = 0 gold; Crit Fail = task blocked for 1-week cooldown (cannot retry same task)",
+          "ac": "AC-002"
+        },
+        {
+          "id": "TC-DTM-04",
+          "description": "Retraining: 7 days required per feat or skill increase; on completion old selection removed, new selection added",
+          "ac": "AC-003"
+        },
+        {
+          "id": "TC-DTM-05",
+          "description": "Crafting downtime: prereq validation (formula+tools+rank); 4-day baseline; Alchemist Infused Reagents = 0 gold cost alchemical items",
+          "ac": "AC-004"
+        },
+        {
+          "id": "TC-DTM-06",
+          "description": "Subsist: Survival or Society check vs. environment DC; success covers living expenses",
+          "ac": "AC-005"
+        },
+        {
+          "id": "TC-DTM-07",
+          "description": "Treat Disease downtime: Medicine check; success reduces disease.stage by 1; failure no change",
+          "ac": "AC-005"
+        },
+        {
+          "id": "TC-DTM-08",
+          "description": "Business/crafting-for-sale income: table_lookup by skill result; correct skill applied per activity type",
+          "ac": "AC-005"
+        },
+        {
+          "id": "TC-DTM-09",
+          "description": "Gold mutations (Earn Income, crafting cost, Subsist expenses): server-validated; audit log entry created per change (Security AC)",
+          "ac": "Security AC"
+        },
+        {
+          "id": "TC-DTM-10",
+          "description": "Build mutations (retraining): server-validated; invalid retraining (missing prereq days) rejected; no client-side bypass (Security AC)",
+          "ac": "Security AC"
+        }
+      ]
     }
   ],
   "_schema_notes": [
