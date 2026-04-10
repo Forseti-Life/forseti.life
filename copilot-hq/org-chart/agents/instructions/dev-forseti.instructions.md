@@ -200,6 +200,47 @@ grep -B10 "_csrf_token" web/modules/custom/job_hunter/job_hunter.routing.yml | g
 - Record the full-module scan output in your implementation outbox before declaring done.
 - Lesson: `forseti-csrf-fix` fixed the primary routes but missed `toggle_job_applied` and `job_apply` — QA found the gaps at Gate 2, requiring a mid-release hot-fix.
 
+### CSRF token delivery rule — templates and JavaScript (required)
+
+`RouteProcessorCsrf::processOutbound()` automatically appends `?token=<hash>` to any URL built with Twig `path()` or `Url::fromRoute(...)->toString()` for routes with `_csrf_token: 'TRUE'`. `CsrfAccessCheck` reads ONLY `$request->query->get('token')` — it never reads the POST body.
+
+**Rule 1 — No hidden form fields:**
+Never add `<input type="hidden" name="form_token" ...>` or `<input type="hidden" name="token" ...>` to a Twig template for a `_csrf_token: 'TRUE'` route. The form action URL already carries the token. Body fields are dead code, mislead future developers, and should not be introduced.
+
+Verify clean before submitting:
+```bash
+grep -rn 'name.*form_token\|name="token"' sites/forseti/web/modules/custom/job_hunter/templates/*.twig
+```
+Must return no results.
+
+**Rule 2 — JavaScript fetch/XHR must use URL query param:**
+When building a JS `fetch()` or `XMLHttpRequest` call to a `_csrf_token: 'TRUE'` POST route, the CSRF token MUST be appended to the fetch URL as `?token=`:
+
+```javascript
+// CORRECT
+fetch(actionUrl + '?token=' + encodeURIComponent(csrfToken), {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+  body: 'param=value'   // do NOT put token here
+});
+
+// WRONG — causes 100% 403
+fetch(actionUrl, {
+  method: 'POST',
+  body: 'form_token=' + csrfToken + '&param=value'
+});
+```
+
+The CSRF token value for JS use is typically passed via `drupalSettings` or a `{{ csrf_token(path) }}` Twig variable rendered into a `<script>` block or a `data-csrf-token` attribute.
+
+Verify before submitting:
+```bash
+grep -n 'fetch(\|XMLHttpRequest\|axios' sites/forseti/web/modules/custom/job_hunter/templates/*.twig
+```
+For each match, confirm token is in URL, not in body.
+
+Source: release-b LOW finding (dead hidden inputs in 3 templates) + release-c HIGH finding (JS fetch in `interview-prep-page.html.twig` caused 100% 403).
+
 ## Exception class discipline in job_hunter controllers (critical)
 
 In job_hunter controllers, exception class choice is semantic and QA-visible:
