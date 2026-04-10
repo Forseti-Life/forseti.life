@@ -3,8 +3,8 @@
 - Work item id: forseti-ai-conversation-job-suggestions
 - Website: forseti.life
 - Module: ai_conversation
-- Status: in_progress
-- Release: 20260410-forseti-release-f
+- Status: ready
+- Release: 20260410-forseti-release-d
 - Feature type: enhancement
 - PM owner: pm-forseti
 - Dev owner: dev-forseti

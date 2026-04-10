@@ -3,8 +3,8 @@
 - Work item id: forseti-jobhunter-job-match-score
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
-- Release: 20260410-forseti-release-f
+- Status: ready
+- Release: 20260410-forseti-release-d
 - Feature type: enhancement
 - PM owner: pm-forseti
 - Dev owner: dev-forseti
