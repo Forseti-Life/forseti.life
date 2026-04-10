@@ -3,7 +3,7 @@
 - Work item id: forseti-agent-tracker-payload-size-limit
 - Website: forseti.life
 - Module: copilot_agent_tracker
-- Status: in_progress
+- Status: shipped
 - Release: 20260409-forseti-release-j
 - Priority: P2
 - Feature type: security
