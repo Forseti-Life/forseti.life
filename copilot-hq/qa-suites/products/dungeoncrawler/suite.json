@@ -6163,7 +6163,9 @@
           "suite": "playwright/character-creation",
           "ac": "System-1 (heighten parameter tables)"
         }
-      ]
+      ],
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10"
     },
     {
       "id": "dc-cr-ancestry-traits-e2e",
