@@ -134,3 +134,18 @@ sites/dungeoncrawler/web/sites/simpletest/*
 
 # Generated prompt cache artifacts
 sites/dungeoncrawler/web/modules/custom/dungeoncrawler_content/content/images/prompt_cache.json
+
+# OSS PREP: Private key files — never publish
+sites/forseti/keys/
+sites/forseti/web/keys/
+
+# OSS PREP: Production config — contains OAuth secrets and live credentials
+prod-config/
+
+# OSS PREP: Database exports — never publish
+database-exports/
+
+# OSS PREP: Mobile environment files — contain per-environment credentials
+forseti-mobile/.env.production
+forseti-mobile/.env.development
+forseti-mobile/.env.staging
