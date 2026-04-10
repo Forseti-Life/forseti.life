@@ -267,6 +267,35 @@ agents:
     supervisor: pm-forseti-agent-tracker
     website_scope: ["forseti.life"]
 
+  # Open Source Initiative — making core products publicly available
+  - id: pm-open-source
+    name: "PM (Open Source Initiative)"
+    role: project-manager
+    supervisor: ceo-copilot-2
+    website_scope: ["open-source"]
+    notes: "Owns the open source publication roadmap. Tracks pre-publish blockers, repo readiness, community setup. Coordinates across dev/ba/qa."
+
+  - id: ba-open-source
+    name: "BA (Open Source Initiative)"
+    role: business-analyst
+    supervisor: pm-open-source
+    website_scope: ["open-source"]
+    notes: "Documents what each module does for external audiences. Writes contribution guidelines, architecture overviews, and README drafts."
+
+  - id: dev-open-source
+    name: "Dev (Open Source Initiative)"
+    role: software-developer
+    supervisor: pm-open-source
+    website_scope: ["open-source"]
+    notes: "Executes repo extraction, git history scrubbing (BFG), secrets removal, CI setup, and local dev environment tooling."
+
+  - id: qa-open-source
+    name: "QA (Open Source Initiative)"
+    role: tester
+    supervisor: pm-open-source
+    website_scope: ["open-source"]
+    notes: "Validates that each repo can be cloned and stood up from docs alone on a clean machine. Runs CI smoke tests."
+
   # Architect — hands-on technical builder (human-directed, no org operations)
   - id: architect-copilot
     name: "Architect (Copilot)"
