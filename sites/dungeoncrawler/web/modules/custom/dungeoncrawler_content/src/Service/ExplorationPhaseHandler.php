@@ -20,6 +20,28 @@ use Psr\Log\LoggerInterface;
 class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
   /**
+   * AC-003: Maps each exploration activity to its initiative skill.
+   * AC-005: Also used when computing surprise (Avoid Notice → Stealth).
+   */
+  protected const ACTIVITY_INITIATIVE_SKILLS = [
+    'avoid_notice'   => 'stealth',
+    'defend'         => 'perception',
+    'detect_magic'   => 'perception',
+    'follow_expert'  => 'perception',
+    'hustle'         => 'athletics',
+    'investigate'    => 'perception',
+    'repeat_spell'   => 'perception',
+    'scout'          => 'perception',
+    'search'         => 'perception',
+    'sense_direction' => 'survival',
+  ];
+
+  /**
+   * AC-002: Hustle causes fatigue after this many hustle-minutes elapsed.
+   */
+  protected const HUSTLE_FATIGUE_MINUTES = 10;
+
+  /**
    * @var \Drupal\Core\Database\Connection
    */
   protected Connection $database;
@@ -309,13 +331,21 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         ], $target_room_id);
 
         // Check for encounter trigger on room entry.
-        $encounter_check = $this->checkEncounterTrigger($params['target_room_id'] ?? '', $dungeon_data);
+        $encounter_check = $this->checkEncounterTrigger($params['target_room_id'] ?? '', $dungeon_data, $game_state);
         if ($encounter_check['should_trigger']) {
+          // AC-001/AC-005: Transition sets time_unit to rounds; snapshot activity skills.
+          $game_state['exploration']['time_unit'] = 'rounds';
+          $encounter_ctx = $encounter_check['encounter_context'] ?? [];
+          $encounter_ctx['initiative_skills'] = $encounter_check['initiative_skills'] ?? [];
+          $encounter_ctx['surprised_enemies'] = $encounter_check['surprised_enemies'] ?? [];
+          // Deactivate exploration activities when combat begins.
+          $game_state['exploration']['pre_encounter_activities'] = $game_state['exploration']['character_activities'] ?? [];
+          $game_state['exploration']['character_activities'] = [];
           $phase_transition = [
             'from' => 'exploration',
             'to' => 'encounter',
             'reason' => $encounter_check['reason'] ?? 'Hostile creatures detected!',
-            'encounter_context' => $encounter_check['encounter_context'] ?? [],
+            'encounter_context' => $encounter_ctx,
           ];
           $events[] = GameEventLogger::buildEvent('encounter_triggered', 'exploration', $actor_id, [
             'room_id' => $params['target_room_id'],
@@ -340,6 +370,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         $legal_activities = [
           'avoid_notice', 'defend', 'detect_magic', 'follow_expert',
           'hustle', 'scout', 'investigate', 'repeat_spell', 'search',
+          'sense_direction',
         ];
         if (!in_array($activity, $legal_activities, TRUE)) {
           return [
@@ -611,13 +642,6 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         );
         break;
       }
-          'dc' => $dc_las,
-          'd20' => $d20_las,
-          'total' => $total_las,
-        ];
-        $events[] = GameEventLogger::buildEvent('learn_a_spell', 'exploration', $actor_id, ['degree' => $degree_las, 'skill_used' => $skill_used_las], NULL, $target_id);
-        break;
-      }
 
       // -----------------------------------------------------------------------
       // AC-003: Prepare Spells [Exploration, part of daily_prepare]
@@ -712,10 +736,15 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     if (!isset($game_state['exploration'])) {
       $game_state['exploration'] = [
         'time_elapsed_minutes' => 0,
+        'time_unit' => 'minutes',
         'character_activities' => [],
+        'hustle_minutes' => [],
         'previous_room' => NULL,
       ];
     }
+    // AC-001: Always ensure time_unit = minutes (e.g. returning from encounter).
+    $game_state['exploration']['time_unit'] = 'minutes';
+    unset($game_state['round']);
 
     // Queue phase entry for perception-filtered narration.
     $from_phase = $context['from_phase'] ?? 'none';
@@ -799,17 +828,67 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
     $from_hex = $entity['placement']['hex'] ?? ['q' => 0, 'r' => 0];
     $entity['placement']['hex'] = ['q' => (int) $to_hex['q'], 'r' => (int) $to_hex['r']];
 
-    // Persist to DB.
-    $this->persistDungeonData($campaign_id, $dungeon_data);
-
-    return [
+    $mutations = [
+      ['entity' => $actor_id, 'field' => 'placement.hex', 'from' => $from_hex, 'to' => $to_hex],
+    ];
+    $result = [
       'moved' => TRUE,
       'from_hex' => $from_hex,
       'to_hex' => $to_hex,
-      'mutations' => [
-        ['entity' => $actor_id, 'field' => 'placement.hex', 'from' => $from_hex, 'to' => $to_hex],
-      ],
+      'mutations' => $mutations,
     ];
+
+    $activity = $game_state['exploration']['character_activities'][$actor_id] ?? 'search';
+
+    // AC-002: While Searching, each hex moved (≈ 10 ft) triggers a Perception check.
+    if ($activity === 'search') {
+      $perception_bonus = $entity['stats']['perception'] ?? ($entity['state']['skills']['perception'] ?? 0);
+      $roll = $this->numberGenerationService->rollPathfinderDie(20);
+      $total = $roll + (int) $perception_bonus;
+      $room = $this->getActiveRoom($dungeon_data);
+      $search_dc = $room['gameplay_state']['search_dc'] ?? 15;
+      $degree = $this->calculateDegreeOfSuccess($total, $search_dc, $roll);
+      $discoveries = [];
+      if (in_array($degree, ['critical_success', 'success'], TRUE)) {
+        $discoveries = $this->revealHiddenEntities($dungeon_data, $degree === 'critical_success');
+      }
+      $result['search_on_move'] = [
+        'roll' => $roll,
+        'total' => $total,
+        'dc' => $search_dc,
+        'degree' => $degree,
+        'discoveries' => $discoveries,
+      ];
+    }
+
+    // AC-002: Hustle doubles speed; apply fatigue after HUSTLE_FATIGUE_MINUTES.
+    if ($activity === 'hustle') {
+      if (!isset($game_state['exploration']['hustle_minutes'][$actor_id])) {
+        $game_state['exploration']['hustle_minutes'][$actor_id] = 0;
+      }
+      // Each move in Hustle counts as 1 exploration minute.
+      $game_state['exploration']['hustle_minutes'][$actor_id]++;
+      $hustle_elapsed = $game_state['exploration']['hustle_minutes'][$actor_id];
+      if ($hustle_elapsed >= self::HUSTLE_FATIGUE_MINUTES
+        && empty($entity['state']['conditions']['fatigued'])) {
+        $entity['state']['conditions']['fatigued'] = TRUE;
+        $result['fatigue_applied'] = TRUE;
+        $result['hustle_minutes_elapsed'] = $hustle_elapsed;
+        $mutations[] = ['entity' => $actor_id, 'field' => 'state.conditions.fatigued', 'from' => FALSE, 'to' => TRUE];
+      }
+      $result['speed_bonus'] = 2.0;
+      $result['hustle_minutes_elapsed'] = $hustle_elapsed;
+    }
+
+    // AC-004: Resolve light level at destination hex.
+    $result['visibility'] = $this->resolveCharacterVisibility($entity, $to_hex, $dungeon_data);
+
+    $result['mutations'] = $mutations;
+
+    // Persist to DB.
+    $this->persistDungeonData($campaign_id, $dungeon_data);
+
+    return $result;
   }
 
   /**
@@ -1173,7 +1252,7 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'multiplier' => $multiplier,
       'feet_per_minute' => $feet_per_minute,
       'hustle' => $hustle,
-      'fatigue_warning' => $hustle ? 'Hustle causes fatigue after 30 minutes.' : NULL,
+      'fatigue_warning' => $hustle ? 'Hustle causes fatigue after 10 minutes.' : NULL,
     ];
   }
 
@@ -1266,8 +1345,11 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
 
   /**
    * Checks whether entering a room should trigger an encounter.
+   *
+   * AC-003: Enriches encounter_context with per-character initiative skills.
+   * AC-005: Computes surprised enemies for characters using Avoid Notice.
    */
-  protected function checkEncounterTrigger(string $room_id, array $dungeon_data): array {
+  protected function checkEncounterTrigger(string $room_id, array $dungeon_data, array $game_state = []): array {
     // Check if the room has an encounter template that hasn't been triggered.
     $rooms = $dungeon_data['rooms'] ?? [];
     foreach ($rooms as $room) {
@@ -1292,9 +1374,50 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         }
 
         if (!empty($hostile_entities)) {
+          // AC-003: Build per-character initiative skill map from current activities.
+          $character_activities = $game_state['exploration']['character_activities'] ?? [];
+          $initiative_skills = [];
+          foreach ($character_activities as $char_id => $char_activity) {
+            $initiative_skills[$char_id] = self::ACTIVITY_INITIATIVE_SKILLS[$char_activity] ?? 'perception';
+          }
+
+          // AC-005: Compute surprised enemies (Avoid Notice: Stealth vs enemy Perception).
+          $surprised_enemy_ids = [];
+          foreach ($character_activities as $char_id => $char_activity) {
+            if ($char_activity !== 'avoid_notice') {
+              continue;
+            }
+            // Find the player entity to get their Stealth bonus.
+            $player_entity = NULL;
+            foreach ($dungeon_data['entities'] ?? [] as $ent) {
+              $eid = $ent['entity_instance_id'] ?? ($ent['instance_id'] ?? ($ent['id'] ?? NULL));
+              if ($eid === $char_id) {
+                $player_entity = $ent;
+                break;
+              }
+            }
+            $stealth_bonus = (int) ($player_entity['stats']['stealth']
+              ?? $player_entity['state']['skills']['stealth']
+              ?? 0);
+            $stealth_roll = $this->numberGenerationService->rollPathfinderDie(20) + $stealth_bonus;
+            foreach ($hostile_entities as $enemy) {
+              $enemy_id = $enemy['entity_instance_id'] ?? ($enemy['instance_id'] ?? ($enemy['id'] ?? NULL));
+              if ($enemy_id === NULL) {
+                continue;
+              }
+              $perception_bonus = (int) ($enemy['stats']['perception'] ?? 0);
+              $enemy_roll = $this->numberGenerationService->rollPathfinderDie(20) + $perception_bonus;
+              if ($enemy_roll < $stealth_roll) {
+                $surprised_enemy_ids[] = $enemy_id;
+              }
+            }
+          }
+
           return [
             'should_trigger' => TRUE,
             'reason' => $encounter_template['reason'] ?? 'Hostile creatures detected!',
+            'initiative_skills' => $initiative_skills,
+            'surprised_enemies' => array_values(array_unique($surprised_enemy_ids)),
             'encounter_context' => [
               'template' => $encounter_template,
               'enemies' => $hostile_entities,
@@ -1674,6 +1797,94 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       'total'    => $total,
       'mutations' => [],
     ];
+  }
+
+  /**
+   * AC-004: Resolves what a character can see at a given hex.
+   *
+   * Uses dungeon_data['light_sources'] (bright_radius / dim_radius in feet)
+   * and the character's vision type (darkvision / low_light_vision / normal).
+   *
+   * @param array $entity        The moving entity (for vision type).
+   * @param array $hex           Destination hex {'q', 'r'}.
+   * @param array $dungeon_data  Dungeon data payload.
+   * @return array               Keys: light_level, can_see (bool), vision_type.
+   */
+  protected function resolveCharacterVisibility(array $entity, array $hex, array $dungeon_data): array {
+    $light_level = $this->resolveLightLevel($hex, $dungeon_data);
+
+    $greater_darkvision = !empty($entity['stats']['greater_darkvision'])
+      || !empty($entity['state']['senses']['greater_darkvision']);
+    $darkvision = !empty($entity['stats']['darkvision'])
+      || !empty($entity['state']['senses']['darkvision']);
+    $low_light   = !empty($entity['stats']['low_light_vision'])
+      || !empty($entity['state']['senses']['low_light_vision']);
+
+    if ($greater_darkvision) {
+      $vision_type = 'greater_darkvision';
+    }
+    elseif ($darkvision) {
+      $vision_type = 'darkvision';
+    }
+    elseif ($low_light) {
+      $vision_type = 'low_light_vision';
+    }
+    else {
+      $vision_type = 'normal';
+    }
+
+    $can_see = match ($light_level) {
+      'bright' => TRUE,
+      'dim'    => $vision_type !== 'normal',
+      'dark'   => in_array($vision_type, ['darkvision', 'greater_darkvision'], TRUE),
+      default  => TRUE,
+    };
+
+    return [
+      'light_level' => $light_level,
+      'can_see'     => $can_see,
+      'vision_type' => $vision_type,
+    ];
+  }
+
+  /**
+   * AC-004: Resolves the effective light level at a hex position.
+   *
+   * Mirrors CombatEngine::resolveLightLevel() for use during exploration.
+   * dungeon_data['light_sources'] = [['hex'=>{'q','r'},'bright_radius'=>ft,'dim_radius'=>ft],…]
+   * Fallback: room ambient lighting → bright.
+   *
+   * @param array $hex          Target hex {'q', 'r'}.
+   * @param array $dungeon_data Dungeon data payload.
+   * @return string             'bright'|'dim'|'dark'.
+   */
+  protected function resolveLightLevel(array $hex, array $dungeon_data): string {
+    foreach ($dungeon_data['light_sources'] ?? [] as $source) {
+      if (!isset($source['hex'])) {
+        continue;
+      }
+      $dq = (int) $hex['q'] - (int) $source['hex']['q'];
+      $dr = (int) $hex['r'] - (int) $source['hex']['r'];
+      $ds = -$dq - $dr;
+      $dist = (int) max(abs($dq), abs($dr), abs($ds));
+      // Radii given in feet; 5 ft = 1 hex.
+      $bright_hexes = (int) ceil(($source['bright_radius'] ?? 0) / 5);
+      $dim_hexes    = (int) ceil(($source['dim_radius'] ?? $bright_hexes * 2) / 5);
+      if ($dist <= $bright_hexes) {
+        return 'bright';
+      }
+      if ($dist <= $dim_hexes) {
+        return 'dim';
+      }
+    }
+    // Fall back to active room ambient lighting.
+    $active_room_id = $dungeon_data['active_room_id'] ?? NULL;
+    foreach ($dungeon_data['rooms'] ?? [] as $room) {
+      if (($room['room_id'] ?? '') === $active_room_id) {
+        return $room['lighting'] ?? $room['ambient_light'] ?? 'bright';
+      }
+    }
+    return 'bright';
   }
 
 }
