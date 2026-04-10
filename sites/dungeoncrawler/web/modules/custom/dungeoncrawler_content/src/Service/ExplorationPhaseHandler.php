@@ -154,6 +154,22 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
       // AC-003, AC-005: Prepared spell assignment and Refocus.
       'prepare_spell',
       'refocus',
+      // REQ 1591: Acrobatics — Squeeze through tight spaces.
+      'squeeze',
+      // REQ 1612: Arcana — Borrow an Arcane Spell.
+      'borrow_arcane_spell',
+      // REQ 1633: Crafting — Repair an item.
+      'repair',
+      // REQ 1641: Crafting — Identify Alchemy.
+      'identify_alchemy',
+      // REQ 1660: Deception — Impersonate.
+      'impersonate',
+      // REQ 1665: Deception — Lie.
+      'lie',
+      // REQ 1700: Nature — Command an Animal (exploration variant).
+      'command_animal',
+      // REQ 1706: Performance — Perform (exploration variant).
+      'perform',
     ];
   }
 
@@ -702,7 +718,186 @@ class ExplorationPhaseHandler implements PhaseHandlerInterface {
         break;
       }
 
-      default:
+      // -----------------------------------------------------------------------
+      // REQ 1591: Squeeze [Exploration, ~1 min, Acrobatics]
+      // Move through tight passages that are too small to walk through normally.
+      // -----------------------------------------------------------------------
+      case 'squeeze': {
+        $dc           = (int) ($params['dc'] ?? 15);
+        $acrobatics   = (int) ($params['acrobatics_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20          = $this->numberGenerationService->rollPathfinderDie(20);
+        $total        = $d20 + $acrobatics;
+        $degree       = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $squeezed   = in_array($degree, ['success', 'critical_success'], TRUE);
+        $stuck      = ($degree === 'critical_failure');
+
+        if ($stuck) {
+          $game_state['exploration']['squeeze_stuck_' . $actor_id] = TRUE;
+        }
+
+        $this->advanceExplorationTime($game_state, 1);
+        $result = ['squeezed' => $squeezed, 'stuck' => $stuck, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('squeeze', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1612: Borrow an Arcane Spell [Exploration, ~10 min, Arcana]
+      // Study another wizard's spellbook to prepare a spell you don't know.
+      // -----------------------------------------------------------------------
+      case 'borrow_arcane_spell': {
+        $dc         = (int) ($params['dc'] ?? 15);
+        $arcana     = (int) ($params['arcana_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $arcana;
+        $degree     = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $borrowed   = in_array($degree, ['success', 'critical_success'], TRUE);
+        $spell_name = $params['spell_name'] ?? '';
+
+        if ($borrowed) {
+          $game_state['exploration']['borrowed_spell_' . $actor_id] = $spell_name;
+        }
+
+        $this->advanceExplorationTime($game_state, 10);
+        $result = ['borrowed' => $borrowed, 'spell' => $spell_name, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('borrow_arcane_spell', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1633: Repair [Exploration, ~10 min, Crafting]
+      // Restore HP to a damaged item using Repair toolkit.
+      // -----------------------------------------------------------------------
+      case 'repair': {
+        $dc         = (int) ($params['dc'] ?? 15);
+        $crafting   = (int) ($params['crafting_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $crafting;
+        $degree     = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $repaired_hp = 0;
+        switch ($degree) {
+          case 'critical_success':
+            $repaired_hp = 20;
+            break;
+          case 'success':
+            $repaired_hp = 10;
+            break;
+        }
+
+        $this->advanceExplorationTime($game_state, 10);
+        $result = ['repaired_hp' => $repaired_hp, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('repair', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1641: Identify Alchemy [Exploration, ~10 min, Crafting]
+      // Identify an alchemical item using the Identify Alchemy action.
+      // -----------------------------------------------------------------------
+      case 'identify_alchemy': {
+        $dc        = (int) ($params['dc'] ?? 15);
+        $crafting  = (int) ($params['crafting_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20       = $this->numberGenerationService->rollPathfinderDie(20);
+        $total     = $d20 + $crafting;
+        $degree    = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $identified = in_array($degree, ['success', 'critical_success'], TRUE);
+        $item_id    = $params['item_id'] ?? '';
+
+        if ($identified && !empty($item_id)) {
+          $game_state['exploration']['identified_alchemy_' . $item_id] = TRUE;
+        }
+
+        $this->advanceExplorationTime($game_state, 10);
+        $result = ['identified' => $identified, 'item_id' => $item_id, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('identify_alchemy', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1660: Impersonate [Exploration, ~10 min, Deception]
+      // Adopt a disguise; contested by Perception of observers.
+      // -----------------------------------------------------------------------
+      case 'impersonate': {
+        $dc        = (int) ($params['dc'] ?? 15);
+        $deception = (int) ($params['deception_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20       = $this->numberGenerationService->rollPathfinderDie(20);
+        $total     = $d20 + $deception;
+        $degree    = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $disguised = in_array($degree, ['success', 'critical_success'], TRUE);
+
+        if ($disguised) {
+          $game_state['exploration']['impersonating_' . $actor_id] = TRUE;
+        }
+
+        $this->advanceExplorationTime($game_state, 10);
+        $result = ['disguised' => $disguised, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('impersonate', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1665: Lie [Exploration, immediate, Deception]
+      // Attempt to deceive a creature into believing a false statement.
+      // -----------------------------------------------------------------------
+      case 'lie': {
+        $dc        = (int) ($params['dc'] ?? 15);
+        $deception = (int) ($params['deception_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20       = $this->numberGenerationService->rollPathfinderDie(20);
+        $total     = $d20 + $deception;
+        $degree    = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $believed = in_array($degree, ['success', 'critical_success'], TRUE);
+
+        $result = ['believed' => $believed, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('lie', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1700: Command an Animal [Exploration, ~1 min, Nature]
+      // Direct a trained animal companion or untrained beast.
+      // Trained companions get DC − 5.
+      // -----------------------------------------------------------------------
+      case 'command_animal': {
+        $dc       = (int) ($params['dc'] ?? 15);
+        if (!empty($params['is_trained_companion'])) {
+          $dc -= 5;
+        }
+        $nature   = (int) ($params['nature_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20      = $this->numberGenerationService->rollPathfinderDie(20);
+        $total    = $d20 + $nature;
+        $degree   = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $obeyed = in_array($degree, ['success', 'critical_success'], TRUE);
+
+        $this->advanceExplorationTime($game_state, 1);
+        $result = ['obeyed' => $obeyed, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('command_animal', 'exploration', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1706: Perform [Exploration, immediate, Performance]
+      // Entertain an audience or attempt to earn tips.
+      // -----------------------------------------------------------------------
+      case 'perform': {
+        $dc          = (int) ($params['dc'] ?? 15);
+        $performance = (int) ($params['performance_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20         = $this->numberGenerationService->rollPathfinderDie(20);
+        $total       = $d20 + $performance;
+        $degree      = $this->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $entertained = in_array($degree, ['success', 'critical_success'], TRUE);
+
+        $result = ['entertained' => $entertained, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('perform', 'exploration', $actor_id, $result);
+        break;
+      }
         return [
           'success' => FALSE,
           'result' => ['error' => "Unknown exploration action: $type"],

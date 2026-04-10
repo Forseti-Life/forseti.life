@@ -39,18 +39,25 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
   protected CraftingService $craftingService;
 
   /**
+   * @var \Drupal\dungeoncrawler_content\Service\NpcPsychologyService
+   */
+  protected NpcPsychologyService $npcPsychology;
+
+  /**
    * Constructs a DowntimePhaseHandler.
    */
   public function __construct(
     Connection $database,
     LoggerChannelFactoryInterface $logger_factory,
     CharacterStateService $character_state_service,
-    CraftingService $crafting_service
+    CraftingService $crafting_service,
+    NpcPsychologyService $npc_psychology
   ) {
     $this->database = $database;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->characterStateService = $character_state_service;
     $this->craftingService = $crafting_service;
+    $this->npcPsychology = $npc_psychology;
   }
 
   /**
@@ -73,6 +80,13 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'advance_day',
       'talk',
       'return_to_exploration',
+      // REQ 1669–1677: Diplomacy downtime actions.
+      'gather_information',
+      'make_impression',
+      // REQ 1678–1683: Intimidation downtime action.
+      'coerce',
+      // REQ 1705–1708: Performance Earn Income (downtime).
+      'perform',
     ];
   }
 
@@ -176,6 +190,55 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         $result = ['talked' => TRUE, 'message' => $params['message'] ?? ''];
         $events[] = GameEventLogger::buildEvent('talk', 'downtime', $actor_id, [
           'message' => $params['message'] ?? '',
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // REQ 1669–1672: Gather Information [Downtime, ~2 hrs, Diplomacy]
+      // Yields rumors/info about a topic. Crit Fail reveals investigation.
+      // -----------------------------------------------------------------------
+      case 'gather_information':
+        $result = $this->processGatherInformation($actor_id, $params, $game_state);
+        $events[] = GameEventLogger::buildEvent('gather_information', 'downtime', $actor_id, [
+          'degree' => $params['degree'] ?? NULL,
+          'topic'  => $params['topic'] ?? NULL,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // REQ 1673–1677: Make an Impression [Downtime, ~10 min, Diplomacy]
+      // Shifts target NPC attitude. Degrees: Crit = +2 steps, Success = +1.
+      // -----------------------------------------------------------------------
+      case 'make_impression':
+        $result = $this->processMakeImpression($actor_id, $params, $game_state, $campaign_id);
+        $events[] = GameEventLogger::buildEvent('make_impression', 'downtime', $actor_id, [
+          'degree' => $result['degree'] ?? NULL,
+          'target' => $params['target_id'] ?? NULL,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // REQ 1678–1683: Coerce [Downtime, ~10 min, Intimidation]
+      // Produces compliance; target becomes Unfriendly after 7 days.
+      // -----------------------------------------------------------------------
+      case 'coerce':
+        $result = $this->processCoerce($actor_id, $params, $game_state, $campaign_id);
+        $events[] = GameEventLogger::buildEvent('coerce', 'downtime', $actor_id, [
+          'degree' => $result['degree'] ?? NULL,
+          'target' => $params['target_id'] ?? NULL,
+        ]);
+        break;
+
+      // -----------------------------------------------------------------------
+      // REQ 1705–1708: Perform [Downtime — Earn Income via Performance]
+      // Routes to earn_income logic with skill = 'performance'.
+      // -----------------------------------------------------------------------
+      case 'perform':
+        $result = $this->processEarnIncome($actor_id, array_merge($params, ['skill' => 'performance']), $game_state, $campaign_id);
+        $events[] = GameEventLogger::buildEvent('perform', 'downtime', $actor_id, [
+          'task_level' => $params['task_level'] ?? NULL,
+          'degree'     => $params['degree'] ?? NULL,
+          'earned_cp'  => $result['earned_cp'] ?? 0,
         ]);
         break;
 
@@ -725,6 +788,181 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'earned_cp'        => $earned_cp,
       'earned_gp'        => round($earned_cp / 100, 2),
       'days_elapsed'     => $game_state['downtime']['days_elapsed'],
+    ];
+  }
+
+
+  // ---------------------------------------------------------------------------
+  // REQ 1669–1672: Gather Information [Downtime, ~2 hrs, Diplomacy]
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Processes a Gather Information downtime action.
+   *
+   * @param string $actor_id   Participant ID.
+   * @param array  $params     Action params (degree, topic, diplomacy_bonus).
+   * @param array  $game_state Current game state (modified by reference).
+   *
+   * @return array  Result with keys: gathered, community_aware, degree.
+   */
+  protected function processGatherInformation(string $actor_id, array $params, array &$game_state): array {
+    $topic  = $params['topic'] ?? 'unknown';
+    $degree = $params['degree'] ?? 'failure';
+
+    // Track hours elapsed in downtime state.
+    $game_state['downtime']['hours_elapsed'] = ($game_state['downtime']['hours_elapsed'] ?? 0) + 2;
+
+    $gathered       = FALSE;
+    $community_aware = FALSE;
+
+    switch ($degree) {
+      case 'critical_success':
+      case 'success':
+        $gathered = TRUE;
+        break;
+
+      case 'critical_failure':
+        // Investigation is exposed — community becomes aware.
+        $community_aware = TRUE;
+        break;
+
+      // failure: no info, no exposure.
+    }
+
+    return [
+      'gathered'        => $gathered,
+      'community_aware' => $community_aware,
+      'topic'           => $topic,
+      'degree'          => $degree,
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // REQ 1673–1677: Make an Impression [Downtime, ~10 min, Diplomacy]
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Processes a Make an Impression downtime action.
+   *
+   * Shifts target NPC attitude: Crit = +2, Success = +1, Fail = 0, Crit Fail = −1.
+   *
+   * @param string $actor_id    Participant ID.
+   * @param array  $params      Action params (degree, target_id).
+   * @param array  $game_state  Current game state (modified by reference).
+   * @param string $campaign_id Active campaign ID.
+   *
+   * @return array  Result with keys: degree, old_attitude, new_attitude, shift.
+   */
+  protected function processMakeImpression(string $actor_id, array $params, array &$game_state, string $campaign_id): array {
+    $degree    = $params['degree'] ?? 'failure';
+    $target_id = $params['target_id'] ?? '';
+
+    $game_state['downtime']['hours_elapsed'] = ($game_state['downtime']['hours_elapsed'] ?? 0);
+
+    $shift_map = [
+      'critical_success' => 2,
+      'success'          => 1,
+      'failure'          => 0,
+      'critical_failure' => -1,
+    ];
+    $shift = $shift_map[$degree] ?? 0;
+
+    $old_attitude = 'indifferent';
+    $new_attitude = 'indifferent';
+
+    if (!empty($target_id)) {
+      $profile      = $this->npcPsychology->getOrCreateProfile((int) $campaign_id, $target_id);
+      $old_attitude = $profile['attitude'] ?? 'indifferent';
+      $new_attitude = $this->npcPsychology->shiftAttitude($old_attitude, $shift);
+      $this->npcPsychology->updateProfile((int) $campaign_id, $target_id, ['attitude' => $new_attitude]);
+    }
+
+    return [
+      'degree'       => $degree,
+      'old_attitude' => $old_attitude,
+      'new_attitude' => $new_attitude,
+      'shift'        => $shift,
+    ];
+  }
+
+  // ---------------------------------------------------------------------------
+  // REQ 1678–1683: Coerce [Downtime, ~10 min, Intimidation]
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Processes a Coerce downtime action.
+   *
+   * Produces compliance; target becomes Unfriendly after 7 days.
+   * 7-day immunity prevents the same target from being coerced again.
+   *
+   * @param string $actor_id    Participant ID.
+   * @param array  $params      Action params (degree, target_id).
+   * @param array  $game_state  Current game state (modified by reference).
+   * @param string $campaign_id Active campaign ID.
+   *
+   * @return array  Result with keys: degree, compliant, compliance_days, immune.
+   */
+  protected function processCoerce(string $actor_id, array $params, array &$game_state, string $campaign_id): array {
+    $degree    = $params['degree'] ?? 'failure';
+    $target_id = $params['target_id'] ?? '';
+
+    // Check 7-day immunity.
+    $immune_key = 'coerce_immune_' . $actor_id . '_' . $target_id;
+    if (!empty($game_state['downtime'][$immune_key])) {
+      return [
+        'degree'          => $degree,
+        'compliant'       => FALSE,
+        'compliance_days' => 0,
+        'immune'          => TRUE,
+      ];
+    }
+
+    $compliant       = FALSE;
+    $compliance_days = 0;
+
+    switch ($degree) {
+      case 'critical_success':
+        $compliant       = TRUE;
+        $compliance_days = 30;
+        break;
+
+      case 'success':
+        $compliant       = TRUE;
+        $compliance_days = 7;
+        break;
+
+      case 'critical_failure':
+        // Target becomes Hostile and tells others; set immune.
+        $game_state['downtime'][$immune_key] = TRUE;
+        if (!empty($target_id)) {
+          $profile = $this->npcPsychology->getOrCreateProfile((int) $campaign_id, $target_id);
+          $new_attitude = $this->npcPsychology->shiftAttitude($profile['attitude'] ?? 'indifferent', -2);
+          $this->npcPsychology->updateProfile((int) $campaign_id, $target_id, ['attitude' => $new_attitude]);
+        }
+        break;
+
+      // failure: target becomes Unfriendly, set immune.
+      case 'failure':
+        $game_state['downtime'][$immune_key] = TRUE;
+        if (!empty($target_id)) {
+          $profile = $this->npcPsychology->getOrCreateProfile((int) $campaign_id, $target_id);
+          $new_attitude = $this->npcPsychology->shiftAttitude($profile['attitude'] ?? 'indifferent', -1);
+          $this->npcPsychology->updateProfile((int) $campaign_id, $target_id, ['attitude' => $new_attitude]);
+        }
+        break;
+    }
+
+    if ($compliant) {
+      // Set 7-day immunity; target becomes Unfriendly once compliance expires
+      // (tracked externally via compliance_days).
+      $game_state['downtime'][$immune_key] = TRUE;
+    }
+
+    return [
+      'degree'          => $degree,
+      'compliant'       => $compliant,
+      'compliance_days' => $compliance_days,
+      'immune'          => FALSE,
     ];
   }
 

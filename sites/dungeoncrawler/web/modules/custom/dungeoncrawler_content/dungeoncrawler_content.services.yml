@@ -496,6 +496,7 @@ services:
       - '@logger.factory'
       - '@dungeoncrawler_content.character_state'
       - '@dungeoncrawler_content.crafting'
+      - '@dungeoncrawler_content.npc_psychology_service'
 
   dungeoncrawler_content.game_coordinator:
     class: Drupal\dungeoncrawler_content\Service\GameCoordinatorService

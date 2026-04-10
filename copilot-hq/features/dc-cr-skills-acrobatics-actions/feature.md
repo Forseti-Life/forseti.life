@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-acrobatics-actions
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260410-dungeoncrawler-release-d
 - Priority: P2
 - PM owner: pm-dungeoncrawler

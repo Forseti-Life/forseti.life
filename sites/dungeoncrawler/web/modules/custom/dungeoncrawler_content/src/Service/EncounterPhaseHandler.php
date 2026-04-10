@@ -224,6 +224,24 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       'steal',
       'disable_device',
       'pick_lock',
+      // REQ 1591: Acrobatics — Balance across difficult terrain.
+      'balance',
+      // REQ 1594: Acrobatics — Tumble Through an enemy's space.
+      'tumble_through',
+      // REQ 1598: Acrobatics — Maneuver in Flight (1 action, aerial combat).
+      'maneuver_in_flight',
+      // REQ 1657: Deception — Feint (2 actions).
+      'feint',
+      // REQ 1660: Deception — Create a Diversion (1 action).
+      'create_diversion',
+      // REQ 1677: Diplomacy — Request (1 action).
+      'request',
+      // REQ 1683: Intimidation — Demoralize (1 action).
+      'demoralize',
+      // REQ 1700: Nature — Command an Animal (encounter variant, 1 action).
+      'command_animal',
+      // REQ 1706: Performance — Perform (encounter variant, 1 action).
+      'perform',
     ];
   }
 
@@ -2218,15 +2236,230 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
         break;
       }
 
+      // -----------------------------------------------------------------------
+      // REQ 1591: Balance [1 action, Acrobatics — encounter, Secret roll]
+      // Move across difficult terrain; failure = flat-footed for 1 round.
+      // -----------------------------------------------------------------------
+      case 'balance': {
+        $dc        = (int) ($params['dc'] ?? 15);
+        $acrobatics = (int) ($params['acrobatics_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20       = $this->numberGenerationService->rollPathfinderDie(20);
+        $total     = $d20 + $acrobatics;
+        $degree    = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
 
-        return [
-          'success' => FALSE,
-          'result' => ['error' => "Unknown encounter action: $type"],
-          'mutations' => [],
-          'events' => [],
-          'phase_transition' => NULL,
-          'narration' => NULL,
-        ];
+        $balanced = in_array($degree, ['success', 'critical_success'], TRUE);
+        if ($degree === 'critical_failure' || $degree === 'failure') {
+          // Flat-footed until start of next turn.
+          $this->conditionManager->applyCondition(
+            (int) $actor_id, 'flat_footed', 0,
+            ['remaining_attacks' => PHP_INT_MAX],
+            'balance_fail',
+            (int) $encounter_id
+          );
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['balanced' => $balanced, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('balance', 'encounter', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1594: Tumble Through [1 action, Acrobatics — encounter]
+      // Move through an enemy's space; fail = movement stops.
+      // -----------------------------------------------------------------------
+      case 'tumble_through': {
+        $target_ref = $params['target_id'] ?? '';
+        $dc         = (int) ($params['dc'] ?? 15);
+        $acrobatics = (int) ($params['acrobatics_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $acrobatics;
+        $degree     = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $passed_through = in_array($degree, ['success', 'critical_success'], TRUE);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['passed_through' => $passed_through, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('tumble_through', 'encounter', $actor_id, $result, NULL, $target_ref);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1598: Maneuver in Flight [1 action, Acrobatics — encounter, aerial]
+      // Perform a difficult maneuver while flying.
+      // -----------------------------------------------------------------------
+      case 'maneuver_in_flight': {
+        $dc         = (int) ($params['dc'] ?? 15);
+        $acrobatics = (int) ($params['acrobatics_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $acrobatics;
+        $degree     = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $maneuvered = in_array($degree, ['success', 'critical_success'], TRUE);
+        if ($degree === 'critical_failure') {
+          // Fall on critical failure.
+          $game_state['encounter_state'][$actor_id . '_falling'] = TRUE;
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['maneuvered' => $maneuvered, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('maneuver_in_flight', 'encounter', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1657: Feint [2 actions, Deception — encounter]
+      // Make target flat-footed: crit success = until end of turn; success = next attack.
+      // -----------------------------------------------------------------------
+      case 'feint': {
+        $target_ref = $params['target_id'] ?? '';
+        $dc         = (int) ($params['dc'] ?? 15);
+        $deception  = (int) ($params['deception_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $deception;
+        $degree     = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $feinted = FALSE;
+        if ($degree === 'critical_success') {
+          $feinted = TRUE;
+          // Flat-footed for all attacks through end of turn.
+          $this->conditionManager->applyCondition(
+            (int) $target_ref, 'flat_footed', 0,
+            ['remaining_attacks' => PHP_INT_MAX],
+            'feint_crit',
+            (int) $encounter_id
+          );
+        }
+        elseif ($degree === 'success') {
+          $feinted = TRUE;
+          // Flat-footed for next attack only.
+          $this->conditionManager->applyCondition(
+            (int) $target_ref, 'flat_footed', 0,
+            ['remaining_attacks' => 1],
+            'feint',
+            (int) $encounter_id
+          );
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 2);
+        $result = ['feinted' => $feinted, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('feint', 'encounter', $actor_id, $result, NULL, $target_ref);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1660: Create a Diversion [1 action, Deception — encounter]
+      // Allow actor to Hide by distracting observers; success = briefly hidden.
+      // -----------------------------------------------------------------------
+      case 'create_diversion': {
+        $dc        = (int) ($params['dc'] ?? 15);
+        $deception = (int) ($params['deception_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20       = $this->numberGenerationService->rollPathfinderDie(20);
+        $total     = $d20 + $deception;
+        $degree    = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $diverted = in_array($degree, ['success', 'critical_success'], TRUE);
+        if ($diverted) {
+          $game_state['encounter_state'][$actor_id . '_created_diversion'] = TRUE;
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['diverted' => $diverted, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('create_diversion', 'encounter', $actor_id, $result);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1677: Request [1 action, Diplomacy — encounter]
+      // Make a request of a willing or friendly target.
+      // -----------------------------------------------------------------------
+      case 'request': {
+        $target_ref = $params['target_id'] ?? '';
+        $dc         = (int) ($params['dc'] ?? 15);
+        $diplomacy  = (int) ($params['diplomacy_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $diplomacy;
+        $degree     = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $granted = in_array($degree, ['success', 'critical_success'], TRUE);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['granted' => $granted, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('request', 'encounter', $actor_id, $result, NULL, $target_ref);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1683: Demoralize [1 action, Intimidation — encounter]
+      // Apply Frightened condition; 10-min immunity per target.
+      // -----------------------------------------------------------------------
+      case 'demoralize': {
+        $target_ref  = $params['target_id'] ?? '';
+        $dc          = (int) ($params['dc'] ?? 15);
+        $intimidation = (int) ($params['intimidation_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20         = $this->numberGenerationService->rollPathfinderDie(20);
+        $total       = $d20 + $intimidation;
+        $degree      = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $immune_key = 'demoralize_immune_' . $target_ref . '_' . $actor_id;
+        $immune     = !empty($game_state['encounter_state'][$immune_key]);
+
+        $demoralized = FALSE;
+        if (!$immune) {
+          $game_state['encounter_state'][$immune_key] = TRUE;
+          if ($degree === 'critical_success') {
+            $demoralized = TRUE;
+            $this->conditionManager->applyCondition((int) $target_ref, 'frightened', 2, [], 'demoralize_crit', (int) $encounter_id);
+          }
+          elseif ($degree === 'success') {
+            $demoralized = TRUE;
+            $this->conditionManager->applyCondition((int) $target_ref, 'frightened', 1, [], 'demoralize', (int) $encounter_id);
+          }
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['demoralized' => $demoralized, 'immune' => $immune, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('demoralize', 'encounter', $actor_id, $result, NULL, $target_ref);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1700: Command an Animal [1 action, Nature — encounter]
+      // Direct a trained animal; trained companions get DC − 5.
+      // Panic on critical failure (attacks nearest creature).
+      // -----------------------------------------------------------------------
+      case 'command_animal': {
+        $target_ref = $params['target_id'] ?? $actor_id;
+        $dc         = (int) ($params['dc'] ?? 15);
+        if (!empty($params['is_trained_companion'])) {
+          $dc -= 5;
+        }
+        $nature     = (int) ($params['nature_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20        = $this->numberGenerationService->rollPathfinderDie(20);
+        $total      = $d20 + $nature;
+        $degree     = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $obeyed = in_array($degree, ['success', 'critical_success'], TRUE);
+        if ($degree === 'critical_failure') {
+          $game_state['encounter_state']['animal_panicked_' . $target_ref] = TRUE;
+        }
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['obeyed' => $obeyed, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('command_animal', 'encounter', $actor_id, $result, NULL, $target_ref);
+        break;
+      }
+
+      // -----------------------------------------------------------------------
+      // REQ 1706: Perform [1 action, Performance — encounter]
+      // Entertain during combat (e.g., inspire allies or distract enemies).
+      // -----------------------------------------------------------------------
+      case 'perform': {
+        $dc          = (int) ($params['dc'] ?? 15);
+        $performance = (int) ($params['performance_bonus'] ?? $params['skill_bonus'] ?? 0);
+        $d20         = $this->numberGenerationService->rollPathfinderDie(20);
+        $total       = $d20 + $performance;
+        $degree      = $this->combatCalculator->calculateDegreeOfSuccess($total, $dc, $d20);
+
+        $entertained = in_array($degree, ['success', 'critical_success'], TRUE);
+        $game_state['turn']['actions_remaining'] = max(0, ($game_state['turn']['actions_remaining'] ?? 3) - 1);
+        $result = ['entertained' => $entertained, 'degree' => $degree, 'roll' => $total, 'dc' => $dc];
+        $events[] = GameEventLogger::buildEvent('perform', 'encounter', $actor_id, $result);
+        break;
+      }
+
     }
 
     // Check for auto-end-turn (actions depleted + no movement remaining).
@@ -3263,8 +3496,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
     $attacks_this_turn = $game_state['turn']['attacks_this_turn'] ?? 0;
     $map = $this->combatCalculator->calculateMultipleAttackPenalty($attacks_this_turn, !empty($params['is_agile']));
     $d20 = $this->numberGenerationService->rollPathfinderDie(20);
-    // Prefer athletics_bonus if provided; fall back to skill_bonus (unarmed).
-    $modifier = isset($params['athletics_bonus']) ? (int) $params['athletics_bonus'] : (int) ($params['skill_bonus'] ?? 0);
+    // Prefer acrobatics_bonus or athletics_bonus if provided; fall back to skill_bonus (unarmed).
+    $modifier = (int) ($params['acrobatics_bonus'] ?? $params['athletics_bonus'] ?? $params['skill_bonus'] ?? 0);
     $total = $d20 + $modifier + $map;
     $degree = $this->combatCalculator->calculateDegreeOfSuccess($total, (int) ($params['grapple_dc'] ?? 15), $d20);
 
@@ -3452,6 +3685,20 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'palm_object':
       // REQ 1751: Steal costs 1 action.
       case 'steal':
+      // REQ 1591: Balance / Tumble Through / Maneuver in Flight cost 1 action.
+      case 'balance':
+      case 'tumble_through':
+      case 'maneuver_in_flight':
+      // REQ 1660: Create a Diversion costs 1 action.
+      case 'create_diversion':
+      // REQ 1677: Request costs 1 action.
+      case 'request':
+      // REQ 1683: Demoralize costs 1 action.
+      case 'demoralize':
+      // REQ 1700: Command an Animal costs 1 action (encounter).
+      case 'command_animal':
+      // REQ 1706: Perform costs 1 action (encounter).
+      case 'perform':
         return 1;
 
       case 'ready':
@@ -3466,6 +3713,8 @@ class EncounterPhaseHandler implements PhaseHandlerInterface {
       case 'disable_device':
       // REQ 1753: Pick a Lock costs 2 actions.
       case 'pick_lock':
+      // REQ 1657: Feint costs 2 actions.
+      case 'feint':
         return 2;
 
       case 'cast_spell':

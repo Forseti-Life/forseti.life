@@ -3,7 +3,7 @@
 - Work item id: dc-cr-skills-performance-perform
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260410-dungeoncrawler-release-d
 - Priority: P3
 - PM owner: pm-dungeoncrawler
