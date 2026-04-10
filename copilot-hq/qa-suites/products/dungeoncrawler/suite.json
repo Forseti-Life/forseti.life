@@ -10425,69 +10425,122 @@
       "test_cases": [
         {
           "id": "TC-CI-01",
-          "description": "Arcana routing: Aberrations, Constructs, Humanoids, Oozes map to Arcana skill_required",
-          "ac": "Happy Path - skill routing"
+          "description": "Arcana routing: Aberrations, Constructs, Humanoids, Oozes map to Arcana skill for Recall Knowledge",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Recall Knowledge against Aberration/Construct/Humanoid/Ooze → skill_required includes 'arcana'",
+          "ac_ref": "Happy Path - skill routing",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-02",
-          "description": "Nature routing: Animals, Beasts, Fungi, Plants map to Nature skill_required",
-          "ac": "Happy Path - skill routing"
+          "description": "Nature routing: Animals, Beasts, Fungi, Plants map to Nature skill for Recall Knowledge",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Recall Knowledge against Animal/Beast/Fungi/Plant → skill_required includes 'nature'",
+          "ac_ref": "Happy Path - skill routing",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-03",
-          "description": "Religion routing: Celestials, Fiends, Monitors, Undead map to Religion skill_required",
-          "ac": "Happy Path - skill routing"
+          "description": "Religion routing: Celestials, Fiends, Monitors, Undead map to Religion skill for Recall Knowledge",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Recall Knowledge against Fiend/Celestial/Monitor/Undead → skill_required includes 'religion'",
+          "ac_ref": "Happy Path - skill routing",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-04",
           "description": "Multi-skill routing: Dragons/Elementals allow Arcana or Nature; Fey allow Nature or Occultism; Spirits allow Occultism",
-          "ac": "Happy Path - skill routing"
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Dragon → skill_required includes both 'arcana' and 'nature'; Fey → 'nature' and 'occultism'; Spirit → 'occultism'",
+          "ac_ref": "Happy Path - skill routing",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-05",
-          "description": "Lore fallback: any creature type allows appropriate Lore subcategory as alternative in valid skill list",
-          "ac": "Happy Path - skill routing"
+          "description": "Lore fallback: any creature type allows appropriate Lore subcategory as alternative skill",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Recall Knowledge against any creature → Lore skill option present in valid skill list",
+          "ac_ref": "Happy Path - skill routing",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-06",
-          "description": "Untrained use permitted: character untrained in valid skill may still attempt Recall Knowledge; roll proceeds",
-          "ac": "Happy Path - untrained use"
+          "description": "Untrained use permitted: character untrained in mapped skill may still attempt Recall Knowledge (no trained-gate block)",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Character untrained in Arcana attempting Recall Knowledge on Humanoid: untrained use allowed; roll proceeds with untrained modifier",
+          "ac_ref": "Happy Path - multiple applicable skills",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-07",
-          "description": "DC resolution: level-based DC + rarity adjustment; common creature no modifier, uncommon elevated per rarity table",
-          "ac": "Happy Path - DC resolution",
+          "description": "DC resolution: creature identification DC = level-based DC + rarity adjustment from dc-cr-dc-rarity-spell-adjustment",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Level 3 common creature: DC matches level-based table; Level 3 uncommon creature: DC elevated per rarity table",
+          "ac_ref": "Happy Path - DC resolution",
+          "status": "conditional",
           "depends_on": "dc-cr-dc-rarity-spell-adjustment"
         },
         {
           "id": "TC-CI-08",
-          "description": "Crit Success: standard creature info block + at least one bonus fact returned",
-          "ac": "Happy Path - degrees of success"
+          "description": "Crit Success: all standard creature info returned plus at least one bonus fact",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Roll result = Crit Success → full standard creature info block AND at least one bonus fact (special ability or weakness detail)",
+          "ac_ref": "Happy Path - degrees of success",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-09",
-          "description": "Success: standard creature info block returned; no bonus fact present",
-          "ac": "Happy Path - degrees of success"
+          "description": "Success: standard creature info returned; no bonus fact",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Roll result = Success → standard info block present; no bonus fact in response",
+          "ac_ref": "Happy Path - degrees of success",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-10",
-          "description": "Failure: no creature info returned; UI shows generic no-information message",
-          "ac": "Happy Path - degrees of success"
+          "description": "Failure: no creature info returned; UI shows generic 'no information recalled' message",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Roll result = Failure → response body contains no creature info; UI shows generic 'no information recalled' message",
+          "ac_ref": "Happy Path - degrees of success",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-11",
-          "description": "Crit Failure: false info presented as true; player-facing UI shows no failed/uncertain indicator; internal log records crit-fail",
-          "ac": "Edge Cases - Crit Fail false info"
+          "description": "Crit Failure: false info presented as true; player-facing UI shows no failure indicator; internal log records crit-fail",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Roll result = Crit Fail → response includes fabricated info with no 'failed' or 'uncertain' indicator shown to player; server log records actual result as crit-fail",
+          "ac_ref": "Edge Cases - Crit Fail",
+          "status": "immediately activatable",
+          "open_question": "PM must confirm player-facing message format contract (same open question as TC-RK-05)"
         },
         {
           "id": "TC-CI-12",
-          "description": "Unknown creature type: defaults to GM-adjudicated Lore check (skill_required = null or lore_gm); UI indicates GM Lore",
-          "ac": "Edge Cases - unknown type"
+          "description": "Unknown creature type: system defaults to GM-adjudicated Lore check (skill_required = null or 'lore_gm')",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Creature with no mapped trait → skill_required = null or 'lore_gm'; UI indicates 'use appropriate Lore (GM)'",
+          "ac_ref": "Edge Cases - unknown type",
+          "status": "immediately activatable"
         },
         {
           "id": "TC-CI-13",
-          "description": "Invalid skill selection: Athletics (or other non-valid skill) blocked with validation error; no roll performed",
-          "ac": "Failure Modes"
+          "description": "Invalid skill blocked: attempting Recall Knowledge with skill not valid for creature type returns validation error",
+          "feature_id": "dc-cr-creature-identification",
+          "suite": "playwright/encounter",
+          "expected": "Character uses Athletics for creature identification → validation error 'skill not applicable to this creature type'; system does not roll",
+          "ac_ref": "Failure Modes",
+          "status": "immediately activatable"
         }
       ]
     },
