@@ -1537,6 +1537,29 @@
       ],
       "required_for_release": true,
       "notes": "Requires FORSETI_TELEMETRY_TOKEN env var set to valid token. Small payload may return 401/400 if token invalid \u2014 PASS condition is 'not 413'. Run after dev implements AC."
+    },
+    {
+      "id": "forseti-jobhunter-hook-install-fix-static",
+      "label": "hook_install fix: both _job_hunter_create_interview_notes_table and _job_hunter_create_saved_searches_table called in job_hunter_install() (TC-01)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-hook-install-fix",
+      "command": "bash -c 'FILE=sites/forseti/web/modules/custom/job_hunter/job_hunter.install; OUT=$(grep -A60 \"function job_hunter_install\" \"$FILE\" | grep \"_job_hunter_create_interview_notes_table\\|_job_hunter_create_saved_searches_table\"); echo \"$OUT\"; echo \"$OUT\" | grep -q \"_job_hunter_create_interview_notes_table\" && echo \"TC-01a PASS: interview_notes_table called\" || (echo \"TC-01a FAIL: _job_hunter_create_interview_notes_table missing from hook_install\" && exit 1); echo \"$OUT\" | grep -q \"_job_hunter_create_saved_searches_table\" && echo \"TC-01b PASS: saved_searches_table called\" || (echo \"TC-01b FAIL: _job_hunter_create_saved_searches_table missing from hook_install\" && exit 1)'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-hook-install-fix-static-no-dup",
+      "label": "hook_install fix: no duplicate calls \u2014 helper call count matches expected (TC-02)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-hook-install-fix",
+      "command": "bash -c 'FILE=sites/forseti/web/modules/custom/job_hunter/job_hunter.install; COUNT=$(grep -c \"_job_hunter_create_interview_notes_table\\|_job_hunter_create_saved_searches_table\" \"$FILE\"); echo \"occurrence count: $COUNT\"; [ \"$COUNT\" -eq 4 ] && echo \"TC-02 PASS: count=4 (1 call + 1 def per helper)\" || (echo \"TC-02 WARN: expected 4, got $COUNT (verify manually for duplicates)\" && exit 1)'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true,
+      "notes": "Expected count is 4: one call site + one function definition per helper. If count differs, manual inspection required."
     }
   ],
   "_schema_notes": [
