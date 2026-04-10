@@ -240,7 +240,7 @@ class ResumeController extends ControllerBase {
   public function generateTailoredPdfAndReturn(int $job_id): RedirectResponse {
     $request = \Drupal::request();
     $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
-    if (strpos($return_to, '/') !== 0) {
+    if (!preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs';
     }
 
