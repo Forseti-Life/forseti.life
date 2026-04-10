@@ -5,21 +5,42 @@
 - Methodology owner: `ceo-copilot-2`
 
 ## Mission
-Make the org's core software products publicly available under open source licenses, enabling community contributions, external adoption, and transparency aligned with the org-wide mission to **democratize and decentralize internet services**.
+Publish the **Forseti Autonomous Drupal Development Platform** as open source — a full-stack system combining Drupal 10/11 multi-site architecture with an AI agent orchestration layer that autonomously manages the software development lifecycle (PM → BA → Dev → QA → Release). Enables community contributions, external adoption, and replication — advancing the org mission to **democratize and decentralize internet services**.
+
+## What This Platform Is
+
+This is not just a collection of Drupal modules. It is a complete, self-operating software development platform:
+
+| Layer | Technology | What it does |
+|---|---|---|
+| **Application** | Drupal 10/11 multi-site | Hosts multiple products (forseti.life, DungeonCrawler, client sites) from a single installation |
+| **AI Integration** | AWS Bedrock / Claude | Conversational AI features embedded in Drupal modules |
+| **Agent Orchestration** | Python / LangGraph | Autonomous AI agents play PM, BA, Dev, QA roles; advance features through a defined release cycle |
+| **Dev Automation** | Copilot CLI + GitHub | Agents write code, dispatch work, manage features, review output — no human in the dev loop |
+| **Org Structure** | YAML-defined roles | Explicit agent seat model: org-chart, ownership matrix, decision authority |
+
+**The full platform is the product.** Individual repos (modules, sites, framework) are components of a larger thing that others can fork and operate.
 
 ## Applies to
 All seats with `website_scope: ["open-source"]`.
 
 ## Scope — What Gets Open Sourced
 
-### Tier 1 — Primary public repos (new GitHub repos, separate from monorepo)
+### Platform Overview Repo (new — highest priority, tells the whole story)
+
+| Repo Name | Contents | Audience |
+|---|---|---|
+| `forseti-platform` | Architecture overview, how the pieces fit together, getting-started guide for running your own instance | Everyone — the entry point |
+
+### Tier 1 — Core Platform Repos
 
 | Repo Name | Source Path | Contents | Audience |
 |---|---|---|---|
-| `forseti-job-hunter` | `sites/forseti/web/modules/custom/job_hunter` + `ai_conversation` + `copilot_agent_tracker` + theme | AI-powered job application platform | Job seekers, Drupal devs |
-| `dungeoncrawler` | `sites/dungeoncrawler/` | Full PF2E assistant Drupal site | TTRPG community, Drupal devs |
-| `copilot-agent-framework` | `copilot-hq/` (sanitized) | LangGraph AI agent orchestration system | AI/ML engineers, platform builders |
+| `copilot-agent-framework` | `copilot-hq/` (sanitized) | LangGraph AI agent orchestration — the autonomous dev layer. Org-chart model, orchestrator, agent seats, release cycle | AI/ML engineers, platform builders |
+| `drupal-platform` | `sites/forseti/` (core stack, sans client data) | Drupal 10 multi-site stack, shared module structure, symlink architecture | Drupal devs, self-hosters |
 | `drupal-ai-conversation` | `shared/modules/ai_conversation/` | Standalone AWS Bedrock/Claude Drupal module | Drupal module ecosystem |
+| `forseti-job-hunter` | `sites/forseti/web/modules/custom/job_hunter` + theme | AI-powered job application platform module | Job seekers, Drupal devs |
+| `dungeoncrawler` | `sites/dungeoncrawler/` | Full PF2E assistant Drupal site | TTRPG community, Drupal devs |
 
 ### Tier 2 — Evaluate after Tier 1
 - `forseti-safety` (`amisafe` module + H3 geolocation) — after data/privacy review
@@ -73,11 +94,26 @@ All seats with `website_scope: ["open-source"]`.
 - Monorepo: `/home/ubuntu/forseti.life/`
 - Public GitHub org target: `github.com/keithaumiller/` (or new org TBD — see decision below)
 
-## Open Decision: GitHub Org
-- **Option A:** Publish under `keithaumiller/` personal account (current monorepo location)
-- **Option B:** Create a new GitHub org (e.g., `forseti-community/`) for community identity
-- **Recommendation:** Create `forseti-community` org for Tier 1 repos to signal community ownership — aligns with mission. Keep monorepo under personal account as private source-of-truth.
-- **Board decision required** before repo creation.
+## GitHub Org: forseti-community ✅ DECIDED
+
+**Decision:** Publish all Tier 1 repos under `github.com/forseti-community/`
+
+**Rationale:** Community org signals that this belongs to the community, not an individual. Aligns with mission. Consistent with how major open source Drupal distros and AI platform projects operate.
+
+**Board action required — one-time web UI step:**
+1. Go to: https://github.com/organizations/new
+2. Organization name: `forseti-community`
+3. Contact email: your email
+4. Plan: Free
+5. After creation, add `keithaumiller` as Owner
+6. Confirm org exists at: https://github.com/forseti-community
+
+> Note: GitHub org creation is not available via API on github.com (GitHub Enterprise only). This is the only manual step in the entire process.
+
+After Board creates the org, dev-open-source can push all prepared repos with:
+```bash
+GH_TOKEN=$(cat /home/ubuntu/github.token) gh repo create forseti-community/<repo-name> --public --source=<local-path>
+```
 
 ## QA posture
 - Each public repo must pass its own CI before going public.

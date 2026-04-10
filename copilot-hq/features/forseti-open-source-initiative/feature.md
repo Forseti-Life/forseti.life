@@ -6,21 +6,40 @@ priority: high
 target_release: tbd
 
 ## Summary
-Publish the org's core software products as open source repositories on GitHub, enabling community contributions and advancing the mission to democratize and decentralize internet services.
+Publish the **Forseti Autonomous Drupal Development Platform** as open source under `github.com/forseti-community/`. This is a full-stack system: Drupal 10/11 multi-site + AWS Bedrock AI integration + LangGraph agent orchestration that autonomously manages the entire software development lifecycle (PM → BA → Dev → QA → Release). The platform itself is the product being open sourced — not just individual modules.
+
+```
+┌─────────────────────────────────────────────────────────┐
+│           Forseti Autonomous Dev Platform                │
+├─────────────────────┬───────────────────────────────────┤
+│  Application Layer  │  Drupal 10/11 multi-site           │
+│  AI Layer           │  AWS Bedrock / Claude (Drupal mod) │
+│  Agent Layer        │  LangGraph orchestrator + seats    │
+│  Org Layer          │  YAML org-chart, roles, ownership  │
+│  Dev Automation     │  Copilot CLI execution engine      │
+└─────────────────────┴───────────────────────────────────┘
+```
+
+## GitHub Org: forseti-community ✅ DECIDED
+- Board decision: publish under `github.com/forseti-community/`
+- **Board action remaining:** Create org at https://github.com/organizations/new
+  - Name: `forseti-community` | Plan: Free | Add `keithaumiller` as Owner
+  - (API creation not available on github.com — web UI only)
 
 ## Success Criteria
-1. At least two Tier 1 repos (forseti-job-hunter, copilot-agent-framework) are publicly accessible on GitHub
-2. Each public repo has complete setup documentation allowing a fresh install on a clean machine
-3. No secrets, private keys, or client data present in any public repo or its git history
-4. GitHub Actions CI passes on each public repo
-5. Community files present in each repo (LICENSE, README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue templates)
+1. `forseti-platform` overview repo published with architecture and quickstart
+2. At least `copilot-agent-framework` and `drupal-ai-conversation` publicly accessible on GitHub under `forseti-community/`
+3. Each public repo has complete setup documentation — fresh install on a clean machine works
+4. No secrets, private keys, or client data present in any public repo or its git history
+5. GitHub Actions CI passes on each public repo
+6. Community files present in each repo (LICENSE, README, CONTRIBUTING, CODE_OF_CONDUCT, SECURITY, issue templates)
 
 ## Work Breakdown
 
 ### Phase 0 — Governance & Org Setup
-- [ ] CEO decision: GitHub org name (`forseti-community` vs personal account)
-- [ ] Board review: confirm which products enter Tier 1 (requires no client involvement)
-- [ ] Register GitHub org (if new org selected)
+- [ ] Board creates `forseti-community` GitHub org at https://github.com/organizations/new
+- [ ] Board adds `keithaumiller` as Owner of the org
+- [ ] Confirm org exists and token has access: `GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/forseti-community`
 
 ### Phase 1 — Pre-Publish Security Audit
 Owner: dev-open-source, reviewed by pm-open-source
@@ -33,30 +52,46 @@ Owner: dev-open-source, reviewed by pm-open-source
 - [ ] Audit `prod-config/` — confirm it will not be included in any public repo
 - [ ] Confirm `database-exports/` not in any extractable history segment
 
-### Phase 2 — Repo Extraction (per-product)
+### Phase 2 — Repo Extraction (per-product, in sequence)
 
-#### 2a — drupal-ai-conversation (standalone module — lowest risk, highest reuse value)
-- [ ] Extract `shared/modules/ai_conversation/` to new git repo
-- [ ] Write README (AWS Bedrock integration, supported Claude models, config)
+#### 2a — forseti-platform (new — overview repo, first published)
+- [ ] Create empty repo in forseti-community: `forseti-platform`
+- [ ] Write README: what the platform is, architecture diagram, how components relate
+- [ ] Write QUICKSTART.md: how to deploy your own instance (Ubuntu 22/24, Drupal, agents)
+- [ ] Document the agent model (org-chart, seats, orchestrator loop)
+- [ ] Link to all component repos
+- [ ] Tag v1.0.0, publish
+
+#### 2b — drupal-ai-conversation (standalone module — lowest risk, highest Drupal ecosystem value)
+- [ ] Extract `shared/modules/ai_conversation/` to new git repo under forseti-community
+- [ ] Write README (AWS Bedrock integration, supported Claude models, config env vars)
 - [ ] Add GitHub Actions: Drupal coding standards (phpcs) + basic install test
-- [ ] Tag v1.0.0, publish
+- [ ] Tag v1.0.0, publish to Drupal.org as contributed module
 
-#### 2b — copilot-agent-framework (highest novelty, most interesting to AI/ML community)
+#### 2c — copilot-agent-framework (highest novelty — the autonomous dev engine)
 - [ ] Extract `copilot-hq/` minus sessions/, minus prod secrets
-- [ ] Write README (architecture overview, orchestrator setup, agent seat model)
+- [ ] Write README (orchestrator architecture, agent seat model, LangGraph flow)
 - [ ] Add GitHub Actions: Python lint + orchestrator import test
-- [ ] Write QUICKSTART.md (local Python venv setup, first agent run)
+- [ ] Write QUICKSTART.md (local Python venv setup, first agent run end-to-end)
 - [ ] Tag v1.0.0, publish
 
-#### 2c — forseti-job-hunter (flagship product)
-- [ ] Extract `sites/forseti/web/modules/custom/` + theme
+#### 2d — drupal-platform (the Drupal multi-site stack itself)
+- [ ] Extract `sites/forseti/` core stack, sans client data and private keys
+- [ ] Document symlink architecture for shared modules
+- [ ] Write README (multi-site setup, shared modules, Apache vhost config)
+- [ ] Add DDEV `.ddev/` config for local development
+- [ ] Add GitHub Actions: composer validate + phpcs
+- [ ] Tag v1.0.0, publish
+
+#### 2e — forseti-job-hunter (flagship application)
+- [ ] Extract `sites/forseti/web/modules/custom/job_hunter` + theme
 - [ ] Write README (what it does, Drupal 10/11 requirements, install steps)
 - [ ] Add GitHub Actions: Drupal coding standards + composer validate
-- [ ] Write QUICKSTART.md (DDEV or Lando local setup)
+- [ ] Write QUICKSTART.md (requires drupal-platform + drupal-ai-conversation)
 - [ ] Document AWS Bedrock dependency (requires `.env` with keys)
 - [ ] Tag v1.0.0, publish
 
-#### 2d — dungeoncrawler (community TTRPG product)
+#### 2f — dungeoncrawler (community TTRPG product)
 - [ ] Extract `sites/dungeoncrawler/` modules + theme
 - [ ] Write README (PF2E assistant, features, install)
 - [ ] Add GitHub Actions: Drupal coding standards

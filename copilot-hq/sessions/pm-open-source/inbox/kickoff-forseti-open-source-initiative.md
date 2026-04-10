@@ -1,46 +1,73 @@
 # Kickoff: forseti-open-source-initiative
 
-**From:** ceo-copilot-2
+**From:** ceo-copilot-2 + architect-copilot
 **To:** pm-open-source
-**Date:** 2026-04-14
+**Date:** 2026-04-10
 **Priority:** High
 
 ---
 
 ## Assignment
 
-You are being activated as PM for the **Open Source Initiative** — publishing the org's core products as public GitHub repositories.
+You are being activated as PM for the **Open Source Initiative** — publishing the Forseti Autonomous Drupal Development Platform as public repositories under `github.com/forseti-community/`.
 
-## Context
+## What We're Open Sourcing
 
-The org currently operates a private monorepo at `/home/ubuntu/forseti.life/` containing:
-- **forseti.life** — AI-powered job application platform (Drupal + AWS Bedrock)
-- **DungeonCrawler** — PF2E TTRPG assistant (Drupal)
-- **copilot-hq** — AI agent orchestration framework (Python/LangGraph)
-- **Shared modules** — drupal-ai-conversation (standalone Bedrock integration)
+This is not just Drupal modules. It is a **complete autonomous software development platform**:
 
-The Board (Keith) has directed open sourcing as a strategic priority aligned with the org mission: *"Democratize and decentralize internet services for scientific, technology-focused, and tolerant people."*
+```
+┌─────────────────────────────────────────────────────────┐
+│           Forseti Autonomous Dev Platform                │
+├─────────────────────┬───────────────────────────────────┤
+│  Application Layer  │  Drupal 10/11 multi-site           │
+│  AI Layer           │  AWS Bedrock / Claude (Drupal mod) │
+│  Agent Layer        │  LangGraph orchestrator + seats    │
+│  Org Layer          │  YAML org-chart, roles, ownership  │
+│  Dev Automation     │  Copilot CLI execution engine      │
+└─────────────────────┴───────────────────────────────────┘
+```
+
+Repos to create under `forseti-community/`:
+1. `forseti-platform` — overview repo, architecture, quickstart (publish first)
+2. `drupal-ai-conversation` — standalone Bedrock/Claude Drupal module
+3. `copilot-agent-framework` — the autonomous dev engine (copilot-hq sanitized)
+4. `drupal-platform` — the Drupal multi-site stack
+5. `forseti-job-hunter` — the flagship job application platform
+6. `dungeoncrawler` — PF2E TTRPG assistant
+
+## Decisions Already Made
+
+| Decision | Value |
+|---|---|
+| GitHub org | `forseti-community` ✅ |
+| Repo structure | Separate repos (not monorepo split) ✅ |
+| License | Apache 2.0 (already applied throughout) ✅ |
+
+## One Remaining Board Action
+**Create the GitHub org** — web UI only, API not available on github.com:
+1. Go to: https://github.com/organizations/new
+2. Name: `forseti-community` | Plan: Free
+3. Add `keithaumiller` as Owner
+
+Everything else is unblocked and can proceed in parallel.
 
 ## Your First Tasks
 
-1. **Read the site instructions:** `org-chart/sites/open-source/site.instructions.md`
-2. **Read the feature definition:** `features/forseti-open-source-initiative/feature.md`
-3. **Escalate the GitHub org decision to the Board** — the question is whether to publish under `keithaumiller/` (personal) or create a new org like `forseti-community/`. This is a governance decision requiring Board approval before any public repo is created.
-4. **Build your PM artifact:** a phased project schedule in `sessions/pm-open-source/artifacts/oss-project-schedule.md` — phases, owners, rough sequence (no dates).
-5. **Draft your first dispatch to dev-open-source:** Phase 1 pre-publish security audit (BFG scan, secrets removal). Hold dispatch until Board answers GitHub org question.
+1. **Read:** `org-chart/sites/open-source/site.instructions.md`
+2. **Read:** `features/forseti-open-source-initiative/feature.md`
+3. **Build artifact:** phased project schedule in `sessions/pm-open-source/artifacts/oss-project-schedule.md`
+4. **Dispatch to dev-open-source:** Phase 1 security audit (BFG scan, secrets removal) — can start before org exists
 
-## Known Blockers (Phase 0 — must resolve before any code goes public)
-- 🔴 GitHub org decision (Board required)
-- 🔴 3 RSA private keys present in `sites/forseti/keys/` — must be removed from files AND git history
-- 🟡 1,813 git commits — full BFG scan needed
-- 🟡 `sessions/` in copilot-hq contains internal org communications — must be excluded
+## Known Phase 1 Blockers (pre-publish security — dev-open-source must clear all)
+- 🔴 3 RSA private keys in `sites/forseti/keys/` — remove from files AND git history
+- 🔴 1,813-commit history — full BFG secrets scan
+- 🟡 `sessions/` in copilot-hq — exclude from public repo
+- 🟡 `.env.example` — replace literal credentials with `YOUR_*` placeholders
+- 🟡 9 copilot scripts — audit for hardcoded tokens/IPs
 
-## Out of Scope for You
-- Selecting which technology to use (architect-copilot owns extraction tooling decisions)
-- Modifying production files directly (dev-open-source executes; you own the plan)
-
-## Escalation path
-- GitHub org decision → Board (Keith)
-- Git history secrets risk → architect-copilot for technical approach
+## Escalation Path
+- GitHub org creation → Board (web UI)
+- Git history secrets approach → architect-copilot
 - All other decisions → PM authority
+
 
