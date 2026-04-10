@@ -670,6 +670,14 @@
       "auth_expected": 413,
       "feature_id": "forseti-agent-tracker-payload-size-limit",
       "notes": "Payload > 65536 bytes must return 413 for all callers (size check runs before auth check per AC). Verification: POST 65537+ bytes to this endpoint."
+    },
+    {
+      "path": "/jobhunter/company/*/delete",
+      "method": "GET_return_to",
+      "anon_expected": 403,
+      "auth_expected": 200,
+      "feature_id": "forseti-jobhunter-return-to-open-redirect",
+      "notes": "CompanyController delete confirm route. return_to param must reject //evil.com (protocol-relative) and http://evil.com (absolute). Valid /path accepted. Fallback: /jobhunter/my-jobs."
     }
   ]
 }

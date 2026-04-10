@@ -1560,6 +1560,42 @@
       ],
       "required_for_release": true,
       "notes": "Expected count is 4: one call site + one function definition per helper. If count differs, manual inspection required."
+    },
+    {
+      "id": "forseti-jobhunter-return-to-open-redirect-static",
+      "label": "Open redirect fix: no unguarded strpos-only return_to validation in CompanyController or ApplicationActionController (TC-01)",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-return-to-open-redirect",
+      "command": "bash -c 'BASE=sites/forseti/web/modules/custom/job_hunter/src/Controller; COMPANY=$(grep -n \"strpos.*return_to\\|return_to.*strpos\" \"$BASE/CompanyController.php\" 2>/dev/null); ACTION=$(grep -n \"strpos.*return_to\\|return_to.*strpos\" \"$BASE/ApplicationActionController.php\" 2>/dev/null); echo \"CompanyController strpos matches: ${COMPANY:-none}\"; echo \"ApplicationActionController strpos matches: ${ACTION:-none}\"; ( [ -z \"$COMPANY\" ] || echo \"$COMPANY\" | grep -qv \"preg_match\" ) && [ -n \"$COMPANY\" ] && echo \"TC-01 WARN: unguarded strpos still present in CompanyController\" && exit 1; ( [ -z \"$ACTION\" ] || echo \"$ACTION\" | grep -qv \"preg_match\" ) && [ -n \"$ACTION\" ] && echo \"TC-01 WARN: unguarded strpos still present in ApplicationActionController\" && exit 1; echo \"TC-01 PASS: no unguarded strpos return_to validation found\"'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true,
+      "notes": "PASS condition: grep returns no results (pattern replaced with preg_match). If strpos lines exist without accompanying preg_match guard, TC-01 FAILs."
+    },
+    {
+      "id": "forseti-jobhunter-return-to-open-redirect-static-preg",
+      "label": "Open redirect fix: preg_match pattern present in both controllers to reject protocol-relative URLs",
+      "type": "static",
+      "feature_id": "forseti-jobhunter-return-to-open-redirect",
+      "command": "bash -c 'BASE=sites/forseti/web/modules/custom/job_hunter/src/Controller; C=$(grep -n \"preg_match.*return_to\\|return_to.*preg_match\" \"$BASE/CompanyController.php\" 2>/dev/null); A=$(grep -n \"preg_match.*return_to\\|return_to.*preg_match\" \"$BASE/ApplicationActionController.php\" 2>/dev/null); echo \"CompanyController: ${C:-MISSING}\"; echo \"ApplicationActionController: ${A:-MISSING}\"; [ -n \"$C\" ] && echo \"PASS: CompanyController has preg_match guard\" || (echo \"FAIL: CompanyController missing preg_match return_to guard\" && exit 1); [ -n \"$A\" ] && echo \"PASS: ApplicationActionController has preg_match guard\" || (echo \"FAIL: ApplicationActionController missing preg_match return_to guard\" && exit 1)'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true
+    },
+    {
+      "id": "forseti-jobhunter-return-to-open-redirect-functional",
+      "label": "Open redirect fix: //evil.com rejected (->my-jobs), valid /path accepted, http://evil.com rejected (TC-02 TC-03 TC-04)",
+      "type": "functional",
+      "feature_id": "forseti-jobhunter-return-to-open-redirect",
+      "command": "bash -c 'BASE=${FORSETI_BASE_URL:-https://forseti.life}; COOKIE=${FORSETI_COOKIE_AUTHENTICATED:-}; HEADERS=\"-H \\\"Cookie: $COOKIE\\\"\"; FAILURES=0\n# TC-02: protocol-relative rejected\nDEST=$(curl -s -o /dev/null -w \"%{redirect_url}\" -L --max-redirs 3 -b \"$COOKIE\" \"$BASE/jobhunter/my-jobs?return_to=//evil.com\" 2>/dev/null)\necho \"TC-02 //evil.com redirect: $DEST\"\necho \"$DEST\" | grep -qv \"evil.com\" && echo \"TC-02 PASS: //evil.com not in final destination\" || (echo \"TC-02 FAIL: open redirect to //evil.com still works\" && FAILURES=$((FAILURES+1)))\n# TC-03: valid path accepted\nDEST3=$(curl -s -o /dev/null -w \"%{redirect_url}\" -L --max-redirs 3 -b \"$COOKIE\" \"$BASE/jobhunter/my-jobs?return_to=/jobhunter/my-jobs\" 2>/dev/null)\necho \"TC-03 valid path redirect: $DEST3\"\necho \"$DEST3\" | grep -q \"jobhunter\" && echo \"TC-03 PASS\" || echo \"TC-03 WARN: valid path may not have been followed (check manually)\"\n# TC-04: absolute URL rejected\nDEST4=$(curl -s -o /dev/null -w \"%{redirect_url}\" -L --max-redirs 3 -b \"$COOKIE\" \"$BASE/jobhunter/my-jobs?return_to=http://evil.com\" 2>/dev/null)\necho \"TC-04 http://evil.com redirect: $DEST4\"\necho \"$DEST4\" | grep -qv \"evil.com\" && echo \"TC-04 PASS: absolute URL not followed\" || (echo \"TC-04 FAIL: absolute URL redirect\" && FAILURES=$((FAILURES+1)))\n[ $FAILURES -eq 0 ] && echo \"ALL PASS\" || (echo \"FAILURES: $FAILURES\" && exit 1)'",
+      "artifacts": [
+        "stdout"
+      ],
+      "required_for_release": true,
+      "notes": "Requires FORSETI_COOKIE_AUTHENTICATED env var. TC-02 is the critical security check; TC-03 is regression-guard. The return_to parameter test route may vary by controller \u2014 verify against an actual company delete/action route if /jobhunter/my-jobs does not use return_to directly.",
+      "status": "pending_implementation"
     }
   ],
   "_schema_notes": [
