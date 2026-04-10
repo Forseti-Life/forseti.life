@@ -561,12 +561,21 @@ class InventoryManagementService {
       $char_data['currency'] = $new_currency;
     }
 
-    $this->database->update('dc_campaign_characters')
-      ->fields(['character_data' => json_encode($char_data)])
-      ->condition('id', $character_id)
-      ->execute();
+    $transaction = $this->database->startTransaction();
+    try {
+      $this->database->update('dc_campaign_characters')
+        ->fields(['character_data' => json_encode($char_data)])
+        ->condition('id', $character_id)
+        ->execute();
 
-    return $this->addItemToInventory($character_id, 'character', $item, 'carried', $quantity, $campaign_id);
+      $result = $this->addItemToInventory($character_id, 'character', $item, 'carried', $quantity, $campaign_id);
+    }
+    catch (\Exception $e) {
+      $transaction->rollBack();
+      throw $e;
+    }
+    unset($transaction); // Commit on scope exit.
+    return $result;
   }
 
   /**
