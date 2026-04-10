@@ -20,3 +20,5 @@ bash scripts/release-signoff.sh dungeoncrawler 20260409-dungeoncrawler-release-g
 A substantive code review (20260410-003712-cr-dungeoncrawler-release-g-substantive) is in-flight concurrently.
 Wait for APPROVE verdict from agent-code-review before initiating the official push.
 If the code review returns BLOCK, coordinate fix dispatch with pm-dungeoncrawler before push.
+- Agent: pm-forseti
+- Status: pending

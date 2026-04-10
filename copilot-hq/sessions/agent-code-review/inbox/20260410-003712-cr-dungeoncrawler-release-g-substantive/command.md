@@ -27,3 +27,5 @@ The first code review for this release was a fast-exit (no code had landed yet).
 ## Acceptance criteria
 - All MEDIUM+ findings dispatched to dev-dungeoncrawler inbox before push
 - APPROVE verdict or explicit BLOCK with finding list
+- Agent: agent-code-review
+- Status: pending
