@@ -569,6 +569,12 @@ services:
     arguments:
       - '@dungeoncrawler_content.dc_adjustment'
 
+  dungeoncrawler_content.creature_identification:
+    class: Drupal\dungeoncrawler_content\Service\CreatureIdentificationService
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.recall_knowledge'
+
   dungeoncrawler_content.identify_magic:
     class: Drupal\dungeoncrawler_content\Service\IdentifyMagicService
     arguments:

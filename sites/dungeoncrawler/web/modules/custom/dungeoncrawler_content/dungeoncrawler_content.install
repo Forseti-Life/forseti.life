@@ -5056,3 +5056,75 @@ function dungeoncrawler_content_update_10038() {
 
   return 'Added feature_id column (and idx_feature_id index) to dc_requirements (DC-RF-01).';
 }
+
+/**
+ * Create dc_creature_id_attempts table for creature identification tracking
+ * (dc-cr-creature-identification).
+ */
+function dungeoncrawler_content_update_10039() {
+  $schema = \Drupal::database()->schema();
+
+  if ($schema->tableExists('dc_creature_id_attempts')) {
+    return 'dc_creature_id_attempts already exists — skipped.';
+  }
+
+  $schema->createTable('dc_creature_id_attempts', [
+    'description' => 'Tracks Recall Knowledge identification attempts per character+creature.',
+    'fields' => [
+      'id' => [
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+        'description' => 'Primary key.',
+      ],
+      'character_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Character identifier.',
+      ],
+      'creature_id' => [
+        'type' => 'varchar',
+        'length' => 128,
+        'not null' => TRUE,
+        'description' => 'Creature identifier (key into CharacterManager::CREATURES).',
+      ],
+      'degree' => [
+        'type' => 'varchar',
+        'length' => 32,
+        'not null' => TRUE,
+        'description' => 'Degree of success: critical_success, success, failure, critical_failure.',
+      ],
+      'revealed_info_level' => [
+        'type' => 'varchar',
+        'length' => 16,
+        'not null' => TRUE,
+        'default' => 'none',
+        'description' => 'What the character has learned: none, partial, full.',
+      ],
+      'reveal_data' => [
+        'type' => 'text',
+        'size' => 'big',
+        'not null' => FALSE,
+        'description' => 'JSON-encoded reveal payload (NULL on failure).',
+      ],
+      'attempted_at' => [
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+        'description' => 'Unix timestamp of most recent attempt.',
+      ],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => [
+      'character_creature' => ['character_id', 'creature_id'],
+    ],
+    'indexes' => [
+      'character_id'  => ['character_id'],
+      'creature_id'   => ['creature_id'],
+      'reveal_level'  => ['revealed_info_level'],
+    ],
+  ]);
+
+  return 'Created dc_creature_id_attempts table (dc-cr-creature-identification).';
+}

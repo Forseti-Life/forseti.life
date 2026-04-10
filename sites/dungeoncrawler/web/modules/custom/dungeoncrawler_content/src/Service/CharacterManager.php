@@ -12381,4 +12381,72 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     return $a >= $r;
   }
 
+  // ---------------------------------------------------------------------------
+  // Creature Identification — trait-to-skill mapping (PF2e Core p.235)
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Maps creature trait groups to the Recall Knowledge skill(s) that apply.
+   *
+   * Each value is an array of one or more skill IDs (lowercase).
+   * Multi-skill entries mean the character may use any ONE of the listed skills.
+   * An empty string key ('') captures unknown/unmapped types → GM Lore fallback.
+   *
+   * PF2e Core Rulebook (Fourth Printing), Chapter 10, p.235.
+   */
+  const CREATURE_TRAIT_SKILLS = [
+    // Single-skill groups
+    'aberration'  => ['arcana'],
+    'construct'   => ['arcana'],
+    'humanoid'    => ['arcana'],
+    'ooze'        => ['arcana'],
+    'animal'      => ['nature'],
+    'beast'       => ['nature'],
+    'fungus'      => ['nature'],
+    'plant'       => ['nature'],
+    'celestial'   => ['religion'],
+    'fiend'       => ['religion'],
+    'monitor'     => ['religion'],
+    'undead'      => ['religion'],
+    // Multi-skill groups (character chooses one)
+    'dragon'      => ['arcana', 'nature'],
+    'elemental'   => ['arcana', 'nature'],
+    'fey'         => ['nature', 'occultism'],
+    'spirit'      => ['occultism'],
+    // Occultism-only extras
+    'astral'      => ['occultism'],
+    'dream'       => ['occultism'],
+    'psychic'     => ['occultism'],
+    // Giant / giant-adjacent (treated as humanoid lore group in many tables)
+    'giant'       => ['arcana'],
+  ];
+
+  /**
+   * Return the valid Recall Knowledge skills for a creature's trait list.
+   *
+   * An appropriate Lore subcategory is always appended as a fallback per rules.
+   * If no mapped trait is found, returns ['lore_gm'] so the GM can adjudicate.
+   *
+   * @param string[] $traits  Lowercase trait strings from the creature stat block.
+   *
+   * @return string[]  Deduplicated list of valid skill IDs (lowercase).
+   */
+  public static function recallKnowledgeSkillsForTraits(array $traits): array {
+    $skills = [];
+    foreach ($traits as $trait) {
+      $trait = strtolower(trim($trait));
+      if (isset(self::CREATURE_TRAIT_SKILLS[$trait])) {
+        foreach (self::CREATURE_TRAIT_SKILLS[$trait] as $skill) {
+          $skills[$skill] = TRUE;
+        }
+      }
+    }
+    if (empty($skills)) {
+      return ['lore_gm'];
+    }
+    // Always allow an appropriate Lore subcategory as well.
+    $skills['lore_gm'] = TRUE;
+    return array_keys($skills);
+  }
+
 }
