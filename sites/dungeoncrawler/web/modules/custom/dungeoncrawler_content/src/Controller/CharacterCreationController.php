@@ -183,46 +183,7 @@ class CharacterCreationController extends ControllerBase {
    * Get ancestry heritages.
    */
   private function getAncestryHeritages($name) {
-    $heritages = [
-      'Dwarf' => [
-        ['name' => 'Ancient-Blooded', 'benefit' => 'Resistance to magic'],
-        ['name' => 'Forge', 'benefit' => 'Fire resistance'],
-        ['name' => 'Rock', 'benefit' => 'Extended darkvision'],
-        ['name' => 'Strong-Blooded', 'benefit' => 'Poison resistance'],
-      ],
-      'Elf' => [
-        ['name' => 'Arctic', 'benefit' => 'Cold resistance'],
-        ['name' => 'Cavern', 'benefit' => 'Darkvision'],
-        ['name' => 'Seer', 'benefit' => 'Detect magic'],
-        ['name' => 'Whisper', 'benefit' => 'Enhanced hearing'],
-        ['name' => 'Woodland', 'benefit' => 'Climb speed'],
-      ],
-      'Gnome' => [
-        ['name' => 'Chameleon', 'benefit' => 'Change colors'],
-        ['name' => 'Fey-Touched', 'benefit' => 'First World magic'],
-        ['name' => 'Sensate', 'benefit' => 'Enhanced senses'],
-        ['name' => 'Umbral', 'benefit' => 'Darkvision'],
-      ],
-      'Goblin' => [
-        ['name' => 'Charhide', 'benefit' => 'Fire resistance'],
-        ['name' => 'Irongut', 'benefit' => 'Eat anything'],
-        ['name' => 'Razortooth', 'benefit' => 'Bite attack'],
-        ['name' => 'Snow', 'benefit' => 'Cold resistance'],
-      ],
-      'Halfling' => [
-        ['name' => 'Gutsy', 'benefit' => 'Bonus vs fear'],
-        ['name' => 'Hillock', 'benefit' => 'Faster healing'],
-        ['name' => 'Nomadic', 'benefit' => 'Extra languages'],
-        ['name' => 'Twilight', 'benefit' => 'Low-light vision'],
-      ],
-      'Human' => [
-        ['name' => 'Versatile', 'benefit' => 'Extra general feat'],
-      ],
-      'Mobians' => [],
-      'Fungians' => [],
-      'Automaton' => [],
-    ];
-    return $heritages[$name] ?? [];
+    return CharacterManager::HERITAGES[$name] ?? [];
   }
 
   /**
