@@ -1,5 +1,5 @@
 - Agent: agent-code-review
-- Status: pending
+- Status: done
 - command: |
     Pre-ship code review for forseti.life release 20260410-forseti-release-b.
     Review all commits in this release cycle against the code-review checklist in
