@@ -341,17 +341,17 @@ echo "$SEP"
 queue_log="/var/log/drupal/tailoring_queue.log"
 if [ -f "$queue_log" ]; then
   last_entry=$(tail -1 "$queue_log" 2>/dev/null || true)
-  # Check for error patterns
-  error_count=$(grep -c -i "error\|exception\|failed" "$queue_log" 2>/dev/null || echo 0)
   last_mtime=$(stat -c %Y "$queue_log" 2>/dev/null || echo 0)
   age_h=$(( (now_ts - last_mtime) / 3600 ))
+  # Check for error patterns in the last 500 lines only (avoids false positives from rotated/historical log data)
+  error_count=$(tail -500 "$queue_log" 2>/dev/null | grep -c -i "error\|exception\|failed" || echo 0)
 
   if [ "$error_count" -gt 0 ]; then
-    fail "Tailoring queue log has $error_count error/exception lines"
-    info "$(grep -i "error\|exception\|failed" "$queue_log" | tail -2)"
+    fail "Tailoring queue log has $error_count error/exception lines (last 500 lines)"
+    info "$(tail -500 "$queue_log" | grep -i "error\|exception\|failed" | tail -2)"
     queue_dispatch "dev-forseti" "tailoring-queue-errors" "8" "FAIL" \
-      "Tailoring queue has $error_count error/exception lines in log" \
-      "The Drupal tailoring queue log ($queue_log) contains $error_count error/exception/failed lines.\n\nRecent errors:\n\`\`\`\n$(grep -i "error\|exception\|failed" "$queue_log" | tail -5)\n\`\`\`\n\nInvestigate the AI resume service integration. Check JSON parsing, API connectivity, and cache state. Fix and verify the queue processes without errors."
+      "Tailoring queue has $error_count error/exception lines in log (recent)" \
+      "The Drupal tailoring queue log ($queue_log) contains $error_count recent error/exception/failed lines.\n\nRecent errors:\n\`\`\`\n$(tail -500 "$queue_log" | grep -i "error\|exception\|failed" | tail -5)\n\`\`\`\n\nInvestigate the AI resume service integration. Check JSON parsing, API connectivity, and cache state. Fix and verify the queue processes without errors."
   elif [ "$age_h" -gt 2 ]; then
     warn "Tailoring queue log last updated ${age_h}h ago — queue cron may be stopped"
     info "Check: crontab -l | grep tailoring"
