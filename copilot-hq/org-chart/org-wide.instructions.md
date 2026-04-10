@@ -141,6 +141,18 @@ Boundary rule:
 - You may directly edit only your own seat instructions file.
 - For org-wide/role/runbook/script changes outside your scope: write an instructions-change proposal (or a concrete patch suggestion) and escalate to the owning seat.
 
+## Troubleshooting protocol (required)
+When diagnosing a bug or unexpected behavior, follow this order:
+
+1. **Trace the live logic first** — read the actual code path that produces the output. Do not theorize; follow the execution.
+2. **Identify current state** — determine what the system is doing right now (what values are set, what is being output, what the UI/DB/log actually shows). Use direct observation: run the code, query the DB, read the file.
+3. **Fix it** — once the current state is understood and the broken step is identified, fix it. Surgical and direct.
+
+**What NOT to do:**
+- Do not dig into git history, commit messages, or blame to understand "why." That is archaeology, not diagnosis.
+- Do not theorize about how a bug was introduced. Trace current behavior → find the broken step → fix it.
+- Do not over-explain the root cause. Document what was broken and what was changed.
+
 ## Blocker research protocol (required)
 If you are blocked (or about to mark `Status: blocked` / `Status: needs-info`), you MUST do this first:
 
