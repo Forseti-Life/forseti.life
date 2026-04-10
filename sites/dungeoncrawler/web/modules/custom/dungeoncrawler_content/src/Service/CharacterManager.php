@@ -10624,4 +10624,401 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     return $pc_level < $party_level;
   }
 
+  // =========================================================================
+  // Environment & Terrain System (PF2e CRB Chapter 10)
+  // =========================================================================
+
+  /**
+   * Environmental damage categories by severity tier.
+   *
+   * Each tier value is the damage dice/amount string per PF2e CRB Chapter 10.
+   * Tiers are ordered: minor < moderate < major < massive.
+   * Source: PF2e CRB Table 10-4 (Environmental Damage).
+   *
+   * @var array
+   */
+  const ENVIRONMENTAL_DAMAGE_CATEGORIES = [
+    'bludgeoning' => [
+      'minor'    => '2d6',
+      'moderate' => '4d8',
+      'major'    => '6d12',
+      'massive'  => '8d12',
+    ],
+    'falling' => [
+      'minor'    => '1d6 per 10 ft',
+      'moderate' => '2d6 per 10 ft (max 20d6)',
+      'major'    => '20d6',
+      'massive'  => '20d6 + additional effects',
+    ],
+    'fire' => [
+      'minor'    => '2d4',
+      'moderate' => '4d6',
+      'major'    => '6d8',
+      'massive'  => '8d10',
+    ],
+    'cold' => [
+      'minor'    => '2d4',
+      'moderate' => '4d6',
+      'major'    => '6d8',
+      'massive'  => '8d10',
+    ],
+    'electricity' => [
+      'minor'    => '2d4',
+      'moderate' => '4d6',
+      'major'    => '6d8',
+      'massive'  => '8d10',
+    ],
+    'acid' => [
+      'minor'    => '2d4',
+      'moderate' => '4d6',
+      'major'    => '6d8',
+      'massive'  => '8d10',
+    ],
+  ];
+
+  /**
+   * Terrain type catalog with movement and condition effects.
+   *
+   * Structure per entry:
+   * - variants: keyed by variant name → { terrain_type, conditions[], cover?, notes? }
+   *
+   * terrain_type values: normal | difficult | greater_difficult | hazardous | impassable | uneven_ground
+   * conditions: flat-footed, difficult, greater_difficult, uneven_ground, etc.
+   *
+   * Source: PF2e CRB Chapter 10, Terrain section.
+   */
+  const TERRAIN_CATALOG = [
+    'bog' => [
+      'variants' => [
+        'shallow' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['difficult'],
+        ],
+        'deep' => [
+          'terrain_type' => 'greater_difficult',
+          'conditions'   => ['greater_difficult'],
+        ],
+        'magical' => [
+          'terrain_type' => 'hazardous',
+          'conditions'   => ['hazardous'],
+        ],
+      ],
+    ],
+    'ice' => [
+      'variants' => [
+        'standard' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['uneven_ground', 'difficult'],
+        ],
+      ],
+    ],
+    'snow' => [
+      'variants' => [
+        'shallow' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['difficult'],
+        ],
+        'packed' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['difficult'],
+        ],
+        'loose_deep' => [
+          'terrain_type' => 'greater_difficult',
+          'conditions'   => ['greater_difficult', 'uneven_ground'],
+        ],
+      ],
+    ],
+    'sand' => [
+      'variants' => [
+        'packed' => [
+          'terrain_type' => 'normal',
+          'conditions'   => [],
+        ],
+        'loose_shallow' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['difficult'],
+        ],
+        'loose_deep' => [
+          'terrain_type' => 'uneven_ground',
+          'conditions'   => ['uneven_ground'],
+        ],
+      ],
+    ],
+    'rubble' => [
+      'variants' => [
+        'standard' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['difficult'],
+        ],
+        'dense' => [
+          'terrain_type' => 'uneven_ground',
+          'conditions'   => ['uneven_ground', 'difficult'],
+        ],
+      ],
+    ],
+    'undergrowth' => [
+      'variants' => [
+        'light' => [
+          'terrain_type' => 'difficult',
+          'conditions'   => ['difficult'],
+          'cover'        => 'take_cover_allowed',
+        ],
+        'heavy' => [
+          'terrain_type' => 'greater_difficult',
+          'conditions'   => ['greater_difficult'],
+          'cover'        => 'automatic_cover',
+        ],
+        'thorns' => [
+          'terrain_type' => 'greater_difficult',
+          'conditions'   => ['greater_difficult', 'hazardous'],
+          'cover'        => 'automatic_cover',
+        ],
+      ],
+    ],
+    'slope' => [
+      'variants' => [
+        'gentle' => [
+          'terrain_type' => 'normal',
+          'conditions'   => [],
+        ],
+        'steep' => [
+          'terrain_type' => 'requires_climb',
+          'conditions'   => ['flat-footed'],
+          'requires'     => 'Athletics (Climb)',
+        ],
+      ],
+    ],
+    'narrow_surface' => [
+      'variants' => [
+        'standard' => [
+          'terrain_type' => 'normal',
+          'conditions'   => ['flat-footed'],
+          'requires'     => 'Acrobatics (Balance)',
+          'fall_risk'    => [
+            'trigger'   => 'hit_or_failed_save',
+            'save'      => 'Reflex',
+            'save_dc'   => 'Balance DC',
+          ],
+        ],
+      ],
+    ],
+    'uneven_ground' => [
+      'variants' => [
+        'standard' => [
+          'terrain_type' => 'uneven_ground',
+          'conditions'   => ['flat-footed'],
+          'requires'     => 'Acrobatics (Balance)',
+          'fall_risk'    => [
+            'trigger' => 'hit_or_failed_save',
+            'save'    => 'Reflex',
+          ],
+        ],
+      ],
+    ],
+  ];
+
+  /**
+   * Temperature effect tiers.
+   *
+   * Each tier defines damage and applicable conditions.
+   * Source: PF2e CRB Chapter 10, Temperature section.
+   */
+  const TEMPERATURE_EFFECTS = [
+    'mild_cold' => [
+      'damage'     => NULL,
+      'conditions' => [],
+      'notes'      => 'No mechanical effect; discomfort only.',
+    ],
+    'severe_cold' => [
+      'damage'     => ['amount' => '2d6', 'type' => 'cold', 'frequency' => 'per hour without protection'],
+      'conditions' => ['fatigued risk'],
+      'notes'      => 'Without cold-weather gear or magical protection.',
+    ],
+    'extreme_cold' => [
+      'damage'     => ['amount' => '4d6', 'type' => 'cold', 'frequency' => 'per 10 minutes'],
+      'conditions' => ['fatigued', 'clumsy 1'],
+      'notes'      => 'Immediate effect; requires magical protection or cold immunity.',
+    ],
+    'mild_heat' => [
+      'damage'     => NULL,
+      'conditions' => [],
+      'notes'      => 'No mechanical effect; discomfort only.',
+    ],
+    'severe_heat' => [
+      'damage'     => ['amount' => '2d6', 'type' => 'fire', 'frequency' => 'per hour without protection'],
+      'conditions' => ['fatigued risk'],
+      'notes'      => 'Without heat-weather gear or magical protection.',
+    ],
+    'extreme_heat' => [
+      'damage'     => ['amount' => '4d6', 'type' => 'fire', 'frequency' => 'per 10 minutes'],
+      'conditions' => ['fatigued', 'clumsy 1'],
+      'notes'      => 'Immediate effect; requires magical protection or fire immunity.',
+    ],
+  ];
+
+  /**
+   * Collapse and burial mechanics.
+   *
+   * Source: PF2e CRB Chapter 10, Avalanches, Collapses, and Burial.
+   */
+  const COLLAPSE_BURIAL = [
+    'avalanche' => [
+      'damage_tier' => 'major_bludgeoning',
+      'save' => [
+        'type'         => 'Reflex',
+        'success'      => 'half_damage',
+        'crit_success' => 'no_burial',
+        'failure'      => 'full_damage_and_buried',
+      ],
+    ],
+    'burial' => [
+      'conditions'        => ['restrained'],
+      'damage_per_minute' => 'minor_bludgeoning',
+      'cold_damage'       => 'possible (cold environment only)',
+      'suffocation_save'  => 'Fortitude',
+      'suffocation' => [
+        'save_required_each_round' => TRUE,
+        'fail_result'              => 'advance_suffocation',
+      ],
+    ],
+    'rescue_digging' => [
+      'base_rate' => [
+        'area'         => '5x5',
+        'time_minutes' => 4,
+      ],
+      'crit_success_time'  => 2,
+      'no_tools_modifier'  => 0.5,
+      'skill'              => 'Athletics',
+    ],
+    'collapse' => [
+      'damage_tier'      => 'major_bludgeoning',
+      'burial'           => TRUE,
+      'spread_condition' => 'structural_integrity_failed',
+      'notes'            => 'Does not spread unless structural integrity failed.',
+    ],
+  ];
+
+  /**
+   * Wind strength tiers and their mechanical effects.
+   *
+   * Source: PF2e CRB Chapter 10, Wind section.
+   */
+  const WIND_EFFECTS = [
+    'light' => [
+      'auditory_perception_penalty' => -1,
+      'ranged_attack_penalty'       => -1,
+      'ranged_attacks_impossible'   => FALSE,
+      'flying' => [
+        'against_wind'         => 'normal',
+        'requires'             => NULL,
+        'crit_fail'            => NULL,
+      ],
+      'ground_movement' => [
+        'requires'     => NULL,
+        'crit_fail'    => [],
+        'small_penalty' => 0,
+        'tiny_penalty'  => -1,
+      ],
+    ],
+    'moderate' => [
+      'auditory_perception_penalty' => -2,
+      'ranged_attack_penalty'       => -2,
+      'ranged_attacks_impossible'   => FALSE,
+      'flying' => [
+        'against_wind' => 'difficult_terrain',
+        'requires'     => 'Maneuver_in_Flight',
+        'crit_fail'    => 'blown_away',
+      ],
+      'ground_movement' => [
+        'requires'      => NULL,
+        'crit_fail'     => [],
+        'small_penalty' => -1,
+        'tiny_penalty'  => -2,
+      ],
+    ],
+    'strong' => [
+      'auditory_perception_penalty' => -4,
+      'ranged_attack_penalty'       => -4,
+      'ranged_attacks_impossible'   => FALSE,
+      'flying' => [
+        'against_wind' => 'greater_difficult_terrain',
+        'requires'     => 'Maneuver_in_Flight',
+        'crit_fail'    => 'blown_away',
+      ],
+      'ground_movement' => [
+        'requires'      => 'Athletics',
+        'crit_fail'     => ['knocked_back', 'prone'],
+        'small_penalty' => -1,
+        'tiny_penalty'  => -2,
+      ],
+    ],
+    'powerful' => [
+      'auditory_perception_penalty' => -4,
+      'ranged_attack_penalty'       => -4,
+      'ranged_attacks_impossible'   => TRUE,
+      'flying' => [
+        'against_wind' => 'greater_difficult_terrain',
+        'requires'     => 'Maneuver_in_Flight',
+        'crit_fail'    => 'blown_away',
+      ],
+      'ground_movement' => [
+        'requires'      => 'Athletics',
+        'crit_fail'     => ['knocked_back', 'prone'],
+        'small_penalty' => -1,
+        'tiny_penalty'  => -2,
+      ],
+    ],
+  ];
+
+  /**
+   * Underwater visibility and current rules.
+   *
+   * Source: PF2e CRB Chapter 10, Underwater section.
+   */
+  const UNDERWATER_RULES = [
+    'visibility' => [
+      'clear'  => ['max_ft' => 240, 'min_ft' => 60],
+      'murky'  => ['max_ft' => 60,  'min_ft' => 10],
+    ],
+    'swimming_against_current' => [
+      'slow'  => ['speed_threshold_ft' => 15, 'terrain_type' => 'difficult'],
+      'fast'  => ['speed_threshold_ft' => NULL, 'terrain_type' => 'greater_difficult'],
+    ],
+    'current_displacement' => [
+      'timing'    => 'end_of_turn',
+      'direction' => 'current_direction',
+      'distance'  => 'current_speed',
+    ],
+  ];
+
+  /**
+   * Get terrain classification for a given terrain type and variant.
+   *
+   * @param string $type
+   *   Terrain type key (e.g., 'bog', 'rubble', 'snow').
+   * @param string $variant
+   *   Variant key (e.g., 'shallow', 'dense', 'packed').
+   *
+   * @return array|null
+   *   Terrain entry array (terrain_type, conditions, etc.) or NULL if not found.
+   */
+  public static function terrainClassification(string $type, string $variant): ?array {
+    return self::TERRAIN_CATALOG[$type]['variants'][$variant] ?? NULL;
+  }
+
+  /**
+   * Get underwater visibility in feet for a given water clarity.
+   *
+   * @param string $clarity
+   *   'clear' or 'murky'.
+   * @param string $bound
+   *   'max_ft' (default) or 'min_ft'.
+   *
+   * @return int|null
+   *   Visibility in feet, or NULL if clarity not found.
+   */
+  public static function underwaterVisibility(string $clarity, string $bound = 'max_ft'): ?int {
+    return self::UNDERWATER_RULES['visibility'][$clarity][$bound] ?? NULL;
+  }
+
 }
