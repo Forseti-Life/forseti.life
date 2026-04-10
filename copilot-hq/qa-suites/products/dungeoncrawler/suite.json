@@ -10719,6 +10719,106 @@
           "ac": "Heritage-5"
         }
       ]
+    },
+    {
+      "id": "dc-cr-economy-e2e",
+      "label": "Economy: currency exchange rates and bulk, starting wealth, item purchase rules, hireling rates, spellcasting services, animals/barding, downtime-only sell restriction, non-combat-trained animal panic",
+      "type": "e2e",
+      "feature_id": "dc-cr-economy",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/inventory/economy.spec.ts playwright/character-creation/starting-wealth.spec.ts playwright/downtime/services.spec.ts playwright/encounter/animal-combat.spec.ts",
+      "artifacts": [
+        "playwright-report/economy-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption granted \u2014 no new routes. TC-ECO-08 spellcasting surcharge depends on dc-cr-spellcasting table values; PM should confirm surcharge tiers when spellcasting services are finalized. TC-ECO-11/12 require dc-cr-encounter-rules (release-a) for combat_start event. TC-ECO-14 requires dc-cr-downtime-mode for phase-check logic.",
+      "test_cases": [
+        {
+          "id": "TC-ECO-01",
+          "description": "Currency exchange rates: 10cp=1sp, 10sp=1gp, 10gp=1pp",
+          "ac": "Currency-1",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-02",
+          "description": "Items with Price=\"\u2014\" blocked from purchase (error = not_for_sale)",
+          "ac": "Currency-2, Failure-1",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-03",
+          "description": "Items with Price=0 free: gold unchanged, item added to inventory",
+          "ac": "Currency-2",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-04",
+          "description": "Level 1 character starting wealth = 15 gp",
+          "ac": "Currency-3",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-05",
+          "description": "Coin Bulk floor division: 999 coins = 0 Bulk; 1000 = 1 Bulk; 1999 = 1 Bulk",
+          "ac": "Currency-4, Edge-2",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-06",
+          "description": "Hireling rates: unskilled = +0 all skills; skilled = +4 specialty, +0 elsewhere",
+          "ac": "Services-1",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-07",
+          "description": "Hireling daily cost doubles when in_danger = true",
+          "ac": "Services-2",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-08",
+          "description": "Spellcasting services: availability=uncommon; total_cost = table price + material component + surcharge where applicable",
+          "ac": "Services-3, Failure-2",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-09",
+          "description": "Subsist action: success sets subsistence_met=true; no gold deducted",
+          "ac": "Services-4",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-10",
+          "description": "Animal catalog entries have price and rental_per_day fields matching Table 6-17",
+          "ac": "Animals-1",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-11",
+          "description": "Non-combat-trained animal: on combat_start condition.frightened=4 and condition.fleeing=true",
+          "ac": "Animals-2",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-12",
+          "description": "Combat-trained animal: no frightened or fleeing condition on combat_start",
+          "ac": "Animals-3",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-13",
+          "description": "Barding: armor_type set, rune_slots=0, price and bulk scale with mount.size",
+          "ac": "Animals-4",
+          "feature_id": "dc-cr-economy"
+        },
+        {
+          "id": "TC-ECO-14",
+          "description": "Sell/purchase during encounter or exploration returns error=downtime_only",
+          "ac": "Edge-1",
+          "feature_id": "dc-cr-economy"
+        }
+      ]
     }
   ],
   "_schema_notes": [

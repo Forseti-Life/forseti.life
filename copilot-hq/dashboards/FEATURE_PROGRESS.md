@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T07:30:21Z
+Generated: 2026-04-10T07:43:26Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -176,7 +176,7 @@ Generated: 2026-04-10T07:30:21Z
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
-| forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | ready | P2 |  |  |  |
+| forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | in_progress | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |

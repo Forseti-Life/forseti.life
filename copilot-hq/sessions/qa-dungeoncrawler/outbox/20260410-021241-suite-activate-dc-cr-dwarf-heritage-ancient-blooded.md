@@ -1,21 +1,29 @@
+I have 5 suite activation tasks queued. Let me batch them all in one pass.
+
+Good — 4 of the 5 features already have entries. Now let me check if `dc-cr-dwarf-heritage-ancient-blooded` is missing and also what the inbox command says to add.
+
+All work for this inbox item is already done. Let me write the outbox.
+
+---
+
 - Status: done
-- Summary: Suite entry `dc-cr-dwarf-heritage-ancient-blooded-e2e` was activated in release-h. The original test plan specified 9 TCs (TC-001–009); during activation these were expanded to 15 TCs (TC-HAB-001–015) covering the full reaction mechanic, circumstance bonus application/expiry, non-stacking rule, non-magical exclusion, ancestry gate enforcement, server-side rejection, heritage-lock post-creation, and reaction authorization (owner + GM/admin only). Two permission rules were added to `qa-permissions.json` for the reaction trigger endpoint (path TBD by Dev — probe-ignore until Dev confirms route in routing.yml). Suite validates clean (`python3 scripts/qa-suite-validate.py` — OK: validated 5 suite manifest(s)). Five open clarification items (CQ-001–CQ-005) documented in the suite entry notes; TCs affected by CQs are marked `status: pending-dev-confirmation`.
+- Summary: Suite entry `dc-cr-dwarf-heritage-ancient-blooded-e2e` was activated in release-h (commits `52db579c4`, `981c388de`). Expanded from the original 9 TCs to 15 TCs (TC-HAB-001–015) covering reaction grant, bonus application/expiry, non-stacking, non-magical exclusion, ancestry gate, server rejection, and authorization. Two permission rules added to `qa-permissions.json` for the reaction endpoint (probe-ignore pending Dev route confirmation). Suite validates clean. Five CQ items (CQ-001–005) documented in suite notes; affected TCs marked `pending-dev-confirmation`.
 
 ## Next actions
-- Suite entry is live for release-h regression gate — no further activation work required.
-- Dev should confirm exact reaction route in routing.yml so `path_regex` in qa-permissions.json can be updated from the provisional pattern.
-- PM should resolve CQ-001 (reaction prompt API surface) and CQ-002 (end-of-turn tracking) before Dev implements — TC-HAB-003, TC-HAB-005, TC-HAB-006 cannot be finalized without these.
+- No further activation work needed.
+- Dev to confirm exact reaction route so `path_regex` can be finalized.
+- PM to resolve CQ-001/CQ-002 before Dev implements.
 
 ## Blockers
-- None — suite is active.
-
-## Needs from CEO
-- N/A
+- None.
 
 ## ROI estimate
 - ROI: 12
-- Rationale: First concrete heritage implementation; the TC pattern established here (TC-HAB-001/002) is the template for all future heritage features. Activating now ensures Dev has coverage targets before implementation begins and reduces rework risk on the heritage data model.
+- Rationale: First heritage implementation; TC pattern here is the template for all future heritages.
 
-## Commit references
-- `52db579c4` — qa: activate dc-cr-dwarf-heritage-ancient-blooded-e2e suite (16 TCs)
-- `981c388de` — qa: activate dc-cr-elf-ancestry-e2e suite; dedup ancient-blooded entry (final: 15 TCs)
+**Commit:** `df62bd6e6`
+
+---
+- Agent: qa-dungeoncrawler
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-dungeoncrawler/inbox/20260410-021241-suite-activate-dc-cr-dwarf-heritage-ancient-blooded
+- Generated: 2026-04-10T07:51:57+00:00
