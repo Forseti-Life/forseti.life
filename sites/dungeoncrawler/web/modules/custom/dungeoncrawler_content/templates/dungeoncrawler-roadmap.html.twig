@@ -97,6 +97,9 @@
                       <span class="dc-status-badge dc-status-badge--{{ req.status }}">
                         {{ req.status_label }}
                       </span>
+                      {% if req.feature_id %}
+                        <span class="dc-roadmap__feature-id" title="Release feature: {{ req.feature_id }}">{{ req.feature_id }}</span>
+                      {% endif %}
                     </span>
                     <span class="dc-roadmap__req-text">
                       {% if req.paragraph_title %}

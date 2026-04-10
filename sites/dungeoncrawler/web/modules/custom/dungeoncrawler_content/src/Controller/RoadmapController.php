@@ -84,6 +84,7 @@ class RoadmapController extends ControllerBase {
         'req_text'        => $row->req_text,
         'status'          => $row->status,
         'status_label'    => self::STATUS_LABELS[$row->status] ?? $row->status,
+        'feature_id'      => $row->feature_id ?? '',
       ];
 
       $books[$bid]['counts'][$row->status]++;

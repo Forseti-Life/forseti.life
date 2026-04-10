@@ -268,6 +268,25 @@
 .dc-roadmap__req-status {
   flex-shrink: 0;
   min-width: 130px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.dc-roadmap__feature-id {
+  display: inline-block;
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: #5a5aaa;
+  background: #f0f0ff;
+  border: 1px solid #c5c5e8;
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 180px;
+  cursor: default;
 }
 
 .dc-roadmap__status-select {
