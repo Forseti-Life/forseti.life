@@ -411,11 +411,23 @@ dead_letter_count=0
 while IFS= read -r inbox_item; do
   [[ "$(basename "$inbox_item")" == _archived* ]] && continue
   [[ -d "$inbox_item/_archived" ]] && continue
+
+  # Skip items already marked done in command.md (Option A stamp).
+  if grep -qiE '^\- Status:\s*done' "$inbox_item/command.md" 2>/dev/null; then
+    continue
+  fi
+
+  # Skip items that have a matching done outbox entry (outbox correlation).
+  item_name=$(basename "$inbox_item")
+  agent=$(echo "$inbox_item" | sed 's|sessions/||;s|/inbox.*||')
+  outbox_dir="sessions/${agent}/outbox"
+  if ls "${outbox_dir}/${item_name}"*.md 2>/dev/null | xargs grep -liE '^\- Status:\s*done' 2>/dev/null | grep -q .; then
+    continue
+  fi
+
   item_mtime=$(stat -c %Y "$inbox_item" 2>/dev/null || echo 0)
   age_h=$(( (now_ts - item_mtime) / 3600 ))
   if [ "$age_h" -gt 48 ]; then
-    agent=$(echo "$inbox_item" | sed 's|sessions/||;s|/inbox.*||')
-    item_name=$(basename "$inbox_item")
     warn "Dead letter: $agent → $item_name (${age_h}h old)"
     dead_letter_count=$(( dead_letter_count + 1 ))
     queue_dispatch "ceo-copilot-2" "dead-letter-${agent}-${item_name}" "5" "WARN" \

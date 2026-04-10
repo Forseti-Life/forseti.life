@@ -742,6 +742,16 @@ status_line="$(grep -iE '^\- Status:' "$out_file" 2>/dev/null | tail -n 1 || tru
 status="$(echo "$status_line" | sed 's/^- Status: *//I' | tr '[:upper:]' '[:lower:]' | tr -d '\r')"
 status="$(echo "$status" | tr ' _' '-' | sed 's/[^a-z-].*$//')"
 
+# Stamp command.md with Status: done so orchestrator skips re-dispatch.
+if [ "$status" = "done" ] && [ -f "$inbox_item/command.md" ]; then
+  completed_ts="$(date -u '+%Y-%m-%dT%H:%M:%SZ')"
+  # Prepend only if not already stamped to avoid duplicate markers.
+  if ! grep -qiE '^\- Status:\s*done' "$inbox_item/command.md" 2>/dev/null; then
+    { printf -- '- Status: done\n- Completed: %s\n\n' "$completed_ts"; cat "$inbox_item/command.md"; } \
+      > "$inbox_item/command.md.tmp" && mv "$inbox_item/command.md.tmp" "$inbox_item/command.md"
+  fi
+fi
+
 # Option B: if the work item references a canonical GitHub issue, post an update
 # comment back to that issue (and close on done).
 issue_url=""

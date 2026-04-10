@@ -139,11 +139,27 @@ def _agent_inbox_dir(agent_id: str) -> Path:
     return REPO_ROOT / "sessions" / agent_id / "inbox"
 
 
+def _is_inbox_item_done(item_dir: Path) -> bool:
+    """Return True if item's command.md is marked '- Status: done' (skip from dispatch)."""
+    import re as _re
+    cmd = item_dir / "command.md"
+    if not cmd.exists():
+        return False
+    try:
+        text = cmd.read_text(encoding="utf-8", errors="ignore")
+        return bool(_re.search(r"^-\s+[Ss]tatus:\s*done", text, _re.MULTILINE))
+    except Exception:
+        return False
+
+
 def _agent_inbox_count(agent_id: str) -> int:
     d = _agent_inbox_dir(agent_id)
     if not d.is_dir():
         return 0
-    return sum(1 for p in d.iterdir() if p.is_dir() and p.name != "_archived")
+    return sum(
+        1 for p in d.iterdir()
+        if p.is_dir() and p.name != "_archived" and not _is_inbox_item_done(p)
+    )
 
 
 def _load_org_priorities() -> Dict[str, int]:
@@ -277,7 +293,7 @@ def _prioritized_agents() -> List[ScheduledAgent]:
             continue
         inbox = _agent_inbox_dir(agent_id)
         top = max(
-            (_item_effective_roi(p, p.name, priorities=priorities) for p in inbox.iterdir() if p.is_dir() and p.name != "_archived"),
+            (_item_effective_roi(p, p.name, priorities=priorities) for p in inbox.iterdir() if p.is_dir() and p.name != "_archived" and not _is_inbox_item_done(p)),
             default=1,
         )
         has_release = _agent_has_release_work(agent_id, release_ids)
@@ -419,7 +435,9 @@ def _oldest_unresolved_inbox_seconds() -> int:
         if not inbox_dir.exists():
             continue
         for item_dir in inbox_dir.iterdir():
-            if not item_dir.is_dir():
+            if not item_dir.is_dir() or item_dir.name == "_archived":
+                continue
+            if _is_inbox_item_done(item_dir):
                 continue
             item_id = item_dir.name
             # Check if a done outbox exists for this item
