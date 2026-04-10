@@ -3,8 +3,8 @@
 - Work item id: dc-cr-class-fighter
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: done
-- Release: 20260409-dungeoncrawler-release-g
+- Status: shipped
+- Release:
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch03

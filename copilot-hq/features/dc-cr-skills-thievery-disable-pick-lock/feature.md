@@ -3,8 +3,8 @@
 - Work item id: dc-cr-skills-thievery-disable-pick-lock
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: done
-- Release: 20260408-dungeoncrawler-release-g
+- Status: shipped
+- Release:
 - Priority: P1
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

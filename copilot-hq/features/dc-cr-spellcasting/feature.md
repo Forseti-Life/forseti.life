@@ -3,8 +3,8 @@
 - Work item id: dc-cr-spellcasting
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: done
-- Release: 20260408-dungeoncrawler-release-g
+- Status: shipped
+- Release:
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
