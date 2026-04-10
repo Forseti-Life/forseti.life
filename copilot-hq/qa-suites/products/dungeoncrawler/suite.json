@@ -10660,8 +10660,9 @@
         },
         {
           "id": "TC-DWF-08",
-          "description": "Low-Light Vision: character.senses includes low_light_vision",
-          "ac": "LLV-1"
+          "description": "Darkvision: character.senses includes darkvision (PF2e CRB RAW; not low-light vision)",
+          "ac": "DV-1",
+          "notes": "Suite defect corrected 2026-04-10: prior TC said low_light_vision; PF2e CRB (4th printing) grants Dwarves darkvision. Implementation is RAW-correct."
         },
         {
           "id": "TC-DWF-09",
