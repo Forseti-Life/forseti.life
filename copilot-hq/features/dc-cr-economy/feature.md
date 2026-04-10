@@ -4,7 +4,7 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: ready
+- Status: done
 - Release: 
 - Dependencies: dc-cr-equipment-system, dc-cr-character-creation
 
