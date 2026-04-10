@@ -11021,4 +11021,1191 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     return self::UNDERWATER_RULES['visibility'][$clarity][$bound] ?? NULL;
   }
 
+  // -------------------------------------------------------------------------
+  // Chapter 6 — Equipment System
+  // Source: PF2E Core Rulebook (Fourth Printing), Chapter 6
+  // -------------------------------------------------------------------------
+
+  /**
+   * Item states: the three positional states of a carried/worn item.
+   * Abilities may require a specific state.
+   */
+  const ITEM_STATES = ['held', 'worn', 'stowed'];
+
+  /**
+   * Rarity rules (CRB Chapter 6).
+   */
+  const RARITY_RULES = [
+    'common'   => ['requires_access' => FALSE, 'description' => 'Available for purchase in most settlements.'],
+    'uncommon' => ['requires_access' => TRUE,  'description' => 'Requires an explicit access grant (class feature, GM override, or character creation ability).'],
+    'rare'     => ['requires_access' => TRUE,  'description' => 'Extremely limited; requires special permission from GM.'],
+    'unique'   => ['requires_access' => TRUE,  'description' => 'One of a kind; only available by special adventure award.'],
+  ];
+
+  /**
+   * Item sell price rules (CRB Chapter 6, p.270).
+   * Standard items sell for half price; exceptions sell at full price.
+   * Exception types: coin, gem, art_object, raw_material.
+   */
+  const ITEM_SELL_EXCEPTIONS = ['coin', 'gem', 'art_object', 'raw_material'];
+
+  const STARTING_WEALTH_CP = 1500;  // 15 gp = 1,500 cp (CRB Chapter 6)
+
+  /**
+   * Item Level rules (CRB Chapter 6, p.271).
+   */
+  const ITEM_LEVEL_RULES = [
+    'default_level'  => 0,
+    'craft_gate'     => 'item_level <= character_level',
+    'note'           => 'Characters can only Craft items with an item level at or below their character level.',
+  ];
+
+  /**
+   * Size-based carrying limits — Table 6-19 (CRB Chapter 6).
+   * Bulk limits per creature size.
+   */
+  const SIZE_BULK_LIMITS = [
+    'tiny'   => ['encumbrance_threshold' => 3, 'max_carry' => 6,  'note' => 'Tiny creatures halve Str-based bulk limits; minimum 0.'],
+    'small'  => ['encumbrance_threshold' => NULL, 'max_carry' => NULL, 'note' => 'Same as Medium (Str modifier applies normally).'],
+    'medium' => ['encumbrance_threshold' => NULL, 'max_carry' => NULL, 'note' => 'Str mod applies: enc = 5+Str, max = 10+Str.'],
+    'large'  => ['encumbrance_threshold' => NULL, 'max_carry' => NULL, 'note' => 'Double all Bulk values (×2 enc/max thresholds).'],
+    'huge'   => ['encumbrance_threshold' => NULL, 'max_carry' => NULL, 'note' => '×4 enc/max thresholds.'],
+    'gargantuan' => ['encumbrance_threshold' => NULL, 'max_carry' => NULL, 'note' => '×8 enc/max thresholds.'],
+    'size_multipliers' => ['tiny' => 0.5, 'small' => 1, 'medium' => 1, 'large' => 2, 'huge' => 4, 'gargantuan' => 8],
+  ];
+
+  /**
+   * Item Bulk and Price scaling by size — Table 6-20 (CRB Chapter 6).
+   * Applies when items are made for a creature of a given size.
+   */
+  const SIZE_ITEM_SCALING = [
+    'tiny'       => ['bulk_multiplier' => 0.1, 'price_multiplier' => 0.5],
+    'small'      => ['bulk_multiplier' => 0.5, 'price_multiplier' => 1.0],
+    'medium'     => ['bulk_multiplier' => 1.0, 'price_multiplier' => 1.0],
+    'large'      => ['bulk_multiplier' => 2.0, 'price_multiplier' => 2.0],
+    'huge'       => ['bulk_multiplier' => 4.0, 'price_multiplier' => 4.0],
+    'gargantuan' => ['bulk_multiplier' => 8.0, 'price_multiplier' => 8.0],
+    'note_small_medium_wielding_large' => 'Small/Medium wielding a Large weapon: clumsy 1; no extra damage benefit. Large armor cannot be worn by Small/Medium creatures.',
+  ];
+
+  /**
+   * Equipment change action costs — Table 6-2 (CRB Chapter 6).
+   * Values are Interact actions required.
+   */
+  const EQUIPMENT_CHANGE_ACTIONS = [
+    'draw_weapon'           => ['actions' => 1, 'type' => 'Interact'],
+    'sheathe_weapon'        => ['actions' => 1, 'type' => 'Interact'],
+    'don_shield'            => ['actions' => 1, 'type' => 'Interact'],
+    'remove_shield'         => ['actions' => 1, 'type' => 'Interact'],
+    'retrieve_belt_pouch'   => ['actions' => 1, 'type' => 'Interact'],
+    'retrieve_backpack_item'=> ['actions' => 2, 'type' => 'Interact', 'note' => 'Must remove backpack first if not doffed.'],
+    'don_light_armor'       => ['actions' => NULL, 'time' => '1 minute (10 rounds)', 'type' => 'Interact'],
+    'don_medium_armor'      => ['actions' => NULL, 'time' => '5 minutes (50 rounds)', 'type' => 'Interact'],
+    'don_heavy_armor'       => ['actions' => NULL, 'time' => '5 minutes (50 rounds)', 'type' => 'Interact'],
+    'remove_armor'          => ['actions' => NULL, 'time' => '1 minute (10 rounds)', 'type' => 'Interact'],
+    'don_with_help'         => ['note' => 'With assistance, donning time is halved.'],
+    'worn_tool_access'      => ['actions' => 0, 'note' => 'Tools worn on body (≤2 Bulk) are accessed free as part of the use action.'],
+    'dragging_item'         => ['note' => 'Dragging halves effective Bulk, requires 2 hands, slow movement (half Speed).'],
+  ];
+
+  /**
+   * Item damage, hardness, HP, and Broken Threshold rules (CRB Chapter 6).
+   */
+  const ITEM_DAMAGE_RULES = [
+    'damage_formula'    => 'max(0, damage - hardness) subtracted from item HP',
+    'broken_threshold'  => 'item HP <= BT → item gains Broken condition',
+    'destroyed'         => 'item HP = 0 → item destroyed',
+    'broken_effects'    => [
+      'general'       => 'Broken items cannot be used normally and grant no bonuses.',
+      'broken_armor'  => [
+        'still_grants_ac' => TRUE,
+        'status_penalty'  => ['light' => -1, 'medium' => -2, 'heavy' => -3],
+        'penalties_apply' => TRUE,
+        'note'            => 'Broken armor still imposes all normal armor penalties.',
+      ],
+    ],
+    'shoddy' => [
+      'attack_penalty'        => -2,
+      'check_penalty_extra'   => -2,
+      'hp_and_bt_divisor'     => 2,
+      'note'                  => 'Shoddy quality: –2 item penalty to attacks/checks; armor check penalty worsened by –2; HP and BT halved.',
+    ],
+    'character_item_damage'   => [
+      'default' => 'Characters normally do NOT take item damage from being hit.',
+      'exceptions' => ['Shield Block', 'special monster abilities'],
+    ],
+    'object_immunities' => [
+      'conditions' => ['blinded', 'confused', 'dazzled', 'deafened', 'fatigued', 'frightened', 'paralyzed', 'sickened', 'stunned', 'unconscious'],
+      'effects'    => ['mental effects', 'precision damage', 'spells requiring targets to be alive'],
+      'note'       => 'Objects are immune to the listed damage types, effects, and conditions by default.',
+    ],
+  ];
+
+  /**
+   * Standard item hardness/HP/BT by material and item category.
+   * Source: CRB Chapter 6, Objects section.
+   */
+  const ITEM_HARDNESS_TABLE = [
+    'thin-wood'  => ['hardness' => 3,  'hp' => 12,  'bt' => 6],
+    'wood'       => ['hardness' => 5,  'hp' => 20,  'bt' => 10],
+    'thin-stone' => ['hardness' => 4,  'hp' => 16,  'bt' => 8],
+    'stone'      => ['hardness' => 7,  'hp' => 28,  'bt' => 14],
+    'thin-iron'  => ['hardness' => 8,  'hp' => 32,  'bt' => 16],
+    'iron'       => ['hardness' => 10, 'hp' => 40,  'bt' => 20],
+    'thin-steel' => ['hardness' => 9,  'hp' => 36,  'bt' => 18],
+    'steel'      => ['hardness' => 11, 'hp' => 44,  'bt' => 22],
+    'glass'      => ['hardness' => 1,  'hp' => 4,   'bt' => 2],
+    'leather'    => ['hardness' => 2,  'hp' => 8,   'bt' => 4],
+    'rope'       => ['hardness' => 0,  'hp' => 4,   'bt' => 2],
+    'cloth'      => ['hardness' => 1,  'hp' => 4,   'bt' => 2],
+  ];
+
+  /**
+   * Weapon group critical specialization effects (CRB Chapter 6, pp.283–284).
+   * Gated behind class features (not automatic) — only classes with the
+   * relevant weapon group proficiency at master+ level gain these effects.
+   * Source: CRB p.283, Table 6-4.
+   */
+  const WEAPON_GROUPS_CRIT_SPECIALIZATION = [
+    'axe' => [
+      'id'     => 'axe',
+      'effect' => 'The target is knocked prone.',
+      'note'   => 'Must be proficient with martial or advanced weapons (or specific class feature).',
+    ],
+    'brawling' => [
+      'id'     => 'brawling',
+      'effect' => 'The target is off-guard until the start of your next turn.',
+    ],
+    'club' => [
+      'id'     => 'club',
+      'effect' => 'You push the target 10 feet away from you.',
+    ],
+    'dart' => [
+      'id'     => 'dart',
+      'effect' => 'The target takes 1d10 persistent bleed damage.',
+    ],
+    'flail' => [
+      'id'     => 'flail',
+      'effect' => 'The target is knocked prone.',
+    ],
+    'hammer' => [
+      'id'     => 'hammer',
+      'effect' => 'You push the target 5 feet away (10 feet if wielding a two-handed hammer).',
+    ],
+    'knife' => [
+      'id'     => 'knife',
+      'effect' => 'The target takes 1d6 persistent bleed damage.',
+    ],
+    'pick' => [
+      'id'     => 'pick',
+      'effect' => 'Your pick deals an amount of extra damage on a critical hit equal to one weapon die.',
+    ],
+    'polearm' => [
+      'id'     => 'polearm',
+      'effect' => 'You push the target 5 feet away from you.',
+    ],
+    'shield' => [
+      'id'     => 'shield',
+      'effect' => 'The target is blinded until the start of your next turn.',
+    ],
+    'sling' => [
+      'id'     => 'sling',
+      'effect' => 'The target is stunned 1.',
+    ],
+    'spear' => [
+      'id'     => 'spear',
+      'effect' => 'The target takes 1d6 persistent bleed damage.',
+    ],
+    'sword' => [
+      'id'     => 'sword',
+      'effect' => 'The target becomes off-guard until the start of your next turn.',
+    ],
+    'bow' => [
+      'id'     => 'bow',
+      'effect' => 'The target takes 1d6 persistent bleed damage.',
+    ],
+    'crossbow' => [
+      'id'     => 'crossbow',
+      'effect' => 'The target is off-guard until the end of your next turn.',
+    ],
+  ];
+
+  /**
+   * Armor group critical specialization effects (CRB Chapter 6, p.275).
+   * Gated behind class features (not automatic).
+   * Bonus scales with armor potency rune value (+1, +2, or +3).
+   */
+  const ARMOR_GROUPS_SPECIALIZATION = [
+    'chain' => [
+      'id'     => 'chain',
+      'effect' => 'On a critical hit, reduce the damage dealt to you by the value of this armor\'s potency rune (minimum 1). This reduction applies to the raw damage before doubling.',
+      'note'   => 'Scales with potency rune: no rune = 0 reduction (effect inactive), +1 = reduce by 1, +2 = reduce by 2, +3 = reduce by 3.',
+    ],
+    'composite' => [
+      'id'     => 'composite',
+      'effect' => 'On a critical hit, the attacker takes 1d6 piercing damage per potency rune value (minimum 1) from the jagged edges of your composite armor.',
+    ],
+    'leather' => [
+      'id'     => 'leather',
+      'effect' => 'On a critical hit, you gain resistance to slashing damage equal to 1 + the armor\'s potency rune value until the start of your next turn.',
+    ],
+    'plate' => [
+      'id'     => 'plate',
+      'effect' => 'On a critical hit, you can use your reaction to reduce the damage taken by 6 + 3 × (potency rune value). This is the Bulwark trait in action.',
+      'requires' => 'bulwark armor trait on the worn armor',
+    ],
+  ];
+
+  /**
+   * Weapon catalog (CRB Chapter 6).
+   * Each entry: id, name, category (simple/martial/advanced/unarmed),
+   * damage_dice, damage_type, weapon_group, price_cp, bulk,
+   * traits[], range (null = melee), reload (null = melee), hands,
+   * two_hand_damage_dice (for two-hand trait), rarity.
+   */
+  const WEAPON_CATALOG = [
+    // ---- Unarmed ----
+    'fist' => [
+      'id' => 'fist', 'name' => 'Fist', 'category' => 'unarmed',
+      'damage_dice' => '1d4', 'damage_type' => 'B', 'weapon_group' => 'brawling',
+      'price_cp' => 0, 'bulk' => '-', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'finesse', 'nonlethal', 'unarmed'], 'rarity' => 'common',
+    ],
+    // ---- Simple Melee ----
+    'club' => [
+      'id' => 'club', 'name' => 'Club', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'club',
+      'price_cp' => 0, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'two_hand_damage_dice' => '1d10',
+      'traits' => ['thrown-10'], 'rarity' => 'common',
+    ],
+    'dagger' => [
+      'id' => 'dagger', 'name' => 'Dagger', 'category' => 'simple',
+      'damage_dice' => '1d4', 'damage_type' => 'P', 'weapon_group' => 'knife',
+      'price_cp' => 20, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'finesse', 'thrown-10', 'versatile-S'], 'rarity' => 'common',
+    ],
+    'gauntlet' => [
+      'id' => 'gauntlet', 'name' => 'Gauntlet', 'category' => 'simple',
+      'damage_dice' => '1d4', 'damage_type' => 'B', 'weapon_group' => 'brawling',
+      'price_cp' => 20, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'free-hand'], 'rarity' => 'common',
+    ],
+    'handaxe' => [
+      'id' => 'handaxe', 'name' => 'Handaxe', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'S', 'weapon_group' => 'axe',
+      'price_cp' => 60, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'thrown-10', 'versatile-B'], 'rarity' => 'common',
+    ],
+    'javelin' => [
+      'id' => 'javelin', 'name' => 'Javelin', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'spear',
+      'price_cp' => 10, 'bulk' => 1, 'hands' => 1, 'range' => 30, 'reload' => NULL,
+      'traits' => ['thrown-30'], 'rarity' => 'common',
+    ],
+    'light-hammer' => [
+      'id' => 'light-hammer', 'name' => 'Light Hammer', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'hammer',
+      'price_cp' => 30, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'thrown-20'], 'rarity' => 'common',
+    ],
+    'longspear' => [
+      'id' => 'longspear', 'name' => 'Longspear', 'category' => 'simple',
+      'damage_dice' => '1d8', 'damage_type' => 'P', 'weapon_group' => 'spear',
+      'price_cp' => 50, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['reach'], 'rarity' => 'common',
+    ],
+    'mace' => [
+      'id' => 'mace', 'name' => 'Mace', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'club',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['shove'], 'rarity' => 'common',
+    ],
+    'morningstar' => [
+      'id' => 'morningstar', 'name' => 'Morningstar', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'club',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['versatile-B'], 'rarity' => 'common',
+    ],
+    'quarterstaff' => [
+      'id' => 'quarterstaff', 'name' => 'Quarterstaff', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'club',
+      'price_cp' => 0, 'bulk' => 2, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'two_hand_damage_dice' => '1d8',
+      'traits' => ['monk', 'parry', 'reach', 'trip', 'two-hand-d8'], 'rarity' => 'common',
+    ],
+    'sap' => [
+      'id' => 'sap', 'name' => 'Sap', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'club',
+      'price_cp' => 10, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'nonlethal'], 'rarity' => 'common',
+    ],
+    'shortsword' => [
+      'id' => 'shortsword', 'name' => 'Shortsword', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'sword',
+      'price_cp' => 90, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'finesse', 'versatile-S'], 'rarity' => 'common',
+    ],
+    'sickle' => [
+      'id' => 'sickle', 'name' => 'Sickle', 'category' => 'simple',
+      'damage_dice' => '1d4', 'damage_type' => 'S', 'weapon_group' => 'knife',
+      'price_cp' => 20, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'finesse', 'trip'], 'rarity' => 'common',
+    ],
+    'spear' => [
+      'id' => 'spear', 'name' => 'Spear', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'spear',
+      'price_cp' => 10, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['thrown-20'], 'rarity' => 'common',
+    ],
+    'whip' => [
+      'id' => 'whip', 'name' => 'Whip', 'category' => 'simple',
+      'damage_dice' => '1d4', 'damage_type' => 'S', 'weapon_group' => 'flail',
+      'price_cp' => 10, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['disarm', 'finesse', 'nonlethal', 'reach', 'trip'], 'rarity' => 'common',
+    ],
+    // ---- Simple Ranged ----
+    'shortbow' => [
+      'id' => 'shortbow', 'name' => 'Shortbow', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'bow',
+      'price_cp' => 300, 'bulk' => 1, 'hands' => '1+', 'range' => 60, 'reload' => 0,
+      'traits' => ['deadly-d10'], 'rarity' => 'common',
+    ],
+    'crossbow' => [
+      'id' => 'crossbow', 'name' => 'Crossbow', 'category' => 'simple',
+      'damage_dice' => '1d8', 'damage_type' => 'P', 'weapon_group' => 'crossbow',
+      'price_cp' => 300, 'bulk' => 1, 'hands' => 2, 'range' => 120, 'reload' => 1,
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'hand-crossbow' => [
+      'id' => 'hand-crossbow', 'name' => 'Hand Crossbow', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'crossbow',
+      'price_cp' => 300, 'bulk' => 'L', 'hands' => 1, 'range' => 60, 'reload' => 1,
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'heavy-crossbow' => [
+      'id' => 'heavy-crossbow', 'name' => 'Heavy Crossbow', 'category' => 'simple',
+      'damage_dice' => '1d10', 'damage_type' => 'P', 'weapon_group' => 'crossbow',
+      'price_cp' => 400, 'bulk' => 2, 'hands' => 2, 'range' => 120, 'reload' => 2,
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'sling' => [
+      'id' => 'sling', 'name' => 'Sling', 'category' => 'simple',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'sling',
+      'price_cp' => 0, 'bulk' => 'L', 'hands' => '1+', 'range' => 50, 'reload' => 1,
+      'traits' => ['propulsive'], 'rarity' => 'common',
+    ],
+    // ---- Martial Melee ----
+    'bastard-sword' => [
+      'id' => 'bastard-sword', 'name' => 'Bastard Sword', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'S', 'weapon_group' => 'sword',
+      'price_cp' => 400, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'two_hand_damage_dice' => '1d12',
+      'traits' => ['two-hand-d12'], 'rarity' => 'common',
+    ],
+    'battle-axe' => [
+      'id' => 'battle-axe', 'name' => 'Battle Axe', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'S', 'weapon_group' => 'axe',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['sweep'], 'rarity' => 'common',
+    ],
+    'falchion' => [
+      'id' => 'falchion', 'name' => 'Falchion', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'S', 'weapon_group' => 'sword',
+      'price_cp' => 300, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['forceful', 'sweep'], 'rarity' => 'common',
+    ],
+    'flail' => [
+      'id' => 'flail', 'name' => 'Flail', 'category' => 'martial',
+      'damage_dice' => '1d6', 'damage_type' => 'B', 'weapon_group' => 'flail',
+      'price_cp' => 80, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['disarm', 'sweep', 'trip'], 'rarity' => 'common',
+    ],
+    'glaive' => [
+      'id' => 'glaive', 'name' => 'Glaive', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'S', 'weapon_group' => 'polearm',
+      'price_cp' => 100, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['deadly-d8', 'forceful', 'reach'], 'rarity' => 'common',
+    ],
+    'greataxe' => [
+      'id' => 'greataxe', 'name' => 'Greataxe', 'category' => 'martial',
+      'damage_dice' => '1d12', 'damage_type' => 'S', 'weapon_group' => 'axe',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['sweep'], 'rarity' => 'common',
+    ],
+    'greatclub' => [
+      'id' => 'greatclub', 'name' => 'Greatclub', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'B', 'weapon_group' => 'club',
+      'price_cp' => 50, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['backswing', 'shove'], 'rarity' => 'common',
+    ],
+    'greatpick' => [
+      'id' => 'greatpick', 'name' => 'Greatpick', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'P', 'weapon_group' => 'pick',
+      'price_cp' => 100, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['fatal-d12'], 'rarity' => 'common',
+    ],
+    'greatsword' => [
+      'id' => 'greatsword', 'name' => 'Greatsword', 'category' => 'martial',
+      'damage_dice' => '1d12', 'damage_type' => 'S', 'weapon_group' => 'sword',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['versatile-P'], 'rarity' => 'common',
+    ],
+    'guisarme' => [
+      'id' => 'guisarme', 'name' => 'Guisarme', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'S', 'weapon_group' => 'polearm',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['reach', 'trip'], 'rarity' => 'common',
+    ],
+    'halberd' => [
+      'id' => 'halberd', 'name' => 'Halberd', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'P', 'weapon_group' => 'polearm',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['reach', 'sweep', 'versatile-S'], 'rarity' => 'common',
+    ],
+    'hatchet' => [
+      'id' => 'hatchet', 'name' => 'Hatchet', 'category' => 'martial',
+      'damage_dice' => '1d6', 'damage_type' => 'S', 'weapon_group' => 'axe',
+      'price_cp' => 40, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'sweep', 'thrown-10'], 'rarity' => 'common',
+    ],
+    'lance' => [
+      'id' => 'lance', 'name' => 'Lance', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'P', 'weapon_group' => 'spear',
+      'price_cp' => 100, 'bulk' => 2, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['deadly-d8', 'jousting-d6', 'reach'], 'rarity' => 'common',
+    ],
+    'light-pick' => [
+      'id' => 'light-pick', 'name' => 'Light Pick', 'category' => 'martial',
+      'damage_dice' => '1d4', 'damage_type' => 'P', 'weapon_group' => 'pick',
+      'price_cp' => 40, 'bulk' => 'L', 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['agile', 'fatal-d8'], 'rarity' => 'common',
+    ],
+    'longsword' => [
+      'id' => 'longsword', 'name' => 'Longsword', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'S', 'weapon_group' => 'sword',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['versatile-P'], 'rarity' => 'common',
+    ],
+    'maul' => [
+      'id' => 'maul', 'name' => 'Maul', 'category' => 'martial',
+      'damage_dice' => '1d12', 'damage_type' => 'B', 'weapon_group' => 'hammer',
+      'price_cp' => 300, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['shove'], 'rarity' => 'common',
+    ],
+    'pick' => [
+      'id' => 'pick', 'name' => 'Pick', 'category' => 'martial',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'pick',
+      'price_cp' => 70, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['fatal-d10'], 'rarity' => 'common',
+    ],
+    'ranseur' => [
+      'id' => 'ranseur', 'name' => 'Ranseur', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'P', 'weapon_group' => 'polearm',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['disarm', 'reach'], 'rarity' => 'common',
+    ],
+    'rapier' => [
+      'id' => 'rapier', 'name' => 'Rapier', 'category' => 'martial',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'sword',
+      'price_cp' => 200, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['deadly-d8', 'disarm', 'finesse'], 'rarity' => 'common',
+    ],
+    'scimitar' => [
+      'id' => 'scimitar', 'name' => 'Scimitar', 'category' => 'martial',
+      'damage_dice' => '1d6', 'damage_type' => 'S', 'weapon_group' => 'sword',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['forceful', 'sweep'], 'rarity' => 'common',
+    ],
+    'scythe' => [
+      'id' => 'scythe', 'name' => 'Scythe', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'S', 'weapon_group' => 'polearm',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['deadly-d10', 'trip'], 'rarity' => 'common',
+    ],
+    'trident' => [
+      'id' => 'trident', 'name' => 'Trident', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'P', 'weapon_group' => 'spear',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['thrown-20'], 'rarity' => 'common',
+    ],
+    'war-flail' => [
+      'id' => 'war-flail', 'name' => 'War Flail', 'category' => 'martial',
+      'damage_dice' => '1d10', 'damage_type' => 'B', 'weapon_group' => 'flail',
+      'price_cp' => 200, 'bulk' => 2, 'hands' => 2, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['disarm', 'sweep', 'trip'], 'rarity' => 'common',
+    ],
+    'warhammer' => [
+      'id' => 'warhammer', 'name' => 'Warhammer', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'B', 'weapon_group' => 'hammer',
+      'price_cp' => 100, 'bulk' => 1, 'hands' => 1, 'range' => NULL, 'reload' => NULL,
+      'traits' => ['shove'], 'rarity' => 'common',
+    ],
+    // ---- Martial Ranged ----
+    'longbow' => [
+      'id' => 'longbow', 'name' => 'Longbow', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'P', 'weapon_group' => 'bow',
+      'price_cp' => 600, 'bulk' => 2, 'hands' => '1+', 'range' => 100, 'reload' => 0,
+      'traits' => ['deadly-d10', 'volley-30'], 'rarity' => 'common',
+    ],
+    'composite-shortbow' => [
+      'id' => 'composite-shortbow', 'name' => 'Composite Shortbow', 'category' => 'martial',
+      'damage_dice' => '1d6', 'damage_type' => 'P', 'weapon_group' => 'bow',
+      'price_cp' => 1400, 'bulk' => 1, 'hands' => '1+', 'range' => 60, 'reload' => 0,
+      'traits' => ['deadly-d10', 'propulsive'], 'rarity' => 'common',
+    ],
+    'composite-longbow' => [
+      'id' => 'composite-longbow', 'name' => 'Composite Longbow', 'category' => 'martial',
+      'damage_dice' => '1d8', 'damage_type' => 'P', 'weapon_group' => 'bow',
+      'price_cp' => 2000, 'bulk' => 2, 'hands' => '1+', 'range' => 100, 'reload' => 0,
+      'traits' => ['deadly-d10', 'propulsive', 'volley-30'], 'rarity' => 'common',
+    ],
+  ];
+
+  /**
+   * Weapon traits with mechanical behavior definitions (CRB Chapter 6).
+   */
+  const WEAPON_TRAITS_CATALOG = [
+    'agile'        => 'MAP is –4/–8 instead of –5/–10 for this weapon.',
+    'backswing'    => 'On a miss, +1 circumstance bonus to next attack with this weapon this turn.',
+    'deadly'       => 'On a critical hit, roll the listed extra die in addition to doubled damage.',
+    'disarm'       => 'Can attempt to Disarm with this weapon; +1 bonus if using two hands.',
+    'fatal'        => 'On a critical hit, change the weapon die to the listed size and roll it twice.',
+    'finesse'      => 'Can use Str or Dex modifier for attack rolls (the higher one).',
+    'forceful'     => '+1 damage on second hit; +2 on third+ hit (same target, same turn).',
+    'free-hand'    => 'Hand wielding this weapon is still considered free for grappling etc.',
+    'jousting'     => 'On horseback, deal extra damage using the listed die.',
+    'monk'         => 'A monk with this weapon can use monk class features with it.',
+    'nonlethal'    => 'Attacks with this weapon set downed foes to 0 HP instead of killing them.',
+    'parry'        => 'Spend 1 action to gain +1 circumstance bonus to AC until start of next turn.',
+    'propulsive'   => 'Add half (positive) or full (negative) Str modifier to damage.',
+    'reach'        => 'Attacks targets 10 ft away (instead of 5 ft).',
+    'shove'        => 'Can attempt to Shove with this weapon.',
+    'sweep'        => 'After attacking one target, gain +1 circumstance bonus to attacks vs other targets until end of turn.',
+    'thrown'       => 'Can be thrown as a ranged attack; add Str modifier to thrown damage.',
+    'trip'         => 'Can attempt to Trip with this weapon.',
+    'twin'         => 'Gain +1 circumstance bonus to damage rolls against a target hit by the other twin weapon this turn.',
+    'two-hand'     => 'Use two hands to deal damage using the listed larger die.',
+    'unarmed'      => 'This weapon is a part of your body; can never be disarmed.',
+    'versatile'    => 'Can deal the listed alternative damage type instead of the normal one.',
+    'volley'       => 'Within listed range, attacks take –2 penalty.',
+  ];
+
+  /**
+   * Combat rules for ranged weapons and MAP (CRB Chapter 6).
+   */
+  const RANGED_COMBAT_RULES = [
+    'range_increment_penalty' => -2,
+    'range_increment_max'     => 6,
+    'map_standard'            => [-5, -10],
+    'map_agile'               => [-4, -8],
+    'map_off_turn'            => 'MAP does not apply to off-turn attacks (reactions).',
+    'unarmed_default'         => 'fist',
+    'improvised_weapon'       => [
+      'category'      => 'simple',
+      'item_penalty'  => -2,
+      'damage'        => 'GM-adjudicated',
+    ],
+    'critical_hit'            => 'Double all damage components; Striking rune adds extra weapon dice.',
+    'striking_runes'          => [
+      'striking'       => ['extra_dice' => 1, 'total_dice' => 2],
+      'greater'        => ['extra_dice' => 2, 'total_dice' => 3],
+      'major'          => ['extra_dice' => 3, 'total_dice' => 4],
+    ],
+    'ability_modifier_routing' => [
+      'melee_default'  => 'str',
+      'melee_finesse'  => 'str_or_dex_higher',
+      'ranged'         => 'dex',
+      'thrown'         => 'str',
+      'propulsive'     => 'half_str_positive_or_full_str_negative',
+    ],
+    'damage_die_progression'   => ['d4', 'd6', 'd8', 'd10', 'd12'],
+    'damage_die_max'           => 'd12',
+    'damage_die_increase_limit'=> 1,
+  ];
+
+  /**
+   * Armor catalog (CRB Chapter 6, p.274-276).
+   * Fields: id, name, category (unarmored/light/medium/heavy),
+   *   ac_bonus, dex_cap (null=unlimited), check_penalty, speed_penalty,
+   *   str_threshold, bulk, price_cp, armor_group, traits[], rarity, notes.
+   */
+  const ARMOR_CATALOG = [
+    'unarmored' => [
+      'id' => 'unarmored', 'name' => 'Unarmored', 'category' => 'unarmored',
+      'ac_bonus' => 0, 'dex_cap' => NULL, 'check_penalty' => 0, 'speed_penalty' => 0,
+      'str_threshold' => 0, 'bulk' => 0, 'price_cp' => 0, 'armor_group' => NULL,
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'explorers-clothing' => [
+      'id' => 'explorers-clothing', 'name' => "Explorer's Clothing", 'category' => 'light',
+      'ac_bonus' => 0, 'dex_cap' => 5, 'check_penalty' => 0, 'speed_penalty' => 0,
+      'str_threshold' => 10, 'bulk' => 0, 'price_cp' => 10, 'armor_group' => 'cloth',
+      'traits' => ['comfort'], 'rarity' => 'common',
+      'note' => 'Comfort trait: check penalty does not apply to the wearer\'s ability to use skills; can sleep in it.',
+    ],
+    'padded-armor' => [
+      'id' => 'padded-armor', 'name' => 'Padded Armor', 'category' => 'light',
+      'ac_bonus' => 1, 'dex_cap' => 8, 'check_penalty' => 0, 'speed_penalty' => 0,
+      'str_threshold' => 10, 'bulk' => 'L', 'price_cp' => 20, 'armor_group' => 'cloth',
+      'traits' => ['comfort'], 'rarity' => 'common',
+    ],
+    'leather-armor' => [
+      'id' => 'leather-armor', 'name' => 'Leather Armor', 'category' => 'light',
+      'ac_bonus' => 1, 'dex_cap' => 4, 'check_penalty' => -1, 'speed_penalty' => 0,
+      'str_threshold' => 10, 'bulk' => 1, 'price_cp' => 200, 'armor_group' => 'leather',
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'studded-leather' => [
+      'id' => 'studded-leather', 'name' => 'Studded Leather', 'category' => 'light',
+      'ac_bonus' => 2, 'dex_cap' => 3, 'check_penalty' => -1, 'speed_penalty' => 0,
+      'str_threshold' => 12, 'bulk' => 1, 'price_cp' => 300, 'armor_group' => 'leather',
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'chain-shirt' => [
+      'id' => 'chain-shirt', 'name' => 'Chain Shirt', 'category' => 'light',
+      'ac_bonus' => 2, 'dex_cap' => 3, 'check_penalty' => -1, 'speed_penalty' => 0,
+      'str_threshold' => 12, 'bulk' => 1, 'price_cp' => 500, 'armor_group' => 'chain',
+      'traits' => ['noisy'], 'rarity' => 'common',
+    ],
+    'hide-armor' => [
+      'id' => 'hide-armor', 'name' => 'Hide Armor', 'category' => 'medium',
+      'ac_bonus' => 3, 'dex_cap' => 2, 'check_penalty' => -2, 'speed_penalty' => -5,
+      'str_threshold' => 14, 'bulk' => 2, 'price_cp' => 200, 'armor_group' => 'leather',
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'scale-mail' => [
+      'id' => 'scale-mail', 'name' => 'Scale Mail', 'category' => 'medium',
+      'ac_bonus' => 4, 'dex_cap' => 1, 'check_penalty' => -2, 'speed_penalty' => -5,
+      'str_threshold' => 14, 'bulk' => 2, 'price_cp' => 400, 'armor_group' => 'composite',
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'chain-mail' => [
+      'id' => 'chain-mail', 'name' => 'Chain Mail', 'category' => 'medium',
+      'ac_bonus' => 4, 'dex_cap' => 1, 'check_penalty' => -2, 'speed_penalty' => -5,
+      'str_threshold' => 16, 'bulk' => 2, 'price_cp' => 600, 'armor_group' => 'chain',
+      'traits' => ['noisy'], 'rarity' => 'common',
+    ],
+    'breastplate' => [
+      'id' => 'breastplate', 'name' => 'Breastplate', 'category' => 'medium',
+      'ac_bonus' => 4, 'dex_cap' => 1, 'check_penalty' => -2, 'speed_penalty' => -5,
+      'str_threshold' => 16, 'bulk' => 2, 'price_cp' => 800, 'armor_group' => 'plate',
+      'traits' => ['bulwark'], 'rarity' => 'common',
+    ],
+    'splint-mail' => [
+      'id' => 'splint-mail', 'name' => 'Splint Mail', 'category' => 'heavy',
+      'ac_bonus' => 5, 'dex_cap' => 1, 'check_penalty' => -3, 'speed_penalty' => -10,
+      'str_threshold' => 16, 'bulk' => 3, 'price_cp' => 1300, 'armor_group' => 'composite',
+      'traits' => [], 'rarity' => 'common',
+    ],
+    'half-plate' => [
+      'id' => 'half-plate', 'name' => 'Half Plate', 'category' => 'heavy',
+      'ac_bonus' => 5, 'dex_cap' => 1, 'check_penalty' => -3, 'speed_penalty' => -10,
+      'str_threshold' => 16, 'bulk' => 3, 'price_cp' => 1800, 'armor_group' => 'plate',
+      'traits' => ['bulwark'], 'rarity' => 'common',
+      'note' => 'Price includes an undercoat of padded armor.',
+    ],
+    'full-plate' => [
+      'id' => 'full-plate', 'name' => 'Full Plate', 'category' => 'heavy',
+      'ac_bonus' => 6, 'dex_cap' => 0, 'check_penalty' => -3, 'speed_penalty' => -10,
+      'str_threshold' => 18, 'bulk' => 4, 'price_cp' => 3000, 'armor_group' => 'plate',
+      'traits' => ['bulwark'], 'rarity' => 'common',
+      'note' => 'Price includes padded armor undercoat and gauntlets.',
+    ],
+  ];
+
+  /**
+   * Armor rules: AC formula, donning, Strength threshold, check penalty.
+   * Source: CRB Chapter 6, p.274-275.
+   */
+  const ARMOR_RULES = [
+    'ac_formula'          => '10 + min(Dex mod, Dex Cap) + proficiency bonus + item bonus + other bonuses + penalties',
+    'proficiency_categories' => ['unarmored', 'light', 'medium', 'heavy'],
+    'donning_time'        => ['light' => '1 minute', 'medium' => '5 minutes', 'heavy' => '5 minutes'],
+    'removing_time'       => ['light' => '1 minute', 'medium' => '1 minute', 'heavy' => '1 minute'],
+    'donning_with_help'   => 'Donning time is halved when someone assists.',
+    'str_threshold_effect'=> 'Meeting the Strength threshold removes the check penalty and reduces the speed penalty by 5 ft.',
+    'check_penalty_exemption' => 'Armor check penalty is not applied to actions with the attack trait.',
+    'armor_traits' => [
+      'bulwark'  => 'When critically hit, can use reaction to reduce damage (requires armor group specialization to activate).',
+      'comfort'  => 'No check penalty; can be slept in; no Strength threshold for speed.',
+      'flexible' => 'Armor\'s check penalty does not apply to Acrobatics and Athletics.',
+      'noisy'    => 'Armor is loud: –2 circumstance penalty to Stealth checks while worn.',
+    ],
+  ];
+
+  /**
+   * Shield catalog (CRB Chapter 6, p.277-278).
+   * Fields: id, name, price_cp, ac_bonus (when raised), hardness, hp, bt,
+   *   speed_penalty (when held, not just raised), bulk, traits[], notes.
+   */
+  const SHIELD_CATALOG = [
+    'buckler' => [
+      'id' => 'buckler', 'name' => 'Buckler',
+      'price_cp' => 100, 'ac_bonus' => 1, 'hardness' => 3, 'hp' => 6, 'bt' => 3,
+      'speed_penalty' => 0, 'bulk' => 'L',
+      'traits' => [],
+      'note' => 'Strapped to forearm; does not occupy the hand. Can Raise Shield while the hand is free or holding a light non-weapon item.',
+    ],
+    'wooden-shield' => [
+      'id' => 'wooden-shield', 'name' => 'Wooden Shield',
+      'price_cp' => 100, 'ac_bonus' => 2, 'hardness' => 3, 'hp' => 12, 'bt' => 6,
+      'speed_penalty' => 0, 'bulk' => 1,
+      'traits' => [],
+    ],
+    'steel-shield' => [
+      'id' => 'steel-shield', 'name' => 'Steel Shield',
+      'price_cp' => 200, 'ac_bonus' => 2, 'hardness' => 5, 'hp' => 20, 'bt' => 10,
+      'speed_penalty' => 0, 'bulk' => 1,
+      'traits' => [],
+    ],
+    'tower-shield' => [
+      'id' => 'tower-shield', 'name' => 'Tower Shield',
+      'price_cp' => 1000, 'ac_bonus' => 2, 'ac_bonus_cover' => 4, 'hardness' => 5, 'hp' => 20, 'bt' => 10,
+      'speed_penalty' => -5, 'bulk' => 4,
+      'traits' => ['tower'],
+      'note' => 'Speed penalty applies whenever held (not only when raised). With Take Cover: AC bonus increases to +4 and provides standard cover to nearby allies.',
+    ],
+  ];
+
+  /**
+   * Shield rules (CRB Chapter 6, p.277-278).
+   */
+  const SHIELD_RULES = [
+    'bonus_type'       => 'circumstance',
+    'bonus_applies'    => 'Only when Raised via the Raise a Shield action; not passive.',
+    'speed_penalty_timing' => 'Tower shield speed penalty applies whenever held (not only when raised).',
+    'shield_block'     => 'Reduce damage by shield\'s Hardness; remainder damages both character and shield equally.',
+    'rune_restriction' => 'Shields cannot have potency/striking/resilient runes. Boss and spikes can.',
+    'shield_attacks'   => 'Shield bash/boss/spikes use weapon rules.',
+  ];
+
+  /**
+   * Adventuring gear catalog (CRB Chapter 6).
+   * Fields: id, name, price_cp, bulk, category, traits/notes as needed.
+   */
+  const ADVENTURING_GEAR_CATALOG = [
+    'adventurers-pack' => [
+      'id' => 'adventurers-pack', 'name' => "Adventurer's Pack",
+      'price_cp' => 150, 'bulk' => 1, 'level' => 0,
+      'contents' => ['backpack', 'bedroll', 'chalk-10', 'flint-and-steel', 'rope-50ft', 'rations-2-weeks', 'soap', 'torches-5', 'waterskin'],
+      'note' => 'Complete starter kit: backpack + bedroll + chalk (×10) + flint & steel + rope (50 ft) + 2 weeks rations + soap + torches (×5) + waterskin.',
+    ],
+    'backpack' => [
+      'id' => 'backpack', 'name' => 'Backpack',
+      'price_cp' => 10, 'bulk' => 'L', 'level' => 0,
+      'container' => TRUE, 'capacity_bulk' => 4,
+    ],
+    'bedroll' => [
+      'id' => 'bedroll', 'name' => 'Bedroll',
+      'price_cp' => 2, 'bulk' => 'L', 'level' => 0,
+    ],
+    'caltrops' => [
+      'id' => 'caltrops', 'name' => 'Caltrops',
+      'price_cp' => 30, 'bulk' => 'L', 'level' => 0,
+      'effect' => 'First creature entering covered square: DC 14 Acrobatics or take 1d4 P + 1 persistent bleed + –5 ft Speed. Interact action to remove.',
+    ],
+    'chalk' => [
+      'id' => 'chalk', 'name' => 'Chalk (10)',
+      'price_cp' => 1, 'bulk' => '-', 'level' => 0,
+    ],
+    'climbing-kit' => [
+      'id' => 'climbing-kit', 'name' => 'Climbing Kit',
+      'price_cp' => 100, 'bulk' => 1, 'level' => 0,
+      'effect' => 'Allows wall attachment at half Speed. Extreme Climbing Kit (7 gp): +1 item bonus to Climb checks.',
+      'variants' => [
+        'standard'  => ['price_cp' => 100, 'climb_bonus' => 0],
+        'extreme'   => ['price_cp' => 700, 'climb_bonus' => 1],
+      ],
+    ],
+    'compass' => [
+      'id' => 'compass', 'name' => 'Compass',
+      'price_cp' => 100, 'bulk' => '-', 'level' => 0,
+      'effect' => 'Without a compass: –2 penalty to Sense Direction. Lensatic Compass (5 gp): +1 item bonus.',
+      'variants' => [
+        'standard' => ['price_cp' => 100, 'sense_direction_bonus' => 0],
+        'lensatic' => ['price_cp' => 500, 'sense_direction_bonus' => 1],
+      ],
+    ],
+    'crowbar' => [
+      'id' => 'crowbar', 'name' => 'Crowbar',
+      'price_cp' => 50, 'bulk' => 1, 'level' => 0,
+      'effect' => 'Removes the –2 item penalty to Force Open. Levered Crowbar (5 gp): +1 item bonus to Force Open.',
+      'variants' => [
+        'standard' => ['price_cp' => 50, 'force_open_bonus' => 0],
+        'levered'  => ['price_cp' => 500, 'force_open_bonus' => 1],
+      ],
+    ],
+    'disguise-kit' => [
+      'id' => 'disguise-kit', 'name' => 'Disguise Kit',
+      'price_cp' => 200, 'bulk' => 'L', 'level' => 0,
+      'worn' => TRUE, 'worn_bulk_limit' => 2,
+      'effect' => 'Required for Impersonate action. Elite version (5 gp): +1 item bonus.',
+      'variants' => [
+        'standard' => ['price_cp' => 200, 'impersonate_bonus' => 0],
+        'elite'    => ['price_cp' => 500, 'impersonate_bonus' => 1],
+      ],
+    ],
+    'flint-and-steel' => [
+      'id' => 'flint-and-steel', 'name' => 'Flint and Steel',
+      'price_cp' => 5, 'bulk' => '-', 'level' => 0,
+    ],
+    'formula-book' => [
+      'id' => 'formula-book', 'name' => 'Formula Book (blank)',
+      'price_cp' => 100, 'bulk' => 'L', 'level' => 0,
+      'capacity_formulas' => 100,
+      'note' => 'Holds up to 100 formula entries. Required by Alchemists.',
+    ],
+    'grappling-hook' => [
+      'id' => 'grappling-hook', 'name' => 'Grappling Hook',
+      'price_cp' => 10, 'bulk' => 'L', 'level' => 0,
+      'effect' => 'Thrown with an attack roll (GM typically sets DC 20). Critical failure: appears anchored but falls at midpoint.',
+    ],
+    'healers-tools' => [
+      'id' => 'healers-tools', 'name' => "Healer's Tools",
+      'price_cp' => 500, 'bulk' => 1, 'level' => 0,
+      'worn' => TRUE, 'worn_bulk_limit' => 2,
+      'effect' => 'Required for First Aid, Treat Disease, Treat Poison, and Treat Wounds actions.',
+      'variants' => [
+        'standard' => ['price_cp' => 500, 'bulk' => 1, 'medicine_bonus' => 0],
+        'expanded' => ['price_cp' => 5000, 'bulk' => 2, 'medicine_bonus' => 1, 'note' => 'Expanded Kit: +1 item bonus to Medicine checks.'],
+      ],
+    ],
+    'holy-symbol-wooden' => [
+      'id' => 'holy-symbol-wooden', 'name' => 'Holy Symbol (Wooden)',
+      'price_cp' => 10, 'bulk' => '-', 'level' => 0,
+      'note' => 'Divine focus for divine spellcasters; must be held in one hand to use.',
+    ],
+    'holy-symbol-metal' => [
+      'id' => 'holy-symbol-metal', 'name' => 'Holy Symbol (Metal)',
+      'price_cp' => 500, 'bulk' => '-', 'level' => 0,
+      'note' => 'As wooden, but more durable. Often serves as a backup divine focus.',
+    ],
+    'lantern-hooded' => [
+      'id' => 'lantern-hooded', 'name' => 'Lantern (Hooded)',
+      'price_cp' => 30, 'bulk' => 'L', 'level' => 0,
+      'light' => ['bright_ft' => 30, 'dim_ft' => 30, 'fuel_hours' => 6],
+    ],
+    'lantern-bullseye' => [
+      'id' => 'lantern-bullseye', 'name' => 'Lantern (Bullseye)',
+      'price_cp' => 70, 'bulk' => 1, 'level' => 0,
+      'light' => ['bright_ft' => 60, 'cone' => TRUE, 'dim_ft' => 60, 'fuel_hours' => 6],
+    ],
+    'lock' => [
+      'id' => 'lock', 'name' => 'Lock',
+      'price_cp' => 50, 'bulk' => '-', 'level' => 0,
+      'variants' => [
+        'simple'   => ['price_cp' => 50,   'escape_dc' => 20, 'successes_to_pick' => 2],
+        'average'  => ['price_cp' => 100,  'escape_dc' => 25, 'successes_to_pick' => 3],
+        'good'     => ['price_cp' => 300,  'escape_dc' => 30, 'successes_to_pick' => 4],
+        'superior' => ['price_cp' => 1500, 'escape_dc' => 40, 'successes_to_pick' => 8],
+      ],
+    ],
+    'manacles' => [
+      'id' => 'manacles', 'name' => 'Manacles',
+      'price_cp' => 100, 'bulk' => '-', 'level' => 0,
+      'variants' => [
+        'simple'   => ['price_cp' => 100,  'leg_penalty' => -15, 'manipulate_dc' => 5, 'escape_dc' => 18],
+        'average'  => ['price_cp' => 300,  'leg_penalty' => -15, 'manipulate_dc' => 5, 'escape_dc' => 20],
+        'good'     => ['price_cp' => 1200, 'leg_penalty' => -15, 'manipulate_dc' => 5, 'escape_dc' => 25],
+        'superior' => ['price_cp' => 5000, 'leg_penalty' => -15, 'manipulate_dc' => 5, 'escape_dc' => 30],
+      ],
+      'effect' => 'Leg manacles: –15 ft Speed. Wrist manacles: DC 5 flat check on manipulate actions.',
+    ],
+    'oil' => [
+      'id' => 'oil', 'name' => 'Oil (1 pint)',
+      'price_cp' => 1, 'bulk' => 'L', 'level' => 0,
+      'uses' => 'Fuels lanterns for 6 hours. As a thrown fire bomb: 1d6 fire, DC 10 ignite check.',
+    ],
+    'rations' => [
+      'id' => 'rations', 'name' => 'Rations (1 week)',
+      'price_cp' => 40, 'bulk' => 'L', 'level' => 0,
+    ],
+    'religious-text' => [
+      'id' => 'religious-text', 'name' => 'Religious Text',
+      'price_cp' => 20, 'bulk' => 'L', 'level' => 0,
+    ],
+    'repair-kit' => [
+      'id' => 'repair-kit', 'name' => 'Repair Kit',
+      'price_cp' => 200, 'bulk' => 2, 'level' => 0,
+      'worn' => TRUE, 'worn_bulk_limit' => 2,
+      'effect' => 'Required to Repair items.',
+      'variants' => [
+        'standard' => ['price_cp' => 200, 'repair_bonus' => 0],
+        'superb'   => ['price_cp' => 1500, 'repair_bonus' => 1, 'note' => '+1 item bonus to Repair checks.'],
+      ],
+    ],
+    'rope' => [
+      'id' => 'rope', 'name' => 'Rope (50 ft)',
+      'price_cp' => 50, 'bulk' => 1, 'level' => 0,
+      'hardness' => 0, 'hp' => 4, 'bt' => 2,
+    ],
+    'snare-kit' => [
+      'id' => 'snare-kit', 'name' => 'Snare Kit',
+      'price_cp' => 500, 'bulk' => 1, 'level' => 0,
+      'worn' => TRUE, 'worn_bulk_limit' => 2,
+      'effect' => 'Required to Craft snares.',
+      'variants' => [
+        'standard'   => ['price_cp' => 500, 'craft_snare_bonus' => 0],
+        'specialist' => ['price_cp' => 1500, 'craft_snare_bonus' => 1, 'note' => '+1 item bonus to Craft checks for snares.'],
+      ],
+    ],
+    'soap' => [
+      'id' => 'soap', 'name' => 'Soap',
+      'price_cp' => 2, 'bulk' => '-', 'level' => 0,
+    ],
+    'spellbook' => [
+      'id' => 'spellbook', 'name' => 'Spellbook (blank)',
+      'price_cp' => 100, 'bulk' => 'L', 'level' => 0,
+      'capacity_spells' => 100,
+      'note' => 'Holds up to 100 spell entries. Required by Wizards.',
+    ],
+    'thieves-tools' => [
+      'id' => 'thieves-tools', 'name' => "Thieves' Tools",
+      'price_cp' => 300, 'bulk' => 'L', 'level' => 0,
+      'worn' => TRUE, 'worn_bulk_limit' => 2,
+      'effect' => 'Required for Pick a Lock and Disable a Device actions. Broken picks replaced without Repair action.',
+      'variants' => [
+        'standard'     => ['price_cp' => 300,  'thievery_bonus' => 0],
+        'infiltrator'  => ['price_cp' => 700,  'thievery_bonus' => 1, 'note' => '+1 item bonus to Thievery for locks/devices.'],
+        'improvised'   => ['price_cp' => 0,    'thievery_bonus' => -2, 'note' => 'Improvised picks: –2 item penalty to Thievery.'],
+      ],
+    ],
+    'torch' => [
+      'id' => 'torch', 'name' => 'Torch',
+      'price_cp' => 1, 'bulk' => 'L', 'level' => 0,
+      'light' => ['bright_ft' => 20, 'dim_ft' => 20, 'duration_minutes' => 60],
+      'improvised_weapon' => ['damage' => '1d4 B + 1 fire', 'penalty' => -2],
+    ],
+    'waterskin' => [
+      'id' => 'waterskin', 'name' => 'Waterskin',
+      'price_cp' => 5, 'bulk' => 'L', 'level' => 0,
+    ],
+  ];
+
+  /**
+   * Alchemical gear catalog — 1st-level access items (CRB Chapter 6).
+   * consumable = TRUE for single-use items.
+   */
+  const ALCHEMICAL_GEAR_CATALOG = [
+    // Alchemical Bombs
+    'alchemists-fire-lesser' => [
+      'id' => 'alchemists-fire-lesser', 'name' => "Alchemist's Fire (Lesser)",
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'bomb', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'damage' => '1d8 fire + 1 persistent fire', 'splash' => 1, 'splash_type' => 'fire',
+    ],
+    'acid-flask-lesser' => [
+      'id' => 'acid-flask-lesser', 'name' => 'Acid Flask (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'bomb', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'damage' => '1 acid + 1d6 persistent acid', 'splash' => 1, 'splash_type' => 'acid',
+    ],
+    'frost-vial-lesser' => [
+      'id' => 'frost-vial-lesser', 'name' => 'Frost Vial (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'bomb', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'damage' => '1d6 cold + 1 persistent cold', 'splash' => 1, 'splash_type' => 'cold',
+    ],
+    'thunderstone-lesser' => [
+      'id' => 'thunderstone-lesser', 'name' => 'Thunderstone (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'bomb', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'damage' => '1d4 sonic', 'splash' => 1, 'splash_type' => 'sonic',
+      'effect_on_failure' => 'Target is deafened for 1 round.',
+    ],
+    'tanglefoot-bag-lesser' => [
+      'id' => 'tanglefoot-bag-lesser', 'name' => 'Tanglefoot Bag (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'bomb', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'effect_on_failure' => 'Target gains clumsy 1 for 1 minute.',
+    ],
+    'smokestick-lesser' => [
+      'id' => 'smokestick-lesser', 'name' => 'Smokestick (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'bomb', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'effect' => '10-ft radius smoke cloud for 1 minute; concealment within.',
+    ],
+    // Alchemical Tools/Elixirs
+    'sunrod' => [
+      'id' => 'sunrod', 'name' => 'Sunrod',
+      'level' => 1, 'price_cp' => 30, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'alchemical-tool',
+      'light' => ['bright_ft' => 20, 'dim_ft' => 20, 'duration_minutes' => 10],
+    ],
+    'elixir-of-life-minor' => [
+      'id' => 'elixir-of-life-minor', 'name' => 'Elixir of Life (Minor)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'elixir', 'activation' => 'Interact (drink)',
+      'healing' => '1d6 HP',
+    ],
+    'antidote-lesser' => [
+      'id' => 'antidote-lesser', 'name' => 'Antidote (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'elixir', 'activation' => 'Interact (drink)',
+      'effect' => '+2 circumstance bonus to saves vs. poison for 1 hour.',
+    ],
+    'antiplague-lesser' => [
+      'id' => 'antiplague-lesser', 'name' => 'Antiplague (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'elixir', 'activation' => 'Interact (drink)',
+      'effect' => '+2 circumstance bonus to saves vs. disease for 1 hour.',
+    ],
+    'eagle-eye-elixir-lesser' => [
+      'id' => 'eagle-eye-elixir-lesser', 'name' => 'Eagle Eye Elixir (Lesser)',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'elixir', 'activation' => 'Interact (drink)',
+      'effect' => '+2 circumstance bonus to Perception checks for 1 minute.',
+    ],
+  ];
+
+  /**
+   * Magical gear catalog — 1st-level access items (CRB Chapter 6).
+   */
+  const MAGICAL_GEAR_CATALOG = [
+    'holy-water' => [
+      'id' => 'holy-water', 'name' => 'Holy Water',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'consumable', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'damage' => '1d6 spirit (undead/fiends)', 'splash' => 1,
+    ],
+    'unholy-water' => [
+      'id' => 'unholy-water', 'name' => 'Unholy Water',
+      'level' => 1, 'price_cp' => 300, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'consumable', 'weapon_group' => 'bomb',
+      'range' => 20, 'activation' => 'Strike',
+      'damage' => '1d6 spirit (celestials)', 'splash' => 1,
+    ],
+    'potion-of-healing-lesser' => [
+      'id' => 'potion-of-healing-lesser', 'name' => 'Potion of Healing (Lesser)',
+      'level' => 1, 'price_cp' => 400, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'potion', 'activation' => 'Interact (drink)',
+      'healing' => '1d8 HP',
+    ],
+    'scroll-1st-level' => [
+      'id' => 'scroll-1st-level', 'name' => 'Scroll (1st-Level Spell)',
+      'level' => 1, 'price_cp' => 400, 'bulk' => 'L', 'rarity' => 'common',
+      'consumable' => TRUE, 'type' => 'scroll',
+      'note' => 'Contains a single 1st-level common spell. Activation: cast the contained spell.',
+    ],
+  ];
+
+  /**
+   * Formula system rules (CRB Chapter 6, p.293-294).
+   */
+  const FORMULA_RULES = [
+    'acquisition' => ['purchase', 'copy_from_another', 'reverse_engineer'],
+    'reverse_engineer' => [
+      'cost'        => 'half the item\'s price in materials',
+      'check'       => 'Craft check vs. item DC',
+      'success'     => 'Learn the formula.',
+      'failure'     => 'Materials are wasted; may try again.',
+    ],
+    'basic_crafters_book' => [
+      'name'     => "Basic Crafter's Book",
+      'price_cp' => 100,
+      'bulk'     => 'L',
+      'contains' => 'All common 0-level formulas.',
+    ],
+  ];
+
+  /**
+   * Formula prices by item level — Table 6-13 (CRB Chapter 6).
+   * Prices in copper pieces.
+   */
+  const FORMULA_PRICE_TABLE = [
+    0  => 30,     // 3 sp
+    1  => 60,     // 6 sp
+    2  => 100,    // 1 gp
+    3  => 300,    // 3 gp
+    4  => 500,    // 5 gp
+    5  => 1300,   // 13 gp
+    6  => 2000,   // 20 gp
+    7  => 3000,   // 30 gp
+    8  => 5000,   // 50 gp
+    9  => 7500,   // 75 gp
+    10 => 10000,  // 100 gp
+    11 => 15000,  // 150 gp
+    12 => 20000,  // 200 gp
+    13 => 30000,  // 300 gp
+    14 => 50000,  // 500 gp
+    15 => 75000,  // 750 gp
+    16 => 125000, // 1,250 gp
+    17 => 175000, // 1,750 gp
+    18 => 250000, // 2,500 gp
+    19 => 400000, // 4,000 gp
+    20 => 600000, // 6,000 gp
+  ];
+
+  // -------------------------------------------------------------------------
+  // Chapter 6 Equipment — Helper Methods
+  // -------------------------------------------------------------------------
+
+  /**
+   * Return the sell price in cp for an item.
+   * Standard items sell for half price; exceptions sell at full price.
+   *
+   * @param int    $price_cp   Item purchase price in copper pieces.
+   * @param string $item_type  Item type key (e.g. 'standard', 'coin', 'gem').
+   */
+  public static function itemSellPrice(int $price_cp, string $item_type = 'standard'): int {
+    if (in_array($item_type, self::ITEM_SELL_EXCEPTIONS, TRUE)) {
+      return $price_cp;
+    }
+    return (int) floor($price_cp / 2);
+  }
+
+  /**
+   * Return bulk/price scaling multipliers for a given creature size.
+   *
+   * @param string $size   Size key: tiny, small, medium, large, huge, gargantuan.
+   * @param string $field  'bulk_multiplier' or 'price_multiplier'.
+   *
+   * @return float  Multiplier value.
+   */
+  public static function sizeItemScaling(string $size, string $field = 'bulk_multiplier'): float {
+    return (float) (self::SIZE_ITEM_SCALING[$size][$field] ?? 1.0);
+  }
+
+  /**
+   * Return formula price in copper pieces for a given item level.
+   *
+   * @param int $item_level  Item level (0-20).
+   *
+   * @return int|null  Price in copper pieces, or NULL if level out of range.
+   */
+  public static function formulaPrice(int $item_level): ?int {
+    return self::FORMULA_PRICE_TABLE[$item_level] ?? NULL;
+  }
+
+  /**
+   * Check if a character can craft an item based on item level vs character level.
+   *
+   * @param int $item_level       The item's level.
+   * @param int $character_level  The character's current level.
+   *
+   * @return bool  TRUE if craftable.
+   */
+  public static function canCraftItem(int $item_level, int $character_level): bool {
+    return $item_level <= $character_level;
+  }
+
+  /**
+   * Determine if an item requires access grant based on its rarity.
+   *
+   * @param string $rarity  'common', 'uncommon', 'rare', or 'unique'.
+   *
+   * @return bool  TRUE if an explicit access grant is required.
+   */
+  public static function rarityRequiresAccess(string $rarity): bool {
+    return (bool) (self::RARITY_RULES[$rarity]['requires_access'] ?? TRUE);
+  }
+
 }
