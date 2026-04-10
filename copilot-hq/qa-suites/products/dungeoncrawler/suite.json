@@ -10609,6 +10609,116 @@
           "ac": "Security AC"
         }
       ]
+    },
+    {
+      "id": "dc-cr-dwarf-ancestry-e2e",
+      "label": "Dwarf Ancestry: core stats/ability boosts+flaw/traits/languages, Clan Dagger free item and taboo warning, Low-Light Vision, 6 ancestry feats, 5 heritages",
+      "type": "e2e",
+      "feature_id": "dc-cr-dwarf-ancestry",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/character-creation/dwarf-ancestry.spec.ts",
+      "artifacts": [
+        "playwright-report/dwarf-ancestry-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DWF-01",
+          "description": "Core stats: hp_from_ancestry=10, size=Medium, speed=20",
+          "ac": "Stats-1"
+        },
+        {
+          "id": "TC-DWF-02",
+          "description": "Ability boosts: Con+2, Wis+2, one free +2; Cha-2 flaw applied automatically",
+          "ac": "Stats-2, Stats-3"
+        },
+        {
+          "id": "TC-DWF-03",
+          "description": "Traits: Dwarf and Humanoid present on character",
+          "ac": "Stats-4"
+        },
+        {
+          "id": "TC-DWF-04",
+          "description": "Starting languages: Common and Dwarven granted automatically",
+          "ac": "Stats-5"
+        },
+        {
+          "id": "TC-DWF-05",
+          "description": "Bonus languages: slots = max(0, int_modifier); only Gnomish/Goblin/Jotun/Orcish/Terran/Undercommon selectable",
+          "ac": "Stats-6"
+        },
+        {
+          "id": "TC-DWF-06",
+          "description": "Clan Dagger: free item in inventory at character creation; gold not deducted",
+          "ac": "ClanDagger-1, Failure-2"
+        },
+        {
+          "id": "TC-DWF-07",
+          "description": "Clan Dagger taboo: sell action shows taboo_warning; does not silently succeed",
+          "ac": "ClanDagger-2"
+        },
+        {
+          "id": "TC-DWF-08",
+          "description": "Low-Light Vision: character.senses includes low_light_vision",
+          "ac": "LLV-1"
+        },
+        {
+          "id": "TC-DWF-09",
+          "description": "Feat Dwarven Lore: Crafting and Religion trained; Dwarven Lore subcategory skill added",
+          "ac": "Feat-1"
+        },
+        {
+          "id": "TC-DWF-10",
+          "description": "Feat Dwarven Weapon Familiarity: battleaxe/pick/warhammer at trained; dwarf weapon feats unlocked",
+          "ac": "Feat-2, Edge-1"
+        },
+        {
+          "id": "TC-DWF-11",
+          "description": "Feat Rock Runner: stone surface Acrobatics DC reduction active; not flat-footed on uneven/slippery stone",
+          "ac": "Feat-3, Edge-2"
+        },
+        {
+          "id": "TC-DWF-12",
+          "description": "Feat Stonecunning: +2 Perception to notice unusual stonework; auto-rolled within 10 ft of stonework",
+          "ac": "Feat-4"
+        },
+        {
+          "id": "TC-DWF-13",
+          "description": "Feat Unburdened Iron: armor speed penalty reduced by 5 (floor 0); medium/heavy standard -5 penalty becomes 0",
+          "ac": "Feat-5"
+        },
+        {
+          "id": "TC-DWF-14",
+          "description": "Feat Vengeful Hatred: +1 circumstance damage vs. chosen type (giants/humanoids/orcs/ogrekin); type set at feat selection",
+          "ac": "Feat-6"
+        },
+        {
+          "id": "TC-DWF-15",
+          "description": "Heritage Ancient-Blooded: +1 circumstance saves vs. magic; once/day free action Aid a save",
+          "ac": "Heritage-1"
+        },
+        {
+          "id": "TC-DWF-16",
+          "description": "Heritage Death Warden: on necromancy CritFail, additional save made before applying result",
+          "ac": "Heritage-2"
+        },
+        {
+          "id": "TC-DWF-17",
+          "description": "Heritage Forge Dwarf: heat_resistance_non_extreme=true; no armor heat penalty",
+          "ac": "Heritage-3"
+        },
+        {
+          "id": "TC-DWF-18",
+          "description": "Heritage Rock Dwarf: +1 circumstance Fortitude vs. Shove/Trip; Bulk limit uses size+1",
+          "ac": "Heritage-4"
+        },
+        {
+          "id": "TC-DWF-19",
+          "description": "Heritage Strong-Blooded: +1 status Fortitude vs. poison; CritSuccess expunges poison; Success reduces stage by 1",
+          "ac": "Heritage-5"
+        }
+      ]
     }
   ],
   "_schema_notes": [
