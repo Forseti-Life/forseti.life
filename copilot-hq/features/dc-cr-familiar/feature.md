@@ -3,7 +3,8 @@
 - Work item id: dc-cr-familiar
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260410-dungeoncrawler-release-b
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

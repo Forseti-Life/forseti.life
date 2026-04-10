@@ -3,9 +3,9 @@
 - Work item id: dc-cr-creature-identification
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
-- Release: 
-- Priority: P2
+- Status: in_progress
+- Release: 20260410-dungeoncrawler-release-b
+20260410-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

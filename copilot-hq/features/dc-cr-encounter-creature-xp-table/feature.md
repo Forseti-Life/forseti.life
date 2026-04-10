@@ -3,9 +3,9 @@
 - Work item id: dc-cr-encounter-creature-xp-table
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
-- Release: 
-20260409-dungeoncrawler-release-h
+- Status: in_progress
+- Release: 20260410-dungeoncrawler-release-b
+20260410-dungeoncrawler-release-b
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), core/ch10

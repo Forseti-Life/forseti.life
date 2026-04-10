@@ -4,9 +4,9 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: ready
-- Release: 
-- Dependencies: dc-cr-skill-system, dc-cr-dc-rarity-spell-adjustment, dc-cr-spellcasting
+- Status: in_progress
+- Release: 20260410-dungeoncrawler-release-b
+20260410-dungeoncrawler-release-b
 
 ## Goal
 
