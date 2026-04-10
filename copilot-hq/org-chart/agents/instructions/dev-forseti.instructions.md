@@ -365,6 +365,21 @@ grep -rn "<target-pattern>" sites/forseti/web/modules/custom/<module>/
 
 **Reference**: `knowledgebase/lessons/return-to-redirect-bypass.md`
 
+## CRITICAL: Always use forseti's own drush binary
+
+**Never use the global `drush` command for forseti.life work.** The global `/usr/local/bin/drush` resolves to `/var/www/html/drupal` (a different site) and silently runs against the wrong database, producing false-negative results (e.g., route checks saying "not found" when routes ARE registered).
+
+Always use:
+```bash
+cd /var/www/html/forseti
+vendor/bin/drush <command>
+# OR from the git checkout:
+cd /home/ubuntu/forseti.life/sites/forseti
+vendor/bin/drush <command>
+```
+
+Symptom that you're hitting the wrong drush: `drush php:eval` errors reference `/var/www/html/drupal/vendor/...` in the stack trace. Switch to `vendor/bin/drush` immediately.
+
 ## Post-fix local deploy verification checklist (run after every code change)
 
 After any code change to the forseti.life Drupal instance, run these steps before handing off to QA:
