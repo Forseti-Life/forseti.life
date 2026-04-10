@@ -10285,6 +10285,81 @@
           "description": "QA audit still passes after Wizard module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-crafting-e2e",
+      "label": "Crafting System: prerequisites, time/cost, skill checks, formula system, alchemist daily crafting, downtime dependency, atomic gold/item operations",
+      "type": "e2e",
+      "feature_id": "dc-cr-crafting",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/downtime/crafting.spec.ts playwright/character-creation/formula.spec.ts playwright/encounter/quick-alchemy.spec.ts",
+      "artifacts": [
+        "playwright-report/crafting-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CRF-01",
+          "description": "Crafting prerequisites: formula, tools, skill rank, item level \u2014 missing any prereq rejected with specific feedback",
+          "ac": "AC-001"
+        },
+        {
+          "id": "TC-CRF-02",
+          "description": "Crafting time/cost: 4-day commitment, half-price paid at start, additional days reduce remaining half via daily rate",
+          "ac": "AC-002"
+        },
+        {
+          "id": "TC-CRF-03",
+          "description": "Crafting check critical success: item finished in half standard time (ceil(standard_time/2))",
+          "ac": "AC-003"
+        },
+        {
+          "id": "TC-CRF-04",
+          "description": "Crafting check failure: 4 days spent, item not completed, initial material cost lost",
+          "ac": "AC-003"
+        },
+        {
+          "id": "TC-CRF-05",
+          "description": "Crafting check critical failure: all materials ruined, full cost lost (not half)",
+          "ac": "AC-003"
+        },
+        {
+          "id": "TC-CRF-06",
+          "description": "Formula system: formulas added to formula book on acquisition; class free formulas auto-granted on level-up",
+          "ac": "AC-004"
+        },
+        {
+          "id": "TC-CRF-07",
+          "description": "Formula rarity gate: uncommon/rare formula requires source permission; blocked without it",
+          "ac": "AC-004"
+        },
+        {
+          "id": "TC-CRF-08",
+          "description": "Alchemist Advanced Alchemy: creates 2\u00d7proficiency_bonus items at daily prep, no gold cost, formula list only",
+          "ac": "AC-005"
+        },
+        {
+          "id": "TC-CRF-09",
+          "description": "Alchemist Quick Alchemy: 1 action, spend 1 reagent \u2192 1 alchemical item created instantly for immediate use",
+          "ac": "AC-005"
+        },
+        {
+          "id": "TC-CRF-10",
+          "description": "Crafting requires downtime context: attempt in encounter/exploration mode rejected with feedback",
+          "ac": "AC-006"
+        },
+        {
+          "id": "TC-CRF-11",
+          "description": "Downtime integration: crafting days deducted from downtime_days_available; integrates with dc-cr-downtime-mode",
+          "ac": "AC-006"
+        },
+        {
+          "id": "TC-CRF-12",
+          "description": "Atomic gold/item operations: partial failure rolls back gold deduction; no inconsistent state (Security AC)",
+          "ac": "Security AC"
+        }
+      ]
     }
   ],
   "_schema_notes": [
