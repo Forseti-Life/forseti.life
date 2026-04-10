@@ -383,6 +383,20 @@ done
 
 **Why this exists (2026-04-07 lesson)**: `forseti-ai-service-refactor` and `forseti-jobhunter-schema-fix` were activated for `20260407-forseti-release-b` but had no dev outbox. QA issued an immediate Gate 2 BLOCK because implementations were missing. This caused a deferred QA cycle and wasted a full gate pass. A 30-second check prevents the repeat.
 
+## QA BLOCK routing — dispatch dev before escalating to CEO (required)
+
+**Lesson (2026-04-10):** qa-forseti issued a 3x escalation on `forseti-jobhunter-return-to-open-redirect` that reached CEO before pm-forseti dispatched the fix to dev-forseti. pm-forseti is qa-forseti's supervisor — the fix dispatch is a PM-level decision, NOT a CEO decision.
+
+**Rule**: When qa-forseti reports a QA BLOCK with a specific defect (missing implementation, incorrect code, missed instance):
+
+1. **Read the BLOCK report** — identify the exact file/line/feature failing.
+2. **Check if dev-forseti already has an unarchived dispatch for this defect** — `ls sessions/dev-forseti/inbox/ | grep <feature>`.
+3. **If no dispatch exists**: create a targeted dev-forseti inbox item (fix description, AC, file, line) with ROI ≥ 30. Do this in the SAME outbox cycle as receiving the BLOCK.
+4. **Do NOT escalate to CEO** unless the BLOCK requires a decision outside your authority (cross-module ownership conflict, security risk acceptance, etc.).
+5. **After dispatching dev**, write `Status: blocked` (awaiting dev fix) — NOT `Status: needs-info` escalation.
+
+**CEO phantom-blocker prevention**: If you escalate to CEO with `Decision needed: None` and `Needs from CEO: None`, that is a malformed escalation. The orchestrator will keep re-delivering it — wasting CEO slots on items you can resolve yourself.
+
 ## Gate 2 aggregate dispatch (required — GAP-QA-GATE2-CONSOLIDATE-02)
 
 After dispatching all suite-activate inbox items to qa-forseti, you MUST also dispatch one additional `gate2-approve-<release-id>` inbox item to qa-forseti **in the same outbox cycle**. This is the explicit trigger for qa to file the consolidated Gate 2 APPROVE outbox.
