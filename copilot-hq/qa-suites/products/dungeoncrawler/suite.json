@@ -5248,8 +5248,8 @@
         "tests/results/dc-apg-equipment-e2e.xml"
       ],
       "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-08",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
       "notes": "Security AC exemption confirmed: no new routes. All 16 TCs active. Key regression risks: Bola Trip not offered post-hit; Daikyu non-left mount firing not blocked; Net immobilize on non-crit; Focus Cathartic counteract modifier not tier-scaled; Dust undead 4-cap not enforced; Terrifying Ammunition Frightened floor not held at 1; Rod of Cancellation cooldown not rolling 2d6 hours; Slate destruction not propagating to partner.",
       "test_cases": [
         {
