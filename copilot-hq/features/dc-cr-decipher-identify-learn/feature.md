@@ -4,7 +4,7 @@
 - Type: new
 - Module: dungeoncrawler_content
 - Priority: P2
-- Status: in_progress
+- Status: done
 - Release: 20260410-dungeoncrawler-release-b
 20260410-dungeoncrawler-release-b
 

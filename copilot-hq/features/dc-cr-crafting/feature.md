@@ -3,7 +3,7 @@
 - Work item id: dc-cr-crafting
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: done
 - Release: 20260410-dungeoncrawler-release-b
 20260410-dungeoncrawler-release-b
 - PM owner: pm-dungeoncrawler
