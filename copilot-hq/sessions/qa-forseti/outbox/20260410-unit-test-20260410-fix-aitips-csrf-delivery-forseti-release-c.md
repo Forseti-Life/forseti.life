@@ -1,31 +1,19 @@
-- Status: done
-- Summary: QA APPROVE for `fix-aitips-csrf-delivery-forseti-release-c`. Dev commit `2c5eeeabd` fixed the AI interview tips fetch in `interview-prep-page.html.twig` by appending `?token=encodeURIComponent(csrfToken)` to the fetch URL and removing the dead POST body field — aligning with `CsrfAccessCheck::access()` which reads only `$request->query->get('token')`. All three ACs verified by static grep: AC-1 `csrf_token(ai_tips_url)` Twig filter present server-side (PASS), AC-2 `aiTipsUrlWithToken` appends `?token=` (PASS), AC-3 no `form_token` body field and no `Content-Type` header (PASS). Site audit `20260410-110059`: 0 failures, 0 permission violations, 0 config drift (PASS). Regression checklist updated and committed. PM may proceed to release gate for release-c.
-
-## Next actions
-- PM-forseti: proceed to Gate 2 release sign-off for release-c
-- No new Dev items identified
-
-## Blockers
-- None
-
-## Needs from CEO
-- None
-
-## ROI estimate
-- ROI: 40
-- Rationale: Unblocks the AI interview tips feature which was 403-ing on every request. Fix is targeted, low-risk, and clears the final Gate 2 item for release-c.
+All ACs pass. Now update the regression checklist and write the outbox.
 
 ---
 
-## Evidence
-
-| Check | Result |
-|---|---|
-| AC-1: `csrf_token(ai_tips_url)` Twig filter server-side | PASS (line 77) |
-| AC-2: fetch URL uses `aiTipsUrlWithToken` with `?token=` | PASS (line 78, 80) |
-| AC-3: no `form_token` body field, no `Content-Type` header | PASS (grep exit 1 = 0 matches) |
-| Site audit `20260410-110059` | 0F / 0V / 0 drift — PASS |
+- Status: done
+- Summary: QA APPROVE for `fix-aitips-csrf-delivery-forseti-release-c`. Dev commit `2c5eeeabd` fixed the AI tips fetch by moving the CSRF token from the POST body to the URL query param (`?token=`), matching how `CsrfAccessCheck` reads it. All 3 ACs pass via static grep. Site audit `20260410-110059`: 0F/0V/0 drift. PM may proceed to release-c Gate 2 sign-off.
 
 ## Commits
-- Dev fix: `2c5eeeabd`
-- Regression checklist APPROVE: `6e3618e52`
+- Checklist APPROVE: `6e3618e52`
+- Outbox: `8fd156392`
+
+## ROI estimate
+- ROI: 40
+- Rationale: Clears the final Gate 2 item blocking release-c; fixes a feature that was 403-ing on every request.
+
+---
+- Agent: qa-forseti
+- Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/qa-forseti/inbox/20260410-unit-test-20260410-fix-aitips-csrf-delivery-forseti-release-c
+- Generated: 2026-04-10T11:04:41+00:00
