@@ -8399,6 +8399,292 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
     ],
   ];
 
+  /**
+   * PF2e currency denominations in copper-piece equivalents.
+   * 10 cp = 1 sp, 10 sp = 1 gp, 10 gp = 1 pp.
+   */
+  const CURRENCY_EXCHANGE_RATES = [
+    'cp' => 1,
+    'sp' => 10,
+    'gp' => 100,
+    'pp' => 1000,
+  ];
+
+  /**
+   * Convert an amount from one currency denomination to another.
+   *
+   * Returns a float so callers can detect partial conversions.
+   * E.g. convertCurrency(10, 'cp', 'sp') = 1.0
+   *      convertCurrency(10, 'sp', 'gp') = 1.0
+   *      convertCurrency(10, 'gp', 'pp') = 1.0
+   */
+  public static function convertCurrency(int $amount, string $from, string $to): float {
+    $rates = self::CURRENCY_EXCHANGE_RATES;
+    if (!isset($rates[$from], $rates[$to])) {
+      throw new \InvalidArgumentException("Unknown denomination: from={$from} to={$to}");
+    }
+    return ($amount * $rates[$from]) / $rates[$to];
+  }
+
+  /**
+   * PF2e hireling catalog (CRB Table 6-6).
+   * unskilled = +0 all skills; skilled = +4 specialty, +0 otherwise.
+   * Rates in copper pieces per day (base). Double when in_danger = true.
+   */
+  const HIRELINGS = [
+    'unskilled' => [
+      'id'            => 'hireling-unskilled',
+      'name'          => 'Unskilled Hireling',
+      'skill_bonus'   => 0,
+      'specialty'     => NULL,
+      'base_rate_cp'  => 1,   // 1 cp/day
+      'danger_rate_cp' => 2,
+    ],
+    'skilled' => [
+      'id'              => 'hireling-skilled',
+      'name'            => 'Skilled Hireling',
+      'specialty_bonus' => 4,
+      'other_bonus'     => 0,
+      'base_rate_cp'    => 100,  // 1 gp/day
+      'danger_rate_cp'  => 200,
+    ],
+  ];
+
+  /**
+   * Return hireling daily cost in copper pieces.
+   * Doubles when adventuring into danger (CRB Chapter 6).
+   */
+  public static function hirelingDailyCost(string $type, bool $in_danger = FALSE): int {
+    $entry = self::HIRELINGS[$type] ?? NULL;
+    if ($entry === NULL) {
+      throw new \InvalidArgumentException("Unknown hireling type: {$type}");
+    }
+    return $in_danger ? $entry['danger_rate_cp'] : $entry['base_rate_cp'];
+  }
+
+  /**
+   * PF2e spellcasting services catalog (CRB Chapter 6).
+   * Availability: uncommon.
+   * Total cost = table_price_cp + material_component_cp + surcharge_cp.
+   * Surcharge applies for uncommon spells and spells with casting time > 2 actions.
+   */
+  const SPELLCASTING_SERVICES = [
+    'availability' => 'uncommon',
+    'surcharge_uncommon_cp' => 50,   // +5 sp for uncommon spell
+    'surcharge_long_cast_cp' => 100, // +1 gp for casting time > 2 actions
+    'levels' => [
+      1 => ['table_price_cp' => 200,   'material_component_cp' => 0],   // 2 gp
+      2 => ['table_price_cp' => 600,   'material_component_cp' => 0],   // 6 gp
+      3 => ['table_price_cp' => 1200,  'material_component_cp' => 0],   // 12 gp
+      4 => ['table_price_cp' => 2000,  'material_component_cp' => 0],   // 20 gp
+      5 => ['table_price_cp' => 3000,  'material_component_cp' => 0],   // 30 gp
+      6 => ['table_price_cp' => 6000,  'material_component_cp' => 0],   // 60 gp
+      7 => ['table_price_cp' => 10000, 'material_component_cp' => 0],   // 100 gp
+      8 => ['table_price_cp' => 20000, 'material_component_cp' => 0],   // 200 gp
+      9 => ['table_price_cp' => 30000, 'material_component_cp' => 0],   // 300 gp
+      10 => ['table_price_cp' => 60000, 'material_component_cp' => 0],  // 600 gp (uncommon-only)
+    ],
+  ];
+
+  /**
+   * Calculate total cost for a spellcasting service in copper pieces.
+   *
+   * @param int $spell_level Spell level (1-10).
+   * @param int $material_cp Material component cost in cp (default 0).
+   * @param bool $uncommon Whether the spell is uncommon (adds surcharge).
+   * @param bool $long_cast Whether casting time > 2 actions (adds surcharge).
+   */
+  public static function spellcastingServiceCost(int $spell_level, int $material_cp = 0, bool $uncommon = FALSE, bool $long_cast = FALSE): int {
+    $levels = self::SPELLCASTING_SERVICES['levels'];
+    if (!isset($levels[$spell_level])) {
+      throw new \InvalidArgumentException("Invalid spell level: {$spell_level}");
+    }
+    $total = $levels[$spell_level]['table_price_cp'] + $material_cp;
+    if ($uncommon) {
+      $total += self::SPELLCASTING_SERVICES['surcharge_uncommon_cp'];
+    }
+    if ($long_cast) {
+      $total += self::SPELLCASTING_SERVICES['surcharge_long_cast_cp'];
+    }
+    return $total;
+  }
+
+  /**
+   * Subsist action definition (CRB Chapter 9 — Downtime).
+   * Survival or Society check; success means subsistence standard met at no coin cost.
+   */
+  const SUBSIST_ACTION = [
+    'id'           => 'subsist',
+    'name'         => 'Subsist',
+    'skills'       => ['Survival', 'Society'],
+    'action_type'  => 'downtime',
+    'dc'           => 15,
+    'success'      => ['subsistence_met' => TRUE, 'cost_cp' => 0],
+    'failure'      => ['subsistence_met' => FALSE, 'note' => 'Must pay normal subsistence cost or go hungry'],
+    'note'         => 'Using Society represents finding charitable sources (urban); Survival means foraging.',
+  ];
+
+  /**
+   * PF2e Animal catalog (CRB Table 6-17).
+   * Each entry has price_cp, rental_per_day_cp, and combat_trained flag.
+   */
+  const ANIMAL_CATALOG = [
+    'cat' => [
+      'id'               => 'cat',
+      'name'             => 'Cat',
+      'price_cp'         => 100,    // 1 gp
+      'rental_per_day_cp' => 10,   // 1 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'dog' => [
+      'id'               => 'dog',
+      'name'             => 'Dog',
+      'price_cp'         => 200,    // 2 gp
+      'rental_per_day_cp' => 20,   // 2 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'guard-dog' => [
+      'id'               => 'guard-dog',
+      'name'             => 'Guard Dog',
+      'price_cp'         => 300,    // 3 gp
+      'rental_per_day_cp' => 30,   // 3 sp/day
+      'combat_trained'   => TRUE,
+    ],
+    'horse' => [
+      'id'               => 'horse',
+      'name'             => 'Horse',
+      'price_cp'         => 2000,   // 20 gp
+      'rental_per_day_cp' => 50,   // 5 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'warhorse' => [
+      'id'               => 'warhorse',
+      'name'             => 'Warhorse',
+      'price_cp'         => 7500,   // 75 gp
+      'rental_per_day_cp' => 100,  // 1 gp/day
+      'combat_trained'   => TRUE,
+    ],
+    'pony' => [
+      'id'               => 'pony',
+      'name'             => 'Pony',
+      'price_cp'         => 200,    // 2 gp
+      'rental_per_day_cp' => 20,   // 2 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'riding-pony' => [
+      'id'               => 'riding-pony',
+      'name'             => 'Riding Pony',
+      'price_cp'         => 400,    // 4 gp
+      'rental_per_day_cp' => 40,   // 4 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'mule' => [
+      'id'               => 'mule',
+      'name'             => 'Mule',
+      'price_cp'         => 800,    // 8 gp
+      'rental_per_day_cp' => 30,   // 3 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'camel' => [
+      'id'               => 'camel',
+      'name'             => 'Camel',
+      'price_cp'         => 3000,   // 30 gp
+      'rental_per_day_cp' => 60,   // 6 sp/day
+      'combat_trained'   => FALSE,
+    ],
+    'ox' => [
+      'id'               => 'ox',
+      'name'             => 'Ox',
+      'price_cp'         => 1500,   // 15 gp
+      'rental_per_day_cp' => 40,   // 4 sp/day
+      'combat_trained'   => FALSE,
+    ],
+  ];
+
+  /**
+   * Non-combat-trained animal combat panic conditions (CRB Chapter 6).
+   * Applied on combat_start when combat_trained = false.
+   */
+  const ANIMAL_COMBAT_PANIC = [
+    'condition'  => 'frightened',
+    'value'      => 4,
+    'fleeing'    => TRUE,
+    'note'       => 'Non-combat-trained animals panic when combat begins (CRB p. 481).',
+  ];
+
+  /**
+   * PF2e Barding catalog (CRB Chapter 6).
+   * Barding is animal armor: no rune slots; Strength requirement applies.
+   * Price and Bulk scale by mount size relative to Medium baseline.
+   * Size multipliers: Small ×0.5, Medium ×1, Large ×2, Huge ×4.
+   */
+  const BARDING_CATALOG = [
+    'leather-barding' => [
+      'id'         => 'leather-barding',
+      'name'       => 'Leather Barding',
+      'armor_type' => 'barding',
+      'rune_slots' => 0,
+      'ac_bonus'   => 1,
+      'dex_cap'    => 4,
+      'check_penalty' => 0,
+      'strength'   => 10,
+      'base_price_cp' => 200,   // 2 gp (Medium)
+      'base_bulk'   => 1,
+      'size_price_multipliers' => ['Small' => 0.5, 'Medium' => 1, 'Large' => 2, 'Huge' => 4],
+    ],
+    'hide-barding' => [
+      'id'         => 'hide-barding',
+      'name'       => 'Hide Barding',
+      'armor_type' => 'barding',
+      'rune_slots' => 0,
+      'ac_bonus'   => 3,
+      'dex_cap'    => 2,
+      'check_penalty' => -2,
+      'strength'   => 14,
+      'base_price_cp' => 400,   // 4 gp (Medium)
+      'base_bulk'   => 3,
+      'size_price_multipliers' => ['Small' => 0.5, 'Medium' => 1, 'Large' => 2, 'Huge' => 4],
+    ],
+    'chain-barding' => [
+      'id'         => 'chain-barding',
+      'name'       => 'Chain Barding',
+      'armor_type' => 'barding',
+      'rune_slots' => 0,
+      'ac_bonus'   => 4,
+      'dex_cap'    => 1,
+      'check_penalty' => -2,
+      'strength'   => 16,
+      'base_price_cp' => 6000,  // 60 gp (Medium)
+      'base_bulk'   => 4,
+      'size_price_multipliers' => ['Small' => 0.5, 'Medium' => 1, 'Large' => 2, 'Huge' => 4],
+    ],
+    'plate-barding' => [
+      'id'         => 'plate-barding',
+      'name'       => 'Plate Barding',
+      'armor_type' => 'barding',
+      'rune_slots' => 0,
+      'ac_bonus'   => 6,
+      'dex_cap'    => 0,
+      'check_penalty' => -3,
+      'strength'   => 18,
+      'base_price_cp' => 150000, // 1500 gp (Medium)
+      'base_bulk'   => 5,
+      'size_price_multipliers' => ['Small' => 0.5, 'Medium' => 1, 'Large' => 2, 'Huge' => 4],
+    ],
+  ];
+
+  /**
+   * Calculate barding price in copper pieces for a given size.
+   */
+  public static function bardingPrice(string $barding_id, string $size = 'Medium'): int {
+    $entry = self::BARDING_CATALOG[$barding_id] ?? NULL;
+    if ($entry === NULL) {
+      throw new \InvalidArgumentException("Unknown barding id: {$barding_id}");
+    }
+    $multiplier = $entry['size_price_multipliers'][$size] ?? 1;
+    return (int) round($entry['base_price_cp'] * $multiplier);
+  }
+
   public function __construct(Connection $database, AccountProxyInterface $current_user, UuidInterface $uuid, ?InventoryManagementService $inventory_management = NULL) {
     $this->database = $database;
     $this->currentUser = $current_user;

@@ -398,8 +398,18 @@ class InventoryManagementService {
     string $owner_type,
     string $item_instance_id,
     bool $gm_override = FALSE,
-    ?int $campaign_id = NULL
+    ?int $campaign_id = NULL,
+    string $game_phase = 'downtime'
   ): array {
+    // Sell/purchase transactions are downtime-only (CRB Chapter 6).
+    if (in_array($game_phase, ['encounter', 'exploration'], TRUE)) {
+      return [
+        'success' => FALSE,
+        'error' => 'downtime_only',
+        'message' => 'Selling items is only permitted during downtime (not encounter or exploration).',
+      ];
+    }
+
     $this->validateOwner($owner_id, $owner_type);
 
     // Load item instance to check sell_taboo flag.
@@ -436,6 +446,127 @@ class InventoryManagementService {
       1,
       $campaign_id
     );
+  }
+
+  /**
+   * Purchase an item for a character, enforcing economy rules.
+   *
+   * Rules enforced:
+   * - Items with price_gp = NULL (Price "—") cannot be purchased (not_for_sale).
+   * - Items with price_gp = 0 are free; no currency deducted.
+   * - Purchase/sell transactions blocked during encounter or exploration phases.
+   * - Negative balance prevented (returns insufficient_funds if character cannot afford).
+   *
+   * @param string $character_id Character ID (owner).
+   * @param array $item Item data from EquipmentCatalogService::CATALOG (must include 'price_gp').
+   * @param string $game_phase Current game phase: 'downtime', 'encounter', 'exploration'.
+   * @param int $quantity Quantity to purchase.
+   * @param int|null $campaign_id Campaign ID.
+   *
+   * @return array Result: ['success' => bool, 'error' => string|null, 'message' => string].
+   */
+  public function purchaseItem(
+    string $character_id,
+    array $item,
+    string $game_phase = 'downtime',
+    int $quantity = 1,
+    ?int $campaign_id = NULL
+  ): array {
+    // Purchase transactions are downtime-only (CRB Chapter 6).
+    if (in_array($game_phase, ['encounter', 'exploration'], TRUE)) {
+      return [
+        'success' => FALSE,
+        'error' => 'downtime_only',
+        'message' => 'Purchasing items is only permitted during downtime.',
+      ];
+    }
+
+    // Price "—" items are not for sale.
+    if (!array_key_exists('price_gp', $item) || $item['price_gp'] === NULL) {
+      return [
+        'success' => FALSE,
+        'error' => 'not_for_sale',
+        'item_id' => $item['id'] ?? 'unknown',
+        'message' => 'This item has no purchase price and cannot be bought.',
+      ];
+    }
+
+    $price_gp = (float) $item['price_gp'];
+    $total_price_cp = (int) round($price_gp * 100 * $quantity);
+
+    // Free item (price = 0) — add without currency check.
+    if ($total_price_cp === 0) {
+      return $this->addItemToInventory($character_id, 'character', $item, 'carried', $quantity, $campaign_id);
+    }
+
+    // Load character currency and check balance.
+    $char_record = $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['character_data'])
+      ->condition('id', $character_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$char_record) {
+      throw new \InvalidArgumentException("Character not found: {$character_id}");
+    }
+
+    $char_data = json_decode($char_record['character_data'] ?? '{}', TRUE) ?: [];
+    // Currency may be nested under equipment or at top level.
+    $currency = $char_data['character']['equipment']['currency']
+      ?? $char_data['equipment']['currency']
+      ?? $char_data['currency']
+      ?? ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+    // Normalise gold/silver/copper key aliases from buildCharacterJson.
+    if (!isset($currency['gp']) && isset($currency['gold'])) {
+      $currency = [
+        'pp' => (int) ($currency['pp'] ?? 0),
+        'gp' => (int) $currency['gold'],
+        'sp' => (int) ($currency['silver'] ?? 0),
+        'cp' => (int) ($currency['copper'] ?? 0),
+      ];
+    }
+
+    $rates = ['cp' => 1, 'sp' => 10, 'gp' => 100, 'pp' => 1000];
+    $total_owned_cp = 0;
+    foreach ($rates as $denom => $rate) {
+      $total_owned_cp += ((int) ($currency[$denom] ?? 0)) * $rate;
+    }
+
+    if ($total_owned_cp < $total_price_cp) {
+      return [
+        'success' => FALSE,
+        'error' => 'insufficient_funds',
+        'required_cp' => $total_price_cp,
+        'available_cp' => $total_owned_cp,
+        'message' => "Insufficient funds: need {$total_price_cp} cp, have {$total_owned_cp} cp.",
+      ];
+    }
+
+    // Deduct currency and persist updated character data.
+    $new_total_cp = $total_owned_cp - $total_price_cp;
+    $new_currency = ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+    foreach (['pp', 'gp', 'sp', 'cp'] as $denom) {
+      $new_currency[$denom] = intdiv($new_total_cp, $rates[$denom]);
+      $new_total_cp %= $rates[$denom];
+    }
+
+    // Write new currency back into character_data preserving nested structure.
+    if (isset($char_data['character']['equipment']['currency'])) {
+      $char_data['character']['equipment']['currency'] = $new_currency;
+    }
+    elseif (isset($char_data['equipment']['currency'])) {
+      $char_data['equipment']['currency'] = $new_currency;
+    }
+    else {
+      $char_data['currency'] = $new_currency;
+    }
+
+    $this->database->update('dc_campaign_characters')
+      ->fields(['character_data' => json_encode($char_data)])
+      ->condition('id', $character_id)
+      ->execute();
+
+    return $this->addItemToInventory($character_id, 'character', $item, 'carried', $quantity, $campaign_id);
   }
 
   /**
@@ -957,8 +1088,18 @@ class InventoryManagementService {
   }
 
   /**
-   * Calculate total bulk for an inventory.
+   * Calculate Bulk contributed by coins (PF2e: 1,000 coins = 1 Bulk, floor division).
    *
+   * @param int $total_coins Total coin count (all denominations summed).
+   * @return int Bulk value (integer, floor division).
+   */
+  public static function calculateCoinBulk(int $total_coins): int {
+    return (int) floor($total_coins / 1000);
+  }
+
+  /**
+   * Calculate total bulk for an inventory.
+
    * @param string $owner_id
    *   Character or container ID.
    * @param string $owner_type
