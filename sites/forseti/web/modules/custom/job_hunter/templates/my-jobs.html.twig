@@ -4,11 +4,12 @@
  * Template for the My Jobs pipeline view.
  *
  * Available variables:
- * - jobs: Array of saved jobs for the current page (each has workflow_status, display_platform)
+ * - jobs: Array of saved jobs for the current page (each has workflow_status, display_platform, match_score)
  * - pipeline_stages: Keyed by stage slug; each entry has label, count, jobs
  * - companies: Array of company names for filtering
  * - filter_company: Current company filter value
  * - filter_status: Current workflow_status filter value
+ * - user_has_skills: Boolean — TRUE if the current user has skills recorded in their profile
  * - return_url: Current page URL for post-action redirects
  * - current_page: Current page number (0-indexed)
  * - total_pages: Total number of pages
@@ -104,6 +105,7 @@
                       </th>
                       <th>{{ 'Job Title'|t }}</th>
                       <th>{{ 'Company'|t }}</th>
+                      <th>{{ 'Match'|t }}</th>
                       <th>{{ 'Actions'|t }}</th>
                     </tr>
                   </thead>
@@ -123,6 +125,14 @@
                           <a href="{{ path('job_hunter.job_view', {'job_id': job.id}) }}">{{ job_title }}</a>
                         </td>
                         <td>{{ company_name }}</td>
+                        <td class="col-match">
+                          {% if user_has_skills %}
+                            <span class="match-score-badge match-score-badge--{{ job.match_score >= 70 ? 'high' : (job.match_score >= 40 ? 'mid' : 'low') }}"
+                                  data-match-score="{{ job.match_score }}">{{ job.match_score }}% {{ 'match'|t }}</span>
+                          {% else %}
+                            <span class="match-score-badge match-score-badge--no-skills" data-match-score="0"><a href="/jobhunter/profile">{{ 'Complete profile'|t }}</a></span>
+                          {% endif %}
+                        </td>
                         <td class="operations">
                           {% if wf == 'profile_pending' %}
                             <a href="/jobhunter/profile" class="button button--small button--primary">{{ 'Complete Profile'|t }}</a>
@@ -165,7 +175,7 @@
                         </td>
                       </tr>
                       <tr class="job-notes-panel job-notes-panel--{{ job.id }}" style="display:none">
-                        <td colspan="4">
+                        <td colspan="5">
                           <div class="application-notes-inline">
                             <div class="notes-field-row-inline">
                               <input type="text" class="notes-manager-name" placeholder="{{ 'Hiring Manager Name'|t }}" maxlength="255" />
@@ -259,6 +269,13 @@
 .btn-notes-toggle { background: #6b7280; color: #fff; }
 .btn-notes-toggle:hover { background: #4b5563; }
 .btn-notes-toggle.active { background: #667eea; }
+.col-match { white-space: nowrap; width: 90px; text-align: center; }
+.match-score-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.8em; font-weight: 600; }
+.match-score-badge--high { background: #d1fae5; color: #065f46; }
+.match-score-badge--mid  { background: #fef3c7; color: #92400e; }
+.match-score-badge--low  { background: #fee2e2; color: #991b1b; }
+.match-score-badge--no-skills { background: #f3f4f6; color: #6b7280; font-weight: 400; }
+.match-score-badge--no-skills a { color: #4b5563; text-decoration: underline; font-size: 0.85em; }
 </style>
 
 <script>

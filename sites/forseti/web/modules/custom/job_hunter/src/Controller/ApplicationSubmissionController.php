@@ -760,7 +760,18 @@ class ApplicationSubmissionController extends ControllerBase {
 
     $has_profile = $this->userHasCompletedProfile();
 
-    // Derive workflow_status and display fields for every job.
+    // Load current user's skills for match score computation (AC-2/SEC-3: current user only).
+    $uid = (int) $this->currentUser()->id();
+    $seeker_row = \Drupal::database()->select('jobhunter_job_seeker', 'js')
+      ->fields('js', ['skills'])
+      ->condition('js.uid', $uid)
+      ->execute()
+      ->fetchObject();
+    $user_skills_raw = $seeker_row ? (string) ($seeker_row->skills ?? '') : '';
+    $user_skill_tokens = $this->tokenizeText($user_skills_raw);
+    $user_has_skills = !empty($user_skill_tokens);
+
+    // Derive workflow_status, display fields, and match score for every job.
     foreach ($all_jobs as $job) {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
@@ -768,6 +779,7 @@ class ApplicationSubmissionController extends ControllerBase {
       $job->notes_load_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_load', ['job_id' => (int) $job->id])->toString();
       $job->notes_save_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_save', ['job_id' => (int) $job->id])->toString();
       $job->notes_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/notes/save');
+      $job->match_score = $this->computeMatchScore($user_skill_tokens, $job);
     }
 
     // AC-2: Apply workflow_status filter (post-derivation).
@@ -813,6 +825,7 @@ class ApplicationSubmissionController extends ControllerBase {
       '#current_page' => $page,
       '#total_pages' => $total_pages,
       '#total_jobs' => $total,
+      '#user_has_skills' => $user_has_skills,
       '#cache' => [
         'contexts' => ['user', 'url.query_args'],
         'tags' => ['job_hunter:jobs', 'job_hunter:companies'],
@@ -1874,6 +1887,84 @@ class ApplicationSubmissionController extends ControllerBase {
     ];
     
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Tokenize a text string into lowercase word tokens for match scoring.
+   *
+   * Splits on non-alphanumeric characters, lowercases, filters tokens shorter
+   * than 3 characters, and removes common English stop words.
+   *
+   * @param string $text
+   *   Raw text to tokenize.
+   *
+   * @return array
+   *   Unique lowercase tokens.
+   */
+  private function tokenizeText(string $text): array {
+    static $stop_words = [
+      'and', 'the', 'for', 'with', 'this', 'that', 'have', 'has', 'will',
+      'are', 'was', 'were', 'you', 'your', 'our', 'their', 'not', 'but',
+      'can', 'all', 'any', 'from', 'use', 'using', 'used', 'also', 'able',
+      'work', 'working', 'team', 'must', 'than', 'its', 'etc',
+    ];
+    $tokens = preg_split('/[^a-zA-Z0-9]+/', strtolower($text), -1, PREG_SPLIT_NO_EMPTY);
+    $tokens = array_filter($tokens, fn($t) => strlen($t) >= 3 && !in_array($t, $stop_words, TRUE));
+    return array_values(array_unique($tokens));
+  }
+
+  /**
+   * Compute match score (0–100) between user skill tokens and a job's text.
+   *
+   * Score = (skill tokens found in job corpus) / (total skill tokens) × 100.
+   * Returns 0 when user has no skill tokens or job has no text (AC-5, AC-6).
+   *
+   * @param array $user_skill_tokens
+   *   Tokenized list of user skills from jobhunter_job_seeker.skills.
+   * @param object $job
+   *   Job row from getSavedJobs(); expected fields: job_description,
+   *   requirements, nice_to_have, skills_required_json.
+   *
+   * @return int
+   *   Score clamped to [0, 100].
+   */
+  private function computeMatchScore(array $user_skill_tokens, object $job): int {
+    if (empty($user_skill_tokens)) {
+      return 0;
+    }
+
+    // Build job text corpus from available text fields (AC-6: safe on NULL fields).
+    $job_text_parts = [
+      $job->job_description ?? '',
+      $job->requirements ?? '',
+      $job->nice_to_have ?? '',
+    ];
+    // Also extract flat skill names from skills_required_json if present.
+    if (!empty($job->skills_required_json)) {
+      $skills_data = json_decode($job->skills_required_json, TRUE);
+      if (is_array($skills_data)) {
+        foreach ($skills_data as $item) {
+          if (is_string($item)) {
+            $job_text_parts[] = $item;
+          }
+          elseif (is_array($item) && !empty($item['name'])) {
+            $job_text_parts[] = $item['name'];
+          }
+        }
+      }
+    }
+
+    $job_token_set = array_flip($this->tokenizeText(implode(' ', $job_text_parts)));
+
+    $matches = 0;
+    foreach ($user_skill_tokens as $skill_token) {
+      if (isset($job_token_set[$skill_token])) {
+        $matches++;
+      }
+    }
+
+    $raw = (int) round($matches / count($user_skill_tokens) * 100);
+    return max(0, min(100, $raw));
   }
 
 }
