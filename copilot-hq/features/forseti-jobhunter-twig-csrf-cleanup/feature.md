@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-twig-csrf-cleanup
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Release: 20260410-forseti-release-b
 - Priority: P2
 - Feature type: needs-testing
