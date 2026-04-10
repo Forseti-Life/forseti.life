@@ -26,3 +26,4 @@ Once you co-sign, pm-forseti will run the coordinated push.
 
 ## Done when
 `scripts/release-signoff-status.sh 20260410-forseti-release-c` exits 0 (both signoffs present).
+- Status: pending

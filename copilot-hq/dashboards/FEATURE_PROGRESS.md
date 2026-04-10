@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T11:09:08Z
+Generated: 2026-04-10T11:39:59Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -45,11 +45,11 @@ Generated: 2026-04-10T11:09:08Z
 | dc-cr-class-sorcerer | dungeoncrawler | dungeoncrawler_content | shipped | P3 |  |  |  |
 | dc-cr-class-wizard | dungeoncrawler | dungeoncrawler_content | shipped | P3 |  |  |  |
 | dc-cr-conditions | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-crafting | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
+| dc-cr-creature-identification | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-darkvision | dungeoncrawler | dungeoncrawler_content | done | medium |  |  |  |
 | dc-cr-dc-rarity-spell-adjustment | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
-| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-decipher-identify-learn | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-dice-system | dungeoncrawler | dungeoncrawler_content | done | P0 (foundational — every resolution system depends on this) |  |  |  |
 | dc-cr-difficulty-class | dungeoncrawler | dungeoncrawler_content | done | P0 (core check resolution mechanic — encounter and skill systems depend on this) |  |  |  |
 | dc-cr-downtime-mode | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -70,8 +70,8 @@ Generated: 2026-04-10T11:09:08Z
 | dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | done | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
-| dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
-| dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-feats-ch05 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-fey-fellowship | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-first-world-adept | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |

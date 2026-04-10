@@ -28,3 +28,5 @@ Holding the release open would violate org-wide auto-close policy ("ship as soon
 
 ## Note on next grooming cycle
 After release-c closes, dispatch ba-forseti for fresh forseti backlog grooming. Do not hold release-d open waiting for scope — let ba-forseti produce feature stubs before activating.
+- Agent: pm-forseti
+- Status: pending

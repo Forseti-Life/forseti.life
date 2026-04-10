@@ -487,6 +487,7 @@ class CharacterLevelingService {
     $level = (int) ($char_data['basicInfo']['level'] ?? 1);
     $class_name = strtolower($char_data['basicInfo']['class'] ?? 'fighter');
     $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
+    $gm_unlocked = $char_data['gm_unlocked_feats'] ?? [];
 
     $catalog = match ($slot_type) {
       'class_feat'    => CharacterManager::CLASS_FEATS[$class_name] ?? [],
@@ -496,11 +497,15 @@ class CharacterLevelingService {
       default         => [],
     };
 
-    return array_values(array_filter($catalog, static function (array $feat) use ($level, $owned_ids): bool {
+    return array_values(array_filter($catalog, static function (array $feat) use ($level, $owned_ids, $gm_unlocked): bool {
       if (isset($feat['level']) && (int) $feat['level'] > $level) {
         return FALSE;
       }
       if (in_array($feat['id'] ?? '', $owned_ids, TRUE)) {
+        return FALSE;
+      }
+      // Uncommon feats require GM unlock in character data.
+      if (!empty($feat['uncommon']) && !in_array($feat['id'] ?? '', $gm_unlocked, TRUE)) {
         return FALSE;
       }
       return TRUE;
@@ -679,6 +684,14 @@ class CharacterLevelingService {
     $owned_ids = array_column($char_data['features']['feats'] ?? [], 'id');
     if (in_array($feat_id, $owned_ids, TRUE)) {
       throw new \InvalidArgumentException("Feat '{$feat_id}' is already in character's feat list", 400);
+    }
+
+    // Uncommon feats require explicit GM unlock in character data.
+    if (!empty($feat['uncommon'])) {
+      $gm_unlocked = $char_data['gm_unlocked_feats'] ?? [];
+      if (!in_array($feat_id, $gm_unlocked, TRUE)) {
+        throw new \InvalidArgumentException("Feat '{$feat_id}' is Uncommon and requires GM unlock", 403);
+      }
     }
 
     return $feat;
