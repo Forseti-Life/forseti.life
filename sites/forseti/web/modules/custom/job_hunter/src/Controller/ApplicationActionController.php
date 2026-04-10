@@ -394,7 +394,7 @@ class ApplicationActionController extends ControllerBase {
     }
 
     $return_to = (string) $request->request->get('return_to', '/jobhunter/my-jobs');
-    if (strpos($return_to, '/') !== 0) {
+    if (!preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs';
     }
 
@@ -433,7 +433,7 @@ class ApplicationActionController extends ControllerBase {
   public function archiveJob(int $job_id): RedirectResponse {
     $request = $this->requestStack->getCurrentRequest();
     $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
-    if (strpos($return_to, '/') !== 0) {
+    if (!preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs';
     }
 
@@ -471,7 +471,7 @@ class ApplicationActionController extends ControllerBase {
   public function unarchiveJob(int $job_id): RedirectResponse {
     $request = $this->requestStack->getCurrentRequest();
     $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs/archive');
-    if (strpos($return_to, '/') !== 0) {
+    if (!preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs/archive';
     }
 
@@ -514,7 +514,7 @@ class ApplicationActionController extends ControllerBase {
       return new RedirectResponse('/user/login');
     }
 
-    if (strpos($return_to, '/') !== 0) {
+    if (!preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs';
     }
 

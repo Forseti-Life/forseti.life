@@ -555,7 +555,7 @@ class CompanyController extends ControllerBase {
   public function deleteJob($job_id) {
     $request = $this->requestStack->getCurrentRequest();
     $return_to = (string) $request->query->get('return_to', '/jobhunter/my-jobs');
-    if (strpos($return_to, '/') !== 0) {
+    if (!preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs';
     }
 
@@ -1786,7 +1786,7 @@ class CompanyController extends ControllerBase {
     $request = $this->requestStack->getCurrentRequest();
     $return_to = (string) $request->query->get('return_to', '');
     $redirect_mode = $return_to !== '';
-    if ($redirect_mode && strpos($return_to, '/') !== 0) {
+    if ($redirect_mode && !preg_match('/^\/(?!\/)/', $return_to)) {
       $return_to = '/jobhunter/my-jobs';
     }
 
