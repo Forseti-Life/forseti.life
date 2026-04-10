@@ -38,7 +38,6 @@ final class DashboardController extends ControllerBase {
   const LANGGRAPH_PARITY_RELATIVE = 'inbox/responses/langgraph-parity-latest.json';
   const LANGGRAPH_FEATURE_PROGRESS_RELATIVE = 'dashboards/FEATURE_PROGRESS.md';
   const RELEASE_CYCLE_CONTROL_FILE_DEFAULT = '/var/tmp/copilot-sessions-hq/release-cycle-control.json';
-  const RELEASE_CYCLE_CONTROL_FILE_LEGACY = '/home/ubuntu/forseti.life/copilot-hq/tmp/release-cycle-control.json';
 
   public function __construct(
     private readonly DashboardRepository $repository,
@@ -1177,7 +1176,8 @@ final class DashboardController extends ControllerBase {
     $state_file = (string) (getenv('RELEASE_CYCLE_CONTROL_FILE') ?: self::RELEASE_CYCLE_CONTROL_FILE_DEFAULT);
     $state = $this->readJsonFile($state_file);
     if (empty($state)) {
-      $state = $this->readJsonFile(self::RELEASE_CYCLE_CONTROL_FILE_LEGACY);
+      $hq_root = rtrim((string) (getenv('COPILOT_HQ_ROOT') ?: '/home/ubuntu/forseti.life/copilot-hq'), '/');
+      $state = $this->readJsonFile($hq_root . '/tmp/release-cycle-control.json');
     }
 
     return [

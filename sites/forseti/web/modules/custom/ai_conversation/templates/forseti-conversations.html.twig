@@ -68,7 +68,6 @@
                 </a>
                 {# AC-5: Delete button #}
                 <form method="post" action="{{ delete_url }}" style="display:inline-block;">
-                  <input type="hidden" name="form_token" value="{{ csrf_token(delete_url) }}">
                   <button type="submit" class="btn btn-sm btn-outline-danger"
                           onclick="return confirm('{{ 'Delete this conversation?'|t }}')">
                     <i class="bi bi-trash"></i> {{ 'Delete'|t }}
