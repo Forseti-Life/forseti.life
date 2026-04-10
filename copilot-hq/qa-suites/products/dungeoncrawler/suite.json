@@ -5989,7 +5989,9 @@
           "suite": "playwright/character-creation",
           "ac": "FocusPool-1 (Integration)"
         }
-      ]
+      ],
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10"
     },
     {
       "id": "dc-apg-rituals-e2e",
