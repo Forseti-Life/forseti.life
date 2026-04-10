@@ -5376,8 +5376,8 @@
         "tests/results/dc-apg-feats-e2e.xml"
       ],
       "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-08",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
       "notes": "Security AC exemption confirmed: no new routes. All 20 TCs active. Regression risks: Prescient Planner item eligibility filter too broad/narrow; Aerobatics Mastery missing rank gate; Bon Mot self-penalty on crit fail not applied; No Cause for Alarm missing 1-hour immunity; Ward Medic patient cap not enforced; Group Aid stacking with other circumstance bonuses; Scare to Death frequency or Frightened-4 gate not enforced; Trick Magic Item routing wrong tradition-to-skill.",
       "test_cases": [
         {
