@@ -7,14 +7,14 @@ use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Psr\Log\LoggerInterface;
 
 /**
- * Handles game actions during the Downtime phase (stub).
+ * Handles game actions during the Downtime phase.
  *
  * Downtime is the between-adventure phase where characters perform long-duration
  * activities: crafting items, earning income, retraining feats/skills, and
  * recovering from conditions.
  *
- * This is a stub implementation. Only long_rest is functional.
- * Full implementation is deferred to a future sprint.
+ * Implemented actions: long_rest, downtime_rest, craft, earn_income, retrain,
+ * advance_day, talk, return_to_exploration.
  */
 class DowntimePhaseHandler implements PhaseHandlerInterface {
 
@@ -163,12 +163,13 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
         break;
 
       case 'earn_income':
-        // Stub — to be implemented in a future sprint.
-        $result = [
-          'stub'    => TRUE,
-          'message' => "The 'earn_income' action is not yet implemented.",
-        ];
-        $events[] = GameEventLogger::buildEvent($type, 'downtime', $actor_id, ['stub' => TRUE]);
+        $result = $this->processEarnIncome($actor_id, $params, $game_state, $campaign_id);
+        $events[] = GameEventLogger::buildEvent($type, 'downtime', $actor_id, [
+          'task_level'  => $params['task_level'] ?? NULL,
+          'skill'       => $params['skill'] ?? NULL,
+          'degree'      => $params['degree'] ?? NULL,
+          'earned_cp'   => $result['earned_cp'] ?? 0,
+        ]);
         break;
 
       case 'talk':
@@ -237,7 +238,14 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
    * {@inheritdoc}
    */
   public function getAvailableActions(array $game_state, array $dungeon_data, ?string $actor_id = NULL): array {
-    return ['long_rest', 'talk', 'return_to_exploration'];
+    $actions = ['long_rest', 'downtime_rest', 'earn_income', 'craft', 'talk', 'return_to_exploration'];
+    if (!empty($game_state['downtime']['retraining'])) {
+      $actions[] = 'advance_day';
+    }
+    else {
+      $actions[] = 'retrain';
+    }
+    return $actions;
   }
 
   // =========================================================================
@@ -571,5 +579,219 @@ class DowntimePhaseHandler implements PhaseHandlerInterface {
       'retrain_completed' => $retrain_result,
     ];
   }
+
+  // =========================================================================
+  // Earn Income.
+  // =========================================================================
+
+  /**
+   * PF2e CRB Table 4-2 — Earn Income DC and per-day income in copper pieces.
+   *
+   * Structure: task_level => [dc, failure_cp, success_cp_by_rank]
+   * success_cp_by_rank index: 0=Untrained, 1=Trained, 2=Expert, 3=Master, 4=Legendary
+   * NULL means that proficiency rank cannot access that task level.
+   */
+  private const EARN_INCOME_TABLE = [
+    0  => ['dc' => 14, 'failure_cp' => 1,   'success_cp' => [1,    5,    NULL,  NULL,  NULL]],
+    1  => ['dc' => 15, 'failure_cp' => 2,   'success_cp' => [2,    20,   NULL,  NULL,  NULL]],
+    2  => ['dc' => 16, 'failure_cp' => 4,   'success_cp' => [4,    30,   NULL,  NULL,  NULL]],
+    3  => ['dc' => 18, 'failure_cp' => 8,   'success_cp' => [8,    50,   50,    NULL,  NULL]],
+    4  => ['dc' => 19, 'failure_cp' => 10,  'success_cp' => [10,   70,   80,    NULL,  NULL]],
+    5  => ['dc' => 20, 'failure_cp' => 20,  'success_cp' => [20,   90,   100,   100,   NULL]],
+    6  => ['dc' => 22, 'failure_cp' => 30,  'success_cp' => [30,   150,  200,   200,   NULL]],
+    7  => ['dc' => 23, 'failure_cp' => 40,  'success_cp' => [40,   200,  250,   250,   NULL]],
+    8  => ['dc' => 24, 'failure_cp' => 50,  'success_cp' => [50,   250,  300,   300,   NULL]],
+    9  => ['dc' => 26, 'failure_cp' => 60,  'success_cp' => [60,   300,  400,   400,   NULL]],
+    10 => ['dc' => 27, 'failure_cp' => 70,  'success_cp' => [70,   400,  500,   600,   NULL]],
+    11 => ['dc' => 28, 'failure_cp' => 80,  'success_cp' => [80,   500,  600,   800,   NULL]],
+    12 => ['dc' => 30, 'failure_cp' => 90,  'success_cp' => [90,   600,  800,   1000,  NULL]],
+    13 => ['dc' => 31, 'failure_cp' => 100, 'success_cp' => [100,  700,  1000,  1500,  NULL]],
+    14 => ['dc' => 32, 'failure_cp' => 150, 'success_cp' => [150,  800,  1500,  2000,  NULL]],
+    15 => ['dc' => 34, 'failure_cp' => 200, 'success_cp' => [200,  1000, 2000,  2800,  3600]],
+  ];
+
+  /**
+   * Processes the earn_income downtime action (REQ 2326, CRB Table 4-2).
+   *
+   * Params:
+   *   - skill (string): Skill used (e.g. 'crafting', 'performance', 'lore').
+   *   - proficiency_rank (int): 0=Untrained, 1=Trained, 2=Expert, 3=Master, 4=Legendary.
+   *   - task_level (int): Task difficulty level (0–15). Must not exceed character level.
+   *   - degree (string): critical_success | success | failure | critical_failure.
+   *   - days (int): Number of downtime days spent (default 1).
+   *
+   * @return array  Result with earned_cp, earned_gp_display, days_elapsed.
+   */
+  protected function processEarnIncome(?string $actor_id, array $params, array &$game_state, int $campaign_id): array {
+    $skill             = $params['skill'] ?? 'lore';
+    $proficiency_rank  = (int) ($params['proficiency_rank'] ?? 0);
+    $task_level        = (int) ($params['task_level'] ?? 0);
+    $degree            = $params['degree'] ?? 'failure';
+    $days              = max(1, (int) ($params['days'] ?? 1));
+
+    // Validate task level.
+    if (!array_key_exists($task_level, self::EARN_INCOME_TABLE)) {
+      return ['success' => FALSE, 'error' => 'invalid_task_level', 'message' => "Invalid task level: {$task_level}. Must be 0–15."];
+    }
+
+    $proficiency_rank = max(0, min(4, $proficiency_rank));
+    $row = self::EARN_INCOME_TABLE[$task_level];
+
+    // Check that this rank can access this task level.
+    if ($row['success_cp'][$proficiency_rank] === NULL) {
+      return [
+        'success' => FALSE,
+        'error'   => 'rank_insufficient',
+        'message' => "Proficiency rank {$proficiency_rank} cannot access task level {$task_level}.",
+      ];
+    }
+
+    // REQ 2326: Enforce critical failure cooldown.
+    $cooldown_key = "earn_income_cooldown_{$skill}";
+    if (!empty($game_state['downtime'][$cooldown_key])) {
+      $cooldown_remaining = (int) $game_state['downtime'][$cooldown_key];
+      if ($cooldown_remaining > 0) {
+        return [
+          'success'  => FALSE,
+          'error'    => 'critical_failure_cooldown',
+          'message'  => "Critical failure cooldown: cannot use {$skill} for Earn Income for {$cooldown_remaining} more day(s).",
+          'cooldown' => $cooldown_remaining,
+        ];
+      }
+    }
+
+    $earned_cp = 0;
+
+    switch ($degree) {
+      case 'critical_success':
+        // Critical success: earn income as if succeeded at the next higher task level.
+        $crit_level = min(15, $task_level + 1);
+        $crit_row   = self::EARN_INCOME_TABLE[$crit_level];
+        $per_day    = $crit_row['success_cp'][$proficiency_rank] ?? $row['success_cp'][$proficiency_rank];
+        $earned_cp  = $per_day * $days;
+        break;
+
+      case 'success':
+        $earned_cp = $row['success_cp'][$proficiency_rank] * $days;
+        break;
+
+      case 'failure':
+        $earned_cp = $row['failure_cp'] * $days;
+        break;
+
+      case 'critical_failure':
+        $earned_cp = 0;
+        // REQ 2326: 7-day cooldown on this skill for Earn Income after critical failure.
+        if (!isset($game_state['downtime'])) {
+          $game_state['downtime'] = [];
+        }
+        $game_state['downtime'][$cooldown_key] = 7;
+        break;
+
+      default:
+        return ['success' => FALSE, 'error' => 'invalid_degree', 'message' => "Invalid degree: {$degree}."];
+    }
+
+    // Advance downtime days.
+    if (!isset($game_state['downtime'])) {
+      $game_state['downtime'] = [];
+    }
+    $game_state['downtime']['days_elapsed'] = ($game_state['downtime']['days_elapsed'] ?? 0) + $days;
+
+    // Decrement any active cooldowns by days spent.
+    foreach ($game_state['downtime'] as $key => &$val) {
+      if (str_starts_with($key, 'earn_income_cooldown_') && $key !== $cooldown_key) {
+        $val = max(0, (int) $val - $days);
+      }
+    }
+    unset($val);
+
+    // Award income to the character.
+    if ($earned_cp > 0 && $actor_id) {
+      $award_result = $this->addCurrency($actor_id, $earned_cp);
+      if (!$award_result['success']) {
+        return array_merge(['success' => FALSE], $award_result);
+      }
+    }
+
+    return [
+      'success'          => TRUE,
+      'skill'            => $skill,
+      'task_level'       => $task_level,
+      'task_dc'          => $row['dc'],
+      'degree'           => $degree,
+      'proficiency_rank' => $proficiency_rank,
+      'days'             => $days,
+      'earned_cp'        => $earned_cp,
+      'earned_gp'        => round($earned_cp / 100, 2),
+      'days_elapsed'     => $game_state['downtime']['days_elapsed'],
+    ];
+  }
+
+  /**
+   * Adds copper pieces to a character's currency (REQ 2326).
+   *
+   * @param string $character_id  Character ID.
+   * @param int    $amount_cp     Amount to add in copper pieces.
+   *
+   * @return array  ['success' => bool, 'new_currency' => array, ...]
+   */
+  private function addCurrency(string $character_id, int $amount_cp): array {
+    $record = $this->database->select('dc_campaign_characters', 'c')
+      ->fields('c', ['character_data'])
+      ->condition('id', $character_id)
+      ->execute()
+      ->fetchAssoc();
+
+    if (!$record) {
+      return ['success' => FALSE, 'error' => 'character_not_found', 'message' => "Character not found: {$character_id}"];
+    }
+
+    $char_data = json_decode($record['character_data'] ?? '{}', TRUE) ?: [];
+    $currency  = $char_data['character']['equipment']['currency']
+      ?? $char_data['equipment']['currency']
+      ?? $char_data['currency']
+      ?? ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+
+    if (!isset($currency['gp']) && isset($currency['gold'])) {
+      $currency = [
+        'pp' => (int) ($currency['pp'] ?? 0),
+        'gp' => (int) $currency['gold'],
+        'sp' => (int) ($currency['silver'] ?? 0),
+        'cp' => (int) ($currency['copper'] ?? 0),
+      ];
+    }
+
+    $rates = ['cp' => 1, 'sp' => 10, 'gp' => 100, 'pp' => 1000];
+    $total_cp = 0;
+    foreach ($rates as $denom => $rate) {
+      $total_cp += ((int) ($currency[$denom] ?? 0)) * $rate;
+    }
+    $total_cp += $amount_cp;
+
+    $new_currency = ['cp' => 0, 'sp' => 0, 'gp' => 0, 'pp' => 0];
+    foreach (['pp', 'gp', 'sp', 'cp'] as $denom) {
+      $new_currency[$denom] = intdiv($total_cp, $rates[$denom]);
+      $total_cp %= $rates[$denom];
+    }
+
+    if (isset($char_data['character']['equipment']['currency'])) {
+      $char_data['character']['equipment']['currency'] = $new_currency;
+    }
+    elseif (isset($char_data['equipment']['currency'])) {
+      $char_data['equipment']['currency'] = $new_currency;
+    }
+    else {
+      $char_data['currency'] = $new_currency;
+    }
+
+    $this->database->update('dc_campaign_characters')
+      ->fields(['character_data' => json_encode($char_data)])
+      ->condition('id', $character_id)
+      ->execute();
+
+    return ['success' => TRUE, 'new_currency' => $new_currency, 'added_cp' => $amount_cp];
+  }
+
 
 }

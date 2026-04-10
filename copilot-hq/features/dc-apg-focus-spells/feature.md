@@ -3,7 +3,7 @@
 - Work item id: dc-apg-focus-spells
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
+- Status: shipped
 - Release: 20260410-dungeoncrawler-release-c
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
