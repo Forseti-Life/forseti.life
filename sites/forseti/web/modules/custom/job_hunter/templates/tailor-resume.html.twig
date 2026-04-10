@@ -715,6 +715,83 @@
     {# End tailored-resume-section #}
   {% endif %}
 
+  {# Tailoring feedback widget — only when result is available #}
+  {% if tailoring_status == 'completed' and tailored_resume_id %}
+  <div class="tailoring-feedback-section card mt-3" id="tailoring-feedback-widget" data-resume-id="{{ tailored_resume_id }}" data-save-url="{{ feedback_save_url }}" data-token="{{ feedback_csrf_token }}" data-rated="{{ feedback_rating }}">
+    <div class="card-header"><h4>{{ 'Rate this tailored resume'|t }}</h4></div>
+    <div class="card-body">
+      <p class="text-muted small">{{ 'Was this AI tailoring helpful?'|t }}</p>
+      <div class="feedback-buttons d-flex gap-2 mb-3">
+        <button type="button" class="btn btn-feedback{% if feedback_rating == 'up' %} btn-feedback--selected{% endif %}" data-value="up" aria-label="{{ 'Thumbs up'|t }}">👍</button>
+        <button type="button" class="btn btn-feedback{% if feedback_rating == 'down' %} btn-feedback--selected{% endif %}" data-value="down" aria-label="{{ 'Thumbs down'|t }}">👎</button>
+      </div>
+      <div class="mb-2">
+        <textarea id="tailoring-feedback-note" class="form-control" maxlength="500" rows="3" placeholder="{{ 'Optional: share your thoughts (max 500 chars)'|t }}">{{ feedback_note }}</textarea>
+        <div class="char-counter text-muted small text-end"><span id="feedback-note-count">{{ feedback_note|length }}</span>/500</div>
+      </div>
+      <button type="button" id="tailoring-feedback-save" class="btn btn-primary btn-sm">{{ 'Save Rating'|t }}</button>
+      <span id="tailoring-feedback-msg" class="ms-2 small feedback-flash" aria-live="polite"></span>
+    </div>
+  </div>
+
+  <style>
+    .btn-feedback { font-size: 1.4rem; background: #f8f9fa; border: 2px solid #dee2e6; border-radius: 8px; padding: 4px 14px; cursor: pointer; }
+    .btn-feedback--selected { border-color: #0d6efd; background: #e7f1ff; }
+    .feedback-flash { color: #198754; font-weight: 600; }
+    .tailoring-feedback-section { max-width: 600px; }
+  </style>
+
+  <script>
+  (function() {
+    var widget = document.getElementById('tailoring-feedback-widget');
+    if (!widget) return;
+    var saveBtn = document.getElementById('tailoring-feedback-save');
+    var noteEl  = document.getElementById('tailoring-feedback-note');
+    var countEl = document.getElementById('feedback-note-count');
+    var msgEl   = document.getElementById('tailoring-feedback-msg');
+    var resumeId  = widget.dataset.resumeId;
+    var saveUrl   = widget.dataset.saveUrl;
+    var token     = widget.dataset.token;
+    var selectedRating = widget.dataset.rated || '';
+
+    noteEl.addEventListener('input', function() {
+      countEl.textContent = noteEl.value.length;
+    });
+
+    widget.querySelectorAll('.btn-feedback').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        selectedRating = btn.dataset.value;
+        widget.querySelectorAll('.btn-feedback').forEach(function(b) { b.classList.remove('btn-feedback--selected'); });
+        btn.classList.add('btn-feedback--selected');
+      });
+    });
+
+    saveBtn.addEventListener('click', function() {
+      if (!selectedRating) { msgEl.textContent = 'Please select 👍 or 👎 first.'; msgEl.style.color='#dc3545'; return; }
+      saveBtn.disabled = true;
+      fetch(saveUrl + '?token=' + encodeURIComponent(token), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+        body: JSON.stringify({ tailored_resume_id: parseInt(resumeId, 10), rating: selectedRating, note: noteEl.value })
+      })
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        saveBtn.disabled = false;
+        if (data.success) {
+          msgEl.textContent = '✓ Saved!';
+          msgEl.style.color = '#198754';
+          widget.dataset.rated = selectedRating;
+        } else {
+          msgEl.textContent = data.error || 'Save failed.';
+          msgEl.style.color = '#dc3545';
+        }
+      })
+      .catch(function() { saveBtn.disabled = false; msgEl.textContent = 'Network error — please try again.'; msgEl.style.color='#dc3545'; });
+    });
+  })();
+  </script>
+  {% endif %}
+
   {# Results container for AJAX updates #}
   <div id="tailoring-results" class="hidden"></div>
 

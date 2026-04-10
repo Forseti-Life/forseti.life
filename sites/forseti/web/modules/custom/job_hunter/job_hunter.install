@@ -2964,3 +2964,39 @@ function job_hunter_update_9045() {
   _job_hunter_create_application_notes_table();
   return t('Created jobhunter_application_notes table for per-job contact notes.');
 }
+
+/**
+ * Helper: creates jobhunter_tailoring_feedback table.
+ */
+function _job_hunter_create_tailoring_feedback_table() {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_tailoring_feedback')) {
+    return;
+  }
+  $schema->createTable('jobhunter_tailoring_feedback', [
+    'description' => 'Per-user thumbs-up/thumbs-down ratings on tailored resumes.',
+    'fields' => [
+      'id'                  => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid'                 => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'tailored_resume_id'  => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'rating'              => ['type' => 'varchar', 'length' => 4, 'not null' => TRUE, 'default' => ''],
+      'note'                => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created'             => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed'             => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid_resume' => ['uid', 'tailored_resume_id']],
+    'indexes' => [
+      'uid'                => ['uid'],
+      'tailored_resume_id' => ['tailored_resume_id'],
+    ],
+  ]);
+}
+
+/**
+ * Create jobhunter_tailoring_feedback table for thumbs-up/thumbs-down ratings.
+ */
+function job_hunter_update_9046() {
+  _job_hunter_create_tailoring_feedback_table();
+  return t('Created jobhunter_tailoring_feedback table for tailored resume ratings.');
+}

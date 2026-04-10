@@ -1209,6 +1209,20 @@ class UserProfileController extends ControllerBase {
     // Calculate skills gap - find job skills not in user's profile
     $skills_gap = $this->calculateSkillsGap($skills, $profile_json);
 
+    // Load existing tailoring feedback (if any) for pre-population.
+    $tailored_resume_id = $tailored_record ? (int) $tailored_record->id : 0;
+    $existing_feedback = NULL;
+    if ($tailored_resume_id) {
+      $existing_feedback = $database->select('jobhunter_tailoring_feedback', 'tf')
+        ->fields('tf', ['rating', 'note'])
+        ->condition('tf.uid', $user->id())
+        ->condition('tf.tailored_resume_id', $tailored_resume_id)
+        ->execute()
+        ->fetchObject();
+    }
+    $feedback_save_url = \Drupal\Core\Url::fromRoute('job_hunter.tailoring_feedback_save')->toString();
+    $feedback_csrf_token = \Drupal::csrfToken()->get('jobhunter/tailor-feedback');
+
     // Build the render array for the tailor resume page
     $content = [
       '#theme' => 'tailor_resume',
@@ -1226,6 +1240,11 @@ class UserProfileController extends ControllerBase {
       '#pdf_path' => $pdf_path,
       '#pdf_generated' => $pdf_generated,
       '#pdf_history' => $pdf_history,
+      '#tailored_resume_id' => $tailored_resume_id,
+      '#feedback_rating' => $existing_feedback ? $existing_feedback->rating : '',
+      '#feedback_note' => $existing_feedback ? $existing_feedback->note : '',
+      '#feedback_save_url' => $feedback_save_url,
+      '#feedback_csrf_token' => $feedback_csrf_token,
       '#attached' => [
         'library' => [
           'job_hunter/tailor_resume',
@@ -2371,6 +2390,83 @@ PROMPT;
     }
 
     return FALSE;
+  }
+
+  /**
+   * AJAX endpoint: save thumbs-up/thumbs-down rating for a tailored resume.
+   *
+   * POST /jobhunter/tailor-feedback
+   * Body params: tailored_resume_id (int), rating ('up'|'down'), note (string, max 500)
+   */
+  public function tailoringFeedbackSave(): JsonResponse {
+    $uid = (int) $this->currentUser->id();
+    $request = \Drupal::request();
+    $body = json_decode($request->getContent(), TRUE) ?: [];
+
+    $tailored_resume_id = (int) ($body['tailored_resume_id'] ?? 0);
+    $rating_raw = (string) ($body['rating'] ?? '');
+    $note_raw   = (string) ($body['note'] ?? '');
+
+    if (!$tailored_resume_id) {
+      return new JsonResponse(['error' => 'Missing tailored_resume_id.'], 400);
+    }
+
+    if (!in_array($rating_raw, ['up', 'down'], TRUE)) {
+      return new JsonResponse(['error' => 'Invalid rating. Must be "up" or "down".'], 422);
+    }
+
+    // SEC-5: cap note at 500 chars before strip to prevent bypass
+    if (mb_strlen($note_raw) > 500) {
+      return new JsonResponse(['error' => 'Note exceeds maximum length'], 422);
+    }
+    $note = strip_tags($note_raw);
+
+    // SEC-3: ownership check — confirm tailored_resume belongs to current user
+    $database = \Drupal::database();
+    $owner_uid = $database->select('jobhunter_tailored_resumes', 'tr')
+      ->fields('tr', ['uid'])
+      ->condition('tr.id', $tailored_resume_id)
+      ->execute()
+      ->fetchField();
+
+    if (!$owner_uid || (int) $owner_uid !== $uid) {
+      return new JsonResponse(['error' => 'Access denied.'], 403);
+    }
+
+    $now = time();
+    $existing_id = $database->select('jobhunter_tailoring_feedback', 'tf')
+      ->fields('tf', ['id'])
+      ->condition('tf.uid', $uid)
+      ->condition('tf.tailored_resume_id', $tailored_resume_id)
+      ->execute()
+      ->fetchField();
+
+    if ($existing_id) {
+      $database->update('jobhunter_tailoring_feedback')
+        ->fields(['rating' => $rating_raw, 'note' => $note, 'changed' => $now])
+        ->condition('id', $existing_id)
+        ->execute();
+    }
+    else {
+      $database->insert('jobhunter_tailoring_feedback')
+        ->fields([
+          'uid'                => $uid,
+          'tailored_resume_id' => $tailored_resume_id,
+          'rating'             => $rating_raw,
+          'note'               => $note,
+          'created'            => $now,
+          'changed'            => $now,
+        ])
+        ->execute();
+    }
+
+    // SEC-5: log only uid and tailored_resume_id, never note content
+    $this->getLogger('job_hunter')->info('Tailoring feedback saved: uid=@uid tailored_resume_id=@rid', [
+      '@uid' => $uid,
+      '@rid' => $tailored_resume_id,
+    ]);
+
+    return new JsonResponse(['success' => TRUE, 'rating' => $rating_raw]);
   }
 
 }
