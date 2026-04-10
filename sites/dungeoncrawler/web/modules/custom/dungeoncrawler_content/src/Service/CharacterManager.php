@@ -259,8 +259,8 @@ class CharacterManager {
    * - Catfolk (heritages: 4, feats: 6)
    *   H: clawed, hunting, jungle, nine-lives
    *   F: catfolk-lore, catfolk-weapon-familiarity, graceful-step, feline-eyes, well-groomed, cat-nap
-   * - Dwarf (heritages: 4, feats: 6)
-   *   H: ancient-blooded, forge, rock, strong-blooded
+   * - Dwarf (heritages: 5, feats: 6)
+   *   H: ancient-blooded-dwarf, death-warden, forge, rock, strong-blooded
    *   F: dwarven-lore, dwarven-weapon-familiarity, rock-runner, stonecunning, unburdened-iron, vengeful-hatred
    * - Elf (heritages: 4, feats: 7)
    *   H: arctic, cavern, seer, woodland
@@ -306,18 +306,26 @@ class CharacterManager {
   const HERITAGES = [
     'Dwarf' => [
       [
-        'id' => 'ancient-blooded',
+        'id' => 'ancient-blooded-dwarf',
         'name' => 'Ancient-Blooded Dwarf',
-        'benefit' => 'Your blood carries ancient magics that protect you. You gain a +1 circumstance bonus to saving throws against magic. Once per day as a free action, you can call on your ancient blood to Aid a saving throw (see Call on Ancient Blood).',
+        'benefit' => 'Dwarven heroes of old could shrug off their enemies\' magic, and some of that resistance manifests in you. You gain the Call on Ancient Blood reaction.',
         'granted_abilities' => ['call-on-ancient-blood'],
         'special' => [
-          'save_bonus_magic' => ['type' => 'circumstance', 'value' => 1, 'condition' => 'saving throws against magic effects'],
-          'daily_ability' => [
+          'reaction' => [
             'id' => 'call-on-ancient-blood',
-            'action_cost' => 'free',
-            'frequency' => 'once per day',
-            'effect' => 'Aid one saving throw against a magical effect (adds +2 circumstance bonus or +4 on critical Aid).',
-            'trigger' => 'You attempt a saving throw against a magical effect.',
+            'action_type' => 'reaction',
+            // Trigger: you are about to attempt a saving throw against a magical
+            // effect (before the roll).  The bonus applies to the triggering save
+            // and any further saves until the end of the current turn.
+            'trigger' => 'saving_throw_before_roll_magical',
+            'effect' => [
+              'type'             => 'circumstance_bonus',
+              'stat'             => 'saving_throw',
+              'value'            => 1,
+              'duration'         => 'end_of_turn',
+              'includes_trigger' => TRUE,
+            ],
+            'frequency' => 'once_per_turn',
           ],
         ],
       ],
@@ -8655,6 +8663,28 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       };
     };
 
+    // Resolve heritage-granted abilities.
+    $heritage_id = $options['heritage'] ?? '';
+    $canonical_ancestry = self::resolveAncestryCanonicalName($ancestry_name) ?: $ancestry_name;
+    $granted_ability_ids = !empty($heritage_id)
+      ? self::getHeritageGrantedAbilities($canonical_ancestry, $heritage_id)
+      : [];
+    $granted_reactions = [];
+    foreach ($granted_ability_ids as $ability_id) {
+      if (isset(self::HERITAGE_REACTIONS[$ability_id])) {
+        $reaction = self::HERITAGE_REACTIONS[$ability_id];
+        $granted_reactions[] = [
+          'id'               => $reaction['id'],
+          'name'             => $reaction['name'],
+          'action_type'      => $reaction['action_type'],
+          'trigger'          => $reaction['trigger'],
+          'effect'           => $reaction['effect'],
+          'description'      => $reaction['description'],
+          'reaction_available' => TRUE,
+        ];
+      }
+    }
+
     return [
       'pf2e_version' => '2.0',
       'character' => [
@@ -8743,6 +8773,8 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
           'traits' => [],
           'backstory' => $options['backstory'] ?? '',
         ],
+        'granted_abilities' => $granted_ability_ids,
+        'reactions' => $granted_reactions,
       ],
     ];
   }
@@ -8944,7 +8976,7 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
       'id'          => 'call-on-ancient-blood',
       'name'        => 'Call on Ancient Blood',
       'action_type' => 'reaction',
-      'heritage'    => 'ancient-blooded',
+      'heritage'    => 'ancient-blooded-dwarf',
       'ancestry'    => 'Dwarf',
       'trigger'     => 'saving_throw_before_roll_magical',
       'effect'      => [
@@ -8961,12 +8993,12 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   /**
    * Returns the granted ability IDs for a given ancestry and heritage ID.
    *
-   * Usage: CharacterManager::getHeritageGrantedAbilities('Dwarf', 'ancient-blooded')
+   * Usage: CharacterManager::getHeritageGrantedAbilities('Dwarf', 'ancient-blooded-dwarf')
    *
    * @param string $ancestry_canonical
    *   Canonical ancestry name (e.g., 'Dwarf').
    * @param string $heritage_id
-   *   Heritage machine ID (e.g., 'ancient-blooded').
+   *   Heritage machine ID (e.g., 'ancient-blooded-dwarf').
    *
    * @return string[]
    *   Array of granted ability IDs, or empty array if none.
