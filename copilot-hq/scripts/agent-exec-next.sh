@@ -719,6 +719,13 @@ if ! echo "$response" | grep -qiE '^\- Status:'; then
 $(printf '%s' "$response" | head -c 500)
 FAILMD
       echo "ERROR: executor validation failure for ${AGENT_ID} after ${_retry_count} retries; failure record written to ${_fail_file}" >&2
+      # Auto-prune: keep only the 200 most-recent failure records to prevent unbounded accumulation.
+      _failure_count=$(ls "tmp/executor-failures/" | wc -l)
+      if [ "$_failure_count" -gt 200 ]; then
+        ls -t "tmp/executor-failures/" | tail -n +"201" | while IFS= read -r _old; do
+          rm -f "tmp/executor-failures/$_old"
+        done
+      fi
       # Do NOT write a stub outbox — exit early to preserve inbox item for next cycle.
       exit 0
     fi
