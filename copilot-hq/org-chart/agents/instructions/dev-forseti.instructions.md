@@ -257,6 +257,25 @@ grep -n '<column_name>' "$JH/job_hunter.install" | head -10
 KB lesson: `knowledgebase/lessons/20260409-schema-hook-pairing-db-columns.md`
 Root cause incidents: FR-RB-02 (2026-04-08), dungeoncrawler dc_chat_sessions + dc_campaign_characters.version (April 2026).
 
+## job_hunter schema pattern — intentional empty hook_schema() (required)
+
+`job_hunter_schema()` intentionally returns `[]`. This is correct and must not be changed.
+
+**Why empty**: Drupal calls `hook_schema()` during `drush pm:uninstall` to determine which tables to DROP. By returning `[]`, the module's data tables are preserved on uninstall — preventing accidental data loss.
+
+**How new tables are created instead**:
+1. Add a `_job_hunter_create_<table>_table()` helper function in `job_hunter.install` containing the full schema + `tableExists` guard.
+2. Call that helper from `job_hunter_install()` (fresh install path).
+3. Also add a `job_hunter_update_N()` hook calling the same helper (existing-install upgrade path).
+
+Both steps (2 and 3) are always required together. Missing either causes install/upgrade divergence.
+
+**Verification**:
+```bash
+grep -n '_create_.*_table\|hook_install' sites/forseti/web/modules/custom/job_hunter/job_hunter.install
+```
+Every `_create_*_table` helper must appear in both `job_hunter_install()` and a matching `job_hunter_update_N()`.
+
 ## Schema drift diagnostic (drush updatedb silent failure)
 
 When a controller crashes with `Unknown column` but `drush updatedb` reports "no pending updates":
