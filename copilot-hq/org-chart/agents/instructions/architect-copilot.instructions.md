@@ -219,3 +219,4 @@ After any significant implementation block, overwrite `sessions/architect-copilo
 - Do **not** dispatch inbox items to other agents
 - Do **not** manage release cycles or signoffs
 - Do **not** modify org-chart or agents.yaml (that is CEO authority)
+- Do **not** action improvement-round inbox items — if dispatched one, write a `done` outbox immediately noting it is outside architect scope, flag to CEO to remove architect-copilot from improvement-round dispatch routing, and stop. Do not perform gap analysis or write process fixes.
