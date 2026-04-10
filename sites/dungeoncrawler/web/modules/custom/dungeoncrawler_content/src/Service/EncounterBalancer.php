@@ -187,41 +187,20 @@ class EncounterBalancer {
   /**
    * Adjust XP budget based on party size.
    *
-   * See design doc line 1082-1094
+   * Uses the canonical PF2e Character Adjustment rule:
+   * each PC above or below 4 adds or subtracts CHARACTER_ADJUSTMENT_XP (20 XP).
+   * Source: PF2e CRB Chapter 10; see CharacterManager::CHARACTER_ADJUSTMENT_XP.
    *
    * @param int $budget
-   *   Base XP budget.
+   *   Base XP budget for a 4-PC party.
    * @param int $party_size
    *   Number of party members.
    *
    * @return int
-   *   Adjusted XP budget.
+   *   Adjusted XP budget (minimum 0).
    */
   private function adjustBudgetForPartySize(int $budget, int $party_size): int {
-    // if (partySize < 4) {
-    //     Reduce budget for smaller parties
-    //     multiplier = partySize / 4.0
-    //     return floor(budget * multiplier)
-    // } else if (partySize > 4) {
-    //     Increase budget for larger parties
-    //     multiplier = partySize / 4.0
-    //     return ceil(budget * multiplier)
-    // }
-    //
-    // return budget
-
-    if ($party_size < 4) {
-      // Reduce budget for smaller parties.
-      $multiplier = $party_size / 4.0;
-      return (int) floor($budget * $multiplier);
-    }
-    elseif ($party_size > 4) {
-      // Increase budget for larger parties.
-      $multiplier = $party_size / 4.0;
-      return (int) ceil($budget * $multiplier);
-    }
-
-    return $budget;
+    return CharacterManager::adjustBudgetForPartySize($budget, $party_size);
   }
 
   /**

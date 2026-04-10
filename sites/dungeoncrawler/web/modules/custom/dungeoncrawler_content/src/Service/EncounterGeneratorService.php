@@ -82,7 +82,9 @@ class EncounterGeneratorService {
   }
 
   /**
-   * PF2e XP budget thresholds per party member.
+   * PF2e XP budget thresholds per encounter (4-PC baseline).
+   *
+   * @deprecated Use CharacterManager::ENCOUNTER_THREAT_TIERS for all new code.
    *
    * @var array
    */
@@ -170,12 +172,9 @@ class EncounterGeneratorService {
   /**
    * Calculate XP budget for an encounter.
    *
-   * PF2e XP budget thresholds per party member:
-   * - Trivial: 40 XP
-   * - Low: 60 XP
-   * - Moderate: 80 XP
-   * - Severe: 120 XP
-   * - Extreme: 160 XP
+   * Uses the PF2e canonical encounter budget system:
+   * - Base budget for a 4-PC party from ENCOUNTER_THREAT_TIERS.
+   * - Each PC above/below 4 adds/subtracts CHARACTER_ADJUSTMENT_XP (20 XP).
    *
    * @param int $party_level
    *   Average party level (1-20)
@@ -201,13 +200,12 @@ class EncounterGeneratorService {
     int $party_size,
     string $difficulty
   ): array {
-    // Get base XP per party member
-    $base_xp = self::XP_BUDGETS[$difficulty] ?? self::XP_BUDGETS['moderate'];
+    $base_xp = CharacterManager::ENCOUNTER_THREAT_TIERS[$difficulty]
+      ?? CharacterManager::ENCOUNTER_THREAT_TIERS['moderate'];
 
-    // Calculate total budget
-    $target_xp = $base_xp * $party_size;
+    $target_xp = CharacterManager::adjustBudgetForPartySize($base_xp, $party_size);
 
-    // Allow ±15% variance for flexibility
+    // Allow ±15% variance for flexibility.
     $min_xp = (int) floor($target_xp * 0.85);
     $max_xp = (int) ceil($target_xp * 1.15);
 
@@ -253,21 +251,23 @@ class EncounterGeneratorService {
     // AND (theme_tags LIKE '%theme%' OR level BETWEEN party_level-2 AND party_level+2)
     // ORDER BY level
 
-    // Sample creatures for common themes
+    // Sample creatures for common themes.
+    // Note: xp_value is NOT stored here — it is computed dynamically from
+    // creature level vs. party level via CharacterManager::computeCreatureXp().
     $theme_creatures = [
       'goblin_warrens' => [
-        ['creature_id' => 'goblin_warrior', 'name' => 'Goblin Warrior', 'level' => 1, 'xp_value' => 15, 'max_hp' => 6],
-        ['creature_id' => 'goblin_commando', 'name' => 'Goblin Commando', 'level' => 2, 'xp_value' => 30, 'max_hp' => 18],
-        ['creature_id' => 'hobgoblin_soldier', 'name' => 'Hobgoblin Soldier', 'level' => 3, 'xp_value' => 40, 'max_hp' => 45],
+        ['creature_id' => 'goblin_warrior', 'name' => 'Goblin Warrior', 'level' => 1, 'max_hp' => 6],
+        ['creature_id' => 'goblin_commando', 'name' => 'Goblin Commando', 'level' => 2, 'max_hp' => 18],
+        ['creature_id' => 'hobgoblin_soldier', 'name' => 'Hobgoblin Soldier', 'level' => 3, 'max_hp' => 45],
       ],
       'fungal_caverns' => [
-        ['creature_id' => 'violet_fungus', 'name' => 'Violet Fungus', 'level' => 2, 'xp_value' => 30, 'max_hp' => 30],
-        ['creature_id' => 'myceloid', 'name' => 'Myceloid', 'level' => 3, 'xp_value' => 40, 'max_hp' => 40],
+        ['creature_id' => 'violet_fungus', 'name' => 'Violet Fungus', 'level' => 2, 'max_hp' => 30],
+        ['creature_id' => 'myceloid', 'name' => 'Myceloid', 'level' => 3, 'max_hp' => 40],
       ],
       'undead_crypts' => [
-        ['creature_id' => 'skeleton_guard', 'name' => 'Skeleton Guard', 'level' => 1, 'xp_value' => 15, 'max_hp' => 4],
-        ['creature_id' => 'zombie_shambler', 'name' => 'Zombie Shambler', 'level' => 2, 'xp_value' => 30, 'max_hp' => 20],
-        ['creature_id' => 'wight', 'name' => 'Wight', 'level' => 4, 'xp_value' => 60, 'max_hp' => 50],
+        ['creature_id' => 'skeleton_guard', 'name' => 'Skeleton Guard', 'level' => 1, 'max_hp' => 4],
+        ['creature_id' => 'zombie_shambler', 'name' => 'Zombie Shambler', 'level' => 2, 'max_hp' => 20],
+        ['creature_id' => 'wight', 'name' => 'Wight', 'level' => 4, 'max_hp' => 50],
       ],
     ];
 
@@ -286,6 +286,11 @@ class EncounterGeneratorService {
    * Build encounter from creatures and budget.
    *
    * Selects and scales creatures to fit within XP budget.
+   * XP cost per creature is computed dynamically via
+   * CharacterManager::computeCreatureXp() — not stored on the creature stub.
+   *
+   * Creatures with delta > +4 (computeCreatureXp returns NULL) are skipped
+   * as too dangerous (no defined XP value).
    *
    * @param array $context
    *   Encounter context
@@ -300,6 +305,7 @@ class EncounterGeneratorService {
    * @see /docs/dungeoncrawler/ROOM_DUNGEON_GENERATOR_ARCHITECTURE.md
    */
   protected function buildEncounter(array $context, array $budget, array $creatures): array {
+    $party_level = $context['party_level'] ?? 3;
     $target_xp = $budget['target_xp'];
     $max_xp = $budget['max_xp'];
     $current_xp = 0;
@@ -309,15 +315,35 @@ class EncounterGeneratorService {
     // Shuffle deterministically for seed-stable variety.
     $creatures = $this->shuffleDeterministic($creatures, $rng);
 
-    // Add creatures until budget met
-    while ($current_xp < $target_xp && count($combatants) < 10) {
-      // Pick a random creature
-      $creature = $rng->pick($creatures);
+    // Pre-compute XP for each creature at this party level; drop undefined (delta > +4).
+    $eligible = [];
+    foreach ($creatures as $c) {
+      $xp = CharacterManager::computeCreatureXp($c['level'] ?? 1, $party_level);
+      if ($xp === NULL) {
+        continue;
+      }
+      $c['xp_value'] = $xp;
+      $eligible[] = $c;
+    }
 
-      // Check if adding would exceed max budget
+    if (empty($eligible)) {
+      return [
+        'xp_budget' => $budget,
+        'actual_xp' => 0,
+        'combatants' => [],
+        'combatant_count' => 0,
+      ];
+    }
+
+    // Add creatures until budget met.
+    while ($current_xp < $target_xp && count($combatants) < 10) {
+      // Pick a random creature.
+      $creature = $rng->pick($eligible);
+
+      // Check if adding would exceed max budget.
       if ($current_xp + $creature['xp_value'] > $max_xp) {
-        // Try to find a smaller creature
-        $smaller = array_filter($creatures, function($c) use ($current_xp, $max_xp) {
+        // Try to find a smaller creature.
+        $smaller = array_filter($eligible, function($c) use ($current_xp, $max_xp) {
           return $current_xp + $c['xp_value'] <= $max_xp;
         });
 
@@ -328,12 +354,13 @@ class EncounterGeneratorService {
         $creature = $rng->pick(array_values($smaller));
       }
 
-      // Add creature to encounter
+      // Add creature to encounter.
       $combatants[] = [
         'entity_type' => 'creature',
         'entity_ref' => $creature['creature_id'],
         'name' => $creature['name'] ?? $creature['creature_id'],
         'level' => $creature['level'] ?? 1,
+        'xp_value' => $creature['xp_value'],
         'quantity' => 1,
         'placement_hint' => $this->getPlacementHint(count($combatants)),
         'max_hp' => $creature['max_hp'] ?? 20,
@@ -346,6 +373,7 @@ class EncounterGeneratorService {
     return [
       'xp_budget' => $budget,
       'actual_xp' => $current_xp,
+      'threat_tier' => CharacterManager::classifyEncounterTier($current_xp),
       'combatants' => $combatants,
       'combatant_count' => count($combatants),
     ];

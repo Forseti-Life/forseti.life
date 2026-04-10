@@ -10490,4 +10490,138 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
 
   ];
 
+  // =========================================================================
+  // Encounter XP Calculator (PF2e CRB Chapter 10)
+  // =========================================================================
+
+  /**
+   * Creature XP cost by level delta (creature level minus party level).
+   *
+   * Delta < -4: trivial (computeCreatureXp returns 0).
+   * Delta > +4: not defined (computeCreatureXp returns NULL).
+   * Source: PF2e CRB Table 10-9.
+   */
+  const CREATURE_XP_TABLE = [
+    -4 => 10,
+    -3 => 15,
+    -2 => 20,
+    -1 => 30,
+     0 => 40,
+     1 => 60,
+     2 => 80,
+     3 => 120,
+     4 => 160,
+  ];
+
+  /**
+   * XP budget thresholds per encounter (4-PC baseline).
+   *
+   * Source: PF2e CRB Table 10-8.
+   */
+  const ENCOUNTER_THREAT_TIERS = [
+    'trivial'  => 40,
+    'low'      => 60,
+    'moderate' => 80,
+    'severe'   => 120,
+    'extreme'  => 160,
+  ];
+
+  /**
+   * XP adjustment per PC above or below the 4-PC baseline.
+   *
+   * Source: PF2e CRB Chapter 10, Character Adjustment.
+   */
+  const CHARACTER_ADJUSTMENT_XP = 20;
+
+  /**
+   * Compute XP value of a single creature relative to party level.
+   *
+   * Returns NULL for creatures more than 4 levels above party (not defined).
+   * Returns 0 for creatures more than 4 levels below party (trivial/no XP).
+   *
+   * @param int $creature_level
+   *   Absolute creature level (1-25).
+   * @param int $party_level
+   *   Party level (1-20).
+   *
+   * @return int|null
+   *   XP value, 0 for trivial delta, or NULL if delta > +4.
+   */
+  public static function computeCreatureXp(int $creature_level, int $party_level): ?int {
+    $delta = $creature_level - $party_level;
+    if ($delta > 4) {
+      return NULL;
+    }
+    if ($delta < -4) {
+      return 0;
+    }
+    return self::CREATURE_XP_TABLE[$delta];
+  }
+
+  /**
+   * Classify an encounter's threat tier by total XP.
+   *
+   * @param int $total_xp
+   *   Total XP cost of all creatures in the encounter.
+   *
+   * @return string
+   *   One of: trivial, low, moderate, severe, extreme, beyond_extreme.
+   */
+  public static function classifyEncounterTier(int $total_xp): string {
+    if ($total_xp <= self::ENCOUNTER_THREAT_TIERS['trivial']) {
+      return 'trivial';
+    }
+    if ($total_xp <= self::ENCOUNTER_THREAT_TIERS['low']) {
+      return 'low';
+    }
+    if ($total_xp <= self::ENCOUNTER_THREAT_TIERS['moderate']) {
+      return 'moderate';
+    }
+    if ($total_xp <= self::ENCOUNTER_THREAT_TIERS['severe']) {
+      return 'severe';
+    }
+    if ($total_xp <= self::ENCOUNTER_THREAT_TIERS['extreme']) {
+      return 'extreme';
+    }
+    return 'beyond_extreme';
+  }
+
+  /**
+   * Adjust encounter XP budget for party size.
+   *
+   * Baseline is 4 PCs. Each additional PC adds CHARACTER_ADJUSTMENT_XP;
+   * each missing PC subtracts it.
+   *
+   * @param int $base_budget
+   *   Budget for a 4-PC party (from ENCOUNTER_THREAT_TIERS).
+   * @param int $party_size
+   *   Actual number of PCs.
+   *
+   * @return int
+   *   Adjusted budget (minimum 0).
+   */
+  public static function adjustBudgetForPartySize(int $base_budget, int $party_size): int {
+    $delta_pcs = $party_size - 4;
+    $adjusted = $base_budget + ($delta_pcs * self::CHARACTER_ADJUSTMENT_XP);
+    return max(0, $adjusted);
+  }
+
+  /**
+   * Determine if a PC should earn double XP due to catch-up rule.
+   *
+   * PF2e: a PC who is behind the party level earns double XP from encounters
+   * until they catch up.
+   *
+   * @param int $pc_level
+   *   The individual PC's level.
+   * @param int $party_level
+   *   The party's reference level.
+   *
+   * @return bool
+   *   TRUE if the PC earns double XP.
+   */
+  public static function isDoubleCatchupXp(int $pc_level, int $party_level): bool {
+    return $pc_level < $party_level;
+  }
+
 }
