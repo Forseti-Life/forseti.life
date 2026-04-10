@@ -10442,6 +10442,107 @@
           "ac": "Failure Modes"
         }
       ]
+    },
+    {
+      "id": "dc-cr-decipher-identify-learn-e2e",
+      "label": "Decipher Writing / Identify Magic / Learn a Spell: activity types, skill routing, language gates, all degrees of success including Crit Fail false result, retry penalties, 1-day blocks, spellcasting gate, material cost atomicity",
+      "type": "e2e",
+      "feature_id": "dc-cr-decipher-identify-learn",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/exploration/decipher-writing.spec.ts playwright/exploration/identify-magic.spec.ts playwright/exploration/learn-spell.spec.ts",
+      "artifacts": [
+        "playwright-report/decipher-identify-learn-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "notes": "TC-DIL-03 has open PM question: wrong-skill penalty for Decipher Writing (flat block vs +5 DC). TC-DIL-08/TC-DIL-11 Crit Fail false-result pattern consistent with TC-RK-05 and TC-CI-11 \u2014 PM should resolve message contract once for all three features.",
+      "test_cases": [
+        {
+          "id": "TC-DIL-01",
+          "description": "Decipher Writing: exploration activity, duration 1 min/page",
+          "ac": "DW-1"
+        },
+        {
+          "id": "TC-DIL-02",
+          "description": "Decipher Writing: cipher variant costs ~1 hour/page (text_type=cipher \u2192 60 min/page)",
+          "ac": "DW-1"
+        },
+        {
+          "id": "TC-DIL-03",
+          "description": "Decipher Writing: skill routing \u2014 Arcana/arcane-esoteric, Occultism/metaphysical-occult, Religion/religious, Society/coded-legal-historical; wrong-skill behavior pending PM clarification",
+          "ac": "DW-2"
+        },
+        {
+          "id": "TC-DIL-04",
+          "description": "Decipher Writing: language literacy gate \u2014 no language \u2192 blocked; Society GM-override flag enables attempt",
+          "ac": "DW-3"
+        },
+        {
+          "id": "TC-DIL-05",
+          "description": "Decipher Writing Crit Success: full meaning returned",
+          "ac": "DW-4"
+        },
+        {
+          "id": "TC-DIL-06",
+          "description": "Decipher Writing Success: true meaning returned; coded text returns summary only",
+          "ac": "DW-4"
+        },
+        {
+          "id": "TC-DIL-07",
+          "description": "Decipher Writing Failure: blocked from retry + -2 circumstance penalty stored against text_id",
+          "ac": "DW-4, Edge-1"
+        },
+        {
+          "id": "TC-DIL-08",
+          "description": "Decipher Writing Crit Failure: false interpretation shown as success; internal result.is_false=true; player cannot distinguish",
+          "ac": "DW-4, Failure-1"
+        },
+        {
+          "id": "TC-DIL-09",
+          "description": "Identify Magic: exploration activity, duration 10 minutes",
+          "ac": "IM-1"
+        },
+        {
+          "id": "TC-DIL-10",
+          "description": "Identify Magic: skill routing by tradition \u2014 Arcana/arcane, Nature/primal, Occultism/occult, Religion/divine; wrong-tradition skill triggers +5 DC penalty",
+          "ac": "IM-2, IM-3"
+        },
+        {
+          "id": "TC-DIL-11",
+          "description": "Identify Magic: four degrees \u2014 Crit Success full ID+bonus fact; Success full ID; Failure 1-day block per item; Crit Fail false ID (result.is_false=true, secret)",
+          "ac": "IM-4, Failure-2"
+        },
+        {
+          "id": "TC-DIL-12",
+          "description": "Identify Magic: 1-day block is per item_id \u2014 failure on item A does not block item B",
+          "ac": "Edge-2"
+        },
+        {
+          "id": "TC-DIL-13",
+          "description": "Identify Magic: active spell effects require Identify Magic (not Recall Knowledge); Recall Knowledge on active effect returns error/insufficient_info",
+          "ac": "IM-5"
+        },
+        {
+          "id": "TC-DIL-14",
+          "description": "Learn a Spell: exploration activity 1 hour; material cost = spell_level \u00d7 10 gp deducted immediately on attempt start",
+          "ac": "LAS-1, LAS-2"
+        },
+        {
+          "id": "TC-DIL-15",
+          "description": "Learn a Spell: four degrees \u2014 Crit Success learns + refunds 50%; Success learns full cost consumed; Failure not learned cost restored; Crit Fail not learned materials lost",
+          "ac": "LAS-4"
+        },
+        {
+          "id": "TC-DIL-16",
+          "description": "Learn a Spell: spellcasting class feature gate \u2014 character without spellcasting blocked with requires_spellcasting_class_feature error",
+          "ac": "LAS-5, Edge-3"
+        },
+        {
+          "id": "TC-DIL-17",
+          "description": "Learn a Spell Failure: materials NOT consumed; character.gold after = character.gold before attempt",
+          "ac": "Failure-3"
+        }
+      ]
     }
   ],
   "_schema_notes": [
