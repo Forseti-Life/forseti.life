@@ -3,7 +3,8 @@
 - Work item id: dc-cr-equipment-ch06
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260409-dungeoncrawler-release-h
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

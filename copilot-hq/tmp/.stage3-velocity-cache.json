@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-04-10T01:54:09.525518",
+  "generated_at": "2026-04-10T02:15:15.918468",
   "window_minutes": 15,
   "teams": [
     {
@@ -7,7 +7,7 @@
       "label": "Forseti",
       "site": "forseti.life",
       "window_minutes": 15,
-      "latest_run": "20260410-003748",
+      "latest_run": "20260410-015633",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -19,16 +19,6 @@
         "handoff_signal": "weak"
       },
       "recent_deltas": [
-        {
-          "from_run": "20260409-165737",
-          "to_run": "20260409-171353",
-          "to_ts": "2026-04-09T17:13:53",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 16.27
-        },
         {
           "from_run": "20260409-171353",
           "to_run": "20260409-200857",
@@ -68,6 +58,16 @@
           "resolved": 0,
           "introduced": 0,
           "elapsed_minutes": 14.1
+        },
+        {
+          "from_run": "20260410-003748",
+          "to_run": "20260410-015633",
+          "to_ts": "2026-04-10T01:56:33",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 78.75
         }
       ]
     },
@@ -76,7 +76,7 @@
       "label": "Dungeoncrawler",
       "site": "dungeoncrawler",
       "window_minutes": 15,
-      "latest_run": "20260410-003748",
+      "latest_run": "20260410-015633",
       "latest_open_issues": 0,
       "resolved_last_window": 0,
       "introduced_last_window": 0,
@@ -88,16 +88,6 @@
         "handoff_signal": "weak"
       },
       "recent_deltas": [
-        {
-          "from_run": "20260409-205830",
-          "to_run": "20260409-211941",
-          "to_ts": "2026-04-09T21:19:41",
-          "prev_total": 0,
-          "cur_total": 0,
-          "resolved": 0,
-          "introduced": 0,
-          "elapsed_minutes": 21.18
-        },
         {
           "from_run": "20260409-211941",
           "to_run": "20260409-214426",
@@ -137,6 +127,16 @@
           "resolved": 0,
           "introduced": 0,
           "elapsed_minutes": 14.1
+        },
+        {
+          "from_run": "20260410-003748",
+          "to_run": "20260410-015633",
+          "to_ts": "2026-04-10T01:56:33",
+          "prev_total": 0,
+          "cur_total": 0,
+          "resolved": 0,
+          "introduced": 0,
+          "elapsed_minutes": 78.75
         }
       ]
     }
