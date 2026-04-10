@@ -40,6 +40,10 @@ final class ApiController extends ControllerBase {
       throw new BadRequestHttpException('Missing JSON payload.');
     }
 
+    if (strlen($content) > 65536) {
+      return new JsonResponse(['error' => 'Payload too large'], 413);
+    }
+
     $payload = json_decode($content, TRUE);
     if (!is_array($payload)) {
       throw new BadRequestHttpException('Invalid JSON payload.');
