@@ -527,6 +527,8 @@ Premature escalation pattern to avoid:
 - PM escalates at T+1 minute claiming Gate 2 is not filed
 - This has occurred twice in `20260407-dungeoncrawler-release-b` (CEO-noted 2026-04-07)
 
+**Phantom-escalation rule (added 2026-04-10):** Before filing any escalation to CEO, confirm you have an actual decision needed. If your outbox says "Decision needed: None" and "Needs from CEO: None", do NOT escalate. Write Status: blocked (not needs-info) and wait for the pending dependency to resolve. Escalating with empty decision/needs fields creates a phantom blocker that consumes a CEO execution slot with no actionable work. (Lesson: 20260410-gate2-ready-dungeoncrawler escalated CEO with "Decision needed: None" — QA item just needed an execution slot, not a CEO decision.)
+
 The CEO will return premature escalations. Use this check before filing:
 ```bash
 # How long ago were the newest suite-activate items created?
