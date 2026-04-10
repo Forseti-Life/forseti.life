@@ -1859,8 +1859,8 @@
         "sessions/qa-dungeoncrawler/artifacts/<ts>-unit-test-dc-cr-dwarf-heritage-ancient-blooded/verification-report.md"
       ],
       "required_for_release": true,
-      "activated_release": "20260407-dungeoncrawler-release-b",
-      "activated_date": "2026-04-07",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
       "test_cases": [
         {
           "id": "TC-HAB-001",

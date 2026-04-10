@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-twig-csrf-cleanup
 - Website: forseti.life
 - Module: job_hunter
-- Status: ready
+- Status: in_progress
 - Release: 20260410-forseti-release-b
 - Priority: P2
 - Feature type: needs-testing
@@ -44,3 +44,10 @@ Feature type: needs-testing — partial implementation in dev commit c0f597279. 
 
 - Grep verification: `grep -n 'name.*form_token\|name="token"' sites/forseti/web/modules/custom/job_hunter/templates/*.twig` must return 0 results
 - Functional: POST to `/jobhunter/cover-letter/{id}`, `/jobhunter/interview-prep/{id}`, `/jobhunter/saved-searches` must still succeed (CSRF token still in URL query string)
+
+## Security acceptance criteria
+
+- Authentication/permission surface: All job_hunter routes affected are authenticated-user-only; no anonymous access to these form pages.
+- CSRF expectations: CSRF is enforced via URL query token (`?token=`) appended by `RouteProcessorCsrf`. This change REMOVES misleading POST-body hidden fields that were never read by `CsrfAccessCheck`. The URL-based CSRF enforcement is unchanged and remains active.
+- Input validation: No input validation changes — this is a template-only cleanup removing dead hidden fields. No new user-controlled input is introduced.
+- PII/logging constraints: No PII is introduced or removed. No logging changes. Templates render existing data only.

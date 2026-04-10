@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T06:44:11Z
+Generated: 2026-04-10T07:30:21Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -11,9 +11,9 @@ Generated: 2026-04-10T06:44:11Z
 | dc-apg-class-oracle | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-class-swashbuckler | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-class-witch | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-feats | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
@@ -68,7 +68,7 @@ Generated: 2026-04-10T06:44:11Z
 | dc-cr-encounter-creature-xp-table | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-encounter-rules | dungeoncrawler | dungeoncrawler_content | done | P1 (primary gameplay loop; depends on dice and DC) |  |  |  |
 | dc-cr-environment-terrain | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
-| dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-cr-equipment-ch06 | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-equipment-system | dungeoncrawler | dungeoncrawler_content | done | P1 (combat and character creation dependency; InventoryManagementService partial impl exists) |  |  |  |
 | dc-cr-exploration-mode | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-familiar | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
@@ -176,6 +176,7 @@ Generated: 2026-04-10T06:44:11Z
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | ready | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |
