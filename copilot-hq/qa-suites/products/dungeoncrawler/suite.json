@@ -10819,6 +10819,148 @@
           "feature_id": "dc-cr-economy"
         }
       ]
+    },
+    {
+      "id": "dc-cr-environment-terrain-e2e",
+      "label": "Environment and Terrain: damage categories and tier ordering, terrain classifications (bog/ice/snow/sand/rubble/undergrowth), slopes/narrow surfaces/uneven ground, temperature effects, avalanche/burial/rescue/collapse, wind perception and ranged penalties",
+      "type": "e2e",
+      "feature_id": "dc-cr-environment-terrain",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/dungeoncrawler-content/environment-terrain.spec.ts",
+      "artifacts": [
+        "playwright-report/environment-terrain-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "notes": "Security AC exemption granted \u2014 no new routes. Depends on dc-cr-conditions for flat-footed/restrained/prone application (in release-a). TC-ENV-06/TC-ENV-12/TC-ENV-13 reference flat-footed condition \u2014 Dev must confirm ConditionManager linkage. TC-ENV-20/21 wind tier penalty values are not specified in AC \u2014 PM should confirm penalty scaling table before Dev implements.",
+      "test_cases": [
+        {
+          "id": "TC-ENV-01",
+          "description": "Environmental damage categories data completeness \u2014 all tiers (minor/moderate/major/massive) have non-null damage values",
+          "ac": "Env-Damage-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-02",
+          "description": "Environmental damage tier ordering: minor < moderate < major < massive",
+          "ac": "Env-Damage-2",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-03",
+          "description": "Shallow bog = difficult terrain",
+          "ac": "Terrain-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-04",
+          "description": "Deep bog = greater_difficult terrain",
+          "ac": "Terrain-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-05",
+          "description": "Magical bog = hazardous terrain",
+          "ac": "Terrain-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-06",
+          "description": "Ice terrain applies both uneven_ground and difficult conditions simultaneously",
+          "ac": "Terrain-2",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-07",
+          "description": "Snow terrain: shallow/packed = difficult; loose/deep = greater_difficult (may include uneven_ground)",
+          "ac": "Terrain-3",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-08",
+          "description": "Sand terrain: packed = normal; loose/shallow = difficult; loose/deep = uneven_ground",
+          "ac": "Terrain-4",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-09",
+          "description": "Rubble = difficult; dense rubble = uneven_ground",
+          "ac": "Terrain-5",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-10",
+          "description": "Undergrowth: light = difficult + Take Cover; heavy = greater_difficult + auto cover; thorns = hazardous",
+          "ac": "Terrain-6",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-11",
+          "description": "Slopes: gentle = normal; steep = requires Athletics:Climb + flat-footed while climbing",
+          "ac": "Surface-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-12",
+          "description": "Narrow surface: requires Acrobatics:Balance, flat_footed=true, fall_risk on hit or reflex_fail",
+          "ac": "Surface-2",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-13",
+          "description": "Uneven ground: requires Acrobatics:Balance, flat_footed=true, fall_risk on hit or save fail",
+          "ac": "Surface-3",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-14",
+          "description": "Temperature effects: all 6 tiers (mild/severe/extreme cold+heat) have damage and conditions non-null",
+          "ac": "Temp-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-15",
+          "description": "Avalanche damage tier is major or massive bludgeoning",
+          "ac": "Hazard-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-16",
+          "description": "Avalanche Reflex save: Success = half damage; Crit Success = no burial",
+          "ac": "Hazard-2",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-17",
+          "description": "Burial: restrained condition, minor bludgeoning/minute, possible cold damage, Fortitude suffocation save",
+          "ac": "Hazard-3",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-18",
+          "description": "Rescue digging: 5x5 ft per 4 min base; Crit Success = 2 min; no-tools = half rate",
+          "ac": "Hazard-4",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-19",
+          "description": "Collapse: major/massive bludgeoning + burial; spread_condition = structural_integrity_failed",
+          "ac": "Hazard-5",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-20",
+          "description": "Wind: auditory Perception penalty scales by wind strength tier; all tiers have non-zero penalty",
+          "ac": "Wind-1",
+          "feature_id": "dc-cr-environment-terrain"
+        },
+        {
+          "id": "TC-ENV-21",
+          "description": "Wind: low-tier = ranged_attack_penalty > 0; powerful wind = ranged_attacks_impossible: true",
+          "ac": "Wind-2",
+          "feature_id": "dc-cr-environment-terrain"
+        }
+      ]
     }
   ],
   "_schema_notes": [
