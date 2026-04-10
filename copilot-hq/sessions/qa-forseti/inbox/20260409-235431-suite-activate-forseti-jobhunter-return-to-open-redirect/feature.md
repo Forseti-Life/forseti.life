@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-return-to-open-redirect
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260409-forseti-release-j
 - Priority: P2
 - Feature type: security
