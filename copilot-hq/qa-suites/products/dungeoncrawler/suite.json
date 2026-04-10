@@ -5941,73 +5941,85 @@
           "id": "TC-FCS-01",
           "description": "Oracle: each mystery (8 total) defines revelation/advanced/greater/domain spells",
           "suite": "playwright/character-creation",
-          "ac": "Oracle-1"
+          "ac": "Oracle-1",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-02",
           "description": "Oracle: cursebound trait on all revelation spells; cast \u2192 curse_stage += 1",
           "suite": "playwright/encounter",
-          "ac": "Oracle-2"
+          "ac": "Oracle-2",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-03",
           "description": "Oracle: 4-stage curse progression per mystery with unique effects (not shared generic condition)",
           "suite": "playwright/encounter",
-          "ac": "Oracle-3,4"
+          "ac": "Oracle-3,4",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-04",
           "description": "Oracle focus pool starts at 2 FP (not 1); cap 3 via standard expansion",
           "suite": "playwright/character-creation",
-          "ac": "FocusPool-1"
+          "ac": "FocusPool-1",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-05",
           "description": "Witch hex Evil Eye: 0 FP cost, -2 status penalty, sustained, ends on Will save success",
           "suite": "playwright/encounter",
-          "ac": "Hexes-2"
+          "ac": "Hexes-2",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-06",
           "description": "Witch hex Cackle: extends active hex +1 round; fails gracefully with no active hex; does not start new hex",
           "suite": "playwright/encounter",
-          "ac": "Hexes-1,Edge-1"
+          "ac": "Hexes-1,Edge-1",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-07",
           "description": "Witch hex Phase Familiar: reaction on incoming damage; one hit negated; incorporeality temporary (single use)",
           "suite": "playwright/encounter",
-          "ac": "Hexes-3"
+          "ac": "Hexes-3",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-08",
           "description": "Witch focus pool starts at 1 FP; hex cantrip counts as hex-used-this-turn; second hex same turn blocked",
           "suite": "playwright/character-creation",
-          "ac": "Hexes-8,FocusPool-1"
+          "ac": "Hexes-8,FocusPool-1",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-09",
           "description": "Evil Eye + Cackle edge: Cackle after Evil Eye hex cantrip is valid extension (not second hex cast)",
           "suite": "playwright/encounter",
-          "ac": "Edge-3"
+          "ac": "Edge-3",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-10",
           "description": "Bard compositions: Hymn of Healing (2 HP/round sustained), Song of Strength (+2 circ Athletics), Gravity Weapon (damage dice count; doubles vs Large+)",
           "suite": "playwright/encounter",
-          "ac": "Bard-1,2,3"
+          "ac": "Bard-1,2,3",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-11",
           "description": "Ranger warden spells: primal focus pool, Refocus = 10 min in nature, effects per spell entry",
           "suite": "playwright/encounter",
-          "ac": "Ranger-1,2"
+          "ac": "Ranger-1,2",
+          "feature_id": "dc-apg-focus-spells"
         },
         {
           "id": "TC-FCS-12",
           "description": "Focus pool expansion cap at 3 across all sources (oracle/witch/bard/ranger)",
           "suite": "playwright/character-creation",
-          "ac": "FocusPool-1 (Integration)"
+          "ac": "FocusPool-1 (Integration)",
+          "feature_id": "dc-apg-focus-spells"
         }
       ],
       "activated_release": "20260409-dungeoncrawler-release-h",
