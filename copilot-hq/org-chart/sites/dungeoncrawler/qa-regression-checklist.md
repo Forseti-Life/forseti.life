@@ -281,3 +281,4 @@ This file is a running list of targeted regression checks derived from completed
 - [ ] 20260410-021500-implement-dc-cr-environment-terrain — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-environment-terrain.md)
 - [ ] 20260410-030035-fix-dc-charcreatcon-missing-death-warden-heritage — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-030035-fix-dc-charcreatcon-missing-death-warden-heritage.md)
 - [ ] 20260410-021500-implement-dc-cr-equipment-ch06 — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-021500-implement-dc-cr-equipment-ch06.md)
+- [ ] 20260410-040000-fix-dc-charcreatcon-missing-wellspring-gnome-heritage — targeted regression check (see dev outbox: sessions/dev-dungeoncrawler/outbox/20260410-040000-fix-dc-charcreatcon-missing-wellspring-gnome-heritage.md)
