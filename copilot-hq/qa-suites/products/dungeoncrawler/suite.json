@@ -10360,6 +10360,88 @@
           "ac": "Security AC"
         }
       ]
+    },
+    {
+      "id": "dc-cr-creature-identification-e2e",
+      "label": "Creature Identification: skill routing by trait, untrained use, DC resolution, all four degrees of success, edge cases (unknown type, Crit Fail false info), invalid skill validation",
+      "type": "e2e",
+      "feature_id": "dc-cr-creature-identification",
+      "activated_release": "20260409-dungeoncrawler-release-h",
+      "activated_date": "2026-04-10",
+      "command": "playwright test playwright/encounter/creature-identification.spec.ts",
+      "artifacts": [
+        "playwright-report/creature-identification-e2e/index.html"
+      ],
+      "required_for_release": true,
+      "notes": "TC-CI-07 depends on dc-cr-dc-rarity-spell-adjustment; TC-CI-06 and TC-CI-11 have open PM questions (untrained penalty value, Crit Fail player-facing message contract)",
+      "test_cases": [
+        {
+          "id": "TC-CI-01",
+          "description": "Arcana routing: Aberrations, Constructs, Humanoids, Oozes map to Arcana skill_required",
+          "ac": "Happy Path - skill routing"
+        },
+        {
+          "id": "TC-CI-02",
+          "description": "Nature routing: Animals, Beasts, Fungi, Plants map to Nature skill_required",
+          "ac": "Happy Path - skill routing"
+        },
+        {
+          "id": "TC-CI-03",
+          "description": "Religion routing: Celestials, Fiends, Monitors, Undead map to Religion skill_required",
+          "ac": "Happy Path - skill routing"
+        },
+        {
+          "id": "TC-CI-04",
+          "description": "Multi-skill routing: Dragons/Elementals allow Arcana or Nature; Fey allow Nature or Occultism; Spirits allow Occultism",
+          "ac": "Happy Path - skill routing"
+        },
+        {
+          "id": "TC-CI-05",
+          "description": "Lore fallback: any creature type allows appropriate Lore subcategory as alternative in valid skill list",
+          "ac": "Happy Path - skill routing"
+        },
+        {
+          "id": "TC-CI-06",
+          "description": "Untrained use permitted: character untrained in valid skill may still attempt Recall Knowledge; roll proceeds",
+          "ac": "Happy Path - untrained use"
+        },
+        {
+          "id": "TC-CI-07",
+          "description": "DC resolution: level-based DC + rarity adjustment; common creature no modifier, uncommon elevated per rarity table",
+          "ac": "Happy Path - DC resolution",
+          "depends_on": "dc-cr-dc-rarity-spell-adjustment"
+        },
+        {
+          "id": "TC-CI-08",
+          "description": "Crit Success: standard creature info block + at least one bonus fact returned",
+          "ac": "Happy Path - degrees of success"
+        },
+        {
+          "id": "TC-CI-09",
+          "description": "Success: standard creature info block returned; no bonus fact present",
+          "ac": "Happy Path - degrees of success"
+        },
+        {
+          "id": "TC-CI-10",
+          "description": "Failure: no creature info returned; UI shows generic no-information message",
+          "ac": "Happy Path - degrees of success"
+        },
+        {
+          "id": "TC-CI-11",
+          "description": "Crit Failure: false info presented as true; player-facing UI shows no failed/uncertain indicator; internal log records crit-fail",
+          "ac": "Edge Cases - Crit Fail false info"
+        },
+        {
+          "id": "TC-CI-12",
+          "description": "Unknown creature type: defaults to GM-adjudicated Lore check (skill_required = null or lore_gm); UI indicates GM Lore",
+          "ac": "Edge Cases - unknown type"
+        },
+        {
+          "id": "TC-CI-13",
+          "description": "Invalid skill selection: Athletics (or other non-valid skill) blocked with validation error; no roll performed",
+          "ac": "Failure Modes"
+        }
+      ]
     }
   ],
   "_schema_notes": [
