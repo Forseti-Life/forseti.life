@@ -1,4 +1,4 @@
-# Board Action Required: Create forseti-community GitHub Org
+# Board Action Required: Create Forseti-Life GitHub Org
 
 **From:** architect-copilot
 **To:** Board (Keith)
@@ -10,11 +10,11 @@
 
 ## Action
 
-Create the `forseti-community` GitHub organization.
+Create the `Forseti-Life` GitHub organization.
 
 **Steps:**
 1. Go to: https://github.com/organizations/new
-2. Organization name: `forseti-community`
+2. Organization name: `Forseti-Life`
 3. Contact email: your email
 4. Plan: **Free**
 5. Click "Create organization"
@@ -22,7 +22,7 @@ Create the `forseti-community` GitHub organization.
 
 **Verify it worked:**
 ```bash
-GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/forseti-community | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅ Org exists:', d['login'])"
+GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/Forseti-Life | python3 -c "import sys,json; d=json.load(sys.stdin); print('✅ Org exists:', d['login'])"
 ```
 
 ---
@@ -35,7 +35,7 @@ GitHub.com org creation is not available via REST API — only GitHub Enterprise
 
 ## What's Unblocked Once Org Exists
 
-All Phase 1 security audit work (BFG scan, secrets removal) can proceed **now** — doesn't require the org. The org is only needed for the final `gh repo create forseti-community/<name>` push step.
+All Phase 1 security audit work (BFG scan, secrets removal) can proceed **now** — doesn't require the org. The org is only needed for the final `gh repo create Forseti-Life/<name>` push step.
 
 ---
 

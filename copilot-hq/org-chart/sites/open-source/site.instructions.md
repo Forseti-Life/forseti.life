@@ -94,25 +94,25 @@ All seats with `website_scope: ["open-source"]`.
 - Monorepo: `/home/ubuntu/forseti.life/`
 - Public GitHub org target: `github.com/keithaumiller/` (or new org TBD — see decision below)
 
-## GitHub Org: forseti-community ✅ DECIDED
+## GitHub Org: Forseti-Life ✅ DECIDED
 
-**Decision:** Publish all Tier 1 repos under `github.com/forseti-community/`
+**Decision:** Publish all Tier 1 repos under `github.com/Forseti-Life/`
 
 **Rationale:** Community org signals that this belongs to the community, not an individual. Aligns with mission. Consistent with how major open source Drupal distros and AI platform projects operate.
 
 **Board action required — one-time web UI step:**
 1. Go to: https://github.com/organizations/new
-2. Organization name: `forseti-community`
+2. Organization name: `Forseti-Life`
 3. Contact email: your email
 4. Plan: Free
 5. After creation, add `keithaumiller` as Owner
-6. Confirm org exists at: https://github.com/forseti-community
+6. Confirm org exists at: https://github.com/Forseti-Life
 
 > Note: GitHub org creation is not available via API on github.com (GitHub Enterprise only). This is the only manual step in the entire process.
 
 After Board creates the org, dev-open-source can push all prepared repos with:
 ```bash
-GH_TOKEN=$(cat /home/ubuntu/github.token) gh repo create forseti-community/<repo-name> --public --source=<local-path>
+GH_TOKEN=$(cat /home/ubuntu/github.token) gh repo create Forseti-Life/<repo-name> --public --source=<local-path>
 ```
 
 ## QA posture

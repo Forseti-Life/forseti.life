@@ -6,7 +6,7 @@ priority: high
 target_release: tbd
 
 ## Summary
-Publish the **Forseti Autonomous Drupal Development Platform** as open source under `github.com/forseti-community/`. This is a full-stack system: Drupal 10/11 multi-site + AWS Bedrock AI integration + LangGraph agent orchestration that autonomously manages the entire software development lifecycle (PM → BA → Dev → QA → Release). The platform itself is the product being open sourced — not just individual modules.
+Publish the **Forseti Autonomous Drupal Development Platform** as open source under `github.com/Forseti-Life/`. This is a full-stack system: Drupal 10/11 multi-site + AWS Bedrock AI integration + LangGraph agent orchestration that autonomously manages the entire software development lifecycle (PM → BA → Dev → QA → Release). The platform itself is the product being open sourced — not just individual modules.
 
 ```
 ┌─────────────────────────────────────────────────────────┐
@@ -20,15 +20,15 @@ Publish the **Forseti Autonomous Drupal Development Platform** as open source un
 └─────────────────────┴───────────────────────────────────┘
 ```
 
-## GitHub Org: forseti-community ✅ DECIDED
-- Board decision: publish under `github.com/forseti-community/`
+## GitHub Org: Forseti-Life ✅ DECIDED
+- Board decision: publish under `github.com/Forseti-Life/`
 - **Board action remaining:** Create org at https://github.com/organizations/new
-  - Name: `forseti-community` | Plan: Free | Add `keithaumiller` as Owner
+  - Name: `Forseti-Life` | Plan: Free | Add `keithaumiller` as Owner
   - (API creation not available on github.com — web UI only)
 
 ## Success Criteria
 1. `forseti-platform` overview repo published with architecture and quickstart
-2. At least `copilot-agent-framework` and `drupal-ai-conversation` publicly accessible on GitHub under `forseti-community/`
+2. At least `copilot-agent-framework` and `drupal-ai-conversation` publicly accessible on GitHub under `Forseti-Life/`
 3. Each public repo has complete setup documentation — fresh install on a clean machine works
 4. No secrets, private keys, or client data present in any public repo or its git history
 5. GitHub Actions CI passes on each public repo
@@ -37,9 +37,9 @@ Publish the **Forseti Autonomous Drupal Development Platform** as open source un
 ## Work Breakdown
 
 ### Phase 0 — Governance & Org Setup
-- [ ] Board creates `forseti-community` GitHub org at https://github.com/organizations/new
+- [ ] Board creates `Forseti-Life` GitHub org at https://github.com/organizations/new
 - [ ] Board adds `keithaumiller` as Owner of the org
-- [ ] Confirm org exists and token has access: `GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/forseti-community`
+- [ ] Confirm org exists and token has access: `GH_TOKEN=$(cat /home/ubuntu/github.token) gh api /orgs/Forseti-Life`
 
 ### Phase 1 — Pre-Publish Security Audit
 Owner: dev-open-source, reviewed by pm-open-source
@@ -55,7 +55,7 @@ Owner: dev-open-source, reviewed by pm-open-source
 ### Phase 2 — Repo Extraction (per-product, in sequence)
 
 #### 2a — forseti-platform (new — overview repo, first published)
-- [ ] Create empty repo in forseti-community: `forseti-platform`
+- [ ] Create empty repo in Forseti-Life: `forseti-platform`
 - [ ] Write README: what the platform is, architecture diagram, how components relate
 - [ ] Write QUICKSTART.md: how to deploy your own instance (Ubuntu 22/24, Drupal, agents)
 - [ ] Document the agent model (org-chart, seats, orchestrator loop)
@@ -63,7 +63,7 @@ Owner: dev-open-source, reviewed by pm-open-source
 - [ ] Tag v1.0.0, publish
 
 #### 2b — drupal-ai-conversation (standalone module — lowest risk, highest Drupal ecosystem value)
-- [ ] Extract `shared/modules/ai_conversation/` to new git repo under forseti-community
+- [ ] Extract `shared/modules/ai_conversation/` to new git repo under Forseti-Life
 - [ ] Write README (AWS Bedrock integration, supported Claude models, config env vars)
 - [ ] Add GitHub Actions: Drupal coding standards (phpcs) + basic install test
 - [ ] Tag v1.0.0, publish to Drupal.org as contributed module

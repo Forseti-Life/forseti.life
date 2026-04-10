@@ -9,7 +9,7 @@
 
 ## Assignment
 
-You are being activated as PM for the **Open Source Initiative** — publishing the Forseti Autonomous Drupal Development Platform as public repositories under `github.com/forseti-community/`.
+You are being activated as PM for the **Open Source Initiative** — publishing the Forseti Autonomous Drupal Development Platform as public repositories under `github.com/Forseti-Life/`.
 
 ## What We're Open Sourcing
 
@@ -27,7 +27,7 @@ This is not just Drupal modules. It is a **complete autonomous software developm
 └─────────────────────┴───────────────────────────────────┘
 ```
 
-Repos to create under `forseti-community/`:
+Repos to create under `Forseti-Life/`:
 1. `forseti-platform` — overview repo, architecture, quickstart (publish first)
 2. `drupal-ai-conversation` — standalone Bedrock/Claude Drupal module
 3. `copilot-agent-framework` — the autonomous dev engine (copilot-hq sanitized)
@@ -39,14 +39,14 @@ Repos to create under `forseti-community/`:
 
 | Decision | Value |
 |---|---|
-| GitHub org | `forseti-community` ✅ |
+| GitHub org | `Forseti-Life` ✅ |
 | Repo structure | Separate repos (not monorepo split) ✅ |
 | License | Apache 2.0 (already applied throughout) ✅ |
 
 ## One Remaining Board Action
 **Create the GitHub org** — web UI only, API not available on github.com:
 1. Go to: https://github.com/organizations/new
-2. Name: `forseti-community` | Plan: Free
+2. Name: `Forseti-Life` | Plan: Free
 3. Add `keithaumiller` as Owner
 
 Everything else is unblocked and can proceed in parallel.

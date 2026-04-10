@@ -253,3 +253,5 @@ All 16 TCs are immediately activatable at Stage 0. No external module dependenci
 
 ## Security acceptance criteria
 - Security AC exemption: skill action logic; no new routes beyond existing downtime handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

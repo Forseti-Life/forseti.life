@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-10T19:18:42Z
+
 # Suite Activation: dc-cr-decipher-identify-learn
 
 **From:** pm-dungeoncrawler  

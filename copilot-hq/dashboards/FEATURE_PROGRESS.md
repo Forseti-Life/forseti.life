@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-10T17:06:28Z
+Generated: 2026-04-10T19:47:38Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -109,17 +109,17 @@ Generated: 2026-04-10T17:06:28Z
 | dc-cr-session-structure | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-cr-skill-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-skill-system | dungeoncrawler | dungeoncrawler_content | done | P1 (core activity resolution; exploration and social gameplay) |  |  |  |
-| dc-cr-skills-acrobatics-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-skills-arcana-borrow-spell | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-skills-acrobatics-actions | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-skills-arcana-borrow-spell | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-skills-athletics-actions | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
 | dc-cr-skills-calculator-hardening | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
-| dc-cr-skills-crafting-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-skills-deception-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-skills-diplomacy-actions | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-skills-lore-earn-income | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-skills-crafting-actions | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-skills-deception-actions | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-skills-diplomacy-actions | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-skills-lore-earn-income | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-skills-medicine-actions | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
-| dc-cr-skills-nature-command-animal | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-skills-performance-perform | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-skills-nature-command-animal | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
+| dc-cr-skills-performance-perform | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-cr-skills-recall-knowledge | dungeoncrawler | dungeoncrawler_content | done | P1 |  |  |  |
 | dc-cr-skills-society-create-forgery | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-skills-stealth-hide-sneak | dungeoncrawler | dungeoncrawler_content | shipped | P1 |  |  |  |
@@ -147,6 +147,7 @@ Generated: 2026-04-10T17:06:28Z
 | forseti-agent-tracker-payload-size-limit | forseti.life | copilot_agent_tracker | shipped | P2 |  |  |  |
 | forseti-ai-conversation-export | forseti.life | ai_conversation | shipped | medium |  |  |  |
 | forseti-ai-conversation-history-browser | forseti.life | ai_conversation | shipped | high |  |  |  |
+| forseti-ai-conversation-job-suggestions | forseti.life | ai_conversation | ready | medium |  |  |  |
 | forseti-ai-conversation-user-chat | forseti.life | ai_conversation | shipped | high |  |  |  |
 | forseti-ai-debug-gate | forseti.life | ai_conversation | shipped | P1 |  |  |  |
 | forseti-ai-service-db-refactor | forseti.life | ai_conversation | shipped | P2 |  |  |  |
@@ -156,6 +157,7 @@ Generated: 2026-04-10T17:06:28Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
+| forseti-jobhunter-application-notes | forseti.life | job_hunter | ready | medium |  |  |  |
 | forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
@@ -167,6 +169,7 @@ Generated: 2026-04-10T17:06:28Z
 | forseti-jobhunter-google-jobs-ux | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-hook-install-fix | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-interview-prep | forseti.life | job_hunter | shipped | high |  |  |  |
+| forseti-jobhunter-job-match-score | forseti.life | job_hunter | ready | low |  |  |  |
 | forseti-jobhunter-profile | forseti.life | job_hunter | shipped | P0 |  |  |  |
 | forseti-jobhunter-profile-completeness | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-profile-form-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -177,8 +180,10 @@ Generated: 2026-04-10T17:06:28Z
 | forseti-jobhunter-return-to-open-redirect | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-saved-search | forseti.life | job_hunter | shipped | medium |  |  |  |
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | ready | medium |  |  |  |
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
+| forseti-open-source-initiative |  |  |  |  |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
 | forseti-qa-suite-fill-agent-tracker | forseti.life | qa_suites | shipped | medium |  |  |  |
 | forseti-qa-suite-fill-controller-extraction | forseti.life | qa_suites | shipped | medium |  |  |  |

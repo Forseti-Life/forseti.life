@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-10T18:47:39Z
+
 # Groom: forseti release-d backlog
 
 - Release: 20260410-forseti-release-d

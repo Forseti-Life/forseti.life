@@ -410,3 +410,5 @@ Immediately activatable: TC-DIP-01, TC-DIP-02, TC-DIP-03, TC-DIP-04, TC-DIP-05, 
 
 ## Security acceptance criteria
 - Security AC exemption: skill action logic; no new routes beyond existing downtime/encounter handlers
+- Agent: qa-dungeoncrawler
+- Status: pending

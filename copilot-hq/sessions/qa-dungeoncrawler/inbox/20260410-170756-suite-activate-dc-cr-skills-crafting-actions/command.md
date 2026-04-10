@@ -386,3 +386,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 ## Security acceptance criteria
 - Security AC exemption: skill action logic; no new routes beyond existing downtime/exploration handlers
+- Agent: qa-dungeoncrawler
+- Status: pending
