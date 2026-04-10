@@ -10109,6 +10109,176 @@
           "description": "QA audit still passes after Sorcerer module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)"
         }
       ]
+    },
+    {
+      "id": "dc-cr-class-wizard-phpunit",
+      "label": "Wizard Class \u2014 identity/stats (HP6+CON, Intelligence key, Expert Will, unarmored), Arcane School (8 specialist+Universalist, extra slot per rank, focus spells), Arcane Thesis (5 options: Spell Blending/Substitution/Improved Familiar/Experimental Spellshaping/Staff Nexus), Arcane Bond (bonded item or familiar), Drain Bonded Item (once/day free action), Spellbook (10 spells + 5 cantrips, prepared arcane, 2 spells/level), ARCANE_SCHOOLS constant (8 schools), FOCUS_POOLS (start=1 cap=3), CLASS_ADVANCEMENT L1\u2013L19, CLASS_FEATS L1\u2013L20 (33 feats), auth guards",
+      "type": "phpunit",
+      "feature_id": "dc-cr-class-wizard",
+      "command": "./vendor/bin/phpunit --filter=Wizard tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-class-wizard-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "activated_release": "20260409-dungeoncrawler-release-g",
+      "activated_date": "2026-04-09",
+      "notes": "Wizard is the primary arcane prepared caster. Key regression risks: Expert Will at L1 (same as sorcerer \u2014 class-agnostic Trained default silently fails); Arcane School extra-slot-per-rank mechanic (specialist only, not Universalist); Arcane Thesis mutually exclusive at L1 and immutable; Drain Bonded Item once-per-day boolean reset on daily prep; Spellbook prepared-type vs spontaneous; CLASS_ADVANCEMENT L7 Expert Spellcaster (was incorrectly at L3 in prior dev; dev confirmed fix). Note: dev outbox listed 4 Arcane Thesis options but implementation has 5 (Staff Nexus added); feature.md accepted this extension.",
+      "test_cases": [
+        {
+          "id": "TC-WIZ-01",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardClassTest::testWizardIsSelectableAtCharacterCreation",
+          "description": "Wizard appears in class selection list during character creation; is a valid selectable class"
+        },
+        {
+          "id": "TC-WIZ-02",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardClassTest::testHpPerLevel",
+          "description": "HP per level = 6 + CON modifier"
+        },
+        {
+          "id": "TC-WIZ-03",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardClassTest::testDefaultKeyAbilityInt",
+          "description": "Key ability = INT; INT modifier applied to spell DC and spell attack rolls"
+        },
+        {
+          "id": "TC-WIZ-04",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardClassTest::testInitialSavesExpertWill",
+          "description": "Wizard uniquely starts with Expert Will at level 1; Fortitude=Trained, Reflex=Trained"
+        },
+        {
+          "id": "TC-WIZ-05",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardClassTest::testArmorProficiencyUnarmored",
+          "description": "Armor proficiency: unarmored only at level 1; no light/medium/heavy"
+        },
+        {
+          "id": "TC-WIZ-06",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardSpellbookTest::testSpellbookPreparedTypePrepared",
+          "description": "Spellbook casting type = prepared (not spontaneous); spells must be prepared each morning"
+        },
+        {
+          "id": "TC-WIZ-07",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardSpellbookTest::testSpellbookStartingSpells",
+          "description": "Spellbook starts with 10 spells + 5 cantrips at level 1"
+        },
+        {
+          "id": "TC-WIZ-08",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardSpellbookTest::testSpellsPerLevelGained",
+          "description": "Gain 2 spells automatically each level; can add more via Learn a Spell"
+        },
+        {
+          "id": "TC-WIZ-09",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardArcaneSchoolTest::testSchoolSelectionRequiredAtLevel1",
+          "description": "Arcane School selection required at L1; must be one of 8 specialist schools or Universalist"
+        },
+        {
+          "id": "TC-WIZ-10",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardArcaneSchoolTest::testSpecialistSchoolGrantsExtraSlotPerRank",
+          "description": "Specialist school grants 1 extra spell slot per rank (school slot); Universalist does NOT get extra slots"
+        },
+        {
+          "id": "TC-WIZ-11",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardArcaneSchoolTest::testSchoolGrantsFocusSpells",
+          "description": "Each specialist school grants 2 focus spells added to focus pool at L1; Universalist gets Hand of the Apprentice only"
+        },
+        {
+          "id": "TC-WIZ-12",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardArcaneThesisTest::testThesisSelectionRequiredAtLevel1",
+          "description": "Arcane Thesis selection required at L1; must be one of 5 valid options; immutable post-creation"
+        },
+        {
+          "id": "TC-WIZ-13",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardArcaneThesisTest::testSpellBlendingMergesSlots",
+          "description": "Spell Blending: 2 same-rank slots can be merged into 1 slot of the next rank during daily preparation"
+        },
+        {
+          "id": "TC-WIZ-14",
+          "ac_tag": "TEST-ONLY",
+          "suite_type": "unit",
+          "class_method": "WizardArcaneThesisTest::testSpellSubstitutionAllows10MinSwap",
+          "description": "Spell Substitution: prepared spell can be swapped for another of same rank from spellbook in 10 minutes (not just daily prep)"
+        },
+        {
+          "id": "TC-WIZ-15",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardDrainBondedItemTest::testDrainBondedItemOncePer Day",
+          "description": "Drain Bonded Item usable once per day as free action; recovers one expended spell slot; boolean resets on daily prep"
+        },
+        {
+          "id": "TC-WIZ-16",
+          "ac_tag": "TEST-ONLY",
+          "suite_type": "unit",
+          "class_method": "WizardDrainBondedItemTest::testDrainBondedItemBlockedAfterUse",
+          "description": "Second use of Drain Bonded Item in same day rejected; bonded_item_drained=true blocks re-use"
+        },
+        {
+          "id": "TC-WIZ-17",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardFocusPoolTest::testFocusPoolStartsAt1",
+          "description": "FOCUS_POOLS[wizard].start = 1; wizard begins with 1 Focus Point at level 1"
+        },
+        {
+          "id": "TC-WIZ-18",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardFocusPoolTest::testFocusPoolCapIs3",
+          "description": "FOCUS_POOLS[wizard].cap = 3; pool cannot exceed 3 Focus Points"
+        },
+        {
+          "id": "TC-WIZ-19",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardAdvancementTest::testClassAdvancementL1Features",
+          "description": "CLASS_ADVANCEMENT L1: Arcane Spellcasting + Arcane School + Arcane Bond + Arcane Thesis + Drain Bonded Item auto-features"
+        },
+        {
+          "id": "TC-WIZ-20",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardAdvancementTest::testExpertSpellcasterAtL7NotL3",
+          "description": "Expert Spellcaster granted at CLASS_ADVANCEMENT L7 (PF2e CRB); NOT at L3 \u2014 regression guard for prior dev error"
+        },
+        {
+          "id": "TC-WIZ-21",
+          "ac_tag": "NEW",
+          "suite_type": "unit",
+          "class_method": "WizardAdvancementTest::testNoAdvancementDuplicateKeys",
+          "description": "CLASS_ADVANCEMENT[wizard] has no duplicate integer keys (PHP last-key-wins silent discard regression)"
+        },
+        {
+          "id": "TC-WIZ-22",
+          "ac_tag": "audit",
+          "suite_type": "role-url-audit",
+          "class_method": "scripts/site-audit-run.sh dungeoncrawler",
+          "description": "QA audit still passes after Wizard module deployment: 0 violations, 0 failures (scripts/site-audit-run.sh dungeoncrawler)"
+        }
+      ]
     }
   ],
   "_schema_notes": [
