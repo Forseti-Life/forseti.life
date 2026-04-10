@@ -1347,3 +1347,28 @@ job_hunter.saved_searches:
   requirements:
     _permission: 'access job hunter'
     _user_is_logged_in: 'TRUE'
+
+# Application Notes — load existing notes (GET, no CSRF)
+job_hunter.application_notes_load:
+  path: '/jobhunter/jobs/{job_id}/notes'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::applicationNotesLoad'
+    _title: 'Application Notes'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    job_id: \d+
+
+# Application Notes — save notes (POST, CSRF-protected)
+job_hunter.application_notes_save:
+  path: '/jobhunter/jobs/{job_id}/notes/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::applicationNotesSave'
+    _title: 'Save Application Notes'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+

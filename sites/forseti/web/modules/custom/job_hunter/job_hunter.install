@@ -67,6 +67,7 @@ function job_hunter_install() {
     _job_hunter_create_employer_credentials_table();
     _job_hunter_create_interview_notes_table();
     _job_hunter_create_saved_searches_table();
+    _job_hunter_create_application_notes_table();
     
     // Create content types and fields
     _job_hunter_create_error_queue_content_type();
@@ -2924,4 +2925,42 @@ function job_hunter_update_9044() {
   }
 
   return t('error_message column already exists.');
+}
+
+/**
+ * Create jobhunter_application_notes table.
+ */
+function _job_hunter_create_application_notes_table(): void {
+  $schema = \Drupal::database()->schema();
+  if ($schema->tableExists('jobhunter_application_notes')) {
+    return;
+  }
+  $schema->createTable('jobhunter_application_notes', [
+    'description' => 'Per-user application contact notes keyed by (uid, saved_job_id).',
+    'fields' => [
+      'id' => ['type' => 'serial', 'unsigned' => TRUE, 'not null' => TRUE],
+      'uid' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE, 'default' => 0],
+      'saved_job_id' => ['type' => 'int', 'unsigned' => TRUE, 'not null' => TRUE],
+      'manager_name' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
+      'contact_email' => ['type' => 'varchar', 'length' => 255, 'not null' => FALSE, 'default' => NULL],
+      'last_contact_date' => ['type' => 'varchar', 'length' => 10, 'not null' => FALSE, 'default' => NULL],
+      'notes' => ['type' => 'text', 'size' => 'medium', 'not null' => FALSE],
+      'created' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+      'changed' => ['type' => 'int', 'not null' => TRUE, 'default' => 0],
+    ],
+    'primary key' => ['id'],
+    'unique keys' => ['uid_saved_job' => ['uid', 'saved_job_id']],
+    'indexes' => [
+      'uid' => ['uid'],
+      'saved_job_id' => ['saved_job_id'],
+    ],
+  ]);
+}
+
+/**
+ * Create jobhunter_application_notes table for per-saved-job contact tracking.
+ */
+function job_hunter_update_9045() {
+  _job_hunter_create_application_notes_table();
+  return t('Created jobhunter_application_notes table for per-job contact notes.');
 }

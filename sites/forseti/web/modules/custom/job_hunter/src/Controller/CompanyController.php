@@ -1191,8 +1191,266 @@ class CompanyController extends ControllerBase {
     $content['apply_status_msg'] = [
       '#markup' => '<div id="apply-status-msg"></div>',
     ];
-    
+
+    // Application Notes block — visible only for saved jobs.
+    $uid = (int) $this->currentUser->id();
+    $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['id'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.job_id', (int) $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if ($saved_job) {
+      $saved_job_id = (int) $saved_job->id;
+      $existing_notes = $this->database->select('jobhunter_application_notes', 'an')
+        ->fields('an', ['manager_name', 'contact_email', 'last_contact_date', 'notes'])
+        ->condition('an.uid', $uid)
+        ->condition('an.saved_job_id', $saved_job_id)
+        ->execute()
+        ->fetchObject();
+
+      $notes_save_url = Url::fromRoute('job_hunter.application_notes_save', ['job_id' => (int) $job_id])->toString();
+      $notes_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/notes/save');
+
+      $f_manager = htmlspecialchars((string) ($existing_notes->manager_name ?? ''));
+      $f_email    = htmlspecialchars((string) ($existing_notes->contact_email ?? ''));
+      $f_date     = htmlspecialchars((string) ($existing_notes->last_contact_date ?? ''));
+      $f_notes    = htmlspecialchars((string) ($existing_notes->notes ?? ''));
+
+      $content['application_notes'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['application-notes-section']],
+        '#markup' => '
+<h3>Application Notes</h3>
+<div class="application-notes-form">
+  <div class="notes-field-row">
+    <label for="notes-manager-name">Hiring Manager Name</label>
+    <input type="text" id="notes-manager-name" name="manager_name" value="' . $f_manager . '" maxlength="255" placeholder="Optional" />
+  </div>
+  <div class="notes-field-row">
+    <label for="notes-contact-email">Contact Email</label>
+    <input type="email" id="notes-contact-email" name="contact_email" value="' . $f_email . '" maxlength="255" placeholder="Optional" />
+  </div>
+  <div class="notes-field-row">
+    <label for="notes-last-contact-date">Last Contact Date</label>
+    <input type="date" id="notes-last-contact-date" name="last_contact_date" value="' . $f_date . '" />
+  </div>
+  <div class="notes-field-row">
+    <label for="notes-text">Notes <span class="notes-char-count"></span></label>
+    <textarea id="notes-text" name="notes" maxlength="2000" rows="5" placeholder="Optional">' . $f_notes . '</textarea>
+  </div>
+  <button type="button" class="btn-notes-save" data-save-url="' . $notes_save_url . '" data-token="' . $notes_csrf_token . '">Save Notes</button>
+  <div id="notes-status-msg"></div>
+</div>',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'style',
+          '#value' => '
+            .application-notes-section { margin-top: 30px; padding: 20px; background: #f8f9fa; border-radius: 8px; border-left: 4px solid #667eea; }
+            .application-notes-section h3 { margin: 0 0 15px 0; color: #333; }
+            .notes-field-row { margin-bottom: 14px; }
+            .notes-field-row label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.9em; }
+            .notes-field-row input[type="text"],
+            .notes-field-row input[type="email"],
+            .notes-field-row input[type="date"] { width: 100%; max-width: 400px; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; }
+            .notes-field-row textarea { width: 100%; max-width: 700px; padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; resize: vertical; }
+            .notes-char-count { font-size: 0.8em; color: #9ca3af; font-weight: normal; }
+            .btn-notes-save { margin-top: 8px; background: #667eea; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 0.95em; }
+            .btn-notes-save:hover { background: #5563d0; }
+            .btn-notes-save:disabled { opacity: 0.6; cursor: not-allowed; }
+            #notes-status-msg { margin-top: 8px; font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+            #notes-status-msg.success { background: #d1fae5; color: #065f46; display: block; }
+            #notes-status-msg.error { background: #fee2e2; color: #991b1b; display: block; }
+          ',
+        ],
+        'application_notes_styles',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#value' => '
+(function() {
+  var textarea = document.getElementById("notes-text");
+  var charCount = document.querySelector(".notes-char-count");
+  if (textarea && charCount) {
+    function updateCount() { charCount.textContent = "(" + textarea.value.length + "/2000)"; }
+    textarea.addEventListener("input", updateCount);
+    updateCount();
+  }
+  var saveBtn = document.querySelector(".btn-notes-save");
+  if (!saveBtn) { return; }
+  saveBtn.addEventListener("click", function() {
+    var saveUrl = saveBtn.dataset.saveUrl + "?token=" + encodeURIComponent(saveBtn.dataset.token);
+    var statusEl = document.getElementById("notes-status-msg");
+    var payload = {
+      manager_name: document.getElementById("notes-manager-name").value,
+      contact_email: document.getElementById("notes-contact-email").value,
+      last_contact_date: document.getElementById("notes-last-contact-date").value,
+      notes: document.getElementById("notes-text").value
+    };
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving\u2026";
+    fetch(saveUrl, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+    .then(function(res) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Notes";
+      if (statusEl) {
+        statusEl.className = res.status === 200 ? "success" : "error";
+        statusEl.textContent = res.status === 200 ? (res.data.message || "Notes saved.") : (res.data.error || "Save failed.");
+        setTimeout(function() { statusEl.className = ""; statusEl.textContent = ""; }, 4000);
+      }
+    })
+    .catch(function() {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Notes";
+      if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Network error. Please try again."; }
+    });
+  });
+})();
+          ',
+        ],
+        'application_notes_js',
+      ];
+    }
+
     return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Return existing application notes as JSON (GET, no CSRF needed).
+   *
+   * @param int $job_id
+   *   The job_requirements ID.
+   */
+  public function applicationNotesLoad($job_id): JsonResponse {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['id'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$saved_job) {
+      return new JsonResponse(['manager_name' => '', 'contact_email' => '', 'last_contact_date' => '', 'notes' => '']);
+    }
+
+    $saved_job_id = (int) $saved_job->id;
+    $row = $this->database->select('jobhunter_application_notes', 'an')
+      ->fields('an', ['manager_name', 'contact_email', 'last_contact_date', 'notes'])
+      ->condition('an.uid', $uid)
+      ->condition('an.saved_job_id', $saved_job_id)
+      ->execute()
+      ->fetchObject();
+
+    return new JsonResponse([
+      'manager_name'      => (string) ($row->manager_name ?? ''),
+      'contact_email'     => (string) ($row->contact_email ?? ''),
+      'last_contact_date' => (string) ($row->last_contact_date ?? ''),
+      'notes'             => (string) ($row->notes ?? ''),
+    ]);
+  }
+
+  /**
+   * Save (create or update) application notes (POST, CSRF-protected).
+   *
+   * @param int $job_id
+   *   The job_requirements ID.
+   */
+  public function applicationNotesSave($job_id): JsonResponse {
+    $uid = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+    $request = $this->requestStack->getCurrentRequest();
+
+    // Ownership check: saved_job must belong to this user.
+    $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['id'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.job_id', $job_id)
+      ->execute()
+      ->fetchObject();
+
+    if (!$saved_job) {
+      return new JsonResponse(['error' => 'Access denied.'], 403);
+    }
+    $saved_job_id = (int) $saved_job->id;
+
+    // Parse JSON body.
+    $body = json_decode((string) $request->getContent(), TRUE) ?? [];
+
+    $manager_name      = strip_tags((string) ($body['manager_name'] ?? ''));
+    $contact_email_raw = (string) ($body['contact_email'] ?? '');
+    $last_contact_date = preg_replace('/[^0-9\-]/', '', (string) ($body['last_contact_date'] ?? ''));
+    $notes_raw         = (string) ($body['notes'] ?? '');
+
+    // Validate email (AC-6).
+    if ($contact_email_raw !== '' && !filter_var($contact_email_raw, FILTER_VALIDATE_EMAIL)) {
+      return new JsonResponse(['error' => 'Invalid email address.'], 422);
+    }
+    $contact_email = $contact_email_raw;
+
+    // Enforce notes length limit (AC-5).
+    if (mb_strlen($notes_raw) > 2000) {
+      return new JsonResponse(['error' => 'Notes may not exceed 2000 characters.'], 400);
+    }
+    $notes = strip_tags($notes_raw);
+
+    $now = time();
+
+    $existing_id = $this->database->select('jobhunter_application_notes', 'an')
+      ->fields('an', ['id'])
+      ->condition('an.uid', $uid)
+      ->condition('an.saved_job_id', $saved_job_id)
+      ->execute()
+      ->fetchField();
+
+    if ($existing_id) {
+      $this->database->update('jobhunter_application_notes')
+        ->fields([
+          'manager_name'      => $manager_name ?: NULL,
+          'contact_email'     => $contact_email ?: NULL,
+          'last_contact_date' => $last_contact_date ?: NULL,
+          'notes'             => $notes ?: NULL,
+          'changed'           => $now,
+        ])
+        ->condition('uid', $uid)
+        ->condition('saved_job_id', $saved_job_id)
+        ->execute();
+    }
+    else {
+      $this->database->insert('jobhunter_application_notes')
+        ->fields([
+          'uid'               => $uid,
+          'saved_job_id'      => $saved_job_id,
+          'manager_name'      => $manager_name ?: NULL,
+          'contact_email'     => $contact_email ?: NULL,
+          'last_contact_date' => $last_contact_date ?: NULL,
+          'notes'             => $notes ?: NULL,
+          'created'           => $now,
+          'changed'           => $now,
+        ])
+        ->execute();
+    }
+
+    // SEC-5: log only uid and saved_job_id, never PII fields.
+    $this->getLogger('job_hunter')->info('Application notes saved: uid=@uid saved_job_id=@sjid', [
+      '@uid'  => $uid,
+      '@sjid' => $saved_job_id,
+    ]);
+
+    return new JsonResponse(['status' => 'ok', 'message' => 'Notes saved.']);
   }
 
   /**

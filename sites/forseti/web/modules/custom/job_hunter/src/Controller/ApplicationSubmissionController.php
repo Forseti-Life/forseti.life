@@ -765,6 +765,9 @@ class ApplicationSubmissionController extends ControllerBase {
       $job->workflow_status = $this->deriveWorkflowStatus($job, $has_profile);
       $job->display_platform = !empty($job->via) ? $job->via : (!empty($job->source_platform) ? $job->source_platform : '');
       $job->apply_csrf_token = \Drupal::csrfToken()->get('jobhunter/my-jobs/' . (int) $job->id . '/applied');
+      $job->notes_load_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_load', ['job_id' => (int) $job->id])->toString();
+      $job->notes_save_url = \Drupal\Core\Url::fromRoute('job_hunter.application_notes_save', ['job_id' => (int) $job->id])->toString();
+      $job->notes_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job->id . '/notes/save');
     }
 
     // AC-2: Apply workflow_status filter (post-derivation).

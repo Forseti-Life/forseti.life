@@ -154,6 +154,32 @@
                              onclick="return confirm('{{ 'Archive this job?'|t }}')">
                             {{ 'Archive'|t }}
                           </a>
+                          <button type="button"
+                                  class="button button--small button--info btn-notes-toggle"
+                                  data-job-id="{{ job.id }}"
+                                  data-load-url="{{ job.notes_load_url }}"
+                                  data-save-url="{{ job.notes_save_url }}"
+                                  data-token="{{ job.notes_csrf_token }}">
+                            {{ 'Notes'|t }}
+                          </button>
+                        </td>
+                      </tr>
+                      <tr class="job-notes-panel job-notes-panel--{{ job.id }}" style="display:none">
+                        <td colspan="4">
+                          <div class="application-notes-inline">
+                            <div class="notes-field-row-inline">
+                              <input type="text" class="notes-manager-name" placeholder="{{ 'Hiring Manager Name'|t }}" maxlength="255" />
+                              <input type="email" class="notes-contact-email" placeholder="{{ 'Contact Email'|t }}" maxlength="255" />
+                              <input type="date" class="notes-last-contact-date" />
+                            </div>
+                            <div class="notes-field-row-inline">
+                              <textarea class="notes-text" rows="3" maxlength="2000" placeholder="{{ 'Notes (optional, max 2000 chars)'|t }}"></textarea>
+                            </div>
+                            <div class="notes-actions-inline">
+                              <button type="button" class="button button--small button--primary btn-notes-save-inline">{{ 'Save Notes'|t }}</button>
+                              <span class="notes-status-inline"></span>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                     {% endfor %}
@@ -218,3 +244,84 @@
   {% endif %}
 
 </div>
+
+<style>
+.application-notes-inline { padding: 12px 16px; background: #f8f9fa; border-radius: 6px; }
+.notes-field-row-inline { display: flex; gap: 10px; margin-bottom: 8px; flex-wrap: wrap; }
+.notes-field-row-inline input[type="text"],
+.notes-field-row-inline input[type="email"],
+.notes-field-row-inline input[type="date"] { flex: 1; min-width: 150px; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; }
+.notes-field-row-inline textarea { width: 100%; padding: 6px 8px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.9em; resize: vertical; }
+.notes-actions-inline { display: flex; align-items: center; gap: 10px; margin-top: 6px; }
+.notes-status-inline { font-size: 0.85em; }
+.notes-status-inline.success { color: #065f46; }
+.notes-status-inline.error { color: #991b1b; }
+.btn-notes-toggle { background: #6b7280; color: #fff; }
+.btn-notes-toggle:hover { background: #4b5563; }
+.btn-notes-toggle.active { background: #667eea; }
+</style>
+
+<script>
+(function() {
+  document.querySelectorAll('.btn-notes-toggle').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var jobId = btn.dataset.jobId;
+      var panel = document.querySelector('.job-notes-panel--' + jobId);
+      if (!panel) { return; }
+      var isOpen = panel.style.display !== 'none';
+      if (isOpen) {
+        panel.style.display = 'none';
+        btn.classList.remove('active');
+        return;
+      }
+      fetch(btn.dataset.loadUrl, { credentials: 'same-origin' })
+        .then(function(r) { return r.json(); })
+        .then(function(d) {
+          panel.querySelector('.notes-manager-name').value = d.manager_name || '';
+          panel.querySelector('.notes-contact-email').value = d.contact_email || '';
+          panel.querySelector('.notes-last-contact-date').value = d.last_contact_date || '';
+          panel.querySelector('.notes-text').value = d.notes || '';
+          panel.style.display = '';
+          btn.classList.add('active');
+        })
+        .catch(function() {
+          panel.style.display = '';
+          btn.classList.add('active');
+        });
+      var saveBtn = panel.querySelector('.btn-notes-save-inline');
+      if (!saveBtn.dataset.wired) {
+        saveBtn.dataset.wired = '1';
+        saveBtn.addEventListener('click', function() {
+          var statusEl = panel.querySelector('.notes-status-inline');
+          var saveUrl = btn.dataset.saveUrl + '?token=' + encodeURIComponent(btn.dataset.token);
+          var payload = {
+            manager_name: panel.querySelector('.notes-manager-name').value,
+            contact_email: panel.querySelector('.notes-contact-email').value,
+            last_contact_date: panel.querySelector('.notes-last-contact-date').value,
+            notes: panel.querySelector('.notes-text').value
+          };
+          saveBtn.disabled = true;
+          fetch(saveUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            credentials: 'same-origin',
+            body: JSON.stringify(payload)
+          })
+          .then(function(r) { return r.json().then(function(d) { return { status: r.status, data: d }; }); })
+          .then(function(res) {
+            saveBtn.disabled = false;
+            statusEl.className = 'notes-status-inline ' + (res.status === 200 ? 'success' : 'error');
+            statusEl.textContent = res.status === 200 ? (res.data.message || 'Notes saved.') : (res.data.error || 'Save failed.');
+            setTimeout(function() { statusEl.className = 'notes-status-inline'; statusEl.textContent = ''; }, 4000);
+          })
+          .catch(function() {
+            saveBtn.disabled = false;
+            statusEl.className = 'notes-status-inline error';
+            statusEl.textContent = 'Network error.';
+          });
+        });
+      }
+    });
+  });
+})();
+</script>
