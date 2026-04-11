@@ -13040,6 +13040,121 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-performance-perform-phpunit",
+      "label": "Performance skill \u2014 Perform encounter action (action cost, art-type gate, 4-degree outcomes with crowd-reaction tags, hook dispatch), Earn Income downtime path (skill routing, standard table cross-reference to LRE), multi-art independence, ACL regression",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-performance-perform",
+      "command": "vendor/bin/phpunit --filter PerformancePerformTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-performance-perform/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-PER-01",
+          "label": "Perform: action_cost=1 in encounter context",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-02",
+          "label": "Perform: character.art_types.length >= 1 required; length=0 \u2192 blocked or untrained-no-art error",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "notes": "PM: confirm art-type list is open (free-text tag) or closed (enum). Automation needs deterministic set for fixture setup.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-03",
+          "label": "Perform: 4-degree resolution \u2014 critical_success/success/failure/critical_failure returned to caller; degree not silently swallowed",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-04",
+          "label": "Perform Critical Success: outcome_tag=loved (or positive enum); triggers maximum class-feature effect",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "notes": "PM: confirm authoritative crowd-reaction outcome enum (loved/polite/poor/embarrassing or other). Automation needs deterministic expected value.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-05",
+          "label": "Perform Success: outcome_tag=polite (or neutral enum)",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-06",
+          "label": "Perform Failure: outcome_tag=poor (or negative enum)",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-07",
+          "label": "Perform Critical Failure: outcome_tag=embarrassing; degree=critical_failure explicitly returned to caller (not silently upgraded to failure)",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-08",
+          "label": "Perform result delivered to class-feature hook (e.g., Bard Inspire Courage): hook_system.receive_perform_result(character_id, degree) called with correct degree",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "notes": "PM: confirm which release includes hook infrastructure. Conditional on class-feature hook registration/dispatch system (Bard module or generic hook dispatcher).",
+          "status": "deferred \u2014 pending class-feature hook system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-PER-09",
+          "label": "Perform with no registered hooks: resolves cleanly; degree returned; no exception thrown",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-10",
+          "label": "Perform Earn Income (downtime): earn_income(skill:performance, task_level:N) \u2192 DC/income/degree follow standard Earn Income table (same resolution path as dc-cr-skills-lore-earn-income TC-LRE-06\u201316)",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-11",
+          "label": "Perform Earn Income: check uses character.performance_modifier (not crafting/lore); performance_rank < trained \u2192 blocked",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-12",
+          "label": "Multi-art independence: character.art_types=[singing,oratory] \u2192 Perform(art:singing) and Perform(art:oratory) tracked and resolved independently",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "notes": "PM: confirm whether art type is selected at check time (player picks) or all assigned arts apply simultaneously. Automation needs deterministic selection model.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-13",
+          "label": "Perform with unassigned art type: Perform(art:X) where X not in character.art_types \u2192 blocked or untrained-no-art error",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-PER-14",
+          "label": "ACL regression: Performance/Perform introduces no new routes; existing encounter and downtime handler routes retain ACL (authenticated=200, anon=403)",
+          "feature_id": "dc-cr-skills-performance-perform",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [

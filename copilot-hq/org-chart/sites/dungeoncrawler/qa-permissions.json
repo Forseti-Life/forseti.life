@@ -1405,6 +1405,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-performance-perform-acl-regression",
+      "feature_id": "dc-cr-skills-performance-perform",
+      "path_regex": "^/api/(game|character|encounter|downtime)/",
+      "notes": "ACL regression for dc-cr-skills-performance-perform. No new routes introduced. Perform routes through existing encounter handler; Earn Income through downtime handler. TC-PER-14.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
