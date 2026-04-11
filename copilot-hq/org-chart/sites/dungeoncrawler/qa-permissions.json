@@ -1475,6 +1475,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-multiclass-archetype-feat-select-acl",
+      "feature_id": "dc-cr-multiclass-archetype",
+      "path_regex": "^/api/character/[^/]+/feat",
+      "notes": "ACL for character feat selection endpoint. Auth required; scoped to character owner. Cross-user modification must be rejected. TC-MCA-10.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }

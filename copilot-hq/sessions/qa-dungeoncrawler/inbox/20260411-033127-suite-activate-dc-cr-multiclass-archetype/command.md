@@ -157,3 +157,5 @@ The feature is in scope; Dev will implement it this release. Tests must be live 
 
 - Roadmap: Core Rulebook
 - Chapter: Chapter 3: Classes
+- Agent: qa-dungeoncrawler
+- Status: pending

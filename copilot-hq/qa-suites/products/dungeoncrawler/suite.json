@@ -13373,6 +13373,99 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-multiclass-archetype-playwright",
+      "label": "Multiclass Archetype System \u2014 archetype content type (12 CRB + APG), dedication feat prerequisites (L2 min, no duplicate), even-level class feat slot assignment, archetype feat level prerequisites, breadth limit (2 archetype feats before second dedication), APG archetype integration and prerequisites, cross-user feat selection ACL",
+      "type": "playwright",
+      "feature_id": "dc-cr-multiclass-archetype",
+      "command": "npx playwright test --grep multiclass-archetype tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-multiclass-archetype/playwright-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-MCA-01",
+          "label": "Archetype content type: 12 CRB archetypes present with all required fields (archetype_id, source_class, dedication_feat_id, available_archetype_feats[], minimum_dedication_level=2)",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-02",
+          "label": "Dedication feat: blocked below L2; duplicate dedication from same archetype blocked with feedback",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-03",
+          "label": "After dedication: archetype feats available in even-level class feat UI alongside native class feats",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-04",
+          "label": "Archetype feat level prerequisite enforced: feat with min_level=6 hidden/greyed out below L6",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-05",
+          "label": "Breadth limit: second dedication (different archetype) available only after 2 archetype feats from first archetype",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-06",
+          "label": "Same-archetype second dedication always blocked regardless of feat count",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-07",
+          "label": "APG archetypes present and tagged: total = 12 CRB + APG count; APG tagged source='APG'",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-08",
+          "label": "APG archetype prerequisites enforced: dedication blocked when APG-specific prereq not met; feedback names missing prereq",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-09",
+          "label": "Archetype feats only in even-level class feat slots: not in odd-level or general feat slots",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-MCA-10",
+          "label": "Security: feat selection API requires auth matching character owner; cross-user modification rejected",
+          "feature_id": "dc-cr-multiclass-archetype",
+          "suite_context": "playwright/character-creation",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
