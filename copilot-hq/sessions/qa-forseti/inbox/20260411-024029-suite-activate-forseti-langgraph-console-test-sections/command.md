@@ -145,3 +145,5 @@ Wire the four Test subsection pages of the LangGraph Console to live data: QA te
 
 ### AC-7: Error-free operation
 - Zero PHP errors in Apache error log for all four page loads (data present or absent).
+- Agent: qa-forseti
+- Status: pending

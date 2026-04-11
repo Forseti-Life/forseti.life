@@ -147,3 +147,5 @@ Wire the four Build subsection pages of the LangGraph Console to live orchestrat
 ### AC-7: Error-free operation
 - Zero PHP errors in Apache error log for any of the four page loads.
 - File-not-found for telemetry files → graceful "not available" message, not an exception.
+- Agent: qa-forseti
+- Status: pending

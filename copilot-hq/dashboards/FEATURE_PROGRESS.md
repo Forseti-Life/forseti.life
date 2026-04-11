@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-11T02:30:40Z
+Generated: 2026-04-11T03:15:43Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -91,6 +91,8 @@ Generated: 2026-04-11T02:30:40Z
 | dc-cr-gnome-weapon-familiarity | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-weapon-specialist | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-goblin-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-goblin-very-sneaky | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
+| dc-cr-goblin-weapon-frenzy | dungeoncrawler | dungeoncrawler_content | pre-triage | unset (PM will set at triage) |  |  |  |
 | dc-cr-halfling-ancestry | dungeoncrawler | dungeoncrawler_content | pre-triage | (set by PM) |  |  |  |
 | dc-cr-hazards | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
 | dc-cr-heritage-system | dungeoncrawler | dungeoncrawler_content | done | P1 (character creation dependency; heritage selection step immediately follows ancestry in creation wizard) |  |  |  |
@@ -157,11 +159,12 @@ Generated: 2026-04-11T02:30:40Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
-| forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
+| forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | ready | high |  |  |  |
 | forseti-jobhunter-application-notes | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
+| forseti-jobhunter-bulk-status-update | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | shipped | P2 |  |  |  |
@@ -183,7 +186,9 @@ Generated: 2026-04-11T02:30:40Z
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
-| forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
+| forseti-langgraph-console-build-sections | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
+| forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | ready | high |  |  |  |
+| forseti-langgraph-console-test-sections | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  |  |  |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |

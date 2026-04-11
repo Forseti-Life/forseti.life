@@ -1,13 +1,15 @@
 {
-  "generated_at": "2026-04-11T02:09:03.537138+00:00",
+  "generated_at": "2026-04-11T02:55:50.179476+00:00",
   "parity_ok": true,
   "selected_agents": {
     "match": true,
     "actual": [
       "pm-forseti",
-      "qa-dungeoncrawler",
+      "qa-forseti",
       "agent-code-review",
-      "pm-dungeoncrawler"
+      "pm-dungeoncrawler",
+      "ba-dungeoncrawler",
+      "dev-dungeoncrawler"
     ]
   },
   "steps": {
