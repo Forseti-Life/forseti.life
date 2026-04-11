@@ -555,24 +555,113 @@ final class LangGraphConsoleStubController extends ControllerBase {
     $sections = $this->sectionMap();
     $page = $sections['release'];
     $base = $this->buildPage(
-      (string) $page['title'],
+      'Release Control Panel',
       (string) $page['description'],
       $this->buildSectionRows('release', (array) $page['subsections'])
     );
     $base['context'] = $this->renderConsoleContext(
-      'Release cycle state across all product teams — current and next release IDs, what release action the orchestrator took this tick per team, and whether the coordinated push gate is open.',
-      'Use when a release appears stalled or when you need to confirm a team advanced their release phase this tick. The "not ready" list in Graph Versions shows which teams are blocking a coordinated push.',
-      'tmp/release-cycle-active/{team}.release_id and {team}.next_release_id (runtime state files) + langgraph-ticks.jsonl step_results.release_cycle and step_results.coordinated_push.'
+      'Release cycle state across all product teams — current release IDs, PM signoff status, features in scope, and elapsed time since release start.',
+      'Use when a release appears stalled, to confirm PM has signed off, or to see how many features remain in-progress for a team.',
+      'tmp/release-cycle-active/{team}.release_id, {team}.started_at + sessions/pm-{team}/artifacts/release-signoffs/{release_id}.md + features/*/feature.md'
     );
+    $base['panel_header'] = ['#markup' => '<h3>' . $this->t('Active Releases') . '</h3>'];
+    $base['panel_table'] = $this->buildReleasePanelTable();
     $base['terms'] = $this->renderKeyTerms([
       'release_id'         => 'The identifier of the release currently in-flight for a team, e.g. "20260408-forseti-release-d". Format: YYYYMMDD-{team}-release-{letter}.',
-      'next_release_id'    => 'The release queued to start after the current one completes.',
-      'coordinated_push'   => 'A cross-team gate: the orchestrator only executes a push when ALL teams simultaneously signal ready. "not_ready" lists teams still blocking.',
-      'release phase'      => 'Stages a release moves through: R0 (planning) → R1 (dev) → R2 (QA) → R3 (staging) → R4 (UAT) → R5 (production audit) → shipped.',
+      'PM signoff'         => 'SIGNED = a signoff artifact exists in sessions/pm-{team}/artifacts/release-signoffs/{release_id}.md. PENDING = file absent.',
+      'Features in scope'  => 'Count of features with Status: in_progress matching the active site name in features/*/feature.md.',
+      'Hours elapsed'      => 'Time since {team}.started_at was written. Releases auto-close after 24h.',
+      'coordinated_push'   => 'A cross-team gate: the orchestrator only executes a push when ALL teams simultaneously signal ready.',
       'Canary controls'    => 'Planned future: traffic-split rollout of graph changes. Currently structural stub — requires Board approval before scoping.',
-      'Rollback / Recovery' => 'Planned future: fast graph version rollback to a prior state. Currently structural stub.',
     ]);
     return $base;
+  }
+
+  /**
+   * Build the live Release Control Panel table for all teams.
+   *
+   * @return array<string, mixed>
+   */
+  private function buildReleasePanelTable(): array {
+    $hq = $this->hqPath('tmp/release-cycle-active');
+    $features_dir = $this->hqPath('features');
+
+    // Map team slug → site name used in feature.md Website field.
+    $teams = [
+      'forseti'       => 'forseti.life',
+      'dungeoncrawler' => 'dungeoncrawler',
+    ];
+
+    $rows = [];
+    foreach ($teams as $team => $site_name) {
+      $r_id_path  = "$hq/$team.release_id";
+      $started_path = "$hq/$team.started_at";
+
+      $r_id = is_readable($r_id_path) ? trim((string) file_get_contents($r_id_path)) : '';
+      if ($r_id === '') {
+        $rows[] = [
+          $team,
+          $this->t('No active release'),
+          '—',
+          '—',
+          '—',
+        ];
+        continue;
+      }
+
+      // PM signoff: look for the signoff markdown artifact.
+      $signoff_path = $this->hqPath("sessions/pm-$team/artifacts/release-signoffs/$r_id.md");
+      $signed = is_readable($signoff_path);
+      $signoff_badge = $signed
+        ? '<strong style="color:#2e7d32">SIGNED</strong>'
+        : '<span style="color:#b71c1c">PENDING</span>';
+
+      // Feature count in scope: count in_progress features for this site.
+      $feature_count = 0;
+      foreach (glob("$features_dir/*/feature.md") ?: [] as $fpath) {
+        $fcontent = (string) @file_get_contents($fpath);
+        if (preg_match('/^- Status:\s*in_progress/m', $fcontent) &&
+            preg_match('/^- Website:\s*' . preg_quote($site_name, '/') . '/m', $fcontent)) {
+          $feature_count++;
+        }
+      }
+
+      // Hours elapsed since release start.
+      $hours_str = '—';
+      if (is_readable($started_path)) {
+        $started_raw = trim((string) file_get_contents($started_path));
+        $ts = strtotime($started_raw);
+        if ($ts !== FALSE) {
+          $elapsed_h = (time() - $ts) / 3600;
+          $hours_str = number_format($elapsed_h, 1) . 'h';
+          if ($elapsed_h > 20) {
+            $hours_str = '<strong style="color:#b71c1c">' . htmlspecialchars($hours_str) . ' ⚠</strong>';
+          }
+        }
+      }
+
+      $rows[] = [
+        htmlspecialchars($team),
+        htmlspecialchars($r_id),
+        ['data' => ['#markup' => $signoff_badge]],
+        (string) $feature_count,
+        ['data' => ['#markup' => $hours_str]],
+      ];
+    }
+
+    return [
+      '#type'   => 'table',
+      '#cache'  => ['max-age' => 60],
+      '#header' => [
+        $this->t('Team'),
+        $this->t('Release ID'),
+        $this->t('PM Signoff'),
+        $this->t('Features in scope'),
+        $this->t('Hours elapsed'),
+      ],
+      '#rows'   => $rows,
+      '#empty'  => $this->t('No release state found.'),
+    ];
   }
 
   /**
