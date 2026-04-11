@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-application-deadline-tracker
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: ready
 - Release: 20260411-forseti-release-b
 - Feature type: enhancement
 - PM owner: pm-forseti
