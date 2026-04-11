@@ -1307,6 +1307,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-acrobatics-actions-acl-regression",
+      "feature_id": "dc-cr-skills-acrobatics-actions",
+      "path_regex": "^/api/(game|character)/",
+      "notes": "ACL regression for dc-cr-skills-acrobatics-actions. No new routes introduced by Acrobatics actions. Existing encounter and exploration phase handler routes retain their ACL: anon denied (403), authenticated player allowed (200). Covered by TC-ACR-29 via role-url-audit suite.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
