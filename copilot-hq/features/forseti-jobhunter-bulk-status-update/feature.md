@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-bulk-status-update
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: done
 - Release: 20260411-coordinated-release
 - Feature type: enhancement
 - PM owner: pm-forseti
