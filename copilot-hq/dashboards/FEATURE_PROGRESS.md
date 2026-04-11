@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-11T03:30:13Z
+Generated: 2026-04-11T03:52:19Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -14,8 +14,8 @@ Generated: 2026-04-11T03:30:13Z
 | dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-feats | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
-| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
-| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | ready |  |  |  |  |
+| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
@@ -78,7 +78,7 @@ Generated: 2026-04-11T03:30:13Z
 | dc-cr-first-world-magic | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-focus-spells | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-general-feats | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
+| dc-cr-gm-narrative-engine | dungeoncrawler | dungeoncrawler_content | in_progress | P3 |  |  |  |
 | dc-cr-gm-tools | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-gnome-ancestry | dungeoncrawler | dungeoncrawler_content | done | P2 |  |  |  |
 | dc-cr-gnome-heritage-chameleon | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
@@ -102,8 +102,8 @@ Generated: 2026-04-11T03:30:13Z
 | dc-cr-magic-ch11 | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
 | dc-cr-magic-items | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-mountains-stoutness | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
-| dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
-| dc-cr-npc-system | dungeoncrawler | dungeoncrawler_content | ready | P2 |  |  |  |
+| dc-cr-multiclass-archetype | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
+| dc-cr-npc-system | dungeoncrawler | dungeoncrawler_content | in_progress | P2 |  |  |  |
 | dc-cr-rest-watch-starvation | dungeoncrawler | dungeoncrawler_content | ready | P3 |  |  |  |
 | dc-cr-rituals | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
 | dc-cr-rock-runner | dungeoncrawler | dungeoncrawler_content | done | unset (PM will set at triage) |  |  |  |
