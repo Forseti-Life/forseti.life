@@ -1335,6 +1335,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-crafting-actions-acl-regression",
+      "feature_id": "dc-cr-skills-crafting-actions",
+      "path_regex": "^/api/(game|character|exploration|downtime)/",
+      "notes": "ACL regression for dc-cr-skills-crafting-actions. No new routes introduced by Crafting actions. Existing exploration and downtime handler routes retain ACL: anon denied (403), authenticated player allowed (200). TC-CRF-30.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }

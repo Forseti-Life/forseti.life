@@ -12100,6 +12100,247 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-crafting-actions-phpunit",
+      "label": "Crafting skill actions \u2014 Repair, Craft (downtime), Identify Alchemy: proficiency gates, activity types, item-level caps, feat gates",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-crafting-actions",
+      "command": "vendor/bin/phpunit --filter CraftingActionsTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-crafting-actions/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-CRF-01",
+          "label": "Repair requires Trained Crafting \u2014 Untrained blocks the action",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-03",
+          "label": "Repair is an exploration activity (10 minutes) \u2014 action_type=exploration, time_cost=10min",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-02",
+          "label": "Repair requires a repair kit in inventory \u2014 blocked if repair_kit_available=false",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-04",
+          "label": "Repair Success: HP restored = 5 + 5*rank (Trained=10, Expert=15, Master=20, Legendary=25)",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-05",
+          "label": "Repair Critical Success: HP restored = 10 + 10*rank (Trained=20, Expert=30, Master=40, Legendary=50)",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-06",
+          "label": "Repair Critical Failure: item takes 2d6 damage after Hardness reduction",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-07",
+          "label": "Repair blocked on destroyed item \u2014 item_state=destroyed blocks action",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-08",
+          "label": "Repair on full-HP item: 0 HP restored, no error (no-op)",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "notes": "PM: confirm no-op is 0 HP restored with no error vs UI warning",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-09",
+          "label": "Craft requires Trained Crafting \u2014 Untrained blocks the action",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-10",
+          "label": "Craft is a downtime activity \u2014 not available as encounter/exploration action",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-12",
+          "label": "Craft blocked if item level exceeds character level",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-13",
+          "label": "Craft: item level 9+ requires Master Crafting; Trained/Expert insufficient",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-14",
+          "label": "Craft: item level 16+ requires Legendary Crafting",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-23",
+          "label": "Craft alchemical items blocked without Alchemical Crafting feat",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-24",
+          "label": "Craft magic items blocked without Magical Crafting feat",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-25",
+          "label": "Craft snares blocked without Snare Crafting feat",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-11",
+          "label": "Craft blocked without formula for target item \u2014 formula_known_for_item=false blocks action",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-15",
+          "label": "Craft requires >=50% raw material cost paid upfront before check",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "notes": "PM: confirm material cost tracked as currency or inventory entries",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-16",
+          "label": "Craft minimum 4 days; each additional day reduces remaining cost at daily crafting rate",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-17",
+          "label": "Craft can pause and resume \u2014 progress (days + materials) preserved between sessions",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-18",
+          "label": "Craft Critical Success: cost reduction at item-level+1 rate",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-19",
+          "label": "Craft Failure: full material salvage, no item produced",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-20",
+          "label": "Craft Critical Failure: 10% material loss",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-21",
+          "label": "Craft consumables: up to 4 identical items per check",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-22",
+          "label": "Craft ammunition: standard batch quantities per check",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-26",
+          "label": "Identify Alchemy requires Trained Crafting \u2014 Untrained blocks",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-28",
+          "label": "Identify Alchemy is an exploration activity (10 minutes)",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-29",
+          "label": "Identify Alchemy Critical Failure: returns false identification result (not an error)",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-CRF-27",
+          "label": "Identify Alchemy requires alchemist's tools in inventory \u2014 blocked if absent",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-CRF-30",
+          "label": "ACL regression: no new routes from Crafting actions; existing exploration/downtime handler ACL retained",
+          "feature_id": "dc-cr-skills-crafting-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
