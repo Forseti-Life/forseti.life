@@ -210,6 +210,24 @@ Example of WRONG pattern (this happened 2026-04-10 release-d): dispatched ba-for
 
 Reference: 2026-04-09 `20260409-forseti-release-e`, 2026-04-10 `20260410-forseti-release-d` both had this anti-pattern.
 
+## Scope-activate with zero ready features but parallel in_progress releases (required — lesson 2026-04-11)
+
+**Pattern (2026-04-11 release-c)**: `pm-scope-activate.sh` returns zero ready features because all 7 forseti features are `in_progress` across two parallel releases (`release-f` with 4 features, `release-g` with 3). The orchestrator re-fires `scope-activate` every ~30-60 min while the active release has 0 features scoped.
+
+**Response protocol (in order)**:
+1. Run `pm-scope-activate.sh forseti <release-id>` — confirm it rejects all candidates with `expected 'ready'`.
+2. Enumerate all parallel in_progress release IDs: `grep -rl "Status: in_progress" features/forseti-*/feature.md | xargs grep -l "Release-ID"`.
+3. For each parallel in_progress release, check Gate 2 status:
+   - QA APPROVE present + pm-forseti signoff present → **Path A option**: ship that release now under its own ID. Escalate to CEO with concrete evidence.
+   - QA APPROVE missing → that release is not push-ready; note it but do not offer to skip QA.
+4. **Escalate to CEO immediately** (do NOT wait for a new inbox item) with:
+   - The specific parallel release IDs and their current gate status
+   - Path A (ship parallel release under its ID) / Path B (re-tag) / Path C (close empty release) options
+   - Recommend Path A if QA APPROVE + signoff are on record — zero rework required.
+5. On re-fires: write a properly structured blocked outbox referencing the original escalation timestamp. Do NOT re-open the CEO inbox item — the orchestrator handles routing.
+
+**Anti-pattern to avoid**: Writing blocked outbox without an escalation path causes infinite re-fires. Always include a concrete `## Decision needed` + `## Recommendation` in the first blocked outbox so CEO routing resolves the cycle.
+
 ## Stale coordinated-signoff inbox items — detect and archive (required — lesson 2026-04-10-release-b)
 
 **Pattern**: The orchestrator sometimes delivers a `coordinated-signoff` inbox item for a release that has already been pushed. These are stale dispatches — processing them wastes an execution slot.
