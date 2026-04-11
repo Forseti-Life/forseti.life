@@ -12341,6 +12341,212 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-deception-actions-phpunit",
+      "label": "Deception skill actions \u2014 Create a Diversion, Impersonate, Lie, Feint: action types, trait gates, proficiency gates, bonus tracking, secret checks",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-deception-actions",
+      "command": "vendor/bin/phpunit --filter DeceptionActionsTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-deception-actions/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-DEC-01",
+          "label": "Create a Diversion is a 1-action encounter action \u2014 action_cost=1, action_type=encounter",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-02",
+          "label": "Create a Diversion traits: gesture=manipulate; vocalization=auditory+linguistic+mental",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "notes": "PM: confirm method selection is player input at resolution or AC-type determined",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-03",
+          "label": "Create a Diversion: +4 circumstance bonus to Stealth vs targeted observers; duration=10 rounds",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "notes": "PM: confirm 1 minute = 10 combat rounds or exploration time window",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-07",
+          "label": "Create a Diversion bonus resets per attempt \u2014 no stacking from prior diversions",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-04",
+          "label": "Create a Diversion success: character gains Hidden (not Undetected) vs targeted observers",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-05",
+          "label": "Hidden from Diversion reverts to Observed on any action except Hide/Sneak/Step",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-06",
+          "label": "Strike while Hidden from Diversion: target flat-footed for that attack; character becomes Observed",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-08",
+          "label": "Impersonate is an exploration activity \u2014 action_type=exploration",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-11",
+          "label": "Impersonate: passive observers roll Perception vs character's Deception DC (secret check)",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-12",
+          "label": "Impersonate: active searchers use Seek action (not passive Perception) vs Deception DC",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-13",
+          "label": "Impersonate Critical Failure: true identity revealed to recognizing observers",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-09",
+          "label": "Impersonate requires 10 minutes and a disguise kit \u2014 blocked if kit absent",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-equipment-system",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-10",
+          "label": "Impersonate without disguise kit: default -2 circumstance penalty (not hard block)",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-equipment-system",
+          "notes": "PM: confirm default is -2 penalty (not hard block); GM hard-block flag needed?",
+          "status": "deferred \u2014 pending dc-cr-equipment-system",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-14",
+          "label": "Lie is a secret check \u2014 result not surfaced directly to player",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-15",
+          "label": "Lie: single roll compared to each target's Perception DC independently; per-target outcomes",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-16",
+          "label": "Lie Failure: target gains +4 circumstance bonus to resist future lies same conversation",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-17",
+          "label": "Lie failure resistance is per-conversation scope \u2014 resets at end of conversation",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-18",
+          "label": "Lie: GM can trigger recheck when contradicting evidence appears; player not notified of recheck trigger",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-19",
+          "label": "Feint is a 1-action with mental trait \u2014 action_cost=1, traits=[mental]",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-20",
+          "label": "Feint requires Trained Deception \u2014 Untrained blocks the action",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-21",
+          "label": "Feint requires melee reach \u2014 blocked if target not in melee reach",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-25",
+          "label": "Feint outside melee reach: explicit error returned, no check rolled",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-DEC-22",
+          "label": "Feint Critical Success: target flat-footed for full turn of attacker's attacks",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-23",
+          "label": "Feint Success: target flat-footed for next one attack only",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-24",
+          "label": "Feint Critical Failure: attacker becomes flat-footed",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "dependency": "dc-cr-conditions",
+          "status": "deferred \u2014 pending dc-cr-conditions",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-DEC-26",
+          "label": "ACL regression: no new routes from Deception actions; existing encounter/exploration handler ACL retained",
+          "feature_id": "dc-cr-skills-deception-actions",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [

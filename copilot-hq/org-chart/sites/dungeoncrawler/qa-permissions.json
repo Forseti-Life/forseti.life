@@ -1349,6 +1349,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-deception-actions-acl-regression",
+      "feature_id": "dc-cr-skills-deception-actions",
+      "path_regex": "^/api/(game|character|encounter|exploration)/",
+      "notes": "ACL regression for dc-cr-skills-deception-actions. No new routes introduced by Deception actions. Existing encounter and exploration handler routes retain ACL: anon denied (403), authenticated player allowed (200). TC-DEC-26.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
