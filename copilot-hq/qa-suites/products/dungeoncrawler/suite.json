@@ -12922,6 +12922,124 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-nature-command-animal-phpunit",
+      "label": "Nature skill actions \u2014 Recall Knowledge (domain scope, untrained use) and Command an Animal (action cost, auditory trait, Trained gate, creature-type gate, command-capability gate, Will-save DC, 4-degree outcomes, bonded-animal lower DC)",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-nature-command-animal",
+      "command": "vendor/bin/phpunit --filter NatureCommandAnimalTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-nature-command-animal/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-NAT-01",
+          "label": "Recall Knowledge (Nature) scoped to Nature domain (animals, beasts, fey, plants, fungi, weather, terrain, natural environments); out-of-domain query returns out-of-scope response",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm authoritative creature category list for Nature \u2014 especially whether 'magical beast' counts under beasts for Recall Knowledge. Automation needs enumerated domain list.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-02",
+          "label": "Recall Knowledge (Nature): untrained use permitted within Nature domain; rolls at untrained modifier",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-03",
+          "label": "Command an Animal: action_cost=1, traits=[auditory], blocked if nature_rank=untrained",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-04",
+          "label": "Command an Animal: target must be creature_type=animal; magical_beast/undead/mindless \u2192 blocked",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-05",
+          "label": "Command an Animal: simple animal-capability command \u2192 check proceeds; complex or impossible command \u2192 blocked before check",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm how command complexity is validated \u2014 enumerated command set vs free-text + capability flag on animal stat block. Automation needs a deterministic gate.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-06",
+          "label": "Command an Animal DC = target animal's Will save DC; untrained animals use default passive DC",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm 'default passive DC' for untrained animals (absolute value vs formula). Automation needs a deterministic fallback value.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-07",
+          "label": "Command an Animal Critical Success: animal performs up to 2 actions this turn AND enters cooperative state for 1 minute (lower DC or auto-succeed during window)",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm how 'cooperative for 1 minute' is stored (NPC state flag with timer vs repeated lower-DC rule). Requires NPC/creature behavior model for timer implementation.",
+          "status": "deferred \u2014 pending NPC/creature behavior model (cooperative state timer)",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-NAT-08",
+          "label": "Command an Animal Success: animal performs 1 action this round; no persistent state required",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-09",
+          "label": "Command an Animal Failure: animal.actions_granted=0; animal.panic=false; no compliance or panic",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-10",
+          "label": "Command an Animal Critical Failure: animal.state=panic; animal.behavior IN [flee, attack_nearest]; animal.actions_granted=0",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm whether panic produces 'flee' or 'attack nearest' \u2014 system choice, random, or animal-specific. Automation needs deterministic expected value. Requires NPC/creature behavior model for panic state.",
+          "status": "deferred \u2014 pending NPC/creature behavior model (panic state implementation)",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-NAT-11",
+          "label": "Command an Animal: bonded/trained animal uses reduced DC vs will_save_dc; wild/untrained uses will_save_dc",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm exact DC reduction for bonded animals (flat modifier vs separate DC table). Automation needs a deterministic value.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-12",
+          "label": "Command an Animal edge case: magical_beast/undead/mindless \u2192 blocked (explicit type enumeration)",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NAT-13",
+          "label": "Command an Animal auditory trait edge case: character.muted=true OR animal.deaf=true \u2192 action blocked or penalized per implementation policy",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "notes": "PM: confirm authoritative behavior for auditory-trait barrier: (a) hard block if either party has muted/deaf condition, or (b) circumstance penalty. Automation needs deterministic outcome. Conditional on dc-cr-conditions muted/deaf flags if those exist.",
+          "status": "deferred \u2014 pending dc-cr-conditions (muted/deaf condition flags) or PM implementation decision",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-NAT-14",
+          "label": "ACL regression: Nature/Command an Animal introduces no new routes; existing encounter handler routes retain ACL (authenticated=200, anon=403)",
+          "feature_id": "dc-cr-skills-nature-command-animal",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [

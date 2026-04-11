@@ -1391,6 +1391,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-nature-command-animal-acl-regression",
+      "feature_id": "dc-cr-skills-nature-command-animal",
+      "path_regex": "^/api/(game|character|encounter)/",
+      "notes": "ACL regression for dc-cr-skills-nature-command-animal. No new routes introduced. Nature Recall Knowledge and Command an Animal route through existing encounter handler. TC-NAT-14.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
