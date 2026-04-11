@@ -3,7 +3,7 @@
 - Work item id: forseti-jobhunter-tailoring-feedback
 - Website: forseti.life
 - Module: job_hunter
-- Status: in_progress
+- Status: shipped
 - Release: 20260410-forseti-release-f
 - Feature type: enhancement
 - PM owner: pm-forseti
