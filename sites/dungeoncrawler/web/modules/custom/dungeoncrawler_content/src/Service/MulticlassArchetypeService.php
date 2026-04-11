@@ -3,14 +3,17 @@
 namespace Drupal\dungeoncrawler_content\Service;
 
 /**
- * Multiclass Archetype system — PF2e CRB Chapter 3.
+ * Multiclass Archetype system — PF2e CRB Chapter 3 + APG Chapter 3.
  *
  * Enforces dedication feat prerequisites (AC-001), breadth limit
  * (AC-004), class feat slot availability (AC-002, AC-003), and
  * source-tagging for APG integration (AC-005).
  *
- * All archetype data lives in CharacterManager::MULTICLASS_ARCHETYPES.
- * This service adds no new static data; it is purely business logic.
+ * Data sources:
+ * - CharacterManager::MULTICLASS_ARCHETYPES — CRB + APG class multiclass
+ *   dedications (source: 'CRB' | 'APG').
+ * - CharacterManager::ARCHETYPES — APG general/non-multiclass archetypes
+ *   (Acrobat, Archer, etc.); normalized and tagged source: 'APG' here.
  */
 class MulticlassArchetypeService {
 
@@ -19,18 +22,29 @@ class MulticlassArchetypeService {
   /**
    * Return all multiclass archetypes, optionally filtered by source.
    *
+   * Merges CharacterManager::MULTICLASS_ARCHETYPES (CRB + APG class
+   * multiclass) with CharacterManager::ARCHETYPES (APG general archetypes,
+   * tagged source: APG on the fly).
+   *
    * @param string $source
    *   'CRB', 'APG', or 'all' (default).
    *
    * @return array
-   *   Keyed archetype array from CharacterManager::MULTICLASS_ARCHETYPES.
+   *   Keyed archetype array (normalized to MULTICLASS_ARCHETYPES format).
    */
   public function getArchetypeCatalog(string $source = 'all'): array {
-    $all = CharacterManager::MULTICLASS_ARCHETYPES;
+    $multiclass = CharacterManager::MULTICLASS_ARCHETYPES;
+
+    // Merge APG general archetypes (CharacterManager::ARCHETYPES) tagged source APG.
+    // These are non-multiclass archetypes from the APG (Acrobat, Archer, etc.).
+    $apg_general = $this->normalizeApgArchetypes();
+
+    $merged = array_merge($multiclass, $apg_general);
+
     if ($source === 'all') {
-      return $all;
+      return $merged;
     }
-    return array_filter($all, static fn(array $a): bool => ($a['source'] ?? '') === $source);
+    return array_filter($merged, static fn(array $a): bool => ($a['source'] ?? '') === $source);
   }
 
   /**
@@ -79,7 +93,7 @@ class MulticlassArchetypeService {
     $second_dedication_allowed = $this->isSecondDedicationAllowed($owned_feat_ids, $held_archetypes);
 
     $eligible = [];
-    foreach (CharacterManager::MULTICLASS_ARCHETYPES as $archetype) {
+    foreach ($this->getArchetypeCatalog() as $archetype) {
       $dedication = $archetype['dedication'];
       $archetype_id = $archetype['id'];
 
@@ -128,7 +142,7 @@ class MulticlassArchetypeService {
     }
 
     $eligible = [];
-    foreach (CharacterManager::MULTICLASS_ARCHETYPES as $archetype) {
+    foreach ($this->getArchetypeCatalog() as $archetype) {
       // Only include feats from archetypes the character is dedicated to.
       if (!in_array($archetype['id'], $held_archetypes, TRUE)) {
         continue;
@@ -171,7 +185,7 @@ class MulticlassArchetypeService {
     $level = (int) ($char_data['basicInfo']['level'] ?? 1);
     $owned_feat_ids = array_column($char_data['features']['feats'] ?? [], 'id');
 
-    // Find archetype for this dedication.
+    // Find archetype for this dedication (searches MULTICLASS_ARCHETYPES + ARCHETYPES).
     $archetype = $this->findArchetypeByDedicationId($feat_id);
     if ($archetype === NULL) {
       throw new \InvalidArgumentException("Unknown multiclass dedication feat '{$feat_id}'", 400);
@@ -220,7 +234,7 @@ class MulticlassArchetypeService {
    */
   public function getHeldArchetypeIds(array $owned_feat_ids): array {
     $held = [];
-    foreach (CharacterManager::MULTICLASS_ARCHETYPES as $archetype) {
+    foreach ($this->getArchetypeCatalog() as $archetype) {
       if (in_array($archetype['dedication']['id'], $owned_feat_ids, TRUE)) {
         $held[] = $archetype['id'];
       }
@@ -240,8 +254,9 @@ class MulticlassArchetypeService {
    * @return bool
    */
   protected function isSecondDedicationAllowed(array $owned_feat_ids, array $held_archetype_ids): bool {
+    $catalog = $this->getArchetypeCatalog();
     foreach ($held_archetype_ids as $archetype_id) {
-      $archetype = CharacterManager::MULTICLASS_ARCHETYPES[$archetype_id] ?? NULL;
+      $archetype = $catalog[$archetype_id] ?? NULL;
       if ($archetype === NULL) {
         continue;
       }
@@ -257,17 +272,49 @@ class MulticlassArchetypeService {
   /**
    * Find an archetype entry by its dedication feat ID.
    *
+   * Searches both CharacterManager::MULTICLASS_ARCHETYPES and the normalized
+   * APG general archetypes from CharacterManager::ARCHETYPES.
+   *
    * @param string $dedication_feat_id
    *
    * @return array|null
    */
   protected function findArchetypeByDedicationId(string $dedication_feat_id): ?array {
-    foreach (CharacterManager::MULTICLASS_ARCHETYPES as $archetype) {
+    foreach ($this->getArchetypeCatalog() as $archetype) {
       if (($archetype['dedication']['id'] ?? '') === $dedication_feat_id) {
         return $archetype;
       }
     }
     return NULL;
+  }
+
+  /**
+   * Normalize CharacterManager::ARCHETYPES entries to MULTICLASS_ARCHETYPES format.
+   *
+   * APG general archetypes (Acrobat, Archer, etc.) use `feats` key and omit
+   * `source`, `source_class`, and `minimum_dedication_level`. This method
+   * normalizes them so they can be merged into the unified catalog.
+   *
+   * @return array
+   *   Keyed array in MULTICLASS_ARCHETYPES format, all tagged source: 'APG'.
+   */
+  protected function normalizeApgArchetypes(): array {
+    $normalized = [];
+    foreach (CharacterManager::ARCHETYPES as $key => $archetype) {
+      $normalized[$key] = [
+        'id'                      => $archetype['id'],
+        'name'                    => $archetype['name'],
+        'source_class'            => NULL,
+        'source'                  => 'APG',
+        'minimum_dedication_level' => 2,
+        'dedication'              => $archetype['dedication'],
+        // Normalize 'feats' → 'archetype_feats' for structural consistency.
+        'archetype_feats'         => $archetype['feats'] ?? [],
+        // Preserve extra fields (type, etc.).
+        'type'                    => $archetype['type'] ?? NULL,
+      ];
+    }
+    return $normalized;
   }
 
 }
