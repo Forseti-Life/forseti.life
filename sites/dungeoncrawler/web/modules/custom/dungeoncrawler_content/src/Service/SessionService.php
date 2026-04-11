@@ -243,24 +243,79 @@ class SessionService {
   }
 
   /**
-   * Build the AI GM context block from prior sessions (AC-005).
+   * Build the AI GM context block from prior sessions (AC-001, AC-005).
    *
-   * Returns narrative summary from the last ended session plus the NPC log
-   * (relationship status and last known state for recurring NPCs).
+   * Returns up to 5 prior-session summaries (recent-first), concatenated and
+   * truncated to fit the AI context window. Also returns the NPC log from the
+   * most recent session.
+   *
+   * TC-GNE-02 fix: previously returned LIMIT 1; now returns multiple summaries
+   * prioritising recent sessions per AC-001 acceptance criteria.
    *
    * @param int $campaign_id
    * @return array
-   *   Keys: prior_session_summary (string), npcs (array).
+   *   Keys: prior_session_summary (string, concatenated + truncated), npcs (array).
    */
   public function buildAiGmContext(int $campaign_id): array {
-    $last = $this->getLastEndedSession($campaign_id);
-    if (!$last) {
+    // Fetch up to 5 ended sessions, most recent first.
+    $rows = $this->database->select('dc_sessions', 's')
+      ->fields('s', ['narrative_state'])
+      ->condition('campaign_id', $campaign_id)
+      ->condition('status', 'ended')
+      ->orderBy('ended_at', 'DESC')
+      ->range(0, 5)
+      ->execute()
+      ->fetchAll();
+
+    if (empty($rows)) {
       return ['prior_session_summary' => '', 'npcs' => []];
     }
-    $narrative = $last['narrative_state'] ?? [];
+
+    // Maximum total character length for all summaries combined (context window
+    // budget — keeps AI prompt within safe LLM limits).
+    $context_window_limit = 3000;
+
+    $summaries = [];
+    $npcs = [];
+    $npc_loaded = FALSE;
+    foreach ($rows as $row) {
+      $narrative = json_decode($row->narrative_state ?? '{}', TRUE) ?? [];
+      // Collect NPCs from the most recent session only.
+      if (!$npc_loaded) {
+        $npcs = $narrative['npcs'] ?? [];
+        $npc_loaded = TRUE;
+      }
+      $summary = trim((string) ($narrative['summary'] ?? ''));
+      if ($summary !== '') {
+        $summaries[] = $summary;
+      }
+    }
+
+    if (empty($summaries)) {
+      return ['prior_session_summary' => '', 'npcs' => $npcs];
+    }
+
+    // Concatenate recent-first summaries, truncating to fit context window.
+    $parts = [];
+    $total_length = 0;
+    foreach ($summaries as $index => $summary) {
+      $label = 'Session -' . ($index + 1) . ': ';
+      $entry = $label . $summary;
+      if ($total_length + strlen($entry) > $context_window_limit) {
+        // Truncate this entry to fill remaining budget.
+        $remaining = $context_window_limit - $total_length - strlen($label) - 3;
+        if ($remaining > 0) {
+          $parts[] = $label . substr($summary, 0, $remaining) . '...';
+        }
+        break;
+      }
+      $parts[] = $entry;
+      $total_length += strlen($entry) + 1;
+    }
+
     return [
-      'prior_session_summary' => $narrative['summary'] ?? '',
-      'npcs' => $narrative['npcs'] ?? [],
+      'prior_session_summary' => implode("\n", $parts),
+      'npcs' => $npcs,
     ];
   }
 

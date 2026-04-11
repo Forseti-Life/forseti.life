@@ -563,6 +563,7 @@ services:
       - '@dungeoncrawler_content.encounter_balancer'
       - '@dungeoncrawler_content.session_service'
       - '@dungeoncrawler_content.npc_service'
+      - '@keyvalue.expirable'
 
   dungeoncrawler_content.crit_specialization:
     class: Drupal\dungeoncrawler_content\Service\CritSpecializationService

@@ -3,9 +3,11 @@
 namespace Drupal\dungeoncrawler_content\Service;
 
 use Drupal\Core\Config\ConfigFactoryInterface;
+use Drupal\Core\KeyValueStore\KeyValueExpirableFactoryInterface;
 use Drupal\Core\Logger\LoggerChannelFactoryInterface;
 use Drupal\ai_conversation\Service\AIApiService;
 use Psr\Log\LoggerInterface;
+use Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException;
 
 /**
  * Unified AI Game Master narration service.
@@ -74,6 +76,23 @@ class AiGmService {
   protected SessionService $sessionService;
 
   /**
+   * Expirable key-value store for per-campaign rate limiting.
+   *
+   * @var \Drupal\Core\KeyValueStore\KeyValueStoreExpirableInterface
+   */
+  protected $rateLimitStore;
+
+  /**
+   * Maximum AI GM API calls allowed per campaign per hour (Security AC).
+   */
+  const RATE_LIMIT_MAX_CALLS = 60;
+
+  /**
+   * Rate-limit window in seconds (1 hour).
+   */
+  const RATE_LIMIT_WINDOW = 3600;
+
+  /**
    * Constructs the AiGmService.
    */
   public function __construct(
@@ -85,7 +104,8 @@ class AiGmService {
     NpcPsychologyService $npc_psychology_service,
     EncounterBalancer $encounter_balancer,
     SessionService $session_service,
-    NpcService $npc_service
+    NpcService $npc_service,
+    KeyValueExpirableFactoryInterface $key_value_expirable_factory
   ) {
     $this->aiApiService = $ai_api_service;
     $this->configFactory = $config_factory;
@@ -96,6 +116,34 @@ class AiGmService {
     $this->encounterBalancer = $encounter_balancer;
     $this->sessionService = $session_service;
     $this->npcService = $npc_service;
+    $this->rateLimitStore = $key_value_expirable_factory->get('dungeoncrawler_content.ai_gm_rate_limit');
+  }
+
+  /**
+   * Enforce per-campaign AI GM rate limit (Security AC — TC-GNE-12).
+   *
+   * Increments the call counter for the campaign within the current window.
+   * Throws TooManyRequestsHttpException (HTTP 429) when the limit is exceeded.
+   *
+   * @param int $campaign_id
+   *   Campaign ID (use 0 for non-campaign calls — tracked under key "0").
+   *
+   * @throws \Symfony\Component\HttpKernel\Exception\TooManyRequestsHttpException
+   */
+  protected function enforceRateLimit(int $campaign_id): void {
+    $key = 'campaign_' . $campaign_id;
+    $count = (int) ($this->rateLimitStore->get($key, 0));
+    if ($count >= self::RATE_LIMIT_MAX_CALLS) {
+      $this->logger->warning('[AiGmService] Rate limit exceeded for campaign @cid (@count calls this window)', [
+        '@cid' => $campaign_id,
+        '@count' => $count,
+      ]);
+      throw new TooManyRequestsHttpException(
+        self::RATE_LIMIT_WINDOW,
+        'AI GM rate limit exceeded. Please wait before making additional requests.'
+      );
+    }
+    $this->rateLimitStore->setWithExpire($key, $count + 1, self::RATE_LIMIT_WINDOW);
   }
 
   // =========================================================================
@@ -212,6 +260,8 @@ class AiGmService {
       return $this->fallbackNpcAttitudeShift($npc_data['name'] ?? $entity_ref, $old_attitude, $new_attitude);
     }
 
+    $this->enforceRateLimit($campaign_id);
+
     try {
       $response = $this->aiApiService->invokeModelDirect(
         $prompt,
@@ -276,6 +326,7 @@ class AiGmService {
     $summary = NULL;
 
     if ($this->aiApiService !== NULL) {
+      $this->enforceRateLimit($campaign_id);
       try {
         $response = $this->aiApiService->invokeModelDirect(
           $prompt,
@@ -626,6 +677,8 @@ class AiGmService {
       ]);
       return $this->fallbackForTrigger($context['trigger'] ?? $operation, $context);
     }
+
+    $this->enforceRateLimit($campaign_id);
 
     // Thread session context into the prompt for campaign continuity.
     if ($campaign_id > 0) {
