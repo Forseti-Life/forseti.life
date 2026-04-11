@@ -1843,6 +1843,149 @@
             "required_for_release": true,
             "status": "pending_implementation",
             "notes": "Security check: verifies raw skills string from jobhunter_job_seeker.skills is NOT present verbatim in rendered page HTML. Requires FORSETI_TEST_USER env var matching the authenticated cookie user."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-smoke",
+            "label": "TC-1: Feedback widget renders on tailoring result page",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'RESULT=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/tailor-resume | grep -c tailoring-feedback || echo 0); echo \"tailoring-feedback count: $RESULT\"; [ \"$RESULT\" -ge 1 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Smoke: confirms thumbs-up/down + notes textarea widget markup is present on the tailoring result page for authenticated user with a generated tailored resume."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-submit-up",
+            "label": "TC-2: Submit thumbs-up rating via AJAX POST \u2014 DB row created",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/tailor-feedback?token=$CSRF\" -d \"tailored_resume_id=$FORSETI_TEST_RESUME_ID&rating=up&note=Looks+good\"); echo \"POST status: $STATUS\"; [ \"$STATUS\" -eq 200 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Requires FORSETI_TEST_RESUME_ID env var. Verifies HTTP 200 on thumbs-up POST with valid CSRF token. DB row created with rating=up verified in TC-4."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-submit-down",
+            "label": "TC-3: Submit thumbs-down rating \u2014 DB row with rating=down",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/tailor-feedback?token=$CSRF\" -d \"tailored_resume_id=$FORSETI_TEST_RESUME_ID&rating=down\"); echo \"POST status: $STATUS\"; [ \"$STATUS\" -eq 200 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Verifies HTTP 200 on thumbs-down POST with valid CSRF token and empty note."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-idempotent-update",
+            "label": "TC-4: Update existing feedback \u2014 row updated not duplicated",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'COUNT=$(mysql --defaults-file=/etc/mysql/debian.cnf forseti_prod -sNe \"SELECT COUNT(*) FROM jobhunter_tailoring_feedback WHERE tailored_resume_id=$FORSETI_TEST_RESUME_ID\" 2>/dev/null || echo skip); echo \"Feedback row count: $COUNT\"; [ \"$COUNT\" = \"skip\" ] && echo SKIP || ([ \"$COUNT\" -le 1 ] && echo PASS || (echo FAIL -- duplicate rows found; exit 1))'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Verifies UPSERT semantics: submitting a second rating for the same (uid, tailored_resume_id) updates the existing row rather than inserting a duplicate. Requires FORSETI_TEST_RESUME_ID."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-state-persistence",
+            "label": "TC-5: Widget pre-selects prior rating on revisit",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'BODY=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" https://forseti.life/jobhunter/tailor-resume); echo \"$BODY\" | grep -q data-rated && echo PASS || (echo FAIL -- data-rated attribute not found in page HTML; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Verifies that a previously-submitted rating is reflected in the server-rendered widget state (data-rated attribute or equivalent pre-selected state on the thumbs button)."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-anon-403",
+            "label": "TC-6: Unauthenticated POST to feedback endpoint returns 403",
+            "type": "security",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST https://forseti.life/jobhunter/tailor-feedback); echo \"Anon POST status: $STATUS\"; [ \"$STATUS\" -eq 403 ] || [ \"$STATUS\" -eq 302 ] && echo PASS || (echo FAIL -- expected 403 got $STATUS; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "ACL gate: anonymous POST must return 403 (or 302 redirect to login). No feedback row should be created."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-note-too-long",
+            "label": "TC-7: Note exceeding 500 chars returns 422",
+            "type": "validation",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); NOTE=$(python3 -c \"print(chr(120)*501)\"); STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/tailor-feedback?token=$CSRF\" -d \"tailored_resume_id=$FORSETI_TEST_RESUME_ID&rating=up&note=$NOTE\"); echo \"Status: $STATUS\"; [ \"$STATUS\" -eq 422 ] && echo PASS || (echo FAIL -- expected 422 got $STATUS; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Boundary validation: 501-char note must be rejected with HTTP 422. No DB row created/updated."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-ownership-403",
+            "label": "TC-8: Ownership check \u2014 rating another user's resume returns 403",
+            "type": "security",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/tailor-feedback?token=$CSRF\" -d \"tailored_resume_id=$FORSETI_OTHER_USER_RESUME_ID&rating=up\"); echo \"Cross-user POST status: $STATUS\"; [ \"$STATUS\" -eq 403 ] && echo PASS || (echo FAIL -- expected 403 got $STATUS; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Security: verifies controller enforces uid ownership \u2014 a user cannot submit feedback on another user's tailored resume. Requires FORSETI_OTHER_USER_RESUME_ID (a resume_id belonging to a different uid)."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-xss-stripped",
+            "label": "TC-9: XSS \u2014 HTML in note is stored stripped",
+            "type": "security",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/jobhunter/tailor-feedback?token=$CSRF\" -d \"tailored_resume_id=$FORSETI_TEST_RESUME_ID&rating=up&note=<script>alert(1)</script>\" > /dev/null; NOTE=$(mysql --defaults-file=/etc/mysql/debian.cnf forseti_prod -sNe \"SELECT note FROM jobhunter_tailoring_feedback WHERE tailored_resume_id=$FORSETI_TEST_RESUME_ID ORDER BY id DESC LIMIT 1\" 2>/dev/null || echo skip); echo \"Stored note: $NOTE\"; echo \"$NOTE\" | grep -qv \"<script>\" && echo PASS || (echo FAIL -- script tag present in stored note; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Security: verifies note is sanitized before storage. The <script> tag must not appear in the stored DB value."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-csrf-required",
+            "label": "TC-10: CSRF token required \u2014 POST without token returns 403",
+            "type": "security",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST https://forseti.life/jobhunter/tailor-feedback -d \"tailored_resume_id=$FORSETI_TEST_RESUME_ID&rating=up\"); echo \"No-CSRF POST status: $STATUS\"; [ \"$STATUS\" -eq 403 ] && echo PASS || (echo FAIL -- expected 403 got $STATUS; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "CSRF gate: authenticated POST without ?token= URL param must return 403. Route must use _csrf_token: TRUE with URL query token pattern (not POST body). Consistent with org CSRF delivery rule."
+        },
+        {
+            "id": "forseti-jobhunter-tailoring-feedback-table-exists",
+            "label": "Schema check: jobhunter_tailoring_feedback table exists with expected columns",
+            "type": "functional",
+            "feature_id": "forseti-jobhunter-tailoring-feedback",
+            "command": "bash -c 'COLS=$(mysql --defaults-file=/etc/mysql/debian.cnf forseti_prod -sNe \"DESCRIBE jobhunter_tailoring_feedback\" 2>/dev/null | awk \\'{ print $1 }\\' | tr \"\\n\" \",\" || echo MISSING); echo \"Columns: $COLS\"; echo \"$COLS\" | grep -q \"tailored_resume_id\" && echo \"$COLS\" | grep -q \"rating\" && echo \"$COLS\" | grep -q \"note\" && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "stdout"
+            ],
+            "required_for_release": true,
+            "status": "pending_implementation",
+            "notes": "Direct DB schema check. Confirms table and all required columns (tailored_resume_id, rating, note) present after Dev implements update hook."
         }
     ],
     "_schema_notes": [
