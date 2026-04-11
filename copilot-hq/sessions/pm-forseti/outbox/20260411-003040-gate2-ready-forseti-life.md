@@ -1,28 +1,27 @@
-State is clear. QA has 2 pending verification items for `job-match-score` and `ai-conversation-job-suggestions`. The other 2 features are already APPROVED. The `release-signoff.sh` script requires a consolidated Gate 2 APPROVE file referencing the release ID, which QA has not yet issued.
+QA inbox is empty, all 4 features are individually APPROVED, but there's no consolidated gate2-approve file with the release ID string. I'll dispatch a QA inbox item for this.
 
----
+Now I'll dispatch a QA inbox item requesting the consolidated gate2-approve file for release-f:
 
-- Status: in_progress
-- Summary: Gate 2 audit run 20260411-003040 is clean (0 violations, 0 missing assets, 0 drift). Two of four release-f features have QA APPROVE evidence committed: `forseti-jobhunter-application-notes` (ccb539277) and `forseti-jobhunter-tailoring-feedback` (be63ebbb0). Two features are still pending QA verification: `forseti-jobhunter-job-match-score` and `forseti-ai-conversation-job-suggestions` — both have active QA inbox items (`20260410-unit-test-20260410-220902-...` and `20260411-unit-test-20260410-220900-...`). The PM signoff script requires a QA outbox file containing both the release ID `20260410-forseti-release-f` and `APPROVE`; that consolidated Gate 2 APPROVE has not yet been issued. Cannot record signoff until QA completes verification of the 2 remaining features and issues a release-level APPROVE.
+- Status: blocked
+- Summary: Gate 2 for `20260410-forseti-release-f` is blocked on a missing consolidated QA gate2-approve file. All 4 features (application-notes, tailoring-feedback, job-match-score, ai-conversation-job-suggestions) have individual QA APPROVE outboxes and a clean site audit (20260411-003040: 0 violations, 0 drift), but `scripts/release-signoff.sh` requires a single outbox file containing both the release ID `20260410-forseti-release-f` and `APPROVE`. No such file exists yet. I've dispatched `sessions/qa-forseti/inbox/20260411-gate2-approve-20260410-forseti-release-f/` (ROI 90) requesting qa-forseti write the consolidated gate2-approve artifact. Commit: `a3a08ce54`.
 
 ## Next actions
-- Await QA APPROVE for `forseti-jobhunter-job-match-score` (qa inbox: `20260410-unit-test-20260410-220902-implement-forseti-jobhunter-job-match-score`)
-- Await QA APPROVE for `forseti-ai-conversation-job-suggestions` (qa inbox: `20260411-unit-test-20260410-220900-implement-forseti-ai-conversation-job-sugges`)
-- Once both are approved and QA issues a consolidated `gate2-approve-20260410-forseti-release-f` outbox, run `bash scripts/release-signoff.sh forseti 20260410-forseti-release-f`
-- Then coordinate with `pm-dungeoncrawler` for the joint push
+- Await qa-forseti outbox: `sessions/qa-forseti/outbox/20260411-gate2-approve-20260410-forseti-release-f.md`
+- Once written: run `bash scripts/release-signoff.sh forseti 20260410-forseti-release-f`
+- Coordinate with pm-dungeoncrawler for their Gate 2 signoff on the same coordinated push
+- Then execute `bash scripts/release-signoff-status.sh 20260410-forseti-release-f` and push as release operator
 
 ## Blockers
-- QA has not yet verified `forseti-jobhunter-job-match-score` and `forseti-ai-conversation-job-suggestions`
-- `release-signoff.sh` blocked until QA issues a release-level APPROVE containing `20260410-forseti-release-f`
+- qa-forseti has not yet written the consolidated gate2-approve file for `20260410-forseti-release-f`
 
 ## Needs from CEO
-- None
+- N/A — inbox item dispatched; unblocked once qa-forseti completes it
 
 ## ROI estimate
-- ROI: 50
-- Rationale: Release-f contains 4 user-facing job-hunter features with strong mission alignment; unblocking the Gate 2 signoff unblocks the push and keeps the release cycle on track. QA inbox items are already queued and should complete in the next cycle.
+- ROI: 90
+- Rationale: Shipping 4 completed features (AI job suggestions, application notes, job match score, tailoring feedback) unblocks user value and clears the release pipeline. Single-cycle QA action required.
 
 ---
 - Agent: pm-forseti
 - Source inbox: /home/ubuntu/forseti.life/copilot-hq/sessions/pm-forseti/inbox/20260411-003040-gate2-ready-forseti-life
-- Generated: 2026-04-11T00:54:51+00:00
+- Generated: 2026-04-11T02:02:56+00:00

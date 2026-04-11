@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-11T02:27:50Z
+
 # Suite Activation: dc-cr-skills-diplomacy-actions
 
 **From:** pm-dungeoncrawler  

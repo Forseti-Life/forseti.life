@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-11T01:58:21Z
+Generated: 2026-04-11T02:30:40Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -157,6 +157,7 @@ Generated: 2026-04-11T01:58:21Z
 | forseti-csrf-post-routes-fix | forseti.life | job_hunter | shipped | P1 (security) |  |  |  |
 | forseti-jobhunter-application-controller-db-extraction | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-application-controller-split | forseti.life | job_hunter | shipped |  |  |  |  |
+| forseti-jobhunter-application-deadline-tracker | forseti.life | job_hunter | in_progress | high |  |  |  |
 | forseti-jobhunter-application-notes | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
@@ -182,6 +183,7 @@ Generated: 2026-04-11T01:58:21Z
 | forseti-jobhunter-schema-fix | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-tailoring-feedback | forseti.life | job_hunter | in_progress | medium |  |  |  |
 | forseti-jobhunter-twig-csrf-cleanup | forseti.life | job_hunter | shipped | P2 |  |  |  |
+| forseti-langgraph-console-release-panel | forseti.life | copilot_agent_tracker | in_progress | high |  |  |  |
 | forseti-langgraph-ui | forseti.life | copilot_agent_tracker | shipped | P1 |  |  |  |
 | forseti-open-source-initiative |  |  |  |  |  |  |  |
 | forseti-qa-e2e-auth-pipeline | forseti.life | qa_suites | shipped | low |  |  |  |
