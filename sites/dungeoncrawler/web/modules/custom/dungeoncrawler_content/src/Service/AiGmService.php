@@ -54,6 +54,21 @@ class AiGmService {
   protected AiSessionManager $sessionManager;
 
   /**
+   * NPC psychology service for attitude and profile data.
+   */
+  protected NpcPsychologyService $npcPsychologyService;
+
+  /**
+   * Encounter balancer for GM-tools encounter generation.
+   */
+  protected EncounterBalancer $encounterBalancer;
+
+  /**
+   * Session service for session summaries and prior-session context.
+   */
+  protected SessionService $sessionService;
+
+  /**
    * Constructs the AiGmService.
    */
   public function __construct(
@@ -61,13 +76,295 @@ class AiGmService {
     ConfigFactoryInterface $config_factory,
     LoggerChannelFactoryInterface $logger_factory,
     GameEventLogger $event_logger,
-    AiSessionManager $session_manager
+    AiSessionManager $session_manager,
+    NpcPsychologyService $npc_psychology_service,
+    EncounterBalancer $encounter_balancer,
+    SessionService $session_service
   ) {
     $this->aiApiService = $ai_api_service;
     $this->configFactory = $config_factory;
     $this->logger = $logger_factory->get('dungeoncrawler');
     $this->eventLogger = $event_logger;
     $this->sessionManager = $session_manager;
+    $this->npcPsychologyService = $npc_psychology_service;
+    $this->encounterBalancer = $encounter_balancer;
+    $this->sessionService = $session_service;
+  }
+
+  // =========================================================================
+  // AC-001: GM Context Assembly.
+  // =========================================================================
+
+  /**
+   * Assemble the full AI GM context for a scene request.
+   *
+   * Includes: current session rolling summary, active NPC roster with
+   * attitudes, quest hooks, current location, recent events, and prior-session
+   * summaries (recent sessions prioritized, truncated to fit context window).
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $current_scene
+   *   Optional override data: location (string), quest_hooks (array),
+   *   recent_events (array), tone (string).
+   *
+   * @return array
+   *   Structured GM context array.
+   */
+  public function assembleGmContext(int $campaign_id, array $current_scene = []): array {
+    // Prior-session summary from the last ended session.
+    $prior = $this->sessionService->buildAiGmContext($campaign_id);
+    $prior_summary = $prior['prior_session_summary'] ?? '';
+
+    // Active NPC roster with attitudes.
+    $npc_profiles = $this->npcPsychologyService->getCampaignProfiles($campaign_id);
+    $npc_roster = array_map(function (array $profile): array {
+      return [
+        'entity_ref' => $profile['entity_ref'] ?? '',
+        'name' => $profile['name'] ?? $profile['entity_ref'] ?? 'Unknown',
+        'role' => $profile['role'] ?? 'unknown',
+        'attitude' => $profile['attitude'] ?? 'indifferent',
+      ];
+    }, $npc_profiles);
+
+    // Rolling GM session context (recent messages + compressed summary).
+    $session_key = $this->sessionManager->gmSessionKey($campaign_id);
+    $session_context = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 10);
+
+    return [
+      'campaign_id' => $campaign_id,
+      'prior_session_summary' => $prior_summary,
+      'session_context' => $session_context,
+      'npc_roster' => array_values($npc_roster),
+      'location' => $current_scene['location'] ?? '',
+      'quest_hooks' => $current_scene['quest_hooks'] ?? [],
+      'recent_events' => $current_scene['recent_events'] ?? [],
+      'tone' => $current_scene['tone'] ?? 'dark fantasy',
+    ];
+  }
+
+  // =========================================================================
+  // AC-003: NPC Dialogue — attitude shift narration.
+  // =========================================================================
+
+  /**
+   * Narrate the moment an NPC softens after a successful Diplomacy check.
+   *
+   * Updates the stored attitude field and generates immersive narration
+   * reflecting the NPC's change in disposition.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $entity_ref
+   *   NPC entity reference key.
+   * @param string $player_name
+   *   Name of the player character who made the check.
+   * @param string $old_attitude
+   *   Attitude before the check (e.g. 'hostile', 'unfriendly').
+   * @param string $new_attitude
+   *   Attitude after the shift (e.g. 'indifferent', 'friendly').
+   * @param array $npc_data
+   *   Optional live entity data for the NPC (name, description, etc.).
+   *
+   * @return string|null
+   *   Narration text, or NULL if AI unavailable.
+   */
+  public function narrateNpcAttitudeShift(
+    int $campaign_id,
+    string $entity_ref,
+    string $player_name,
+    string $old_attitude,
+    string $new_attitude,
+    array $npc_data = []
+  ): ?string {
+    // Persist the attitude update.
+    $this->npcPsychologyService->updateProfile($campaign_id, $entity_ref, ['attitude' => $new_attitude]);
+
+    $npc_context = $this->npcPsychologyService->buildNpcContextForPrompt($campaign_id, $entity_ref, $npc_data);
+
+    $context = [
+      'trigger' => 'npc_attitude_shift',
+      'npc_ref' => $entity_ref,
+      'npc_name' => $npc_data['name'] ?? $entity_ref,
+      'player_name' => $player_name,
+      'attitude_before' => $old_attitude,
+      'attitude_after' => $new_attitude,
+      'npc_context' => $npc_context,
+    ];
+
+    $system = $this->buildSystemPrompt('npc_attitude_shift');
+    $session_key = $this->sessionManager->npcSessionKey($campaign_id, $entity_ref);
+    $session_ctx = $this->sessionManager->buildSessionContext($session_key, $campaign_id, 6);
+    $prompt = ($session_ctx !== '' ? $session_ctx . "\n\n---\nCURRENT REQUEST:\n" : '') . $this->buildPrompt($context);
+
+    if ($this->aiApiService === NULL) {
+      return $this->fallbackNpcAttitudeShift($npc_data['name'] ?? $entity_ref, $old_attitude, $new_attitude);
+    }
+
+    try {
+      $response = $this->aiApiService->invokeModelDirect(
+        $prompt,
+        'dungeoncrawler_content',
+        'ai_gm_npc_attitude_shift',
+        ['trigger' => 'npc_attitude_shift', 'campaign_id' => $campaign_id],
+        ['max_tokens' => $this->getMaxTokens(), 'skip_cache' => TRUE, 'system_prompt' => $system]
+      );
+      if (!empty($response['success'])) {
+        $text = $this->stripMarkdownFences(trim((string) ($response['response'] ?? '')));
+        if ($text !== '') {
+          $this->sessionManager->appendMessage($session_key, $campaign_id, 'assistant', $text, ['trigger' => 'npc_attitude_shift']);
+          return $text;
+        }
+      }
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('[AiGmService] npc_attitude_shift exception: @err', ['@err' => $e->getMessage()]);
+    }
+
+    return $this->fallbackNpcAttitudeShift($npc_data['name'] ?? $entity_ref, $old_attitude, $new_attitude);
+  }
+
+  // =========================================================================
+  // AC-005: Session Summary Generation.
+  // =========================================================================
+
+  /**
+   * AI-generate a narrative summary at session end and save it.
+   *
+   * Generates a brief narrative covering key events, XP earned, and NPCs met.
+   * Calls SessionService::endSession to persist the summary and character
+   * state snapshots.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param array $session_data
+   *   Must include: session_id (int), character_states (array),
+   *   session_xp (int), key_events (array), npcs_met (array),
+   *   npcs (array for narrative_state).
+   *
+   * @return string|null
+   *   The generated (or fallback) narrative summary.
+   */
+  public function generateSessionSummary(int $campaign_id, array $session_data): ?string {
+    $session_id = (int) ($session_data['session_id'] ?? 0);
+    if ($session_id <= 0) {
+      return NULL;
+    }
+
+    $context = [
+      'trigger' => 'session_summary',
+      'campaign_id' => $campaign_id,
+      'session_xp' => $session_data['session_xp'] ?? 0,
+      'key_events' => $session_data['key_events'] ?? [],
+      'npcs_met' => $session_data['npcs_met'] ?? [],
+    ];
+
+    $system = $this->buildSystemPrompt('session_summary');
+    $prompt = $this->buildPrompt($context);
+
+    $summary = NULL;
+
+    if ($this->aiApiService !== NULL) {
+      try {
+        $response = $this->aiApiService->invokeModelDirect(
+          $prompt,
+          'dungeoncrawler_content',
+          'ai_gm_session_summary',
+          ['trigger' => 'session_summary', 'campaign_id' => $campaign_id],
+          ['max_tokens' => 300, 'skip_cache' => TRUE, 'system_prompt' => $system]
+        );
+        if (!empty($response['success'])) {
+          $summary = $this->stripMarkdownFences(trim((string) ($response['response'] ?? '')));
+          if ($summary === '') {
+            $summary = NULL;
+          }
+        }
+      }
+      catch (\Exception $e) {
+        $this->logger->warning('[AiGmService] session_summary exception: @err', ['@err' => $e->getMessage()]);
+      }
+    }
+
+    // Fall back to a simple template summary.
+    if ($summary === NULL) {
+      $xp = (int) ($session_data['session_xp'] ?? 0);
+      $event_count = count($session_data['key_events'] ?? []);
+      $npc_count = count($session_data['npcs_met'] ?? []);
+      $summary = "The session concluded. The party earned {$xp} XP across {$event_count} key events and encountered {$npc_count} NPCs.";
+    }
+
+    // Persist via SessionService.
+    try {
+      $this->sessionService->endSession($session_id, [
+        'character_states' => $session_data['character_states'] ?? [],
+        'session_xp' => $session_data['session_xp'] ?? 0,
+        'narrative_summary' => $summary,
+        'npcs' => $session_data['npcs'] ?? [],
+      ]);
+    }
+    catch (\Exception $e) {
+      $this->logger->warning('[AiGmService] endSession failed: @err', ['@err' => $e->getMessage()]);
+    }
+
+    return $summary;
+  }
+
+  // =========================================================================
+  // AC-006: GM Tools Integration.
+  // =========================================================================
+
+  /**
+   * Resolve a balanced encounter for a narrative trigger.
+   *
+   * Pulls from EncounterBalancer to ensure threat level is appropriate to
+   * party level. Called when the AI GM determines an encounter should begin.
+   *
+   * @param int $party_level
+   *   Average party level.
+   * @param int $party_size
+   *   Number of party members.
+   * @param string $difficulty
+   *   One of: trivial, low, moderate, severe, extreme.
+   * @param array $context
+   *   Optional context: theme (string).
+   *
+   * @return array
+   *   Encounter data from EncounterBalancer::createEncounter().
+   */
+  public function resolveEncounterForNarrative(
+    int $party_level,
+    int $party_size,
+    string $difficulty = 'moderate',
+    array $context = []
+  ): array {
+    $party_composition = array_fill(0, max(1, $party_size), ['role' => 'adventurer']);
+    $theme = $context['theme'] ?? 'dungeon';
+    return $this->encounterBalancer->createEncounter($party_level, $party_composition, $difficulty, $theme);
+  }
+
+  /**
+   * Resolve an NPC by role for a scene from the campaign NPC gallery.
+   *
+   * Queries active NPC profiles for the campaign and returns the first one
+   * matching the requested role. Used when the GM needs a random NPC to
+   * populate a scene.
+   *
+   * @param int $campaign_id
+   *   Campaign ID.
+   * @param string $required_role
+   *   NPC role to match (e.g. 'merchant', 'guard', 'villain').
+   *
+   * @return array|null
+   *   NPC profile array, or NULL if none found.
+   */
+  public function resolveNpcForScene(int $campaign_id, string $required_role): ?array {
+    $profiles = $this->npcPsychologyService->getCampaignProfiles($campaign_id);
+    foreach ($profiles as $profile) {
+      if (($profile['role'] ?? '') === $required_role) {
+        return $profile;
+      }
+    }
+    return NULL;
   }
 
   // =========================================================================
@@ -411,6 +708,8 @@ class AiGmService {
       'round_start' => 'Write one short tactical sentence about the ebb and flow of the battle. Keep under 20 words.',
       'entity_defeated' => 'Describe the final blow dramatically. Keep it impactful and respectful.',
       'phase_transition' => 'Bridge the narrative between phases. Describe the shift in pace and mood.',
+      'npc_attitude_shift' => 'Describe the NPC\'s subtle change in body language and tone as their hostility or wariness softens. Stay in character — show, don\'t tell.',
+      'session_summary' => 'Write a brief narrative summary of the session in 3-5 sentences. Cover key events, enemies defeated, and notable NPCs encountered. Write in past tense from the GM\'s perspective.',
     ];
 
     if (isset($extras[$trigger])) {
@@ -726,6 +1025,24 @@ class AiGmService {
       }
     }
     return $counts;
+  }
+
+  /**
+   * Fallback narration for NPC attitude shift (AI unavailable).
+   */
+  protected function fallbackNpcAttitudeShift(string $npc_name, string $old_attitude, string $new_attitude): string {
+    $transitions = [
+      'hostile_unfriendly' => "{$npc_name} lowers their weapon slightly, suspicion still clear in their eyes.",
+      'hostile_indifferent' => "{$npc_name}'s hostility fades to a cold neutrality. They seem willing to listen.",
+      'hostile_friendly' => "{$npc_name} is visibly surprised — something in your words struck a chord they didn't expect.",
+      'unfriendly_indifferent' => "{$npc_name} relaxes their guarded stance, no longer treating you as an immediate threat.",
+      'unfriendly_friendly' => "{$npc_name} blinks, and then a small, cautious smile crosses their face.",
+      'indifferent_friendly' => "{$npc_name} seems genuinely pleased by your words. They meet your gaze with warmth.",
+      'indifferent_helpful' => "{$npc_name} nods, leaning forward. \"You've earned my trust. I'll do what I can.\"",
+      'friendly_helpful' => "{$npc_name}'s expression brightens. \"Alright — I'll go out of my way for you.\"",
+    ];
+    $key = "{$old_attitude}_{$new_attitude}";
+    return $transitions[$key] ?? "{$npc_name}'s attitude shifts from {$old_attitude} to {$new_attitude} in response to your words.";
   }
 
   /**

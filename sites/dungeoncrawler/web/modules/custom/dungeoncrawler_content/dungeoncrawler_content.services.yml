@@ -548,6 +548,9 @@ services:
       - '@logger.factory'
       - '@dungeoncrawler_content.game_event_logger'
       - '@dungeoncrawler_content.ai_session_manager'
+      - '@dungeoncrawler_content.npc_psychology_service'
+      - '@dungeoncrawler_content.encounter_balancer'
+      - '@dungeoncrawler_content.session_service'
 
   dungeoncrawler_content.crit_specialization:
     class: Drupal\dungeoncrawler_content\Service\CritSpecializationService
