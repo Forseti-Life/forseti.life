@@ -244,3 +244,13 @@ forseti.conversation_export:
     _permission: 'use ai conversation'
     _user_is_logged_in: 'TRUE'
     conversation_id: \d+
+
+ai_conversation.api_chat:
+  path: '/api/chat'
+  defaults:
+    _controller: '\Drupal\ai_conversation\Controller\ChatController::apiChat'
+    _title: 'AI Chat API'
+  methods: [POST]
+  requirements:
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'

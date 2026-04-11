@@ -608,14 +608,32 @@ class ChatController extends ControllerBase {
       // Get updated stats.
       $stats = $this->aiApiService->getConversationStats($node);
 
-      return new JsonResponse([
+      // Detect job-suggestion trigger and attach suggestions.
+      $job_suggestions = NULL;
+      if ($this->hasJobSuggestionTrigger($message)) {
+        $uid = (int) $this->currentUser->id();
+        $suggestions = $this->getSavedJobSuggestions($uid);
+        if (empty($suggestions)) {
+          $job_suggestions = ['fallback' => "You haven't saved any jobs yet. Visit /jobhunter/discover to find jobs."];
+        }
+        else {
+          $job_suggestions = $suggestions;
+        }
+      }
+
+      $response_payload = [
         'success' => TRUE,
         'response' => $ai_response,
         'user_message' => $user_message,
         'ai_message' => $ai_message,
         'stats' => $stats,
         'suggestion_created' => $suggestion_created,
-      ]);
+      ];
+      if ($job_suggestions !== NULL) {
+        $response_payload['job_suggestions'] = $job_suggestions;
+      }
+
+      return new JsonResponse($response_payload);
 
     } catch (\Exception $e) {
       \Drupal::logger('ai_conversation')->error('Error sending message: @error', ['@error' => $e->getMessage()]);
@@ -648,6 +666,87 @@ class ChatController extends ControllerBase {
     $stats = $this->aiApiService->getConversationStats($node);
     
     return new JsonResponse(['stats' => $stats]);
+  }
+
+  /**
+   * Returns TRUE if the message contains a job-suggestion trigger phrase.
+   */
+  private function hasJobSuggestionTrigger(string $message): bool {
+    $triggers = [
+      'find me a job',
+      'show my jobs',
+      'what jobs match',
+      'my saved jobs',
+      'job suggestions',
+      'recommend a job',
+      'which jobs',
+      'jobs for me',
+    ];
+    $lower = strtolower($message);
+    foreach ($triggers as $trigger) {
+      if (str_contains($lower, $trigger)) {
+        return TRUE;
+      }
+    }
+    return FALSE;
+  }
+
+  /**
+   * Returns up to 3 saved-job suggestion entries for the given user.
+   *
+   * Returns an empty array when the job_hunter module is absent or on error.
+   * Callers should treat [] as "no saved jobs" and show the fallback message.
+   *
+   * @param int $uid
+   *   The Drupal user ID.
+   *
+   * @return array
+   *   List of arrays with keys: title, company, link.
+   */
+  private function getSavedJobSuggestions(int $uid): array {
+    if (!\Drupal::moduleHandler()->moduleExists('job_hunter')) {
+      return [];
+    }
+
+    try {
+      $db = \Drupal::database();
+
+      $query = $db->select('jobhunter_saved_jobs', 'sj');
+      $query->fields('sj', ['id']);
+      $query->leftJoin('jobhunter_job_requirements', 'jr', 'jr.id = sj.job_id');
+      $query->fields('jr', ['job_title', 'company_id']);
+      $query->leftJoin('jobhunter_companies', 'c', 'c.id = jr.company_id');
+      $query->fields('c', ['name']);
+      $query->condition('sj.uid', $uid)
+        ->condition('sj.archived', 0)
+        ->orderBy('sj.created', 'DESC')
+        ->range(0, 3);
+      $rows = $query->execute()->fetchAll();
+
+      if (empty($rows)) {
+        return [];
+      }
+
+      $suggestions = [];
+      foreach ($rows as $row) {
+        $suggestions[] = [
+          'title'   => !empty($row->job_title) ? $row->job_title : 'Unknown Position',
+          'company' => !empty($row->name) ? $row->name : 'Unknown Company',
+          'link'    => '/jobhunter/my-jobs',
+        ];
+      }
+
+      \Drupal::logger('ai_conversation')->info('Job suggestions fetched for uid @uid: @count entries.', [
+        '@uid' => $uid,
+        '@count' => count($suggestions),
+      ]);
+
+      return $suggestions;
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_conversation')->warning('getSavedJobSuggestions failed for uid @uid.', ['@uid' => $uid]);
+      return [];
+    }
   }
 
   /**
@@ -700,6 +799,90 @@ class ChatController extends ControllerBase {
     } catch (\Exception $e) {
       \Drupal::logger('ai_conversation')->error('Error updating summary: @error', ['@error' => $e->getMessage()]);
       return new JsonResponse(['error' => 'Failed to update summary: ' . $e->getMessage()], 500);
+    }
+  }
+
+  /**
+   * JSON chat endpoint — POST /api/chat.
+   *
+   * Accepts {"message": "..."} body; finds or creates the user's most recent
+   * conversation, calls the AI, and returns response + optional job_suggestions.
+   *
+   * @param \Symfony\Component\HttpFoundation\Request $request
+   *
+   * @return \Symfony\Component\HttpFoundation\JsonResponse
+   */
+  public function apiChat(Request $request): JsonResponse {
+    if ($this->currentUser->isAnonymous()) {
+      return new JsonResponse(['error' => 'Authentication required'], 403);
+    }
+
+    $data = json_decode($request->getContent(), TRUE);
+    $message = isset($data['message']) ? trim((string) $data['message']) : '';
+    if ($message === '') {
+      return new JsonResponse(['error' => 'Missing message'], 400);
+    }
+
+    $uid = (int) $this->currentUser->id();
+
+    try {
+      // Find or create a conversation for this user.
+      $nids = $this->entityTypeManager->getStorage('node')->getQuery()
+        ->condition('type', 'ai_conversation')
+        ->condition('uid', $uid)
+        ->condition('status', 1)
+        ->sort('created', 'DESC')
+        ->range(0, 1)
+        ->accessCheck(FALSE)
+        ->execute();
+
+      if (!empty($nids)) {
+        $node = $this->entityTypeManager->getStorage('node')->load(reset($nids));
+      }
+      else {
+        $context = $this->buildJobSeekerContext();
+        $node = $this->entityTypeManager->getStorage('node')->create([
+          'type' => 'ai_conversation',
+          'title' => 'AI Chat - ' . date('Y-m-d H:i:s'),
+          'uid' => $uid,
+          'status' => 1,
+          'field_context' => ['value' => $context, 'format' => 'basic_html'],
+          'field_message_count' => ['value' => 0],
+          'field_total_tokens' => ['value' => 0],
+        ]);
+        $node->save();
+      }
+
+      $user_message = ['role' => 'user', 'content' => $message, 'timestamp' => time()];
+      $this->addMessageToNode($node, $user_message);
+      $node->save();
+
+      $ai_response = $this->aiApiService->sendMessage($node, $message);
+
+      $ai_message = ['role' => 'assistant', 'content' => $ai_response, 'timestamp' => time()];
+      $this->addMessageToNode($node, $ai_message);
+      $node->save();
+
+      $payload = [
+        'success' => TRUE,
+        'response' => $ai_response,
+      ];
+
+      if ($this->hasJobSuggestionTrigger($message)) {
+        $suggestions = $this->getSavedJobSuggestions($uid);
+        if (empty($suggestions)) {
+          $payload['job_suggestions'] = ['fallback' => "You haven't saved any jobs yet. Visit /jobhunter/discover to find jobs."];
+        }
+        else {
+          $payload['job_suggestions'] = $suggestions;
+        }
+      }
+
+      return new JsonResponse($payload);
+    }
+    catch (\Exception $e) {
+      \Drupal::logger('ai_conversation')->error('apiChat error: @error', ['@error' => $e->getMessage()]);
+      return new JsonResponse(['error' => 'Failed to process message'], 500);
     }
   }
 
