@@ -12007,6 +12007,99 @@
           "notes": "No new HTTP routes added by Acrobatics actions. ACL verified via existing role-url-audit suite against encounter/exploration phase handlers."
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-arcana-borrow-spell-phpunit",
+      "label": "Arcana skill \u2014 knowledge domain, Recall Knowledge (untrained), Borrow an Arcane Spell dual-gate",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-arcana-borrow-spell",
+      "command": "vendor/bin/phpunit --filter ArcanaBorrowSpellTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-arcana-borrow-spell/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-ARC-01",
+          "label": "Arcana covers arcane magic knowledge \u2014 skill_domain includes arcane_magic; Recall Knowledge on arcane magic topic uses Arcana modifier",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-02",
+          "label": "Arcana covers arcane creature identification \u2014 creature_type in {construct, dragon, elemental, ...} routes Recall Knowledge to Arcana",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "notes": "PM: confirm canonical arcane creature type list in scope (constructs, dragons, elementals listed as examples only)",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-03",
+          "label": "Arcana covers planar lore \u2014 topic_type in {elemental_planes, astral_plane, shadow_plane} \u2192 Recall Knowledge skill = Arcana",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-04",
+          "label": "Untrained characters can Recall Knowledge on arcane topics \u2014 no proficiency gate; check rolled at Untrained modifier",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-05",
+          "label": "Borrow an Arcane Spell is an exploration activity \u2014 action_type = exploration; not available as encounter action",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-06",
+          "label": "Borrow blocked for untrained Arcana \u2014 arcana_rank = untrained \u2192 action blocked even if arcane prepared spellcaster",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-07",
+          "label": "Borrow blocked for non-arcane-prepared spellcasters \u2014 spellcasting_type != arcane_prepared \u2192 action blocked regardless of Arcana rank",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-08",
+          "label": "Borrow dual-gate: BOTH Trained Arcana AND arcane-prepared-spellcaster required \u2014 each condition alone is insufficient",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-ARC-09",
+          "label": "Borrow Success: borrowed spell available for preparation in open slot of appropriate level",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "dependency": "dc-cr-spellcasting",
+          "status": "deferred \u2014 pending dc-cr-spellcasting",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-ARC-10",
+          "label": "Borrow Failure: slot stays open; retry blocked until next daily preparation cycle",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "dependency": "dc-cr-spellcasting",
+          "status": "deferred \u2014 pending dc-cr-spellcasting",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-ARC-11",
+          "label": "ACL regression: no new routes introduced by Arcana actions; existing exploration handler routes retain ACL",
+          "feature_id": "dc-cr-skills-arcana-borrow-spell",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [

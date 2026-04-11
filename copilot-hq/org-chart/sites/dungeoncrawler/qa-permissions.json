@@ -1321,6 +1321,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-arcana-borrow-spell-acl-regression",
+      "feature_id": "dc-cr-skills-arcana-borrow-spell",
+      "path_regex": "^/api/(game|character|exploration)/",
+      "notes": "ACL regression for dc-cr-skills-arcana-borrow-spell. No new routes introduced by Arcana actions. Existing exploration handler routes retain ACL: anon denied (403), authenticated player allowed (200). TC-ARC-11.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
