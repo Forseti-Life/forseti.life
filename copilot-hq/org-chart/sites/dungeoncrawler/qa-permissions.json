@@ -1447,6 +1447,34 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-gm-narrative-engine-ai-invoke-acl",
+      "feature_id": "dc-cr-gm-narrative-engine",
+      "path_regex": "^/api/ai-gm/narrate",
+      "notes": "ACL for AI GM narration endpoint. Authenticated campaign participants only. Anon denied. TC-GNE-03, TC-GNE-04.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
+    },
+    {
+      "id": "dc-cr-gm-narrative-engine-session-summary-acl",
+      "feature_id": "dc-cr-gm-narrative-engine",
+      "path_regex": "^/api/campaign/[^/]+/session-summary",
+      "notes": "ACL for session summary generation and retrieval. Campaign owner (GM) write; campaign participants read. Anon denied. TC-GNE-09.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }

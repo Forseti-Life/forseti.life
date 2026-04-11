@@ -13261,6 +13261,118 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-gm-narrative-engine-playwright",
+      "label": "GM Narrative Engine \u2014 AI GM context assembly (session summary, NPCs, quests, location, events), multi-session prior summaries, scene narration, NPC dialogue (role/attitude/lore), encounter/hazard triggering from narrative, session summary generation, GM tools integration (encounter budget, NPC catalog), PII exclusion + rate limiting",
+      "type": "playwright",
+      "feature_id": "dc-cr-gm-narrative-engine",
+      "command": "npx playwright test --grep gm-narrative-engine tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-gm-narrative-engine/playwright-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-GNE-01",
+          "label": "AI GM context: includes session summary, NPC data, quests, location, recent events (all 5 required fields)",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-02",
+          "label": "Campaign sessions: prior session summaries appended (truncated, recent first; older dropped when context window full)",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-03",
+          "label": "Scene narration: atmospheric description + active NPC + player action prompt; missing NPC gracefully omitted",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-04",
+          "label": "Player action: narration reflects outcome; scene_state updated after resolution",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-05",
+          "label": "NPC dialogue: AI GM output reflects NPC role, attitude, and lore notes from NPC record",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-06",
+          "label": "Successful Diplomacy vs. hostile NPC: attitude improves 1 step; narrative reflects change; DB persisted",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "notes": "Depends on dc-cr-npc-system attitude model (now activated). Immediately activatable.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-07",
+          "label": "Encounter trigger from narrative: encounter_trigger event \u2192 mode transition to combat; initiative rolled automatically",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-08",
+          "label": "Hazard invocation from narrative: hazard_trigger flag \u2192 hazard system activates; detection check fires",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-09",
+          "label": "Session summary generated at session end; saved to campaign.session_history; accessible chronologically",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/downtime",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-10",
+          "label": "Encounter budget from dc-gmg-running-guide: party_level + budget_data in encounter generation request; threat level validated",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "notes": "Depends on dc-gmg-running-guide encounter budget calculator. Deferred until dc-gmg-running-guide is in scope.",
+          "status": "deferred \u2014 pending dc-gmg-running-guide",
+          "required_for_release": false
+        },
+        {
+          "id": "TC-GNE-11",
+          "label": "AI GM queries NPC catalog by role/level for random NPCs; NPC populated into scene",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "notes": "Depends on dc-cr-npc-system NPC catalog query. dc-cr-npc-system now activated \u2014 immediately activatable.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-GNE-12",
+          "label": "Security: no PII in AI context payloads; rate limit returns 429 when exceeded; no PII in context after error",
+          "feature_id": "dc-cr-gm-narrative-engine",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
