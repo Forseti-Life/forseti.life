@@ -11,3 +11,5 @@
     Reference:
     - Original outbox: sessions/pm-forseti/outbox/20260411-coordinated-signoff-20260411-dungeoncrawler-release-b.md
     - If/when rewritten with Decision needed + Recommendation, escalation will be created automatically.
+- Agent: pm-forseti
+- Status: pending

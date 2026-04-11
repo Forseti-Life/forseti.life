@@ -3,7 +3,8 @@
 - Work item id: dc-cr-rest-watch-starvation
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
+- Release: 20260411-coordinated-release-next
 - Priority: P3
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler

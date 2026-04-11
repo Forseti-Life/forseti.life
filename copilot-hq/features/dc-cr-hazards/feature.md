@@ -3,9 +3,9 @@
 - Work item id: dc-cr-hazards
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-- PM owner: pm-dungeoncrawler
+20260411-coordinated-release-next
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler
 - Source: PF2E Core Rulebook (Fourth Printing), lines 1–300

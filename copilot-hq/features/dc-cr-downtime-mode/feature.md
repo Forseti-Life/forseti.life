@@ -3,9 +3,9 @@
 - Work item id: dc-cr-downtime-mode
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: ready
+- Status: in_progress
 - Release: 
-- Priority: P2
+20260411-coordinated-release-next
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
 - QA owner: qa-dungeoncrawler

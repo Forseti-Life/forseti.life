@@ -61,3 +61,5 @@ Anything not groomed when Stage 0 of 20260411-coordinated-release-next starts is
 ## References
 - runbooks/feature-intake.md
 - runbooks/intake-to-qa-handoff.md
+- Agent: pm-forseti
+- Status: pending

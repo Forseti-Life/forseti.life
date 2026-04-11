@@ -1,6 +1,6 @@
 # Feature Progress
 
-Generated: 2026-04-11T22:51:15Z
+Generated: 2026-04-11T23:53:37Z
 
 | Work item | Website | Module | Status | Priority | PM | Dev | QA |
 |-----------|---------|--------|--------|----------|----|-----|----|
@@ -14,8 +14,8 @@ Generated: 2026-04-11T22:51:15Z
 | dc-apg-equipment | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-feats | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
 | dc-apg-focus-spells | dungeoncrawler | dungeoncrawler_content | shipped |  |  |  |  |
-| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
-| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | in_progress |  |  |  |  |
+| dc-apg-rituals | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
+| dc-apg-spells | dungeoncrawler | dungeoncrawler_content | done |  |  |  |  |
 | dc-b1-bestiary1 | dungeoncrawler | dungeoncrawler_content | done | P3 |  |  |  |
 | dc-b2-bestiary2 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
 | dc-b3-bestiary3 | dungeoncrawler | dungeoncrawler_content | deferred | P3 |  |  |  |
@@ -164,7 +164,7 @@ Generated: 2026-04-11T22:51:15Z
 | forseti-jobhunter-application-status-dashboard | forseti.life | job_hunter | shipped | high |  |  |  |
 | forseti-jobhunter-application-submission | forseti.life | job_hunter | shipped | P1 |  |  |  |
 | forseti-jobhunter-browser-automation | forseti.life | job_hunter | shipped | P1 |  |  |  |
-| forseti-jobhunter-bulk-status-update | forseti.life | job_hunter | in_progress | medium |  |  |  |
+| forseti-jobhunter-bulk-status-update | forseti.life | job_hunter | done | medium |  |  |  |
 | forseti-jobhunter-controller-extraction-phase1 | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor | forseti.life | job_hunter | shipped | P2 |  |  |  |
 | forseti-jobhunter-controller-refactor-phase2 | forseti.life | job_hunter | shipped | P2 |  |  |  |
