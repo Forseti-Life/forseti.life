@@ -3,8 +3,7 @@
 - Work item id: dc-cr-multiclass-archetype
 - Website: dungeoncrawler
 - Module: dungeoncrawler_content
-- Status: in_progress
-- Release: 20260411-dungeoncrawler-release-b
+- Status: ready
 - Priority: P2
 - PM owner: pm-dungeoncrawler
 - Dev owner: dev-dungeoncrawler
