@@ -872,6 +872,39 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-job-get",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "path_regex": "^/jobhunter/job/[0-9]+$",
+      "notes": "Added for feature forseti-jobhunter-application-deadline-tracker. AC-1: date form shown on job page.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-job-dates-post",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "path_regex": "^/jobhunter/job/[0-9]+/dates$",
+      "notes": "Added for forseti-jobhunter-application-deadline-tracker. POST-only route for date save. CSRF required. Split-route pattern.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "authenticated_no_csrf": "403"
+      }
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-deadlines-get",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "path_regex": "^/jobhunter/deadlines$",
+      "notes": "Added for forseti-jobhunter-application-deadline-tracker. AC-4: deadlines dashboard.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "200",
+        "admin": "200"
+      }
     }
   ]
 }

@@ -2466,6 +2466,210 @@
       ],
       "required_for_release": true,
       "notes": "Auth required (FORSETI_COOKIE_ADMIN). Checks watchdog for new severity<=3 entries for copilot_agent_tracker after loading all 4 test subsections."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-anon-job-403",
+      "label": "TC-1: Anonymous GET /jobhunter/job/{job_id} returns 403",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" \"$FORSETI_BASE_URL/jobhunter/job/$TEST_JOB_ID\" | grep -q 403 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "No auth. Expects 403. Route: /jobhunter/job/{job_id}"
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-anon-deadlines-403",
+      "label": "TC-2: Anonymous GET /jobhunter/deadlines returns 403",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" \"$FORSETI_BASE_URL/jobhunter/deadlines\" | grep -q 403 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "No auth. Expects 403. Route: /jobhunter/deadlines"
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-anon-post-dates-403",
+      "label": "TC-3: Anonymous POST date save returns 403",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST \"$FORSETI_BASE_URL/jobhunter/job/$TEST_JOB_ID/dates\" | grep -q 403 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "No auth. POST to date save route. Expects 403."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-auth-job-200",
+      "label": "TC-4a: Authenticated GET /jobhunter/job/{job_id} returns 200",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" \"$FORSETI_BASE_URL/jobhunter/job/$TEST_JOB_ID\" | grep -q 200 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Auth: FORSETI_COOKIE_AUTHENTICATED (access job hunter). Expects 200."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-auth-job-date-fields",
+      "label": "TC-4b: Job page shows deadline_date and follow_up_date fields",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*date-fields' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: visit job page as auth user; assert input fields with names deadline_date and follow_up_date are present."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-date-save-happy-path",
+      "label": "TC-5: Valid date submission saves to DB and confirmation shown",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*date-save-happy' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: POST deadline_date + follow_up_date with CSRF; assert confirmation message + re-GET shows saved dates. DB verify: SELECT deadline_date FROM jobhunter_job_deadlines WHERE job_id=$TEST_JOB_ID."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-blank-dates-null",
+      "label": "TC-6: Blank date submission saves NULL without error",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*blank-dates-null' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: POST blank deadline_date + follow_up_date; assert HTTP 200 + DB columns are NULL (not empty string)."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-dashboard-overdue-red",
+      "label": "TC-7: Dashboard shows red indicator for overdue jobs",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*overdue-red' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: set deadline_date=yesterday; GET /jobhunter/status; assert red CSS class on job row. CSS class name TBD by dev (see AC-3 note)."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-dashboard-amber-3days",
+      "label": "TC-8: Dashboard shows amber indicator for jobs due within 3 days",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*amber-3days' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: set deadline_date=today+2; GET /jobhunter/status; assert amber indicator. Boundary clarification needed: is today counted as within-3 or overdue (see TC-8 PM note)."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-deadlines-route-200",
+      "label": "TC-9a: Authenticated GET /jobhunter/deadlines returns 200",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" \"$FORSETI_BASE_URL/jobhunter/deadlines\" | grep -q 200 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Auth: FORSETI_COOKIE_AUTHENTICATED. Expects 200."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-deadlines-sorted-asc",
+      "label": "TC-9b: /jobhunter/deadlines lists jobs sorted by deadline_date ascending",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*sorted-asc' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: assert first listed job has earliest deadline_date among test data."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-deadlines-empty-state",
+      "label": "TC-10: /jobhunter/deadlines shows empty state message when no dates set",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*empty-state' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: user has 0 jobs with deadline_date; assert empty state text present + HTTP 200 + no blank page."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-csrf-missing-403",
+      "label": "TC-11: POST date save without CSRF token returns 403",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" \"$FORSETI_BASE_URL/jobhunter/job/$TEST_JOB_ID/dates\" -d \"deadline_date=2026-05-01&follow_up_date=2026-04-20\" | grep -q 403 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Authenticated POST without CSRF token. Expects 403. Split-route CSRF pattern required (see org CSRF instructions rule)."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-cross-user-403",
+      "label": "TC-12: User A cannot save dates to User B's job",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -X POST -b \"$FORSETI_COOKIE_AUTHENTICATED\" \"$FORSETI_BASE_URL/jobhunter/job/$TEST_JOB_ID_B/dates\" -d \"deadline_date=2026-05-01&token=$CSRF_TOKEN\" | grep -q 403 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Requires TEST_JOB_ID_B (belongs to user B). User A cookie. Expects 403. Cross-user ownership guard pattern."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-non-integer-job-id-404",
+      "label": "TC-13: Non-integer job_id returns 404",
+      "type": "curl",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" \"$FORSETI_BASE_URL/jobhunter/job/not-a-number\" | grep -q 404 && echo PASS || echo FAIL",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-tracker-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Auth cookie present. Non-integer path param. Expects 404."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-invalid-date-form-error",
+      "label": "TC-14: Invalid date string shows form error and writes nothing to DB",
+      "type": "e2e",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "npx playwright test --grep 'deadline-tracker.*invalid-date-error' tests/forseti/jobhunter-deadline-tracker.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-deadline-tracker/"
+      ],
+      "required_for_release": true,
+      "notes": "Playwright: POST deadline_date=not-a-date with valid CSRF; assert form error visible + DB row unchanged."
+    },
+    {
+      "id": "forseti-jobhunter-application-deadline-tracker-dates-not-logged-watchdog",
+      "label": "TC-15: Submitted date values do not appear in watchdog log",
+      "type": "regression",
+      "feature_id": "forseti-jobhunter-application-deadline-tracker",
+      "command": "bash -c 'BEFORE=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT MAX(wid) FROM watchdog\" 2>/dev/null | tail -1); curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"$FORSETI_BASE_URL/jobhunter/job/$TEST_JOB_ID/dates\" -d \"deadline_date=2026-05-01&follow_up_date=2026-04-20&token=$CSRF_TOKEN\" > /dev/null; MATCHES=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT COUNT(*) FROM watchdog WHERE wid>$BEFORE AND message LIKE \\'%2026-05-01%\\'\" 2>/dev/null | tail -1); echo \"Date in watchdog: $MATCHES\"; [ \"$MATCHES\" -eq 0 ] && echo PASS || (echo FAIL; exit 1)'",
+      "artifacts": [
+        "/tmp/qa-forseti-deadline-watchdog.log"
+      ],
+      "required_for_release": true,
+      "notes": "Security/PII: submitted date values must not appear in watchdog entries. Uses vendor/bin/drush from /var/www/html/forseti."
     }
   ],
   "_schema_notes": [
