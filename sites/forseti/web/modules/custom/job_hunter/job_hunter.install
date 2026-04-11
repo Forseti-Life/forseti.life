@@ -3000,3 +3000,32 @@ function job_hunter_update_9046() {
   _job_hunter_create_tailoring_feedback_table();
   return t('Created jobhunter_tailoring_feedback table for tailored resume ratings.');
 }
+
+/**
+ * Add deadline_date and follow_up_date columns to jobhunter_saved_jobs.
+ */
+function job_hunter_update_9047() {
+  $schema = \Drupal::database()->schema();
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'deadline_date')) {
+    $schema->addField('jobhunter_saved_jobs', 'deadline_date', [
+      'type'     => 'varchar',
+      'length'   => 10,
+      'not null' => FALSE,
+      'default'  => NULL,
+      'description' => 'Application deadline date (YYYY-MM-DD).',
+    ]);
+  }
+
+  if (!$schema->fieldExists('jobhunter_saved_jobs', 'follow_up_date')) {
+    $schema->addField('jobhunter_saved_jobs', 'follow_up_date', [
+      'type'     => 'varchar',
+      'length'   => 10,
+      'not null' => FALSE,
+      'default'  => NULL,
+      'description' => 'Follow-up reminder date (YYYY-MM-DD).',
+    ]);
+  }
+
+  return t('Added deadline_date and follow_up_date to jobhunter_saved_jobs.');
+}

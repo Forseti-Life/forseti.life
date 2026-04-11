@@ -1195,7 +1195,7 @@ class CompanyController extends ControllerBase {
     // Application Notes block — visible only for saved jobs.
     $uid = (int) $this->currentUser->id();
     $saved_job = $this->database->select('jobhunter_saved_jobs', 'sj')
-      ->fields('sj', ['id'])
+      ->fields('sj', ['id', 'deadline_date', 'follow_up_date'])
       ->condition('sj.uid', $uid)
       ->condition('sj.job_id', (int) $job_id)
       ->execute()
@@ -1320,6 +1320,97 @@ class CompanyController extends ControllerBase {
           ',
         ],
         'application_notes_js',
+      ];
+    }
+
+    // Deadline tracker form — visible only for saved jobs where schema columns exist.
+    if ($saved_job && $this->database->schema()->fieldExists('jobhunter_saved_jobs', 'deadline_date')) {
+      $dl_date  = htmlspecialchars((string) ($saved_job->deadline_date ?? ''));
+      $fu_date  = htmlspecialchars((string) ($saved_job->follow_up_date ?? ''));
+      $dl_save_url   = Url::fromRoute('job_hunter.deadline_save', ['job_id' => (int) $job_id])->toString();
+      $dl_csrf_token = \Drupal::csrfToken()->get('jobhunter/jobs/' . (int) $job_id . '/deadline/save');
+
+      $content['deadline_tracker'] = [
+        '#type' => 'container',
+        '#attributes' => ['class' => ['deadline-tracker-section']],
+        '#markup' => '
+<h3>&#128197; Application Dates</h3>
+<div class="deadline-form">
+  <div class="deadline-field-row">
+    <label for="deadline-date">Application Deadline</label>
+    <input type="date" id="deadline-date" name="deadline_date" value="' . $dl_date . '" />
+  </div>
+  <div class="deadline-field-row">
+    <label for="followup-date">Follow-up Reminder</label>
+    <input type="date" id="followup-date" name="follow_up_date" value="' . $fu_date . '" />
+  </div>
+  <button type="button" class="btn-deadline-save" data-save-url="' . $dl_save_url . '" data-token="' . $dl_csrf_token . '">Save Dates</button>
+  <div id="deadline-status-msg"></div>
+</div>',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'style',
+          '#value' => '
+            .deadline-tracker-section { margin-top: 24px; padding: 20px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #10b981; }
+            .deadline-tracker-section h3 { margin: 0 0 14px 0; color: #333; }
+            .deadline-field-row { margin-bottom: 12px; }
+            .deadline-field-row label { display: block; font-weight: 600; color: #555; margin-bottom: 4px; font-size: 0.9em; }
+            .deadline-field-row input[type="date"] { padding: 7px 10px; border: 1px solid #d1d5db; border-radius: 4px; font-size: 0.95em; width: 200px; }
+            .btn-deadline-save { margin-top: 4px; background: #10b981; color: #fff; border: none; padding: 8px 18px; border-radius: 4px; cursor: pointer; font-size: 0.95em; }
+            .btn-deadline-save:hover { background: #059669; }
+            .btn-deadline-save:disabled { opacity: 0.6; cursor: not-allowed; }
+            #deadline-status-msg { margin-top: 8px; font-size: 0.9em; padding: 8px 12px; border-radius: 4px; display: none; }
+            #deadline-status-msg.success { background: #d1fae5; color: #065f46; display: block; }
+            #deadline-status-msg.error { background: #fee2e2; color: #991b1b; display: block; }
+          ',
+        ],
+        'deadline_tracker_styles',
+      ];
+
+      $content['#attached']['html_head'][] = [
+        [
+          '#tag' => 'script',
+          '#value' => '
+(function() {
+  var saveBtn = document.querySelector(".btn-deadline-save");
+  if (!saveBtn) { return; }
+  saveBtn.addEventListener("click", function() {
+    var saveUrl = saveBtn.dataset.saveUrl + "?token=" + encodeURIComponent(saveBtn.dataset.token);
+    var statusEl = document.getElementById("deadline-status-msg");
+    var payload = {
+      deadline_date: document.getElementById("deadline-date").value,
+      follow_up_date: document.getElementById("followup-date").value
+    };
+    saveBtn.disabled = true;
+    saveBtn.textContent = "Saving\u2026";
+    fetch(saveUrl, {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      credentials: "same-origin",
+      body: JSON.stringify(payload)
+    })
+    .then(function(r) { return r.json().then(function(d) { return {status: r.status, data: d}; }); })
+    .then(function(res) {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Dates";
+      if (statusEl) {
+        statusEl.className = res.status === 200 ? "success" : "error";
+        statusEl.textContent = res.status === 200 ? (res.data.message || "Dates saved.") : (res.data.error || "Save failed.");
+        setTimeout(function() { statusEl.className = ""; statusEl.textContent = ""; }, 4000);
+      }
+    })
+    .catch(function() {
+      saveBtn.disabled = false;
+      saveBtn.textContent = "Save Dates";
+      if (statusEl) { statusEl.className = "error"; statusEl.textContent = "Network error. Please try again."; }
+    });
+  });
+})();
+          ',
+        ],
+        'deadline_tracker_js',
       ];
     }
 
@@ -2217,6 +2308,248 @@ class CompanyController extends ControllerBase {
       'created'                => $app['created'],
       'attempts'               => $attempts ?: [],
     ]);
+  }
+
+  /**
+   * Save deadline_date and follow_up_date for a saved job (POST, CSRF-protected).
+   *
+   * @param int $job_id
+   *   The job_requirements ID.
+   */
+  public function deadlineSave($job_id): JsonResponse {
+    $uid    = (int) $this->currentUser->id();
+    $job_id = (int) $job_id;
+
+    $ownership = $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['id'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.job_id', $job_id)
+      ->execute()
+      ->fetchField();
+
+    if (!$ownership) {
+      return new JsonResponse(['error' => 'Not found.'], 403);
+    }
+
+    $request = $this->requestStack->getCurrentRequest();
+    $body    = json_decode($request->getContent(), TRUE) ?? [];
+
+    $deadline_date  = isset($body['deadline_date'])  && $body['deadline_date']  !== '' ? $body['deadline_date']  : NULL;
+    $follow_up_date = isset($body['follow_up_date']) && $body['follow_up_date'] !== '' ? $body['follow_up_date'] : NULL;
+
+    if ($deadline_date !== NULL) {
+      $parsed = \DateTime::createFromFormat('Y-m-d', $deadline_date);
+      if (!$parsed || $parsed->format('Y-m-d') !== $deadline_date) {
+        return new JsonResponse(['error' => 'Invalid deadline date format. Use YYYY-MM-DD.'], 400);
+      }
+    }
+    if ($follow_up_date !== NULL) {
+      $parsed = \DateTime::createFromFormat('Y-m-d', $follow_up_date);
+      if (!$parsed || $parsed->format('Y-m-d') !== $follow_up_date) {
+        return new JsonResponse(['error' => 'Invalid follow-up date format. Use YYYY-MM-DD.'], 400);
+      }
+    }
+
+    $this->database->update('jobhunter_saved_jobs')
+      ->fields([
+        'deadline_date'  => $deadline_date,
+        'follow_up_date' => $follow_up_date,
+        'updated'        => time(),
+      ])
+      ->condition('uid', $uid)
+      ->condition('job_id', $job_id)
+      ->execute();
+
+    return new JsonResponse(['message' => 'Dates saved.']);
+  }
+
+  /**
+   * Show all saved jobs with deadline urgency indicators at /jobhunter/status.
+   */
+  public function statusDashboard(): array {
+    $uid  = (int) $this->currentUser->id();
+    $today = new \DateTime('today');
+
+    $rows = $this->database->select('jobhunter_saved_jobs', 'sj')
+      ->fields('sj', ['job_id', 'deadline_date', 'follow_up_date', 'archived'])
+      ->condition('sj.uid', $uid)
+      ->condition('sj.archived', 0)
+      ->execute()
+      ->fetchAll(\PDO::FETCH_ASSOC);
+
+    $job_ids = array_column($rows, 'job_id');
+    $jobs_by_id = [];
+    if ($job_ids) {
+      $job_results = $this->database->select('jobhunter_job_requirements', 'jr')
+        ->fields('jr', ['id', 'job_title'])
+        ->condition('jr.id', $job_ids, 'IN')
+        ->execute()
+        ->fetchAll(\PDO::FETCH_ASSOC);
+      foreach ($job_results as $j) {
+        $jobs_by_id[(int) $j['id']] = $j['job_title'];
+      }
+      $company_results = $this->database->query(
+        'SELECT jr.id as job_id, c.name as company_name
+         FROM {jobhunter_job_requirements} jr
+         LEFT JOIN {jobhunter_companies} c ON jr.company_id = c.id
+         WHERE jr.id IN (:ids[])',
+        [':ids[]' => $job_ids]
+      )->fetchAll(\PDO::FETCH_ASSOC);
+      $companies_by_job = [];
+      foreach ($company_results as $cr) {
+        $companies_by_job[(int) $cr['job_id']] = $cr['company_name'] ?? '';
+      }
+    }
+
+    $table_rows = [];
+    foreach ($rows as $row) {
+      $job_id    = (int) $row['job_id'];
+      $job_title = $jobs_by_id[$job_id] ?? 'Unknown Job';
+      $company   = $companies_by_job[$job_id] ?? '';
+      $dl        = $row['deadline_date'];
+      $fu        = $row['follow_up_date'];
+
+      $urgency_class = '';
+      $urgency_label = '';
+      if ($dl) {
+        $dl_dt = new \DateTime($dl);
+        $diff  = (int) $today->diff($dl_dt)->days;
+        $past  = $dl_dt < $today;
+        if ($past) {
+          $urgency_class = 'deadline-overdue';
+          $urgency_label = 'Overdue';
+        }
+        elseif ($diff <= 3) {
+          $urgency_class = 'deadline-soon';
+          $urgency_label = $diff === 0 ? 'Due today' : 'Due in ' . $diff . 'd';
+        }
+        else {
+          $urgency_label = $dl;
+        }
+      }
+
+      $job_url = Url::fromRoute('job_hunter.view_job', ['job_id' => $job_id])->toString();
+      $table_rows[] = [
+        ['data' => '<a href="' . $job_url . '">' . htmlspecialchars($job_title) . '</a>', 'allow_html' => TRUE],
+        htmlspecialchars($company),
+        ['data' => '<span class="' . $urgency_class . '">' . htmlspecialchars($urgency_label ?: '—') . '</span>', 'allow_html' => TRUE],
+        htmlspecialchars($fu ?: '—'),
+      ];
+    }
+
+    $content = [
+      '#type' => 'container',
+      'heading' => ['#markup' => '<h2>Application Status</h2>'],
+    ];
+
+    if ($table_rows) {
+      $content['table'] = [
+        '#type'   => 'table',
+        '#header' => ['Job', 'Company', 'Deadline', 'Follow-up'],
+        '#rows'   => $table_rows,
+        '#attributes' => ['class' => ['status-dashboard-table']],
+      ];
+    }
+    else {
+      $content['empty'] = ['#markup' => '<p>No active saved jobs found.</p>'];
+    }
+
+    $content['#attached']['html_head'][] = [
+      [
+        '#tag'   => 'style',
+        '#value' => '
+          .status-dashboard-table { width: 100%; border-collapse: collapse; }
+          .status-dashboard-table th, .status-dashboard-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+          .status-dashboard-table th { background: #f9fafb; font-weight: 600; color: #374151; }
+          .deadline-overdue { color: #dc2626; font-weight: 700; }
+          .deadline-soon { color: #d97706; font-weight: 600; }
+        ',
+      ],
+      'status_dashboard_styles',
+    ];
+
+    return $this->wrapWithNavigation($content);
+  }
+
+  /**
+   * Show jobs with upcoming deadlines at /jobhunter/deadlines.
+   */
+  public function deadlinesList(): array {
+    $uid   = (int) $this->currentUser->id();
+    $today = new \DateTime('today');
+
+    $rows = $this->database->query(
+      'SELECT sj.job_id, sj.deadline_date, sj.follow_up_date,
+              jr.job_title, c.name AS company_name
+       FROM {jobhunter_saved_jobs} sj
+       JOIN {jobhunter_job_requirements} jr ON sj.job_id = jr.id
+       LEFT JOIN {jobhunter_companies} c ON jr.company_id = c.id
+       WHERE sj.uid = :uid AND sj.archived = 0 AND sj.deadline_date IS NOT NULL
+       ORDER BY sj.deadline_date ASC',
+      [':uid' => $uid]
+    )->fetchAll(\PDO::FETCH_ASSOC);
+
+    $table_rows = [];
+    foreach ($rows as $row) {
+      $job_id = (int) $row['job_id'];
+      $dl     = $row['deadline_date'];
+      $dl_dt  = new \DateTime($dl);
+      $diff   = (int) $today->diff($dl_dt)->days;
+      $past   = $dl_dt < $today;
+
+      $urgency_class = '';
+      $urgency_label = '';
+      if ($past) {
+        $urgency_class = 'deadline-overdue';
+        $urgency_label = 'Overdue';
+      }
+      elseif ($diff <= 3) {
+        $urgency_class = 'deadline-soon';
+        $urgency_label = $diff === 0 ? 'Due today' : 'Due in ' . $diff . 'd';
+      }
+
+      $job_url = Url::fromRoute('job_hunter.view_job', ['job_id' => $job_id])->toString();
+      $table_rows[] = [
+        ['data' => '<a href="' . $job_url . '">' . htmlspecialchars($row['job_title']) . '</a>', 'allow_html' => TRUE],
+        htmlspecialchars($row['company_name'] ?? ''),
+        $dl,
+        ['data' => '<span class="' . $urgency_class . '">' . htmlspecialchars($urgency_label ?: 'OK') . '</span>', 'allow_html' => TRUE],
+        htmlspecialchars($row['follow_up_date'] ?? '—'),
+      ];
+    }
+
+    $content = [
+      '#type' => 'container',
+      'heading' => ['#markup' => '<h2>Upcoming Deadlines</h2>'],
+    ];
+
+    if ($table_rows) {
+      $content['table'] = [
+        '#type'   => 'table',
+        '#header' => ['Job', 'Company', 'Deadline Date', 'Status', 'Follow-up'],
+        '#rows'   => $table_rows,
+        '#attributes' => ['class' => ['deadlines-table']],
+      ];
+    }
+    else {
+      $content['empty'] = ['#markup' => '<p>No jobs with deadlines set. <a href="/jobhunter/my-jobs">View your saved jobs</a> to add deadlines.</p>'];
+    }
+
+    $content['#attached']['html_head'][] = [
+      [
+        '#tag'   => 'style',
+        '#value' => '
+          .deadlines-table { width: 100%; border-collapse: collapse; }
+          .deadlines-table th, .deadlines-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid #e5e7eb; }
+          .deadlines-table th { background: #f9fafb; font-weight: 600; color: #374151; }
+          .deadline-overdue { color: #dc2626; font-weight: 700; }
+          .deadline-soon { color: #d97706; font-weight: 600; }
+        ',
+      ],
+      'deadlines_list_styles',
+    ];
+
+    return $this->wrapWithNavigation($content);
   }
 
 }

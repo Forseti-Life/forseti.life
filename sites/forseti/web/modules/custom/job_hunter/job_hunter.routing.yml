@@ -1384,3 +1384,38 @@ job_hunter.tailoring_feedback_save:
     _permission: 'access job hunter'
     _user_is_logged_in: 'TRUE'
     _csrf_token: 'TRUE'
+
+# Application Deadline Tracker — status dashboard
+job_hunter.status_dashboard:
+  path: '/jobhunter/status'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::statusDashboard'
+    _title: 'Application Status'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Application Deadline Tracker — upcoming deadlines list
+job_hunter.deadlines:
+  path: '/jobhunter/deadlines'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::deadlinesList'
+    _title: 'Upcoming Deadlines'
+  methods: [GET]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+
+# Application Deadline Tracker — save deadline dates (POST, CSRF-protected)
+job_hunter.deadline_save:
+  path: '/jobhunter/jobs/{job_id}/deadline/save'
+  defaults:
+    _controller: '\Drupal\job_hunter\Controller\CompanyController::deadlineSave'
+    _title: 'Save Deadline'
+  methods: [POST]
+  requirements:
+    _permission: 'access job hunter'
+    _user_is_logged_in: 'TRUE'
+    _csrf_token: 'TRUE'
+    job_id: \d+
