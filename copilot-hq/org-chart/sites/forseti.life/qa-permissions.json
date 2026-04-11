@@ -720,20 +720,20 @@
             "notes": "job_tailoring_save_resume route. _csrf_token: TRUE \u2014 URL query token only. Dead name=\"token\" POST body field removed from job-tailoring-combined.html.twig (pending dev BLOCK fix)."
         },
         {
-            "path": "/jobhunter/application-notes",
+            "path": "/jobhunter/jobs/{job_id}/notes/save",
             "method": "POST",
             "anon_expected": 403,
             "auth_expected": 200,
             "feature_id": "forseti-jobhunter-application-notes",
-            "notes": "AJAX POST endpoint to save/update application notes. _csrf_token: TRUE \u2014 URL ?token= required. anon \u2192 403. ownership guard (uid must own saved_job_id) \u2192 403 for mismatched user."
+            "notes": "AJAX POST endpoint to save/update application notes. _csrf_token: TRUE \u2014 URL ?token= required. anon \u2192 403. Ownership guard (job_id must map to a saved_job owned by uid) \u2192 403 for mismatched user. Path corrected 2026-04-11 (Dev used /jobhunter/jobs/ prefix not /jobhunter/application-notes)."
         },
         {
-            "path": "/jobhunter/application-notes/*",
+            "path": "/jobhunter/jobs/{job_id}/notes",
             "method": "GET",
             "anon_expected": 403,
             "auth_expected": 200,
             "feature_id": "forseti-jobhunter-application-notes",
-            "notes": "GET endpoint to retrieve existing notes for a saved job (pre-populate). anon \u2192 403. Returns notes for the authenticated user only."
+            "notes": "GET endpoint to retrieve existing notes for a saved job (pre-populate AJAX). anon \u2192 403. Returns notes for authenticated user only. Path corrected 2026-04-11."
         },
         {
             "path": "/jobhunter/tailor-feedback",

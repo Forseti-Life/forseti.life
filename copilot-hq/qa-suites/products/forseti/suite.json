@@ -1647,33 +1647,33 @@
             ],
             "required_for_release": true,
             "status": "pending_implementation",
-            "notes": "Requires FORSETI_COOKIE_AUTHENTICATED. Skipped if not set. Verifies notes form section renders on saved-jobs page."
+            "notes": "Requires FORSETI_COOKIE_AUTHENTICATED. Skipped if not set. Verifies notes form section renders on saved-jobs page. NOTE 2026-04-11: Notes widget is injected into /jobhunter/my-jobs via myJobs() controller; look for application-notes markup."
         },
         {
             "id": "forseti-jobhunter-application-notes-anon-403",
             "label": "TC-6: Unauthenticated POST to notes endpoint returns 403",
             "type": "security",
             "feature_id": "forseti-jobhunter-application-notes",
-            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/jobhunter/application-notes\"); echo \"Anon POST HTTP $STATUS\"; [ \"$STATUS\" = \"403\" ] || [ \"$STATUS\" = \"302\" ] && echo PASS || (echo \"FAIL: expected 403 got $STATUS\"; exit 1)'",
+            "command": "bash -c 'S_POST=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/jobhunter/jobs/1/notes/save\"); S_GET=$(curl -s -o /dev/null -w \"%{http_code}\" \"${FORSETI_BASE_URL:-https://forseti.life}/jobhunter/jobs/1/notes\"); echo \"Anon POST: $S_POST Anon GET: $S_GET\"; [ \"$S_POST\" -eq 403 ] && [ \"$S_GET\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
             "artifacts": [
                 "stdout"
             ],
             "required_for_release": true,
             "status": "pending_implementation",
-            "notes": "No cookie. Route must deny anonymous POST. 302 (redirect to login) also acceptable."
+            "notes": "Anon access to /jobhunter/jobs/{job_id}/notes (GET) and /jobhunter/jobs/{job_id}/notes/save (POST) must both return 403. Paths corrected 2026-04-11 after Dev implemented routes under /jobhunter/jobs/ not /jobhunter/application-notes."
         },
         {
             "id": "forseti-jobhunter-application-notes-csrf-required",
             "label": "TC-11: POST without CSRF token returns 403",
             "type": "security",
             "feature_id": "forseti-jobhunter-application-notes",
-            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/jobhunter/application-notes\" -d \"saved_job_id=1&notes=test\"); echo \"No-CSRF POST HTTP $STATUS\"; [ \"$STATUS\" = \"403\" ] && echo PASS || (echo \"FAIL: expected 403 got $STATUS\"; exit 1)'",
+            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/jobhunter/jobs/1/notes/save\" -H \"Content-Type: application/json\" -d \\'{}\\'); echo \"Auth POST no-CSRF: $STATUS\"; [ \"$STATUS\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
             "artifacts": [
                 "stdout"
             ],
             "required_for_release": true,
             "status": "pending_implementation",
-            "notes": "Authenticated but no ?token= on URL. Route must use _csrf_token: TRUE. Missing token \u2192 403."
+            "notes": "Auth POST to /jobhunter/jobs/{job_id}/notes/save without ?token= must return 403 (Drupal _csrf_token: TRUE check on URL query param). Paths corrected 2026-04-11."
         },
         {
             "id": "forseti-jobhunter-application-notes-e2e",
