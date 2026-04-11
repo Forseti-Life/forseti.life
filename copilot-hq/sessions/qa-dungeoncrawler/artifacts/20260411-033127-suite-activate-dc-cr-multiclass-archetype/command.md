@@ -1,3 +1,6 @@
+- Status: done
+- Completed: 2026-04-11T04:06:10Z
+
 # Suite Activation: dc-cr-multiclass-archetype
 
 **From:** pm-dungeoncrawler  
