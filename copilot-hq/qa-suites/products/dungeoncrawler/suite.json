@@ -11732,6 +11732,281 @@
           "status": "immediately activatable"
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-acrobatics-actions-phpunit",
+      "label": "Acrobatics skill actions \u2014 Escape extension, Balance, Tumble Through, Maneuver in Flight, Squeeze: degrees of success, proficiency gates, condition flags, ACL regression",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-acrobatics-actions",
+      "command": "./vendor/bin/phpunit --filter=AcrobaticsActions tests/src/",
+      "artifacts": [
+        "tests/results/dc-cr-skills-acrobatics-actions-phpunit.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-ACR-01",
+          "description": "Escape accepts Acrobatics modifier as alternative: escape_modifier_type accepts 'acrobatics' or 'unarmed'; result calculated using selected modifier",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testEscapeAcceptsAcrobaticsModifier",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-02",
+          "description": "Escape defaults to unarmed modifier when Acrobatics not selected (backward-compatible)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testEscapeDefaultsToUnarmed",
+          "ac_tag": "EXTEND",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-03",
+          "description": "Balance is a 1-action Move action: action_cost=1, traits include 'move', recorded in turn action log",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceIsOneActionMove",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-04",
+          "description": "Character gains flat-footed condition during Balance; cleared after resolution",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceFlatFootedCondition",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-05",
+          "description": "Balance Critical Success: movement_result=full Speed; difficult_terrain_flag=false; no prone; no turn_end",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceCriticalSuccess",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-06",
+          "description": "Balance Success: movement_result=full Speed; difficult_terrain_flag=true (tracking); no prone; no turn_end",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceSuccess",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-07",
+          "description": "Balance Failure: movement_result=0 (stopped); prone=true",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceFailure",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-08",
+          "description": "Balance Critical Failure: prone=true AND turn_end=true; remaining_actions=0; both flags set simultaneously",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceCriticalFailure",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-09",
+          "description": "Balance DC tiers by surface type: Untrained(roots/cobblestones), Trained(wooden beam), Expert(gravel), Master(tightrope), Legendary(razor edge)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceDCTiersBySurface",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-10",
+          "description": "Balance blocked in midair without fly speed: action blocked, error returned, no DC check initiated",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceBlockedInMidairNoFlySpeed",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-11",
+          "description": "Balance check not triggered on flat ground: check_required=false, no flat-footed flag, character moves freely",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testBalanceNotRequiredOnFlatGround",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-12",
+          "description": "Tumble Through only triggers check when path_includes_enemy_space=true; no check when path clear",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testTumbleThroughRequiresEnemySpace",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-13",
+          "description": "Tumble Through Success: movement_result=through; difficult_terrain_flag=true for enemy space; character exits",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testTumbleThroughSuccess",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-14",
+          "description": "Tumble Through Failure: movement stops before enemy space; enemy_reaction_eligible=true; character does not enter space",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testTumbleThroughFailure",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-15",
+          "description": "Tumble Through: Climb/Fly/Swim substitutes for Stride in appropriate environments",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testTumbleThroughAlternativeMovementModes",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-16",
+          "description": "Tumble Through vs immovable/incorporeal enemies: check presented regardless; GM override preserved",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testTumbleThroughImmovableIncorporealEnemies",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-17",
+          "description": "Maneuver in Flight gated on fly_speed > 0 AND acrobatics_rank >= trained; missing either blocks action",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testManeuverInFlightRequiresFlySpeedAndTrained",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-18",
+          "description": "Maneuver in Flight blocked when fly_speed=0 (even with Trained Acrobatics)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testManeuverInFlightBlockedNoFlySpeed",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-19",
+          "description": "Maneuver in Flight blocked when acrobatics_rank=untrained (even with fly speed)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testManeuverInFlightBlockedUntrained",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-20",
+          "description": "Maneuver in Flight not satisfied by Jump or Levitate (only true fly_speed qualifies)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testManeuverInFlightNotSatisfiedByJumpOrLevitate",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-21",
+          "description": "Maneuver in Flight DC tiers: Trained(steep ascent/descent), Expert(against wind/hover), Master(reverse direction), Legendary(gale force)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testManeuverInFlightDCTiers",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-22",
+          "description": "Maneuver in Flight Failure: reflex_save_triggered=true; failed save \u2192 falling status; passed save \u2192 maintain altitude",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testManeuverInFlightFailureReflexSave",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-23",
+          "description": "Squeeze blocked for Untrained Acrobatics: action blocked, error returned",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testSqueezeRequiresTrained",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-24",
+          "description": "Squeeze is an exploration activity: action_type=exploration; squeeze_speed=1 min per 5 ft; not available as single encounter action",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testSqueezeIsExplorationActivity",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-25",
+          "description": "Squeeze Critical Success: squeeze_speed=1 min per 10 ft (doubled)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testSqueezeCriticalSuccess",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-26",
+          "description": "Squeeze Critical Failure: stuck=true; movement_blocked_through_space=true",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testSqueezeCriticalFailureStuck",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-27",
+          "description": "Stuck character freed by follow-up Squeeze: non-critical-failure result frees character; another crit-fail keeps stuck",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testSqueezeStuckCharacterFreed",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-28",
+          "description": "Squeeze DC tiers: Trained(barely fits shoulders), Master(barely fits head)",
+          "suite_type": "phpunit",
+          "class_method": "AcrobaticsActionsTest::testSqueezeDCTiers",
+          "ac_tag": "NEW",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions"
+        },
+        {
+          "id": "TC-ACR-29",
+          "description": "ACL regression: no new routes introduced; existing encounter/exploration phase handlers retain ACL; anon denied, authenticated allowed",
+          "suite_type": "role-url-audit",
+          "class_method": "n/a - role-url-audit; no new routes per feature spec",
+          "ac_tag": "permissions",
+          "status": "immediately activatable",
+          "feature_id": "dc-cr-skills-acrobatics-actions",
+          "notes": "No new HTTP routes added by Acrobatics actions. ACL verified via existing role-url-audit suite against encounter/exploration phase handlers."
+        }
+      ]
     }
   ],
   "_schema_notes": [
