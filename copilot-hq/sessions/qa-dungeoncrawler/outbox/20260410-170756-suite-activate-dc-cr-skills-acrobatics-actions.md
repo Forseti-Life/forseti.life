@@ -9,9 +9,9 @@
 |---|---|
 | Suite id added | `dc-cr-skills-acrobatics-actions-phpunit` |
 | Total TCs | 29 (all tagged feature_id) |
-| qa-permissions.json rule | Added `dc-cr-skills-acrobatics-actions-no-new-routes` (annotated: no new routes) |
+| qa-permissions.json rule | Added `dc-cr-skills-acrobatics-actions-acl-regression` (annotated: no new routes; ACL regression coverage) |
 | Suite validate | OK (5 manifests) |
-| Commit | `b03811afb` |
+| Commits | `b03811afb` (suite.json), `a8a5c5438` (qa-permissions.json ACL rule) |
 
 ## PM notes flagged to resolve (from test plan)
 
