@@ -742,6 +742,22 @@
             "auth_expected": 200,
             "feature_id": "forseti-jobhunter-tailoring-feedback",
             "notes": "AJAX POST endpoint to submit/update thumbs-up or thumbs-down feedback for a tailored resume. _csrf_token: TRUE \u2014 URL ?token= required. anon \u2192 403. Ownership guard (tailored_resume_id must belong to authenticated uid) \u2192 403 for mismatched user."
+        },
+        {
+            "path": "/api/chat",
+            "method": "POST",
+            "anon_expected": 403,
+            "auth_expected": 200,
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "notes": "AI chat AJAX endpoint. _user_is_logged_in: TRUE + _csrf_token: TRUE required. Anon -> 403. When message contains job-suggestion trigger phrase, response includes job_suggestions array (up to 3 entries scoped to current user uid). No new route \u2014 extends existing ai_conversation.api_chat."
+        },
+        {
+            "path": "/api/chat",
+            "method": "POST",
+            "anon_expected": 403,
+            "auth_expected": 200,
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "notes": "CSRF-protected POST endpoint for AI chat. _csrf_token: TRUE and _user_is_logged_in: TRUE. Anon -> 403. Auth POST without ?token= -> 403. Added for feature forseti-ai-conversation-job-suggestions (job suggestions extension to ChatController)."
         }
     ]
 }

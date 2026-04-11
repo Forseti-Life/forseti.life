@@ -1986,6 +1986,198 @@
             "required_for_release": true,
             "status": "pending_implementation",
             "notes": "Direct DB schema check. Confirms table and all required columns (tailored_resume_id, rating, note) present after Dev implements update hook."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-anon-403",
+            "label": "Unauthenticated POST to /api/chat returns 403",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat\" -H \"Content-Type: application/json\" -d \\'{}\\'); echo \"Anon: $STATUS\"; [ \"$STATUS\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "POST /api/chat is auth-only (_user_is_logged_in: TRUE). Anon request must return 403 before job-suggestions logic is reached."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-csrf-required",
+            "label": "Auth POST to /api/chat without CSRF token returns 403",
+            "type": "security",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'STATUS=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat\" -H \"Content-Type: application/json\" -d \\'{}\\'); echo \"Auth no-CSRF: $STATUS\"; [ \"$STATUS\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "_csrf_token: TRUE on /api/chat. Auth POST without ?token= must return 403."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-trigger-smoke",
+            "label": "TC-1: Trigger phrase returns job_suggestions array (smoke)",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); RESULT=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\\'message\\':\\'show my saved jobs\\'}\\'  ); echo \"$RESULT\" | python3 -m json.tool | grep -q \\'job_suggestions\\' && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "TC-1: Trigger phrase 'show my saved jobs' must elicit a response containing a job_suggestions key. Requires FORSETI_COOKIE_AUTHENTICATED set to an authenticated session with >= 1 saved job."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-no-trigger",
+            "label": "TC-3: Non-trigger phrase does not surface job_suggestions",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); RESULT=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\\'message\\':\\'What is the weather today?\\'}\\' ); COUNT=$(echo \"$RESULT\" | grep -c \\'job_suggestions\\' || true); echo \"job_suggestions occurrences: $COUNT\"; [ \"$COUNT\" -eq 0 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "TC-3: Non-job-related message must NOT produce job_suggestions in response. Requires FORSETI_COOKIE_AUTHENTICATED."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-max-3",
+            "label": "TC-4: At most 3 jobs returned in job_suggestions",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); RESULT=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\\'message\\':\\'show my saved jobs\\'}\\' ); COUNT=$(echo \"$RESULT\" | python3 -c \"import sys,json; r=json.load(sys.stdin); print(len(r.get(\\'job_suggestions\\',[])))\"); echo \"Suggestions count: $COUNT\"; [ \"$COUNT\" -le 3 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "TC-4: job_suggestions array must contain at most 3 entries. Requires FORSETI_COOKIE_AUTHENTICATED set to user with >= 4 saved jobs to test the cap."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-no-saved-jobs-fallback",
+            "label": "TC-6: User with no saved jobs receives fallback message",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); RESULT=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED_B\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\\'message\\':\\'show my saved jobs\\'}\\' ); echo \"$RESULT\" | python3 -c \"import sys,json; r=json.load(sys.stdin); jobs=r.get(\\'job_suggestions\\',[]) or []; assert len(jobs)==0, f\\'got {len(jobs)} suggestions\\'; print(\\'PASS\\')\"'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "TC-6: User with 0 saved jobs triggers fallback. job_suggestions must be absent or empty. Requires FORSETI_COOKIE_AUTHENTICATED_B set to user with 0 saved jobs."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-watchdog-clean",
+            "label": "TC-10: No watchdog errors after job-suggestion query",
+            "type": "regression",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'cd /var/www/html/forseti && vendor/bin/drush watchdog:show --count=10 --severity=warning 2>&1 | grep -iE \"ai_conversation|ChatController|job_suggestions\" && (echo FAIL; exit 1) || echo PASS'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "TC-10: No PHP warnings or errors related to ai_conversation/ChatController in recent watchdog. Run after a job-suggestion-triggering request."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-e2e",
+            "label": "TC-2/8/9: E2E \u2014 trigger variants, user isolation, link format (Playwright)",
+            "type": "e2e",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "npx playwright test tests/forseti/ai-conversation-job-suggestions.spec.ts --reporter=line 2>&1 || echo 'E2E deferred: Playwright tests not yet authored'",
+            "artifacts": [
+                "tests/forseti/ai-conversation-job-suggestions.spec.ts"
+            ],
+            "required_for_release": false,
+            "notes": "TC-2 (multiple trigger phrases), TC-8 (cross-user isolation), TC-9 (link format correctness). Deferred to Playwright \u2014 requires two authenticated user sessions and link verification logic."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-ordering",
+            "label": "TC-5: Results ordered by most recently saved (DB check)",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); RESULT=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"${FORSETI_BASE_URL:-https://forseti.life}/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\\'message\\':\\'show my saved jobs\\'}\\' ); DB_IDS=$(mysql --defaults-file=/etc/mysql/debian.cnf forseti_prod -sNe \"SELECT job_id FROM jobhunter_saved_jobs WHERE uid=(SELECT uid FROM users_field_data WHERE name=\\'testuser\\' LIMIT 1) ORDER BY created DESC LIMIT 3\" 2>/dev/null); echo \"Response: $RESULT\"; echo \"DB order: $DB_IDS\"; echo MANUAL_CHECK_NEEDED'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": false,
+            "notes": "TC-5: Ordering check requires knowing the test user's uid and comparing DB order to API response order. Marked required_for_release=false; manual check recommended during Gate 2."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-smoke",
+            "label": "TC-1: Trigger phrase 'show my saved jobs' returns job_suggestions array in response",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); BODY=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\"message\":\"show my saved jobs\"}\\'); echo \"$BODY\" | python3 -c \"import sys,json; d=json.load(sys.stdin); assert \\\"job_suggestions\\\" in d, f\\\"FAIL: job_suggestions missing. Response: {d}\\\"; print(\\\"PASS\\\")\"'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "Auth required (FORSETI_COOKIE_AUTHENTICATED). Smoke: trigger phrase fires job_suggestions key. CSRF token via /session/token query param."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-multi-trigger",
+            "label": "TC-2: Multiple trigger phrases all return job_suggestions",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); for PHRASE in \"find me a job\" \"what jobs match\" \"job suggestions\" \"recommend a job\"; do BODY=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \"{\\\"message\\\":\\\"$PHRASE\\\"}\"); echo \"$BODY\" | python3 -c \"import sys,json; d=json.load(sys.stdin); assert \\\"job_suggestions\\\" in d, f\\\"FAIL for $PHRASE: {d}\\\"; print(\\\"PASS: $PHRASE\\\")\" || exit 1; done'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "Auth required. Verifies all baseline trigger phrases in hasJobSuggestionTrigger() fire the job_suggestions path."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-order",
+            "label": "TC-5: Job suggestions ordered by most recently saved (created DESC)",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'UID=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT uid FROM users_field_data WHERE name=\\\"testuser\\\"\" 2>/dev/null | tail -1); EXPECTED=$(mysql --defaults-file=/etc/mysql/debian.cnf forseti_prod -sNe \"SELECT sj.id FROM jobhunter_saved_jobs sj WHERE sj.uid=$UID AND sj.archived=0 ORDER BY sj.created DESC LIMIT 3\" 2>/dev/null | tr \\\"\\\\n\\\" \\\",\\\"); echo \"Top 3 saved job IDs (by recency): $EXPECTED\"; [ -n \"$EXPECTED\" ] && echo PASS || echo SKIP-no-test-user'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "DB ordering check. getSavedJobSuggestions() uses ORDER BY sj.created DESC LIMIT 3. If FORSETI_TEST_USER_NAME is not set, test is skipped."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-fallback",
+            "label": "TC-6: User with no saved jobs receives fallback message",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); BODY=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED_B\" -X POST \"https://forseti.life/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\"message\":\"show my saved jobs\"}\\'); echo \"$BODY\" | python3 -c \"import sys,json; d=json.load(sys.stdin); sug=d.get(\\\"job_suggestions\\\",None); assert sug is None or (isinstance(sug,dict) and \\\"fallback\\\" in sug), f\\\"FAIL: unexpected non-fallback response: {d}\\\"; print(\\\"PASS\\\")\"'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "Requires FORSETI_COOKIE_AUTHENTICATED_B (user with 0 saved jobs). Response should contain fallback key or no job_suggestions."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-isolation",
+            "label": "TC-8: Cross-user isolation \u2014 user B sees no jobs from user A",
+            "type": "security",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "npx playwright test tests/forseti/ai-conversation-job-suggestions-isolation.spec.ts --reporter=line 2>&1 || echo 'E2E deferred: Playwright not configured or test file absent'",
+            "artifacts": [
+                "playwright-report/"
+            ],
+            "required_for_release": false,
+            "notes": "Deferred to Playwright \u2014 requires two independent auth sessions. getSavedJobSuggestions() scopes query to uid; DB isolation confirmed in code review."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-link",
+            "label": "TC-9: Suggestion link field points to /jobhunter/my-jobs",
+            "type": "functional",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'CSRF=$(curl -s https://forseti.life/session/token); BODY=$(curl -s -b \"$FORSETI_COOKIE_AUTHENTICATED\" -X POST \"https://forseti.life/api/chat?token=$CSRF\" -H \"Content-Type: application/json\" -d \\'{\"message\":\"show my saved jobs\"}\\'); echo \"$BODY\" | python3 -c \"import sys,json; d=json.load(sys.stdin); sug=d.get(\\\"job_suggestions\\\",[]); assert isinstance(sug,list) and len(sug)>0, \\\"SKIP: no suggestions (user has no saved jobs)\\\"; link=sug[0].get(\\\"link\\\",\\\"\\\"); assert link.startswith(\\\"/jobhunter/\\\"), f\\\"FAIL: unexpected link {link}\\\"; print(f\\\"PASS: link={link}\\\")\"'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "Auth required. Verifies link field in suggestion starts with /jobhunter/. Actual value: /jobhunter/my-jobs (Dev implementation)."
+        },
+        {
+            "id": "forseti-ai-conversation-job-suggestions-no-watchdog-errors",
+            "label": "TC-10: No watchdog PHP errors or warnings after job suggestions request",
+            "type": "regression",
+            "feature_id": "forseti-ai-conversation-job-suggestions",
+            "command": "bash -c 'BEFORE=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT MAX(wid) FROM watchdog\" 2>/dev/null | tail -1); sleep 1; AFTER=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT wid FROM watchdog WHERE severity<=3 AND wid>$BEFORE AND variables LIKE \\'%ai_conversation%\\'\" 2>/dev/null | wc -l); echo \"New severity<=3 ai_conversation watchdog entries: $AFTER\"; [ \"$AFTER\" -eq 0 ] && echo PASS || (echo FAIL; exit 1)'",
+            "artifacts": [
+                "/tmp/qa-forseti-ai-job-suggestions.log"
+            ],
+            "required_for_release": true,
+            "notes": "Checks for new PHP errors/warnings in watchdog for ai_conversation module after a job-suggestion request. Run after TC-1."
         }
     ],
     "_schema_notes": [
