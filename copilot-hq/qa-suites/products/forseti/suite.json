@@ -2670,6 +2670,138 @@
       ],
       "required_for_release": true,
       "notes": "Security/PII: submitted date values must not appear in watchdog entries. Uses vendor/bin/drush from /var/www/html/forseti."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-admin-200",
+      "label": "TC-1: Admin GET release panel \u2192 200, page title present",
+      "type": "role-url-audit",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "CODE=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_ADMIN\" \"$FORSETI_BASE_URL/admin/reports/copilot-agent-tracker/langgraph-console/release\"); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 200 ] && echo PASS || (echo FAIL; exit 1)",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Authenticated admin user. Expects 200. Playwright variant checks page title 'Release Control Panel'."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-anon-403",
+      "label": "TC-2: Anonymous GET release panel \u2192 403",
+      "type": "role-url-audit",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "CODE=$(curl -s -o /dev/null -w \"%{http_code}\" \"$FORSETI_BASE_URL/admin/reports/copilot-agent-tracker/langgraph-console/release\"); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "No cookie. Expects 403 (or login redirect \u2192 403 after follow)."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-nonadmin-403",
+      "label": "TC-3: Authenticated non-admin GET release panel \u2192 403",
+      "type": "role-url-audit",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "CODE=$(curl -s -o /dev/null -w \"%{http_code}\" -b \"$FORSETI_COOKIE_AUTHENTICATED\" \"$FORSETI_BASE_URL/admin/reports/copilot-agent-tracker/langgraph-console/release\"); echo \"HTTP $CODE\"; [ \"$CODE\" -eq 403 ] && echo PASS || (echo FAIL; exit 1)",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Authenticated user without administer copilot agent tracker perm. Expects 403."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-rows-per-site",
+      "label": "TC-4: Release panel renders per-site rows with all data columns",
+      "type": "e2e",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "npx playwright test --grep 'langgraph-console-release.*panel-rows' tests/forseti/langgraph-console-release-panel.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-langgraph-release-panel/"
+      ],
+      "required_for_release": true,
+      "notes": "Admin session. Table rows for forseti + dungeoncrawler. Columns: release_id, pm_signoff_status, feature_count, hours_elapsed all non-empty."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-no-active-release-graceful",
+      "label": "TC-5: No active release \u2192 graceful 'No active release' row, no PHP error",
+      "type": "e2e",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "npx playwright test --grep 'langgraph-console-release.*no-active-release' tests/forseti/langgraph-console-release-panel.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-langgraph-release-panel/"
+      ],
+      "required_for_release": true,
+      "notes": "Requires Dev to document null-check logic in implementation notes. Test fixture: temp absence of tmp/release-cycle-active/<site>.release_id. No PHP exception markup expected."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-pending-signoff",
+      "label": "TC-6: Missing PM signoff file \u2192 pm_signoff_status shows PENDING",
+      "type": "e2e",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "npx playwright test --grep 'langgraph-console-release.*pending-signoff' tests/forseti/langgraph-console-release-panel.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-langgraph-release-panel/"
+      ],
+      "required_for_release": true,
+      "notes": "Requires Dev to document null-check logic. Fixture: absent sessions/pm-<site>/artifacts/release-signoffs/<release_id>.md. Expects 'PENDING' in status column, no blank/error."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-cache-freshness",
+      "label": "TC-7: Data freshness \u2014 no stale cache > 60s",
+      "type": "functional",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "# Manual/scripted: update a state file between two curl requests and compare rendered output. Requires FORSETI_COOKIE_ADMIN and write access to tmp/release-cycle-active/.",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "PM decision needed: Dev must document cache strategy (no-cache or max-age <= 60s) in implementation notes before this TC can be fully automated. Mark as manual-verify until confirmed."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-nav-link",
+      "label": "TC-8: Console home navigation link to release panel present",
+      "type": "e2e",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "npx playwright test --grep 'langgraph-console-release.*nav-link' tests/forseti/langgraph-console-release-panel.spec.js",
+      "artifacts": [
+        "/tmp/playwright-reports/forseti-langgraph-release-panel/"
+      ],
+      "required_for_release": true,
+      "notes": "Admin visits /admin/reports/copilot-agent-tracker/langgraph-console; link to release panel present in nav or page body."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-no-filesystem-paths",
+      "label": "TC-9: No filesystem paths in rendered HTML",
+      "type": "functional",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "HTML=$(curl -s -b \"$FORSETI_COOKIE_ADMIN\" \"$FORSETI_BASE_URL/admin/reports/copilot-agent-tracker/langgraph-console/release\"); echo \"$HTML\" | grep -E \"/home/ubuntu|/var/www|COPILOT_HQ_ROOT\" && (echo FAIL; exit 1) || echo PASS",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Security check: no absolute filesystem paths (/home/ubuntu, /var/www, COPILOT_HQ_ROOT resolved) in rendered output."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-no-watchdog-errors",
+      "label": "TC-10: No new severity<=3 watchdog errors on clean admin render",
+      "type": "regression",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "bash -c 'BEFORE=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT MAX(wid) FROM watchdog\" 2>/dev/null | tail -1); curl -s -o /dev/null -b \"$FORSETI_COOKIE_ADMIN\" \"$FORSETI_BASE_URL/admin/reports/copilot-agent-tracker/langgraph-console/release\"; AFTER=$(cd /var/www/html/forseti && vendor/bin/drush sql:query \"SELECT COUNT(*) FROM watchdog WHERE severity<=3 AND wid>$BEFORE AND type=\\'copilot_agent_tracker\\'\" 2>/dev/null | tail -1); echo \"New errors: $AFTER\"; [ \"$AFTER\" -eq 0 ] && echo PASS || (echo FAIL; exit 1)'",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Uses vendor/bin/drush from /var/www/html/forseti. 0 new severity<=3 entries for copilot_agent_tracker module."
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-no-hardcoded-paths",
+      "label": "TC-11: Controller uses COPILOT_HQ_ROOT env var \u2014 no hardcoded absolute paths",
+      "type": "code-review",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "command": "grep -rn '/home/ubuntu\\|/var/www' sites/forseti/web/modules/custom/copilot_agent_tracker/src/ | grep -i 'release' && echo FAIL || echo PASS",
+      "artifacts": [
+        "/tmp/qa-forseti-langgraph-release-panel-curl.log"
+      ],
+      "required_for_release": true,
+      "notes": "Static code review. No literal /home/ubuntu/ or /var/www/ in release panel controller logic. Dev to confirm use of COPILOT_HQ_ROOT in implementation notes. If hardcoded paths found at Stage 4, flag as BLOCK."
     }
   ],
   "_schema_notes": [

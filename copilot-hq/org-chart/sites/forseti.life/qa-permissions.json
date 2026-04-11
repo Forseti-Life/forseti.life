@@ -905,6 +905,17 @@
         "authenticated": "200",
         "admin": "200"
       }
+    },
+    {
+      "id": "forseti-langgraph-console-release-panel-route",
+      "feature_id": "forseti-langgraph-console-release-panel",
+      "path_regex": "^/admin/reports/copilot-agent-tracker/langgraph-console/release$",
+      "notes": "Added for feature forseti-langgraph-console-release-panel. Admin-only route. Permission: administer copilot agent tracker.",
+      "expect": {
+        "anon": "403",
+        "authenticated": "403",
+        "admin": "200"
+      }
     }
   ]
 }
