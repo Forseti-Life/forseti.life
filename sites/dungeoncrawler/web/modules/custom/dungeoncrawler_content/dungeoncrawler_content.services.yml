@@ -33,9 +33,14 @@ services:
   dungeoncrawler_content.character_state_service:
     alias: dungeoncrawler_content.character_state
 
+  dungeoncrawler_content.multiclass_archetype_service:
+    class: Drupal\dungeoncrawler_content\Service\MulticlassArchetypeService
+
   dungeoncrawler_content.character_leveling:
     class: Drupal\dungeoncrawler_content\Service\CharacterLevelingService
-    arguments: ['@database']
+    arguments:
+      - '@database'
+      - '@dungeoncrawler_content.multiclass_archetype_service'
 
   dungeoncrawler_content.inventory_management:
     class: Drupal\dungeoncrawler_content\Service\InventoryManagementService

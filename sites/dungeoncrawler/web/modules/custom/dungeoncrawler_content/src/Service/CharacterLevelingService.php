@@ -29,7 +29,10 @@ class CharacterLevelingService {
   /** Valid ability score names. */
   const ABILITIES = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
 
-  public function __construct(protected readonly Connection $database) {}
+  public function __construct(
+    protected readonly Connection $database,
+    protected readonly MulticlassArchetypeService $multiclassArchetypeService = new MulticlassArchetypeService()
+  ) {}
 
   // ── Public API ─────────────────────────────────────────────────────────────
 
@@ -367,6 +370,12 @@ class CharacterLevelingService {
     // Validate feat and prerequisites.
     $feat = $this->validateFeat($feat_id, $slot_type, $class_name, $level, $char_data);
 
+    // AC-002 / AC-004: if this is a dedication feat, run multiclass dedication
+    // validation (breadth rule, no duplicate dedication, level minimum).
+    if ($slot_type === 'class_feat' && !empty($feat['traits']) && in_array('Dedication', $feat['traits'], TRUE)) {
+      $this->multiclassArchetypeService->validateDedicationSelection($feat_id, $char_data);
+    }
+
     // Add feat to character.
     $char_data['features'] = $char_data['features'] ?? ['classFeatures' => [], 'feats' => []];
     $char_data['features']['feats'] = $char_data['features']['feats'] ?? [];
@@ -496,6 +505,13 @@ class CharacterLevelingService {
       'ancestry_feat' => CharacterManager::ANCESTRY_FEATS,
       default         => [],
     };
+
+    // AC-003: merge multiclass archetype feats into class feat slots so
+    // players with active dedications can choose archetype feats at even levels.
+    if ($slot_type === 'class_feat') {
+      $archetype_feats = $this->multiclassArchetypeService->getEligibleArchetypeFeats($char_data);
+      $catalog = array_merge($catalog, $archetype_feats);
+    }
 
     return array_values(array_filter($catalog, static function (array $feat) use ($level, $owned_ids, $gm_unlocked): bool {
       if (isset($feat['level']) && (int) $feat['level'] > $level) {
@@ -658,6 +674,25 @@ class CharacterLevelingService {
         CharacterManager::GENERAL_FEATS,
       ),
     };
+
+    // AC-003: also search archetype feats for class_feat slots so dedication
+    // + archetype feat selections are accepted by the validator.
+    if ($slot_type === 'class_feat') {
+      $owned_feat_ids = array_column($char_data['features']['feats'] ?? [], 'id');
+      $held = $this->multiclassArchetypeService->getHeldArchetypeIds($owned_feat_ids);
+      // Include archetype feats from held dedications (no level filter here —
+      // that check follows below using the feat's own level key).
+      foreach (CharacterManager::MULTICLASS_ARCHETYPES as $archetype) {
+        if (!in_array($archetype['id'], $held, TRUE)) {
+          continue;
+        }
+        $catalog = array_merge($catalog, $archetype['archetype_feats']);
+      }
+      // Also include dedication feats themselves so validateFeat finds them.
+      foreach (CharacterManager::MULTICLASS_ARCHETYPES as $archetype) {
+        $catalog[] = $archetype['dedication'];
+      }
+    }
 
     $feat = NULL;
     foreach ($catalog as $f) {

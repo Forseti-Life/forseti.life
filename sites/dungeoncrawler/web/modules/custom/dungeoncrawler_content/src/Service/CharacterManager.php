@@ -3202,6 +3202,318 @@ the triggering spell. You then attempt to counteract the triggering spell.'],
   ];
 
   /**
+   * CRB Multiclass Archetypes — one per core class (12 total).
+   *
+   * Structure per archetype:
+   *   source_class (string) — the class granting this archetype
+   *   dedication (feat array) — dedication feat (always level 2)
+   *   archetype_feats[] — non-dedication feats available after dedication
+   *   source (string) — 'CRB' for core rulebook entries
+   *
+   * Breadth rules enforced at selection time by MulticlassArchetypeService:
+   *   1) Dedication feat requires level >= 2 and a free class feat slot.
+   *   2) Cannot re-select a dedication for the same archetype.
+   *   3) A second dedication from a different archetype is only allowed
+   *      after taking >= 2 archetype feats from the first archetype.
+   */
+  const MULTICLASS_ARCHETYPES = [
+
+    'fighter-dedication' => [
+      'id' => 'fighter-dedication', 'name' => 'Fighter Multiclass', 'source_class' => 'fighter',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'fighter-dedication', 'name' => 'Fighter Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Strength 14 or Dexterity 14',
+        'benefit' => 'You become trained in your choice of simple or martial weapons. You gain the critical specialization effects of simple and martial weapons you wield. You become trained in Fighter class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'fighter-mc-basic-maneuver', 'name' => 'Basic Maneuver', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a fighter feat of 2nd level or lower.'],
+        ['id' => 'fighter-mc-fighter-resiliency', 'name' => 'Fighter Resiliency', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'If you have an ability that gives you extra HP when you multiclass (e.g., Toughness), increase that HP by 3. If not, you gain an additional 3 HP.'],
+        ['id' => 'fighter-mc-opportunist', 'name' => 'Opportunist', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain the Attack of Opportunity fighter class feature.'],
+        ['id' => 'fighter-mc-advanced-maneuver', 'name' => 'Advanced Maneuver', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Fighter Dedication',
+          'benefit' => 'You gain a fighter feat of 4th level or lower.'],
+        ['id' => 'fighter-mc-diverse-weapon-expert', 'name' => 'Diverse Weapon Expert', 'level' => 12, 'traits' => ['Archetype'],
+          'prerequisites' => 'Fighter Dedication',
+          'benefit' => 'When you gain the weapon specialization class feature, you also gain it for the weapons you are trained in from Fighter Dedication.'],
+      ],
+    ],
+
+    'rogue-dedication' => [
+      'id' => 'rogue-dedication', 'name' => 'Rogue Multiclass', 'source_class' => 'rogue',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'rogue-dedication', 'name' => 'Rogue Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Dexterity 14',
+        'benefit' => 'You become trained in light armor, rapiers, shortbows, and shortswords. You become trained in Stealth or Thievery (or trained to expert if already trained). You become trained in Rogue class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'rogue-mc-basic-trickery', 'name' => 'Basic Trickery', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a rogue feat of 2nd level or lower.'],
+        ['id' => 'rogue-mc-sneak-attacker', 'name' => 'Sneak Attacker', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain the sneak attack class feature, dealing 1d6 precision damage.'],
+        ['id' => 'rogue-mc-advanced-trickery', 'name' => 'Advanced Trickery', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Rogue Dedication',
+          'benefit' => 'You gain a rogue feat of 4th level or lower.'],
+        ['id' => 'rogue-mc-skill-mastery', 'name' => 'Skill Mastery', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Rogue Dedication',
+          'benefit' => 'Increase your rank in two skills of your choice that you are already trained in. These skills increase by one rank (trained to expert, or expert to master).'],
+        ['id' => 'rogue-mc-uncanny-dodge', 'name' => 'Uncanny Dodge', 'level' => 10, 'traits' => ['Archetype'],
+          'prerequisites' => 'Rogue Dedication',
+          'benefit' => 'You gain the Deny Advantage rogue class feature.'],
+      ],
+    ],
+
+    'wizard-dedication' => [
+      'id' => 'wizard-dedication', 'name' => 'Wizard Multiclass', 'source_class' => 'wizard',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'wizard-dedication', 'name' => 'Wizard Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Intelligence 14',
+        'benefit' => 'You gain a spellbook and the ability to prepare two additional cantrips each day from the arcane tradition. You become trained in arcane spell attack rolls and spell DCs. You become trained in Wizard class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'wizard-mc-arcane-school-spell', 'name' => 'Arcane School Spell', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain the ability to cast one spell from a chosen arcane school once per day.'],
+        ['id' => 'wizard-mc-basic-arcana', 'name' => 'Basic Arcana', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a wizard feat of 2nd level or lower.'],
+        ['id' => 'wizard-mc-basic-wizard-spellcasting', 'name' => 'Basic Wizard Spellcasting', 'level' => 4, 'traits' => ['Archetype'],
+          'prerequisites' => 'Wizard Dedication',
+          'benefit' => 'You gain the basic spellcasting benefits for the arcane tradition, gaining a 1st-level arcane spell slot (and additional slots as you level).'],
+        ['id' => 'wizard-mc-advanced-arcana', 'name' => 'Advanced Arcana', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Wizard Dedication',
+          'benefit' => 'You gain a wizard feat of 4th level or lower.'],
+        ['id' => 'wizard-mc-master-wizard-spellcasting', 'name' => 'Master Wizard Spellcasting', 'level' => 12, 'traits' => ['Archetype'],
+          'prerequisites' => 'Basic Wizard Spellcasting',
+          'benefit' => 'You gain master-level arcane spellcasting and an additional 3rd-level arcane spell slot.'],
+      ],
+    ],
+
+    'cleric-dedication' => [
+      'id' => 'cleric-dedication', 'name' => 'Cleric Multiclass', 'source_class' => 'cleric',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'cleric-dedication', 'name' => 'Cleric Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Wisdom 14',
+        'benefit' => 'You become trained in divine spell attack rolls and spell DCs, and gain the ability to cast divine cantrips. You become trained in Cleric class DC. Choose a deity as you would a cleric.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'cleric-mc-basic-dogma', 'name' => 'Basic Dogma', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a cleric feat of 2nd level or lower.'],
+        ['id' => 'cleric-mc-basic-cleric-spellcasting', 'name' => 'Basic Cleric Spellcasting', 'level' => 4, 'traits' => ['Archetype'],
+          'prerequisites' => 'Cleric Dedication',
+          'benefit' => 'You gain basic divine spellcasting benefits: a 1st-level divine spell slot (and additional slots as you level).'],
+        ['id' => 'cleric-mc-advanced-dogma', 'name' => 'Advanced Dogma', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Cleric Dedication',
+          'benefit' => 'You gain a cleric feat of 4th level or lower.'],
+        ['id' => 'cleric-mc-divine-breadth', 'name' => 'Divine Breadth', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Basic Cleric Spellcasting',
+          'benefit' => 'You gain an additional divine spell slot of each level you can cast.'],
+      ],
+    ],
+
+    'ranger-dedication' => [
+      'id' => 'ranger-dedication', 'name' => 'Ranger Multiclass', 'source_class' => 'ranger',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'ranger-dedication', 'name' => 'Ranger Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Dexterity 14 or Strength 14',
+        'benefit' => 'You become trained in Nature and Survival (or increase rank if already trained). You gain the Hunt Prey action. You become trained in Ranger class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'ranger-mc-basic-hunt', 'name' => 'Basic Hunt', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a ranger feat of 2nd level or lower.'],
+        ['id' => 'ranger-mc-ranger-resiliency', 'name' => 'Ranger Resiliency', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain 3 additional HP.'],
+        ['id' => 'ranger-mc-advanced-hunt', 'name' => 'Advanced Hunt', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Ranger Dedication',
+          'benefit' => 'You gain a ranger feat of 4th level or lower.'],
+        ['id' => 'ranger-mc-masters-aim', 'name' => "Master's Aim", 'level' => 12, 'traits' => ['Archetype'],
+          'prerequisites' => 'Ranger Dedication',
+          'benefit' => 'Your hunted prey is always flat-footed to ranged attacks you make against it.'],
+      ],
+    ],
+
+    'bard-dedication' => [
+      'id' => 'bard-dedication', 'name' => 'Bard Multiclass', 'source_class' => 'bard',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'bard-dedication', 'name' => 'Bard Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Charisma 14',
+        'benefit' => 'You become trained in occult spell attack rolls and spell DCs, and gain the ability to cast occult cantrips using the composition mechanic. You become trained in Bard class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'bard-mc-basic-bard-spellcasting', 'name' => 'Basic Bard Spellcasting', 'level' => 4, 'traits' => ['Archetype'],
+          'prerequisites' => 'Bard Dedication',
+          'benefit' => 'You gain basic occult spellcasting benefits: a 1st-level occult spell slot.'],
+        ['id' => 'bard-mc-basic-muse-s-whispers', 'name' => "Basic Muse's Whispers", 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a bard feat of 2nd level or lower.'],
+        ['id' => 'bard-mc-advanced-muse-s-whispers', 'name' => "Advanced Muse's Whispers", 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Bard Dedication',
+          'benefit' => 'You gain a bard feat of 4th level or lower.'],
+        ['id' => 'bard-mc-occult-breadth', 'name' => 'Occult Breadth', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Basic Bard Spellcasting',
+          'benefit' => 'You gain an additional occult spell slot of each level you can cast.'],
+      ],
+    ],
+
+    'barbarian-dedication' => [
+      'id' => 'barbarian-dedication', 'name' => 'Barbarian Multiclass', 'source_class' => 'barbarian',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'barbarian-dedication', 'name' => 'Barbarian Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Strength 14 and Constitution 14',
+        'benefit' => 'You become trained in Athletics and gain the Rage action. You become trained in Barbarian class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'barbarian-mc-basic-fury', 'name' => 'Basic Fury', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a barbarian feat of 2nd level or lower.'],
+        ['id' => 'barbarian-mc-barbarian-resiliency', 'name' => 'Barbarian Resiliency', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain 3 additional HP.'],
+        ['id' => 'barbarian-mc-advanced-fury', 'name' => 'Advanced Fury', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Barbarian Dedication',
+          'benefit' => 'You gain a barbarian feat of 4th level or lower.'],
+        ['id' => 'barbarian-mc-instinct-ability', 'name' => 'Instinct Ability', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Barbarian Dedication',
+          'benefit' => 'You gain the instinct ability associated with your instinct.'],
+        ['id' => 'barbarian-mc-juggernaut-physique', 'name' => 'Juggernaut Physique', 'level' => 12, 'traits' => ['Archetype'],
+          'prerequisites' => 'Barbarian Dedication',
+          'benefit' => 'Your HP from barbarian multiclassing increases by 3 per level you have taken barbarian archetype feats.'],
+      ],
+    ],
+
+    'champion-dedication' => [
+      'id' => 'champion-dedication', 'name' => 'Champion Multiclass', 'source_class' => 'champion',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'champion-dedication', 'name' => 'Champion Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Strength 14 and Charisma 14; must choose an alignment and deity as a champion would',
+        'benefit' => 'You become trained in martial weapons and heavy armor and gain the champion\'s reaction (Retributive Strike for good alignment or Expiating Strike for neutral). You become trained in Champion class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'champion-mc-basic-devotion', 'name' => 'Basic Devotion', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a champion feat of 2nd level or lower.'],
+        ['id' => 'champion-mc-champion-resiliency', 'name' => 'Champion Resiliency', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain 3 additional HP.'],
+        ['id' => 'champion-mc-advanced-devotion', 'name' => 'Advanced Devotion', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Champion Dedication',
+          'benefit' => 'You gain a champion feat of 4th level or lower.'],
+        ['id' => 'champion-mc-divine-ally', 'name' => 'Divine Ally', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Champion Dedication',
+          'benefit' => 'You gain the divine ally class feature (choose blade ally, shield ally, or steed ally).'],
+      ],
+    ],
+
+    'druid-dedication' => [
+      'id' => 'druid-dedication', 'name' => 'Druid Multiclass', 'source_class' => 'druid',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'druid-dedication', 'name' => 'Druid Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Wisdom 14',
+        'benefit' => 'You become trained in primal spell attack rolls and spell DCs, and gain the ability to cast primal cantrips. You become trained in Nature. You become trained in Druid class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'druid-mc-basic-wilding', 'name' => 'Basic Wilding', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a druid feat of 2nd level or lower.'],
+        ['id' => 'druid-mc-order-spell', 'name' => 'Order Spell', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain the focus spell from your chosen druid order.'],
+        ['id' => 'druid-mc-basic-druid-spellcasting', 'name' => 'Basic Druid Spellcasting', 'level' => 4, 'traits' => ['Archetype'],
+          'prerequisites' => 'Druid Dedication',
+          'benefit' => 'You gain basic primal spellcasting benefits: a 1st-level primal spell slot.'],
+        ['id' => 'druid-mc-advanced-wilding', 'name' => 'Advanced Wilding', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Druid Dedication',
+          'benefit' => 'You gain a druid feat of 4th level or lower.'],
+        ['id' => 'druid-mc-primal-breadth', 'name' => 'Primal Breadth', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Basic Druid Spellcasting',
+          'benefit' => 'You gain an additional primal spell slot of each level you can cast.'],
+      ],
+    ],
+
+    'monk-dedication' => [
+      'id' => 'monk-dedication', 'name' => 'Monk Multiclass', 'source_class' => 'monk',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'monk-dedication', 'name' => 'Monk Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Strength 14 or Dexterity 14',
+        'benefit' => 'You become trained in unarmed attacks and gain the Flurry of Blows monk class feature. You become trained in Monk class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'monk-mc-basic-kata', 'name' => 'Basic Kata', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a monk feat of 2nd level or lower.'],
+        ['id' => 'monk-mc-monk-resiliency', 'name' => 'Monk Resiliency', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain 3 additional HP.'],
+        ['id' => 'monk-mc-advanced-kata', 'name' => 'Advanced Kata', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Monk Dedication',
+          'benefit' => 'You gain a monk feat of 4th level or lower.'],
+        ['id' => 'monk-mc-monk-moves', 'name' => 'Monk Moves', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Monk Dedication',
+          'benefit' => 'Your Speed increases by 10 feet as long as you\'re unarmored.'],
+      ],
+    ],
+
+    'sorcerer-dedication' => [
+      'id' => 'sorcerer-dedication', 'name' => 'Sorcerer Multiclass', 'source_class' => 'sorcerer',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'sorcerer-dedication', 'name' => 'Sorcerer Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Charisma 14',
+        'benefit' => 'You become trained in spell attack rolls and spell DCs for your chosen bloodline\'s tradition. You can cast two additional cantrips from your bloodline. You become trained in Sorcerer class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'sorcerer-mc-basic-blood-potency', 'name' => 'Basic Blood Potency', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain a sorcerer feat of 2nd level or lower.'],
+        ['id' => 'sorcerer-mc-basic-sorcerer-spellcasting', 'name' => 'Basic Sorcerer Spellcasting', 'level' => 4, 'traits' => ['Archetype'],
+          'prerequisites' => 'Sorcerer Dedication',
+          'benefit' => 'You gain basic spellcasting benefits for your bloodline\'s tradition: a 1st-level spell slot.'],
+        ['id' => 'sorcerer-mc-advanced-blood-potency', 'name' => 'Advanced Blood Potency', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Sorcerer Dedication',
+          'benefit' => 'You gain a sorcerer feat of 4th level or lower.'],
+        ['id' => 'sorcerer-mc-bloodline-breadth', 'name' => 'Bloodline Breadth', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Basic Sorcerer Spellcasting',
+          'benefit' => 'You gain an additional spell slot of each level you can cast from your bloodline tradition.'],
+      ],
+    ],
+
+    'alchemist-dedication' => [
+      'id' => 'alchemist-dedication', 'name' => 'Alchemist Multiclass', 'source_class' => 'alchemist',
+      'source' => 'CRB', 'minimum_dedication_level' => 2,
+      'dedication' => [
+        'id' => 'alchemist-dedication', 'name' => 'Alchemist Dedication',
+        'level' => 2, 'traits' => ['Archetype', 'Dedication', 'Multiclass'],
+        'prerequisites' => 'Intelligence 14',
+        'benefit' => 'You become trained in Crafting and Alchemical Lore and gain the alchemical crafting feat. You gain 4 common 1st-level alchemical formulas. You become trained in Alchemist class DC.',
+      ],
+      'archetype_feats' => [
+        ['id' => 'alchemist-mc-basic-concoction', 'name' => 'Basic Concoction', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain an alchemist feat of 2nd level or lower.'],
+        ['id' => 'alchemist-mc-quick-alchemy', 'name' => 'Quick Alchemy', 'level' => 4, 'traits' => ['Archetype'],
+          'benefit' => 'You gain the Quick Alchemy alchemist class feature, allowing you to spend 1 resonance to quickly create an alchemical item.'],
+        ['id' => 'alchemist-mc-advanced-concoction', 'name' => 'Advanced Concoction', 'level' => 6, 'traits' => ['Archetype'],
+          'prerequisites' => 'Alchemist Dedication',
+          'benefit' => 'You gain an alchemist feat of 4th level or lower.'],
+        ['id' => 'alchemist-mc-expert-alchemy', 'name' => 'Expert Alchemy', 'level' => 8, 'traits' => ['Archetype'],
+          'prerequisites' => 'Basic Concoction',
+          'benefit' => 'Your alchemist level for Quick Alchemy and alchemical items you create is equal to your character level.'],
+      ],
+    ],
+
+  ];
+
+  /**
    * PF2e Spells database (Cantrips and 1st level spells).
    * Organized by tradition (Arcane, Divine, Occult, Primal).
    */
