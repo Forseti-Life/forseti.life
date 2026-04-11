@@ -1419,6 +1419,34 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-npc-system-crud-acl",
+      "feature_id": "dc-cr-npc-system",
+      "path_regex": "^/api/(npc|campaign/[^/]+/npc)/",
+      "notes": "ACL for NPC CRUD endpoints. NPC data scoped to owning campaign; anonymous and cross-campaign access denied. TC-NPCS-11.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
+    },
+    {
+      "id": "dc-cr-npc-system-ai-context-acl",
+      "feature_id": "dc-cr-npc-system",
+      "path_regex": "^/api/ai-gm/context",
+      "notes": "ACL for AI GM context endpoint that receives NPC data. Authenticated campaign participants only. TC-NPCS-07, TC-NPCS-08.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }

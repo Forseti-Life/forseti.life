@@ -13155,6 +13155,112 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-npc-system-playwright",
+      "label": "NPC system \u2014 content type (required fields, merchant inventory, abbreviated combat stats), attitude/social mechanics (Diplomacy improve, Deception worsen, cross-session persistence), AI GM context (name/role/attitude/lore, quest-giver hook), NPC vs creature content-type distinction, campaign NPC tracking (list + relationship history), cross-campaign data isolation/ACL",
+      "type": "playwright",
+      "feature_id": "dc-cr-npc-system",
+      "command": "npx playwright test --grep npc-system tests/dungeoncrawler/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-npc-system/playwright-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-NPCS-01",
+          "label": "NPC content type: record stores all required fields (npc_id, name, role enum, attitude enum, level, perception, AC, HP, saves, lore notes); no null required fields",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-02",
+          "label": "Merchant NPC: role=merchant + inventory system active \u2192 inventory panel shown; item list linked to NPC record",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "notes": "Conditional on inventory system being active; gate logic (role=merchant filter) activatable immediately.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-03",
+          "label": "NPC with abbreviated stat block enters initiative; takes actions on its turn using NPC stat block for checks",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-04",
+          "label": "Diplomacy Influence success (roll >= Influence DC) \u2192 npc.attitude improves one step (hostile\u2192unfriendly\u2192indifferent\u2192friendly)",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "notes": "This TC was previously deferred from dc-cr-skills-diplomacy-actions (Make an Impression / Influence) pending dc-cr-npc-system. Now activatable.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-05",
+          "label": "Deception detected \u2192 npc.attitude worsens one step; attitude floor = hostile",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "notes": "This TC was previously deferred from dc-cr-skills-deception-actions pending dc-cr-npc-system. Now activatable.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-06",
+          "label": "Attitude change persists to next session in campaign mode: DB updated on save; next session load reflects changed attitude",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/downtime",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-07",
+          "label": "AI GM context payload includes npc.name, npc.role, npc.attitude, npc.lore_notes for each active NPC in scene",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "notes": "Depends on AI GM context injection being implemented. Flag to PM if AI GM integration is not in scope for this release.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-08",
+          "label": "Quest-giver NPC: quest_hook_text included in AI GM context; AI GM prompted for narrative introduction",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "notes": "Depends on AI GM context injection. Same dependency as TC-NPCS-07.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-09",
+          "label": "NPC vs creature distinction: content type query returns separate types; NPCs have abbreviated stats only (level/perception/AC/HP/saves); creatures have full PF2e stat blocks",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-10",
+          "label": "Campaign NPC tracking: campaign.npcs list populated on campaign load; npc.relationship_log stores session_id + change per attitude event",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/downtime",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-NPCS-11",
+          "label": "Cross-campaign data isolation: NPC records not accessible to other campaigns without GM sharing; all NPC CRUD requires campaign owner auth (401/403 for unauthorized)",
+          "feature_id": "dc-cr-npc-system",
+          "suite_context": "playwright/encounter",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [
