@@ -12791,6 +12791,137 @@
           "required_for_release": true
         }
       ]
+    },
+    {
+      "id": "dc-cr-skills-lore-earn-income-phpunit",
+      "label": "Lore skill actions \u2014 Recall Knowledge (subcategory scoping, multi-subcategory independence, untrained use) and Earn Income (activity type, task-level DC, proficiency caps, 4-degree income table, employer-block timer)",
+      "type": "phpunit",
+      "feature_id": "dc-cr-skills-lore-earn-income",
+      "command": "vendor/bin/phpunit --filter LoreEarnIncomeTest web/modules/custom/dungeoncrawler_content/tests/",
+      "artifacts": [
+        "sessions/qa-dungeoncrawler/artifacts/dc-cr-skills-lore-earn-income/phpunit-results.xml"
+      ],
+      "required_for_release": true,
+      "test_cases": [
+        {
+          "id": "TC-LRE-01",
+          "label": "Lore Recall Knowledge scoped to character's specific subcategory; out-of-subcategory query returns out-of-scope response",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "notes": "PM: confirm domain\u2192subcategory mapping in data model (explicit domain tag list vs GM-adjudicated only). Automation needs deterministic mapping.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-02",
+          "label": "Lore Recall Knowledge resolves with same 4-degree structure as all other Recall Knowledge actions",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-03",
+          "label": "Multiple Lore subcategories tracked independently \u2014 proficiency and check results do not bleed between subcategories",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-04",
+          "label": "Untrained Lore allowed for Recall Knowledge within its subcategory; rolls at untrained modifier",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-05",
+          "label": "Earn Income is a downtime activity \u2014 action_type=downtime",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-06",
+          "label": "Earn Income accepts Lore, Crafting, or Performance as resolving skill; other skills blocked",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "notes": "PM: confirm whether skill selection is free player-choice or constrained by job/employer type.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-07",
+          "label": "Earn Income DC determined by task level (1\u201320); higher task level = higher DC per level-to-dc table",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "notes": "PM: confirm exact DC-per-level table (PF2e standard or custom mapping). Automation needs enumerated values.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-08",
+          "label": "Earn Income task level capped at character level; selecting task above cap is hard-blocked before check",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-09",
+          "label": "Earn Income Trained proficiency cap: max_task_level = character_level \u2212 1; Expert and above uses full character level",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "notes": "PM: confirm Trained cap is a hard system rule (not GM-optional) and that Expert already unlocks full character-level cap.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-10",
+          "label": "Earn Income Critical Success: daily_income = income_table[task_level + 1] (next tier)",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "notes": "PM: confirm GP-per-day income table values for each level so automation can verify exact outputs.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-11",
+          "label": "Earn Income Success: daily_income = income_table[task_level] (on-level)",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-12",
+          "label": "Earn Income Failure: daily_income=0; employer_blocked=false; no error condition",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-13",
+          "label": "Earn Income Critical Failure: daily_income=0; employer_id.blocked_until=now+7 days; further attempts with same employer during block window \u2192 blocked",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "notes": "PM: confirm employer block is exactly 7 in-game days (not GM-variable). System needs deterministic scalar.",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-14",
+          "label": "Earn Income Crit Fail employer block is employer-specific; other employers unaffected and allow normal Earn Income",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-15",
+          "label": "Earn Income task above level cap: hard block \u2014 no check rolled, error returned (not a penalty result)",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        },
+        {
+          "id": "TC-LRE-16",
+          "label": "ACL regression: no new routes from Lore/Earn Income; existing downtime handler routes retain ACL",
+          "feature_id": "dc-cr-skills-lore-earn-income",
+          "status": "immediately activatable",
+          "required_for_release": true
+        }
+      ]
     }
   ],
   "_schema_notes": [

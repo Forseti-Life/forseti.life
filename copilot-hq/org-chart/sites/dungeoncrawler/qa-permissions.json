@@ -1377,6 +1377,20 @@
         "dc_playwright_player": "allow",
         "dc_playwright_admin": "allow"
       }
+    },
+    {
+      "id": "dc-cr-skills-lore-earn-income-acl-regression",
+      "feature_id": "dc-cr-skills-lore-earn-income",
+      "path_regex": "^/api/(game|character|downtime)/",
+      "notes": "ACL regression for dc-cr-skills-lore-earn-income. No new routes introduced by Lore or Earn Income actions. Existing downtime handler routes retain ACL: anon denied (403), authenticated player allowed (200). TC-LRE-16.",
+      "expect": {
+        "anon": "deny",
+        "authenticated": "allow",
+        "content_editor": "allow",
+        "administrator": "allow",
+        "dc_playwright_player": "allow",
+        "dc_playwright_admin": "allow"
+      }
     }
   ]
 }
